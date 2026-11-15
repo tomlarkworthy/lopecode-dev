@@ -4,8 +4,6 @@ The cells of section 6 of \`@tomlarkworthy/soundscript-tutorial\`, as live Sound
 // %%
 //ss: 06-model.tsx
 // %%
-view = ss.mount(app, this)
-// %%
 ss_compile = ss.compiler(() => ss_source(model_module))
 // %%
 viewof model_module = thisModule()

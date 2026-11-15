@@ -4,8 +4,6 @@ The cells of section 5 of \`@tomlarkworthy/soundscript-tutorial\`, as live Sound
 // %%
 //ss: 05-reducer.tsx
 // %%
-view = ss.mount(app, this)
-// %%
 viewof reducer_module = thisModule()
 // %%
 import { ss } from "@tomlarkworthy/soundscript"

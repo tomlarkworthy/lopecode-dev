@@ -8,11 +8,13 @@ md`## A first cell
 
 \`width\`, \`height\` and \`area\` are three cells. A cell is a function. Its parameter names are the cells it reads, so \`area\` runs again when \`width\` or \`height\` changes.
 
-Each cell is shown as its source, with the checker's verdict, the type it inferred and its current value under it. The **edit** bar under a cell opens its editor.`
+The listing before them is their source, read back from the cells as they are now. With edit mode on, each cell's value follows the listing, and the **edit** bar under a cell opens its editor.`
 // %%
-//ss-cards: 01-cells.ts -aspect -scale -half -test_half
+sourceListing(tutorial_module, invalidation, { from: "width", to: "area" })
 // %%
-md`**Try it.** Open \`width\` and change it to \`() => 800\`, then press Shift-Enter. \`area\`, \`aspect\` and \`half\` update. Now change it to \`() => "800"\`. The edit is stored, and the editor says which cells it breaks: \`area\` and \`aspect\` multiply \`width\`, so they no longer check. They show the checker's message and stop running. \`half\` reads \`area\`, so it is blocked: its card says "blocked by area", and it does not run until \`area\` does. Change \`width\` back, or change those two cells to accept a string, and they run again.`
+//ss: 01-cells.ts -aspect -scale -half -test_half
+// %%
+md`**Try it.** Open \`width\` and change it to \`() => 800\`, then press Shift-Enter. \`area\`, \`aspect\` and \`half\` update. Now change it to \`() => "800"\`. The edit is stored, and the editor says which cells it breaks: \`area\` and \`aspect\` do arithmetic on \`width\`, so they no longer check. They show the checker's message and stop running. \`half\` reads \`area\`, so it is blocked: it shows the error \`area\` raises, and it does not run until \`area\` does. Change \`width\` back, or change those two cells to use \`Number(width)\`, and they run again.`
 // %%
 md`## Why take things out
 
@@ -37,7 +39,9 @@ The other cells of the file that \`width\`, \`height\` and \`area\` came from. A
 
 The diagram after them shows which cells each one reads.`
 // %%
-//ss-cards: 01-cells.ts -width -height -area
+sourceListing(tutorial_module, invalidation, { from: "aspect", to: "test_half" })
+// %%
+//ss: 01-cells.ts -width -height -area
 // %%
 depGraph(tutorial_module, invalidation, { only: ["width", "height", "area", "aspect", "scale", "half", "test_half"] })
 // %%
@@ -59,7 +63,9 @@ Building an array or a typed array one element at a time is ordinary and fast, a
 
 \`leak\` returns a writable value and \`late\` writes after \`freeze\`. Both are rejected, so neither runs; each shows the checker's message. They are live here so that you can fix them.`
 // %%
-//ss-cards: 03-mut.ts
+sourceListing(tutorial_module, invalidation, { from: "samples", to: "late" })
+// %%
+//ss: 03-mut.ts
 // %%
 md`**Try it.** Open \`leak\` and change \`return xs\` to \`return freeze(xs)\`. The edit is accepted, and \`leak\` turns from rejected to ok and runs.`
 // %%
@@ -71,9 +77,9 @@ A write must be inside \`action(...)\`. \`increment\` and \`clear\` are actions.
 
 The view is a cell too. \`app\` returns JSX: a description of the page that is built again whenever \`count\` changes. An event attribute such as \`onClick\` must be given an action.`
 // %%
-//ss-cards: 04-counter.tsx
+sourceListing(tutorial_module, invalidation, { from: "count", to: "app" })
 // %%
-view = framed(ss.mount(app, this))
+//ss: 04-counter.tsx
 // %%
 md`**Try it.** Press **add one**. Then open \`app\` and change \`onClick={increment}\` to \`onClick={count}\`. \`app\` no longer checks, because a number is not an action, and the buttons are replaced by the message. Change it back: the buttons return and the count is what it was.`
 // %%
@@ -155,7 +161,9 @@ md`## 8. Mistakes in a view
 
 JSX is checked like the rest of a cell: each attribute against the attributes its tag declares, and each event handler against the action it is given. Eleven cells, one mistake each. Ten are live cells that do not run: each shows the checker's message and can be fixed in place. The eleventh is in a box after them.`
 // %%
-//ss-cards: 08-reject-jsx.tsx -bad_free_component
+sourceListing(tutorial_module, invalidation, { from: "n", to: "ok_all" })
+// %%
+//ss: 08-reject-jsx.tsx -bad_free_component
 // %%
 md`\`bad_free_component\` uses a component that does not exist. As a live cell it would name a variable the module does not define, so it is checked on its own:`
 // %%
@@ -264,7 +272,7 @@ A listener cell returns \`on(events, action)\`. While that value is the cell's v
 // %%
 md`### The renderer
 
-Each JSX node becomes an \`h(tag, props, ...children)\` call, and \`h\` returns a frozen \`{tag, props, children}\` value. Section 4's \`view\`, \`ss.mount(app, this)\`, is an ordinary Observable cell, not SoundScript: it hands that value to the renderer, 75 lines outside the checked language. The renderer creates the DOM once, then patches it in place each time \`app\` produces a new value: the same tag at the same position reuses the node, an element that is the same object as last time is skipped, and children that all carry \`key\` are matched by key. It calls the actions when DOM events arrive, decoding each event into data (\`PointerData\` from a \`PointerEvent\`, a string from an \`input\`); that decoding is trusted code.
+Each JSX node becomes an \`h(tag, props, ...children)\` call, and \`h\` returns a frozen \`{tag, props, children}\` value. The page shows a cell whose type is \`Elem\` by handing that value to the renderer (\`ss.mount\`, called from the core's \`ss_language.inspect\`), 75 lines outside the checked language. The renderer creates the DOM once, then patches it in place each time \`app\` produces a new value: the same tag at the same position reuses the node, an element that is the same object as last time is skipped, and children that all carry \`key\` are matched by key. It calls the actions when DOM events arrive, decoding each event into data (\`PointerData\` from a \`PointerEvent\`, a string from an \`input\`); that decoding is trusted code.
 
 Section 9 is built on this. \`bricks\`, \`ball\` and \`paddle\` each select one part of the world, and \`bricksView\`, \`paddleView\` and \`ballView\` draw one part each. \`step\` returns the same \`bricks\` array when nothing was hit, so \`bricksView\`'s body does not run and \`app\` gets the same element object as before, and the 24 bricks cost one comparison per frame. A broken brick removes one node. \`test_breakout_memo\` measures this on a copy of the game; on 2026-11-15 in headless Chromium, 1.5 s of play gave 90 animation frames and 88 changes of the world; \`ballView\` ran 89 times, \`bricksView\` once, for the one brick that broke, \`paddleView\` not at all with no pointer moving, \`ticks\` twice (play, then pause) and \`onTick\` not at all. The DOM saw 88 \`style\` writes, 3 text changes and 1 node removed.
 
@@ -275,7 +283,7 @@ md`### How the typed source is kept
 A compiled variable's definition is ordinary JavaScript. Its first comment is the marker \`/*{lang:"ss"}*/\`, the types are kept as \`/*ss:…*/\` comments, JSX as \`/*ss<…*/\` beside its lowered \`h(...)\` calls, and the text around the function (the comments before it, \`export const name = \`) in a \`/*ss^{…}*/\` header. So the typed source is recovered from the definition alone, and a definition survives anything that keeps a function's text, such as saving the notebook. \`test_ss_roundtrip\` checks every live variable: decompile, compile again, and compare the text.`
 // %%
 md`### Editing
-Shift-Enter always stores the edit. The module is checked again, and each cell is then ok, rejected (it breaks a rule) or blocked (it depends on a cell that is not ok). Only ok cells run. A rejected or blocked cell keeps its source, shows why it is not running, and is saved that way. A \`ref\` whose own cell stays ok keeps its value while other cells are broken and repaired.`
+Shift-Enter always stores the edit. The module is checked again, and each cell is then ok, rejected (it breaks a rule) or blocked (it depends on a cell that is not ok). Only ok cells run. A rejected or blocked cell keeps its source, shows why it is not running, and is saved that way. A \`ref\` whose own cell stays ok keeps its value while other cells are broken and repaired. A new cell whose source starts with \`export\` is a SoundScript cell. The language registers on the \`cell_languages\` plugin point of this notebook's copy of \`@tomlarkworthy/cell-map\`, which the editor and the visualizer read.`
 // %%
 md`### Why four sections are modules
 
@@ -594,7 +602,7 @@ md`## Appendix: this notebook's code
 
 \`ss\` is imported from \`@tomlarkworthy/soundscript\`, which loads it from its gzipped attachment \`ss.js.gz\`: the checker, the per-cell compiler, the JSX lowering and renderer, and the standard library that live cells call. The example sources are attachments of this module, and the boxes and \`test_examples_check_as_expected\` read them; the live cells were compiled from the same files when the notebook was built.
 
-Before each lesson cell is a cell \`card_<name>\`. It calls the core's \`ss_card\`, imported here as \`ssCard\`, which shows the lesson cell's source, decompiled from its live definition, and the checker's verdict, type and value. \`cardStyle\` hides the lesson cell's own output line and leaves its edit bar. \`sourceListing\` (the core's \`ss_listing\`) shows a whole section module's source. Both colour the source with the editor's TypeScript parser (the core's \`ss_highlight\`).`
+Before each group of lesson cells is a \`sourceListing\` cell of this module. It shows the group's source, decompiled from the cells' live definitions and read again when the module's code changes, coloured with the editor's TypeScript parser (the core's \`ss_highlight\`). The lesson cells after it are shown as any cell is: a value with the normal Inspector, an action, a function, a listener, an events cell or a type as one line drawn by the core's \`ss_language.inspect\`, an element mounted, and a cell that does not check as its error.`
 // %%
 //raw: ss_bytes
 // %%
@@ -619,6 +627,38 @@ examples = ({
   rejectJsx: await FileAttachment("08-reject-jsx.tsx").text(),
   game: await FileAttachment("09-breakout.tsx").text()
 })
+// %%
+sourceListing = (module, invalidation, { from = null, to = null } = {}) => {
+  // module's SoundScript source from cell from to cell to (all of it without them), as its cells are now
+  const pre = htl.html`<pre class="lite-code lite-listing ss-hl">`;
+  let text = null, queued = false;
+  const draw = () => {
+    queued = false;
+    const cells = ss_moduleCells(module), keys = cells.map((c) => c.key);
+    const a = from === null ? 0 : keys.indexOf(from), b = to === null ? cells.length - 1 : keys.indexOf(to);
+    const t = cells.slice(Math.max(a, 0), b < 0 ? cells.length : b + 1).map((c) => c.text).join("\n\n");
+    if (t !== text) { text = t; pre.replaceChildren(...ss_highlight(t)); }
+  };
+  const off = onCodeChange(({ variable, previous }) => { if ((variable ?? previous)?._module === module && !queued) { queued = true; queueMicrotask(draw); } });
+  draw();
+  invalidation.then(off);
+  return pre;
+}
+// %%
+badge = (status, text = status) => htl.html`<span class=${"lite-badge lite-badge-" + status}>${text}</span>`
+// %%
+isStale = (e) => typeof e === "function" && e.name === "variable_stale"
+// %%
+fmt = (v) => {
+  if (typeof v === "function") return "ƒ";
+  if (typeof v === "number") return Number.isNaN(v) ? "NaN" : String(v);
+  if (v === undefined) return "undefined";
+  if (ArrayBuffer.isView(v)) return `${v.constructor.name}(${v.length}) [${Array.from(v.slice(0, 8)).join(", ")}${v.length > 8 ? ", …" : ""}]`;
+  if (v && typeof v === "object" && "tag" in v && "children" in v) return `<${v.tag || "fragment"}> element`;
+  let s;
+  try { s = JSON.stringify(v); } catch (e) { s = String(v); }
+  return s === undefined ? String(v) : s.length > 90 ? s.slice(0, 87) + "..." : s;
+}
 // %%
 sourceBox = (value, { rows } = {}) => {
   const box = Inputs.textarea({ value, rows: rows ?? value.split("\n").length + 1, monospace: true, spellcheck: false, width: "100%", resize: true });
@@ -916,6 +956,36 @@ benchmark = {
 }
 // %%
 style = htl.html`<style>
+:root {
+  --lite-ok: #2f9e44;
+  --lite-bad: var(--theme-error, #d6336c);
+  --lite-warn: #c98a12;
+  --lite-accent: var(--theme-foreground-focus, #3b6fd8);
+  /* text in these colours, mixed toward the foreground so it reads at 4.5:1 on dark and light themes */
+  --lite-ok-text: color-mix(in srgb, var(--lite-ok) 55%, var(--theme-foreground));
+  --lite-bad-text: color-mix(in srgb, var(--lite-bad) 55%, var(--theme-foreground));
+  --lite-warn-text: color-mix(in srgb, var(--lite-warn) 55%, var(--theme-foreground));
+  /* the theme's muted text, 30% toward the foreground: the light theme's own is 3.2 to 4.4:1 on the alt background */
+  --lite-muted-text: color-mix(in srgb, var(--theme-foreground-muted) 70%, var(--theme-foreground));
+}
+${ss_hl_css}
+.lite-err b { color: var(--lite-bad-text); }
+.lite-badge { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; border: 1px solid currentColor; }
+.lite-badge-ok, .lite-badge-pass { color: var(--lite-ok-text); background: color-mix(in srgb, var(--lite-ok) 14%, transparent); }
+.lite-badge-rejected, .lite-badge-fail { color: var(--lite-bad-text); background: color-mix(in srgb, var(--lite-bad) 14%, transparent); }
+.lite-badge-unsupported, .lite-badge-blocked { color: var(--lite-warn-text); background: color-mix(in srgb, var(--lite-warn) 14%, transparent); }
+.lite-badge-pending { color: var(--lite-muted-text); }
+.lite-code { margin: 0; padding: 8px 10px; font: 13px/1.45 var(--monospace, monospace); color: var(--theme-foreground); background: none; overflow-x: auto; white-space: pre; tab-size: 2; }
+.lite-listing { max-height: 420px; overflow: auto; border: 1px solid var(--theme-foreground-faint); border-radius: 4px; background: var(--theme-background-alt); }
+.lp2-pane .ss-view { padding: 8px 10px; margin: 6px 0; border: 1px solid var(--theme-foreground-faint); border-radius: 6px; background: var(--theme-background-alt); }
+.lp2-pane .ss-view .ss-view { padding: 0; margin: 0; border: none; background: none; }
+.ss-view button { font: 13px/1.2 var(--sans-serif, system-ui); padding: 5px 12px; color: var(--theme-foreground); background: var(--theme-background-alt); border: 1px solid var(--theme-foreground-faint); border-radius: 5px; cursor: pointer; }
+.ss-view button:hover { border-color: var(--lite-accent); }
+.ss-view output { font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  /* a listing wraps on a phone, keeping its indentation, rather than scrolling out of sight */
+  .lite-listing { white-space: pre-wrap; overflow-wrap: anywhere; }
+}
 .lite-panel { border-collapse: collapse; font-size: 13px; width: 100%; max-width: 100%; }
 .lite-panel th { text-align: left; color: var(--lite-muted-text); font-weight: 600; }
 .lite-panel td, .lite-panel th { padding: 3px 8px 3px 0; vertical-align: top; border-bottom: 1px solid var(--theme-foreground-faintest); }
@@ -994,8 +1064,6 @@ style = htl.html`<style>
 // %%
 viewof tutorial_module = thisModule()
 // %%
-cardStyle = Object.assign(document.createElement("style"), { textContent: ss_card_css + "\n" + ss_card_rules })
-// %%
 test_ss_roundtrip = {
   tests_on;
   const n = ss_roundtrip(tutorial_module);
@@ -1016,7 +1084,7 @@ test_ss_module_checks = {
 //raw: test_ss_counter
 // %%
 // the capabilities are imported for cells a reader adds; a compiled cell that takes now reads ss_now
-import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_roundtrip, ss_instance, ss_card as ssCard, ss_listing as sourceListing, ss_card_css, ss_highlightCode, ss_badge as badge, ss_fmt as fmt, ss_isStale as isStale } from "@tomlarkworthy/soundscript"
+import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_roundtrip, ss_instance, ss_highlight, ss_highlightCode, ss_hl_css } from "@tomlarkworthy/soundscript"
 // %%
 import { app as reducer_app, reducer_module } from "@tomlarkworthy/soundscript-reducer"
 // %%

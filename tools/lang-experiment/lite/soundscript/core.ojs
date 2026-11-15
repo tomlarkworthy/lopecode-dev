@@ -4,7 +4,7 @@ This module is the SoundScript language: the checker, the compiler from a checke
 
 Four SoundScript cells and a view that uses them:`
 // %%
-//ss-cards: ./core-example.ts
+//ss: ./core-example.ts
 // %%
 example_view = htl.html`<div class="ss-example"><button onclick=${() => bump()}>bump</button> <button onclick=${() => reset()}>reset</button> <code>tally = ${tally}</code>, <code>doubled = ${doubled}</code></div>`
 // %%
@@ -55,15 +55,17 @@ The compiler sets \`memo: true\` only on a plain cell that the checker accepts o
 // %%
 readme_editing = md`## Editing
 
-\`ss_registration\` registers the language with the editor through the plugin point \`cell_languages\`. Only this notebook's copy of \`@tomlarkworthy/editor-5\` has that plugin point.
+\`ss_registration\` registers the language on the plugin point \`cell_languages\`. Only this notebook's copy of \`@tomlarkworthy/cell-map\` has that plugin point; this notebook's copies of \`@tomlarkworthy/editor-5\` and \`@tomlarkworthy/visualizer\` read it.
 
-For a cell whose variables carry the marker, the editor shows the typed source. It reports the checker's diagnostics as you type. What the edit does to other cells is shown on its first line: the cells it breaks, blocks or repairs, and after Shift-Enter the cells it broke, blocked or repaired.
+The visualizer shows a cell's value with the normal Inspector. An action, a function, a listener, an events cell, a type and an element are drawn by \`ss_language.inspect\` instead: an element is mounted, the others are one inspector line such as \`bump = ƒ action()\`. An element positioned with \`position:absolute\` against a parent it has not got yet, such as Breakout's \`bricksView\`, is a line too, because mounted alone it has no box and covers the cells after it.
+
+For a cell whose variables carry the marker, the editor shows the typed source, and its header line shows the inferred type, as \`doubled : number\`. It reports the checker's diagnostics as you type. What the edit does to other cells is shown on its first line: the cells it breaks, blocks or repairs, and after Shift-Enter the cells it broke, blocked or repaired.
 
 Shift-Enter stores the edit whatever the checker says, unless it names no cell or another cell's name. A cell that is not \`ok\` compiles to a definition that raises the checker's messages, with its typed source kept in the marker comment. A stored edit compiles again any other cell whose compiled form it changes. \`ss_lifecycle\` does the same for a change made outside the editor, such as a deleted cell.`
 // %%
 readme_limits = md`## Limits
 
-- The editor hook needs the \`cell_languages\` plugin point, which only this notebook's copy of \`@tomlarkworthy/editor-5\` has. Running these cells with another editor was not tried.
+- The editor and visualizer hooks need the \`cell_languages\` plugin point, which only this notebook's copies of \`@tomlarkworthy/cell-map\`, \`@tomlarkworthy/editor-5\` and \`@tomlarkworthy/visualizer\` have. Running these cells with other copies was not tried.
 - A cell that does not parse is stored only if its text starts with \`export const <name>\`; otherwise there is no name to store it under.
 - A module holds one source file's worth of cells. Unchecked shell cells and trusted foreign declarations, which the checker can read, are not supported here.
 - The renderer's event decoding and \`ss.mount\` are outside the checked language.
@@ -88,10 +90,9 @@ ss_moduleCells(module)                 // a module's SoundScript cells: [{key, t
 ss_source(module)                      // those cells' source, joined in runtime order
 ss_check(module)                       // checkSources over ss_source(module)
 ss_roundtrip(module)                   // decompile and recompile every cell; throws on a difference
-ss_language                            // the object registered with the editor
+ss_language                            // the object registered on cell_languages; .inspect draws a value
 ss_instance(module, invalidation)      // a second, unseen copy of module's SoundScript cells, for tests
-ss_card(module, name, invalidation)    // a card: the cell's typed source, its check, type and value
-ss_listing(module, invalidation)       // all of a module's SoundScript source, as its cells are now
+ss_highlight(text), ss_highlightCode(node)  // TypeScript colouring as spans; an md cell's code blocks coloured
 ss_tests_on                            // pending until "run the tests" is on; test cells take it as an input
 \`\`\``)
 // %%
@@ -154,7 +155,7 @@ ss_context = (texts) => {
   return ss.contextFromCheck(ss.checkCells(texts).result);
 }
 // %%
-ss_source = (module) => ss_moduleCells(module).map((c) => c.text).join("\n\n")
+ss_source = (module) => ss.joinCells(ss_moduleCells(module).map((c) => c.text))
 // %%
 ss_roundtrip = (module) => {
   let n = 0;
@@ -474,7 +475,73 @@ ss_language = {
     const own = new Set(variables);
     const inputs = [...new Set(variables.flatMap((x) => x._inputs))].filter((i) => !own.has(i) && params.has(String(i._name).replace(/^viewof /, "")));
     const outputs = [...new Set(variables.flatMap((x) => [...x._outputs]))].filter((o) => !own.has(o) && typeof o._name === "string" && o._name);
-    return { inputs, outputs };
+    const name = keyOf(v._name);
+    return { inputs, outputs, name, type: name.startsWith("type ") ? null : typesOf(v._module).get(name) ?? null };
+  };
+
+  // the checker's value type of each cell of a module, checked again only when one of its definitions changes
+  const typeCache = new WeakMap();
+  const typesOf = (module) => {
+    if (!module) return new Map();
+    const defs = [];
+    for (const v of runtime._variables) if (v._module === module && isSs(v)) defs.push(v._definition);
+    const hit = typeCache.get(module);
+    if (hit && hit.defs.length === defs.length && hit.defs.every((d, i) => d === defs[i])) return hit.types;
+    let types = new Map();
+    try { types = new Map(ss_check(module).result.cells.map((c) => [c.name, c.value])); } catch {}
+    typeCache.set(module, { defs, types });
+    return types;
+  };
+
+  // How the visualizer shows a value: only the kinds the normal Inspector cannot read are drawn here, as
+  // an inspector line (name = …) or, for an element, the element; null leaves the value to the Inspector.
+  // The kind comes from the checker's type, not from the value's shape.
+  const line = (name, text) => {
+    const el = document.createElement("span");
+    el.className = text.startsWith("ƒ") ? "observablehq--function observablehq--inspect" : "observablehq--inspect";
+    const cellname = document.createElement("span");
+    cellname.className = "observablehq--cellname";
+    cellname.textContent = `${name} = `;
+    const kw = document.createElement("span");
+    kw.className = "observablehq--keyword";
+    el.append(cellname);
+    if (text.startsWith("ƒ")) { kw.textContent = "ƒ"; el.append(kw, text.slice(1)); } else el.append(text);
+    return el;
+  };
+  const inspect = (variable, value, root, { pending = false } = {}) => {
+    if (!isSs(variable) || typeof variable._name !== "string") return null;
+    const key = keyOf(variable._name);
+    // a type cell has no value, so it is drawn while pending; every other cell waits for its value
+    if (pending && !key.startsWith("type ")) return null;
+    const def = String(variable._definition);
+    if (key.startsWith("type ")) {
+      const text = sourceOf(variable);
+      return text === null ? null : line(key, text.replace(/^[\s\S]*?\btype\s+[\w$]+(?:<[^=]*>)?\s*=\s*/, "").replace(/;\s*$/, ""));
+    }
+    const type = typesOf(variable._module).get(key);
+    if (!type) return null;
+    if (def.includes('kind: "events"')) return line(key, `events Events<${type}>`);
+    if (type === "Elem" && value && typeof value === "object" && "tag" in value) {
+      // an element placed by position:absolute against a parent it has not got yet (Breakout's
+      // bricksView) has no box of its own; mounted alone it would cover the cells after it
+      const pos = (e) => /position\s*:\s*(absolute|relative|fixed)/.exec(String(e?.props?.style ?? ""))?.[1];
+      const placed = (e) => pos(e) === "absolute" || (!pos(e) && (e?.children ?? []).some((c) => c && typeof c === "object" && placed(c)));
+      if (placed(value)) return line(key, `<${value.tag || "fragment"}> element, positioned by its parent`);
+      const el = ss.mount(value, root.__ssView ?? null);
+      el.classList?.add("ss-view");
+      root.__ssView = el;
+      return el;
+    }
+    if (type === "Listener") {
+      const text = sourceOf(family(variable._module, key)[0] ?? variable) ?? "";
+      const pairs = [...text.matchAll(/\bon\(\s*([\w$]+)\s*,\s*([\w$]+)\s*\)/g)].map((m) => `${m[1]} → ${m[2]}`);
+      return line(key, `listener ${pairs.join(" | ") || "?"}`);
+    }
+    if (typeof value !== "function") return null;
+    const action = /^Action<\[(.*)\]>$/.exec(type);
+    if (action) return line(key, `ƒ action(${action[1]})`);
+    if (type.startsWith("(")) return line(key, `ƒ ${type}`);
+    return null;
   };
 
   // a new cell is SoundScript when its module has ss, which every compiled cell takes
@@ -497,13 +564,13 @@ ss_language = {
   };
   return {
     id: "ss",
-    claims: (variables) => variables.some(isSs),
     claimsSource,
     decompile,
     check,
     lint,
     complete,
     header,
+    inspect,
     apply,
     faults,
     recompile,
@@ -515,21 +582,6 @@ ss_language = {
 ss_registration = {
   plugins.add("cell_languages", ss_language, { invalidation });
   return md`SoundScript is registered as the editor language \`${ss_language.id}\` (plugin \`cell_languages\`).`;
-}
-// %%
-ss_badge = (status, text = status) => htl.html`<span class=${"lite-badge lite-badge-" + status}>${text}</span>`
-// %%
-ss_isStale = (e) => typeof e === "function" && e.name === "variable_stale"
-// %%
-ss_fmt = (v) => {
-  if (typeof v === "function") return "ƒ";
-  if (typeof v === "number") return Number.isNaN(v) ? "NaN" : String(v);
-  if (v === undefined) return "undefined";
-  if (ArrayBuffer.isView(v)) return `${v.constructor.name}(${v.length}) [${Array.from(v.slice(0, 8)).join(", ")}${v.length > 8 ? ", …" : ""}]`;
-  if (v && typeof v === "object" && "tag" in v && "children" in v) return `<${v.tag || "fragment"}> element`;
-  let s;
-  try { s = JSON.stringify(v); } catch (e) { s = String(v); }
-  return s === undefined ? String(v) : s.length > 90 ? s.slice(0, 87) + "..." : s;
 }
 // %%
 ss_highlight = {
@@ -551,89 +603,6 @@ ss_highlight = {
   };
 }
 // %%
-ss_cardHub = {
-  // one check of a module per code change, shared by all of its cards and listings
-  const hubs = new Map();
-  invalidation.then(() => { for (const h of hubs.values()) h.off(); });
-  return (module) => {
-    if (hubs.has(module)) return hubs.get(module);
-    const subs = new Set();
-    let state = null, queued = false;
-    const off = onCodeChange(({ variable, previous }) => {
-      if ((variable ?? previous)?._module !== module || queued) return;
-      queued = true;
-      queueMicrotask(() => { queued = false; state = null; for (const f of subs) f(); });
-    });
-    const hub = {
-      off,
-      state: () => state ?? (state = ss_check(module)),
-      subscribe: (f) => { subs.add(f); return () => subs.delete(f); },
-    };
-    hubs.set(module, hub);
-    return hub;
-  };
-}
-// %%
-ss_card = (module, key, invalidation) => {
-  // a cell's typed source, decompiled from its live definition, with its check, type and value under it
-  const hub = ss_cardHub(module);
-  const code = htl.html`<pre class="lite-code">`, value = htl.html`<span class="lite-card-value">`;
-  const meta = htl.html`<div class="lite-card-meta">`, msgs = htl.html`<div class="lite-card-msgs">`;
-  const root = htl.html`<div class="lite-card" data-cell=${key}>${code}${meta}${msgs}</div>`;
-  let text = null, variable = null, cancel = null, error, notRunning = false;
-  const showValue = () => {
-    value.textContent = notRunning ? "does not run" : error !== undefined ? `throws: ${error?.message ?? error}` : variable?._value === undefined ? "not computed yet" : ss_fmt(variable._value);
-    value.classList.toggle("lite-throws", !notRunning && error !== undefined);
-  };
-  const watch = (v) => {
-    cancel?.();
-    variable = v;
-    error = undefined;
-    // the runtime keeps no error field, so an error arrives from observe or from the variable's promise
-    cancel = observe(v, { fulfilled: () => { error = undefined; showValue(); }, rejected: (e) => { if (!ss_isStale(e)) { error = e; showValue(); } } });
-    v._promise?.then(() => {}, (e) => { if (!ss_isStale(e) && variable === v) { error = e; showValue(); } });
-  };
-  const draw = () => {
-    const { cells, result, states } = hub.state();
-    const c = cells.find((x) => x.key === key);
-    root.hidden = !c;
-    if (!c) return;
-    if (c.text !== text) { text = c.text; code.replaceChildren(...ss_highlight(text)); }
-    const r = result.cells.find((x) => x.name === key);
-    // ok, rejected (with the checker's messages) or blocked (by the cells it takes that are not ok)
-    const st = states.get(key) ?? { state: "rejected", why: ["[check] not in the module's check"], blockedBy: [] };
-    const status = st.state;
-    root.className = `lite-card lite-${status}`;
-    meta.replaceChildren(ss_badge(status, status === "blocked" ? `blocked by ${st.blockedBy.join(", ")}` : status), " ", htl.html`<code class="lite-card-type">${r?.value ?? ""}</code>`, " ", value);
-    const problems = status === "rejected" ? st.why.map((w) => { const m = /^\[([^\]]+)\] ([\s\S]*)$/.exec(w); return m ? { rule: m[1], msg: m[2] } : { rule: "rejected", msg: w }; })
-      : status === "blocked" ? [{ rule: "blocked", msg: `it takes ${st.blockedBy.join(", ")}, which ${st.blockedBy.length > 1 ? "are" : "is"} not ok, so it does not run` }] : [];
-    msgs.replaceChildren(...problems.map((e) => htl.html`<div class="lite-err"><b>[${e.rule}]</b> ${e.msg}</div>`));
-    notRunning = status !== "ok";
-    const v = module._scope.get(key) ?? c.variable;
-    if (v !== variable) watch(v);
-    showValue();
-  };
-  draw();
-  const unsubscribe = hub.subscribe(draw);
-  invalidation.then(() => { unsubscribe(); cancel?.(); });
-  return root;
-}
-// %%
-ss_listing = (module, invalidation) => {
-  // a whole module's typed source, as its cells are now
-  const hub = ss_cardHub(module);
-  const pre = htl.html`<pre class="lite-code lite-listing">`;
-  let text = null;
-  const draw = () => {
-    const t = hub.state().cells.map((c) => c.text).join("\n\n");
-    if (t !== text) { text = t; pre.replaceChildren(...ss_highlight(t)); }
-  };
-  draw();
-  const unsubscribe = hub.subscribe(draw);
-  invalidation.then(unsubscribe);
-  return pre;
-}
-// %%
 ss_highlightCode = (node) => {
   // colours an md cell's code blocks with ss_highlight; a fence without a language, so md fetches no highlighter
   for (const code of node.querySelectorAll("pre > code")) {
@@ -643,50 +612,18 @@ ss_highlightCode = (node) => {
   return node;
 }
 // %%
-ss_card_css = `:root {
-  --lite-ok: #2f9e44;
-  --lite-bad: var(--theme-error, #d6336c);
-  --lite-warn: #c98a12;
-  --lite-accent: var(--theme-foreground-focus, #3b6fd8);
-  /* text in these colours, mixed toward the foreground so it reads at 4.5:1 on dark and light themes */
-  --lite-ok-text: color-mix(in srgb, var(--lite-ok) 55%, var(--theme-foreground));
-  --lite-bad-text: color-mix(in srgb, var(--lite-bad) 55%, var(--theme-foreground));
-  --lite-warn-text: color-mix(in srgb, var(--lite-warn) 55%, var(--theme-foreground));
-  /* the theme's muted text and syntax colours, 30% toward the foreground: the light theme's own are 3.2 to 4.4:1 on a card */
-  --lite-muted-text: color-mix(in srgb, var(--theme-foreground-muted) 70%, var(--theme-foreground));
-}
-.lite-err b { color: var(--lite-bad-text); }
-.lite-badge { display: inline-block; padding: 0 7px; border-radius: 9px; font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; border: 1px solid currentColor; }
-.lite-badge-ok, .lite-badge-pass { color: var(--lite-ok-text); background: color-mix(in srgb, var(--lite-ok) 14%, transparent); }
-.lite-badge-rejected, .lite-badge-fail { color: var(--lite-bad-text); background: color-mix(in srgb, var(--lite-bad) 14%, transparent); }
-.lite-badge-unsupported, .lite-badge-blocked { color: var(--lite-warn-text); background: color-mix(in srgb, var(--lite-warn) 14%, transparent); }
-.lite-badge-pending { color: var(--lite-muted-text); }
-.lite-card { margin: 10px 0 0; border: 1px solid var(--theme-foreground-faint); border-left: 3px solid var(--lite-ok); border-radius: 4px; background: var(--theme-background-alt); max-width: 100%; box-sizing: border-box; }
-.lite-card.lite-rejected { border-left-color: var(--lite-bad); }
-.lite-card.lite-unsupported, .lite-card.lite-blocked { border-left-color: var(--lite-warn); }
-.lite-code { margin: 0; padding: 8px 10px; font: 13px/1.45 var(--monospace, monospace); color: var(--theme-foreground); background: none; overflow-x: auto; white-space: pre; tab-size: 2; }
-.lite-card-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 4px 10px 6px; border-top: 1px solid var(--theme-foreground-faintest); font-size: 13px; }
-.lite-card-type { color: var(--lite-muted-text); }
-.lite-card-value { font-family: var(--monospace, monospace); overflow-wrap: anywhere; min-width: 0; }
-.lite-card-value::before { content: "= "; color: var(--lite-muted-text); }
-.lite-card-value.lite-throws { color: var(--lite-bad-text); }
-.lite-card-msgs:empty { display: none; }
-.lite-card-msgs { padding: 0 10px 8px; font-size: 13px; }
-.lite-card-msgs .lite-err { margin-top: 2px; }
-.lite-listing { max-height: 420px; overflow: auto; border: 1px solid var(--theme-foreground-faint); border-radius: 4px; background: var(--theme-background-alt); }
-:is(.lite-code, .ss-hl) .tok-keyword, :is(.lite-code, .ss-hl) .tok-modifier, :is(.lite-code, .ss-hl) .tok-controlKeyword, :is(.lite-code, .ss-hl) .tok-operatorKeyword { color: color-mix(in srgb, var(--syntax-keyword) 70%, var(--theme-foreground)); }
-:is(.lite-code, .ss-hl) .tok-string, :is(.lite-code, .ss-hl) .tok-string2 { color: color-mix(in srgb, var(--syntax-string) 70%, var(--theme-foreground)); }
-:is(.lite-code, .ss-hl) .tok-number, :is(.lite-code, .ss-hl) .tok-bool, :is(.lite-code, .ss-hl) .tok-atom, :is(.lite-code, .ss-hl) .tok-null { color: color-mix(in srgb, var(--syntax-literal) 70%, var(--theme-foreground)); }
-:is(.lite-code, .ss-hl) .tok-comment { color: color-mix(in srgb, var(--syntax-comment) 70%, var(--theme-foreground)); font-style: italic; }
-:is(.lite-code, .ss-hl) .tok-definition { color: color-mix(in srgb, var(--syntax-definition) 70%, var(--theme-foreground)); }
-:is(.lite-code, .ss-hl) .tok-typeName, :is(.lite-code, .ss-hl) .tok-className { color: color-mix(in srgb, var(--syntax-atom) 70%, var(--theme-foreground)); }
-:is(.lite-code, .ss-hl) .tok-propertyName { color: color-mix(in srgb, var(--syntax-variable) 70%, var(--theme-foreground)); }
-@media (max-width: 640px) {
-  /* a card's source wraps on a phone, keeping its indentation, rather than scrolling out of sight */
-  .lite-card .lite-code { white-space: pre-wrap; overflow-wrap: anywhere; }
-}`
+ss_hl_css = [
+  // the editor's syntax colours, 30% toward the foreground: the light theme's own are 3.2 to 4.4:1 on the alt background
+  [".tok-keyword, .tok-modifier, .tok-controlKeyword, .tok-operatorKeyword", "keyword"],
+  [".tok-string, .tok-string2", "string"],
+  [".tok-number, .tok-bool, .tok-atom, .tok-null", "literal"],
+  [".tok-comment", "comment", "font-style: italic;"],
+  [".tok-definition", "definition"],
+  [".tok-typeName, .tok-className", "atom"],
+  [".tok-propertyName", "variable"],
+].map(([sel, c, extra = ""]) => `${sel.split(", ").map((x) => ".ss-hl " + x).join(", ")} { color: color-mix(in srgb, var(--syntax-${c}) 70%, var(--theme-foreground)); ${extra} }`).join("\n")
 // %%
-ss_card_style = Object.assign(document.createElement("style"), { textContent: ss_card_css + "\n" + ss_card_rules })
+ss_hl_style = htl.html`<style>${ss_hl_css}</style>`
 // %%
 style = htl.html`<style>
 .ss-tests td, .ss-tests th { max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

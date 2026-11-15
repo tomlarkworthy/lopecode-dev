@@ -4,8 +4,6 @@ The cells of section 9 of \`@tomlarkworthy/soundscript-tutorial\`, as live Sound
 // %%
 //ss: 09-breakout.tsx
 // %%
-view = ss.mount(app, this)
-// %%
 viewof breakout_module = thisModule()
 // %%
 import { ss, ss_now } from "@tomlarkworthy/soundscript"

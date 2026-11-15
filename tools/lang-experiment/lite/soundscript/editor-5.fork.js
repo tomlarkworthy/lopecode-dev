@@ -572,8 +572,10 @@ function nav(editedCell) {
   try { h = languageOf(editedCell.variables, editedCell)?.header?.(editedCell.variables) ?? null; } catch (e) { console.error(e); }
   const outputs = h?.outputs ?? [...editedCell.variables[0]._outputs];
   const inputs = h?.inputs ?? editedCell.variables[0]._inputs;
+  // the inferred type, when the language knows one, leads the line: name : type
+  const typed = h?.type ? html`<code class="e5-cell-type">${h.name ?? editedCell.name} : ${h.type}</code> ` : "";
   return html`<div>
-<span>${cellLinks("inputs", inputs)}</span>
+${typed}<span>${cellLinks("inputs", inputs)}</span>
 <span>${cellLinks("outputs", outputs)}</span>
 </div>`;
 }
@@ -713,7 +715,7 @@ Inputs.button("⬇", {
 })
 )};
 const _1to28po = (G, _) => G.input(_);
-const _gia2ci = function _copy(Inputs,html,$0,decompile,$1,getOption,cellsToClipboard){return(
+const _gia2ci = function _copy(Inputs,html,$0,decompile,$1,getOption,cellsToClipboard,unloadedLanguage){return(
 Inputs.button(
   html`<span style="font-size: .875em; margin-right: .125em; position: relative; top: -.25em; left: -.125em">
   📄<span style="position: absolute; top: .25em; left: .25em">📄</span>
@@ -726,14 +728,18 @@ Inputs.button(
       const seen = new Set();
       const cells = [];
 
-      const add = async (variables) => {
+      const refused = [];
+      const add = async (variables, cell) => {
         const key = variables?.[0];
         if (!key || seen.has(key)) return;
         seen.add(key);
+        // a cell of a language that is not loaded has only its compiled text, which is not its source
+        const unloaded = unloadedLanguage(variables, cell);
+        if (unloaded) { refused.push(`${key._name ?? "a cell"} (${unloaded})`); return; }
         cells.push(await decompile(variables));
       };
 
-      await add(current.variables);
+      await add(current.variables, current);
 
       const live = $1.value;
       if (live?.entries) {
@@ -743,12 +749,13 @@ Inputs.button(
             if (!v0) continue;
             if (v0 === current.variables[0]) continue;
             if (getOption(v0, "selected", false)) {
-              await add(c.variables);
+              await add(c.variables, c);
             }
           }
         }
       }
 
+      if (refused.length) { console.warn(new Error(`not copied: ${refused.join(", ")}: that language is not loaded, so the source is not known`)); return; }
       await cellsToClipboard(cells);
     }
   }
@@ -1656,10 +1663,13 @@ const _yeikvo = function _editor_jobs(command_processor,submit_summary,save_opti
   persist_attach_menu;
   return 'editor_jobs';
 };
-const _e6lang = function _cellLanguage(displayStateOf,languageOf){return(
+const _e6lang = function _cellLanguage(displayStateOf,languageOf,languageTagOf){return(
 (variables = [], cell) => {
   const registered = languageOf(variables, cell);
   if (registered) return registered.id;
+  // a cell the cell map tags with a language is that language, loaded or not; it is never ojs
+  const tag = variables.length ? languageTagOf(variables, cell) : null;
+  if (tag) return tag;
   const onlyJs = (lang) => Array.isArray(lang) && lang.length === 1 && lang[0] === "js";
   // autoview/automutable definitions are the ojs dialect, which js-toolchain does not decompile yet
   const plainJs = (v) => {
@@ -1840,95 +1850,26 @@ const _e5csh6 = function _test_e5_unparseable_source_goes_to_a_handler(e5_tests_
     return "ok";
   } finally { off(); }
 }), {timeout: 60000}));};
-const _e5lng0 = function _cellLanguagesDoc(md){return(
-md`### Registered cell languages (fork in soundscript.html)
-
-This copy of editor-5 is a fork that exists only in \`lopebooks/notebooks/soundscript.html\`. It adds one plugin point. A module registers a language with
-
-\`\`\`js
-plugins.add("cell_languages", {
-  id,                                      // what cellLanguage returns, e.g. "ss"
-  claims: (variables) => boolean,          // the variables of an existing cell are in this language
-  claimsSource: (source, cell) => boolean, // optional: typed source for a new cell is in this language
-  decompile: async (variables) => string,  // the source the editor shows
-  apply: async (source, variables, cell) => string | undefined,
-                                           // define the cell; the canonical source, or undefined when refused
-  lint: (source, variables, cell) => [{from, to, severity, message}],  // optional
-  extension: (codemirror) => Extension     // optional: the CodeMirror language
-}, { invalidation })
-\`\`\`
-
-\`cellLanguage\`, \`sourceLanguage\`, \`decompile\`, \`compile_and_update\` and \`editor_manager\` ask \`languageOf\` first and fall back to the built-in js and ojs paths. \`apply\` replaces the variables in the array it is given, as \`defineJsCell\` does; returning \`undefined\` leaves the cell as it was and the editor keeps the typed text.`
-)};
-const _e5lng1 = function _cellLanguagesRef(plugins,invalidation)
-{
-  // follows the set itself, as cellSourceHandlersRef does
-  // version and listeners let cellLanguagesVersion follow a registration that lands after boot
-  const ref = { current: [], version: 0, listeners: new Set() };
-  const gen = plugins.get("cell_languages");
-  let live = true;
-  invalidation.then(() => { live = false; gen.return?.(); });
-  (async () => {
-    while (live) {
-      const step = await gen.next();
-      if (step.done) break;
-      const languages = await step.value;
-      if (!live) continue;
-      const next = [...languages];
-      // the set yields on every registration of any plugin; an open editor is rebuilt only when the languages differ
-      const changed = next.length !== ref.current.length || next.some((l, i) => l !== ref.current[i]);
-      ref.current = next;
-      if (changed) {
-        ref.version++;
-        for (const f of ref.listeners) f();
-      }
-    }
-  })();
-  return ref;
-};
-const _e5lng2 = function _languageOf(cellLanguagesRef){return(
-// the registered language of a cell's variables, else of a new cell's typed source, else null
-(variables = [], cell, source) => {
-  const ask = (f) => { try { return !!f(); } catch (e) { console.error(e); return false; } };
-  const all = cellLanguagesRef.current;
-  if (variables.length) return all.find((l) => ask(() => l.claims(variables))) ?? null;
-  if (typeof source === "string") return all.find((l) => l.claimsSource && ask(() => l.claimsSource(source, cell))) ?? null;
-  return null;
-}
-)};
-const _e5lng4 = function _cellLanguagesVersion(cellLanguagesRef,Generators){return(
-// changes when a language registers or leaves, so an editor opened before registration is rebuilt
-Generators.observe((notify) => {
-  notify(cellLanguagesRef.version ?? 0);
-  const f = () => notify(cellLanguagesRef.version);
-  cellLanguagesRef.listeners?.add(f);
-  return () => cellLanguagesRef.listeners?.delete(f);
-})
-)};
-const _e5lng5 = function _unloadedLanguage(languageOf){return(
-// the language id a cell's compiled definition is marked with (/*{lang:"id"}*/) when no registered
-// language claims it: its source cannot be shown or saved until that language registers
-(variables = []) => {
-  if (!variables.length || languageOf(variables)) return null;
-  for (const v of variables) {
-    const m = /\/\*\{lang:"([\w-]+)"\}\*\//.exec(String(v?._definition ?? ""));
-    if (m) return m[1];
-  }
-  return null;
-}
-)};
 const _e5lng3 = async function _test_e5_language_hook(cellLanguagesRef,languageOf,cellLanguage,sourceLanguage,decompile,compile_and_update,expect){
   const saved = cellLanguagesRef.current;
-  const marked = { _name: "x", _definition: () => "qq" };
+  // the cell map's tag comes from the definition's first comment
+  const marked = { _name: "x", _definition: new Function('return () => /*{lang:"qq"}*/ "qq"')() };
+  const def0 = marked._definition;
   const applied = [];
-  cellLanguagesRef.current = [{
+  const qq = {
     id: "qq",
-    claims: (vs) => vs.some((v) => String(v._definition).includes('"qq"')),
     claimsSource: (src) => /^qq /.test(src),
     decompile: async (vs) => "qq " + vs.length,
     apply: async (src, vs) => { applied.push(src); return src === "qq bad" ? undefined : src; }
-  }];
+  };
   try {
+    // unloaded: the cell keeps its language, and neither its own edit nor a marked compiled text is saved
+    cellLanguagesRef.current = [];
+    expect(cellLanguage([marked])).toBe("qq");
+    expect(await compile_and_update("x = 1", [marked], { variables: [marked], lang: ["qq"] })).toBe(undefined);
+    expect(marked._definition).toBe(def0);
+    expect(await compile_and_update('y = $q$.cell(/*{lang:"qq"}*/ 1)', [], {})).toBe(undefined);
+    cellLanguagesRef.current = [qq];
     expect(languageOf([marked])?.id).toBe("qq");
     expect(cellLanguage([marked])).toBe("qq");
     expect(sourceLanguage("qq new", [], {})).toBe("qq");
@@ -1936,9 +1877,11 @@ const _e5lng3 = async function _test_e5_language_hook(cellLanguagesRef,languageO
     expect(await compile_and_update("qq new", [], {})).toBe("qq new");
     expect(await compile_and_update("qq bad", [marked], {})).toBe(undefined);
     expect(applied).toEqual(["qq new", "qq bad"]);
+    // registered, a marked compiled text typed as Observable JS is still not saved: only its language writes marked cells
+    expect(await compile_and_update('y = $q$.cell(/*{lang:"qq"}*/ 1)', [], {})).toBe(undefined);
     cellLanguagesRef.current = [];
     expect(languageOf([marked])).toBe(null);
-    return "claimed cells and sources route to the registered language; a refused apply returns undefined";
+    return "tagged cells and claimed sources route to the registered language; an unloaded tag or a marked compiled text is never saved";
   } finally {
     cellLanguagesRef.current = saved;
   }
@@ -1946,7 +1889,7 @@ const _e5lng3 = async function _test_e5_language_hook(cellLanguagesRef,languageO
 const _1whoy5n = function _91(md){return(
 md`### Apply Update`
 )};
-const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionSetElement,decompile,cellLanguage,defineJsCell,sourceLanguage,pinOnCreate,claimCellSource,languageOf,unloadedLanguage)
+const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionSetElement,decompile,cellLanguage,defineJsCell,sourceLanguage,pinOnCreate,claimCellSource,languageOf,unloadedLanguage,langTag,transpileJavaScript)
 {
   // Typed source that does not parse may be claimed by a "cell_source_handlers" plugin, which supplies
   // the source to compile instead.
@@ -1965,10 +1908,18 @@ const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionS
     try {
       const registered = languageOf(variables, cell) ?? languageOf([], cell, source);
       if (registered) return await registered.apply(source, variables, cell);
-      // saving a marked cell through the js/ojs path would replace it with its compiled text
-      const unloaded = unloadedLanguage(variables);
-      if (unloaded) { console.error(new Error(`not saved: this is a "${unloaded}" cell and that language is not loaded yet`)); return undefined; }
+      // saving a tagged cell through the js/ojs path would replace it with its compiled text
+      const unloaded = unloadedLanguage(variables, cell);
+      if (unloaded) { console.warn(new Error(`not saved: this is a "${unloaded}" cell and that language is not loaded yet`)); return undefined; }
       const language = sourceLanguage(source, variables, cell);
+      // only a registered language writes a definition that carries a language marker; checked before
+      // switchLanguage or a surplus variable is deleted, so a refusal leaves the cell as it was
+      let marked = null;
+      try {
+        const defs = language === 'js' ? [transpileJavaScript(source).body] : compile(source).map((v) => v._definition);
+        marked = defs.map((d) => langTag(String(d))).find(Boolean) ?? null;
+      } catch {}
+      if (marked) { console.warn(new Error(`not saved: the compiled cell carries a /*{lang:"${marked}"}*/ marker, and only that language's editor support may write it`)); return undefined; }
       if (variables.length && language !== cellLanguage(variables, cell)) return await switchLanguage(source, variables, cell);
       if (language === 'js') return await defineJsCell(source, variables, cell);
       const newVariables = compile(source);
@@ -2782,7 +2733,7 @@ export default function define(runtime, observer) {
   $def("_1whsszt", "paste", ["Generators","viewof paste"], _1whsszt);  
   $def("_corxwl", "viewof down", ["Inputs","moveCell","viewof editedCell"], _corxwl);  
   $def("_1to28po", "down", ["Generators","viewof down"], _1to28po);  
-  $def("_gia2ci", "viewof copy", ["Inputs","html","viewof editedCell","decompile","viewof liveCellMap","getOption","cellsToClipboard"], _gia2ci);  
+  $def("_gia2ci", "viewof copy", ["Inputs","html","viewof editedCell","decompile","viewof liveCellMap","getOption","cellsToClipboard","unloadedLanguage"], _gia2ci);  
   $def("_fw41wt", "copy", ["Generators","viewof copy"], _fw41wt);  
   $def("_srtw8o", "module", ["editedCell"], _srtw8o);  
   $def("_rv7t7x", "code_editor_view", ["EditorView"], _rv7t7x);  
@@ -2835,18 +2786,13 @@ export default function define(runtime, observer) {
   $def("_w5q3yf", "viewof editorModule", ["thisModule"], _w5q3yf);  
   $def("_18kaj2p", "editorModule", ["Generators","viewof editorModule"], _18kaj2p);  
   $def("_yeikvo", "editor_jobs", ["command_processor","submit_summary","save_options","persist_attach_menu"], _yeikvo);  
-  $def("_e6lang", "cellLanguage", ["displayStateOf","languageOf"], _e6lang);  
+  $def("_e6lang", "cellLanguage", ["displayStateOf","languageOf","languageTagOf"], _e6lang);  
   $def("_e6srcl", "sourceLanguage", ["parser","transpileJavaScript","cellLanguage","languageOf"], _e6srcl);  
   $def("_e6dec", "decompile", ["cellLanguage","decompileJs","decompileOjs","displayStateOf","languageOf"], _e6dec);  
   $def("_e6djs", "defineJsCell", ["transpileJavaScript","defineCell","displayStateOf","realize","runtime","repositionSetElement","decompile"], _e6djs);  
-  $def("_e5lng0", null, ["md"], _e5lng0);
-  $def("_e5lng1", "cellLanguagesRef", ["plugins","invalidation"], _e5lng1);
-  $def("_e5lng2", "languageOf", ["cellLanguagesRef"], _e5lng2);
-  $def("_e5lng4", "cellLanguagesVersion", ["cellLanguagesRef","Generators"], _e5lng4);
-  $def("_e5lng5", "unloadedLanguage", ["languageOf"], _e5lng5);
   $def("_e5lng3", "test_e5_language_hook", ["cellLanguagesRef","languageOf","cellLanguage","sourceLanguage","decompile","compile_and_update","expect"], _e5lng3);
   $def("_1whoy5n", null, ["md"], _1whoy5n);  
-  $def("_gk83fp", "compile_and_update", ["compile","runtime","realize","repositionSetElement","decompile","cellLanguage","defineJsCell","sourceLanguage","pinOnCreate","claimCellSource","languageOf","unloadedLanguage"], _gk83fp);
+  $def("_gk83fp", "compile_and_update", ["compile","runtime","realize","repositionSetElement","decompile","cellLanguage","defineJsCell","sourceLanguage","pinOnCreate","claimCellSource","languageOf","unloadedLanguage","langTag","transpileJavaScript"], _gk83fp);
   $def("_e5csh1", "cellSourceHandlers", ["plugins"], _e5csh1);
   $def("_e5csh2", "cellSourceHandlersRef", ["plugins","invalidation"], _e5csh2);
   $def("_e5csh4", "claimCellSource", ["parser","transpileJavaScript","cellSourceHandlersRef"], _e5csh4);
@@ -2868,6 +2814,12 @@ export default function define(runtime, observer) {
   main.define("flowQueue", ["module @tomlarkworthy/flow-queue", "@variable"], (_, v) => v.import("flowQueue", _));  
   main.define("viewof liveCellMap", ["module @tomlarkworthy/cell-map", "@variable"], (_, v) => v.import("viewof liveCellMap", _));  
   main.define("liveCellMap", ["module @tomlarkworthy/cell-map", "@variable"], (_, v) => v.import("liveCellMap", _));  
+  main.define("cellLanguagesRef", ["module @tomlarkworthy/cell-map", "@variable"], (_, v) => v.import("cellLanguagesRef", _));
+  main.define("languageOf", ["module @tomlarkworthy/cell-map", "@variable"], (_, v) => v.import("languageOf", _));
+  main.define("cellLanguagesVersion", ["module @tomlarkworthy/cell-map", "@variable"], (_, v) => v.import("cellLanguagesVersion", _));
+  main.define("unloadedLanguage", ["module @tomlarkworthy/cell-map", "@variable"], (_, v) => v.import("unloadedLanguage", _));
+  main.define("languageTagOf", ["module @tomlarkworthy/cell-map", "@variable"], (_, v) => v.import("languageTagOf", _));
+  main.define("langTag", ["module @tomlarkworthy/cell-map", "@variable"], (_, v) => v.import("langTag", _));
   main.define("hash", ["module d/57d79353bac56631@44", "@variable"], (_, v) => v.import("hash", _));  
   main.define("extractNotebookAndCell", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("extractNotebookAndCell", _));  
   main.define("navHref", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("navHref", _));  

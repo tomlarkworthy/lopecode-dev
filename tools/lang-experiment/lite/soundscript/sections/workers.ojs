@@ -4,8 +4,6 @@ The cells of section 7 of \`@tomlarkworthy/soundscript-tutorial\`, as live Sound
 // %%
 //ss: 07-workers.tsx
 // %%
-view = ss.mount(app, this)
-// %%
 picture = {
   const canvas = this ?? document.createElement("canvas");
   canvas.width = width;

@@ -93,12 +93,20 @@ export const forget = (definition: object) => {
 export const memoSize = () => memos.size;
 export const memoHas = (id: string) => memos.has(id);
 
-type Opts = { kind: "cell" | "ref" | "events" | "listener"; name: string; memo: boolean; prev?: unknown; id: string; invalidation: Promise<unknown> | null };
+type Opts = { kind: "cell" | "ref" | "events" | "listener"; name: string; memo: boolean; prev?: unknown; self?: object; id: string; invalidation: Promise<unknown> | null };
+// a ref cell's last run, per definition object (the runtime's function for that variable)
+const refRuns = new WeakMap<object, { args: unknown[]; value: unknown }>();
 
 export function cell(fn: (...a: unknown[]) => unknown, args: unknown[], o: Opts): unknown {
   const count = () => { stats.evals++; evalCounts.set(o.id, (evalCounts.get(o.id) ?? 0) + 1); };
   // an events cell's body runs when its inputs change; a re-run with the same inputs keeps the generator
   if (o.kind === "events") return events(o.prev, o.name, args, () => { count(); return guard(fn(...args) as Generator); }, o.invalidation);
+  // a ref cell run again with the same inputs (Object.is) keeps its store, and so its state: after an
+  // input failed and was repaired to the value it had, or an upstream re-run gave the same value
+  if (o.kind === "ref" && o.self) {
+    const last = refRuns.get(o.self);
+    if (last && args.length === last.args.length && args.every((v, i) => Object.is(v, last.args[i]))) { stats.memoHits++; return last.value; }
+  }
   if (o.memo) {
     const last = memos.get(o.id);
     if (last && args.length === last.args.length && args.every((v, i) => Object.is(v, last.args[i]) && !(typeof v === "object" && v !== null && lent.has(v)))) {
@@ -115,7 +123,9 @@ export function cell(fn: (...a: unknown[]) => unknown, args: unknown[], o: Opts)
     const r = fn(...args);
     if (o.kind === "ref") {
       if (!P.isRefCell(r)) throw new Error(`${o.name} did not return ref(...)`);
-      return P.materialize(r, o.name);
+      const h = P.materialize(r, o.name);
+      if (o.self) refRuns.set(o.self, { args, value: h });
+      return h;
     }
     value = generatorish(r) ? guard(r) : r;
   } finally {
@@ -132,6 +142,16 @@ let made = 0;
 const ISLANDS = 64;
 // compile for one module. read() returns that module's SoundScript source; an island runs only when
 // the checker accepts it and the calling cell.
+// A module's source joined from its cells, remembering the cells: compile then checks them one by one
+// (checkCells), so a cell elsewhere in the module that does not parse does not stop an island.
+const joined = new Map<string, readonly string[]>();
+export function joinCells(texts: readonly string[]): string {
+  const source = texts.join("\n\n");
+  joined.delete(source);
+  joined.set(source, [...texts]);
+  if (joined.size > 16) joined.delete(joined.keys().next().value!);
+  return source;
+}
 export function compiler(read: () => string) {
   const owners = new Map<string, { dead: boolean }>();
   // island text -> key, least recently used first, at most ISLANDS entries. A key is never reused for
@@ -153,8 +173,9 @@ export function compiler(read: () => string) {
       const owner = { dead: false };
       owners.set(caller, owner);
       return (spec: IslandSpec & { options?: { runtime?: Pool } }) => {
-        const source = read();
-        const result = check(source);
+        const read0 = read();
+        const texts = joined.get(read0);
+        const { result, source } = texts ? checkCells([...texts]) : { result: check(read0), source: read0 };
         // cell facts and text come from the check's parse
         const byName = new Map([...result.facts!.values()].map((info) => [info.name, { info, text: source.slice(info.span![0], info.span![1]) }] as const));
         const isl = island([...byName.values()].map(({ info }) => ({ name: info.name, params: info.params.map((p) => p.name), refCell: info.returnsRef })), spec);

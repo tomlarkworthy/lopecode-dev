@@ -243,10 +243,15 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   const id = contentId(`${kind} ${info.name} ${memo} ${body}`);
   // an events cell's definition is a function, so the runtime's `this` (the variable's last value, its
   // handle) reaches the stdlib, which keeps the handle across runs
-  const prev = kind === "events" ? "prev: this, " : "";
+  // a ref cell's definition is a named function that passes itself: the stdlib keeps the store per
+  // definition object, so a run with the same inputs keeps the state (one module's variable, not
+  // every cell with the same text)
+  const prev = kind === "events" ? "prev: this, " : kind === "ref" ? `self: ${SS}ref, ` : "";
   const opts = `{kind: ${JSON.stringify(kind)}, name: ${JSON.stringify(info.name)}, memo: ${memo}, ${prev}id: ${JSON.stringify(id)}, invalidation: ${inv}}`;
   const head = `(${[SS, ...params, ...hidden].join(", ")})`;
-  const definition = kind === "events" ? `function ${head} { ${destructure}return ${SS}.cell(${body}, ${opts}); }` : `${head} => { ${destructure}return ${SS}.cell(${body}, ${opts}); }`;
+  const definition = kind === "events" ? `function ${head} { ${destructure}return ${SS}.cell(${body}, ${opts}); }`
+    : kind === "ref" ? `function ${SS}ref${head} { ${destructure}return ${SS}.cell(${body}, ${opts}); }`
+    : `${head} => { ${destructure}return ${SS}.cell(${body}, ${opts}); }`;
   const all = [...inputs, ...hiddenInputs];
   if (kind === "ref") {
     return [

@@ -246,7 +246,7 @@ async function speed() {
     const mark = (k: string) => { w.__marks[k] ??= performance.now(); };
     new MutationObserver(() => {
       if (!w.__marks.firstRender && [...document.querySelectorAll("h1")].some((h) => /SoundScript/.test(h.textContent ?? ""))) mark("firstRender");
-      if (!w.__marks.firstCheck && document.querySelector("tr.lite-ok, .lite-card.lite-ok, .lite-summary")) mark("firstCheck");
+      if (!w.__marks.firstCheck && document.querySelector("tr.lite-ok, .lite-summary")) mark("firstCheck");
     }).observe(document, { subtree: true, childList: true });
   });
   await page.goto(`file://${file}`);
@@ -459,10 +459,27 @@ const defOf = (page: Page, module: string, cell: string) => page.evaluate(([modu
   const v = [...rt._variables].find((v: any) => v._module === rt.mains.get(module) && v._name === cell);
   return v ? String(v._definition) : null;
 }, [module, cell]);
-const valueOf = (page: Page, module: string, cell: string) => page.evaluate(async ([module, cell]) => {
+// A cell's value through module.value. The page-side timer keeps the evaluate's promise reachable, so
+// a module.value that never settles comes back as HUNG instead of CDP collecting the promise (which
+// Playwright reports as "Execution context was destroyed"); both are logged and retried, so a
+// recurrence is evidence in the log rather than a failed run.
+const valueOnce = (page: Page, module: string, cell: string) => page.evaluate(async ([module, cell]) => {
   const rt = (window as any).__ojs_runtime;
-  try { return await rt.mains.get(module).value(cell); } catch (e) { return "THREW " + String((e as Error)?.message ?? e); }
+  const hung = new Promise((r) => setTimeout(() => r("__HUNG__"), 5000));
+  try { return await Promise.race([rt.mains.get(module).value(cell), hung]); } catch (e) { return "THREW " + String((e as Error)?.message ?? e); }
 }, [module, cell]);
+async function valueOf(page: Page, module: string, cell: string): Promise<any> {
+  for (let i = 0; ; i++) {
+    try {
+      const v = await valueOnce(page, module, cell);
+      if (v !== "__HUNG__" || i >= 3) return v;
+      console.log(`  valueOf: ${module}.value("${cell}") did not settle in 5 s (try ${i + 1}); retrying`);
+    } catch (e) {
+      if (i >= 3 || !/Execution context was destroyed|Promise was collected/.test(String((e as Error).message))) throw e;
+      console.log(`  valueOf: ${module}.value("${cell}"): ${String((e as Error).message).split("\n")[0]} (try ${i + 1}); retrying`);
+    }
+  }
+}
 async function openEditor(page: Page, module: string, cell: string) {
   const tag = await tagEditor(page, module, cell);
   if (!tag) return null;
@@ -1012,6 +1029,142 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
     `exactly once: deleting the listener stops delivery: ${JSON.stringify(r.deleted)}`);
 }
 // The editor's lint messages for the cell open in `host`
+// Every editor command on a SoundScript cell, through the editor's own buttons and command functions.
+// With no language registered each one either changes no SoundScript definition or is refused with a
+// warning; with the language registered, copy and paste go through it. Returns one row per command.
+async function commandGuard(page: Page, label: string, module: string, cell: string, plainName: string, registered: boolean) {
+  const r = await page.evaluate(async ([module, cell, plainName, registered]) => {
+    const rt = (window as any).__ojs_runtime;
+    const find = (name: string, mod?: any) => [...rt._variables].find((v: any) => v._name === name && (!mod || v._module === mod));
+    const until = async (fn: () => any, what: string, ms = 15000) => {
+      const t0 = Date.now();
+      for (;;) { const got = await fn(); if (got) return got; if (Date.now() - t0 > ms) throw new Error(`${what} not reached in ${ms} ms`); await new Promise((r) => setTimeout(r, 50)); }
+    };
+    const mod = rt.mains.get(module) ?? find(cell)?._module;
+    // a name can have several variables (a cell and the imports of it); the one with a value, else computed
+    const val = async (name: string) => { const vs = await until(() => { const a = [...rt._variables].filter((v: any) => v._name === name); return a.length && a; }, `a variable ${name}`, 60000); const v = vs.find((x: any) => x._value !== undefined) ?? vs[0]; return v._value !== undefined ? v._value : await v._module.value(name); };
+    const langTag = await val("langTag");
+    const marked = () => [...rt._variables].filter((v: any) => v._module === mod && langTag(v._definition));
+    const snap = () => new Map(marked().map((v: any) => [v, String(v._definition)]));
+    const order = () => [...rt._variables].filter((v: any) => v._module === mod).map((v: any) => v._name).join("|");
+    // a definition that changed, or a new marked variable: the corruption this pass looks for
+    const changed = (before: Map<any, string>) => [...snap()].filter(([v, d]) => before.get(v) !== d).map(([v]) => v._name);
+    const warns: string[] = [];
+    const warn0 = console.warn;
+    console.warn = (...a: any[]) => { warns.push(String(a[0]?.message ?? a[0])); return warn0(...a); };
+    const copied: string[] = [];
+    const setData0 = DataTransfer.prototype.setData;
+    DataTransfer.prototype.setData = function (t: string, d: string) { if (t === "text/plain") copied.push(d); return setData0.call(this, t, d); };
+    const read0 = navigator.clipboard?.read;
+    let clip: any[] = [];
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { read: async () => [{ types: ["application/vnd.observablehq+json"], getType: async () => new Blob([JSON.stringify(clip)]) }], write: async () => {}, writeText: async () => {} } });
+    const editorsMap = await val("editors");
+    const editors = () => editorsMap;
+    const open = async (v: any) => {
+      const host = await until(() => editors()?.get(v)?.querySelector(".hotbar") && editors().get(v), `an editor bar beside ${v._name}`);
+      if (!host.querySelector(".toolbar")?.offsetParent) host.querySelector(".hotbar").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await until(() => host.querySelector(".toolbar")?.offsetParent, `the toolbar of ${v._name}`);
+      return host;
+    };
+    const press = (host: any, text: string) => {
+      const b = [...host.querySelectorAll(".toolbar button")].find((x: any) => x.textContent.includes(text)) as HTMLButtonElement | undefined;
+      if (!b) throw new Error(`no ${text} button`);
+      b.click();
+    };
+    const rows: any[] = [];
+    const row = (command: string, ok: boolean, what: string) => rows.push({ command, ok, what });
+    try {
+      const target = find(cell, mod);
+      const typed = registered ? await find("ss_language")._value.decompile([target]) : null;
+      const host = await open(target);
+      // copy
+      let before = snap(), w0 = warns.length;
+      press(host, "📄");
+      if (registered) {
+        await until(() => copied.length, "a copy");
+        row("copy", copied[0] === typed && changed(before).length === 0, `clipboard holds the typed source: ${JSON.stringify(copied[0]?.slice(0, 80))}`);
+      } else {
+        await until(() => warns.length > w0, "the copy refusal");
+        row("copy", copied.length === 0 && /not copied/.test(warns.at(-1)!) && changed(before).length === 0, `refused, nothing copied: ${warns.at(-1)}`);
+      }
+      // paste: a compiled SoundScript text pasted as Observable JS, by name onto a marked cell and onto a plain cell
+      const compiledOjs = `${cell} = ($ss$) => $ss$.cell(/*{lang:"ss"}*/ () => 1)`;
+      const plain = find(plainName, mod);
+      before = snap(); w0 = warns.length;
+      const plainDef = plain ? String(plain._definition) : null;
+      clip = [{ mode: "js", value: compiledOjs }, ...(plain ? [{ mode: "js", value: `${plain._name} = ($ss$) => $ss$.cell(/*{lang:"ss"}*/ () => 2)` }] : [])];
+      press(host, "📋");
+      // the plain cell's refusal is a warning; a registered language refuses the other itself, so its queue is waited on
+      await until(() => warns.length >= w0 + (plain ? 1 : 0) + (registered ? 0 : 1), "the paste refusals");
+      if (registered) await find("ss_language")._value.settle(mod);
+      // registered, the language takes the text as an edit of the cell and stores it rejected, as it does any
+      // edit that does not compile; nothing else is written
+      const ch = changed(before), own = find(cell, mod);
+      const byLang = registered && ch.length === 1 && ch[0] === cell && /"rejected":\["\[compile\]/.test(String(own?._definition));
+      row("paste (compiled text)", (ch.length === 0 || byLang) && (!plain || String(plain._definition) === plainDef), `${registered ? `onto ${cell}: ${byLang ? "stored by the language as a rejected edit" : "changed " + JSON.stringify(ch)}; ` : ""}${warns.length - w0} refused: ${warns.slice(w0).join(" | ").slice(0, 240)}; onto plain cell ${plain?._name ?? "none"}`);
+      if (registered) {
+        // typed source pasted onto the cell goes through the language and is stored
+        const edited = typed!.replace(/\* 2\b/, "* 3");
+        clip = [{ mode: "js", value: edited }];
+        press(host, "📋");
+        await until(async () => (await find("ss_language")._value.decompile([find(cell, mod)])) === edited, "the pasted typed source stored");
+        const now = find(cell, mod);
+        row("paste (typed source)", langTag(now._definition) === "ss", `stored through the language: ${JSON.stringify(edited.slice(0, 80))}`);
+        await find("ss_language")._value.apply(typed, [now]);
+      }
+      // move up and down
+      before = snap();
+      const o0 = order();
+      press(host, "⬆");
+      await until(() => order() !== o0, "the move up");
+      const moved = order();
+      press(host, "⬇");
+      await until(() => order() === o0, "the move back down");
+      row("move up / down", changed(before).length === 0 && moved !== o0, `order changed and restored; no definition written`);
+      // drag reorder (moveCellBeside), onto the module's first other marked cell, then back
+      const findCell = await val("findCell"), moveCellBeside = await val("moveCellBeside");
+      const other = marked().find((v: any) => v !== target && !findCell(target)?.variables.includes(v));
+      before = snap();
+      const c = findCell(target), modVars = [...rt._variables].filter((v: any) => v._module === mod);
+      const next = modVars.find((v: any, i: number, a: any[]) => a[i - 1] === c.variables.at(-1)), prev = modVars.find((v: any, i: number, a: any[]) => a[i + 1] === c.variables[0]);
+      await moveCellBeside(c, other, false);
+      await until(() => order() !== o0, "the drag");
+      // back after the variable before it (the one after it can be an import, whose cell sits elsewhere)
+      await moveCellBeside(findCell(target), prev ?? next, !!prev);
+      await until(() => order() === o0, `the drag back (${o0} -> ${order()})`);
+      row("drag reorder", changed(before).length === 0, `moved beside ${other?._name} and back; no definition written`);
+      // add a cell after it: an ordinary {} cell, no marker
+      before = snap();
+      const had = new Set([...rt._variables].filter((v: any) => v._module === mod));
+      press(host, "➕");
+      const fresh = await until(() => [...rt._variables].find((v: any) => v._module === mod && !had.has(v)), "the new cell");
+      row("add", changed(before).length === 0 && !langTag(fresh._definition), `new cell ${JSON.stringify(String(fresh._definition).slice(0, 60))} carries no marker`);
+      fresh.delete();
+      // the command palette: every provider's result for the cell's name is a link, never an action
+      before = snap();
+      // the module finder and the cell search both register before the search finds the cell
+      const results = await until(async () => { const ps = (await val("commandProviders")) ?? []; const rs = ps.flatMap((p: any) => { try { return p(cell) ?? []; } catch { return []; } }); return rs.length && rs; }, "palette results");
+      const providers = (await val("commandProviders")) ?? [];
+      row("command palette", results.length > 0 && results.every((x: any) => x.href && !x.action) && changed(before).length === 0, `${providers.length} providers, ${results.length} results for "${cell}", all links: ${results.slice(0, 3).map((x: any) => x.label).join(", ")}`);
+      // delete: the cell's variables go; no other definition is written
+      before = snap();
+      const vars = findCell(target).variables, names = vars.map((v: any) => v._name);
+      press(host, "🗑️");
+      await until(() => vars.every((v: any) => !rt._variables.has(v)), "the delete");
+      row("delete", changed(before).filter((n: string) => !names.includes(n)).length === 0, `${names.join(", ")} deleted; no other definition written`);
+    } catch (e) { row("stopped", false, String((e as Error)?.stack ?? e).slice(0, 400)); }
+    finally {
+      console.warn = warn0;
+      DataTransfer.prototype.setData = setData0;
+      // the registered pass runs on a cell added for it: a stopped pass must not leave it for the export checks
+      if (registered) for (const v of [...rt._variables]) if (v._module === mod && v._name === cell) v.delete();
+    }
+    return rows;
+  }, [module, cell, plainName, registered] as [string, string, string, boolean]);
+  for (const x of r) report(x.ok, `${label}: ${x.command} on ${cell}: ${x.what}`);
+  return r;
+}
+
 const diagsOf = (host: any) => host.locator(".cm-content").first().evaluate((el: any) => {
   const rt = (window as any).__ojs_runtime;
   const find = (n: string) => [...rt._variables].find((v: any) => v._name === n)?._value;
@@ -1023,9 +1176,9 @@ const diagsOf = (host: any) => host.locator(".cm-content").first().evaluate((el:
 const until = async (page: Page, f: () => Promise<boolean>, ms = 10000) => { const t0 = Date.now(); while (!(await f())) { if (Date.now() - t0 > ms) return false; await page.waitForTimeout(100); } return true; };
 // the text of the table row for `cell` in the first table (in DOM order) matching `sel` that has one
 const rowText = (page: Page, sel: string, cell: string) => page.evaluate(([sel, cell]) => {
-  // a tutorial cell shown as a card: its name, then the card's check, type and value, then its messages
-  const card = sel === ".lite-panel" ? document.querySelector(`.lite-card[data-cell="${cell}"]`) : null;
-  if (card) return [`${cell} ${card.querySelector(".lite-card-meta")!.textContent!.trim()}`, ...[...card.querySelectorAll(".lite-card-msgs .lite-err")].map((e) => e.textContent!.trim())].join(" | ");
+  // a SoundScript cell of the tutorial: its name, "ok" or "rejected", then its inspector line
+  const node = sel === ".lite-panel" ? document.querySelector(`.lp2-pane[data-module="@tomlarkworthy/soundscript-tutorial"] .observablehq[cell="${cell}"]`) : null;
+  if (node) return `${cell} ${node.classList.contains("observablehq--error") ? "rejected" : "ok"} | ${node.textContent!.trim()}`;
   for (const t of document.querySelectorAll(sel)) for (const tr of t.querySelectorAll("tr")) {
     if (tr.querySelector("td code")?.textContent === cell) {
       const out = [tr.textContent!.trim()];
@@ -1062,13 +1215,18 @@ async function tryIts(page: Page, firstOnly = false) {
   await until(page, async () => (await valueOf(page, TUTORIAL, "count")) === count0 + 1);
   const width = await openEditor(page, TUTORIAL, "width");
   if (!width) { report(false, "try: no editor for width"); return; }
+  // the open editor's header line carries the checker's type of the cell; the page does not
+  const header = await until(page, async () => (await width.locator(".e5-cell-type").count()) > 0, 5000) ? await width.locator(".e5-cell-type").first().textContent() : null;
+  const onPage = await page.evaluate(() => document.querySelector(".lp2-pane .observablehq[cell=\"width\"]")?.textContent);
+  report(header === "width : number" && onPage === "width = 640", `try (first cell): the open editor's header reads ${JSON.stringify(header)}; the page line ${JSON.stringify(onPage)}`);
   await typeInto(page, width, "export const width = () => 800;");
   await until(page, async () => (await valueOf(page, TUTORIAL, "area")) === 320000);
   const after800 = { area: await valueOf(page, TUTORIAL, "area"), aspect: await valueOf(page, TUTORIAL, "aspect"), half: await valueOf(page, TUTORIAL, "half"), test_half: await valueOf(page, TUTORIAL, "test_half") };
   report(after800.area === 320000 && after800.aspect === "2.00" && after800.half === 160000, `try (first cell): width 800 updates area, aspect, half: ${JSON.stringify(after800)}`);
-  await until(page, async () => /\(\) => 800;/.test(await page.evaluate(() => document.querySelector('.lite-card[data-cell="width"] .lite-code')?.textContent ?? "")));
-  const card800 = await page.evaluate(() => document.querySelector('.lite-card[data-cell="width"]')?.textContent ?? "");
-  report(/export const width = \(\) => 800;/.test(card800) && /ok\s*number\s*800$/.test(card800), `try (first cell): after the edit width's card shows the new source and value: ${JSON.stringify(card800.slice(0, 160))}`);
+  const shown800 = () => page.evaluate(() => ({ listing: document.querySelector(".lite-listing")?.textContent ?? "", line: document.querySelector('.lp2-pane .observablehq[cell="width"]')?.textContent ?? "" }));
+  await until(page, async () => { const x = await shown800(); return /\(\) => 800;/.test(x.listing) && x.line === "width = 800"; });
+  const s800 = await shown800();
+  report(/export const width = \(\) => 800;/.test(s800.listing) && s800.line === "width = 800", `try (first cell): after the edit the listing shows the new source and width's line its value: ${JSON.stringify(s800.line)}`);
   // memo: the cells outside the broken part do not run again while it is broken and repaired
   const OUTSIDE = ["height", "scale", "samples", "histogram", "count", "increment", "app"];
   const outsideRuns = () => page.evaluate(([c, t, names]) => { const rt = (window as any).__ojs_runtime, ss = rt.mains.get(c)._scope.get("ss")._value, m = rt.mains.get(t); return Object.fromEntries((names as string[]).map((n) => [n, ss.evals(m._scope.get(n)._definition)])); }, [CORE, TUTORIAL, OUTSIDE] as const);
@@ -1087,12 +1245,13 @@ async function tryIts(page: Page, firstOnly = false) {
   report(kept && (await editorText(width)) === 'export const width = () => "800";', `try (first cell): after the breaking edit the editor still has focus (${kept}) and the typed text`);
   const broken = await statesOf();
   const vals = { area: await valueOf(page, TUTORIAL, "area"), aspect: await valueOf(page, TUTORIAL, "aspect"), half: await valueOf(page, TUTORIAL, "half") };
-  await until(page, async () => /rejected/.test(await page.evaluate(() => document.querySelector('.lite-card[data-cell="area"]')?.textContent ?? "")));
-  const areaCard = await page.evaluate(() => document.querySelector('.lite-card[data-cell="area"]')?.textContent ?? "");
+  const areaNode = () => page.evaluate(() => { const n = document.querySelector('.lp2-pane .observablehq[cell="area"]'); return { error: !!n?.classList.contains("observablehq--error"), text: n?.textContent ?? "" }; });
+  await until(page, async () => (await areaNode()).error);
+  const areaShown = await areaNode(), halfShown = await page.evaluate(() => document.querySelector('.lp2-pane .observablehq[cell="half"]')?.textContent ?? "");
   console.log(`  first cell broken: ${JSON.stringify(notOk(broken))}; values ${JSON.stringify(vals)}`);
   report(broken.width === "ok" && broken.area === "rejected" && broken.aspect === "rejected" && broken.half === "blocked by area" && /^THREW area does not check: \[inject-type\]/.test(String(vals.area)) && /^THREW aspect does not check: \[type\]/.test(String(vals.aspect)) && /^THREW area does not check/.test(String(vals.half)),
     `try (first cell): width "800" is stored; area and aspect are rejected and raise their messages, half is blocked by area: ${JSON.stringify(notOk(broken))}; ${JSON.stringify(ds)}`);
-  report(/rejected/.test(areaCard) && /inject-type/.test(areaCard) && /does not run/.test(areaCard), `try (first cell): area's card says rejected, with the checker's message, and does not run: ${JSON.stringify(areaCard.slice(0, 220))}`);
+  report(areaShown.error && /^area = .*area does not check: \[inject-type\]/.test(areaShown.text) && /^half = .*area does not check/.test(halfShown), `try (first cell): area shows the checker's message as its error, and half shows area's: ${JSON.stringify(areaShown.text.slice(0, 160))}; ${JSON.stringify(halfShown.slice(0, 80))}`);
   // the two-cell change: area and aspect take a string, and everything is ok again
   const area = await openEditor(page, TUTORIAL, "area"), aspect = await openEditor(page, TUTORIAL, "aspect");
   if (!area || !aspect) { report(false, "try: no editor for area or aspect"); return; }
@@ -1232,12 +1391,28 @@ async function tryIts(page: Page, firstOnly = false) {
     const w2 = await world();
     const ssv = await page.evaluate(() => { const ss = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript")._scope.get("ss")._value; return { running: ss.running(), pulling: ss.pulling() }; });
     report(w0.score > 0 && w1.score >= w0.score && w1.bricks <= w0.bricks && w2.y !== w1.y && ssv.running === 1 && ssv.pulling === 1, `try (section 9): step edited while playing: world ${JSON.stringify(w0)} -> ${JSON.stringify(w1)} -> ${JSON.stringify(w2)}, ${ssv.running} listener, ${ssv.pulling} clock`);
+    // with the breakout module's own pane open in edit mode, every cell drawn by the language: the
+    // kinds the normal Inspector cannot read, and the game still runs at frame rate
+    const kinds = await page.evaluate(async (b: string) => {
+      const pane = document.querySelector(`.lp2-pane[data-module="${b}"]`)!;
+      const line = (c: string) => (pane.querySelector(`.observablehq[cell="${c}"]`)?.textContent ?? "").trim();
+      const m = (window as any).__ojs_runtime.mains.get(b), w0 = m._scope.get("world");
+      let changes = 0, last = w0._value;
+      const t0 = performance.now();
+      while (performance.now() - t0 < 1000) { await new Promise((r) => requestAnimationFrame(r)); if (w0._value !== last) { changes++; last = w0._value; } }
+      // the three pieces app places are lines (positioned by a parent they have not got); app is mounted
+      const views = [...["bricksView", "paddleView", "ballView"].map(line), (() => { const n = pane.querySelector('.observablehq[cell="app"] .ss-view') as HTMLElement | null; return n ? `app ${n.tagName.toLowerCase()} ${Math.round(n.getBoundingClientRect().height)}px` : "app none"; })()];
+      return { ticks: line("ticks"), onTick: line("onTick"), ball: line("type Ball").slice(0, 40), tick: line("tick"), step: line("step"), views, perSecond: Math.round(changes * 1000 / (performance.now() - t0)) };
+    }, BR);
+    report(kinds.ticks === "ticks = events Events<number>" && kinds.onTick === "onTick = listener ticks → tick" && kinds.ball.startsWith("type Ball = { readonly x: number") && kinds.tick === "tick = ƒ action(number)" && kinds.step === "step = ƒ (w: World, e: Ev) => World" && kinds.views.slice(0, 3).every((v: string) => / = <div> element, positioned by its parent$/.test(v)) && /^app div [1-9]\d*px$/.test(kinds.views[3]),
+      `try (section 9): the breakout pane draws ${JSON.stringify(kinds)}`);
+    report(kinds.perSecond >= 58, `speed: Breakout playing with its own pane open in edit mode: ${kinds.perSecond} world changes/s (budget 58)`);
     await page.evaluate((b: string) => { const bm = (window as any).__ojs_runtime.mains.get(b); if (bm._scope.get("playing")._value) bm._scope.get("toggle")._value(); }, BR);
   } else report(false, "try: no editor for breakout step");
 }
 // At phone width the page does not scroll sideways, and every cell of the tutorial computes without error
-// Each lesson cell of the tutorial is on the page as its typed source, decompiled from the live
-// definition, with its check, type and value; the first is in view at 1280×800. Then the page is
+// Each lesson cell of the tutorial is in a listing as its typed source, decompiled from the live
+// definition, and on the page as its own cell; the first listing is in view at 1280×800. Then the page is
 // rendered in the dark default theme and in the light "air" theme: the two differ and every kind of
 // text the page draws reads at 4.5:1 or more against what is behind it.
 async function cardsAndThemes() {
@@ -1261,22 +1436,26 @@ async function cardsAndThemes() {
       seen.add(key);
       want.push({ key, text });
     }
-    const missing = want.filter(({ key, text }) => {
-      const card = document.querySelector(`.lite-card[data-cell="${key}"]`) as HTMLElement | null;
-      return !card || !card.offsetParent || card.querySelector(".lite-code")!.textContent !== text;
-    }).map((w) => w.key);
-    // the cells' own inspector lines are hidden: no "width = 640" line under the cards
-    const shown = want.filter(({ key }) => { const d = document.querySelector(`.observablehq[cell="${key}"]`) as HTMLElement | null; return d && d.offsetParent; }).map((w) => w.key);
-    // each card keeps one visible edit bar: the editor host of the variable the page renders
+    const pane = document.querySelector('.lp2-pane[data-module="@tomlarkworthy/soundscript-tutorial"]')!;
+    const listings = [...pane.querySelectorAll(".lite-listing")].map((l) => l.textContent ?? "");
+    // each lesson cell's live source is in a listing, and its own cell is on the page as any cell is
+    const missing = want.filter(({ text }) => !listings.some((l) => l.includes(text))).map((w) => w.key);
+    const node = (key: string) => pane.querySelector(`.observablehq[cell="${key}"]`) as HTMLElement | null;
+    const hidden = want.filter(({ key }) => !node(key)?.offsetParent).map((w) => w.key);
     const editors = [...rt._variables].find((v: any) => v._name === "editors")?._value;
     const nobar = want.filter(({ key }) => !editors?.get(mod._scope.get(key))?.offsetParent).map((w) => w.key);
-    const first = document.querySelector(".lite-card") as HTMLElement;
-    const rejected = [...document.querySelectorAll(".lite-card.lite-rejected")].filter((e) => !(e.querySelector(".lite-card-msgs")!.textContent ?? "").includes("[")).map((e) => e.getAttribute("data-cell"));
-    return { n: want.length, missing, shown, nobar, first: first?.getAttribute("data-cell"), firstTop: Math.round(first?.getBoundingClientRect().top ?? 1e9), rejected };
+    // a cell that does not check shows its error with the rule named, as an error line
+    const rejected = want.filter(({ key }) => { const n = node(key); return n?.classList.contains("observablehq--error") && !/does not check: \[/.test(n.textContent ?? ""); }).map((w) => w.key);
+    // the kinds the normal Inspector cannot read are drawn as one line or, an element, mounted
+    const line = (key: string) => (node(key)?.textContent ?? "").trim();
+    const kinds = { increment: line("increment"), setN: line("setN"), scale: line("scale"), Badge: line("Badge"), app: !!node("app")?.querySelector(":scope .ss-view button") };
+    const first = pane.querySelector(".lite-listing") as HTMLElement;
+    return { n: want.length, missing, hidden, nobar, rejected, kinds, listings: listings.length, firstTop: Math.round(first?.getBoundingClientRect().top ?? 1e9), firstText: (first?.textContent ?? "").slice(0, 120) };
   }, TUTORIAL);
-  report(c.n >= 31 && c.missing.length === 0 && c.shown.length === 0 && c.rejected.length === 0, `cards: ${c.n} lesson cells each shown as its live source with check, type and value (missing ${JSON.stringify(c.missing)}); their inspector lines hidden (shown ${JSON.stringify(c.shown)}); every rejected card states its rule without a hover (${JSON.stringify(c.rejected)})`);
-  report(c.nobar.length === 0, `cards: every card has a visible edit bar (without one: ${JSON.stringify(c.nobar)})`);
-  report(c.first === "width" && c.firstTop > 0 && c.firstTop < 800, `cards: the first card is ${c.first}, at y ${c.firstTop} of an 800 px window`);
+  report(c.n >= 31 && c.missing.length === 0 && c.hidden.length === 0 && c.rejected.length === 0, `cells: ${c.n} lesson cells each in one of ${c.listings} listings as its live source (missing ${JSON.stringify(c.missing)}) and on the page as its own cell in edit mode (not shown ${JSON.stringify(c.hidden)}); every one that does not check names its rule (${JSON.stringify(c.rejected)})`);
+  report(c.nobar.length === 0, `cells: every lesson cell has a visible edit bar (without one: ${JSON.stringify(c.nobar)})`);
+  report(c.kinds.increment === "increment = ƒ action()" && c.kinds.setN === "setN = ƒ action(number)" && c.kinds.scale === "scale = ƒ (n: number, by: number) => number" && /^Badge = ƒ \(p: /.test(c.kinds.Badge) && c.kinds.app, `cells: values drawn by the language: ${JSON.stringify(c.kinds)}`);
+  report(/^\/\/ A cell is an exported function/.test(c.firstText) && c.firstTop > 0 && c.firstTop < 800, `cells: the first listing (${JSON.stringify(c.firstText.slice(0, 40))}) is at y ${c.firstTop} of an 800 px window`);
   // the Breakout board follows the column width after play has re-run its view cell
   const boardW = () => page.evaluate(() => Math.round(document.querySelector(".lite-game > div > div")!.getBoundingClientRect().width));
   const w0 = await boardW();
@@ -1290,7 +1469,7 @@ async function cardsAndThemes() {
   await page.waitForFunction((w0) => Math.round(document.querySelector(".lite-game > div > div")!.getBoundingClientRect().width) === w0, w0, { timeout: 5000 }).catch(() => {});
   const w2 = await boardW();
   report(w0 === 640 && w1 <= 468 && w2 === 640, `breakout: the board is ${w0} px at 1280, ${w1} px at 500 after play and pause, ${w2} px at 1280 again`);
-  await page.evaluate(() => document.querySelector(".lite-card")!.scrollIntoView({ block: "start" }));
+  await page.evaluate(() => document.querySelector(".lite-listing")!.scrollIntoView({ block: "start" }));
   const shoot = () => page.screenshot();
   const darkFetches = network.filter((u) => u.startsWith(THEME_BASE));
   report(darkFetches.length === 0, `themes: the default (dark) theme is complete from the file, with no stylesheet requested from the network (${JSON.stringify(darkFetches)})`);
@@ -1324,50 +1503,50 @@ async function phone() {
     const board = document.querySelector(".lite-game > div > div")!.getBoundingClientRect();
     // a diagram is drawn to fit, not scrolled: its box is no wider than its container
     const graphs = [...document.querySelectorAll(".lite-graph-scroll")].map((g) => `${g.scrollWidth}/${g.clientWidth}`);
-    // a card's source wraps rather than running out of its box
-    const clipped = [...document.querySelectorAll(".lite-card .lite-code")].filter((c) => c.scrollWidth > c.clientWidth + 1).map((c) => c.closest(".lite-card")!.getAttribute("data-cell"));
+    // a listing wraps rather than running out of its box
+    const clipped = [...document.querySelectorAll(".lite-listing")].filter((c) => c.scrollWidth > c.clientWidth + 1).map((c) => (c.textContent ?? "").slice(0, 40));
     return { docW: document.documentElement.scrollWidth, wide: [...new Set(wide)].slice(0, 8), board: [Math.round(board.left), Math.round(board.right)], graphs, clipped };
   });
-  report(m.clipped.length === 0, `phone: every card's source fits its card (clipped ${JSON.stringify(m.clipped)})`);
+  report(m.clipped.length === 0, `phone: every listing fits its box (clipped ${JSON.stringify(m.clipped)})`);
   report(m.docW <= 390 && m.wide.length === 0 && m.board[0] >= 16 && m.board[1] <= 374 && m.graphs.length === 2 && m.graphs.every((g) => +g.split("/")[0] <= +g.split("/")[1]),
     `phone (390 px): page width ${m.docW}, elements past the edge ${JSON.stringify(m.wide)}, the Breakout board spans x ${m.board.join(" to ")}, diagrams (scroll/client width) ${m.graphs.join(", ")}`);
   await testsPass(page, "phone", TUTORIAL, []);
   report(errors.length === 0, `phone: page errors ${errors.length}${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);
   await page.close();
 }
-// the core's README shows its four example cells as source cards, then the counter view, in the full
-// notebook and in the notebook without the tutorial
+// the core's README shows its four example cells as cells (an action as one line), then the counter view,
+// in the full notebook and in the notebook without the tutorial
 async function coreCards(page: Page, label: string) {
   const tab = page.locator(`[title="${CORE}  (drag to a pane edge to dock, or out to save as .js)"]`);
-  await page.waitForFunction((C) => (window as any).__ojs_runtime?.mains?.get(C)?._scope.get("ss_card")?._value, CORE, { timeout: 60000 });
-  if (await tab.count()) await tab.first().click();
+  await page.waitForFunction((C) => (window as any).__ojs_runtime?.mains?.get(C)?._scope.get("ss_language")?._value, CORE, { timeout: 60000 });
   const pane = `.lp2-pane[data-module="${CORE}"]`;
-  const shown = await until(page, () => page.evaluate((pane) => [...document.querySelectorAll(`${pane} .lite-card`)].filter((c) => (c as HTMLElement).offsetParent).length === 4, pane), 20000);
-  const r = await page.evaluate(([pane, C]) => {
-    const rt = (window as any).__ojs_runtime, core = rt.mains.get(C), ss = core._scope.get("ss")._value;
+  // the core is a tab beside the tutorial in the full notebook, and the only pane without it
+  await page.waitForFunction(([C, pane]) => document.querySelector(`[title^="${C}  ("]`) || document.querySelector(pane), [CORE, pane], { timeout: 20000 });
+  if (await tab.count()) await tab.first().click();
+  const KEYS = ["tally", "bump", "reset", "doubled"];
+  const lines = () => page.evaluate(([pane, keys]) => (keys as string[]).map((k) => (document.querySelector(`${pane} .observablehq[cell="${k}"]`)?.textContent ?? "").trim()), [pane, KEYS] as const);
+  const shown = await until(page, () => page.evaluate(([pane, keys]) => (keys as string[]).every((k) => (document.querySelector(`${pane} .observablehq[cell="${k}"]`) as HTMLElement | null)?.offsetParent), [pane, KEYS] as const), 20000);
+  const r = await page.evaluate(([pane, C, keys]) => {
+    const rt = (window as any).__ojs_runtime, core = rt.mains.get(C);
     const root = document.querySelector(pane)!;
     const top = (e: Element | null) => (e ? Math.round(e.getBoundingClientRect().top + root.scrollTop) : null);
-    const cards = [...root.querySelectorAll(".lite-card")].map((c) => {
-      const key = c.getAttribute("data-cell")!;
-      const v = core._scope.get(key === "tally" ? "viewof tally" : key);
-      return { key, ok: c.classList.contains("lite-ok"), same: c.querySelector(".lite-code")!.textContent === ss.decompileVariable(String(v._definition)), value: c.querySelector(".lite-card-value")!.textContent, top: top(c) };
-    });
-    const visible = (name: string) => { const d = root.querySelector(`.observablehq[cell="${name}"]`) as HTMLElement | null; return !!d?.offsetParent; };
+    const cells = (keys as string[]).map((key) => { const n = root.querySelector(`.observablehq[cell="${key}"]`) as HTMLElement | null; return { key, text: (n?.textContent ?? "").trim(), visible: !!n?.offsetParent, top: top(n) }; });
     const editors = [...rt._variables].find((v: any) => v._name === "editors")?._value;
-    const nobar = cards.filter((c) => !editors?.get(core._scope.get(c.key))?.offsetParent).map((c) => c.key);
+    const nobar = cells.filter((c) => !editors?.get(core._scope.get(c.key))?.offsetParent).map((c) => c.key);
     const h1 = [...root.querySelectorAll("h1")].find((h) => h.textContent === "SoundScript") ?? null;
-    return { cards, nobar, inspector: ["tally", "viewof tally", "bump", "reset", "doubled"].filter(visible), view: visible("example_view"), viewTop: top(root.querySelector('.observablehq[cell="example_view"]')), h1: top(h1), text: root.querySelector(".ss-example")?.textContent };
-  }, [pane, CORE]);
-  const keys = r.cards.map((c) => c.key).join(",");
-  const order = r.h1 !== null && r.cards.every((c, i) => c.top! > r.h1! && (i === 0 || c.top! > r.cards[i - 1].top!)) && r.view && r.viewTop! > r.cards[3]?.top!;
-  report(shown && keys === "tally,bump,reset,doubled" && r.cards.every((c) => c.ok && c.same && !/not computed|throws/.test(c.value!)) && r.inspector.length === 0 && r.nobar.length === 0 && order,
-    `${label}: the title, then cards for ${keys}, each with a visible edit bar (without: ${JSON.stringify(r.nobar)}) (each its live source, ok: ${JSON.stringify(r.cards.map((c) => [c.key, c.ok, c.same, c.value]))}), then the counter view (${JSON.stringify(r.text)}); inspector lines shown ${JSON.stringify(r.inspector)}`);
-  // a click on bump reaches the tally card's value
-  const before = r.cards[0]?.value;
+    const view = root.querySelector('.observablehq[cell="example_view"]') as HTMLElement | null;
+    return { cells, nobar, view: !!view?.offsetParent, viewTop: top(view), h1: top(h1), text: root.querySelector(".ss-example")?.textContent };
+  }, [pane, CORE, KEYS] as const);
+  const texts = r.cells.map((c) => c.text);
+  const order = r.h1 !== null && r.cells.every((c, i) => c.top! > r.h1! && (i === 0 || c.top! > r.cells[i - 1].top!)) && r.view && r.viewTop! > r.cells[3]?.top!;
+  report(shown && JSON.stringify(texts) === JSON.stringify(["tally = 0", "bump = ƒ action()", "reset = ƒ action()", "doubled = 0"]) && r.cells.every((c) => c.visible) && r.nobar.length === 0 && order,
+    `${label}: the title, then the cells ${JSON.stringify(texts)}, each with a visible edit bar (without: ${JSON.stringify(r.nobar)}), then the counter view (${JSON.stringify(r.text)})`);
+  // a click on bump reaches tally's line
   await page.locator(`${pane} .ss-example button`, { hasText: "bump" }).click();
-  const moved = await until(page, () => page.evaluate((pane) => document.querySelector(`${pane} .lite-card[data-cell="tally"] .lite-card-value`)!.textContent, pane).then((t) => t !== before), 5000);
+  const moved = await until(page, async () => (await lines())[0] === "tally = 1", 5000);
+  const after = (await lines())[0];
   await page.locator(`${pane} .ss-example button`, { hasText: "reset" }).click();
-  report(moved, `${label}: bump changes the tally card's value from ${before}`);
+  report(moved, `${label}: bump changes tally's line to ${JSON.stringify(after)}`);
 }
 
 // a phone reader plays with a finger: tap play, drag across the board; the paddle follows and the page does not scroll
@@ -1436,7 +1615,9 @@ if (process.argv.includes("--focus-repro")) {
 const tryOnly = process.argv.includes("--try-only") || process.argv.includes("--broken-only");
 const uiOnly = process.argv.includes("--ui-only") || tryOnly;
 const speedOnly = process.argv.includes("--speed-only");
-const variantOnly = process.argv.includes("--variant-only") || speedOnly;
+// --guard-only: only the core-not-main pass (the editor commands with no language registered)
+const guardOnly = process.argv.includes("--guard-only");
+const variantOnly = process.argv.includes("--variant-only") || speedOnly || guardOnly;
 if (!variantOnly && !process.argv.includes("--no-try") && !process.argv.includes("--broken-only")) {
   await cardsAndThemes();
   await phone();
@@ -1556,6 +1737,7 @@ if (existsSync(savedPath)) {
 if ((!uiOnly && !variantOnly || process.argv.includes("--broken-only")) && !process.argv.includes("--no-broken")) await brokenState(join(SCRATCH, "saved-broken.html"));
 // --- 5: the core without the tutorial
 if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
+  if (!guardOnly) {
   const variant = join(SCRATCH, "core-only.html");
   const built = Bun.spawnSync(["bun", join(HERE, "build.ts"), "--no-tutorial", "--force", "--out", variant], { stdout: "pipe", stderr: "pipe" });
   report(built.exitCode === 0, `core-only: built ${variant}${built.exitCode ? ": " + built.stderr.toString().slice(-400) : ""}`);
@@ -1567,6 +1749,9 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   await hookPass(C.page, "core-only");
   await coreCards(C.page, "core-only README");
   await editorOn(C.page, "core-only", CORE, "bump", "tally: Ref<number>", "tally: Ref<string>", "inject-ref");
+  // the editor commands on a SoundScript cell with the language registered; guard_probe is made for it, and deleted by it
+  await addCell(C.page, CORE, "doubled", "export const guard_probe = (tally: number) => tally * 2;", true);
+  await commandGuard(C.page, "core-only (registered)", CORE, "guard_probe", "ss_keyOf", true);
   // a cell with a Notebook Kit shadow variable, made SoundScript through apply: the shadow goes with the
   // head. The head and its display shadow are made as @tomlarkworthy/js-toolchain's defineCell makes
   // them (variable(undefined, { shadow: {} }), a display variable in _shadow), not by typing a Kit cell.
@@ -1694,6 +1879,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   report(after.present && after.typed && after.verdict === "ok" && after.editorSource === NEW && after.value === 0, `core-only reopened: the added cell survived the export as typed source that checks: ${JSON.stringify(after)}`);
   requests("core-only reopened page", D);
   await D.page.close();
+  }
 
   // --- 6: the core only as the tutorial's import, so ss_registration never runs on its own. An
   // editor opened then shows the compiled text and must refuse to save it; once the language
@@ -1703,6 +1889,8 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   report(built6.exitCode === 0, `core-not-main: built ${unreg}${built6.exitCode ? ": " + built6.stderr.toString().slice(-400) : ""}`);
   const U = await open(unreg);
   await U.page.waitForFunction((tut) => (window as any).__ojs_runtime?.mains?.get(tut), TUTORIAL, { timeout: 60000 });
+  // the editor commands on a SoundScript cell with no language registered: each refused, or writes no marked definition
+  await commandGuard(U.page, "core-not-main (unregistered)", TUTORIAL, "test_half", "framed", false);
   const g2 = await U.page.evaluate(async (tut) => {
     const rt = (window as any).__ojs_runtime;
     const until = async (fn: () => any, what: string, ms = 30000) => {
@@ -1715,7 +1903,8 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
       const mod = await until(() => rt.mains.get(tut), "the tutorial module");
       const inc = await until(() => find("width", mod), "width");
       await until(() => find("editors")?._value?.get(inc)?.querySelector(".hotbar"), "an editor bar beside width");
-      const langs = find("cellLanguagesRef")._value;
+      const langsV = [...rt._variables].filter((v: any) => v._name === "cellLanguagesRef");
+      const langs = langsV.find((v: any) => v._value)?._value ?? await langsV[0]._module.value("cellLanguagesRef");
       out.registeredAtOpen = langs.current.map((l: any) => l.id);
       const host = find("editors")._value.get(inc);
       host.querySelector(".hotbar").dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -1725,6 +1914,9 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
       out.shownBefore = view().state.doc.toString().slice(0, 60);
       out.diagnostics = await until(() => { const ds: string[] = []; codemirror.forEachDiagnostic?.(view().state, (d: any) => ds.push(d.message)); return ds.length ? ds : null; }, "a diagnostic");
       const def0 = inc._definition;
+      // the visualizer draws increment with the normal Inspector until the language registers
+      const incLine = () => (document.querySelector('.observablehq[cell="increment"]')?.textContent ?? "").trim();
+      out.lineBefore = await until(() => incLine(), "increment's line");
       view().contentDOM.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, shiftKey: true, bubbles: true, cancelable: true }));
       await new Promise((r) => setTimeout(r, 1500));
       out.savedUnchanged = inc._definition === def0 && find("width", mod) === inc;
@@ -1733,12 +1925,14 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
       find("ss_registration")._module.variable({}).define(["ss_registration"], (x: any) => x);
       await until(() => /^export const width = /m.test(view()?.state.doc.toString() ?? ""), "the typed source after registration");
       out.shownAfter = view().state.doc.toString();
+      out.lineAfter = await until(() => incLine() === "increment = ƒ action()" && incLine(), "increment drawn by the language");
     } catch (e) { out.error = String((e as Error)?.message ?? e); }
     return out;
   }, TUTORIAL);
   report(!g2.error && g2.registeredAtOpen?.length === 0 && /^width = \$ss\$\.cell\(/.test(g2.shownBefore ?? "") && g2.diagnostics?.some((d: string) => /not loaded yet/.test(d)) && g2.savedUnchanged,
     `core-not-main: with no language registered the editor on width shows the compiled text, says it is not loaded, and Shift-Enter saves nothing: ${JSON.stringify({ ...g2, shownAfter: undefined })}`);
   report(!g2.error && /^export const width = \(\) => 640;$/m.test(g2.shownAfter ?? "") && !g2.shownAfter.includes("$ss$"), `core-not-main: after registration the open editor shows the typed source: ${JSON.stringify(g2.shownAfter ?? g2.error)}`);
+  report(!g2.error && g2.lineBefore !== g2.lineAfter && g2.lineAfter === "increment = ƒ action()", `core-not-main: increment's line is the normal Inspector's before registration (${JSON.stringify(g2.lineBefore?.slice(0, 60))}) and the language's after, without a reload (${JSON.stringify(g2.lineAfter ?? g2.error)})`);
   // a language whose editor extension throws leaves the plain editor, with the error shown
   const g1 = await U.page.evaluate(async (tut) => {
     const rt = (window as any).__ojs_runtime;

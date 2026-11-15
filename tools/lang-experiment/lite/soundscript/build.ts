@@ -3,8 +3,8 @@
 //  - @tomlarkworthy/soundscript (core.ojs): the language. Attachment ss.js.gz (entry.ts).
 //  - @tomlarkworthy/soundscript-tutorial (tutorial.ojs): imports only from the core. Attachments:
 //    the example sources. Left out with --no-tutorial (a test artefact; needs --out).
-//  - @tomlarkworthy/editor-5 replaced by editor-5.fork.js, refused unless quick_start's copy still
-//    equals editor-5.base.js (the copy the fork was made from).
+//  - @tomlarkworthy/editor-5, cell-map and visualizer replaced by <name>.fork.js, each refused unless
+//    quick_start's copy still equals <name>.base.js (the copy the fork was made from).
 //  - every module block not reachable from MAINS removed, checked against EXPECT_REMOVED.
 // In a .ojs file, `//ss: <file> [-cell ...]` becomes that file's SoundScript cells compiled by
 // ss-toolchain (minus the named cells), and `//raw: <name>` the variable RAW[module][name].
@@ -32,12 +32,12 @@ const SECTIONS = [
   { name: "@tomlarkworthy/soundscript-breakout", ojs: "sections/breakout.ojs" },
 ];
 const HOST = "@tomlarkworthy/blank-notebook";
-// //ss-cards: the card renderer (from the core), the module it reads, and the style cell holding the rules
-const CARDS: Record<string, { card: string; module: string; style: string }> = {
-  [CORE]: { card: "ss_card", module: "ss_module", style: "ss_card_style" },
-  [TUTORIAL]: { card: "ssCard", module: "tutorial_module", style: "cardStyle" },
-};
-const EDITOR = "@tomlarkworthy/editor-5";
+// private forks: <file>.fork.js replaces the module's block; <file>.base.js is the quick_start copy it was made from
+const FORKS = [
+  { id: "@tomlarkworthy/editor-5", file: "editor-5" },
+  { id: "@tomlarkworthy/cell-map", file: "cell-map" },
+  { id: "@tomlarkworthy/visualizer", file: "visualizer" },
+];
 const BASE = join(ROOT, "lopecode/notebooks/quick_start.html");
 const EXAMPLES = join(HERE, "../notebook/examples");
 const DEFAULT_OUT = join(ROOT, "lopebooks/notebooks/soundscript.html");
@@ -112,19 +112,18 @@ const { compile, dispose } = await compiler();
 
 function buildModule(name: string, ojs: string, files: File[]) {
   const consts: string[] = [], defs: string[] = [], imports: string[] = [], ssNames: string[] = [];
-  const cardHidden: string[] = [];
   const addVar = (pid: string, v: Variable) => {
     consts.push(`const ${pid} = ${v.definition};`);
     defs.push(`  $def(${q(pid)}, ${q(v.name)}, ${q(v.inputs)}, ${pid});`);
   };
   const cellsOfBlock = (src: string) => {
-    const ssm = /^\/\/ss(-cards)?: (\S+)((?: -\S+)*)$/.exec(src);
+    const ssm = /^\/\/ss: (\S+)((?: -\S+)*)$/.exec(src);
     if (!ssm) return null;
-    const file = ssm[2].startsWith("./") ? join(HERE, ssm[2]) : join(EXAMPLES, ssm[2]);
-    const skip = new Set(ssm[3].split(" -").filter(Boolean));
+    const file = ssm[1].startsWith("./") ? join(HERE, ssm[1]) : join(EXAMPLES, ssm[1]);
+    const skip = new Set(ssm[2].split(" -").filter(Boolean));
     const tsx = file.endsWith("x");
     const texts = splitCells(readFileSync(file, "utf8"), tsx).filter((t) => ![...skip].some((s) => new RegExp(`^(?:\\s*//[^\\n]*\\n)*\\s*export\\s+(?:const|let|function)\\s+${s}\\b`).test(t)));
-    return { texts, tsx, skip, cards: !!ssm[1] };
+    return { texts, tsx, skip };
   };
   const blocks = splitSeed(readFileSync(join(HERE, ojs), "utf8"));
   // one context for the whole module: a cell's compiled form depends on the other cells (ss-toolchain Context)
@@ -136,22 +135,11 @@ function buildModule(name: string, ojs: string, files: File[]) {
   blocks.forEach((src, i) => {
     const ssm = cellsOfBlock(src), raw = /^\/\/raw: (\S+)$/.exec(src);
     if (ssm) {
-      const { texts, tsx, skip, cards } = ssm;
+      const { texts, tsx, skip } = ssm;
       const per = texts.map((t) => compileCell(t, tsx, ctx));
       const vs = per.flat();
       for (const s of skip) if (vs.some((v) => v.name === s)) throw new Error(`${ojs}: ${s} was not left out`);
       for (const cell of per) {
-        // //ss-cards: a card cell before each cell shows its source, check, type and value; the cell's own
-        // inspector lines are hidden, and only one edit bar stays, under the card
-        if (cards) {
-          const cfg = CARDS[name];
-          if (!cfg) throw new Error(`${ojs}: //ss-cards needs a card cell and a module cell (CARDS)`);
-          const key = cell[cell.length - 1].name.replace(/^viewof /, "");
-          addVar("_card_" + key, { name: "card_" + key, inputs: [cfg.card, cfg.module, "invalidation"], definition: `(card, m, invalidation) => card(m, ${q(key)}, invalidation)` } as Variable);
-          // the bar kept is the rendered variable's: a ref cell renders its value variable, not viewof
-          const bar = cell.find((v) => !v.name.startsWith("viewof ")) ?? cell[cell.length - 1];
-          cardHidden.push(`.observablehq[cell="card_${key}"] + div`, ...cell.flatMap((v) => [`.observablehq[cell="${v.name}"]`, ...(v !== bar ? [`.observablehq[cell="${v.name}"] + div`] : [])]));
-        }
         for (const v of cell) {
           addVar("_ss_" + v.name.replace(/[^A-Za-z0-9_$]/g, "_"), v);
           ssNames.push(v.name);
@@ -178,13 +166,6 @@ function buildModule(name: string, ojs: string, files: File[]) {
       addVar(`_ss${i}_${j}`, { name: vname, inputs, definition: String(s._definition) } as Variable);
     });
   });
-  if (cardHidden.length) {
-    // the selectors the style cell hides, as one rule; its own inspector line and bar are in it too
-    // scoped to this module's pane: another module may have a cell of the same name
-    const style = CARDS[name].style, pane = `.lp2-pane[data-module="${name}"] `;
-    const rule = [...cardHidden, `.observablehq[cell="ss_card_rules"]`, `.observablehq[cell="ss_card_rules"] + div`, `.observablehq[cell="${style}"]`, `.observablehq[cell="${style}"] + div`].map((s) => pane + s).join(",\n") + " { display: none; }";
-    addVar("_card_rules", { name: "ss_card_rules", inputs: [], definition: `() => ${JSON.stringify(rule)}` } as Variable);
-  }
   const prologue = `  const fileAttachments = new Map(${q(files.map((f) => f.name))}.map((name) => {
     const module_name = ${q(name)};
     const {status, mime, bytes} = window.lopecode.contentSync(module_name + "/" + encodeURIComponent(name));
@@ -225,16 +206,22 @@ try {
 } finally {
   dispose();
 }
-if (/\b(?:examples|lesson|sourceBox)\b/.test(core.html.slice(core.html.lastIndexOf('<script id="' + CORE + '"')))) throw new Error("the core module mentions tutorial cells");
+if (/\b(?:examples|lesson|sourceBox|sourceListing)\b/.test(core.html.slice(core.html.lastIndexOf('<script id="' + CORE + '"')))) throw new Error("the core module mentions tutorial cells");
 if (core.html.includes(`"module ${TUTORIAL}"`)) throw new Error("the core module imports the tutorial");
 
 let html = readFileSync(BASE, "utf8");
-const base = readFileSync(join(HERE, "editor-5.base.js"), "utf8");
-const fork = readFileSync(join(HERE, "editor-5.fork.js"), "utf8");
-if (blockContent(html, EDITOR)?.trim() !== base.trim()) throw new Error(`${EDITOR} in quick_start.html is not editor-5.base.js; re-fork from the new copy`);
-const es = findSpan(html, EDITOR)!;
-const eraw = html.slice(es.start, es.end);
-html = html.slice(0, es.start) + eraw.slice(0, eraw.indexOf(">") + 1) + "\n" + fork + "</script>" + html.slice(es.end);
+// each fork replaces its module's block, refused unless quick_start's copy still equals the base it was made from
+const forks = FORKS.map(({ id, file }) => {
+  const base = readFileSync(join(HERE, `${file}.base.js`), "utf8");
+  const fork = readFileSync(join(HERE, `${file}.fork.js`), "utf8");
+  if (blockContent(html, id)?.trim() !== base.trim()) throw new Error(`${id} in quick_start.html is not ${file}.base.js; re-fork from the new copy`);
+  const s = findSpan(html, id)!;
+  const raw = html.slice(s.start, s.end);
+  html = html.slice(0, s.start) + raw.slice(0, raw.indexOf(">") + 1) + "\n" + fork + "</script>" + html.slice(s.end);
+  // lines removed from and added to the base, as diff counts them
+  const d = Bun.spawnSync(["diff", join(HERE, `${file}.base.js`), join(HERE, `${file}.fork.js`)], { stdout: "pipe" }).stdout.toString().split("\n");
+  return { id, fork, baseLines: base.split("\n").length, forkLines: fork.split("\n").length, removed: d.filter((l) => l.startsWith("< ")).length, added: d.filter((l) => l.startsWith("> ")).length, baseBytes: base.length, forkBytes: fork.length };
+});
 
 const host = findSpan(html, HOST);
 if (!host) throw new Error(`no ${HOST} block in ${BASE}`);
@@ -287,11 +274,12 @@ const after = new Set(blockSpans(html).map((s) => s.id));
 const lost = ids.filter((id) => id !== HOST && !after.has(id) && !removed.includes(owner(id) ?? "") && !orphans.includes(id));
 if (lost.length) throw new Error(`splice lost ${lost.join(", ")}`);
 if (!after.has(CORE + "/ss.js.gz") || (withTutorial && !after.has(TUTORIAL + "/09-breakout.tsx"))) throw new Error("an attachment is not a top-level block");
-if (blockContent(html, EDITOR)?.trim() !== fork.trim()) throw new Error("the fork did not land");
+for (const f of forks) if (blockContent(html, f.id)?.trim() !== f.fork.trim()) throw new Error(`the ${f.id} fork did not land`);
 writeFileSync(OUT, html);
 if (guarded) writeFileSync(HASH_FILE, sha(html) + "\n");
 console.log(JSON.stringify({
   out: OUT, bytes: Buffer.byteLength(html), bytesBeforeStrip: sizeBefore, removed, orphans, bundle: js.length, bundleGz: gz.length,
   coreVariables: core.consts, tutorialVariables: tutorial?.consts ?? 0, coreSoundScript: core.ssNames, tutorialSoundScript: tutorial?.ssNames ?? [], sectionVariables: sections.map((x) => x.consts), mains: conf.mains, hash: conf.hash,
+  forks: forks.map(({ fork, ...f }) => f),
 }, null, 2));
 process.exit(0);

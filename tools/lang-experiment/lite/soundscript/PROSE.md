@@ -48,10 +48,10 @@ cells it reads, so `area` runs again when `width` or `height` changes.
 
 **Try it.** Open `width` and change it to `() => 800`, then press Shift-Enter. `area`, `aspect` and
 `half` update. Now change it to `() => "800"`. The edit is stored, and the editor says which cells
-it breaks: `area` and `aspect` multiply `width`, so they no longer check. They show the checker's
-message and stop running. `half` reads `area`, so it is blocked: its card says "blocked by area",
-and it does not run until `area` does. Change `width` back, or change those two cells to accept a
-string, and they run again.
+it breaks: `area` and `aspect` do arithmetic on `width`, so they no longer check. They show the checker's
+message and stop running. `half` reads `area`, so it is blocked: it shows the error `area` raises,
+and it does not run until `area` does. Change `width` back, or change those two cells to use
+`Number(width)`, and they run again.
 
 ---
 

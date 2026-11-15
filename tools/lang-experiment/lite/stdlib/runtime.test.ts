@@ -357,6 +357,18 @@ await run("c3_island_cache_bounded", async () => {
   ok("c3_recent_island_keeps_key", new Set(keyOf(199)).size === 1, JSON.stringify(keyOf(199)));
 });
 
+// compile in a module where an unrelated cell does not parse: the island of ok cells still runs, and
+// one that takes the unparsable cell is refused
+await run("c4_compile_with_an_unparsable_cell_elsewhere", async () => {
+  const texts = ["export const x = () => 1;", "export const y = (x: number) => x + 1;", "export const bad = (x: number) => x +;", "export const z = (bad: number) => bad;", "export const go = (compile: Compile) => compile({ inputs: [\"x\"], refs: [], outputs: [\"y\"] });"];
+  const c = ss.compiler(() => ss.joinCells(texts));
+  const r: any = await c.for("go", {})({ inputs: ["x"], refs: [], outputs: ["y"] } as any)({ x: 41 });
+  ok("c4_island_of_ok_cells_runs", r.y === 42, JSON.stringify(r));
+  let refused = "";
+  try { c.for("go", {})({ inputs: ["bad"], refs: [], outputs: ["z"] } as any); } catch (e) { refused = String((e as Error).message); }
+  ok("c4_island_with_the_unparsable_cell_refused", /not ok by the checker/.test(refused), refused);
+});
+
 // flush groups: each top-level action call applies or is dropped on its own, in call order
 const refOf = (v: unknown, name: string) => P.materialize(P.ref(v), name) as any;
 const named = (name: string, f: () => void) => { const a = P.action(f); P.actionNames.set(a, name); return a; };
@@ -557,6 +569,13 @@ await run("b5_state_lost_in_the_broken_part", async () => {
   const after = { kept: L.value("kept"), seeded: L.value("seeded"), own: L.value("own"), fromSq: L.value("fromSq") };
   console.log(`  b5: before ${JSON.stringify(before)}; broken ${JSON.stringify(broken)}; repaired ${JSON.stringify(after)}`);
   ok("b5_untouched_ref_kept", after.kept === before.kept, JSON.stringify({ before, after }));
+  // a ref blocked by its input, with its own text unchanged, keeps its state when the input comes back
+  // with the value it had; a rejected ref, whose definition was replaced, starts again
+  ok("b5_blocked_ref_kept_when_its_input_returns_the_same_value", after.fromSq === before.fromSq, JSON.stringify({ before, after }));
+  ok("b5_rejected_refs_restart", after.own === 0 && after.seeded === 5, JSON.stringify(after));
+  // the same ref given a different input value starts again from it
+  await L.edit("base", "export const base = () => 6;");
+  ok("b5_blocked_ref_restarts_on_a_new_input_value", L.value("fromSq") === 36, String(L.value("fromSq")));
 });
 // Two listeners on one events cell run, for each value, in their cells' source order: on a fresh
 // load, after the first is edited and attaches again (now after the second), and when the module's
