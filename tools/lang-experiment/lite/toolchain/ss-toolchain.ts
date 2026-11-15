@@ -86,49 +86,32 @@ const identifiers = (n: Node, acc = new Set<string>()): Set<string> => {
 };
 
 // What one cell's compiled form depends on in the rest of its module: which cells are generators,
-// which of those some cell takes as Source<T>, and which cells the checker accepted (only those are
+// which of those some cell takes as Events<T>, and which cells the checker accepted (only those are
 // memoised; null, as for a cell compiled on its own, memoises none). compileModule works it out.
 // facts: each cell's facts (facts.ts) when a check result supplied them, so compileCell does not parse
 // for them again.
-// subs: cells whose value type, as the checker inferred it, holds Sub; null when no check ran.
-export type Context = { generators: ReadonlySet<string>; sourced: ReadonlySet<string>; accepted: ReadonlySet<string> | null; facts?: ReadonlyMap<string, CellInfo> | null; subs?: ReadonlySet<string> | null };
-const NO_CONTEXT: Context = { generators: new Set(), sourced: new Set(), accepted: null };
+export type Context = { generators: ReadonlySet<string>; events: ReadonlySet<string>; accepted: ReadonlySet<string> | null; facts?: ReadonlyMap<string, CellInfo> | null };
+const NO_CONTEXT: Context = { generators: new Set(), events: new Set(), accepted: null };
 const NO_MEMO_CAPS = new Set(["now", "random", "fetch", "log"]);
 
 export function contextOf(texts: string[], tsx: boolean, accepted: ReadonlySet<string> | null = null): Context {
   const infos = texts.flatMap((t) => { try { return cellsOf(tsx ? lowerJsx(t) : t); } catch { return []; } });
   return contextOfFacts(infos, accepted);
 }
-function contextOfFacts(infos: Iterable<CellInfo>, accepted: ReadonlySet<string> | null, facts: ReadonlyMap<string, CellInfo> | null = null, subs: ReadonlySet<string> | null = null): Context {
+function contextOfFacts(infos: Iterable<CellInfo>, accepted: ReadonlySet<string> | null, facts: ReadonlyMap<string, CellInfo> | null = null): Context {
   const list = [...infos];
   const generators = new Set(list.filter((c) => c.generator).map((c) => c.name));
-  const sourced = new Set(list.flatMap((c) => c.params.filter((p) => p.sourceTyped && generators.has(p.name)).map((p) => p.name)));
-  return { generators, sourced, accepted, facts, subs };
+  const events = new Set(list.flatMap((c) => c.params.filter((p) => p.eventsTyped && generators.has(p.name)).map((p) => p.name)));
+  return { generators, events, accepted, facts };
 }
 // the cells a check result accepts: ok, with no errors. Only these are memoised.
 type CheckLike = { cells: { name: string; status: string; errors: unknown[]; value?: string }[]; facts?: ReadonlyMap<string, CellInfo> };
 export const acceptedOf = (result: CheckLike) => new Set(result.cells.filter((c) => c.status === "ok" && !c.errors.length).map((c) => c.name));
-// the same context as contextOf over the module's texts, from one check of the whole module, plus which
-// cells hold Sub. The checker shows an alias by its name, so source (the checked module text) is
-// needed to see Sub through `type Subs = Sub[]`; without it only types that spell Sub count.
-export function contextFromCheck(result: CheckLike, source?: string, tsx = true): Context {
+// the same context as contextOf over the module's texts, from one check of the whole module
+export function contextFromCheck(result: CheckLike, _source?: string, _tsx = true): Context {
   if (!result.facts) throw new Error("this check result carries no cell facts");
-  const names = new Set(["Sub"]);
-  if (source !== undefined) {
-    const aliases: [string, string][] = [];
-    for (const st of parse(source, { jsx: tsx }).program.body as Node[]) {
-      const d = st.type === "ExportNamedDeclaration" ? st.declaration : st;
-      if (d && /^TS(TypeAlias|Interface)Declaration$/.test(d.type)) aliases.push([d.id.name, source.slice(d.start, d.end)]);
-    }
-    for (let grew = true; grew;) {
-      grew = false;
-      for (const [n, text] of aliases) if (!names.has(n) && mentions(text.slice(text.indexOf(n) + n.length), names)) { names.add(n); grew = true; }
-    }
-  }
-  const subs = new Set(result.cells.filter((c) => mentions(c.value ?? "", names)).map((c) => c.name));
-  return contextOfFacts(result.facts.values(), acceptedOf(result), result.facts, subs);
+  return contextOfFacts(result.facts.values(), acceptedOf(result), result.facts);
 }
-const mentions = (text: string, names: ReadonlySet<string>) => (text.match(/[\w$]+/g) ?? []).some((w) => names.has(w));
 
 // The variable a cell's value is read from, and the one that holds its handle.
 export const handleName = (name: string) => `viewof ${name}`;
@@ -172,27 +155,32 @@ export function compileCell(text: string, tsx: boolean, ctx: Context = NO_CONTEX
   const params = info.params.map((p) => p.name);
   const used = [...identifiers(parse(`(${lowered})`).program)].filter((n) => PRELUDE.includes(n) && !params.includes(n));
   const inputs = [STDLIB_INPUT, ...info.params.map((p) => (p.refTyped ? handleName(p.name) : CAP_INPUTS[p.name] ?? p.name))];
-  const kind = info.returnsRef ? "ref" : info.generator && ctx.sourced.has(info.name) ? "source" : "cell";
-  // hidden inputs: invalidation for a cell that builds subscriptions or whose value holds them (the set
-  // it returns is released when it re-runs), and the refs of its compile(...) calls (it re-runs, and
-  // returns new functions, when one changes)
+  // a cell that calls on(...) is a listener: the checker allows on(...) only as the cell's whole value
+  const kind = info.returnsRef ? "ref" : info.generator && ctx.events.has(info.name) ? "events" : used.includes("on") ? "listener" : "cell";
+  // hidden inputs: invalidation for an events or listener cell (its generator stops, or its listener
+  // ends, when it runs again), and the refs of its compile(...) calls (it re-runs, and returns new
+  // functions, when one changes)
   const hidden: string[] = [];
   const hiddenInputs: string[] = [];
-  if ((used.includes("on") || !!ctx.subs?.has(info.name)) && !params.includes("invalidation")) { hidden.push("$ss$inv"); hiddenInputs.push("invalidation"); }
+  if ((kind === "events" || kind === "listener") && !params.includes("invalidation")) { hidden.push("$ss$inv"); hiddenInputs.push("invalidation"); }
   const inv = params.includes("invalidation") ? "invalidation" : hidden.includes("$ss$inv") ? "$ss$inv" : "null";
   const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
   const refArgs = refs.map((r, i) => { hidden.push(`$ss$r${i}`); hiddenInputs.push(r); return `${JSON.stringify(r)}: $ss$r${i}`; });
   const args = params.map((p) => (p === "compile" ? `${SS}.compileFor(compile, ${JSON.stringify(info.name)}, {${refArgs.join(", ")}})` : p));
-  const memo = kind === "cell" && !info.generator && !!ctx.accepted?.has(info.name) &&
-    !info.params.some((p) => NO_MEMO_CAPS.has(p.name) || (ctx.generators.has(p.name) && !p.sourceTyped));
+  const memo = (kind === "cell" || kind === "listener") && !info.generator && !!ctx.accepted?.has(info.name) &&
+    !info.params.some((p) => NO_MEMO_CAPS.has(p.name) || (ctx.generators.has(p.name) && !p.eventsTyped));
   const inner = `${LANG}${header({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${typed}`;
   const destructure = used.length ? `const {${used.join(", ")}} = ${SS}; ` : "";
   // id: a hash of the compiled text. The memo is keyed by it, so equal text with equal inputs shares a
   // result (sound for a pure cell) and any edit starts empty.
   const body = `${inner}, [${args.join(", ")}]`;
   const id = contentId(`${kind} ${info.name} ${memo} ${body}`);
-  const opts = `{kind: ${JSON.stringify(kind)}, name: ${JSON.stringify(info.name)}, memo: ${memo}, id: ${JSON.stringify(id)}, invalidation: ${inv}}`;
-  const definition = `(${[SS, ...params, ...hidden].join(", ")}) => { ${destructure}return ${SS}.cell(${body}, ${opts}); }`;
+  // an events cell's definition is a function, so the runtime's `this` (the variable's last value, its
+  // handle) reaches the stdlib, which keeps the handle across runs
+  const prev = kind === "events" ? "prev: this, " : "";
+  const opts = `{kind: ${JSON.stringify(kind)}, name: ${JSON.stringify(info.name)}, memo: ${memo}, ${prev}id: ${JSON.stringify(id)}, invalidation: ${inv}}`;
+  const head = `(${[SS, ...params, ...hidden].join(", ")})`;
+  const definition = kind === "events" ? `function ${head} { ${destructure}return ${SS}.cell(${body}, ${opts}); }` : `${head} => { ${destructure}return ${SS}.cell(${body}, ${opts}); }`;
   const all = [...inputs, ...hiddenInputs];
   if (kind === "ref") {
     return [

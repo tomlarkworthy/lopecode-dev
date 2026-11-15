@@ -46,6 +46,7 @@ export const RULES: RuleInfo[] = [
   { id: "borrowed-await", section: "Opt-in 2: owner cells", how: "approx", summary: "Borrowed value used textually after an await in the same function" },
   // Refs and actions
   { id: "ref-placement", section: "Refs and actions", how: "exact", summary: "ref(...) only as the returned value of a sync, non-generator cell" },
+  { id: "ref-in-ref", section: "Refs and actions", how: "exact", summary: "a ref cell whose content type contains Ref or RefCell anywhere" },
   { id: "ref-write", section: "Refs and actions", how: "approx", summary: "Ref.set/update outside the lexical body of action(...)" },
   { id: "action-call", section: "Refs and actions", how: "approx", summary: "an Action called outside the lexical body of action(...)" },
   { id: "action-pass", section: "Refs and actions", how: "approx", summary: "an Action passed to a parameter not typed Action" },

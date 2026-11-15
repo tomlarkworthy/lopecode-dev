@@ -10,7 +10,7 @@ Rules for the rest of the page:
 - The page order is: introduction, sections 1 to 9, "How it works", language reference,
   "How good is the checker", "Not built", tests, appendices.
 - Everything the current section texts say about implementation (how JSX lowers, the renderer,
-  `hold`/`release`, how a ref becomes two variables, the marker comments, why four sections are
+  listeners, how a ref becomes two variables, the marker comments, why four sections are
   modules) moves to "How it works", one mechanism per cell, each with a heading. Keep the facts;
   cut nothing that is true and checked. The numbered sections keep only the lead below, the
   live cells, the table, and the "Try" cell.
@@ -206,10 +206,10 @@ game, as in section 5. The world is one `ref`. The view is JSX, split into cells
 bricks are not rebuilt while only the ball moves, as in section 6.
 
 One piece is new. A game needs a clock, and a cell cannot call an action. `ticks` is a generator
-cell that yields the time since the last frame. `on(ticks, tick)` describes a *subscription*:
-"deliver each value of `ticks` to the action `tick`". The cell `subscriptions` returns that
-description while the game is playing and an empty list otherwise, and the notebook starts and
-stops the clock to match.
+cell. It yields the time since the last frame while the game is playing, and yields nothing once
+`playing` is false. `onTick` returns `on(ticks, tick)`, a *listener*: the notebook runs the action
+`tick` once for each value of `ticks`. A parameter typed `Events<number>` is a handle to the
+generator and not its latest value, so `onTick` does not run again on every frame.
 
 ---
 
@@ -228,7 +228,7 @@ because `step` depends only on its arguments.
 ## How it works
 
 (the relocated implementation cells go here: what a cell compiles to; ref cells as two variables;
-capabilities as core cells; `compile` and its island; subscriptions and the reconciler; the
+capabilities as core cells; `compile` and its island; listeners; the
 renderer; how the typed source is kept in the saved notebook; the editor's rule for refusing an
 edit; why four sections are modules)
 

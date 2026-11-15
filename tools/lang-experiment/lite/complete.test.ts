@@ -18,7 +18,7 @@ const MODULE = [
   `export const label = () => "abc";`,
   `export const ticks = function* (now: Clock) {\n  for (;;) yield now();\n};`,
   `export const tick = (count: Ref<number>) => action((n: number) => count.set(n));`,
-  `export const subs = (ticks: Source<number>, tick: Action<[number]>) => [on(ticks, tick)];`,
+  `export const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick);`,
   `export const step = () => (e: Ev): number => {\n  if (e.kind === "add") return e.by;\n  return 0;\n};`,
   `export const app = (count: number, increment: Action<[]>) => <div><button onClick={increment}>add</button>{count}</div>;`,
 ];
@@ -94,8 +94,10 @@ const show = (r: { labels: string[]; mode: string }) => `${r.mode} ${JSON.string
 {
   const r = at("export const f = (increment: Action<[]>) => increment.|");
   ok("Action offers nothing", r.labels.length === 0 && r.mode === "member", show(r));
-  const q = at("export const f = (ticks: Source<number>) => ticks.|");
-  ok("Source offers nothing", q.labels.length === 0 && q.mode === "member", show(q));
+  const q = at("export const f = (ticks: Events<number>) => ticks.|");
+  ok("Events offers nothing", q.labels.length === 0 && q.mode === "member", show(q));
+  const l = at("export const f = (onTick: Listener) => onTick.|");
+  ok("Listener offers nothing", l.labels.length === 0 && l.mode === "member", show(l));
 }
 {
   const r = at("export const f = (x: number) => Math.|");
@@ -170,6 +172,20 @@ const show = (r: { labels: string[]; mode: string }) => `${r.mode} ${JSON.string
   ok("an unclosed if test", has(w, "toFixed"), show(w));
   const z = at("export const f = (x: numb|");
   ok("unparseable text answers with no runtime names", lacks(z, "document", "window"), show(z));
+}
+
+// ---- the listener vocabulary
+{
+  const n = at("export const g = (ticks: Events<number>, tick: Action<[number]>) => o|");
+  ok("a name offers on", has(n, "on"), show(n));
+  const t = at("export const g = (ticks: Ev|");
+  ok("a parameter type offers Events", has(t, "Events") && t.mode === "type", show(t));
+  const r = at("export const g = (ticks: Events<number>): Lis|");
+  ok("a return type offers Listener", has(r, "Listener") && r.mode === "type", show(r));
+  const u = at("export const g = (ticks: Events<nu|");
+  ok("a type argument offers number", has(u, "number") && lacks(u, "document"), show(u));
+  const o = at("export const g = (ticks: Sour|");
+  ok("the old name Source is not offered", o.labels.length === 0, show(o));
 }
 
 // ---- speed: completion on the tutorial-sized module

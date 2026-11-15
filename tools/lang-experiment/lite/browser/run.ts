@@ -7,7 +7,7 @@ import { h } from "../jsx/h.ts";
 import { erase } from "./erase.ts";
 import * as P from "../../prelude.runtime.ts";
 import { island, type IslandSpec } from "../island.ts";
-import { cellsOf, on, isSubs, guard, generatorish, type CellInfo } from "./cells.ts";
+import { cellsOf, on, events, listen, nameAction, release, guard, generatorish, type CellInfo } from "./cells.ts";
 export { cellsOf, on, guard, generatorish, type CellInfo };
 import { pagePool, runHere, type Pool } from "./workers.ts";
 
@@ -65,49 +65,15 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
       return runHere(job);
     };
   };
-  // Running subscriptions. One entry per (source handle, action) for the whole program, counted by
-  // the cells whose set holds it, so a cell that forwards a set does not start a second copy. A sync
-  // generator is stepped once per animation frame, an async one as soon as each next() resolves.
-  type Running = { source: unknown; action: unknown; count: number; stop: () => void };
-  const live: Running[] = [];
-  const held = new Map<string, Running[]>();
-  const start = (source: { make: () => any }, act: (x: unknown) => void): Running => {
-    let stopped = false;
-    const gen = source.make();
-    const step = () => {
-      if (stopped) return;
-      const res = gen.next();
-      const handle = (r: IteratorResult<unknown>, async: boolean) => {
-        if (stopped || r.done) return;
-        act(r.value);
-        if (async) step(); else requestAnimationFrame(step);
-      };
-      if (res && typeof res.then === "function") res.then((r: IteratorResult<unknown>) => handle(r, true));
-      else handle(res, false);
-    };
-    requestAnimationFrame(step);
-    return { source, action: act, count: 0, stop: () => { stopped = true; try { gen.return(); } catch {} } };
-  };
-  const reconcile = (cell: string, v: unknown) => {
-    const want = isSubs(v) ? v : [];
-    const next: Running[] = [];
-    for (const w of want) {
-      let e = live.find((r) => r.source === w.source && r.action === w.action);
-      if (!e) { e = start(w.source, w.action); live.push(e); }
-      if (!next.includes(e)) { e.count++; next.push(e); }
-    }
-    for (const e of held.get(cell) ?? []) {
-      if (--e.count === 0) { e.stop(); live.splice(live.indexOf(e), 1); }
-    }
-    if (next.length) held.set(cell, next); else held.delete(cell);
-  };
-  const stopAll = () => { for (const c of [...held.keys()]) reconcile(c, []); };
+  // every variable value this program made, so dispose ends its listeners and stops its generators
+  const made = new Set<unknown>();
+  const stopAll = () => { for (const v of made) release(v); made.clear(); };
   const listeners = new Set<(r: Rec) => void>();
   const changed = (r: Rec) => { opts.onChange?.(r); for (const f of listeners) f(r); };
 
   const input = (c: CellInfo, p: CellInfo["params"][number]): string => {
     const t = byName.get(p.name);
-    if (t) return t.returnsRef && p.refTyped ? `${p.name}$ref` : t.generator && p.sourceTyped ? `${p.name}$source` : p.name;
+    if (t) return t.returnsRef && p.refTyped ? `${p.name}$ref` : p.name;
     if (CAPS.has(p.name) && p.name !== "invalidation") {
       const v = `${p.name}@${c.name}`;
       if (!hidden.has(v)) {
@@ -126,8 +92,8 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
   };
   const observe = (rec: Rec) => ({
     pending() { rec.status = "pending"; changed(rec); },
-    fulfilled(v: unknown) { reconcile(rec.name, v); rec.status = "fulfilled"; rec.value = v; rec.error = undefined; changed(rec); },
-    rejected(e: unknown) { reconcile(rec.name, undefined); rec.status = "rejected"; rec.error = e; rec.value = undefined; changed(rec); },
+    fulfilled(v: unknown) { made.add(v); rec.status = "fulfilled"; rec.value = v; rec.error = undefined; changed(rec); },
+    rejected(e: unknown) { rec.status = "rejected"; rec.error = e; rec.value = undefined; changed(rec); },
   });
   for (const c of cells) {
     const raw = exports[c.name];
@@ -155,12 +121,19 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
       variables.push({ name: c.name, inputs, kind: `cell; ${refNames.join(", ")} read for compile` });
       continue;
     }
-    // A generator some cell takes as Source<T>: its variable is a handle that makes a fresh instance
-    // per subscription, so nothing steps the generator unless something subscribes to it.
-    if (c.generator && cells.some((d) => d.params.some((p) => p.name === c.name && p.sourceTyped))) {
-      main.variable(observe(rec)).define(`${c.name}$source`, inputs, (...a: unknown[]) => Object.freeze({ source: c.name, make: () => counted(...a) }));
-      main.variable(observe(rec)).define(c.name, [`${c.name}$source`], (s: unknown) => s);
-      variables.push({ name: `${c.name}$source`, inputs, kind: "source: a handle, one generator per subscription" }, { name: c.name, inputs: [`${c.name}$source`], kind: "source cell: the handle again" });
+    // A generator some cell takes as Events<T>: its value is a handle, kept across runs (`this` is the
+    // variable's last value); the generator in it is pulled only while a listener is attached.
+    if (c.generator && cells.some((d) => d.params.some((p) => p.name === c.name && p.eventsTyped))) {
+      main.variable(observe(rec)).define(c.name, [...inputs, "invalidation"], function (this: unknown, ...a: unknown[]) {
+        return events(this, c.name, a.slice(0, -1), () => counted(...a.slice(0, -1)) as any, a[a.length - 1] as Promise<unknown>);
+      });
+      variables.push({ name: c.name, inputs, kind: "events: a handle; its generator runs while a listener is attached" });
+      continue;
+    }
+    // A cell that calls on(...) is a listener: each run attaches its value until the run's invalidation.
+    if (/\bon\s*\(/.test(ts.slice(...(c.span ?? [0, 0])))) {
+      main.variable(observe(rec)).define(c.name, [...inputs, "invalidation"], (...a: unknown[]) => listen(counted(...a.slice(0, -1)), c.name, a[a.length - 1] as Promise<unknown>));
+      variables.push({ name: c.name, inputs, kind: "listener" });
       continue;
     }
     if (c.returnsRef) {
@@ -181,11 +154,12 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
       // Sound because accepted values are immutable; a generator input may lend one buffer mutated
       // between yields (borrow), so a cell reading a generator is not memoised; nor is one taking a
       // capability that can answer differently on the same inputs.
-      const memo = !c.params.some((p) => (byName.get(p.name)?.generator && !p.sourceTyped) || ["now", "random", "fetch", "log"].includes(p.name));
+      const memo = !c.params.some((p) => (byName.get(p.name)?.generator && !p.eventsTyped) || ["now", "random", "fetch", "log"].includes(p.name));
       let last: { args: unknown[]; value: unknown } | null = null;
       const def = (...a: unknown[]) => {
         if (memo && last && a.every((v, i) => Object.is(v, last!.args[i]))) return last.value;
         const value = counted(...a);
+        nameAction(value, c.name);
         last = { args: a, value };
         return value;
       };

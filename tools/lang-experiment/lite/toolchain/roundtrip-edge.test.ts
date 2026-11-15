@@ -27,47 +27,30 @@ function roundTrips(src: string, tsx: boolean): string | null {
 }
 const def = (src: string, tsx = false) => compileCell(src, tsx).at(-1)!.definition;
 
-// B2: a cell whose value holds Sub gets the invalidation input, so the set it returns is released when it re-runs
+// Events and listeners: an events cell's handle survives its re-runs (a function definition that
+// passes `this`), and a listener cell takes invalidation, which ends its listener when it runs again.
 {
   const src = [
-    "export const ticks = function* (now: Clock) { while (true) yield now(); };",
+    "export const ticks = function* (now: Clock, fast: boolean) { while (true) yield now(); };",
+    "export const pulses = function* () { while (true) yield 1; };",
     "export const count = (): RefCell<number> => ref(0);",
     "export const tick = (count: Ref<number>) => action((t: number) => count.update((c) => c + 1));",
-    "export const a = (ticks: Source<number>, tick: Action<[number]>, on1: boolean) => on1 ? [on(ticks, tick)] : [];",
-    "export const on1 = () => true;",
-    "export const both = (a: Sub[], b: Sub[]) => [...a, ...b];",
-    "export const b = (ticks: Source<number>, tick: Action<[number]>) => [on(ticks, tick)];",
-    "export const total = (a: Sub[], b: Sub[]): number => a.length + b.length;",
+    "export const fast = () => true;",
+    "export const onTick = (ticks: Events<number>, pulses: Events<number>, tick: Action<[number]>, fast: boolean) => (fast ? on(ticks, tick) : on(pulses, tick));",
+    "export const label = (ticks: Events<number>, count: number) => `count ${count}`;",
   ].join("\n\n");
   const r = checkSources({ cells: src, tsx: true });
-  expect(r.cells.every((c) => c.status === "ok"), "B2 module checks ok: " + r.cells.map((c) => c.name + ":" + c.status));
+  expect(r.cells.every((c) => c.status === "ok"), "events module checks ok: " + r.cells.map((c) => c.name + ":" + c.status));
   const ctx = contextFromCheck(r);
   const by = new Map(src.split("\n\n").map((t) => { const v = compileCell(t, true, ctx).at(-1)!; return [v.name, v]; }));
-  const both = by.get("both")!;
-  expect(both.inputs.includes("invalidation") && /invalidation: \$ss\$inv\}\); \}$/.test(both.definition), "B2 both (returns Sub[] without calling on) takes invalidation: " + JSON.stringify(both.inputs));
-  expect(by.get("a")!.inputs.includes("invalidation"), "B2 a (calls on) still takes invalidation");
-  const total = by.get("total")!;
-  expect(!total.inputs.includes("invalidation") && /invalidation: null\}\); \}$/.test(total.definition), "B2 total (takes Sub[], value number) has no invalidation: " + JSON.stringify(total.inputs));
-  expect(!by.get("on1")!.inputs.includes("invalidation"), "B2 on1 has no invalidation");
-}
-// through an alias: the checker shows `Subs`, so the module source is what shows it holds Sub
-{
-  const src = [
-    "type Subs = Sub[];",
-    "type More = { list: Subs };",
-    "export const ticks = function* (now: Clock) { while (true) yield now(); };",
-    "export const tick = () => action((t: number) => {});",
-    "export const b = (ticks: Source<number>, tick: Action<[number]>): Subs => [on(ticks, tick)];",
-    "export const fw = (b: Subs): Subs => b;",
-    "export const n = (b: Subs): number => b.length;",
-  ].join("\n\n");
-  const r = checkSources({ cells: src, tsx: true });
-  expect(r.cells.every((c) => c.status === "ok"), "B2 alias module checks ok: " + r.cells.map((c) => c.name + ":" + c.status));
-  const ctx = contextFromCheck(r, src, true);
-  const fw = compileCell("export const fw = (b: Subs): Subs => b;", true, ctx)[0];
-  expect(fw.inputs.includes("invalidation"), "B2 fw (value Subs = Sub[]) takes invalidation: " + JSON.stringify(fw.inputs));
-  const nn = compileCell("export const n = (b: Subs): number => b.length;", true, ctx)[0];
-  expect(!nn.inputs.includes("invalidation"), "B2 n (value number) has no invalidation");
+  const ticks = by.get("ticks")!;
+  expect(ticks.definition.startsWith("function (") && /kind: "events", name: "ticks", memo: false, prev: this, id: "\w+", invalidation: \$ss\$inv\}\); \}$/.test(ticks.definition), "an events cell passes this and takes invalidation: " + ticks.definition.slice(-90));
+  expect(decompileVariable(ticks.definition) === src.split("\n\n")[0], "an events cell decompiles to its source");
+  const onTick = by.get("onTick")!;
+  expect(/kind: "listener"/.test(onTick.definition) && onTick.inputs.at(-1) === "invalidation" && /memo: true/.test(onTick.definition), "a listener takes invalidation and is memoised: " + JSON.stringify(onTick.inputs));
+  const label = by.get("label")!;
+  expect(/kind: "cell"/.test(label.definition) && !label.inputs.includes("invalidation"), "a cell that takes Events but does not call on is a plain cell: " + JSON.stringify(label.inputs));
+  expect(!by.get("fast")!.inputs.includes("invalidation") && /kind: "cell"/.test(by.get("pulses")!.definition) === false, "fast has no invalidation; pulses is events");
 }
 
 // C4: the compiler's memo id is read and replaced structurally; a user's `id:` property is untouched

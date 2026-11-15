@@ -8,7 +8,7 @@
 //     unchanged save keeps text and pid, Ref<string> shows a diagnostic and is refused;
 //  4. export with exporter-3, reopen, run 1 and 2 there, compare SoundScript definitions, block ids
 //     and decompiled source, export again and compare the module blocks; then, on the original page,
-//     delete `subscriptions` while Breakout plays and check the clock stops;
+//     delete `onTick` while Breakout plays and check the clock stops; dispose a copy of the game while it plays;
 //  5. real Playwright clicks and keys on a fresh page: tally renders as one cell and its hotbar opens
 //     the ref source; a typed refused edit and a typed applied edit of `width`; a cell added with the
 //     hotbar's add button; Save in place from the lopepage menu (showSaveFilePicker is stubbed to
@@ -39,7 +39,7 @@ const report = (ok: boolean, what: string) => { console.log(`${ok ? "pass" : "FA
 
 const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_refused", "test_ss_downstream_break_is_refused", "test_ss_copy_keeps_its_name", "test_ss_failed_apply_changes_nothing", "test_ss_edits_do_not_grow_the_memo", "test_ss_instance_keeps_user_ids", "test_ss_ref_handle", "ss_registration"];
 const TUTORIAL_TESTS = ["test_ss_roundtrip", "test_ss_module_checks", "test_ss_counter", "test_half",
-  "test_examples_check_as_expected", "test_compile_pool_matches_main", "test_compile_refuses_unchecked", "test_breakout_subscriptions", "test_breakout_memo", "benchmark"];
+  "test_examples_check_as_expected", "test_compile_pool_matches_main", "test_compile_refuses_unchecked", "test_breakout_listener", "test_breakout_memo", "benchmark"];
 
 
 // --- the page's text against the checker, without a browser
@@ -184,9 +184,9 @@ async function testsOn(page: Page, label: string, boot = true) {
       const ss = [...rt._variables].find((v: any) => v._name === "ss" && v._value?.running)?._value;
       const bm = rt.mains.get("@tomlarkworthy/soundscript-breakout");
       const ball = bm?._scope.get("ballView");
-      return { ran: Object.entries(st).filter(([, x]) => x !== "pending").map(([n]) => n), pending: Object.keys(st).length, running: ss?.running(), ballRuns: ball ? ss?.evals(ball._definition) : null };
+      return { ran: Object.entries(st).filter(([, x]) => x !== "pending").map(([n]) => n), pending: Object.keys(st).length, running: ss?.running(), pulling: ss?.pulling(), ballRuns: ball ? ss?.evals(ball._definition) : null };
     });
-    report(idle.ran.length === 0 && idle.running === 0 && (idle.ballRuns ?? 0) <= 1, `${label}: at boot ${idle.pending} test cells are pending and none ran (${JSON.stringify(idle.ran)}); subscriptions running ${idle.running}; the page's ballView ran ${idle.ballRuns} times`);
+    report(idle.ran.length === 0 && idle.pulling === 0 && (idle.ballRuns ?? 0) <= 1, `${label}: at boot ${idle.pending} test cells are pending and none ran (${JSON.stringify(idle.ran)}); listeners attached ${idle.running}, clocks pulled ${idle.pulling}; the page's ballView ran ${idle.ballRuns} times`);
   }
   // each toggle is found by the module whose cell holds it; when its pane shows another tab, that
   // module's tab is clicked first. The tutorial goes last, so its tab is the one left showing.
@@ -712,23 +712,129 @@ async function afterReload(page: Page) {
   });
   report(w === 600 && q === 2400 && text === "export const quadrupled = (width: number) => width * 4;", `reload after save: width ${w}, quadrupled ${q}, as typed source ${JSON.stringify(text)}`);
 }
-// deleting the cell that holds a subscription stops it (the runtime does not resolve its invalidation)
+// deleting the listener cell stops delivery (the runtime does not resolve its invalidation)
 async function deleteStops(page: Page) {
   const r = await page.evaluate(async () => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get("@tomlarkworthy/soundscript-breakout");
     const get = (n: string) => [...rt._variables].find((v: any) => v._module === mod && v._name === n);
     const ss = [...rt._variables].find((v: any) => v._name === "ss" && v._module === rt.mains.get("@tomlarkworthy/soundscript"))._value;
     const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+    const r0 = ss.running(), p0 = ss.pulling();
     get("toggle")._value();
     await wait(400);
-    const playing = ss.running();
-    get("subscriptions").delete();
+    const playing = ss.pulling() - p0;
+    get("onTick").delete();
     await wait(600);
     const w1 = get("world")._value;
     await wait(300);
-    return { playing, after: ss.running(), still: get("world")._value === w1 };
+    return { playing, after: ss.pulling() - p0, listeners: ss.running() - r0, still: get("world")._value === w1 };
   });
-  report(r.playing === 1 && r.after === 0 && r.still, `deleting subscriptions while playing stops the clock: running ${r.playing} -> ${r.after}, world unchanged ${r.still}`);
+  report(r.playing === 1 && r.after === 0 && r.listeners === -1 && r.still, `deleting onTick while playing stops the clock: clocks pulled +${r.playing} -> +${r.after}, listeners ${r.listeners}, world unchanged ${r.still}`);
+}
+// disposing a copy of the game (ss_instance's invalidation) while it plays stops its clock and its listener
+async function instanceStops(page: Page) {
+  const r = await page.evaluate(async () => {
+    const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript"), bm = rt.mains.get("@tomlarkworthy/soundscript-breakout");
+    const ss = core._scope.get("ss")._value, ss_instance = await core.value("ss_instance");
+    const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+    let done!: () => void;
+    const r0 = ss.running(), p0 = ss.pulling();
+    const inst = await ss_instance(bm, new Promise<void>((res) => (done = res)));
+    for (const n of ["toggle", "world", "onTick"]) await inst.value(n);
+    const w0 = inst._scope.get("world")._value;
+    inst._scope.get("toggle")._value();
+    await wait(400);
+    const playing = { listeners: ss.running() - r0, pulled: ss.pulling() - p0, moved: inst._scope.get("world")._value.ball.y !== w0.ball.y };
+    done();
+    await wait(300);
+    const after = { listeners: ss.running() - r0, pulled: ss.pulling() - p0, vars: [...rt._variables].filter((v: any) => v._module === inst).length };
+    return { playing, after };
+  });
+  report(r.playing.listeners === 1 && r.playing.pulled === 1 && r.playing.moved && r.after.listeners === 0 && r.after.pulled === 0,
+    `disposing a playing copy of the game stops its clock and its listener: playing ${JSON.stringify(r.playing)}, disposed ${JSON.stringify(r.after)}`);
+}
+// Exactly once, on real animation frames: a probe module of cells applied to the core. nums yields
+// 1..N, record counts each value and every value that is not the last plus one (a gap).
+async function listenerOnce(C: { page: Page; errors: string[] }) {
+  const r = await C.page.evaluate(async () => {
+    const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
+    const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
+    const lang = get("ss_language")._value, ss = get("ss")._value;
+    const frames = (n: number) => new Promise<void>((res) => { let i = 0; const f = () => (++i >= n ? res() : requestAnimationFrame(f)); requestAnimationFrame(f); });
+    const until = async (f: () => boolean, n = 600) => { for (let i = 0; i < n && !f(); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
+    const add = (text: string) => lang.apply(text, [], { module: { module: core }, variables: [get("tripled")] });
+    const applied: string[] = [];
+    const edit = async (text: string, name: string) => { const r = await lang.apply(text, [get(name)]); applied.push(`${name} ${r ? "applied" : "refused"}`); return r; };
+    const N = 120;
+    const cells = [
+      "type Seen = { readonly count: number; readonly last: number; readonly gaps: number };",
+      "export const seen = (): RefCell<Seen> => ref<Seen>({ count: 0, last: 0, gaps: 0 });",
+      "export const go = (): RefCell<boolean> => ref(true);",
+      `export const nums = function* (go: boolean) {\n  if (!go) return;\n  for (let i = 1; i <= ${N}; i++) yield i;\n};`,
+      "export const weight = () => (v: number) => v;",
+      "export const record = (seen: Ref<Seen>, weight: (v: number) => number) =>\n  action((v: number) => {\n    seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (weight(v) === s.last + 1 ? 0 : 1) }));\n    if (v % 10 === 0 && v > 1000) throw new Error(`no ${v}`);\n  });",
+      "export const onNum = (nums: Events<number>, record: Action<[number]>) => on(nums, record);",
+      "export const flip = (go: Ref<boolean>) => action(() => go.update((g) => !g));",
+    ];
+    const out: any = {};
+    const r0 = ss.running(), p0 = ss.pulling();
+    for (const c of cells) if (!(await add(c))) return { refused: c };
+    const seen = () => get("seen")._value;
+    const runs = (n: string) => ss.evals(get(n)._definition);
+    await until(() => seen()?.count >= 30);
+    out.listenersAt30 = ss.running() - r0;
+    // the action's dependency is edited twice while values arrive
+    await edit("export const weight = () => (v: number) => v * 1;", "weight");
+    await until(() => seen().count >= 60);
+    await edit("export const weight = () => (v: number) => 1 * v;", "weight");
+    // the listener cell itself runs again
+    await edit("export const onNum = (nums: Events<number>, record: Action<[number]>) => /* again */ on(nums, record);", "onNum");
+    out.listenersAfterRerun = ss.running() - r0;
+    await until(() => seen().count >= N);
+    await frames(10);
+    out.stream = { ...seen() };
+    // restart the events cell: false, then true
+    const on0 = runs("onNum"), n0 = runs("nums"), h0 = get("nums")._value;
+    get("flip")._value();
+    await frames(20);
+    const c1 = seen().count;
+    await frames(20);
+    out.stopped = seen().count === c1;
+    get("flip")._value();
+    await until(() => seen().count >= c1 + N);
+    await frames(10);
+    out.restart = { count: seen().count - c1, gaps: seen().gaps, onNumRuns: runs("onNum") - on0, numsRuns: runs("nums") - n0, sameHandle: get("nums")._value === h0 };
+    // an action that throws on every tenth value: those values write nothing, the rest arrive
+    await edit("export const record = (seen: Ref<Seen>, weight: (v: number) => number) =>\n  action((v: number) => {\n    seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (weight(v) === s.last + 1 ? 0 : 1) }));\n    if (v % 10 === 0) throw new Error(`no ${v}`);\n  });", "record");
+    const c2 = seen().count;
+    get("flip")._value(); await frames(5); get("flip")._value();
+    await until(() => seen().last === N - 1 && seen().count >= c2 + N - N / 10, 600);
+    await frames(10);
+    out.throwing = { committed: seen().count - c2, last: seen().last };
+    // deleting the listener stops delivery
+    get("flip")._value(); await frames(5); get("flip")._value(); await frames(5);
+    const p1 = ss.pulling() - p0;
+    get("onNum").delete();
+    await frames(5);
+    const c3 = seen().count;
+    await frames(30);
+    out.applied = applied;
+    out.deleted = { pulledBefore: p1, pulledAfter: ss.pulling() - p0, listeners: ss.running() - r0, count: seen().count - c3 };
+    for (const n of ["record", "flip", "weight", "nums", "seen", "go", "type Seen"]) get(n)?.delete();
+    await until(() => !get("seen") && !get("nums"));
+    get("reset")._value();
+    return out;
+  });
+  const thrown = C.errors.filter((e) => /listener onNum: action record threw on a value of events nums/.test(e));
+  for (const e of thrown) C.errors.splice(C.errors.indexOf(e), 1);
+  report(r.applied?.length === 4 && r.applied.every((x: string) => x.endsWith("applied")) && r.listenersAt30 === 1 && r.listenersAfterRerun === 1 && r.stream?.count === 120 && r.stream.gaps === 0,
+    `exactly once: 120 yields gave ${r.stream?.count} actions with ${r.stream?.gaps} gaps, across two edits of the action's dependency and a re-run of the listener; listeners ${r.listenersAt30}, after the re-run ${r.listenersAfterRerun}; edits ${JSON.stringify(r.applied)}${r.refused ? `; refused ${r.refused}` : ""}`);
+  report(r.stopped && r.restart?.count === 120 && r.restart.gaps === 1 && r.restart.onNumRuns === 0 && r.restart.numsRuns === 2 && r.restart.sameHandle,
+    `exactly once: the events cell stopped and restarted without the listener running again: ${JSON.stringify({ stopped: r.stopped, ...r.restart })}`);
+  report(r.throwing?.committed === 108 && r.throwing.last === 119 && thrown.length === 12,
+    `exactly once: an action throwing on every tenth of 120 values: ${r.throwing?.committed} committed, last ${r.throwing?.last}; ${thrown.length} console errors naming onNum, record and nums`);
+  report(r.deleted?.pulledBefore === 1 && r.deleted.pulledAfter === 0 && r.deleted.listeners === 0 && r.deleted.count === 0,
+    `exactly once: deleting the listener stops delivery: ${JSON.stringify(r.deleted)}`);
 }
 // The editor's lint messages for the cell open in `host`
 const diagsOf = (host: any) => host.locator(".cm-content").first().evaluate((el: any) => {
@@ -894,8 +1000,8 @@ async function tryIts(page: Page) {
     const w1 = await world();
     await page.waitForTimeout(300);
     const w2 = await world();
-    const running = await page.evaluate(() => (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript")._scope.get("ss")._value.running());
-    report(w0.score > 0 && w1.score >= w0.score && w1.bricks <= w0.bricks && w2.y !== w1.y && running === 1, `try (section 9): step edited while playing: world ${JSON.stringify(w0)} -> ${JSON.stringify(w1)} -> ${JSON.stringify(w2)}, ${running} subscriptions`);
+    const ssv = await page.evaluate(() => { const ss = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript")._scope.get("ss")._value; return { running: ss.running(), pulling: ss.pulling() }; });
+    report(w0.score > 0 && w1.score >= w0.score && w1.bricks <= w0.bricks && w2.y !== w1.y && ssv.running === 1 && ssv.pulling === 1, `try (section 9): step edited while playing: world ${JSON.stringify(w0)} -> ${JSON.stringify(w1)} -> ${JSON.stringify(w2)}, ${ssv.running} listener, ${ssv.pulling} clock`);
     await page.getByRole("button", { name: "pause", exact: true }).first().click().catch(() => {});
   } else report(false, "try: no editor for breakout step");
 }
@@ -1129,9 +1235,9 @@ await testsPass(A.page, "original", TUTORIAL, TUTORIAL_TESTS);
   const g = await A.page.evaluate(() => {
     const rt = (window as any).__ojs_runtime, bm = rt.mains.get("@tomlarkworthy/soundscript-breakout");
     const ss = bm._scope.get("ss")._value;
-    return { ballRuns: ss.evals(bm._scope.get("ballView")._definition), y: bm._scope.get("world")._value.ball.y, running: ss.running() };
+    return { ballRuns: ss.evals(bm._scope.get("ballView")._definition), y: bm._scope.get("world")._value.ball.y, pulling: ss.pulling() };
   });
-  report(g.ballRuns <= 1 && g.y === 180 && g.running === 0, `original: after the tests, the page's Breakout is as it booted: ballView ran ${g.ballRuns} times, ball at y ${g.y}, ${g.running} subscriptions`);
+  report(g.ballRuns <= 1 && g.y === 180 && g.pulling === 0, `original: after the tests, the page's Breakout is as it booted: ballView ran ${g.ballRuns} times, ball at y ${g.y}, ${g.pulling} clocks pulled`);
 }
 for (const m of SECTIONS) await testsPass(A.page, "original", m, SECTION_TESTS[m]);
 await hookPass(A.page, "original");
@@ -1155,6 +1261,7 @@ for (const m of [CORE, TUTORIAL, ...SECTIONS]) {
 }
 report(exp1.includes("/*ss:: Ref<number>*/"), "export: the type comments are in the exported module");
 sameBlocks("export", orig, exp1);
+await instanceStops(A.page);
 await deleteStops(A.page);
 requests("original page", A);
 await A.page.close();
@@ -1248,11 +1355,11 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     return out;
   });
   report(JSON.stringify(flips.filter((x: any) => Array.isArray(x))) === JSON.stringify([["flag", "viewof flag"], ["flag"], ["flag", "viewof flag"]]) && flips[4] === true && flips[7] === false, `core-only: flag ref -> plain -> ref through apply: ${JSON.stringify(flips)}`);
-  // A generator becomes a Source handle when a cell takes it as Source<T>, and a plain generator again
+  // A generator becomes an events handle when a cell takes it as Events<T>, and a plain generator again
   // when that cell is deleted outside apply (as the editor's delete button does). The consumer is
   // deleted at once, before onCodeChange's snapshot has seen it, which is the case that used to leave
-  // pulse compiled as a Source; its subscription must stop too.
-  for (const consumer of ["export const pulses = (pulse: Source<number>) => [];", "export const pulses = (pulse: Source<number>, addn: Action<[number]>) => [on(pulse, addn)];"]) {
+  // pulse compiled as events; its listener must end too.
+  for (const consumer of ["export const pulses = (pulse: Events<number>) => 0;", "export const pulses = (pulse: Events<number>, addn: Action<[number]>) => on(pulse, addn);"]) {
     const src = await C.page.evaluate(async (consumer) => {
       const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
       const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
@@ -1279,9 +1386,28 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
       get("reset")._value();
       return out;
     }, consumer);
-    const subs = consumer.includes("on(");
-    report(typeof src.consumer === "string" && src.before === "cell" && src.withConsumer === "source" && src.afterDelete === "cell" && src.runningAfter === 0 && (!subs || src.runningWith === 1) && typeof src.roundtrip === "number", `core-only: pulse is a source while pulses${subs ? " subscribes to it" : " takes it as Source<number>"}, a plain generator once pulses is deleted before the snapshot saw it${subs ? ", and the subscription stops" : ""}: ${JSON.stringify(src)}`);
+    const listens = consumer.includes("on(");
+    report(typeof src.consumer === "string" && src.before === "cell" && src.withConsumer === "events" && src.afterDelete === "cell" && src.runningAfter === 0 && (!listens || src.runningWith === 1) && typeof src.roundtrip === "number", `core-only: pulse is an events cell while pulses${listens ? " listens to it" : " takes it as Events<number>"}, a plain generator once pulses is deleted before the snapshot saw it${listens ? ", and the listener ends" : ""}: ${JSON.stringify(src)}`);
   }
+  await listenerOnce(C);
+  // (d) an action in a ref across a save: aCurrent starts as aInc and holds aDec when saved
+  const stored = await C.page.evaluate(async () => {
+    const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
+    const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
+    const lang = get("ss_language")._value;
+    const res: any[] = [];
+    for (const c of [
+      "export const aCount = (): RefCell<number> => ref(0);",
+      "export const aInc = (aCount: Ref<number>) => action(() => aCount.update((c) => c + 1));",
+      "export const aDec = (aCount: Ref<number>) => action(() => aCount.update((c) => c - 1));",
+      "export const aCurrent = (aInc: Action<[]>): RefCell<Action<[]>> => ref(aInc);",
+      "export const aUseDec = (aCurrent: Ref<Action<[]>>, aDec: Action<[]>) => action(() => aCurrent.set(aDec));",
+    ]) res.push(!!(await lang.apply(c, [], { module: { module: core }, variables: [get("tripled")] })));
+    await core.value("aUseDec");
+    get("aUseDec")._value();
+    for (let i = 0; i < 20 && get("aCurrent")._value !== get("aDec")._value; i++) await new Promise((r) => setTimeout(r, 20));
+    return { applied: res, holdsDec: get("aCurrent")._value === get("aDec")._value };
+  });
   const cexp = await exportPage(C.page);
   const cexpPath = join(SCRATCH, "core-only-export.html");
   writeFileSync(cexpPath, cexp);
@@ -1290,6 +1416,20 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   const D = await open(cexpPath);
   await testsOn(D.page, "core-only reopened");
   await testsPass(D.page, "core-only reopened", CORE, CORE_TESTS);
+  {
+    const loaded = await D.page.evaluate(async () => {
+      const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
+      const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
+      const cur = await core.value("aCurrent"), inc = await core.value("aInc"), dec = await core.value("aDec");
+      const c0 = await core.value("aCount");
+      cur();
+      for (let i = 0; i < 20 && get("aCount")._value === c0; i++) await new Promise((r) => setTimeout(r, 20));
+      return { isInc: cur === inc, isDec: cur === dec, countChange: get("aCount")._value - c0 };
+    });
+    // a report, not a requirement: what a ref holding an action holds after a save and reopen
+    console.log(`  report (d) action in a ref across a save: before saving ${JSON.stringify(stored)}; on load ${JSON.stringify(loaded)}`);
+    report(stored.applied.every(Boolean) && (loaded.isInc || loaded.isDec), `core-only reopened: a ref that held an action when saved holds an action on load (${loaded.isInc ? "its initial aInc" : "the stored aDec"})`);
+  }
   const after = await D.page.evaluate(async (NEW) => {
     const rt = (window as any).__ojs_runtime;
     const core = rt.mains.get("@tomlarkworthy/soundscript");

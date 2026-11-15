@@ -130,7 +130,7 @@ function buildModule(name: string, ojs: string, files: File[]) {
   // one context for the whole module: a cell's compiled form depends on the other cells (ss-toolchain Context)
   // only cells the checker accepts are memoised, judged over the module's whole source as the core does
   const allTexts = blocks.flatMap((b) => cellsOfBlock(b)?.texts ?? []);
-  // the same context the core builds from its check, types included, so a cell that passes a Sub set on takes invalidation
+  // the same context the core builds from its check
   const allSource = allTexts.join("\n\n");
   const ctx = allTexts.length ? contextFromCheck(checkSources({ cells: allSource, tsx: true }), allSource, true) : contextOf(allTexts, true, null);
   blocks.forEach((src, i) => {

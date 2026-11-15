@@ -397,9 +397,44 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
     return ok;
   }
 
+  // a type that mentions Ref or RefCell anywhere: properties, elements, union members, type arguments, signatures
+  const holdsRef = (t: ts.Type, seen = new Set<ts.Type>(), depth = 0): string | null => {
+    if (seen.has(t) || depth > 10) return null;
+    seen.add(t);
+    if (isPrimitive(t)) return null;
+    if (t.isUnionOrIntersection()) { for (const x of t.types) { const w = holdsRef(x, seen, depth + 1); if (w) return w; } return null; }
+    if (brand(t, "__lc_ref")) return "Ref";
+    if (brand(t, "__lc_refcell")) return "RefCell";
+    const parts: ts.Type[] = [];
+    const args = [...((t as ts.TypeReference).target ? checker.getTypeArguments(t as ts.TypeReference) : []), ...(t.aliasTypeArguments ?? [])];
+    const decl = symDecl(t.getSymbol());
+    // a library type (Array, Map, Promise, ...) is judged by its type arguments, not its members
+    if (decl && program.isSourceFileDefaultLibrary(decl.getSourceFile())) parts.push(...args);
+    else {
+      parts.push(...args);
+      for (const p of checker.getPropertiesOfType(t)) parts.push(checker.getTypeOfSymbol(p));
+      for (const sig of [...t.getCallSignatures(), ...t.getConstructSignatures()]) {
+        parts.push(sig.getReturnType(), ...sig.getParameters().map((p) => checker.getTypeOfSymbol(p)));
+      }
+      const ix = t.getNumberIndexType() ?? t.getStringIndexType();
+      if (ix) parts.push(ix);
+    }
+    for (const x of parts) { const w = holdsRef(x, seen, depth + 1); if (w) return w; }
+    return null;
+  };
+
   // --- per-cell symbol and brand rules ---
   for (const cell of cells) {
     const fn = cell.fn;
+    {
+      const sig = checker.getSignaturesOfType(typeOf(fn), ts.SignatureKind.Call)[0];
+      const ret = sig?.getReturnType();
+      if (ret && !cell.isGenerator && ret.getSymbol()?.getName() === "RefCell" && brand(ret, "__lc_refcell")) {
+        const inner = checker.getTypeOfSymbol(checker.getPropertyOfType(ret, "__lc_refcell")!);
+        const w = holdsRef(inner, new Set());
+        if (w) push(fn, "ref-in-ref", `a ref holds ${checker.typeToString(inner)}, which contains ${w}; a ref's content may not contain a Ref or RefCell`);
+      }
+    }
     // The cell's own function is not a local: a self-reference is a reference by module-level name.
     const isLocal = (decl: ts.Declaration) => decl !== fn && decl.getSourceFile() === sf && decl.pos >= fn.pos && decl.end <= fn.end;
     const insideAction = (n: ts.Node) => {

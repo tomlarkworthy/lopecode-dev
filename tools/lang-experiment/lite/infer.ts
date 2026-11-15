@@ -1124,12 +1124,12 @@ export class Checker {
         return named("Action", { k: "tup", els: f.ps.map((p) => p.t) });
       }
       case "on": {
-        if (args.length !== 2) { this.err(e, "arity", "on takes a source and an action"); return named("Sub"); }
+        if (args.length !== 2) { this.err(e, "arity", "on takes an events handle and an action"); return named("Listener"); }
         const s = this.infer(args[0], env);
-        if (s.k === "err") return named("Sub");
-        if (!isNamed(s, "Source")) { this.err(args[0], "type", `on needs a Source<T>, got ${show(s)}`); return named("Sub"); }
+        if (s.k === "err") return named("Listener");
+        if (!isNamed(s, "Events")) { this.err(args[0], "type", `on needs an Events<T>, got ${show(s)}`); return named("Listener"); }
         this.check(args[1], env, named("Action", { k: "tup", els: [s.args[0]] }));
-        return named("Sub");
+        return named("Listener");
       }
       case "equals":
         if (args.length !== 2) this.err(e, "arity", "equals takes two arguments");

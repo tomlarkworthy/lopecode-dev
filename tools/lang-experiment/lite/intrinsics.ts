@@ -282,10 +282,10 @@ type Invalidation = Promise<void>;
 // compile's type depends on the cell names it is given; core.ts types each call.
 type Compile = (spec: unknown) => unknown;
 interface Pool { readonly size: number }
-// A Source<T> parameter is a handle to a generator cell yielding T, not a dependency on its value.
-// on(source, action) describes a subscription; a cell whose value is Sub[] is the set the runner keeps running.
-interface Source<T> { readonly source: string }
-interface Sub { readonly sub: string }
+// An Events<T> parameter is a handle to a generator cell yielding T, not a dependency on its values.
+// on(events, action) is a Listener; a cell whose whole value is one runs the action for each value.
+interface Events<T> { readonly events: string }
+interface Listener { readonly listener: string }
 interface Ref<T> {
   set(v: T): void;
   update(f: (v: T) => T): void;

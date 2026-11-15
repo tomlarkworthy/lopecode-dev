@@ -563,6 +563,35 @@ Not built:
 The board is `div`s placed by `style` strings, because the JSX tags `intrinsics.ts` declares have
 no SVG and no canvas drawing; a transparent `canvas` on top gives `onPointerMove`.
 
+### Events and listeners replace the subscription set (2026-11-15)
+
+Tom approved a smaller design: `Source<T>` became `Events<T>`, `Sub` became `Listener`, and a
+listener is legal only as the whole value of a cell. The entry above is the record of what it
+replaced.
+
+- `export const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick)`.
+  `on(...)` must be what a sync, non-generator cell returns, or a branch of a conditional it
+  returns. A list, record, ref, nested function, argument, union with `null`, `on` as a value, or
+  a cell taking a listener cell is `listener-placement` (`fixtures/lite-game/reject-listener`).
+  `Source` in an annotation gets the hint "Source was renamed Events" (`inject-events`).
+- Section 9's `ticks` takes `playing` and `over` and returns at once when the game is not
+  running. Starting and stopping is the runtime re-running the cell.
+- Runtime (`browser/cells.ts`, used by `stdlib/runtime.ts` and `browser/run.ts`): an events cell's
+  value is a handle kept across its runs (the compiled definition is a `function`, and the
+  runtime's `this` is the variable's last value). A run with other inputs replaces the generator
+  inside the handle and `return()`s the old one; a run with the same inputs keeps it. The
+  generator is pulled only while a listener is attached, a sync one once per animation frame.
+  Each listener cell run attaches its value until that run's invalidation, which the Observable
+  runtime resolves before the next run's definition is called, so one listener variable is never
+  attached twice. A throwing action is logged naming the listener, action and events cells; the
+  next value still runs. The reconciler, the per-set holder counts and `unlist` are gone:
+  `stdlib/runtime.ts` went from 253 to 161 lines, `browser/cells.ts` from 26 to 165.
+- Exactly-once tests: `stdlib/runtime.test.ts` `e1`–`e7` (bun, a real Observable Runtime, frames
+  run by hand) and `soundscript/verify.ts` `listenerOnce` (headless Chromium, real frames).
+- A new rule in both checkers, `ref-in-ref`: a ref's content may not contain `Ref` or `RefCell`.
+  An `Action` in a ref is legal and wanted (`fixtures/lite-game/accept-action-in-ref`,
+  `accept-action-stack`).
+
 ### Components and memoisation (2026-11-14)
 
 Tom: "I would like to build things in components, but not if we are rebuilding the whole DOM each

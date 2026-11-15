@@ -29,7 +29,7 @@ A ported module `<name>` is a directory `tools/lang-experiment/ports/<name>/`:
 - The value type of a cell: return type `T` gives `T`; `Promise<T>` gives `T`; `Generator<Y>`
   gives `Y`; `RefCell<T>` gives `T`.
 - Free names: a body may use its parameters, its own locals, the prelude (`ref`, `action`, `mut`,
-  `freeze`, `borrow`, `snapshot`, `equals`), and allowed intrinsics. Any other free name is an error.
+  `freeze`, `borrow`, `snapshot`, `equals`; in the lite checker also `on`), and allowed intrinsics. Any other free name is an error.
   A cell may not call another cell by its module-level name; it must take it as a parameter.
 - Allowed intrinsics: `Object Array Math JSON Number String Boolean BigInt Symbol Map Set Error
   TypeError RangeError RegExp Promise` the typed arrays, `ArrayBuffer DataView TextEncoder
@@ -93,6 +93,32 @@ copies it to a plain `T`. A cell that yields `borrow` is counted in the `Owner` 
 - A `viewof x = Inputs.range(...)` ports as a ref cell `x` in `cells.ts` plus a shell cell
   `x_view(x: Ref<number>, Inputs)` in `shell.ts` that builds the widget and calls `x.set`.
 - A `mutable x` ports as a ref cell; each `mutable x = …` write becomes an action.
+- A ref's content type may not contain `Ref` or `RefCell` anywhere: not directly, and not in a
+  record, an array, a union, a type argument or a function signature (`ref-in-ref`).
+  `ref(count)` with `count: Ref<number>` is an error. (Tom, 2026-11-15.)
+
+## Events and listeners (lite checker only)
+
+Tom, 2026-11-15. `check.ts` and `prelude.d.ts` do not know these names;
+`lite/core.ts` enforces them.
+
+- A parameter `ticks: Events<number>` receives a handle to the sync generator cell `ticks`, not
+  its values, and is not a dependency on them. Once a cell takes `ticks` as `Events`, a parameter
+  reading `ticks` without `Events` is an error (`inject-events`).
+- `on(ticks, tick)` has type `Listener`. `tick` must be an `Action` that accepts what `ticks`
+  yields.
+- A `Listener` is only the whole value of a sync, non-generator cell:
+  `export const onTick = (ticks: Events<number>, tick) => on(ticks, tick)`. `on(...)` may be what
+  the cell returns, or a branch of a conditional it returns (`flag ? on(a, x) : on(b, y)`). Not in
+  an array, a record, a ref, a nested function's return, an argument, or a union with another type
+  (`flag ? on(a, x) : null`); `on` is not a value; no cell may take a listener cell
+  (`listener-placement`).
+- While a listener is the value of its cell, the runner runs its action once for each value the
+  events cell yields, in order. The listener ends when its cell runs again, is deleted, or its
+  module is disposed.
+- Starting and stopping the events is dataflow: the events cell takes what it depends on
+  (`ticks = function* (now: Clock, playing: boolean)`) and yields nothing when it should not run.
+- An events cell is a generator and is never written to; writes stay in actions.
 
 ## Foreign values and the shell
 

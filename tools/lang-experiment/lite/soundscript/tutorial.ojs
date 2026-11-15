@@ -167,7 +167,7 @@ md`## 9. A game
 
 Breakout, written with the pieces from the earlier sections. \`step(world, event)\` is the whole game, as in section 5. The world is one \`ref\`. The view is JSX, split into cells so that the bricks are not rebuilt while only the ball moves, as in section 6.
 
-One piece is new. A game needs a clock, and a cell cannot call an action. \`ticks\` is a generator cell that yields the time since the last frame. \`on(ticks, tick)\` describes a *subscription*: "deliver each value of \`ticks\` to the action \`tick\`". The cell \`subscriptions\` returns that description while the game is playing and an empty list otherwise, and the notebook starts and stops the clock to match.`
+One piece is new. A game needs a clock, and a cell cannot call an action. \`ticks\` is a generator cell. It yields the time since the last frame while the game is playing, and yields nothing once \`playing\` is false. \`onTick\` returns \`on(ticks, tick)\`, a *listener*: the notebook runs the action \`tick\` once for each value of \`ticks\`. A parameter typed \`Events<number>\` is a handle to the generator and not its latest value, so \`onTick\` does not run again on every frame.`
 // %%
 breakout_view = {
   // the game's own view, with its state (press play, paused, game over) drawn over the board
@@ -258,21 +258,15 @@ The *island* is every cell upstream of the outputs, stopping at the inputs and r
 
 Measured in headless Chromium over ten page loads on 2026-11-14: section 7's 640×420 image takes about 64 ms on the main thread and about 10 ms on a pool of 8 workers, and both give the same bytes (\`test_compile_pool_matches_main\`).`)
 // %%
-md`### Subscriptions
+md`### Listeners
 
-A parameter typed \`Source<number>\` gets a handle to a generator cell instead of its values, the way \`Ref<T>\` gets a handle to state instead of its value. A generator taken as a \`Source\` is one variable holding that handle, and the runtime never steps it; section 9's \`ticks\` row shows type \`number\` (what it yields) and the handle as its value. A parameter that names \`ticks\` without \`Source\` would get the handle as a number, so the checker rejects it (\`[inject-source]\`). Any other generator cell is stepped by the Observable runtime, at most once per animation frame.
-
-\`on(ticks, tick)\` is a value, and \`subscriptions\` returns the set of them the game wants now. The standard library (\`hold\` and \`release\`) keeps a subscription running while the same source and action stay in the set, starts a fresh generator for one that appears, and stops (\`return()\`) one that leaves. It steps a sync generator once per animation frame. Subscriptions are counted across cells, so a cell that passes the set on does not start a second clock.
-
-A set is released when the cell that returned it runs again, and, because the runtime does not resolve \`invalidation\` for a deleted variable, when that cell is deleted (the core's \`ss_lifecycle\`). So pause and game over both stop the clock. While the game runs, \`over\` stays \`false\`, so memoisation keeps \`subscriptions\` from running again, and if it did run, nothing would restart.
-
-A generator cannot be the loop by itself: its body would have to write the world, and writes are legal only inside \`action(...)\`. The checker's fixtures hold that generator (\`[ref-write]\`), a cell calling \`tick(16)\` itself (\`[action-call]\`), \`on\` given a plain function or an action of the wrong type (\`[type]\`), and a \`Source\` that names a cell which is not a generator, or yields another type (\`[inject-source]\`).`
+A listener cell returns \`on(events, action)\`. While that value is the cell's value, the notebook runs the action once for each value the events cell yields, in order. It asks for the next value only after the action has run, so nothing is skipped or delivered twice. The listener ends when the cell runs again, is deleted, or its module is disposed. Starting and stopping the events themselves is ordinary dataflow: \`ticks\` reads \`playing\`, and the runtime restarts a generator cell when an input changes.`
 // %%
 md`### The renderer
 
 Each JSX node becomes an \`h(tag, props, ...children)\` call, and \`h\` returns a frozen \`{tag, props, children}\` value. Section 4's \`view\`, \`ss.mount(app, this)\`, is an ordinary Observable cell, not SoundScript: it hands that value to the renderer, 75 lines outside the checked language. The renderer creates the DOM once, then patches it in place each time \`app\` produces a new value: the same tag at the same position reuses the node, an element that is the same object as last time is skipped, and children that all carry \`key\` are matched by key. It calls the actions when DOM events arrive, decoding each event into data (\`PointerData\` from a \`PointerEvent\`, a string from an \`input\`); that decoding is trusted code.
 
-Section 9 is built on this. \`bricks\`, \`ball\` and \`paddle\` each select one part of the world, and \`bricksView\`, \`paddleView\` and \`ballView\` draw one part each. \`step\` returns the same \`bricks\` array when nothing was hit, so \`bricksView\`'s body does not run and \`app\` gets the same element object as before, and the 24 bricks cost one comparison per frame. A broken brick removes one node. \`test_breakout_memo\` measures this on a copy of the game; on 2026-11-14 in headless Chromium, 1.5 s of play gave 90 animation frames and 88 changes of the world; \`ballView\` ran 90 times, \`bricksView\` once, for the one brick that broke, \`paddleView\` not at all with no pointer moving, and \`subscriptions\` twice (play, then pause). The DOM saw 89 \`style\` writes, 3 text changes and 1 node removed.
+Section 9 is built on this. \`bricks\`, \`ball\` and \`paddle\` each select one part of the world, and \`bricksView\`, \`paddleView\` and \`ballView\` draw one part each. \`step\` returns the same \`bricks\` array when nothing was hit, so \`bricksView\`'s body does not run and \`app\` gets the same element object as before, and the 24 bricks cost one comparison per frame. A broken brick removes one node. \`test_breakout_memo\` measures this on a copy of the game; on 2026-11-15 in headless Chromium, 1.5 s of play gave 90 animation frames and 88 changes of the world; \`ballView\` ran 89 times, \`bricksView\` once, for the one brick that broke, \`paddleView\` not at all with no pointer moving, \`ticks\` twice (play, then pause) and \`onTick\` not at all. The DOM saw 88 \`style\` writes, 3 text changes and 1 node removed.
 
 The board is \`div\`s positioned by \`style\` strings, since the checked JSX tags have no SVG or canvas drawing. A transparent \`canvas\` on top supplies \`onPointerMove\`.`
 // %%
@@ -336,10 +330,10 @@ Each parameter of a cell names what it reads. What it receives depends on the na
 |---|---|---|
 | \`a\` or \`a: T\`, naming a cell | the cell's current value; an annotation must accept it (\`[inject-type]\`) | yes |
 | \`count: Ref<T>\`, naming a ref cell | the handle, with \`set\` and \`update\` and no read (\`[inject-ref]\` if not a ref cell of \`T\`) | no |
-| \`ticks: Source<T>\`, naming a sync generator cell (*lite*) | a handle for \`on(...)\` (\`[inject-source]\` if not a generator yielding \`T\`) | no |
+| \`ticks: Events<T>\`, naming a sync generator cell (*lite*) | a handle for \`on(...)\` (\`[inject-events]\` if not a generator yielding \`T\`) | no |
 | a capability name (next entry) | the host's object for that effect | no |
 
-Once any cell takes a generator as a \`Source\`, a parameter reading it without \`Source\` is \`[inject-source]\`, because it would receive the handle. Any other name is \`[inject-unknown]\`; a destructuring pattern is \`[inject-pattern]\`. A body may not use a cell's name without taking it as a parameter (\`[cell-by-name]\`).
+Once any cell takes a generator as \`Events\`, a parameter reading it without \`Events\` is \`[inject-events]\`, because it would receive the handle. No cell may take a listener cell (\`[listener-placement]\`). Any other name is \`[inject-unknown]\`; a destructuring pattern is \`[inject-pattern]\`. A body may not use a cell's name without taking it as a parameter (\`[cell-by-name]\`).
 
 Types: a parameter needs a type from an annotation or from its context (\`[untyped-parameter]\`); a type name that is not declared is \`[unknown-type]\`. Most other mismatches, such as a \`string\` where a \`number\` is wanted, are \`[type]\`; a call with the wrong number of arguments is \`[arity]\`.`
 // %%
@@ -409,23 +403,23 @@ md`### State: \`ref\`, \`action\`
 
 | construct | meaning |
 |---|---|
-| \`export const count = (): RefCell<number> => ref(0)\` | a ref cell; \`ref(...)\` only as the returned value of a sync, non-generator cell (\`[ref-placement]\`) |
+| \`export const count = (): RefCell<number> => ref(0)\` | a ref cell; \`ref(...)\` only as the returned value of a sync, non-generator cell (\`[ref-placement]\`); its content may not contain a \`Ref\` or \`RefCell\`, in a record, an array or a union (\`[ref-in-ref]\`) |
 | \`count\` or \`count: number\` as a parameter | the current value; the reader runs again after each committed write |
 | \`count: Ref<number>\` as a parameter | the handle: \`set(v)\`, \`update(f)\`, no read |
 | \`action((by: number) => count.update((c) => c + by))\` | an \`Action<[number]>\`; writes are legal only lexically inside \`action(...)\` (\`[ref-write]\`) |
 
 A cell body never calls an action (\`[action-call]\`); an action may call another action inside its own body. A cell returns an action, puts it in a record, passes it to an \`Action\` parameter, a JSX event prop or \`on(...)\`; an action where something else is expected is \`[action-pass]\`. The host calls it. Writes made by one action call are committed together after it returns.`
 // %%
-md`### Subscriptions: \`Source\`, \`on\` (*lite*)
+md`### Events and listeners: \`Events\`, \`on\` (*lite*)
 
 | construct | meaning |
 |---|---|
-| \`export const ticks = function* (now: Clock) {…}\` | a sync generator cell used as an event source; writes nothing; an async generator cannot be a \`Source\` yet |
-| \`ticks: Source<number>\` | a handle to the generator, not its values |
-| \`on(ticks, tick)\` | a \`Sub\`: deliver each value of \`ticks\` to \`tick\`, which must be an \`Action<[number]>\` (\`[type]\`) |
-| a cell returning \`Sub[]\` | the subscriptions the program wants now |
+| \`export const ticks = function* (now: Clock, playing: boolean) {…}\` | a sync generator cell taken as events; writes nothing; it runs again when an input changes; an async generator cannot be taken as \`Events\` yet |
+| \`ticks: Events<number>\` | a handle to the generator, not its values; the same handle across the generator's runs |
+| \`export const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick)\` | a listener: \`tick\` runs once for each value of \`ticks\`; the action must accept what \`ticks\` yields (\`[type]\`) |
+| \`flag ? on(a, x) : on(b, y)\` | a listener on one of two events cells |
 
-The standard library keeps one running generator per (source, action) held by any cell, starts one when it first appears in a set, and stops it (\`return()\`) when no set holds it. A sync generator is stepped once per animation frame. If the generator or the action throws, the error is logged to the console as \`subscription <source> -> <action> failed\`, that subscription stops, and every other one keeps running; a set made later that holds the same pair starts it again. An action that throws writes nothing: the writes it made before the throw are discarded. Section 9.`
+\`on(...)\` is legal only as the whole value of a sync cell: not in a list or record, a ref, a function's return, an argument, or a union with another value such as \`null\`, and no cell may take a listener cell (\`[listener-placement]\`). The generator is pulled only while a listener is attached, a sync one once per animation frame. If an action throws, the error is logged to the console as \`listener <cell>: action <action> threw on a value of events <events>\`, the action's writes are discarded, and the next value is still delivered. If the generator throws, the error is logged and it yields nothing more until it runs again. Section 9.`
 // %%
 md`### Workers: \`compile\` (*lite*)
 
@@ -482,8 +476,8 @@ md`## Not built
 
 Discussed on 2026-11-14; none of these exists in the checker or in this page.
 
-- **Effects as tagged libraries.** \`ref\`, \`action\`, \`Source\` and \`on\` are special cases inside the checker. The proposal moves them into declaration files whose tags (\`@write\`, \`@handle\`, \`@cell\`) say what each function may do, so a new kind of effect needs a library rather than a checker change.
-- **Actors**, as a library on those tags: an inbox cell, a post action, and the inbox's messages as a \`Source<M>\`. A \`mailbox\` primitive in the checker was proposed and rejected.
+- **Effects as tagged libraries.** \`ref\`, \`action\`, \`Events\` and \`on\` are special cases inside the checker. The proposal moves them into declaration files whose tags (\`@write\`, \`@handle\`, \`@cell\`) say what each function may do, so a new kind of effect needs a library rather than a checker change.
+- **Actors**, as a library on those tags: an inbox cell, a post action, and the inbox's messages as \`Events<M>\`. A \`mailbox\` primitive in the checker was proposed and rejected.
 - **Label, do not reject.** Accept \`Math.random\` and label the cell *unsound*, and every cell that takes a capability from it, instead of rejecting it; a \`sound(...)\` marker would turn the label back into an error where it matters.
 - **Typed reflection.** A typed \`Variable\` and \`Module<C>\`, so a cell that defines or redefines other cells is checked and a redefinition rechecks the cells downstream. The checker lacks \`keyof\`, bounds and indexed access, which this needs.
 - **Results kept across a reload.** A deterministic cell's result stored in the saved file and reused when its inputs are unchanged.
@@ -540,29 +534,32 @@ test_compile_refuses_unchecked = {
   throw new Error("compile ran an island with a rejected cell");
 }
 // %%
-test_breakout_subscriptions = {
+test_breakout_listener = {
   tests_on;
   // its own copy of section 9's cells: the game on the page is not played or reset
   const game = await ss_instance(breakout_module, invalidation);
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const get = (n) => game._scope.get(n)._value;
-  for (const n of ["reset", "toggle", "world", "bricks"]) await game.value(n);
-  const w0 = get("world"), r0 = ss.running();
+  const runs = (n) => ss.evals(game._scope.get(n)._definition);
+  for (const n of ["reset", "toggle", "world", "bricks", "onTick"]) await game.value(n);
+  const w0 = get("world"), r0 = ss.pulling(), on0 = runs("onTick"), t0 = runs("ticks"), h0 = get("ticks");
   get("toggle")();
   await wait(600);
-  const playing = ss.running() - r0, w1 = get("world");
+  const playing = ss.pulling() - r0, w1 = get("world");
   get("toggle")();
   await wait(200);
-  const w2 = get("world"), paused = ss.running() - r0;
+  const w2 = get("world"), paused = ss.pulling() - r0;
   await wait(300);
   const w3 = get("world");
-  if (playing !== 1 || w1.ball.y === w0.ball.y) throw new Error(`playing: ${playing} subscriptions, ball ${w0.ball.y} -> ${w1.ball.y}; a hidden tab gets no animation frames`);
-  if (paused !== 0 || w3 !== w2) throw new Error(`paused: ${paused} subscriptions, the world ${w3 === w2 ? "kept" : "changed"}`);
-  return `play: 1 subscription, the ball moved ${w0.ball.y} -> ${w1.ball.y.toFixed(1)}; pause: none, and the world stays the same object`;
+  const onTick = runs("onTick") - on0, ticks = runs("ticks") - t0;
+  if (playing !== 1 || w1.ball.y === w0.ball.y) throw new Error(`playing: ${playing} clocks pulled, ball ${w0.ball.y} -> ${w1.ball.y}; a hidden tab gets no animation frames`);
+  if (paused !== 0 || w3 !== w2) throw new Error(`paused: ${paused} clocks pulled, the world ${w3 === w2 ? "kept" : "changed"}`);
+  if (onTick !== 0 || ticks !== 2 || get("ticks") !== h0) throw new Error(`onTick ran ${onTick} times, ticks ${ticks} times, same handle ${get("ticks") === h0}`);
+  return `play: the clock runs and the ball moved ${w0.ball.y} -> ${w1.ball.y.toFixed(1)}; pause: it stops and the world stays the same object; ticks ran twice, onTick not at all`;
 }
 // %%
 test_breakout_memo = {
-  test_breakout_subscriptions; // both count running subscriptions, so they run one after the other
+  test_breakout_listener; // both count clocks pulled, so they run one after the other
   const game = await ss_instance(breakout_module, invalidation);
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const get = (n) => game._scope.get(n)._value;
@@ -574,7 +571,7 @@ test_breakout_memo = {
   await drawn;
   const muts = {};
   const mo = new MutationObserver((rs) => { for (const r of rs) { const k = r.type === "attributes" ? "attr " + r.attributeName : r.type; muts[k] = (muts[k] ?? 0) + (r.type === "childList" ? r.addedNodes.length + r.removedNodes.length : 1); } });
-  const names = ["ballView", "bricksView", "paddleView", "status", "app", "subscriptions"];
+  const names = ["ballView", "bricksView", "paddleView", "status", "app", "ticks", "onTick"];
   mo.observe(view, { subtree: true, childList: true, attributes: true, characterData: true });
   const n0 = Object.fromEntries(names.map((n) => [n, runs(n)]));
   const b0 = get("bricks").length;
@@ -593,7 +590,7 @@ test_breakout_memo = {
   if ((muts["attr style"] ?? 0) > ran.ballView + ran.paddleView + 2) throw new Error(`${muts["attr style"]} style writes for ${ran.ballView + ran.paddleView} ball and paddle draws`);
   if (ran.bricksView > broken) throw new Error(`bricksView ran ${ran.bricksView} times for ${broken} broken bricks`);
   if (ran.paddleView > 0) throw new Error(`paddleView ran ${ran.paddleView} times with no pointer move`);
-  if (ran.subscriptions > 2) throw new Error(`subscriptions ran ${ran.subscriptions} times for one play and one pause`);
+  if (ran.onTick > 0 || ran.ticks > 2) throw new Error(`onTick ran ${ran.onTick} times and ticks ${ran.ticks} times for one play and one pause`);
   if ((muts.childList ?? 0) > broken) throw new Error(`${muts.childList} nodes added or removed for ${broken} broken bricks`);
   return { frames, worldChanges: changes, broken, runs: ran, domMutations: muts };
 }
@@ -670,8 +667,8 @@ depGraph = (module, invalidation, { only = null } = {}) => {
       if (c.status !== "ok") return "rejected";
       if (f?.returnsRef) return "ref";
       if (/^Action\b/.test(c.value ?? "")) return "action";
-      if (/^Sub\[\]/.test(c.value ?? "")) return "subs";
-      if (f?.generator) return "source";
+      if (/^Listener\b/.test(c.value ?? "")) return "listener";
+      if (f?.generator) return "generator";
       if (c.name.startsWith("test_")) return "test";
       return "cell";
     };
@@ -683,7 +680,7 @@ depGraph = (module, invalidation, { only = null } = {}) => {
         if (CAPS.has(p.name)) {
           if (!nodes.has(p.name)) nodes.set(p.name, { name: p.name, kind: "cap", ins: [], outs: [] });
         } else if (!names.has(p.name)) continue;
-        edges.push({ from: p.name, to: c.name, kind: p.refTyped ? "handle" : p.sourceTyped ? "sourced" : "value" });
+        edges.push({ from: p.name, to: c.name, kind: p.refTyped ? "handle" : p.eventsTyped ? "events" : "value" });
       }
       for (const spec of f?.compiles ?? []) for (const r of spec.refs) if (names.has(r)) edges.push({ from: r, to: c.name, kind: "refs" });
     }
@@ -746,7 +743,7 @@ depGraph = (module, invalidation, { only = null } = {}) => {
     svg.style.maxWidth = "100%";
     svg.style.height = "auto";
     const defs = svgEl("defs");
-    for (const k of ["value", "handle", "sourced", "refs"]) {
+    for (const k of ["value", "handle", "events", "refs"]) {
       const m = svgEl("marker", { id: `lite-arrow-${k}-${uid}`, viewBox: "0 0 8 8", refX: 7, refY: 4, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse", class: `lite-arrow-${k}` });
       m.append(svgEl("path", { d: "M0,0 L8,4 L0,8 z" }));
       defs.append(m);
@@ -768,8 +765,8 @@ depGraph = (module, invalidation, { only = null } = {}) => {
       svg.append(g);
     }
     const kinds = new Set([...nodes.values()].map((x) => x.kind)), kindsE = new Set(edges.map((e) => e.kind));
-    const KEY = { cell: "cell", test: "test", ref: "state (ref cell)", action: "action", source: "generator", subs: "subscriptions", cap: "capability", rejected: "rejected" };
-    const EKEY = { value: "reads the value", handle: "gets the handle (Ref)", sourced: "gets the handle (Source)", refs: "compile refs" };
+    const KEY = { cell: "cell", test: "test", ref: "state (ref cell)", action: "action", generator: "generator", listener: "listener", cap: "capability", rejected: "rejected" };
+    const EKEY = { value: "reads the value", handle: "gets the handle (Ref)", events: "gets the handle (Events)", refs: "compile refs" };
     holder.replaceChildren(
       htl.html`<div class="lite-graph-scroll">${svg}</div>`,
       htl.html`<figcaption>Arrows run from a cell to the cells that take it as a parameter, from the checker's facts for this module. ${[...kinds].map((k) => htl.html`<span class=${"lite-key lite-node-" + k}><i></i>${KEY[k]}</span>`)} ${[...kindsE].filter((k) => k !== "value").map((k) => htl.html`<span class=${"lite-key lite-edge-" + k}><b></b>${EKEY[k]}</span>`)}</figcaption>`
@@ -853,10 +850,10 @@ kindOf = (v) => {
   const d = String(v._definition);
   if (v._name.startsWith("viewof ")) return "ref cell: the handle";
   if (d.includes("/*ss@ref*/")) return "ref cell: the value";
-  if (d.includes('kind: "source"')) return "source: a handle, stepped only by subscriptions";
+  if (d.includes('kind: "events"')) return "events: a handle, pulled only while a listener is attached";
   if (!d.includes("$ss$.cell(")) return "type";
   const kind = d.includes("memo: true") ? "memoised on its inputs" : "not memoised";
-  const extra = /\$ss\$r0/.test(d) ? "; compile refs as inputs" : d.includes("$ss$inv") ? "; holds subscriptions" : "";
+  const extra = /\$ss\$r0/.test(d) ? "; compile refs as inputs" : d.includes('kind: "listener"') ? "; a listener" : "";
   return `cell, ${kind}${extra}`;
 }
 // %%
@@ -959,31 +956,31 @@ style = htl.html`<style>
 .lite-node text { fill: var(--theme-foreground); }
 .lite-node-ref rect { fill: color-mix(in srgb, var(--lite-accent) 22%, var(--theme-background-alt)); stroke: var(--lite-accent); stroke-width: 2; }
 .lite-node-action rect { fill: color-mix(in srgb, var(--lite-warn) 18%, var(--theme-background-alt)); stroke: var(--lite-warn); }
-.lite-node-subs rect { fill: color-mix(in srgb, var(--lite-ok) 18%, var(--theme-background-alt)); stroke: var(--lite-ok); stroke-width: 2; }
-.lite-node-source rect { stroke: var(--lite-ok); stroke-dasharray: 4 2; }
+.lite-node-listener rect { fill: color-mix(in srgb, var(--lite-ok) 18%, var(--theme-background-alt)); stroke: var(--lite-ok); stroke-width: 2; }
+.lite-node-generator rect { stroke: var(--lite-ok); stroke-dasharray: 4 2; }
 .lite-node-cap rect { fill: none; stroke: var(--theme-foreground-muted); stroke-dasharray: 2 2; }
 .lite-node-cap text { fill: var(--lite-muted-text); font-style: italic; }
 .lite-node-test rect { stroke-dasharray: 1 3; }
 .lite-node-rejected rect { stroke: var(--lite-bad); stroke-width: 2; }
 .lite-edge { fill: none; stroke: var(--theme-foreground-faint); stroke-width: 1.2; }
 .lite-edge-handle { stroke: var(--lite-accent); stroke-dasharray: 5 3; }
-.lite-edge-sourced { stroke: var(--lite-ok); stroke-dasharray: 5 3; }
+.lite-edge-events { stroke: var(--lite-ok); stroke-dasharray: 5 3; }
 .lite-edge-refs { stroke-dasharray: 2 3; }
 .lite-arrow-value path, .lite-arrow-refs path { fill: var(--theme-foreground-faint); }
 .lite-arrow-handle path { fill: var(--lite-accent); }
-.lite-arrow-sourced path { fill: var(--lite-ok); }
+.lite-arrow-events path { fill: var(--lite-ok); }
 .lite-key { margin-right: 10px; white-space: nowrap; }
 .lite-key i { display: inline-block; width: 14px; height: 10px; margin-right: 4px; vertical-align: -1px; border: 1.2px solid var(--theme-foreground-faint); border-radius: 2px; background: var(--theme-background-alt); }
 .lite-key.lite-node-ref i { border: 2px solid var(--lite-accent); background: color-mix(in srgb, var(--lite-accent) 22%, var(--theme-background-alt)); }
 .lite-key.lite-node-action i { border-color: var(--lite-warn); border-radius: 6px; background: color-mix(in srgb, var(--lite-warn) 18%, var(--theme-background-alt)); }
-.lite-key.lite-node-subs i { border: 2px solid var(--lite-ok); background: color-mix(in srgb, var(--lite-ok) 18%, var(--theme-background-alt)); }
-.lite-key.lite-node-source i { border: 1.2px dashed var(--lite-ok); }
+.lite-key.lite-node-listener i { border: 2px solid var(--lite-ok); background: color-mix(in srgb, var(--lite-ok) 18%, var(--theme-background-alt)); }
+.lite-key.lite-node-generator i { border: 1.2px dashed var(--lite-ok); }
 .lite-key.lite-node-cap i { border: 1.2px dashed var(--theme-foreground-muted); background: none; border-radius: 6px; }
 .lite-key.lite-node-test i { border-style: dotted; }
 .lite-key.lite-node-rejected i { border: 2px solid var(--lite-bad); }
 .lite-key b { display: inline-block; width: 18px; margin-right: 4px; vertical-align: 3px; border-top: 2px dashed var(--theme-foreground-faint); }
 .lite-key.lite-edge-handle b { border-color: var(--lite-accent); }
-.lite-key.lite-edge-sourced b { border-color: var(--lite-ok); }
+.lite-key.lite-edge-events b { border-color: var(--lite-ok); }
 .lite-key.lite-edge-refs b { border-top-style: dotted; }
 .lite-game { --k: 1; position: relative; display: inline-block; max-width: 100%; }
 .lite-game > div:first-child > div:first-child { border-radius: 4px; box-shadow: 0 0 0 1px var(--theme-foreground-faintest); transform: scale(var(--k)); transform-origin: 0 0; margin: 0 calc(320px * (var(--k) - 1)) calc(240px * (var(--k) - 1)) 0; }

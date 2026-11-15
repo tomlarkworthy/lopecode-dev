@@ -182,6 +182,13 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     if (pos) err(v, "mut-view", `a view aliasing a Mut buffer, ${pos}; consume it immediately as an argument of a non-retaining intrinsic`);
   }
   for (const n of all) {
+    // on is only called: a listener made anywhere else could escape its cell
+    if (n.type === "Identifier" && n.name === "on" && (!F.bindingOf.has(n) || F.bindingOf.get(n)!.kind === "prelude")) {
+      const p = parent.get(n);
+      const name = !p || (p.type === "CallExpression" && p.callee === n) || (p.type === "MemberExpression" && p.property === n && !p.computed)
+        || ((p.type === "Property" || p.type === "ObjectProperty") && p.key === n && !p.computed && !p.shorthand) || /^TS/.test(p.type);
+      if (!name) err(n, "listener-placement", "on is only called, as the whole value of a cell; it is not a value");
+    }
     if (n.type !== "CallExpression") continue;
     const pre = prelude(n);
     if (pre === "mut") {
@@ -198,6 +205,12 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
       const okBody = cellFn.body === n;
       const okRet = p?.type === "ReturnStatement" && parent.get(p) === cellFn.body;
       if (!(okBody || okRet) || cellFn.async || cellFn.generator) err(n, "ref-placement", "ref(...) only as the returned value of a sync, non-generator cell");
+    } else if (pre === "on") {
+      // the cell's whole value: its expression body or a return of the cell function, through parentheses and conditional branches
+      let cur = n, p = parent.get(n);
+      while (p && (p.type === "ParenthesizedExpression" || (p.type === "ConditionalExpression" && p.test !== cur))) { cur = p; p = parent.get(p); }
+      const whole = cellFn.body === cur || (p?.type === "ReturnStatement" && encl(p) === cellFn);
+      if (!whole || cellFn.async || cellFn.generator) err(n, "listener-placement", "on(...) only as the whole value of a sync, non-generator cell (what it returns, or a branch of a conditional that it returns)");
     }
   }
   function fresh(a: Node): boolean {

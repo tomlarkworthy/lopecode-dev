@@ -19,9 +19,8 @@ for (const f of files) {
     let checked = null;
     try { checked = checkSources({ cells: src, tsx }); } catch {}
     const fromCheck = checked ? contextFromCheck(checked) : null;
-    // which cells hold Sub comes from the checker's types, which no parse gives; share it
-    const ctx = { ...contextOf(texts, tsx, checked ? acceptedOf(checked) : null), subs: fromCheck?.subs ?? null };
-    if (fromCheck && (JSON.stringify([...fromCheck.generators].sort()) !== JSON.stringify([...ctx.generators].sort()) || JSON.stringify([...fromCheck.sourced].sort()) !== JSON.stringify([...ctx.sourced].sort())))
+    const ctx = contextOf(texts, tsx, checked ? acceptedOf(checked) : null);
+    if (fromCheck && (JSON.stringify([...fromCheck.generators].sort()) !== JSON.stringify([...ctx.generators].sort()) || JSON.stringify([...fromCheck.events].sort()) !== JSON.stringify([...ctx.events].sort())))
       throw new Error(`contextFromCheck differs from contextOf: ${JSON.stringify([[...fromCheck.generators], [...ctx.generators]])}`);
     for (const t of texts) {
       let vs;
@@ -62,13 +61,11 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   expect(JSON.stringify(g.get("world")?.inputs) === JSON.stringify(["viewof world", "ss"]), "a ref's value variable reads its handle first: " + g.get("world")?.inputs);
   expect(g.has("viewof world") && !g.has("ref world"), "a ref's handle is viewof world");
   expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["ss", "viewof world", "step"]), "Ref<T> parameter reads the handle: " + g.get("tick")?.inputs);
-  expect(/kind: "source"/.test(g.get("ticks")!.definition) && !g.has("viewof ticks"), "a generator taken as Source is one handle variable");
-  expect(JSON.stringify(g.get("subscriptions")?.inputs) === JSON.stringify(["ss", "ticks", "tick", "playing", "over", "invalidation"]), "on(...) adds invalidation: " + g.get("subscriptions")?.inputs);
+  expect(/kind: "events"/.test(g.get("ticks")!.definition) && !g.has("viewof ticks"), "a generator taken as Events is one handle variable");
+  expect(g.get("ticks")!.definition.startsWith("function (") && /prev: this, id:/.test(g.get("ticks")!.definition), "an events cell's definition is a function that passes this: " + g.get("ticks")!.definition.slice(0, 40));
+  expect(JSON.stringify(g.get("ticks")?.inputs) === JSON.stringify(["ss", "ss_now", "playing", "over", "invalidation"]), "an events cell takes invalidation: " + g.get("ticks")?.inputs);
+  expect(JSON.stringify(g.get("onTick")?.inputs) === JSON.stringify(["ss", "ticks", "tick", "invalidation"]) && /kind: "listener"/.test(g.get("onTick")!.definition), "on(...) makes a listener that takes invalidation: " + g.get("onTick")?.inputs);
   expect(/memo: true/.test(g.get("bricksView")!.definition), "bricksView is memoised");
-  const rgSrc = await Bun.file(root + "fixtures/lite-game/reject-game/cells.tsx").text();
-  const rgCtx = contextFromCheck(checkSources({ cells: rgSrc, tsx: true }));
-  const rg = new Map(splitCells(rgSrc, true).flatMap((t) => compileCell(t, true, rgCtx)).map((v) => [v.name, v]));
-  expect(rg.get("ok_forward")!.inputs.includes("invalidation"), "a cell that passes a Sub[] on (no on(...)) takes invalidation: " + rg.get("ok_forward")!.inputs);
   expect(/memo: false/.test(g.get("ticks")!.definition), "a generator is not memoised");
   const w = by(await Bun.file(root + "lite/notebook/examples/07-workers.tsx").text());
   expect(JSON.stringify(w.get("inPool")?.inputs) === JSON.stringify(["ss", "ss_compile", "ss_pool", "width", "height", "maxIter"]), "compile refs are hidden inputs: " + w.get("inPool")?.inputs);
@@ -80,5 +77,5 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   expect([...mu.values()].some((v) => /memo: true/.test(v.definition)), "an accepted cell of 03-mut is memoised");
   expect(compileModule(mutSrc, false).every((v) => !/memo: true/.test(v.definition)), "with no verdicts, nothing is memoised");
 }
-console.log(`${pass} files pass, ${fail} fail; ${cells} cells, ${vars} variables; ${skipped} cells skipped (Source, pool or compile); ${factsCompared} cells compiled the same from the check's facts`);
+console.log(`${pass} files pass, ${fail} fail; ${cells} cells, ${vars} variables; ${skipped} cells skipped (pool or compile); ${factsCompared} cells compiled the same from the check's facts`);
 if (fail) process.exit(1);

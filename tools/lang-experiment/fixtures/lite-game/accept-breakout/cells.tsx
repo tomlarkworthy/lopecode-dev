@@ -51,8 +51,10 @@ export const toggle = (playing: Ref<boolean>) => action(() => playing.update((p)
 export const over = (world) => world.lives === 0 || world.bricks.length === 0;
 
 // The clock is an ordinary generator cell: it yields the milliseconds since its last step and
-// writes nothing. The runner steps it once per animation frame while something subscribes to it.
-export const ticks = function* (now: Clock) {
+// writes nothing. It reads playing and over, so it runs again when either changes; while the game
+// is not running it yields nothing.
+export const ticks = function* (now: Clock, playing: boolean, over: boolean) {
+  if (!playing || over) return;
   let t = now();
   while (true) {
     const t1 = now();
@@ -61,10 +63,9 @@ export const ticks = function* (now: Clock) {
   }
 };
 
-// The subscription set is a value. ticks: Source<number> is a handle to the generator, not a
-// dependency on its values. The runner starts what is new in the set and stops what left it.
-export const subscriptions = (ticks: Source<number>, tick: Action<[number]>, playing: boolean, over: boolean) =>
-  playing && !over ? [on(ticks, tick)] : [];
+// A listener: the notebook runs tick once for each value of ticks. ticks: Events<number> is a
+// handle to the generator, not a dependency on its values, so onTick does not run on every frame.
+export const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick);
 
 export const box = () => (x: number, y: number, w: number, h: number, colour: string) =>
   `position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:${colour}`;

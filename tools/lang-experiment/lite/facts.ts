@@ -1,12 +1,12 @@
 // What the compiler and the in-page compile need to know about a cell, read from its function node:
-// parameter names and whether each is typed Ref<T> or Source<T>, whether it returns a ref, whether it
+// parameter names and whether each is typed Ref<T> or Events<T>, whether it returns a ref, whether it
 // is a generator, and its compile(...) calls. The checker computes these from its own parse (LiteCell
 // .facts), so a caller holding a check result does not parse the cells again; cellsOf parses source.
 import { parse, type Node } from "./parse.ts";
 import { specOf, compileCalls, type IslandSpec } from "./island.ts";
 
 // span: the cell's statement in the source that was parsed, [start, end)
-export type CellInfo = { name: string; span?: [number, number]; params: { name: string; refTyped: boolean; sourceTyped: boolean }[]; returnsRef: boolean; generator: boolean; compiles: IslandSpec[] };
+export type CellInfo = { name: string; span?: [number, number]; params: { name: string; refTyped: boolean; eventsTyped: boolean }[]; returnsRef: boolean; generator: boolean; compiles: IslandSpec[] };
 function isRefCall(e: Node | null | undefined): boolean {
   while (e && (e.type === "ParenthesizedExpression" || e.type === "TSAsExpression")) e = e.expression;
   return !!e && e.type === "CallExpression" && e.callee.type === "Identifier" && e.callee.name === "ref";
@@ -22,7 +22,7 @@ export function factsOf(name: string, fn: Node, stmt?: Node): CellInfo {
     params: fn.params.map((p: Node) => {
       const a = p.typeAnnotation?.typeAnnotation;
       const ref = (n: string) => a?.type === "TSTypeReference" && a.typeName.name === n;
-      return { name: p.type === "Identifier" ? p.name : "", refTyped: ref("Ref"), sourceTyped: ref("Source") };
+      return { name: p.type === "Identifier" ? p.name : "", refTyped: ref("Ref"), eventsTyped: ref("Events") };
     }),
   };
 }

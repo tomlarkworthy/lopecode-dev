@@ -5,7 +5,7 @@ import { h } from "../jsx/h.ts";
 import { create, patch } from "../jsx/render.ts";
 import { lowerJsx } from "../jsx/lower.ts";
 import { erase } from "../browser/erase.ts";
-import { on, isSubs, generatorish, cellsOf, guard as guardWith } from "../browser/cells.ts";
+import { on, events, listen, nameAction, running, pulling, release, sweep, generatorish, cellsOf, guard as guardWith } from "../browser/cells.ts";
 export { cellsOf };
 import { island, type IslandSpec } from "../island.ts";
 import { pagePool, runHere, type Pool } from "../browser/workers.ts";
@@ -28,7 +28,7 @@ export function check(source: string, tsx = true): ReturnType<typeof checkSource
 
 
 export const { ref, action, mut, freeze, borrow, snapshot, equals, refValues } = P;
-export { h, on, create, patch, pagePool };
+export { h, on, create, patch, pagePool, running, pulling, release, sweep };
 
 // Values a generator has yielded. A reader of one may be handed the same buffer mutated between
 // yields (borrow), so a memoised cell does not reuse its last value when one of these is an input.
@@ -56,24 +56,25 @@ export const forget = (definition: object) => {
 export const memoSize = () => memos.size;
 export const memoHas = (id: string) => memos.has(id);
 
-type Opts = { kind: "cell" | "ref" | "source"; name: string; memo: boolean; id: string; invalidation: Promise<unknown> | null };
+type Opts = { kind: "cell" | "ref" | "events" | "listener"; name: string; memo: boolean; prev?: unknown; id: string; invalidation: Promise<unknown> | null };
 
 export function cell(fn: (...a: unknown[]) => unknown, args: unknown[], o: Opts): unknown {
+  const count = () => { stats.evals++; evalCounts.set(o.id, (evalCounts.get(o.id) ?? 0) + 1); };
+  // an events cell's body runs when its inputs change; a re-run with the same inputs keeps the generator
+  if (o.kind === "events") return events(o.prev, o.name, args, () => { count(); return guard(fn(...args) as Generator); }, o.invalidation);
   if (o.memo) {
     const last = memos.get(o.id);
     if (last && args.length === last.args.length && args.every((v, i) => Object.is(v, last.args[i]) && !(typeof v === "object" && v !== null && lent.has(v)))) {
       stats.memoHits++;
-      // a memo hit is still a new run of the cell: the set it returns again is held for this run too
-      if (isSubs(last.value)) hold(last.value, o.invalidation);
+      // a memo hit is still a new run of the cell: the listener it returns again is attached for this run
+      if (o.kind === "listener") listen(last.value, o.name, o.invalidation);
       return last.value;
     }
   }
-  if (o.kind === "source") return Object.freeze({ source: o.name, make: () => guard(fn(...args) as Generator) });
   P.state.evalDepth++;
   let value: unknown;
   try {
-    stats.evals++;
-    evalCounts.set(o.id, (evalCounts.get(o.id) ?? 0) + 1);
+    count();
     const r = fn(...args);
     if (o.kind === "ref") {
       if (!P.isRefCell(r)) throw new Error(`${o.name} did not return ref(...)`);
@@ -83,103 +84,10 @@ export function cell(fn: (...a: unknown[]) => unknown, args: unknown[], o: Opts)
   } finally {
     P.state.evalDepth--;
   }
+  if (o.kind === "listener") listen(value, o.name, o.invalidation);
+  else nameAction(value, o.name);
   if (o.memo) memos.set(o.id, { args, value });
-  if (isSubs(value)) hold(value, o.invalidation);
   return value;
-}
-
-// Running subscriptions, one per (source handle, action) on the page, counted by the subscription
-// sets that hold it, so a cell that forwards a set does not start a second copy. A sync generator is
-// stepped once per animation frame, an async one as soon as each next() resolves.
-type Running = { source: unknown; action: unknown; count: number; stop: () => void };
-const live: Running[] = [];
-// per set: what it holds, and how many runs of a cell currently return it
-const held = new Map<object, { mine: Running[]; runs: number; pinned: boolean }>();
-export const running = () => live.length;
-// removes a stopped subscription from live and from every set's list, once
-function unlist(e: Running) {
-  const i = live.indexOf(e);
-  if (i >= 0) live.splice(i, 1);
-  for (const h of held.values()) { const j = h.mine.indexOf(e); if (j >= 0) h.mine.splice(j, 1); }
-  e.count = 0;
-}
-const label = (x: any) => (x && typeof x === "object" ? x.source : x?.name) || "(anonymous)";
-function start(source: { make: () => any }, act: (x: unknown) => void): Running {
-  let stopped = false;
-  const gen = source.make();
-  // A generator or action that throws logs the error naming the source and action, and stops only
-  // its own subscription: it leaves live and every set that held it, while every other subscription
-  // keeps running. A set made later that holds the same (source, action) pair starts it afresh.
-  const fail = (e: unknown) => {
-    if (stopped) return;
-    console.error(`subscription ${label(source)} -> ${label(act)} failed:`, e);
-    entry.stop();
-    unlist(entry);
-  };
-  const step = () => {
-    if (stopped) return;
-    try {
-      const res = gen.next();
-      const handle = (r: IteratorResult<unknown>, async: boolean) => {
-        if (stopped || r.done) return;
-        act(r.value);
-        if (async) step(); else requestAnimationFrame(step);
-      };
-      if (res && typeof res.then === "function") res.then((r: IteratorResult<unknown>) => { try { handle(r, true); } catch (e) { fail(e); } }, fail);
-      else handle(res, false);
-    } catch (e) { fail(e); }
-  };
-  const entry: Running = { source, action: act, count: 0, stop: () => { stopped = true; try { gen.return(); } catch {} } };
-  requestAnimationFrame(step);
-  return entry;
-}
-function hold(set: { source: any; action: any }[], invalidation: Promise<unknown> | null) {
-  let h = held.get(set);
-  if (!h) {
-    const mine: Running[] = [];
-    for (const w of set) {
-      let e = live.find((r) => r.source === w.source && r.action === w.action);
-      if (!e) { e = start(w.source, w.action); live.push(e); }
-      if (!mine.includes(e)) { e.count++; mine.push(e); }
-    }
-    held.set(set, (h = { mine, runs: 0, pinned: false }));
-  }
-  // A run with no invalidation (a cell that forwards a set) is never released by the runtime, so all
-  // such runs of a set count as one holder, which release(set) or sweep removes.
-  if (!invalidation) { if (!h.pinned) { h.pinned = true; h.runs++; } return; }
-  h.runs++;
-  // dropped after the cell's next value is held, so a set that keeps a subscription does not restart it
-  invalidation.then(() => setTimeout(() => release(set), 0));
-}
-// One holder of a subscription set is gone: the set's subscriptions stop when no holder remains.
-// Equal compiled text in two modules shares a memo id, so two variables can hold one set object.
-// Each run of a cell that returns the set is a holder, and its invalidation releases it. The runtime
-// does not resolve invalidation when a variable is deleted, so the module calls this once with the
-// deleted variable's value; a variable whose invalidation will resolve must not also call it.
-export function release(set: unknown) {
-  const h = held.get(set as object);
-  if (h && --h.runs <= 0) drop(set as object);
-}
-// stops what a set held, whatever its holder count
-function drop(set: object) {
-  const h = held.get(set);
-  if (!h) return;
-  held.delete(set);
-  bornAt.delete(set);
-  for (const e of [...h.mine]) if (--e.count <= 0) { e.stop(); unlist(e); }
-}
-
-// Stops the sets no live variable holds. A set made since the last sweep is spared once: it may be
-// a value the runtime has not assigned yet.
-let generation = 0;
-const bornAt = new Map<object, number>();
-export function sweep(values: Set<unknown>) {
-  generation++;
-  for (const set of [...held.keys()]) {
-    if (values.has(set)) { bornAt.delete(set); continue; }
-    if (!bornAt.has(set)) { bornAt.set(set, generation); continue; }
-    if (bornAt.get(set)! < generation) { bornAt.delete(set); drop(set); }
-  }
 }
 
 // page-wide, so two modules' islands never share a key in one pool

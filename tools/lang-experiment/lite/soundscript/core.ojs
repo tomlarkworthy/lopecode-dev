@@ -51,7 +51,7 @@ readme_memo = md`## When a cell does not run
 
 An edit starts with an empty memo. Two cells with equal text and equal inputs share a result; this is sound because both compute the same value.
 
-The compiler sets \`memo: true\` only on a plain cell that the checker accepts over its whole module (\`ss_context\`). It never sets it on a generator, on a reader of a generator that is not a \`Source\`, or on a cell taking \`now\`, \`random\`, \`fetch\` or \`log\`. A rejected cell is not a function of its inputs, so it runs every time.`
+The compiler sets \`memo: true\` only on a plain cell that the checker accepts over its whole module (\`ss_context\`). It never sets it on a generator, on a reader of a generator that is not taken as \`Events\`, or on a cell taking \`now\`, \`random\`, \`fetch\` or \`log\`. A rejected cell is not a function of its inputs, so it runs every time.`
 // %%
 readme_editing = md`## Editing
 
@@ -78,8 +78,9 @@ ss.compileCell(source, tsx, context)   // one cell's source -> [{name, inputs, d
 ss.decompileVariable(definition)       // a compiled definition -> the cell's source, or null
 ss.compiler(() => source)              // the value of ss_compile: compile(...) for the cells of that source
 ss.evals(variable._definition)         // how many times a compiled cell's body has run
-ss.running()                           // subscriptions running on the page
-ss.release(set)                        // one holder of a subscription set is gone; it stops when none is left
+ss.running()                           // listeners attached on the page
+ss.pulling()                           // events cells whose generator is being pulled
+ss.release(value)                      // a deleted variable's listener ends, or its events stop
 ss.forget(definition)                  // drop a compiled definition's memo entry and run count
 ss.memoSize(), ss.memoHas(id)          // memo entries on the page; whether one id has one
 ss.idOf(definition), ss.withId(definition, id)  // read or replace a compiled definition's memo id
@@ -147,7 +148,7 @@ ss_check = (module) => {
 // %%
 ss_context = (texts) => {
   // the compile context of a module's cells, from one (remembered) check of the whole module: which
-  // cells are generators, which are taken as Source, which the checker accepts (only those are memoised)
+  // cells are generators, which are taken as Events, which the checker accepts (only those are memoised)
   try { const source = texts.join("\n\n"); return ss.contextFromCheck(ss.check(source), source, true); }
   catch { return ss.contextOf(texts, true, null); }
 }
@@ -175,15 +176,15 @@ ss_pool = ss.lazyPool()
 ss_instances = new WeakSet()
 // %%
 ss_deleted = {
-  // A deleted variable's value gives up its hold on a subscription set once: the runtime does not
-  // resolve a deleted variable's invalidation, and one deletion reaches both apply and onCodeChange.
+  // A deleted variable's listener ends, or its events stop, once: the runtime does not resolve a
+  // deleted variable's invalidation, and one deletion reaches both apply and onCodeChange.
   const done = new WeakSet();
   return (v) => { if (done.has(v)) return; done.add(v); ss.release(v._value); };
 }
 // %%
 ss_instance = async (module, invalidation) => {
   // A second copy of module's SoundScript cells in a module of its own, so a test drives its own refs
-  // and subscriptions, not the ones on the page. Ids get a suffix, so its memo and run counts are its
+  // and listeners, not the ones on the page. Ids get a suffix, so its memo and run counts are its
   // own too. Inputs its cells do not define (ss, ss_now, ...) are read from module. Deleted on invalidation.
   const vars = [...runtime._variables].filter((v) => v._module === module && typeof v._name === "string" && typeof v._definition === "function" && ss.langOf(String(v._definition)) === "ss");
   const names = new Set(vars.map((v) => v._name));
@@ -203,8 +204,8 @@ ss_lifecycle = {
   // Edits made outside apply (the editor's delete button, another tool) reach a module through
   // onCodeChange, which diffs snapshots of the runtime's variables. A variable added and deleted
   // between two snapshots produces no event of its own, so on any SoundScript change the whole
-  // module is recompiled to its fixpoint (settle), and subscription sets that no variable holds any
-  // more are stopped (sweep). The runtime does not resolve a deleted variable's invalidation.
+  // module is recompiled to its fixpoint (settle), and listeners and events that no variable holds
+  // any more are stopped (sweep). The runtime does not resolve a deleted variable's invalidation.
   const isSs = (v) => typeof v?._definition === "function" && ss.langOf(String(v._definition)) === "ss";
   let scheduled = false;
   const touched = new Set();
@@ -228,7 +229,7 @@ ss_lifecycle = {
     });
   });
   invalidation.then(off);
-  return "a change outside apply recompiles its module and stops subscriptions no variable holds";
+  return "a change outside apply recompiles its module and stops listeners and events no variable holds";
 }
 // %%
 ss_language = {
@@ -345,8 +346,8 @@ ss_language = {
   });
 
   // Applies only a cell the checker accepts; otherwise returns undefined and changes nothing. A cell
-  // whose compiled form depends on the edited one (a generator that became, or stopped being, a
-  // Source; a reader of a generator, which is not memoised) is compiled again too.
+  // whose compiled form depends on the edited one (a generator that became, or stopped being, taken
+  // as Events; a reader of a generator, which is not memoised) is compiled again too.
   const applyNow = async (source, variables = [], cell) => {
     const r = check(source, variables, cell);
     if (!r.ok) return undefined;

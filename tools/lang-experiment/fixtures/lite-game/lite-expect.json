@@ -1,4 +1,15 @@
 {
   "accept-breakout": [],
-  "reject-game": ["ref-write", "action-call", "type", "inject-source"]
+  "reject-game": [
+    "ref-write",
+    "action-call",
+    "type",
+    "inject-events",
+    "unknown-type"
+  ],
+  "reject-listener": [
+    "listener-placement"
+  ],
+  "accept-action-in-ref": [],
+  "accept-action-stack": []
 }

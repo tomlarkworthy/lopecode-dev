@@ -161,7 +161,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
 
   const value = new Map<string, Ty | null>(); // null: no usable type
   const refInner = new Map<string, Ty>();
-  const sourceInner = new Map<string, Ty>(); // generator cells: their yield type
+  const eventsInner = new Map<string, Ty>(); // generator cells: their yield type
   const OPTIONS = rec({ runtime: named("Pool") }, ["runtime"]);
   // The type of compile({inputs, refs, outputs, options}): (args: {inputs}) => Promise<{outputs}>.
   const compileType = (e: Node, env: any, ch: Checker): Ty => {
@@ -202,7 +202,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     if (t.k === "named" && reg.isAlias(t.n)) return uncloneable(reg.expand(t), depth + 1);
     switch (t.k) {
       case "fn": return "a function";
-      case "named": return ["Action", "Ref", "RefCell", "Mut", "Borrowed", "Promise", "Generator", "Pool", "Compile", "Source", "Sub"].includes(t.n) ? t.n : null;
+      case "named": return ["Action", "Ref", "RefCell", "Mut", "Borrowed", "Promise", "Generator", "Pool", "Compile", "Events", "Listener"].includes(t.n) ? t.n : null;
       case "arr": return uncloneable(t.el, depth + 1);
       case "tup": for (const x of t.els) { const w = uncloneable(x, depth + 1); if (w) return w; } return null;
       case "union": for (const x of t.ts) { const w = uncloneable(x, depth + 1); if (w) return w; } return null;
@@ -210,8 +210,25 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       default: return null;
     }
   };
-  // Generator cells some cell takes as Source<T>: the runner gives every reader the handle, so a plain reader is an error.
-  const sourced = new Set<string>(cells.flatMap((c) => (c.fn.params as Node[]).filter((p) => p.typeAnnotation?.typeAnnotation?.type === "TSTypeReference" && p.typeAnnotation.typeAnnotation.typeName.name === "Source").map((p) => p.name as string)));
+  // the first of names that t mentions anywhere (aliases expanded), or null
+  const holds = (t: Ty, names: string[], depth = 0): string | null => {
+    if (depth > 12) return null;
+    if (t.k === "named") {
+      if (names.includes(t.n)) return t.n;
+      if (reg.isAlias(t.n)) return holds(reg.expand(t), names, depth + 1);
+      for (const a of t.args ?? []) { const w = holds(a, names, depth + 1); if (w) return w; }
+      return null;
+    }
+    const kids: Ty[] = t.k === "arr" ? [t.el] : t.k === "tup" ? t.els : t.k === "union" ? t.ts
+      : t.k === "rec" ? [...[...t.props.values()].map((p) => p.t), ...(t.calls ?? []).flatMap((f: any) => [...f.ps.map((p: any) => p.t), f.ret]), ...(t.index ? [t.index] : [])]
+      : t.k === "fn" ? [...t.ps.map((p) => p.t), t.ret] : [];
+    for (const k of kids) { const w = k && holds(k, names, depth + 1); if (w) return w; }
+    return null;
+  };
+  // Generator cells some cell takes as Events<T>: the runner gives every reader the handle, so a plain reader is an error.
+  const takenAsEvents = new Set<string>(cells.flatMap((c) => (c.fn.params as Node[]).filter((p) => p.typeAnnotation?.typeAnnotation?.type === "TSTypeReference" && p.typeAnnotation.typeAnnotation.typeName.name === "Events").map((p) => p.name as string)));
+  // Listener cells: no other cell may take one, so a listener's lifetime is its own cell's value.
+  const listenerCells = new Set<string>();
   for (const c of order) {
     if (value.has(c.name)) continue;
     const r = out.get(c.name)!;
@@ -226,10 +243,14 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       if (p.type !== "Identifier") { diag(p, "inject-pattern", "an injected parameter must be a plain identifier"); injected.push(ERR); continue; }
       const name: string = p.name;
       const ann = p.typeAnnotation?.typeAnnotation;
-      // Ref<T> and Source<T> take a handle to a ref cell / generator cell, not its value
-      const wrapper = ann?.type === "TSTypeReference" && (ann.typeName.name === "Ref" || ann.typeName.name === "Source") ? ann.typeName.name as string : null;
+      // Ref<T> and Events<T> take a handle to a ref cell / generator cell, not its value
+      if (ann?.type === "TSTypeReference" && (ann.typeName.name === "Source" || ann.typeName.name === "Sub")) {
+        diag(p, "inject-events", ann.typeName.name === "Source" ? "Source was renamed Events: type this parameter Events<...>" : "Sub was renamed Listener, and no cell may take a listener");
+        injected.push(ERR); continue;
+      }
+      const wrapper = ann?.type === "TSTypeReference" && (ann.typeName.name === "Ref" || ann.typeName.name === "Events") ? ann.typeName.name as string : null;
       const handle = wrapper === "Ref" ? { rule: "inject-ref", what: "ref cell", inners: refInner, of: (t: Ty) => `of ${show(t)}` }
-        : wrapper ? { rule: "inject-source", what: "generator cell", inners: sourceInner, of: (t: Ty) => `yielding ${show(isNamed(t, "Source") ? t.args[0] : t)}` } : null;
+        : wrapper ? { rule: "inject-events", what: "sync generator cell", inners: eventsInner, of: (t: Ty) => `yielding ${show(isNamed(t, "Events") ? t.args[0] : t)}` } : null;
       let vt: Ty;
       if (cellNames.has(name)) {
         const v = value.get(name);
@@ -241,7 +262,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
           injected.push(want);
           continue;
         }
-        if (sourced.has(name)) { diag(p, "inject-source", `${name} is taken as a Source elsewhere, so a reader gets the handle; type this parameter Source<...>`); injected.push(ERR); continue; }
+        if (listenerCells.has(name)) { diag(p, "listener-placement", `${name} is a listener; no cell may take one, so it ends only when ${name} runs again`); injected.push(ERR); continue; }
+        if (takenAsEvents.has(name)) { diag(p, "inject-events", `${name} is taken as Events elsewhere, so a reader gets the handle; type this parameter Events<...>`); injected.push(ERR); continue; }
         vt = v;
       } else if (foreignNames.has(name)) {
         const fv = reg.values.get(name)!;
@@ -273,8 +295,15 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     // value type
     let ret = fnT.k === "fn" ? fnT.ret : ERR;
     if (c.fn.async && isNamed(ret, "Promise")) ret = ret.args[0];
-    if (c.fn.generator && isNamed(ret, "Generator")) { ret = ret.args[0]; if (!c.fn.async) sourceInner.set(c.name, ret); }
-    if (isNamed(ret, "RefCell")) { refInner.set(c.name, ret.args[0]); ret = ret.args[0]; }
+    if (c.fn.generator && isNamed(ret, "Generator")) { ret = ret.args[0]; if (!c.fn.async) eventsInner.set(c.name, ret); }
+    if (isNamed(ret, "RefCell")) {
+      const nested = holds(ret.args[0], ["Ref", "RefCell"]);
+      if (nested) r.errors.push({ rule: "ref-in-ref", line: P.line(c.fn.start), msg: `a ref holds ${show(ret.args[0])}, which contains ${nested}; a ref's content may not contain a Ref or RefCell` });
+      refInner.set(c.name, ret.args[0]); ret = ret.args[0];
+    }
+    // a Listener is a whole cell value: not in a list, record, ref, union with another type, or function
+    if (isNamed(ret, "Listener") || (ret.k === "union" && ret.ts.every((t) => isNamed(t, "Listener")))) listenerCells.add(c.name);
+    else if (holds(ret, ["Listener"])) r.errors.push({ rule: "listener-placement", line: P.line(c.fn.start), msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` });
     const usable = !hasErr(ret) && (r.unsupported.length === 0 || !!c.fn.returnType);
     value.set(c.name, usable ? ret : null);
     r.value = show(ret);

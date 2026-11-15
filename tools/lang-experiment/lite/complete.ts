@@ -6,16 +6,16 @@ import { checkSources } from "./core.ts";
 import type { Checker, Env, Scope } from "./infer.ts";
 import { Registry } from "./registry.ts";
 import { type Ty, show, named, isNamed, propT, members, UNKNOWN } from "./types.ts";
-import { CAPABILITIES, PRELUDE_FNS } from "./intrinsics.ts";
+import { CAPABILITIES, PRELUDE_FNS, PRELUDE_DECLS, JSX_DECLS } from "./intrinsics.ts";
 import type { Node } from "./parse.ts";
 
 export type Completion = { label: string; type: string; detail?: string };
-export type Completions = { from: number; to: number; options: Completion[]; mode: "member" | "name" | "param" | "jsx" | "none" };
+export type Completions = { from: number; to: number; options: Completion[]; mode: "member" | "name" | "param" | "type" | "jsx" | "none" };
 
 const PH = "__ss_complete__";
 const KEYWORDS = "const let return if else for of in while do break continue switch case default function true false null undefined typeof async await yield try catch finally throw".split(" ");
 // types whose members a cell may not read: handles and actions are used whole
-const NO_MEMBERS = new Set(["Action", "RefCell", "Source", "Sub", "Compile"]);
+const NO_MEMBERS = new Set(["Action", "RefCell", "Events", "Listener", "Compile"]);
 
 // Where offset sits in text: in a string or comment, and the brackets open there (as closers).
 function scan(text: string, end: number): { quoted: boolean; closers: string[] } {
@@ -75,6 +75,30 @@ function paramListAt(before: string): string[] | null {
   if (last.trim() !== "") return null;
   return inside.split(",").slice(0, -1).map((p) => /^\s*([\w$]+)/.exec(p)?.[1] ?? "").filter(Boolean);
 }
+
+// Whether the cursor is in a type: after a parameter's colon in the cell's own parameter list, or
+// in the return type after it.
+function typeAt(before: string): boolean {
+  const head = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*export\s+(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/.exec(before);
+  if (!head) return false;
+  const inside = before.slice(head[0].length);
+  let depth = 0, seg = "";
+  for (let i = 0; i < inside.length; i++) {
+    const c = inside[i];
+    if ("([{<".includes(c)) depth++;
+    else if (")]}>".includes(c) && !(c === ">" && inside[i - 1] === "=")) {
+      if (depth === 0) return c === ")" && /^\s*:[^={]*$/.test(inside.slice(i + 1));
+      depth--;
+    }
+    if (depth === 0 && c === ",") { seg = ""; continue; }
+    seg += c;
+  }
+  return /^\s*[\w$]+\s*\??\s*:/.test(seg);
+}
+const declared = (src: string) => [...src.matchAll(/(?:^|\n)\s*(?:export\s+)?(?:interface|type)\s+([\w$]+)/g)].map((m) => m[1]);
+// the types a cell may name: the prelude's, JSX's, the handle and ownership types, and the library generics
+const TYPE_NAMES = [...new Set([...declared(PRELUDE_DECLS), ...declared(JSX_DECLS), "Action", "RefCell", "Mut", "Borrowed", "Array", "ReadonlyArray", "Map", "Set", "Promise", "Generator", "Record", "number", "string", "boolean", "bigint", "unknown", "null", "undefined", "void", "readonly"])]
+  .filter((n) => !["FetchResponse", "Child"].includes(n));
 
 const kindOf = (reg: Registry, t: Ty) => (reg.callSigs(t).length ? "method" : "property");
 
@@ -155,6 +179,12 @@ export function completionsAt(cells: readonly string[], at: number, offset: numb
       });
       return pick("jsx", opts.sort((a, b) => a.label.localeCompare(b.label)));
     }
+  }
+
+  if (typeAt(before)) {
+    const own = cells.flatMap((c, i) => (i === at ? [] : declared(c)));
+    const opts = [...new Set([...TYPE_NAMES, ...own])].map((n) => ({ label: n, type: "type", detail: own.includes(n) ? "type in this module" : "prelude" }));
+    return pick("type", opts.sort((a, b) => a.label.localeCompare(b.label)));
   }
 
   const params = paramListAt(before);
