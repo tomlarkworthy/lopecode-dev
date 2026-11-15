@@ -19,7 +19,8 @@ for (const f of files) {
     let checked = null;
     try { checked = checkSources({ cells: src, tsx }); } catch {}
     const fromCheck = checked ? contextFromCheck(checked) : null;
-    const ctx = contextOf(texts, tsx, checked ? acceptedOf(checked) : null);
+    // the checker's messages for a cell it does not accept come only from a check
+    const ctx = { ...contextOf(texts, tsx, checked ? acceptedOf(checked) : null), why: fromCheck?.why ?? null };
     if (fromCheck && (JSON.stringify([...fromCheck.generators].sort()) !== JSON.stringify([...ctx.generators].sort()) || JSON.stringify([...fromCheck.events].sort()) !== JSON.stringify([...ctx.events].sort())))
       throw new Error(`contextFromCheck differs from contextOf: ${JSON.stringify([[...fromCheck.generators], [...ctx.generators]])}`);
     for (const t of texts) {
@@ -73,7 +74,7 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   expect(/memo: false/.test(m.get("stamped")!.definition), "a cell taking now is not memoised");
   const mutSrc = await Bun.file(root + "lite/notebook/examples/03-mut.ts").text();
   const mu = new Map(compileModule(mutSrc, false, accepted(mutSrc, false)).map((v) => [v.name, v]));
-  expect(/memo: false/.test(mu.get("leak")!.definition) && /memo: false/.test(mu.get("late")!.definition), "cells the checker rejects (leak, late) are not memoised");
+  expect(/\$ss\$\.rejected\(/.test(mu.get("leak")!.definition) && /\$ss\$\.rejected\(/.test(mu.get("late")!.definition) && !/\bxs\b/.test(mu.get("leak")!.definition.slice(mu.get("leak")!.definition.indexOf("*/$ss$"))), "cells the checker rejects (leak, late) compile to a body that only raises");
   expect([...mu.values()].some((v) => /memo: true/.test(v.definition)), "an accepted cell of 03-mut is memoised");
   expect(compileModule(mutSrc, false).every((v) => !/memo: true/.test(v.definition)), "with no verdicts, nothing is memoised");
 }

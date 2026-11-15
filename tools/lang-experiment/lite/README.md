@@ -680,6 +680,41 @@ trim unused intrinsics                 312 of ~403 members unused by any gate; w
 So the checker is near the size this design needs; a much smaller `lite` would need a smaller
 language (dropping generic inference or overloads) rather than a tidier implementation.
 
+### Broken cells are stored and do not run (2026-11-15)
+
+Tom: edits were never meant to be refused; the program passes through a broken state until it
+is repaired. Before this, Shift-Enter applied an edit only if no `ok` cell stopped being `ok`, and
+a cell the checker rejected (section 3's `leak`, section 8's eleven) still ran.
+
+- `stdlib/runtime.ts` `checkCells(texts)` checks a module in which some cells do not parse: each is
+  replaced by a stand-in of the same name and line count whose value has no type, so a cell that
+  takes it is blocked. `cellStates(result)` (`toolchain/ss-toolchain.ts`) gives each cell
+  `ok | rejected | blocked`, with the checker's messages or the cells it is blocked by.
+- `compileCell(text, tsx, ctx, name)` with a check context compiles a cell that is not accepted to
+  `$ss$.rejected(name, why)`, which throws `<name> does not check: [rule] msg; …`. The typed text
+  is in the `/*ss^{"d":…,"rejected":…}*/` header, so `decompile(compile(src)) === src` holds for a
+  rejected or unparsable cell too (`toolchain/ss-toolchain.test.ts`, 37 files, 2026-11-15).
+- The editor (`soundscript/core.ojs` `ss_language`) shows, while typing, `applying this breaks 2
+  cells: area, aspect; blocks 2 cells: half, test_half`, and after Shift-Enter the same line as
+  `this edit broke …` on the edited cell. Cards say `rejected` with the messages, or `blocked by X`.
+- Measured in `soundscript/verify.ts` (headless Chromium, real keys, 2026-11-15): `width = () =>
+  "800"` makes `area` and `aspect` rejected and `half`, `test_half` blocked; the count of the
+  counter (pressed before) is kept through the break and both repairs; `height`, `scale`,
+  `samples`, `histogram`, `count`, `increment` and `app` ran 0 more times. A cell whose body counts
+  its own runs on `globalThis` ran 0 times at the edit, in `ss_instance`, after an exporter-3
+  export reopened, and after Save in place reopened. Breakout with `step` broken mid-game keeps
+  score 10, listeners 1 -> 0, clocks 1 -> 0; repaired, 1 listener and 1 clock, the ball moving.
+- State that is lost, measured by `runtime.test.ts` `b5` (2026-11-15): a ref cell that is itself
+  rejected (`own` given `ref("0")`, or `seeded = (base: number) => ref(base)` once `base` is a
+  string) is replaced by a raising definition, so on repair it starts again from its initial value
+  (`own` 2 -> 0, `seeded` 7 -> 5). A ref blocked by its input (`fromSq`, taking a rejected `sq`) keeps
+  its compiled definition, but its variable fails while the input does, so on repair it runs again
+  and also starts from its initial value (26 -> 25). A ref outside the broken part keeps its value
+  (`kept` 2 -> 2).
+- Unit tests: `stdlib/runtime.test.ts` `b1`–`b5` (break and repair, a rejected body never runs, an
+  unparsable edit, a listener in the broken part detaching and attaching again) and `o1`–`o2`
+  (listener order).
+
 ## Not done
 
 **Owned collections** (`mut([mut(…)])`, a Mut holding Muts) were the stretch goal and are not

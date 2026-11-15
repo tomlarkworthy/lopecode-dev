@@ -90,7 +90,9 @@ const identifiers = (n: Node, acc = new Set<string>()): Set<string> => {
 // memoised; null, as for a cell compiled on its own, memoises none). compileModule works it out.
 // facts: each cell's facts (facts.ts) when a check result supplied them, so compileCell does not parse
 // for them again.
-export type Context = { generators: ReadonlySet<string>; events: ReadonlySet<string>; accepted: ReadonlySet<string> | null; facts?: ReadonlyMap<string, CellInfo> | null };
+// why: for each cell the check did not accept, the checker's messages. With a module context (accepted
+// not null) such a cell compiles to a definition that only raises them; its body never runs.
+export type Context = { generators: ReadonlySet<string>; events: ReadonlySet<string>; accepted: ReadonlySet<string> | null; facts?: ReadonlyMap<string, CellInfo> | null; why?: ReadonlyMap<string, string[]> | null };
 const NO_CONTEXT: Context = { generators: new Set(), events: new Set(), accepted: null };
 const NO_MEMO_CAPS = new Set(["now", "random", "fetch", "log"]);
 
@@ -98,19 +100,68 @@ export function contextOf(texts: string[], tsx: boolean, accepted: ReadonlySet<s
   const infos = texts.flatMap((t) => { try { return cellsOf(tsx ? lowerJsx(t) : t); } catch { return []; } });
   return contextOfFacts(infos, accepted);
 }
-function contextOfFacts(infos: Iterable<CellInfo>, accepted: ReadonlySet<string> | null, facts: ReadonlyMap<string, CellInfo> | null = null): Context {
+function contextOfFacts(infos: Iterable<CellInfo>, accepted: ReadonlySet<string> | null, facts: ReadonlyMap<string, CellInfo> | null = null, why: ReadonlyMap<string, string[]> | null = null): Context {
   const list = [...infos];
   const generators = new Set(list.filter((c) => c.generator).map((c) => c.name));
   const events = new Set(list.flatMap((c) => c.params.filter((p) => p.eventsTyped && generators.has(p.name)).map((p) => p.name)));
-  return { generators, events, accepted, facts };
+  return { generators, events, accepted, facts, why };
 }
-// the cells a check result accepts: ok, with no errors. Only these are memoised.
-type CheckLike = { cells: { name: string; status: string; errors: unknown[]; value?: string }[]; facts?: ReadonlyMap<string, CellInfo> };
-export const acceptedOf = (result: CheckLike) => new Set(result.cells.filter((c) => c.status === "ok" && !c.errors.length).map((c) => c.name));
+// the cells a check result accepts: ok, with no errors. Only these run, and only these are memoised.
+type CheckCell = { name: string; status: string; errors: { rule: string; msg: string }[]; unsupported?: { msg: string }[]; blockedBy?: string[]; value?: string };
+type CheckLike = { cells: CheckCell[]; facts?: ReadonlyMap<string, CellInfo>; unparsed?: ReadonlyMap<string, string> };
+export const acceptedOf = (result: CheckLike) => new Set(result.cells.filter((c) => c.status === "ok" && !c.errors.length && !result.unparsed?.has(c.name)).map((c) => c.name));
+// a cell's own reasons for not being accepted, without line numbers (a line added above must not change them)
+export function whyOf(result: CheckLike, c: CheckCell): string[] {
+  const parseMsg = result.unparsed?.get(c.name);
+  if (parseMsg !== undefined) return [`[parse] ${parseMsg}`];
+  const out = [...c.errors.map((e) => `[${e.rule}] ${e.msg}`), ...(c.unsupported ?? []).map((u) => `[unsupported] ${u.msg}`)];
+  if (!out.length && c.blockedBy?.length) out.push(`[blocked] ${c.blockedBy.join(", ")} has no usable type`);
+  if (!out.length) out.push(`[${c.status}] not accepted by the checker`);
+  return out;
+}
 // the same context as contextOf over the module's texts, from one check of the whole module
 export function contextFromCheck(result: CheckLike, _source?: string, _tsx = true): Context {
   if (!result.facts) throw new Error("this check result carries no cell facts");
-  return contextOfFacts(result.facts.values(), acceptedOf(result), result.facts);
+  const accepted = acceptedOf(result);
+  const why = new Map(result.cells.filter((c) => !accepted.has(c.name)).map((c) => [c.name, whyOf(result, c)] as const));
+  return contextOfFacts(result.facts.values(), accepted, result.facts, why);
+}
+
+// The editor's three states of a cell: ok; rejected (the checker does not accept the cell itself, or it
+// does not parse); blocked (accepted, but a cell it takes is not ok, so it cannot run).
+export type CellState = { state: "ok" | "rejected" | "blocked"; why: string[]; blockedBy: string[] };
+export function cellStates(result: CheckLike): Map<string, CellState> {
+  const accepted = acceptedOf(result);
+  const out = new Map<string, CellState>();
+  const names = new Set(result.cells.map((c) => c.name));
+  for (const c of result.cells) {
+    // the checker's own "blocked": no message of its own, but a cell it takes has no usable type
+    const by = c.status === "blocked" && !c.errors.length && !c.unsupported?.length && !result.unparsed?.has(c.name) ? (c.blockedBy ?? []).filter((n) => names.has(n)) : [];
+    out.set(c.name, accepted.has(c.name) ? { state: "ok", why: [], blockedBy: [] } : by.length ? { state: "blocked", why: [], blockedBy: by } : { state: "rejected", why: whyOf(result, c), blockedBy: [] });
+  }
+  const takes = new Map([...(result.facts?.values() ?? [])].map((f) => [f.name, f.params.map((p) => p.name).filter((n) => out.has(n) && n !== f.name)] as const));
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const [name, st] of out) {
+      if (st.state === "rejected") continue;
+      const by = [...new Set([...(takes.get(name) ?? []).filter((n) => out.get(n)!.state !== "ok"), ...(accepted.has(name) ? [] : st.blockedBy)])];
+      if (by.length && (st.state !== "blocked" || by.join() !== st.blockedBy.join())) { out.set(name, { state: "blocked", why: [], blockedBy: by }); changed = true; }
+    }
+  }
+  return out;
+}
+
+// The name a cell's text declares, read without parsing it (it may not parse).
+export const declaredName = (text: string): string | null => /^(?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*export\s+(?:(?:const|let)\s+|(?:async\s+)?function\s*\*?\s*)([\w$]+)/.exec(text)?.[1] ?? null;
+// A cell the checker does not accept: its typed source is kept whole in the header, and the definition
+// only raises the checker's messages. A ref cell keeps its two variables, so its readers stay wired.
+function rejectedCell(text: string, name: string, why: string[], ref: boolean): Variable[] {
+  const definition = `(${SS}) => ${LANG}${header({ d: text, rejected: why })}${SS}.rejected(${JSON.stringify(name)}, ${JSON.stringify(why)})`;
+  if (!ref) return [{ name, inputs: [STDLIB_INPUT], definition }];
+  return [
+    { name, inputs: [handleName(name), STDLIB_INPUT], definition: `(_, ${SS}) => ${LANG}${PROJECTION}${SS}.refValues(_)` },
+    { name: handleName(name), inputs: [STDLIB_INPUT], definition },
+  ];
 }
 
 // The variable a cell's value is read from, and the one that holds its handle.
@@ -127,7 +178,22 @@ export function contentId(text: string): string {
   return a.toString(36).padStart(7, "0") + b.toString(36).padStart(7, "0");
 }
 
-export function compileCell(text: string, tsx: boolean, ctx: Context = NO_CONTEXT): Variable[] {
+// With a module context, a cell that does not parse, does not compile, or that the check did not accept
+// compiles to rejectedCell; with none (a cell compiled on its own) those throw, as before.
+export function compileCell(text: string, tsx: boolean, ctx: Context = NO_CONTEXT, nameHint: string | null = null): Variable[] {
+  if (!ctx.accepted) return compileChecked(text, tsx, ctx);
+  let out: Variable[];
+  try { out = compileChecked(text, tsx, ctx); } catch (e) {
+    const name = declaredName(text) ?? nameHint;
+    if (!name) throw e;
+    return rejectedCell(text, name, ctx.why?.get(name) ?? [`[compile] ${(e as Error).message}`], false);
+  }
+  const main = out.find((v) => !v.name.startsWith("viewof ") && !v.name.startsWith("type ")) ?? out[0];
+  if (main.name.startsWith("type ") || ctx.accepted.has(main.name)) return out;
+  return rejectedCell(text, main.name, ctx.why?.get(main.name) ?? ["[rejected] not accepted by the checker"], out.length === 2);
+}
+
+function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   reserved(text);
   const P = parse(text, { jsx: tsx });
   if (P.program.body.length !== 1) throw new Error("a cell is exactly one top-level statement");

@@ -12,7 +12,7 @@ Each cell is shown as its source, with the checker's verdict, the type it inferr
 // %%
 //ss-cards: 01-cells.ts -aspect -scale -half -test_half
 // %%
-md`**Try it.** Press **edit** under \`width\` and change it to \`() => 800\`, then press Shift-Enter. \`area\` updates, and so do \`aspect\` and \`half\` in section 1, where \`test_half\` now fails because it expects \`half\` to be 128000. Now change it to \`() => "800"\`. The edit is refused: the cell's first line is underlined in red, and hovering over it names the two cells that would stop checking, \`area\` and \`aspect\`. \`width\` keeps its old value.`
+md`**Try it.** Open \`width\` and change it to \`() => 800\`, then press Shift-Enter. \`area\`, \`aspect\` and \`half\` update. Now change it to \`() => "800"\`. The edit is stored, and the editor says which cells it breaks: \`area\` and \`aspect\` multiply \`width\`, so they no longer check. They show the checker's message and stop running. \`half\` reads \`area\`, so it is blocked: its card says "blocked by area", and it does not run until \`area\` does. Change \`width\` back, or change those two cells to accept a string, and they run again.`
 // %%
 md`## Why take things out
 
@@ -57,11 +57,11 @@ md`## 3. Local writes: \`mut\` and \`freeze\`
 
 Building an array or a typed array one element at a time is ordinary and fast, and rule 3 does not forbid it. \`mut(...)\` marks a value this cell made as writable. \`freeze(...)\` ends the writes and returns the plain value. Between the two, the value may not leave the cell.
 
-\`leak\` returns a writable value and \`late\` writes after \`freeze\`. Both are rejected. They are live here so that you can fix them.`
+\`leak\` returns a writable value and \`late\` writes after \`freeze\`. Both are rejected, so neither runs; each shows the checker's message. They are live here so that you can fix them.`
 // %%
 //ss-cards: 03-mut.ts
 // %%
-md`**Try it.** Open \`leak\` and change \`return xs\` to \`return freeze(xs)\`. The edit is accepted, and \`leak\` turns from rejected to ok.`
+md`**Try it.** Open \`leak\` and change \`return xs\` to \`return freeze(xs)\`. The edit is accepted, and \`leak\` turns from rejected to ok and runs.`
 // %%
 md`## 4. State and views
 
@@ -75,7 +75,7 @@ The view is a cell too. \`app\` returns JSX: a description of the page that is b
 // %%
 view = framed(ss.mount(app, this))
 // %%
-md`**Try it.** Press **add one**. Then open \`app\` and change \`onClick={increment}\` to \`onClick={count}\`. The edit is refused: a number is not an action.`
+md`**Try it.** Press **add one**. Then open \`app\` and change \`onClick={increment}\` to \`onClick={count}\`. \`app\` no longer checks, because a number is not an action, and the buttons are replaced by the message. Change it back: the buttons return and the count is what it was.`
 // %%
 md`## 5. One function for every change
 
@@ -153,7 +153,7 @@ md`The cells are in [@tomlarkworthy/soundscript-workers](${linkTo("@tomlarkworth
 // %%
 md`## 8. Mistakes in a view
 
-JSX is checked like the rest of a cell: each attribute against the attributes its tag declares, and each event handler against the action it is given. Eleven cells, one mistake each. Ten are live, so each can be fixed in place; the eleventh is in a box after them.`
+JSX is checked like the rest of a cell: each attribute against the attributes its tag declares, and each event handler against the action it is given. Eleven cells, one mistake each. Ten are live cells that do not run: each shows the checker's message and can be fixed in place. The eleventh is in a box after them.`
 // %%
 //ss-cards: 08-reject-jsx.tsx -bad_free_component
 // %%
@@ -215,9 +215,9 @@ The compiler turns each cell, one at a time, into one *variable* of the notebook
 
 A plain cell is *memoised*: when every input is the same value (\`Object.is\`) as on its last run, the body does not run and the variable keeps its last value. Observable still recomputes the readers, which then hit their own memo. This is sound because the checker accepts only cells that are functions of their inputs and never change a value they did not make. In ordinary Observable a cell can change an object in place and keep its identity, and memoising would hide the change.
 
-Three kinds of cell are not memoised. A cell the checker rejects, such as \`leak\` or section 8's mistakes, is not covered by that argument, so it runs every time. A cell that takes \`now\`, \`random\`, \`fetch\` or \`log\` can differ between two runs on the same inputs. A cell that reads a generator's values may be lent the same buffer, changed between yields (\`yield borrow(buf)\`).
+Three kinds of cell are not memoised. A cell the checker rejects, such as \`leak\` or section 8's mistakes, does not run at all: its variable raises the checker's message. A cell that takes \`now\`, \`random\`, \`fetch\` or \`log\` can differ between two runs on the same inputs. A cell that reads a generator's values may be lent the same buffer, changed between yields (\`yield borrow(buf)\`).
 
-Whether a cell is memoised depends on the other cells of its module, so an applied edit compiles again any other cell whose form it changes.`
+Whether a cell is memoised depends on the other cells of its module, so a stored edit compiles again any other cell whose form it changes.`
 // %%
 md`### A ref cell is two variables
 
@@ -274,18 +274,8 @@ md`### How the typed source is kept
 
 A compiled variable's definition is ordinary JavaScript. Its first comment is the marker \`/*{lang:"ss"}*/\`, the types are kept as \`/*ss:…*/\` comments, JSX as \`/*ss<…*/\` beside its lowered \`h(...)\` calls, and the text around the function (the comments before it, \`export const name = \`) in a \`/*ss^{…}*/\` header. So the typed source is recovered from the definition alone, and a definition survives anything that keeps a function's text, such as saving the notebook. \`test_ss_roundtrip\` checks every live variable: decompile, compile again, and compare the text.`
 // %%
-md`### When the editor refuses an edit
-
-This notebook carries its own copy of \`@tomlarkworthy/editor-5\` with one addition, a \`cell_languages\` plugin point (its cell \`languageOf\`). The core's cell \`ss_registration\` registers SoundScript there. For a cell whose variables carry the marker, the editor shows the typed source with TypeScript and JSX highlighting and reports the checker's diagnostics as you type.
-
-On Shift-Enter it checks the whole module with the edited text in place of the cell, and applies the edit only if the cell is \`ok\` and no cell that was \`ok\` before becomes rejected, unsupported or blocked. A diagnostic that belongs to another cell is shown on the edited cell's first line, naming that cell. For \`width = () => "800"\` in the first Try it, the editor shows:
-
-\`\`\`
-Refused: \`area\` would stop checking. [inject-type] width: string is not assignable to number
-Refused: \`aspect\` would stop checking. [type] string used as a number
-\`\`\`
-
-A refused edit changes nothing: the cell keeps its old definition and value, and the editor keeps the typed text with its diagnostics, so it can be fixed or abandoned. A new cell whose source starts with \`export\`, typed in a module that has \`ss\`, is SoundScript too.`
+md`### Editing
+Shift-Enter always stores the edit. The module is checked again, and each cell is then ok, rejected (it breaks a rule) or blocked (it depends on a cell that is not ok). Only ok cells run. A rejected or blocked cell keeps its source, shows why it is not running, and is saved that way. A \`ref\` whose own cell stays ok keeps its value while other cells are broken and repaired.`
 // %%
 md`### Why four sections are modules
 
@@ -295,12 +285,11 @@ Section 2's mistakes stay in a box because \`width\` and \`area\` are section 1'
 // %%
 md`## What is guaranteed
 
-For a cell the checker accepts: it reads only its parameters and the allowed built-ins; while it runs it writes only values it made; a \`ref\` changes only when the page calls an action; and every effect is a named parameter. A cell with no capability parameter returns the same value for the same inputs.
+For a cell the checker accepts: it reads only its parameters and the allowed built-ins; while it runs it writes only values it made; a \`ref\` changes only when the page calls an action; and every effect is a named parameter. A cell with no capability parameter returns the same value for the same inputs. A cell the checker rejects does not run. It shows the checker's message, and so does every cell that depends on it, until it is repaired.
 
 Not guaranteed:
 
 - The checker is a prototype. On 2026-11-14, 52 of 54 existing fixtures got the same verdict and reason from it as from the TypeScript-based reference checker, with index reads typed \`T\` as TypeScript does ("How good is the checker").
-- A rejected cell still runs. The verdict keeps it from being skipped or sent to a worker, and the editor will not save an edit that leaves a cell rejected.
 - A cell may take \`now\` or \`random\` and be accepted. It is then not repeatable, and its signature shows it.`
 // %%
 md`## Language reference
@@ -419,7 +408,7 @@ md`### Events and listeners: \`Events\`, \`on\` (*lite*)
 | \`export const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick)\` | a listener: \`tick\` runs once for each value of \`ticks\`; the action must accept what \`ticks\` yields (\`[type]\`) |
 | \`flag ? on(a, x) : on(b, y)\` | a listener on one of two events cells |
 
-\`on(...)\` is legal only as the whole value of a sync cell: not in a list or record, a ref, a function's return, an argument, or a union with another value such as \`null\`, and no cell may take a listener cell (\`[listener-placement]\`). The generator is pulled only while a listener is attached, a sync one once per animation frame. If an action throws, the error is logged to the console as \`listener <cell>: action <action> threw on a value of events <events>\`, the action's writes are discarded, and the next value is still delivered. If the generator throws, the error is logged and it yields nothing more until it runs again. Section 9.`
+\`on(...)\` is legal only as the whole value of a sync cell: not in a list or record, a ref, a function's return, an argument, or a union with another value such as \`null\`, and no cell may take a listener cell (\`[listener-placement]\`). The generator is pulled only while a listener is attached, a sync one once per animation frame. If an action throws, the error is logged to the console as \`listener <cell>: action <action> threw on a value of events <events>\`, the action's writes are discarded, and the next value is still delivered. If the generator throws, the error is logged and it yields nothing more until it runs again. When two listener cells take the same events cell, each value goes to them in the order the cells appear in the module, and listeners in other modules after them, by module name; editing or re-running a listener does not change its place. Section 9.`
 // %%
 md`### Workers: \`compile\` (*lite*)
 

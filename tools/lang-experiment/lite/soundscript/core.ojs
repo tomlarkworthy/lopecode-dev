@@ -8,7 +8,7 @@ Four SoundScript cells and a view that uses them:`
 // %%
 example_view = htl.html`<div class="ss-example"><button onclick=${() => bump()}>bump</button> <button onclick=${() => reset()}>reset</button> <code>tally = ${tally}</code>, <code>doubled = ${doubled}</code></div>`
 // %%
-readme_example = md`\`tally\` is state. \`bump\` and \`reset\` are actions, the only places it is written. \`doubled\` reads it. Open any of them with its **edit** bar; a change is applied only if the whole module still checks.`
+readme_example = md`\`tally\` is state. \`bump\` and \`reset\` are actions, the only places it is written. \`doubled\` reads it. Open any of them with its **edit** bar; an edit is always stored; a cell that does not check does not run.`
 // %%
 readme_use = ss_highlightCode(md`## Using it in a module
 
@@ -51,20 +51,20 @@ readme_memo = md`## When a cell does not run
 
 An edit starts with an empty memo. Two cells with equal text and equal inputs share a result; this is sound because both compute the same value.
 
-The compiler sets \`memo: true\` only on a plain cell that the checker accepts over its whole module (\`ss_context\`). It never sets it on a generator, on a reader of a generator that is not taken as \`Events\`, or on a cell taking \`now\`, \`random\`, \`fetch\` or \`log\`. A rejected cell is not a function of its inputs, so it runs every time.`
+The compiler sets \`memo: true\` only on a plain cell that the checker accepts over its whole module (\`ss_context\`). It never sets it on a generator, on a reader of a generator that is not taken as \`Events\`, or on a cell taking \`now\`, \`random\`, \`fetch\` or \`log\`. A rejected cell does not run: its definition only raises the checker's messages.`
 // %%
 readme_editing = md`## Editing
 
 \`ss_registration\` registers the language with the editor through the plugin point \`cell_languages\`. Only this notebook's copy of \`@tomlarkworthy/editor-5\` has that plugin point.
 
-For a cell whose variables carry the marker, the editor shows the typed source. It reports the checker's diagnostics as you type. A diagnostic for another cell is shown on the edited cell's first line, naming that cell.
+For a cell whose variables carry the marker, the editor shows the typed source. It reports the checker's diagnostics as you type. What the edit does to other cells is shown on its first line: the cells it breaks, blocks or repairs, and after Shift-Enter the cells it broke, blocked or repaired.
 
-On Shift-Enter the editor applies the edit only if the edited cell checks \`ok\` against the whole module and no cell that was \`ok\` stops being \`ok\`. A refused edit changes nothing. An applied edit compiles again any other cell whose compiled form it changes. \`ss_lifecycle\` does the same for a change made outside the editor, such as a deleted cell.`
+Shift-Enter stores the edit whatever the checker says, unless it names no cell or another cell's name. A cell that is not \`ok\` compiles to a definition that raises the checker's messages, with its typed source kept in the marker comment. A stored edit compiles again any other cell whose compiled form it changes. \`ss_lifecycle\` does the same for a change made outside the editor, such as a deleted cell.`
 // %%
 readme_limits = md`## Limits
 
 - The editor hook needs the \`cell_languages\` plugin point, which only this notebook's copy of \`@tomlarkworthy/editor-5\` has. Running these cells with another editor was not tried.
-- A rejected cell that is already compiled into a notebook still runs; only the editor and \`compile\` refuse it.
+- A cell that does not parse is stored only if its text starts with \`export const <name>\`; otherwise there is no name to store it under.
 - A module holds one source file's worth of cells. Unchecked shell cells and trusted foreign declarations, which the checker can read, are not supported here.
 - The renderer's event decoding and \`ss.mount\` are outside the checked language.
 - Publishing these modules to ObservableHQ was not tried.`
@@ -141,16 +141,17 @@ ss_moduleCells = (module) => {
 }
 // %%
 ss_check = (module) => {
+  // one check of the module; a cell that does not parse is checked as a stand-in (ss.checkCells)
   const cells = ss_moduleCells(module);
-  const source = cells.map((c) => c.text).join("\n\n");
-  return { cells, source, result: ss.check(source) };
+  const { result } = ss.checkCells(cells.map((c) => c.text));
+  return { cells, source: cells.map((c) => c.text).join("\n\n"), result, states: ss.cellStates(result) };
 }
 // %%
 ss_context = (texts) => {
   // the compile context of a module's cells, from one (remembered) check of the whole module: which
-  // cells are generators, which are taken as Events, which the checker accepts (only those are memoised)
-  try { const source = texts.join("\n\n"); return ss.contextFromCheck(ss.check(source), source, true); }
-  catch { return ss.contextOf(texts, true, null); }
+  // cells are generators, which are taken as Events, which the checker accepts (only those run, and
+  // only those are memoised; any other cell compiles to a definition that raises the checker's messages)
+  return ss.contextFromCheck(ss.checkCells(texts).result);
 }
 // %%
 ss_source = (module) => ss_moduleCells(module).map((c) => c.text).join("\n\n")
@@ -160,7 +161,7 @@ ss_roundtrip = (module) => {
   const cells = ss_moduleCells(module);
   const ctx = ss_context(cells.map((c) => c.text));
   for (const c of cells) {
-    for (const d of ss.compileCell(c.text, true, ctx)) {
+    for (const d of ss.compileCell(c.text, true, ctx, c.key)) {
       const v = module._scope.get(d.name);
       if (!v) throw new Error(`${d.name}: no variable`);
       if (String(v._definition) !== d.definition) throw new Error(`${d.name}: the definition does not recompile to itself`);
@@ -224,11 +225,25 @@ ss_lifecycle = {
     queueMicrotask(() => {
       scheduled = false;
       ss.sweep(new Set([...runtime._variables].map((x) => x._value)));
+      ss.listenerOrderChanged();
       for (const m of touched) ss_language.settle(m).catch((e) => console.error(e));
       touched.clear();
     });
   });
-  invalidation.then(off);
+  // where a listener's cell is, for the order listeners of one events cell run in: its module's name
+  // and its place among that module's variables, which is the order the module is saved in
+  const unnamed = new WeakMap();
+  const nameOf = (m) => { for (const [n, x] of runtime.mains ?? []) if (x === m) return n; if (!unnamed.has(m)) unnamed.set(m, `~${Math.random().toString(36).slice(2, 8)}`); return unnamed.get(m); };
+  ss.setListenerOrder((values) => {
+    const want = new Set(values), at = new Map(), seen = new Map();
+    for (const v of runtime._variables) {
+      const n = (seen.get(v._module) ?? 0) + 1;
+      seen.set(v._module, n);
+      if (want.has(v._value) && !at.has(v._value)) at.set(v._value, [v._module, n]);
+    }
+    return values.map((x) => { const p = at.get(x); return p ? [nameOf(p[0]), p[1]] : null; });
+  });
+  invalidation.then(() => { off(); ss.setListenerOrder(null); });
   return "a change outside apply recompiles its module and stops listeners and events no variable holds";
 }
 // %%
@@ -249,13 +264,29 @@ ss_language = {
     throw new Error(`no SoundScript source for ${key}`);
   };
 
-  // why another cell would stop being ok, in one line: which cell, and the checker's reason
-  const breakage = (c) => {
-    const why = c.errors.map((e) => `[${e.rule}] ${e.msg}`).join("; ") || (c.status === "blocked" ? `It reads ${c.blockedBy.join(", ")}, which would not be ok.` : `It would be ${c.status}.`);
-    return `Refused: \`${c.name}\` would stop checking. ${why}`;
+  // what storing an edit does to the other cells: those ok now that would not be, and the reverse
+  const plural = (n) => `${n} cell${n === 1 ? "" : "s"}`;
+  // (breaks: ok before, rejected after; blocks: ok before, blocked after; repairs: not ok before, ok after)
+  const effectOf = (before, after) => {
+    const was = (n, f) => before.has(n) && f(before.get(n).state);
+    const breaks = [...after].filter(([n, x]) => x.state === "rejected" && was(n, (s) => s === "ok")).map(([n]) => n);
+    const blocks = [...after].filter(([n, x]) => x.state === "blocked" && was(n, (s) => s === "ok")).map(([n]) => n);
+    const repairs = [...after].filter(([n, x]) => x.state === "ok" && was(n, (s) => s !== "ok")).map(([n]) => n);
+    return { breaks, blocks, repairs };
   };
+  const sayEffect = ({ breaks, blocks, repairs }, done) => {
+    const parts = [];
+    if (breaks.length) parts.push(`${done ? "broke" : "breaks"} ${plural(breaks.length)}: ${breaks.join(", ")}`);
+    if (blocks.length) parts.push(`${done ? "blocked" : "blocks"} ${plural(blocks.length)}: ${blocks.join(", ")}`);
+    if (repairs.length) parts.push(`${done ? "repaired" : "repairs"} ${plural(repairs.length)}: ${repairs.join(", ")}`);
+    return parts.length ? `${done ? "this edit" : "applying this"} ${parts.join("; ")}` : "";
+  };
+  // the last stored edit's effect, per module and cell, shown on that cell while its text is unchanged
+  const lastEffect = new WeakMap();
 
-  // {ok, problems: [{line, rule, msg}] with lines relative to source, defs, texts}
+  // {ok (the edited cell checks), store (Shift-Enter stores it), problems: [{line, rule, msg}] with lines
+  // relative to source, effect, defs, texts, state}. Every edit is stored except one that names no cell
+  // or takes the name of another cell of the module.
   const check = (source, variables = [], cell) => {
     const module = moduleOf(variables, cell);
     const cells = ss_moduleCells(module);
@@ -265,46 +296,53 @@ ss_language = {
     if (at < 0) { texts.push(source); at = texts.length - 1; } else texts[at] = source;
     // one check of the module as edited gives the verdicts, the compile context and the cell facts
     let after = null, checkError = null;
-    try { after = ss.check(texts.join("\n\n"), tsx); } catch (e) { checkError = e; }
+    try { after = ss.checkCells(texts).result; } catch (e) { checkError = e; }
+    if (!after) return { ok: false, store: false, problems: [{ line: 1, rule: "check", msg: `${checkError.message}; a cell that does not parse is stored only when it starts with export const <name>` }] };
     let defs;
-    try { defs = ss.compileCell(source, tsx, after ? ss.contextFromCheck(after, texts.join("\n\n"), tsx) : ss.contextOf(texts, tsx, null)); }
-    catch (e) { return { ok: false, problems: [{ line: e.loc?.line ?? 1, rule: "compile", msg: e.message }] }; }
+    try { defs = ss.compileCell(source, tsx, ss.contextFromCheck(after), oldKey); }
+    catch (e) { return { ok: false, store: false, problems: [{ line: e.loc?.line ?? 1, rule: "compile", msg: e.message }] }; }
     const key = keyOf(defs.at(-1).name);
     const own = new Set([...variables, ...(oldKey ? family(module, oldKey) : [])]);
     const problems = [];
+    let store = true;
     for (const d of defs) {
       const there = module?._scope?.get(d.name);
-      if (there && !own.has(there)) problems.push({ line: 1, rule: "duplicate-cell", msg: `${d.name} is already defined in this module` });
+      if (there && !own.has(there)) { store = false; problems.push({ line: 1, rule: "duplicate-cell", msg: `${d.name} is already defined in this module, so this edit is not stored` }); }
     }
     const start = texts.slice(0, at).reduce((n, t) => n + t.split("\n").length + 1, 0);
     const end = start + source.split("\n").length;
-    let before;
-    if (!after) return { ok: false, problems: [...problems, { line: 1, rule: "check", msg: checkError.message }] };
-    try { before = ss.check(cells.map((c) => c.text).join("\n\n"), tsx); } catch { before = { cells: [] }; }
     const rel = (e) => ({ ...e, line: Math.max(1, e.line - start) });
+    const parseMsg = after.unparsed?.get(key);
+    if (parseMsg !== undefined) problems.push({ line: Number(/\((\d+):\d+\)/.exec(parseMsg)?.[1] ?? 1), rule: "parse", msg: parseMsg });
     for (const e of after.module) if (e.line > start && e.line <= end) problems.push(rel(e));
-    const mine = after.cells.find((c) => c.name === key);
+    const mine = parseMsg === undefined ? after.cells.find((c) => c.name === key) : null;
     if (mine) {
       for (const e of mine.errors) problems.push(rel(e));
       for (const u of mine.unsupported) problems.push({ ...rel(u), rule: "unsupported" });
-      if (mine.status === "blocked") problems.push({ line: 1, rule: "blocked", msg: `blocked by ${mine.blockedBy.join(", ")}` });
     }
-    const wasOk = new Set(before.cells.filter((c) => c.status === "ok").map((c) => c.name));
-    for (const c of after.cells) {
-      if (c.name === key || !wasOk.has(c.name) || c.status === "ok") continue;
-      problems.push({ line: 1, rule: "downstream", cell: c.name, msg: breakage(c) });
-    }
-    return { ok: problems.length === 0 && (!mine || mine.status === "ok"), problems, defs, key, texts, status: mine?.status ?? null, type: mine?.value ?? null };
+    const statesAfter = ss.cellStates(after);
+    let statesBefore = new Map();
+    try { statesBefore = ss.cellStates(ss.checkCells(cells.map((c) => c.text)).result); } catch {}
+    const state = statesAfter.get(key) ?? { state: "rejected", why: [], blockedBy: [] };
+    if (state.state === "blocked") problems.push({ line: 1, rule: "blocked", msg: `blocked by ${state.blockedBy.join(", ")}: it does not run until ${state.blockedBy.length > 1 ? "they are" : "that is"} ok` });
+    const effect = sayEffect(effectOf(statesBefore, statesAfter), false);
+    return { ok: problems.length === 0 && state.state === "ok", store, problems, effect, statesBefore, statesAfter, defs, key, texts, state: state.state, status: mine?.status ?? (parseMsg !== undefined ? "rejected" : null), type: mine?.value ?? null };
   };
 
   const lint = (source, variables = [], cell) => {
     const starts = [0];
     for (let i = 0; i < source.length; i++) if (source[i] === "\n") starts.push(i + 1);
-    return check(source, variables, cell).problems.map((p) => {
+    const r = check(source, variables, cell);
+    const diags = r.problems.map((p) => {
       const l = Math.min(Math.max(p.line, 1), starts.length) - 1;
       const to = l + 1 < starts.length ? starts[l + 1] - 1 : source.length;
-      return { from: starts[l], to: Math.max(to, starts[l]), severity: "error", message: p.rule === "downstream" ? p.msg : `[${p.rule}] ${p.msg}` };
+      return { from: starts[l], to: Math.max(to, starts[l]), severity: "error", message: `[${p.rule}] ${p.msg}` };
     });
+    // what applying would do to the other cells, or, once applied, what it did
+    const done = r.key ? lastEffect.get(moduleOf(variables, cell))?.get(r.key) : null;
+    const say = r.effect || (done && done.text === source ? done.msg : "");
+    if (say) diags.push({ from: 0, to: Math.min(starts[1] ? starts[1] - 1 : source.length, source.length), severity: "info", message: say });
+    return diags;
   };
 
   // Replaces the variables in old with defs; new variables go after anchor.
@@ -345,25 +383,26 @@ ss_language = {
     return v && String(v._definition) === d.definition && JSON.stringify(v._inputs.map((i) => i._name)) === JSON.stringify(d.inputs);
   });
 
-  // Applies only a cell the checker accepts; otherwise returns undefined and changes nothing. A cell
-  // whose compiled form depends on the edited one (a generator that became, or stopped being, taken
-  // as Events; a reader of a generator, which is not memoised) is compiled again too.
+  // Stores the edit whatever its verdict (not stored, returning undefined: no cell name, or another
+  // cell's name). A cell the checker does not accept compiles to a definition that raises its messages.
+  // Every other cell whose compiled form the edit changes is compiled again too: one that becomes, or
+  // stops being, accepted; a generator that became, or stopped being, taken as Events; a reader of a
+  // generator, which is not memoised.
   const applyNow = async (source, variables = [], cell) => {
     const r = check(source, variables, cell);
-    if (!r.ok) return undefined;
+    if (!r.store) return undefined;
     const module = moduleOf(variables, cell);
     const oldKey = ownKey(variables);
     // a Notebook Kit cell converted to SoundScript also takes its shadow variables (display) with it
     const old = new Set([...variables.flatMap((v) => [v, ...(v._shadow?.values() ?? [])]), ...(oldKey ? family(module, oldKey) : [])]);
     const order = [...runtime._variables];
     const anchor = [...old].sort((a, b) => order.indexOf(a) - order.indexOf(b)).at(-1) ?? cell?.variables?.at(-1);
-    // every other cell whose compiled form the edit changes is compiled before anything is defined, so
-    // a cell that fails to compile refuses the edit and leaves the module as it was
+    // every other cell whose compiled form the edit changes is compiled before anything is defined
     const ctx = ss_context(r.texts);
     const plan = [];
     for (const c of ss_moduleCells(module)) {
       if (c.key === r.key || c.key === oldKey) continue;
-      const defs = ss.compileCell(c.text, tsx, ctx);
+      const defs = ss.compileCell(c.text, tsx, ctx, c.key);
       const fam = family(module, c.key);
       if (!same(fam, defs)) plan.push({ defs, fam });
     }
@@ -385,7 +424,11 @@ ss_language = {
     // a reused Kit head no longer has shadows; theirs were deleted with the rest of old
     for (const v of next) v._shadow?.clear?.();
     variables.splice(0, variables.length, ...next);
-    return decompile(next);
+    const stored = await decompile(next);
+    const msg = sayEffect(effectOf(r.statesBefore, r.statesAfter), true);
+    if (!lastEffect.has(module)) lastEffect.set(module, new Map());
+    lastEffect.get(module).set(r.key, { text: stored, msg });
+    return stored;
   };
   // test hook: set afterEditDefine to a module, and an apply there fails after defining the edited cell
   const faults = { afterEditDefine: null };
@@ -396,7 +439,7 @@ ss_language = {
     let n = 0;
     for (const c of cells) {
       if (c.key === skip) continue;
-      const defs = ss.compileCell(c.text, tsx, ctx);
+      const defs = ss.compileCell(c.text, tsx, ctx, c.key);
       const fam = family(module, c.key);
       if (!same(fam, defs)) { await define(module, defs, new Set(fam), fam.at(-1)); n++; }
     }
@@ -523,7 +566,7 @@ ss_cardHub = {
     });
     const hub = {
       off,
-      state: () => state ?? (state = { cells: ss_moduleCells(module), result: ss.check(ss_source(module)) }),
+      state: () => state ?? (state = ss_check(module)),
       subscribe: (f) => { subs.add(f); return () => subs.delete(f); },
     };
     hubs.set(module, hub);
@@ -537,10 +580,10 @@ ss_card = (module, key, invalidation) => {
   const code = htl.html`<pre class="lite-code">`, value = htl.html`<span class="lite-card-value">`;
   const meta = htl.html`<div class="lite-card-meta">`, msgs = htl.html`<div class="lite-card-msgs">`;
   const root = htl.html`<div class="lite-card" data-cell=${key}>${code}${meta}${msgs}</div>`;
-  let text = null, variable = null, cancel = null, error;
+  let text = null, variable = null, cancel = null, error, notRunning = false;
   const showValue = () => {
-    value.textContent = error !== undefined ? `throws: ${error?.message ?? error}` : variable?._value === undefined ? "not computed yet" : ss_fmt(variable._value);
-    value.classList.toggle("lite-throws", error !== undefined);
+    value.textContent = notRunning ? "does not run" : error !== undefined ? `throws: ${error?.message ?? error}` : variable?._value === undefined ? "not computed yet" : ss_fmt(variable._value);
+    value.classList.toggle("lite-throws", !notRunning && error !== undefined);
   };
   const watch = (v) => {
     cancel?.();
@@ -551,18 +594,21 @@ ss_card = (module, key, invalidation) => {
     v._promise?.then(() => {}, (e) => { if (!ss_isStale(e) && variable === v) { error = e; showValue(); } });
   };
   const draw = () => {
-    const { cells, result } = hub.state();
+    const { cells, result, states } = hub.state();
     const c = cells.find((x) => x.key === key);
     root.hidden = !c;
     if (!c) return;
     if (c.text !== text) { text = c.text; code.replaceChildren(...ss_highlight(text)); }
     const r = result.cells.find((x) => x.name === key);
-    const status = r?.status ?? "blocked";
+    // ok, rejected (with the checker's messages) or blocked (by the cells it takes that are not ok)
+    const st = states.get(key) ?? { state: "rejected", why: ["[check] not in the module's check"], blockedBy: [] };
+    const status = st.state;
     root.className = `lite-card lite-${status}`;
-    meta.replaceChildren(ss_badge(status), " ", htl.html`<code class="lite-card-type">${r?.value ?? ""}</code>`, " ", value);
-    const problems = r ? [...r.errors, ...r.unsupported.map((u) => ({ ...u, rule: "unsupported" }))] : [];
-    if (status === "blocked" && r?.blockedBy?.length) problems.push({ rule: "blocked", msg: `it reads ${r.blockedBy.join(", ")}, which is not ok` });
+    meta.replaceChildren(ss_badge(status, status === "blocked" ? `blocked by ${st.blockedBy.join(", ")}` : status), " ", htl.html`<code class="lite-card-type">${r?.value ?? ""}</code>`, " ", value);
+    const problems = status === "rejected" ? st.why.map((w) => { const m = /^\[([^\]]+)\] ([\s\S]*)$/.exec(w); return m ? { rule: m[1], msg: m[2] } : { rule: "rejected", msg: w }; })
+      : status === "blocked" ? [{ rule: "blocked", msg: `it takes ${st.blockedBy.join(", ")}, which ${st.blockedBy.length > 1 ? "are" : "is"} not ok, so it does not run` }] : [];
     msgs.replaceChildren(...problems.map((e) => htl.html`<div class="lite-err"><b>[${e.rule}]</b> ${e.msg}</div>`));
+    notRunning = status !== "ok";
     const v = module._scope.get(key) ?? c.variable;
     if (v !== variable) watch(v);
     showValue();
@@ -680,34 +726,46 @@ test_ss_unchanged_source_checks = {
   return `bump: ok, type ${r.type}`;
 }
 // %%
-test_ss_wrong_type_is_refused = {
+test_ss_wrong_type_is_stored_and_rejected = {
   ss_tests_on;
-  const v = ss_module._scope.get("bump");
-  const before = String(v._definition);
-  const original = await ss_language.decompile([v]);
-  const source = original.replace("tally: Ref<number>", "tally: Ref<string>");
-  if (source === original) throw new Error("bump has no tally: Ref<number> parameter to change");
-  const r = ss_language.check(source, [v]);
-  if (r.ok || !r.problems.some((p) => p.rule === "inject-ref")) throw new Error(`check: ${JSON.stringify(r.problems)}`);
-  const lint = ss_language.lint(source, [v]);
-  if (!lint.length || lint[0].severity !== "error") throw new Error(`lint: ${JSON.stringify(lint)}`);
-  const applied = await ss_language.apply(source, [v]);
-  if (applied !== undefined || String(v._definition) !== before) throw new Error("a refused edit changed the definition");
-  return lint.map((d) => d.message).join("; ");
+  // an edit the checker rejects is stored; the cell then raises the checker's message instead of running
+  let end;
+  const done = new Promise((r) => (end = r));
+  try {
+    const inst = await ss_instance(ss_module, done);
+    const original = await ss_language.decompile([inst._scope.get("bump")]);
+    const source = original.replace("tally: Ref<number>", "tally: Ref<string>");
+    if (source === original) throw new Error("bump has no tally: Ref<number> parameter to change");
+    const r = ss_language.check(source, [inst._scope.get("bump")]);
+    if (r.ok || !r.store || !r.problems.some((p) => p.rule === "inject-ref")) throw new Error(`check: ${JSON.stringify(r.problems)}`);
+    const lint = ss_language.lint(source, [inst._scope.get("bump")]);
+    if (!lint.some((d) => d.severity === "error")) throw new Error(`lint: ${JSON.stringify(lint)}`);
+    const stored = await ss_language.apply(source, [inst._scope.get("bump")]);
+    if (stored !== source) throw new Error(`stored ${JSON.stringify(stored)}`);
+    let threw = null;
+    try { await inst.value("bump"); } catch (e) { threw = e; }
+    if (!/^bump does not check: \[inject-ref\]/.test(threw?.message ?? "")) throw new Error(`bump gave ${threw?.message ?? "a value"}`);
+    await ss_language.apply(original, [inst._scope.get("bump")]);
+    if (typeof (await inst.value("bump")) !== "function") throw new Error("bump did not come back after the repair");
+    return `stored; bump raises "${threw.message.slice(0, 80)}"; repaired, it is an action again`;
+  } finally { end(); }
 }
 // %%
-test_ss_downstream_break_is_refused = {
+test_ss_breaking_edit_names_its_cells = {
   ss_tests_on;
+  // before an edit is stored, the editor says which cells it would break
   const v = ss_module._scope.get("viewof tally");
   const original = await ss_language.decompile([v]);
   const source = original.replace("RefCell<number> => ref(0)", 'RefCell<string> => ref("0")');
   if (source === original) throw new Error("tally is not RefCell<number> => ref(0)");
   const r = ss_language.check(source, [v]);
-  const names = r.problems.filter((p) => p.rule === "downstream").map((p) => p.cell);
-  if (r.ok || JSON.stringify(names) !== JSON.stringify(["bump", "reset", "doubled"])) throw new Error(JSON.stringify(r.problems));
-  const plain = r.problems.find((p) => p.cell === "doubled").msg;
-  if (!plain.startsWith("Refused: `doubled` would stop checking.") || !plain.includes("string is not assignable to number")) throw new Error(`not in plain words: ${plain}`);
-  return r.problems.map((p) => p.msg).join("; ");
+  // bump, reset and doubled take tally; a cell added later that reads doubled is blocked
+  if (!r.store || !/^applying this breaks 3 cells: bump, reset, doubled(; blocks \d+ cells?: [\w, ]+)?$/.test(r.effect)) throw new Error(`effect ${JSON.stringify(r.effect)}`);
+  const d = r.statesAfter.get("doubled");
+  if (d.state !== "rejected" || !d.why.some((w) => w.includes("string is not assignable to number"))) throw new Error(`doubled ${JSON.stringify(d)}`);
+  const back = ss_language.check(original, [v]);
+  if (back.effect !== "") throw new Error(`the unchanged source reports ${JSON.stringify(back.effect)}`);
+  return r.effect;
 }
 // %%
 test_ss_copy_keeps_its_name = {
@@ -746,7 +804,7 @@ test_ss_failed_apply_changes_nothing = {
     try { await ss_language.apply(source, [v]); } catch (e) { threw = e; } finally { ss_language.faults.afterEditDefine = null; }
     if (!threw) throw new Error("the injected fault did not reach apply's caller");
     if (snap(inst) !== before) throw new Error("a failed apply left the module changed");
-    return `refused with "${threw.message}"; the module is as it was`;
+    return `the injected fault "${threw.message}" left the module as it was`;
   } finally { end(); }
 }
 // %%
@@ -761,7 +819,7 @@ test_ss_edits_do_not_grow_the_memo = {
     const edit = async (k) => {
       const v = inst._scope.get("doubled");
       const source = (await ss_language.decompile([v])).replace(/tally \* \d+/, `tally * ${k}`);
-      if (await ss_language.apply(source, [v]) === undefined) throw new Error(`edit ${k} was refused`);
+      if (await ss_language.apply(source, [v]) === undefined) throw new Error(`edit ${k} was not stored`);
       if ((await inst.value("doubled")) !== (await inst.value("tally")) * k) throw new Error(`doubled is not tally * ${k}`);
       await new Promise((r) => queueMicrotask(r));
     };
@@ -784,7 +842,7 @@ test_ss_instance_keeps_user_ids = {
     const a = await ss_instance(ss_module, done);
     const anchor = a._scope.get("doubled");
     const made = await ss_language.apply('export const tagged = () => ({ id: "anon", n: 1 });', [], { module: { module: a }, variables: [anchor] });
-    if (made === undefined) throw new Error("tagged was refused");
+    if (made === undefined) throw new Error("tagged was not stored");
     const b = await ss_instance(a, done);
     const value = await b.value("tagged");
     const ida = ss.idOf(String(a._scope.get("tagged")._definition)), idb = ss.idOf(String(b._scope.get("tagged")._definition));
@@ -797,7 +855,7 @@ test_ss_instance_keeps_user_ids = {
 // %%
 ss_test_results = {
   ss_tests_on;
-  // a long value (a refusal message) is cut to one line, so the state column stays in view
+  // a long value (an error message) is cut to one line, so the state column stays in view
   return htl.html`<div class="ss-tests">${tests({ filter: (t) => t.name.includes("@tomlarkworthy/soundscript#") })}</div>`;
 }
 // %%

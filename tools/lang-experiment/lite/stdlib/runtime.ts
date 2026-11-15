@@ -5,27 +5,64 @@ import { h } from "../jsx/h.ts";
 import { create, patch } from "../jsx/render.ts";
 import { lowerJsx } from "../jsx/lower.ts";
 import { erase } from "../browser/erase.ts";
-import { on, events, listen, nameAction, running, pulling, release, sweep, generatorish, cellsOf, guard as guardWith } from "../browser/cells.ts";
+import { on, events, listen, nameAction, running, pulling, release, sweep, generatorish, cellsOf, guard as guardWith, setListenerOrder, listenerOrderChanged } from "../browser/cells.ts";
+export { setListenerOrder, listenerOrderChanged };
 export { cellsOf };
 import { island, type IslandSpec } from "../island.ts";
 import { pagePool, runHere, type Pool } from "../browser/workers.ts";
-export { compileCell, compileModule, contextOf, contextFromCheck, acceptedOf, decompileVariable, decompileModule, langOf, cellOfVariable, splitCells, handleName } from "../toolchain/ss-toolchain.ts";
+export { compileCell, compileModule, contextOf, contextFromCheck, acceptedOf, cellStates, declaredName, decompileVariable, decompileModule, langOf, cellOfVariable, splitCells, handleName } from "../toolchain/ss-toolchain.ts";
+import { declaredName } from "../toolchain/ss-toolchain.ts";
+import { parse } from "../parse.ts";
 import { checkSources } from "../core.ts";
 export { checkSources };
 // checkSources for SoundScript cells, remembered for the last 16 sources. The editor asks about the
 // same module source several times per keystroke (lint, the cells an edit would break, the compile
 // context); a result is never written to, so one is shared.
 const checks = new Map<string, ReturnType<typeof checkSources>>();
+// how many module checks have run (a remembered result, or a source that does not parse, is not one)
+let checked = 0;
+export const checksRun = () => checked;
 export function check(source: string, tsx = true): ReturnType<typeof checkSources> {
   const key = (tsx ? "x" : "s") + source;
   let r = checks.get(key);
   if (r) { checks.delete(key); checks.set(key, r); return r; }
   r = checkSources({ cells: source, tsx });
+  checked++;
   checks.set(key, r);
   if (checks.size > 16) checks.delete(checks.keys().next().value!);
   return r;
 }
 
+// A module's cells checked together when some of them do not parse: each such cell is checked as a
+// stand-in of the same name and line count whose value has no type, so a cell that takes it is blocked,
+// and the stand-in text does not depend on what was typed, so a keystroke there reuses the check.
+// result.unparsed maps each such cell's name to the parser's message; source is the text checked.
+export function checkCells(texts: string[], tsx = true): { result: ReturnType<typeof checkSources> & { unparsed?: Map<string, string> }; source: string } {
+  const source = texts.join("\n\n");
+  try { return { result: check(source, tsx), source }; } catch (whole) {
+    const unparsed = new Map<string, string>();
+    const stood = texts.map((t) => {
+      try { parse(t, { jsx: tsx }); return t; } catch (e) {
+        const name = declaredName(t);
+        if (!name) return "";
+        unparsed.set(name, String((e as Error).message));
+        return `export const ${name} = () => $ss$unparsed;` + "\n".repeat(t.split("\n").length - 1);
+      }
+    }).filter((t) => t !== "");
+    if (!unparsed.size) throw whole;
+    const checked = stood.join("\n\n");
+    // the remembered result is shared, so the parse messages go on a copy
+    const base = check(checked, tsx);
+    const result = { ...base, ok: false };
+    Object.defineProperty(result, "facts", { value: base.facts, enumerable: false });
+    Object.defineProperty(result, "unparsed", { value: unparsed, enumerable: false });
+    return { result, source: checked };
+  }
+}
+// The body of a cell the checker did not accept: it raises the checker's messages and runs nothing else.
+export function rejected(name: string, why: string[]): never {
+  throw new Error(`${name} does not check: ${why.join("; ")}`);
+}
 
 export const { ref, action, mut, freeze, borrow, snapshot, equals, refValues } = P;
 export { h, on, create, patch, pagePool, running, pulling, release, sweep };

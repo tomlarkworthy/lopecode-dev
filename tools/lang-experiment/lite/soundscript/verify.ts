@@ -37,7 +37,7 @@ mkdirSync(SCRATCH, { recursive: true });
 let passes = 0, fails = 0;
 const report = (ok: boolean, what: string) => { console.log(`${ok ? "pass" : "FAIL"} ${what}`); ok ? passes++ : fails++; };
 
-const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_refused", "test_ss_downstream_break_is_refused", "test_ss_copy_keeps_its_name", "test_ss_failed_apply_changes_nothing", "test_ss_edits_do_not_grow_the_memo", "test_ss_instance_keeps_user_ids", "test_ss_ref_handle", "ss_registration"];
+const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_stored_and_rejected", "test_ss_breaking_edit_names_its_cells", "test_ss_copy_keeps_its_name", "test_ss_failed_apply_changes_nothing", "test_ss_edits_do_not_grow_the_memo", "test_ss_instance_keeps_user_ids", "test_ss_ref_handle", "ss_registration"];
 const TUTORIAL_TESTS = ["test_ss_roundtrip", "test_ss_module_checks", "test_ss_counter", "test_half",
   "test_examples_check_as_expected", "test_compile_pool_matches_main", "test_compile_refuses_unchecked", "test_breakout_listener", "test_breakout_memo", "benchmark"];
 
@@ -152,7 +152,10 @@ const read = (page: Page, name: string) => page.evaluate(async (name) => {
   return out;
 }, name);
 
+// the lesson cells that are rejected on purpose (section 3, section 8): each raises its checker message
+const REJECTED_LESSON = ["leak", "late", "bad_attr_type", "bad_unknown_attr", "bad_unknown_element", "bad_handler_not_action", "bad_handler_wrong_args", "bad_component_props", "bad_component_missing_prop", "bad_component_not_elem", "bad_mut_in_jsx", "bad_child_object"];
 async function testsPass(page: Page, label: string, name: string, tests: string[], expectErrors: string[] = []) {
+  if (name === TUTORIAL) expectErrors = [...expectErrors, ...REJECTED_LESSON];
   let vars = null as Awaited<ReturnType<typeof read>>;
   for (let i = 0; i < 120; i++) {
     vars = await read(page, name);
@@ -163,6 +166,10 @@ async function testsPass(page: Page, label: string, name: string, tests: string[
   const errorCells = Object.entries(vars).filter(([n, v]) => v.state === "error" && !expectErrors.includes(n));
   report(errorCells.length === 0, `${label}: ${name}: ${Object.keys(vars).length} variables, ${errorCells.length} in error${errorCells.map(([n, v]) => `\n    ${n}: ${v.value}`).join("")}`);
   for (const t of tests) report(vars[t]?.state === "ok", `${label}: ${name}#${t}: ${(vars[t]?.value ?? vars[t]?.state ?? "missing").slice(0, 200)}`);
+  if (name === TUTORIAL) {
+    const ran = REJECTED_LESSON.filter((n) => !(vars![n]?.state === "error" && vars![n].value!.startsWith(`${n} does not check: [`)));
+    report(ran.length === 0, `${label}: the ${REJECTED_LESSON.length} lesson cells rejected on purpose do not run; each raises its checker message${ran.length ? `; not so: ${ran.map((n) => `${n} ${vars![n]?.state} ${vars![n]?.value}`).join(", ")}` : ""}`);
+  }
 }
 async function hookPass(page: Page, label: string) {
   const hook = await page.evaluate(async () => {
@@ -254,13 +261,17 @@ async function speed() {
     const lang = core._scope.get("ss_language")._value;
     const v = tut._scope.get("width");
     const src = await lang.decompile([v]);
+    const ss = core._scope.get("ss")._value;
     const t: number[] = [];
-    for (let i = 0; i < 30; i++) { const a = performance.now(); lang.check(src.replace(/\d+/, String(600 + i)), [v]); t.push(performance.now() - a); }
+    lang.check(src, [v]);
+    const c0 = ss.checksRun();
+    for (let i = 0; i < 30; i++) { const a = performance.now(); lang.lint(src.replace(/\d+/, String(600 + i)), [v]); t.push(performance.now() - a); }
+    const checks = ss.checksRun() - c0;
     t.sort((x, y) => x - y);
     const cells = core._scope.get("ss_moduleCells")._value(tut).length;
-    return { cells, median: t[15], max: t[29] };
+    return { cells, median: t[15], max: t[29], checks };
   });
-  report(ks.max < BUDGET.keystrokeCheckMs, `speed: one keystroke's check of width against the ${ks.cells}-cell tutorial module: median ${ks.median.toFixed(1)} ms, max ${ks.max.toFixed(1)} ms of 30 (budget ${BUDGET.keystrokeCheckMs} for the max)`);
+  report(ks.max < BUDGET.keystrokeCheckMs && ks.checks === 30, `speed: one keystroke's lint of width against the ${ks.cells}-cell tutorial module: median ${ks.median.toFixed(1)} ms, max ${ks.max.toFixed(1)} ms of 30 (budget ${BUDGET.keystrokeCheckMs} for the max); ${ks.checks} module checks for 30 keystrokes (budget 30)`);
   // the Mandelbrot timing the tutorial shows (its benchmark cell, measured during boot); Breakout is timed after it, so the two do not share the main thread
   await page.waitForFunction(() => (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-tutorial")._scope.get("benchmark")?._value, null, { timeout: 60000 }).catch(() => {});
   const b = JSON.parse((await read(page, TUTORIAL))?.benchmark?.value ?? "null");
@@ -306,9 +317,10 @@ async function counterClick(page: Page, label: string) {
 }
 
 // The editor on one cell: typed source shown, an unchanged Shift-Enter save, then a typed `from` -> `to`
-// edit that must show a diagnostic naming `rule` and be refused.
+// edit that must show a diagnostic naming `rule` and be stored, the cell raising the checker's message
+// instead of running; then the original typed back, which repairs it.
 async function editorOn(page: Page, label: string, module: string, cell: string, from: string, to: string, rule: string) {
-  const ed = await page.evaluate(async ([module, cell, from, to]) => {
+  const ed = await page.evaluate(async ([module, cell, from, to, rule]) => {
     const rt = (window as any).__ojs_runtime;
     const find = (name: string, mod?: any) => [...rt._variables].find((v: any) => v._name === name && (!mod || v._module === mod));
     const mod = rt.mains.get(module);
@@ -342,14 +354,23 @@ async function editorOn(page: Page, label: string, module: string, cell: string,
         codemirror.forEachDiagnostic?.(view.state, (d: any) => ds.push(d.message));
         return ds.length && host.querySelector(".cm-lintRange-error, .cm-lint-marker-error") ? ds : null;
       }, "a diagnostic in the editor");
-      await new Promise((r) => setTimeout(r, 1000));
-      out.refused = [inc._definition === fn1 && String(inc._definition) === text0, view.state.doc.toString().includes(to)];
-      (window as any).__restore = () => view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: want } });
+      await until(() => inc._definition !== fn1, `${cell} stored by the rejected save`);
+      let raised = "";
+      try { await mod.value(cell); } catch (e) { raised = String((e as Error)?.message ?? e); }
+      out.stored = [ss.decompileVariable(String(inc._definition)) === want.replace(from, to), raised.startsWith(`${cell} does not check: [${rule}]`), view.state.doc.toString().includes(to)];
+      out.raised = raised;
+      const fn2 = inc._definition;
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: want } });
+      shiftEnter();
+      await until(() => inc._definition !== fn2, `${cell} repaired`);
+      let back = null;
+      try { back = await mod.value(cell); } catch (e) { back = e; }
+      out.repaired = [String(inc._definition) === text0, typeof back === "function"];
     } catch (e) {
       out.error = String((e as Error)?.message ?? e);
     }
     return out;
-  }, [module, cell, from, to]);
+  }, [module, cell, from, to, rule]);
   if (ed.error) report(false, `${label}: editor on ${cell}: ${ed.error}`);
   if (shot) {
     await page.locator(".cm-editor").first().scrollIntoViewIfNeeded().catch(() => {});
@@ -357,11 +378,11 @@ async function editorOn(page: Page, label: string, module: string, cell: string,
     await page.waitForTimeout(500);
     await page.screenshot({ path: shot });
   }
-  await page.evaluate(() => (window as any).__restore?.());
   report(ed.showsTyped === true, `${label}: ${cell} opens as typed SoundScript source: ${JSON.stringify(ed.shown)}`);
   report(Array.isArray(ed.unchanged) && ed.unchanged.every(Boolean), `${label}: unchanged save redefines ${cell} with the same text and pid, one variable (${ed.unchanged})`);
   report(Array.isArray(ed.diagnostics) && ed.diagnostics.some((d: string) => d.includes(`[${rule}]`)), `${label}: ${to} shows a diagnostic: ${JSON.stringify(ed.diagnostics)}`);
-  report(Array.isArray(ed.refused) && ed.refused.every(Boolean), `${label}: the refused save keeps ${cell}'s definition and the typed text (${ed.refused})`);
+  report(Array.isArray(ed.stored) && ed.stored.every(Boolean), `${label}: the rejected save is stored as typed and ${cell} raises the checker's message (${ed.stored}): ${JSON.stringify(ed.raised)}`);
+  report(Array.isArray(ed.repaired) && ed.repaired.every(Boolean), `${label}: typing the original back repairs ${cell}: the same compiled text, a value again (${ed.repaired})`);
 }
 
 // A new cell through the editor's compile_and_update, placed after `anchor`.
@@ -446,13 +467,14 @@ async function openEditor(page: Page, module: string, cell: string) {
   const tag = await tagEditor(page, module, cell);
   if (!tag) return null;
   const host = page.locator(`[data-verify="${tag}"]`);
-  await host.locator(".hotbar").first().click();
+  // a saved file keeps an editor open if it was open when saved; the hotbar would close it
+  if (!(await host.locator(".cm-editor").count())) await host.locator(".hotbar").first().click();
   await host.locator(".cm-editor").first().waitFor({ timeout: 10000 });
   await page.waitForFunction((t) => (document.querySelector(`[data-verify="${t}"] .cm-content`)?.textContent ?? "").trim().length > 0, tag, { timeout: 10000 });
   return host;
 }
 const editorText = (host: any) => host.locator(".cm-content").first().evaluate((el: any) => (window as any).__ojs_runtime && [...(window as any).__ojs_runtime._variables].find((v: any) => v._name === "EditorView")._value.findFromDOM(el.closest(".cm-editor")).state.doc.toString());
-async function typeInto(page: Page, host: any, text: string) {
+async function typeInto(page: Page, host: any, text: string, apply = true) {
   // keys go to whatever has focus, and Enter on a focused link navigates, so the editor must hold focus first
   const content = host.locator(".cm-content").first();
   await page.evaluate(() => {
@@ -494,7 +516,7 @@ async function typeInto(page: Page, host: any, text: string) {
   }
   await page.keyboard.press(`${MOD}+KeyA`);
   await page.keyboard.insertText(text);
-  await page.keyboard.press("Shift+Enter");
+  if (apply) await page.keyboard.press("Shift+Enter");
 }
 // Completion in the editor, with real key events: a SoundScript cell completes from the checker's
 // types, an ordinary cell from runtime values as before.
@@ -645,17 +667,14 @@ async function uiPaths(page: Page, saved: string) {
   report(!!tallyText && tallyText.includes("export const tally = (): RefCell<number> => ref(0);"), `ui: clicking tally's hotbar opens its ref source: ${JSON.stringify(tallyText)}`);
 
   await tab(TUTORIAL);
-  // keyboard edit that is refused, then one that is applied
-  const w0 = await defOf(page, TUTORIAL, "width");
+  // a keyboard edit that breaks other cells is stored; then one that repairs them
   const width = await openEditor(page, TUTORIAL, "width");
   if (!width) { report(false, "ui: no editor for width"); return; }
   await typeInto(page, width, 'export const width = () => "640";');
-  // CodeMirror draws only the lines in view, so the editor is brought into view before its marks are read
-  await width.scrollIntoViewIfNeeded();
-  await width.locator(".cm-lintRange-error").first().waitFor({ state: "attached", timeout: 10000 }).catch(() => {});
-  const diag = await width.locator(".cm-lintRange-error").count();
-  const typed = await editorText(width);
-  report((await defOf(page, TUTORIAL, "width")) === w0 && diag > 0, `ui: a typed width = "640" plus Shift-Enter is refused with a diagnostic (${diag} marks), width unchanged${diag ? "" : `; editor holds ${JSON.stringify(typed)}`}`);
+  await until(page, async () => (await valueOf(page, TUTORIAL, "width")) === "640");
+  const broke = await until(page, async () => (await diagsOf(width)).some((d: string) => d.startsWith("this edit broke")));
+  const areaNow = await valueOf(page, TUTORIAL, "area");
+  report(broke && (await valueOf(page, TUTORIAL, "width")) === "640" && /^THREW area does not check: \[inject-type\]/.test(String(areaNow)), `ui: a typed width = "640" plus Shift-Enter is stored; the editor says what it broke, and area raises its message: ${JSON.stringify(await diagsOf(width))}, area ${JSON.stringify(areaNow)}`);
   await typeInto(page, width, "export const width = () => 600;");
   await page.waitForFunction(async () => true);
   for (let i = 0; i < 50 && (await valueOf(page, TUTORIAL, "width")) !== 600; i++) await page.waitForTimeout(100);
@@ -721,6 +740,142 @@ async function uiPaths(page: Page, saved: string) {
   await page.locator(".lp2-menu button.lp2-menu-item", { hasText: "Save in place" }).first().click();
   for (let i = 0; i < 100 && !existsSync(saved); i++) await page.waitForTimeout(200);
   report(existsSync(saved) && readFileSync(saved, "utf8").length > 1e6, `ui: the menu's Save in place wrote ${existsSync(saved) ? readFileSync(saved, "utf8").length : 0} bytes`);
+}
+// A new cell by real keys: the add button on anchor's hotbar, then typed text and Shift-Enter.
+async function addByKeys(page: Page, module: string, anchor: string, text: string, tagName: string) {
+  const t = await tagEditor(page, module, anchor);
+  if (!t) return null;
+  await page.locator(`[data-verify="${t}"] .add-cell-btn`).first().click();
+  await page.waitForFunction(() => [...document.querySelectorAll(".cm-editor")].some((e) => (e.querySelector(".cm-content")?.textContent ?? "").trim() === "{}"), null, { timeout: 15000 }).catch(() => {});
+  const ok = await page.evaluate((tagName) => {
+    const host = [...document.querySelectorAll(".cm-editor")].filter((e) => (e.querySelector(".cm-content")?.textContent ?? "").trim() === "{}").at(-1);
+    if (!host) return false;
+    host.setAttribute("data-verify", tagName);
+    return true;
+  }, tagName);
+  if (!ok) return null;
+  const host = page.locator(`[data-verify="${tagName}"]`);
+  await typeInto(page, host, text);
+  // the stored cell gets an editor of its own; that one is returned
+  const name = /export const (\w+)/.exec(text)![1];
+  await until(page, async () => !!(await defOf(page, module, name)));
+  return openEditor(page, module, name);
+}
+// A rejected cell never runs: SNEAK's body counts its runs on globalThis, which the checker rejects, so
+// the count stays absent. Checked at the edit, in ss_instance, after an exporter-3 export reopened, and
+// after Save in place reopened. An unparsable cell is stored by keys too, shows the parser's message,
+// survives both, and is repaired by keys in the reopened file.
+const SNEAK = "export const sneak = (width: number) => {\n  (globalThis as any).__ssSneak = ((globalThis as any).__ssSneak ?? 0) + 1;\n  return width;\n};";
+const BROKEN = "export const broken = (width: number) => width +;";
+async function neverRuns(page: Page, label: string) {
+  return page.evaluate(async ([t, c, sneak, broken]) => {
+    const rt = (window as any).__ojs_runtime, mod = rt.mains.get(t), core = rt.mains.get(c);
+    const ss = core._scope.get("ss")._value;
+    const raised = async (n: string) => { try { await mod.value(n); return "a value"; } catch (e) { return String((e as Error)?.message ?? e); } };
+    const text = (n: string) => { const v = mod._scope.get(n); return v ? ss.decompileVariable(String(v._definition)) : null; };
+    const st = (await core.value("ss_check"))(mod).states;
+    let rt0: any;
+    try { rt0 = (await core.value("ss_roundtrip"))(mod); } catch (e) { rt0 = String((e as Error).message); }
+    return { sneakRuns: (globalThis as any).__ssSneak ?? 0, sneak: await raised("sneak"), broken: await raised("broken"), sneakText: text("sneak") === sneak, brokenText: text("broken") === broken,
+      states: [st.get("sneak")?.state, st.get("broken")?.state], roundtrip: rt0 };
+  }, [TUTORIAL, CORE, SNEAK, BROKEN]).then((r) => {
+    report(r.sneakRuns === 0 && /^sneak does not check: \[/.test(r.sneak) && /^broken does not check: \[parse\]/.test(r.broken) && r.sneakText && r.brokenText && r.states.join() === "rejected,rejected" && typeof r.roundtrip === "number",
+      `${label}: sneak's body ran ${r.sneakRuns} times; sneak raises ${JSON.stringify(r.sneak.slice(0, 90))}; broken raises ${JSON.stringify(r.broken.slice(0, 90))}; both decompile as typed (${r.sneakText},${r.brokenText}); states ${r.states}; round trip ${r.roundtrip}`);
+    return r;
+  });
+}
+async function brokenState(savedTo: string) {
+  rmSync(savedTo, { force: true });
+  const P = await open(file, savedTo);
+  const page = P.page;
+  await page.waitForFunction(([c, t]: string[]) => { const rt = (window as any).__ojs_runtime; return rt?.mains?.get(t)?._scope.get("half")?._value !== undefined && rt.mains.get(c)?._scope.get("ss_language")?._value; }, [CORE, TUTORIAL], { timeout: 60000 });
+  const sneak = await addByKeys(page, TUTORIAL, "half", SNEAK, "sneak");
+  if (!sneak) { report(false, "broken state: no add button on half"); await page.close(); return; }
+  await until(page, async () => (await diagsOf(sneak).catch(() => [])).length > 0);
+  const broken = await addByKeys(page, TUTORIAL, "half", BROKEN, "broken");
+  if (!broken) { report(false, "broken state: no second add"); await page.close(); return; }
+  await until(page, async () => (await diagsOf(broken).catch(() => [])).some((d: string) => d.startsWith("[parse]")));
+  const bd = await diagsOf(broken);
+  report(bd.some((d: string) => d.startsWith("[parse]")) && !!(await defOf(page, TUTORIAL, "broken")), `broken state: an unparsable cell typed with the add button is stored and its editor shows the parser's message: ${JSON.stringify(bd)}`);
+  const sd = await diagsOf(sneak);
+  report(sd.some((d: string) => d.startsWith("[")), `broken state: the sneak cell's editor shows the checker's message: ${JSON.stringify(sd)}`);
+  await neverRuns(page, "broken state: at the edit");
+  // a copy of the module made by ss_instance: the rejected body does not run there either
+  const inst = await page.evaluate(async ([t, c]) => {
+    const rt = (window as any).__ojs_runtime, mod = rt.mains.get(t), core = rt.mains.get(c);
+    let end: () => void = () => {};
+    const done = new Promise<void>((r) => (end = r));
+    const copy = await (await core.value("ss_instance"))(mod, done);
+    let sneak = "a value", half = null;
+    try { await copy.value("sneak"); } catch (e) { sneak = String((e as Error).message); }
+    half = await copy.value("half");
+    end();
+    return { sneak, half, runs: (globalThis as any).__ssSneak ?? 0 };
+  }, [TUTORIAL, CORE]);
+  report(inst.runs === 0 && /^sneak does not check/.test(inst.sneak) && inst.half === 128000, `broken state: in ss_instance's copy sneak raises and its body ran ${inst.runs} times; half there is ${inst.half}`);
+  // exporter-3: export, reopen
+  const xPath = join(SCRATCH, "export-broken.html");
+  writeFileSync(xPath, await exportPage(page));
+  const X = await open(xPath);
+  await X.page.waitForFunction((t: string) => (window as any).__ojs_runtime?.mains?.get(t)?._scope.get("half")?._value !== undefined, TUTORIAL, { timeout: 60000 });
+  await neverRuns(X.page, "broken state: exporter-3 export reopened");
+  await X.page.close();
+  // Save in place through the lopepage menu, reopen, repair broken by keys
+  await page.locator('button[title="Menu"]').first().click();
+  await page.locator(".lp2-menu button.lp2-menu-item", { hasText: "Save in place" }).first().click();
+  for (let i = 0; i < 100 && !existsSync(savedTo); i++) await page.waitForTimeout(200);
+  await page.close();
+  if (!existsSync(savedTo)) { report(false, "broken state: Save in place wrote nothing"); return; }
+  const S = await open(savedTo);
+  await S.page.waitForFunction((t: string) => (window as any).__ojs_runtime?.mains?.get(t)?._scope.get("half")?._value !== undefined, TUTORIAL, { timeout: 60000 });
+  await neverRuns(S.page, "broken state: Save in place reopened");
+  const ed = await openEditor(S.page, TUTORIAL, "broken");
+  if (!ed) report(false, "broken state: no editor for broken after reopening");
+  else {
+    const shown = await editorText(ed);
+    await typeInto(S.page, ed, "export const broken = (width: number) => width + 1;");
+    await until(S.page, async () => (await valueOf(S.page, TUTORIAL, "broken")) === 641);
+    report(shown === BROKEN && (await valueOf(S.page, TUTORIAL, "broken")) === 641, `broken state: after reopening, broken's editor shows ${JSON.stringify(shown)}; repaired by keys it is ${await valueOf(S.page, TUTORIAL, "broken")}`);
+  }
+  await breakStep(S.page);
+  await S.page.close();
+}
+// Breakout: step broken mid-game; the world keeps its score while tick, aim, reset and onTick are
+// blocked; the repair continues the game with one listener and one clock.
+async function breakStep(page: Page) {
+  const BR = "@tomlarkworthy/soundscript-breakout";
+  const probe = () => page.evaluate((b: string) => {
+    const rt = (window as any).__ojs_runtime, bm = rt.mains.get(b), ss = bm._scope.get("ss")._value;
+    const w = bm._scope.get("world")._value;
+    return { score: w.score, bricks: w.bricks.length, lives: w.lives, y: w.ball.y, playing: bm._scope.get("playing")._value, listeners: ss.running(), clocks: ss.pulling() };
+  }, BR);
+  // play on the tutorial's copy of the game (section 9), then open the module to edit step
+  const play = page.getByRole("button", { name: "play", exact: true }).first();
+  await play.scrollIntoViewIfNeeded();
+  await play.click();
+  await page.locator("a", { hasText: BR }).first().click();
+  await until(page, async () => (await probe()).score > 0, 15000);
+  const p0 = await probe();
+  const ed = await openEditor(page, BR, "step");
+  if (!ed) { report(false, "breakout: no editor for step"); return; }
+  const text = await editorText(ed);
+  await typeInto(page, ed, text.replace("if (e.kind === \"reset\") return start();", "if (e.kind === \"reset\") return start;"));
+  await until(page, async () => /^THREW step does not check/.test(String(await valueOf(page, BR, "step"))));
+  await page.waitForTimeout(300);
+  const p1 = await probe();
+  await page.waitForTimeout(500);
+  const p2 = await probe();
+  const states = await page.evaluate(async ([c, b]) => { const rt = (window as any).__ojs_runtime; const st = (await rt.mains.get(c).value("ss_check"))(rt.mains.get(b)).states; return Object.fromEntries([...st].filter(([, x]: any) => x.state !== "ok").map(([n, x]: any) => [n, x.state === "blocked" ? `blocked by ${x.blockedBy.join(", ")}` : x.state])); }, [CORE, BR]);
+  console.log(`  breakout broken: ${JSON.stringify(states)}; ${JSON.stringify({ p0, p1, p2 })}`);
+  report(p2.score >= p0.score && p2.score === p1.score && p2.y === p1.y && p2.listeners === p0.listeners - 1 && states.step === "rejected" && states.tick === "blocked by step" && states.onTick === "blocked by tick",
+    `breakout: step broken mid-game: the world keeps score ${p1.score} and stops (ball y ${p1.y} -> ${p2.y}); listeners ${p0.listeners} -> ${p2.listeners}, clocks ${p0.clocks} -> ${p2.clocks}; ${JSON.stringify(states)}`);
+  await typeInto(page, ed, text);
+  await until(page, async () => (await probe()).y !== p2.y, 5000);
+  await page.waitForTimeout(300);
+  const p3 = await probe();
+  console.log(`  breakout repaired: ${JSON.stringify(p3)}`);
+  report(p3.score >= p2.score && p3.y !== p2.y && p3.listeners === p0.listeners && p3.clocks === 1, `breakout: repaired, the game continues from score ${p2.score} (now ${p3.score}, ball moving ${p2.y} -> ${p3.y}) with ${p3.listeners} listeners (${p0.listeners} before the break) and ${p3.clocks} clock pulled`);
+  await page.evaluate((b: string) => { const bm = (window as any).__ojs_runtime.mains.get(b); if (bm._scope.get("playing")._value) bm._scope.get("toggle")._value(); }, BR);
 }
 async function afterReload(page: Page) {
   const w = await valueOf(page, TUTORIAL, "width"), q = await valueOf(page, TUTORIAL, "quadrupled");
@@ -840,8 +995,8 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
     await frames(30);
     out.applied = applied;
     out.deleted = { pulledBefore: p1, pulledAfter: ss.pulling() - p0, listeners: ss.running() - r0, count: seen().count - c3 };
-    for (const n of ["record", "flip", "weight", "nums", "seen", "go", "type Seen"]) get(n)?.delete();
-    await until(() => !get("seen") && !get("nums"));
+    for (const n of ["record", "flip", "weight", "nums", "seen", "viewof seen", "go", "viewof go", "type Seen"]) get(n)?.delete();
+    await until(() => !get("seen") && !get("viewof seen") && !get("nums"));
     get("reset")._value();
     return out;
   });
@@ -893,7 +1048,18 @@ const runsOf = (page: Page, module: string) => page.evaluate((module) => {
 async function tryIts(page: Page, firstOnly = false) {
   const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
   await page.waitForFunction(() => { const m = (window as any).__ojs_runtime?.mains?.get("@tomlarkworthy/soundscript-tutorial"); return m?._scope.get("benchmark")?._value && document.querySelector(".lite-lesson"); }, null, { timeout: 60000 });
-  // A first cell: width -> 800 is applied, then "800" is refused naming area and aspect; the editor keeps focus and the typed text
+  // A first cell: width -> 800 is applied; "800" is stored and breaks area and aspect (rejected) and what
+  // reads them (blocked); the two-cell change (area and aspect take a string) repairs them. A ref the edits
+  // do not touch (count, after add one) keeps its value throughout.
+  const statesOf = () => page.evaluate(async ([c, t]) => {
+    const rt = (window as any).__ojs_runtime;
+    const st = (await rt.mains.get(c).value("ss_check"))(rt.mains.get(t)).states;
+    return Object.fromEntries([...st].map(([n, x]: any) => [n, x.state === "blocked" ? `blocked by ${x.blockedBy.join(", ")}` : x.state]));
+  }, [CORE, TUTORIAL]);
+  const notOk = (st: Record<string, string>) => Object.entries(st).filter(([n, x]) => x !== "ok" && !REJECTED_LESSON.includes(n)).map(([n, x]) => `${n} ${x}`);
+  const count0 = await valueOf(page, TUTORIAL, "count");
+  await counterLesson(page).getByRole("button", { name: "add one" }).click();
+  await until(page, async () => (await valueOf(page, TUTORIAL, "count")) === count0 + 1);
   const width = await openEditor(page, TUTORIAL, "width");
   if (!width) { report(false, "try: no editor for width"); return; }
   await typeInto(page, width, "export const width = () => 800;");
@@ -903,17 +1069,52 @@ async function tryIts(page: Page, firstOnly = false) {
   await until(page, async () => /\(\) => 800;/.test(await page.evaluate(() => document.querySelector('.lite-card[data-cell="width"] .lite-code')?.textContent ?? "")));
   const card800 = await page.evaluate(() => document.querySelector('.lite-card[data-cell="width"]')?.textContent ?? "");
   report(/export const width = \(\) => 800;/.test(card800) && /ok\s*number\s*800$/.test(card800), `try (first cell): after the edit width's card shows the new source and value: ${JSON.stringify(card800.slice(0, 160))}`);
-  const w800 = await defOf(page, TUTORIAL, "width");
-  await typeInto(page, width, 'export const width = () => "800";');
-  await width.scrollIntoViewIfNeeded();
-  await until(page, async () => (await diagsOf(width)).length > 0);
+  // memo: the cells outside the broken part do not run again while it is broken and repaired
+  const OUTSIDE = ["height", "scale", "samples", "histogram", "count", "increment", "app"];
+  const outsideRuns = () => page.evaluate(([c, t, names]) => { const rt = (window as any).__ojs_runtime, ss = rt.mains.get(c)._scope.get("ss")._value, m = rt.mains.get(t); return Object.fromEntries((names as string[]).map((n) => [n, ss.evals(m._scope.get(n)._definition)])); }, [CORE, TUTORIAL, OUTSIDE] as const);
+  const runs0 = await outsideRuns();
+  // typed, not yet applied: the editor says what applying would break
+  await typeInto(page, width, 'export const width = () => "800";', false);
+  await until(page, async () => (await diagsOf(width)).some((d: string) => d.startsWith("applying this breaks")));
+  const typedDiags = await diagsOf(width);
+  const wouldBreak = typedDiags.find((d: string) => d.startsWith("applying this breaks")) ?? "";
+  report((await valueOf(page, TUTORIAL, "width")) === 800 && wouldBreak === "applying this breaks 2 cells: area, aspect; blocks 2 cells: half, test_half", `try (first cell): typing width = "800" says, before Shift-Enter, ${JSON.stringify(wouldBreak)}; width is still 800`);
+  await page.keyboard.press("Shift+Enter");
+  await until(page, async () => (await valueOf(page, TUTORIAL, "width")) === "800");
+  await until(page, async () => (await diagsOf(width)).some((d: string) => d.startsWith("this edit broke")));
   const ds = await diagsOf(width);
   const kept = await width.locator(".cm-content").first().evaluate((el: Element) => el.contains(document.activeElement));
-  report(kept && (await editorText(width)) === 'export const width = () => "800";', `try (first cell): after the refused edit the editor still has focus (${kept}) and the typed text`);
-  report((await defOf(page, TUTORIAL, "width")) === w800 && (await valueOf(page, TUTORIAL, "width")) === 800 && ds.some((d: string) => d.startsWith("Refused: `area` would stop checking. [inject-type]")) && ds.some((d: string) => d.startsWith("Refused: `aspect` would stop checking. [type]")) && !ds.some((d: string) => /\bhalf\b/.test(d)),
-    `try (first cell): width "800" is refused naming area and aspect, width keeps 800: ${JSON.stringify(ds)}`);
+  report(kept && (await editorText(width)) === 'export const width = () => "800";', `try (first cell): after the breaking edit the editor still has focus (${kept}) and the typed text`);
+  const broken = await statesOf();
+  const vals = { area: await valueOf(page, TUTORIAL, "area"), aspect: await valueOf(page, TUTORIAL, "aspect"), half: await valueOf(page, TUTORIAL, "half") };
+  await until(page, async () => /rejected/.test(await page.evaluate(() => document.querySelector('.lite-card[data-cell="area"]')?.textContent ?? "")));
+  const areaCard = await page.evaluate(() => document.querySelector('.lite-card[data-cell="area"]')?.textContent ?? "");
+  console.log(`  first cell broken: ${JSON.stringify(notOk(broken))}; values ${JSON.stringify(vals)}`);
+  report(broken.width === "ok" && broken.area === "rejected" && broken.aspect === "rejected" && broken.half === "blocked by area" && /^THREW area does not check: \[inject-type\]/.test(String(vals.area)) && /^THREW aspect does not check: \[type\]/.test(String(vals.aspect)) && /^THREW area does not check/.test(String(vals.half)),
+    `try (first cell): width "800" is stored; area and aspect are rejected and raise their messages, half is blocked by area: ${JSON.stringify(notOk(broken))}; ${JSON.stringify(ds)}`);
+  report(/rejected/.test(areaCard) && /inject-type/.test(areaCard) && /does not run/.test(areaCard), `try (first cell): area's card says rejected, with the checker's message, and does not run: ${JSON.stringify(areaCard.slice(0, 220))}`);
+  // the two-cell change: area and aspect take a string, and everything is ok again
+  const area = await openEditor(page, TUTORIAL, "area"), aspect = await openEditor(page, TUTORIAL, "aspect");
+  if (!area || !aspect) { report(false, "try: no editor for area or aspect"); return; }
+  const areaText = await editorText(area), aspectText = await editorText(aspect);
+  await typeInto(page, area, areaText.replace("(width: number, height: number) => width * height", "(width: string, height: number) => Number(width) * height"));
+  await until(page, async () => (await valueOf(page, TUTORIAL, "area")) === 320000);
+  await typeInto(page, aspect, aspectText.replace("(width, height) => (width / height)", "(width: string, height: number) => (Number(width) / height)"));
+  await until(page, async () => (await valueOf(page, TUTORIAL, "aspect")) === "2.00");
+  const repaired = await statesOf();
+  report(notOk(repaired).length === 0 && (await valueOf(page, TUTORIAL, "half")) === 160000 && (await valueOf(page, TUTORIAL, "count")) === count0 + 1,
+    `try (first cell): with area and aspect taking a string every cell is ok again, half ${await valueOf(page, TUTORIAL, "half")}; count kept ${await valueOf(page, TUTORIAL, "count")}${notOk(repaired).length ? "; not ok " + JSON.stringify(notOk(repaired)) : ""}`);
+  // and back: width 640 breaks them the other way; the original area and aspect repair it
   await typeInto(page, width, "export const width = () => 640;");
   await until(page, async () => (await valueOf(page, TUTORIAL, "width")) === 640);
+  await typeInto(page, area, areaText);
+  await typeInto(page, aspect, aspectText);
+  await until(page, async () => (await valueOf(page, TUTORIAL, "aspect")) === "1.60");
+  const back = await statesOf();
+  const runs1 = await outsideRuns();
+  report(JSON.stringify(runs0) === JSON.stringify(runs1), `try (first cell): the cells outside the broken part did not run again through the break and both repairs: ${JSON.stringify(runs0)} -> ${JSON.stringify(runs1)}`);
+  report(notOk(back).length === 0 && (await valueOf(page, TUTORIAL, "area")) === 256000 && (await valueOf(page, TUTORIAL, "count")) === count0 + 1,
+    `try (first cell): width back to 640 and area and aspect as they were: every cell ok, area ${await valueOf(page, TUTORIAL, "area")}, count ${count0} -> ${await valueOf(page, TUTORIAL, "count")} throughout${notOk(back).length ? "; not ok " + JSON.stringify(notOk(back)) : ""}`);
 
   // section 2: label: string in doubled, in the box
   const box = page.locator(".lite-box textarea").first();
@@ -936,20 +1137,28 @@ async function tryIts(page: Page, firstOnly = false) {
     report(/^leak\s*ok/.test(row ?? "") && String(await defOf(page, TUTORIAL, "leak")).includes("freeze(xs)"), `try (section 3): leak with return freeze(xs) is applied and its row reads ok: ${JSON.stringify(row)}`);
   } else report(false, "try: no editor for leak");
 
-  // section 4: add one, then onClick={count} in app is refused
+  // section 4: add one, then onClick={count} in app is stored: app does not check and its buttons are
+  // replaced by the message; changed back, the buttons return and count is what it was
   const c0 = await valueOf(page, TUTORIAL, "count");
   await counterLesson(page).getByRole("button", { name: "add one" }).click();
   await until(page, async () => (await valueOf(page, TUTORIAL, "count")) === c0 + 1);
   const app = await openEditor(page, TUTORIAL, "app");
   if (app) {
-    const a0 = await defOf(page, TUTORIAL, "app");
     const t = await editorText(app);
+    // the cell that shows app on the page (the counter lesson's), marked so it is found after app breaks
+    await counterLesson(page).evaluate((n: Element) => n.setAttribute("data-verify-app", "1"));
+    const buttons = () => page.evaluate(() => { const n = document.querySelector('[data-verify-app="1"]'); return { buttons: n ? n.querySelectorAll("button").length : -1, text: (n?.textContent ?? "").replace(/\s+/g, " ").slice(0, 160) }; });
+    const b0 = await buttons();
     await typeInto(page, app, t.replace("onClick={increment}", "onClick={count}"));
-    await app.scrollIntoViewIfNeeded();
-    await until(page, async () => (await diagsOf(app)).length > 0);
-    const d = await diagsOf(app);
-    report((await valueOf(page, TUTORIAL, "count")) === c0 + 1 && (await defOf(page, TUTORIAL, "app")) === a0 && d.length > 0, `try (section 4): add one counts ${c0} -> ${await valueOf(page, TUTORIAL, "count")}; onClick={count} is refused: ${JSON.stringify(d)}`);
+    await until(page, async () => /^THREW app does not check/.test(String(await valueOf(page, TUTORIAL, "app"))));
+    await until(page, async () => (await buttons()).buttons === 0);
+    await until(page, async () => (await diagsOf(app)).some((x: string) => x.startsWith("[type]")));
+    const b1 = await buttons(), d = await diagsOf(app);
+    report((await valueOf(page, TUTORIAL, "count")) === c0 + 1 && b0.buttons > 0 && b1.buttons === 0 && /app does not check/.test(b1.text) && d.some((x: string) => x.startsWith("[type]")),
+      `try (section 4): add one counts ${c0} -> ${await valueOf(page, TUTORIAL, "count")}; onClick={count} is stored, app's ${b0.buttons} buttons are replaced by ${JSON.stringify(b1.text)}: ${JSON.stringify(d)}`);
     await typeInto(page, app, t);
+    await until(page, async () => (await buttons()).buttons === b0.buttons);
+    report((await buttons()).buttons === b0.buttons && (await valueOf(page, TUTORIAL, "count")) === c0 + 1, `try (section 4): changed back, the ${b0.buttons} buttons return and count is still ${await valueOf(page, TUTORIAL, "count")}`);
   } else report(false, "try: no editor for app");
 
   // section 5: in the reducer module, - last -> + last is applied and test_undo fails
@@ -1023,7 +1232,7 @@ async function tryIts(page: Page, firstOnly = false) {
     const w2 = await world();
     const ssv = await page.evaluate(() => { const ss = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript")._scope.get("ss")._value; return { running: ss.running(), pulling: ss.pulling() }; });
     report(w0.score > 0 && w1.score >= w0.score && w1.bricks <= w0.bricks && w2.y !== w1.y && ssv.running === 1 && ssv.pulling === 1, `try (section 9): step edited while playing: world ${JSON.stringify(w0)} -> ${JSON.stringify(w1)} -> ${JSON.stringify(w2)}, ${ssv.running} listener, ${ssv.pulling} clock`);
-    await page.getByRole("button", { name: "pause", exact: true }).first().click().catch(() => {});
+    await page.evaluate((b: string) => { const bm = (window as any).__ojs_runtime.mains.get(b); if (bm._scope.get("playing")._value) bm._scope.get("toggle")._value(); }, BR);
   } else report(false, "try: no editor for breakout step");
 }
 // At phone width the page does not scroll sideways, and every cell of the tutorial computes without error
@@ -1224,11 +1433,11 @@ if (process.argv.includes("--focus-repro")) {
   await browser.close();
   process.exit(0);
 }
-const tryOnly = process.argv.includes("--try-only");
+const tryOnly = process.argv.includes("--try-only") || process.argv.includes("--broken-only");
 const uiOnly = process.argv.includes("--ui-only") || tryOnly;
 const speedOnly = process.argv.includes("--speed-only");
 const variantOnly = process.argv.includes("--variant-only") || speedOnly;
-if (!variantOnly && !process.argv.includes("--no-try")) {
+if (!variantOnly && !process.argv.includes("--no-try") && !process.argv.includes("--broken-only")) {
   await cardsAndThemes();
   await phone();
   await touch();
@@ -1343,6 +1552,8 @@ if (existsSync(savedPath)) {
   await F.page.close();
 }
 }
+// --- the broken state: rejected cells never run, an unparsable cell is stored, Breakout's step broken mid-game
+if ((!uiOnly && !variantOnly || process.argv.includes("--broken-only")) && !process.argv.includes("--no-broken")) await brokenState(join(SCRATCH, "saved-broken.html"));
 // --- 5: the core without the tutorial
 if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   const variant = join(SCRATCH, "core-only.html");

@@ -119,6 +119,27 @@ Tom, 2026-11-15. `check.ts` and `prelude.d.ts` do not know these names;
 - Starting and stopping the events is dataflow: the events cell takes what it depends on
   (`ticks = function* (now: Clock, playing: boolean)`) and yields nothing when it should not run.
 - An events cell is a generator and is never written to; writes stay in actions.
+- Two listener cells on one events cell get each value in the order the cells appear in their
+  module's source; listeners in other modules come after, by module name, then source order.
+  Attach order and re-runs do not change it. (2026-11-15.)
+- Each top-level action call is its own flush group: a call that throws discards only its own
+  writes and those of the actions it called. (2026-11-15.)
+
+## Editing a module with broken cells (Tom, 2026-11-15)
+
+Replaces "an edit is applied only if the whole module still checks". Tom: edits were never meant
+to be refused; the program passes through a broken state until it is repaired.
+
+- Every edit is stored, including one that does not parse. Only a cell with no name
+  (no `export const <name>` at its start) or with another cell's name is not stored.
+- After each edit every cell is ok, rejected (it breaks a rule, or does not parse) or blocked (it
+  breaks no rule of its own but takes a cell that is not ok). A cell whose own check fails because
+  an input's type changed is rejected with its own message.
+- Only ok cells run. A rejected cell compiles to a definition that raises the checker's messages;
+  its body is kept only as source in the marker comment, so it cannot run (at load, after an edit,
+  in `ss_instance`, after save or export). A blocked cell fails through dataflow.
+- A ref whose own cell stays ok keeps its value; a cell whose compiled text did not change is not
+  defined again. `compile` still refuses an island with a cell that is not ok.
 
 ## Foreign values and the shell
 

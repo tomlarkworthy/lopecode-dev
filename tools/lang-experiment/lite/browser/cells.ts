@@ -30,6 +30,7 @@ type Listener = { readonly [LISTENER]: true; readonly events: unknown; readonly 
 type HState = {
   name: string; args: unknown[] | null; gen: Gen | null; no: number; done: boolean; dead: boolean;
   listeners: Set<Listener>; queue: unknown[]; draining: boolean; busy: boolean; run: object | null;
+  order: Listener[] | null;
 };
 const hs = new WeakMap<object, HState>();
 const ls = new WeakMap<object, { runs: number; cell: string }>();
@@ -59,8 +60,9 @@ function stopGen(s: HState) {
 export function events(prev: unknown, name: string, args: unknown[], make: () => Gen, invalidation: Promise<unknown> | null): Handle {
   const reuse = isEvents(prev) && !hs.get(prev)!.dead && hs.get(prev)!.name === name;
   const h: Handle = reuse ? prev : Object.freeze({ [EVENTS]: true, name }) as Handle;
-  if (!reuse) hs.set(h, { name, args: null, gen: null, no: 0, done: false, dead: false, listeners: new Set(), queue: [], draining: false, busy: false, run: null });
+  if (!reuse) hs.set(h, { name, args: null, gen: null, no: 0, done: false, dead: false, listeners: new Set(), queue: [], draining: false, busy: false, run: null, order: null });
   const s = hs.get(h)!;
+  handleOf.set(s, h);
   if (!s.args || !same(s.args, args)) {
     stopGen(s);
     s.gen = make(); s.args = args; s.done = false;
@@ -107,6 +109,35 @@ function fail(s: HState, no: number, e: unknown) {
   console.error(`events ${s.name} threw; it yields nothing more until it runs again:`, e);
   s.done = true;
 }
+// The order the listeners of one events cell run in, for each value: those of the events cell's own
+// module by their cells' place in its source, then those of other modules by module name and place.
+// The host says where a value's cell is (setListenerOrder): for each of a list of values (the handle,
+// then the listeners) a [module name, place] or null. A listener it cannot place yet (its variable has
+// no value yet) runs after the placed ones, in attach order, and the order is worked out again for the
+// next value. Without a host the order is attach order.
+type Place = readonly [string, number] | null;
+let placeOf: ((values: unknown[]) => Place[]) | null = null;
+const ordered = new Set<HState>();
+export const setListenerOrder = (f: ((values: unknown[]) => Place[]) | null) => { placeOf = f; listenerOrderChanged(); };
+// cells were added, moved or deleted: the order is worked out again before the next value
+export const listenerOrderChanged = () => { for (const s of ordered) s.order = null; ordered.clear(); };
+function orderOf(s: HState, h: unknown): Listener[] {
+  if (s.order) return s.order;
+  const list = [...s.listeners];
+  if (!placeOf || list.length < 2) return list;
+  const [own, ...at] = placeOf([h, ...list]);
+  const key = (p: Place) => (p ? [own && p[0] === own[0] ? 0 : 1, p[0], p[1]] as const : null);
+  const keyed = list.map((l, i) => ({ l, i, k: key(at[i]) }));
+  keyed.sort((a, b) => {
+    if (!a.k || !b.k) return a.k ? -1 : b.k ? 1 : a.i - b.i;
+    return a.k[0] - b.k[0] || (a.k[1] < b.k[1] ? -1 : a.k[1] > b.k[1] ? 1 : 0) || a.k[2] - b.k[2] || a.i - b.i;
+  });
+  const out = keyed.map((x) => x.l);
+  if (own && keyed.every((x) => x.k)) { s.order = out; ordered.add(s); }
+  return out;
+}
+const handleOf = new WeakMap<HState, Handle>();
+
 // A value that arrives while actions are running waits in the queue. An action that throws is
 // logged and the next listener, and the next value, still run.
 function deliver(s: HState, v: unknown) {
@@ -116,7 +147,7 @@ function deliver(s: HState, v: unknown) {
   try {
     while (s.queue.length) {
       const x = s.queue.shift();
-      for (const l of [...s.listeners]) {
+      for (const l of orderOf(s, handleOf.get(s))) {
         if (!s.listeners.has(l)) continue;
         try { l.action(x); } catch (e) {
           console.error(`listener ${ls.get(l)?.cell ?? "?"}: action ${actionNames.get(l.action) ?? "(anonymous)"} threw on a value of events ${s.name}:`, e);
@@ -135,14 +166,15 @@ export function listen(l: unknown, cell: string, invalidation: Promise<unknown> 
   if (typeof l.action !== "function") throw new Error(`${cell}: on(...) needs an action`);
   const rec = ls.get(l) ?? { runs: 0, cell };
   ls.set(l, rec);
-  if (rec.runs++ === 0) { s.listeners.add(l); attached.add(l); kick(s); }
+  if (rec.runs++ === 0) { s.listeners.add(l); s.order = null; attached.add(l); kick(s); }
   invalidation?.then(() => { if (rec.runs > 0 && --rec.runs === 0) detach(l); });
   return l;
 }
 function detach(l: Listener) {
   const rec = ls.get(l);
   if (rec) rec.runs = 0;
-  hs.get(l.events as object)?.listeners.delete(l);
+  const s = hs.get(l.events as object);
+  if (s) { s.listeners.delete(l); s.order = null; }
   attached.delete(l);
 }
 

@@ -38,21 +38,26 @@ async function load(src: string) {
   const checked = checkSources({ cells: src, tsx: true });
   const bad = checked.cells.filter((c) => c.status !== "ok");
   if (bad.length) throw new Error(`not ok: ${bad.map((c) => `${c.name} ${c.status} ${JSON.stringify(c.errors)}`).join("; ")}`);
-  const ctx = T.contextFromCheck(checked);
   const runtime = new Runtime();
   const m = runtime.module();
   m.define("ss", [], () => ss);
   const vars = new Map<string, any>();
   const values = new Map<string, unknown>();
   const errs: string[] = [];
+  // a cell defined later is checked with the module as it then is, as the editor checks an edit
+  const texts = T.splitCells(src, true);
   const define = (text: string) => {
-    for (const d of T.compileCell(text, true, ctx)) {
+    const name = ss.declaredName(text);
+    const at = texts.findIndex((t) => ss.declaredName(t) === name);
+    if (at < 0) texts.push(text); else if (texts[at] !== text) texts[at] = text;
+    const now = T.contextFromCheck(ss.checkCells(texts).result);
+    for (const d of T.compileCell(text, true, now, name)) {
       const v = vars.get(d.name) ?? m.variable({ fulfilled: (x: unknown) => values.set(d.name, x), rejected: (e: unknown) => errs.push(`${d.name}: ${(e as Error)?.message ?? e}`) });
       vars.set(d.name, v);
       v.define(d.name, d.inputs, (0, eval)(`(${d.definition})`));
     }
   };
-  for (const t of T.splitCells(src, true)) define(t);
+  for (const t of [...texts]) define(t);
   const settle = async () => { for (let i = 0; i < 5; i++) { await tick(3); await flushed(); } };
   await settle();
   return { m, vars, values, errs, define, settle, runtime, value: (n: string) => values.get(n) as any, evals: (n: string) => ss.evals(vars.get(n)._definition) };
@@ -417,6 +422,198 @@ export const both = (a: Ref<number>, b: Ref<number>) => action(() => { a.set(1);
   const runs = L.evals("pair") - before;
   console.log(`  g6: one action writes a and b; pair saw ${JSON.stringify(seen)}, ran ${runs} more time(s)`);
   ok("g6_observation_made", seen.length > 0 && seen[seen.length - 1] === 102, JSON.stringify(seen));
+});
+
+// The broken state (2026-11-15): every edit is stored; a cell the checker does not accept compiles to a
+// definition that raises its messages, and a cell that takes it fails through dataflow. editable() runs a
+// module as the editor does: each edit checks the whole module again, and only the variables whose
+// compiled definition changed are defined again.
+async function editable(texts: string[], o: { reverse?: boolean; order?: boolean } = {}) {
+  const runtime = new Runtime();
+  const m = runtime.module();
+  m.define("ss", [], () => ss);
+  const vars = new Map<string, any>(), defs = new Map<string, string>(), values = new Map<string, unknown>(), raised = new Map<string, string>();
+  let cells = [...texts];
+  const apply = () => {
+    const ctx = T.contextFromCheck(ss.checkCells(cells).result);
+    const seen = new Set<string>();
+    for (const t of o.reverse ? [...cells].reverse() : cells) for (const d of T.compileCell(t, true, ctx, ss.declaredName(t))) {
+      seen.add(d.name);
+      if (defs.get(d.name) === d.definition) continue;
+      defs.set(d.name, d.definition);
+      const v = vars.get(d.name) ?? m.variable({ fulfilled: (x: unknown) => { values.set(d.name, x); raised.delete(d.name); }, rejected: (e: unknown) => { values.delete(d.name); raised.set(d.name, String((e as Error)?.message ?? e)); } });
+      vars.set(d.name, v);
+      v.define(d.name, d.inputs, (0, eval)(`(${d.definition})`));
+    }
+    for (const [n, v] of vars) if (!seen.has(n)) { v.delete(); vars.delete(n); defs.delete(n); }
+  };
+  const settle = async () => { for (let i = 0; i < 5; i++) { await tick(3); await flushed(); } };
+  // the host's answer to where a listener's cell is: this module, at its cell's place in the source
+  if (o.order) ss.setListenerOrder((values) => values.map((x) => {
+    for (const [n, v] of vars) if (v._value === x) { const at = cells.findIndex((t) => ss.declaredName(t) === T.handleName(n) || ss.declaredName(t) === n); return at < 0 ? null : ["M", at] as const; }
+    return null;
+  }));
+  apply();
+  await settle();
+  const edit = async (name: string, text: string) => { cells = cells.map((t) => (ss.declaredName(t) === name ? text : t)); apply(); await settle(); };
+  const states = () => Object.fromEntries([...ss.cellStates(ss.checkCells(cells).result)].map(([n, x]: any) => [n, x.state === "blocked" ? `blocked by ${x.blockedBy.join(",")}` : x.state]));
+  return { m, vars, values, raised, edit, settle, states, value: (n: string) => values.get(n) as any, evals: (n: string) => ss.evals(vars.get(n)._definition), text: (n: string) => T.decompileVariable(defs.get(n)!) };
+}
+const FIRST = [
+  "export const width = () => 640;",
+  "export const height = () => 400;",
+  "export const area = (width: number, height: number) => width * height;",
+  "export const aspect = (width, height) => (width / height).toFixed(2);",
+  "export const half = (area: number) => area / 2;",
+  "export const count = (): RefCell<number> => ref(0);",
+  "export const increment = (count: Ref<number>) => action(() => count.update((n) => n + 1));",
+  "export const label = (count: number) => `pressed ${count}`;",
+  "export const tall = (height: number) => height * 2;",
+];
+await run("b1_breaking_edit_is_stored_and_repaired", async () => {
+  const L = await editable(FIRST);
+  L.value("increment")();
+  await L.settle();
+  const runs0 = { height: L.evals("height"), tall: L.evals("tall"), label: L.evals("label"), count: L.evals("count") };
+  await L.edit("width", 'export const width = () => "800";');
+  const st = L.states();
+  ok("b1_states", st.width === "ok" && st.area === "rejected" && st.aspect === "rejected" && st.half === "blocked by area" && st.tall === "ok", JSON.stringify(st));
+  ok("b1_rejected_raise_the_checker_message", /^area does not check: \[inject-type\]/.test(L.raised.get("area") ?? "") && /^aspect does not check: \[type\]/.test(L.raised.get("aspect") ?? ""), JSON.stringify([...L.raised]));
+  ok("b1_blocked_fails_through_dataflow", /area does not check/.test(L.raised.get("half") ?? ""), L.raised.get("half"));
+  ok("b1_unrelated_ref_keeps_its_count", L.value("count") === 1 && L.value("label") === "pressed 1", `${L.value("count")} ${L.value("label")}`);
+  // the two-cell change: area and aspect accept a string
+  await L.edit("area", "export const area = (width: string, height: number) => Number(width) * height;");
+  await L.edit("aspect", "export const aspect = (width: string, height: number) => (Number(width) / height).toFixed(2);");
+  const st2 = L.states();
+  ok("b1_two_cell_change_repairs", Object.values(st2).every((x) => x === "ok") && L.value("area") === 320000 && L.value("half") === 160000 && L.value("aspect") === "2.00", JSON.stringify(st2));
+  L.value("increment")();
+  await L.settle();
+  const runs1 = { height: L.evals("height"), tall: L.evals("tall"), label: L.evals("label") - 1, count: L.evals("count") };
+  ok("b1_outside_the_broken_part_nothing_ran_again", JSON.stringify(runs0) === JSON.stringify(runs1) && L.value("count") === 2, `${JSON.stringify(runs0)} ${JSON.stringify(runs1)} count ${L.value("count")}`);
+});
+await run("b2_rejected_body_never_runs", async () => {
+  (globalThis as any).__ssSneak = 0;
+  const L = await editable([...FIRST, "export const sneak = (width: number) => { (globalThis as any).__ssSneak++; return width; };"]);
+  ok("b2_rejected_at_load", L.states().sneak === "rejected" && /^sneak does not check:/.test(L.raised.get("sneak") ?? "") && (globalThis as any).__ssSneak === 0, `${L.raised.get("sneak")} runs ${(globalThis as any).__ssSneak}`);
+  await L.edit("sneak", "export const sneak = (width: number, height: number) => { (globalThis as any).__ssSneak++; return width + height; };");
+  ok("b2_rejected_after_an_edit", /^sneak does not check:/.test(L.raised.get("sneak") ?? "") && (globalThis as any).__ssSneak === 0, `runs ${(globalThis as any).__ssSneak}`);
+  ok("b2_typed_source_kept", L.text("sneak") === "export const sneak = (width: number, height: number) => { (globalThis as any).__ssSneak++; return width + height; };", L.text("sneak") ?? "null");
+});
+await run("b3_unparsable_edit_is_stored_and_repaired", async () => {
+  const L = await editable(FIRST);
+  const BAD = "export const tall = (height: number) => height *;";
+  await L.edit("tall", BAD);
+  ok("b3_stored_and_raises_the_parse_message", L.states().tall === "rejected" && /^tall does not check: \[parse\]/.test(L.raised.get("tall") ?? "") && L.text("tall") === BAD, `${L.raised.get("tall")} ${L.text("tall")}`);
+  ok("b3_others_run", L.value("area") === 256000 && L.value("label") === "pressed 0", `${L.value("area")} ${L.value("label")}`);
+  await L.edit("tall", "export const tall = (height: number) => height * 3;");
+  ok("b3_repaired", L.value("tall") === 1200 && L.states().tall === "ok", String(L.value("tall")));
+});
+await run("b4_listener_in_the_broken_part_detaches_and_reattaches", async () => {
+  const L = await editable([
+    "export const total = (): RefCell<number> => ref(0);",
+    "export const by = () => 1;",
+    "export const nums = function* () { for (let i = 0; i < 1000000; i++) yield i; };",
+    "export const add = (total: Ref<number>, by: number) => action((v: number) => total.update((t) => t + by));",
+    "export const onNum = (nums: Events<number>, add: Action<[number]>) => on(nums, add);",
+  ]);
+  const r0 = ss.running();
+  await frameUntil(() => L.value("total") >= 5);
+  await L.edit("by", 'export const by = () => "1";');
+  const r1 = ss.running(), t1 = L.value("total");
+  for (let i = 0; i < 20; i++) frame();
+  await L.settle();
+  const t2 = L.value("total");
+  ok("b4_broken_listener_detached", L.states().add === "rejected" && L.states().onNum === "blocked by add" && r1 === r0 - 1 && t2 === t1, `${JSON.stringify(L.states())} running ${r0} -> ${r1}, total ${t1} -> ${t2}`);
+  await L.edit("by", "export const by = () => 2;");
+  const r2 = ss.running();
+  await frameUntil(() => L.value("total") >= t2 + 10);
+  ok("b4_repaired_listener_reattached_once", r2 === r0 && L.value("total") >= t2 + 10 && (L.value("total") - t2) % 2 === 0, `running ${r2}, total ${t2} -> ${L.value("total")}`);
+  L.vars.get("onNum").delete();
+  await L.settle();
+});
+
+// Reported: what a ref in the broken part keeps. kept takes no input; seeded's initial value reads
+// base; own is itself made rejected and then repaired.
+await run("b5_state_lost_in_the_broken_part", async () => {
+  const L = await editable([
+    "export const base = () => 5;",
+    "export const kept = (): RefCell<number> => ref(0);",
+    "export const seeded = (base: number): RefCell<number> => ref(base);",
+    "export const own = (): RefCell<number> => ref(0);",
+    "export const bump = (kept: Ref<number>, seeded: Ref<number>, own: Ref<number>) => action(() => { kept.update((n) => n + 1); seeded.update((n) => n + 1); own.update((n) => n + 1); });",
+    "export const sq = (base: number) => base * base;",
+    "export const fromSq = (sq: number): RefCell<number> => ref(sq);",
+    "export const bumpSq = (fromSq: Ref<number>) => action(() => fromSq.update((n) => n + 1));",
+  ]);
+  L.value("bumpSq")();
+  L.value("bump")(); L.value("bump")();
+  await L.settle();
+  const before = { kept: L.value("kept"), seeded: L.value("seeded"), own: L.value("own"), fromSq: L.value("fromSq") };
+  await L.edit("base", 'export const base = () => "5";');
+  await L.edit("own", 'export const own = (): RefCell<number> => ref("0");');
+  const broken = L.states();
+  await L.edit("base", "export const base = () => 5;");
+  await L.edit("own", "export const own = (): RefCell<number> => ref(0);");
+  const after = { kept: L.value("kept"), seeded: L.value("seeded"), own: L.value("own"), fromSq: L.value("fromSq") };
+  console.log(`  b5: before ${JSON.stringify(before)}; broken ${JSON.stringify(broken)}; repaired ${JSON.stringify(after)}`);
+  ok("b5_untouched_ref_kept", after.kept === before.kept, JSON.stringify({ before, after }));
+});
+// Two listeners on one events cell run, for each value, in their cells' source order: on a fresh
+// load, after the first is edited and attaches again (now after the second), and when the module's
+// variables are defined in reverse.
+const ORDER = [
+  "export const log = (): RefCell<readonly string[]> => ref<readonly string[]>([]);",
+  "export const beats = function* () { let i = 0; while (true) yield i++; };",
+  "export const addFirst = (log: Ref<readonly string[]>) => action((v: number) => log.update((l) => [...l, \"first\"]));",
+  "export const addSecond = (log: Ref<readonly string[]>) => action((v: number) => log.update((l) => [...l, \"second\"]));",
+  "export const first = (beats: Events<number>, addFirst: Action<[number]>) => on(beats, addFirst);",
+  "export const second = (beats: Events<number>, addSecond: Action<[number]>) => on(beats, addSecond);",
+];
+const pairs = (l: readonly string[]) => { const out: string[] = []; for (let i = 0; i + 1 < l.length; i += 2) out.push(`${l[i]},${l[i + 1]}`); return [...new Set(out)]; };
+await run("o1_listener_order_is_source_order", async () => {
+  const L = await editable(ORDER, { order: true });
+  await frameUntil(() => (L.value("log")?.length ?? 0) >= 6);
+  const fresh = pairs(L.value("log"));
+  ok("o1_fresh_load", fresh.length === 1 && fresh[0] === "first,second", JSON.stringify(L.value("log").slice(0, 8)));
+  // first edited: its new listener attaches after second's, and still runs first
+  await L.edit("first", "export const first = (addFirst: Action<[number]>, beats: Events<number>) => on(beats, addFirst);");
+  const n0 = L.value("log").length + (L.value("log").length % 2);
+  await frameUntil(() => L.value("log").length >= n0 + 6);
+  const edited = pairs(L.value("log").slice(n0));
+  ok("o1_after_first_reattaches", edited.length === 1 && edited[0] === "first,second", JSON.stringify(L.value("log").slice(n0, n0 + 8)));
+  for (const v of L.vars.values()) { ss.release(v._value); v.delete(); }
+  await L.settle();
+  const R = await editable(ORDER, { order: true, reverse: true });
+  await frameUntil(() => (R.value("log")?.length ?? 0) >= 6);
+  const rev = pairs(R.value("log"));
+  ok("o1_defined_in_reverse", rev.length === 1 && rev[0] === "first,second", JSON.stringify(R.value("log").slice(0, 8)));
+  // without a host to place them, the order is attach order: defined in reverse, second runs first
+  ss.setListenerOrder(null);
+  for (const v of R.vars.values()) { ss.release(v._value); v.delete(); }
+  await R.settle();
+  const U = await editable(ORDER, { reverse: true });
+  await frameUntil(() => (U.value("log")?.length ?? 0) >= 6);
+  const unplacedReverse = pairs(U.value("log"));
+  await U.edit("first", "export const first = (addFirst: Action<[number]>, beats: Events<number>) => on(beats, addFirst);");
+  const m0 = U.value("log").length + (U.value("log").length % 2);
+  await frameUntil(() => U.value("log").length >= m0 + 6);
+  console.log(`  o1: with no host order (attach order): defined in reverse ${JSON.stringify(unplacedReverse)}; after first is edited ${JSON.stringify(pairs(U.value("log").slice(m0)))}`);
+  for (const v of U.vars.values()) { ss.release(v._value); v.delete(); }
+  await U.settle();
+});
+// Reported, not asserted: listeners on two different events cells, one sync and one async generator.
+// The checker takes only a sync generator as Events, so this is the runtime's own path (cells.ts).
+await run("o2_two_events_cells_interleave", async () => {
+  const got: string[] = [];
+  const hs = C.events(undefined, "syncs", [], () => (function* () { for (let i = 0; i < 4; i++) yield i; })() as any, null);
+  const ha = C.events(undefined, "asyncs", [], () => (async function* () { for (let i = 0; i < 4; i++) yield i; })() as any, null);
+  const ls = C.listen(C.on(hs, P.action((v: number) => void got.push(`s${v}`))), "onS", null);
+  const la = C.listen(C.on(ha, P.action((v: number) => void got.push(`a${v}`))), "onA", null);
+  for (let i = 0; i < 6; i++) { frame(); await tick(1); }
+  await until(() => got.length >= 8, 200);
+  console.log(`  o2: a sync and an async events cell, frames run by hand with a macrotask between: ${JSON.stringify(got)}`);
+  ok("o2_both_delivered", got.length === 8, JSON.stringify(got));
+  C.release(ls); C.release(la); C.release(hs); C.release(ha);
 });
 
 console.error = realError;

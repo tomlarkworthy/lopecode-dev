@@ -47,8 +47,11 @@ cells it reads, so `area` runs again when `width` or `height` changes.
 ---
 
 **Try it.** Open `width` and change it to `() => 800`, then press Shift-Enter. `area`, `aspect` and
-`half` update. Now change it to `() => "800"`. The edit is refused, and the editor names the two
-cells that would stop checking, `area` and `aspect`. `width` keeps its old value.
+`half` update. Now change it to `() => "800"`. The edit is stored, and the editor says which cells
+it breaks: `area` and `aspect` multiply `width`, so they no longer check. They show the checker's
+message and stop running. `half` reads `area`, so it is blocked: its card says "blocked by area",
+and it does not run until `area` does. Change `width` back, or change those two cells to accept a
+string, and they run again.
 
 ---
 
@@ -142,7 +145,8 @@ The view is a cell too. `app` returns JSX: a description of the page that is bui
 ---
 
 **Try it.** Press **add one**. Then open `app` and change `onClick={increment}` to
-`onClick={count}`. The edit is refused: a number is not an action.
+`onClick={count}`. `app` no longer checks, because a number is not an action, and the buttons are
+replaced by the message. Change it back: the buttons return and the count is what it was.
 
 ---
 
@@ -229,8 +233,8 @@ because `step` depends only on its arguments.
 
 (the relocated implementation cells go here: what a cell compiles to; ref cells as two variables;
 capabilities as core cells; `compile` and its island; listeners; the
-renderer; how the typed source is kept in the saved notebook; the editor's rule for refusing an
-edit; why four sections are modules)
+renderer; how the typed source is kept in the saved notebook; editing (every edit stored, each
+cell ok, rejected or blocked); why four sections are modules)
 
 ---
 
@@ -239,14 +243,13 @@ edit; why four sections are modules)
 For a cell the checker accepts: it reads only its parameters and the allowed built-ins; while it
 runs it writes only values it made; a `ref` changes only when the page calls an action; and every
 effect is a named parameter. A cell with no capability parameter returns the same value for the
-same inputs.
+same inputs. A cell the checker rejects does not run. It shows the checker's message, and so does
+every cell that depends on it, until it is repaired.
 
 Not guaranteed:
 
 - The checker is a prototype. (keep the existing measured sentence on agreement with the reference
   checker, with its date)
-- A rejected cell still runs. The verdict keeps it from being skipped or sent to a worker, and the
-  editor will not save an edit that leaves a cell rejected.
 - A cell may take `now` or `random` and be accepted. It is then not repeatable, and its signature
   shows it.
 
