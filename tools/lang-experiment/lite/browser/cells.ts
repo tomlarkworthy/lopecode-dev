@@ -33,7 +33,7 @@ type HState = {
 };
 const hs = new WeakMap<object, HState>();
 const ls = new WeakMap<object, { runs: number; cell: string }>();
-const actionNames = new WeakMap<object, string>();
+const actionNames = P.actionNames;
 const attached = new Set<Listener>();
 const generating = new Set<Handle>();
 // what pulls a sync generator's next value; tests replace it

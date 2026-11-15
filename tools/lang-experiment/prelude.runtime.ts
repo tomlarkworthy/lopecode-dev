@@ -5,11 +5,17 @@ const ACTION = Symbol.for("lc.action");
 const REFHANDLE = Symbol.for("lc.ref");
 
 type Store = { name: string; value: unknown; version: number; waiters: (() => void)[] };
+type Group = { action: object };
+
+// the cell an action was defined by, when the runtime knows it; flush and listeners name actions by it
+export const actionNames = new WeakMap<object, string>();
 
 export const state = {
   evalDepth: 0, // >0 while a cell definition (or a generator step) runs synchronously
   actionDepth: 0,
-  queue: [] as { store: Store; apply: (v: unknown) => unknown }[],
+  // each write carries the group of the top-level action call that queued it
+  queue: [] as { store: Store; apply: (v: unknown) => unknown; group: Group }[],
+  group: null as Group | null,
   flushScheduled: false,
   commits: 0,
 };
@@ -18,6 +24,7 @@ export function reset() {
   state.evalDepth = 0;
   state.actionDepth = 0;
   state.queue = [];
+  state.group = null;
   state.flushScheduled = false;
   state.commits = 0;
 }
@@ -42,11 +49,11 @@ export function materialize(cell: { initial: unknown }, name: string) {
     [REFHANDLE]: name,
     set(v: unknown) {
       guardWrite(name);
-      state.queue.push({ store, apply: () => v });
+      state.queue.push({ store, apply: () => v, group: state.group! });
     },
     update(f: (v: unknown) => unknown) {
       guardWrite(name);
-      state.queue.push({ store, apply: f });
+      state.queue.push({ store, apply: f, group: state.group! });
     },
   });
   stores.set(handle, store);
@@ -71,25 +78,35 @@ export function* refValues(handle: object): Generator<unknown> {
   }
 }
 
-// All or nothing: every new value is computed before any is stored, so an update function that throws
-// leaves every store, version and waiter as it was. flush runs from setTimeout, where a rethrow is an
-// uncaught exception with no caller to catch it, so the error goes to console.error.
+// Each top-level action call is a group, applied in call order against the values the earlier groups
+// produced. A group whose update function throws is dropped whole and logged; later groups still apply.
+// Every touched store is then committed once, with one version bump. flush runs from setTimeout, where a
+// rethrow is an uncaught exception with no caller to catch it, so errors go to console.error.
 function flush() {
   state.flushScheduled = false;
   const q = state.queue;
   state.queue = [];
   const next = new Map<Store, unknown>();
-  try {
-    for (const w of q) next.set(w.store, w.apply(next.has(w.store) ? next.get(w.store) : w.store.value));
-  } catch (e) {
-    console.error(e);
-    return;
+  for (let i = 0; i < q.length; ) {
+    const group = q[i].group;
+    const mine = new Map<Store, unknown>();
+    try {
+      for (; i < q.length && q[i].group === group; i++) {
+        const w = q[i];
+        mine.set(w.store, w.apply(mine.has(w.store) ? mine.get(w.store) : next.has(w.store) ? next.get(w.store) : w.store.value));
+      }
+      for (const [st, v] of mine) next.set(st, v);
+    } catch (e) {
+      while (i < q.length && q[i].group === group) i++;
+      console.error(`action ${actionNames.get(group.action) ?? "(anonymous)"}: an update threw, so none of this call's writes are stored:`, e);
+    }
   }
-  for (const [s, v] of next) s.value = v;
-  for (const s of next.keys()) {
-    s.version++;
-    const ws = s.waiters;
-    s.waiters = [];
+  if (!next.size) return;
+  for (const [st, v] of next) st.value = v;
+  for (const st of next.keys()) {
+    st.version++;
+    const ws = st.waiters;
+    st.waiters = [];
     ws.forEach((f) => f());
   }
   state.commits++;
@@ -98,6 +115,7 @@ function flush() {
 export function action(f: (...args: unknown[]) => void) {
   const a = (...args: unknown[]) => {
     if (state.evalDepth > 0 && state.actionDepth === 0) throw new Error("action called during a cell evaluation");
+    if (state.actionDepth === 0) state.group = { action: a };
     state.actionDepth++;
     // all or nothing: a throw discards the writes this call queued, its nested calls' included
     const mark = state.queue.length;
@@ -108,6 +126,7 @@ export function action(f: (...args: unknown[]) => void) {
       throw e;
     } finally {
       state.actionDepth--;
+      if (state.actionDepth === 0) state.group = null;
       if (state.actionDepth === 0 && state.queue.length && !state.flushScheduled) {
         state.flushScheduled = true;
         setTimeout(flush, 0); // a macrotask: never inside a cell's synchronous evaluation

@@ -352,6 +352,73 @@ await run("c3_island_cache_bounded", async () => {
   ok("c3_recent_island_keeps_key", new Set(keyOf(199)).size === 1, JSON.stringify(keyOf(199)));
 });
 
+// flush groups: each top-level action call applies or is dropped on its own, in call order
+const refOf = (v: unknown, name: string) => P.materialize(P.ref(v), name) as any;
+const named = (name: string, f: () => void) => { const a = P.action(f); P.actionNames.set(a, name); return a; };
+await run("g1_a_throwing_group_keeps_an_earlier_groups_writes", async () => {
+  errors.length = 0;
+  const x = refOf(0, "x"), y = refOf(5, "y");
+  named("A", () => x.set(1))();
+  named("B", () => y.update(() => { throw new Error("B broke"); }))();
+  await flushed();
+  const logged = errors.filter((m) => m.includes("B broke"));
+  ok("g1_x_set_by_A_lands", val(x) === 1, `x ${val(x)}`);
+  ok("g1_y_unchanged", val(y) === 5, `y ${val(y)}`);
+  ok("g1_one_error_naming_B", logged.length === 1 && logged[0].startsWith("action B:"), JSON.stringify(errors));
+});
+await run("g2_groups_either_side_of_a_throw_both_apply", async () => {
+  const x = refOf(0, "x");
+  const g = P.refValues(x); g.next();
+  const commits = P.state.commits;
+  named("A", () => x.update((v: number) => v + 1))();
+  named("B", () => x.update(() => { throw new Error("B broke"); }))();
+  named("C", () => x.update((v: number) => v + 10))();
+  await flushed();
+  ok("g2_x_is_plus_11", val(x) === 11, `x ${val(x)}`);
+  const seen = g.next().value, after = g.next().value;
+  ok("g2_one_commit_one_version_bump", P.state.commits === commits + 1 && seen === 11 && after instanceof Promise, `commits +${P.state.commits - commits}, seen ${seen}`);
+});
+await run("g3_a_group_is_dropped_whole", async () => {
+  const z = refOf(0, "z"), p = refOf(0, "p"), q = refOf(0, "q");
+  named("A", () => z.set(9))();
+  named("B", () => { p.set(3); q.update(() => { throw new Error("second write broke"); }); })();
+  await flushed();
+  ok("g3_neither_of_Bs_writes_lands", val(p) === 0 && val(q) === 0, `p ${val(p)} q ${val(q)}`);
+  ok("g3_As_write_lands", val(z) === 9, `z ${val(z)}`);
+});
+await run("g4_groups_apply_in_call_order", async () => {
+  const x = refOf(1, "x");
+  for (const k of [1, 2, 3]) named(`k${k}`, () => x.update((v: number) => v * 2 + k))();
+  await flushed();
+  ok("g4_value_of_applying_in_call_order", val(x) === ((1 * 2 + 1) * 2 + 2) * 2 + 3, `x ${val(x)}`);
+});
+await run("g5_nested_calls_belong_to_the_outermost_group", async () => {
+  errors.length = 0;
+  const x = refOf(0, "x"), y = refOf(0, "y"), w = refOf(0, "w");
+  const inner = named("inner", () => x.set(100));
+  named("before", () => w.set(1))();
+  named("outer", () => { inner(); y.update(() => { throw new Error("outer broke"); }); })();
+  await flushed();
+  ok("g5_nested_write_dropped_with_its_outer_call", val(x) === 0 && val(y) === 0 && val(w) === 1, `x ${val(x)} y ${val(y)} w ${val(w)}`);
+  ok("g5_error_names_the_outer_call", errors.some((m) => m.startsWith("action outer:")), JSON.stringify(errors));
+});
+// States what a cell sees when one action writes two refs; it asserts only that the observation was made.
+await run("g6_observed_one_action_writing_two_refs", async () => {
+  const L = await load(`export const a = (): RefCell<number> => ref(0);
+export const b = (): RefCell<number> => ref(0);
+export const pair = (a: number, b: number) => a * 100 + b;
+export const both = (a: Ref<number>, b: Ref<number>) => action(() => { a.set(1); b.set(2); });`);
+  const seen: number[] = [];
+  L.m.variable({ fulfilled: (v: number) => seen.push(v) }).define(["pair"], (p: number) => p);
+  await L.settle();
+  const before = L.evals("pair");
+  L.value("both")();
+  await L.settle();
+  const runs = L.evals("pair") - before;
+  console.log(`  g6: one action writes a and b; pair saw ${JSON.stringify(seen)}, ran ${runs} more time(s)`);
+  ok("g6_observation_made", seen.length > 0 && seen[seen.length - 1] === 102, JSON.stringify(seen));
+});
+
 console.error = realError;
 if (uncaught.length) ok("no_uncaught_exceptions", false, String(uncaught[0]));
 console.log(`${pass} pass, ${fail} fail`);

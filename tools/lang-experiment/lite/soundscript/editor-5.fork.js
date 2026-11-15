@@ -349,15 +349,25 @@ const _x5ixji = function _hotbar_shell($0,Event,htl,edit)
 const _1ed5zb9 = function _editor_panel($0,htl,toolbar,nav,reversibleAttach,combine,code_editor)
 {
   const cell = $0.value;
-  // moving the editor into a rebuilt panel blurs it; a typing user gets the focus back once it is attached
+  const navEl = cell ? nav(cell) : null;
+  // nav re-runs whenever any module changes; moving the editor into a new panel would blur it,
+  // so the panel built last time is kept and only its toolbar and nav are swapped
+  const prev = this;
+  if (combine && prev?.__editor === code_editor && code_editor.parentElement === prev.__editorSlot) {
+    if (prev.__toolbarSlot.firstChild !== toolbar) prev.__toolbarSlot.replaceChildren(toolbar);
+    prev.__navSlot.replaceChildren(...(navEl ? [navEl] : []));
+    return prev;
+  }
   const hadFocus = code_editor.contains(document.activeElement);
   const panel = htl.html`<div style="display: flex; flex-direction: column;">
-    ${toolbar}
-    ${cell ? nav(cell) : null}
+    <div style="display: contents;">${toolbar}</div>
+    <div style="display: contents;">${navEl}</div>
     <div style="flex-grow: 1; padding-bottom: 1rem;">
       ${reversibleAttach(combine, code_editor)}
     </div>
   </div>`;
+  [panel.__toolbarSlot, panel.__navSlot, panel.__editorSlot] = panel.children;
+  panel.__editor = code_editor;
   if (hadFocus) {
     let tries = 0;
     const back = () => {

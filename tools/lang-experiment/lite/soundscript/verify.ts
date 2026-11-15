@@ -18,7 +18,7 @@
 // No request to /@tomlarkworthy/ or api.observablehq.com may be made (a stripped module fetched).
 // The notebook file itself is never written.
 import { chromium, type Page } from "../../../../node_modules/playwright/index.mjs";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { checkSources } from "../core.ts";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -100,14 +100,29 @@ function referenceChecks() {
   }
 }
 
+const FOCUS_TRACE = process.argv.includes("--focus-trace");
+let ftN = 0;
+const CPU = process.argv.includes("--cpu") ? Number(process.argv[process.argv.indexOf("--cpu") + 1]) : 1;
 const browser = await chromium.launch();
 try {
 async function open(path: string, saveTo?: string) {
   const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
   if (saveTo) await stubPicker(page, saveTo);
+  if (FOCUS_TRACE) {
+    await page.addInitScript({ path: join(HERE, "focus-trace.js") });
+    const ftDir = process.env.FT_DIR ?? join(HERE, ".scratch/focus-trace");
+    mkdirSync(ftDir, { recursive: true });
+    const ftFile = join(ftDir, `ft-${process.pid}-${++ftN}.log`);
+    page.on("console", (m) => { if (m.type() === "debug" && m.text().startsWith("FT ")) appendFileSync(ftFile, m.text() + "\n"); });
+    page.on("framenavigated", (f) => { if (f === page.mainFrame()) appendFileSync(ftFile, `NAV ${f.url()}\n`); });
+    page.on("load", () => appendFileSync(ftFile, `LOAD\n`));
+    page.on("crash", () => appendFileSync(ftFile, `CRASH\n`));
+  }
+  if (CPU > 1) await (await page.context().newCDPSession(page)).send("Emulation.setCPUThrottlingRate", { rate: CPU });
   const blocked: string[] = [], errors: string[] = [];
   await page.route("**/*", (r) => (/^(file|blob|data):/.test(r.request().url()) ? r.continue() : (blocked.push(r.request().url()), r.abort())));
   page.on("pageerror", (e) => errors.push(String(e.message)));
+  page.on("crash", () => console.log(`  page crashed: ${path}`));
   page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) { console.log(`  console.error: ${m.text().slice(0, 400)}`); errors.push("console.error: " + m.text().slice(0, 200)); } });
   await page.goto(`file://${path}`);
   page.on("framenavigated", (f) => { if (f === page.mainFrame()) console.log(`  navigated: ${f.url().slice(0, 200)}`); });
@@ -459,7 +474,22 @@ async function typeInto(page: Page, host: any, text: string) {
   }
   if (!(await content.evaluate((el: Element) => el.contains(document.activeElement)))) {
     // evidence for the failure: where focus went, and whether the editor node is still in the page
-    const why = await content.evaluate((el: Element) => ({ connected: el.isConnected, active: `${document.activeElement?.tagName}.${String((document.activeElement as HTMLElement)?.className).slice(0, 60)}`, log: ((window as any).__focusLog ?? []).slice(-8) })).catch((e: Error) => ({ detached: String(e.message).slice(0, 120) }));
+    const why = await content.evaluate((el: Element) => {
+      const r = el.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      const desc = (e: any) => e ? `${e.tagName}.${String(e.className).slice(0, 50)}` : "null";
+      const chain: string[] = [];
+      for (let e: any = el; e && e.nodeType === 1; e = e.parentElement) {
+        const cs = getComputedStyle(e);
+        const odd = [cs.display === "none" && "display:none", cs.visibility !== "visible" && "visibility:" + cs.visibility, cs.pointerEvents !== "auto" && "pointer-events:" + cs.pointerEvents, e.inert && "inert", cs.userSelect === "none" && "user-select:none", e.getAttribute("contenteditable") !== null && "ce=" + e.getAttribute("contenteditable"), e.hasAttribute("tabindex") && "tabindex=" + e.getAttribute("tabindex")].filter(Boolean);
+        if (odd.length) chain.push(`${desc(e)} ${odd.join(" ")}`);
+      }
+      const rt = (window as any).__ojs_runtime, EV = [...rt._variables].find((v: any) => v._name === "EditorView")?._value;
+      const view = EV?.findFromDOM(el.closest(".cm-editor"));
+      return { connected: el.isConnected, active: desc(document.activeElement), rect: [Math.round(x), Math.round(y)], hit: desc(hit), hitInside: !!hit && el.contains(hit), contenteditable: el.getAttribute("contenteditable"),
+        view: view ? { destroyed: view.destroyed, domIsThis: view.dom === el.closest(".cm-editor"), contentIsThis: view.contentDOM === el, inDoc: view.dom.isConnected, hasFocus: view.hasFocus, editable: view.state.facet(EV.editable) } : "no view",
+        chain, log: ((window as any).__focusLog ?? []).slice(-8), trace: ((window as any).__ft ?? []).slice(-40) };
+    }).catch((e: Error) => ({ detached: String(e.message).slice(0, 120) }));
     throw new Error(`the editor did not take focus after 20 clicks: ${JSON.stringify(why)}`);
   }
   await page.keyboard.press(`${MOD}+KeyA`);
@@ -488,19 +518,10 @@ async function completion(page: Page) {
     await page.waitForTimeout(250);
     return popup();
   };
-  // An open editor's panel can be rebuilt a few hundred ms after it opens (seen while the page's tests
-  // define and delete variables); the rebuild blurs the editor and closes an open list. The editor
-  // gets focus back (editor_panel), so the typing is done again once, and the retry is counted.
-  let retries = 0;
   const typeAndList = async (host: any, text: string, key: string) => {
-    for (let i = 0; i < 2; i++) {
-      await place(host, text);
-      await page.keyboard.type(key);
-      const list = await waitPopup();
-      if (list.length || i === 1) return list;
-      retries++;
-    }
-    return [];
+    await place(host, text);
+    await page.keyboard.type(key);
+    return waitPopup();
   };
   // puts text in the editor and the cursor at the `|` in it
   const place = (host: any, text: string) => host.locator(".cm-content").first().evaluate((el: any, text: string) => {
@@ -574,7 +595,6 @@ async function completion(page: Page) {
     await place(plain, o);
   } else report(false, "completion: no editor for tests_on");
 
-  console.log(`  completion: ${retries} list(s) typed again after an editor panel rebuild`);
   // every member a SoundScript cell of the tutorial or core uses is offered at its place, and the
   // completion stays within budget
   const all = await page.evaluate(([tut, core]) => {
@@ -870,7 +890,7 @@ const runsOf = (page: Page, module: string) => page.evaluate((module) => {
 
 // Every "Try it" cell of the tutorial, done as the text says, on a page of its own (the leak fix
 // changes a verdict the tests pin). Each check states what the text promises.
-async function tryIts(page: Page) {
+async function tryIts(page: Page, firstOnly = false) {
   const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
   await page.waitForFunction(() => { const m = (window as any).__ojs_runtime?.mains?.get("@tomlarkworthy/soundscript-tutorial"); return m?._scope.get("benchmark")?._value && document.querySelector(".lite-lesson"); }, null, { timeout: 60000 });
   // A first cell: width -> 800 is applied, then "800" is refused naming area and aspect; the editor keeps focus and the typed text
@@ -912,6 +932,7 @@ async function tryIts(page: Page) {
     await typeInto(page, leak, t.replace("return xs;", "return freeze(xs);"));
     await until(page, async () => /\bok\b/.test((await rowText(page, ".lite-panel", "leak")) ?? ""));
     const row = await rowText(page, ".lite-panel", "leak");
+    if (firstOnly) { if (FOCUS_TRACE) console.log("TRACE\n" + (await page.evaluate(() => (window as any).__ft.slice(-60).join("\n")))); return; }
     report(/^leak\s*ok/.test(row ?? "") && String(await defOf(page, TUTORIAL, "leak")).includes("freeze(xs)"), `try (section 3): leak with return freeze(xs) is applied and its row reads ok: ${JSON.stringify(row)}`);
   } else report(false, "try: no editor for leak");
 
@@ -1187,6 +1208,22 @@ const stubPicker = async (page: Page, saved: string) => {
 // --- 1-3: the notebook
 referenceChecks();
 if (process.argv.includes("--static-only")) { console.log(`${passes} pass, ${fails} fail`); process.exit(fails ? 1 : 0); }
+if (process.argv.includes("--focus-repro")) {
+  // loops the start of the Try-it pass (first cell, section 2, section 3's editor) to reproduce the focus flake
+  const n = Number(process.argv[process.argv.indexOf("--focus-repro") + 1]) || 10;
+  let failed = 0;
+  for (let i = 0; i < n; i++) {
+    const G = await open(file);
+    try { await tryIts(G.page, true); } catch (e) {
+      failed++; console.log(`REPRO ${i} FAILED: ${String((e as Error).stack).slice(0, 900)}`);
+      console.log("  after: " + JSON.stringify(await G.page.evaluate(() => ({ href: location.href, now: Math.round(performance.now()), ready: document.readyState, ft: !!(window as any).__ft, rt: !!(window as any).__ojs_runtime })).catch((x: Error) => String(x.message).slice(0, 100))));
+    }
+    await G.page.close();
+  }
+  console.log(`focus-repro: ${failed} of ${n} failed`);
+  await browser.close();
+  process.exit(0);
+}
 const tryOnly = process.argv.includes("--try-only");
 const uiOnly = process.argv.includes("--ui-only") || tryOnly;
 const speedOnly = process.argv.includes("--speed-only");
