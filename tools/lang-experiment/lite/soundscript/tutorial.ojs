@@ -73,7 +73,7 @@ md`## 4. State and views
 
 State is a cell that returns \`ref(initial)\`. Other cells use it in two ways. A parameter named \`count\` gets the current value and runs again when it changes. A parameter typed \`Ref<number>\` gets the reference. It is not a dependency: the cell does not run again when the value changes.
 
-A write must be inside \`action(...)\`. An action reads state with \`read(count)\`, not through a value parameter, so it always sees the current value. \`increment\` and \`clear\` are actions. A cell cannot call them; the page does, when a button is clicked.
+A write must be inside \`action(...)\`. An action reads state with \`read(count)\`, not through a value parameter, so it always sees the current value. \`increment\`, \`clear\` and \`save\` are actions. A cell cannot call them; the page does, when a button is clicked.
 
 The view is a cell too. \`app\` returns JSX: a description of the page that is built again whenever \`count\` changes. An event attribute such as \`onClick\` must be given an action.`
 // %%
@@ -575,17 +575,19 @@ test_breakout_memo = {
   mo.observe(view, { subtree: true, childList: true, attributes: true, characterData: true });
   const n0 = Object.fromEntries(names.map((n) => [n, runs(n)]));
   const b0 = get("bricks").length;
+  // played for a number of delivered ticks and until a brick breaks, not for a time, so the counts do
+  // not depend on the frame rate (step clamps a tick to at most 50 ms of game time)
+  const TICKS = 90;
   let frames = 0, changes = 0, last = get("world");
   get("toggle")();
   const t0 = performance.now();
-  await new Promise((res) => { const f = () => { frames++; const w = get("world"); if (w !== last) { changes++; last = w; } if (performance.now() - t0 < 1500) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+  await new Promise((res) => { const f = () => { frames++; const w = get("world"); if (w !== last) { changes++; last = w; } if ((changes < TICKS || get("bricks").length === b0) && performance.now() - t0 < 30000) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
   get("toggle")();
   await wait(100);
   mo.disconnect();
   const ran = Object.fromEntries(names.map((n) => [n, runs(n) - n0[n]]));
   const broken = b0 - get("bricks").length;
-  if (frames < 20) throw new Error(`only ${frames} frames in 1.5 s; a hidden tab gets no animation frames`);
-  if (changes < frames * 0.9) throw new Error(`the world changed ${changes} times in ${frames} frames`);
+  if (changes < TICKS) throw new Error(`only ${changes} world changes in ${frames} frames in 30 s; a hidden tab gets no animation frames`);
   if (broken < 1) throw new Error("no brick broke, so the keyed path was not exercised");
   if ((muts["attr style"] ?? 0) > ran.ballView + ran.paddleView + 2) throw new Error(`${muts["attr style"]} style writes for ${ran.ballView + ran.paddleView} ball and paddle draws`);
   if (ran.bricksView > broken) throw new Error(`bricksView ran ${ran.bricksView} times for ${broken} broken bricks`);

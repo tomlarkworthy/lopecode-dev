@@ -700,11 +700,13 @@ Inputs.button("⬆", {
 })
 )};
 const _frzs5d = (G, _) => G.input(_);
-const _9pymuj = function _paste(Inputs,readObservableClipboardCells,pasteObservableCellsIntoModule,editedCell){return(
+const _9pymuj = function _paste(Inputs,readObservableClipboardCells,pasteObservableCellsIntoModule,$0){return(
 Inputs.button("📋", {
   reduce: async () => {
+    // the selection at the click, as the other buttons read it: a button built before the selection
+    // reached this cell would otherwise paste into nothing
     const cells = await readObservableClipboardCells();
-    return pasteObservableCellsIntoModule({ cells, editedCell });
+    return pasteObservableCellsIntoModule({ cells, editedCell: $0.value });
   }
 })
 )};
@@ -2733,7 +2735,7 @@ export default function define(runtime, observer) {
   $def("_1cjyuqm", "apply", ["Generators","viewof apply"], _1cjyuqm);  
   $def("_14rfku9", "viewof up", ["Inputs","moveCell","viewof editedCell"], _14rfku9);  
   $def("_frzs5d", "up", ["Generators","viewof up"], _frzs5d);  
-  $def("_9pymuj", "viewof paste", ["Inputs","readObservableClipboardCells","pasteObservableCellsIntoModule","editedCell"], _9pymuj);  
+  $def("_9pymuj", "viewof paste", ["Inputs","readObservableClipboardCells","pasteObservableCellsIntoModule","viewof editedCell"], _9pymuj);  
   $def("_1whsszt", "paste", ["Generators","viewof paste"], _1whsszt);  
   $def("_corxwl", "viewof down", ["Inputs","moveCell","viewof editedCell"], _corxwl);  
   $def("_1to28po", "down", ["Generators","viewof down"], _1to28po);  

@@ -1,0 +1,28 @@
+md`# Three languages in one module
+
+PROSE PENDING`
+// %%
+polyglot_listing = cellListing(polyglot_module, invalidation)
+// %%
+//ss: ./sections/polyglot.ts
+// %%
+viewof height = Inputs.range([1, 10], { value: 3, step: 1, label: "height" })
+// %%
+define("area", ["width", "height"], function (width, height) {
+  // a raw cell: the function as written, its inputs as listed
+  return width * height;
+})
+// %%
+define("squares", ["area"], function* (area) {
+  for (let i = 1; i <= area; i++) yield i * i;
+})
+// %%
+define("report", ["area", "squares"], async (area, squares) => `area ${area}, last square ${squares}`)
+// %%
+summary = md`${report}; the SoundScript cell \`doubledWidth\` is ${doubledWidth}.`
+// %%
+viewof polyglot_module = thisModule()
+// %%
+import { ss, cellListing } from "@tomlarkworthy/soundscript"
+// %%
+import { thisModule } from "@tomlarkworthy/runtime-sdk"

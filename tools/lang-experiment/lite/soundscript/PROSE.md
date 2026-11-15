@@ -136,7 +136,7 @@ State is a cell that returns `ref(initial)`. Other cells use it in two ways. A p
 `count` gets the current value and runs again when it changes. A parameter typed `Ref<number>` gets
 the reference. It is not a dependency: the cell does not run again when the value changes.
 
-A write must be inside `action(...)`. An action reads state with `read(count)`, not through a value parameter, so it always sees the current value. `increment` and `clear` are actions. A cell cannot call them;
+A write must be inside `action(...)`. An action reads state with `read(count)`, not through a value parameter, so it always sees the current value. `increment`, `clear` and `save` are actions. A cell cannot call them;
 the page does, when a button is clicked.
 
 The view is a cell too. `app` returns JSX: a description of the page that is built again whenever

@@ -24,18 +24,23 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { blockContent, blockSpans } from "../../../lib/notebook-blocks.ts";
 import { offlineWithAir, setTheme, contrasts, THEME_BASE } from "./theme-check.ts";
+import { RAW_CELLS, RAW_TESTS, POLY, rawOnPage, rawAfterSave, rawExport, rawUnloaded } from "./verify-raw.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CORE = "@tomlarkworthy/soundscript";
 const TUTORIAL = "@tomlarkworthy/soundscript-tutorial";
-const SECTIONS = ["@tomlarkworthy/soundscript-reducer", "@tomlarkworthy/soundscript-model", "@tomlarkworthy/soundscript-workers", "@tomlarkworthy/soundscript-breakout"];
+const SECTIONS = ["@tomlarkworthy/soundscript-reducer", "@tomlarkworthy/soundscript-model", "@tomlarkworthy/soundscript-workers", "@tomlarkworthy/soundscript-breakout", "@tomlarkworthy/soundscript-polyglot"];
 const file = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : join(HERE, "../../../../lopebooks/notebooks/soundscript.html"));
 const shot = process.argv.includes("--shot") ? process.argv[process.argv.indexOf("--shot") + 1] : null;
 const SCRATCH = join(HERE, ".scratch");
 mkdirSync(SCRATCH, { recursive: true });
 
 let passes = 0, fails = 0;
-const report = (ok: boolean, what: string) => { console.log(`${ok ? "pass" : "FAIL"} ${what}`); ok ? passes++ : fails++; };
+// speed rows (their text starts "speed:") are counted apart: on battery power their budgets are not met
+const counts = { functional: { pass: 0, fail: 0 }, speed: { pass: 0, fail: 0 } };
+const report = (ok: boolean, what: string) => { console.log(`${ok ? "pass" : "FAIL"} ${what}`); ok ? passes++ : fails++; counts[what.startsWith("speed:") ? "speed" : "functional"][ok ? "pass" : "fail"]++; };
+const power = Bun.spawnSync(["pmset", "-g", "batt"], { stdout: "pipe" }).stdout.toString().match(/'([^']+)'/)?.[1] ?? "unknown";
+console.log(`power: ${power}`);
 
 const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_stored_and_rejected", "test_ss_breaking_edit_names_its_cells", "test_ss_copy_keeps_its_name", "test_ss_failed_apply_changes_nothing", "test_ss_edits_do_not_grow_the_memo", "test_ss_instance_keeps_user_ids", "test_ss_ref_handle", "ss_registration"];
 const TUTORIAL_TESTS = ["test_ss_roundtrip", "test_ss_module_checks", "test_ss_counter", "test_half",
@@ -447,7 +452,7 @@ function sameBlocks(label: string, a: string, b: string) {
 
 
 // --- real user paths: Playwright mouse and keyboard on the editor and the lopepage menu
-const SECTION_TESTS: Record<string, string[]> = { "@tomlarkworthy/soundscript-reducer": ["test_undo"], "@tomlarkworthy/soundscript-model": ["areaOf4"], "@tomlarkworthy/soundscript-workers": ["image"], "@tomlarkworthy/soundscript-breakout": ["test_replay"] };
+const SECTION_TESTS: Record<string, string[]> = { "@tomlarkworthy/soundscript-reducer": ["test_undo"], "@tomlarkworthy/soundscript-model": ["areaOf4"], "@tomlarkworthy/soundscript-workers": ["image"], "@tomlarkworthy/soundscript-breakout": ["test_replay"], "@tomlarkworthy/soundscript-polyglot": ["summary"] };
 const MOD = process.platform === "darwin" ? "Meta" : "Control";
 let tagN = 0;
 // tags the editor host of a cell's variable so a locator can reach it; null when the cell has none in view
@@ -1102,6 +1107,9 @@ async function commandGuard(page: Page, label: string, module: string, cell: str
       before = snap(); w0 = warns.length;
       const plainDef = plain ? String(plain._definition) : null;
       clip = [{ mode: "js", value: compiledOjs }, ...(plain ? [{ mode: "js", value: `${plain._name} = ($ss$) => $ss$.cell(/*{lang:"ss"}*/ () => 2)` }] : [])];
+      // the cell the paste lands on is in the cell map (a cell added just before may not be yet)
+      const findCell0 = await val("findCell");
+      await until(() => findCell0(target)?.module?.module, `the cell map holding ${cell}`);
       press(host, "📋");
       // compiled text (it carries a marker) is never typed source: the editor refuses it before any language
       // sees it, registered or not, and the cells stay as they were
@@ -1127,7 +1135,12 @@ async function commandGuard(page: Page, label: string, module: string, cell: str
       await until(() => order() !== o0, "the move up");
       const moved = order();
       press(host, "⬇");
-      await until(() => order() === o0, "the move back down");
+      // on a timeout, the evidence: where the order differs from the one before the move up
+      await until(() => order() === o0, "the move back down").catch((e) => {
+        const a = o0.split("|"), b = order().split("|"), moved1 = moved.split("|");
+        const at = a.findIndex((x, i) => x !== b[i]);
+        throw new Error(`${e.message}; before ${a.length} vars, after up ${moved1.length}, now ${b.length}; first difference at ${at}: before ${JSON.stringify(a.slice(Math.max(at - 2, 0), at + 3))}, now ${JSON.stringify(b.slice(Math.max(at - 2, 0), at + 3))}, after up ${JSON.stringify(moved1.slice(Math.max(at - 2, 0), at + 3))}`);
+      });
       row("move up / down", changed(before).length === 0 && moved !== o0, `order changed and restored; no definition written`);
       // drag reorder (moveCellBeside), onto the module's first other marked cell, then back
       const findCell = await val("findCell"), moveCellBeside = await val("moveCellBeside");
@@ -1182,6 +1195,7 @@ const diagsOf = (host: any) => host.locator(".cm-content").first().evaluate((el:
   return ds;
 });
 const until = async (page: Page, f: () => Promise<boolean>, ms = 10000) => { const t0 = Date.now(); while (!(await f())) { if (Date.now() - t0 > ms) return false; await page.waitForTimeout(100); } return true; };
+const rawHelpers = () => ({ report, openEditor, typeInto, editorText, diagsOf, valueOf, tagEditor, until, testsPass });
 // the text of the table row for `cell` in the first table (in DOM order) matching `sel` that has one
 const rowText = (page: Page, sel: string, cell: string) => page.evaluate(([sel, cell]) => {
   // a SoundScript cell of the tutorial: its name, "ok" or "rejected", then its inspector line
@@ -1683,6 +1697,7 @@ await testsPass(A.page, "original", TUTORIAL, TUTORIAL_TESTS);
   report(g.ballRuns <= 1 && g.y === 180 && g.pulling === 0, `original: after the tests, the page's Breakout is as it booted: ballView ran ${g.ballRuns} times, ball at y ${g.y}, ${g.pulling} clocks pulled`);
 }
 for (const m of SECTIONS) await testsPass(A.page, "original", m, SECTION_TESTS[m]);
+await testsPass(A.page, "original", RAW_CELLS, RAW_TESTS);
 await hookPass(A.page, "original");
 await oneCore(A.page, "original");
 await counterClick(A.page, "original");
@@ -1704,6 +1719,7 @@ for (const m of [CORE, TUTORIAL, ...SECTIONS]) {
 }
 report(exp1.includes("/*ss:: Ref<number>*/"), "export: the type comments are in the exported module");
 sameBlocks("export", orig, exp1);
+const rawA = await rawExport(rawHelpers(), orig, exp1, A.page, null);
 await instanceStops(A.page);
 await deleteStops(A.page);
 requests("original page", A);
@@ -1717,6 +1733,8 @@ await testsOn(B.page, "reopened export");
 await testsPass(B.page, "reopened export", CORE, CORE_TESTS);
 await testsPass(B.page, "reopened export", TUTORIAL, TUTORIAL_TESTS);
 for (const m of SECTIONS) await testsPass(B.page, "reopened export", m, SECTION_TESTS[m]);
+await testsPass(B.page, "reopened export", RAW_CELLS, RAW_TESTS);
+await rawExport(rawHelpers(), orig, exp1, B.page, rawA);
 await hookPass(B.page, "reopened export");
 await counterClick(B.page, "reopened export");
 const sourceB = await ssSource(B.page, TUTORIAL);
@@ -1735,6 +1753,8 @@ const E = await open(file, savedPath);
 await testsOn(E.page, "ui");
 await testsPass(E.page, "ui", CORE, CORE_TESTS);
 await completion(E.page);
+// raw cells edited by keys; the Save in place at the end of uiPaths keeps the last edit
+await rawOnPage(E.page, rawHelpers(), "ui raw");
 await uiPaths(E.page, savedPath);
 requests("ui page", E);
 await E.page.close();
@@ -1745,6 +1765,7 @@ if (existsSync(savedPath)) {
   const changed = ["test_ss_module_checks", "test_half"];
   await testsPass(F.page, "reload after save", TUTORIAL, TUTORIAL_TESTS.filter((t) => !changed.includes(t)), changed);
   await afterReload(F.page);
+  await rawAfterSave(F.page, rawHelpers(), "reload after save");
   requests("reloaded saved page", F);
   await F.page.close();
 }
@@ -1900,6 +1921,16 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   // --- 6: the core only as the tutorial's import, so ss_registration never runs on its own. An
   // editor opened then shows the compiled text and must refuse to save it; once the language
   // registers, the same open editor shows the typed source.
+  // --- 7: raw-cells not booted (build.ts --no-raw): the polyglot module's raw cells have no language
+  {
+    const noRaw = join(SCRATCH, "no-raw.html");
+    const built7 = Bun.spawnSync(["bun", join(HERE, "build.ts"), "--no-raw", "--force", "--out", noRaw], { stdout: "pipe", stderr: "pipe" });
+    report(built7.exitCode === 0, `no-raw: built ${noRaw}${built7.exitCode ? ": " + built7.stderr.toString().slice(-400) : ""}`);
+    const R = await open(noRaw);
+    await R.page.waitForFunction((m) => (window as any).__ojs_runtime?.mains?.get(m), POLY, { timeout: 60000 });
+    await rawUnloaded(R.page, rawHelpers(), "no-raw");
+    await R.page.close();
+  }
   const unreg = join(SCRATCH, "core-not-main.html");
   const built6 = Bun.spawnSync(["bun", join(HERE, "build.ts"), "--core-not-main", "--force", "--out", unreg], { stdout: "pipe", stderr: "pipe" });
   report(built6.exitCode === 0, `core-not-main: built ${unreg}${built6.exitCode ? ": " + built6.stderr.toString().slice(-400) : ""}`);
@@ -1945,7 +1976,8 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     } catch (e) { out.error = String((e as Error)?.message ?? e); }
     return out;
   }, TUTORIAL);
-  report(!g2.error && g2.registeredAtOpen?.length === 0 && /^width = \$ss\$\.cell\(/.test(g2.shownBefore ?? "") && g2.diagnostics?.some((d: string) => /not loaded yet/.test(d)) && g2.savedUnchanged,
+  // raw-cells is registered on this page too; only "ss" must be absent
+  report(!g2.error && !g2.registeredAtOpen?.includes("ss") && /^width = \$ss\$\.cell\(/.test(g2.shownBefore ?? "") && g2.diagnostics?.some((d: string) => /not loaded yet/.test(d)) && g2.savedUnchanged,
     `core-not-main: with no language registered the editor on width shows the compiled text, says it is not loaded, and Shift-Enter saves nothing: ${JSON.stringify({ ...g2, shownAfter: undefined })}`);
   report(!g2.error && /^export const width = \(\) => 640;$/m.test(g2.shownAfter ?? "") && !g2.shownAfter.includes("$ss$"), `core-not-main: after registration the open editor shows the typed source: ${JSON.stringify(g2.shownAfter ?? g2.error)}`);
   report(!g2.error && g2.lineBefore !== g2.lineAfter && g2.lineAfter === "increment = ƒ action()", `core-not-main: increment's line is the normal Inspector's before registration (${JSON.stringify(g2.lineBefore?.slice(0, 60))}) and the language's after, without a reload (${JSON.stringify(g2.lineAfter ?? g2.error)})`);
@@ -1983,4 +2015,5 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
 }
 await browser.close().catch(() => {});
 console.log(`${passes} pass, ${fails} fail`);
+console.log(`power ${power}; functional ${counts.functional.pass} pass ${counts.functional.fail} fail; speed ${counts.speed.pass} pass ${counts.speed.fail} fail`);
 process.exit(fails ? 1 : 0);

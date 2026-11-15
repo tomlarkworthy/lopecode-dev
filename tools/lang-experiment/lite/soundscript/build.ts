@@ -1,6 +1,11 @@
 // bun lite/soundscript/build.ts [--force] [--out file.html] [--no-tutorial]
 // Builds lopebooks/notebooks/soundscript.html from lopecode/notebooks/quick_start.html:
 //  - @tomlarkworthy/soundscript (core.ojs): the language. Attachment ss.js.gz (entry.ts).
+//  - @tomlarkworthy/raw-cells (raw-cells.ojs): a second cell language, define(label, inputs, function).
+//    It does not import the core and the core does not name it. Left out of MAINS with --no-raw (a test
+//    artefact; needs --out), so its cells are those of a language that is not loaded.
+//  - @tomlarkworthy/soundscript-polyglot (sections/polyglot.ojs): raw, SoundScript and Observable JS
+//    cells in one module. A block that starts with define( is a raw cell, compiled by raw-cells' raw_compile.
 //  - @tomlarkworthy/soundscript-tutorial (tutorial.ojs): imports only from the core. Attachments:
 //    the example sources. Left out with --no-tutorial (a test artefact; needs --out).
 //  - @tomlarkworthy/editor-5, cell-map and visualizer replaced by <name>.fork.js, each refused unless
@@ -19,18 +24,22 @@ import { blockContent, blockSpans, findSpan } from "../../../lib/notebook-blocks
 import { compileCell, contextOf, contextFromCheck, splitCells, type Variable } from "../toolchain/ss-toolchain.ts";
 import { checkSources } from "../core.ts";
 import { checkHtml } from "../../../lope-preflight.ts";
+import { importNotebookModule } from "../../../notebook-import.ts";
+import * as acorn from "acorn";
 
 process.on("unhandledRejection", () => {});
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "../../../..");
 const CORE = "@tomlarkworthy/soundscript";
 const TUTORIAL = "@tomlarkworthy/soundscript-tutorial";
+const RAW_CELLS = "@tomlarkworthy/raw-cells";
 // sections whose cell names collide with other sections are modules of their own
 const SECTIONS = [
   { name: "@tomlarkworthy/soundscript-reducer", ojs: "sections/reducer.ojs" },
   { name: "@tomlarkworthy/soundscript-model", ojs: "sections/model.ojs" },
   { name: "@tomlarkworthy/soundscript-workers", ojs: "sections/workers.ojs" },
   { name: "@tomlarkworthy/soundscript-breakout", ojs: "sections/breakout.ojs" },
+  { name: "@tomlarkworthy/soundscript-polyglot", ojs: "sections/polyglot.ojs" },
 ];
 const HOST = "@tomlarkworthy/blank-notebook";
 // private forks: <file>.fork.js replaces the module's block; <file>.base.js is the quick_start copy it was made from
@@ -50,6 +59,9 @@ const guarded = OUT === DEFAULT_OUT;
 if (!withTutorial && guarded) throw new Error("--no-tutorial builds a test artefact; pass --out");
 // --core-not-main: the core only as the tutorial's import, so ss_registration never runs (a test artefact)
 const coreMain = !process.argv.includes("--core-not-main");
+// --no-raw: raw-cells is not booted, so the polyglot module's raw cells have no loaded language (a test artefact)
+const rawMain = !process.argv.includes("--no-raw");
+if (!rawMain && guarded) throw new Error("--no-raw builds a test artefact; pass --out");
 if (!coreMain && (guarded || !withTutorial)) throw new Error("--core-not-main builds a test artefact with the tutorial; pass --out");
 const sha = (s: string | Buffer) => createHash("sha256").update(s).digest("hex");
 if (existsSync(OUT)) {
@@ -64,8 +76,9 @@ if (existsSync(OUT)) {
   }
 }
 
-const MAINS = ["@tomlarkworthy/lopepage-2", ...(withTutorial ? [TUTORIAL, ...SECTIONS.map((x) => x.name)] : []), ...(coreMain ? [CORE] : []), "@tomlarkworthy/claude-code-pairing", "@tomlarkworthy/save-in-place"];
-const HASH = !coreMain ? `#view=S100(${TUTORIAL})` : withTutorial ? `#view=S100(${TUTORIAL},${CORE})` : `#view=S100(${CORE})`;
+const MAINS = ["@tomlarkworthy/lopepage-2", ...(withTutorial ? [TUTORIAL, ...SECTIONS.map((x) => x.name)] : []), ...(coreMain ? [CORE] : []), ...(rawMain ? [RAW_CELLS] : []), "@tomlarkworthy/claude-code-pairing", "@tomlarkworthy/save-in-place"];
+const POLYGLOT = "@tomlarkworthy/soundscript-polyglot";
+const HASH = !coreMain ? `#view=S100(${TUTORIAL})` : withTutorial ? `#view=S100(${TUTORIAL},${CORE},${POLYGLOT})` : `#view=S100(${CORE})`;
 // quick_start modules this notebook does not use, and the modules only they import.
 const EXPECT_REMOVED = [
   "@tomlarkworthy/annotate", "@tomlarkworthy/at-login", "@tomlarkworthy/at-write", "@tomlarkworthy/atproto",
@@ -111,6 +124,9 @@ type File = { name: string; mime: string; base64: boolean; data: string };
 const q = JSON.stringify;
 const { compile, dispose } = await compiler();
 
+// set once raw-cells is built: its own raw_compile, run on a headless runtime (tools/notebook-import.ts)
+let rawCompile: ((source: string) => { name: string | null; inputs: string[]; definition: string; error?: string }) | null = null;
+
 function buildModule(name: string, ojs: string, files: File[]) {
   const consts: string[] = [], defs: string[] = [], imports: string[] = [], ssNames: string[] = [];
   const addVar = (pid: string, v: Variable) => {
@@ -146,6 +162,13 @@ function buildModule(name: string, ojs: string, files: File[]) {
           ssNames.push(v.name);
         }
       }
+      return;
+    }
+    if (/^define\s*\(/.test(src)) {
+      if (!rawCompile) throw new Error(`${ojs} cell ${i} is a raw cell, and raw-cells is not built yet`);
+      const d = rawCompile(src);
+      if (d.error) throw new Error(`${ojs} cell ${i}: ${d.error} :: ${src.slice(0, 80)}`);
+      addVar(`_raw${i}`, { name: d.name, inputs: d.inputs, definition: d.definition } as Variable);
       return;
     }
     if (raw) {
@@ -192,8 +215,16 @@ function buildModule(name: string, ojs: string, files: File[]) {
   return { html, consts: consts.length, ssNames };
 }
 
-let core, tutorial, sections: ReturnType<typeof buildModule>[] = [];
+let core, tutorial, rawCells, sections: ReturnType<typeof buildModule>[] = [];
 try {
+  rawCells = buildModule(RAW_CELLS, "raw-cells.ojs", []);
+  {
+    const path = join(HERE, ".scratch/raw-cells.build.js");
+    // the headless runtime has no fileAttachments; raw-cells has no attachments, so the builtin goes
+    writeFileSync(path, blockContent(rawCells.html, RAW_CELLS)!.replace(/^  main\.builtin\("FileAttachment".*$/m, ""));
+    const m = await importNotebookModule(path, { overrides: { acorn } });
+    rawCompile = await m.value("raw_compile");
+  }
   core = buildModule(CORE, "core.ojs", [{ name: "ss.js.gz", mime: "application/gzip", base64: true, data: Buffer.from(gz).toString("base64") }]);
   if (withTutorial) {
     const files: File[] = readdirSync(EXAMPLES).sort().map((f) => {
@@ -209,6 +240,9 @@ try {
 }
 if (/\b(?:examples|lesson|sourceBox|sourceListing)\b/.test(core.html.slice(core.html.lastIndexOf('<script id="' + CORE + '"')))) throw new Error("the core module mentions tutorial cells");
 if (core.html.includes(`"module ${TUTORIAL}"`)) throw new Error("the core module imports the tutorial");
+// the two languages do not know each other
+if (/raw-cells|\braw_|lang:"raw"/.test(blockContent(core.html, CORE)!)) throw new Error("the core module names raw-cells");
+if (blockContent(rawCells.html, RAW_CELLS)!.includes(`"module ${CORE}"`)) throw new Error("raw-cells imports the core");
 
 let html = readFileSync(BASE, "utf8");
 // each fork replaces its module's block, refused unless quick_start's copy still equals the base it was made from
@@ -226,7 +260,7 @@ const forks = FORKS.map(({ id, file }) => {
 
 const host = findSpan(html, HOST);
 if (!host) throw new Error(`no ${HOST} block in ${BASE}`);
-html = html.slice(0, host.start) + core.html + (tutorial ? "\n" + tutorial.html : "") + sections.map((x) => "\n" + x.html).join("") + html.slice(host.end);
+html = html.slice(0, host.start) + rawCells.html + "\n" + core.html + (tutorial ? "\n" + tutorial.html : "") + sections.map((x) => "\n" + x.html).join("") + html.slice(host.end);
 
 const conf = JSON.parse(blockContent(html, "bootconf.json")!);
 conf.mains = MAINS;
@@ -253,7 +287,8 @@ while (stack.length) {
 }
 for (const m of MAINS) if (!ids.includes(m)) throw new Error(`main ${m} has no block`);
 const removed = modules.filter((m) => !keep.has(m)).sort();
-if (q(removed) !== q([...EXPECT_REMOVED].sort())) throw new Error(`strip would remove ${q(removed)}; EXPECT_REMOVED is ${q(EXPECT_REMOVED)}`);
+const expectRemoved = rawMain ? EXPECT_REMOVED : [...EXPECT_REMOVED, RAW_CELLS];
+if (q(removed) !== q([...expectRemoved].sort())) throw new Error(`strip would remove ${q(removed)}; expected ${q(expectRemoved)}`);
 const owner = (id: string) => modules.find((m) => id === m || id.startsWith(m + "/"));
 // an attachment block its module's FileAttachment map does not list is never read, and a save drops it
 const listed = (m: string) => {
@@ -277,13 +312,13 @@ if (lost.length) throw new Error(`splice lost ${lost.join(", ")}`);
 if (!after.has(CORE + "/ss.js.gz") || (withTutorial && !after.has(TUTORIAL + "/09-breakout.tsx"))) throw new Error("an attachment is not a top-level block");
 for (const f of forks) if (blockContent(html, f.id)?.trim() !== f.fork.trim()) throw new Error(`the ${f.id} fork did not land`);
 // the SoundScript modules must have no preflight finding: a compiled cell depends only on its declared inputs
-const own = checkHtml(html).filter((p) => /^@tomlarkworthy\/soundscript[\w-]*[: ]/.test(p.detail));
+const own = checkHtml(html).filter((p) => /^@tomlarkworthy\/(?:soundscript[\w-]*|raw-cells)[: ]/.test(p.detail));
 if (own.length) throw new Error(`preflight: ${own.length} finding(s) in the SoundScript modules:\n${own.map((p) => `  ${p.kind} ${p.detail}`).join("\n")}`);
 writeFileSync(OUT, html);
 if (guarded) writeFileSync(HASH_FILE, sha(html) + "\n");
 console.log(JSON.stringify({
   out: OUT, bytes: Buffer.byteLength(html), bytesBeforeStrip: sizeBefore, removed, orphans, bundle: js.length, bundleGz: gz.length,
-  coreVariables: core.consts, tutorialVariables: tutorial?.consts ?? 0, coreSoundScript: core.ssNames, tutorialSoundScript: tutorial?.ssNames ?? [], sectionVariables: sections.map((x) => x.consts), mains: conf.mains, hash: conf.hash,
+  rawCellsVariables: rawCells.consts, coreVariables: core.consts, tutorialVariables: tutorial?.consts ?? 0, coreSoundScript: core.ssNames, tutorialSoundScript: tutorial?.ssNames ?? [], sectionVariables: sections.map((x) => x.consts), mains: conf.mains, hash: conf.hash,
   forks: forks.map(({ fork, ...f }) => f),
 }, null, 2));
 process.exit(0);

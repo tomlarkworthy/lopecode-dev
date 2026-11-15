@@ -1,0 +1,251 @@
+md`# Raw cells
+
+PROSE PENDING`
+// %%
+raw_mark = '/*{lang:"raw"}*/'
+// %%
+raw_lead = /^\s*define\s*\(\s*(null|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')/
+// %%
+raw_script_msg = "a raw cell cannot hold <\/script: the saved notebook keeps each module in a script element"
+// %%
+raw_escape = (s) => JSON.stringify(s).replace(/</g, "\\u003c")
+// %%
+raw_parse = (source) => {
+  // define(label, inputs, function): {name, inputs, fn, start, end} where fn is the function's text and
+  // start/end its place in source; {error, at, name} when source is not that shape (name, when a label
+  // could still be read, so a broken cell keeps it)
+  const lead = raw_lead.exec(source);
+  let name;
+  try { name = lead ? (lead[1] === "null" ? null : lead[1][0] === '"' ? JSON.parse(lead[1]) : acorn.parseExpressionAt(lead[1], 0, { ecmaVersion: "latest" }).value) : undefined; } catch { name = undefined; }
+  const fail = (error, at = 0) => ({ error, at, name });
+  let program;
+  try { program = acorn.parse(source, { ecmaVersion: "latest", sourceType: "script", allowReturnOutsideFunction: false }); }
+  catch (e) { return fail(e.message, e.pos ?? 0); }
+  const body = program.body;
+  if (body.length !== 1 || body[0].type !== "ExpressionStatement") return fail("a raw cell is one define(label, inputs, function) call", body[1]?.start ?? 0);
+  const call = body[0].expression;
+  if (call.type !== "CallExpression" || call.callee.type !== "Identifier" || call.callee.name !== "define") return fail("a raw cell is one define(label, inputs, function) call", call.start);
+  if (call.arguments.length !== 3) return fail(`define takes 3 arguments (label, inputs, function), not ${call.arguments.length}`, call.start);
+  const [label, inputs, fn] = call.arguments;
+  if (!(label.type === "Literal" && (label.value === null || typeof label.value === "string"))) return fail("the label is a string, or null for an anonymous cell", label.start);
+  if (inputs.type !== "ArrayExpression" || inputs.elements.some((e) => !e || e.type !== "Literal" || typeof e.value !== "string")) return fail("the inputs are an array of strings", inputs.start);
+  if (fn.type !== "FunctionExpression" && fn.type !== "ArrowFunctionExpression") return fail("the third argument is a function expression", fn.start);
+  const params = fn.params.some((p) => p.type === "RestElement") ? null : fn.params.length;
+  return { name: label.value, inputs: inputs.elements.map((e) => e.value), fn: source.slice(fn.start, fn.end), start: fn.start, end: fn.end, params, inputsAt: [inputs.start, inputs.end], inputSpans: inputs.elements.map((e) => [e.start, e.end]) };
+}
+// %%
+raw_compile = (source, fallbackName = null) => {
+  // the one variable of a raw cell: {name, inputs, definition} with the marker after the function's
+  // first token. Source that does not parse, or holds a closing script tag (the saved file could not
+  // hold it), is a definition that throws the error and keeps the text.
+  const p = raw_parse(source);
+  const stub = (msg, name) => ({ name, inputs: [], definition: `function $raw$unparsed(${raw_mark}) { throw new SyntaxError(${raw_escape(msg)}); return ${raw_escape(source)}; }`, error: msg });
+  if (p.error) return stub(p.error, p.name === undefined ? fallbackName : p.name);
+  if (/<\/script/i.test(p.fn)) return stub(raw_script_msg, p.name);
+  const first = acorn.tokenizer(p.fn, { ecmaVersion: "latest" }).getToken();
+  return { name: p.name, inputs: p.inputs, definition: p.fn.slice(0, first.end) + raw_mark + p.fn.slice(first.end) };
+}
+// %%
+raw_decompile = (name, inputs, definition) => {
+  // the source of a raw cell's variable: the stored text of a broken one, else define(...) around the
+  // function's own text. Outside the function the form is fixed: double quotes, ", " between inputs.
+  const text = String(definition);
+  const mark = raw_mark.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+  const broken = new RegExp(`^function \\$raw\\$unparsed\\(${mark}\\) \\{ throw new SyntaxError\\("(?:[^"\\\\]|\\\\.)*"\\); return ("(?:[^"\\\\]|\\\\.)*"); \\}$`).exec(text);
+  if (broken) return JSON.parse(broken[1]);
+  const at = text.indexOf(raw_mark);
+  if (at < 0) return null;
+  return `define(${name == null ? "null" : JSON.stringify(name)}, [${inputs.map((i) => JSON.stringify(i)).join(", ")}], ${text.slice(0, at) + text.slice(at + raw_mark.length)})`;
+}
+// %%
+raw_language = {
+  const isRaw = (v) => typeof v?._definition === "function" && String(v._definition).includes(raw_mark) && langTag(v._definition) === "raw";
+  const moduleOf = (variables, cell) => variables.find((v) => v?._module)?._module ?? cell?.module?.module;
+  const decompile = async (variables) => {
+    const v = variables.find(isRaw);
+    if (!v) throw new Error("no raw cell among these variables");
+    return raw_decompile(v._name, v._inputs.map((i) => i._name), v._definition);
+  };
+  // a name the runtime resolves: a variable of the module (not an implicit one, _type 2, made for a name
+  // read and not defined), a module builtin (invalidation, visibility), a runtime builtin, or a global
+  const resolves = (module, name) => {
+    const v = module?._scope?.get(name);
+    return (!!v && v._type !== 2) || !!module?._builtins?.has(name) || !!runtime._builtin?._scope?.has(name) || name in globalThis;
+  };
+  const lineOf = (source, at) => {
+    const from = source.lastIndexOf("\n", Math.max(at - 1, 0)) + 1, nl = source.indexOf("\n", at);
+    return { from, to: nl < 0 ? source.length : nl };
+  };
+  // the name the edit takes when another cell of the module already has it, else null
+  const taken = (module, name, variables) => {
+    if (name == null) return null;
+    // an implicit variable (a name read but not defined, _type 2) is not a cell
+    const other = module?._scope?.get(name);
+    return other && other._type === 1 && !variables.includes(other) ? name : null;
+  };
+  const lint = (source, variables = [], cell) => {
+    const p = raw_parse(source);
+    if (p.error) { const at = Math.min(p.at, source.length); return [{ from: at, to: Math.min(at + 1, source.length), severity: "error", message: p.error }]; }
+    const module = moduleOf(variables, cell);
+    const out = [];
+    if (/<\/script/i.test(p.fn)) out.push({ from: p.start, to: p.end, severity: "error", message: raw_script_msg });
+    const t = taken(module, p.name, variables);
+    if (t) out.push({ from: 0, to: lineOf(source, 0).to, severity: "error", message: `${t} is another cell of this module; Shift-Enter does not save this` });
+    if (p.params !== null && p.params !== p.inputs.length) out.push({ from: p.start, to: lineOf(source, p.start).to, severity: "warning", message: `the function takes ${p.params} parameter${p.params === 1 ? "" : "s"} and the cell has ${p.inputs.length} input${p.inputs.length === 1 ? "" : "s"}` });
+    p.inputs.forEach((name, i) => {
+      if (resolves(module, name)) return;
+      const [from, to] = p.inputSpans[i];
+      out.push({ from, to, severity: "error", message: `${name} names no cell of this module, builtin or global` });
+    });
+    return out;
+  };
+  // Defines the cell's one variable, or the new cell's after anchor. A cell of another language
+  // that is typed as a raw cell keeps its first variable (its place and pid); the rest are deleted.
+  const apply = async (source, variables = [], cell) => {
+    const module = moduleOf(variables, cell);
+    if (!module) return undefined;
+    const own = variables.find(isRaw) ?? variables[0];
+    const d = raw_compile(source, own?._name ?? null);
+    if (taken(module, d.name, variables)) { console.warn(new Error(`not saved: ${d.name} is another cell of this module`)); return undefined; }
+    const [fn] = await realize([d.definition], runtime);
+    let v = own;
+    if (!v) {
+      v = module.variable({});
+      v.pid = "_" + Math.random().toString(36).slice(2, 9);
+      const anchor = cell?.variables?.at(-1);
+      if (anchor) repositionSetElement(runtime._variables, v, [...runtime._variables].indexOf(anchor) + 1);
+    }
+    v.define(d.name, d.inputs, fn);
+    for (const x of variables.flatMap((x) => [x, ...(x._shadow?.values() ?? [])])) if (x !== v) x.delete();
+    v._shadow?.clear?.();
+    variables.splice(0, variables.length, v);
+    return raw_decompile(v._name, d.inputs, v._definition);
+  };
+  // completion of names inside the inputs array: the module's cells, then builtins
+  const complete = (source, pos, variables = [], cell) => {
+    const lead = new RegExp(raw_lead.source + /\s*,\s*\[/.source).exec(source);
+    if (!lead || pos < lead[0].length) return null;
+    let open = -1;
+    for (let i = lead[0].length; i < pos; i++) {
+      const c = source[i];
+      if (c === "]" && open < 0) return null;
+      if (c === '"' || c === "'") open = open < 0 ? i : source[open] === c ? -1 : open;
+      if (c === "\\") i++;
+    }
+    if (open < 0) return null;
+    const module = moduleOf(variables, cell);
+    const names = new Set();
+    for (const v of runtime._variables) if (v._module === module && typeof v._name === "string" && !/^(?:module |initial )/.test(v._name)) names.add(v._name);
+    const builtins = [...(module?._builtins?.keys() ?? []), ...(runtime._builtin?._scope?.keys() ?? [])].filter((n) => !/^(?:module |@)/.test(n));
+    return { from: open + 1, to: pos, mode: "string", options: [...[...names].map((label) => ({ label, type: "variable" })), ...builtins.filter((n) => !names.has(n)).map((label) => ({ label, type: "constant" }))] };
+  };
+  const claimsSource = (source) => /^\s*define\s*\(/.test(source);
+  return { id: "raw", claimsSource, decompile, apply, lint, complete, highlight: (text) => raw_highlight(text), extension: (codemirror) => codemirror.javascript() };
+}
+// %%
+raw_registration = {
+  plugins.add("cell_languages", raw_language, { invalidation });
+  return md`PROSE PENDING (raw cells are registered as the editor language \`${raw_language.id}\`)`;
+}
+// %%
+raw_highlight = {
+  // JavaScript colouring with the editor's own parser, as spans with CodeMirror's tok-* classes
+  const lang = codemirror.javascript().language;
+  return (text) => {
+    const out = [];
+    let at = 0;
+    lezerhighlight.highlightTree(lang.parser.parse(text), lezerhighlight.classHighlighter, (from, to, cls) => {
+      if (from > at) out.push(text.slice(at, from));
+      const span = document.createElement("span");
+      span.className = cls;
+      span.textContent = text.slice(from, to);
+      out.push(span);
+      at = to;
+    });
+    if (at < text.length) out.push(text.slice(at));
+    return out;
+  };
+}
+// %%
+viewof raw_module = thisModule()
+// %%
+test_raw_roundtrip = {
+  const cases = [
+    'define("area", ["width", "height"], function (width, height) { return width * height; })',
+    'define(null, [], () => 1)',
+    'define("x", ["a"], async (a) => {\n  // a comment kept\n  return await a;\n})',
+    'define("g", [], function* () { yield 1; yield 2; })',
+    'define("h", ["viewof k", "mutable m"], async function* named(k, m) { /* c */ yield k; })',
+    'define("t", [], x => x)'
+  ];
+  for (const src of cases) {
+    const d = raw_compile(src);
+    if (d.error) throw new Error(`${src}: ${d.error}`);
+    if (langTag(d.definition) !== "raw") throw new Error(`${src}: the marker is not the first comment`);
+    const [fn] = await realize([d.definition], runtime);
+    const back = raw_decompile(d.name, d.inputs, fn);
+    if (back !== src) throw new Error(`${JSON.stringify(src)} came back as ${JSON.stringify(back)}`);
+  }
+  return `${cases.length} sources decompile to themselves`;
+}
+// %%
+test_raw_broken_keeps_text = {
+  const src = 'define("bad", ["a"], (a) => { return a + ; })\n// <\/script> in a comment';
+  const d = raw_compile(src);
+  const [fn] = await realize([d.definition], runtime);
+  if (/<\/script/i.test(d.definition)) throw new Error("the stored text holds a closing script tag");
+  if (d.name !== "bad" || langTag(d.definition) !== "raw") throw new Error(`name ${d.name}, tag ${langTag(d.definition)}`);
+  if (raw_decompile(d.name, d.inputs, fn) !== src) throw new Error("the text is not kept");
+  let threw = null;
+  try { fn(); } catch (e) { threw = e; }
+  if (!(threw instanceof SyntaxError)) throw new Error("the definition does not raise a SyntaxError");
+  const tag = raw_compile('define("s", [], () => "<\/script>")');
+  if (!tag.error || raw_decompile(tag.name, tag.inputs, (await realize([tag.definition], runtime))[0]) !== 'define("s", [], () => "<\/script>")') throw new Error("a closing script tag in the body is not stored as an error with its text");
+  return `${threw.message} | ${tag.error}`;
+}
+// %%
+test_raw_lint = {
+  const m = raw_module;
+  const msgs = (src) => raw_language.lint(src, [], { module: { module: m } }).map((d) => `${d.severity}: ${d.message}`);
+  const a = msgs('define("a1", ["raw_mark"], () => 1)');
+  const b = msgs('define("a2", ["no_such_cell_here"], (x) => x)');
+  const c = msgs('define("a3", [], (');
+  const d = msgs('define("raw_mark", [], () => 1)');
+  if (a.length !== 1 || !/^warning: the function takes 0 parameters and the cell has 1 input$/.test(a[0])) throw new Error(JSON.stringify(a));
+  if (b.length !== 1 || !/^error: no_such_cell_here names no cell/.test(b[0])) throw new Error(JSON.stringify(b));
+  if (c.length !== 1 || !c[0].startsWith("error: ")) throw new Error(JSON.stringify(c));
+  if (!d.some((x) => /raw_mark is another cell/.test(x))) throw new Error(JSON.stringify(d));
+  // module builtins resolve; an implicit variable (a name read and not defined) does not
+  const fresh = runtime.module();
+  fresh.variable({}).define("reader", ["zzz_typo"], (z) => z);
+  const onFresh = (src) => raw_language.lint(src, [], { module: { module: fresh } }).map((d) => d.message);
+  const e = onFresh('define("e1", ["visibility", "invalidation"], (v, i) => 1)');
+  const f = onFresh('define("f1", ["zzz_typo"], (z) => z)');
+  if (e.length) throw new Error(JSON.stringify(e));
+  if (f.length !== 1 || !/^zzz_typo names no cell/.test(f[0])) throw new Error(JSON.stringify(f));
+  // each unresolved input is marked at its own string
+  const src = `define("g1", ['it\\'s', "ab_nope", "b_nope"], (a, b, c) => 1)`;
+  const spans = raw_language.lint(src, [], { module: { module: m } }).map((d) => src.slice(d.from, d.to));
+  if (JSON.stringify(spans) !== JSON.stringify([`'it\\'s'`, '"ab_nope"', '"b_nope"'])) throw new Error(JSON.stringify(spans));
+  return [a[0], b[0], c[0], d[0], f[0]].join(" | ");
+}
+// %%
+test_raw_complete = {
+  const src = 'define("c1", ["raw_m", "x"], (a) => a)';
+  const r = raw_language.complete(src, src.indexOf("raw_m") + 5, [], { module: { module: raw_module } });
+  if (!r || r.from !== src.indexOf("raw_m") || !r.options.some((o) => o.label === "raw_mark")) throw new Error(JSON.stringify(r && { from: r.from, n: r.options.length }));
+  if (raw_language.complete(src, src.indexOf("(a)") + 1, [], { module: { module: raw_module } }) !== null) throw new Error("completion outside the inputs array");
+  return `${r.options.length} names offered inside the inputs array`;
+}
+// %%
+import { plugins } from "@tomlarkworthy/plugin-registry"
+// %%
+import { runtime, realize, thisModule, repositionSetElement } from "@tomlarkworthy/runtime-sdk"
+// %%
+import { langTag } from "@tomlarkworthy/cell-map"
+// %%
+import { acorn } from "@tomlarkworthy/acorn-8-11-3"
+// %%
+import { codemirror } from "@tomlarkworthy/codemirror-6-v2"
+// %%
+import { lezerhighlight } from "@tomlarkworthy/observablehq-lezer"
