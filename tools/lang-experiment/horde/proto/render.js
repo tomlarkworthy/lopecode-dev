@@ -9,7 +9,7 @@ const HORDE_WGSL_COMMON = /* wgsl */ `
 struct U {
   viewProj: mat4x4f,
   screen: vec4f,      // w, h, time, shake
-  player: vec4f,      // x, y, aim, flowPulse
+  player: vec4f,      // x, y, aim, sprite scale
   arena: vec4f,       // w, h, warpCount, density scale
   warps: array<vec4f, 48>, // x, y, age, strength
 };
@@ -26,7 +26,7 @@ fn warpAt(p: vec2f) -> vec3f {
     let r = length(v) + 1e-4;
     let front = w.z * 16.0;
     let ring = exp(-pow((r - front) * 0.55, 2.0)) * exp(-w.z * 2.2) * w.w;
-    let bowl = exp(-r * r * 0.08) * exp(-w.z * 4.0) * w.w;
+    let bowl = exp(-r * r * 0.08) * exp(-w.z * 4.0) * min(w.w, 0.8);
     d += vec3f(v / r * ring * 0.9, -ring * 0.8 - bowl * 1.2);
   }
   let pv = p - u.player.xy;
@@ -115,20 +115,23 @@ const R = 0.7;
 }
 `;
 
-// agents straight from the simulation's buffer: x, y, vx, vy, life
+// agents straight from the simulation's buffer: x, y, vx, vy, life, kind, hp, flash (32 bytes)
+// kinds: 0 diamond (splits in two), 1 chevron (fast), 2 hexagon (5 hp), 3 shard (half a diamond)
 const HORDE_WGSL_ENEMY = HORDE_WGSL_COMMON + /* wgsl */ `
-struct VO { @builtin(position) pos: vec4f, @location(0) q: vec2f, @location(1) @interpolate(flat) kind: u32, @location(2) heat: f32, @location(3) spin: f32 };
-@vertex fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) id: u32, @location(0) pv: vec4f, @location(1) life: f32) -> VO {
+struct VO { @builtin(position) pos: vec4f, @location(0) q: vec2f, @location(1) @interpolate(flat) kind: u32, @location(2) heat: f32, @location(3) flash: f32, @location(4) hp: f32 };
+@vertex fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) id: u32, @location(0) pv: vec4f, @location(1) st: vec4f) -> VO {
   let corner = array<vec2f, 6>(vec2f(-1, -1), vec2f(1, -1), vec2f(1, 1), vec2f(-1, -1), vec2f(1, 1), vec2f(-1, 1))[vi];
-  let kind = id % 3u;
-  let size = select(select(0.22, 0.2, kind == 1u), 0.28, kind == 2u) * 1.9;
+  let kind = u32(st.y);
+  let base = array<f32, 4>(0.22, 0.2, 0.3, 0.15)[min(kind, 3u)];
+  let size = base * 1.35 * u.player.w;
   var o: VO;
-  let alive = life > 0.0;
+  let alive = st.x > 0.0;
   let v = pv.zw;
   let sp = length(v);
   let dir = select(vec2f(1, 0), v / sp, sp > 1e-3);
-  // kind 1 points along its velocity; the others spin
-  let spin = select(u.screen.z * (1.5 + f32(id % 7u) * 0.3) + f32(id), atan2(dir.y, dir.x), kind == 1u);
+  // chevrons and shards point along their velocity; diamonds and hexagons spin
+  let pointed = kind == 1u || kind == 3u;
+  let spin = select(u.screen.z * (1.5 + f32(id % 7u) * 0.3) + f32(id), atan2(dir.y, dir.x), pointed);
   let cs = vec2f(cos(spin), sin(spin));
   let c = corner * size;
   let p = pv.xy + vec2f(c.x * cs.x - c.y * cs.y, c.x * cs.y + c.y * cs.x);
@@ -137,7 +140,8 @@ struct VO { @builtin(position) pos: vec4f, @location(0) q: vec2f, @location(1) @
   o.q = corner * 1.9;
   o.kind = kind;
   o.heat = clamp(sp * 0.18, 0.0, 1.0);
-  o.spin = spin;
+  o.flash = clamp(st.w, 0.0, 1.0);
+  o.hp = st.z;
   return o;
 }
 fn sdBox(p: vec2f, b: vec2f) -> f32 { let d = abs(p) - b; return length(max(d, vec2f(0))) + min(max(d.x, d.y), 0.0); }
@@ -164,23 +168,52 @@ fn sdHex(p0: vec2f, r: f32) -> f32 {
   let p = i.q;
   var d: f32; var col: vec3f;
   if (i.kind == 0u) {
-    d = abs(sdBox(p, vec2f(0.62)) ) - 0.05;
-    let inner = abs(sdBox(p, vec2f(0.22))) - 0.04;
-    d = min(d, inner);
+    // diamond: a square on its corner with a core
+    let r = vec2f(p.x + p.y, p.x - p.y) * 0.7071;
+    d = abs(sdBox(r, vec2f(0.58))) - 0.06;
+    d = min(d, length(p) - 0.16);
     col = mix(vec3f(1.6, 0.15, 1.0), vec3f(2.4, 0.5, 1.6), i.heat);
   } else if (i.kind == 1u) {
     d = sdTri(p) - 0.06;
-    col = mix(vec3f(1.8, 0.7, 0.08), vec3f(2.6, 1.6, 0.4), i.heat);
-  } else {
-    d = abs(sdHex(p, 0.7)) - 0.06;
-    let spokes = abs(p.x * 0.0 + length(p) - 0.28) - 0.05;
-    d = min(d, spokes);
+    col = mix(vec3f(1.8, 0.55, 0.05), vec3f(2.4, 1.0, 0.12), i.heat);
+  } else if (i.kind == 2u) {
+    // hexagon: an outline plus one inner ring per remaining hit point above one
+    d = abs(sdHex(p, 0.72)) - 0.07;
+    let rings = clamp(i.hp - 1.0, 0.0, 4.0);
+    let rr = length(p);
+    let band = abs(fract(rr * 7.0) - 0.5) - 0.18;
+    d = min(d, select(1.0, band / 7.0, rr < rings * 0.143));
     col = mix(vec3f(0.15, 1.6, 0.5), vec3f(0.5, 2.4, 1.2), i.heat);
+  } else {
+    // shard: a narrow dart
+    let q = vec2f(p.x, abs(p.y) * 2.2);
+    d = sdTri(q * 0.9) - 0.05;
+    col = vec3f(2.2, 0.5, 2.6);
   }
+  // a dense crowd blooms into one sheet if each sprite is bright, so enemies stay dimmer than the ship
+  col = mix(col * 0.7, vec3f(1.8, 1.8, 1.8), i.flash * 0.6);
   let aa = fwidth(p.x) * 1.2;
   let core = 1.0 - smoothstep(0.0, aa, d);
   let glow = exp(-max(d, 0.0) * 5.0) * 0.12;
   return vec4f(col * (core * 0.9 + glow), 0.0);
+}
+`;
+
+// a dark disc under the ship, so it reads against any crowd: multiplies what is there by (1 - a)
+const HORDE_WGSL_HALO = HORDE_WGSL_COMMON + /* wgsl */ `
+struct VO { @builtin(position) pos: vec4f, @location(0) q: vec2f };
+@vertex fn vs(@builtin(vertex_index) vi: u32) -> VO {
+  let corner = array<vec2f, 6>(vec2f(-1, -1), vec2f(1, -1), vec2f(1, 1), vec2f(-1, -1), vec2f(1, 1), vec2f(-1, 1))[vi];
+  let r = 1.1;
+  let d = warpAt(u.player.xy);
+  var o: VO;
+  o.pos = project(u.player.xy + corner * r + d.xy, 0.4 + d.z);
+  o.q = corner;
+  return o;
+}
+@fragment fn fs(i: VO) -> @location(0) vec4f {
+  let a = 0.92 * (1.0 - smoothstep(0.35, 1.0, length(i.q)));
+  return vec4f(a, a, a, a);
 }
 `;
 
@@ -367,7 +400,7 @@ async function makeRenderer(canvas, engine, opts = {}) {
   for (let i = 0; i < segs1.length / 4; i++) { segs.set(segs1.subarray(i * 4, i * 4 + 4), i * 8); segs.set(segs1.subarray(i * 4, i * 4 + 4), i * 8 + 4); }
   const segBuf = device.createBuffer({ size: segs.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
   device.queue.writeBuffer(segBuf, 0, segs);
-  const agentBuf = device.createBuffer({ size: Math.max(20, N * 20), usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
+  const agentBuf = device.createBuffer({ size: Math.max(32, N * 32), usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
   const MAXS = 65536;
   const sparkData = new Float32Array(MAXS * 12);
   const sparkBuf = device.createBuffer({ size: sparkData.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
@@ -381,8 +414,13 @@ async function makeRenderer(canvas, engine, opts = {}) {
   const pFloor = pipe(HORDE_WGSL_FLOOR, [{ arrayStride: 8, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x2" }] }], HDR);
   const pWalls = pipe(HORDE_WGSL_WALLS, [{ arrayStride: 16, stepMode: "instance", attributes: [{ shaderLocation: 0, offset: 0, format: "float32x4" }] }], HDR, additive);
   const maxBlend = { color: { srcFactor: "one", dstFactor: "one", operation: "max" }, alpha: { srcFactor: "one", dstFactor: "one", operation: "max" } };
-  const pEnemy = pipe(HORDE_WGSL_ENEMY, [{ arrayStride: 20, stepMode: "instance", attributes: [{ shaderLocation: 0, offset: 0, format: "float32x4" }, { shaderLocation: 1, offset: 16, format: "float32" }] }], HDR, maxBlend);
-  const pSpark = pipe(HORDE_WGSL_SPARK, [{ arrayStride: 48, stepMode: "instance", attributes: [{ shaderLocation: 0, offset: 0, format: "float32x4" }, { shaderLocation: 1, offset: 16, format: "float32x4" }, { shaderLocation: 2, offset: 32, format: "float32x4" }] }], HDR, additive);
+  const pEnemy = pipe(HORDE_WGSL_ENEMY, [{ arrayStride: 32, stepMode: "instance", attributes: [{ shaderLocation: 0, offset: 0, format: "float32x4" }, { shaderLocation: 1, offset: 16, format: "float32x4" }] }], HDR, maxBlend);
+  const sparkLayout = [{ arrayStride: 48, stepMode: "instance", attributes: [{ shaderLocation: 0, offset: 0, format: "float32x4" }, { shaderLocation: 1, offset: 16, format: "float32x4" }, { shaderLocation: 2, offset: 32, format: "float32x4" }] }];
+  // bullets and the ship add; particles take the max, so a pile of them stays the colour of one
+  const pSpark = pipe(HORDE_WGSL_SPARK, sparkLayout, HDR, additive);
+  const pSparkMax = pipe(HORDE_WGSL_SPARK, sparkLayout, HDR, maxBlend);
+  const darken = { color: { srcFactor: "zero", dstFactor: "one-minus-src", operation: "add" }, alpha: { srcFactor: "zero", dstFactor: "one", operation: "add" } };
+  const pHalo = pipe(HORDE_WGSL_HALO, [], HDR, darken);
   const fadeBlend = { color: { srcFactor: "zero", dstFactor: "constant", operation: "add" }, alpha: { srcFactor: "zero", dstFactor: "constant", operation: "add" } };
   const pFade = pipe(HORDE_WGSL_FADE, [], HDR, fadeBlend);
   const pCopy = pipe(HORDE_WGSL_COPY, [], HDR, additive);
@@ -393,7 +431,7 @@ async function makeRenderer(canvas, engine, opts = {}) {
   const bg = (p, entries) => device.createBindGroup({ layout: p.getBindGroupLayout(0), entries: entries.map((r, i) => ({ binding: i, resource: r })) });
   const U = { buffer: ubuf };
   const bgFloor = bg(pFloor, [U, { buffer: flowBuf }, { buffer: crowdBuf }, { buffer: wallBuf }]);
-  const bgWalls = bg(pWalls, [U]), bgEnemy = bg(pEnemy, [U]), bgSpark = bg(pSpark, [U]);
+  const bgWalls = bg(pWalls, [U]), bgEnemy = bg(pEnemy, [U]), bgSpark = bg(pSpark, [U]), bgSparkMax = bg(pSparkMax, [U]), bgHalo = bg(pHalo, [U]);
   const bgCopy = bg(pCopy, [trail.createView(), smp]);
   const prm = (a) => { const b = device.createBuffer({ size: 16, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST }); device.queue.writeBuffer(b, 0, new Float32Array(a)); return b; };
   const downs = levels.map((L, i) => {
@@ -427,24 +465,24 @@ async function makeRenderer(canvas, engine, opts = {}) {
   };
   const warps = []; // {x, y, t0, s}
   let shake = 0, time = 0;
-  const KCOL = [[2.2, 0.3, 1.4], [2.4, 1.1, 0.2], [0.3, 2.2, 0.8]];
   const ME = hordeMat4();
   const camera = { x: M.w / 2, y: M.h / 2 + 2, dist: 84, tilt: 0.45, fov: 0.75 };
 
+  // kills and bullet impacts from the last sim step; at most 400 kills a frame make particles
+  const KCOL = [[2.2, 0.3, 1.4], [2.4, 1.1, 0.2], [0.3, 2.2, 0.8], [2.0, 0.5, 2.4]];
   function absorb(dt) {
-    // kills and bullet impacts from the last sim step
     let kills = 0;
     for (const e of engine.events) {
-      if (e.kind === 0) {
-        kills++;
-        emit(e.x, e.y, 18, KCOL[(e.id ?? kills) % 3] || KCOL[0], 7, 0.8);
-        emit(e.x, e.y, 4, [1.6, 1.6, 1.8], 11, 0.3);
-        if (warps.length < 48) warps.push({ x: e.x, y: e.y, t0: time, s: 0.35 });
-      } else emit(e.x, e.y, 3, [0.6, 1.2, 3], 4, 0.3);
+      if (e.killed) {
+        if (kills++ > 400) continue;
+        emit(e.x, e.y, 14, KCOL[e.kind] || KCOL[0], 7, 0.7);
+        emit(e.x, e.y, 3, [1.6, 1.6, 1.8], 11, 0.3);
+        if (warps.length < 40) warps.push({ x: e.x, y: e.y, t0: time, s: 0.3 });
+      } else if (e.kind === -1) emit(e.x, e.y, 2, [0.6, 1.2, 3], 4, 0.25);
     }
-    shake = Math.min(1.2, shake + kills * 0.03);
+    shake = Math.min(1.2, shake + Math.min(kills, 60) * 0.02);
   }
-  function explode(x, y, s) { if (warps.length >= 48) warps.shift(); warps.push({ x, y, t0: time, s }); emit(x, y, 1800, [2.5, 1.2, 3.0], 22, 1.4); emit(x, y, 600, [4, 4, 4], 34, 0.6); shake = Math.min(2, shake + s); }
+  function explode(x, y, s) { if (warps.length >= 48) warps.shift(); warps.push({ x, y, t0: time, s }); emit(x, y, 900, [0.4, 1.4, 3.0], 26, 1.0); emit(x, y, 300, [2, 2.4, 3], 36, 0.5); shake = Math.min(2, shake + s); }
   function stepParticles(dt) {
     let k = 0;
     for (let i = 0; i < pn; i++) {
@@ -466,6 +504,14 @@ async function makeRenderer(canvas, engine, opts = {}) {
   }
 
   let lastStats = { gpu: 0 };
+  let lastVp = null;
+  // world (x, y) on the floor to CSS pixels of the canvas, through the last frame's camera
+  function project(x, y) {
+    if (!lastVp) return [W / 2, H / 2];
+    const v = lastVp, X = x, Y = -y;
+    const cx = v[0] * X + v[4] * Y + v[12], cy = v[1] * X + v[5] * Y + v[13], cw = v[3] * X + v[7] * Y + v[15];
+    return [((cx / cw) * 0.5 + 0.5) * canvas.clientWidth, (0.5 - (cy / cw) * 0.5) * canvas.clientHeight];
+  }
   function frame(dt) {
     time += dt;
     absorb(dt);
@@ -477,18 +523,22 @@ async function makeRenderer(canvas, engine, opts = {}) {
     for (let i = 0; i < ch.length; i++) device.queue.writeBuffer(agentBuf, rg[i].base * 20, ch[i].buffer, ch[i].byteOffset, ch[i].byteLength);
     if (engine.flow) device.queue.writeBuffer(flowBuf, 0, engine.flow);
     if (engine.crowd) device.queue.writeBuffer(crowdBuf, 0, engine.crowd);
-    // sparks: bullets, particles, ship
+    // sparks: particles first (max blend), then bullets (additive); the ship is drawn last, after its halo
     let s = 0;
     const put = (x, y, z, dx, dy, size, len, shape, r, g, b, a) => { if (s >= MAXS) return; const o = s * 12; sparkData[o] = x; sparkData[o + 1] = y; sparkData[o + 2] = z; sparkData[o + 3] = dx; sparkData[o + 4] = dy; sparkData[o + 5] = size; sparkData[o + 6] = len; sparkData[o + 7] = shape; sparkData[o + 8] = r; sparkData[o + 9] = g; sparkData[o + 10] = b; sparkData[o + 11] = a; s++; };
-    const B = engine.bullets;
-    if (!opts.hide?.includes("bullets")) for (let i = 0; i < B.length; i += 4) { const vx = B[i + 2], vy = B[i + 3], l = Math.hypot(vx, vy) || 1; put(B[i], B[i + 1], 0.35, vx / l, vy / l, 0.06, 0.45, 0, 1.6, 1.3, 0.5, 1); }
     if (!opts.hide?.includes("particles")) for (let i = 0; i < pn; i++) {
       const o = i * 12, vx = parts[o + 3], vy = parts[o + 4], l = Math.hypot(vx, vy) || 1, f = parts[o + 6] / parts[o + 7];
       put(parts[o], parts[o + 1], parts[o + 2], vx / l, vy / l, parts[o + 11], Math.min(0.6, l * 0.03), 0, parts[o + 8], parts[o + 9], parts[o + 10], f * f);
     }
+    const nParts = s;
+    const B = engine.bullets;
+    if (!opts.hide?.includes("bullets")) for (let i = 0; i < B.length; i += 4) { const vx = B[i + 2], vy = B[i + 3], l = Math.hypot(vx, vy) || 1; put(B[i], B[i + 1], 0.35, vx / l, vy / l, 0.06, 0.45, 0, 1.4, 1.2, 0.5, 1); }
+    const nBul = s - nParts;
     const pl = engine.player, aim = engine.aim;
-    put(pl[0], pl[1], 0.45, Math.cos(aim), Math.sin(aim), 0.42, 0, 2, 1.4, 2.6, 3.0, 1);
-    put(pl[0], pl[1], 0.3, 1, 0, 1.0, 0, 1, 0.2, 0.7, 1.6, 0.5 + 0.2 * Math.sin(time * 6));
+    const ch0 = Math.min(1, engine.charge || 0), hurt = Math.min(1, engine.hurt || 0);
+    put(pl[0], pl[1], 0.3, 1, 0, 1.0 + ch0 * 0.6, 0, 1, 0.2 + ch0 * 0.9, 0.7 + ch0 * 0.3, 1.6, (0.45 + 0.15 * Math.sin(time * (6 + ch0 * 14))) * (1 + ch0 * 0.6));
+    put(pl[0], pl[1], 0.45, Math.cos(aim), Math.sin(aim), 0.55, 0, 2, 1.6 + hurt * 2, 3.0 - hurt * 2, 3.2 - hurt * 2, 1);
+    const nShip = s - nParts - nBul;
     device.queue.writeBuffer(sparkBuf, 0, sparkData.buffer, 0, s * 48);
     // uniforms
     const cam = opts.camera ? opts.camera(time, engine) : camera;
@@ -496,10 +546,11 @@ async function makeRenderer(canvas, engine, opts = {}) {
     const tx = cam.x + shx, ty = -(cam.y + shy);
     const eye = [tx, ty - cam.dist * Math.sin(cam.tilt), cam.dist * Math.cos(cam.tilt)];
     const vp = ME.mul(ME.persp(cam.fov, W / H, 1, 500), ME.lookAt(eye, [tx, ty, 0], [0, 1, 0]));
+    lastVp = vp;
     const ud = new Float32Array(ubuf.size / 4);
     ud.set(vp, 0);
     ud.set([W, H, time, shake], 16);
-    ud.set([pl[0], pl[1], aim, 0], 20);
+    ud.set([pl[0], pl[1], aim, opts.spriteScale ? opts.spriteScale(engine) : 1], 20);
     ud.set([M.w, M.h, warps.length, opts.densityScale || 0.25], 24);
     warps.forEach((w, i) => ud.set([w.x, w.y, time - w.t0, w.s], 28 + i * 4));
     device.queue.writeBuffer(ubuf, 0, ud);
@@ -511,14 +562,18 @@ async function makeRenderer(canvas, engine, opts = {}) {
     // trail: fade what is there, then draw the emissive things on top
     let pass = enc.beginRenderPass({ colorAttachments: [att(trail.createView(), "load")], timestampWrites: qs ? { querySet: qs, beginningOfPassWriteIndex: 0 } : undefined });
     pass.setPipeline(pFade); pass.setBlendConstant([opts.trail ?? 0.72, opts.trail ?? 0.72, opts.trail ?? 0.72, 1]); pass.draw(3);
-    pass.setPipeline(pEnemy); pass.setBindGroup(0, bgEnemy); pass.setVertexBuffer(0, agentBuf); pass.draw(6, N);
+    if (!opts.hide?.includes("enemies")) { pass.setPipeline(pEnemy); pass.setBindGroup(0, bgEnemy); pass.setVertexBuffer(0, agentBuf); pass.draw(6, N); }
     pass.end();
     pass = enc.beginRenderPass({ colorAttachments: [att(hdr.createView(), "clear")] });
     pass.setPipeline(pFloor); pass.setBindGroup(0, bgFloor); pass.setVertexBuffer(0, floorV); pass.setIndexBuffer(floorI, "uint32"); pass.drawIndexed(fi.length);
     pass.setPipeline(pWalls); pass.setBindGroup(0, bgWalls); pass.setVertexBuffer(0, segBuf); pass.draw(6, segs.length / 4);
     pass.setPipeline(pCopy); pass.setBindGroup(0, bgCopy); pass.draw(3);
-    // sparks go straight to hdr: in the trail an additive spark that stays put (a kill zone) would sum to white
-    pass.setPipeline(pSpark); pass.setBindGroup(0, bgSpark); pass.setVertexBuffer(0, sparkBuf); pass.draw(6, s);
+    // sparks go straight to hdr: in the trail a spark that stays put would build up
+    pass.setVertexBuffer(0, sparkBuf);
+    pass.setPipeline(pSparkMax); pass.setBindGroup(0, bgSparkMax); pass.draw(6, nParts, 0, 0);
+    pass.setPipeline(pSpark); pass.setBindGroup(0, bgSpark); pass.draw(6, nBul, 0, nParts);
+    pass.setPipeline(pHalo); pass.setBindGroup(0, bgHalo); pass.draw(6);
+    pass.setPipeline(pSpark); pass.setBindGroup(0, bgSpark); pass.draw(6, nShip, 0, nParts + nBul);
     pass.end();
     for (const d of downs) { pass = enc.beginRenderPass({ colorAttachments: [att(d.target.createView(), "clear")] }); pass.setPipeline(pDown); pass.setBindGroup(0, d.bg); pass.draw(3); pass.end(); }
     for (const u of ups) { pass = enc.beginRenderPass({ colorAttachments: [att(u.target.createView(), "load")] }); pass.setPipeline(pUp); pass.setBindGroup(0, u.bg); pass.draw(3); pass.end(); }
@@ -542,5 +597,5 @@ async function makeRenderer(canvas, engine, opts = {}) {
     }
     return { sparks: s, particles: pn };
   }
-  return { device, frame, explode, gpuMs, camera, hasTs, get particles() { return pn; } };
+  return { device, frame, explode, project, gpuMs, camera, hasTs, get particles() { return pn; } };
 }

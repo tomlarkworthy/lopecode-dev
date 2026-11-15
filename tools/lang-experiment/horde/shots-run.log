@@ -1,0 +1,11 @@
+play-wave1 warning Calling [RenderPassEncoder (unlabeled)].Draw with an instance count of 0 is unusual.
+play-wave1 -> /Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/horde/shots/play-wave1.png {"score":2350,"kills":235,"wave":1,"alive":4036,"health":100,"particles":1036}
+play-wave-late warning Calling [RenderPassEncoder (unlabeled)].Draw with an instance count of 0 is unusual.
+play-wave-late -> /Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/horde/shots/play-wave-late.png {"score":22220,"kills":2391,"wave":6,"alive":61511,"health":100,"particles":297}
+shockwave warning Calling [RenderPassEncoder (unlabeled)].Draw with an instance count of 0 is unusual.
+shockwave -> /Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/horde/shots/shockwave.png {"score":5530,"kills":559,"wave":3,"alive":8996,"health":100,"particles":5232}
+hud warning Calling [RenderPassEncoder (unlabeled)].Draw with an instance count of 0 is unusual.
+hud -> /Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/horde/shots/hud.png {"score":470,"kills":47,"wave":3,"alive":9242,"health":100,"particles":375}
+ship-check warning Calling [RenderPassEncoder (unlabeled)].Draw with an instance count of 0 is unusual.
+ship-check -> /Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/horde/shots/ship-check.png {"score":190,"kills":19,"wave":1,"alive":4107,"health":100,"particles":190}
+SHOTS-EXIT 0

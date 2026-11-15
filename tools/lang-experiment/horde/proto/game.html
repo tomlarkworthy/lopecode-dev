@@ -2,72 +2,186 @@
 <meta charset="utf-8">
 <title>Horde</title>
 <style>
-  html, body { margin: 0; background: #000; overflow: hidden; }
+  html, body { margin: 0; background: #000; overflow: hidden; cursor: crosshair; }
   canvas { display: block; }
-  #hud { position: fixed; left: 12px; top: 8px; color: #8cf; font: 12px/1.4 ui-monospace, monospace; text-shadow: 0 0 6px #08f; pointer-events: none; white-space: pre; }
+  .hud { position: fixed; color: #9ef; font: 600 13px/1.35 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.04em; text-shadow: 0 0 6px #0af, 0 0 14px #06f; user-select: none; }
+  #tl, #tr { background: rgba(0, 4, 18, 0.62); padding: 8px 12px; border: 1px solid rgba(0, 160, 255, 0.25); }
+  #tl { left: 16px; top: 12px; }
+  #tr { right: 16px; top: 12px; text-align: right; pointer-events: auto; }
+  #bl { left: 16px; bottom: 14px; color: #7ad; font-size: 11px; text-shadow: 0 0 5px #05a; }
+  #score { font-size: 30px; color: #eff; text-shadow: 0 0 8px #0cf, 0 0 22px #08f; }
+  #wave { color: #f6c; text-shadow: 0 0 6px #f0a, 0 0 16px #a0f; font-size: 15px; }
+  .bar { width: 220px; height: 8px; border: 1px solid #3cf; box-shadow: 0 0 8px #08f, inset 0 0 6px #036; margin: 6px 0 2px; }
+  .bar > i { display: block; height: 100%; background: linear-gradient(90deg, #0ff, #6cf); box-shadow: 0 0 10px #0ff; }
+  #charge > i { background: linear-gradient(90deg, #a6f, #fff); box-shadow: 0 0 10px #c8f; }
+  #stats { color: #8cf; }
+  #tr button { font: inherit; color: #0ff; background: rgba(0, 20, 40, 0.6); border: 1px solid #0cf; box-shadow: 0 0 8px #08f; padding: 3px 10px; cursor: pointer; text-shadow: inherit; }
+  #tr button.off { color: #f6a; border-color: #f4a; box-shadow: 0 0 8px #a06; }
+  #tr input { accent-color: #0cf; width: 120px; vertical-align: middle; }
+  #center { left: 0; right: 0; top: 38%; text-align: center; font-size: 40px; color: #fff; text-shadow: 0 0 10px #0ff, 0 0 30px #08f; display: none; pointer-events: none; }
+  #center small { display: block; font-size: 15px; color: #9ef; margin-top: 10px; }
 </style>
 <canvas id="c"></canvas>
-<div id="hud"></div>
+<div class="hud" id="tl"><div id="score">0</div><div id="wave">WAVE 1</div><div class="bar" id="health"><i></i></div><div class="bar" id="charge"><i style="width:0"></i></div><div id="stats"></div></div>
+<div class="hud" id="tr"><button id="tog">WORKERS ON</button><br><label>pool <input id="wk" type="range" min="1" max="32" step="1"> <span id="wkn"></span></label><div id="perf"></div></div>
+<div class="hud" id="bl">WASD move · mouse aim · hold left button fire · hold right button or space, release: shockwave · P pause · R restart · O overview · T workers</div>
+<div class="hud" id="center"></div>
 <script src="sim.gen.js"></script>
 <script src="lite-job.js"></script>
 <script src="lite-pool.js"></script>
 <script src="engine.js"></script>
 <script src="render.js"></script>
 <script>
-// game.html?n=10000&mode=transfer&workers=8           play: WASD to move, mouse to aim, hold the button to fire
-// &shot=overview|closeup|explosion|dense&frames=600    headless: run that many frames then set window.__ready
-// &measure=1                                           frames back to back (not rAF), timings in window.__measure
+// game.html?n=50000&mode=transfer&workers=8          play (rAF loop; the next sim step runs on the pool while this one draws)
+//   &bot=1&god=1                                     the bot plays, the player cannot die
+//   &measure=60                                      the bot plays for that many seconds of rAF; percentiles in window.__measure
+//   &shot=wave1|late|shockwave|hud|overview&frames=N headless: N frames back to back (no rAF), then window.__ready
+//   &wave=6                                          start at that wave
 (async () => {
   const q = new URLSearchParams(location.search);
-  const n = +(q.get("n") || 10000), mode = q.get("mode") || "transfer", workers = +(q.get("workers") || 8);
-  const shot = q.get("shot"), frames = +(q.get("frames") || 0), measure = q.get("measure") === "1";
-  const W = +(q.get("w") || (shot || measure ? 1280 : innerWidth)), H = +(q.get("h") || (shot || measure ? 800 : innerHeight));
+  const n = +(q.get("n") || 50000), workers0 = +(q.get("workers") || Math.max(1, navigator.hardwareConcurrency - 1));
+  let mode = q.get("mode") || "transfer";
+  const shot = q.get("shot"), frames = +(q.get("frames") || 0), measure = +(q.get("measure") || 0);
+  const offline = !!shot;
+  const W = +(q.get("w") || (offline ? 1280 : innerWidth)), H = +(q.get("h") || (offline ? 800 : innerHeight));
   const canvas = document.getElementById("c");
-  canvas.width = W; canvas.height = H; canvas.style.width = W + "px"; canvas.style.height = H + "px";
-  const hud = document.getElementById("hud");
-  const input = { active: false, mx: 0, my: 0, aim: 0, fire: false };
+  const dpr = offline ? 1 : Math.min(2, devicePixelRatio || 1);
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); canvas.style.width = W + "px"; canvas.style.height = H + "px";
+  const $ = (id) => document.getElementById(id);
+  const input = { active: false, mx: 0, my: 0, aim: 0, fire: false, charge: false };
+  const bot = q.get("bot") === "1" || measure > 0 || offline;
+  const engine = makeEngine({ n, mode, workers: workers0, input, bot, god: q.get("god") === "1" || measure > 0 || offline, startWave: +(q.get("wave") || 1) });
+  window.__engine = engine; // for the input test (horde/play-input.ts)
+  let workersOn = mode !== "main", poolWanted = workers0, overview = shot === "overview";
+  const workMode = mode === "main" ? "transfer" : mode;
+  // camera: follows the ship, looks ahead along the aim, pulls back as the wave grows
+  const cam = { x: engine.player[0], y: engine.player[1], dist: q.get("dist") ? +q.get("dist") : 34 };
+  const camera = (t, e) => {
+    if (overview) return { x: e.maze.w / 2, y: e.maze.h / 2 + 2, dist: 92, tilt: 0.42, fov: 0.75 };
+    const ax = e.player[0] + Math.cos(e.aim) * 4, ay = e.player[1] + Math.sin(e.aim) * 3;
+    cam.x += (ax - cam.x) * 0.08; cam.y += (ay - cam.y) * 0.08;
+    const want = q.get("dist") ? +q.get("dist") : Math.min(70, 30 + (e.wave - 1) * 5);
+    cam.dist += (want - cam.dist) * 0.02;
+    return { x: cam.x, y: cam.y + cam.dist * 0.06, dist: cam.dist, tilt: 0.5, fov: 0.75 };
+  };
+  // sprites shrink as the camera pulls back for a bigger wave, so a dense crowd stays separate shapes
+  const R = await makeRenderer(canvas, engine, { n, camera, hide: q.get("hide") || "", spriteScale: () => (overview ? 1.4 : Math.max(0.7, 1 - (cam.dist - 30) / 130)) });
   const keys = new Set();
-  const engine = makeEngine({ n, mode, workers, input, bot: true });
-  let camOpts;
-  if (shot === "closeup") camOpts = (t, e) => ({ x: e.player[0] + 2, y: e.player[1] - 1, dist: 30, tilt: 0.62, fov: 0.75 });
-  else if (shot === "explosion") camOpts = (t, e) => ({ x: e.player[0], y: e.player[1], dist: 52, tilt: 0.55, fov: 0.75 });
-  const R = await makeRenderer(canvas, engine, { n, camera: camOpts, hide: q.get("hide") || "" });
-  // twin-stick: WASD moves, the mouse aims (screen direction from the ship's screen position, approximated by the centre)
-  addEventListener("keydown", (e) => { keys.add(e.key.toLowerCase()); input.active = true; });
-  addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
-  addEventListener("mousemove", (e) => { input.aim = Math.atan2(e.clientY - H * 0.55, e.clientX - W / 2); input.active = true; });
-  addEventListener("mousedown", () => (input.fire = true));
-  addEventListener("mouseup", () => (input.fire = false));
-  const rows = [];
-  let f = 0;
-  const dt = engine.sim.params.dt;
-  const one = async () => {
+  addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    keys.add(k); input.active = true;
+    if (k === " ") { input.charge = true; e.preventDefault(); }
+    if (k === "p") engine.paused = !engine.paused;
+    if (k === "r") wantRestart = true;
+    if (k === "o") overview = !overview;
+    if (k === "t") wantWorkers = !workersOn;
+  });
+  addEventListener("keyup", (e) => { const k = e.key.toLowerCase(); keys.delete(k); if (k === " ") input.charge = false; });
+  let mouse = [W / 2, H / 2];
+  addEventListener("mousemove", (e) => { mouse = [e.clientX, e.clientY]; input.active = true; });
+  canvas.addEventListener("mousedown", (e) => { input.active = true; if (e.button === 0) input.fire = true; if (e.button === 2) input.charge = true; });
+  addEventListener("mouseup", (e) => { if (e.button === 0) input.fire = false; if (e.button === 2) input.charge = false; });
+  addEventListener("contextmenu", (e) => e.preventDefault());
+  let wantRestart = false, wantWorkers = null, wantPool = null;
+  $("tog").onclick = () => (wantWorkers = !workersOn);
+  $("wk").max = String(Math.max(32, navigator.hardwareConcurrency * 2)); $("wk").value = String(workers0);
+  $("wk").oninput = () => (wantPool = +$("wk").value);
+  // between steps only: the pool cannot change while a step is in flight
+  const applyControls = () => {
+    if (wantRestart) { engine.restart(); wantRestart = false; }
+    if (wantWorkers !== null || wantPool !== null) {
+      if (wantWorkers !== null) workersOn = wantWorkers;
+      if (wantPool !== null) poolWanted = wantPool;
+      engine.configure(workersOn ? workMode : "main", poolWanted);
+      wantWorkers = wantPool = null;
+    }
+  };
+  const readInput = () => {
     input.mx = (keys.has("d") ? 1 : 0) - (keys.has("a") ? 1 : 0);
     input.my = (keys.has("s") ? 1 : 0) - (keys.has("w") ? 1 : 0);
-    const t0 = performance.now();
-    const st = await engine.step();
-    const t1 = performance.now();
-    if (shot === "explosion" && f === frames - 24) R.explode(engine.player[0] + 7, engine.player[1] - 2, 3);
-    const info = R.frame(dt);
-    const t2 = performance.now();
-    rows.push({ sim: t1 - t0, cpuRender: t2 - t1 });
-    f++;
-    if (f % 15 === 0) hud.textContent = `${n.toLocaleString()} agents  ${mode}${mode === "main" ? "" : " x" + engine.poolSize}  kills ${engine.score}\nsim ${(t1 - t0).toFixed(1)} ms  cpu render ${(t2 - t1).toFixed(1)} ms  gpu ${(R.gpuMs.at(-1) ?? 0).toFixed(2)} ms  particles ${info.particles}`;
+    const s = R.project(engine.player[0], engine.player[1]);
+    input.aim = Math.atan2(mouse[1] - s[1], mouse[0] - s[0]);
   };
-  if (shot || measure) {
-    hud.style.display = q.get("hud") === "1" ? "" : "none";
-    const t0 = performance.now();
-    while (f < frames) { await one(); if (measure) await R.device.queue.onSubmittedWorkDone(); }
-    await R.device.queue.onSubmittedWorkDone();
-    const wall = performance.now() - t0;
-    const tail = rows.slice(Math.min(120, rows.length >> 1));
-    const med = (a) => { const v = [...a].sort((x, y) => x - y); return v[v.length >> 1]; };
-    const g = R.gpuMs.slice(Math.min(120, R.gpuMs.length >> 1));
-    window.__measure = { n, mode, workers: engine.poolSize, frames, wallPerFrame: wall / frames, sim: med(tail.map((r) => r.sim)), cpuRender: med(tail.map((r) => r.cpuRender)), frame: med(tail.map((r) => r.sim + r.cpuRender)), gpu: g.length ? med(g) : null, gpuP90: g.length ? [...g].sort((a, b) => a - b)[Math.floor(g.length * 0.9)] : null, timestamps: R.hasTs, kills: engine.score, particles: R.particles };
-    window.__ready = true;
+  let alive = 0, fps = 0;
+  const hud = (st, frameMs) => {
+    $("score").textContent = engine.score.toLocaleString();
+    $("wave").textContent = `WAVE ${engine.wave}  ·  next in ${Math.max(0, engine.waveLeft).toFixed(0)}s`;
+    $("health").firstChild.style.width = engine.health.toFixed(0) + "%";
+    $("charge").firstChild.style.width = (engine.cooldown > 0 ? 0 : engine.charge * 100).toFixed(0) + "%";
+    $("stats").textContent = `${alive.toLocaleString()} alive of ${engine.active.toLocaleString()} active · ${n.toLocaleString()} max`;
+    $("tog").textContent = workersOn ? `WORKERS ON ×${engine.poolSize}` : "WORKERS OFF";
+    $("tog").className = workersOn ? "" : "off";
+    $("wkn").textContent = String(poolWanted);
+    $("perf").textContent = `sim ${st.round.toFixed(1)} ms  main ${st.serial.toFixed(1)} ms\nframe ${frameMs.toFixed(1)} ms  ${fps ? fps.toFixed(0) + " fps" : "(offline)"}`;
+    $("perf").style.whiteSpace = "pre";
+    const c = $("center");
+    c.style.display = engine.over || engine.paused ? "block" : "none";
+    c.innerHTML = engine.over ? `GAME OVER<small>score ${engine.score.toLocaleString()} · wave ${engine.wave} · R to restart</small>` : "PAUSED<small>P to resume</small>";
+  };
+  const countAlive = () => {
+    let a = 0; const S = engine.S;
+    for (const c of engine.chunks) for (let i = 4; i < c.length; i += S) if (c[i] > 0) a++;
+    alive = a;
+  };
+  const dt = engine.sim.params.dt;
+
+  if (offline) {
+    // screenshots: frames back to back with the bot, deterministic
+    $("bl").style.display = q.get("hud") === "1" ? "" : "none";
+    for (const id of ["tl", "tr", "center"]) $(id).style.display = q.get("hud") === "1" ? "" : "none";
+    let st = engine.stats;
+    for (let f = 0; f < frames; f++) {
+      st = { ...(await engine.step()) };
+      if (engine.shockFired) R.explode(engine.shockFired.x, engine.shockFired.y, 1 + engine.shockFired.s * 2);
+      R.frame(dt);
+      await R.device.queue.onSubmittedWorkDone();
+    }
+    countAlive(); fps = 0; hud(st, st.total);
+    if (q.get("hud") !== "1") $("center").style.display = "none";
+    window.__ready = { score: engine.score, kills: engine.kills, wave: engine.wave, alive, health: engine.health, particles: R.particles };
     return;
   }
-  const loop = async () => { await one(); requestAnimationFrame(loop); };
-  requestAnimationFrame(loop);
-})().catch((e) => { document.getElementById("hud").textContent = String(e.stack || e); window.__ready = true; window.__error = String(e.stack || e); });
+
+  // rAF loop. Each frame: wait for the step started last frame, draw it (the GPU upload copies the
+  // agents, so the arrays can be handed to workers next), then start the next step and return.
+  // The sim is fixed at 60 steps/s; a frame that is due no step only draws.
+  let pending = null, acc = 0, last = performance.now(), simT = 0, stepsDone = 0;
+  const log = []; // measure: per rAF, interval, sim round, main thread busy
+  let lastStats = { ...engine.stats };
+  const t00 = performance.now();
+  const loop = async (now) => {
+    const interval = now - last; last = now;
+    fps = fps * 0.9 + (1000 / Math.max(1, interval)) * 0.1;
+    const busy0 = performance.now();
+    if (pending) { lastStats = { ...(await pending) }; pending = null; stepsDone++; if (engine.shockFired) R.explode(engine.shockFired.x, engine.shockFired.y, 1 + engine.shockFired.s * 2); }
+    applyControls();
+    if (!bot || input.active) readInput();
+    R.frame(Math.min(0.05, interval / 1000));
+    // before the step starts: in transfer mode starting it hands the agent arrays to the workers
+    if (stepsDone % 15 === 0) countAlive();
+    acc = Math.min(acc + interval / 1000, dt * 2);
+    if (acc >= dt) { acc -= dt; pending = engine.step(); }
+    hud(lastStats, interval);
+    const busy = performance.now() - busy0;
+    if (measure) {
+      if (now - t00 > 3000) log.push({ interval, sim: lastStats.round, total: lastStats.total, busy });
+      if (now - t00 > 3000 + measure * 1000) return finish();
+    }
+    requestAnimationFrame(loop);
+  };
+  const finish = async () => {
+    if (pending) await pending;
+    const pct = (k, p) => { const v = log.map((r) => r[k]).sort((a, b) => a - b); return +v[Math.min(v.length - 1, Math.floor(v.length * p))].toFixed(2); };
+    const mean = (k) => +(log.reduce((a, r) => a + r[k], 0) / log.length).toFixed(2);
+    window.__measure = {
+      n, mode: engine.mode, workers: engine.poolSize, seconds: measure, frames: log.length, fps: +(1000 / mean("interval")).toFixed(1),
+      interval: { mean: mean("interval"), p50: pct("interval", 0.5), p90: pct("interval", 0.9), p99: pct("interval", 0.99), max: pct("interval", 1) },
+      sim: { p50: pct("sim", 0.5), p90: pct("sim", 0.9), p99: pct("sim", 0.99) },
+      mainBusy: { p50: pct("busy", 0.5), p90: pct("busy", 0.9), p99: pct("busy", 0.99) },
+      score: engine.score, kills: engine.kills, wave: engine.wave, alive, visibility: document.visibilityState,
+    };
+    window.__ready = true;
+  };
+  requestAnimationFrame((t) => { last = t; requestAnimationFrame(loop); });
+})().catch((e) => { const c = document.getElementById("center"); c.style.display = "block"; c.style.fontSize = "12px"; c.textContent = String(e.stack || e); window.__ready = true; window.__error = String(e.stack || e); });
 </script>

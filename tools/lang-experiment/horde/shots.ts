@@ -2,12 +2,16 @@
 import { chromium } from "../../../node_modules/playwright/index.mjs";
 import { resolve, join } from "node:path";
 const url = "file://" + resolve(import.meta.dir, "proto/game.html");
+const hc1 = 17;
 const all: Record<string, string> = {
-  overview: "n=10000&mode=transfer&workers=8&shot=overview&frames=900",
-  closeup: "n=10000&mode=transfer&workers=8&shot=closeup&frames=900",
-  explosion: "n=10000&mode=transfer&workers=8&shot=explosion&frames=900",
-  "ship-check": "n=10000&mode=transfer&workers=8&shot=closeup&frames=900&hide=bullets,particles",
-  dense: "n=" + (process.env.DENSE_N || "400000") + "&mode=transfer&workers=17&shot=overview&frames=900&hud=1",
+  "play-wave1": "n=50000&mode=transfer&workers=8&shot=wave1&frames=900&hud=1",
+  "play-wave-late": "n=100000&mode=transfer&workers=" + hc1 + "&shot=late&wave=6&frames=960&hud=1",
+  shockwave: "n=50000&mode=transfer&workers=8&shot=shockwave&wave=3&frames=908",
+  hud: "n=50000&mode=transfer&workers=8&shot=hud&wave=3&frames=600&hud=1",
+  "workers-off": "n=100000&mode=main&shot=late&wave=6&frames=600&hud=1",
+  "workers-on": "n=100000&mode=transfer&workers=" + hc1 + "&shot=late&wave=6&frames=600&hud=1",
+  "ship-check": "n=50000&mode=transfer&workers=8&shot=wave1&frames=600&dist=12&hide=particles,bullets",
+  overview: "n=100000&mode=transfer&workers=" + hc1 + "&shot=overview&wave=6&frames=900",
 };
 const want = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const tag = process.argv.find((a) => a.startsWith("--tag="))?.slice(6) ?? "";
@@ -22,7 +26,7 @@ for (const name of want.length ? want : Object.keys(all)) {
   if (err) console.log(name, "ERROR", err);
   const file = join(import.meta.dir, "shots", `${name}${tag}.png`);
   await page.screenshot({ path: file });
-  console.log(name, "->", file, JSON.stringify(await page.evaluate(() => (window as any).__measure)));
+  console.log(name, "->", file, JSON.stringify(await page.evaluate(() => (window as any).__ready)));
   await page.close();
 }
 await browser.close();

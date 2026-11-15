@@ -9,7 +9,7 @@ import { erase } from "../lite/browser/erase.ts";
 const source = readFileSync(join(import.meta.dir, "cells.ts"), "utf8");
 const result = checkSources({ cells: source, tsx: false }, { strictIndex: false });
 const byName = new Map([...result.facts!.values()].map((info) => [info.name, { info, text: source.slice(info.span![0], info.span![1]) }] as const));
-const spec = { inputs: ["batch", "base", "frame", "flow", "crowd", "binned", "bullets", "player"], refs: ["maze", "params"], outputs: ["nextAgents", "hits"] };
+const spec = { inputs: ["batch", "base", "frame", "flow", "neigh", "binned", "bullets", "player", "shock", "active"], refs: ["maze", "params"], outputs: ["nextAgents", "hits"] };
 const isl = island([...byName.values()].map(({ info }) => ({ name: info.name, params: info.params.map((p) => p.name), refCell: info.returnsRef })), spec);
 if (isl.problems.length) throw new Error(JSON.stringify(isl.problems));
 const verdict = new Map(result.cells.map((c) => [c.name, c.status]));

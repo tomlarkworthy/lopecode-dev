@@ -1,0 +1,16 @@
+ok   D moves right x 80.50 -> 87.85
+ok   W moves up y 50.50 -> 49.45
+ok   mouse aims aim 3.00 rad with the mouse at the left edge
+ok   left button fires 63 bullets in flight while held
+ok   release stops fire 0 bullets 1.2 s after release
+ok   space charges, release fires a shockwave charge 0.70 after 0.7 s, cooldown 2.92 after release
+ok   right button during cooldown does nothing cooldown 2.50
+ok   P pauses frame 348 -> 348 over 0.5 s
+ok   P resumes frame 378
+ok   T toggles workers main/0 (WORKERS OFF), then transfer/4 (WORKERS ON ×4)
+ok   HUD button toggles workers WORKERS OFF
+ok   pool slider sets worker count pool 12
+ok   R restarts frame 12 score 0
+ok   health runs out: game over after 12 s standing still: "GAME OVERscore 0 · wave 8 · R to restart"
+ok   R after game over restarts over false health 100
+15/15 ok (headless)

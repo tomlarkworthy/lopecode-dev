@@ -1,0 +1,33 @@
+1 | // bun horde/serve.ts [port] : serves horde/proto with COOP/COEP so SharedArrayBuffer exists (the sab arm only)
+2 | import { join, normalize } from "node:path";
+3 | const root = join(import.meta.dir, "proto");
+4 | const port = +(process.argv[2] || 8765);
+5 | Bun.serve({ port, fetch(req) {
+        ^
+error: Failed to start server. Is port 8766 in use?
+ syscall: "listen",
+   errno: 0,
+    code: "EADDRINUSE"
+
+      at /Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/horde/serve.ts:5:5
+
+Bun v1.4.0 (macOS arm64)
+n   10000 main     workers  0  hash 02469a73:cf00c2c5  kills 3179
+n   10000 copy     workers  1  hash 02469a73:cf00c2c5  kills 3179
+n   10000 copy     workers  2  hash 02469a73:cf00c2c5  kills 3179
+n   10000 copy     workers  8  hash 02469a73:cf00c2c5  kills 3179
+n   10000 copy     workers 17  hash 02469a73:cf00c2c5  kills 3179
+n   10000 transfer workers  1  hash 02469a73:cf00c2c5  kills 3179
+n   10000 transfer workers  2  hash 02469a73:cf00c2c5  kills 3179
+n   10000 transfer workers  8  hash 02469a73:cf00c2c5  kills 3179
+n   10000 transfer workers 17  hash 02469a73:cf00c2c5  kills 3179
+n   10000 sab      workers  1  hash 02469a73:cf00c2c5  kills 3179
+n   10000 sab      workers  2  hash 02469a73:cf00c2c5  kills 3179
+n   10000 sab      workers  8  hash 02469a73:cf00c2c5  kills 3179
+n   10000 sab      workers 17  hash 02469a73:cf00c2c5  kills 3179
+n   10000 lite     workers  8  hash 02469a73:cf00c2c5  kills 3179
+n  200000 main     workers  0  hash 011c5407:b4e6a257  kills 1562
+n  200000 transfer workers 17  hash 011c5407:b4e6a257  kills 1562
+n  200000 sab      workers  8  hash 011c5407:b4e6a257  kills 1562
+n  200000 lite     workers  8  hash 011c5407:b4e6a257  kills 1562
+all 18 runs bit-identical within each n

@@ -1,0 +1,206 @@
+[
+ {
+  "date": "2026-11-15T08:46:31.269Z",
+  "headed": false,
+  "arm": "n=100000&wave=6&mode=main",
+  "dpr": 1,
+  "n": 100000,
+  "mode": "main",
+  "workers": 0,
+  "seconds": 60,
+  "frames": 3339,
+  "fps": 55.6,
+  "interval": {
+   "mean": 17.97,
+   "p50": 16.7,
+   "p90": 16.8,
+   "p99": 33.4,
+   "max": 33.5
+  },
+  "sim": {
+   "p50": 16.3,
+   "p90": 17.2,
+   "p99": 18.1
+  },
+  "mainBusy": {
+   "p50": 18,
+   "p90": 19,
+   "p99": 20
+  },
+  "score": 526090,
+  "kills": 60442,
+  "wave": 8,
+  "alive": 81128,
+  "visibility": "visible"
+ },
+ {
+  "date": "2026-11-15T08:47:34.366Z",
+  "headed": false,
+  "arm": "n=100000&wave=6&mode=transfer&workers=17",
+  "dpr": 1,
+  "n": 100000,
+  "mode": "transfer",
+  "workers": 17,
+  "seconds": 60,
+  "frames": 3601,
+  "fps": 60,
+  "interval": {
+   "mean": 16.67,
+   "p50": 16.7,
+   "p90": 16.7,
+   "p99": 16.8,
+   "max": 16.8
+  },
+  "sim": {
+   "p50": 3.8,
+   "p90": 4.3,
+   "p99": 7
+  },
+  "mainBusy": {
+   "p50": 4.1,
+   "p90": 4.7,
+   "p99": 5.3
+  },
+  "score": 576200,
+  "kills": 66156,
+  "wave": 9,
+  "alive": 81327,
+  "visibility": "visible"
+ },
+ {
+  "date": "2026-11-15T08:48:37.545Z",
+  "headed": false,
+  "arm": "n=50000&wave=6&mode=main",
+  "dpr": 1,
+  "n": 50000,
+  "mode": "main",
+  "workers": 0,
+  "seconds": 60,
+  "frames": 3601,
+  "fps": 60,
+  "interval": {
+   "mean": 16.67,
+   "p50": 16.7,
+   "p90": 16.7,
+   "p99": 16.8,
+   "max": 16.8
+  },
+  "sim": {
+   "p50": 8.1,
+   "p90": 8.6,
+   "p99": 8.8
+  },
+  "mainBusy": {
+   "p50": 9.3,
+   "p90": 9.9,
+   "p99": 10.6
+  },
+  "score": 500780,
+  "kills": 56441,
+  "wave": 9,
+  "alive": 40354,
+  "visibility": "visible"
+ },
+ {
+  "date": "2026-11-15T08:49:40.643Z",
+  "headed": false,
+  "arm": "n=50000&wave=6&mode=transfer&workers=17",
+  "dpr": 1,
+  "n": 50000,
+  "mode": "transfer",
+  "workers": 17,
+  "seconds": 60,
+  "frames": 3601,
+  "fps": 60,
+  "interval": {
+   "mean": 16.67,
+   "p50": 16.7,
+   "p90": 16.7,
+   "p99": 16.8,
+   "max": 16.8
+  },
+  "sim": {
+   "p50": 2.5,
+   "p90": 3.2,
+   "p99": 6.3
+  },
+  "mainBusy": {
+   "p50": 2.6,
+   "p90": 4.1,
+   "p99": 4.7
+  },
+  "score": 500780,
+  "kills": 56441,
+  "wave": 9,
+  "alive": 40354,
+  "visibility": "visible"
+ },
+ {
+  "date": "2026-11-15T08:50:53.728Z",
+  "headed": true,
+  "arm": "n=100000&wave=6&mode=main",
+  "dpr": 1,
+  "n": 100000,
+  "mode": "main",
+  "workers": 0,
+  "seconds": 60,
+  "frames": 4062,
+  "fps": 67.7,
+  "interval": {
+   "mean": 14.77,
+   "p50": 16.6,
+   "p90": 24.9,
+   "p99": 25.6,
+   "max": 32.5
+  },
+  "sim": {
+   "p50": 15.9,
+   "p90": 17.3,
+   "p99": 18.7
+  },
+  "mainBusy": {
+   "p50": 17.6,
+   "p90": 19,
+   "p99": 20.6
+  },
+  "score": 521010,
+  "kills": 59702,
+  "wave": 8,
+  "alive": 81123,
+  "visibility": "visible"
+ },
+ {
+  "date": "2026-11-15T08:51:56.938Z",
+  "headed": true,
+  "arm": "n=100000&wave=6&mode=transfer&workers=17",
+  "dpr": 1,
+  "n": 100000,
+  "mode": "transfer",
+  "workers": 17,
+  "seconds": 60,
+  "frames": 7200,
+  "fps": 120,
+  "interval": {
+   "mean": 8.33,
+   "p50": 8.3,
+   "p90": 9.6,
+   "p99": 10.3,
+   "max": 18
+  },
+  "sim": {
+   "p50": 3.5,
+   "p90": 4.1,
+   "p99": 6.7
+  },
+  "mainBusy": {
+   "p50": 2.4,
+   "p90": 4.2,
+   "p99": 4.9
+  },
+  "score": 576470,
+  "kills": 66187,
+  "wave": 9,
+  "alive": 81301,
+  "visibility": "visible"
+ }
+]

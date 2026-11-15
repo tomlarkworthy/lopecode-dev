@@ -1,3 +1,5 @@
+// ROUND 1, superseded by play-measure.ts. game.html's measure parameter now means seconds of rAF play, so this script
+// no longer measures what render-results.json records (round 1, stride-5 agents, 2026-11-15T07:50Z).
 // bun horde/render-bench.ts : game.html with the renderer, frames back to back (each waits for the GPU),
 // 600 frames, medians over the last 480; per N and arm. Writes render-results.json.
 import { chromium } from "../../../node_modules/playwright/index.mjs";
