@@ -1,6 +1,8 @@
 md`# Raw cells
 
-PROSE PENDING`
+A raw cell is one runtime variable written out in full: \`define(name, inputs, definition)\`. The name is a string, or \`null\` for an anonymous cell. The inputs are the names of the variables it reads, and the definition is a function that receives their values in that order. Nothing is inferred: the function's text is stored as typed, with a comment naming the language added to it. The part outside the function is shown again in one fixed form, so \`define('a',['b'],f)\` comes back as \`define("a", ["b"], f)\`.
+
+This module registers raw as a cell language. It shares no code with SoundScript.`
 // %%
 raw_mark = '/*{lang:"raw"}*/'
 // %%

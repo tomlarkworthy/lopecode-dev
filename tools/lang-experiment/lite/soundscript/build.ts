@@ -1,4 +1,4 @@
-// bun lite/soundscript/build.ts [--force] [--out file.html] [--no-tutorial]
+// bun lite/soundscript/build.ts [--force] [--out file.html] [--no-tutorial] [--no-spec]
 // Builds lopebooks/notebooks/soundscript.html from lopecode/notebooks/quick_start.html:
 //  - @tomlarkworthy/soundscript (core.ojs): the language. Attachment ss.js.gz (entry.ts).
 //  - @tomlarkworthy/raw-cells (raw-cells.ojs): a second cell language, define(label, inputs, function).
@@ -8,6 +8,8 @@
 //    cells in one module. A block that starts with define( is a raw cell, compiled by raw-cells' raw_compile.
 //  - @tomlarkworthy/soundscript-tutorial (tutorial.ojs): imports only from the core. Attachments:
 //    the example sources. Left out with --no-tutorial (a test artefact; needs --out).
+//  - @tomlarkworthy/soundscript-spec (spec.ojs, SoundScript cells in spec.ts): the numbered statements, their
+//    tests and the coverage table. Its own tab. Left out with --no-spec (needs --out) and with --no-tutorial.
 //  - @tomlarkworthy/editor-5, cell-map and visualizer replaced by <name>.fork.js, each refused unless
 //    quick_start's copy still equals <name>.base.js (the copy the fork was made from).
 //  - every module block not reachable from MAINS removed, checked against EXPECT_REMOVED.
@@ -33,6 +35,7 @@ const ROOT = join(HERE, "../../../..");
 const CORE = "@tomlarkworthy/soundscript";
 const TUTORIAL = "@tomlarkworthy/soundscript-tutorial";
 const RAW_CELLS = "@tomlarkworthy/raw-cells";
+const SPEC = "@tomlarkworthy/soundscript-spec";
 // sections whose cell names collide with other sections are modules of their own
 const SECTIONS = [
   { name: "@tomlarkworthy/soundscript-reducer", ojs: "sections/reducer.ojs" },
@@ -55,8 +58,11 @@ const HASH_FILE = join(HERE, "built.sha256");
 const arg = (k: string) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : null);
 const OUT = resolve(arg("--out") ?? DEFAULT_OUT);
 const withTutorial = !process.argv.includes("--no-tutorial");
+// the specification goes with the tutorial: a --no-tutorial build (the core-only variant) has neither
+const withSpec = withTutorial && !process.argv.includes("--no-spec");
 const guarded = OUT === DEFAULT_OUT;
 if (!withTutorial && guarded) throw new Error("--no-tutorial builds a test artefact; pass --out");
+if (process.argv.includes("--no-spec") && guarded) throw new Error("--no-spec leaves the specification out of the notebook; pass --out");
 // --core-not-main: the core only as the tutorial's import, so ss_registration never runs (a test artefact)
 const coreMain = !process.argv.includes("--core-not-main");
 // --no-raw: raw-cells is not booted, so the polyglot module's raw cells have no loaded language (a test artefact)
@@ -76,9 +82,10 @@ if (existsSync(OUT)) {
   }
 }
 
-const MAINS = ["@tomlarkworthy/lopepage-2", ...(withTutorial ? [TUTORIAL, ...SECTIONS.map((x) => x.name)] : []), ...(coreMain ? [CORE] : []), ...(rawMain ? [RAW_CELLS] : []), "@tomlarkworthy/claude-code-pairing", "@tomlarkworthy/save-in-place"];
+const MAINS = ["@tomlarkworthy/lopepage-2", ...(withTutorial ? [TUTORIAL, ...SECTIONS.map((x) => x.name)] : []), ...(coreMain ? [CORE] : []), ...(withSpec ? [SPEC] : []), ...(rawMain ? [RAW_CELLS] : []), "@tomlarkworthy/claude-code-pairing", "@tomlarkworthy/save-in-place"];
 const POLYGLOT = "@tomlarkworthy/soundscript-polyglot";
-const HASH = !coreMain ? `#view=S100(${TUTORIAL})` : withTutorial ? `#view=S100(${TUTORIAL},${CORE},${POLYGLOT})` : `#view=S100(${CORE})`;
+const SPEC_TAB = withSpec ? `,${SPEC}` : "";
+const HASH = !coreMain ? `#view=S100(${TUTORIAL})` : withTutorial ? `#view=S100(${TUTORIAL},${CORE},${POLYGLOT}${SPEC_TAB})` : `#view=S100(${CORE})`;
 // quick_start modules this notebook does not use, and the modules only they import.
 const EXPECT_REMOVED = [
   "@tomlarkworthy/annotate", "@tomlarkworthy/at-login", "@tomlarkworthy/at-write", "@tomlarkworthy/atproto",
@@ -215,7 +222,7 @@ function buildModule(name: string, ojs: string, files: File[]) {
   return { html, consts: consts.length, ssNames };
 }
 
-let core, tutorial, rawCells, sections: ReturnType<typeof buildModule>[] = [];
+let core, tutorial, rawCells, spec, sections: ReturnType<typeof buildModule>[] = [];
 try {
   rawCells = buildModule(RAW_CELLS, "raw-cells.ojs", []);
   {
@@ -235,6 +242,7 @@ try {
     tutorial = buildModule(TUTORIAL, "tutorial.ojs", files);
     sections = SECTIONS.map((x) => buildModule(x.name, x.ojs, []));
   }
+  if (withSpec) spec = buildModule(SPEC, "spec.ojs", []);
 } finally {
   dispose();
 }
@@ -260,7 +268,7 @@ const forks = FORKS.map(({ id, file }) => {
 
 const host = findSpan(html, HOST);
 if (!host) throw new Error(`no ${HOST} block in ${BASE}`);
-html = html.slice(0, host.start) + rawCells.html + "\n" + core.html + (tutorial ? "\n" + tutorial.html : "") + sections.map((x) => "\n" + x.html).join("") + html.slice(host.end);
+html = html.slice(0, host.start) + rawCells.html + "\n" + core.html + (tutorial ? "\n" + tutorial.html : "") + sections.map((x) => "\n" + x.html).join("") + (spec ? "\n" + spec.html : "") + html.slice(host.end);
 
 const conf = JSON.parse(blockContent(html, "bootconf.json")!);
 conf.mains = MAINS;
@@ -318,7 +326,7 @@ writeFileSync(OUT, html);
 if (guarded) writeFileSync(HASH_FILE, sha(html) + "\n");
 console.log(JSON.stringify({
   out: OUT, bytes: Buffer.byteLength(html), bytesBeforeStrip: sizeBefore, removed, orphans, bundle: js.length, bundleGz: gz.length,
-  rawCellsVariables: rawCells.consts, coreVariables: core.consts, tutorialVariables: tutorial?.consts ?? 0, coreSoundScript: core.ssNames, tutorialSoundScript: tutorial?.ssNames ?? [], sectionVariables: sections.map((x) => x.consts), mains: conf.mains, hash: conf.hash,
+  rawCellsVariables: rawCells.consts, coreVariables: core.consts, tutorialVariables: tutorial?.consts ?? 0, coreSoundScript: core.ssNames, tutorialSoundScript: tutorial?.ssNames ?? [], sectionVariables: sections.map((x) => x.consts), specVariables: spec?.consts ?? 0, mains: conf.mains, hash: conf.hash,
   forks: forks.map(({ fork, ...f }) => f),
 }, null, 2));
 process.exit(0);

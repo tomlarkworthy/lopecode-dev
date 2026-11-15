@@ -11,10 +11,8 @@ one silently: record it in the port's `GAPS.md` (construct, cell, what you did i
 
 A ported module `<name>` is a directory `tools/lang-experiment/ports/<name>/`:
 
-- `cells.ts` checked cells. Only `let|const name = <arrow or function expression>`,
-  `function`/`function*`/`async function`, `type`/`interface` declarations and
-  `import type`. Nothing else at module level. `export` before any of them is accepted and
-  changes nothing (2026-11-15: the form is without it; an editor hint says "export is not needed").
+- `cells.ts` checked cells. What its top level may hold moved on 2026-11-16 to section 1 of the
+  specification module, `@tomlarkworthy/soundscript-spec` (`lite/soundscript/spec.ojs`).
 - `shell.ts` shell cells: same shape, ordinary TypeScript, not linted. DOM, canvas, WebGL,
   `md`, `htl`, `Inputs`, `d3`, `Plot`, timers, anything reflective.
 - `foreign.d.ts` trusted signatures for imported cells and libraries (see "foreign").
@@ -23,8 +21,7 @@ A ported module `<name>` is a directory `tools/lang-experiment/ports/<name>/`:
 
 ## Cells and injection
 
-- A cell is a top-level function (2026-11-15: no longer `export`ed). Its name is the cell name. Its parameters are its inputs,
-  injected by parameter name. A parameter name must be a cell in this module, a name in
+- A cell's parameters are its inputs, injected by parameter name. (What a cell is: specification S1.1.) A parameter name must be a cell in this module, a name in
   `foreign.d.ts`, or a capability.
 - A parameter may omit its type; it then has the named cell's value type. The harness fills it in.
 - The value type of a cell: return type `T` gives `T`; `Promise<T>` gives `T`; `Generator<Y>`

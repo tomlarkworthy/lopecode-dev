@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { checkPort } from "./check.ts";
 import { runPort, loadPort, compareOrders, type RunResult } from "./run.ts";
 import { RULES } from "./rules.ts";
+import { specRejects } from "./lite/soundscript/spec-cases.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIX = join(HERE, "fixtures");
@@ -30,9 +31,11 @@ async function bothOrders(dir: string) {
 
 const dirs = readdirSync(FIX).filter((d) => existsSync(join(FIX, d, "cells.ts")) && (!only || d === only)).sort();
 
-// Registry: no fixture, no rule.
+// Registry: no reject case, no rule. A rule's reject case is a fixtures/reject-<id> directory or a case in the
+// specification module's spec_rejects (checked there by its tests, with the in-notebook checker).
+const specRuleIds = new Set(specRejects().map((c) => c.rule));
 if (!only)
-  for (const r of RULES) ok(`registry`, dirs.includes(`reject-${r.id}`), `rule ${r.id} has no fixtures/reject-${r.id}`);
+  for (const r of RULES) ok(`registry`, dirs.includes(`reject-${r.id}`) || specRuleIds.has(r.id), `rule ${r.id} has no fixtures/reject-${r.id} and no case in spec_rejects`);
 
 for (const d of dirs) {
   const dir = join(FIX, d);
@@ -140,5 +143,5 @@ for (const d of dirs) {
 
 const regFails = failures.filter((f) => f.startsWith("registry"));
 for (const f of regFails) console.log(`FAIL ${f}`);
-console.log(`\n${pass}/${dirs.length} fixtures pass; ${RULES.length} lint/injection rules registered, ${RULES.length - regFails.length} with a reject fixture; ${failures.length} failure(s)`);
+console.log(`\n${pass}/${dirs.length} fixtures pass; ${RULES.length} lint/injection rules registered, ${RULES.length - regFails.length} with a reject case (${RULES.filter((r) => specRuleIds.has(r.id)).length} of them in the specification module); ${failures.length} failure(s)`);
 process.exit(failures.length ? 1 : 0);

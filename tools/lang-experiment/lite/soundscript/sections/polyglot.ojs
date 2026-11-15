@@ -29,7 +29,7 @@ A language is a module that registers on the \`cell_languages\` point of the cel
 // %%
 md`## Choosing a language
 
-The editor's header has a picker that shows the language a cell will be stored in. A new cell starts in the language of the cell it was added after. Typing text that only one registered language accepts, and that Observable JavaScript does not parse, switches the picker to that language. \`define(…)\` is a valid Observable JavaScript expression, so it does not switch: pick \`raw\`, or add the cell after a raw cell.`
+The editor's header has a picker that shows the language a cell will be stored in. A new cell starts in the language of the cell it was added after. Typing text that only one registered language claims by how it starts, and that Observable JavaScript does not parse, switches the picker to that language. The claim does not check the text: \`const x = 1\` after an Observable JavaScript cell switches to SoundScript and is then stored as a rejected cell. \`define(…)\` is a valid Observable JavaScript expression, so it does not switch: pick \`raw\`, or add the cell after a raw cell.`
 // %%
 md`The listing leaves out \`viewof height\` and \`summary\`. Observable JavaScript is built into the editor and is not a registered language.`
 // %%

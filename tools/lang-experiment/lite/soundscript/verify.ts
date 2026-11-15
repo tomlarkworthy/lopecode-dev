@@ -20,6 +20,7 @@
 import { chromium, type Page } from "../../../../node_modules/playwright/index.mjs";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { checkSources } from "../core.ts";
+import { specRejects } from "./spec-cases.ts";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { blockContent, blockSpans } from "../../../lib/notebook-blocks.ts";
@@ -29,6 +30,9 @@ import { RAW_CELLS, RAW_TESTS, POLY, rawOnPage, rawAfterSave, rawExport, rawUnlo
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CORE = "@tomlarkworthy/soundscript";
 const TUTORIAL = "@tomlarkworthy/soundscript-tutorial";
+const SPEC = "@tomlarkworthy/soundscript-spec";
+// the specification module's tests, by name (a test is named after the statements it checks)
+const SPEC_TESTS = [...readFileSync(join(dirname(fileURLToPath(import.meta.url)), "spec.ojs"), "utf8").matchAll(/^(test_spec_\w+) = /gm)].map((m) => m[1]);
 const SECTIONS = ["@tomlarkworthy/soundscript-reducer", "@tomlarkworthy/soundscript-model", "@tomlarkworthy/soundscript-workers", "@tomlarkworthy/soundscript-breakout", "@tomlarkworthy/soundscript-polyglot"];
 const file = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : join(HERE, "../../../../lopebooks/notebooks/soundscript.html"));
 const shot = process.argv.includes("--shot") ? process.argv[process.argv.indexOf("--shot") + 1] : null;
@@ -86,6 +90,9 @@ function referenceChecks() {
   const produced = new Set<string>();
   const add = (r: any) => { for (const e of [...r.module, ...r.cells.flatMap((c: any) => c.errors)]) produced.add(e.rule); };
   for (const f of files) add(checkSources({ cells: readFileSync(f, "utf8"), tsx: f.endsWith("x") }));
+  const specCases = specRejects();
+  // as for the fixtures, only the cells are checked (a shell case's rule needs a shell, which a notebook has not)
+  for (const c of specCases) add(checkSources({ cells: c.source, tsx: true }));
   const probed: string[] = [];
   for (const [rule, src] of Object.entries(RULE_PROBES)) { const r = checkSources({ cells: src }); add(r); if (r.cells[0]?.errors.some((e: any) => e.rule === rule)) probed.push(rule); }
   report(probed.length === Object.keys(RULE_PROBES).length, `reference: each rule probe reports its rule (${probed.join(", ")})`);
@@ -93,12 +100,12 @@ function referenceChecks() {
   const tut = blockContent(html, TUTORIAL) ?? "";
   const listed = new Set([...tut.matchAll(/\\`\[([a-z][a-z-]*)\]\\`/g)].map((m) => m[1]));
   const missing = [...listed].filter((r) => !produced.has(r)), unlisted = [...produced].filter((r) => !listed.has(r));
-  report(listed.size > 40 && !missing.length && !unlisted.length, `reference: ${listed.size} rule ids named, ${produced.size} produced by ${files.length} examples and fixtures plus ${probed.length} probes; named but never produced ${JSON.stringify(missing)}, produced but not named ${JSON.stringify(unlisted)}`);
+  report(listed.size > 40 && !missing.length && !unlisted.length, `reference: ${listed.size} rule ids named, ${produced.size} produced by ${files.length} examples and fixtures, ${specCases.length} specification cases plus ${probed.length} probes; named but never produced ${JSON.stringify(missing)}, produced but not named ${JSON.stringify(unlisted)}`);
   const wrong = UNSUPPORTED_PROBES.filter(([, src, tsx]) => checkSources({ cells: src, tsx }).cells[0]?.status !== "unsupported").map(([n]) => n);
   report(!wrong.length, `reference: ${UNSUPPORTED_PROBES.length} constructs the reference calls unsupported are reported unsupported${wrong.length ? "; not: " + wrong.join(", ") : ""}`);
   // shipped prose names nothing a reader of the notebook cannot open, and no cell by position
   const BANNED = [/\btools\//, /\bplan\//, /\blite\//, /\bfixtures\//, /RULES\.md/, /README\.md/, /NOTES-/, /\bbun /, /\bbelow\b/i, /\babove\b/i];
-  for (const m of [CORE, TUTORIAL, ...SECTIONS]) {
+  for (const m of [CORE, TUTORIAL, ...SECTIONS, SPEC]) {
     const mds = [...(blockContent(html, m) ?? "").matchAll(/\bmd`((?:\\[\s\S]|\$\{[^}]*\}|[^`\\])*)`/g)].map((x) => x[1]);
     const hits = mds.flatMap((t) => BANNED.filter((b) => b.test(t)).map((b) => `${b.source}: ${t.slice(Math.max(0, t.search(b) - 40), t.search(b) + 30).replace(/\s+/g, " ")}`));
     report(mds.length > 0 && !hits.length, `prose: ${m}: ${mds.length} md cells, no repository path and no "below"/"above"${hits.length ? "; found " + hits.join(" | ") : ""}`);
@@ -1699,6 +1706,7 @@ await testsPass(A.page, "original", TUTORIAL, TUTORIAL_TESTS);
   report(g.ballRuns <= 1 && g.y === 180 && g.pulling === 0, `original: after the tests, the page's Breakout is as it booted: ballView ran ${g.ballRuns} times, ball at y ${g.y}, ${g.pulling} clocks pulled`);
 }
 for (const m of SECTIONS) await testsPass(A.page, "original", m, SECTION_TESTS[m]);
+await testsPass(A.page, "original", SPEC, SPEC_TESTS);
 await testsPass(A.page, "original", RAW_CELLS, RAW_TESTS);
 await hookPass(A.page, "original");
 await oneCore(A.page, "original");
@@ -1735,6 +1743,7 @@ await testsOn(B.page, "reopened export");
 await testsPass(B.page, "reopened export", CORE, CORE_TESTS);
 await testsPass(B.page, "reopened export", TUTORIAL, TUTORIAL_TESTS);
 for (const m of SECTIONS) await testsPass(B.page, "reopened export", m, SECTION_TESTS[m]);
+await testsPass(B.page, "reopened export", SPEC, SPEC_TESTS);
 await testsPass(B.page, "reopened export", RAW_CELLS, RAW_TESTS);
 await rawExport(rawHelpers(), orig, exp1, B.page, rawA);
 await hookPass(B.page, "reopened export");
