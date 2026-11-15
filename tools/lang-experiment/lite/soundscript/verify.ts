@@ -1094,14 +1094,13 @@ async function commandGuard(page: Page, label: string, module: string, cell: str
       const plainDef = plain ? String(plain._definition) : null;
       clip = [{ mode: "js", value: compiledOjs }, ...(plain ? [{ mode: "js", value: `${plain._name} = ($ss$) => $ss$.cell(/*{lang:"ss"}*/ () => 2)` }] : [])];
       press(host, "📋");
-      // the plain cell's refusal is a warning; a registered language refuses the other itself, so its queue is waited on
-      await until(() => warns.length >= w0 + (plain ? 1 : 0) + (registered ? 0 : 1), "the paste refusals");
+      // compiled text (it carries a marker) is never typed source: the editor refuses it before any language
+      // sees it, registered or not, and the cells stay as they were
+      await until(() => warns.length >= w0 + (plain ? 1 : 0) + 1, "the paste refusals");
       if (registered) await find("ss_language")._value.settle(mod);
-      // registered, the language takes the text as an edit of the cell and stores it rejected, as it does any
-      // edit that does not compile; nothing else is written
-      const ch = changed(before), own = find(cell, mod);
-      const byLang = registered && ch.length === 1 && ch[0] === cell && /"rejected":\["\[compile\]/.test(String(own?._definition));
-      row("paste (compiled text)", (ch.length === 0 || byLang) && (!plain || String(plain._definition) === plainDef), `${registered ? `onto ${cell}: ${byLang ? "stored by the language as a rejected edit" : "changed " + JSON.stringify(ch)}; ` : ""}${warns.length - w0} refused: ${warns.slice(w0).join(" | ").slice(0, 240)}; onto plain cell ${plain?._name ?? "none"}`);
+      const ch = changed(before);
+      const refusals = warns.slice(w0);
+      row("paste (compiled text)", ch.length === 0 && refusals.filter((w) => /is a compiled cell, not source/.test(w)).length === (plain ? 2 : 1) && (!plain || String(plain._definition) === plainDef), `${ch.length ? "changed " + JSON.stringify(ch) : "nothing changed"}; ${refusals.length} refused: ${refusals.join(" | ").slice(0, 240)}; onto plain cell ${plain?._name ?? "none"}`);
       if (registered) {
         // typed source pasted onto the cell goes through the language and is stored
         const edited = typed!.replace(/\* 2\b/, "* 3");
@@ -1535,8 +1534,16 @@ async function coreCards(page: Page, label: string) {
     const nobar = cells.filter((c) => !editors?.get(core._scope.get(c.key))?.offsetParent).map((c) => c.key);
     const h1 = [...root.querySelectorAll("h1")].find((h) => h.textContent === "SoundScript") ?? null;
     const view = root.querySelector('.observablehq[cell="example_view"]') as HTMLElement | null;
-    return { cells, nobar, view: !!view?.offsetParent, viewTop: top(view), h1: top(h1), text: root.querySelector(".ss-example")?.textContent };
+    const listing = root.querySelector('.observablehq[cell="readme_listing"] .cell-listing') as HTMLElement | null;
+    return { cells, nobar, view: !!view?.offsetParent, viewTop: top(view), h1: top(h1), text: root.querySelector(".ss-example")?.textContent,
+      listing: listing?.textContent ?? null, listingTop: top(listing), coloured: listing?.querySelectorAll("span[class^=tok-]").length ?? 0 };
   }, [pane, CORE, KEYS] as const);
+  // one source listing of the four cells, after the title and before the cells, coloured by the language's highlight
+  // the listing puts one blank line between cells; blank lines are not compared
+  const lines_ = (t: string) => t.split("\n").filter((l) => l.trim()).join("\n");
+  const want = lines_(readFileSync(join(HERE, "core-example.ts"), "utf8"));
+  report(lines_(r.listing ?? "") === want && r.listingTop! > r.h1! && r.listingTop! < r.cells[0].top! && r.coloured > 0,
+    `${label}: one source listing of tally, bump, reset and doubled (${r.listing === null ? "none" : lines_(r.listing) === want ? "equal to core-example.ts, blank lines aside" : JSON.stringify(r.listing.slice(0, 120))}; ${r.coloured} coloured spans)`);
   const texts = r.cells.map((c) => c.text);
   const order = r.h1 !== null && r.cells.every((c, i) => c.top! > r.h1! && (i === 0 || c.top! > r.cells[i - 1].top!)) && r.view && r.viewTop! > r.cells[3]?.top!;
   report(shown && JSON.stringify(texts) === JSON.stringify(["tally = 0", "bump = ƒ action()", "reset = ƒ action()", "doubled = 0"]) && r.cells.every((c) => c.visible) && r.nobar.length === 0 && order,

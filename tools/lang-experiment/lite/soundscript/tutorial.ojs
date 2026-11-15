@@ -628,20 +628,10 @@ examples = ({
   game: await FileAttachment("09-breakout.tsx").text()
 })
 // %%
-sourceListing = (module, invalidation, { from = null, to = null } = {}) => {
-  // module's SoundScript source from cell from to cell to (all of it without them), as its cells are now
-  const pre = htl.html`<pre class="lite-code lite-listing ss-hl">`;
-  let text = null, queued = false;
-  const draw = () => {
-    queued = false;
-    const cells = ss_moduleCells(module), keys = cells.map((c) => c.key);
-    const a = from === null ? 0 : keys.indexOf(from), b = to === null ? cells.length - 1 : keys.indexOf(to);
-    const t = cells.slice(Math.max(a, 0), b < 0 ? cells.length : b + 1).map((c) => c.text).join("\n\n");
-    if (t !== text) { text = t; pre.replaceChildren(...ss_highlight(t)); }
-  };
-  const off = onCodeChange(({ variable, previous }) => { if ((variable ?? previous)?._module === module && !queued) { queued = true; queueMicrotask(draw); } });
-  draw();
-  invalidation.then(off);
+sourceListing = (module, invalidation, range) => {
+  // the core's language-agnostic cellListing, in this page's listing style
+  const pre = cellListing(module, invalidation, range);
+  pre.classList.add("lite-code", "lite-listing");
   return pre;
 }
 // %%
@@ -1084,7 +1074,7 @@ test_ss_module_checks = {
 //raw: test_ss_counter
 // %%
 // the capabilities are imported for cells a reader adds; a compiled cell that takes now reads ss_now
-import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_roundtrip, ss_instance, ss_highlight, ss_highlightCode, ss_hl_css } from "@tomlarkworthy/soundscript"
+import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_roundtrip, ss_instance, ss_highlight, ss_highlightCode, ss_hl_css, cellListing } from "@tomlarkworthy/soundscript"
 // %%
 import { app as reducer_app, reducer_module } from "@tomlarkworthy/soundscript-reducer"
 // %%

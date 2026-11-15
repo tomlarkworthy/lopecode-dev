@@ -229,6 +229,7 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   const hidden: string[] = [];
   const hiddenInputs: string[] = [];
   if ((kind === "events" || kind === "listener") && !params.includes("invalidation")) { hidden.push("$ss$inv"); hiddenInputs.push("invalidation"); }
+
   const inv = params.includes("invalidation") ? "invalidation" : hidden.includes("$ss$inv") ? "$ss$inv" : "null";
   const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
   const refArgs = refs.map((r, i) => { hidden.push(`$ss$r${i}`); hiddenInputs.push(r); return `${JSON.stringify(r)}: $ss$r${i}`; });
@@ -243,14 +244,16 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   const id = contentId(`${kind} ${info.name} ${memo} ${body}`);
   // an events cell's definition is a function, so the runtime's `this` (the variable's last value, its
   // handle) reaches the stdlib, which keeps the handle across runs
-  // a ref cell's definition is a named function that passes itself: the stdlib keeps the store per
-  // definition object, so a run with the same inputs keeps the state (one module's variable, not
-  // every cell with the same text)
-  const prev = kind === "events" ? "prev: this, " : kind === "ref" ? `self: ${SS}ref, ` : "";
+  // a ref cell's definition is a named function that passes itself, through a defaulted last parameter
+  // that no input fills: the stdlib keeps the store per definition object, so a run with the same inputs
+  // keeps the state (one module's variable, not every cell with the same text). The default, not the
+  // body, names the function, so the body references only its parameters.
+  const prev = kind === "events" ? "prev: this, " : kind === "ref" ? "self: $ss$self, " : "";
   const opts = `{kind: ${JSON.stringify(kind)}, name: ${JSON.stringify(info.name)}, memo: ${memo}, ${prev}id: ${JSON.stringify(id)}, invalidation: ${inv}}`;
   const head = `(${[SS, ...params, ...hidden].join(", ")})`;
+  const refHead = `(${[SS, ...params, ...hidden, `$ss$self = ${SS}ref`].join(", ")})`;
   const definition = kind === "events" ? `function ${head} { ${destructure}return ${SS}.cell(${body}, ${opts}); }`
-    : kind === "ref" ? `function ${SS}ref${head} { ${destructure}return ${SS}.cell(${body}, ${opts}); }`
+    : kind === "ref" ? `function ${SS}ref${refHead} { ${destructure}return ${SS}.cell(${body}, ${opts}); }`
     : `${head} => { ${destructure}return ${SS}.cell(${body}, ${opts}); }`;
   const all = [...inputs, ...hiddenInputs];
   if (kind === "ref") {

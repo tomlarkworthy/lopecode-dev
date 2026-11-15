@@ -18,6 +18,7 @@ import { compiler, splitSeed } from "../../../spec-notebook.ts";
 import { blockContent, blockSpans, findSpan } from "../../../lib/notebook-blocks.ts";
 import { compileCell, contextOf, contextFromCheck, splitCells, type Variable } from "../toolchain/ss-toolchain.ts";
 import { checkSources } from "../core.ts";
+import { checkHtml } from "../../../lope-preflight.ts";
 
 process.on("unhandledRejection", () => {});
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -275,6 +276,9 @@ const lost = ids.filter((id) => id !== HOST && !after.has(id) && !removed.includ
 if (lost.length) throw new Error(`splice lost ${lost.join(", ")}`);
 if (!after.has(CORE + "/ss.js.gz") || (withTutorial && !after.has(TUTORIAL + "/09-breakout.tsx"))) throw new Error("an attachment is not a top-level block");
 for (const f of forks) if (blockContent(html, f.id)?.trim() !== f.fork.trim()) throw new Error(`the ${f.id} fork did not land`);
+// the SoundScript modules must have no preflight finding: a compiled cell depends only on its declared inputs
+const own = checkHtml(html).filter((p) => /^@tomlarkworthy\/soundscript[\w-]*[: ]/.test(p.detail));
+if (own.length) throw new Error(`preflight: ${own.length} finding(s) in the SoundScript modules:\n${own.map((p) => `  ${p.kind} ${p.detail}`).join("\n")}`);
 writeFileSync(OUT, html);
 if (guarded) writeFileSync(HASH_FILE, sha(html) + "\n");
 console.log(JSON.stringify({

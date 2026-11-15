@@ -257,9 +257,9 @@ Not guaranteed:
 
 # Core module README (`core.ojs`), added 2026-11-14 after the Phase 4 screenshots
 
-Replace `readme_title` with the text below. The four example cells must be shown as source cards
-(source, verdict, type, value), the same cards the tutorial uses, so the card renderer has to live
-in the core and the tutorial imports it. The counter view comes straight after the cards.
+Replace `readme_title` with the text below. (The instruction to show the four example cells as
+source cards was removed 2026-11-15: cards are gone, and the README shows one source listing of the
+four cells instead.)
 
 # SoundScript
 
@@ -269,7 +269,8 @@ module; a notebook can keep this one and drop the other.
 
 Four SoundScript cells and a view that uses them:
 
-(cards for `tally`, `bump`, `reset`, `doubled`, then `example_view`)
+(one source listing of `tally`, `bump`, `reset`, `doubled`, then `example_view`; changed from cards
+2026-11-15)
 
 `tally` is state. `bump` and `reset` are actions, the only places it is written. `doubled` reads
 it. Open any of them with its **edit** bar; a change is applied only if the whole module still

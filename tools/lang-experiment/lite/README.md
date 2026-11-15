@@ -707,10 +707,24 @@ a cell the checker rejected (section 3's `leak`, section 8's eleven) still ran.
 - State that is lost, measured by `runtime.test.ts` `b5` (2026-11-15): a ref cell that is itself
   rejected (`own` given `ref("0")`, or `seeded = (base: number) => ref(base)` once `base` is a
   string) is replaced by a raising definition, so on repair it starts again from its initial value
-  (`own` 2 -> 0, `seeded` 7 -> 5). A ref blocked by its input (`fromSq`, taking a rejected `sq`) keeps
-  its compiled definition, but its variable fails while the input does, so on repair it runs again
-  and also starts from its initial value (26 -> 25). A ref outside the broken part keeps its value
-  (`kept` 2 -> 2).
+  (`own` 2 -> 0, `seeded` 7 -> 5). A ref outside the broken part keeps its value (`kept` 2 -> 2).
+  A ref blocked by its input (`fromSq`, taking a rejected `sq`) keeps its compiled definition but
+  its variable fails while the input does, so on repair it runs again. Until later on 2026-11-15
+  that run started it from its initial value (26 -> 25). `stdlib/runtime.ts` now keeps, per
+  definition object, the last inputs of each ref run and its handle; a run with the same inputs
+  (`Object.is`) returns the same handle, so `fromSq` keeps 26. With `base` changed to 6 the input
+  differs and `fromSq` restarts at 36 (`b5_blocked_ref_restarts_on_a_new_input_value`).
+  - Dead end: keying the store by cell id shared state between two modules with the same cell text;
+    it failed `e5` and `b3`.
+  - Dead end: keying it by the variable (an `@variable` input) made a repaired rejected ref keep its
+    state too, but the exporter then wrote one SoundScript definition line fewer per module (verify,
+    `export:` rows, 6 -> 5 in the core), and it was reverted.
+  - The definition reaches the stdlib as `function $ss$ref($ss$, …, $ss$self = $ss$ref)`. A first
+    version referred to `$ss$ref` in the body; that is the function's own name, but
+    `tools/lope-preflight.ts` walks only the body and reported `viewof tally references $ss$ref,
+    which is not one of its inputs`, once per ref cell (8 findings). The name now appears only in a
+    defaulted parameter no input fills. `soundscript/build.ts` fails if preflight reports anything
+    in a `@tomlarkworthy/soundscript*` module.
 - Unit tests: `stdlib/runtime.test.ts` `b1`–`b5` (break and repair, a rejected body never runs, an
   unparsable edit, a listener in the broken part detaching and attaching again) and `o1`–`o2`
   (listener order).

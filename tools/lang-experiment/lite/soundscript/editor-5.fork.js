@@ -1904,8 +1904,12 @@ const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionS
     }
     return out;
   };
+  // a language marker in the text means it is a compiled definition, which is never typed source
+  const MARKED = /\/\*\{lang:"([\w-]+)"\}\*\//;
   const apply = async (source, variables = [], cell) => {
     try {
+      const pasted = MARKED.exec(source)?.[1];
+      if (pasted) { console.warn(new Error(`not saved: this text carries a /*{lang:"${pasted}"}*/ marker, so it is a compiled cell, not source; the cell is unchanged`)); return undefined; }
       const registered = languageOf(variables, cell) ?? languageOf([], cell, source);
       if (registered) return await registered.apply(source, variables, cell);
       // saving a tagged cell through the js/ojs path would replace it with its compiled text

@@ -4,6 +4,8 @@ This module is the SoundScript language: the checker, the compiler from a checke
 
 Four SoundScript cells and a view that uses them:`
 // %%
+readme_listing = cellListing(ss_module, invalidation, { from: "tally", to: "doubled" })
+// %%
 //ss: ./core-example.ts
 // %%
 example_view = htl.html`<div class="ss-example"><button onclick=${() => bump()}>bump</button> <button onclick=${() => reset()}>reset</button> <code>tally = ${tally}</code>, <code>doubled = ${doubled}</code></div>`
@@ -93,6 +95,7 @@ ss_roundtrip(module)                   // decompile and recompile every cell; th
 ss_language                            // the object registered on cell_languages; .inspect draws a value
 ss_instance(module, invalidation)      // a second, unseen copy of module's SoundScript cells, for tests
 ss_highlight(text), ss_highlightCode(node)  // TypeScript colouring as spans; an md cell's code blocks coloured
+cellListing(module, invalidation, {from, to})  // a module's cells in any registered language, as one listing
 ss_tests_on                            // pending until "run the tests" is on; test cells take it as an input
 \`\`\``)
 // %%
@@ -575,6 +578,7 @@ ss_language = {
     faults,
     recompile,
     settle,
+    highlight: (text) => ss_highlight(text),
     extension: (codemirror) => codemirror.javascript({ typescript: true, jsx: true })
   };
 }
@@ -623,7 +627,49 @@ ss_hl_css = [
   [".tok-propertyName", "variable"],
 ].map(([sel, c, extra = ""]) => `${sel.split(", ").map((x) => ".ss-hl " + x).join(", ")} { color: color-mix(in srgb, var(--syntax-${c}) 70%, var(--theme-foreground)); ${extra} }`).join("\n")
 // %%
-ss_hl_style = htl.html`<style>${ss_hl_css}</style>`
+ss_hl_style = htl.html`<style>${ss_hl_css}
+.cell-listing { margin: 0; padding: 8px; white-space: pre-wrap; border: 1px solid var(--theme-foreground-faint); border-radius: 4px; background: var(--theme-background-alt); }
+</style>`
+// %%
+cellListing = {
+  // a language registering makes a new cellListing, so every listing is drawn again
+  cellLanguagesVersion;
+  return (module, invalidation, { from = null, to = null } = {}) => {
+  // a module's cells from cell from to cell to (all of them without), in any language registered on
+  // cell_languages: each cell's source is its language's decompile, coloured by its highlight when it has one;
+  // read again when the module's code changes. A cell of no registered language is left out.
+  const pre = htl.html`<pre class="cell-listing ss-hl">`;
+  const keyOf = (name) => String(name).replace(/^(viewof|mutable|initial) /, "");
+  let shown = null, queued = false, round = 0;
+  const draw = async () => {
+    queued = false;
+    const mine = ++round;
+    const vars = [...runtime._variables].filter((v) => v._module === module && v._type === 1);
+    const cells = (await cellMap(vars)).get(module) ?? [];
+    const parts = [];
+    for (const c of cells) {
+      const lang = languageOf(c.variables, c);
+      if (!lang?.decompile) continue;
+      // a cell mid-redefinition may have no source yet; it is drawn on the next change
+      let text = null;
+      try { text = await lang.decompile(c.variables); } catch {}
+      if (typeof text === "string") parts.push({ key: keyOf(c.name), lang, text });
+    }
+    if (mine !== round) return;
+    const keys = parts.map((p) => p.key);
+    const a = from === null ? 0 : keys.indexOf(from), b = to === null ? parts.length - 1 : keys.indexOf(to);
+    const pick = parts.slice(Math.max(a, 0), b < 0 ? parts.length : b + 1);
+    const text = pick.map((p) => p.text).join("\n\n");
+    if (text === shown) return;
+    shown = text;
+    pre.replaceChildren(...pick.flatMap((p, i) => [...(i ? ["\n\n"] : []), ...(p.lang.highlight ? p.lang.highlight(p.text) : [p.text])]));
+  };
+  const off = onCodeChange(({ variable, previous }) => { if ((variable ?? previous)?._module === module && !queued) { queued = true; queueMicrotask(draw); } });
+  draw();
+  invalidation.then(off);
+  return pre;
+  };
+}
 // %%
 style = htl.html`<style>
 .ss-tests td, .ss-tests th { max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -799,6 +845,8 @@ ss_test_results = {
 import { runtime, realize, thisModule, repositionSetElement, onCodeChange, observe } from "@tomlarkworthy/runtime-sdk"
 // %%
 import { plugins } from "@tomlarkworthy/plugin-registry"
+// %%
+import { cellMap, languageOf, cellLanguagesVersion } from "@tomlarkworthy/cell-map"
 // %%
 import { tests } from "@tomlarkworthy/tests"
 // %%
