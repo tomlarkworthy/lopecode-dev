@@ -20,7 +20,7 @@ To write SoundScript cells in another module of this notebook, import \`ss\` and
 import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_pool } from "@tomlarkworthy/soundscript"
 \`\`\`
 
-Every compiled cell takes \`ss\` as its first input. Add a cell in the editor and type a source that starts with \`export\`, such as \`export const total = (a: number, b: number) => a + b;\`. In a module that has \`ss\`, the editor treats that source as SoundScript: it checks it against the module's other SoundScript cells and, if it is \`ok\`, compiles and defines it. A module whose cells call \`compile\` also defines \`ss_compile\`:
+Every compiled cell takes \`ss\` as its first input. Add a cell after a SoundScript cell and type a source such as \`const total = (a: number, b: number) => a + b;\`. The editor's header shows the language the cell will be stored in, and lets you change it. A SoundScript cell is checked against the module's other SoundScript cells and, if it is \`ok\`, compiled and defined. A module whose cells call \`compile\` also defines \`ss_compile\`:
 
 \`\`\`
 ss_compile = ss.compiler(() => ss_source(my_module))

@@ -288,10 +288,13 @@ export async function pickerPaths(page: Page, h: H, label: string) {
   const b = await addAfter(page, h, "summary");
   if (!b) { report(false, `${label}: no new editor after summary`); return; }
   const bLang = await pickerValue(b);
+  // define(...) parses as Observable JavaScript, so typing it does not move the picker
+  await h.typeInto(page, b, 'define("k5", [], () => 5)', false);
+  const bDefine = await pickerValue(b);
   await h.typeInto(page, b, "k2 = 1");
   await until(page, async () => (await valueOf(page, POLY, "k2")) === 1, 10000);
   const k2a = await rawState(page, "k2");
-  report(bLang === "ojs" && k2a?.tag === null && (await valueOf(page, POLY, "k2")) === 1, `${label}: a cell added after summary shows Observable JavaScript, and k2 = 1 is stored as Observable JavaScript: ${JSON.stringify({ bLang, tag: k2a?.tag })}`);
+  report(bLang === "ojs" && bDefine === "ojs" && k2a?.tag === null && (await valueOf(page, POLY, "k2")) === 1, `${label}: a cell added after summary shows Observable JavaScript, still does with define("k5", …) typed, and k2 = 1 is stored as Observable JavaScript: ${JSON.stringify({ bLang, bDefine, tag: k2a?.tag })}`);
   // text both languages accept follows the cell it was added after: a function declaration parses as
   // Observable JavaScript, and after a SoundScript cell it is stored as SoundScript
   const c = await addAfter(page, h, "doubledWidth");
@@ -305,10 +308,14 @@ export async function pickerPaths(page: Page, h: H, label: string) {
   const d = await addAfter(page, h, "report");
   if (!d) { report(false, `${label}: no new editor after report`); return; }
   const dLang = await pickerValue(d);
+  // the picker follows the typed text before Shift-Enter
+  await h.typeInto(page, d, "export const k4 = (width: number) => width * 10", false);
+  await until(page, async () => (await pickerValue(d)) === "ss", 3000);
+  const dTyped = await pickerValue(d);
   await h.typeInto(page, d, "export const k4 = (width: number) => width * 10");
   await until(page, async () => (await valueOf(page, POLY, "k4")) === 40, 10000);
   const k4s = await rawState(page, "k4");
-  report(dLang === "raw" && k4s?.tag === "ss" && (await valueOf(page, POLY, "k4")) === 40, `${label}: after report the picker shows raw, and export const k4 = … is stored as SoundScript: ${JSON.stringify({ dLang, tag: k4s?.tag, source: k4s?.source })}`);
+  report(dLang === "raw" && dTyped === "ss" && k4s?.tag === "ss" && (await valueOf(page, POLY, "k4")) === 40, `${label}: after report the picker shows raw, switches to SoundScript as export const k4 = … is typed, and the cell is stored as SoundScript: ${JSON.stringify({ dLang, dTyped, tag: k4s?.tag, source: k4s?.source })}`);
   const k2pid = await pidOf(page, "k2"), kpid = await pidOf(page, "k");
   // Observable JavaScript to SoundScript, by the picker
   let e = await editorByPid(page, h, k2pid);

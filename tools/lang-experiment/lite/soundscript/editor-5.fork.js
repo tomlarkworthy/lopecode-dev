@@ -573,11 +573,14 @@ const _e6choice = function _languageChoice(){return(
 // keyed by the cell's first pid, which a change of language keeps: pid -> {lang, from: "picker" | "new"}
 new Map()
 )};
-const _e6pick = function _languagePicker(cellLanguagesRef,cellLanguage,languageChoice,EditorView,codemirror){return(
+const _e6pick = function _languagePicker(cellLanguagesRef,cellLanguage,languageChoice,EditorView,codemirror,states,routeLanguage){return(
 (editedCell) => {
   const key = editedCell?.variables?.[0]?.pid;
-  // a new cell's default is shown until a claim or a pick replaces it
-  const current = languageChoice.get(key)?.lang ?? cellLanguage(editedCell?.variables ?? [], editedCell);
+  // the language the current text would be stored in: a pick, the tag, a claim, else a new cell's default
+  const vars = editedCell?.variables ?? [];
+  const doc = states.get(vars[0])?.doc?.toString();
+  const routed = doc != null && doc.trim() !== "{}" ? routeLanguage(doc, vars, editedCell).id : null;
+  const current = routed ?? languageChoice.get(key)?.lang ?? cellLanguage(vars, editedCell);
   const options = [...cellLanguagesRef.current.map((l) => [l.id, l.label ?? l.id]), ["ojs", "Observable JavaScript"], ["js", "JavaScript"]];
   if (!options.some(([id]) => id === current)) options.push([current, `${current} (not loaded)`]);
   const select = document.createElement("select");
@@ -933,7 +936,7 @@ const _1rhoxk2 = function _findVariableIndex(runtime){return(
 (variable, variables = runtime._variables) =>
   [...variables].findIndex((vi) => vi === variable)
 )};
-const _g08ji8 = async function _command_processor(command,$0,compile_and_update,pinOnCreate,selectVariable,remove_variables,$1,findCellIndex,lookupCellByIndex,findVariableIndex,repositionSetElement,runtime,findCell,$2,newCellLanguage,languageChoice,cellLanguage)
+const _g08ji8 = async function _command_processor(command,$0,compile_and_update,pinOnCreate,selectVariable,remove_variables,$1,findCellIndex,lookupCellByIndex,runtime,findCell,$2,newCellLanguage,languageChoice,cellLanguage)
 {
     if (command.processed)
         return;
@@ -955,20 +958,29 @@ const _g08ji8 = async function _command_processor(command,$0,compile_and_update,
         remove_variables(command.args.cell.variables);
         result = true;
     } else if (command.command == 'moveCell') {
-        const cellList = $1.value.get(command.args.cell.module.module);
+        // in the runtime's current order: the cell map learns of a move a tick late, and a second move read from it
+        // went one cell too far
+        const at = new Map([...runtime._variables].map((v, i) => [v, i]));
+        const cellList = [...$1.value.get(command.args.cell.module.module).values()]
+            .filter(c => at.has(c.variables[0]))
+            .sort((x, y) => at.get(x.variables[0]) - at.get(y.variables[0]));
         const cellIndex = findCellIndex(command.args.cell.variables, cellList);
         const targetCellIndex = cellIndex + command.args.amount;
         const targetCell = lookupCellByIndex(targetCellIndex, cellList);
         if (targetCell) {
-            const currentFirstVariableIndex = findVariableIndex(command.args.cell.variables[0]);
-            const targetFirstVariableIndex = findVariableIndex(targetCell.variables[0]);
-            const change = targetFirstVariableIndex - currentFirstVariableIndex;
             const dom = command.args.cell.dom;
             const preY = dom?.getBoundingClientRect?.().top;
-            command.args.cell.variables.forEach(v => {
-                const currentIndex = findVariableIndex(v);
-                repositionSetElement(runtime._variables, v, currentIndex + change);
-            });
+            // the cell's variables go before the target cell's first (up) or after its last (down), so a target
+            // of several variables (viewof x and x) is passed whole, not split
+            const group = new Set(command.args.cell.variables);
+            const arr = [...runtime._variables];
+            const without = arr.filter(v => !group.has(v));
+            const idxs = targetCell.variables.map(v => without.indexOf(v)).filter(i => i >= 0);
+            if (idxs.length) {
+                without.splice(command.args.amount > 0 ? Math.max(...idxs) + 1 : Math.min(...idxs), 0, ...arr.filter(v => group.has(v)));
+                runtime._variables.clear();
+                without.forEach(v => runtime._variables.add(v));
+            }
             await selectVariable(command.args.cell.variables[0], command.args.cell.dom);
             // Keep moved cell at same screen position so neighbours shift around it.
             // Cells here have wildly varying heights (some embed 500+ px iframes), so
@@ -1358,6 +1370,19 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
     extensions: [
       cellIdFacet.of(key),
       EditorView.updateListener.of(u => states.set(u.state.facet(cellIdFacet), u.state)),
+      // the header's picker follows the text: typing a claimed source shows the language it will be stored in
+      EditorView.updateListener.of(u => {
+        if (!u.docChanged) return;
+        const text = u.state.doc.toString();
+        if (text.trim() === '{}') return;
+        let n = u.view.dom.parentElement;
+        while (n && !n.querySelector('select.e5-cell-language')) n = n.parentElement;
+        const sel = n?.querySelector('select.e5-cell-language');
+        if (!sel || sel === document.activeElement) return;
+        const vars = editedCell?.variables ?? [];
+        const id = routeLanguage(text, vars, editedCell).id ?? cellLanguage(vars, editedCell);
+        if ([...sel.options].some(o => o.value === id)) sel.value = id;
+      }),
       codemirror.keymap.of([
         // in a cell a registered language claims, Tab takes the selected completion before it indents
         { key: 'Tab', run: view => !!(unloaded || languageNow(view)) && codemirror.completionStatus?.(view.state) === 'active' && !!codemirror.acceptCompletion?.(view) },
@@ -2807,7 +2832,7 @@ export default function define(runtime, observer) {
   $def("_n8s6yl", null, ["viewof editedCell"], _n8s6yl);  
   $def("_ytd2rq", null, ["nav","editedCell"], _ytd2rq);  
   $def("_1t4gep6", "nav", ["html","cellLinks","languageOf","languagePicker"], _1t4gep6);
-  $def("_e6pick", "languagePicker", ["cellLanguagesRef","cellLanguage","languageChoice","EditorView","codemirror"], _e6pick);
+  $def("_e6pick", "languagePicker", ["cellLanguagesRef","cellLanguage","languageChoice","EditorView","codemirror","states","routeLanguage"], _e6pick);
   $def("_e6choice", "languageChoice", [], _e6choice);
   $def("_e6claim", "claimedLanguage", ["cellLanguagesRef","cellLanguage","parser","transpileJavaScript"], _e6claim);
   $def("_e6route", "routeLanguage", ["cellLanguagesRef","languageChoice","languageOf","claimedLanguage"], _e6route);
@@ -2852,7 +2877,7 @@ export default function define(runtime, observer) {
   $def("_dmk8lv", "findCellIndex", [], _dmk8lv);  
   $def("_jy01vb", "lookupCellByIndex", [], _jy01vb);  
   $def("_1rhoxk2", "findVariableIndex", ["runtime"], _1rhoxk2);  
-  $def("_g08ji8", "command_processor", ["command","viewof edit","compile_and_update","pinOnCreate","selectVariable","remove_variables","viewof liveCellMap","findCellIndex","lookupCellByIndex","findVariableIndex","repositionSetElement","runtime","findCell","viewof command","newCellLanguage","languageChoice","cellLanguage"], _g08ji8);  
+  $def("_g08ji8", "command_processor", ["command","viewof edit","compile_and_update","pinOnCreate","selectVariable","remove_variables","viewof liveCellMap","findCellIndex","lookupCellByIndex","runtime","findCell","viewof command","newCellLanguage","languageChoice","cellLanguage"], _g08ji8);  
   $def("_8iz5z2", null, ["md"], _8iz5z2);  
   $def("_m873d1", "states", [], _m873d1);  
   $def("_mxwoc4", "cellIdFacet", ["codemirror"], _mxwoc4);  

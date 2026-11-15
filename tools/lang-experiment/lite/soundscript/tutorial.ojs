@@ -215,7 +215,7 @@ md`\`test_replay\` plays 600 frames twice, with no browser and no clock, and che
 // %%
 md`## How it works
 
-What the notebook does with a SoundScript cell, one mechanism per cell. None of this is part of the checked language; it is the compiler, the standard library and the editor hook in \`@tomlarkworthy/soundscript\`, the other tab.`
+What the notebook does with a SoundScript cell, one mechanism per cell. None of this is part of the checked language; it is the compiler, the standard library and the editor hook in \`@tomlarkworthy/soundscript\`, which has its own tab.`
 // %%
 md`### What a cell compiles to
 
@@ -283,7 +283,7 @@ md`### How the typed source is kept
 A compiled variable's definition is ordinary JavaScript. Its first comment is the marker \`/*{lang:"ss"}*/\`, the types are kept as \`/*ss:…*/\` comments, JSX as \`/*ss<…*/\` beside its lowered \`h(...)\` calls, and the text around the function (the comments before it, \`const name = \`) in a \`/*ss^{…}*/\` header. So the typed source is recovered from the definition alone, and a definition survives anything that keeps a function's text, such as saving the notebook. \`test_ss_roundtrip\` checks every live variable: decompile, compile again, and compare the text.`
 // %%
 md`### Editing
-Shift-Enter always stores the edit. The module is checked again, and each cell is then ok, rejected (it breaks a rule) or blocked (it depends on a cell that is not ok). Only ok cells run. A rejected or blocked cell keeps its source, shows why it is not running, and is saved that way. A \`ref\` whose own cell stays ok keeps its value while other cells are broken and repaired. A new cell whose source starts with \`export\` is a SoundScript cell. The language registers on the \`cell_languages\` plugin point of this notebook's copy of \`@tomlarkworthy/cell-map\`, which the editor and the visualizer read.`
+Shift-Enter always stores the edit. The module is checked again, and each cell is then ok, rejected (it breaks a rule) or blocked (it depends on a cell that is not ok). Only ok cells run. A rejected or blocked cell keeps its source, shows why it is not running, and is saved that way. A \`ref\` whose own cell stays ok keeps its value while other cells are broken and repaired. A new cell takes the language of the cell it was added after; the picker in the editor's header shows it and changes it. The language registers on the \`cell_languages\` plugin point of this notebook's copy of \`@tomlarkworthy/cell-map\`, which the editor and the visualizer read.`
 // %%
 md`### Why four sections are modules
 
@@ -318,7 +318,7 @@ A source file holds cells and type declarations, nothing else (\`[module-level]\
 | \`const f = () => (n: number) => n * 2\` | a cell whose value is a function: two arrows, the outer one lists the inputs |
 | \`type T = …\`, \`interface I {…}\`, \`import type\` | allowed at top level, not cells |
 
-An export that is not a function is \`[cell-not-function]\`; two cells with one name are a parse error (the table is replaced by the message). Two cells that read each other are \`[cycle]\`. A cell named \`test_*\` is a test and passes if it does not throw.`
+A top-level \`const\` or \`let\` that is not a function is \`[cell-not-function]\`; two cells with one name are a parse error (the table is replaced by the message). Two cells that read each other are \`[cycle]\`. A cell named \`test_*\` is a test and passes if it does not throw.`
 // %%
 md`### Inputs
 

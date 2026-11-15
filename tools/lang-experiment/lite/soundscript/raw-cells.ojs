@@ -145,7 +145,7 @@ raw_language = {
 // %%
 raw_registration = {
   plugins.add("cell_languages", raw_language, { invalidation });
-  return md`PROSE PENDING (raw cells are registered as the editor language \`${raw_language.id}\`)`;
+  return md`Raw cells are registered as the editor language \`${raw_language.id}\`.`;
 }
 // %%
 raw_highlight = {

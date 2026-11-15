@@ -25,7 +25,11 @@ md`Move the slider. \`area\` is a raw cell that reads a SoundScript cell and an 
 // %%
 md`## How a language is added
 
-A language is a module that registers on the \`cell_languages\` point of the cell map. It gives \`decompile\`, which turns a stored cell back into source, and \`apply\`, which stores an edit, and it marks each cell it stores with a comment naming the language. The editor, the page and the listing ask the registry. None of them names a language.`
+A language is a module that registers on the \`cell_languages\` point of the cell map. It gives \`decompile\`, which turns a stored cell back into source, and \`apply\`, which stores an edit, and it marks each cell it stores with a comment naming the language. The editor, the visualizer and the listing ask the registry. None of them names a language.`
+// %%
+md`## Choosing a language
+
+The editor's header has a picker that shows the language a cell will be stored in. A new cell starts in the language of the cell it was added after. Typing text that only one registered language accepts, and that Observable JavaScript does not parse, switches the picker to that language. \`define(…)\` is a valid Observable JavaScript expression, so it does not switch: pick \`raw\`, or add the cell after a raw cell.`
 // %%
 md`The listing leaves out \`viewof height\` and \`summary\`. Observable JavaScript is built into the editor and is not a registered language.`
 // %%
