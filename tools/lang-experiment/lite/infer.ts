@@ -19,12 +19,12 @@ export type FnInfo = {
   node: Node; parent: FnInfo | null; isAsync: boolean; isGen: boolean; isCell: boolean; inAction: boolean;
   retCtx?: Ty; rets: Ty[]; yields: Ty[];
 };
-class Scope {
+export class Scope {
   vars = new Map<string, Binding>();
   constructor(public parent: Scope | null) {}
   get(n: string): Binding | undefined { return this.vars.get(n) ?? this.parent?.get(n); }
 }
-type Env = { scope: Scope; flow: Map<string, Ty>; fi: FnInfo };
+export type Env = { scope: Scope; flow: Map<string, Ty>; fi: FnInfo };
 export type CallFact = { sig?: Fn; prelude?: string; helper?: Binding };
 export type Facts = {
   types: Map<Node, Ty>;
@@ -50,6 +50,8 @@ export class Checker {
   globals = new Scope(null);
   // compile({inputs, refs, outputs}) is typed from the cell graph, which only core.ts sees.
   compileHook: ((e: Node, env: Env) => Ty) | null = null;
+  // called with every identifier read and its environment (completion reads the scope at a placeholder)
+  identHook: ((e: Node, env: Env) => void) | null = null;
 
   constructor(public reg: Registry, public cellNames: Set<string>, public parsed: Parsed) {
     reg.onUnsup = (n, what) => this.unsupported(n, what);
@@ -517,6 +519,7 @@ export class Checker {
   }
 
   ident(e: Node, env: Env): Ty {
+    this.identHook?.(e, env);
     const b = env.scope.get(e.name);
     if (!b) {
       if (e.name === "arguments") return ERR; // syntax pass

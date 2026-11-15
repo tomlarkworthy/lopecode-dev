@@ -402,6 +402,37 @@ ss_language = {
     return n;
   };
 
+  // completion at pos in source, with the module's other cells as context: {from, to, options, mode}
+  const complete = (source, pos, variables = [], cell) => {
+    const module = moduleOf(variables, cell);
+    const cells = ss_moduleCells(module);
+    const texts = cells.map((c) => c.text);
+    const at0 = cells.findIndex((c) => c.key === ownKey(variables));
+    const at = at0 < 0 ? texts.length : at0;
+    texts[at] = source;
+    return ss.completionsAt(texts, at, pos, tsx);
+  };
+  // the editor's header: the cell's parameters as inputs (not ss or a hidden invalidation), named outputs
+  const header = (variables) => {
+    const v = variables.find((x) => isSs(x) && ss.decompileVariable(String(x._definition)) !== null);
+    if (!v) return null;
+    const text = ss.decompileVariable(String(v._definition));
+    const open = /export\s+(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/.exec(text);
+    const params = new Set();
+    if (open) {
+      let depth = 0, part = "";
+      for (const ch of text.slice(open.index + open[0].length)) {
+        if ("([{<".includes(ch)) depth++;
+        if (")]}>".includes(ch)) { if (depth === 0) { params.add(/^\s*([\w$]+)/.exec(part)?.[1]); break; } depth--; }
+        if (ch === "," && depth === 0) { params.add(/^\s*([\w$]+)/.exec(part)?.[1]); part = ""; } else part += ch;
+      }
+    }
+    const own = new Set(variables);
+    const inputs = [...new Set(variables.flatMap((x) => x._inputs))].filter((i) => !own.has(i) && params.has(String(i._name).replace(/^viewof /, "")));
+    const outputs = [...new Set(variables.flatMap((x) => [...x._outputs]))].filter((o) => !own.has(o) && typeof o._name === "string" && o._name);
+    return { inputs, outputs };
+  };
+
   // a new cell is SoundScript when its module has ss, which every compiled cell takes
   const claimsSource = (source, cell) => {
     const module = cell?.module?.module;
@@ -427,6 +458,8 @@ ss_language = {
     decompile,
     check,
     lint,
+    complete,
+    header,
     apply,
     faults,
     recompile,

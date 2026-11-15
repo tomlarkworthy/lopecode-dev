@@ -466,6 +466,150 @@ async function typeInto(page: Page, host: any, text: string) {
   await page.keyboard.insertText(text);
   await page.keyboard.press("Shift+Enter");
 }
+// Completion in the editor, with real key events: a SoundScript cell completes from the checker's
+// types, an ordinary cell from runtime values as before.
+async function completion(page: Page) {
+  const popup = () => page.evaluate(() => [...document.querySelectorAll(".cm-tooltip-autocomplete li")].map((li) => li.querySelector(".cm-completionLabel")?.textContent ?? ""));
+  // the completion state of the focused editor, through the CodeMirror build the editor module uses
+  const statusFn = () => {
+    const rt = (window as any).__ojs_runtime;
+    const em = [...rt._variables].find((v: any) => v._name === "editor_manager");
+    const cm = em?._module._scope.get("codemirror")?._value;
+    const EV = em?._module._scope.get("EditorView")?._value;
+    const el = document.activeElement?.closest(".cm-editor");
+    const view = el && EV?.findFromDOM(el);
+    return view ? String(cm.completionStatus(view.state)) : "no focused editor";
+  };
+  const status = () => page.evaluate(statusFn);
+  const waitPopup = async () => {
+    await page.waitForFunction(`(${statusFn})() === "active"`, null, { timeout: 5000 }).catch(() => {});
+    await page.locator(".cm-tooltip-autocomplete li").first().waitFor({ timeout: 5000 }).catch(() => {});
+    // CodeMirror ignores Enter and Tab for 75 ms after the list opens (interactionDelay)
+    await page.waitForTimeout(250);
+    return popup();
+  };
+  // An open editor's panel can be rebuilt a few hundred ms after it opens (seen while the page's tests
+  // define and delete variables); the rebuild blurs the editor and closes an open list. The editor
+  // gets focus back (editor_panel), so the typing is done again once, and the retry is counted.
+  let retries = 0;
+  const typeAndList = async (host: any, text: string, key: string) => {
+    for (let i = 0; i < 2; i++) {
+      await place(host, text);
+      await page.keyboard.type(key);
+      const list = await waitPopup();
+      if (list.length || i === 1) return list;
+      retries++;
+    }
+    return [];
+  };
+  // puts text in the editor and the cursor at the `|` in it
+  const place = (host: any, text: string) => host.locator(".cm-content").first().evaluate((el: any, text: string) => {
+    const view = [...(window as any).__ojs_runtime._variables].find((v: any) => v._name === "EditorView")._value.findFromDOM(el.closest(".cm-editor"));
+    const at = text.indexOf("|");
+    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text.replace("|", "") }, ...(at >= 0 ? { selection: { anchor: at } } : {}) });
+    view.focus();
+  }, text);
+  await page.evaluate(() => {
+    const w = window as any;
+    w.__focusLog2 = [];
+    const d = (e: any) => e ? `${e.tagName}.${String(e.className).slice(0, 40)}${e.isConnected ? "" : "(detached)"}` : "null";
+    document.addEventListener("focusout", (e) => w.__focusLog2.push(`${Math.round(performance.now())} out ${d(e.target)} -> ${d((e as FocusEvent).relatedTarget)} ${new Error().stack?.split("\n").slice(2, 6).join(" | ")}`), true);
+    const mo = new MutationObserver((ms) => { for (const m of ms) for (const n of m.removedNodes) if ((n as Element).querySelector?.(".cm-editor") || (n as Element).classList?.contains("cm-editor")) w.__focusLog2.push(`${Math.round(performance.now())} removed ${(n as Element).tagName}.${String((n as Element).className).slice(0, 40)}`); });
+    mo.observe(document.body, { childList: true, subtree: true });
+  });
+  // the tutorial's tab is already showing (testsOn leaves it); clicking a tab rebuilds the pane
+  const inc = await openEditor(page, TUTORIAL, "increment");
+  if (!inc) { report(false, "completion: no editor for increment"); return; }
+  const original = await editorText(inc);
+  const head = original.slice(0, original.indexOf("export const increment"));
+  // the editor's header names the cell's own inputs and outputs, not ss or unnamed observers
+  const header = await inc.evaluate((el: Element) => [...el.querySelectorAll("span")].map((s) => s.textContent ?? "").filter((t) => /^(inputs|outputs):/.test(t.trim())).map((t) => t.trim()));
+  report(header.some((t) => /^inputs: .*\bcount\b/.test(t)) && !header.some((t) => /\banon\b|\bss\b|invalidation/.test(t)), `completion: increment's editor header lists its own inputs, no anon or ss: ${JSON.stringify(header)}`);
+  const refList = await typeAndList(inc, head + "export const increment = (count: Ref<number>) => action(() => count|)", ".");
+  const why = refList.length ? "" : await inc.locator(".cm-content").first().evaluate((el: any) => {
+    const rt = (window as any).__ojs_runtime;
+    const view = [...rt._variables].find((v: any) => v._name === "EditorView")._value.findFromDOM(el.closest(".cm-editor"));
+    const lang = [...rt._variables].find((v: any) => v._name === "ss_language")._value;
+    const inc = [...rt._variables].find((v: any) => v._name === "increment" && v._module === rt.mains.get("@tomlarkworthy/soundscript-tutorial"));
+    let r; try { r = lang.complete(view.state.doc.toString(), view.state.selection.main.head, [inc]); } catch (e) { r = String(e); }
+    return JSON.stringify({ doc: view.state.doc.toString().slice(-40), head: view.state.selection.main.head, focus: view.hasFocus, r });
+  });
+  report(JSON.stringify(refList) === '["set","update"]', `completion: typing count. in increment lists exactly set and update: ${JSON.stringify(refList)}${why}`);
+  if (process.argv.includes("--shots")) {
+    await inc.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(HERE, "shots", "desktop-autocomplete-ref.png") });
+  }
+  const atEnter = await status();
+  const log = await page.evaluate(() => (window as any).__focusLog2.slice(-6));
+  await page.keyboard.press("Enter");
+  const accepted = await editorText(inc);
+  report(accepted === head + "export const increment = (count: Ref<number>) => action(() => count.set)", `completion: Enter takes set: ${JSON.stringify(accepted.slice(head.length))}${accepted.endsWith("count.set)") ? "" : ` (completion ${atEnter}) ${JSON.stringify(log)}`}`);
+  const upd = await typeAndList(inc, head + "export const increment = (count: Ref<number>) => action(() => count.up|)", "d");
+  const atTab = await status();
+  const logTab = upd.length ? "" : JSON.stringify(await page.evaluate(() => (window as any).__focusLog2.slice(-6)));
+  await page.keyboard.press("Tab");
+  const tabbed = await editorText(inc);
+  report(JSON.stringify(upd) === '["update"]' && tabbed.endsWith("count.update)"), `completion: count.upd then Tab gives update: ${JSON.stringify(upd)} ${JSON.stringify(tabbed.slice(head.length))} (completion ${atTab}) ${logTab}`);
+  await place(inc, original);
+  await page.keyboard.press("Escape");
+
+  // a value parameter of the ref cell: number members. app takes count: number
+  const app = await openEditor(page, TUTORIAL, "app");
+  if (app) {
+    const o = await editorText(app);
+    const h = o.slice(0, o.indexOf("export const app"));
+    const nums = await typeAndList(app, h + "export const app = (count: number) => count|;", ".");
+    report(nums.includes("toFixed") && !nums.includes("set") && !nums.includes("update"), `completion: count. in app (count: number) lists number members: ${JSON.stringify(nums)}`);
+    await page.keyboard.press("Escape");
+    await place(app, o);
+  } else report(false, "completion: no editor for app");
+
+  // an ordinary cell still completes from runtime values
+  const plain = await openEditor(page, TUTORIAL, "tests_on");
+  if (plain) {
+    const o = await editorText(plain);
+    const rt = await typeAndList(plain, "tests_on = Math|", ".");
+    report(rt.includes("random") && rt.includes("floor"), `completion: an ordinary cell still completes from runtime values (Math. lists random): ${rt.length} items`);
+    await page.keyboard.press("Escape");
+    await place(plain, o);
+  } else report(false, "completion: no editor for tests_on");
+
+  console.log(`  completion: ${retries} list(s) typed again after an editor panel rebuild`);
+  // every member a SoundScript cell of the tutorial or core uses is offered at its place, and the
+  // completion stays within budget
+  const all = await page.evaluate(([tut, core]) => {
+    const rt = (window as any).__ojs_runtime;
+    const find = (n: string, m?: any) => [...rt._variables].find((v: any) => v._name === n && (!m || v._module === m));
+    const lang = find("ss_language")._value, cellsOf = find("ss_moduleCells")._value;
+    const missed: string[] = [], times: number[] = [];
+    let n = 0;
+    for (const [name, mod] of rt.mains) {
+      if (!String(name).startsWith(core)) continue;
+      for (const c of cellsOf(mod)) {
+        const re = /(?<![\w$.])([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)/g;
+        for (const m of c.text.matchAll(re)) {
+          const pos = m.index! + m[1].length + 1;
+          const before = c.text.slice(0, pos);
+          if (/\/\/[^\n]*$/.test(before) || (before.split("`").length % 2 === 0) || (before.split('"').length % 2 === 0)) continue;
+          const t0 = performance.now();
+          const r = lang.complete(c.text, pos, [c.variable], { module: { module: mod }, variables: [c.variable] });
+          times.push(performance.now() - t0);
+          n++;
+          if (!r.options.some((o: any) => o.label === m[2])) missed.push(`${c.key}: ${m[1]}.${m[2]} (${r.mode} ${r.options.slice(0, 4).map((o: any) => o.label)})`);
+        }
+      }
+    }
+    const inc = find("increment", rt.mains.get(tut));
+    const src = cellsOf(rt.mains.get(tut)).find((c: any) => c.key === "increment").text;
+    const at = src.indexOf("count.update") + 6;
+    const own: number[] = [];
+    for (let i = 0; i < 30; i++) { const t0 = performance.now(); lang.complete(src, at, [inc]); own.push(performance.now() - t0); }
+    own.sort((a, b) => a - b);
+    return { n, missed, median: own[15], max: own[29], cells: cellsOf(rt.mains.get(tut)).length };
+  }, [TUTORIAL, CORE]);
+  report(all.n > 20 && all.missed.length === 0, `completion: at each of ${all.n} member reads in the SoundScript cells of the core, tutorial and section modules the member read is offered${all.missed.length ? ": missed " + all.missed.slice(0, 8).join("; ") : ""}`);
+  report(all.max < 30, `speed: one completion of count. in the ${all.cells}-cell tutorial module: median ${all.median.toFixed(1)} ms, max ${all.max.toFixed(1)} ms of 30 (budget 30 for the max)`);
+}
 async function uiPaths(page: Page, saved: string) {
   const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
   await tab(CORE);
@@ -1040,6 +1184,7 @@ rmSync(savedPath, { force: true });
 const E = await open(file, savedPath);
 await testsOn(E.page, "ui");
 await testsPass(E.page, "ui", CORE, CORE_TESTS);
+await completion(E.page);
 await uiPaths(E.page, savedPath);
 requests("ui page", E);
 await E.page.close();

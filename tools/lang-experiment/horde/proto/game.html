@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Horde</title>
+<style>
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  canvas { display: block; }
+  #hud { position: fixed; left: 12px; top: 8px; color: #8cf; font: 12px/1.4 ui-monospace, monospace; text-shadow: 0 0 6px #08f; pointer-events: none; white-space: pre; }
+</style>
+<canvas id="c"></canvas>
+<div id="hud"></div>
+<script src="sim.gen.js"></script>
+<script src="lite-job.js"></script>
+<script src="lite-pool.js"></script>
+<script src="engine.js"></script>
+<script src="render.js"></script>
+<script>
+// game.html?n=10000&mode=transfer&workers=8           play: WASD to move, mouse to aim, hold the button to fire
+// &shot=overview|closeup|explosion|dense&frames=600    headless: run that many frames then set window.__ready
+// &measure=1                                           frames back to back (not rAF), timings in window.__measure
+(async () => {
+  const q = new URLSearchParams(location.search);
+  const n = +(q.get("n") || 10000), mode = q.get("mode") || "transfer", workers = +(q.get("workers") || 8);
+  const shot = q.get("shot"), frames = +(q.get("frames") || 0), measure = q.get("measure") === "1";
+  const W = +(q.get("w") || (shot || measure ? 1280 : innerWidth)), H = +(q.get("h") || (shot || measure ? 800 : innerHeight));
+  const canvas = document.getElementById("c");
+  canvas.width = W; canvas.height = H; canvas.style.width = W + "px"; canvas.style.height = H + "px";
+  const hud = document.getElementById("hud");
+  const input = { active: false, mx: 0, my: 0, aim: 0, fire: false };
+  const keys = new Set();
+  const engine = makeEngine({ n, mode, workers, input, bot: true });
+  let camOpts;
+  if (shot === "closeup") camOpts = (t, e) => ({ x: e.player[0] + 2, y: e.player[1] - 1, dist: 30, tilt: 0.62, fov: 0.75 });
+  else if (shot === "explosion") camOpts = (t, e) => ({ x: e.player[0], y: e.player[1], dist: 52, tilt: 0.55, fov: 0.75 });
+  const R = await makeRenderer(canvas, engine, { n, camera: camOpts, hide: q.get("hide") || "" });
+  // twin-stick: WASD moves, the mouse aims (screen direction from the ship's screen position, approximated by the centre)
+  addEventListener("keydown", (e) => { keys.add(e.key.toLowerCase()); input.active = true; });
+  addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
+  addEventListener("mousemove", (e) => { input.aim = Math.atan2(e.clientY - H * 0.55, e.clientX - W / 2); input.active = true; });
+  addEventListener("mousedown", () => (input.fire = true));
+  addEventListener("mouseup", () => (input.fire = false));
+  const rows = [];
+  let f = 0;
+  const dt = engine.sim.params.dt;
+  const one = async () => {
+    input.mx = (keys.has("d") ? 1 : 0) - (keys.has("a") ? 1 : 0);
+    input.my = (keys.has("s") ? 1 : 0) - (keys.has("w") ? 1 : 0);
+    const t0 = performance.now();
+    const st = await engine.step();
+    const t1 = performance.now();
+    if (shot === "explosion" && f === frames - 24) R.explode(engine.player[0] + 7, engine.player[1] - 2, 3);
+    const info = R.frame(dt);
+    const t2 = performance.now();
+    rows.push({ sim: t1 - t0, cpuRender: t2 - t1 });
+    f++;
+    if (f % 15 === 0) hud.textContent = `${n.toLocaleString()} agents  ${mode}${mode === "main" ? "" : " x" + engine.poolSize}  kills ${engine.score}\nsim ${(t1 - t0).toFixed(1)} ms  cpu render ${(t2 - t1).toFixed(1)} ms  gpu ${(R.gpuMs.at(-1) ?? 0).toFixed(2)} ms  particles ${info.particles}`;
+  };
+  if (shot || measure) {
+    hud.style.display = q.get("hud") === "1" ? "" : "none";
+    const t0 = performance.now();
+    while (f < frames) { await one(); if (measure) await R.device.queue.onSubmittedWorkDone(); }
+    await R.device.queue.onSubmittedWorkDone();
+    const wall = performance.now() - t0;
+    const tail = rows.slice(Math.min(120, rows.length >> 1));
+    const med = (a) => { const v = [...a].sort((x, y) => x - y); return v[v.length >> 1]; };
+    const g = R.gpuMs.slice(Math.min(120, R.gpuMs.length >> 1));
+    window.__measure = { n, mode, workers: engine.poolSize, frames, wallPerFrame: wall / frames, sim: med(tail.map((r) => r.sim)), cpuRender: med(tail.map((r) => r.cpuRender)), frame: med(tail.map((r) => r.sim + r.cpuRender)), gpu: g.length ? med(g) : null, gpuP90: g.length ? [...g].sort((a, b) => a - b)[Math.floor(g.length * 0.9)] : null, timestamps: R.hasTs, kills: engine.score, particles: R.particles };
+    window.__ready = true;
+    return;
+  }
+  const loop = async () => { await one(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+})().catch((e) => { document.getElementById("hud").textContent = String(e.stack || e); window.__ready = true; window.__error = String(e.stack || e); });
+</script>

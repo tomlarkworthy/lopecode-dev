@@ -6,3 +6,4 @@ export { erase } from "../browser/erase.ts";
 export { INTRINSIC_DECLS, PRELUDE_DECLS, JSX_DECLS } from "../intrinsics.ts";
 export * from "../stdlib/runtime.ts";
 export { STDLIB_INPUT, CAP_INPUTS, LANG, idOf, withId } from "../toolchain/ss-toolchain.ts";
+export { completionsAt } from "../complete.ts";

@@ -349,13 +349,24 @@ const _x5ixji = function _hotbar_shell($0,Event,htl,edit)
 const _1ed5zb9 = function _editor_panel($0,htl,toolbar,nav,reversibleAttach,combine,code_editor)
 {
   const cell = $0.value;
-  return htl.html`<div style="display: flex; flex-direction: column;">
+  // moving the editor into a rebuilt panel blurs it; a typing user gets the focus back once it is attached
+  const hadFocus = code_editor.contains(document.activeElement);
+  const panel = htl.html`<div style="display: flex; flex-direction: column;">
     ${toolbar}
     ${cell ? nav(cell) : null}
     <div style="flex-grow: 1; padding-bottom: 1rem;">
       ${reversibleAttach(combine, code_editor)}
     </div>
   </div>`;
+  if (hadFocus) {
+    let tries = 0;
+    const back = () => {
+      if (code_editor.isConnected) code_editor.querySelector('.cm-content')?.focus({ preventScroll: true });
+      else if (++tries < 30) requestAnimationFrame(back);
+    };
+    requestAnimationFrame(back);
+  }
+  return panel;
 };
 const _yk7udl = function _shellTemplate($0,editedCell,selectVariable,$1,edit,hotbar_shell,lookupVariable,editorModule)
 {
@@ -544,10 +555,13 @@ $0.value
 const _ytd2rq = function _26(nav,editedCell){return(
 nav(editedCell)
 )};
-const _1t4gep6 = function _nav(html,cellLinks){return(
+const _1t4gep6 = function _nav(html,cellLinks,languageOf){return(
 function nav(editedCell) {
-  const outputs = [...editedCell.variables[0]._outputs];
-  const inputs = editedCell.variables[0]._inputs;
+  // a registered language names the cell's own inputs and outputs (a compiled cell has hidden ones)
+  let h = null;
+  try { h = languageOf(editedCell.variables, editedCell)?.header?.(editedCell.variables) ?? null; } catch (e) { console.error(e); }
+  const outputs = h?.outputs ?? [...editedCell.variables[0]._outputs];
+  const inputs = h?.inputs ?? editedCell.variables[0]._inputs;
   return html`<div>
 <span>${cellLinks("inputs", inputs)}</span>
 <span>${cellLinks("outputs", outputs)}</span>
@@ -1182,6 +1196,17 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
       options
     } : null;
   };
+  const claimed = cx => !!(unloaded || (cx.view ? languageNow(cx.view) : registered));
+  const languageCompletions = cx => {
+    const lang = cx.view ? languageNow(cx.view) : registered;
+    if (!lang?.complete) return null;
+    let r;
+    try { r = lang.complete(cx.state.doc.toString(), cx.pos, editedCell.variables, editedCell); } catch (e) { console.error(e); return null; }
+    if (!r || !r.options?.length) return null;
+    // a name-mode list waits for a typed character or an explicit request; members show after the dot
+    if (!cx.explicit && r.mode === 'name' && r.from === cx.pos) return null;
+    return { from: r.from, to: r.to ?? cx.pos, options: r.options, validFor: /^[\w$]*$/ };
+  };
   const lintSource = view => {
     const seen = new Set();
     const diags = [];
@@ -1232,6 +1257,8 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
       cellIdFacet.of(key),
       EditorView.updateListener.of(u => states.set(u.state.facet(cellIdFacet), u.state)),
       codemirror.keymap.of([
+        // in a cell a registered language claims, Tab takes the selected completion before it indents
+        { key: 'Tab', run: view => !!(unloaded || languageNow(view)) && codemirror.completionStatus?.(view.state) === 'active' && !!codemirror.acceptCompletion?.(view) },
         codemirror.indentWithTab,
         {
           key: 'Shift-Enter',
@@ -1254,9 +1281,11 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
       language,
       codemirror.syntaxHighlighting(observableJS_highlightStyle),
       codemirror.autocompletion({
+        // a cell a registered language claims completes only from that language; runtime values and
+        // the JS syntax tree's names are not its names
         override: [
-          codemirror.localCompletionSource,
-          completionSource
+          cx => claimed(cx) ? languageCompletions(cx) : codemirror.localCompletionSource(cx),
+          cx => claimed(cx) ? null : completionSource(cx)
         ]
       }),
       codemirror.lintGutter(),
@@ -2719,7 +2748,7 @@ export default function define(runtime, observer) {
   $def("_49mpmh", "hotbar", ["viewof edit","Event","setOption","viewof editedCell","htl","edit","toolbar","nav","reversibleAttach","combine","code_editor"], _49mpmh);  
   $def("_n8s6yl", null, ["viewof editedCell"], _n8s6yl);  
   $def("_ytd2rq", null, ["nav","editedCell"], _ytd2rq);  
-  $def("_1t4gep6", "nav", ["html","cellLinks"], _1t4gep6);  
+  $def("_1t4gep6", "nav", ["html","cellLinks","languageOf"], _1t4gep6);  
   $def("_1tv9qxo", "cellLinks", ["html","variableLink"], _1tv9qxo);  
   $def("_1opggh8", "identity", ["lookupVariable","editorModule"], _1opggh8);  
   $def("_15v1lje", "variableLink", ["identity","modules","navHref"], _15v1lje);  

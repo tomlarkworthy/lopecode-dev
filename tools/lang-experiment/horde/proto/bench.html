@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Horde sim bench</title>
+<body style="background:#000;color:#9fe;font:13px monospace">
+<pre id="out">running</pre>
+<script src="sim.gen.js"></script>
+<script src="lite-job.js"></script>
+<script src="lite-pool.js"></script>
+<script src="engine.js"></script>
+<script>
+// bench.html?mode=main|copy|transfer|sab|lite&workers=8&n=10000&warm=60&frames=240
+(async () => {
+  const q = new URLSearchParams(location.search);
+  const mode = q.get("mode") || "main", n = +(q.get("n") || 10000), workers = +(q.get("workers") || 4);
+  const warm = +(q.get("warm") || 60), frames = +(q.get("frames") || 240);
+  const out = document.getElementById("out");
+  try {
+    const e = makeEngine({ n, mode, workers });
+    const rows = [];
+    for (let f = 0; f < warm + frames; f++) {
+      const s = await e.step();
+      if (f >= warm) rows.push({ ...s });
+    }
+    const med = (k) => { const v = rows.map((r) => r[k]).sort((a, b) => a - b); return v[v.length >> 1]; };
+    const mean = (k) => rows.reduce((a, r) => a + r[k], 0) / rows.length;
+    const p90 = (k) => { const v = rows.map((r) => r[k]).sort((a, b) => a - b); return v[Math.floor(v.length * 0.9)]; };
+    const r = { mode, n, workers: e.poolSize, frames: rows.length, total: med("total"), totalMean: mean("total"), totalP90: p90("total"), serial: med("serial"), post: med("post"), round: med("round"), score: e.score, hash: e.hash(), coi: self.crossOriginIsolated, hc: navigator.hardwareConcurrency };
+    e.close();
+    window.__bench = r;
+    out.textContent = JSON.stringify(r, null, 1);
+  } catch (err) { window.__bench = { error: String(err && err.stack || err) }; out.textContent = window.__bench.error; }
+})();
+</script>

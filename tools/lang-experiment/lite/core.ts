@@ -61,7 +61,8 @@ function syntaxPass(n: Node, report: (n: Node, rule: string, msg: string) => voi
 export type Sources = { cells: string; tsx?: boolean; foreign?: string | null; shell?: string | null; name?: string };
 
 // Browser-safe: no file system. check.ts checkPort reads a port directory and calls this.
-export function checkSources(src: Sources, opts: { strictIndex?: boolean } = {}): LiteResult {
+// onCell: each cell's checker before it runs, so a caller can set hooks on it (completion)
+export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell?: (name: string, ch: Checker, fn: Node) => void } = {}): LiteResult {
   const t0 = performance.now();
   const dir = src.name ?? "cells";
   const reg = new Registry();
@@ -216,6 +217,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean } = {})
     const r = out.get(c.name)!;
     const ch = new Checker(reg, cellNames, P);
     ch.compileHook = (e, env) => compileType(e, env, ch);
+    opts.onCell?.(c.name, ch, c.fn);
     const diag = (n: Node, rule: string, msg: string) => r.errors.push({ rule, line: P.line(n.start), msg });
     syntaxPass(c.fn, diag, (n, w) => ch.unsupported(n, w));
     // injection
