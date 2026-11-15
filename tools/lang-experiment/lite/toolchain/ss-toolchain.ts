@@ -152,7 +152,7 @@ export function cellStates(result: CheckLike): Map<string, CellState> {
 }
 
 // The name a cell's text declares, read without parsing it (it may not parse).
-export const declaredName = (text: string): string | null => /^(?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*export\s+(?:(?:const|let)\s+|(?:async\s+)?function\s*\*?\s*)([\w$]+)/.exec(text)?.[1] ?? null;
+export const declaredName = (text: string): string | null => /^(?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+|(?:async\s+)?function\s*\*?\s*)([\w$]+)/.exec(text)?.[1] ?? null;
 // A cell the checker does not accept: its typed source is kept whole in the header, and the definition
 // only raises the checker's messages. A ref cell keeps its two variables, so its readers stay wired.
 function rejectedCell(text: string, name: string, why: string[], ref: boolean): Variable[] {
@@ -203,10 +203,11 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
     return [{ name: `type ${d.id.name}`, inputs: [], definition: `() => ${LANG}${header({ d: text })}undefined` }];
   }
   let fn: Node | null = null;
-  if (st.type === "ExportNamedDeclaration" && d?.type === "FunctionDeclaration") fn = d;
-  else if (st.type === "ExportNamedDeclaration" && d?.type === "VariableDeclaration" && d.declarations.length === 1 &&
+  // with or without `export`
+  if (d?.type === "FunctionDeclaration") fn = d;
+  else if (d?.type === "VariableDeclaration" && d.kind !== "var" && d.declarations.length === 1 &&
     /^(Arrow)?FunctionExpression$/.test(d.declarations[0].init?.type ?? "")) fn = d.declarations[0].init;
-  if (!fn) throw new Error(`unsupported top-level statement (${st.type}); a cell is an exported function`);
+  if (!fn) throw new Error(`unsupported top-level statement (${st.type}); a cell is a top-level function, const or let`);
 
   const declared = fn === d ? d.id?.name : d.declarations[0].id?.name;
   const info = (declared && ctx.facts?.get(declared)) || cellsOf(tsx ? lowerJsx(text) : text)[0];

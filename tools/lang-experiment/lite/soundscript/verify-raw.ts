@@ -114,22 +114,19 @@ export async function rawOnPage(page: Page, h: H, label: string) {
     `${label}: raw area reads SoundScript width and Observable JS height, raw squares is a generator, raw report is async, Observable JS summary reads raw: ${JSON.stringify({ ...v0, summary })}`);
   const a0 = await rawState(page, "area");
   report(a0?.lang === "raw" && a0.source === AREA && a0.definition.startsWith('function/*{lang:"raw"}*/ (width, height)'), `${label}: area is a raw cell whose source decompiles exactly: ${JSON.stringify(a0?.source)}`);
-  // SoundScript cannot read a raw cell: the checker has no type for it (inject-unknown); stored, rejected, area unaffected
+  // SoundScript cannot read a raw cell: the checker has no type for it (inject-unknown). The page holds fromRaw,
+  // which is rejected; area is unaffected
   const ssOnRaw = await page.evaluate(async (poly) => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get(poly);
-    const find = (n: string, m?: any) => [...rt._variables].find((v: any) => v._name === n && (!m || v._module === m));
-    const vars: any[] = [];
-    const back = await find("compile_and_update")._value("export const fromRaw = (area: number) => area + 1;", vars, { module: { module: mod }, variables: [find("doubledWidth", mod)] });
     let value; try { value = await mod.value("fromRaw"); } catch (e) { value = "THREW " + (e as Error).message; }
-    const area = await mod.value("area");
-    find("fromRaw", mod)?.delete();
-    return { back, value, area };
+    const v = [...rt._variables].find((v: any) => v._name === "fromRaw" && v._module === mod);
+    return { value, area: await mod.value("area"), tagged: /\/\*\{lang:"ss"\}\*\//.test(String(v?._definition)) };
   }, POLY);
-  report(typeof ssOnRaw.back === "string" && /^THREW fromRaw does not check: \[inject-unknown\]/.test(String(ssOnRaw.value)) && ssOnRaw.area === 12, `${label}: a SoundScript cell reading raw area is stored and rejected (inject-unknown); area is unaffected: ${JSON.stringify(ssOnRaw).slice(0, 300)}`);
+  report(/^THREW fromRaw does not check: \[inject-unknown\]/.test(String(ssOnRaw.value)) && ssOnRaw.tagged && ssOnRaw.area === 12, `${label}: the page's SoundScript cell fromRaw reads raw area and is rejected (inject-unknown); area is unaffected: ${JSON.stringify(ssOnRaw).slice(0, 300)}`);
   // the listing: SoundScript and raw cells, each in its own language's colours
   await until(page, async () => !!(await page.evaluate((poly) => (window as any).__ojs_runtime.mains.get(poly)._scope.get("polyglot_listing")?._value?.textContent?.includes('define("report"'), POLY)), 10000);
   const listing = await page.evaluate((poly) => { const rt = (window as any).__ojs_runtime; const pre = rt.mains.get(poly)._scope.get("polyglot_listing")?._value; return pre ? { text: pre.textContent, spans: pre.querySelectorAll("span[class^=tok-]").length } : null; }, POLY);
-  report(!!listing && listing.text.includes(AREA) && listing.text.includes("export const width = () => 4;") && listing.text.includes('define("report", ["area", "squares"], async') && listing.spans > 20, `${label}: cellListing shows the raw sources beside the SoundScript ones, coloured (${listing?.spans} spans)`);
+  report(!!listing && listing.text.includes(AREA) && listing.text.includes("const width = () => 4;") && listing.text.includes('define("report", ["area", "squares"], async') && listing.text.includes("const fromRaw = (area: number) => area + 1;") && !listing.text.includes("Inputs.range") && !listing.text.includes("summary") && listing.spans > 20, `${label}: cellListing shows the raw sources beside the SoundScript ones, coloured (${listing?.spans} spans), with fromRaw, and without viewof height or summary`);
 
   await tab(page, POLY);
   const cp = await copyPaste(page, "area");
@@ -220,7 +217,7 @@ export async function rawUnloaded(page: Page, h: H, label: string) {
   const readListing = () => page.evaluate((poly) => (window as any).__ojs_runtime.mains.get(poly)._scope.get("polyglot_listing")?._value?.textContent ?? null, POLY);
   await h.until(page, async () => !!(await readListing()), 10000);
   const listing = await readListing();
-  report(listing !== null && !listing.includes("define(") && listing.includes("export const width"), `${label}: cellListing leaves out the raw cells, whose language is not loaded: ${JSON.stringify(listing?.slice(0, 200))}`);
+  report(listing !== null && !listing.includes("define(") && listing.includes("const width"), `${label}: cellListing leaves out the raw cells, whose language is not loaded: ${JSON.stringify(listing?.slice(0, 200))}`);
   await tab(page, POLY);
   const cp = await copyPaste(page, "area");
   report(!cp.error && cp.copied === null && /not copied/.test(cp.copyWarn) && /is a compiled cell, not source/.test(cp.pasteWarn) && cp.unchanged, `${label}: copy of area is refused and the compiled-text paste is refused: ${JSON.stringify(cp).slice(0, 300)}`);
@@ -234,4 +231,130 @@ export async function rawUnloaded(page: Page, h: H, label: string) {
   const a1 = await rawState(page, "area");
   report(a1?.definition === a0?.definition && diags.some((d) => /"raw" cell and that language is not loaded/.test(d)) && shown !== AREA && !shown.startsWith("define("),
     `${label}: the editor on area shows the Observable JS decompilation, not its source, says the language is not loaded, and Shift-Enter stores nothing: ${JSON.stringify({ diags, shown: shown.slice(0, 80) })}`);
+  // the picker shows the tag it cannot load, and picking Observable JavaScript does not let Shift-Enter write over the cell
+  const shownLang = await pickerValue(host);
+  await pickByKey(page, host, "O");
+  const picked = await pickerValue(host);
+  await h.typeInto(page, host, "area = 1");
+  await page.waitForTimeout(1500);
+  const a2 = await rawState(page, "area");
+  report(shownLang === "raw" && picked === "ojs" && a2?.definition === a0?.definition && (await h.valueOf(page, POLY, "area")) === 12,
+    `${label}: the picker on area shows raw (not loaded); picking Observable JavaScript by key and pressing Shift-Enter still stores nothing: ${JSON.stringify({ shownLang, picked, same: a2?.definition === a0?.definition })}`);
+}
+
+// the language picker in an open editor's header line, read and set with real keys
+const pickerValue = (host: any) => host.locator("select.e5-cell-language").first().evaluate((s: HTMLSelectElement) => s.value).catch(() => null);
+async function pickByKey(page: Page, host: any, key: string) {
+  const sel = host.locator("select.e5-cell-language").first();
+  await sel.focus();
+  await page.keyboard.press(key);
+}
+// the empty editor the add button makes after cell, tagged so it can be found again
+let addN = 0;
+async function addAfter(page: Page, h: H, cell: string) {
+  const t = await h.tagEditor(page, POLY, cell);
+  if (!t) return null;
+  const host0 = page.locator(`[data-verify="${t}"]`);
+  if (!(await host0.locator(".cm-editor").count())) await host0.locator(".hotbar").first().click();
+  await host0.locator(".add-cell-btn").first().click();
+  const tag = `pick${++addN}`;
+  const ok = await page.waitForFunction((tag) => {
+    const e = [...document.querySelectorAll(".cm-editor")].filter((e) => (e.querySelector(".cm-content")?.textContent ?? "").trim() === "{}").at(-1);
+    if (!e) return false;
+    let n: Element | null = e;
+    while (n && !n.querySelector(".hotbar")) n = n.parentElement;
+    (n ?? e).setAttribute("data-verify", tag);
+    return true;
+  }, tag, { timeout: 15000 }).then(() => true).catch(() => false);
+  return ok ? page.locator(`[data-verify="${tag}"]`) : null;
+}
+const pidOf = (page: Page, cell: string) => page.evaluate(([poly, cell]) => { const rt = (window as any).__ojs_runtime, mod = rt.mains.get(poly); return [...rt._variables].find((v: any) => v._module === mod && v._name === cell)?.pid ?? null; }, [POLY, cell] as const);
+
+// The language picker, with real keys (2026-11-15): a new cell takes the language of the cell it is added
+// after; picking a language changes how the next Shift-Enter reads the text; the pick is dropped when the
+// editor closes; typed text switches language only when one registered language claims it and Observable
+// JavaScript rejects it.
+export async function pickerPaths(page: Page, h: H, label: string) {
+  const { report, until, valueOf } = h;
+  // after a SoundScript cell
+  const a = await addAfter(page, h, "doubledWidth");
+  if (!a) { report(false, `${label}: no new editor after doubledWidth`); return; }
+  const aLang = await pickerValue(a);
+  await h.typeInto(page, a, "const k = () => 1");
+  await until(page, async () => (await valueOf(page, POLY, "k")) === 1, 10000);
+  const k1 = await rawState(page, "k");
+  report(aLang === "ss" && k1?.tag === "ss" && (await valueOf(page, POLY, "k")) === 1, `${label}: a cell added after doubledWidth shows SoundScript in its picker, and const k = () => 1 is stored as SoundScript: ${JSON.stringify({ aLang, tag: k1?.tag, source: k1?.source })}`);
+  // after an Observable JavaScript cell
+  const b = await addAfter(page, h, "summary");
+  if (!b) { report(false, `${label}: no new editor after summary`); return; }
+  const bLang = await pickerValue(b);
+  await h.typeInto(page, b, "k2 = 1");
+  await until(page, async () => (await valueOf(page, POLY, "k2")) === 1, 10000);
+  const k2a = await rawState(page, "k2");
+  report(bLang === "ojs" && k2a?.tag === null && (await valueOf(page, POLY, "k2")) === 1, `${label}: a cell added after summary shows Observable JavaScript, and k2 = 1 is stored as Observable JavaScript: ${JSON.stringify({ bLang, tag: k2a?.tag })}`);
+  // text both languages accept follows the cell it was added after: a function declaration parses as
+  // Observable JavaScript, and after a SoundScript cell it is stored as SoundScript
+  const c = await addAfter(page, h, "doubledWidth");
+  if (!c) { report(false, `${label}: no second new editor after doubledWidth`); return; }
+  await h.typeInto(page, c, "function k3(width) { return width + 1; }");
+  await until(page, async () => (await valueOf(page, POLY, "k3")) === 5, 10000);
+  const k3s = await rawState(page, "k3");
+  report(k3s?.tag === "ss" && (await valueOf(page, POLY, "k3")) === 5, `${label}: function k3(width) added after doubledWidth is SoundScript: ${JSON.stringify({ tag: k3s?.tag, value: await valueOf(page, POLY, "k3") })}`);
+  // a claim replaces a new cell's default: after the raw cell report, const text is SoundScript, since
+  // Observable JavaScript rejects it and only SoundScript claims it
+  const d = await addAfter(page, h, "report");
+  if (!d) { report(false, `${label}: no new editor after report`); return; }
+  const dLang = await pickerValue(d);
+  await h.typeInto(page, d, "export const k4 = (width: number) => width * 10");
+  await until(page, async () => (await valueOf(page, POLY, "k4")) === 40, 10000);
+  const k4s = await rawState(page, "k4");
+  report(dLang === "raw" && k4s?.tag === "ss" && (await valueOf(page, POLY, "k4")) === 40, `${label}: after report the picker shows raw, and export const k4 = … is stored as SoundScript: ${JSON.stringify({ dLang, tag: k4s?.tag, source: k4s?.source })}`);
+  const k2pid = await pidOf(page, "k2"), kpid = await pidOf(page, "k");
+  // Observable JavaScript to SoundScript, by the picker
+  let e = await editorByPid(page, h, k2pid);
+  await pickByKey(page, e, "S");
+  const toSs = await pickerValue(e);
+  await h.typeInto(page, e, "const k2 = () => 2");
+  await until(page, async () => (await valueOf(page, POLY, "k2")) === 2, 10000);
+  const k2b = await rawState(page, "k2");
+  report(toSs === "ss" && k2b?.tag === "ss" && k2b.pid === k2pid && (await valueOf(page, POLY, "k2")) === 2, `${label}: k2 picked as SoundScript by key is stored as SoundScript with its pid: ${JSON.stringify({ toSs, tag: k2b?.tag, source: k2b?.source })}`);
+  // and back
+  e = await editorByPid(page, h, k2pid);
+  const nowSs = await pickerValue(e);
+  await pickByKey(page, e, "O");
+  await h.typeInto(page, e, "k2 = 3");
+  await until(page, async () => (await valueOf(page, POLY, "k2")) === 3, 10000);
+  const k2c = await rawState(page, "k2");
+  report(nowSs === "ss" && k2c?.tag === null && k2c.pid === k2pid && (await valueOf(page, POLY, "k2")) === 3, `${label}: k2 picked back to Observable JavaScript is stored as Observable JavaScript: ${JSON.stringify({ nowSs, tag: k2c?.tag })}`);
+  // SoundScript to raw
+  e = await editorByPid(page, h, kpid);
+  await pickByKey(page, e, "r");
+  const toRaw = await pickerValue(e);
+  await h.typeInto(page, e, 'define("k", [], () => 5)');
+  await until(page, async () => (await valueOf(page, POLY, "k")) === 5, 10000);
+  const k3 = await rawState(page, "k");
+  report(toRaw === "raw" && k3?.tag === "raw" && k3.lang === "raw" && k3.source === 'define("k", [], () => 5)' && (await valueOf(page, POLY, "k")) === 5, `${label}: k picked as raw by key is stored as a raw cell: ${JSON.stringify({ toRaw, tag: k3?.tag, source: k3?.source })}`);
+  // a pick for unsaved text goes when the editor closes
+  e = await editorByPid(page, h, k2pid);
+  await pickByKey(page, e, "S");
+  const before = await pickerValue(e);
+  await e.locator(".hotbar").first().click();
+  await e.locator(".cm-editor").first().waitFor({ state: "hidden", timeout: 10000 }).catch(() => {});
+  e = await editorByPid(page, h, k2pid);
+  const after = await pickerValue(e);
+  report(before === "ss" && after === "ojs", `${label}: a language picked and not applied is reset when the editor is closed and opened again: ${JSON.stringify({ before, after })}`);
+  // the claim rule and the export hint, asked directly
+  const asked = await page.evaluate(async (poly) => {
+    const rt = (window as any).__ojs_runtime, mod = rt.mains.get(poly);
+    const get = (n: string) => [...rt._variables].find((v: any) => v._name === n && v._type === 1)?._value;
+    const claimed = get("claimedLanguage"), cell = { module: { module: mod } };
+    const lang = (src: string) => claimed(src, [], cell)?.id ?? null;
+    const ss = get("cellLanguagesRef").current.find((l: any) => l.id === "ss");
+    const hint = ss.lint("export const kx = () => 1;", [], cell).find((d: any) => d.severity === "hint");
+    return { ssText: lang("const kx = () => 1"), ojsText: lang("kx = 1"), define: lang('define("kx", [], () => 1)'), fn: lang("function kx(a) { return a }"), hint: hint ? { from: hint.from, to: hint.to, message: hint.message, fix: hint.actions?.[0]?.name } : null };
+  }, POLY);
+  report(asked.ssText === "ss" && asked.ojsText === null && asked.define === null && asked.fn === null && asked.hint?.message === "export is not needed" && asked.hint.from === 0 && asked.hint.to === 7 && asked.hint.fix === "Remove export",
+    `${label}: typed text is claimed only when Observable JavaScript rejects it (define(...) and function kx(a) stay Observable JavaScript), and an exported cell gets the hint "export is not needed" with a fix: ${JSON.stringify(asked)}`);
+  // the cells made here are removed, so the saved file holds only the page's own
+  await page.evaluate((poly) => { const rt = (window as any).__ojs_runtime, mod = rt.mains.get(poly); for (const v of [...rt._variables]) if (v._module === mod && ["k", "k2", "k3", "k4"].includes(v._name)) v.delete(); }, POLY);
 }

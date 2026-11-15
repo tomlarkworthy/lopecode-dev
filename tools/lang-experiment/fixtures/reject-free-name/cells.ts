@@ -1,3 +1,3 @@
-export let a = () => Date.now();
-export let b = () => typeof globalThis;
-export let c = () => console;
+let a = () => Date.now();
+let b = () => typeof globalThis;
+let c = () => console;

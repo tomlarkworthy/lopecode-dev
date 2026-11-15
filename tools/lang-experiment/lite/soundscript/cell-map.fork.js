@@ -1320,7 +1320,9 @@ The registry of languages that can show and save such cells lives here too. A mo
 \`\`\`js
 plugins.add("cell_languages", {
   id,                                      // the marker id, e.g. "ss"
-  claimsSource: (source, cell) => boolean, // optional: typed source for a new cell is in this language
+  label,                                   // optional: the name the editor's language picker shows
+  claimsSource: (source, cell) => boolean, // optional: typed source is in this language (the editor takes the
+                                           // claim only when no other language claims it and the built-in parser rejects it)
   decompile: async (variables) => string,  // the source the editor shows
   apply: async (source, variables, cell) => string | undefined,
                                            // define the cell; the canonical source, or undefined when refused

@@ -65,7 +65,7 @@ function tagAt(before: string): string | null {
 
 // inside the cell's own parameter list at a name position: the names already there, else null
 function paramListAt(before: string): string[] | null {
-  const head = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*export\s+(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/.exec(before);
+  const head = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/.exec(before);
   if (!head) return null;
   const inside = before.slice(head[0].length);
   let depth = 0;
@@ -79,7 +79,7 @@ function paramListAt(before: string): string[] | null {
 // Whether the cursor is in a type: after a parameter's colon in the cell's own parameter list, or
 // in the return type after it.
 function typeAt(before: string): boolean {
-  const head = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*export\s+(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/.exec(before);
+  const head = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/.exec(before);
   if (!head) return false;
   const inside = before.slice(head[0].length);
   let depth = 0, seg = "";
@@ -190,7 +190,7 @@ export function completionsAt(cells: readonly string[], at: number, offset: numb
 
   const params = paramListAt(before);
   if (params) {
-    const self = /export\s+(?:const|let|(?:async\s+)?function\*?)\s+([\w$]+)/.exec(before)?.[1];
+    const self = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:const|let|(?:async\s+)?function\*?)\s+([\w$]+)/.exec(before)?.[1];
     const others = cells.filter((_, i) => i !== at).join("\n\n");
     let types = new Map<string, string>();
     try { types = new Map(checkSources({ cells: others, tsx }).cells.map((c) => [c.name, c.value ?? ""])); } catch {}

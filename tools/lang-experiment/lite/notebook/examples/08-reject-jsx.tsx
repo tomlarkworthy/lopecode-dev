@@ -1,24 +1,24 @@
 // What JSX in a checked cell must refuse. ok* cells must pass.
-export let n = (): RefCell<number> => ref(0);
-export let inc = (n: Ref<number>) => action(() => n.update((x) => x + 1));
-export let setN = (n: Ref<number>) => action((v: number) => n.set(v));
-export let Badge = () => (p: { readonly text: string }): Elem => <span>{p.text}</span>;
-export let NotElem = () => (p: { readonly text: string }) => p.text.length;
-export let bad_attr_type = () => <canvas width="640" />;
-export let bad_unknown_attr = (inc) => <button onClik={inc}>+</button>;
-export let bad_unknown_element = () => <blink>x</blink>;
-export let bad_handler_not_action = () => <button onClick={() => 1}>+</button>;
-export let bad_handler_wrong_args = (setN) => <input type="range" onInput={setN} />;
-export let bad_component_props = (Badge) => <Badge text={3} />;
-export let bad_component_missing_prop = (Badge) => <Badge />;
-export let bad_component_not_elem = (NotElem) => <NotElem text="a" />;
-export let bad_mut_in_jsx = () => {
+let n = (): RefCell<number> => ref(0);
+let inc = (n: Ref<number>) => action(() => n.update((x) => x + 1));
+let setN = (n: Ref<number>) => action((v: number) => n.set(v));
+let Badge = () => (p: { readonly text: string }): Elem => <span>{p.text}</span>;
+let NotElem = () => (p: { readonly text: string }) => p.text.length;
+let bad_attr_type = () => <canvas width="640" />;
+let bad_unknown_attr = (inc) => <button onClik={inc}>+</button>;
+let bad_unknown_element = () => <blink>x</blink>;
+let bad_handler_not_action = () => <button onClick={() => 1}>+</button>;
+let bad_handler_wrong_args = (setN) => <input type="range" onInput={setN} />;
+let bad_component_props = (Badge) => <Badge text={3} />;
+let bad_component_missing_prop = (Badge) => <Badge />;
+let bad_component_not_elem = (NotElem) => <NotElem text="a" />;
+let bad_mut_in_jsx = () => {
   const xs = mut([1, 2]);
   return <div>{xs}</div>;
 };
-export let bad_free_component = () => <Missing />;
-export let bad_child_object = () => <div>{{ a: 1 }}</div>;
-export let ok_all = (n, inc, setN, Badge) => (
+let bad_free_component = () => <Missing />;
+let bad_child_object = () => <div>{{ a: 1 }}</div>;
+let ok_all = (n, inc, setN, Badge) => (
   <div class="c">
     <Badge text={`n is ${n}`} />
     <button onClick={inc}>+</button>

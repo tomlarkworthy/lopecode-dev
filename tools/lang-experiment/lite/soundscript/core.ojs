@@ -68,7 +68,7 @@ Shift-Enter stores the edit whatever the checker says, unless it names no cell o
 readme_limits = md`## Limits
 
 - The editor and visualizer hooks need the \`cell_languages\` plugin point, which only this notebook's copies of \`@tomlarkworthy/cell-map\`, \`@tomlarkworthy/editor-5\` and \`@tomlarkworthy/visualizer\` have. Running these cells with other copies was not tried.
-- A cell that does not parse is stored only if its text starts with \`export const <name>\`; otherwise there is no name to store it under.
+- A cell that does not parse is stored only if its text starts with \`const <name>\`, \`let <name>\` or \`function <name>\` (after comments, and with or without \`export\`); otherwise there is no name to store it under.
 - A module holds one source file's worth of cells. Unchecked shell cells and trusted foreign declarations, which the checker can read, are not supported here.
 - The renderer's event decoding and \`ss.mount\` are outside the checked language.
 - Publishing these modules to ObservableHQ was not tried.`
@@ -134,7 +134,7 @@ ss_moduleCells = (module) => {
     // a compiled definition copied under another name (bump_copy) decompiles to the original's name;
     // the variable's own name wins, so recompiling it never defines a second bump
     if (!key.startsWith("type ")) {
-      const head = /^((?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*export\s+(?:const|let|function\*?)\s+)([\w$]+)/.exec(text);
+      const head = /^((?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:const\s+|let\s+|(?:async\s+)?function\s*\*?\s*))([\w$]+)/.exec(text);
       if (head && head[2] !== key) text = head[1] + key + text.slice(head[0].length);
     }
     if (seen.has(key)) continue;
@@ -301,7 +301,7 @@ ss_language = {
     // one check of the module as edited gives the verdicts, the compile context and the cell facts
     let after = null, checkError = null;
     try { after = ss.checkCells(texts).result; } catch (e) { checkError = e; }
-    if (!after) return { ok: false, store: false, problems: [{ line: 1, rule: "check", msg: `${checkError.message}; a cell that does not parse is stored only when it starts with export const <name>` }] };
+    if (!after) return { ok: false, store: false, problems: [{ line: 1, rule: "check", msg: `${checkError.message}; a cell that does not parse is stored only when it starts with const, let or function <name>` }] };
     let defs;
     try { defs = ss.compileCell(source, tsx, ss.contextFromCheck(after), oldKey); }
     catch (e) { return { ok: false, store: false, problems: [{ line: e.loc?.line ?? 1, rule: "compile", msg: e.message }] }; }
@@ -346,6 +346,12 @@ ss_language = {
     const done = r.key ? lastEffect.get(moduleOf(variables, cell))?.get(r.key) : null;
     const say = r.effect || (done && done.text === source ? done.msg : "");
     if (say) diags.push({ from: 0, to: Math.min(starts[1] ? starts[1] - 1 : source.length, source.length), severity: "info", message: say });
+    // `export` is still accepted, so a stored cell round-trips; the form is without it
+    const exp = /^((?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*)(export\s+)(?=const\b|let\b|function\b|async\b|type\b|interface\b)/.exec(source);
+    if (exp) {
+      const from = exp[1].length, to = from + exp[2].length;
+      diags.push({ from, to, severity: "hint", message: "export is not needed", actions: [{ name: "Remove export", apply: (view, f, t) => view.dispatch({ changes: { from: f, to: t } }) }] });
+    }
     return diags;
   };
 
@@ -414,12 +420,18 @@ ss_language = {
     const touchedVars = new Set([...old, ...plan.flatMap((p) => p.fam)]);
     const saved = [...touchedVars].map((v) => ({ v, name: v._name, inputs: v._inputs.map((i) => i._name), definition: v._definition }));
     const tx = { made: [], doomed: [] };
+    // what the edit does is known before anything is defined; it is recorded now, so a lint that runs while
+    // the cells are being defined (it sees no change left to make) still says what the edit did
+    const msg = sayEffect(effectOf(r.statesBefore, r.statesAfter), true);
+    if (!lastEffect.has(module)) lastEffect.set(module, new Map());
+    lastEffect.get(module).set(r.key, { text: source, msg });
     let next;
     try {
       next = await define(module, r.defs, old, anchor, tx);
       if (faults.afterEditDefine === module) throw new Error("injected fault after the edited cell was defined");
       for (const p of plan) await define(module, p.defs, new Set(p.fam), p.fam.at(-1), tx);
     } catch (e) {
+      lastEffect.get(module).delete(r.key);
       for (const v of tx.made) v.delete();
       for (const s of saved) s.v.define(s.name, s.inputs, s.definition);
       throw e;
@@ -429,8 +441,6 @@ ss_language = {
     for (const v of next) v._shadow?.clear?.();
     variables.splice(0, variables.length, ...next);
     const stored = await decompile(next);
-    const msg = sayEffect(effectOf(r.statesBefore, r.statesAfter), true);
-    if (!lastEffect.has(module)) lastEffect.set(module, new Map());
     lastEffect.get(module).set(r.key, { text: stored, msg });
     return stored;
   };
@@ -465,7 +475,7 @@ ss_language = {
     const v = variables.find((x) => isSs(x) && ss.decompileVariable(String(x._definition)) !== null);
     if (!v) return null;
     const text = ss.decompileVariable(String(v._definition));
-    const open = /export\s+(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/.exec(text);
+    const open = /^(?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/.exec(text);
     const params = new Set();
     if (open) {
       let depth = 0, part = "";
@@ -547,10 +557,11 @@ ss_language = {
     return null;
   };
 
-  // a new cell is SoundScript when its module has ss, which every compiled cell takes
+  // typed text is SoundScript when its module has ss, which every compiled cell takes, and it starts as a
+  // cell or a type does; the editor takes the claim only when the built-in parser rejects the text
   const claimsSource = (source, cell) => {
     const module = cell?.module?.module;
-    return !!module?._scope?.has("ss") && /^\s*(?:(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/)\s*)*export\b/.test(source);
+    return !!module?._scope?.has("ss") && /^\s*(?:(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/)\s*)*(?:export\s+)?(?:const|let|(?:async\s+)?function|type|interface)\b/.test(source);
   };
 
   // Edits and recompiles run one at a time, so a recompile never reads a module another is halfway
@@ -567,6 +578,7 @@ ss_language = {
   };
   return {
     id: "ss",
+    label: "SoundScript",
     claimsSource,
     decompile,
     check,
@@ -761,7 +773,7 @@ test_ss_copy_keeps_its_name = {
     const bump = inst._scope.get("bump");
     inst.variable({}).define("bump_copy", bump._inputs.map((i) => i._name), bump._definition);
     const text = ss_moduleCells(inst).find((c) => c.key === "bump_copy")?.text ?? "";
-    if (!text.startsWith("export const bump_copy ")) throw new Error(`bump_copy decompiles as ${text.slice(0, 40)}`);
+    if (!text.startsWith("const bump_copy ")) throw new Error(`bump_copy decompiles as ${text.slice(0, 40)}`);
     await ss_language.recompile(inst);
     const named = (n) => [...runtime._variables].filter((v) => v._module === inst && v._name === n).length;
     if (named("bump") !== 1 || named("bump_copy") !== 1) throw new Error(`bump ${named("bump")}, bump_copy ${named("bump_copy")}`);
@@ -824,7 +836,7 @@ test_ss_instance_keeps_user_ids = {
   try {
     const a = await ss_instance(ss_module, done);
     const anchor = a._scope.get("doubled");
-    const made = await ss_language.apply('export const tagged = () => ({ id: "anon", n: 1 });', [], { module: { module: a }, variables: [anchor] });
+    const made = await ss_language.apply('const tagged = () => ({ id: "anon", n: 1 });', [], { module: { module: a }, variables: [anchor] });
     if (made === undefined) throw new Error("tagged was not stored");
     const b = await ss_instance(a, done);
     const value = await b.value("tagged");

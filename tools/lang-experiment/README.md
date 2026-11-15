@@ -1,7 +1,7 @@
 # lang-experiment harness
 
 Checks and runs ports written under `RULES.md`. Built 2026-11-14 against the RULES.md that has the
-`export let x = (a: number) => 42 + a` cell form (no function-cell shortcut).
+`let x = (a: number) => 42 + a` cell form (`export` before it is accepted and not needed, 2026-11-15) (no function-cell shortcut).
 
 Run from this directory. A port is any directory holding `cells.ts` (and optionally `shell.ts`,
 `foreign.d.ts`, `foreign.runtime.ts`, `MAP.md`); `ports/` does not exist until the porting work
@@ -145,7 +145,7 @@ TypeScript reports it. *Review* means nothing mechanical.
 | rule | status | how / what slips |
 |---|---|---|
 | only cells, `type`/`interface`, `import type` at module level | exact | `module-level`. A top-level `enum`/`namespace`/`class`/`var` is reported under its own id instead |
-| an `export let/const` that is not a function | exact | `cell-not-function`. Follows from the 2026-11-14 cell form ("every export is a function"); RULES.md does not name it as a separate rule |
+| a top-level `let/const` that is not a function | exact | `cell-not-function`. Follows from the 2026-11-14 cell form ("every cell is a function"); RULES.md does not name it as a separate rule |
 | cell name unique across `cells.ts`/`shell.ts` | exact | `duplicate-cell`; not in RULES.md, needed so injection is unambiguous |
 | `shell.ts` same shape, not linted | as stated | only exported functions are cells; non-exported helpers are allowed. `shell.ts` **is** type-checked strictly, with stdlib parameters (`md`, `Inputs`, …) typed `any` |
 | `GAPS.md`, `MAP.md` content | review | `MAP.md` is read by `report.ts` only for tier counts |

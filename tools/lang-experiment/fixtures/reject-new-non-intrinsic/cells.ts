@@ -1,4 +1,4 @@
-export let a = () => {
+let a = () => {
   const C = Map;
   return new C();
 };

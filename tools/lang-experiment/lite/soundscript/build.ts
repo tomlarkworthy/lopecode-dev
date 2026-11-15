@@ -139,7 +139,7 @@ function buildModule(name: string, ojs: string, files: File[]) {
     const file = ssm[1].startsWith("./") ? join(HERE, ssm[1]) : join(EXAMPLES, ssm[1]);
     const skip = new Set(ssm[2].split(" -").filter(Boolean));
     const tsx = file.endsWith("x");
-    const texts = splitCells(readFileSync(file, "utf8"), tsx).filter((t) => ![...skip].some((s) => new RegExp(`^(?:\\s*//[^\\n]*\\n)*\\s*export\\s+(?:const|let|function)\\s+${s}\\b`).test(t)));
+    const texts = splitCells(readFileSync(file, "utf8"), tsx).filter((t) => ![...skip].some((s) => new RegExp(`^(?:\\s*//[^\\n]*\\n)*\\s*(?:export\\s+)?(?:const|let|function)\\s+${s}\\b`).test(t)));
     return { texts, tsx, skip };
   };
   const blocks = splitSeed(readFileSync(join(HERE, ojs), "utf8"));

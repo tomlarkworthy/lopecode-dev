@@ -1,10 +1,10 @@
 md`# Three languages in one module
 
-PROSE PENDING`
+The cells on this page are written in three languages and read each other. \`width\` and \`doubledWidth\` are SoundScript. \`viewof height\` and \`summary\` are Observable JavaScript. \`area\`, \`squares\` and \`report\` are raw cells: a name, a list of inputs and a function, which is what the runtime stores for any cell.`
 // %%
 polyglot_listing = cellListing(polyglot_module, invalidation)
 // %%
-//ss: ./sections/polyglot.ts
+//ss: ./sections/polyglot.ts -fromRaw
 // %%
 viewof height = Inputs.range([1, 10], { value: 3, step: 1, label: "height" })
 // %%
@@ -20,6 +20,42 @@ define("squares", ["area"], function* (area) {
 define("report", ["area", "squares"], async (area, squares) => `area ${area}, last square ${squares}`)
 // %%
 summary = md`${report}; the SoundScript cell \`doubledWidth\` is ${doubledWidth}.`
+// %%
+md`Move the slider. \`area\` is a raw cell that reads a SoundScript cell and an Observable JavaScript control. \`summary\` is an Observable JavaScript cell that reads a raw cell and a SoundScript cell.`
+// %%
+md`## How a language is added
+
+A language is a module that registers on the \`cell_languages\` point of the cell map. It gives \`decompile\`, which turns a stored cell back into source, and \`apply\`, which stores an edit, and it marks each cell it stores with a comment naming the language. The editor, the page and the listing ask the registry. None of them names a language.`
+// %%
+md`The listing leaves out \`viewof height\` and \`summary\`. Observable JavaScript is built into the editor and is not a registered language.`
+// %%
+md`A SoundScript cell cannot read a raw or Observable JavaScript cell yet: \`fromRaw\` is rejected with \`[inject-unknown]\`.`
+// %%
+//ss: ./sections/polyglot.ts -width -doubledWidth
+// %%
+test_polyglot_listing = {
+  // the listing is drawn after each code change; it is read once it has the last raw cell. A listing replaced
+  // before it is drawn is never drawn, and the runtime runs this cell again only once this run ends, so the wait
+  // also ends on invalidation
+  const has = () => polyglot_listing.textContent.includes('define("report"');
+  if (!has()) await new Promise((resolve) => {
+    const mo = new MutationObserver(() => { if (has()) { mo.disconnect(); resolve(); } });
+    mo.observe(polyglot_listing, { childList: true, subtree: true, characterData: true });
+    invalidation.then(() => { mo.disconnect(); resolve(); });
+  });
+  const text = polyglot_listing.textContent;
+  for (const want of ["const width = () => 4;", "const fromRaw = (area: number) => area + 1;", 'define("area", ["width", "height"]']) if (!text.includes(want)) throw new Error(`the listing has no ${want}`);
+  for (const not of ["Inputs.range", "summary"]) if (text.includes(not)) throw new Error(`the listing has ${not}`);
+  return "the listing has the SoundScript and raw cells and leaves out viewof height and summary";
+}
+// %%
+test_polyglot_fromRaw_rejected = {
+  try { await polyglot_module.value("fromRaw"); } catch (e) {
+    if (/^fromRaw does not check: \[inject-unknown\]/.test(e.message)) return e.message;
+    throw e;
+  }
+  throw new Error("fromRaw ran");
+}
 // %%
 viewof polyglot_module = thisModule()
 // %%

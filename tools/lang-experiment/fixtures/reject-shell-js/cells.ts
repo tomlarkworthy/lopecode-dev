@@ -1,1 +1,1 @@
-export let b = (raw: number) => raw + 1;
+let b = (raw: number) => raw + 1;

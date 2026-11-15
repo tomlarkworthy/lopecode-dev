@@ -1,5 +1,5 @@
-export let a = () => 1;
-export let b = () => a() + 1;
-export function f(): number {
+let a = () => 1;
+let b = () => a() + 1;
+function f(): number {
   return f();
 }

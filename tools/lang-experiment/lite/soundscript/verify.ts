@@ -24,7 +24,7 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { blockContent, blockSpans } from "../../../lib/notebook-blocks.ts";
 import { offlineWithAir, setTheme, contrasts, THEME_BASE } from "./theme-check.ts";
-import { RAW_CELLS, RAW_TESTS, POLY, rawOnPage, rawAfterSave, rawExport, rawUnloaded } from "./verify-raw.ts";
+import { RAW_CELLS, RAW_TESTS, POLY, rawOnPage, rawAfterSave, rawExport, rawUnloaded, pickerPaths } from "./verify-raw.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CORE = "@tomlarkworthy/soundscript";
@@ -51,30 +51,30 @@ const TUTORIAL_TESTS = ["test_ss_roundtrip", "test_ss_module_checks", "test_ss_c
 // Every rule id the reference names is produced by an example, a fixture or a probe here, and every rule
 // id they produce is named; every construct the reference calls unsupported is reported unsupported.
 const RULE_PROBES: Record<string, string> = {
-  "untyped-parameter": "export const f = () => (x) => x;",
-  "unknown-type": "export const f = () => (x: Foo) => x;",
-  "const-assign": "export const f = () => { const a = 1; a = 2; return a; };",
+  "untyped-parameter": "const f = () => (x) => x;",
+  "unknown-type": "const f = () => (x: Foo) => x;",
+  "const-assign": "const f = () => { const a = 1; a = 2; return a; };",
 };
 const UNSUPPORTED_PROBES: [string, string, boolean?][] = [
-  ["switch", "export const f = () => (a: number) => { switch (a) { case 1: return 1; } return 0; };"],
-  ["for…in", "export const f = () => (o: { readonly a: number }) => { let n = 0; for (const k in o) n++; return n; };"],
-  ["instanceof", "export const f = () => (x: Error) => x instanceof Error;"],
-  ["??=", "export const f = () => { let a: number | undefined = undefined; a ??= 1; return a; };"],
-  ["&&=", "export const f = () => { let a = true; a &&= false; return a; };"],
-  ["||=", "export const f = () => { let a = false; a ||= true; return a; };"],
-  ["destructuring assignment", "export const f = () => { let a = 1, b = 2; [a, b] = [b, a]; return a; };"],
-  ["tagged template", "export const f = () => { const t = (s: readonly string[]) => s.length; return t`x`; };"],
-  ["comma operator", "export const f = () => (1, 2);"],
-  ["satisfies", "export const f = () => (1 satisfies number);"],
-  ["type inside a body", "export const f = () => { type T = number; return 1; };"],
-  ["yield*", "export const f = function* () { yield* [1, 2]; };"],
-  ["for await", "export const f = async () => { for await (const x of [1]) { return x; } return 0; };"],
-  ["try/finally holding a Mut", "export const f = () => { const a = mut([1]); try { a.push(2); } finally { } return freeze(a); };"],
-  ["labelled break holding a Mut", "export const f = () => { const a = mut([1]); outer: for (const x of [1, 2]) { if (x > 1) break outer; a.push(x); } return freeze(a); };"],
-  ["Symbol", "export const f = () => Symbol(\"a\");"],
-  ["new Promise", "export const f = () => new Promise<number>((r: (n: number) => void) => r(1));"],
-  ["Object.assign({}, …)", "export const f = () => Object.assign({}, { a: 1 });"],
-  ["JSX spread attribute", "export const f = () => { const p = { id: \"a\" }; return <div {...p} />; };", true],
+  ["switch", "const f = () => (a: number) => { switch (a) { case 1: return 1; } return 0; };"],
+  ["for…in", "const f = () => (o: { readonly a: number }) => { let n = 0; for (const k in o) n++; return n; };"],
+  ["instanceof", "const f = () => (x: Error) => x instanceof Error;"],
+  ["??=", "const f = () => { let a: number | undefined = undefined; a ??= 1; return a; };"],
+  ["&&=", "const f = () => { let a = true; a &&= false; return a; };"],
+  ["||=", "const f = () => { let a = false; a ||= true; return a; };"],
+  ["destructuring assignment", "const f = () => { let a = 1, b = 2; [a, b] = [b, a]; return a; };"],
+  ["tagged template", "const f = () => { const t = (s: readonly string[]) => s.length; return t`x`; };"],
+  ["comma operator", "const f = () => (1, 2);"],
+  ["satisfies", "const f = () => (1 satisfies number);"],
+  ["type inside a body", "const f = () => { type T = number; return 1; };"],
+  ["yield*", "const f = function* () { yield* [1, 2]; };"],
+  ["for await", "const f = async () => { for await (const x of [1]) { return x; } return 0; };"],
+  ["try/finally holding a Mut", "const f = () => { const a = mut([1]); try { a.push(2); } finally { } return freeze(a); };"],
+  ["labelled break holding a Mut", "const f = () => { const a = mut([1]); outer: for (const x of [1, 2]) { if (x > 1) break outer; a.push(x); } return freeze(a); };"],
+  ["Symbol", "const f = () => Symbol(\"a\");"],
+  ["new Promise", "const f = () => new Promise<number>((r: (n: number) => void) => r(1));"],
+  ["Object.assign({}, …)", "const f = () => Object.assign({}, { a: 1 });"],
+  ["JSX spread attribute", "const f = () => { const p = { id: \"a\" }; return <div {...p} />; };", true],
 ];
 function referenceChecks() {
   const ROOT = join(HERE, "../..");
@@ -161,6 +161,8 @@ const read = (page: Page, name: string) => page.evaluate(async (name) => {
 const REJECTED_LESSON = ["leak", "late", "bad_attr_type", "bad_unknown_attr", "bad_unknown_element", "bad_handler_not_action", "bad_handler_wrong_args", "bad_component_props", "bad_component_missing_prop", "bad_component_not_elem", "bad_mut_in_jsx", "bad_child_object"];
 async function testsPass(page: Page, label: string, name: string, tests: string[], expectErrors: string[] = []) {
   if (name === TUTORIAL) expectErrors = [...expectErrors, ...REJECTED_LESSON];
+  // the polyglot page holds fromRaw, a SoundScript cell that reads a raw cell and is rejected on purpose
+  if (name === POLY) expectErrors = [...expectErrors, "fromRaw"];
   let vars = null as Awaited<ReturnType<typeof read>>;
   for (let i = 0; i < 120; i++) {
     vars = await read(page, name);
@@ -170,7 +172,7 @@ async function testsPass(page: Page, label: string, name: string, tests: string[
   if (!vars) { report(false, `${label}: ${name} never booted`); return; }
   const errorCells = Object.entries(vars).filter(([n, v]) => v.state === "error" && !expectErrors.includes(n));
   report(errorCells.length === 0, `${label}: ${name}: ${Object.keys(vars).length} variables, ${errorCells.length} in error${errorCells.map(([n, v]) => `\n    ${n}: ${v.value}`).join("")}`);
-  for (const t of tests) report(vars[t]?.state === "ok", `${label}: ${name}#${t}: ${(vars[t]?.value ?? vars[t]?.state ?? "missing").slice(0, 200)}`);
+  for (const t of tests) report(vars[t]?.state === "ok", `${label}: ${name}#${t}: ${(vars[t]?.value ?? vars[t]?.state ?? "missing").slice(0, 400)}`);
   if (name === TUTORIAL) {
     const ran = REJECTED_LESSON.filter((n) => !(vars![n]?.state === "error" && vars![n].value!.startsWith(`${n} does not check: [`)));
     report(ran.length === 0, `${label}: the ${REJECTED_LESSON.length} lesson cells rejected on purpose do not run; each raises its checker message${ran.length ? `; not so: ${ran.map((n) => `${n} ${vars![n]?.state} ${vars![n]?.value}`).join(", ")}` : ""}`);
@@ -408,7 +410,7 @@ const addCell = (page: Page, module: string, anchor: string, source: string, kee
   const a = find(anchor, mod);
   const vars: any[] = [];
   const back = await cau(source, vars, { module: { module: mod }, variables: [a] });
-  const name = /export const (\w+)/.exec(source)![1];
+  const name = /const (\w+)/.exec(source)![1];
   const v = find(name, mod);
   const value = v ? await mod.value(name) : undefined;
   const order = [...rt._variables];
@@ -452,7 +454,7 @@ function sameBlocks(label: string, a: string, b: string) {
 
 
 // --- real user paths: Playwright mouse and keyboard on the editor and the lopepage menu
-const SECTION_TESTS: Record<string, string[]> = { "@tomlarkworthy/soundscript-reducer": ["test_undo"], "@tomlarkworthy/soundscript-model": ["areaOf4"], "@tomlarkworthy/soundscript-workers": ["image"], "@tomlarkworthy/soundscript-breakout": ["test_replay"], "@tomlarkworthy/soundscript-polyglot": ["summary"] };
+const SECTION_TESTS: Record<string, string[]> = { "@tomlarkworthy/soundscript-reducer": ["test_undo"], "@tomlarkworthy/soundscript-model": ["areaOf4"], "@tomlarkworthy/soundscript-workers": ["image"], "@tomlarkworthy/soundscript-breakout": ["test_replay"], "@tomlarkworthy/soundscript-polyglot": ["summary", "test_polyglot_listing", "test_polyglot_fromRaw_rejected"] };
 const MOD = process.platform === "darwin" ? "Meta" : "Control";
 let tagN = 0;
 // tags the editor host of a cell's variable so a locator can reach it; null when the cell has none in view
@@ -595,11 +597,11 @@ async function completion(page: Page) {
   const inc = await openEditor(page, TUTORIAL, "increment");
   if (!inc) { report(false, "completion: no editor for increment"); return; }
   const original = await editorText(inc);
-  const head = original.slice(0, original.indexOf("export const increment"));
+  const head = original.slice(0, original.indexOf("const increment"));
   // the editor's header names the cell's own inputs and outputs, not ss or unnamed observers
   const header = await inc.evaluate((el: Element) => [...el.querySelectorAll("span")].map((s) => s.textContent ?? "").filter((t) => /^(inputs|outputs):/.test(t.trim())).map((t) => t.trim()));
   report(header.some((t) => /^inputs: .*\bcount\b/.test(t)) && !header.some((t) => /\banon\b|\bss\b|invalidation/.test(t)), `completion: increment's editor header lists its own inputs, no anon or ss: ${JSON.stringify(header)}`);
-  const refList = await typeAndList(inc, head + "export const increment = (count: Ref<number>) => action(() => count|)", ".");
+  const refList = await typeAndList(inc, head + "const increment = (count: Ref<number>) => action(() => count|)", ".");
   const why = refList.length ? "" : await inc.locator(".cm-content").first().evaluate((el: any) => {
     const rt = (window as any).__ojs_runtime;
     const view = [...rt._variables].find((v: any) => v._name === "EditorView")._value.findFromDOM(el.closest(".cm-editor"));
@@ -617,8 +619,8 @@ async function completion(page: Page) {
   const log = await page.evaluate(() => (window as any).__focusLog2.slice(-6));
   await page.keyboard.press("Enter");
   const accepted = await editorText(inc);
-  report(accepted === head + "export const increment = (count: Ref<number>) => action(() => count.set)", `completion: Enter takes set: ${JSON.stringify(accepted.slice(head.length))}${accepted.endsWith("count.set)") ? "" : ` (completion ${atEnter}) ${JSON.stringify(log)}`}`);
-  const upd = await typeAndList(inc, head + "export const increment = (count: Ref<number>) => action(() => count.up|)", "d");
+  report(accepted === head + "const increment = (count: Ref<number>) => action(() => count.set)", `completion: Enter takes set: ${JSON.stringify(accepted.slice(head.length))}${accepted.endsWith("count.set)") ? "" : ` (completion ${atEnter}) ${JSON.stringify(log)}`}`);
+  const upd = await typeAndList(inc, head + "const increment = (count: Ref<number>) => action(() => count.up|)", "d");
   const atTab = await status();
   const logTab = upd.length ? "" : JSON.stringify(await page.evaluate(() => (window as any).__focusLog2.slice(-6)));
   await page.keyboard.press("Tab");
@@ -631,8 +633,8 @@ async function completion(page: Page) {
   const app = await openEditor(page, TUTORIAL, "app");
   if (app) {
     const o = await editorText(app);
-    const h = o.slice(0, o.indexOf("export const app"));
-    const nums = await typeAndList(app, h + "export const app = (count: number) => count|;", ".");
+    const h = o.slice(0, o.indexOf("const app"));
+    const nums = await typeAndList(app, h + "const app = (count: number) => count|;", ".");
     report(nums.includes("toFixed") && !nums.includes("set") && !nums.includes("update"), `completion: count. in app (count: number) lists number members: ${JSON.stringify(nums)}`);
     await page.keyboard.press("Escape");
     await place(app, o);
@@ -695,18 +697,18 @@ async function uiPaths(page: Page, saved: string) {
   report(nodes.length === 1 && nodes[0] === "tally", `ui: the ref cell tally renders as one cell (${JSON.stringify(nodes)})`);
   const tally = await openEditor(page, CORE, "tally");
   const tallyText = tally ? await editorText(tally) : null;
-  report(!!tallyText && tallyText.includes("export const tally = (): RefCell<number> => ref(0);"), `ui: clicking tally's hotbar opens its ref source: ${JSON.stringify(tallyText)}`);
+  report(!!tallyText && tallyText.includes("const tally = (): RefCell<number> => ref(0);"), `ui: clicking tally's hotbar opens its ref source: ${JSON.stringify(tallyText)}`);
 
   await tab(TUTORIAL);
   // a keyboard edit that breaks other cells is stored; then one that repairs them
   const width = await openEditor(page, TUTORIAL, "width");
   if (!width) { report(false, "ui: no editor for width"); return; }
-  await typeInto(page, width, 'export const width = () => "640";');
+  await typeInto(page, width, 'const width = () => "640";');
   await until(page, async () => (await valueOf(page, TUTORIAL, "width")) === "640");
   const broke = await until(page, async () => (await diagsOf(width)).some((d: string) => d.startsWith("this edit broke")));
   const areaNow = await valueOf(page, TUTORIAL, "area");
   report(broke && (await valueOf(page, TUTORIAL, "width")) === "640" && /^THREW area does not check: \[inject-type\]/.test(String(areaNow)), `ui: a typed width = "640" plus Shift-Enter is stored; the editor says what it broke, and area raises its message: ${JSON.stringify(await diagsOf(width))}, area ${JSON.stringify(areaNow)}`);
-  await typeInto(page, width, "export const width = () => 600;");
+  await typeInto(page, width, "const width = () => 600;");
   await page.waitForFunction(async () => true);
   for (let i = 0; i < 50 && (await valueOf(page, TUTORIAL, "width")) !== 600; i++) await page.waitForTimeout(100);
   report((await valueOf(page, TUTORIAL, "width")) === 600 && (await valueOf(page, TUTORIAL, "area")) === 600 * 400, `ui: typed width = 600 plus Shift-Enter is applied: width ${await valueOf(page, TUTORIAL, "width")}, area ${await valueOf(page, TUTORIAL, "area")}`);
@@ -729,11 +731,11 @@ async function uiPaths(page: Page, saved: string) {
   const fresh = page.locator('[data-verify="new"]');
   await fresh.locator(".cm-content").first().click();
   await page.keyboard.press(`${MOD}+KeyA`);
-  await page.keyboard.insertText("export const quadrupled = (width: string) => width;");
-  await until(page, async () => (await diagsOf(fresh)).length > 0);
+  await page.keyboard.insertText("const quadrupled = (width: string) => width;");
+  await until(page, async () => (await diagsOf(fresh)).some((d: string) => d.includes("[inject-type]")));
   const typedDiags = await diagsOf(fresh);
   report(typedDiags.some((d: string) => d.includes("[inject-type]")), `ui: a new cell typed as SoundScript is linted by its checker before it is applied: ${JSON.stringify(typedDiags)}`);
-  const NEW = "export const quadrupled = (width: number) => width * 4;";
+  const NEW = "const quadrupled = (width: number) => width * 4;";
   await typeInto(page, fresh, NEW);
   for (let i = 0; i < 50 && (await valueOf(page, TUTORIAL, "quadrupled")) !== 2400; i++) await page.waitForTimeout(100);
   const q = await page.evaluate(() => {
@@ -788,7 +790,7 @@ async function addByKeys(page: Page, module: string, anchor: string, text: strin
   const host = page.locator(`[data-verify="${tagName}"]`);
   await typeInto(page, host, text);
   // the stored cell gets an editor of its own; that one is returned
-  const name = /export const (\w+)/.exec(text)![1];
+  const name = /const (\w+)/.exec(text)![1];
   await until(page, async () => !!(await defOf(page, module, name)));
   return openEditor(page, module, name);
 }
@@ -796,8 +798,8 @@ async function addByKeys(page: Page, module: string, anchor: string, text: strin
 // the count stays absent. Checked at the edit, in ss_instance, after an exporter-3 export reopened, and
 // after Save in place reopened. An unparsable cell is stored by keys too, shows the parser's message,
 // survives both, and is repaired by keys in the reopened file.
-const SNEAK = "export const sneak = (width: number) => {\n  (globalThis as any).__ssSneak = ((globalThis as any).__ssSneak ?? 0) + 1;\n  return width;\n};";
-const BROKEN = "export const broken = (width: number) => width +;";
+const SNEAK = "const sneak = (width: number) => {\n  (globalThis as any).__ssSneak = ((globalThis as any).__ssSneak ?? 0) + 1;\n  return width;\n};";
+const BROKEN = "const broken = (width: number) => width +;";
 async function neverRuns(page: Page, label: string) {
   return page.evaluate(async ([t, c, sneak, broken]) => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get(t), core = rt.mains.get(c);
@@ -864,7 +866,7 @@ async function brokenState(savedTo: string) {
   if (!ed) report(false, "broken state: no editor for broken after reopening");
   else {
     const shown = await editorText(ed);
-    await typeInto(S.page, ed, "export const broken = (width: number) => width + 1;");
+    await typeInto(S.page, ed, "const broken = (width: number) => width + 1;");
     await until(S.page, async () => (await valueOf(S.page, TUTORIAL, "broken")) === 641);
     report(shown === BROKEN && (await valueOf(S.page, TUTORIAL, "broken")) === 641, `broken state: after reopening, broken's editor shows ${JSON.stringify(shown)}; repaired by keys it is ${await valueOf(S.page, TUTORIAL, "broken")}`);
   }
@@ -916,7 +918,7 @@ async function afterReload(page: Page) {
     const v = [...rt._variables].find((v: any) => v._module === mod && v._name === "quadrupled");
     return v ? ss.decompileVariable(String(v._definition)) : null;
   });
-  report(w === 600 && q === 2400 && text === "export const quadrupled = (width: number) => width * 4;", `reload after save: width ${w}, quadrupled ${q}, as typed source ${JSON.stringify(text)}`);
+  report(w === 600 && q === 2400 && text === "const quadrupled = (width: number) => width * 4;", `reload after save: width ${w}, quadrupled ${q}, as typed source ${JSON.stringify(text)}`);
 }
 // deleting the listener cell stops delivery (the runtime does not resolve its invalidation)
 async function deleteStops(page: Page) {
@@ -974,13 +976,13 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
     const N = 120;
     const cells = [
       "type Seen = { readonly count: number; readonly last: number; readonly gaps: number };",
-      "export const seen = (): RefCell<Seen> => ref<Seen>({ count: 0, last: 0, gaps: 0 });",
-      "export const go = (): RefCell<boolean> => ref(true);",
-      `export const nums = function* (go: boolean) {\n  if (!go) return;\n  for (let i = 1; i <= ${N}; i++) yield i;\n};`,
-      "export const weight = () => (v: number) => v;",
-      "export const record = (seen: Ref<Seen>, weight: (v: number) => number) =>\n  action((v: number) => {\n    seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (weight(v) === s.last + 1 ? 0 : 1) }));\n    if (v % 10 === 0 && v > 1000) throw new Error(`no ${v}`);\n  });",
-      "export const onNum = (nums: Events<number>, record: Action<[number]>) => on(nums, record);",
-      "export const flip = (go: Ref<boolean>) => action(() => go.update((g) => !g));",
+      "const seen = (): RefCell<Seen> => ref<Seen>({ count: 0, last: 0, gaps: 0 });",
+      "const go = (): RefCell<boolean> => ref(true);",
+      `const nums = function* (go: boolean) {\n  if (!go) return;\n  for (let i = 1; i <= ${N}; i++) yield i;\n};`,
+      "const weight = () => (v: number) => v;",
+      "const record = (seen: Ref<Seen>, weight: (v: number) => number) =>\n  action((v: number) => {\n    seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (weight(v) === s.last + 1 ? 0 : 1) }));\n    if (v % 10 === 0 && v > 1000) throw new Error(`no ${v}`);\n  });",
+      "const onNum = (nums: Events<number>, record: Action<[number]>) => on(nums, record);",
+      "const flip = (go: Ref<boolean>) => action(() => go.update((g) => !g));",
     ];
     const out: any = {};
     const r0 = ss.running(), p0 = ss.pulling();
@@ -990,11 +992,11 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
     await until(() => seen()?.count >= 30);
     out.listenersAt30 = ss.running() - r0;
     // the action's dependency is edited twice while values arrive
-    await edit("export const weight = () => (v: number) => v * 1;", "weight");
+    await edit("const weight = () => (v: number) => v * 1;", "weight");
     await until(() => seen().count >= 60);
-    await edit("export const weight = () => (v: number) => 1 * v;", "weight");
+    await edit("const weight = () => (v: number) => 1 * v;", "weight");
     // the listener cell itself runs again
-    await edit("export const onNum = (nums: Events<number>, record: Action<[number]>) => /* again */ on(nums, record);", "onNum");
+    await edit("const onNum = (nums: Events<number>, record: Action<[number]>) => /* again */ on(nums, record);", "onNum");
     out.listenersAfterRerun = ss.running() - r0;
     await until(() => seen().count >= N);
     await frames(10);
@@ -1011,7 +1013,7 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
     await frames(10);
     out.restart = { count: seen().count - c1, gaps: seen().gaps, onNumRuns: runs("onNum") - on0, numsRuns: runs("nums") - n0, sameHandle: get("nums")._value === h0 };
     // an action that throws on every tenth value: those values write nothing, the rest arrive
-    await edit("export const record = (seen: Ref<Seen>, weight: (v: number) => number) =>\n  action((v: number) => {\n    seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (weight(v) === s.last + 1 ? 0 : 1) }));\n    if (v % 10 === 0) throw new Error(`no ${v}`);\n  });", "record");
+    await edit("const record = (seen: Ref<Seen>, weight: (v: number) => number) =>\n  action((v: number) => {\n    seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (weight(v) === s.last + 1 ? 0 : 1) }));\n    if (v % 10 === 0) throw new Error(`no ${v}`);\n  });", "record");
     const c2 = seen().count;
     get("flip")._value(); await frames(5); get("flip")._value();
     await until(() => seen().last === N - 1 && seen().count >= c2 + N - N / 10, 600);
@@ -1241,20 +1243,20 @@ async function tryIts(page: Page, firstOnly = false) {
   const header = await until(page, async () => (await width.locator(".e5-cell-type").count()) > 0, 5000) ? await width.locator(".e5-cell-type").first().textContent() : null;
   const onPage = await page.evaluate(() => document.querySelector(".lp2-pane .observablehq[cell=\"width\"]")?.textContent);
   report(header === "width : number" && onPage === "width = 640", `try (first cell): the open editor's header reads ${JSON.stringify(header)}; the page line ${JSON.stringify(onPage)}`);
-  await typeInto(page, width, "export const width = () => 800;");
+  await typeInto(page, width, "const width = () => 800;");
   await until(page, async () => (await valueOf(page, TUTORIAL, "area")) === 320000);
   const after800 = { area: await valueOf(page, TUTORIAL, "area"), aspect: await valueOf(page, TUTORIAL, "aspect"), half: await valueOf(page, TUTORIAL, "half"), test_half: await valueOf(page, TUTORIAL, "test_half") };
   report(after800.area === 320000 && after800.aspect === "2.00" && after800.half === 160000, `try (first cell): width 800 updates area, aspect, half: ${JSON.stringify(after800)}`);
   const shown800 = () => page.evaluate(() => ({ listing: document.querySelector(".lite-listing")?.textContent ?? "", line: document.querySelector('.lp2-pane .observablehq[cell="width"]')?.textContent ?? "" }));
   await until(page, async () => { const x = await shown800(); return /\(\) => 800;/.test(x.listing) && x.line === "width = 800"; });
   const s800 = await shown800();
-  report(/export const width = \(\) => 800;/.test(s800.listing) && s800.line === "width = 800", `try (first cell): after the edit the listing shows the new source and width's line its value: ${JSON.stringify(s800.line)}`);
+  report(/const width = \(\) => 800;/.test(s800.listing) && s800.line === "width = 800", `try (first cell): after the edit the listing shows the new source and width's line its value: ${JSON.stringify(s800.line)}`);
   // memo: the cells outside the broken part do not run again while it is broken and repaired
   const OUTSIDE = ["height", "scale", "samples", "histogram", "count", "increment", "app"];
   const outsideRuns = () => page.evaluate(([c, t, names]) => { const rt = (window as any).__ojs_runtime, ss = rt.mains.get(c)._scope.get("ss")._value, m = rt.mains.get(t); return Object.fromEntries((names as string[]).map((n) => [n, ss.evals(m._scope.get(n)._definition)])); }, [CORE, TUTORIAL, OUTSIDE] as const);
   const runs0 = await outsideRuns();
   // typed, not yet applied: the editor says what applying would break
-  await typeInto(page, width, 'export const width = () => "800";', false);
+  await typeInto(page, width, 'const width = () => "800";', false);
   await until(page, async () => (await diagsOf(width)).some((d: string) => d.startsWith("applying this breaks")));
   const typedDiags = await diagsOf(width);
   const wouldBreak = typedDiags.find((d: string) => d.startsWith("applying this breaks")) ?? "";
@@ -1264,7 +1266,7 @@ async function tryIts(page: Page, firstOnly = false) {
   await until(page, async () => (await diagsOf(width)).some((d: string) => d.startsWith("this edit broke")));
   const ds = await diagsOf(width);
   const kept = await width.locator(".cm-content").first().evaluate((el: Element) => el.contains(document.activeElement));
-  report(kept && (await editorText(width)) === 'export const width = () => "800";', `try (first cell): after the breaking edit the editor still has focus (${kept}) and the typed text`);
+  report(kept && (await editorText(width)) === 'const width = () => "800";', `try (first cell): after the breaking edit the editor still has focus (${kept}) and the typed text`);
   const broken = await statesOf();
   const vals = { area: await valueOf(page, TUTORIAL, "area"), aspect: await valueOf(page, TUTORIAL, "aspect"), half: await valueOf(page, TUTORIAL, "half") };
   const areaNode = () => page.evaluate(() => { const n = document.querySelector('.lp2-pane .observablehq[cell="area"]'); return { error: !!n?.classList.contains("observablehq--error"), text: n?.textContent ?? "" }; });
@@ -1286,7 +1288,7 @@ async function tryIts(page: Page, firstOnly = false) {
   report(notOk(repaired).length === 0 && (await valueOf(page, TUTORIAL, "half")) === 160000 && (await valueOf(page, TUTORIAL, "count")) === count0 + 1,
     `try (first cell): with area and aspect taking a string every cell is ok again, half ${await valueOf(page, TUTORIAL, "half")}; count kept ${await valueOf(page, TUTORIAL, "count")}${notOk(repaired).length ? "; not ok " + JSON.stringify(notOk(repaired)) : ""}`);
   // and back: width 640 breaks them the other way; the original area and aspect repair it
-  await typeInto(page, width, "export const width = () => 640;");
+  await typeInto(page, width, "const width = () => 640;");
   await until(page, async () => (await valueOf(page, TUTORIAL, "width")) === 640);
   await typeInto(page, area, areaText);
   await typeInto(page, aspect, aspectText);
@@ -1704,8 +1706,8 @@ await counterClick(A.page, "original");
 await editorOn(A.page, "original", TUTORIAL, "increment", "count: Ref<number>", "count: Ref<string>", "inject-ref");
 await counterClick(A.page, "after the unchanged save");
 await testsPass(A.page, "after the unchanged save", TUTORIAL, TUTORIAL_TESTS);
-const fresh = await addCell(A.page, TUTORIAL, "half", "export const tripled = (width: number) => width * 3;", false);
-report(fresh.back === "export const tripled = (width: number) => width * 3;" && fresh.value === 1920 && fresh.afterAnchor && fresh.held, `editor: a new export cell is applied as SoundScript after its anchor: ${JSON.stringify(fresh)}`);
+const fresh = await addCell(A.page, TUTORIAL, "half", "const tripled = (width: number) => width * 3;", false);
+report(fresh.back === "const tripled = (width: number) => width * 3;" && fresh.value === 1920 && fresh.afterAnchor && fresh.held, `editor: a new cell is applied as SoundScript after its anchor: ${JSON.stringify(fresh)}`);
 
 // --- 4: export, reopen, export again
 const sourceA = await ssSource(A.page, TUTORIAL);
@@ -1755,6 +1757,7 @@ await testsPass(E.page, "ui", CORE, CORE_TESTS);
 await completion(E.page);
 // raw cells edited by keys; the Save in place at the end of uiPaths keeps the last edit
 await rawOnPage(E.page, rawHelpers(), "ui raw");
+await pickerPaths(E.page, rawHelpers(), "ui picker");
 await uiPaths(E.page, savedPath);
 requests("ui page", E);
 await E.page.close();
@@ -1787,7 +1790,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   await coreCards(C.page, "core-only README");
   await editorOn(C.page, "core-only", CORE, "bump", "tally: Ref<number>", "tally: Ref<string>", "inject-ref");
   // the editor commands on a SoundScript cell with the language registered; guard_probe is made for it, and deleted by it
-  await addCell(C.page, CORE, "doubled", "export const guard_probe = (tally: number) => tally * 2;", true);
+  await addCell(C.page, CORE, "doubled", "const guard_probe = (tally: number) => tally * 2;", true);
   await commandGuard(C.page, "core-only (registered)", CORE, "guard_probe", "ss_keyOf", true);
   // a cell with a Notebook Kit shadow variable, made SoundScript through apply: the shadow goes with the
   // head. The head and its display shadow are made as @tomlarkworthy/js-toolchain's defineCell makes
@@ -1800,7 +1803,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     display.define(["kitcell"], () => (x: number) => x);
     head._shadow.set("display", display);
     head.define("kitcell", [], () => 1);
-    const out = await get("ss_language")._value.apply("export const kitcell = () => 2;", [head], { module: { module: core }, variables: [head] });
+    const out = await get("ss_language")._value.apply("const kitcell = () => 2;", [head], { module: { module: core }, variables: [head] });
     const alive = [...rt._variables].includes(display) || head._shadow.size > 0;
     const v = get("kitcell");
     const value = v ? await core.value("kitcell") : null;
@@ -1808,7 +1811,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     return { applied: typeof out === "string", shadowAlive: alive, value };
   });
   report(shadow.applied && !shadow.shadowAlive && shadow.value === 2, `core-only: a cell with a Kit shadow variable made SoundScript through apply leaves no shadow behind: ${JSON.stringify(shadow)}`);
-  const NEW = "export const tripled = (doubled: number) => doubled * 3;";
+  const NEW = "const tripled = (doubled: number) => doubled * 3;";
   const added = await addCell(C.page, CORE, "doubled", NEW, true);
   report(added.back === NEW && added.value === 0 && added.afterAnchor && added.held, `core-only: a new cell added through the editor: ${JSON.stringify(added)}`);
   // a ref cell made plain and a ref again through apply: the handle variable comes and goes
@@ -1819,9 +1822,9 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     const names = () => [...rt._variables].filter((v: any) => v._module === core && /^(viewof )?flag$/.test(v._name)).map((v: any) => v._name).sort();
     const out: any[] = [];
     const vars: any[] = [];
-    out.push(await lang.apply("export const flag = (): RefCell<boolean> => ref(false);", vars, { module: { module: core }, variables: [get("tripled")] }), names());
-    out.push(await lang.apply("export const flag = () => true;", vars), names(), await core.value("flag"));
-    out.push(await lang.apply("export const flag = (): RefCell<boolean> => ref(false);", vars), names(), await core.value("flag"));
+    out.push(await lang.apply("const flag = (): RefCell<boolean> => ref(false);", vars, { module: { module: core }, variables: [get("tripled")] }), names());
+    out.push(await lang.apply("const flag = () => true;", vars), names(), await core.value("flag"));
+    out.push(await lang.apply("const flag = (): RefCell<boolean> => ref(false);", vars), names(), await core.value("flag"));
     return out;
   });
   report(JSON.stringify(flips.filter((x: any) => Array.isArray(x))) === JSON.stringify([["flag", "viewof flag"], ["flag"], ["flag", "viewof flag"]]) && flips[4] === true && flips[7] === false, `core-only: flag ref -> plain -> ref through apply: ${JSON.stringify(flips)}`);
@@ -1829,7 +1832,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   // when that cell is deleted outside apply (as the editor's delete button does). The consumer is
   // deleted at once, before onCodeChange's snapshot has seen it, which is the case that used to leave
   // pulse compiled as events; its listener must end too.
-  for (const consumer of ["export const pulses = (pulse: Events<number>) => 0;", "export const pulses = (pulse: Events<number>, addn: Action<[number]>) => on(pulse, addn);"]) {
+  for (const consumer of ["const pulses = (pulse: Events<number>) => 0;", "const pulses = (pulse: Events<number>, addn: Action<[number]>) => on(pulse, addn);"]) {
     const src = await C.page.evaluate(async (consumer) => {
       const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
       const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
@@ -1837,9 +1840,9 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
       const kind = () => /kind: "(\w+)"/.exec(String(get("pulse")?._definition))?.[1];
       const until = async (f: () => boolean) => { for (let i = 0; i < 100 && !f(); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
       const out: any = {};
-      out.gen = await lang.apply("export const pulse = function* () { while (true) yield 1; };", [], { module: { module: core }, variables: [get("tripled")] });
+      out.gen = await lang.apply("const pulse = function* () { while (true) yield 1; };", [], { module: { module: core }, variables: [get("tripled")] });
       out.before = kind();
-      if (consumer.includes("addn")) out.addn = await lang.apply("export const addn = (tally: Ref<number>) => action((n: number) => tally.update((t) => t + n));", [], { module: { module: core }, variables: [get("pulse")] });
+      if (consumer.includes("addn")) out.addn = await lang.apply("const addn = (tally: Ref<number>) => action((n: number) => tally.update((t) => t + n));", [], { module: { module: core }, variables: [get("pulse")] });
       const r0 = ss.running();
       out.consumer = await lang.apply(consumer, [], { module: { module: core }, variables: [get("pulse")] });
       out.withConsumer = kind();
@@ -1867,11 +1870,11 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     const lang = get("ss_language")._value;
     const res: any[] = [];
     for (const c of [
-      "export const aCount = (): RefCell<number> => ref(0);",
-      "export const aInc = (aCount: Ref<number>) => action(() => aCount.update((c) => c + 1));",
-      "export const aDec = (aCount: Ref<number>) => action(() => aCount.update((c) => c - 1));",
-      "export const aCurrent = (aInc: Action<[]>): RefCell<Action<[]>> => ref(aInc);",
-      "export const aUseDec = (aCurrent: Ref<Action<[]>>, aDec: Action<[]>) => action(() => aCurrent.set(aDec));",
+      "const aCount = (): RefCell<number> => ref(0);",
+      "const aInc = (aCount: Ref<number>) => action(() => aCount.update((c) => c + 1));",
+      "const aDec = (aCount: Ref<number>) => action(() => aCount.update((c) => c - 1));",
+      "const aCurrent = (aInc: Action<[]>): RefCell<Action<[]>> => ref(aInc);",
+      "const aUseDec = (aCurrent: Ref<Action<[]>>, aDec: Action<[]>) => action(() => aCurrent.set(aDec));",
     ]) res.push(!!(await lang.apply(c, [], { module: { module: core }, variables: [get("tripled")] })));
     await core.value("aUseDec");
     get("aUseDec")._value();
@@ -1912,7 +1915,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     const flag = get("viewof flag") && get("flag") ? lang.decompile([get("flag")]) : null;
     return { present: true, typed: text === NEW, verdict, editorSource: await lang.decompile([v]), value: await core.value("tripled"), flag: await flag, roundtrip: get("ss_roundtrip")._value(core) };
   }, NEW);
-  report(after.flag === "export const flag = (): RefCell<boolean> => ref(false);", `core-only reopened: flag is a ref cell again after export: ${after.flag}, ${after.roundtrip} variables round trip`);
+  report(after.flag === "const flag = (): RefCell<boolean> => ref(false);", `core-only reopened: flag is a ref cell again after export: ${after.flag}, ${after.roundtrip} variables round trip`);
   report(after.present && after.typed && after.verdict === "ok" && after.editorSource === NEW && after.value === 0, `core-only reopened: the added cell survived the export as typed source that checks: ${JSON.stringify(after)}`);
   requests("core-only reopened page", D);
   await D.page.close();
@@ -1970,7 +1973,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
       // now the language registers (an observer keeps ss_registration, and so the registration, alive);
       // the open editor follows
       find("ss_registration")._module.variable({}).define(["ss_registration"], (x: any) => x);
-      await until(() => /^export const width = /m.test(view()?.state.doc.toString() ?? ""), "the typed source after registration");
+      await until(() => /^const width = /m.test(view()?.state.doc.toString() ?? ""), "the typed source after registration");
       out.shownAfter = view().state.doc.toString();
       out.lineAfter = await until(() => incLine() === "increment = ƒ action()" && incLine(), "increment drawn by the language");
     } catch (e) { out.error = String((e as Error)?.message ?? e); }
@@ -1979,7 +1982,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   // raw-cells is registered on this page too; only "ss" must be absent
   report(!g2.error && !g2.registeredAtOpen?.includes("ss") && /^width = \$ss\$\.cell\(/.test(g2.shownBefore ?? "") && g2.diagnostics?.some((d: string) => /not loaded yet/.test(d)) && g2.savedUnchanged,
     `core-not-main: with no language registered the editor on width shows the compiled text, says it is not loaded, and Shift-Enter saves nothing: ${JSON.stringify({ ...g2, shownAfter: undefined })}`);
-  report(!g2.error && /^export const width = \(\) => 640;$/m.test(g2.shownAfter ?? "") && !g2.shownAfter.includes("$ss$"), `core-not-main: after registration the open editor shows the typed source: ${JSON.stringify(g2.shownAfter ?? g2.error)}`);
+  report(!g2.error && /^const width = \(\) => 640;$/m.test(g2.shownAfter ?? "") && !g2.shownAfter.includes("$ss$"), `core-not-main: after registration the open editor shows the typed source: ${JSON.stringify(g2.shownAfter ?? g2.error)}`);
   report(!g2.error && g2.lineBefore !== g2.lineAfter && g2.lineAfter === "increment = ƒ action()", `core-not-main: increment's line is the normal Inspector's before registration (${JSON.stringify(g2.lineBefore?.slice(0, 60))}) and the language's after, without a reload (${JSON.stringify(g2.lineAfter ?? g2.error)})`);
   // a language whose editor extension throws leaves the plain editor, with the error shown
   const g1 = await U.page.evaluate(async (tut) => {
@@ -2005,7 +2008,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     finally { lang.extension = ext; }
     return out;
   }, TUTORIAL);
-  report(!g1.error && /^export const area = /m.test(g1.shown ?? "") && g1.diagnostics?.some((d: string) => d.includes("injected extension fault")), `core-not-main: an editor extension that throws leaves the plain editor with the error shown: ${JSON.stringify(g1)}`);
+  report(!g1.error && /^const area = /m.test(g1.shown ?? "") && g1.diagnostics?.some((d: string) => d.includes("injected extension fault")), `core-not-main: an editor extension that throws leaves the plain editor with the error shown: ${JSON.stringify(g1)}`);
   await U.page.close();
 }
 } catch (e) {

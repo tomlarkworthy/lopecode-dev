@@ -1,5 +1,5 @@
 // Probe: constructs the horde game would want, each in its own cell, to read the checker's verdicts.
-type W = { readonly xs: Float32Array };
+export type W = { readonly xs: Float32Array };
 export const n = () => 4;
 // 1. Math.imul for a fast integer hash
 export const p_imul = () => Math.imul(2654435761, 7);

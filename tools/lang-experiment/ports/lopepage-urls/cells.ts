@@ -44,7 +44,7 @@ type LinkOpts = {
 };
 type Cursor = { i: number };
 
-export let dslExamples = () => [
+let dslExamples = () => [
   "view=200@tomlarkworthy/slug,25@owner/page#cell",
   "view=@tomlarkworthy/slug,@owner/page",
   "view=C(@tomlarkworthy/slug,@owner/page)",
@@ -59,7 +59,7 @@ export let dslExamples = () => [
 
 // The original closes over `let i`; nested functions may not assign a captured let, so the
 // position is a Mut cursor passed explicitly to each helper.
-export let parseViewDSL = () =>
+let parseViewDSL = () =>
   function parseViewDSL(raw: string): GroupNode {
     if (!raw)
       return {
@@ -146,16 +146,16 @@ export let parseViewDSL = () =>
     return ast;
   };
 
-export let _6 = () => "SRC".includes("S");
+let _6 = () => "SRC".includes("S");
 
-export let test_parseViewDSL = (dslExamples, parseViewDSL) => dslExamples.map((dsl, idx) => parseViewDSL(dsl));
+let test_parseViewDSL = (dslExamples, parseViewDSL) => dslExamples.map((dsl, idx) => parseViewDSL(dsl));
 
-export let test_reserialized = (dslExamples, convertToGoldenLayout, parseViewDSL) =>
+let test_reserialized = (dslExamples, convertToGoldenLayout, parseViewDSL) =>
   dslExamples.map((dsl, idx) => convertToGoldenLayout(parseViewDSL(dsl)));
 
 // The original mutates the config in place (sets size, deletes weight) and returns undefined.
 // This returns a new config with the same keys in the same order.
-export let normalizeWeights = () => {
+let normalizeWeights = () => {
   const withoutWeight = (n: GLNode): GLNode => {
     const { weight, ...rest } = n;
     return rest;
@@ -181,16 +181,16 @@ export let normalizeWeights = () => {
   };
 };
 
-export let parseGoldenDSL = (parseViewDSL, convertToGoldenLayout, normalizeWeights) =>
+let parseGoldenDSL = (parseViewDSL, convertToGoldenLayout, normalizeWeights) =>
   function parseGoldenDSL(dsl: string): GLNode {
     const intermediate = parseViewDSL(dsl);
     const glConfig = convertToGoldenLayout(intermediate);
     return normalizeWeights(glConfig);
   };
 
-export let layouts = (dslExamples, parseGoldenDSL) => dslExamples.map((dsl, idx) => parseGoldenDSL(dsl));
+let layouts = (dslExamples, parseGoldenDSL) => dslExamples.map((dsl, idx) => parseGoldenDSL(dsl));
 
-export let serializeGoldenDSL = () =>
+let serializeGoldenDSL = () =>
   function serializeGoldenDSL(layout: GLNode): string {
     function serialize(node: GLNode): string {
       if (node.type === "component") {
@@ -219,16 +219,16 @@ export let serializeGoldenDSL = () =>
     return serialize(layout);
   };
 
-export let test_serializeGoldenDSL = (layouts, serializeGoldenDSL) => layouts.map(serializeGoldenDSL);
+let test_serializeGoldenDSL = (layouts, serializeGoldenDSL) => layouts.map(serializeGoldenDSL);
 
-export let test_parseGoldenDSL = (test_serializeGoldenDSL, parseGoldenDSL) => test_serializeGoldenDSL.map(parseGoldenDSL);
+let test_parseGoldenDSL = (test_serializeGoldenDSL, parseGoldenDSL) => test_serializeGoldenDSL.map(parseGoldenDSL);
 
-export let listModules = (_getModuleTitles, parseGoldenDSL) => (hash: string) => {
+let listModules = (_getModuleTitles, parseGoldenDSL) => (hash: string) => {
   if (!hash) return new Map<string, ModuleTitle>();
   return new Map(_getModuleTitles(parseGoldenDSL(hash)).map((c): [string, ModuleTitle] => [c.title, c]));
 };
 
-export let _getModuleTitles = () =>
+let _getModuleTitles = () =>
   function getModuleTitles(ast: GLNode): ModuleTitle[] {
     const title = ast.title;
     // The original reads ast.title.split and throws a TypeError when title is missing.
@@ -241,14 +241,14 @@ export let _getModuleTitles = () =>
     return [...own, ...kids];
   };
 
-export let test_list_modules = (dslExamples, listModules) => dslExamples.map((dsl, idx) => listModules(dsl));
+let test_list_modules = (dslExamples, listModules) => dslExamples.map((dsl, idx) => listModules(dsl));
 
-export let getCell = (_getModuleTitles, parseGoldenDSL) => (hash: string, module?: string) => {
+let getCell = (_getModuleTitles, parseGoldenDSL) => (hash: string, module?: string) => {
   if (!hash) return undefined;
   return _getModuleTitles(parseGoldenDSL(hash));
 };
 
-export let navHref = () =>
+let navHref = () =>
   function navHref(
     target: NavTarget,
     {
@@ -286,16 +286,16 @@ export let navHref = () =>
     return `#${finalOp}=${cell ? `${module}#${cell}` : module}`;
   };
 
-export let links = () => [
+let links = () => [
   "https://observablehq.com/@tom/foo",
   "https://observablehq.com/@tom/foo?query1#view=@tomlarkworthy/slug,@owner/page&foo=bar",
 ];
 
-export let targets = () => ["@tom/bar", "d/1f41fef8b019cf4e@94", "@tom/bar#cell"];
+let targets = () => ["@tom/bar", "d/1f41fef8b019cf4e@94", "@tom/bar#cell"];
 
 // linkTo's body with its two world-reading defaults (document.baseURI, isOnObservableCom())
 // made required. The shell cell linkTo supplies them and calls this.
-export let linkToWith = (parseUrl) =>
+let linkToWith = (parseUrl) =>
   function linkTo(target: NavTarget, { baseURI, onObservable, source = null, op = "open" }: LinkOpts): string {
     if (onObservable) {
       const t = typeof target === "string" ? target : target?.module || target?.open || target?.close || "";
@@ -347,10 +347,10 @@ export let linkToWith = (parseUrl) =>
     return "#" + hashStr;
   };
 
-export let test_linkTo = (links, targets, linkToWith) =>
+let test_linkTo = (links, targets, linkToWith) =>
   links.map((link) => targets.map((target) => linkToWith(target, { baseURI: link, onObservable: false })));
 
-export let href_examples = () => [
+let href_examples = () => [
   "https://tomlarkworthy/import-notebook",
   "https://d/e1c39d41e8e944b0@939",
   "https://tomlarkworthy/visualizer#unorderedSync",
@@ -360,10 +360,10 @@ export let href_examples = () => [
   "@tomlarkworthy/robocoop#on_prompt",
 ];
 
-export let test_extractNotebookAndCell = (href_examples, extractNotebookAndCell) =>
+let test_extractNotebookAndCell = (href_examples, extractNotebookAndCell) =>
   href_examples.map(extractNotebookAndCell);
 
-export let extractNotebookAndCell = () =>
+let extractNotebookAndCell = () =>
   function extractNotebookAndCell(href: string): { readonly notebook: string; readonly cell: string | null } | null {
     const regex =
       /^(https:\/\/(?<host>[\w.-]+)\/)?(?<nb>(@?[\w-]+\/[\w-]+|d\/[a-f0-9]+|e\/[a-f0-9]+@[0-9]+|[a-f0-9]+@[0-9]+|[\w-]+))(?:#(?<cell>[\w-]+))?$/;
@@ -386,7 +386,7 @@ export let extractNotebookAndCell = () =>
     return null;
   };
 
-export let convertToGoldenLayout = () =>
+let convertToGoldenLayout = () =>
   function convertToGoldenLayout(intermediate: ViewNode): GLNode {
     // Convert a module to a component.
     function convertModule(item: ModuleNode): GLNode {
@@ -450,7 +450,7 @@ export let convertToGoldenLayout = () =>
     return convertItem(intermediate);
   };
 
-export let test_bareModulesWrappedInRC = (convertToGoldenLayout, parseViewDSL) =>
+let test_bareModulesWrappedInRC = (convertToGoldenLayout, parseViewDSL) =>
   (() => {
     const types = (node: GLNode) => (node.content || []).map((c) => c.type);
     const cases = [

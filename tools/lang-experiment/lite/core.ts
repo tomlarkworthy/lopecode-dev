@@ -104,16 +104,15 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   const cells: CellDef[] = [];
   const rest = reg.load(P, "user", true);
   for (const st of rest) {
-    if (st.type === "ExportNamedDeclaration" && st.declaration) {
-      const d = st.declaration;
-      if (d.type === "FunctionDeclaration") { cells.push({ name: d.id.name, fn: d, stmt: st }); continue; }
-      if (d.type === "VariableDeclaration" && d.kind !== "var") {
-        for (const x of d.declarations) {
-          if (x.id.type === "Identifier" && x.init && (x.init.type === "ArrowFunctionExpression" || x.init.type === "FunctionExpression")) cells.push({ name: x.id.name, fn: x.init, stmt: st });
-          else mod(P, x, "cell-not-function", `export ${x.id.name ?? "?"} is not a function`);
-        }
-        continue;
+    // a cell is a top-level function or const/let, with or without `export` (2026-11-15: without is the form)
+    const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st;
+    if (d.type === "FunctionDeclaration") { cells.push({ name: d.id.name, fn: d, stmt: st }); continue; }
+    if (d.type === "VariableDeclaration" && d.kind !== "var" && !d.declare) {
+      for (const x of d.declarations) {
+        if (x.id.type === "Identifier" && x.init && (x.init.type === "ArrowFunctionExpression" || x.init.type === "FunctionExpression")) cells.push({ name: x.id.name, fn: x.init, stmt: st });
+        else mod(P, x, "cell-not-function", `${x.id.name ?? "?"} is not a function`);
       }
+      continue;
     }
     if (st.type === "ImportDeclaration" && st.importKind === "type") continue;
     const rule = st.type === "TSEnumDeclaration" ? "no-enum" : st.type === "TSModuleDeclaration" ? "no-namespace" : st.type === "ClassDeclaration" ? "no-class"

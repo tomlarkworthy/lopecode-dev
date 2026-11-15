@@ -5,8 +5,8 @@ export type RuleInfo = { id: string; section: string; summary: string; how: "exa
 
 export const RULES: RuleInfo[] = [
   // Files
-  { id: "module-level", section: "Files", how: "exact", summary: "only exported cells, type/interface and import type at module level" },
-  { id: "cell-not-function", section: "Files", how: "exact", summary: "export let/const whose initializer is not an arrow or function expression" },
+  { id: "module-level", section: "Files", how: "exact", summary: "only cells, type/interface and import type at module level" },
+  { id: "cell-not-function", section: "Files", how: "exact", summary: "a top-level let/const whose initializer is not an arrow or function expression" },
   { id: "duplicate-cell", section: "Files", how: "exact", summary: "a cell name defined twice across cells.ts and shell.ts" },
   // Cells and injection
   { id: "inject-unknown", section: "Cells and injection", how: "exact", summary: "parameter names no cell, foreign declaration or capability" },

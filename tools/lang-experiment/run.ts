@@ -1,6 +1,7 @@
 // bun run.ts ports/<name> [--order forward|reverse] [--json] [--settle-ms N] [--bench <cell> --n <k>]
 // Loads a port on the real @observablehq/runtime and reports every cell.
 import { Runtime } from "@observablehq/runtime";
+import ts from "typescript";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve, dirname, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -65,7 +66,15 @@ let buildCounter = 0;
 const UNSUPPLIED = Symbol("unsupplied foreign");
 
 async function importTranspiled(dir: string, file: string, tag: string) {
-  const src = await Bun.file(join(dir, file)).text();
+  let src = await Bun.file(join(dir, file)).text();
+  // cells.ts names its cells without `export`; the harness exports them to import the module
+  if (file === "cells.ts") {
+    const P = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true);
+    const isExp = (st: ts.Statement) => !!(ts.canHaveModifiers(st) && ts.getModifiers(st)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword));
+    const names = P.statements.flatMap((st) => isExp(st) ? [] : ts.isFunctionDeclaration(st) && st.name ? [st.name.text]
+      : ts.isVariableStatement(st) ? st.declarationList.declarations.flatMap((d) => (ts.isIdentifier(d.name) ? [d.name.text] : [])) : []);
+    if (names.length) src += `\nexport { ${names.join(", ")} };\n`;
+  }
   const js = new Bun.Transpiler({ loader: "ts" }).transformSync(src);
   const out = join(HERE, ".build", `${basename(dir)}-${process.pid}-${tag}-${buildCounter++}`);
   mkdirSync(out, { recursive: true });

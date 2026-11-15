@@ -1,4 +1,4 @@
-export let a = () => ({ x: 1 });
-export let b = ({ x }: { x: number }) => x;
-export let c = (a = 1) => a;
-export let d = (...xs: number[]) => xs.length;
+let a = () => ({ x: 1 });
+let b = ({ x }: { x: number }) => x;
+let c = (a = 1) => a;
+let d = (...xs: number[]) => xs.length;

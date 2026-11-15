@@ -1,5 +1,5 @@
-export let xs = () => [1];
-export let ys = () => [1];
-export let same = (xs, ys) => xs === ys;
-export let fine = (xs) => xs.length === 1;
-export let loose = (xs, ys) => xs == ys || xs != ys;
+let xs = () => [1];
+let ys = () => [1];
+let same = (xs, ys) => xs === ys;
+let fine = (xs) => xs.length === 1;
+let loose = (xs, ys) => xs == ys || xs != ys;

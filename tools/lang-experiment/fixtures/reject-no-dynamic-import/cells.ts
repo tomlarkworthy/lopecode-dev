@@ -1,4 +1,4 @@
-export let a = async () => {
+let a = async () => {
   const m = await import("./cells");
   return typeof m;
 };

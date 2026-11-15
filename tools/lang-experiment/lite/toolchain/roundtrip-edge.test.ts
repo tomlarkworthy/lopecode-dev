@@ -31,13 +31,13 @@ const def = (src: string, tsx = false) => compileCell(src, tsx).at(-1)!.definiti
 // passes `this`), and a listener cell takes invalidation, which ends its listener when it runs again.
 {
   const src = [
-    "export const ticks = function* (now: Clock, fast: boolean) { while (true) yield now(); };",
-    "export const pulses = function* () { while (true) yield 1; };",
-    "export const count = (): RefCell<number> => ref(0);",
-    "export const tick = (count: Ref<number>) => action((t: number) => count.update((c) => c + 1));",
-    "export const fast = () => true;",
-    "export const onTick = (ticks: Events<number>, pulses: Events<number>, tick: Action<[number]>, fast: boolean) => (fast ? on(ticks, tick) : on(pulses, tick));",
-    "export const label = (ticks: Events<number>, count: number) => `count ${count}`;",
+    "const ticks = function* (now: Clock, fast: boolean) { while (true) yield now(); };",
+    "const pulses = function* () { while (true) yield 1; };",
+    "const count = (): RefCell<number> => ref(0);",
+    "const tick = (count: Ref<number>) => action((t: number) => count.update((c) => c + 1));",
+    "const fast = () => true;",
+    "const onTick = (ticks: Events<number>, pulses: Events<number>, tick: Action<[number]>, fast: boolean) => (fast ? on(ticks, tick) : on(pulses, tick));",
+    "const label = (ticks: Events<number>, count: number) => `count ${count}`;",
   ].join("\n\n");
   const r = checkSources({ cells: src, tsx: true });
   expect(r.cells.every((c) => c.status === "ok"), "events module checks ok: " + r.cells.map((c) => c.name + ":" + c.status));
@@ -57,7 +57,7 @@ const def = (src: string, tsx = false) => compileCell(src, tsx).at(-1)!.definiti
 expect(typeof (toolchain as any).idOf === "function" && typeof (toolchain as any).withId === "function", "C4 ss-toolchain exports idOf and withId");
 if (typeof (toolchain as any).idOf === "function") {
   const { idOf, withId } = toolchain as any as { idOf: (d: string) => string | null; withId: (d: string, id: string) => string };
-  const src = `export const user = () => ({ id: "anon", n: 1 });`;
+  const src = `const user = () => ({ id: "anon", n: 1 });`;
   const d = def(src);
   const id = idOf(d);
   expect(typeof id === "string" && /^\w+$/.test(id!) && d.includes(`id: "${id}", invalidation:`), "C4 idOf returns the compiler id: " + id);
@@ -68,32 +68,32 @@ if (typeof (toolchain as any).idOf === "function") {
   expect(/\bid: "(\w+)", invalidation: [\w$]+\}\); \}$/.exec(d2)?.[1] === "abc_123", "C4 runtime evals regex reads the new id");
   expect(JSON.stringify(run(d2)) === JSON.stringify({ id: "anon", n: 1 }), "C4 the cell still returns the user's object");
   expect(attempt(() => withId(d, "bad id")) instanceof Error, "C4 withId refuses an id that is not \\w+");
-  const ref = compileCell(`export const r = (): RefCell<number> => ref(0);`, false);
+  const ref = compileCell(`const r = (): RefCell<number> => ref(0);`, false);
   const proj = ref.find((v) => v.name === "r")!.definition;
   expect(idOf(proj) === null && withId(proj, "x1") === proj, "C4 a ref's projection has no id");
-  const ty = def(`export type T = { id: "z" };`);
+  const ty = def(`type T = { id: "z" };`);
   expect(idOf(ty) === null && withId(ty, "x1") === ty, "C4 a type variable has no id");
   expect(idOf(ref.find((v) => v.name === "viewof r")!.definition) !== null, "C4 a ref's handle has an id");
 }
 
 // F1: TS-only expression forms erase to valid JS that computes the same value
 for (const [src, tsx, arg, want] of [
-  ["export const f = (x: number): number => (x) satisfies number;", false, 2, 2],
-  ["export const f = (x: unknown): number => (x as number) satisfies number;", false, 3, 3],
-  ["export const f = (x: number): number => ((x)) satisfies number;", false, 4, 4],
-  ["export const f = (x: number): number => (x) as number;", false, 5, 5],
-  ["export const f = (x: number): number => (x /* c */) /* d */ as /* as */ number;", false, 5, 5],
-  ["export const f = (x: number | null): number => x!;", false, 6, 6],
-  ["export const f = (x: number | null): number => (x)! + 1;", false, 6, 7],
-  ["export const f = (x: { y: number } | null): number => x!.y;", false, { y: 8 }, 8],
-  ["export const f = (x: unknown): number => <number>x;", false, 9, 9],
-  ["export const f = (x: unknown): number => <number>(x) + 1;", false, 9, 10],
-  ["export const f = (x: number) => <p>{(x) satisfies number}{x!}</p>;", true, 1, null],
+  ["const f = (x: number): number => (x) satisfies number;", false, 2, 2],
+  ["const f = (x: unknown): number => (x as number) satisfies number;", false, 3, 3],
+  ["const f = (x: number): number => ((x)) satisfies number;", false, 4, 4],
+  ["const f = (x: number): number => (x) as number;", false, 5, 5],
+  ["const f = (x: number): number => (x /* c */) /* d */ as /* as */ number;", false, 5, 5],
+  ["const f = (x: number | null): number => x!;", false, 6, 6],
+  ["const f = (x: number | null): number => (x)! + 1;", false, 6, 7],
+  ["const f = (x: { y: number } | null): number => x!.y;", false, { y: 8 }, 8],
+  ["const f = (x: unknown): number => <number>x;", false, 9, 9],
+  ["const f = (x: unknown): number => <number>(x) + 1;", false, 9, 10],
+  ["const f = (x: number) => <p>{(x) satisfies number}{x!}</p>;", true, 1, null],
   // a JSX operand: the cut must not swallow the /*ss>*/ that closes the lowered element
-  ["export const f = (x: number) => <p>{x}</p> as const;", true, 1, null],
-  ["export const f = (x: number) => <p>{x}</p> satisfies unknown;", true, 1, null],
-  ["export const f = (x: number) => [<p>{x}</p> as const, 1];", true, 1, null],
-  ["export const f = (x: number) => (<p>{x}</p>)!;", true, 1, null],
+  ["const f = (x: number) => <p>{x}</p> as const;", true, 1, null],
+  ["const f = (x: number) => <p>{x}</p> satisfies unknown;", true, 1, null],
+  ["const f = (x: number) => [<p>{x}</p> as const, 1];", true, 1, null],
+  ["const f = (x: number) => (<p>{x}</p>)!;", true, 1, null],
 ] as [string, boolean, unknown, unknown][]) {
   const bad = roundTrips(src, tsx);
   expect(bad === null, `F1 ${src}: ${bad}`);
@@ -104,24 +104,24 @@ for (const [src, tsx, arg, want] of [
 }
 // a TS construct the eraser does not handle is refused with a named error, never emitted as broken JS
 {
-  const e = attempt(() => compileCell("export const f = (x: number) => { let y!: number; y = x; return y; };", false));
-  expect(e instanceof Error ? /^unsupported: /.test(e.message) : roundTrips("export const f = (x: number) => { let y!: number; y = x; return y; };", false) === null,
+  const e = attempt(() => compileCell("const f = (x: number) => { let y!: number; y = x; return y; };", false));
+  expect(e instanceof Error ? /^unsupported: /.test(e.message) : roundTrips("const f = (x: number) => { let y!: number; y = x; return y; };", false) === null,
     "F1 definite assignment `let y!: T` is refused or erased: " + (e instanceof Error ? e.message : "compiled"));
 }
 
 // F2: */ and *\/ inside strings, templates, regexes, literal types, comments and JSX round-trip exactly
 for (const [src, tsx, arg, want] of [
-  [`export const f = (x: number): string => "*/" + x;`, false, 1, "*/1"],
-  [`export const f = (x: number): string => "*\\/" + x;`, false, 1, "*/1"],
-  [`export const f = (x: number): string => "*\\\\/" + x;`, false, 1, "*\\/1"],
-  [`export const f = (x: string): boolean => /a*\\//.test(x);`, false, "aa/", true],
-  [`export const f = (x: string): boolean => /a*\\\\\\//.test(x);`, false, "a\\/", true],
-  ["export const f = (x: number): string => `*\\/${x}*/`;", false, 1, "*/1*/"],
-  [`export const f = (x: "*/" | "*\\/" | "*\\\\/"): string => x;`, false, "*/", "*/"],
-  [`export const f = (x: /* a *\\/ b */ number): number => x;`, false, 2, 2],
-  [`export const f = (x: { a: "**/" } | "*\\**/"): unknown => x;`, false, 3, 3],
-  [`export const f = (x: string) => <p title="*\\/">{/a*\\//.test(x)} */ </p>;`, true, "a/", null],
-  [`export const f = (x: string) => <p>{"*\\\\/"}{x as "*\\/"}</p>;`, true, "a", null],
+  [`const f = (x: number): string => "*/" + x;`, false, 1, "*/1"],
+  [`const f = (x: number): string => "*\\/" + x;`, false, 1, "*/1"],
+  [`const f = (x: number): string => "*\\\\/" + x;`, false, 1, "*\\/1"],
+  [`const f = (x: string): boolean => /a*\\//.test(x);`, false, "aa/", true],
+  [`const f = (x: string): boolean => /a*\\\\\\//.test(x);`, false, "a\\/", true],
+  ["const f = (x: number): string => `*\\/${x}*/`;", false, 1, "*/1*/"],
+  [`const f = (x: "*/" | "*\\/" | "*\\\\/"): string => x;`, false, "*/", "*/"],
+  [`const f = (x: /* a *\\/ b */ number): number => x;`, false, 2, 2],
+  [`const f = (x: { a: "**/" } | "*\\**/"): unknown => x;`, false, 3, 3],
+  [`const f = (x: string) => <p title="*\\/">{/a*\\//.test(x)} */ </p>;`, true, "a/", null],
+  [`const f = (x: string) => <p>{"*\\\\/"}{x as "*\\/"}</p>;`, true, "a", null],
 ] as [string, boolean, unknown, unknown][]) {
   const bad = roundTrips(src, tsx);
   expect(bad === null, `F2 ${src}: ${bad}`);
@@ -132,8 +132,8 @@ for (const [src, tsx, arg, want] of [
 }
 // the checker accepts a regex holding *\/, so compile must too
 {
-  const src = `export const f = (x: string): boolean => /a*\\//.test(x);`;
-  const r = checkSources({ cells: `export const x = (): string => "a/";\n\n${src}`, tsx: false });
+  const src = `const f = (x: string): boolean => /a*\\//.test(x);`;
+  const r = checkSources({ cells: `const x = (): string => "a/";\n\n${src}`, tsx: false });
   expect(r.cells.every((c) => c.status === "ok"), "F2 the checker accepts the regex cell: " + JSON.stringify(r.cells.map((c) => c.status)));
   const v = attempt(() => compileCell(src, false, contextFromCheck(r)));
   expect(!(v instanceof Error), "F2 the accepted regex cell compiles: " + (v instanceof Error ? v.message : "ok"));
@@ -141,13 +141,66 @@ for (const [src, tsx, arg, want] of [
 
 // F3: raw U+0000 and U+0001 survive the round trip, in code and in JSX
 for (const [src, tsx] of [
-  ["export const f = (x: number): string => \"\u0000\" + (x as number) + \"\u0001\";", false],
-  ["export const f = (x: number): string => `\u0001${x}\u0000`;", false],
-  ["export const f = (x: number) => <p title=\"\u0001\">{\"\u0000\"}{x as number}</p>;", true],
-  ["export const f = (x: number) => [<b>{\"\u0000\"}</b>, \"\u0001\", <i>{x}</i>];", true],
+  ["const f = (x: number): string => \"\u0000\" + (x as number) + \"\u0001\";", false],
+  ["const f = (x: number): string => `\u0001${x}\u0000`;", false],
+  ["const f = (x: number) => <p title=\"\u0001\">{\"\u0000\"}{x as number}</p>;", true],
+  ["const f = (x: number) => [<b>{\"\u0000\"}</b>, \"\u0001\", <i>{x}</i>];", true],
 ] as [string, boolean][]) {
   const bad = roundTrips(src, tsx);
   expect(bad === null, `F3 ${JSON.stringify(src)}: ${bad}`);
+}
+
+// E1 (2026-11-15): a cell is written without `export`; with it, it still compiles, and both spellings
+// decompile to exactly what was typed, a leading comment and a generator included
+for (const src of [
+  "const k = () => 1;",
+  "export const k = () => 1;",
+  "let k = (a: number) => a + 1;",
+  "export let k = (a: number) => a + 1;",
+  "function k(a: number): number { return a; }",
+  "export function k(a: number): number { return a; }",
+  "const k = function* (a: number) { yield a; };",
+  "export const k = function* (a: number) { yield a; };",
+  "// a comment before the cell\nconst k = async (a: number) => a;",
+  "// a comment before the cell\nexport const k = async (a: number) => a;",
+  "/* c */ export /* d */ const k = () => 2;",
+  "const k = (): RefCell<number> => ref(0);",
+  "export const k = (): RefCell<number> => ref(0);",
+  "type K = { a: number };",
+  "export type K = { a: number };",
+]) {
+  const vs = attempt(() => compileCell(src, false));
+  if (vs instanceof Error) { expect(false, `E1 ${JSON.stringify(src)}: compile threw ${vs.message}`); continue; }
+  const back = vs.map((v) => decompileVariable(v.definition)).filter((x) => x !== null);
+  expect(back.length === 1 && back[0] === src, `E1 ${JSON.stringify(src)} decompiles as ${JSON.stringify(back)}`);
+}
+// E2: the edit model's name rule. A cell that does not parse is stored under the name at its start,
+// `const <name>`, `let <name>` or `function <name>`, after comments, with or without `export`
+{
+  const { checkCells } = await import("../stdlib/runtime.ts");
+  for (const [text, want] of [
+    ["const k = (a: number) => a +;", "k"],
+    ["let k = (", "k"],
+    ["function k(a: number) { return a +; }", "k"],
+    ["function* k() { yield +; }", "k"],
+    ["async function k() { return +; }", "k"],
+    ["// note\nconst k = ) => 1;", "k"],
+    ["export const k = (a: number) => a +;", "k"],
+    ["k = (a: number) => a +;", null],
+    ["(a: number) => a +;", null],
+  ] as [string, string | null][]) {
+    expect(toolchain.declaredName(text) === want, `E2 ${JSON.stringify(text)} is named ${toolchain.declaredName(text)}, want ${want}`);
+    const r = attempt(() => checkCells(["const ok1 = () => 1;", text], false));
+    if (want) expect(!(r instanceof Error) && r.result.unparsed?.get(want) !== undefined, `E2 ${JSON.stringify(text)} is kept as the unparsed cell ${want}`);
+    else expect(r instanceof Error, `E2 ${JSON.stringify(text)} has no name, so the module check fails: ${r instanceof Error ? "threw" : "did not throw"}`);
+  }
+}
+// both spellings check as the same cells
+{
+  const a = checkSources({ cells: "const a = () => 1;\n\nconst b = (a: number) => a + 1;", tsx: false });
+  const b = checkSources({ cells: "export const a = () => 1;\n\nexport const b = (a: number) => a + 1;", tsx: false });
+  const sig = (r: typeof a) => JSON.stringify(r.cells.map((c) => [c.name, c.status, c.value]));
+  expect(sig(a) === sig(b) && a.cells.length === 2 && a.cells.every((c) => c.status === "ok"), `E1 with and without export check the same: ${sig(a)} vs ${sig(b)}`);
 }
 
 console.log(`${n - fail} of ${n} edge checks pass`);

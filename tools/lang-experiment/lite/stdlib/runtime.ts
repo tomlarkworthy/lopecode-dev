@@ -46,7 +46,7 @@ export function checkCells(texts: string[], tsx = true): { result: ReturnType<ty
         const name = declaredName(t);
         if (!name) return "";
         unparsed.set(name, String((e as Error).message));
-        return `export const ${name} = () => $ss$unparsed;` + "\n".repeat(t.split("\n").length - 1);
+        return `const ${name} = () => $ss$unparsed;` + "\n".repeat(t.split("\n").length - 1);
       }
     }).filter((t) => t !== "");
     if (!unparsed.size) throw whole;

@@ -13,27 +13,27 @@ type Expected = {
 };
 
 // viewof DEBUG: the value; the toggle is the shell cell DEBUG_view.
-export let DEBUG = (): RefCell<boolean> => ref(false);
+let DEBUG = (): RefCell<boolean> => ref(false);
 
 // ---- Preparation: identify operator and replace with < ----------------------------------
 
 // The original clones and assigns op/fn on the clone. The port builds the node instead, with
 // the same (shallow-copied) args and flags clone() carries. A non-operator node is returned as
 // is: the original's clone of it carries op/fn as stray properties that nothing reads back.
-export let withOperator = (OperatorNode) => (ast: MathNode, { op, fn }: { readonly op: string; readonly fn: string }): MathNode =>
+let withOperator = (OperatorNode) => (ast: MathNode, { op, fn }: { readonly op: string; readonly fn: string }): MathNode =>
   ast.isOperatorNode ? OperatorNode(op, fn, [...ast.args], ast.implicit, ast.isPercentage) : ast;
 
 // ---- Ordering ----------------------------------------------------------------------------
 
 // Annotated: the inferred element union gives each context `multiply?: undefined`, not a RuleContext.
-export let ordering = (): readonly RuleObject[] => [
+let ordering = (): readonly RuleObject[] => [
   { l: 'c+v', r: 'v+c', context: { add: { commutative: false } } },
   { l: 'v*c', r: 'c*v', context: { multiply: { commutative: false } } }
 ];
 
 // ---- Expand brackets ---------------------------------------------------------------------
 
-export let expandBrackets = () => [
+let expandBrackets = () => [
   { l: "0 * n", r: "0" },
   { l: "-(-n)", r: "n" },
   { l: "-(c*n)", r: "-c * n" },
@@ -50,7 +50,7 @@ export let expandBrackets = () => [
 
 // ---- Multiply out constants --------------------------------------------------------------
 
-export let multiplyOut = (math) =>
+let multiplyOut = (math) =>
   [
     // mathjs >= 10 moved simplifyCore to the top level and added simplifyConstant (which folds 2*2)
     math.simplifyCore ?? math.simplify.simplifyCore,
@@ -59,9 +59,9 @@ export let multiplyOut = (math) =>
 
 // ---- Constants to RHS --------------------------------------------------------------------
 
-export let constantsToRHS = (constantsToRHSFn) => [constantsToRHSFn];
+let constantsToRHS = (constantsToRHSFn) => [constantsToRHSFn];
 
-export let constantsToRHSFn = (OperatorNode, ConstantNode) => {
+let constantsToRHSFn = (OperatorNode, ConstantNode) => {
   // `-v` on a ConstantNode value: Number() is what unary minus applies to a non-bigint primitive.
   const neg = (v: ConstValue): number => -Number(v);
   // The constant a constant or negated-constant node prunes to, or null if it is neither.
@@ -150,7 +150,7 @@ export let constantsToRHSFn = (OperatorNode, ConstantNode) => {
 
 // ---- Variables to LHS --------------------------------------------------------------------
 
-export let complexityToLHS = () => [
+let complexityToLHS = () => [
   { l: 'n1 < n2 + v', r: '-v + n1 < n2' },
   { l: 'n1 < n2 - v', r: 'v + n1 < n2' },
   { l: '-n1 < v - n2', r: '-v - n1 < -n2' },
@@ -160,7 +160,7 @@ export let complexityToLHS = () => [
 
 // ---- Add zero to RHS ---------------------------------------------------------------------
 
-export let addZeroToRHS = (math, OperatorNode, ConstantNode) => (input: string | MathNode): MathNode => {
+let addZeroToRHS = (math, OperatorNode, ConstantNode) => (input: string | MathNode): MathNode => {
   const exp = typeof input === "string" ? math.parse(input) : input;
   // The original compares node.fn == "unaryMinus" on nodes of any class. A FunctionNode's fn is a
   // node, and == compares its printed form, so `unaryMinus(y)` matches too; kept.
@@ -196,11 +196,11 @@ export let addZeroToRHS = (math, OperatorNode, ConstantNode) => (input: string |
   }
 };
 
-export let _70 = (math) => math.parse("1 + 2 ");
+let _70 = (math) => math.parse("1 + 2 ");
 
 // ---- Simplify base rules -----------------------------------------------------------------
 
-export let simplify2 = (math) => {
+let simplify2 = (math) => {
   // Rule shape differs by mathjs version: {l, r} in 9.x, a "lhs -> rhs" string in >= 10.
   const ruleText = (r: Rule): string | null =>
     typeof r === "string" ? r : typeof r === "function" ? null : r.s ?? (r.l === undefined ? null : `${r.l} -> ${r.r}`);
@@ -216,7 +216,7 @@ export let simplify2 = (math) => {
 
 // ---- Simplify step -----------------------------------------------------------------------
 
-export let simplifyStep = (math, expandBrackets, multiplyOut) => (exp: MathNode): MathNode => {
+let simplifyStep = (math, expandBrackets, multiplyOut) => (exp: MathNode): MathNode => {
   // Simplify gets confused by comparitor, better to run it on each child sperately
   const customSimplify = (exp: MathNode) =>
     math.simplify(
@@ -236,7 +236,7 @@ export let simplifyStep = (math, expandBrackets, multiplyOut) => (exp: MathNode)
 // ---- Step 2 ------------------------------------------------------------------------------
 
 // console.log became the log capability.
-export let step2 = (math, expandBrackets, constantsToRHS, simplifyStep, complexityToLHS, addZeroToRHS, DEBUG, log) =>
+let step2 = (math, expandBrackets, constantsToRHS, simplifyStep, complexityToLHS, addZeroToRHS, DEBUG, log) =>
   (initial: string | MathNode): MathNode => {
     // Terminate on a repeated expression. Comparing the printed form is cheaper than a deep
     // equality over the AST, and is what @jwolondon's fork uses.
@@ -264,7 +264,7 @@ export let step2 = (math, expandBrackets, constantsToRHS, simplifyStep, complexi
 
 // ---- Canonicalize ------------------------------------------------------------------------
 
-export let canonicalize = (math, withOperator, isCanonical, step2) => (expression: string): MathNode => {
+let canonicalize = (math, withOperator, isCanonical, step2) => (expression: string): MathNode => {
   const ast = math.parse(expression);
   const leq = withOperator(ast, { op: "<", fn: "smaller" });
   const simplified = isCanonical(leq) ? leq : step2(leq);
@@ -279,7 +279,7 @@ export let canonicalize = (math, withOperator, isCanonical, step2) => (expressio
 
 // ---- isCanonical (special case short circuit) --------------------------------------------
 
-export let isCanonical = (extractRHS, extractLHS) => (exp: MathNode): boolean => {
+let isCanonical = (extractRHS, extractLHS) => (exp: MathNode): boolean => {
   if (!exp.isOperatorNode) return false;
 
   try {
@@ -295,7 +295,7 @@ export let isCanonical = (extractRHS, extractLHS) => (exp: MathNode): boolean =>
 
 // ---- Extract -----------------------------------------------------------------------------
 
-export let extract = (canonicalize, extractLHS, extractRHS) => (expression: string): Extracted => {
+let extract = (canonicalize, extractLHS, extractRHS) => (expression: string): Extracted => {
   const canonical = canonicalize(expression);
   if (!canonical.isOperatorNode)
     throw new Error(`Expected a comparison: ${expression}`);
@@ -321,7 +321,7 @@ export let extract = (canonicalize, extractLHS, extractRHS) => (expression: stri
   };
 };
 
-export let extractRHS = () => (op: string, rhs: MathNode): Bounds => {
+let extractRHS = () => (op: string, rhs: MathNode): Bounds => {
   let value: ConstValue = undefined;
   if (rhs.isConstantNode) {
     value = rhs.value;
@@ -350,7 +350,7 @@ export let extractRHS = () => (op: string, rhs: MathNode): Bounds => {
 
 // The original pushes into its `acc` argument and returns it. A Mut cannot be returned, so the
 // port copies `acc` into a local Mut and returns the frozen copy; every caller passes a fresh [].
-export let extractLHS = () =>
+let extractLHS = () =>
   function extractLHS(acc: readonly Term[], rootLhs: MathNode): readonly Term[] {
     const out = mut([...acc]);
     const stack = mut([rootLhs]);
@@ -436,7 +436,7 @@ export let extractLHS = () =>
 
 // ---- Test helpers ------------------------------------------------------------------------
 
-export let checkExtract = (extract) => (expression: string, expected: Expected) => {
+let checkExtract = (extract) => (expression: string, expected: Expected) => {
   // term order is not part of the contract — the solver keys on name
   const norm = (r: Extracted | Expected) =>
     JSON.stringify({
@@ -455,28 +455,28 @@ export let checkExtract = (extract) => (expression: string, expected: Expected) 
   return actual;
 };
 
-export let canonicalExample = (canonicalize) => (expression: string, expected: string) => {
+let canonicalExample = (canonicalize) => (expression: string, expected: string) => {
   const actual = canonicalize(expression).toString();
   if (actual !== expected)
     throw new Error(`canonicalize('${expression}') === '${actual}', expected '${expected}'`);
   return actual;
 };
 
-export let step2Example = (step2) => (expression: string, expected: string) => {
+let step2Example = (step2) => (expression: string, expected: string) => {
   const actual = step2(expression).toString();
   if (actual !== expected)
     throw new Error(`step2('${expression}') === '${actual}', expected '${expected}'`);
   return actual;
 };
 
-export let simplifyStepExample = (simplifyStep, math) => (expression: string, expected: string) => {
+let simplifyStepExample = (simplifyStep, math) => (expression: string, expected: string) => {
   const actual = simplifyStep(math.parse(expression)).toString();
   if (actual !== expected)
     throw new Error(`simplifyStep('${expression}') === '${actual}', expected '${expected}'`);
   return actual;
 };
 
-export let check = (math) => (rules: readonly Rule[], expression: string, expected: string) => {
+let check = (math) => (rules: readonly Rule[], expression: string, expected: string) => {
   const actual = math
     .simplify(expression, rules, {}, { exactFractions: false })
     .toString();
@@ -485,7 +485,7 @@ export let check = (math) => (rules: readonly Rule[], expression: string, expect
   return actual;
 };
 
-export let checkStep = (math) => (step: (exp: MathNode) => MathNode, expression: string, expected: string) => {
+let checkStep = (math) => (step: (exp: MathNode) => MathNode, expression: string, expected: string) => {
   const actual = step(math.parse(expression)).toString();
   if (actual !== expected)
     throw new Error(`step('${expression}') === '${actual}', expected '${expected}'`);
@@ -494,331 +494,331 @@ export let checkStep = (math) => (step: (exp: MathNode) => MathNode, expression:
 
 // ---- Tests (bodies copied from the original by a script; see GAPS.md §8) -----------------
 
-export let test_ordering_1 = (check, ordering) =>
+let test_ordering_1 = (check, ordering) =>
   check(ordering, 'x + 1', 'x + 1');
 
-export let test_ordering_2 = (check, ordering) =>
+let test_ordering_2 = (check, ordering) =>
   check(ordering, '1 + x', 'x + 1');
 
-export let test_expandBrackets_1 = (check, expandBrackets) =>
+let test_expandBrackets_1 = (check, expandBrackets) =>
   check(expandBrackets, "-6 * (2 - x) < 0", "-6 * 2 + 6 * x < 0");
 
-export let test_expandBrackets_2 = (check, expandBrackets) =>
+let test_expandBrackets_2 = (check, expandBrackets) =>
   check(
     expandBrackets,
     "-2 * (-16 - 4 * x) - 2 * y < 16",
     "2 * 16 + 2 * 4 * x - 2 * y < 16"
   );
 
-export let test_expandBrackets_3 = (check, expandBrackets) =>
+let test_expandBrackets_3 = (check, expandBrackets) =>
   check(expandBrackets, "-2 * (x + 1)", "-2 * x - 2 * 1");
 
-export let test_expandBrackets_4 = (check, expandBrackets) =>
+let test_expandBrackets_4 = (check, expandBrackets) =>
   check(expandBrackets, '1 - (x2 - 5) ', '1 - x2 + 5');
 
-export let test_expandBrackets_5 = (check, expandBrackets) =>
+let test_expandBrackets_5 = (check, expandBrackets) =>
   check(expandBrackets, 'x1 - (x2 - 5) ', 'x1 - x2 + 5');
 
-export let test_expandBrackets_6 = (check, expandBrackets) =>
+let test_expandBrackets_6 = (check, expandBrackets) =>
   check(expandBrackets, '4 - (x1 + x2 + 5)', '4 - x1 - x2 - 5');
 
-export let test_expandBrackets_7 = (check, expandBrackets) =>
+let test_expandBrackets_7 = (check, expandBrackets) =>
   check(expandBrackets, '1 - (x2 + 5) ', '1 - x2 - 5');
 
-export let test_expandBrackets_8 = (check, expandBrackets) =>
+let test_expandBrackets_8 = (check, expandBrackets) =>
   check(expandBrackets, '- (x1 + x2)', '-x1 - x2');
 
-export let test_expandBrackets_9 = (check, expandBrackets) =>
+let test_expandBrackets_9 = (check, expandBrackets) =>
   check(expandBrackets, '- (x1 - x2)', '-x1 + x2');
 
-export let test_expandBrackets_10 = (check, expandBrackets) =>
+let test_expandBrackets_10 = (check, expandBrackets) =>
   check(expandBrackets, '-(x + 1)', '-x - 1');
 
-export let test_expandBrackets_11 = (check, expandBrackets) =>
+let test_expandBrackets_11 = (check, expandBrackets) =>
   check(expandBrackets, '-(1 + x)', '-1 - x');
 
-export let test_expandBrackets_12 = (check, expandBrackets) =>
+let test_expandBrackets_12 = (check, expandBrackets) =>
   check(expandBrackets, '-(1 - x)', '-1 + x');
 
-export let test_expandBrackets_13 = (check, expandBrackets) =>
+let test_expandBrackets_13 = (check, expandBrackets) =>
   check(expandBrackets, '-(-1 - x)', '1 + x');
 
-export let test_expandBrackets_14 = (check, expandBrackets) =>
+let test_expandBrackets_14 = (check, expandBrackets) =>
   check(expandBrackets, '-(-1 + x)', '1 - x');
 
-export let test_expandBrackets_15 = (check, expandBrackets) =>
+let test_expandBrackets_15 = (check, expandBrackets) =>
   check(expandBrackets, '-(-1)', '1');
 
-export let test_expandBrackets_16 = (check, expandBrackets) =>
+let test_expandBrackets_16 = (check, expandBrackets) =>
   check(expandBrackets, '-(-x)', 'x');
 
-export let test_expandBrackets_17 = (check, expandBrackets) =>
+let test_expandBrackets_17 = (check, expandBrackets) =>
   check(expandBrackets, '0 * (x + 1)', '0');
 
-export let test_expandBrackets_18 = (check, expandBrackets) =>
+let test_expandBrackets_18 = (check, expandBrackets) =>
   check(expandBrackets, '4 * (x + 1)', '4 * x + 4 * 1');
 
-export let test_expandBrackets_19 = (check, expandBrackets) =>
+let test_expandBrackets_19 = (check, expandBrackets) =>
   check(expandBrackets, '4 * (x - 1)', '4 * x - 4 * 1');
 
-export let test_expandBrackets_20 = (check, expandBrackets) =>
+let test_expandBrackets_20 = (check, expandBrackets) =>
   check(expandBrackets, '-(x1 + x2)', '-x1 - x2');
 
-export let test_multiplyOut_1 = (check, multiplyOut) =>
+let test_multiplyOut_1 = (check, multiplyOut) =>
   check(multiplyOut, "2 * 1", "2");
 
-export let test_constantsToRHS_1 = (check, constantsToRHS) =>
+let test_constantsToRHS_1 = (check, constantsToRHS) =>
   check(constantsToRHS, "1 < 0", "0 < 0 - 1");
 
-export let test_constantsToRHS_2 = (check, constantsToRHS) =>
+let test_constantsToRHS_2 = (check, constantsToRHS) =>
   check(constantsToRHS, "-1 < 0", "0 < 0 + 1");
 
-export let test_constantsToRHS_3 = (check, constantsToRHS) =>
+let test_constantsToRHS_3 = (check, constantsToRHS) =>
   check(
     constantsToRHS,
     "-2 * y - 2 - 2 * x - y < 0",
     "-2 * y - 2 * x - y < 0 + 2"
   );
 
-export let test_constantsToRHS_4 = (check, constantsToRHS) =>
+let test_constantsToRHS_4 = (check, constantsToRHS) =>
   check(constantsToRHS, "-2 - x + y < 0", "-x + y < 0 + 2");
 
-export let test_constantsToRHS_5 = (check, constantsToRHS) =>
+let test_constantsToRHS_5 = (check, constantsToRHS) =>
   check(constantsToRHS, "-2 - x - y < 0", "-x - y < 0 + 2");
 
-export let test_constantsToRHS_6 = (check, constantsToRHS) =>
+let test_constantsToRHS_6 = (check, constantsToRHS) =>
   check(constantsToRHS, "-(2 * x) + 2 - y < 0", "-(2 * x) - y < 0 - 2");
 
-export let test_constantsToRHS_7 = (check, constantsToRHS) =>
+let test_constantsToRHS_7 = (check, constantsToRHS) =>
   check(constantsToRHS, "0 < 1", "0 < 1");
 
-export let test_constantsToRHS_8 = (check, constantsToRHS) =>
+let test_constantsToRHS_8 = (check, constantsToRHS) =>
   check(constantsToRHS, "x - 1 +  y < 0", "x + y < 0 + 1");
 
-export let test_constantsToRHS_9 = (check, constantsToRHS) =>
+let test_constantsToRHS_9 = (check, constantsToRHS) =>
   check(constantsToRHS, '4 + x1 < x2', 'x1 < x2 - 4');
 
-export let test_constantsToRHS_10 = (check, constantsToRHS) =>
+let test_constantsToRHS_10 = (check, constantsToRHS) =>
   check(constantsToRHS, '4 - x1 < x2', '-x1 < x2 - 4');
 
-export let test_constantsToRHS_11 = (check, constantsToRHS) =>
+let test_constantsToRHS_11 = (check, constantsToRHS) =>
   check(constantsToRHS, '-4 - x1 < x2', '-x1 < x2 + 4');
 
-export let test_constantsToRHS_12 = (check, constantsToRHS) =>
+let test_constantsToRHS_12 = (check, constantsToRHS) =>
   check(constantsToRHS, '-4 + x1 < x2', 'x1 < x2 + 4');
 
-export let test_constantsToRHS_13 = (check, constantsToRHS) =>
+let test_constantsToRHS_13 = (check, constantsToRHS) =>
   check(constantsToRHS, 'x1 + 4 < x2', 'x1 < x2 - 4');
 
-export let test_constantsToRHS_14 = (check, constantsToRHS) =>
+let test_constantsToRHS_14 = (check, constantsToRHS) =>
   check(constantsToRHS, 'x1 - 4 < x2', 'x1 < x2 + 4');
 
-export let test_constantsToRHS_15 = (check, constantsToRHS) =>
+let test_constantsToRHS_15 = (check, constantsToRHS) =>
   check(constantsToRHS, '-x1 + 4 < x2', '-x1 < x2 - 4');
 
-export let test_constantsToRHS_16 = (check, constantsToRHS) =>
+let test_constantsToRHS_16 = (check, constantsToRHS) =>
   check(constantsToRHS, "5 - x1 < 0", '-x1 < 0 - 5');
 
-export let test_complexityToLHS_1 = (check, complexityToLHS) =>
+let test_complexityToLHS_1 = (check, complexityToLHS) =>
   check(complexityToLHS, 'x < 1 + 1 + 1', '-(1 + 1) + x < 1');
 
-export let test_complexityToLHS_2 = (check, complexityToLHS) =>
+let test_complexityToLHS_2 = (check, complexityToLHS) =>
   check(complexityToLHS, "x1 < x2 - 5", '-x2 + x1 < -5');
 
-export let test_complexityToLHS_3 = (check, complexityToLHS) =>
+let test_complexityToLHS_3 = (check, complexityToLHS) =>
   check(complexityToLHS, '1 < 2 - x', 'x + 1 < 2');
 
-export let test_complexityToLHS_4 = (check, complexityToLHS) =>
+let test_complexityToLHS_4 = (check, complexityToLHS) =>
   check(complexityToLHS, '1 < 2 + x', '-x + 1 < 2');
 
-export let test_complexityToLHS_5 = (check, complexityToLHS) =>
+let test_complexityToLHS_5 = (check, complexityToLHS) =>
   check(complexityToLHS, '1 < -2 + x', '-x + 1 < -2');
 
-export let test_complexityToLHS_6 = (check, complexityToLHS) =>
+let test_complexityToLHS_6 = (check, complexityToLHS) =>
   check(complexityToLHS, '1 < -2 - x', 'x + 1 < -2');
 
-export let test_complexityToLHS_7 = (check, complexityToLHS) =>
+let test_complexityToLHS_7 = (check, complexityToLHS) =>
   check(complexityToLHS, '-1 < -2 - x', 'x + -1 < -2');
 
-export let test_complexityToLHS_8 = (check, complexityToLHS) =>
+let test_complexityToLHS_8 = (check, complexityToLHS) =>
   check(complexityToLHS, '-1 < x - 2', '-x - 1 < -2');
 
-export let test_complexityToLHS_9 = (check, complexityToLHS) =>
+let test_complexityToLHS_9 = (check, complexityToLHS) =>
   check(complexityToLHS, '-1 < -x - 2', '-(-x) - 1 < -2');
 
-export let test_complexityToLHS_10 = (check, complexityToLHS) =>
+let test_complexityToLHS_10 = (check, complexityToLHS) =>
   check(complexityToLHS, '-1 < -x + 2', '-(-x) + -1 < 2');
 
-export let test_complexityToLHS_11 = (check, complexityToLHS) =>
+let test_complexityToLHS_11 = (check, complexityToLHS) =>
   check(complexityToLHS, '-4 * y < 0', '-4 * y < 0');
 
-export let test_addZeroToRHS_1 = (checkStep, addZeroToRHS) =>
+let test_addZeroToRHS_1 = (checkStep, addZeroToRHS) =>
   checkStep(addZeroToRHS, "x < -3 * x", "x - -3 * x < 0");
 
-export let test_addZeroToRHS_2 = (checkStep, addZeroToRHS) =>
+let test_addZeroToRHS_2 = (checkStep, addZeroToRHS) =>
   checkStep(addZeroToRHS, '0 < -1', "0 < -1");
 
-export let test_addZeroToRHS_3 = (checkStep, addZeroToRHS) =>
+let test_addZeroToRHS_3 = (checkStep, addZeroToRHS) =>
   checkStep(addZeroToRHS, "x < -x", "x + x < 0");
 
-export let test_addZeroToRHS_4 = (checkStep, addZeroToRHS) =>
+let test_addZeroToRHS_4 = (checkStep, addZeroToRHS) =>
   checkStep(addZeroToRHS, 'y < 5*y', "y - 5 * y < 0");
 
-export let test_addZeroToRHS_5 = (checkStep, addZeroToRHS) =>
+let test_addZeroToRHS_5 = (checkStep, addZeroToRHS) =>
   checkStep(addZeroToRHS, 'x < y', 'x - y < 0');
 
-export let test_addZeroToRHS_6 = (checkStep, addZeroToRHS) =>
+let test_addZeroToRHS_6 = (checkStep, addZeroToRHS) =>
   checkStep(addZeroToRHS, 'x < 3', 'x < 3');
 
-export let test_addZeroToRHS_7 = (checkStep, addZeroToRHS) =>
+let test_addZeroToRHS_7 = (checkStep, addZeroToRHS) =>
   checkStep(addZeroToRHS, 'x < -3', 'x < -3');
 
-export let test_addZeroToRHS_8 = (checkStep, addZeroToRHS) =>
+let test_addZeroToRHS_8 = (checkStep, addZeroToRHS) =>
   checkStep(addZeroToRHS, '5 < x1', "5 - x1 < 0");
 
-export let test_addZeroToRHS_then_constantsToRHS = (checkStep, math, addZeroToRHS, constantsToRHS) =>
+let test_addZeroToRHS_then_constantsToRHS = (checkStep, math, addZeroToRHS, constantsToRHS) =>
   checkStep(
     exp => math.simplify(addZeroToRHS(exp), constantsToRHS),
     '5 < x1',
     '-x1 < 0 - 5'
   );
 
-export let test_addZeroToRHS_9 = (checkStep, addZeroToRHS) =>
+let test_addZeroToRHS_9 = (checkStep, addZeroToRHS) =>
   checkStep(addZeroToRHS, '-4 * y < 0', '-4 * y < 0');
 
-export let test_simplifyStep_1 = (simplifyStepExample) =>
+let test_simplifyStep_1 = (simplifyStepExample) =>
   simplifyStepExample("-2 * y - 4 * y < 0", "-6 * y < 0");
 
-export let test_simplify2_1 = (check, simplify2) =>
+let test_simplify2_1 = (check, simplify2) =>
   check(simplify2, '-x1 - x2 < 5', '-x1 - x2 < 5');
 
-export let test_simplify2_2 = (check, simplify2) =>
+let test_simplify2_2 = (check, simplify2) =>
   check(simplify2, '-4 * y < 0', '-(4 * y) < 0');
 
-export let test_simplify2_3 = (check, simplify2) =>
+let test_simplify2_3 = (check, simplify2) =>
   check(simplify2, '1.1', '1.1');
 
-export let test_simplify2_4 = (check, simplify2) =>
+let test_simplify2_4 = (check, simplify2) =>
   check(simplify2, "x - 1 - 2", "x - 3");
 
-export let test_simplify2_5 = (check, simplify2) =>
+let test_simplify2_5 = (check, simplify2) =>
   check(simplify2, "x - 1 + 1 + y", "x + y");
 
-export let test_simplify2_6 = (check, simplify2) =>
+let test_simplify2_6 = (check, simplify2) =>
   check(simplify2, "- 1 + 1 + y < 0", "y < 0");
 
-export let test_simplifyStep_2 = (simplifyStepExample) =>
+let test_simplifyStep_2 = (simplifyStepExample) =>
   simplifyStepExample("- 1 + 1 + y < 0", "y < 0");
 
-export let test_simplifyStep_3 = (simplifyStepExample) =>
+let test_simplifyStep_3 = (simplifyStepExample) =>
   simplifyStepExample("-2 * x + -2 < 0", "-2 * x - 2 < 0");
 
-export let test_simplifyStep_4 = (simplifyStepExample) =>
+let test_simplifyStep_4 = (simplifyStepExample) =>
   simplifyStepExample("2 * (x + 2) < 0", "2 * x + 4 < 0");
 
-export let test_simplifyStep_5 = (simplifyStepExample) =>
+let test_simplifyStep_5 = (simplifyStepExample) =>
   simplifyStepExample("2 + 2 * x", "2 * x + 2");
 
-export let test_simplifyStep_6 = (simplifyStepExample) =>
+let test_simplifyStep_6 = (simplifyStepExample) =>
   simplifyStepExample("1 * 2 < 0", "2 < 0");
 
-export let test_step2_1 = (step2Example) =>
+let test_step2_1 = (step2Example) =>
   step2Example(
     "-2*-2*2*(1*2+x+2)+(-2+0)*(y+(0+(-2+-2*0*-1*((-2*2+1)*(0+-1)*-1+2))*(2+0*-2))*-2) < 0*1",
     "8 * x - 2 * y < -16"
   );
 
-export let test_step2_2 = (step2Example) =>
+let test_step2_2 = (step2Example) =>
   step2Example("-2 - x + y < 0", "y - x < 2");
 
-export let test_step2_3 = (step2Example) =>
+let test_step2_3 = (step2Example) =>
   step2Example("((-1*2+-2+0)*0*-1+x+-1+1)*1 < (1+-2)*x", "2 * x < 0");
 
-export let test_step2_4 = (step2Example) =>
+let test_step2_4 = (step2Example) =>
   step2Example("-(2 * x) + -2 - y < 0", "-2 * x - y < 2");
 
-export let test_step2_5 = (step2Example) =>
+let test_step2_5 = (step2Example) =>
   step2Example("0*0*x < 1", "0 < 1");
 
-export let test_step2_6 = (step2Example) =>
+let test_step2_6 = (step2Example) =>
   step2Example('4 + x1 + x2 + 1 < x2 + 4', "x1 < -1");
 
-export let test_step2_7 = (step2Example) =>
+let test_step2_7 = (step2Example) =>
   step2Example('4 + x1 + 1 < 4', "x1 < -1");
 
-export let test_step2_8 = (step2Example) =>
+let test_step2_8 = (step2Example) =>
   step2Example('(x + 1) < (3 + x) * (6 - 7)', "2 * x < -4");
 
-export let test_step2_9 = (step2Example) =>
+let test_step2_9 = (step2Example) =>
   step2Example('(x + 1) * 4 < (3 + x) * (6 - 7)', "5 * x < -7");
 
-export let test_step2_10 = (step2Example) =>
+let test_step2_10 = (step2Example) =>
   step2Example('-(x1 + x2) < 0', '-x1 - x2 < 0');
 
-export let test_step2_11 = (step2Example) =>
+let test_step2_11 = (step2Example) =>
   step2Example('x < y', 'x - y < 0');
 
-export let test_step2_12 = (step2Example) =>
+let test_step2_12 = (step2Example) =>
   step2Example('5 < x1', "-x1 < -5");
 
-export let test_step2_13 = (step2Example) =>
+let test_step2_13 = (step2Example) =>
   step2Example('-(4 * y) < 0', "-4 * y < 0");
 
-export let test_step2_14 = (step2Example) =>
+let test_step2_14 = (step2Example) =>
   step2Example("4x < 0", "4 x < 0");
 
-export let test_step2_15 = (step2Example) =>
+let test_step2_15 = (step2Example) =>
   step2Example("x < 1.1", "x < 1.1");
 
-export let test_step2_16 = (step2Example) =>
+let test_step2_16 = (step2Example) =>
   step2Example("x - 1 + 1 + y < 0", "x + y < 0");
 
-export let test_step2_17 = (step2Example) =>
+let test_step2_17 = (step2Example) =>
   step2Example("0 < -2 * x", "2 * x < 0");
 
-export let test_step2_18 = (step2Example) =>
+let test_step2_18 = (step2Example) =>
   step2Example("1 + y < y", "0 < -1");
 
-export let test_step2_19 = (step2Example) =>
+let test_step2_19 = (step2Example) =>
   step2Example("x < -3 * x", "4 * x < 0");
 
-export let test_step2_20 = (step2Example) =>
+let test_step2_20 = (step2Example) =>
   step2Example("x < -1*(0+-1)*(1+0)*(-2+(0+1+1*0*-1)*0)*2*y", "x + 4 * y < 0");
 
-export let test_canonicalize_1 = (canonicalExample) =>
+let test_canonicalize_1 = (canonicalExample) =>
   canonicalExample('4 + x1 + 1 < 4', "x1 < -1");
 
-export let test_canonicalize_2 = (canonicalExample) =>
+let test_canonicalize_2 = (canonicalExample) =>
   canonicalExample('4 > 4 + x1 + 1', "-x1 > 1");
 
-export let test_canonicalize_3 = (canonicalExample) =>
+let test_canonicalize_3 = (canonicalExample) =>
   canonicalExample('4 + x1 + x2 + 2 < x2 + 4', "x1 < -2");
 
-export let test_canonicalize_4 = (canonicalExample) =>
+let test_canonicalize_4 = (canonicalExample) =>
   canonicalExample('4 + x1 + x2 + 2 <= x2 + 4', "x1 <= -2");
 
-export let test_canonicalize_5 = (canonicalExample) =>
+let test_canonicalize_5 = (canonicalExample) =>
   canonicalExample("5 > x1 + x2", "-x1 - x2 > -5");
 
-export let test_canonicalize_6 = (canonicalExample) =>
+let test_canonicalize_6 = (canonicalExample) =>
   canonicalExample('- -x + y > 5*y + 2x', "-4 * y - x > 0");
 
-export let test_canonicalize_7 = (canonicalExample) =>
+let test_canonicalize_7 = (canonicalExample) =>
   canonicalExample("-(4 * y) + -(4 * x) > 0", "-4 * y - 4 * x > 0");
 
-export let test_canonicalize_8 = (canonicalExample) =>
+let test_canonicalize_8 = (canonicalExample) =>
   canonicalExample('x > 1.1', "x > 1.1");
 
-export let test_canonicalize_9 = (canonicalExample) =>
+let test_canonicalize_9 = (canonicalExample) =>
   canonicalExample("1 == x1 + x2 + x3", "-x1 - x2 - x3 == -1");
 
-export let test_canonicalize_10 = (canonicalExample) =>
+let test_canonicalize_10 = (canonicalExample) =>
   canonicalExample("x - 1 + 1 + y <= 0", "x + y <= 0");
 
-export let test_canonicalize_11 = (canonicalExample) =>
+let test_canonicalize_11 = (canonicalExample) =>
   canonicalExample("(-1+1*(2+y+x))*-2 <= y", "-2 * y - 2 * x - y <= 2");
 
-export let test_canonicalize_scale_10k = (canonicalize) => {
+let test_canonicalize_scale_10k = (canonicalize) => {
     const n = 10000;
     const terms = Array.from({ length: n })
       .map((_, i) => `x${i}`)
@@ -830,61 +830,61 @@ export let test_canonicalize_scale_10k = (canonicalize) => {
     return canonical.op;
 };
 
-export let test_isCanonical_1 = (isCanonical, math) => {
+let test_isCanonical_1 = (isCanonical, math) => {
     const actual = isCanonical(math.parse("x0 + x1 + x2 < 0"));
     if (actual !== true) throw new Error("x0 + x1 + x2 < 0 should be canonical");
     return actual;
 };
 
-export let test_isCanonical_2 = (isCanonical, math) => {
+let test_isCanonical_2 = (isCanonical, math) => {
     const actual = isCanonical(math.parse("x0 + x1 - x2 < 0"));
     if (actual !== true) throw new Error("x0 + x1 - x2 < 0 should be canonical");
     return actual;
 };
 
-export let test_isCanonical_3 = (isCanonical, math) => {
+let test_isCanonical_3 = (isCanonical, math) => {
     const actual = isCanonical(math.parse("x0 + x1 * x2 < 0"));
     if (actual !== false) throw new Error("x0 + x1 * x2 < 0 should NOT be canonical");
     return actual;
 };
 
-export let test_isCanonical_4 = (isCanonical, math) => {
+let test_isCanonical_4 = (isCanonical, math) => {
     const actual = isCanonical(math.parse("-x < -1"));
     if (actual !== true) throw new Error("-x < -1 should be canonical");
     return actual;
 };
 
-export let test_extract_1 = (checkExtract) =>
+let test_extract_1 = (checkExtract) =>
   checkExtract('4x <= 6', {
     vars: [{ coef: 4, name: "x" }],
     bounds: { upper: 6 }
   });
 
-export let test_extract_2 = (checkExtract) =>
+let test_extract_2 = (checkExtract) =>
   checkExtract("x <= 0", {
     vars: [{ coef: 1, name: "x" }],
     bounds: { upper: 0 }
   });
 
-export let test_extract_3 = (checkExtract) =>
+let test_extract_3 = (checkExtract) =>
   checkExtract('4x  + 6 (y + 4) 5 >= -6', {
     vars: [{ coef: 30, name: "y" }, { coef: 4, name: "x" }],
     bounds: { lower: -126 }
   });
 
-export let test_extract_4 = (checkExtract) =>
+let test_extract_4 = (checkExtract) =>
   checkExtract('4x - 2(y) >= 0', {
     bounds: { lower: 0 },
     vars: [{ coef: -2, name: "y" }, { coef: 4, name: "x" }]
   });
 
-export let test_extract_5 = (checkExtract) =>
+let test_extract_5 = (checkExtract) =>
   checkExtract('x + y == 0', {
     vars: [{ coef: 1, name: "y" }, { coef: 1, name: "x" }],
     bounds: { upper: 0, lower: 0 }
   });
 
-export let test_extract_6 = (checkExtract) =>
+let test_extract_6 = (checkExtract) =>
   checkExtract('4x - 2(y) -z >= 0', {
     bounds: { lower: 0 },
     vars: [
@@ -894,31 +894,31 @@ export let test_extract_6 = (checkExtract) =>
     ]
   });
 
-export let test_extract_7 = (checkExtract) =>
+let test_extract_7 = (checkExtract) =>
   checkExtract("0<=-2*x", {
     bounds: { upper: -0 },
     vars: [{ coef: 2, name: "x" }]
   });
 
-export let test_extract_8 = (checkExtract) =>
+let test_extract_8 = (checkExtract) =>
   checkExtract("0 == 0", {
     vars: [],
     bounds: { upper: 0, lower: 0 }
   });
 
-export let test_extract_9 = (checkExtract) =>
+let test_extract_9 = (checkExtract) =>
   checkExtract("0*0*x>=1", {
     vars: [],
     bounds: { lower: 1 }
   });
 
-export let test_extract_10 = (checkExtract) =>
+let test_extract_10 = (checkExtract) =>
   checkExtract("(-1+1*(2+y+x))*-2 <= y", {
     vars: [{ coef: -3, name: "y" }, { coef: -2, name: "x" }],
     bounds: { upper: 2 }
   });
 
-export let test_extract_11 = (checkExtract) =>
+let test_extract_11 = (checkExtract) =>
   checkExtract("-2<=y+2*x", {
     vars: [
       {
@@ -933,5 +933,5 @@ export let test_extract_11 = (checkExtract) =>
     bounds: { upper: 2 }
   });
 
-export let test_simplifyStep_7 = (simplifyStepExample) =>
+let test_simplifyStep_7 = (simplifyStepExample) =>
   simplifyStepExample('0*0*x < 1', '0 < 1');

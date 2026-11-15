@@ -1,7 +1,7 @@
 // Recursive-descent parser: local helpers share the cursor `let i` (allowed in v1: none escapes).
 type Tree = number | readonly Tree[];
 
-export let parse = () => (src: string): Tree => {
+let parse = () => (src: string): Tree => {
   let i = 0;
   const peek = () => src[i];
   const expect = (c: string) => {
@@ -31,8 +31,8 @@ export let parse = () => (src: string): Tree => {
   if (i !== src.length) throw new Error(`trailing input at ${i}`);
   return t;
 };
-export let tree = (parse) => parse("[1,[2,30],[]]");
-export let test_tree = (tree) => {
+let tree = (parse) => parse("[1,[2,30],[]]");
+let test_tree = (tree) => {
   if (!equals(tree, [1, [2, 30], []])) throw new Error(JSON.stringify(tree));
   return "ok";
 };

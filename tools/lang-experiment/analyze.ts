@@ -127,22 +127,19 @@ export function extractCells(sf: ts.SourceFile, file: "cells.ts" | "shell.ts", e
 
   for (const st of sf.statements) {
     if (ts.isFunctionDeclaration(st)) {
-      if (hasExport(st) && st.name && st.body) add(st.name.text, st, st);
-      else err(st, "module-level", "module-level function must be an exported cell");
+      // a cell with or without `export` (2026-11-15: without is the form)
+      if (st.name && st.body) add(st.name.text, st, st);
+      else err(st, "module-level", "module-level function must be a cell");
     } else if (ts.isVariableStatement(st)) {
       const flags = st.declarationList.flags;
       if (!(flags & ts.NodeFlags.Let) && !(flags & ts.NodeFlags.Const)) {
         err(st, "no-var", "var is banned");
         continue;
       }
-      if (!hasExport(st)) {
-        err(st, "module-level", "module-level binding must be an exported cell");
-        continue;
-      }
       for (const d of st.declarationList.declarations) {
         const init = d.initializer && unwrap(d.initializer);
         if (ts.isIdentifier(d.name) && init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init))) add(d.name.text, init, st);
-        else err(d, "cell-not-function", `export ${ts.isIdentifier(d.name) ? d.name.text : "<pattern>"}: a cell must be an arrow or function expression`);
+        else err(d, "cell-not-function", `${ts.isIdentifier(d.name) ? d.name.text : "<pattern>"}: a cell must be an arrow or function expression`);
       }
     } else if (ts.isTypeAliasDeclaration(st) || ts.isInterfaceDeclaration(st)) {
       // allowed

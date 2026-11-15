@@ -11,9 +11,10 @@ one silently: record it in the port's `GAPS.md` (construct, cell, what you did i
 
 A ported module `<name>` is a directory `tools/lang-experiment/ports/<name>/`:
 
-- `cells.ts` checked cells. Only `export let|const name = <arrow or function expression>`,
-  `export function`/`function*`/`async function`, `type`/`interface` declarations and
-  `import type`. Nothing else at module level.
+- `cells.ts` checked cells. Only `let|const name = <arrow or function expression>`,
+  `function`/`function*`/`async function`, `type`/`interface` declarations and
+  `import type`. Nothing else at module level. `export` before any of them is accepted and
+  changes nothing (2026-11-15: the form is without it; an editor hint says "export is not needed").
 - `shell.ts` shell cells: same shape, ordinary TypeScript, not linted. DOM, canvas, WebGL,
   `md`, `htl`, `Inputs`, `d3`, `Plot`, timers, anything reflective.
 - `foreign.d.ts` trusted signatures for imported cells and libraries (see "foreign").
@@ -22,7 +23,7 @@ A ported module `<name>` is a directory `tools/lang-experiment/ports/<name>/`:
 
 ## Cells and injection
 
-- A cell is an exported function. Its name is the cell name. Its parameters are its inputs,
+- A cell is a top-level function (2026-11-15: no longer `export`ed). Its name is the cell name. Its parameters are its inputs,
   injected by parameter name. A parameter name must be a cell in this module, a name in
   `foreign.d.ts`, or a capability.
 - A parameter may omit its type; it then has the named cell's value type. The harness fills it in.
@@ -38,13 +39,13 @@ A ported module `<name>` is a directory `tools/lang-experiment/ports/<name>/`:
   `console`, `window`, `document`, `globalThis`, `fetch`, timers, `eval`, `Function`.
 - Capabilities are parameters with reserved names, provided by the harness: `now: Clock`
   (`() => number`), `random: Random` (`() => number`), `fetch: Fetch`, `log: Log`, `invalidation`.
-- Preferred cell form (Tom, 2026-11-14): `export let x = (a: number) => 42 + a`. Every export is
-  a function from dependencies to the cell's value; the outer parameter list is always the
-  dependency list. `export let`/`export const` with an arrow or function expression, and
-  `export function`, are all the same thing. Generators cannot be arrows:
-  `export let ticks = function* () { ... }`. Async arrows are fine.
+- Preferred cell form (Tom, 2026-11-14; without `export` since 2026-11-15): `let x = (a: number) => 42 + a`.
+  Every cell is a function from dependencies to the cell's value; the outer parameter list is always the
+  dependency list. `let`/`const` with an arrow or function expression, and
+  `function`, are all the same thing. Generators cannot be arrows:
+  `let ticks = function* () { ... }`. Async arrows are fine.
 - There is no shortcut for function-valued cells. A cell whose value is a function is two arrows:
-  `export let double = () => (n: number) => n * 2`.
+  `let double = () => (n: number) => n * 2`.
 
 ## Immutable by default
 
@@ -82,7 +83,7 @@ copies it to a plain `T`. A cell that yields `borrow` is counted in the `Owner` 
 
 ## Refs and actions (replaces `viewof` and `mutable`)
 
-- `export function count(): RefCell<number> { return ref(0) }` declares state.
+- `function count(): RefCell<number> { return ref(0) }` declares state.
 - A parameter `count` (or `count: number`) receives the current value and is a dependency.
   A parameter `count: Ref<number>` receives the reference and is not a dependency on the value.
 - `Ref<T>` has `set(v: T): void` and `update(f: (v: T) => T): void`, and no read method.
@@ -119,7 +120,7 @@ Tom, 2026-11-15. `check.ts` and `prelude.d.ts` do not know these names;
 - `on(ticks, tick)` has type `Listener`. `tick` must be an `Action` that accepts what `ticks`
   yields.
 - A `Listener` is only the whole value of a sync, non-generator cell:
-  `export const onTick = (ticks: Events<number>, tick) => on(ticks, tick)`. `on(...)` may be what
+  `const onTick = (ticks: Events<number>, tick) => on(ticks, tick)`. `on(...)` may be what
   the cell returns, or a branch of a conditional it returns (`flag ? on(a, x) : on(b, y)`). Not in
   an array, a record, a ref, a nested function's return, an argument, or a union with another type
   (`flag ? on(a, x) : null`); `on` is not a value; no cell may take a listener cell
@@ -144,7 +145,7 @@ Replaces "an edit is applied only if the whole module still checks". Tom: edits 
 to be refused; the program passes through a broken state until it is repaired.
 
 - Every edit is stored, including one that does not parse. Only a cell with no name
-  (no `export const <name>` at its start) or with another cell's name is not stored.
+  (no `const <name>`, `let <name>` or `function <name>` at its start, after comments and an optional `export`) or with another cell's name is not stored.
 - After each edit every cell is ok, rejected (it breaks a rule, or does not parse) or blocked (it
   breaks no rule of its own but takes a cell that is not ok). A cell whose own check fails because
   an input's type changed is rejected with its own message.
@@ -166,11 +167,11 @@ to be refused; the program passes through a broken state until it is repaired.
   `document.baseURI` is not a pure foreign. It is a shell source cell (`href` in `shell.ts`, which
   may be a generator that yields on change), decoded by a checked cell. A function that used to
   read it when called becomes a cell that depends on the decoded value and returns the function:
-  `export let linkTo = (href) => (target, opts) => ...`. Do not split a function into a checked
+  `let linkTo = (href) => (target, opts) => ...`. Do not split a function into a checked
   half and a shell wrapper to avoid this; the dependency on the shell cell is the honest result
   and tests that depend on it count as having shell support.
 - A ref whose initial value comes from the world takes it as a dependency:
-  `export let vars = (vars_initial: Js): RefCell<Vars> => ref(decodeVars(vars_initial))`.
+  `let vars = (vars_initial: Js): RefCell<Vars> => ref(decodeVars(vars_initial))`.
 - `shell.ts` may name a checked cell's value type as `ValueOf<"cellName">`.
 - Prose cells (`md`, headings) go to `shell.ts` and are excluded from tier denominators.
 

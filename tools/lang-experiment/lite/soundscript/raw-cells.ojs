@@ -140,7 +140,7 @@ raw_language = {
     return { from: open + 1, to: pos, mode: "string", options: [...[...names].map((label) => ({ label, type: "variable" })), ...builtins.filter((n) => !names.has(n)).map((label) => ({ label, type: "constant" }))] };
   };
   const claimsSource = (source) => /^\s*define\s*\(/.test(source);
-  return { id: "raw", claimsSource, decompile, apply, lint, complete, highlight: (text) => raw_highlight(text), extension: (codemirror) => codemirror.javascript() };
+  return { id: "raw", label: "raw", claimsSource, decompile, apply, lint, complete, highlight: (text) => raw_highlight(text), extension: (codemirror) => codemirror.javascript() };
 }
 // %%
 raw_registration = {

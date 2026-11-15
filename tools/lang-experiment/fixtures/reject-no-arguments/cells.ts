@@ -1,4 +1,4 @@
-export let a = () => {
+let a = () => {
   function g(..._xs: number[]) {
     return arguments.length;
   }

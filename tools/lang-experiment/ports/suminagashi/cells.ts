@@ -41,46 +41,46 @@ type Contours = {
 
 // ---- inputs (viewof) as refs; the widgets are *_view cells in shell.ts ----
 
-export let tool = (): RefCell<Tool> => ref<Tool>("brush");
-export let reset = (): RefCell<number> => ref(0);
-export let view = (): RefCell<View> => ref<View>("lines");
-export let params = (defaults): RefCell<typeof defaults> => ref(defaults);
-export let height = (): RefCell<number> => ref(570);
-export let cellSize = (): RefCell<number> => ref(1.5);
-export let backgroundFilm = (): RefCell<number> => ref(0.1);
+let tool = (): RefCell<Tool> => ref<Tool>("brush");
+let reset = (): RefCell<number> => ref(0);
+let view = (): RefCell<View> => ref<View>("lines");
+let params = (defaults): RefCell<typeof defaults> => ref(defaults);
+let height = (): RefCell<number> => ref(570);
+let cellSize = (): RefCell<number> => ref(1.5);
+let backgroundFilm = (): RefCell<number> => ref(0.1);
 // The original toggle starts false and every test returns "not run" until it is switched on. The
 // baseline forced it true; this harness has no per-run override, so the port starts it true.
-export let runTests = (): RefCell<boolean> => ref(true);
+let runTests = (): RefCell<boolean> => ref(true);
 
 // ---- mutables as refs; every write is an action ----
 
-export let turn = (): RefCell<number> => ref(0);
-export let finished = (): RefCell<Finished> => ref<Finished>(false);
-export let pointer = (): RefCell<Pointer> => ref<Pointer>(undefined);
+let turn = (): RefCell<number> => ref(0);
+let finished = (): RefCell<Finished> => ref<Finished>(false);
+let pointer = (): RefCell<Pointer> => ref<Pointer>(undefined);
 
 // canvas pointerdown: `if (tool === "brush") turn++; pointer = {...}`
-export let pointerDown = (turn: Ref<number>, pointer: Ref<Pointer>) =>
+let pointerDown = (turn: Ref<number>, pointer: Ref<Pointer>) =>
   action((next: Pointer, rotate: boolean) => {
     if (rotate) turn.update((t) => t + 1);
     pointer.set(next);
   });
 // canvas pointermove: `if (pointer && pointer.down) pointer = { ...pointer, x, y }`
-export let pointerMove = (pointer: Ref<Pointer>) =>
+let pointerMove = (pointer: Ref<Pointer>) =>
   action((x: number, y: number) => pointer.update((p) => (p && p.down ? { ...p, x, y } : p)));
 // canvas pointerup / pointercancel: `if (pointer) pointer = { ...pointer, down: false }`
-export let pointerUp = (pointer: Ref<Pointer>) => action(() => pointer.update((p) => (p ? { ...p, down: false } : p)));
+let pointerUp = (pointer: Ref<Pointer>) => action(() => pointer.update((p) => (p ? { ...p, down: false } : p)));
 // tray: `finished = false; turn = 0` (an empty tray is a new picture)
-export let resetPicture = (finished: Ref<Finished>, turn: Ref<number>) =>
+let resetPicture = (finished: Ref<Finished>, turn: Ref<number>) =>
   action(() => {
     finished.set(false);
     turn.set(0);
   });
 // mainLoop: `finished = { at, why }`
-export let finishPicture = (finished: Ref<Finished>) => action((at: number, why: string) => finished.set({ at, why }));
+let finishPicture = (finished: Ref<Finished>) => action((at: number, why: string) => finished.set({ at, why }));
 
 // ---- data ----
 
-export let fluids = (): readonly Fluid[] => [
+let fluids = (): readonly Fluid[] => [
   // pressure: surface pressure held at the brush tip. Film leaves the brush
   // only while the surface around it is at a lower pressure.
   // The film is two textures of four channels, so eight fluids is the limit.
@@ -92,13 +92,13 @@ export let fluids = (): readonly Fluid[] => [
   { name: "ochre", color: "#c8952e", pressure: 5 },
 ];
 
-export let sequence = (fluids) => {
+let sequence = (fluids) => {
   // every ink is followed by the surfactant
   const clear = fluids.findIndex((fluid) => !fluid.color);
   return fluids.flatMap((fluid, i) => (fluid.color ? [i, clear] : []));
 };
 
-export let defaults = () => ({
+let defaults = () => ({
   solvesPerSecond: 60,
   dt: 1,
   stiffness: 1, // share of a cell's excess film it is asked to shed per solve
@@ -122,7 +122,7 @@ export let defaults = () => ({
 
 // absorbance of a saturated film: paper * exp(-absorb) is the fluid's colour.
 // The original writes from a forEach callback; a Mut may not be captured, so it is a for loop.
-export let absorbance = (fluids) => {
+let absorbance = (fluids) => {
   const absorb = mut(new Float32Array(32));
   for (let i = 0; i < fluids.length; i++) {
     const fluid = fluids[i];
@@ -138,7 +138,7 @@ export let absorbance = (fluids) => {
 
 // ---- lines: drops as closed polylines carried by the water ----
 
-export let createContours = () =>
+let createContours = () =>
   function createContours(width: number, height: number, { spacing = 1 }: { readonly spacing?: number } = {}): Contours {
     // Every drop is a closed polyline, in cells, vertex after vertex in x, y.
     // spacing scales every length the re-spacing works to, cells
@@ -324,7 +324,7 @@ export let createContours = () =>
 
 // ---- tests (the GPU ones are in shell.ts) ----
 
-export let test_lines_keep_their_area = (runTests, createContours) => {
+let test_lines_keep_their_area = (runTests, createContours) => {
   if (!runTests) return "not run: switch on *run the tests* under the Tests heading";
   // a rigid quarter turn about the centre of a 96 cell tray, on the CPU
   const size = 96;
@@ -356,7 +356,7 @@ export let test_lines_keep_their_area = (runTests, createContours) => {
 
 // ---- shaders (extracted verbatim) ----
 
-export let vertexShader = () =>
+let vertexShader = () =>
   `#version 300 es
 in vec2 aPosition;
 out vec2 vUv;
@@ -365,7 +365,7 @@ void main () {
   gl_Position = vec4(aPosition, 0.0, 1.0);
 }`;
 
-export let velocityShader = () =>
+let velocityShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -442,7 +442,7 @@ void main () {
   outColor = vec4(next, 0.0, 1.0);
 }`;
 
-export let transportShader = () =>
+let transportShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -591,7 +591,7 @@ void main () {
   outB = max(f.b - uDt * (e.b - wst.b + n.b - s.b), vec4(0.0));
 }`;
 
-export let brushShader = () =>
+let brushShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -619,7 +619,7 @@ void main () {
   outB = mix(b, uFluidB * g, under) + uFluidB * feed;
 }`;
 
-export let displayShader = () =>
+let displayShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -677,7 +677,7 @@ void main () {
   outColor = vec4(uPaper * exp(-density), 1.0);
 }`;
 
-export let contourVertexShader = () =>
+let contourVertexShader = () =>
   `#version 300 es
 layout(location = 0) in vec2 aPosition; // cells
 uniform vec2 uSize;
@@ -689,7 +689,7 @@ void main () {
   gl_Position = vec4(p / uSize * 2.0 - 1.0, 0.0, 1.0);
 }`;
 
-export let contourFragmentShader = () =>
+let contourFragmentShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -699,7 +699,7 @@ void main () {
   outColor = vec4(uColor, 1.0);
 }`;
 
-export let contourAdvectShader = () =>
+let contourAdvectShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -747,7 +747,7 @@ void main () {
   gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
 }`;
 
-export let confinementShader = () =>
+let confinementShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -779,7 +779,7 @@ void main () {
   outColor = vec4(real * w * vec2(n.y, -n.x), 0.0, 1.0);
 }`;
 
-export let reduceShader = () =>
+let reduceShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -802,7 +802,7 @@ void main () {
   outColor = vec4(sum, 0.0, 0.0, 1.0);
 }`;
 
-export let divergenceShader = () =>
+let divergenceShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -832,7 +832,7 @@ void main () {
   outColor = vec4(divergence - wanted, 0.0, 0.0, 1.0);
 }`;
 
-export let shiftShader = () =>
+let shiftShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -850,7 +850,7 @@ void main () {
   outColor = vec4(texelFetch(uSource, ivec2(gl_FragCoord.xy), 0).x - mean, 0.0, 0.0, 1.0);
 }`;
 
-export let pressureShader = () =>
+let pressureShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -882,7 +882,7 @@ void main () {
   outColor = vec4(mix(p(c), jacobi, 0.8), 0.0, 0.0, 1.0);
 }`;
 
-export let restrictShader = () =>
+let restrictShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -921,7 +921,7 @@ void main () {
   outColor = vec4(sum / max(area, 1e-6), 0.0, 0.0, 1.0);
 }`;
 
-export let prolongShader = () =>
+let prolongShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it
@@ -944,7 +944,7 @@ void main () {
   outColor = vec4(texelFetch(uPressure, c, 0).x + correction, 0.0, 0.0, 1.0);
 }`;
 
-export let projectShader = () =>
+let projectShader = () =>
   `#version 300 es
 precision highp float;
 precision highp int; // mediump int is 16 bits on Mali: 208 * 380 cells overflows it

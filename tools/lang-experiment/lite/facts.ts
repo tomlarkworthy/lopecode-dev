@@ -31,7 +31,7 @@ export function cellsOf(src: string): CellInfo[] {
   const out: CellInfo[] = [];
   for (const st of parse(src).program.body) {
     const add = (name: string, fn: Node) => out.push(factsOf(name, fn, st));
-    const d = st.type === "ExportNamedDeclaration" ? st.declaration : null;
+    const d = st.type === "ExportNamedDeclaration" ? st.declaration : st;
     if (d?.type === "FunctionDeclaration") add(d.id.name, d);
     else if (d?.type === "VariableDeclaration")
       for (const x of d.declarations)

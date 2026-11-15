@@ -144,7 +144,7 @@ if (MUTANTS) {
     const src = readFileSync(join(ROOT, "ports", p, "cells.ts"), "utf8");
     const P = parse(src);
     const cellsOf = (pos: number) => {
-      for (const st of P.program.body) if (st.start <= pos && pos < st.end && st.type === "ExportNamedDeclaration") return st.declaration.id?.name ?? st.declaration.declarations?.[0]?.id.name;
+      for (const st of P.program.body) if (st.start <= pos && pos < st.end) { const d = st.type === "ExportNamedDeclaration" ? st.declaration : st; return d?.id?.name ?? d?.declarations?.[0]?.id.name ?? null; }
       return null;
     };
     const cands: { op: string; edit: [number, number, string]; desc: string; at: number }[] = [];

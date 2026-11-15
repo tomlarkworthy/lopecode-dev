@@ -247,7 +247,7 @@ ss_highlightCode(md`### \`compile\` and its island
 \`compile\` takes three lists of cell names:
 
 \`\`\`
-export const inPool = (compile: Compile, pool: Pool) =>
+const inPool = (compile: Compile, pool: Pool) =>
   compile({
     inputs: ["y0", "y1"],                  // the function's argument: { y0, y1 }
     refs: ["width", "height", "maxIter"],  // read from the graph each time this cell runs
@@ -274,13 +274,13 @@ md`### The renderer
 
 Each JSX node becomes an \`h(tag, props, ...children)\` call, and \`h\` returns a frozen \`{tag, props, children}\` value. The page shows a cell whose type is \`Elem\` by handing that value to the renderer (\`ss.mount\`, called from the core's \`ss_language.inspect\`), 75 lines outside the checked language. The renderer creates the DOM once, then patches it in place each time \`app\` produces a new value: the same tag at the same position reuses the node, an element that is the same object as last time is skipped, and children that all carry \`key\` are matched by key. It calls the actions when DOM events arrive, decoding each event into data (\`PointerData\` from a \`PointerEvent\`, a string from an \`input\`); that decoding is trusted code.
 
-Section 9 is built on this. \`bricks\`, \`ball\` and \`paddle\` each select one part of the world, and \`bricksView\`, \`paddleView\` and \`ballView\` draw one part each. \`step\` returns the same \`bricks\` array when nothing was hit, so \`bricksView\`'s body does not run and \`app\` gets the same element object as before, and the 24 bricks cost one comparison per frame. A broken brick removes one node. \`test_breakout_memo\` measures this on a copy of the game; on 2026-11-15 in headless Chromium, 1.5 s of play gave 90 animation frames and 88 changes of the world; \`ballView\` ran 89 times, \`bricksView\` once, for the one brick that broke, \`paddleView\` not at all with no pointer moving, \`ticks\` twice (play, then pause) and \`onTick\` not at all. The DOM saw 88 \`style\` writes, 3 text changes and 1 node removed.
+Section 9 is built on this. \`bricks\`, \`ball\` and \`paddle\` each select one part of the world, and \`bricksView\`, \`paddleView\` and \`ballView\` draw one part each. \`step\` returns the same \`bricks\` array when nothing was hit, so \`bricksView\`'s body does not run and \`app\` gets the same element object as before, and the 24 bricks cost one comparison per frame. A broken brick removes one node. \`test_breakout_memo\` measures this on a copy of the game; on 2026-11-15 in headless Chromium, 92 animation frames gave 90 changes of the world; \`ballView\` ran 91 times, \`bricksView\` once for each brick that broke (4), \`paddleView\` not at all with no pointer moving, \`ticks\` twice (play, then pause) and \`onTick\` not at all. The DOM saw 90 \`style\` writes, 7 text changes and 4 nodes removed.
 
 The board is \`div\`s positioned by \`style\` strings, since the checked JSX tags have no SVG or canvas drawing. A transparent \`canvas\` on top supplies \`onPointerMove\`.`
 // %%
 md`### How the typed source is kept
 
-A compiled variable's definition is ordinary JavaScript. Its first comment is the marker \`/*{lang:"ss"}*/\`, the types are kept as \`/*ss:…*/\` comments, JSX as \`/*ss<…*/\` beside its lowered \`h(...)\` calls, and the text around the function (the comments before it, \`export const name = \`) in a \`/*ss^{…}*/\` header. So the typed source is recovered from the definition alone, and a definition survives anything that keeps a function's text, such as saving the notebook. \`test_ss_roundtrip\` checks every live variable: decompile, compile again, and compare the text.`
+A compiled variable's definition is ordinary JavaScript. Its first comment is the marker \`/*{lang:"ss"}*/\`, the types are kept as \`/*ss:…*/\` comments, JSX as \`/*ss<…*/\` beside its lowered \`h(...)\` calls, and the text around the function (the comments before it, \`const name = \`) in a \`/*ss^{…}*/\` header. So the typed source is recovered from the definition alone, and a definition survives anything that keeps a function's text, such as saving the notebook. \`test_ss_roundtrip\` checks every live variable: decompile, compile again, and compare the text.`
 // %%
 md`### Editing
 Shift-Enter always stores the edit. The module is checked again, and each cell is then ok, rejected (it breaks a rule) or blocked (it depends on a cell that is not ok). Only ok cells run. A rejected or blocked cell keeps its source, shows why it is not running, and is saved that way. A \`ref\` whose own cell stays ok keeps its value while other cells are broken and repaired. A new cell whose source starts with \`export\` is a SoundScript cell. The language registers on the \`cell_languages\` plugin point of this notebook's copy of \`@tomlarkworthy/cell-map\`, which the editor and the visualizer read.`
@@ -311,11 +311,11 @@ A source file holds cells and type declarations, nothing else (\`[module-level]\
 
 | form | meaning |
 |---|---|
-| \`export const x = (a, b) => …\` | a cell \`x\` with inputs \`a\` and \`b\`; \`export let\`, a \`function\` expression and \`export function x(a, b) {…}\` are the same |
-| \`export const x = async (a) => …\` | value type \`T\` for a body returning \`Promise<T>\` |
-| \`export const x = function* (a) {…}\` | a generator cell; value type \`Y\` for \`Generator<Y>\`; generators cannot be arrows |
-| \`export const x = (): RefCell<T> => ref(v)\` | a ref cell: state, value type \`T\` (see State) |
-| \`export const f = () => (n: number) => n * 2\` | a cell whose value is a function: two arrows, the outer one lists the inputs |
+| \`const x = (a, b) => …\` | a cell \`x\` with inputs \`a\` and \`b\`; \`let\`, a \`function\` expression and \`function x(a, b) {…}\` are the same |
+| \`const x = async (a) => …\` | value type \`T\` for a body returning \`Promise<T>\` |
+| \`const x = function* (a) {…}\` | a generator cell; value type \`Y\` for \`Generator<Y>\`; generators cannot be arrows |
+| \`const x = (): RefCell<T> => ref(v)\` | a ref cell: state, value type \`T\` (see State) |
+| \`const f = () => (n: number) => n * 2\` | a cell whose value is a function: two arrows, the outer one lists the inputs |
 | \`type T = …\`, \`interface I {…}\`, \`import type\` | allowed at top level, not cells |
 
 An export that is not a function is \`[cell-not-function]\`; two cells with one name are a parse error (the table is replaced by the message). Two cells that read each other are \`[cycle]\`. A cell named \`test_*\` is a test and passes if it does not throw.`
@@ -401,7 +401,7 @@ md`### State: \`ref\`, \`action\`
 
 | construct | meaning |
 |---|---|
-| \`export const count = (): RefCell<number> => ref(0)\` | a ref cell; \`ref(...)\` only as the returned value of a sync, non-generator cell (\`[ref-placement]\`); its content may not contain a \`Ref\` or \`RefCell\`, in a record, an array or a union (\`[ref-in-ref]\`) |
+| \`const count = (): RefCell<number> => ref(0)\` | a ref cell; \`ref(...)\` only as the returned value of a sync, non-generator cell (\`[ref-placement]\`); its content may not contain a \`Ref\` or \`RefCell\`, in a record, an array or a union (\`[ref-in-ref]\`) |
 | \`count\` or \`count: number\` as a parameter | the current value; the reader runs again after each committed write |
 | \`count: Ref<number>\` as a parameter | the handle: \`set(v)\`, \`update(f)\`, no read |
 | \`action((by: number) => count.update((c) => c + by))\` | an \`Action<[number]>\`; writes are legal only lexically inside \`action(...)\` (\`[ref-write]\`) |
@@ -414,9 +414,9 @@ md`### Events and listeners: \`Events\`, \`on\` (*lite*)
 
 | construct | meaning |
 |---|---|
-| \`export const ticks = function* (now: Clock, playing: boolean) {…}\` | a sync generator cell taken as events; writes nothing; it runs again when an input changes; an async generator cannot be taken as \`Events\` yet |
+| \`const ticks = function* (now: Clock, playing: boolean) {…}\` | a sync generator cell taken as events; writes nothing; it runs again when an input changes; an async generator cannot be taken as \`Events\` yet |
 | \`ticks: Events<number>\` | a handle to the generator, not its values; the same handle across the generator's runs |
-| \`export const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick)\` | a listener: \`tick\` runs once for each value of \`ticks\`; the action must accept what \`ticks\` yields (\`[type]\`) |
+| \`const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick)\` | a listener: \`tick\` runs once for each value of \`ticks\`; the action must accept what \`ticks\` yields (\`[type]\`) |
 | \`flag ? on(a, x) : on(b, y)\` | a listener on one of two events cells |
 
 \`on(...)\` is legal only as the whole value of a sync cell: not in a list or record, a ref, a function's return, an argument, or a union with another value such as \`null\`, and no cell may take a listener cell (\`[listener-placement]\`). The generator is pulled only while a listener is attached, a sync one once per animation frame. If an action throws, the error is logged to the console as \`listener <cell>: action <action> threw on a value of events <events>\`, the action's writes are discarded, and the next value is still delivered. If the generator throws, the error is logged and it yields nothing more until it runs again. When two listener cells take the same events cell, each value goes to them in the order the cells appear in the module, and listeners in other modules after them, by module name; editing or re-running a listener does not change its place. Section 9.`

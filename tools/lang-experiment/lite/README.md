@@ -105,7 +105,7 @@ do not:
 
 - `reject-mut-capture`: lite accepts it, deliberately.
   ```ts
-  export let a = () => { const out = mut([0]); const f = () => out[0]; return f(); };
+  let a = () => { const out = mut([0]); const f = () => out[0]; return f(); };
   ```
   `f` is a local helper that is only ever called, so lite treats the call as a use of `out` at the
   call site and checks it there (a helper called after `freeze(out)` is rejected, see
@@ -117,7 +117,7 @@ do not:
 both modes. It accepts `s7`:
 
 ```ts
-export let s7 = (o) => { const f = () => { o = { a: 0, xs: [] }; }; f(); return 1; };
+let s7 = (o) => { const f = () => { o = { a: 0, xs: [] }; }; f(); return 1; };
 ```
 
 The parameter follows the same helper rule as a `let`, and `f` is only called, so the
@@ -569,7 +569,7 @@ Tom approved a smaller design: `Source<T>` became `Events<T>`, `Sub` became `Lis
 listener is legal only as the whole value of a cell. The entry above is the record of what it
 replaced.
 
-- `export const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick)`.
+- `const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick)`.
   `on(...)` must be what a sync, non-generator cell returns, or a branch of a conditional it
   returns. A list, record, ref, nested function, argument, union with `null`, `on` as a value, or
   a cell taking a listener cell is `listener-placement` (`fixtures/lite-game/reject-listener`).
@@ -736,7 +736,7 @@ depend on which calls share a commit or on when cells run again. Before this an 
 `b` from `a`'s value had to take `a` by value, and so used the value from the cell's last run:
 
 ```
-export const copy = (other: Ref<number>, count: number) => action(() => other.set(count + 1));
+const copy = (other: Ref<number>, count: number) => action(() => other.set(count + 1));
 ```
 
 - `read(ref)` (prelude): inside an action, the value as of this point in the call order.

@@ -1,6 +1,6 @@
 // The view of a Mut is consumed immediately by a non-retaining intrinsic: accepted.
-export let n = () => 3;
-export let copyHead = (n) => {
+let n = () => 3;
+let copyHead = (n) => {
   const src = mut(new Float32Array(8));
   for (let i = 0; i < src.length; i++) src[i] = i;
   const dst = mut(new Float32Array(n));

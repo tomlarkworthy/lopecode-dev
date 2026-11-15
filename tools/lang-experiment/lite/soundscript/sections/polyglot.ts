@@ -1,3 +1,5 @@
-export const width = () => 4;
+const width = () => 4;
 
-export const doubledWidth = (width: number) => width * 2;
+const doubledWidth = (width: number) => width * 2;
+
+const fromRaw = (area: number) => area + 1;

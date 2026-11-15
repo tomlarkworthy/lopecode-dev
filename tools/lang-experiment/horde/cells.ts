@@ -45,48 +45,48 @@ type Stepped = { readonly agents: Float32Array; readonly hits: Int32Array };
 // The throw lives in its own function: with the throw and its message inline, V8 does not inline
 // the helper into the loops that call it, and the step cost 35% more (README, strict indexing).
 type Oob = (i: number, n: number) => number;
-export const oob = (): Oob => (i: number, n: number): number => {
+const oob = (): Oob => (i: number, n: number): number => {
   throw new RangeError("index " + i + " out of " + n);
 };
 type AtF = (a: Float32Array, i: number) => number;
 type AtI = (a: Int32Array, i: number) => number;
 type AtU8 = (a: Uint8Array, i: number) => number;
 type AtM<T> = (a: Mut<T>, i: number) => number;
-export const atF = (oob: Oob): AtF => (a: Float32Array, i: number): number => {
+const atF = (oob: Oob): AtF => (a: Float32Array, i: number): number => {
   const v = a[i];
   if (v === undefined) return oob(i, a.length);
   return v;
 };
-export const atI = (oob: Oob): AtI => (a: Int32Array, i: number): number => {
+const atI = (oob: Oob): AtI => (a: Int32Array, i: number): number => {
   const v = a[i];
   if (v === undefined) return oob(i, a.length);
   return v;
 };
-export const atU8 = (oob: Oob): AtU8 => (a: Uint8Array, i: number): number => {
+const atU8 = (oob: Oob): AtU8 => (a: Uint8Array, i: number): number => {
   const v = a[i];
   if (v === undefined) return oob(i, a.length);
   return v;
 };
-export const atMF = (oob: Oob): AtM<Float32Array> => (a: Mut<Float32Array>, i: number): number => {
+const atMF = (oob: Oob): AtM<Float32Array> => (a: Mut<Float32Array>, i: number): number => {
   const v = a[i];
   if (v === undefined) return oob(i, a.length);
   return v;
 };
-export const atMI = (oob: Oob): AtM<Int32Array> => (a: Mut<Int32Array>, i: number): number => {
+const atMI = (oob: Oob): AtM<Int32Array> => (a: Mut<Int32Array>, i: number): number => {
   const v = a[i];
   if (v === undefined) return oob(i, a.length);
   return v;
 };
-export const atMU8 = (oob: Oob): AtM<Uint8Array> => (a: Mut<Uint8Array>, i: number): number => {
+const atMU8 = (oob: Oob): AtM<Uint8Array> => (a: Mut<Uint8Array>, i: number): number => {
   const v = a[i];
   if (v === undefined) return oob(i, a.length);
   return v;
 };
 
-export const S = () => 8;
-export const HOLD = () => -0.5;
+const S = () => 8;
+const HOLD = () => -0.5;
 
-export const params = (): Params => ({
+const params = (): Params => ({
   seed: 1234567,
   dt: 1 / 60,
   cellsW: 40,
@@ -103,7 +103,7 @@ export const params = (): Params => ({
 });
 
 // xorshift32 step; Math.imul is not an intrinsic, so the hashes below use shifts and xors only.
-export const xs32 = () => (s: number): number => {
+const xs32 = () => (s: number): number => {
   let x = s >>> 0;
   x = (x ^ (x << 13)) >>> 0;
   x = (x ^ (x >>> 17)) >>> 0;
@@ -111,7 +111,7 @@ export const xs32 = () => (s: number): number => {
   return x;
 };
 // A uniform number in [0, 1) from (seed, frame, agent, stream), the same on every thread.
-export const hash01 = (xs32: (s: number) => number) => (seed: number, frame: number, agent: number, k: number): number => {
+const hash01 = (xs32: (s: number) => number) => (seed: number, frame: number, agent: number, k: number): number => {
   let h = xs32((seed ^ 0x9e3779b9) >>> 0);
   h = xs32((h ^ frame) >>> 0);
   h = xs32((h ^ agent) >>> 0);
@@ -122,7 +122,7 @@ export const hash01 = (xs32: (s: number) => number) => (seed: number, frame: num
 
 // A braided maze (recursive backtracker, then a fraction of the remaining walls knocked out, then an
 // open room in the middle), as tiles: 1 wall, 0 floor. Corridors are cell - 1 tiles wide.
-export const maze = (atMI: AtM<Int32Array>, atMU8: AtM<Uint8Array>, params: Params, xs32: (s: number) => number): Maze => {
+const maze = (atMI: AtM<Int32Array>, atMU8: AtM<Uint8Array>, params: Params, xs32: (s: number) => number): Maze => {
   const cw = params.cellsW, ch = params.cellsH, c = params.cell;
   const w = cw * c + 1, h = ch * c + 1;
   const walls = mut(new Uint8Array(w * h));
@@ -190,7 +190,7 @@ export const maze = (atMI: AtM<Int32Array>, atMU8: AtM<Uint8Array>, params: Para
 // then per tile a unit direction toward the lowest of its 8 neighbours (diagonals only when both
 // sides are open). Three floats per tile: distance, dx, dy. Walls and unreachable tiles have
 // distance 1e9 and direction 0.
-export const flowOf = (atF: AtF, atU8: AtU8, atMF: AtM<Float32Array>, atMI: AtM<Int32Array>) => (maze: Maze, player: Float32Array): Float32Array => {
+const flowOf = (atF: AtF, atU8: AtU8, atMF: AtM<Float32Array>, atMI: AtM<Int32Array>) => (maze: Maze, player: Float32Array): Float32Array => {
   const w = maze.w, h = maze.h, walls = maze.walls;
   const dist = mut(new Float32Array(w * h));
   dist.fill(1e9);
@@ -233,7 +233,7 @@ export const flowOf = (atF: AtF, atU8: AtU8, atMF: AtM<Float32Array>, atMI: AtM<
 // The coarse grid from last frame's agents: per tile, count and summed velocity of the live agents
 // in it. Only the renderer reads it (the floor's heat); batches do not, to keep what each worker
 // is sent small.
-export const gridOf = (atF: AtF, atMF: AtM<Float32Array>, S: number) => (maze: Maze, agents: readonly Float32Array[]): Float32Array => {
+const gridOf = (atF: AtF, atMF: AtM<Float32Array>, S: number) => (maze: Maze, agents: readonly Float32Array[]): Float32Array => {
   const w = maze.w, h = maze.h;
   const g = mut(new Float32Array(w * h * 3));
   for (const a of agents) {
@@ -250,7 +250,7 @@ export const gridOf = (atF: AtF, atMF: AtM<Float32Array>, S: number) => (maze: M
 
 // The spatial hash for separation: live agents counting-sorted into half-tile cells, in global index
 // order within a cell, so the neighbour order does not depend on batching.
-export const neighOf = (atF: AtF, atMI: AtM<Int32Array>, S: number) => (maze: Maze, agents: readonly Float32Array[]): Neigh => {
+const neighOf = (atF: AtF, atMI: AtM<Int32Array>, S: number) => (maze: Maze, agents: readonly Float32Array[]): Neigh => {
   const hw = maze.w * 2, cells = hw * maze.h * 2;
   const start = mut(new Int32Array(cells + 1));
   let live = 0;
@@ -274,7 +274,7 @@ export const neighOf = (atF: AtF, atMI: AtM<Int32Array>, S: number) => (maze: Ma
 };
 
 // Bullets (x, y, vx, vy) binned by tile: start[t]..start[t+1] index list.
-export const binsOf = (atF: AtF, atMI: AtM<Int32Array>) => (maze: Maze, bullets: Float32Array): Bins => {
+const binsOf = (atF: AtF, atMI: AtM<Int32Array>) => (maze: Maze, bullets: Float32Array): Bins => {
   const n = bullets.length / 4, cells = maze.w * maze.h;
   const start = mut(new Int32Array(cells + 1));
   const list = mut(new Int32Array(n));
@@ -296,34 +296,34 @@ export const binsOf = (atF: AtF, atMI: AtM<Int32Array>) => (maze: Maze, bullets:
 };
 
 // The kind a pair of agents is: 40% chevrons, 35% diamonds, 25% hexagons.
-export const kindOf = (hash01: (seed: number, frame: number, agent: number, k: number) => number) => (seed: number, id: number): number => {
+const kindOf = (hash01: (seed: number, frame: number, agent: number, k: number) => number) => (seed: number, id: number): number => {
   const r = hash01(seed, 0, id >> 1, 11);
   return r < 0.4 ? 1 : r < 0.75 ? 0 : 2;
 };
 
 // Island inputs: placeholder cells, replaced by the arguments of the compiled function.
-export const batch = (): Float32Array => new Float32Array(0);
-export const base = () => 0;
-export const frame = () => 0;
-export const player = (): Float32Array => new Float32Array([80.5, 50.5]);
-export const bullets = (): Float32Array => new Float32Array(0);
+const batch = (): Float32Array => new Float32Array(0);
+const base = () => 0;
+const frame = () => 0;
+const player = (): Float32Array => new Float32Array([80.5, 50.5]);
+const bullets = (): Float32Array => new Float32Array(0);
 // x, y, radius, strength of this frame's shockwave; strength 0 when there is none
-export const shock = (): Float32Array => new Float32Array(4);
+const shock = (): Float32Array => new Float32Array(4);
 // agents with a global index below active take part; the rest stay dormant
-export const active = () => 0;
-export const agents = (): readonly Float32Array[] => [];
+const active = () => 0;
+const agents = (): readonly Float32Array[] => [];
 // Per-frame inputs computed on the calling thread.
-export const flow = (flowOf: (maze: Maze, player: Float32Array) => Float32Array, maze: Maze, player: Float32Array) => flowOf(maze, player);
-export const crowd = (gridOf: (maze: Maze, agents: readonly Float32Array[]) => Float32Array, maze: Maze, agents: readonly Float32Array[]) => gridOf(maze, agents);
-export const neigh = (neighOf: (maze: Maze, agents: readonly Float32Array[]) => Neigh, maze: Maze, agents: readonly Float32Array[]) => neighOf(maze, agents);
-export const binned = (binsOf: (maze: Maze, bullets: Float32Array) => Bins, maze: Maze, bullets: Float32Array) => binsOf(maze, bullets);
+const flow = (flowOf: (maze: Maze, player: Float32Array) => Float32Array, maze: Maze, player: Float32Array) => flowOf(maze, player);
+const crowd = (gridOf: (maze: Maze, agents: readonly Float32Array[]) => Float32Array, maze: Maze, agents: readonly Float32Array[]) => gridOf(maze, agents);
+const neigh = (neighOf: (maze: Maze, agents: readonly Float32Array[]) => Neigh, maze: Maze, agents: readonly Float32Array[]) => neighOf(maze, agents);
+const binned = (binsOf: (maze: Maze, bullets: Float32Array) => Bins, maze: Maze, bullets: Float32Array) => binsOf(maze, bullets);
 
 // One batch, one frame. A live agent follows the flow field (bilinear over tile centres), is pushed
 // apart from up to sepCap neighbours within sepR (last frame's positions, 3x3 half-tile cells)
 // and slides along walls. Bullets in its 3x3 tiles and the
 // shockwave damage it; touching the player pushes it back (a chevron explodes instead).
 // hits holds triples (agent, cause, killed): cause is a bullet index, -1 contact, -2 shockwave.
-export const stepBatch = (atF: AtF, atI: AtI, atU8: AtU8, hash01: (seed: number, frame: number, agent: number, k: number) => number, kindOf: (seed: number, id: number) => number, S: number, HOLD: number) => (
+const stepBatch = (atF: AtF, atI: AtI, atU8: AtU8, hash01: (seed: number, frame: number, agent: number, k: number) => number, kindOf: (seed: number, id: number) => number, S: number, HOLD: number) => (
   batch: Float32Array, base: number, frame: number, field: Float32Array, neigh: Neigh, binned: Bins,
   bullets: Float32Array, player: Float32Array, shock: Float32Array, active: number, maze: Maze, params: Params,
 ): Stepped => {
@@ -471,15 +471,15 @@ export const stepBatch = (atF: AtF, atI: AtI, atU8: AtU8, hash01: (seed: number,
 };
 type StepFn = (batch: Float32Array, base: number, frame: number, field: Float32Array, neigh: Neigh, binned: Bins,
   bullets: Float32Array, player: Float32Array, shock: Float32Array, active: number, maze: Maze, params: Params) => Stepped;
-export const stepped = (stepBatch: StepFn, batch: Float32Array, base: number, frame: number, flow: Float32Array, neigh: Neigh,
+const stepped = (stepBatch: StepFn, batch: Float32Array, base: number, frame: number, flow: Float32Array, neigh: Neigh,
   binned: Bins, bullets: Float32Array, player: Float32Array, shock: Float32Array, active: number, maze: Maze, params: Params) =>
   stepBatch(batch, base, frame, flow, neigh, binned, bullets, player, shock, active, maze, params);
-export const nextAgents = (stepped: Stepped) => stepped.agents;
-export const hits = (stepped: Stepped) => stepped.hits;
+const nextAgents = (stepped: Stepped) => stepped.agents;
+const hits = (stepped: Stepped) => stepped.hits;
 
 // Agents to start with: all dormant at spawn points with staggered countdowns; those below active
 // count down and arrive over the first seconds.
-export const initial = (atF: AtF, maze: Maze, params: Params, hash01: (seed: number, frame: number, agent: number, k: number) => number, S: number) => (n: number, from: number): Float32Array => {
+const initial = (atF: AtF, maze: Maze, params: Params, hash01: (seed: number, frame: number, agent: number, k: number) => number, S: number) => (n: number, from: number): Float32Array => {
   const out = mut(new Float32Array(n * S));
   for (let a = 0; a < n; a++) {
     const id = from + a;
@@ -494,7 +494,7 @@ export const initial = (atF: AtF, maze: Maze, params: Params, hash01: (seed: num
 // The batch update as a function on the worker pool. The flow field, spatial hash and
 // bullet bins are computed on the calling thread and passed in as inputs; maze and params are refs.
 // The function cells are computed inside the island, since a function cannot be sent.
-export const batchOnPool = (compile: Compile, pool: Pool) =>
+const batchOnPool = (compile: Compile, pool: Pool) =>
   compile({
     inputs: ["batch", "base", "frame", "flow", "neigh", "binned", "bullets", "player", "shock", "active"],
     refs: ["maze", "params"],
@@ -504,7 +504,7 @@ export const batchOnPool = (compile: Compile, pool: Pool) =>
 
 // Replay: two runs from the same seed give bit-identical agents, split into batches two ways, with
 // bullets and a shockwave so that hits, splits and respawns are exercised.
-export const test_batches_do_not_matter = (maze: Maze, params: Params, initial: (n: number, from: number) => Float32Array, flowOf, neighOf, binsOf, stepBatch, S: number, atF: AtF) => {
+const test_batches_do_not_matter = (maze: Maze, params: Params, initial: (n: number, from: number) => Float32Array, flowOf, neighOf, binsOf, stepBatch, S: number, atF: AtF) => {
   const run = (size: number): Float32Array => {
     let parts = Array.from({ length: 2048 / size }, (_, i) => initial(size, i * size));
     const pl = new Float32Array([80.5, 50.5]);

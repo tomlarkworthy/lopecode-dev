@@ -1,2 +1,2 @@
-export let a = (send) => typeof send;
-export let b = (beep2) => beep2;
+let a = (send) => typeof send;
+let b = (beep2) => beep2;

@@ -156,7 +156,7 @@ lookupVariable(
   editorModule
 )
 )};
-const _1p2yypw = function _cellEditor(cloneViaSandbox,editorTemplate,shellTemplate,createCell,findCell,dragReorder,pinOnCreate,getOption,Event,setOption){return(
+const _1p2yypw = function _cellEditor(cloneViaSandbox,editorTemplate,shellTemplate,createCell,findCell,dragReorder,pinOnCreate,getOption,Event,setOption,languageChoice){return(
 (variable, {
     pinned = undefined
 } = {}) => {
@@ -289,6 +289,8 @@ const _1p2yypw = function _cellEditor(cloneViaSandbox,editorTemplate,shellTempla
                     syncOpen();
                     view.addEventListener('input', () => {
                         const next = !!view.value;
+                        // the editor re-reads its text from the runtime when it opens, so a language picked for unsaved text goes with it
+                        if (!next && languageChoice.get(variable?.pid)?.from === 'picker') languageChoice.delete(variable.pid);
                         setOption(variable, 'pinned', next);
                         syncOpen();
                     });
@@ -355,7 +357,8 @@ const _1ed5zb9 = function _editor_panel($0,htl,toolbar,nav,reversibleAttach,comb
   const prev = this;
   if (combine && prev?.__editor === code_editor && code_editor.parentElement === prev.__editorSlot) {
     if (prev.__toolbarSlot.firstChild !== toolbar) prev.__toolbarSlot.replaceChildren(toolbar);
-    prev.__navSlot.replaceChildren(...(navEl ? [navEl] : []));
+    // a focused language picker is not swapped, so a key pressed on it is not lost; the nav is swapped on a later run
+    if (!prev.__navSlot.querySelector("select.e5-cell-language:focus")) prev.__navSlot.replaceChildren(...(navEl ? [navEl] : []));
     return prev;
   }
   const hadFocus = code_editor.contains(document.activeElement);
@@ -565,7 +568,83 @@ $0.value
 const _ytd2rq = function _26(nav,editedCell){return(
 nav(editedCell)
 )};
-const _1t4gep6 = function _nav(html,cellLinks,languageOf){return(
+const _e6choice = function _languageChoice(){return(
+// a cell's language as picked in its editor's header, or given to a new cell from the cell it was added after;
+// keyed by the cell's first pid, which a change of language keeps: pid -> {lang, from: "picker" | "new"}
+new Map()
+)};
+const _e6pick = function _languagePicker(cellLanguagesRef,cellLanguage,languageChoice,EditorView,codemirror){return(
+(editedCell) => {
+  const key = editedCell?.variables?.[0]?.pid;
+  // a new cell's default is shown until a claim or a pick replaces it
+  const current = languageChoice.get(key)?.lang ?? cellLanguage(editedCell?.variables ?? [], editedCell);
+  const options = [...cellLanguagesRef.current.map((l) => [l.id, l.label ?? l.id]), ["ojs", "Observable JavaScript"], ["js", "JavaScript"]];
+  if (!options.some(([id]) => id === current)) options.push([current, `${current} (not loaded)`]);
+  const select = document.createElement("select");
+  select.className = "e5-cell-language";
+  select.setAttribute("aria-label", "cell language");
+  select.title = "the language Shift-Enter reads this cell's text as";
+  select.style.cssText = "font: inherit; font-size: 11px; margin-right: 6px;";
+  for (const [id, label] of options) {
+    const o = document.createElement("option");
+    o.value = id;
+    o.textContent = label;
+    if (id === current && !cellLanguagesRef.current.some((l) => l.id === id) && id !== "ojs" && id !== "js") o.disabled = true;
+    select.append(o);
+  }
+  select.value = current;
+  // the choice is read at the next Shift-Enter; the text is not changed, and the editor is linted again as the language picked
+  select.addEventListener("change", () => {
+    if (!key) return;
+    languageChoice.set(key, { lang: select.value, from: "picker" });
+    let n = select.parentElement;
+    while (n && !n.querySelector(".cm-editor")) n = n.parentElement;
+    const ed = n?.querySelector(".cm-editor");
+    const view = ed ? EditorView.findFromDOM(ed) : null;
+    if (view) codemirror.forceLinting?.(view);
+  });
+  return select;
+}
+)};
+const _e6claim = function _claimedLanguage(cellLanguagesRef,cellLanguage,parser,transpileJavaScript){return(
+// the registered language that typed text switches an untagged cell to: only when exactly one registered
+// language claims the text and the built-in parser of the cell's own language rejects it, so `x = 1` stays
+// Observable JavaScript. (Also requiring the rejection keeps `define(...)`, a valid expression, Observable JavaScript.)
+(source, variables = [], cell) => {
+  const ask = (f) => { try { return !!f(); } catch (e) { console.error(e); return false; } };
+  const claims = cellLanguagesRef.current.filter((l) => l.claimsSource && ask(() => l.claimsSource(source, cell)));
+  if (claims.length !== 1) return null;
+  const builtin = cellLanguage(variables, cell) === "js" ? () => transpileJavaScript(source) : () => parser.parseCell(source);
+  try { builtin(); return null; } catch { return claims[0]; }
+}
+)};
+const _e6route = function _routeLanguage(cellLanguagesRef,languageChoice,languageOf,claimedLanguage){return(
+// which language an edit is read as: the picked one (or chosen, passed in), else the cell's tag, else a claim, else
+// a new cell's default (the language of the cell it was added after); {id: null} leaves it to the built-in
+// Observable JavaScript / JavaScript choice. registered is null for a built-in or unloaded id.
+(source, variables = [], cell, chosen) => {
+  const entry = languageChoice.get(variables[0]?.pid);
+  const byId = (id) => ({ id, registered: cellLanguagesRef.current.find((l) => l.id === id) ?? null, chosen: true });
+  const picked = chosen ?? (entry?.from === "picker" ? entry.lang : undefined);
+  if (picked) return byId(picked);
+  const tagged = languageOf(variables, cell);
+  if (tagged) return { id: tagged.id, registered: tagged };
+  const claimed = typeof source === "string" ? claimedLanguage(source, variables, cell) : null;
+  if (claimed) return { id: claimed.id, registered: claimed };
+  // the "{}" a new cell is made with is not read as the default language, so an untouched new cell shows no error
+  return entry?.from === "new" && typeof source === "string" && source.trim() !== "{}" ? byId(entry.lang) : { id: null, registered: null };
+}
+)};
+const _e6new = function _newCellLanguage(cellLanguage){return(
+// a new cell's language: that of the cell it is added after, else the most common in its module
+(anchor) => {
+  if (anchor?.variables?.length) return cellLanguage(anchor.variables, anchor);
+  const counts = new Map();
+  for (const c of anchor?.module?.cells ?? []) if (c.variables?.length) { const l = cellLanguage(c.variables, c); counts.set(l, (counts.get(l) ?? 0) + 1); }
+  return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "ojs";
+}
+)};
+const _1t4gep6 = function _nav(html,cellLinks,languageOf,languagePicker){return(
 function nav(editedCell) {
   // a registered language names the cell's own inputs and outputs (a compiled cell has hidden ones)
   let h = null;
@@ -575,7 +654,7 @@ function nav(editedCell) {
   // the inferred type, when the language knows one, leads the line: name : type
   const typed = h?.type ? html`<code class="e5-cell-type">${h.name ?? editedCell.name} : ${h.type}</code> ` : "";
   return html`<div>
-${typed}<span>${cellLinks("inputs", inputs)}</span>
+${languagePicker(editedCell)} ${typed}<span>${cellLinks("inputs", inputs)}</span>
 <span>${cellLinks("outputs", outputs)}</span>
 </div>`;
 }
@@ -854,7 +933,7 @@ const _1rhoxk2 = function _findVariableIndex(runtime){return(
 (variable, variables = runtime._variables) =>
   [...variables].findIndex((vi) => vi === variable)
 )};
-const _g08ji8 = async function _command_processor(command,$0,compile_and_update,pinOnCreate,selectVariable,remove_variables,$1,findCellIndex,lookupCellByIndex,findVariableIndex,repositionSetElement,runtime,findCell,$2)
+const _g08ji8 = async function _command_processor(command,$0,compile_and_update,pinOnCreate,selectVariable,remove_variables,$1,findCellIndex,lookupCellByIndex,findVariableIndex,repositionSetElement,runtime,findCell,$2,newCellLanguage,languageChoice,cellLanguage)
 {
     if (command.processed)
         return;
@@ -868,6 +947,9 @@ const _g08ji8 = async function _command_processor(command,$0,compile_and_update,
         result = await compile_and_update('{}', newVars, command.args.cell);
         const nv = newVars[0];
         if (nv?.pid) pinOnCreate.add(nv.pid);
+        // the new cell is read as the language of the cell it was added after until its language is picked
+        const lang = newCellLanguage(command.args.cell);
+        if (nv?.pid && lang !== cellLanguage(newVars)) languageChoice.set(nv.pid, { lang, from: "new" });
         if (nv) await selectVariable(nv);
     } else if (command.command == 'deleteCell') {
         remove_variables(command.args.cell.variables);
@@ -1086,7 +1168,7 @@ const _19d9pua = function _observableJS_lint(codemirror){return(
     })
 ]
 )};
-const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,literalCompletions,EditorState,decompiled,cellIdFacet,EditorView,states,compile_and_update,code_editor_view,replaceCodeMirrorDoc,observableJS_language,observableJS_highlightStyle,myDefaultTheme,cellLanguage,languageOf,unloadedLanguage)
+const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,literalCompletions,EditorState,decompiled,cellIdFacet,EditorView,states,compile_and_update,code_editor_view,replaceCodeMirrorDoc,observableJS_language,observableJS_highlightStyle,myDefaultTheme,cellLanguage,languageOf,unloadedLanguage,routeLanguage)
 {
   if (!editedCell?.variables?.length)
     return;
@@ -1250,8 +1332,9 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
   };
   const isJs = cellLanguage(editedCell?.variables ?? [], editedCell) === 'js';
   const registered = languageOf(editedCell?.variables ?? [], editedCell);
-  // asked on every lint, so a new cell typed as a registered language's source is linted as that language
-  const languageNow = view => registered ?? languageOf([], editedCell, view.state.doc.toString());
+  // asked on every lint, so a cell whose language is picked, or a new cell typed as a registered language's
+  // source, is linted as that language
+  const languageNow = view => routeLanguage(view.state.doc.toString(), editedCell?.variables ?? [], editedCell).registered;
   const unloaded = unloadedLanguage(editedCell?.variables ?? []);
   let extensionError = null;
   const anyLint = view => {
@@ -1683,9 +1766,9 @@ const _e6lang = function _cellLanguage(displayStateOf,languageOf,languageTagOf){
   return cells.some((c) => onlyJs(c.lang) || (c.variables ?? []).some(plainJs)) ? "js" : "ojs";
 }
 )};
-const _e6srcl = function _sourceLanguage(parser,transpileJavaScript,cellLanguage,languageOf){return(
+const _e6srcl = function _sourceLanguage(parser,transpileJavaScript,cellLanguage,languageOf,claimedLanguage){return(
 (source, variables = [], cell) => {
-  const registered = languageOf(variables, cell, source);
+  const registered = languageOf(variables, cell) ?? claimedLanguage(source, variables, cell);
   if (registered) return registered.id;
   // a module with no Notebook Kit cell stays classic, syntax errors included
   if (cellLanguage(variables, cell) !== "js" && cellLanguage([], cell) !== "js") return "ojs";
@@ -1891,33 +1974,41 @@ const _e5lng3 = async function _test_e5_language_hook(cellLanguagesRef,languageO
 const _1whoy5n = function _91(md){return(
 md`### Apply Update`
 )};
-const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionSetElement,decompile,cellLanguage,defineJsCell,sourceLanguage,pinOnCreate,claimCellSource,languageOf,unloadedLanguage,langTag,transpileJavaScript)
+const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionSetElement,decompile,cellLanguage,defineJsCell,sourceLanguage,pinOnCreate,claimCellSource,unloadedLanguage,langTag,transpileJavaScript,routeLanguage,languageChoice)
 {
   // Typed source that does not parse may be claimed by a "cell_source_handlers" plugin, which supplies
-  // the source to compile instead.
-  const update = async (source, variables = [], cell) => {
+  // the source to compile instead. chosen is a language id from the editor's picker (see routeLanguage).
+  const update = async (source, variables = [], cell, chosen) => {
+    const pid = variables[0]?.pid;
+    const route = routeLanguage(source, variables, cell, chosen);
+    let out;
     // a registered language takes its source as typed; cell_source_handlers are not asked
-    if (languageOf(variables, cell) ?? languageOf([], cell, source)) return apply(source, variables, cell);
-    const claim = await claimCellSource(source, variables, cell);
-    const out = await apply(claim.source, variables, cell);
-    if (claim.handler?.applied) {
-      try { claim.handler.applied({ source: claim.source, original: source, variables, module: cell?.module?.name, cell }); }
-      catch (e) { console.error(e); }
+    if (route.id && route.id !== "ojs" && route.id !== "js") out = await apply(source, variables, cell, route);
+    else {
+      const claim = await claimCellSource(source, variables, cell);
+      out = await apply(claim.source, variables, cell, route);
+      if (claim.handler?.applied) {
+        try { claim.handler.applied({ source: claim.source, original: source, variables, module: cell?.module?.name, cell }); }
+        catch (e) { console.error(e); }
+      }
     }
+    // once stored, the cell's tag says its language
+    if (out !== undefined && pid) languageChoice.delete(pid);
     return out;
   };
   // a language marker in the text means it is a compiled definition, which is never typed source
   const MARKED = /\/\*\{lang:"([\w-]+)"\}\*\//;
-  const apply = async (source, variables = [], cell) => {
+  const apply = async (source, variables = [], cell, route = routeLanguage(source, variables, cell)) => {
     try {
       const pasted = MARKED.exec(source)?.[1];
       if (pasted) { console.warn(new Error(`not saved: this text carries a /*{lang:"${pasted}"}*/ marker, so it is a compiled cell, not source; the cell is unchanged`)); return undefined; }
-      const registered = languageOf(variables, cell) ?? languageOf([], cell, source);
-      if (registered) return await registered.apply(source, variables, cell);
-      // saving a tagged cell through the js/ojs path would replace it with its compiled text
+      // saving a tagged cell through the js/ojs path would replace it with its compiled text; checked
+      // before the picked language, so the picker cannot write over a cell of a language not loaded
       const unloaded = unloadedLanguage(variables, cell);
       if (unloaded) { console.warn(new Error(`not saved: this is a "${unloaded}" cell and that language is not loaded yet`)); return undefined; }
-      const language = sourceLanguage(source, variables, cell);
+      if (route.registered) return await route.registered.apply(source, variables, cell);
+      if (route.id && route.id !== "ojs" && route.id !== "js") { console.warn(new Error(`not saved: the "${route.id}" language is not loaded`)); return undefined; }
+      const language = route.id ?? sourceLanguage(source, variables, cell);
       // only a registered language writes a definition that carries a language marker; checked before
       // switchLanguage or a surplus variable is deleted, so a refusal leaves the cell as it was
       let marked = null;
@@ -1926,7 +2017,7 @@ const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionS
         marked = defs.map((d) => langTag(String(d))).find(Boolean) ?? null;
       } catch {}
       if (marked) { console.warn(new Error(`not saved: the compiled cell carries a /*{lang:"${marked}"}*/ marker, and only that language's editor support may write it`)); return undefined; }
-      if (variables.length && language !== cellLanguage(variables, cell)) return await switchLanguage(source, variables, cell);
+      if (variables.length && language !== cellLanguage(variables, cell)) return await switchLanguage(source, variables, cell, language);
       if (language === 'js') return await defineJsCell(source, variables, cell);
       const newVariables = compile(source);
       // Skip emitting `module @X` if one already exists in the target
@@ -1990,7 +2081,7 @@ const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionS
   };
   // A cell changing language keeps its place and its first pid, not its variables: a Notebook Kit head
   // carries display/view shadows and a display state that a classic redefinition would leave behind.
-  const switchLanguage = async (source, variables, cell) => {
+  const switchLanguage = async (source, variables, cell, chosen) => {
     const own = new Set(variables.flatMap((v) => [v, ...(v._shadow?.values() ?? [])]));
     const order = [...runtime._variables];
     // shadows are defined before their head, so the anchor is the nearest earlier variable not in this cell
@@ -1998,7 +2089,7 @@ const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionS
     const pid = variables[0].pid;
     for (const v of own) v.delete();
     const next = [];
-    const decompiled = await update(source, next, { ...cell, variables: previous ? [previous] : [] });
+    const decompiled = await update(source, next, { ...cell, variables: previous ? [previous] : [] }, chosen ?? undefined);
     if (next[0] && pid) {
       next[0].pid = pid;
       pinOnCreate.add(pid);
@@ -2701,7 +2792,7 @@ export default function define(runtime, observer) {
   $def("_1oaz8r1", "attachContextManu", ["Generators","viewof attachContextManu"], _1oaz8r1);  
   $def("_16ks4jz", null, ["md"], _16ks4jz);  
   $def("_199ztvl", "hotbarTemplate", ["lookupVariable","editorModule"], _199ztvl);  
-  $def("_1p2yypw", "cellEditor", ["cloneViaSandbox","editorTemplate","shellTemplate","createCell","findCell","dragReorder","pinOnCreate","getOption","Event","setOption"], _1p2yypw);  
+  $def("_1p2yypw", "cellEditor", ["cloneViaSandbox","editorTemplate","shellTemplate","createCell","findCell","dragReorder","pinOnCreate","getOption","Event","setOption","languageChoice"], _1p2yypw);  
   $def("_x5ixji", "hotbar_shell", ["viewof edit","Event","htl","edit"], _x5ixji);  
   $def("_1ed5zb9", "editor_panel", ["viewof editedCell","htl","toolbar","nav","reversibleAttach","combine","code_editor"], _1ed5zb9);  
   $def("_yk7udl", "shellTemplate", ["viewof editedCell","editedCell","selectVariable","viewof edit","edit","hotbar_shell","lookupVariable","editorModule"], _yk7udl);  
@@ -2715,7 +2806,12 @@ export default function define(runtime, observer) {
   $def("_49mpmh", "hotbar", ["viewof edit","Event","setOption","viewof editedCell","htl","edit","toolbar","nav","reversibleAttach","combine","code_editor"], _49mpmh);  
   $def("_n8s6yl", null, ["viewof editedCell"], _n8s6yl);  
   $def("_ytd2rq", null, ["nav","editedCell"], _ytd2rq);  
-  $def("_1t4gep6", "nav", ["html","cellLinks","languageOf"], _1t4gep6);  
+  $def("_1t4gep6", "nav", ["html","cellLinks","languageOf","languagePicker"], _1t4gep6);
+  $def("_e6pick", "languagePicker", ["cellLanguagesRef","cellLanguage","languageChoice","EditorView","codemirror"], _e6pick);
+  $def("_e6choice", "languageChoice", [], _e6choice);
+  $def("_e6claim", "claimedLanguage", ["cellLanguagesRef","cellLanguage","parser","transpileJavaScript"], _e6claim);
+  $def("_e6route", "routeLanguage", ["cellLanguagesRef","languageChoice","languageOf","claimedLanguage"], _e6route);
+  $def("_e6new", "newCellLanguage", ["cellLanguage"], _e6new);  
   $def("_1tv9qxo", "cellLinks", ["html","variableLink"], _1tv9qxo);  
   $def("_1opggh8", "identity", ["lookupVariable","editorModule"], _1opggh8);  
   $def("_15v1lje", "variableLink", ["identity","modules","navHref"], _15v1lje);  
@@ -2756,7 +2852,7 @@ export default function define(runtime, observer) {
   $def("_dmk8lv", "findCellIndex", [], _dmk8lv);  
   $def("_jy01vb", "lookupCellByIndex", [], _jy01vb);  
   $def("_1rhoxk2", "findVariableIndex", ["runtime"], _1rhoxk2);  
-  $def("_g08ji8", "command_processor", ["command","viewof edit","compile_and_update","pinOnCreate","selectVariable","remove_variables","viewof liveCellMap","findCellIndex","lookupCellByIndex","findVariableIndex","repositionSetElement","runtime","findCell","viewof command"], _g08ji8);  
+  $def("_g08ji8", "command_processor", ["command","viewof edit","compile_and_update","pinOnCreate","selectVariable","remove_variables","viewof liveCellMap","findCellIndex","lookupCellByIndex","findVariableIndex","repositionSetElement","runtime","findCell","viewof command","newCellLanguage","languageChoice","cellLanguage"], _g08ji8);  
   $def("_8iz5z2", null, ["md"], _8iz5z2);  
   $def("_m873d1", "states", [], _m873d1);  
   $def("_mxwoc4", "cellIdFacet", ["codemirror"], _mxwoc4);  
@@ -2764,7 +2860,7 @@ export default function define(runtime, observer) {
   $def("_7btuqg", "observableJS_language", ["codemirror","observable_lezer_parser"], _7btuqg);  
   $def("_1xf04v5", "observableJS_highlightStyle", ["codemirror","lezerhighlight"], _1xf04v5);  
   $def("_19d9pua", "observableJS_lint", ["codemirror"], _19d9pua);  
-  $def("_125gzhe", "editor_manager", ["editedCell","globalThis","codemirror","literalCompletions","EditorState","decompiled","cellIdFacet","EditorView","states","compile_and_update","code_editor_view","replaceCodeMirrorDoc","observableJS_language","observableJS_highlightStyle","myDefaultTheme","cellLanguage","languageOf","unloadedLanguage"], _125gzhe);  
+  $def("_125gzhe", "editor_manager", ["editedCell","globalThis","codemirror","literalCompletions","EditorState","decompiled","cellIdFacet","EditorView","states","compile_and_update","code_editor_view","replaceCodeMirrorDoc","observableJS_language","observableJS_highlightStyle","myDefaultTheme","cellLanguage","languageOf","unloadedLanguage","routeLanguage"], _125gzhe);  
   $def("_65mlp5", "divToCell", [], _65mlp5);  
   $def("_bt6o0p", null, ["md"], _bt6o0p);  
   $def("_jh2ad1", "editor_refresh_from_runtime", ["editedCell","decompile","code_editor_view","replaceCodeMirrorDoc","queueMicrotask","onCodeChange","invalidation"], _jh2ad1);  
@@ -2793,12 +2889,12 @@ export default function define(runtime, observer) {
   $def("_18kaj2p", "editorModule", ["Generators","viewof editorModule"], _18kaj2p);  
   $def("_yeikvo", "editor_jobs", ["command_processor","submit_summary","save_options","persist_attach_menu"], _yeikvo);  
   $def("_e6lang", "cellLanguage", ["displayStateOf","languageOf","languageTagOf"], _e6lang);  
-  $def("_e6srcl", "sourceLanguage", ["parser","transpileJavaScript","cellLanguage","languageOf"], _e6srcl);  
+  $def("_e6srcl", "sourceLanguage", ["parser","transpileJavaScript","cellLanguage","languageOf","claimedLanguage"], _e6srcl);  
   $def("_e6dec", "decompile", ["cellLanguage","decompileJs","decompileOjs","displayStateOf","languageOf"], _e6dec);  
   $def("_e6djs", "defineJsCell", ["transpileJavaScript","defineCell","displayStateOf","realize","runtime","repositionSetElement","decompile"], _e6djs);  
   $def("_e5lng3", "test_e5_language_hook", ["cellLanguagesRef","languageOf","cellLanguage","sourceLanguage","decompile","compile_and_update","expect"], _e5lng3);
   $def("_1whoy5n", null, ["md"], _1whoy5n);  
-  $def("_gk83fp", "compile_and_update", ["compile","runtime","realize","repositionSetElement","decompile","cellLanguage","defineJsCell","sourceLanguage","pinOnCreate","claimCellSource","languageOf","unloadedLanguage","langTag","transpileJavaScript"], _gk83fp);
+  $def("_gk83fp", "compile_and_update", ["compile","runtime","realize","repositionSetElement","decompile","cellLanguage","defineJsCell","sourceLanguage","pinOnCreate","claimCellSource","unloadedLanguage","langTag","transpileJavaScript","routeLanguage","languageChoice"], _gk83fp);
   $def("_e5csh1", "cellSourceHandlers", ["plugins"], _e5csh1);
   $def("_e5csh2", "cellSourceHandlersRef", ["plugins","invalidation"], _e5csh2);
   $def("_e5csh4", "claimCellSource", ["parser","transpileJavaScript","cellSourceHandlersRef"], _e5csh4);

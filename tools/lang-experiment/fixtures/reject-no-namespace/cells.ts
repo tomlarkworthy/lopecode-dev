@@ -1,4 +1,4 @@
 namespace N {
-  export const x = 1;
+  const x = 1;
 }
-export let a = () => 1;
+let a = () => 1;

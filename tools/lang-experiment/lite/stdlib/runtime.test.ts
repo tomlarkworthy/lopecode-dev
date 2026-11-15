@@ -73,17 +73,17 @@ async function frameUntil(f: () => boolean, n = 5000) {
 
 // record counts each value, and counts a gap whenever a value is not the last one plus one.
 const STREAM = `type S = { readonly count: number; readonly last: number; readonly gaps: number; readonly sum: number };
-export const seen = (): RefCell<S> => ref<S>({ count: 0, last: 0, gaps: 0, sum: 0 });
-export const running = (): RefCell<boolean> => ref(true);
-export const nums = function* (running: boolean) {
+const seen = (): RefCell<S> => ref<S>({ count: 0, last: 0, gaps: 0, sum: 0 });
+const running = (): RefCell<boolean> => ref(true);
+const nums = function* (running: boolean) {
   if (!running) return;
   for (let i = 1; i <= 1000; i++) yield i;
 };
-export const weight = () => (v: number) => v;
-export const record = (seen: Ref<S>, weight: (v: number) => number) =>
+const weight = () => (v: number) => v;
+const record = (seen: Ref<S>, weight: (v: number) => number) =>
   action((v: number) => seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (v === s.last + 1 ? 0 : 1), sum: s.sum + weight(v) })));
-export const onNum = (nums: Events<number>, record: Action<[number]>) => on(nums, record);
-export const toggle = (running: Ref<boolean>) => action(() => running.update((r) => !r));`;
+const onNum = (nums: Events<number>, record: Action<[number]>) => on(nums, record);
+const toggle = (running: Ref<boolean>) => action(() => running.update((r) => !r));`;
 
 await run("e1_every_value_once", async () => {
   const p = await load(STREAM);
@@ -115,9 +115,9 @@ await run("e2_editing_a_dependency_of_the_action_mid_stream", async () => {
   const p = await load(STREAM);
   const onNum0 = p.evals("onNum");
   await frameUntil(() => p.value("seen").count >= 100);
-  p.define("export const weight = () => (v: number) => v * 1;");
+  p.define("const weight = () => (v: number) => v * 1;");
   await frameUntil(() => p.value("seen").count >= 300);
-  p.define("export const weight = () => (v: number) => 1 * v;");
+  p.define("const weight = () => (v: number) => 1 * v;");
   await frameUntil(() => p.value("seen").count >= 1000);
   for (let i = 0; i < 20; i++) frame();
   await flushed();
@@ -132,7 +132,7 @@ await run("e2_editing_a_dependency_of_the_action_mid_stream", async () => {
 await run("e3_listener_rerun_leaves_one", async () => {
   const p = await load(STREAM);
   await frameUntil(() => p.value("seen").count >= 50);
-  p.define("export const onNum = (nums: Events<number>, record: Action<[number]>) => /* again */ on(nums, record);");
+  p.define("const onNum = (nums: Events<number>, record: Action<[number]>) => /* again */ on(nums, record);");
   await frameUntil(() => p.value("seen").count >= 60);
   ok("e3_rerun_one_live_listener", ss.running() === 1, `running ${ss.running()}`);
   await frameUntil(() => p.value("seen").count >= 1000);
@@ -223,14 +223,14 @@ await run("r_action_in_ref", async () => {
   ok("r_ref_runs_the_action_it_holds", afterApply === 1 && p.value("count") === 0, `count ${afterApply} then ${p.value("count")}`);
   // (a1) the ref's initial value comes from inc, a dependency: editing inc re-creates the ref
   await press("useDec");
-  p.define("export const inc = (count: Ref<number>) => action(() => count.update((c) => c + 10));");
+  p.define("const inc = (count: Ref<number>) => action(() => count.update((c) => c + 10));");
   await p.settle();
   const c0 = p.value("count"); await press("current");
   report("a1 edit inc (the ref's initial value) after dec was stored", { refRecreated: p.value("current") === p.value("inc"), countChange: p.value("count") - c0 });
   // (a2) dec stored by an action, then dec's cell edited: the ref keeps the old function
   await press("useDec");
   const stored = p.value("current");
-  p.define("export const dec = (count: Ref<number>) => action(() => count.update((c) => c - 100));");
+  p.define("const dec = (count: Ref<number>) => action(() => count.update((c) => c - 100));");
   await p.settle();
   const c1 = p.value("count"); await press("current");
   report("a2 edit dec after it was stored by useDec", { refHoldsOld: p.value("current") === stored, refHoldsNew: p.value("current") === p.value("dec"), countChange: p.value("count") - c1 });
@@ -255,7 +255,7 @@ await run("r_action_stack", async () => {
   const down = { count: p.value("count"), undos: p.value("undos").length };
   ok("r_undo_stack_pops_and_runs_the_top", up.count === 3 && up.undos === 3 && down.count === 1 && down.undos === 1, JSON.stringify({ up, down }));
   // calling the stored action inside the update callback, as the checker also accepts
-  p.define("export const undoInside = (undos: Ref<readonly Action<[]>[]>) => action(() => undos.update((u) => { const t = u[u.length - 1]; if (t) t(); return u.slice(0, -1); }));");
+  p.define("const undoInside = (undos: Ref<readonly Action<[]>[]>) => action(() => undos.update((u) => { const t = u[u.length - 1]; if (t) t(); return u.slice(0, -1); }));");
   await p.settle();
   let threw = "";
   try { p.value("undoInside")(); await p.settle(); } catch (e) { threw = String((e as Error).message); }
@@ -265,7 +265,7 @@ await run("r_action_stack", async () => {
 });
 {
   // (e) a ref holding an action given to a compile island
-  const src = AREF.replace(/export const view[\s\S]*$/, "") + "\nexport const label = (current: Action<[]>) => 1;\nexport const viaInput = (compile: Compile) => compile({ inputs: [\"current\"], refs: [], outputs: [\"label\"] });\nexport const viaRef = (compile: Compile) => compile({ inputs: [], refs: [\"current\"], outputs: [\"label\"] });\n";
+  const src = AREF.replace(/const view[\s\S]*$/, "") + "\nexport const label = (current: Action<[]>) => 1;\nexport const viaInput = (compile: Compile) => compile({ inputs: [\"current\"], refs: [], outputs: [\"label\"] });\nexport const viaRef = (compile: Compile) => compile({ inputs: [], refs: [\"current\"], outputs: [\"label\"] });\n";
   const r = checkSources({ cells: src, tsx: true });
   report("e compile with a ref holding an action", r.cells.filter((c) => c.name.startsWith("via")).map((c) => `${c.name} ${c.status} ${c.errors.map((e) => `[${e.rule}] ${e.msg}`).join("; ")}`));
 }
@@ -318,7 +318,7 @@ await run("c2_flush_is_all_or_nothing", async () => {
 const defFor = (id: string) => (0, eval)(`(function (ss, invalidation) { return ss.cell(() => ({ id: "${id}" }), [], {kind: "cell", name: "e", memo: true, id: "${id}", invalidation: null}); })`);
 
 await run("c3_forget_matches_compiled_definitions", async () => {
-  const [v] = T.compileCell("export const fz = (n: number) => n + 1;", true);
+  const [v] = T.compileCell("const fz = (n: number) => n + 1;", true);
   const fn = (0, eval)(`(${v.definition})`);
   fn(ss, 1);
   ok("c3_evals_counts_compiled_definition", ss.evals(fn) === 1, `evals ${ss.evals(fn)}`);
@@ -342,7 +342,7 @@ await run("c3_200_edits_keep_memo_size", async () => {
 
 await run("c3_island_cache_bounded", async () => {
   let i = 0;
-  const c = ss.compiler(() => `export const x = () => 1;\nexport const y = (x: number) => x + ${i};\nexport const go = (compile: Compile) => compile({ inputs: ["x"], refs: [], outputs: ["y"] });\n`);
+  const c = ss.compiler(() => `const x = () => 1;\nexport const y = (x: number) => x + ${i};\nexport const go = (compile: Compile) => compile({ inputs: ["x"], refs: [], outputs: ["y"] });\n`);
   const jobs: any[] = [];
   const pool = { size: 1, run: async (job: any) => { jobs.push(job); return job; } };
   const spec = { inputs: ["x"], refs: [], outputs: ["y"], options: { runtime: pool } } as any;
@@ -364,7 +364,7 @@ await run("c3_island_cache_bounded", async () => {
 // compile in a module where an unrelated cell does not parse: the island of ok cells still runs, and
 // one that takes the unparsable cell is refused
 await run("c4_compile_with_an_unparsable_cell_elsewhere", async () => {
-  const texts = ["export const x = () => 1;", "export const y = (x: number) => x + 1;", "export const bad = (x: number) => x +;", "export const z = (bad: number) => bad;", "export const go = (compile: Compile) => compile({ inputs: [\"x\"], refs: [], outputs: [\"y\"] });"];
+  const texts = ["const x = () => 1;", "const y = (x: number) => x + 1;", "const bad = (x: number) => x +;", "const z = (bad: number) => bad;", "const go = (compile: Compile) => compile({ inputs: [\"x\"], refs: [], outputs: [\"y\"] });"];
   const c = ss.compiler(() => ss.joinCells(texts));
   const r: any = await c.for("go", {})({ inputs: ["x"], refs: [], outputs: ["y"] } as any)({ x: 41 });
   ok("c4_island_of_ok_cells_runs", r.y === 42, JSON.stringify(r));
@@ -424,7 +424,7 @@ await run("g5_nested_calls_belong_to_the_outermost_group", async () => {
 });
 // States what a cell sees when one action writes two refs; it asserts only that the observation was made.
 await run("g6_observed_one_action_writing_two_refs", async () => {
-  const L = await load(`export const a = (): RefCell<number> => ref(0);
+  const L = await load(`const a = (): RefCell<number> => ref(0);
 export const b = (): RefCell<number> => ref(0);
 export const pair = (a: number, b: number) => a * 100 + b;
 export const both = (a: Ref<number>, b: Ref<number>) => action(() => { a.set(1); b.set(2); });`);
@@ -475,30 +475,30 @@ async function editable(texts: string[], o: { reverse?: boolean; order?: boolean
   return { m, vars, values, raised, edit, settle, states, value: (n: string) => values.get(n) as any, evals: (n: string) => ss.evals(vars.get(n)._definition), text: (n: string) => T.decompileVariable(defs.get(n)!) };
 }
 const FIRST = [
-  "export const width = () => 640;",
-  "export const height = () => 400;",
-  "export const area = (width: number, height: number) => width * height;",
-  "export const aspect = (width, height) => (width / height).toFixed(2);",
-  "export const half = (area: number) => area / 2;",
-  "export const count = (): RefCell<number> => ref(0);",
-  "export const increment = (count: Ref<number>) => action(() => count.update((n) => n + 1));",
-  "export const label = (count: number) => `pressed ${count}`;",
-  "export const tall = (height: number) => height * 2;",
+  "const width = () => 640;",
+  "const height = () => 400;",
+  "const area = (width: number, height: number) => width * height;",
+  "const aspect = (width, height) => (width / height).toFixed(2);",
+  "const half = (area: number) => area / 2;",
+  "const count = (): RefCell<number> => ref(0);",
+  "const increment = (count: Ref<number>) => action(() => count.update((n) => n + 1));",
+  "const label = (count: number) => `pressed ${count}`;",
+  "const tall = (height: number) => height * 2;",
 ];
 await run("b1_breaking_edit_is_stored_and_repaired", async () => {
   const L = await editable(FIRST);
   L.value("increment")();
   await L.settle();
   const runs0 = { height: L.evals("height"), tall: L.evals("tall"), label: L.evals("label"), count: L.evals("count") };
-  await L.edit("width", 'export const width = () => "800";');
+  await L.edit("width", 'const width = () => "800";');
   const st = L.states();
   ok("b1_states", st.width === "ok" && st.area === "rejected" && st.aspect === "rejected" && st.half === "blocked by area" && st.tall === "ok", JSON.stringify(st));
   ok("b1_rejected_raise_the_checker_message", /^area does not check: \[inject-type\]/.test(L.raised.get("area") ?? "") && /^aspect does not check: \[type\]/.test(L.raised.get("aspect") ?? ""), JSON.stringify([...L.raised]));
   ok("b1_blocked_fails_through_dataflow", /area does not check/.test(L.raised.get("half") ?? ""), L.raised.get("half"));
   ok("b1_unrelated_ref_keeps_its_count", L.value("count") === 1 && L.value("label") === "pressed 1", `${L.value("count")} ${L.value("label")}`);
   // the two-cell change: area and aspect accept a string
-  await L.edit("area", "export const area = (width: string, height: number) => Number(width) * height;");
-  await L.edit("aspect", "export const aspect = (width: string, height: number) => (Number(width) / height).toFixed(2);");
+  await L.edit("area", "const area = (width: string, height: number) => Number(width) * height;");
+  await L.edit("aspect", "const aspect = (width: string, height: number) => (Number(width) / height).toFixed(2);");
   const st2 = L.states();
   ok("b1_two_cell_change_repairs", Object.values(st2).every((x) => x === "ok") && L.value("area") === 320000 && L.value("half") === 160000 && L.value("aspect") === "2.00", JSON.stringify(st2));
   L.value("increment")();
@@ -508,38 +508,38 @@ await run("b1_breaking_edit_is_stored_and_repaired", async () => {
 });
 await run("b2_rejected_body_never_runs", async () => {
   (globalThis as any).__ssSneak = 0;
-  const L = await editable([...FIRST, "export const sneak = (width: number) => { (globalThis as any).__ssSneak++; return width; };"]);
+  const L = await editable([...FIRST, "const sneak = (width: number) => { (globalThis as any).__ssSneak++; return width; };"]);
   ok("b2_rejected_at_load", L.states().sneak === "rejected" && /^sneak does not check:/.test(L.raised.get("sneak") ?? "") && (globalThis as any).__ssSneak === 0, `${L.raised.get("sneak")} runs ${(globalThis as any).__ssSneak}`);
-  await L.edit("sneak", "export const sneak = (width: number, height: number) => { (globalThis as any).__ssSneak++; return width + height; };");
+  await L.edit("sneak", "const sneak = (width: number, height: number) => { (globalThis as any).__ssSneak++; return width + height; };");
   ok("b2_rejected_after_an_edit", /^sneak does not check:/.test(L.raised.get("sneak") ?? "") && (globalThis as any).__ssSneak === 0, `runs ${(globalThis as any).__ssSneak}`);
-  ok("b2_typed_source_kept", L.text("sneak") === "export const sneak = (width: number, height: number) => { (globalThis as any).__ssSneak++; return width + height; };", L.text("sneak") ?? "null");
+  ok("b2_typed_source_kept", L.text("sneak") === "const sneak = (width: number, height: number) => { (globalThis as any).__ssSneak++; return width + height; };", L.text("sneak") ?? "null");
 });
 await run("b3_unparsable_edit_is_stored_and_repaired", async () => {
   const L = await editable(FIRST);
-  const BAD = "export const tall = (height: number) => height *;";
+  const BAD = "const tall = (height: number) => height *;";
   await L.edit("tall", BAD);
   ok("b3_stored_and_raises_the_parse_message", L.states().tall === "rejected" && /^tall does not check: \[parse\]/.test(L.raised.get("tall") ?? "") && L.text("tall") === BAD, `${L.raised.get("tall")} ${L.text("tall")}`);
   ok("b3_others_run", L.value("area") === 256000 && L.value("label") === "pressed 0", `${L.value("area")} ${L.value("label")}`);
-  await L.edit("tall", "export const tall = (height: number) => height * 3;");
+  await L.edit("tall", "const tall = (height: number) => height * 3;");
   ok("b3_repaired", L.value("tall") === 1200 && L.states().tall === "ok", String(L.value("tall")));
 });
 await run("b4_listener_in_the_broken_part_detaches_and_reattaches", async () => {
   const L = await editable([
-    "export const total = (): RefCell<number> => ref(0);",
-    "export const by = () => 1;",
-    "export const nums = function* () { for (let i = 0; i < 1000000; i++) yield i; };",
-    "export const add = (total: Ref<number>, by: number) => action((v: number) => total.update((t) => t + by));",
-    "export const onNum = (nums: Events<number>, add: Action<[number]>) => on(nums, add);",
+    "const total = (): RefCell<number> => ref(0);",
+    "const by = () => 1;",
+    "const nums = function* () { for (let i = 0; i < 1000000; i++) yield i; };",
+    "const add = (total: Ref<number>, by: number) => action((v: number) => total.update((t) => t + by));",
+    "const onNum = (nums: Events<number>, add: Action<[number]>) => on(nums, add);",
   ]);
   const r0 = ss.running();
   await frameUntil(() => L.value("total") >= 5);
-  await L.edit("by", 'export const by = () => "1";');
+  await L.edit("by", 'const by = () => "1";');
   const r1 = ss.running(), t1 = L.value("total");
   for (let i = 0; i < 20; i++) frame();
   await L.settle();
   const t2 = L.value("total");
   ok("b4_broken_listener_detached", L.states().add === "rejected" && L.states().onNum === "blocked by add" && r1 === r0 - 1 && t2 === t1, `${JSON.stringify(L.states())} running ${r0} -> ${r1}, total ${t1} -> ${t2}`);
-  await L.edit("by", "export const by = () => 2;");
+  await L.edit("by", "const by = () => 2;");
   const r2 = ss.running();
   await frameUntil(() => L.value("total") >= t2 + 10);
   ok("b4_repaired_listener_reattached_once", r2 === r0 && L.value("total") >= t2 + 10 && (L.value("total") - t2) % 2 === 0, `running ${r2}, total ${t2} -> ${L.value("total")}`);
@@ -551,24 +551,24 @@ await run("b4_listener_in_the_broken_part_detaches_and_reattaches", async () => 
 // base; own is itself made rejected and then repaired.
 await run("b5_state_lost_in_the_broken_part", async () => {
   const L = await editable([
-    "export const base = () => 5;",
-    "export const kept = (): RefCell<number> => ref(0);",
-    "export const seeded = (base: number): RefCell<number> => ref(base);",
-    "export const own = (): RefCell<number> => ref(0);",
-    "export const bump = (kept: Ref<number>, seeded: Ref<number>, own: Ref<number>) => action(() => { kept.update((n) => n + 1); seeded.update((n) => n + 1); own.update((n) => n + 1); });",
-    "export const sq = (base: number) => base * base;",
-    "export const fromSq = (sq: number): RefCell<number> => ref(sq);",
-    "export const bumpSq = (fromSq: Ref<number>) => action(() => fromSq.update((n) => n + 1));",
+    "const base = () => 5;",
+    "const kept = (): RefCell<number> => ref(0);",
+    "const seeded = (base: number): RefCell<number> => ref(base);",
+    "const own = (): RefCell<number> => ref(0);",
+    "const bump = (kept: Ref<number>, seeded: Ref<number>, own: Ref<number>) => action(() => { kept.update((n) => n + 1); seeded.update((n) => n + 1); own.update((n) => n + 1); });",
+    "const sq = (base: number) => base * base;",
+    "const fromSq = (sq: number): RefCell<number> => ref(sq);",
+    "const bumpSq = (fromSq: Ref<number>) => action(() => fromSq.update((n) => n + 1));",
   ]);
   L.value("bumpSq")();
   L.value("bump")(); L.value("bump")();
   await L.settle();
   const before = { kept: L.value("kept"), seeded: L.value("seeded"), own: L.value("own"), fromSq: L.value("fromSq") };
-  await L.edit("base", 'export const base = () => "5";');
-  await L.edit("own", 'export const own = (): RefCell<number> => ref("0");');
+  await L.edit("base", 'const base = () => "5";');
+  await L.edit("own", 'const own = (): RefCell<number> => ref("0");');
   const broken = L.states();
-  await L.edit("base", "export const base = () => 5;");
-  await L.edit("own", "export const own = (): RefCell<number> => ref(0);");
+  await L.edit("base", "const base = () => 5;");
+  await L.edit("own", "const own = (): RefCell<number> => ref(0);");
   const after = { kept: L.value("kept"), seeded: L.value("seeded"), own: L.value("own"), fromSq: L.value("fromSq") };
   console.log(`  b5: before ${JSON.stringify(before)}; broken ${JSON.stringify(broken)}; repaired ${JSON.stringify(after)}`);
   ok("b5_untouched_ref_kept", after.kept === before.kept, JSON.stringify({ before, after }));
@@ -577,19 +577,19 @@ await run("b5_state_lost_in_the_broken_part", async () => {
   ok("b5_blocked_ref_kept_when_its_input_returns_the_same_value", after.fromSq === before.fromSq, JSON.stringify({ before, after }));
   ok("b5_rejected_refs_restart", after.own === 0 && after.seeded === 5, JSON.stringify(after));
   // the same ref given a different input value starts again from it
-  await L.edit("base", "export const base = () => 6;");
+  await L.edit("base", "const base = () => 6;");
   ok("b5_blocked_ref_restarts_on_a_new_input_value", L.value("fromSq") === 36, String(L.value("fromSq")));
 });
 // Two listeners on one events cell run, for each value, in their cells' source order: on a fresh
 // load, after the first is edited and attaches again (now after the second), and when the module's
 // variables are defined in reverse.
 const ORDER = [
-  "export const log = (): RefCell<readonly string[]> => ref<readonly string[]>([]);",
-  "export const beats = function* () { let i = 0; while (true) yield i++; };",
-  "export const addFirst = (log: Ref<readonly string[]>) => action((v: number) => log.update((l) => [...l, \"first\"]));",
-  "export const addSecond = (log: Ref<readonly string[]>) => action((v: number) => log.update((l) => [...l, \"second\"]));",
-  "export const first = (beats: Events<number>, addFirst: Action<[number]>) => on(beats, addFirst);",
-  "export const second = (beats: Events<number>, addSecond: Action<[number]>) => on(beats, addSecond);",
+  "const log = (): RefCell<readonly string[]> => ref<readonly string[]>([]);",
+  "const beats = function* () { let i = 0; while (true) yield i++; };",
+  "const addFirst = (log: Ref<readonly string[]>) => action((v: number) => log.update((l) => [...l, \"first\"]));",
+  "const addSecond = (log: Ref<readonly string[]>) => action((v: number) => log.update((l) => [...l, \"second\"]));",
+  "const first = (beats: Events<number>, addFirst: Action<[number]>) => on(beats, addFirst);",
+  "const second = (beats: Events<number>, addSecond: Action<[number]>) => on(beats, addSecond);",
 ];
 const pairs = (l: readonly string[]) => { const out: string[] = []; for (let i = 0; i + 1 < l.length; i += 2) out.push(`${l[i]},${l[i + 1]}`); return [...new Set(out)]; };
 await run("o1_listener_order_is_source_order", async () => {
@@ -598,7 +598,7 @@ await run("o1_listener_order_is_source_order", async () => {
   const fresh = pairs(L.value("log"));
   ok("o1_fresh_load", fresh.length === 1 && fresh[0] === "first,second", JSON.stringify(L.value("log").slice(0, 8)));
   // first edited: its new listener attaches after second's, and still runs first
-  await L.edit("first", "export const first = (addFirst: Action<[number]>, beats: Events<number>) => on(beats, addFirst);");
+  await L.edit("first", "const first = (addFirst: Action<[number]>, beats: Events<number>) => on(beats, addFirst);");
   const n0 = L.value("log").length + (L.value("log").length % 2);
   await frameUntil(() => L.value("log").length >= n0 + 6);
   const edited = pairs(L.value("log").slice(n0));
@@ -616,7 +616,7 @@ await run("o1_listener_order_is_source_order", async () => {
   const U = await editable(ORDER, { reverse: true });
   await frameUntil(() => (U.value("log")?.length ?? 0) >= 6);
   const unplacedReverse = pairs(U.value("log"));
-  await U.edit("first", "export const first = (addFirst: Action<[number]>, beats: Events<number>) => on(beats, addFirst);");
+  await U.edit("first", "const first = (addFirst: Action<[number]>, beats: Events<number>) => on(beats, addFirst);");
   const m0 = U.value("log").length + (U.value("log").length % 2);
   await frameUntil(() => U.value("log").length >= m0 + 6);
   console.log(`  o1: with no host order (attach order): defined in reverse ${JSON.stringify(unplacedReverse)}; after first is edited ${JSON.stringify(pairs(U.value("log").slice(m0)))}`);
@@ -645,31 +645,31 @@ await run("o2_two_events_cells_interleave", async () => {
 // cells re-run (settled) after every commit or not at all until the end. Every schedule must store the
 // same values. The same log against the `copy` shape the action-capture rule rejects, compiled with the
 // check bypassed, shows the property failing.
-const LOGGED = `export const a = (): RefCell<number> => ref(1);
-export const b = (): RefCell<number> => ref(0);
-export const c = (): RefCell<number> => ref(0);
-export const addA = (a: Ref<number>) => action((n: number) => a.update((x) => (x * 3 + n) % 1009));
-export const copyAB = (a: Ref<number>, b: Ref<number>) => action(() => b.set((read(a) + read(b) * 7) % 10007));
-export const risky = (a: Ref<number>, c: Ref<number>) =>
+const LOGGED = `const a = (): RefCell<number> => ref(1);
+const b = (): RefCell<number> => ref(0);
+const c = (): RefCell<number> => ref(0);
+const addA = (a: Ref<number>) => action((n: number) => a.update((x) => (x * 3 + n) % 1009));
+const copyAB = (a: Ref<number>, b: Ref<number>) => action(() => b.set((read(a) + read(b) * 7) % 10007));
+const risky = (a: Ref<number>, c: Ref<number>) =>
   action((n: number) => {
     c.update((x) => x + n);
     if ((read(a) + n) % 5 === 0) throw new Error("risky");
   });
-export const both = (addA: Action<[number]>, copyAB: Action<[]>, c: Ref<number>) =>
+const both = (addA: Action<[number]>, copyAB: Action<[]>, c: Ref<number>) =>
   action((n: number) => {
     addA(n);
     copyAB();
     c.set((read(c) * 31 + n) % 10007);
   });
-export const ticks = function* () {
+const ticks = function* () {
   for (let i = 1; i <= 100000; i++) yield i;
 };
-export const tickC = (a: Ref<number>, c: Ref<number>) => action((t: number) => c.set((read(c) + read(a) * t) % 10007));
-export const onTickA = (ticks: Events<number>, addA: Action<[number]>) => on(ticks, addA);
-export const onTickC = (ticks: Events<number>, tickC: Action<[number]>) => on(ticks, tickC);
-export const total = (a: number, b: number, c: number) => a + b + c;`;
-const STALE = LOGGED.replace("export const copyAB = (a: Ref<number>, b: Ref<number>) => action(() => b.set((read(a) + read(b) * 7) % 10007));",
-  "export const copyAB = (a: number, b: Ref<number>) => action(() => b.set((a + read(b) * 7) % 10007));");
+const tickC = (a: Ref<number>, c: Ref<number>) => action((t: number) => c.set((read(c) + read(a) * t) % 10007));
+const onTickA = (ticks: Events<number>, addA: Action<[number]>) => on(ticks, addA);
+const onTickC = (ticks: Events<number>, tickC: Action<[number]>) => on(ticks, tickC);
+const total = (a: number, b: number, c: number) => a + b + c;`;
+const STALE = LOGGED.replace("const copyAB = (a: Ref<number>, b: Ref<number>) => action(() => b.set((read(a) + read(b) * 7) % 10007));",
+  "const copyAB = (a: number, b: Ref<number>) => action(() => b.set((a + read(b) * 7) % 10007));");
 const seeded = (seed: number) => () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 type Call = readonly ["addA" | "risky" | "both", number] | readonly ["copyAB"] | readonly ["frame"];
 const CALLS: Call[] = (() => {

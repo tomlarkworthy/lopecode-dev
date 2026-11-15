@@ -1,8 +1,8 @@
-export let a = () => {
+let a = () => {
   class A {}
   return typeof A;
 };
-export let b = () => {
+let b = () => {
   const K = class {};
   return typeof K;
 };
