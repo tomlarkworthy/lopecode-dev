@@ -8,7 +8,7 @@ import { analyze, extractCells, lineOf, CAPABILITIES, type Cell, type Param, typ
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const PRELUDE_PATH = join(HERE, "prelude.d.ts");
 
-export const PRELUDE_VALUES = new Set(["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals"]);
+export const PRELUDE_VALUES = new Set(["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "read"]);
 const TYPED_ARRAYS = ["Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array", "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array", "Float16Array"];
 export const INTRINSICS = new Set([
   "Object", "Array", "Math", "JSON", "Number", "String", "Boolean", "BigInt", "Symbol", "Map", "Set", "Error", "TypeError", "RangeError", "RegExp", "Promise",
@@ -423,9 +423,86 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
     return null;
   };
 
+  // action-capture: state-dependent cells, with the reason. A ref cell, a generator, a cell taking a
+  // capability other than invalidation or log, or a shell value, and a cell taking one of these by value.
+  const stateful = new Map<string, string>();
+  // cell.params come from the first analysis; the program's own parameter node is fn.parameters[i]
+  const progParam = (c: Cell, p: Param) => c.fn.parameters[c.params.indexOf(p)];
+  const takesByValue = (c: Cell, p: Param) => {
+    if (p.refTyped) return false;
+    const pn = progParam(c, p);
+    const t = pn?.type;
+    if (t && ts.isTypeReferenceNode(t) && ts.isIdentifier(t.typeName) && (t.typeName.text === "Events" || t.typeName.text === "Ref")) return false;
+    return !(pn && isAction(pn.name));
+  };
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (const c of cells) {
+      if (stateful.has(c.name)) continue;
+      let why: string | null = c.returnsRef ? "is a ref" : c.isGenerator ? "is a generator" : null;
+      for (const p of c.params) {
+        if (why) break;
+        if (p.facet === "capability" && p.name !== "invalidation" && p.name !== "log") why = `takes the capability ${p.name}`;
+        else if (p.source === "shell" && takesByValue(c, p)) why = `reads the shell cell ${p.name}`;
+        else if (p.source === "cell" && takesByValue(c, p) && stateful.has(p.name)) why = `reads ${p.name}`;
+      }
+      if (why) { stateful.set(c.name, why); changed = true; }
+    }
+  }
+
   // --- per-cell symbol and brand rules ---
   for (const cell of cells) {
     const fn = cell.fn;
+    {
+      // action-capture: a use, inside an action body, of a state-dependent parameter or of a local of
+      // the cell computed from one
+      const taint = new Map<ts.Node, string>();
+      for (const p of cell.params) {
+        const pn = progParam(cell, p);
+        if (!pn) continue;
+        if (p.facet === "capability" && p.name !== "invalidation" && p.name !== "log") taint.set(pn, `capability ${p.name}`);
+        else if (p.source === "shell" && takesByValue(cell, p)) taint.set(pn, "a shell cell's value");
+        else if (p.source === "cell" && takesByValue(cell, p) && stateful.has(p.name)) taint.set(pn, stateful.get(p.name) === "is a ref" ? `the value of the ref ${p.name}` : stateful.get(p.name) === "is a generator" ? `the latest value of the events cell ${p.name}` : `${p.name} ${stateful.get(p.name)}`);
+      }
+      const actionFnOf = (n: ts.Node): ts.Node | undefined => {
+        for (let a = n.parent; a && a !== fn; a = a.parent)
+          if (isFnLike(a) && a.parent && isPreludeCall(a.parent, "action") && a.parent.arguments.some((x) => x === a)) return a;
+        return undefined;
+      };
+      const declOf = (id: ts.Identifier) => (ts.isShorthandPropertyAssignment(id.parent) ? checker.getShorthandAssignmentValueSymbol(id.parent) : checker.getSymbolAtLocation(id))?.declarations?.[0];
+      if (taint.size) {
+        const locals: { decl: ts.Node; from: ts.Node }[] = [];
+        forEachDescendant(fn, (n) => {
+          if (actionFnOf(n)) return;
+          if (ts.isVariableDeclaration(n) && n.initializer) locals.push({ decl: n, from: n.initializer });
+          if (ts.isFunctionDeclaration(n) && n.body) locals.push({ decl: n, from: n.body });
+        });
+        for (let changed = true; changed; ) {
+          changed = false;
+          for (const l of locals) {
+            if (taint.has(l.decl)) continue;
+            let hit: string | null = null;
+            forEachDescendant(l.from, (n) => { if (!hit && ts.isIdentifier(n) && isValueRef(n)) { const d = declOf(n); if (d && taint.has(d)) hit = `computed from ${n.text}`; } });
+            if (hit) { taint.set(l.decl, hit); changed = true; }
+          }
+        }
+        const seen = new Set<string>();
+        forEachDescendant(fn, (n) => {
+          if (!ts.isIdentifier(n) || !isValueRef(n)) return;
+          const af = actionFnOf(n);
+          if (!af) return;
+          const d = declOf(n);
+          if (!d || !taint.has(d) || (d.pos >= af.pos && d.end <= af.end)) return;
+          const key = `${n.text}@${actionFnOf(n)!.pos}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          const why = taint.get(d)!;
+          push(n, "action-capture", why.startsWith("capability ")
+            ? `${n.text} is a capability, so an action using it would make the stored state depend on something the calls do not record; take the value as an argument of the action`
+            : `${n.text} depends on state (${why}), so an action using it would act on the value from the cell's last run; read the ref inside the action with read(...), or pass the value to the action when it is called`);
+        });
+      }
+    }
     {
       const sig = checker.getSignaturesOfType(typeOf(fn), ts.SignatureKind.Call)[0];
       const ret = sig?.getReturnType();
@@ -480,6 +557,8 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
           push(n, "ref-write", `${e.getText(sf)}(): Ref writes only inside action(...)`);
         else if (!isPreludeCall(n, "action") && isAction(e) && !insideAction(n))
           push(n, "action-call", `${e.getText(sf)}(): an Action may be called only inside action(...)`);
+        else if (isPreludeCall(n, "read") && !insideAction(n))
+          push(n, "read-outside-action", "read(...) is only for an action body; a cell takes the value as a parameter");
       }
 
       if (!ts.isIdentifier(n) || !isValueRef(n)) return;

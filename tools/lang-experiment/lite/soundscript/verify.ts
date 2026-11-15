@@ -314,6 +314,15 @@ async function counterClick(page: Page, label: string) {
   await page.waitForFunction((b) => [...document.querySelectorAll(".observablehq output")].some((o) => Number(o.textContent) === b + 1), before, { timeout: 5000 }).catch(() => {});
   const after = Number(await cell.locator("output").textContent());
   report(after === before + 1, `${label}: live counter click: output ${before} -> ${after}`);
+  // save is an action that stores read(count): after a click it shows the count as it was when clicked
+  const savedText = () => cell.locator("span", { hasText: /^saved / }).first().textContent();
+  await cell.getByRole("button", { name: "save" }).click();
+  await page.waitForFunction((a) => [...document.querySelectorAll(".observablehq span")].some((e) => e.textContent === `saved ${a}`), after, { timeout: 5000 }).catch(() => {});
+  const saved = await savedText();
+  await cell.getByRole("button", { name: "add one" }).click();
+  await page.waitForFunction((a) => [...document.querySelectorAll(".observablehq output")].some((o) => Number(o.textContent) === a + 1), after, { timeout: 5000 }).catch(() => {});
+  const later = await savedText();
+  report(saved === `saved ${after}` && later === saved, `${label}: save stores read(count): "${saved}" after a click at ${after}, "${later}" after one more add`);
 }
 
 // The editor on one cell: typed source shown, an unchanged Shift-Enter save, then a typed `from` -> `to`

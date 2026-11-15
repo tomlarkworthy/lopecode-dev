@@ -41,6 +41,14 @@ const has = (r: { labels: string[] }, ...ls: string[]) => ls.every((l) => r.labe
 const lacks = (r: { labels: string[] }, ...ls: string[]) => ls.every((l) => !r.labels.includes(l));
 const show = (r: { labels: string[]; mode: string }) => `${r.mode} ${JSON.stringify(r.labels)}`;
 
+// ---- read(ref) is offered only inside an action body, where it is legal
+{
+  const inside = at("export const increment = (count: Ref<number>) => action(() => count.set(re|))", "increment");
+  const outside = at("export const doubled = (count: number) => re|", "doubled");
+  ok("read is offered inside an action body", has(inside, "read") && inside.options.find((o) => o.label === "read")?.detail === "prelude: a ref's value inside an action", show(inside));
+  ok("read is not offered outside an action", lacks(outside, "read") && has(outside, "ref"), show(outside));
+}
+
 // ---- members after a dot
 {
   const r = at("export const increment = (count: Ref<number>) => action(() => count.|)", "increment");

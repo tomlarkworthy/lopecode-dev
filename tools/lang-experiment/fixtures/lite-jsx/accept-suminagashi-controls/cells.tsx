@@ -86,7 +86,7 @@ export let reset_view = (emptyTray) => <button onClick={emptyTray}>empty the tra
 // ---- pointer handling: one pure step per event ----
 // The step gets the committed state when the runtime applies it, so events that arrive before a
 // recompute still see each other's writes. The 2 s guard reads the event's own timestamp, so the
-// step needs no clock. `tool` is a separate widget ref; the handler depends on its value.
+// step needs no clock. `tool` is a separate widget ref; the handler reads it when it is called.
 export let step = (sequence) => (s: Canvas, e: Ev): Canvas => {
   if (e.kind === "empty") return { turn: 0, pointer: undefined, finished: false, resets: s.resets + 1 };
   if (e.kind === "finish") return { ...s, finished: { at: e.at, why: e.why } };
@@ -97,8 +97,8 @@ export let step = (sequence) => (s: Canvas, e: Ev): Canvas => {
   const fluid = sequence[(turn - 1 + sequence.length) % sequence.length] ?? 0;
   return { ...s, turn, pointer: { touch: e.d.t, tool: e.tool, fluid, x: e.d.x, y: e.d.y, down: true } };
 };
-export let pointerDown = (tool, step, canvasState: Ref<Canvas>) =>
-  action((d: PointerData) => canvasState.update((s) => step(s, { kind: "down", d, tool })));
+export let pointerDown = (tool: Ref<Tool>, step, canvasState: Ref<Canvas>) =>
+  action((d: PointerData) => canvasState.update((s) => step(s, { kind: "down", d, tool: read(tool) })));
 export let pointerMove = (step, canvasState: Ref<Canvas>) => action((d: PointerData) => canvasState.update((s) => step(s, { kind: "move", d })));
 export let pointerUp = (step, canvasState: Ref<Canvas>) => action((d: PointerData) => canvasState.update((s) => step(s, { kind: "up" })));
 // mainLoop's `finished = { at, why }` (the loop is not part of this fixture)

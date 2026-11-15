@@ -94,7 +94,7 @@ const RAW: Record<string, Record<string, Variable>> = {
     test_ss_counter: {
       name: "test_ss_counter",
       inputs: ["tests_on", "ss", "ss_instance", "tutorial_module"],
-      definition: "async (on, ss, ss_instance, mod) => { if (on !== true) throw new Error(\"the tests are off\"); let end; const done = new Promise((r) => (end = r)); try { const inst = await ss_instance(mod, done); const [handle, increment, clear] = await Promise.all([inst.value(\"viewof count\"), inst.value(\"increment\"), inst.value(\"clear\")]); const g = ss.refValues(handle); const v0 = g.next().value; increment(); const v1 = await g.next().value; clear(); const v2 = await g.next().value; if (v1 !== v0 + 1 || v2 !== 0) throw new Error(`${v0} -> ${v1} -> ${v2}`); return `${v0} -> ${v1} -> ${v2}`; } finally { end(); } }",
+      definition: "async (on, ss, ss_instance, mod) => { if (on !== true) throw new Error(\"the tests are off\"); let end; const done = new Promise((r) => (end = r)); try { const inst = await ss_instance(mod, done); const [handle, savedHandle, increment, clear, save] = await Promise.all([inst.value(\"viewof count\"), inst.value(\"viewof saved\"), inst.value(\"increment\"), inst.value(\"clear\"), inst.value(\"save\")]); const g = ss.refValues(handle), gs = ss.refValues(savedHandle); const v0 = g.next().value; gs.next(); increment(); const v1 = await g.next().value; save(); const s1 = await gs.next().value; clear(); const v2 = await g.next().value; if (v1 !== v0 + 1 || s1 !== v1 || v2 !== 0) throw new Error(`${v0} -> ${v1} (saved ${s1}) -> ${v2}`); return `${v0} -> ${v1}, saved ${s1} -> ${v2}`; } finally { end(); } }",
     },
   },
 };

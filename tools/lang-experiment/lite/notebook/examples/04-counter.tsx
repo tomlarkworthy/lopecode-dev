@@ -8,10 +8,14 @@ export function count(): RefCell<number> {
 export const increment = (count: Ref<number>) => action(() => count.update((c) => c + 1));
 export const clear = (count: Ref<number>) => action(() => count.set(0));
 
-// The view is a value: a tree of elements, rebuilt whenever count changes.
-export const app = (count: number, increment: Action<[]>, clear: Action<[]>) => (
+// An action reads state with read(...): save stores the count as it is when save is called.
+export const saved = (): RefCell<number> => ref(0);
+export const save = (count: Ref<number>, saved: Ref<number>) => action(() => saved.set(read(count)));
+
+// The view is a value: a tree of elements, rebuilt whenever count or saved changes.
+export const app = (count: number, saved: number, increment: Action<[]>, clear: Action<[]>, save: Action<[]>) => (
   <div>
     <button onClick={increment}>add one</button> <button onClick={clear} disabled={count === 0}>clear</button>{" "}
-    <output>{count}</output>
+    <output>{count}</output> <button onClick={save}>save</button> <span>saved {saved}</span>
   </div>
 );

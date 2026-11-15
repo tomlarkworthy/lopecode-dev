@@ -293,7 +293,7 @@ interface Ref<T> {
 declare function equals(a: unknown, b: unknown): boolean;
 `;
 export const CAPABILITIES: Record<string, string> = { now: "Clock", random: "Random", fetch: "Fetch", log: "Log", invalidation: "Invalidation", compile: "Compile", pool: "Pool" };
-export const PRELUDE_FNS = new Set(["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on"]);
+export const PRELUDE_FNS = new Set(["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "read"]);
 
 // JSX: an element is a value. A renderer outside the checked cells turns it into DOM nodes; event
 // props are Actions and receive data, never DOM Event objects.

@@ -134,9 +134,9 @@ here so that you can fix them.
 
 State is a cell that returns `ref(initial)`. Other cells use it in two ways. A parameter named
 `count` gets the current value and runs again when it changes. A parameter typed `Ref<number>` gets
-the reference, which can be written and cannot be read.
+the reference. It is not a dependency: the cell does not run again when the value changes.
 
-A write must be inside `action(...)`. `increment` and `clear` are actions. A cell cannot call them;
+A write must be inside `action(...)`. An action reads state with `read(count)`, not through a value parameter, so it always sees the current value. `increment` and `clear` are actions. A cell cannot call them;
 the page does, when a button is clicked.
 
 The view is a cell too. `app` returns JSX: a description of the page that is built again whenever
@@ -244,7 +244,7 @@ For a cell the checker accepts: it reads only its parameters and the allowed bui
 runs it writes only values it made; a `ref` changes only when the page calls an action; and every
 effect is a named parameter. A cell with no capability parameter returns the same value for the
 same inputs. A cell the checker rejects does not run. It shows the checker's message, and so does
-every cell that depends on it, until it is repaired.
+every cell that depends on it, until it is repaired. The stored state is decided by the ordered list of action calls and their arguments. It does not depend on which calls share a commit or on when cells run again.
 
 Not guaranteed:
 
@@ -252,6 +252,7 @@ Not guaranteed:
   checker, with its date)
 - A cell may take `now` or `random` and be accepted. It is then not repeatable, and its signature
   shows it.
+- An events cell that reads state restarts when it sees the state change. Two changes inside one commit are seen as one, so a clock paused and resumed in the same commit does not restart.
 
 ---
 
@@ -273,8 +274,8 @@ Four SoundScript cells and a view that uses them:
 2026-11-15)
 
 `tally` is state. `bump` and `reset` are actions, the only places it is written. `doubled` reads
-it. Open any of them with its **edit** bar; a change is applied only if the whole module still
-checks.
+it. Open any of them with its **edit** bar. An edit is always stored; a cell that does not check
+does not run.
 
 Then keep `readme_use` and the rest as they are, with these changes:
 

@@ -64,7 +64,7 @@ export function rejected(name: string, why: string[]): never {
   throw new Error(`${name} does not check: ${why.join("; ")}`);
 }
 
-export const { ref, action, mut, freeze, borrow, snapshot, equals, refValues } = P;
+export const { ref, action, mut, freeze, borrow, snapshot, equals, refValues, read } = P;
 export { h, on, create, patch, pagePool, running, pulling, release, sweep };
 
 // Values a generator has yielded. A reader of one may be handed the same buffer mutated between

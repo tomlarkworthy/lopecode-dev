@@ -729,6 +729,56 @@ a cell the checker rejected (section 3's `leak`, section 8's eleven) still ran.
   unparsable edit, a listener in the broken part detaching and attaching again) and `o1`–`o2`
   (listener order).
 
+### State is a function of the call log: `read` and `action-capture` (2026-11-15)
+
+Tom approved both on 2026-11-15, so that state survives iteration: the stored values should not
+depend on which calls share a commit or on when cells run again. Before this an action that wrote
+`b` from `a`'s value had to take `a` by value, and so used the value from the cell's last run:
+
+```
+export const copy = (other: Ref<number>, count: number) => action(() => other.set(count + 1));
+```
+
+- `read(ref)` (prelude): inside an action, the value as of this point in the call order.
+- Writes are now applied when they are made, to a per-commit overlay, in call order
+  (`prelude.runtime.ts` `write`, `undoTo`). A call that throws, nested calls included, undoes its
+  own writes and rethrows. The commit (a `setTimeout` macrotask, as before) stores each touched
+  ref once, with one version bump. Before, writes were queued and applied at the commit, so an
+  `update` function that threw was logged there as `action outer: an update threw…`; it now throws
+  out of the call. Tests changed for that: `c2`, `g1`, `g2`, `g3`, `g5` in `stdlib/runtime.test.ts`.
+- `action-capture`, in `lite/capture.ts` (called from `core.ts`) and in `check.ts`: an action body
+  may not use a value that depends on state (rule text in `RULES.md`). Both checkers give the same
+  three errors on `fixtures/reject-action-capture`; `fixtures/accept-read` passes both.
+- Property test `p1` (`stdlib/runtime.test.ts`): 300 seeded calls over three refs, five actions
+  (one reads `a` to write `b`, one throws on some arguments, one calls two others) and frames that
+  deliver one events value to two listeners, run under six schedules. All six stored
+  `[a, b, c, total, threw] = [96,3408,2719,6223,18]`. `p2` runs the same log with `copyAB` in the
+  `copy` shape, compiled with the check bypassed: a commit after every call gives `b` 8043, one
+  commit at the end gives 4170.
+- Precision, measured on scratch cells (`probe/cap.ts`): rejected and safe, an events cell that
+  yields once (its value never changes, the listener's action is still rejected for using it).
+  `log` in an action was rejected in the first version and is allowed since (Tom, 2026-11-15): it
+  writes nothing the program reads back. The taint
+  follows names, not values: `const unused = count` used only in `typeof unused` is rejected.
+- Capabilities in actions: `random()`, `now()` and `fetch(...)` inside an action body are
+  `action-capture` now (`fixtures/reject-action-capture` `roll`, `stamp`, `load`); before this they
+  were accepted. `log(...)` is accepted (`fixtures/accept-read` `say`). A random or time value
+  reaches an action only as an argument, from an events cell's value through `on(...)` or from a
+  view: Breakout's `ticks` takes `now` and yields `dt`, and `onTick` passes it to `tick`, which is
+  accepted. Wrapping an action in
+  a handler (`onClick={() => rollArg(random())}`) was and is rejected (`action-call`). `fetch(...)
+  .then((r) => n.set(r.status))` inside an action was accepted before and fails at run time with
+  `Ref n: set/update called outside an action` (the `set` runs after the action returned; checked
+  with the old prelude and a resolved promise in place of `fetch`).
+- Cells changed: `fixtures/lite-jsx/accept-suminagashi-controls` `pointerDown` took `tool` by
+  value; it now takes `tool: Ref<Tool>` and reads it. `jsx/proof.ts` asserted that picking a tool
+  re-described `canvas_view`; it now asserts the opposite (`canvas_view` 4 -> 2 evaluations). The
+  tutorial's counter (`notebook/examples/04-counter.tsx`) gained `saved` and `save`, an action that
+  stores `read(count)`, so the feature is on the page; `test_ss_counter` checks that `save` after
+  one `increment` stores 1. No other port, tutorial example, `core-example.ts` or `horde` cell is
+  rejected by the rule
+  (`bun lite/check.ts horde`: 37 ok, before and after).
+
 ## Not done
 
 **Owned collections** (`mut([mut(…)])`, a Mut holding Muts) were the stretch goal and are not

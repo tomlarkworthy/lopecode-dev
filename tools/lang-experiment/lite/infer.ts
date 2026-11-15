@@ -1123,6 +1123,15 @@ export class Checker {
         this.rec(a, f);
         return named("Action", { k: "tup", els: f.ps.map((p) => p.t) });
       }
+      case "read": {
+        // read(ref): the value as of this point in the call order; only inside an action body
+        const a = one();
+        if (!env.fi.inAction) this.err(e, "read-outside-action", "read(...) is only for an action body; a cell takes the value as a parameter");
+        const t = a ? this.infer(a, env) : ERR;
+        if (t.k === "err") return ERR;
+        if (!isNamed(t, "Ref")) { this.err(a!, "type", `read needs a Ref<T>, got ${show(t)}`); return ERR; }
+        return t.args[0];
+      }
       case "on": {
         if (args.length !== 2) { this.err(e, "arity", "on takes an events handle and an action"); return named("Listener"); }
         const s = this.infer(args[0], env);

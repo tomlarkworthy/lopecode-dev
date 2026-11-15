@@ -34,10 +34,10 @@ const frame = () => { const fs = frames.splice(0); for (const f of fs) f(); retu
 // runs it: every variable observed, `ss` the stdlib, invalidation the runtime's own.
 const { Runtime } = await import("@observablehq/runtime");
 const { checkSources } = await import("../core.ts");
-async function load(src: string) {
+async function load(src: string, opts: { unchecked?: boolean } = {}) {
   const checked = checkSources({ cells: src, tsx: true });
   const bad = checked.cells.filter((c) => c.status !== "ok");
-  if (bad.length) throw new Error(`not ok: ${bad.map((c) => `${c.name} ${c.status} ${JSON.stringify(c.errors)}`).join("; ")}`);
+  if (bad.length && !opts.unchecked) throw new Error(`not ok: ${bad.map((c) => `${c.name} ${c.status} ${JSON.stringify(c.errors)}`).join("; ")}`);
   const runtime = new Runtime();
   const m = runtime.module();
   m.define("ss", [], () => ss);
@@ -50,7 +50,9 @@ async function load(src: string) {
     const name = ss.declaredName(text);
     const at = texts.findIndex((t) => ss.declaredName(t) === name);
     if (at < 0) texts.push(text); else if (texts[at] !== text) texts[at] = text;
-    const now = T.contextFromCheck(ss.checkCells(texts).result);
+    // unchecked: compiled as if the checker had accepted every cell, to show what a rule prevents
+    const ctx = T.contextFromCheck(ss.checkCells(texts).result);
+    const now = opts.unchecked ? { ...ctx, accepted: new Set(texts.map((t) => ss.declaredName(t)!)), why: null } : ctx;
     for (const d of T.compileCell(text, true, now, name)) {
       const v = vars.get(d.name) ?? m.variable({ fulfilled: (x: unknown) => values.set(d.name, x), rejected: (e: unknown) => errs.push(`${d.name}: ${(e as Error)?.message ?? e}`) });
       vars.set(d.name, v);
@@ -295,15 +297,17 @@ await run("c1_nested_action_caught", async () => {
   ok("c1_outer_throw_discards_nested_success", val(d) === 0, `d ${val(d)}`);
 });
 
+// a write is applied when it is made, so an update that throws throws out of the call; returns the message
+const thrown = (f: () => void) => { try { f(); return ""; } catch (e) { return String((e as Error).message); } };
 await run("c2_flush_is_all_or_nothing", async () => {
   errors.length = 0; uncaught.length = 0;
   const c = P.materialize(P.ref(1), "c") as any, d = P.materialize(P.ref(1), "d") as any;
   const gc = P.refValues(c); gc.next();
-  P.action(() => { c.update((v: number) => v + 1); d.update(() => { throw new Error("in update"); }); })();
+  const msg = thrown(() => P.action(() => { c.update((v: number) => v + 1); d.update(() => { throw new Error("in update"); }); })());
   await flushed();
   ok("c2_no_store_changed", val(c) === 1 && val(d) === 1, `c ${val(c)} d ${val(d)}`);
-  ok("c2_state_clean", P.state.queue.length === 0 && !P.state.flushScheduled);
-  ok("c2_error_reported", errors.some((m) => m.includes("in update")) && uncaught.length === 0, `errors ${JSON.stringify(errors)} uncaught ${uncaught.length}`);
+  ok("c2_state_clean", P.state.queue.length === 0 && P.state.overlay.size === 0 && !P.state.flushScheduled);
+  ok("c2_error_thrown_at_the_call", msg === "in update" && uncaught.length === 0, `thrown ${JSON.stringify(msg)} uncaught ${uncaught.length}`);
   const pending = gc.next().value as Promise<unknown>;
   ok("c2_no_waiter_woken", pending instanceof Promise);
   P.action(() => { c.update((v: number) => v + 1); c.update((v: number) => v * 10); })();
@@ -376,19 +380,18 @@ await run("g1_a_throwing_group_keeps_an_earlier_groups_writes", async () => {
   errors.length = 0;
   const x = refOf(0, "x"), y = refOf(5, "y");
   named("A", () => x.set(1))();
-  named("B", () => y.update(() => { throw new Error("B broke"); }))();
+  const msg = thrown(() => named("B", () => y.update(() => { throw new Error("B broke"); }))());
   await flushed();
-  const logged = errors.filter((m) => m.includes("B broke"));
   ok("g1_x_set_by_A_lands", val(x) === 1, `x ${val(x)}`);
   ok("g1_y_unchanged", val(y) === 5, `y ${val(y)}`);
-  ok("g1_one_error_naming_B", logged.length === 1 && logged[0].startsWith("action B:"), JSON.stringify(errors));
+  ok("g1_B_throws_at_its_call", msg === "B broke" && !errors.some((m) => m.includes("B broke")), `thrown ${JSON.stringify(msg)} errors ${JSON.stringify(errors)}`);
 });
 await run("g2_groups_either_side_of_a_throw_both_apply", async () => {
   const x = refOf(0, "x");
   const g = P.refValues(x); g.next();
   const commits = P.state.commits;
   named("A", () => x.update((v: number) => v + 1))();
-  named("B", () => x.update(() => { throw new Error("B broke"); }))();
+  thrown(() => named("B", () => x.update(() => { throw new Error("B broke"); }))());
   named("C", () => x.update((v: number) => v + 10))();
   await flushed();
   ok("g2_x_is_plus_11", val(x) === 11, `x ${val(x)}`);
@@ -398,7 +401,7 @@ await run("g2_groups_either_side_of_a_throw_both_apply", async () => {
 await run("g3_a_group_is_dropped_whole", async () => {
   const z = refOf(0, "z"), p = refOf(0, "p"), q = refOf(0, "q");
   named("A", () => z.set(9))();
-  named("B", () => { p.set(3); q.update(() => { throw new Error("second write broke"); }); })();
+  thrown(() => named("B", () => { p.set(3); q.update(() => { throw new Error("second write broke"); }); })());
   await flushed();
   ok("g3_neither_of_Bs_writes_lands", val(p) === 0 && val(q) === 0, `p ${val(p)} q ${val(q)}`);
   ok("g3_As_write_lands", val(z) === 9, `z ${val(z)}`);
@@ -414,10 +417,10 @@ await run("g5_nested_calls_belong_to_the_outermost_group", async () => {
   const x = refOf(0, "x"), y = refOf(0, "y"), w = refOf(0, "w");
   const inner = named("inner", () => x.set(100));
   named("before", () => w.set(1))();
-  named("outer", () => { inner(); y.update(() => { throw new Error("outer broke"); }); })();
+  const msg = thrown(() => named("outer", () => { inner(); y.update(() => { throw new Error("outer broke"); }); })());
   await flushed();
   ok("g5_nested_write_dropped_with_its_outer_call", val(x) === 0 && val(y) === 0 && val(w) === 1, `x ${val(x)} y ${val(y)} w ${val(w)}`);
-  ok("g5_error_names_the_outer_call", errors.some((m) => m.startsWith("action outer:")), JSON.stringify(errors));
+  ok("g5_outer_call_throws", msg === "outer broke", JSON.stringify(msg));
 });
 // States what a cell sees when one action writes two refs; it asserts only that the observation was made.
 await run("g6_observed_one_action_writing_two_refs", async () => {
@@ -635,6 +638,104 @@ await run("o2_two_events_cells_interleave", async () => {
   C.release(ls); C.release(la); C.release(hs); C.release(ha);
 });
 
+
+// The stored state is a function of the ordered list of action calls and their arguments. One fixed log
+// of calls (and frames, each delivering one events value to two listeners) is run under several
+// schedules: a commit after every call, one commit at the end, commits at seeded random points, and
+// cells re-run (settled) after every commit or not at all until the end. Every schedule must store the
+// same values. The same log against the `copy` shape the action-capture rule rejects, compiled with the
+// check bypassed, shows the property failing.
+const LOGGED = `export const a = (): RefCell<number> => ref(1);
+export const b = (): RefCell<number> => ref(0);
+export const c = (): RefCell<number> => ref(0);
+export const addA = (a: Ref<number>) => action((n: number) => a.update((x) => (x * 3 + n) % 1009));
+export const copyAB = (a: Ref<number>, b: Ref<number>) => action(() => b.set((read(a) + read(b) * 7) % 10007));
+export const risky = (a: Ref<number>, c: Ref<number>) =>
+  action((n: number) => {
+    c.update((x) => x + n);
+    if ((read(a) + n) % 5 === 0) throw new Error("risky");
+  });
+export const both = (addA: Action<[number]>, copyAB: Action<[]>, c: Ref<number>) =>
+  action((n: number) => {
+    addA(n);
+    copyAB();
+    c.set((read(c) * 31 + n) % 10007);
+  });
+export const ticks = function* () {
+  for (let i = 1; i <= 100000; i++) yield i;
+};
+export const tickC = (a: Ref<number>, c: Ref<number>) => action((t: number) => c.set((read(c) + read(a) * t) % 10007));
+export const onTickA = (ticks: Events<number>, addA: Action<[number]>) => on(ticks, addA);
+export const onTickC = (ticks: Events<number>, tickC: Action<[number]>) => on(ticks, tickC);
+export const total = (a: number, b: number, c: number) => a + b + c;`;
+const STALE = LOGGED.replace("export const copyAB = (a: Ref<number>, b: Ref<number>) => action(() => b.set((read(a) + read(b) * 7) % 10007));",
+  "export const copyAB = (a: number, b: Ref<number>) => action(() => b.set((a + read(b) * 7) % 10007));");
+const seeded = (seed: number) => () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+type Call = readonly ["addA" | "risky" | "both", number] | readonly ["copyAB"] | readonly ["frame"];
+const CALLS: Call[] = (() => {
+  const r = seeded(7), out: Call[] = [];
+  for (let i = 0; i < 300; i++) {
+    const k = Math.floor(r() * 5), n = Math.floor(r() * 50);
+    out.push(k === 0 ? ["addA", n] : k === 1 ? ["copyAB"] : k === 2 ? ["risky", n] : k === 3 ? ["both", n] : ["frame"]);
+  }
+  return out;
+})();
+type Schedule = { name: string; commitAfter: (i: number) => boolean; settle: boolean };
+const SCHEDULES: Schedule[] = [
+  { name: "commit after every call, cells re-run", commitAfter: () => true, settle: true },
+  { name: "commit after every call, cells not re-run", commitAfter: () => true, settle: false },
+  { name: "one commit at the end", commitAfter: () => false, settle: false },
+  ...[1, 2, 3].map((seed) => { const r = seeded(seed); const at = CALLS.map(() => r() < 0.15); return { name: `commits at random points (seed ${seed}), cells re-run`, commitAfter: (i: number) => at[i], settle: true }; }),
+];
+async function runLog(src: string, sch: Schedule, unchecked = false) {
+  frames.length = 0;
+  const p = await load(src, { unchecked });
+  await frameUntil(() => frames.length === 1, 50); // the events cell has its first value waiting
+  let threw = 0;
+  const call = (c: Call) => {
+    if (c[0] === "frame") { frame(); return; }
+    const act = p.value(c[0]);
+    try { c[0] === "copyAB" ? act() : act(c[1]); } catch { threw++; }
+  };
+  for (let i = 0; i < CALLS.length; i++) {
+    call(CALLS[i]);
+    if (!sch.commitAfter(i)) continue;
+    await new Promise((r) => setTimeout(r, 0)); // the commit is a macrotask
+    if (sch.settle) await p.settle();
+  }
+  await p.settle();
+  const out = { a: p.value("a"), b: p.value("b"), c: p.value("c"), total: p.value("total"), threw, errs: p.errs.length };
+  for (const v of p.vars.values()) { ss.release(v._value); v.delete(); }
+  p.runtime.dispose();
+  frames.length = 0;
+  return out;
+}
+await run("p1_stored_state_is_a_function_of_the_call_log", async () => {
+  errors.length = 0;
+  const got: { name: string; r: Awaited<ReturnType<typeof runLog>> }[] = [];
+  for (const sch of SCHEDULES) got.push({ name: sch.name, r: await runLog(LOGGED, sch) });
+  const key = (r: any) => JSON.stringify([r.a, r.b, r.c, r.total, r.threw]);
+  for (const g of got) console.log(`  p1: ${g.name}: ${key(g.r)}`);
+  const frames_ = CALLS.filter((c) => c[0] === "frame").length;
+  ok("p1_every_schedule_stores_the_same_values", got.every((g) => key(g.r) === key(got[0].r)), got.map((g) => key(g.r)).join(" "));
+  ok("p1_the_log_exercises_throws_and_frames", got[0].r.threw > 0 && frames_ > 0, `threw ${got[0].r.threw}, frames ${frames_}`);
+  ok("p1_no_runtime_errors", got.every((g) => g.r.errs === 0), JSON.stringify(got.map((g) => g.r.errs)));
+});
+await run("p2_the_rejected_copy_shape_breaks_it", async () => {
+  const rejected = checkSources({ cells: STALE, tsx: true }).cells.find((c) => c.name === "copyAB")!;
+  ok("p2_checker_rejects_copyAB", rejected.errors.some((e) => e.rule === "action-capture"), JSON.stringify(rejected.errors));
+  const got: string[] = [];
+  const same = await runLog(LOGGED, SCHEDULES[0], true);
+  console.log(`  p2: the accepted program compiled the same way: ${JSON.stringify([same.a, same.b, same.c, same.total, same.threw])}, errors ${same.errs}`);
+  const ref0 = await runLog(LOGGED, SCHEDULES[0]);
+  ok("p2_the_bypass_alone_changes_nothing", same.errs === 0 && JSON.stringify(same) === JSON.stringify(ref0), `${JSON.stringify(same)} vs ${JSON.stringify(ref0)}`);
+  for (const sch of [SCHEDULES[0], SCHEDULES[2]]) {
+    const r = await runLog(STALE, sch, true);
+    got.push(JSON.stringify([r.a, r.b, r.c, r.total, r.threw]));
+    console.log(`  p2: check bypassed, ${sch.name}: ${got[got.length - 1]}`);
+  }
+  ok("p2_schedules_disagree_when_the_check_is_bypassed", got[0] !== got[1], got.join(" "));
+});
 console.error = realError;
 if (uncaught.length) ok("no_uncaught_exceptions", false, String(uncaught[0]));
 console.log(`${pass} pass, ${fail} fail`);

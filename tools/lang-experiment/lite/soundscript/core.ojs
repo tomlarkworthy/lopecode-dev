@@ -10,7 +10,7 @@ readme_listing = cellListing(ss_module, invalidation, { from: "tally", to: "doub
 // %%
 example_view = htl.html`<div class="ss-example"><button onclick=${() => bump()}>bump</button> <button onclick=${() => reset()}>reset</button> <code>tally = ${tally}</code>, <code>doubled = ${doubled}</code></div>`
 // %%
-readme_example = md`\`tally\` is state. \`bump\` and \`reset\` are actions, the only places it is written. \`doubled\` reads it. Open any of them with its **edit** bar; an edit is always stored; a cell that does not check does not run.`
+readme_example = md`\`tally\` is state. \`bump\` and \`reset\` are actions, the only places it is written. \`doubled\` reads it. Open any of them with its **edit** bar. An edit is always stored; a cell that does not check does not run.`
 // %%
 readme_use = ss_highlightCode(md`## Using it in a module
 

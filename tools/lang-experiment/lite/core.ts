@@ -9,6 +9,7 @@ import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec } from "./types.ts";
 import { CAPABILITIES } from "./intrinsics.ts";
 import { island, specOf, compileCalls } from "./island.ts";
 import { factsOf, type CellInfo } from "./facts.ts";
+import { captures, captureMessage } from "./capture.ts";
 
 export type LiteError = { rule: string; line: number; msg: string };
 export type LiteCell = {
@@ -229,6 +230,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   const takenAsEvents = new Set<string>(cells.flatMap((c) => (c.fn.params as Node[]).filter((p) => p.typeAnnotation?.typeAnnotation?.type === "TSTypeReference" && p.typeAnnotation.typeAnnotation.typeName.name === "Events").map((p) => p.name as string)));
   // Listener cells: no other cell may take one, so a listener's lifetime is its own cell's value.
   const listenerCells = new Set<string>();
+  // State-dependent cells, with the reason: a ref cell (its value is state), a generator (its values),
+  // a cell taking a capability other than invalidation or log, and any cell taking one of these by value.
+  const stateful = new Map<string, string>();
   for (const c of order) {
     if (value.has(c.name)) continue;
     const r = out.get(c.name)!;
@@ -281,6 +285,28 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       } else injected.push(vt);
     }
     injected.forEach((t, i) => { if (t.k !== "err" && hasErr(t)) { r.blockedBy.push(`${c.fn.params[i].name} (type not understood)`); } });
+    // action-capture: which parameters are state-dependent values, and why
+    const tainted = new Map<string, string>();
+    for (const p of c.fn.params as Node[]) {
+      if (p.type !== "Identifier") continue;
+      const ann = p.typeAnnotation?.typeAnnotation;
+      const wrapper = ann?.type === "TSTypeReference" ? ann.typeName?.name : null;
+      if (wrapper === "Ref" || wrapper === "Events") continue;
+      const name: string = p.name;
+      if (cellNames.has(name)) {
+        const t = value.get(name);
+        if (t && isNamed(t, "Action")) continue;
+        if (refInner.has(name)) tainted.set(name, `the value of the ref ${name}`);
+        else if (byName.get(name)?.fn.generator) tainted.set(name, `the latest value of the events cell ${name}`);
+        else if (stateful.has(name)) tainted.set(name, `${name} ${stateful.get(name)}`);
+      } else if (shellNames.has(name)) tainted.set(name, `a shell cell's value`);
+      // log writes nothing the program reads back; invalidation is the cell's own lifetime
+      else if (name in CAPABILITIES && name !== "invalidation" && name !== "log") tainted.set(name, `capability ${name}`);
+    }
+    const firstTaint = [...tainted.entries()][0];
+    if (firstTaint) stateful.set(c.name, firstTaint[1].startsWith("capability ") ? `takes the ${firstTaint[1]}` : `reads ${firstTaint[0]}`);
+    if (c.fn.generator) stateful.set(c.name, `is a generator`);
+    for (const cap of captures(c.fn, tainted)) diag(cap.node, "action-capture", captureMessage(cap));
     let fnT: Ty = ERR;
     try {
       fnT = ch.fnExpr(c.fn, null, undefined, { injected });
@@ -300,6 +326,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       const nested = holds(ret.args[0], ["Ref", "RefCell"]);
       if (nested) r.errors.push({ rule: "ref-in-ref", line: P.line(c.fn.start), msg: `a ref holds ${show(ret.args[0])}, which contains ${nested}; a ref's content may not contain a Ref or RefCell` });
       refInner.set(c.name, ret.args[0]); ret = ret.args[0];
+      stateful.set(c.name, "is a ref");
     }
     // a Listener is a whole cell value: not in a list, record, ref, union with another type, or function
     if (isNamed(ret, "Listener") || (ret.k === "union" && ret.ts.every((t) => isNamed(t, "Listener")))) listenerCells.add(c.name);

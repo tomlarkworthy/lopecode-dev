@@ -13,8 +13,10 @@ export const actionNames = new WeakMap<object, string>();
 export const state = {
   evalDepth: 0, // >0 while a cell definition (or a generator step) runs synchronously
   actionDepth: 0,
-  // each write carries the group of the top-level action call that queued it
-  queue: [] as { store: Store; apply: (v: unknown) => unknown; group: Group }[],
+  // writes are applied when they are made, in call order, to this batch's overlay; flush commits it
+  overlay: new Map<Store, unknown>(),
+  // one entry per write, to undo a call's writes when it throws: the store and its overlay state before
+  queue: [] as { store: Store; had: boolean; prev: unknown; group: Group }[],
   group: null as Group | null,
   flushScheduled: false,
   commits: 0,
@@ -23,6 +25,7 @@ export const state = {
 export function reset() {
   state.evalDepth = 0;
   state.actionDepth = 0;
+  state.overlay = new Map();
   state.queue = [];
   state.group = null;
   state.flushScheduled = false;
@@ -41,6 +44,13 @@ const stores = new WeakMap<object, Store>();
 function guardWrite(name: string) {
   if (state.actionDepth === 0) throw new Error(`Ref ${name}: set/update called outside an action`);
 }
+// the value as of this point in the call order: the committed value plus this batch's writes so far
+const current = (store: Store) => (state.overlay.has(store) ? state.overlay.get(store) : store.value);
+function write(store: Store, f: (v: unknown) => unknown) {
+  const next = f(current(store)); // an update function that throws throws here, inside the call
+  state.queue.push({ store, had: state.overlay.has(store), prev: state.overlay.get(store), group: state.group! });
+  state.overlay.set(store, next);
+}
 
 // Turn the RefCell a cell returned into the reference handle consumers typed Ref<T> receive.
 export function materialize(cell: { initial: unknown }, name: string) {
@@ -49,15 +59,23 @@ export function materialize(cell: { initial: unknown }, name: string) {
     [REFHANDLE]: name,
     set(v: unknown) {
       guardWrite(name);
-      state.queue.push({ store, apply: () => v, group: state.group! });
+      write(store, () => v);
     },
     update(f: (v: unknown) => unknown) {
       guardWrite(name);
-      state.queue.push({ store, apply: f, group: state.group! });
+      write(store, f);
     },
   });
   stores.set(handle, store);
   return handle;
+}
+
+// read(ref) inside an action: the committed value plus every write made earlier in call order
+export function read(handle: object): unknown {
+  const store = stores.get(handle);
+  if (!store) throw new Error("read(...) needs a Ref");
+  if (state.actionDepth === 0) throw new Error(`read(${store.name}) called outside an action`);
+  return current(store);
 }
 
 // Value of a ref cell: yields the current value, then once per committed write.
@@ -78,29 +96,13 @@ export function* refValues(handle: object): Generator<unknown> {
   }
 }
 
-// Each top-level action call is a group, applied in call order against the values the earlier groups
-// produced. A group whose update function throws is dropped whole and logged; later groups still apply.
-// Every touched store is then committed once, with one version bump. flush runs from setTimeout, where a
-// rethrow is an uncaught exception with no caller to catch it, so errors go to console.error.
+// Commits the batch: every store the overlay holds takes its value, with one version bump, and its
+// readers are woken. The writes were already applied, in call order, when they were made.
 function flush() {
   state.flushScheduled = false;
-  const q = state.queue;
+  const next = state.overlay;
+  state.overlay = new Map();
   state.queue = [];
-  const next = new Map<Store, unknown>();
-  for (let i = 0; i < q.length; ) {
-    const group = q[i].group;
-    const mine = new Map<Store, unknown>();
-    try {
-      for (; i < q.length && q[i].group === group; i++) {
-        const w = q[i];
-        mine.set(w.store, w.apply(mine.has(w.store) ? mine.get(w.store) : next.has(w.store) ? next.get(w.store) : w.store.value));
-      }
-      for (const [st, v] of mine) next.set(st, v);
-    } catch (e) {
-      while (i < q.length && q[i].group === group) i++;
-      console.error(`action ${actionNames.get(group.action) ?? "(anonymous)"}: an update threw, so none of this call's writes are stored:`, e);
-    }
-  }
   if (!next.size) return;
   for (const [st, v] of next) st.value = v;
   for (const st of next.keys()) {
@@ -112,22 +114,32 @@ function flush() {
   state.commits++;
 }
 
+function undoTo(mark: number) {
+  for (let i = state.queue.length - 1; i >= mark; i--) {
+    const w = state.queue[i];
+    if (w.had) state.overlay.set(w.store, w.prev);
+    else state.overlay.delete(w.store);
+  }
+  state.queue.length = mark;
+}
+
 export function action(f: (...args: unknown[]) => void) {
   const a = (...args: unknown[]) => {
     if (state.evalDepth > 0 && state.actionDepth === 0) throw new Error("action called during a cell evaluation");
     if (state.actionDepth === 0) state.group = { action: a };
     state.actionDepth++;
-    // all or nothing: a throw discards the writes this call queued, its nested calls' included
+    // all or nothing: a throw (in the body or an update function) undoes the writes this call made,
+    // its nested calls' included; the overlay is as it was when the call began
     const mark = state.queue.length;
     try {
       f(...args);
     } catch (e) {
-      state.queue.length = mark;
+      undoTo(mark);
       throw e;
     } finally {
       state.actionDepth--;
       if (state.actionDepth === 0) state.group = null;
-      if (state.actionDepth === 0 && state.queue.length && !state.flushScheduled) {
+      if (state.actionDepth === 0 && state.overlay.size && !state.flushScheduled) {
         state.flushScheduled = true;
         setTimeout(flush, 0); // a macrotask: never inside a cell's synchronous evaluation
       }

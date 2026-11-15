@@ -85,7 +85,7 @@ copies it to a plain `T`. A cell that yields `borrow` is counted in the `Owner` 
 - `export function count(): RefCell<number> { return ref(0) }` declares state.
 - A parameter `count` (or `count: number`) receives the current value and is a dependency.
   A parameter `count: Ref<number>` receives the reference and is not a dependency on the value.
-- `Ref<T>` has `set(v: T): void` and `update(f: (v: T) => T): void`, and no read.
+- `Ref<T>` has `set(v: T): void` and `update(f: (v: T) => T): void`, and no read method.
 - Writes are legal only lexically inside `action(...)`: `action(() => count.update(c => c + 1))`
   has type `Action<[]>`. An `Action` may be called only inside another `action(...)`. A cell body
   never calls one; it returns it, puts it in a record, or passes it to a parameter typed `Action`
@@ -96,6 +96,17 @@ copies it to a plain `T`. A cell that yields `borrow` is counted in the `Owner` 
 - A ref's content type may not contain `Ref` or `RefCell` anywhere: not directly, and not in a
   record, an array, a union, a type argument or a function signature (`ref-in-ref`).
   `ref(count)` with `count: Ref<number>` is an error. (Tom, 2026-11-15.)
+- `read(count)`, with `count: Ref<T>`, is a `T`: the stored value plus every write made earlier in
+  the call order. It is legal only lexically inside `action(...)` (`read-outside-action`); at run
+  time it throws outside an action. (Tom, 2026-11-15.)
+- The body of an `action(...)` may not use a value that depends on state (`action-capture`): a
+  parameter naming a ref cell or an events cell by value, a capability other than `invalidation`
+  or `log` (`log` writes nothing the program reads back), a parameter naming a cell that takes any
+  of these by value (transitively), or a `const`, `let` or function of the cell computed from one.
+  A value from the clock or the random source reaches an action as an argument, from an events
+  cell or a view, so it is recorded with the call. Ref and Events handles, Actions, cells with no state,
+  and the action's own parameters and locals are allowed. So the stored state is decided by the
+  ordered list of action calls and their arguments. Both checkers. (Tom, 2026-11-15.)
 
 ## Events and listeners (lite checker only)
 
@@ -123,7 +134,9 @@ Tom, 2026-11-15. `check.ts` and `prelude.d.ts` do not know these names;
   module's source; listeners in other modules come after, by module name, then source order.
   Attach order and re-runs do not change it. (2026-11-15.)
 - Each top-level action call is its own flush group: a call that throws discards only its own
-  writes and those of the actions it called. (2026-11-15.)
+  writes and those of the actions it called. (2026-11-15.) Since the same day a write is applied
+  when it is made, so an `update` function that throws throws out of the call that made it, not
+  later at the commit.
 
 ## Editing a module with broken cells (Tom, 2026-11-15)
 

@@ -70,7 +70,7 @@ async function importTranspiled(dir: string, file: string, tag: string) {
   const out = join(HERE, ".build", `${basename(dir)}-${process.pid}-${tag}-${buildCounter++}`);
   mkdirSync(out, { recursive: true });
   const target = join(out, file.replace(/\.ts$/, ".mjs"));
-  const header = `import { ref, action, mut, freeze, borrow, snapshot, equals } from ${JSON.stringify(pathToFileURL(PRELUDE_RT).href)};\n`;
+  const header = `import { ref, action, mut, freeze, borrow, snapshot, equals, read } from ${JSON.stringify(pathToFileURL(PRELUDE_RT).href)};\n`;
   writeFileSync(target, header + js);
   return (await import(pathToFileURL(target).href)) as Record<string, unknown>;
 }

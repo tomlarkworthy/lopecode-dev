@@ -144,7 +144,8 @@ function scopeNames(ch: Checker, env: Env): Completion[] {
   for (let s: Scope | null = env.scope; s; s = s.parent) {
     for (const [name, b] of s.vars) {
       if (out.has(name) || name === PH) continue;
-      if (b.kind === "prelude") { out.set(name, { label: name, type: "function", detail: "prelude" }); continue; }
+      // read is offered only inside an action body, the one place it is legal
+      if (b.kind === "prelude") { if (name !== "read" || env.fi?.inAction) out.set(name, { label: name, type: "function", detail: name === "read" ? "prelude: a ref's value inside an action" : "prelude" }); continue; }
       const t = env.flow.get("#" + b.id) ?? b.t;
       const type = b.kind === "global" ? (ch.reg.callSigs(t).length ? "function" : "namespace") : b.kind === "fn" || ch.reg.callSigs(t).length ? "function" : "variable";
       out.set(name, { label: name, type, detail: b.kind === "global" ? "intrinsic" : show(t) });

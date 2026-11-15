@@ -71,9 +71,9 @@ md`**Try it.** Open \`leak\` and change \`return xs\` to \`return freeze(xs)\`. 
 // %%
 md`## 4. State and views
 
-State is a cell that returns \`ref(initial)\`. Other cells use it in two ways. A parameter named \`count\` gets the current value and runs again when it changes. A parameter typed \`Ref<number>\` gets the reference, which can be written and cannot be read.
+State is a cell that returns \`ref(initial)\`. Other cells use it in two ways. A parameter named \`count\` gets the current value and runs again when it changes. A parameter typed \`Ref<number>\` gets the reference. It is not a dependency: the cell does not run again when the value changes.
 
-A write must be inside \`action(...)\`. \`increment\` and \`clear\` are actions. A cell cannot call them; the page does, when a button is clicked.
+A write must be inside \`action(...)\`. An action reads state with \`read(count)\`, not through a value parameter, so it always sees the current value. \`increment\` and \`clear\` are actions. A cell cannot call them; the page does, when a button is clicked.
 
 The view is a cell too. \`app\` returns JSX: a description of the page that is built again whenever \`count\` changes. An event attribute such as \`onClick\` must be given an action.`
 // %%
@@ -293,12 +293,13 @@ Section 2's mistakes stay in a box because \`width\` and \`area\` are section 1'
 // %%
 md`## What is guaranteed
 
-For a cell the checker accepts: it reads only its parameters and the allowed built-ins; while it runs it writes only values it made; a \`ref\` changes only when the page calls an action; and every effect is a named parameter. A cell with no capability parameter returns the same value for the same inputs. A cell the checker rejects does not run. It shows the checker's message, and so does every cell that depends on it, until it is repaired.
+For a cell the checker accepts: it reads only its parameters and the allowed built-ins; while it runs it writes only values it made; a \`ref\` changes only when the page calls an action; and every effect is a named parameter. A cell with no capability parameter returns the same value for the same inputs. A cell the checker rejects does not run. It shows the checker's message, and so does every cell that depends on it, until it is repaired. The stored state is decided by the ordered list of action calls and their arguments. It does not depend on which calls share a commit or on when cells run again.
 
 Not guaranteed:
 
 - The checker is a prototype. On 2026-11-14, 52 of 54 existing fixtures got the same verdict and reason from it as from the TypeScript-based reference checker, with index reads typed \`T\` as TypeScript does ("How good is the checker").
-- A cell may take \`now\` or \`random\` and be accepted. It is then not repeatable, and its signature shows it.`
+- A cell may take \`now\` or \`random\` and be accepted. It is then not repeatable, and its signature shows it.
+- An events cell that reads state restarts when it sees the state change. Two changes inside one commit are seen as one, so a clock paused and resumed in the same commit does not restart.`
 // %%
 md`## Language reference
 
@@ -404,6 +405,8 @@ md`### State: \`ref\`, \`action\`
 | \`count\` or \`count: number\` as a parameter | the current value; the reader runs again after each committed write |
 | \`count: Ref<number>\` as a parameter | the handle: \`set(v)\`, \`update(f)\`, no read |
 | \`action((by: number) => count.update((c) => c + by))\` | an \`Action<[number]>\`; writes are legal only lexically inside \`action(...)\` (\`[ref-write]\`) |
+| \`read(count)\` inside an action, with \`count: Ref<number>\` | the value as of this point in the call order: the stored value plus the writes made earlier in the same commit; legal only inside an action body (\`[read-outside-action]\`) |
+| \`(other: Ref<number>, count: number) => action(() => other.set(count + 1))\` | rejected: an action body may not use a value that depends on state, that is a ref's or an events cell's value, \`now\`, \`random\` or \`fetch\`, or a local computed from one (\`[action-capture]\`); \`log\` is allowed. A value from the clock or the random source reaches an action as an argument, from an events cell or a view, so it is recorded with the call: Breakout's \`ticks\` takes \`now\` and yields \`dt\`, and \`onTick\` passes it to \`tick\`. |
 
 A cell body never calls an action (\`[action-call]\`); an action may call another action inside its own body. A cell returns an action, puts it in a record, passes it to an \`Action\` parameter, a JSX event prop or \`on(...)\`; an action where something else is expected is \`[action-pass]\`. The host calls it. Writes made by one action call are committed together after it returns.`
 // %%
@@ -497,7 +500,7 @@ testsView = testTable([["tutorial", tutorial_module], ["reducer", reducer_module
 // %%
 test_examples_check_as_expected = {
   tests_on;
-  const want = { cells: [7, 0], errors: [8, 5], mut: [4, 2], counter: [4, 0], reducer: [10, 0], model: [10, 0], workers: [13, 0], rejectJsx: [17, 11], game: [21, 0] };
+  const want = { cells: [7, 0], errors: [8, 5], mut: [4, 2], counter: [6, 0], reducer: [10, 0], model: [10, 0], workers: [13, 0], rejectJsx: [17, 11], game: [21, 0] };
   const got = {};
   for (const [k, [n, rejected]] of Object.entries(want)) {
     const r = ss.checkSources({ cells: examples[k], tsx: k !== "cells" && k !== "errors" && k !== "mut" });
@@ -1065,7 +1068,7 @@ test_ss_module_checks = {
   tests_on;
   const { result } = ss_check(tutorial_module);
   const got = Object.fromEntries(result.cells.map((c) => [c.name, c.status]));
-  const want = { width: "ok", height: "ok", area: "ok", aspect: "ok", scale: "ok", half: "ok", test_half: "ok", samples: "ok", histogram: "ok", leak: "rejected", late: "rejected", count: "ok", increment: "ok", clear: "ok", app: "ok", n: "ok", inc: "ok", setN: "ok", Badge: "ok", NotElem: "ok", bad_attr_type: "rejected", bad_unknown_attr: "rejected", bad_unknown_element: "rejected", bad_handler_not_action: "rejected", bad_handler_wrong_args: "rejected", bad_component_props: "rejected", bad_component_missing_prop: "rejected", bad_component_not_elem: "rejected", bad_mut_in_jsx: "rejected", bad_child_object: "rejected", ok_all: "ok" };
+  const want = { width: "ok", height: "ok", area: "ok", aspect: "ok", scale: "ok", half: "ok", test_half: "ok", samples: "ok", histogram: "ok", leak: "rejected", late: "rejected", count: "ok", increment: "ok", clear: "ok", saved: "ok", save: "ok", app: "ok", n: "ok", inc: "ok", setN: "ok", Badge: "ok", NotElem: "ok", bad_attr_type: "rejected", bad_unknown_attr: "rejected", bad_unknown_element: "rejected", bad_handler_not_action: "rejected", bad_handler_wrong_args: "rejected", bad_component_props: "rejected", bad_component_missing_prop: "rejected", bad_component_not_elem: "rejected", bad_mut_in_jsx: "rejected", bad_child_object: "rejected", ok_all: "ok" };
   if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(`verdicts ${JSON.stringify(got)}`);
   if (result.module.length) throw new Error(`module errors ${JSON.stringify(result.module)}`);
   return `${result.cells.length} cells: leak, late and the ten bad_* rejected, the rest ok`;

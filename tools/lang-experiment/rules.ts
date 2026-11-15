@@ -50,6 +50,8 @@ export const RULES: RuleInfo[] = [
   { id: "ref-write", section: "Refs and actions", how: "approx", summary: "Ref.set/update outside the lexical body of action(...)" },
   { id: "action-call", section: "Refs and actions", how: "approx", summary: "an Action called outside the lexical body of action(...)" },
   { id: "action-pass", section: "Refs and actions", how: "approx", summary: "an Action passed to a parameter not typed Action" },
+  { id: "action-capture", section: "Refs and actions", how: "approx", summary: "an action body uses a value that depends on state (a ref's value, an events value, a capability, or a local computed from one)" },
+  { id: "read-outside-action", section: "Refs and actions", how: "exact", summary: "read(ref) outside the lexical body of action(...)" },
   // Foreign
   { id: "foreign-unmarked", section: "Foreign values and the shell", how: "exact", summary: "foreign.d.ts declaration without /** pure */ or /** effect */" },
   { id: "foreign-effect", section: "Foreign values and the shell", how: "exact", summary: "a checked cell takes an /** effect */ foreign" },

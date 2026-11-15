@@ -65,7 +65,7 @@ await rerender();
 check("clicking the blow radio sets tool", port.value("tool") === "blow", port.value("tool"));
 check("the blow radio is now the checked one", radios("tool")[1].checked === true && radios("tool")[0].checked === false);
 check("the canvas is the same DOM node after the handler changed", q("canvas") === canvas0);
-check("canvas_view was described again (its pointerDown input changed)", port.evals("canvas_view") > canvasEvals0, port.evals("canvas_view"));
+check("canvas_view was not described again (pointerDown reads tool when it is called)", port.evals("canvas_view") === canvasEvals0, port.evals("canvas_view"));
 
 fire(q("canvas"), "pointerdown", { clientX: 10, clientY: 20 });
 await rerender();

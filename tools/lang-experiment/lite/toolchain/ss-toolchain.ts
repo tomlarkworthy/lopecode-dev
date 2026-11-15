@@ -13,7 +13,7 @@ export { langOf, LANG };
 
 const SS = "$ss$"; // wrapper parameter bound to the stdlib runtime object
 export const STDLIB_INPUT = "ss";
-const PRELUDE = ["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "h"];
+const PRELUDE = ["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "h", "read"];
 // Capability parameter -> the variable the stdlib provides. invalidation is the runtime's own;
 // ss_compile is defined in each module that compiles, because compile reads that module's cells.
 export const CAP_INPUTS: Record<string, string> = { now: "ss_now", random: "ss_random", fetch: "ss_fetch", log: "ss_log", pool: "ss_pool", compile: "ss_compile", invalidation: "invalidation" };

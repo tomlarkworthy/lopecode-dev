@@ -19,7 +19,7 @@ export type Capabilities = { now?: (cell: string) => () => number; random?: (cel
 export type Verdicts = { cells: { name: string; status: string; errors: unknown[] }[] };
 
 const CAPS = new Set(["now", "random", "fetch", "log", "invalidation", "compile", "pool"]);
-const PRELUDE = ["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "h"];
+const PRELUDE = ["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "h", "read"];
 export type Program = ReturnType<typeof runCells>;
 
 let programs = 0;
@@ -31,7 +31,7 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
   const cells = cellsOf(ts);
   const names = cells.map((c) => c.name);
   const exports = new Function(...PRELUDE, `"use strict";\n${js}\nreturn {${names.join(", ")}};`)(
-    P.ref, P.action, P.mut, P.freeze, P.borrow, P.snapshot, P.equals, on, h) as Record<string, (...a: unknown[]) => unknown>;
+    P.ref, P.action, P.mut, P.freeze, P.borrow, P.snapshot, P.equals, on, h, P.read) as Record<string, (...a: unknown[]) => unknown>;
   const byName = new Map(cells.map((c) => [c.name, c]));
   const caps = opts.caps ?? {};
   const runtime = new Runtime();
