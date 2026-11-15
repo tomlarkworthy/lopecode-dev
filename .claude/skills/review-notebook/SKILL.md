@@ -421,3 +421,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   cost placeholder, "every hold has its wait" false for review-first holds, a token count, an unparseable clause, an event
   cited as the dry run that was the worker's later record of it, a sentence that read as contradicting its own count,
   three wordings). 100.6k subagent tokens, 3m06s.
+- 2026-11-15 `plan/retros/2026-11-15.md`, authored by the spawning session: BLOCK, 9 findings, all confirmed and taken (two
+  placeholders, 5 of 10 owner waits said ended where 8 had, an after-link figure of 0 that `laptop` issues counted as doable
+  hid (fixed in `measure.py`), a queue count, an approval-to-live time, a dry-run fault called a verify fault, an issue called
+  one of the owner's yeses that was a prerequisite, an unexplained time, a missing date). 104.6k subagent tokens, 4m08s.

@@ -186,7 +186,7 @@ for w,lo in(("24h",D1),("7d",D7)):
     op=[e for e in E if e["type"]=="opened" and e["at"]>=lo]
     P(w,"opened:",len(op),"by:",dict(collections.Counter(who(e) for e in op).most_common()),"| kind:",dict(collections.Counter(e.get("kind") for e in op)),"| class:",dict(collections.Counter(klass(ISSUE[e.get("id")]) for e in op)))
 # ---- 7 machine idle with work waiting (from runs' cost events: start = at - seconds)
-P("\n## runs active vs doable issues, 24h, 30-min buckets (from cost events; doable = not ended, labelled needs-<a persona>, no after link to an issue not ended unless a worker session has run on it; needs-owner counts needs-owner and needs-token)")
+P("\n## runs active vs doable issues, 24h, 30-min buckets (from cost events; doable = not ended, labelled needs-<a persona> and not laptop (the owner's laptop drain runs those, not the Fly machine; retro 2026-11-15), no after link to an issue not ended unless a worker session has run on it; needs-owner counts needs-owner and needs-token)")
 B=30*60000; buckets=[D1+k*B for k in range(48)]
 runs=[(e["at"]-(e.get("seconds") or 0)*1000,e["at"]) for e in E if e["type"]=="cost" and e["at"]>=D1-6*H]
 # state and labels at time t: replay
@@ -208,7 +208,7 @@ for b in buckets:
     # Linked after an issue not ended is no work before its first worker session (route.js beforeAfter; the drain took
     # topic-dbsql-slow, linked after an open issue at its 9th round, on 2026-11-01).
     # A live hold is no work (route.js takes): delve-scout-by-post-advert-check, held with needs-worker 11-11 06:45 to 11-12 00:30, read "idle with work" 30 of 48 (retro 2026-11-12).
-    doable=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&PERSONA_LABELS and hold.get(i,0)<=b and (i in worked or not any(st.get(t,"open") not in ENDED for t in aft[i])))
+    doable=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&PERSONA_LABELS and "laptop" not in lab[i] and hold.get(i,0)<=b and (i in worked or not any(st.get(t,"open") not in ENDED for t in aft[i])))
     owner=sum(1 for i,v in st.items() if v not in ENDED and lab[i]&OWNER_LABELS)
     active=sum(1 for s,t in runs if s<b+B and t>b)
     # Held by an after link to an issue not ended (retro 2026-11-11: 10 parts of rows-atomic-writes chained 83 h behind owner deploys read "idle with work: 0").
@@ -267,14 +267,26 @@ P("\n## open issues at waiting-deploy whose wait names a hash with no deployer l
 DL=(DEP.get("lines",DEP) if isinstance(DEP,dict) else DEP) or []
 ENDS={"deploy.confirmed","deploy.put-back","deploy.failed","deploy.approved","deploy.refused"}
 dead=[]
+# A holder has one wait on an issue, its newest (retro 2026-11-15: a worker's yield replaced deploy.ts's wait with a note that
+# named no deploy, and two put-backs of brain-x-delve reached no issue). An issue at waiting-deploy with no live wait that names
+# a deploy is listed too: no deployer line can wake it.
+nowake=[]
 for i,v in st.items():
     if v in ENDED or "waiting-deploy" not in lab[i]: continue
-    ws=[e for e in BYID.get(i,[]) if e["type"]=="waits" and "deploy:" in (e.get("note") or "")]
-    if not ws or NOW-ws[-1]["at"]<3600e3: continue
+    newest={}
+    for e in BYID.get(i,[]):
+        if e["type"]=="waits": newest[(e.get("by") or {}).get("holder")]=e
+    ws=sorted([e for e in newest.values() if "deploy:" in (e.get("note") or "") and e.get("until",0)>NOW],key=lambda e:e["at"])
+    if not ws:
+        if newest: nowake.append((max(e["at"] for e in newest.values()),i))
+        continue
+    if NOW-ws[-1]["at"]<3600e3: continue
     w=ws[-1]; hs=re.findall(r"deploy:([\w-]+)@([0-9a-f]{12})",w["note"])
     if not any(l.get("target")==t and (l.get("hash") or "").startswith(h) and l.get("t",0)>w["at"] and l.get("at") in ENDS for t,h in hs for l in DL): dead.append((w["at"],i,w["note"]))
 for t,i,n in sorted(dead): P(" ",iso(t),i,"|",n)
 P("deploy waits no line answers:",len(dead))
+for t,i in sorted(nowake): P(" ",iso(t),i,"| at waiting-deploy, no live wait names a deploy")
+P("waiting-deploy with no live deploy wait:",len(nowake))
 
 # ---- an approval with no wait to carry it (retro 2026-11-14: raw-library-cas-deploy was opened by hand at needs-owner, no
 # wait; the owner approved brain-x-library@c4d6ca82659f on 2026-11-12 07:30, nothing sent it, and it asked him for 42 h more).
