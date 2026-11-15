@@ -1,12 +1,12 @@
-ok   D moves right x 80.50 -> 87.85
+ok   D moves right x 80.50 -> 87.70
 ok   W moves up y 50.50 -> 49.45
 ok   mouse aims aim 3.00 rad with the mouse at the left edge
 ok   left button fires 63 bullets in flight while held
 ok   release stops fire 0 bullets 1.2 s after release
 ok   space charges, release fires a shockwave charge 0.70 after 0.7 s, cooldown 2.92 after release
-ok   right button during cooldown does nothing cooldown 2.50
-ok   P pauses frame 348 -> 348 over 0.5 s
-ok   P resumes frame 378
+ok   right button during cooldown does nothing cooldown 2.52
+ok   P pauses frame 347 -> 347 over 0.5 s
+ok   P resumes frame 377
 ok   T toggles workers main/0 (WORKERS OFF), then transfer/4 (WORKERS ON ×4)
 ok   HUD button toggles workers WORKERS OFF
 ok   pool slider sets worker count pool 12

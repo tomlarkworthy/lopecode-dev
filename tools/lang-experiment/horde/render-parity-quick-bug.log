@@ -1,0 +1,21 @@
+   n    frame  arm           alive  drawn  simHash  gpuHash  lit
+ 50000    300  main/0        31327  31327  905d44e5 905d44e5 54852
+ 50000    300  transfer/8    31327  21037  905d44e5 5dbb9752 27160
+FAIL n 50000 frame 300 transfer/8: drawn 21037 != alive 31327
+FAIL n 50000 frame 300 transfer/8: GPU buffer hash 5dbb9752 != sim 905d44e5
+ 50000    300  transfer/17   31327  20488  905d44e5 23f7edba 25010
+FAIL n 50000 frame 300 transfer/17: drawn 20488 != alive 31327
+FAIL n 50000 frame 300 transfer/17: GPU buffer hash 23f7edba != sim 905d44e5
+ 50000    300  lite/8        31327  21037  905d44e5 5dbb9752 27160
+FAIL n 50000 frame 300 lite/8: drawn 21037 != alive 31327
+FAIL n 50000 frame 300 lite/8: GPU buffer hash 5dbb9752 != sim 905d44e5
+FAIL n 50000 frame 300: lit differs across modes: main/0=54852 transfer/8=27160 transfer/17=25010 lite/8=27160
+7 failure(s)
+FAIL toggled run, frame 0 transfer/17: alive 0 drawn 7356 hud 0 sim 9117e46a gpu a87a9ca2
+FAIL toggled run, frame 60 transfer/13: alive 8306 drawn 6054 hud 8306 sim 5f255688 gpu 517b507e
+FAIL toggled run, frame 240 transfer/9: alive 31327 drawn 28729 hud 31327 sim 140ee851 gpu 3c218c6c
+FAIL toggled run, frame 300 transfer/9: alive 31327 drawn 29179 hud 31327 sim 905d44e5 gpu a2904e91
+FAIL toggled run, frame 330 transfer/9: alive 31327 drawn 29179 hud 31327 sim bd87903d gpu 71cda284
+FAIL toggled run, frame 420 transfer/9: alive 31327 drawn 29179 hud 31327 sim bcaf3c2e gpu 7d2b4dbb
+part 2: 10 T presses, pool sizes seen main/0 transfer/1 transfer/9; 401 sim frames compared with the untoggled run; 15 probes during play
+6 part 2 failure(s)

@@ -58,6 +58,7 @@ shard          speed 4.4, hit radius ×0.8
 | `proto/game.html`, `proto/bench.html` | the game; the headless step bench |
 | `lite-job.ts` | builds `proto/lite-job.js` / `lite-pool.js`: the job SoundScript's `compile` would send, run on lite's own `pagePool` |
 | `bench.ts`, `cost-bench.ts`, `determinism.ts`, `play-measure.ts`, `play-input.ts`, `shots.ts` | the measurements below |
+| `render-parity.ts` | drawn = simulated, in every mode and while toggling workers (section "Fewer enemies drawn") |
 | `try-compile.ts` | the real `compile` from `lite/stdlib/runtime.ts` on `batchOnPool` |
 | `smoke.cjs`, `sep-probe.cjs`, `kill-probe.cjs` | the sim in node |
 | `proto/blank.html`, `gpu-probe.ts`, `probe-page.ts`, `lite-pool-entry.ts` | round 1: WebGPU launch probe, one-page bench runner, the lite pool bundle entry |
@@ -281,7 +282,7 @@ All 1280 × 800, headless, frames stepped back to back with the bot in god mode.
 | `play-wave-late.png` | 100k slots from wave 6, 61.5k alive: corridors packed with chevrons, diamonds and hexagons; camera pulled back, sprites scaled down |
 | `shockwave.png` | 50k, wave 3, eight frames after a full-charge release: the grid bowl and the particle ring |
 | `hud.png` | the HUD at wave 3: score, wave timer, health and charge bars, alive/active/max, workers button, pool slider, sim and main-thread ms |
-| `workers-off.png`, `workers-on.png` | the same frame of the same run, main vs transfer ×17: step 13.3 ms vs 2.6 ms in the HUD |
+| `workers-off.png`, `workers-on.png` | the same sim frame (600) of the same run, main vs transfer ×17: step 13.4 ms vs 2.9 ms in the HUD, and the same crowd (retaken after the fix below) |
 | `overview.png` | the O camera over the whole maze at wave 6 |
 | `ship-check.png` | close camera, particles and bullets hidden: the ship drawn above its halo |
 
@@ -292,6 +293,58 @@ a refactor (no ship, no particles); the hurt flash grew without bound under cons
 colour to ±200, which bloomed into a white-green disc the size of a room; sparks summed to white in kill zones
 (now max-blended); enemies brighter than the ship merged into one sheet when dense (now dimmed to 0.7, flash
 capped).
+
+## Fewer enemies drawn with workers on (found 2026-11-15, after round 2's commit 3ca44d87)
+
+Tom, playing: with workers on fewer enemies are drawn than with workers off, and pressing T makes more appear.
+
+**Cause.** `proto/render.js` uploaded each batch's agents at byte offset `base * 20`, round 1's stride of 5
+floats, after round 2 widened an agent to 8 floats (32 bytes). With one batch (`main`, `sab`) `base` is 0 and the
+upload was right. With several batches (`transfer`, `copy`, `lite`) batch i landed at `20·base` instead of
+`32·base`: each batch overwrote the start of the one before it, the tail of the buffer past
+`20·base_last + 32·n_last` bytes was never written, and every batch after the first started mid-agent, so fields
+were read at the wrong positions (on probe frame 0 of the bug run, 7356 instances drew where none were alive). The
+simulation was never wrong: the determinism hashes cover the sim arrays, which were correct. The suspects about
+detached buffers, overlapped steps, instance counts and stale `alive` were checked by the same probe and did not
+apply: the frame stamp matched, every array was whole, and the HUD count equalled the sim count.
+
+**Evidence** (`render-parity.ts`, offline, bot, overview camera, from wave 6; alive = live agents in the sim's
+arrays, drawn = live agents in the GPU's agent buffer read back, lit = pixels of the enemy layer drawn alone):
+
+```
+before (render-parity-before.log)                    after (render-parity-after.log)
+n      frame  arm          alive  drawn   lit          alive  drawn   lit
+ 50000   300  main/0       31327  31327   54852        31327  31327   54852
+ 50000   300  transfer/8   31327  21037   27160        31327  31327   54852
+ 50000   300  transfer/17  31327  20488   25010        31327  31327   54852
+ 50000  1800  main/0       40127  40127  256761        40127  40127  256761
+ 50000  1800  transfer/8   40127  25556  121045        40127  40127  256761
+ 50000  1800  transfer/17  40127  24649  142723        40127  40127  256761
+100000  1800  main/0       81178  81178  337097        81178  81178  337097
+100000  1800  transfer/8   81178  61286  263393        81178  81178  337097
+100000  1800  transfer/17  81178  58080  273913        81178  81178  337097
+```
+
+Before, the GPU buffer's hash differed from the sim's in every multi-batch row; after, it equals the sim's in all 36
+probes (n 50k and 100k, frames 300/900/1800, main, transfer/8, transfer/17, lite/8), and alive, hash and lit are the
+same in every mode.
+
+**Fix.** The upload offset is `base * engine.S * 4`. `uploadAgents()` now also throws if an array is detached or
+not its range's length (`byteLength` against `n·32`), if the ranges do not tile 0..N, or if a step is in flight
+(`engine.stepping`), and stamps the sim frame it uploaded.
+
+**Permanent check.** `bun horde/render-parity.ts` (3 min on this machine; `--quick` under 2 min). Part 1 is the table above.
+Part 2 plays in the real rAF loop at 50k from wave 6, once untouched and once with T pressed every 0.7 s and the pool
+slider moved between presses (29 presses; main and transfer pools of 4, 8, 9, 13, 15, 18, 20 and 24 seen): the toggled run's state hash equalled the untouched run's
+at all 1201 sim frames compared, and at 41 probes during play drawn = alive = the HUD's count. With the old offset put
+back, `--quick` fails 13 checks, 6 of them in part 2, so part 2 also catches this bug.
+
+A side fix found by part 2: T, P, R and O used to mark the input as a player's, which switched the bot off for the
+rest of the run. Now only WASD and space take over from the bot.
+
+Not re-measured after the fix: the fps and step tables above. The fix changes only the upload offset; the GPU still
+draws N instances, so those numbers should not move, but that is inferred, not measured. Every screenshot was
+retaken after the fix.
 
 ## Not done, or not verified
 

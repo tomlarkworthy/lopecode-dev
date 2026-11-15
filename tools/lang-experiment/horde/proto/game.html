@@ -69,7 +69,8 @@
   const keys = new Set();
   addEventListener("keydown", (e) => {
     const k = e.key.toLowerCase();
-    keys.add(k); input.active = true;
+    keys.add(k);
+    if ("wasd ".includes(k)) input.active = true; // only play keys take over from the bot
     if (k === " ") { input.charge = true; e.preventDefault(); }
     if (k === "p") engine.paused = !engine.paused;
     if (k === "r") wantRestart = true;
@@ -124,6 +125,16 @@
     alive = a;
   };
   const dt = engine.sim.params.dt;
+  // render-parity.ts: what the simulation holds against what the renderer uploaded and drew
+  const probeAt = new Set((q.get("probe") || "").split(",").filter(Boolean).map(Number)), probes = [];
+  window.__probes = probes;
+  const liveIn = (arrs) => { let a = 0; for (const c of arrs) for (let i = 4; i < c.length; i += engine.S) if (c[i] > 0) a++; return a; };
+  const probe = async () => {
+    const gpu = await R.readAgents();
+    return { simFrame: engine.frame, uploadFrame: R.upload.simFrame, mode: engine.mode, workers: engine.poolSize, chunks: R.upload.chunks,
+      alive: liveIn(engine.chunks), drawn: liveIn([gpu]), simHash: hashAgents(engine.chunks), gpuHash: hashAgents([gpu]), lit: await R.enemyLitPixels(), hudAlive: (countAlive(), alive) };
+  };
+  window.__probe = probe;
 
   if (offline) {
     // screenshots: frames back to back with the bot, deterministic
@@ -135,16 +146,21 @@
       if (engine.shockFired) R.explode(engine.shockFired.x, engine.shockFired.y, 1 + engine.shockFired.s * 2);
       R.frame(dt);
       await R.device.queue.onSubmittedWorkDone();
+      if (probeAt.has(engine.frame)) probes.push(await probe());
     }
     countAlive(); fps = 0; hud(st, st.total);
     if (q.get("hud") !== "1") $("center").style.display = "none";
-    window.__ready = { score: engine.score, kills: engine.kills, wave: engine.wave, alive, health: engine.health, particles: R.particles };
+    window.__ready = { probes, score: engine.score, kills: engine.kills, wave: engine.wave, alive, health: engine.health, particles: R.particles };
     return;
   }
 
   // rAF loop. Each frame: wait for the step started last frame, draw it (the GPU upload copies the
   // agents, so the arrays can be handed to workers next), then start the next step and return.
   // The sim is fixed at 60 steps/s; a frame that is due no step only draws.
+  // render-parity.ts part 2: the state hash after every step, and a probe every 30 steps
+  const logSteps = q.get("log") === "1", stepHashes = {}, rafProbes = [];
+  let lastLogged = -1, lastProbed = -1;
+  window.__log = { stepHashes, rafProbes };
   let pending = null, acc = 0, last = performance.now(), simT = 0, stepsDone = 0;
   const log = []; // measure: per rAF, interval, sim round, main thread busy
   let lastStats = { ...engine.stats };
@@ -156,7 +172,9 @@
     if (pending) { lastStats = { ...(await pending) }; pending = null; stepsDone++; if (engine.shockFired) R.explode(engine.shockFired.x, engine.shockFired.y, 1 + engine.shockFired.s * 2); }
     applyControls();
     if (!bot || input.active) readInput();
+    if (logSteps && pending === null && engine.frame !== lastLogged) { stepHashes[engine.frame] = engine.hash(); lastLogged = engine.frame; }
     R.frame(Math.min(0.05, interval / 1000));
+    if (logSteps && stepsDone % 30 === 0 && engine.frame !== lastProbed) { lastProbed = engine.frame; rafProbes.push(await probe()); }
     // before the step starts: in transfer mode starting it hands the agent arrays to the workers
     if (stepsDone % 15 === 0) countAlive();
     acc = Math.min(acc + interval / 1000, dt * 2);

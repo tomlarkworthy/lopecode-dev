@@ -1,0 +1,29 @@
+   n    frame  arm           alive  drawn  simHash  gpuHash  lit
+ 50000    300  main/0        31327  31327  905d44e5 905d44e5 54852
+ 50000    900  main/0        30864  30864  aaa8514e aaa8514e 207479
+ 50000   1800  main/0        40127  40127  90533e21 90533e21 256761
+ 50000    300  transfer/8    31327  31327  905d44e5 905d44e5 54852
+ 50000    900  transfer/8    30864  30864  aaa8514e aaa8514e 207479
+ 50000   1800  transfer/8    40127  40127  90533e21 90533e21 256761
+ 50000    300  transfer/17   31327  31327  905d44e5 905d44e5 54852
+ 50000    900  transfer/17   30864  30864  aaa8514e aaa8514e 207479
+ 50000   1800  transfer/17   40127  40127  90533e21 90533e21 256761
+ 50000    300  lite/8        31327  31327  905d44e5 905d44e5 54852
+ 50000    900  lite/8        30864  30864  aaa8514e aaa8514e 207479
+ 50000   1800  lite/8        40127  40127  90533e21 90533e21 256761
+100000    300  main/0        62646  62646  98cf9def 98cf9def 76278
+100000    900  main/0        62008  62008  8bf6fd8c 8bf6fd8c 278778
+100000   1800  main/0        81178  81178  5b331868 5b331868 337097
+100000    300  transfer/8    62646  62646  98cf9def 98cf9def 76278
+100000    900  transfer/8    62008  62008  8bf6fd8c 8bf6fd8c 278778
+100000   1800  transfer/8    81178  81178  5b331868 5b331868 337097
+100000    300  transfer/17   62646  62646  98cf9def 98cf9def 76278
+100000    900  transfer/17   62008  62008  8bf6fd8c 8bf6fd8c 278778
+100000   1800  transfer/17   81178  81178  5b331868 5b331868 337097
+100000    300  lite/8        62646  62646  98cf9def 98cf9def 76278
+100000    900  lite/8        62008  62008  8bf6fd8c 8bf6fd8c 278778
+100000   1800  lite/8        81178  81178  5b331868 5b331868 337097
+part 1: drawn = alive, GPU buffer = sim arrays, and the enemy layer identical across modes, at every probe
+part 2: 29 T presses, pool sizes seen main/0 transfer/15 transfer/18 transfer/13 transfer/24 transfer/8 transfer/20 transfer/9 transfer/4; 1201 sim frames compared with the untoggled run; 41 probes during play
+part 2: toggled run bit-identical to the plain run at every compared frame; drawn = alive = HUD at every probe
+EXIT 0

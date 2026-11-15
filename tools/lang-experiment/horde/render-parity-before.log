@@ -1,0 +1,50 @@
+   n    frame  arm           alive  drawn  simHash  gpuHash  lit
+ 50000    300  main/0        31327  31327  905d44e5 905d44e5 54852
+ 50000    900  main/0        30864  30864  aaa8514e aaa8514e 207479
+ 50000   1800  main/0        40127  40127  90533e21 90533e21 256761
+ 50000    300  transfer/8    31327  21037  905d44e5 5dbb9752 27160
+FAIL n 50000 frame 300 transfer/8: drawn 21037 != alive 31327
+FAIL n 50000 frame 300 transfer/8: GPU buffer hash 5dbb9752 != sim 905d44e5
+ 50000    900  transfer/8    30864  20771  aaa8514e 663aa70d 109755
+FAIL n 50000 frame 900 transfer/8: drawn 20771 != alive 30864
+FAIL n 50000 frame 900 transfer/8: GPU buffer hash 663aa70d != sim aaa8514e
+ 50000   1800  transfer/8    40127  25556  90533e21 47013d0a 121045
+FAIL n 50000 frame 1800 transfer/8: drawn 25556 != alive 40127
+FAIL n 50000 frame 1800 transfer/8: GPU buffer hash 47013d0a != sim 90533e21
+ 50000    300  transfer/17   31327  20488  905d44e5 23f7edba 25010
+FAIL n 50000 frame 300 transfer/17: drawn 20488 != alive 31327
+FAIL n 50000 frame 300 transfer/17: GPU buffer hash 23f7edba != sim 905d44e5
+ 50000    900  transfer/17   30864  20221  aaa8514e cf5170fd 105122
+FAIL n 50000 frame 900 transfer/17: drawn 20221 != alive 30864
+FAIL n 50000 frame 900 transfer/17: GPU buffer hash cf5170fd != sim aaa8514e
+ 50000   1800  transfer/17   40127  24649  90533e21 e1e9919e 142723
+FAIL n 50000 frame 1800 transfer/17: drawn 24649 != alive 40127
+FAIL n 50000 frame 1800 transfer/17: GPU buffer hash e1e9919e != sim 90533e21
+FAIL n 50000 frame 300: lit differs across modes: main/0=54852 transfer/8=27160 transfer/17=25010
+FAIL n 50000 frame 900: lit differs across modes: main/0=207479 transfer/8=109755 transfer/17=105122
+FAIL n 50000 frame 1800: lit differs across modes: main/0=256761 transfer/8=121045 transfer/17=142723
+100000    300  main/0        62646  62646  98cf9def 98cf9def 76278
+100000    900  main/0        62008  62008  8bf6fd8c 8bf6fd8c 278778
+100000   1800  main/0        81178  81178  5b331868 5b331868 337097
+100000    300  transfer/8    62646  56047  98cf9def 0b65bced 54536
+FAIL n 100000 frame 300 transfer/8: drawn 56047 != alive 62646
+FAIL n 100000 frame 300 transfer/8: GPU buffer hash 0b65bced != sim 98cf9def
+100000    900  transfer/8    62008  55839  8bf6fd8c 41694dfb 208299
+FAIL n 100000 frame 900 transfer/8: drawn 55839 != alive 62008
+FAIL n 100000 frame 900 transfer/8: GPU buffer hash 41694dfb != sim 8bf6fd8c
+100000   1800  transfer/8    81178  61286  5b331868 6aa1e428 263393
+FAIL n 100000 frame 1800 transfer/8: drawn 61286 != alive 81178
+FAIL n 100000 frame 1800 transfer/8: GPU buffer hash 6aa1e428 != sim 5b331868
+100000    300  transfer/17   62646  50654  98cf9def 32ec0b1c 55803
+FAIL n 100000 frame 300 transfer/17: drawn 50654 != alive 62646
+FAIL n 100000 frame 300 transfer/17: GPU buffer hash 32ec0b1c != sim 98cf9def
+100000    900  transfer/17   62008  50443  8bf6fd8c e065d3a0 213220
+FAIL n 100000 frame 900 transfer/17: drawn 50443 != alive 62008
+FAIL n 100000 frame 900 transfer/17: GPU buffer hash e065d3a0 != sim 8bf6fd8c
+100000   1800  transfer/17   81178  58080  5b331868 a9e1e243 273913
+FAIL n 100000 frame 1800 transfer/17: drawn 58080 != alive 81178
+FAIL n 100000 frame 1800 transfer/17: GPU buffer hash a9e1e243 != sim 5b331868
+FAIL n 100000 frame 300: lit differs across modes: main/0=76278 transfer/8=54536 transfer/17=55803
+FAIL n 100000 frame 900: lit differs across modes: main/0=278778 transfer/8=208299 transfer/17=213220
+FAIL n 100000 frame 1800: lit differs across modes: main/0=337097 transfer/8=263393 transfer/17=273913
+30 failure(s)

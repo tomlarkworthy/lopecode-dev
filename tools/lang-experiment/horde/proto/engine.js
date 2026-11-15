@@ -189,7 +189,12 @@ function makeEngine(opts) {
   }
 
   const stats = { serial: 0, post: 0, round: 0, total: 0, active: 0 };
+  let stepping = false;
   async function step() {
+    stepping = true;
+    try { return await stepInner(); } finally { stepping = false; }
+  }
+  async function stepInner() {
     const t0 = performance.now();
     events.length = 0;
     if (g.over || g.paused) { stats.serial = stats.post = stats.round = stats.total = 0; return stats; }
@@ -274,7 +279,7 @@ function makeEngine(opts) {
   configure(opts.mode || "main", opts.workers || 1);
   return {
     sim, maze: M, S, N, step, close, stats, events, configure, restart,
-    get mode() { return mode; }, get poolSize() { return mode === "main" ? 0 : ranges.length; },
+    get mode() { return mode; }, get stepping() { return stepping; }, get poolSize() { return mode === "main" ? 0 : ranges.length; },
     get chunks() { return chunks; }, get ranges() { return mode === "sab" ? [{ base: 0, n: N }] : ranges; },
     get flow() { return g.flow; }, get crowd() { return g.crowd; },
     get bullets() { return g.bullets; }, get player() { return g.player; }, get frame() { return g.frame; },

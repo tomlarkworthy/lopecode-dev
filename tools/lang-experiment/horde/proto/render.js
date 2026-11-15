@@ -400,7 +400,7 @@ async function makeRenderer(canvas, engine, opts = {}) {
   for (let i = 0; i < segs1.length / 4; i++) { segs.set(segs1.subarray(i * 4, i * 4 + 4), i * 8); segs.set(segs1.subarray(i * 4, i * 4 + 4), i * 8 + 4); }
   const segBuf = device.createBuffer({ size: segs.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
   device.queue.writeBuffer(segBuf, 0, segs);
-  const agentBuf = device.createBuffer({ size: Math.max(32, N * 32), usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
+  const agentBuf = device.createBuffer({ size: Math.max(32, N * 32), usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC });
   const MAXS = 65536;
   const sparkData = new Float32Array(MAXS * 12);
   const sparkBuf = device.createBuffer({ size: sparkData.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
@@ -512,6 +512,59 @@ async function makeRenderer(canvas, engine, opts = {}) {
     const cx = v[0] * X + v[4] * Y + v[12], cy = v[1] * X + v[5] * Y + v[13], cw = v[3] * X + v[7] * Y + v[15];
     return [((cx / cw) * 0.5 + 0.5) * canvas.clientWidth, (0.5 - (cy / cw) * 0.5) * canvas.clientHeight];
   }
+  // Agents go up as one array per batch. Each must be whole and attached (a transfer-mode step in flight
+  // detaches them), the batches must tile 0..N, and each lands at its own base. `upload` stamps what
+  // went up, for render-parity.ts.
+  const AGENT_BYTES = engine.S * 4;
+
+  const upload = { simFrame: -1, chunks: 0, agents: 0 };
+  function uploadAgents() {
+    const ch = engine.chunks, rg = engine.ranges;
+    if (engine.stepping) throw new Error("renderer read the agents while a step was in flight");
+    if (ch.length !== rg.length) throw new Error(`${ch.length} agent arrays for ${rg.length} ranges`);
+    let next = 0;
+    for (let i = 0; i < ch.length; i++) {
+      if (rg[i].base !== next) throw new Error(`range ${i} starts at ${rg[i].base}, expected ${next}`);
+      if (ch[i].byteLength !== rg[i].n * AGENT_BYTES) throw new Error(`agent array ${i}: ${ch[i].byteLength} bytes, expected ${rg[i].n * AGENT_BYTES} (detached or partial)`);
+      device.queue.writeBuffer(agentBuf, rg[i].base * AGENT_BYTES, ch[i].buffer, ch[i].byteOffset, ch[i].byteLength);
+      next += rg[i].n;
+    }
+    if (next !== N) throw new Error(`ranges cover ${next} of ${N} agents`);
+    upload.simFrame = engine.frame; upload.chunks = ch.length; upload.agents = next;
+  }
+  // debug readbacks for render-parity.ts: the agent buffer as the GPU holds it, and the enemy layer
+  // drawn alone (no trail, no floor) into a scratch target, as a count of lit pixels
+  async function readAgents() {
+    const st = device.createBuffer({ size: N * AGENT_BYTES, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+    const enc = device.createCommandEncoder();
+    enc.copyBufferToBuffer(agentBuf, 0, st, 0, N * AGENT_BYTES);
+    device.queue.submit([enc.finish()]);
+    await st.mapAsync(GPUMapMode.READ);
+    const a = new Float32Array(st.getMappedRange().slice(0));
+    st.unmap(); st.destroy();
+    return a;
+  }
+  let scratch = null;
+  async function enemyLitPixels() {
+    scratch = scratch || device.createTexture({ size: [W, H], format: HDR, usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC });
+    const bpr = Math.ceil((W * 8) / 256) * 256;
+    const out = device.createBuffer({ size: bpr * H, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
+    const enc = device.createCommandEncoder();
+    const pass = enc.beginRenderPass({ colorAttachments: [{ view: scratch.createView(), loadOp: "clear", storeOp: "store", clearValue: [0, 0, 0, 0] }] });
+    pass.setPipeline(pEnemy); pass.setBindGroup(0, bgEnemy); pass.setVertexBuffer(0, agentBuf); pass.draw(6, N); pass.end();
+    enc.copyTextureToBuffer({ texture: scratch }, { buffer: out, bytesPerRow: bpr }, [W, H]);
+    device.queue.submit([enc.finish()]);
+    await out.mapAsync(GPUMapMode.READ);
+    const u = new Uint16Array(out.getMappedRange());
+    let lit = 0;
+    // half floats: a non-negative half compares as its bits; 0x2a66 is 0.05
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const o = (y * bpr) / 2 + x * 4;
+      if (u[o] > 0x2a66 || u[o + 1] > 0x2a66 || u[o + 2] > 0x2a66) lit++;
+    }
+    out.unmap(); out.destroy();
+    return lit;
+  }
   function frame(dt) {
     time += dt;
     absorb(dt);
@@ -519,8 +572,7 @@ async function makeRenderer(canvas, engine, opts = {}) {
     for (let i = warps.length - 1; i >= 0; i--) if (time - warps[i].t0 > 2.5) warps.splice(i, 1);
     shake *= Math.exp(-6 * dt);
     // agents
-    const ch = engine.chunks, rg = engine.ranges;
-    for (let i = 0; i < ch.length; i++) device.queue.writeBuffer(agentBuf, rg[i].base * 20, ch[i].buffer, ch[i].byteOffset, ch[i].byteLength);
+    uploadAgents();
     if (engine.flow) device.queue.writeBuffer(flowBuf, 0, engine.flow);
     if (engine.crowd) device.queue.writeBuffer(crowdBuf, 0, engine.crowd);
     // sparks: particles first (max blend), then bullets (additive); the ship is drawn last, after its halo
@@ -597,5 +649,5 @@ async function makeRenderer(canvas, engine, opts = {}) {
     }
     return { sparks: s, particles: pn };
   }
-  return { device, frame, explode, project, gpuMs, camera, hasTs, get particles() { return pn; } };
+  return { device, frame, explode, project, upload, readAgents, enemyLitPixels, gpuMs, camera, hasTs, get particles() { return pn; } };
 }
