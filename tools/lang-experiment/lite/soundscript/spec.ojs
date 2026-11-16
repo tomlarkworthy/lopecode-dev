@@ -2,12 +2,12 @@ md`# SoundScript specification
 
 This page defines SoundScript: what a cell is, what the checker accepts and rejects, and what the notebook does with cells when they run and when they are edited. SoundScript is a checked subset of TypeScript for notebook cells: a cell is a function, and its parameters are the cells it reads. The [tutorial](${linkTo("@tomlarkworthy/soundscript-tutorial")}) is the place to start. Behaviour the code has that this page does not state is not promised; the known cases are listed in the last section.`
 // %%
-md`Each statement has a number, such as **S3.2**, which stays the same when statements are added. A section has its statements, then cells written in SoundScript that the statements describe, then a table of sources the checker must reject with the rule each must give, then tests. A test is a cell named after the statement it checks: \`test_spec_S3_2\` checks S3.2. The coverage table counts, for each section, its statements, how many have a test and how many tests pass. The tests run when the page loads, and the table is computed again when a cell of this page is added, edited or deleted.`
+md`Each statement has a number, such as **S3.2**, which stays the same when statements are added. A section has its statements, then cells written in SoundScript that the statements describe, then a table of sources the checker must reject with the rule each must give, then tests. A test is a cell named after the statement it checks: \`test_spec_S3_2\` checks S3.2. The coverage table counts, for each section, its statements, how many have a test and how many tests pass. The tests run when the page loads. The table is drawn again as each test finishes and when a cell of this page is added, edited or deleted; a test that has not finished is counted as running.`
 // %%
 spec_coverage_view = {
   const rows = spec_coverage.rows.map((r) => r.statements === 0
     ? htl.html`<tr><td>${r.section}</td><td>${r.title}</td><td colspan="4">no statements yet</td></tr>`
-    : htl.html`<tr><td>${r.section}</td><td>${r.title}</td><td>${r.statements}</td><td>${r.tested}</td><td>${r.passing}/${r.tests}</td><td>${r.untested.join(", ")}</td></tr>`);
+    : htl.html`<tr><td>${r.section}</td><td>${r.title}</td><td>${r.statements}</td><td>${r.tested}</td><td>${r.passing}/${r.tests}${r.running ? ` (${r.running} running)` : ""}</td><td>${r.untested.join(", ")}</td></tr>`);
   const unknown = spec_coverage.unknown.length ? htl.html`<p>Tests naming a statement that does not exist: ${spec_coverage.unknown.join(", ")}</p>` : "";
   return htl.html`<table><thead><tr><th>§</th><th>section</th><th>statements</th><th>with a test</th><th>tests passing</th><th>statements with no test</th></tr></thead><tbody>${rows}</tbody></table>${unknown}`;
 }
@@ -616,17 +616,17 @@ test_spec_S5_4 = {
 }
 // %%
 test_spec_S5_5 = {
-  // an owner yields once a frame; the copy runs 30 frames, so its first value cannot be its last
+  // an owner yields once a frame; the copy never ends, so whichever frame is read first, a later one follows
   const frames = (f) => spec_frames(f, 240);
-  const L = await spec_load("const frames = function* () {\n  const buf = mut(new Float32Array(3));\n  for (let k = 1; k <= 30; k++) {\n    for (let i = 0; i < buf.length; i++) buf[i] = k * (i + 1);\n    yield borrow(buf);\n  }\n};\nconst kept = (frames) => snapshot(frames);\nconst total = (frames) => {\n  let s = 0;\n  for (const v of frames) s += v;\n  return s;\n};", {});
+  const L = await spec_load("const frames = function* () {\n  const buf = mut(new Float32Array(3));\n  for (let k = 1; ; k++) {\n    for (let i = 0; i < buf.length; i++) buf[i] = k * (i + 1);\n    yield borrow(buf);\n  }\n};\nconst kept = (frames) => snapshot(frames);\nconst total = (frames) => {\n  let s = 0;\n  for (const v of frames) s += v;\n  return s;\n};", {});
   try {
     const kept0 = await L.value("kept"), was = Array.from(kept0), k = was[0];
     spec_is(was, [k, 2 * k, 3 * k]);
-    if (k === 30) throw new Error("the first value read was the last frame; the copy cannot be told from the buffer");
-    if (!(await frames(async () => (await L.value("total")) === 180))) throw new Error("the owner did not reach its last frame");
-    // the copy taken at frame k is unchanged after the owner wrote frame 30 into the same buffer
+    if (!(await frames(async () => (await L.value("total")) > 6 * k))) throw new Error("the owner did not reach a later frame");
+    // the copy taken at frame k is unchanged after the owner wrote a later frame into the same buffer
     spec_is(Array.from(kept0), was);
-    spec_is(Array.from(await L.value("kept")), [30, 60, 90]);
+    const later = Array.from(await L.value("kept"));
+    if (later[0] <= k) throw new Error(`kept is ${JSON.stringify(later)} after frame ${k}`);
   } finally { L.dispose(); }
   if (!(await frames(async () => (await spec_module.value("s5_total")) === 18))) throw new Error("s5_total did not reach 18");
   spec_is(Array.from(await spec_module.value("s5_kept")), [3, 6, 9]);
@@ -1486,21 +1486,19 @@ md`- A dependency cycle that passes through a cell in another language. The chec
 md`- A DOM node from another language placed in JSX.`
 // %%
 spec_coverage = Generators.observe((notify) => {
-  // computed again, 300 ms after the last one, when a cell of this module is added, edited or deleted
-  let timer = null, run = 0;
-  const go = async () => { const k = ++run; const v = await spec_coverageNow(); if (k === run) notify(v); };
-  go();
-  const off = onCodeChange(({ variable }) => {
-    if (variable?._module !== spec_module) return;
-    clearTimeout(timer);
-    timer = setTimeout(go, 300);
-  });
-  return () => { clearTimeout(timer); off(); };
+  // drawn again when a test settles and when a cell of this module is added, edited or deleted; a test that
+  // has not settled is shown as running, so a hung test does not hold the table
+  const status = new Map();
+  let queued = false;
+  const draw = () => { queued = false; notify(spec_coverageOf(status, redraw)); };
+  const redraw = () => { if (!queued) { queued = true; queueMicrotask(draw); } };
+  redraw();
+  return onCodeChange(({ variable, previous }) => { if ((variable ?? previous)?._module === spec_module) redraw(); });
 })
 // %%
-spec_coverageNow = async () => {
+spec_coverageOf = (status, redraw) => {
   // statements are the **S<n>.<m>** marks in this module's cells; a test names the statements it checks
-  // (test_spec_S1_2 checks S1.2); a test passes if its value resolves
+  // (test_spec_S1_2 checks S1.2); a test passes if its value resolves. status: name -> { definition, state }
   const vars = [...runtime._variables].filter((v) => v._module === spec_module);
   const titles = new Map(), statements = new Map();
   for (const v of vars) {
@@ -1509,15 +1507,20 @@ spec_coverageNow = async () => {
     for (const m of text.matchAll(/\*\*S(\d+)\.(\d+)\*\*/g)) statements.set(`S${m[1]}.${m[2]}`, m[1]);
   }
   const tests = vars.filter((v) => typeof v._name === "string" && v._name.startsWith("test_spec_"));
+  for (const t of tests) {
+    if (status.get(t._name)?.definition === t._definition) continue;
+    const entry = { definition: t._definition, state: "running" };
+    status.set(t._name, entry);
+    const done = (state) => () => { if (status.get(t._name) === entry) { entry.state = state; redraw(); } };
+    spec_module.value(t._name).then(done("pass"), done("fail"));
+  }
   const names = new Map(tests.map((t) => [t._name, [...t._name.matchAll(/S(\d+)_(\d+)/g)].map((m) => `S${m[1]}.${m[2]}`)]));
-  // a test that has not settled in 10 s counts as not passing, so one hung test does not hold the table
-  const settled = (t) => Promise.race([spec_module.value(t._name).then(() => true, () => false), new Promise((r) => setTimeout(() => r(false), 10000))]);
-  const status = new Map(await Promise.all(tests.map(async (t) => [t._name, await settled(t)])));
   const rows = [...titles].map(([section, title]) => {
     const ids = [...statements].filter(([, s]) => s === section).map(([id]) => id);
     const own = tests.filter((t) => names.get(t._name).some((id) => statements.get(id) === section));
     const tested = ids.filter((id) => own.some((t) => names.get(t._name).includes(id)));
-    return { section, title, statements: ids.length, tested: tested.length, tests: own.length, passing: own.filter((t) => status.get(t._name)).length, untested: ids.filter((id) => !tested.includes(id)) };
+    const count = (state) => own.filter((t) => status.get(t._name)?.state === state).length;
+    return { section, title, statements: ids.length, tested: tested.length, tests: own.length, passing: count("pass"), running: count("running"), untested: ids.filter((id) => !tested.includes(id)) };
   });
   const unknown = [...names].flatMap(([n, ids]) => ids.filter((id) => !statements.has(id)).map((id) => `${n} (${id})`));
   return { rows, unknown };

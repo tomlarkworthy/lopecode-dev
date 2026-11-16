@@ -17,6 +17,7 @@ import { checkSources, type Outside } from "../core.ts";
 export { cross, crossings } from "../boundary.ts";
 import { checkShape, type Shape } from "../boundary.ts";
 export { checkSources };
+export { completionWork } from "../complete.ts";
 // checkSources for SoundScript cells, remembered for the last 16 sources. The editor asks about the
 // same module source several times per keystroke (lint, the cells an edit would break, the compile
 // context); a result is never written to, so one is shared.
@@ -231,5 +232,5 @@ export function mount(x: unknown, prev: any): Node {
 export function lazyPool(): Pool {
   let p: Pool | null = null;
   const get = () => (p ??= pagePool());
-  return { get size() { return get().size; }, run: (job, owner) => get().run(job, owner) };
+  return { get size() { return get().size; }, get answered() { return p ? p.answered : []; }, run: (job, owner) => get().run(job, owner) };
 }

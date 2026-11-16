@@ -52,10 +52,11 @@ self.onmessage = (e) => {
 
 export const runHere: (job: Job) => Record<string, unknown> = new Function(`return ${EXEC}`)();
 
-type Slot = { worker: Worker; busy: boolean; has: Set<string>; current: number };
+type Slot = { worker: Worker; busy: boolean; has: Set<string>; current: number; answered: number };
 type Queued = { job: Job; owner: { dead: boolean }; resolve: (v: Record<string, unknown>) => void; reject: (e: Error) => void; resent?: boolean };
 
-export type Pool = { readonly size: number; run(job: Job, owner: { dead: boolean }): Promise<Record<string, unknown>> };
+// answered: per worker, the jobs it has resolved
+export type Pool = { readonly size: number; readonly answered: readonly number[]; run(job: Job, owner: { dead: boolean }): Promise<Record<string, unknown>> };
 
 const superseded = () => Object.assign(new Error("superseded"), { name: "SupersededError" });
 
@@ -94,7 +95,7 @@ export function makePool(size: number, makeWorker: () => Worker): Pool {
     }
   };
   for (let i = 0; i < size; i++) {
-    const slot: Slot = { worker: makeWorker(), busy: false, has: new Set(), current: -1 };
+    const slot: Slot = { worker: makeWorker(), busy: false, has: new Set(), current: -1, answered: 0 };
     slot.worker.onerror = (e: ErrorEvent) => {
       const q = waiting.get(slot.current);
       waiting.delete(slot.current);
@@ -118,13 +119,14 @@ export function makePool(size: number, makeWorker: () => Worker): Pool {
       waiting.delete(id);
       slot.busy = false;
       if (failure) q.reject(failure);
-      else q.resolve(out);
+      else { slot.answered++; q.resolve(out); }
       pump();
     };
     slots.push(slot);
   }
   return {
     size,
+    get answered() { return slots.map((s) => s.answered); },
     run: (job, owner) => new Promise((resolve, reject) => { queue.push({ job, owner, resolve, reject }); pump(); }),
   };
 }

@@ -566,19 +566,21 @@ test_breakout_listener = {
   tests_on;
   // its own copy of section 9's cells: the game on the page is not played or reset
   const game = await ss_instance(breakout_module, invalidation);
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  // waits are counted in animation frames until a condition holds; the cap only turns a hung page into an error
+  const frames = async (f, n = 600) => { for (let i = 0; i < n && !f(); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
   const get = (n) => game._scope.get(n)._value;
   const runs = (n) => ss.evals(game._scope.get(n)._definition);
   for (const n of ["reset", "toggle", "world", "bricks", "onTick"]) await game.value(n);
   // the clock of this copy only: other tests on the page pull generators of their own
   const w0 = get("world"), on0 = runs("onTick"), t0 = runs("ticks"), h0 = get("ticks");
   get("toggle")();
-  await wait(600);
+  let changes = 0, last = w0;
+  await frames(() => { const w = get("world"); if (w !== last) { changes++; last = w; } return changes >= 10; });
   const playing = ss.pulling([h0]), w1 = get("world");
   get("toggle")();
-  await wait(200);
+  await frames(() => ss.pulling([h0]) === 0, 60);
   const w2 = get("world"), paused = ss.pulling([h0]);
-  await wait(300);
+  await frames(() => false, 10);
   const w3 = get("world");
   const onTick = runs("onTick") - on0, ticks = runs("ticks") - t0;
   if (playing !== 1 || w1.ball.y === w0.ball.y) throw new Error(`playing: ${playing} clocks pulled, ball ${w0.ball.y} -> ${w1.ball.y}; a hidden tab gets no animation frames`);
@@ -590,7 +592,6 @@ test_breakout_listener = {
 test_breakout_memo = {
   test_breakout_listener; // both count clocks pulled, so they run one after the other
   const game = await ss_instance(breakout_module, invalidation);
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const get = (n) => game._scope.get(n)._value;
   for (const n of ["reset", "toggle", "world", "bricks", "app"]) await game.value(n);
   const runs = (n) => ss.evals(game._scope.get(n)._definition);
@@ -609,14 +610,18 @@ test_breakout_memo = {
   const TICKS = 90;
   let frames = 0, changes = 0, last = get("world");
   get("toggle")();
-  const t0 = performance.now();
-  await new Promise((res) => { const f = () => { frames++; const w = get("world"); if (w !== last) { changes++; last = w; } if ((changes < TICKS || get("bricks").length === b0) && performance.now() - t0 < 30000) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+  // the frame cap only turns a hung page into an error
+  const CAP = 3000;
+  await new Promise((res) => { const f = () => { frames++; const w = get("world"); if (w !== last) { changes++; last = w; } if ((changes < TICKS || get("bricks").length === b0) && frames < CAP) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+  const h0 = get("ticks");
   get("toggle")();
-  await wait(100);
+  // the clock has stopped, and the mutations of the last tick have been delivered
+  for (let i = 0; i < 60 && ss.pulling([h0]) > 0; i++) await new Promise((r) => requestAnimationFrame(r));
+  await new Promise((r) => requestAnimationFrame(r));
   mo.disconnect();
   const ran = Object.fromEntries(names.map((n) => [n, runs(n) - n0[n]]));
   const broken = b0 - get("bricks").length;
-  if (changes < TICKS) throw new Error(`only ${changes} world changes in ${frames} frames in 30 s; a hidden tab gets no animation frames`);
+  if (changes < TICKS) throw new Error(`only ${changes} world changes in ${frames} frames; a hidden tab gets no animation frames`);
   if (broken < 1) throw new Error("no brick broke, so the keyed path was not exercised");
   if ((muts["attr style"] ?? 0) > ran.ballView + ran.paddleView + 2) throw new Error(`${muts["attr style"]} style writes for ${ran.ballView + ran.paddleView} ball and paddle draws`);
   if (ran.bricksView > broken) throw new Error(`bricksView ran ${ran.bricksView} times for ${broken} broken bricks`);

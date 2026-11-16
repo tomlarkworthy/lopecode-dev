@@ -216,6 +216,10 @@ export function addParameter(source: string, name: string, annotation: string | 
   return { from: last, to: last, insert: inner.trimEnd().endsWith(",") ? ` ${param}` : `, ${param}` };
 }
 
+// what completionsAt has done: module checks run, and the cells those checks inferred
+export const completionWork = { checks: 0, cells: 0 };
+const counted = () => { completionWork.checks++; return () => { completionWork.cells++; }; };
+
 // outside: the module's cells in other languages (core.ts Outside), so a parameter that reads one has its annotated type.
 // annotate: for a parameter-list completion of an outside name, the annotation its current value suggests (or null).
 export function completionsAt(cells: readonly string[], at: number, offset: number, tsx = true, outside: readonly Outside[] | null = null, annotate: ((name: string) => string | null) | null = null): Completions {
@@ -257,7 +261,7 @@ export function completionsAt(cells: readonly string[], at: number, offset: numb
     const self = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:const|let|(?:async\s+)?function\*?)\s+([\w$]+)/.exec(before)?.[1];
     const others = cells.filter((_, i) => i !== at).join("\n\n");
     let types = new Map<string, string>();
-    try { types = new Map(checkSources({ cells: others, tsx, outside }).cells.map((c) => [c.name, c.value ?? ""])); } catch {}
+    try { types = new Map(checkSources({ cells: others, tsx, outside }, { onCell: counted() }).cells.map((c) => [c.name, c.value ?? ""])); } catch {}
     const opts: Completion[] = [];
     for (const [n, t] of types) if (n !== self && !params.includes(n)) opts.push({ label: n, type: "variable", detail: `cell: ${t}` });
     for (const [n, t] of Object.entries(CAPABILITIES)) if (!params.includes(n) && !types.has(n)) opts.push({ label: n, type: "variable", detail: `capability: ${t}` });
@@ -283,9 +287,11 @@ export function completionsAt(cells: readonly string[], at: number, offset: numb
   for (const v of variants) {
     const texts = cells.map((c, i) => (i === at ? v : c));
     let got: { kind: "member"; t: Ty; reg: Registry } | { kind: "name"; list: Completion[] } | null = null;
+    const cellDone = counted();
     try {
       checkSources({ cells: texts.join("\n\n"), tsx, outside }, {
         onCell: (_name, ch) => {
+          cellDone();
           ch.identHook = (e, env) => {
             if (e.name !== PH || got) return;
             if (!member) got = { kind: "name", list: scopeNames(ch, env) };

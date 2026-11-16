@@ -225,20 +225,36 @@ export async function rawUnloaded(page: Page, h: H, label: string) {
   const shown = await h.editorText(host);
   await h.until(page, async () => (await h.diagsOf(host)).length > 0, 10000);
   const diags = await h.diagsOf(host);
-  await h.typeInto(page, host, 'define("area", [], () => 1)');
-  await page.waitForTimeout(1500);
+  const said1 = await refusedApply(page, h, host, 'define("area", [], () => 1)');
   const a1 = await rawState(page, "area");
-  report(a1?.definition === a0?.definition && diags.some((d) => /"raw" cell and that language is not loaded/.test(d)) && shown !== AREA && !shown.startsWith("define("),
+  report(said1.some((m) => /language is not loaded/.test(m)) && a1?.definition === a0?.definition && diags.some((d) => /"raw" cell and that language is not loaded/.test(d)) && shown !== AREA && !shown.startsWith("define("),
     `${label}: the editor on area shows the Observable JS decompilation, not its source, says the language is not loaded, and Shift-Enter stores nothing: ${JSON.stringify({ diags, shown: shown.slice(0, 80) })}`);
   // the picker shows the tag it cannot load, and picking Observable JavaScript does not let Shift-Enter write over the cell
   const shownLang = await pickerValue(host);
   await pickByKey(page, host, "O");
   const picked = await pickerValue(host);
-  await h.typeInto(page, host, "area = 1");
-  await page.waitForTimeout(1500);
+  const said2 = await refusedApply(page, h, host, "area = 1");
   const a2 = await rawState(page, "area");
-  report(shownLang === "raw" && picked === "ojs" && a2?.definition === a0?.definition && (await h.valueOf(page, POLY, "area")) === 12,
+  report(shownLang === "raw" && picked === "ojs" && said2.some((m) => /language is not loaded/.test(m)) && a2?.definition === a0?.definition && (await h.valueOf(page, POLY, "area")) === 12,
     `${label}: the picker on area shows raw (not loaded); picking Observable JavaScript by key and pressing Shift-Enter still stores nothing: ${JSON.stringify({ shownLang, picked, same: a2?.definition === a0?.definition })}`);
+}
+
+// the editor says "not saved: ..." with console.warn when Shift-Enter stores nothing; a refused apply is
+// waited for by that message, not by a delay
+const notSaved = (page: Page) => page.evaluate(() => {
+  const w = window as any;
+  if (!w.__notSaved) {
+    w.__notSaved = [];
+    const warn0 = console.warn;
+    console.warn = (...a: any[]) => { const m = String(a[0]?.message ?? a[0]); if (/^not saved/.test(m)) w.__notSaved.push(m); return warn0(...a); };
+  }
+  return w.__notSaved.slice() as string[];
+});
+async function refusedApply(page: Page, h: any, host: any, text: string) {
+  const n = (await notSaved(page)).length;
+  await h.typeInto(page, host, text);
+  await h.until(page, async () => (await notSaved(page)).length > n, 10000);
+  return (await notSaved(page)).slice(n);
 }
 
 // the language picker in an open editor's header line, read and set with real keys

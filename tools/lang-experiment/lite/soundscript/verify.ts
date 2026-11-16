@@ -40,10 +40,12 @@ const SCRATCH = join(HERE, ".scratch");
 mkdirSync(SCRATCH, { recursive: true });
 
 let passes = 0, fails = 0;
-// speed rows (their text starts "speed:") are counted apart: on battery power their budgets are not met
-const counts = { functional: { pass: 0, fail: 0 }, speed: { pass: 0, fail: 0 } };
+// every check passes or fails on a count, a value or a DOM state; times and rates are printed as measurements, never judged
+const counts = { functional: { pass: 0, fail: 0 } };
+const measurements: string[] = [];
 let LAST = "(start)";
-const report = (ok: boolean, what: string) => { LAST = what.slice(0, 120); console.log(`${ok ? "pass" : "FAIL"} ${what}`); ok ? passes++ : fails++; counts[what.startsWith("speed:") ? "speed" : "functional"][ok ? "pass" : "fail"]++; };
+const report = (ok: boolean, what: string) => { LAST = what.slice(0, 120); console.log(`${ok ? "pass" : "FAIL"} ${what}`); ok ? passes++ : fails++; counts.functional[ok ? "pass" : "fail"]++; };
+const measure = (what: string) => { console.log(`measure ${what}`); measurements.push(what); };
 const power = Bun.spawnSync(["pmset", "-g", "batt"], { stdout: "pipe" }).stdout.toString().match(/'([^']+)'/)?.[1] ?? "unknown";
 console.log(`power: ${power}`);
 
@@ -271,8 +273,43 @@ async function testsOn(page: Page, label: string, boot = true) {
   console.log(`  ${label}: turned on ${n} test toggles (${Date.now() - t0} ms)`);
 }
 
-// --- speed, measured against budgets (headless Chromium on this machine; the numbers are printed)
-const BUDGET = { firstRenderMs: 1500, firstCheckMs: 1500, keystrokeCheckMs: 50, breakoutFps: 58, typingLongTasks: 0 };
+// --- the work behind what used to be speed budgets: counts of checks, evaluations and frames; the times are measurements
+// Breakout while playing, counted by frame: from the first animation frame that sees a new world, n frames.
+// Each of them must see a new world; ballView runs once per world, bricksView at most once per broken
+// brick, and paddleView, onTick and ticks not at all.
+const playFrames = (page: Page, n: number) => page.evaluate(async (n) => {
+  const bm = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-breakout");
+  const ss = bm._scope.get("ss")._value;
+  const names = ["ballView", "bricksView", "paddleView", "onTick", "ticks"];
+  const runs = () => Object.fromEntries(names.map((c) => [c, ss.evals(bm._scope.get(c)._definition)]));
+  const world = () => bm._scope.get("world")._value;
+  let last = world(), seq = "", r0: Record<string, number> | null = null, b0 = 0, t0 = 0, waited = 0;
+  // the cap on frames before the first change only turns a game that never starts into a failure
+  await new Promise<void>((res) => {
+    const f = () => {
+      const w = world();
+      if (!r0) {
+        if (w !== last) { r0 = runs(); b0 = w.bricks.length; t0 = performance.now(); last = w; }
+        else if (++waited > 600) return res();
+        return requestAnimationFrame(f);
+      }
+      seq += w !== last ? "1" : "0";
+      last = w;
+      if (seq.length < n) requestAnimationFrame(f); else res();
+    };
+    requestAnimationFrame(f);
+  });
+  const ms = performance.now() - t0, r1 = runs();
+  const ran = r0 ? Object.fromEntries(names.map((c) => [c, r1[c] - r0![c]])) : null;
+  const changes = seq.split("").filter((x) => x === "1").length;
+  return { seq, changes, ran, broken: b0 - world().bricks.length, over: !!bm._scope.get("over")._value, perSecond: +(changes * 1000 / ms).toFixed(1), framesPerSecond: +(seq.length * 1000 / ms).toFixed(1) };
+}, n);
+type Play = Awaited<ReturnType<typeof playFrames>>;
+// a frame that sees no new world is a matter of when the frame fell, so it is printed and not failed on:
+// what is checked is that each new world drew the ball once and ran nothing else
+const playOk = (p: Play, n: number) => !!p.ran && p.changes > 0 && !p.over && p.ran.ballView === p.changes && p.ran.bricksView <= p.broken && p.ran.paddleView === 0 && p.ran.onTick === 0 && p.ran.ticks === 0;
+const playSays = (p: Play, n: number) => `${p.changes} of ${n} animation frames saw a new world${p.changes < n ? ` (${p.seq})` : ""}; runs ${JSON.stringify(p.ran)} for ${p.broken} broken bricks; over ${p.over}`;
+
 async function speed() {
   const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
   await page.route("**/*", (r) => (/^(file|blob|data):/.test(r.request().url()) ? r.continue() : r.abort()));
@@ -291,10 +328,13 @@ async function speed() {
   await page.goto(`file://${file}`);
   await page.waitForFunction(() => (window as any).__marks.firstRender && (window as any).__marks.firstCheck, null, { timeout: 60000 }).catch(() => {});
   const marks = await page.evaluate(() => (window as any).__marks);
-  report(marks.firstRender < BUDGET.firstRenderMs, `speed: load to the tutorial's title rendered ${marks.firstRender?.toFixed(0)} ms (budget ${BUDGET.firstRenderMs})`);
-  report(marks.firstCheck < BUDGET.firstCheckMs, `speed: load to the first checker verdict on the page ${marks.firstCheck?.toFixed(0)} ms (budget ${BUDGET.firstCheckMs})`);
+  // the two load times stood only for "fast": they are measured; that both appear is checked
+  report(marks.firstRender > 0 && marks.firstCheck > 0, `load: the tutorial's title and a checker verdict both render (${marks.firstRender ? "title" : "no title"}, ${marks.firstCheck ? "verdict" : "no verdict"})`);
+  measure(`load to the tutorial's title rendered: ${marks.firstRender?.toFixed(0)} ms`);
+  measure(`load to the first checker verdict on the page: ${marks.firstCheck?.toFixed(0)} ms`);
   await page.waitForFunction(() => { const rt = (window as any).__ojs_runtime; const m = rt?.mains?.get("@tomlarkworthy/soundscript"); return m?._scope.get("ss_language")?._value; }, null, { timeout: 60000 });
-  // what the editor's lint runs for one keystroke: check the edited cell against the whole tutorial module
+  // what the editor's lint runs for one keystroke: one check of the module as edited (the module as it is
+  // is remembered), and no cell body runs
   const ks = await page.evaluate(async () => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript"), tut = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
     const lang = core._scope.get("ss_language")._value;
@@ -303,43 +343,62 @@ async function speed() {
     const ss = core._scope.get("ss")._value;
     const t: number[] = [];
     lang.check(src, [v]);
-    const c0 = ss.checksRun();
+    const c0 = ss.checksRun(), e0 = ss.stats.evals;
     for (let i = 0; i < 30; i++) { const a = performance.now(); lang.lint(src.replace(/\d+/, String(600 + i)), [v]); t.push(performance.now() - a); }
-    const checks = ss.checksRun() - c0;
+    const checks = ss.checksRun() - c0, evals = ss.stats.evals - e0;
     t.sort((x, y) => x - y);
     const cells = core._scope.get("ss_moduleCells")._value(tut).length;
-    return { cells, median: t[15], max: t[29], checks };
+    return { cells, median: t[15], max: t[29], checks, evals };
   });
-  report(ks.max < BUDGET.keystrokeCheckMs && ks.checks === 30, `speed: one keystroke's lint of width against the ${ks.cells}-cell tutorial module: median ${ks.median.toFixed(1)} ms, max ${ks.max.toFixed(1)} ms of 30 (budget ${BUDGET.keystrokeCheckMs} for the max); ${ks.checks} module checks for 30 keystrokes (budget 30)`);
-  // the Mandelbrot timing the tutorial shows (its benchmark cell, measured during boot); Breakout is timed after it, so the two do not share the main thread
+  report(ks.checks === 30 && ks.evals === 0, `lint: 30 lints of width, each a different edit, against the ${ks.cells}-cell tutorial module ran ${ks.checks} module checks and ${ks.evals} cell bodies (want 30 and 0)`);
+  measure(`one keystroke's lint of width against the ${ks.cells}-cell tutorial module: median ${ks.median.toFixed(1)} ms, max ${ks.max.toFixed(1)} ms of 30`);
+  // the Mandelbrot timing the tutorial shows (its benchmark cell, measured during boot): the pool and the
+  // main thread give the same bytes, and every worker of the pool answered jobs; the times are measured
   await page.waitForFunction(() => (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-tutorial")._scope.get("benchmark")?._value, null, { timeout: 60000 }).catch(() => {});
   const b = JSON.parse((await read(page, TUTORIAL))?.benchmark?.value ?? "null");
-  report(!!b && b.same && b.poolMs < b.mainMs, `speed: Mandelbrot ${b ? `main thread ${b.mainMs.toFixed(1)} ms, pool of ${b.poolSize} ${b.poolMs.toFixed(1)} ms, same bytes ${b.same}` : "no benchmark"} (budget: the pool is faster)`);
-  // Breakout on the page: a real click on play, then count world changes per second for 2 s
+  const answered: number[] = await page.evaluate(() => [...((window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript")._scope.get("ss_pool")._value.answered ?? [])]);
+  const busy = answered.filter((n) => n > 0).length, jobs = answered.reduce((a, n) => a + n, 0);
+  report(!!b && b.same === true && answered.length === b.poolSize && busy === Math.min(b.poolSize, b.bands) && jobs >= b.bands,
+    `workers: Mandelbrot ${b ? `in ${b.bands} bands: the pool and the main thread give the same bytes (${b.same}); ${busy} of the pool's ${answered.length} workers answered jobs (${JSON.stringify(answered)}, ${jobs} in all)` : "no benchmark"}`);
+  if (b) measure(`Mandelbrot: main thread ${b.mainMs.toFixed(1)} ms, pool of ${b.poolSize} ${b.poolMs.toFixed(1)} ms (medians of ${b.runs})`);
+  // Breakout on the page after a real click on play, counted by frame
   const play = page.getByRole("button", { name: "play", exact: true }).first();
   await play.scrollIntoViewIfNeeded();
-  const before = await page.evaluate(() => { const bm = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-breakout"); (window as any).__w = bm._scope.get("world")._value; return true; });
   await play.click();
-  const fps = await page.evaluate(async () => {
-    const bm = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-breakout");
-    let changes = 0, frames = 0, last = bm._scope.get("world")._value;
-    const t0 = performance.now();
-    await new Promise<void>((res) => { const f = () => { frames++; const w = bm._scope.get("world")._value; if (w !== last) { changes++; last = w; } if (performance.now() - t0 < 2000) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
-    return { changesPerS: changes / 2, framesPerS: frames / 2 };
-  });
+  const FRAMES = 90;
+  const p = await playFrames(page, FRAMES);
   await page.getByRole("button", { name: "pause", exact: true }).first().click();
-  report(before && fps.changesPerS >= BUDGET.breakoutFps, `speed: Breakout after a click on play: ${fps.changesPerS} world changes/s in ${fps.framesPerS} animation frames/s (budget ${BUDGET.breakoutFps})`);
-  // typing in a cell editor with the tutorial open: no task over 50 ms while 30 keys go in
+  report(playOk(p, FRAMES), `breakout: after a click on play, ${playSays(p, FRAMES)}`);
+  measure(`Breakout after a click on play: ${p.perSecond} world changes/s in ${p.framesPerSecond} animation frames/s`);
+  // typing in a cell editor with the tutorial open: each lint checks the module once, and nothing runs or is stored
+  await page.waitForFunction(() => (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript")._scope.get("ss")._value.pulling() === 0, null, { timeout: 10000 }).catch(() => {});
   const ed = await openEditor(page, TUTORIAL, "half");
-  if (!ed) report(false, "speed: no editor for half");
+  if (!ed) report(false, "typing: no editor for half");
   else {
     await ed.locator(".cm-content").first().click();
     await page.keyboard.press("End");
-    const t0 = await page.evaluate(() => performance.now());
+    const base = await page.evaluate(() => {
+      const w = window as any, rt = w.__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript"), tut = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
+      const lang = core._scope.get("ss_language")._value, ss = core._scope.get("ss")._value;
+      w.__lint = { n: 0, last: null };
+      if (!lang.__lintWrapped) { const lint = lang.lint; lang.lint = (src: string, ...a: any[]) => { const r = lint(src, ...a); w.__lint.n++; w.__lint.last = src; return r; }; lang.__lintWrapped = true; }
+      w.__defs = new Map([...rt._variables].filter((v: any) => v._module === tut).map((v: any) => [v, v._definition]));
+      return { t0: performance.now(), checks: ss.checksRun(), evals: ss.stats.evals };
+    });
     await page.keyboard.type(" + 0".repeat(8), { delay: 40 });
-    await page.waitForTimeout(1200); // the lint runs after the editor's pause
-    const lt = await page.evaluate((t0) => (window as any).__longtasks.filter((e: any) => e.at >= t0), t0);
-    report(lt.length <= BUDGET.typingLongTasks, `speed: typing 32 keys into half's editor (40 ms apart) with the tutorial open: ${lt.length} tasks over 50 ms${lt.length ? " " + JSON.stringify(lt.map((e: any) => Math.round(e.ms))) : ""} (budget ${BUDGET.typingLongTasks})`);
+    // the lint runs after the editor's pause: the wait is for the lint of the text as typed
+    const doc = await editorText(ed);
+    await page.waitForFunction((doc) => (window as any).__lint.last === doc, doc, { timeout: 10000 }).catch(() => {});
+    const r = await page.evaluate(([base, doc]: any) => {
+      const w = window as any, rt = w.__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript"), tut = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
+      const ss = core._scope.get("ss")._value;
+      const redefined = [...rt._variables].filter((v: any) => v._module === tut && w.__defs.get(v) !== v._definition).map((v: any) => v._name);
+      return { lints: w.__lint.n, linted: w.__lint.last === doc && doc.includes(" + 0".repeat(8)), checks: ss.checksRun() - base.checks, evals: ss.stats.evals - base.evals, redefined, longtasks: w.__longtasks.filter((e: any) => e.at >= base.t0).map((e: any) => Math.round(e.ms)) };
+    }, [base, doc]);
+    // a lint checks the module as edited; the module as it is, checked once, is remembered
+    report(r.linted && r.lints > 0 && r.checks <= r.lints + 1 && r.evals === 0 && r.redefined.length === 0,
+      `typing: 32 keys into half's editor with the tutorial open: the text as typed was linted (${r.linted}); ${r.lints} lints ran ${r.checks} module checks (one each, and one of the module as it is), ${r.evals} cell bodies ran, redefined ${JSON.stringify(r.redefined)}`);
+    measure(`typing 32 keys into half's editor (40 ms apart): ${r.longtasks.length} tasks over 50 ms ${JSON.stringify(r.longtasks)}`);
   }
   await page.close();
 }
@@ -423,7 +482,7 @@ async function editorOn(page: Page, label: string, module: string, cell: string,
   if (shot) {
     await page.locator(".cm-editor").first().scrollIntoViewIfNeeded().catch(() => {});
     await page.locator(".cm-lintRange-error").first().hover().catch(() => {});
-    await page.waitForTimeout(500);
+    await page.locator(".cm-tooltip-lint").first().waitFor({ timeout: 5000 }).catch(() => {});
     await page.screenshot({ path: shot });
   }
   report(ed.showsTyped === true, `${label}: ${cell} opens as typed SoundScript source: ${JSON.stringify(ed.shown)}`);
@@ -600,9 +659,7 @@ async function completion(page: Page) {
   const status = () => page.evaluate(statusFn);
   const waitPopup = async () => {
     await page.waitForFunction(`(${statusFn})() === "active"`, null, { timeout: 5000 }).catch(() => {});
-    await page.locator(".cm-tooltip-autocomplete li").first().waitFor({ timeout: 5000 }).catch(() => {});
-    // CodeMirror ignores Enter and Tab for 75 ms after the list opens (interactionDelay)
-    await page.waitForTimeout(250);
+    await takesCompletion(page);
     return popup();
   };
   const typeAndList = async (host: any, text: string, key: string) => {
@@ -682,14 +739,16 @@ async function completion(page: Page) {
     await place(plain, o);
   } else report(false, "completion: no editor for tests_on");
 
-  // every member a SoundScript cell of the tutorial or core uses is offered at its place, and the
-  // completion stays within budget
+  // every member a SoundScript cell of the tutorial or core uses is offered at its place; each completion
+  // checks the module at most once per placeholder variant (4), and one of count. checks it once
   const all = await page.evaluate(([tut, core]) => {
     const rt = (window as any).__ojs_runtime;
     const find = (n: string, m?: any) => [...rt._variables].find((v: any) => v._name === n && (!m || v._module === m));
     const lang = find("ss_language")._value, cellsOf = find("ss_moduleCells")._value;
+    const work = find("ss", rt.mains.get(core))._value.completionWork;
     const missed: string[] = [], times: number[] = [];
     let n = 0;
+    const w0 = { ...work };
     for (const [name, mod] of rt.mains) {
       if (!String(name).startsWith(core)) continue;
       for (const c of cellsOf(mod)) {
@@ -706,16 +765,20 @@ async function completion(page: Page) {
         }
       }
     }
+    const sweep = { checks: work.checks - w0.checks, cells: work.cells - w0.cells };
     const inc = find("increment", rt.mains.get(tut));
     const src = cellsOf(rt.mains.get(tut)).find((c: any) => c.key === "increment").text;
     const at = src.indexOf("count.update") + 6;
     const own: number[] = [];
+    const w1 = { ...work };
     for (let i = 0; i < 30; i++) { const t0 = performance.now(); lang.complete(src, at, [inc]); own.push(performance.now() - t0); }
     own.sort((a, b) => a - b);
-    return { n, missed, median: own[15], max: own[29], cells: cellsOf(rt.mains.get(tut)).length };
+    return { n, missed, sweep, count: { checks: work.checks - w1.checks, cells: work.cells - w1.cells }, median: own[15], max: own[29], cells: cellsOf(rt.mains.get(tut)).length };
   }, [TUTORIAL, CORE]);
   report(all.n > 20 && all.missed.length === 0, `completion: at each of ${all.n} member reads in the SoundScript cells of the core, tutorial and section modules the member read is offered${all.missed.length ? ": missed " + all.missed.slice(0, 8).join("; ") : ""}`);
-  report(all.max < 30, `speed: one completion of count. in the ${all.cells}-cell tutorial module: median ${all.median.toFixed(1)} ms, max ${all.max.toFixed(1)} ms of 30 (budget 30 for the max)`);
+  report(all.sweep.checks >= all.n && all.sweep.checks <= 4 * all.n && all.count.checks === 30 && all.count.cells <= 30 * all.cells,
+    `completion: the ${all.n} member completions ran ${all.sweep.checks} module checks (one to four each); 30 completions of count. in the ${all.cells}-cell tutorial module ran ${all.count.checks} module checks inferring ${all.count.cells} cells (one check each, the whole module each time)`);
+  measure(`one completion of count. in the ${all.cells}-cell tutorial module: median ${all.median.toFixed(1)} ms, max ${all.max.toFixed(1)} ms of 30`);
 }
 // Three editor features with real keys and clicks (2026-11-16): the highlighting follows the language
 // picker before Shift-Enter; a parameter list completes the module's cells in other languages with an
@@ -786,9 +849,7 @@ async function editorFeatures(page: Page) {
   const complete = async (text: string, key: string) => {
     await place(app, text);
     await page.keyboard.type(key);
-    await page.locator(".cm-tooltip-autocomplete li").first().waitFor({ timeout: 5000 }).catch(() => {});
-    // CodeMirror ignores Enter for 75 ms after the list opens (interactionDelay)
-    await page.waitForTimeout(250);
+    await takesCompletion(page);
     const list = await popup();
     await page.keyboard.press("Enter");
     return { list, text: (await editorText(app)).slice(h.length) };
@@ -808,7 +869,7 @@ async function editorFeatures(page: Page) {
 async function uiPaths(page: Page, saved: string) {
   const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
   await tab(CORE);
-  await page.waitForTimeout(1000);
+  await page.waitForFunction(() => { const core = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript"); return [...document.querySelectorAll(".observablehq")].some((n: any) => n.isConnected && n.variable?._module === core && n.variable?._name === "tally"); }, null, { timeout: 10000 }).catch(() => {});
   // ref as one cell: one rendered node for tally and viewof tally, and its editor shows the ref source
   const nodes = await page.evaluate(() => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
@@ -829,8 +890,7 @@ async function uiPaths(page: Page, saved: string) {
   const areaNow = await valueOf(page, TUTORIAL, "area");
   report(broke && (await valueOf(page, TUTORIAL, "width")) === "640" && /^THREW area does not check: \[inject-type\]/.test(String(areaNow)), `ui: a typed width = "640" plus Shift-Enter is stored; the editor says what it broke, and area raises its message: ${JSON.stringify(await diagsOf(width))}, area ${JSON.stringify(areaNow)}`);
   await typeInto(page, width, "const width = () => 600;");
-  await page.waitForFunction(async () => true);
-  for (let i = 0; i < 50 && (await valueOf(page, TUTORIAL, "width")) !== 600; i++) await page.waitForTimeout(100);
+  await until(page, async () => (await valueOf(page, TUTORIAL, "width")) === 600);
   report((await valueOf(page, TUTORIAL, "width")) === 600 && (await valueOf(page, TUTORIAL, "area")) === 600 * 400, `ui: typed width = 600 plus Shift-Enter is applied: width ${await valueOf(page, TUTORIAL, "width")}, area ${await valueOf(page, TUTORIAL, "area")}`);
 
   // a new cell: the hotbar's add button, then typing
@@ -857,7 +917,7 @@ async function uiPaths(page: Page, saved: string) {
   report(typedDiags.some((d: string) => d.includes("[inject-type]")), `ui: a new cell typed as SoundScript is linted by its checker before it is applied: ${JSON.stringify(typedDiags)}`);
   const NEW = "const quadrupled = (width: number) => width * 4;";
   await typeInto(page, fresh, NEW);
-  for (let i = 0; i < 50 && (await valueOf(page, TUTORIAL, "quadrupled")) !== 2400; i++) await page.waitForTimeout(100);
+  await until(page, async () => (await valueOf(page, TUTORIAL, "quadrupled")) === 2400);
   const q = await page.evaluate(() => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
     const order = [...rt._variables].filter((v: any) => v._module === mod);
@@ -875,7 +935,7 @@ async function uiPaths(page: Page, saved: string) {
   else {
     const src = await editorText(pv);
     await typeInto(page, pv, src.replace('"#ddd"', '"#eee"'));
-    for (let i = 0; i < 50 && !String(await defOf(page, BR, "paddleView")).includes("#eee"); i++) await page.waitForTimeout(100);
+    await until(page, async () => String(await defOf(page, BR, "paddleView")).includes("#eee"));
     const after = await page.evaluate(() => {
       const rt = (window as any).__ojs_runtime, mod = rt.mains.get("@tomlarkworthy/soundscript-breakout");
       const core = rt.mains.get("@tomlarkworthy/soundscript");
@@ -891,7 +951,7 @@ async function uiPaths(page: Page, saved: string) {
   // Save in place through the lopepage menu (the file picker is stubbed to write `saved`)
   await page.locator('button[title="Menu"]').first().click();
   await page.locator(".lp2-menu button.lp2-menu-item", { hasText: "Save in place" }).first().click();
-  for (let i = 0; i < 100 && !existsSync(saved); i++) await page.waitForTimeout(200);
+  await until(page, async () => existsSync(saved), 20000);
   report(existsSync(saved) && readFileSync(saved, "utf8").length > 1e6, `ui: the menu's Save in place wrote ${existsSync(saved) ? readFileSync(saved, "utf8").length : 0} bytes`);
 }
 // A new cell by real keys: the add button on anchor's hotbar, then typed text and Shift-Enter.
@@ -987,7 +1047,7 @@ async function brokenState(savedTo: string) {
   // Save in place through the lopepage menu, reopen, repair broken by keys
   await page.locator('button[title="Menu"]').first().click();
   await page.locator(".lp2-menu button.lp2-menu-item", { hasText: "Save in place" }).first().click();
-  for (let i = 0; i < 100 && !existsSync(savedTo); i++) await page.waitForTimeout(200);
+  await until(page, async () => existsSync(savedTo), 20000);
   await page.close();
   if (!existsSync(savedTo)) { report(false, "broken state: Save in place wrote nothing"); return; }
   const S = await open(savedTo);
@@ -1026,17 +1086,22 @@ async function breakStep(page: Page) {
   const text = await editorText(ed);
   await typeInto(page, ed, text.replace("if (e.kind === \"reset\") return start();", "if (e.kind === \"reset\") return start;"));
   await until(page, async () => /^THREW step does not check/.test(String(await valueOf(page, BR, "step"))));
-  await page.waitForTimeout(300);
+  // stopped: onTick's listener has gone; then the world is the same object for 30 frames
+  await until(page, async () => (await probe()).listeners === p0.listeners - 1, 5000);
+  await frames(page, 2);
   const p1 = await probe();
-  await page.waitForTimeout(500);
+  const still = await page.evaluate(async (b: string) => {
+    const bm = (window as any).__ojs_runtime.mains.get(b), w0 = bm._scope.get("world")._value;
+    for (let i = 0; i < 30; i++) { await new Promise((r) => requestAnimationFrame(r)); if (bm._scope.get("world")._value !== w0) return false; }
+    return true;
+  }, BR);
   const p2 = await probe();
   const states = await page.evaluate(async ([c, b]) => { const rt = (window as any).__ojs_runtime; const st = (await rt.mains.get(c).value("ss_check"))(rt.mains.get(b)).states; return Object.fromEntries([...st].filter(([, x]: any) => x.state !== "ok").map(([n, x]: any) => [n, x.state === "blocked" ? `blocked by ${x.blockedBy.join(", ")}` : x.state])); }, [CORE, BR]);
   console.log(`  breakout broken: ${JSON.stringify(states)}; ${JSON.stringify({ p0, p1, p2 })}`);
-  report(p2.score >= p0.score && p2.score === p1.score && p2.y === p1.y && p2.listeners === p0.listeners - 1 && states.step === "rejected" && states.tick === "blocked by step" && states.onTick === "blocked by tick",
-    `breakout: step broken mid-game: the world keeps score ${p1.score} and stops (ball y ${p1.y} -> ${p2.y}); listeners ${p0.listeners} -> ${p2.listeners}, clocks ${p0.clocks} -> ${p2.clocks}; ${JSON.stringify(states)}`);
+  report(still && p2.score >= p0.score && p2.score === p1.score && p2.y === p1.y && p2.listeners === p0.listeners - 1 && states.step === "rejected" && states.tick === "blocked by step" && states.onTick === "blocked by tick",
+    `breakout: step broken mid-game: the world keeps score ${p1.score} and stops (the same world for 30 frames: ${still}; ball y ${p1.y} -> ${p2.y}); listeners ${p0.listeners} -> ${p2.listeners}, clocks ${p0.clocks} -> ${p2.clocks}; ${JSON.stringify(states)}`);
   await typeInto(page, ed, text);
-  await until(page, async () => (await probe()).y !== p2.y, 5000);
-  await page.waitForTimeout(300);
+  await until(page, async () => { const p = await probe(); return p.y !== p2.y && p.listeners === p0.listeners && p.clocks === 1; }, 5000);
   const p3 = await probe();
   console.log(`  breakout repaired: ${JSON.stringify(p3)}`);
   report(p3.score >= p2.score && p3.y !== p2.y && p3.listeners === p0.listeners && p3.clocks === 1, `breakout: repaired, the game continues from score ${p2.score} (now ${p3.score}, ball moving ${p2.y} -> ${p3.y}) with ${p3.listeners} listeners (${p0.listeners} before the break) and ${p3.clocks} clock pulled`);
@@ -1058,16 +1123,20 @@ async function deleteStops(page: Page) {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get("@tomlarkworthy/soundscript-breakout");
     const get = (n: string) => [...rt._variables].find((v: any) => v._module === mod && v._name === n);
     const ss = [...rt._variables].find((v: any) => v._name === "ss" && v._module === rt.mains.get("@tomlarkworthy/soundscript"))._value;
-    const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+    const frame = () => new Promise((res) => requestAnimationFrame(res));
+    // the frame cap only turns a hang into a failure
+    const until = async (f: () => boolean, n = 300) => { for (let i = 0; i < n && !f(); i++) await frame(); return f(); };
     const r0 = ss.running(), p0 = ss.pulling();
     get("toggle")._value();
-    await wait(400);
+    await until(() => ss.pulling() - p0 === 1);
     const playing = ss.pulling() - p0;
     get("onTick").delete();
-    await wait(600);
+    await until(() => ss.pulling() === p0 && ss.running() === r0 - 1);
+    for (let i = 0; i < 2; i++) await frame();
     const w1 = get("world")._value;
-    await wait(300);
-    return { playing, after: ss.pulling() - p0, listeners: ss.running() - r0, still: get("world")._value === w1 };
+    let still = true;
+    for (let i = 0; i < 20; i++) { await frame(); still &&= get("world")._value === w1; }
+    return { playing, after: ss.pulling() - p0, listeners: ss.running() - r0, still };
   });
   report(r.playing === 1 && r.after === 0 && r.listeners === -1 && r.still, `deleting onTick while playing stops the clock: clocks pulled +${r.playing} -> +${r.after}, listeners ${r.listeners}, world unchanged ${r.still}`);
 }
@@ -1076,17 +1145,19 @@ async function instanceStops(page: Page) {
   const r = await page.evaluate(async () => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript"), bm = rt.mains.get("@tomlarkworthy/soundscript-breakout");
     const ss = core._scope.get("ss")._value, ss_instance = await core.value("ss_instance");
-    const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+    const frame = () => new Promise((res) => requestAnimationFrame(res));
+    // the frame cap only turns a hang into a failure
+    const until = async (f: () => boolean, n = 300) => { for (let i = 0; i < n && !f(); i++) await frame(); return f(); };
     let done!: () => void;
     const r0 = ss.running(), p0 = ss.pulling();
     const inst = await ss_instance(bm, new Promise<void>((res) => (done = res)));
     for (const n of ["toggle", "world", "onTick"]) await inst.value(n);
     const w0 = inst._scope.get("world")._value;
     inst._scope.get("toggle")._value();
-    await wait(400);
+    await until(() => inst._scope.get("world")._value.ball.y !== w0.ball.y);
     const playing = { listeners: ss.running() - r0, pulled: ss.pulling() - p0, moved: inst._scope.get("world")._value.ball.y !== w0.ball.y };
     done();
-    await wait(300);
+    await until(() => ss.running() === r0 && ss.pulling() === p0);
     const after = { listeners: ss.running() - r0, pulled: ss.pulling() - p0, vars: [...rt._variables].filter((v: any) => v._module === inst).length };
     return { playing, after };
   });
@@ -1320,6 +1391,19 @@ async function commandGuard(page: Page, label: string, module: string, cell: str
   return r;
 }
 
+// The focused editor's completion list is open with an option selected and takes Enter or Tab: CodeMirror's
+// acceptCompletion refuses a key while Date.now() - open.timestamp < interactionDelay, so this reads that rule
+// from the editor's own state (its completion state and config) instead of sleeping past it
+const takesCompletion = (page: Page) => page.waitForFunction(() => {
+  const rt = (window as any).__ojs_runtime;
+  const el = document.activeElement?.closest(".cm-editor");
+  const view = el && [...rt._variables].find((v: any) => v._name === "EditorView")._value.findFromDOM(el);
+  if (!view) return false;
+  const st = view.state.values.find((v: any) => v && typeof v === "object" && "active" in v && "open" in v);
+  const cfg = view.state.config.staticValues.find((v: any) => v && typeof v === "object" && "interactionDelay" in v);
+  const o = st?.open;
+  return !!o && o.selected >= 0 && !o.disabled && !!document.querySelector(".cm-tooltip-autocomplete li[aria-selected=true]") && Date.now() - o.timestamp >= (cfg?.interactionDelay ?? 0);
+}, null, { timeout: 5000 }).then(() => true).catch(() => false);
 const diagsOf = (host: any) => host.locator(".cm-content").first().evaluate((el: any) => {
   const rt = (window as any).__ojs_runtime;
   const find = (n: string) => [...rt._variables].find((v: any) => v._name === n)?._value;
@@ -1328,6 +1412,8 @@ const diagsOf = (host: any) => host.locator(".cm-content").first().evaluate((el:
   find("codemirror").forEachDiagnostic?.(view.state, (d: any) => ds.push(d.message));
   return ds;
 });
+// n animation frames of the page, counted by frame
+const frames = (page: Page, n: number) => page.evaluate((n) => new Promise<void>((res) => { let i = 0; const f = () => (++i >= n ? res() : void requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
 const until = async (page: Page, f: () => Promise<boolean>, ms = 10000) => { const t0 = Date.now(); while (!(await f())) { if (Date.now() - t0 > ms) return false; await page.waitForTimeout(100); } return true; };
 const rawHelpers = () => ({ report, openEditor, typeInto, editorText, diagsOf, valueOf, tagEditor, until, testsPass });
 // the text of the table row for `cell` in the first table (in DOM order) matching `sel` that has one
@@ -1497,8 +1583,10 @@ async function tryIts(page: Page, firstOnly = false) {
   const MD = "@tomlarkworthy/soundscript-model";
   const r0 = await runsOf(page, MD);
   await page.getByRole("button", { name: "bump", exact: true }).first().click();
-  await until(page, async () => (await runsOf(page, MD)).doubled > r0.doubled);
-  await page.waitForTimeout(300);
+  // every cell that reads bump's change has run once; then 10 frames, in which any extra run would show
+  const RAN = ["doubled", "app", "stamped", "scale", "area", "areaFn", "areaOf4"];
+  await until(page, async () => { const r = await runsOf(page, MD); return RAN.every((k) => r[k] > (r0[k] ?? 0)); });
+  await frames(page, 10);
   const r1 = await runsOf(page, MD);
   const delta = Object.fromEntries(Object.keys(r1).map((k) => [k, r1[k] - (r0[k] ?? 0)]));
   const stampedKind = await page.evaluate(() => [...document.querySelectorAll(".lite-vars tr")].find((tr) => tr.querySelector("td code")?.textContent === "stamped")?.children[2]?.textContent);
@@ -1543,26 +1631,25 @@ async function tryIts(page: Page, firstOnly = false) {
     await typeInto(page, bstep, t.replace("Math.abs(x - w.paddle) < 28", "Math.abs(x - w.paddle) < 60"));
     await until(page, async () => String(await defOf(page, BR, "step")).includes("< 60"));
     const w1 = await world();
-    await page.waitForTimeout(300);
+    await until(page, async () => (await world()).y !== w1.y, 5000);
     const w2 = await world();
     const ssv = await page.evaluate((b: string) => { const rt = (window as any).__ojs_runtime, bm = rt.mains.get(b), ss = rt.mains.get("@tomlarkworthy/soundscript")._scope.get("ss")._value; const hs = [...rt._variables].filter((v: any) => v._module === bm && ss.isEvents?.(v._value)).map((v: any) => v._value); return { running: ss.running(hs), pulling: ss.pulling(hs) }; }, BR);
     report(w0.score > 0 && w1.score >= w0.score && w1.bricks <= w0.bricks && w2.y !== w1.y && ssv.running === 1 && ssv.pulling === 1, `try (section 9): step edited while playing: world ${JSON.stringify(w0)} -> ${JSON.stringify(w1)} -> ${JSON.stringify(w2)}, ${ssv.running} listener, ${ssv.pulling} clock`);
     // with the breakout module's own pane open in edit mode, every cell drawn by the language: the
-    // kinds the normal Inspector cannot read, and the game still runs at frame rate
+    // kinds the normal Inspector cannot read, and the game still gets a new world on every frame
     const kinds = await page.evaluate(async (b: string) => {
       const pane = document.querySelector(`.lp2-pane[data-module="${b}"]`)!;
       const line = (c: string) => (pane.querySelector(`.observablehq[cell="${c}"]`)?.textContent ?? "").trim();
-      const m = (window as any).__ojs_runtime.mains.get(b), w0 = m._scope.get("world");
-      let changes = 0, last = w0._value;
-      const t0 = performance.now();
-      while (performance.now() - t0 < 1000) { await new Promise((r) => requestAnimationFrame(r)); if (w0._value !== last) { changes++; last = w0._value; } }
       // the three pieces app places are lines (positioned by a parent they have not got); app is mounted
       const views = [...["bricksView", "paddleView", "ballView"].map(line), (() => { const n = pane.querySelector('.observablehq[cell="app"] .ss-view') as HTMLElement | null; return n ? `app ${n.tagName.toLowerCase()} ${Math.round(n.getBoundingClientRect().height)}px` : "app none"; })()];
-      return { ticks: line("ticks"), onTick: line("onTick"), ball: line("type Ball").slice(0, 40), tick: line("tick"), step: line("step"), views, perSecond: Math.round(changes * 1000 / (performance.now() - t0)) };
+      return { ticks: line("ticks"), onTick: line("onTick"), ball: line("type Ball").slice(0, 40), tick: line("tick"), step: line("step"), views };
     }, BR);
+    const EDIT_FRAMES = 60;
+    const pe = await playFrames(page, EDIT_FRAMES);
     report(kinds.ticks === "ticks = events Events<number>" && kinds.onTick === "onTick = listener ticks → tick" && kinds.ball.startsWith("type Ball = { readonly x: number") && kinds.tick === "tick = ƒ action(number)" && kinds.step === "step = ƒ (w: World, e: Ev) => World" && kinds.views.slice(0, 3).every((v: string) => / = <div> element, positioned by its parent$/.test(v)) && /^app div [1-9]\d*px$/.test(kinds.views[3]),
       `try (section 9): the breakout pane draws ${JSON.stringify(kinds)}`);
-    report(kinds.perSecond >= 58, `speed: Breakout playing with its own pane open in edit mode: ${kinds.perSecond} world changes/s (budget 58)`);
+    report(playOk(pe, EDIT_FRAMES), `try (section 9): playing with the breakout pane open in edit mode, ${playSays(pe, EDIT_FRAMES)}`);
+    measure(`Breakout playing with its own pane open in edit mode: ${pe.perSecond} world changes/s in ${pe.framesPerSecond} animation frames/s`);
     await page.evaluate((b: string) => { const bm = (window as any).__ojs_runtime.mains.get(b); if (bm._scope.get("playing")._value) bm._scope.get("toggle")._value(); }, BR);
   } else report(false, "try: no editor for breakout step");
 }
@@ -1730,9 +1817,13 @@ async function touch() {
   const y0 = (await world()).y;
   await page.touchscreen.tap(play.x + play.width / 2, play.y + play.height / 2);
   const running = await until(page, async () => (await world()).y !== y0, 10000);
-  // the page settles after play re-renders the game (scroll anchoring); the drag is measured after that
-  let last = "";
-  await until(page, async () => { const s = await scroll(); const same = s === last; last = s; return same; }, 10000);
+  // the page settles after play re-renders the game (scroll anchoring); the drag is measured once the
+  // scroll positions and the board's place have held for 10 animation frames (the cap only ends a hang)
+  await page.evaluate(async () => {
+    const at = () => [scrollY, ...[...document.querySelectorAll(".lp2-pane")].map((e) => e.scrollTop), document.querySelector(".lite-game canvas")?.getBoundingClientRect().top].join(",");
+    let last = at(), held = 0;
+    for (let i = 0; i < 600 && held < 10; i++) { await new Promise((r) => requestAnimationFrame(r)); const now = at(); held = now === last ? held + 1 : 0; last = now; }
+  });
   const before = { world: await world(), scroll: await scroll(), top: (await canvas.boundingBox())!.y };
   const bb = (await canvas.boundingBox())!;
   const cdp = await ctx.newCDPSession(page);
@@ -2013,7 +2104,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     ]) res.push(!!(await lang.apply(c, [], { module: { module: core }, variables: [get("tripled")] })));
     await core.value("aUseDec");
     get("aUseDec")._value();
-    for (let i = 0; i < 20 && get("aCurrent")._value !== get("aDec")._value; i++) await new Promise((r) => setTimeout(r, 20));
+    for (let i = 0; i < 300 && get("aCurrent")._value !== get("aDec")._value; i++) await new Promise((r) => requestAnimationFrame(r));
     return { applied: res, holdsDec: get("aCurrent")._value === get("aDec")._value };
   });
   const cexp = await exportPage(C.page);
@@ -2031,7 +2122,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
       const cur = await core.value("aCurrent"), inc = await core.value("aInc"), dec = await core.value("aDec");
       const c0 = await core.value("aCount");
       cur();
-      for (let i = 0; i < 20 && get("aCount")._value === c0; i++) await new Promise((r) => setTimeout(r, 20));
+      for (let i = 0; i < 300 && get("aCount")._value === c0; i++) await new Promise((r) => requestAnimationFrame(r));
       return { isInc: cur === inc, isDec: cur === dec, countChange: get("aCount")._value - c0 };
     });
     // a report, not a requirement: what a ref holding an action holds after a save and reopen
@@ -2099,11 +2190,14 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
       out.shownBefore = view().state.doc.toString().slice(0, 60);
       out.diagnostics = await until(() => { const ds: string[] = []; codemirror.forEachDiagnostic?.(view().state, (d: any) => ds.push(d.message)); return ds.length ? ds : null; }, "a diagnostic");
       const def0 = inc._definition;
+      const warns: string[] = [], warn0 = console.warn;
+      console.warn = (...a: any[]) => { warns.push(String(a[0]?.message ?? a[0])); return warn0(...a); };
       // the visualizer draws increment with the normal Inspector until the language registers
       const incLine = () => (document.querySelector('.observablehq[cell="increment"]')?.textContent ?? "").trim();
       out.lineBefore = await until(() => incLine(), "increment's line");
       view().contentDOM.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, shiftKey: true, bubbles: true, cancelable: true }));
-      await new Promise((r) => setTimeout(r, 1500));
+      // the editor refuses the save with a warning; the definition is read after it
+      out.refusal = await until(() => warns.find((w) => /^not saved: /.test(w)), "the refusal of the save").finally(() => { console.warn = warn0; });
       out.savedUnchanged = inc._definition === def0 && find("width", mod) === inc;
       // now the language registers (an observer keeps ss_registration, and so the registration, alive);
       // the open editor follows
@@ -2153,5 +2247,6 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
 }
 await browser.close().catch(() => {});
 console.log(`${passes} pass, ${fails} fail`);
-console.log(`power ${power}; functional ${counts.functional.pass} pass ${counts.functional.fail} fail; speed ${counts.speed.pass} pass ${counts.speed.fail} fail`);
+console.log(`measurements (printed, not judged):${measurements.map((m) => "\n  " + m).join("")}`);
+console.log(`power ${power}; functional ${counts.functional.pass} pass ${counts.functional.fail} fail; measurements ${measurements.length}`);
 process.exit(fails ? 1 : 0);
