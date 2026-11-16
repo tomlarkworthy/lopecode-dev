@@ -97,36 +97,24 @@ configuration. All 12 strict-mode rejections are of that kind, e.g.
 (`src[i] >= "0"`) and `accept-mut` (`blur`, `test_blur`). The rules do not say which mode is
 intended; the ports were written against the oracle, so they pass only the unchecked one.
 
-### Existing fixtures
+### Existing fixtures and specification cases
 
-52 of the 54 reject/accept fixtures (known-slips excluded) get the oracle's verdict for the same
-rule under `--unchecked-index`. TypeScript diagnostics (`ts2339`, …) and lite's type rules
-(`type`, `no-member`, `possibly-undefined`, `arity`, …) count as the same reason. The two that
-do not:
+Measured 2026-11-16, after the reject and accept fixtures moved into the specification module
+(`lite/soundscript/spec.ojs`).
 
-- `reject-mut-capture`: lite accepts it, deliberately.
+- 13 of the 13 remaining top-level fixtures (known-slips excluded) get the oracle's verdict for the
+  same rule under `--unchecked-index`.
+- Of the specification's 159 rejected sources the oracle can judge 149 (the other 10 name cells in
+  other languages) and gives exactly the stated rule for 116. lite gives it for all 159. The
+  per-case table is in the output of `bun lite/oracle.ts --no-mutants`.
+- The oracle has no `mut-not-fresh`, `mut-deep-write`, `mut-view` or `mut-freeze-param`.
+- A local helper that only calls and captures a `Mut` (statement S4.5) is accepted by lite and
+  rejected by the oracle, which forbids every capture:
   ```ts
   let a = () => { const out = mut([0]); const f = () => out[0]; return f(); };
   ```
-  `f` is a local helper that is only ever called, so lite treats the call as a use of `out` at the
-  call site and checks it there (a helper called after `freeze(out)` is rejected, see
-  `lite-mut/reject-mut-capture`). The oracle forbids every capture.
-- `reject-no-ts-ignore`: lite rejects with `no-ts-ignore` and also the type error the comment was
-  hiding. Same verdict, one more reason.
-
-`known-slips` holds 13 slip cells (and 4 support cells) the oracle accepts and the rules forbid. Lite rejects 12 of them in
-both modes. It accepts `s7`:
-
-```ts
-let s7 = (o) => { const f = () => { o = { a: 0, xs: [] }; }; f(); return 1; };
-```
-
-The parameter follows the same helper rule as a `let`, and `f` is only called, so the
-reassignment is seen in order. Whether the rules mean parameters to be stricter than `let`s is a
-question for the specification, not something lite can decide.
-
-`bun fixtures.ts` still reports `55/55 fixtures pass` with the lite fixtures in place: they sit
-one directory deeper (`fixtures/lite-mut/<case>/`), which `fixtures.ts` does not scan.
+  lite treats the call as a use of `out` at the call site and checks it there (a helper called
+  after `freeze(out)` is rejected, see `lite-mut/reject-mut-capture`).
 
 ### lite fixtures
 
@@ -159,7 +147,7 @@ Over 497 cells (fixtures and ports) and 173 mutants, 5 cells, the same 5 in both
 
 | cell | oracle | why lite accepts |
 |---|---|---|
-| `reject-mut-capture:a`, `accept-mut-helpers-loops:scaled`, `lite-mut/reject-mut-capture:ok_helper` | `mut-capture` | local helper, only called (above) |
+| the S4.5 specification case, `accept-mut-helpers-loops:scaled`, `lite-mut/reject-mut-capture:ok_helper` | `mut-capture` | local helper, only called (above) |
 | `reject-mut-escape:ok_reads` | `mut-escape` at 25:28 and 26:27 | those are `JSON.stringify(out)` and `Array.from(out)`: intrinsic parameters not marked `@retains` may take a Mut |
 | `reject-mut-freeze-flow:ok_branches_both_freeze` | `mut-after-freeze` at 31:3 and 32:17 | both follow `if (flag) { …; return freeze(out); }` on line 30, which they cannot run after; lite's freeze analysis follows the return, the oracle's goes by text order |
 

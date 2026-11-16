@@ -322,7 +322,7 @@ For a cell the checker accepts: it reads only its parameters and the allowed bui
 
 Not guaranteed:
 
-- The checker is a prototype. On 2026-11-14, 52 of 54 existing fixtures got the same verdict and reason from it as from the TypeScript-based reference checker, with index reads typed \`T\` as TypeScript does ("How good is the checker").
+- The checker is a prototype. On 2026-11-16 a reference checker built on TypeScript's compiler could judge 149 of the specification's 159 rejected sources and gave the stated rule for 116. The checker here gives the stated rule for all 159 ("How good is the checker").
 - A cell may take \`now\` or \`random\` and be accepted. It is then not repeatable, and its signature shows it.
 - An events cell that reads state restarts when it sees the state change. Two changes inside one commit are seen as one, so a clock paused and resumed in the same commit does not restart.`
 // %%
@@ -418,7 +418,7 @@ md`### Local mutation: \`mut\`, \`freeze\`
 | a view (\`subarray\`) of a \`Mut\` buffer may only be passed straight to a non-retaining intrinsic, not bound to a name | \`[mut-view]\` |
 | only a \`Mut\` made by this function may be frozen, not a \`Mut\` parameter | \`[mut-freeze-param]\` |
 
-A helper may take a \`Mut<T>\` parameter and write it. The checker also lets a non-escaping local helper capture one, which the v0 rules do not (\`reject-mut-capture\` in "How good is the checker").`
+A helper may take a \`Mut<T>\` parameter and write it. A local helper that is only called may also capture one (S4.5 in the specification). The reference checker rejects every capture.`
 // %%
 md`### Lending a buffer: \`borrow\`, \`snapshot\`
 
@@ -468,12 +468,13 @@ In a \`.tsx\` source, \`<tag prop={…}>children</tag>\` is a value of type \`El
 // %%
 md`## How good is the checker
 
-Measured 2026-11-14 against a reference checker that runs TypeScript's own compiler over the same rules. The fixtures and the three ports (lopecode notebooks rewritten in SoundScript) are not in this notebook.
+Measured against a reference checker that runs TypeScript's own compiler over the same rules. The first two rows are from 2026-11-16, the others from 2026-11-14. The fixtures and the three ports (lopecode notebooks rewritten in SoundScript) are not in this notebook.
 
 \`\`\`
-existing fixtures       52 of 54 same verdict and reason
-                        (reject-mut-capture: lite allows a non-escaping helper, deliberately;
-                         reject-no-ts-ignore: lite also reports a type error)
+remaining fixtures      13 of 13 same verdict and reason
+spec rejected sources   159; the reference can judge 149 and gives the stated rule for 116
+                        (10 name cells in other languages; for the other 33 the reference
+                         lacks the rule or reports a different or an extra diagnostic)
 three ports             144 + 25 + 38 cells, all ok   (index reads typed T, as TypeScript does)
                         6 + 3 + 3 rejected            (index reads typed T | undefined)
 173 mutants of ports    0 accepted that the reference rejects

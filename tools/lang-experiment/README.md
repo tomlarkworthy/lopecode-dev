@@ -8,6 +8,14 @@ Until 2026-11-16 both were in `RULES.md`, which was then deleted; its last text 
 already reduced to pointers. Older records here (`ports/*/GAPS.md`, `lite/NOTES-*.md`, `lite/notebook/tutorial.ojs`, `archive/`) cite it,
 with line numbers, as it then was.
 
+The specification's tests are cells of that module. From the repository root:
+
+```
+bun tools/lope-browser-runner.ts lopebooks/notebooks/soundscript.html --run-tests --suite test_spec_
+```
+
+85 passed on 2026-11-16. The runner labels them with the core module's name; the test names are right.
+
 Built 2026-11-14 against the RULES.md that has the
 `let x = (a: number) => 42 + a` cell form (`export` before it is accepted and not needed, 2026-11-15) (no function-cell shortcut).
 

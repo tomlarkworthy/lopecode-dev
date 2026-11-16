@@ -1,8 +1,8 @@
 md`# SoundScript specification
 
-PROSE PENDING`
+This page defines SoundScript: what a cell is, what the checker accepts and rejects, and what the notebook does with cells when they run and when they are edited. Behaviour the code has that this page does not state is not promised; the known cases are listed in the last section.`
 // %%
-md`PROSE PENDING (how to read this page: statement numbers, tests named after statements, the coverage table)`
+md`Each statement has a number, such as **S3.2**, which stays the same when statements are added. A section has its statements, then cells written in SoundScript that the statements describe, then a table of sources the checker must reject with the rule each must give, then tests. A test is a cell named after the statement it checks: \`test_spec_S3_2\` checks S3.2. The coverage table counts, for each section, its statements, how many have a test and how many tests pass. The tests run when the page loads.`
 // %%
 spec_coverage_view = {
   const rows = spec_coverage.rows.map((r) => r.statements === 0
@@ -14,7 +14,7 @@ spec_coverage_view = {
 // %%
 md`## 1. Cells and the top level
 
-PROSE PENDING`
+A module is a list of cells. A cell is a named function at the top level. The rest of the top level is types.`
 // %%
 md`**S1.1** A cell is a top-level \`function\`, \`function*\`, \`async function\` or \`async function*\` declaration, or one declarator of a top-level \`const\` or \`let\` whose initializer is an arrow or function expression. The declared name is the cell's name.`
 // %%
@@ -216,7 +216,7 @@ test_spec_S1_9 = {
 // %%
 md`## 2. Inputs and names
 
-PROSE PENDING`
+A cell's parameters name the cells it reads. A body can use its parameters, its locals, a fixed set of prelude functions and intrinsics, and the capabilities it takes as parameters. No other name reaches it.`
 // %%
 md`**S2.1** A cell's parameters are its inputs, taken by name. A parameter that names no cell of the module, foreign declaration, shell cell or capability (or, section 11, a variable in another language) is \`[inject-unknown]\`. Only the cell's own parameter list is its input list, so a cell whose value is a function is two arrows: \`const double = () => (n: number) => n * 2\`.`
 // %%
@@ -323,7 +323,7 @@ test_spec_S2_9 = {
 // %%
 md`## 3. Immutable by default
 
-PROSE PENDING`
+A value cannot be changed once it exists. This section lists the writes the checker rejects, and the parts of TypeScript that are left out because they would hide a write or a type error.`
 // %%
 md`**S3.1** Writing a member of a value that is not \`Mut\` (section 4) is \`[member-write]\`: assignment, compound assignment, \`++\` and \`--\`, and a member as the target of a destructuring assignment. An object literal bound to a local \`const\` is not \`Mut\` either.`
 // %%
@@ -443,7 +443,7 @@ test_spec_S3_12 = {
 // %%
 md`## 4. Mut locals
 
-PROSE PENDING`
+\`mut\` is the one way to write in place. It applies to a fresh value held in one local and ends with \`freeze\`, so no other code holds the value while it is being changed.`
 // %%
 md`**S4.1** \`const out = mut(e)\` gives \`out\` the type \`Mut<T>\`, where \`e\` has type \`T\`. On a \`Mut\` receiver, member writes, mutating methods and \`delete\` are accepted (S3.1, S3.2, S3.4). \`freeze(out)\` has type \`T\`.`
 // %%
@@ -527,7 +527,7 @@ test_spec_S4_9 = spec_rejectsFor("S4.9")
 // %%
 md`## 5. Owner cells
 
-PROSE PENDING`
+A generator cell may keep one mutable value across its yields and lend it to the cells that read it. A reader may use the value while it runs and may not keep it.`
 // %%
 md`**S5.1** A generator cell, sync or async, may keep a \`Mut\` across yields and \`yield borrow(x)\`. \`borrow(x)\` anywhere else, a nested generator included, is \`[borrow-placement]\`.`
 // %%
@@ -609,7 +609,7 @@ test_spec_S5_5 = {
 // %%
 md`## 6. Refs and actions
 
-PROSE PENDING`
+A ref is a cell that holds state. Only an action writes to a ref. An action is called by an event handler, a listener or another action, never while a cell is being evaluated.`
 // %%
 md`**S6.1** A ref cell is a sync, non-generator cell whose one returned expression is \`ref(v)\`; its value type is the type of \`v\` (S2.4). \`ref(...)\` anywhere else, bound to a local, in a conditional, in one of two returns, or in an async or generator cell, is \`[ref-placement]\`.`
 // %%
@@ -788,7 +788,7 @@ const all = (p: number, q: number, r: number, s: number) => [p, q, r, s];`, {});
 // %%
 md`## 7. Events and listeners
 
-PROSE PENDING`
+An events cell is a generator whose values are delivered one at a time. A listener is a cell that ties an events cell to an action.`
 // %%
 md`**S7.1** An input \`t: Events<T>\` gets a handle to the sync generator cell \`t\` yielding \`T\`, not its values, and is not a dependency on them. \`Events<T>\` on a cell that is not a sync generator yielding \`T\`, an async generator included, is \`[inject-events]\`. Once a cell takes \`t\` as \`Events\`, an input that reads \`t\` without \`Events\` is \`[inject-events]\`.`
 // %%
@@ -955,7 +955,7 @@ test_spec_S7_7 = {
 // %%
 md`## 8. Editing a module with broken cells
 
-PROSE PENDING`
+What the notebook does when an edit leaves cells that do not check. The edit is always stored, and a cell that does not check does not run.`
 // %%
 md`**S8.1** Every edit is stored, one that does not parse included, unless its text names no cell: no \`const <name>\`, \`let <name>\` or \`function <name>\` at its start, after comments and an optional \`export\`. An edit that takes the name of another cell is stored under another name (S1.6).`
 // %%
@@ -1122,7 +1122,7 @@ test_spec_S8_7 = {
 // %%
 md`## 9. Foreign values and the shell
 
-PROSE PENDING`
+Values from code the checker does not check, for a tool that runs the checker outside a notebook. A notebook module has no shell cells; its boundary to other code is section 11.`
 // %%
 md`**S9.1** A shell cell is an unchecked cell the checker is given beside the checked ones; a notebook module has none (S1.7). To a checked cell its value is \`unknown\`: an input with no annotation, or annotated \`unknown\` or its alias \`Js\`, gets \`unknown\`; \`any\` is \`[no-any]\`, and any other annotation is \`[inject-type]\`.`
 // %%
@@ -1170,7 +1170,7 @@ test_spec_S9_3 = {
 // %%
 md`## 10. Tests
 
-PROSE PENDING`
+A test is a cell.`
 // %%
 md`**S10.1** A cell whose name starts with \`test_\` is a test. It is checked and compiled as any other cell.`
 // %%
@@ -1204,7 +1204,7 @@ test_spec_S10_2 = {
 // %%
 md`## 11. Observable JavaScript and raw cells
 
-PROSE PENDING`
+A SoundScript cell reads a cell written in another language of the same module through a typed parameter. The value is checked and copied on the way in.`
 // %%
 md`**S11.1** A parameter that names no SoundScript cell, foreign declaration, shell cell or capability, but names another variable of the module (an Observable JavaScript cell, a raw cell or an import), takes that variable's value. A parameter that names none of these is \`[inject-unknown]\`.`
 // %%
@@ -1226,7 +1226,7 @@ md`**S11.9** The value of a cell in another language is state: an action may not
 // %%
 md`**S11.10** Adding, deleting or renaming a cell in another language checks the module's SoundScript cells again.`
 // %%
-md`PROSE PENDING (the cells of this section: \`s11_rows\` and \`viewof s11_level\` are Observable JavaScript, \`s11_raw_area\` is raw; the \`s11_\` cells after them are SoundScript)`
+md`The cells of this section: \`s11_rows\` and \`viewof s11_level\` are Observable JavaScript, \`s11_raw_area\` is raw, and the \`s11_\` cells after them are SoundScript.`
 // %%
 md`\`s11_late_twice\` takes \`s11_late\`, which no cell of this module defines, so it shows an error: it is rejected until \`test_spec_S11_10\` defines \`s11_late\` for a while (S11.10).`
 // %%
@@ -1423,7 +1423,7 @@ test_spec_S11_10 = {
 // %%
 md`## Not specified
 
-PROSE PENDING`
+Behaviour the code has today that this page does not promise. Each item is undecided or unfinished, and none should be relied on.`
 // %%
 md`- \`DataView\`, \`TextEncoder\`, \`TextDecoder\` and \`Symbol\` were on the v0 list of allowed intrinsics, but the checker has no signatures for them: reading one leaves the cell unsupported, and \`new\` on one is \`[new-non-intrinsic]\`.`
 // %%
