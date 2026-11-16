@@ -33,8 +33,8 @@ const def = (src: string, tsx = false) => compileCell(src, tsx).at(-1)!.definiti
   const src = [
     "const ticks = function* (now: Clock, fast: boolean) { while (true) yield now(); };",
     "const pulses = function* () { while (true) yield 1; };",
-    "const count = (): RefCell<number> => ref(0);",
-    "const tick = (count: Ref<number>) => action((t: number) => count.update((c) => c + 1));",
+    "const count = (): StateCell<number> => state(0);",
+    "const tick = (count: State<number>) => action((t: number) => count.update((c) => c + 1));",
     "const fast = () => true;",
     "const onTick = (ticks: Events<number>, pulses: Events<number>, tick: Action<[number]>, fast: boolean) => (fast ? on(ticks, tick) : on(pulses, tick));",
     "const label = (ticks: Events<number>, count: number) => `count ${count}`;",
@@ -68,11 +68,11 @@ if (typeof (toolchain as any).idOf === "function") {
   expect(/\bid: "(\w+)", invalidation: [\w$]+\}\); \}$/.exec(d2)?.[1] === "abc_123", "C4 runtime evals regex reads the new id");
   expect(JSON.stringify(run(d2)) === JSON.stringify({ id: "anon", n: 1 }), "C4 the cell still returns the user's object");
   expect(attempt(() => withId(d, "bad id")) instanceof Error, "C4 withId refuses an id that is not \\w+");
-  const ref = compileCell(`const r = (): RefCell<number> => ref(0);`, false);
-  expect(ref.length === 1 && ref[0].name === "r", "C4 a ref cell is one variable: " + ref.map((v) => v.name));
+  const ref = compileCell(`const r = (): StateCell<number> => state(0);`, false);
+  expect(ref.length === 1 && ref[0].name === "r", "C4 a state cell is one variable: " + ref.map((v) => v.name));
   const ty = def(`type T = { id: "z" };`);
   expect(idOf(ty) === null && withId(ty, "x1") === ty, "C4 a type variable has no id");
-  expect(idOf(ref[0].definition) !== null, "C4 a ref cell's variable has an id");
+  expect(idOf(ref[0].definition) !== null, "C4 a state cell's variable has an id");
 }
 
 // F1: TS-only expression forms erase to valid JS that computes the same value
@@ -163,8 +163,8 @@ for (const src of [
   "// a comment before the cell\nconst k = async (a: number) => a;",
   "// a comment before the cell\nexport const k = async (a: number) => a;",
   "/* c */ export /* d */ const k = () => 2;",
-  "const k = (): RefCell<number> => ref(0);",
-  "export const k = (): RefCell<number> => ref(0);",
+  "const k = (): StateCell<number> => state(0);",
+  "export const k = (): StateCell<number> => state(0);",
   "type K = { a: number };",
   "export type K = { a: number };",
 ]) {

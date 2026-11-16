@@ -24,9 +24,9 @@ export const EXEC = `(function () {
     if (!modules.has(job.key)) {
       if (modules.size > 16) modules.clear();
       if (!job.js) throw Object.assign(new Error("island " + job.key + " was not sent"), { missing: true });
-      const f = new Function("ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "h",
+      const f = new Function("state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "h",
         '"use strict";\\n' + job.js + "\\nreturn {" + job.names.join(", ") + "};");
-      modules.set(job.key, f(refuse("ref"), refuse("action"), id, id, id, snapshot, equals, refuse("h")));
+      modules.set(job.key, f(refuse("state"), refuse("action"), id, id, id, snapshot, equals, refuse("h")));
     }
     const fns = modules.get(job.key);
     const vals = Object.assign({}, job.values);

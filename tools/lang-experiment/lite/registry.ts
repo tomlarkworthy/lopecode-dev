@@ -308,7 +308,7 @@ export class Registry {
     return [];
   }
 
-  // ---- subtyping (values are immutable: covariant everywhere except function parameters, Mut, Ref) ----
+  // ---- subtyping (values are immutable: covariant everywhere except function parameters, Mut, State) ----
   sub(s: Ty, t: Ty, seen: Set<string> = new Set()): boolean {
     if (s === t || t.k === "unknown" || s.k === "err" || t.k === "err" || s.k === "never") return true;
     const S = (a: Ty, b: Ty) => this.sub(a, b, seen);
@@ -334,7 +334,7 @@ export class Registry {
       case "fn": return this.callSigs(s).some((f) => this.fnSub(f, t, seen));
       case "rec": {
         if (["null", "undef", "void"].includes(s.k)) return false;
-        if (s.k === "named" && ["Ref", "RefCell", "Action"].includes(s.n)) return false; // nominal
+        if (s.k === "named" && ["State", "StateCell", "Action"].includes(s.n)) return false; // nominal
         const se = this.expand(s);
         for (const [k, p] of t.props) {
           const sp = this.member(se, k);
@@ -356,7 +356,7 @@ export class Registry {
           return !!e && (t.n === "Iterable" || s.k !== "named" || !["Map", "Set"].includes((s as any).n)) && S(e, t.args[0]);
         }
         if (s.k !== "named" || s.n !== t.n) return false;
-        if (t.n === "Mut" || t.n === "Ref") return S(s.args[0], t.args[0]) && S(t.args[0], s.args[0]);
+        if (t.n === "Mut" || t.n === "State") return S(s.args[0], t.args[0]) && S(t.args[0], s.args[0]);
         if (t.n === "Action") return S(t.args[0], s.args[0]);
         return t.args.every((a, i) => S(s.args[i] ?? UNKNOWN, a));
       }

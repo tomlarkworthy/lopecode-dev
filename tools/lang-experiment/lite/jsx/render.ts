@@ -2,6 +2,7 @@
 // tag is unchanged, so a cell that describes the same <canvas> again keeps the same node (and any
 // context made from it). Event props hold Actions; the renderer decodes each DOM event into data.
 import type { Elem } from "./h.ts";
+import { entry } from "../../prelude.runtime.ts";
 
 const EVENTS: Record<string, [string, (e: any, node: any) => unknown[]]> = {
   onClick: ["click", () => []],
@@ -32,7 +33,8 @@ export function patch(node: any, x: Elem): void {
     if (k === "key" || k === "children") continue;
     const ev = EVENTS[k];
     if (ev) {
-      if (!(k in node.__handlers)) node.addEventListener(ev[0], (e: Event) => node.__handlers[k]?.(...ev[1](e, node)));
+      // an event handler: each action it calls is a top-level call
+      if (!(k in node.__handlers)) node.addEventListener(ev[0], (e: Event) => { const f = node.__handlers[k]; if (f) entry(null, () => f(...ev[1](e, node))); });
       node.__handlers[k] = v;
     } else if (PROPS.has(k)) { if (node[k] !== v) node[k] = v; }
     else if (v === false || v === null || v === undefined) node.removeAttribute(k);

@@ -1,7 +1,7 @@
 // What JSX in a checked cell must refuse. ok* cells must pass.
-let n = (): RefCell<number> => ref(0);
-let inc = (n: Ref<number>) => action(() => n.update((x) => x + 1));
-let setN = (n: Ref<number>) => action((v: number) => n.set(v));
+let n = (): StateCell<number> => state(0);
+let inc = (n: State<number>) => action(() => n.update((x) => x + 1));
+let setN = (n: State<number>) => action((v: number) => n.set(v));
 let Badge = () => (p: { readonly text: string }): Elem => <span>{p.text}</span>;
 let NotElem = () => (p: { readonly text: string }) => p.text.length;
 let bad_attr_type = () => <canvas width="640" />;

@@ -5,7 +5,7 @@ const stamp = (a: number, now) => a + now();
 const late = async (a: number) => a + 1;
 const bad_member = (a: number): number => a + "x";
 const twice = () => (n: number) => n * 2;
-const level = (): RefCell<number> => ref(1);
+const level = (): StateCell<number> => state(1);
 const scaled = (a: number, level: number) => a * level;
 const names = () => ["a"];
 

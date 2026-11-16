@@ -19,7 +19,7 @@ export type Capabilities = { now?: (cell: string) => () => number; random?: (cel
 export type Verdicts = { cells: { name: string; status: string; errors: unknown[] }[] };
 
 const CAPS = new Set(["now", "random", "fetch", "log", "invalidation", "compile", "pool"]);
-const PRELUDE = ["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "h", "read"];
+const PRELUDE = ["state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "h", "read"];
 export type Program = ReturnType<typeof runCells>;
 
 let programs = 0;
@@ -31,7 +31,7 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
   const cells = cellsOf(ts);
   const names = cells.map((c) => c.name);
   const exports = new Function(...PRELUDE, `"use strict";\n${js}\nreturn {${names.join(", ")}};`)(
-    P.ref, P.action, P.mut, P.freeze, P.borrow, P.snapshot, P.equals, on, h, P.read) as Record<string, (...a: unknown[]) => unknown>;
+    P.state, P.action, P.mut, P.freeze, P.borrow, P.snapshot, P.equals, on, h, P.read) as Record<string, (...a: unknown[]) => unknown>;
   const byName = new Map(cells.map((c) => [c.name, c]));
   const caps = opts.caps ?? {};
   const runtime = new Runtime();
@@ -101,8 +101,8 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
     recs.set(c.name, rec);
     const counted = (...a: unknown[]) => {
       rec.evals++;
-      P.state.evalDepth++;
-      try { const r = raw(...a); return generatorish(r) ? guard(r) : r; } finally { P.state.evalDepth--; }
+      P.rt.evalDepth++;
+      try { const r = raw(...a); return generatorish(r) ? guard(r) : r; } finally { P.rt.evalDepth--; }
     };
     const inputs = c.params.map((p) => input(c, p));
     // A compile call's refs are hidden inputs: the cell recomputes, and returns a new function, when one changes.
@@ -140,11 +140,11 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
       const refRec: Rec = { name: `${c.name}$ref`, status: "pending", evals: 0 };
       main.variable(observe(refRec)).define(`${c.name}$ref`, inputs, (...a: unknown[]) => {
         const r = counted(...a);
-        if (!P.isRefCell(r)) throw new Error(`${c.name} did not return ref(...)`);
+        if (!P.isStateCell(r)) throw new Error(`${c.name} did not return state(...)`);
         return P.materialize(r, c.name);
       });
       main.variable(observe(rec)).define(c.name, [`${c.name}$ref`], (hd: unknown) => P.refValues(hd as object));
-      variables.push({ name: `${c.name}$ref`, inputs, kind: "ref cell: the handle Ref<T> parameters get" }, { name: c.name, inputs: [`${c.name}$ref`], kind: "ref cell: its current value, one per write" });
+      variables.push({ name: `${c.name}$ref`, inputs, kind: "state cell: the handle State<T> parameters get" }, { name: c.name, inputs: [`${c.name}$ref`], kind: "state cell: its current value, one per write" });
     } else if (c.generator) {
       main.variable(observe(rec)).define(c.name, inputs, counted);
       variables.push({ name: c.name, inputs, kind: "cell" });
@@ -175,7 +175,7 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
     while (performance.now() - t0 < maxMs) {
       await new Promise((r) => setTimeout(r, 0));
       if (rt._computing) { stable = 0; await Promise.race([rt._computing, new Promise((r) => setTimeout(r, 20))]); continue; }
-      const busy = [...recs.values()].some((r) => r.status === "pending") || P.state.flushScheduled || P.state.queue.length > 0;
+      const busy = [...recs.values()].some((r) => r.status === "pending") || !P.idle();
       if (busy) { stable = 0; continue; }
       if (++stable >= 5) return true;
     }

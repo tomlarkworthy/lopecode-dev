@@ -22,7 +22,7 @@ Built 2026-11-14 against the RULES.md that has the
 Run from this directory. A port is any directory holding `cells.ts` (and optionally `shell.ts`,
 `foreign.d.ts`, `foreign.runtime.ts`, `MAP.md`); `ports/` does not exist until the porting work
 creates it, so every fixture directory doubles as an example port, e.g.
-`bun report.ts fixtures/accept-ref`.
+`bun report.ts fixtures/accept-state`.
 
 ```
 bun check.ts  ports/<name> [--json]                         # type check + lint; exit 1 on any error
@@ -48,23 +48,23 @@ installed with `npm install`. TypeScript is pinned to 6.x because `typescript@7.
 | file | role |
 |---|---|
 | `rules.ts` | rule ids. `fixtures.ts` fails if an id has neither a `fixtures/reject-<id>/` nor a reject case in the specification module |
-| `analyze.ts` | syntactic pass shared by all three commands: cells, kind, outer parameters, facet (`value`/`ref`/`capability`/`foreign`), foreign declarations |
-| `prelude.d.ts` | `Ref RefCell ref Action action Mut mut freeze Borrowed borrow snapshot equals Js Clock Random Fetch Log`. Brands are string-keyed properties (`__lc_mut`, `__lc_borrowed`, `__lc_ref`, `__lc_refcell`, `__lc_action`) found with `checker.getPropertyOfType` |
-| `prelude.runtime.ts` | runtime half: ref stores, the write queue, `action`, identity `mut/freeze/borrow`, copying `snapshot`, structural `equals`, capabilities |
+| `analyze.ts` | syntactic pass shared by all three commands: cells, kind, outer parameters, facet (`value`/`state`/`capability`/`foreign`), foreign declarations |
+| `prelude.d.ts` | `State StateCell state Action action Mut mut freeze Borrowed borrow snapshot equals Js Clock Random Fetch Log`. Brands are string-keyed properties (`__lc_mut`, `__lc_borrowed`, `__lc_state`, `__lc_statecell`, `__lc_action`) found with `checker.getPropertyOfType` |
+| `prelude.runtime.ts` | runtime half: state stores, the write queue, `action`, identity `mut/freeze/borrow`, copying `snapshot`, structural `equals`, capabilities |
 | `check.ts`, `run.ts`, `report.ts`, `fixtures.ts` | the commands |
 
 ## check
 
 1. **Derived source.** For each cell `c` the generated tail of the file gets
    `export type __V_c = __CellValue<ReturnType<typeof c>>` (`Promise<T>`, `Generator<Y>`,
-   `AsyncGenerator<Y>`, `RefCell<T>` unwrap to `T`/`Y`) and `__R_c = __RefOf<…>` (`Ref<T>` if the cell
-   returns `RefCell<T>`). An untyped parameter `p` gets `: __V_p` inserted on its own line, so line
+   `AsyncGenerator<Y>`, `StateCell<T>` unwrap to `T`/`Y`) and `__R_c = __RefOf<…>` (`State<T>` if the cell
+   returns `StateCell<T>`). An untyped parameter `p` gets `: __V_p` inserted on its own line, so line
    numbers never move; a paren-less arrow `a => …` also gets parentheses. The aliases have a `__V_`
    prefix because a parameter named `count` shadows the cell `count` inside the signature. A typed
    parameter gets an assignment check `{ const __chk: Parameters<typeof c>[i] = … as __V_p }` in the
-   generated tail; a diagnostic on that line is reported as `inject-type` (or `inject-ref` for a
-   `Ref<…>` parameter) at the parameter's original line. `shell.ts` may write a checked cell's value
-   type as `ValueOf<"cellName">` (an alias over an exported `__Cells` interface; `accept-ref-deps`).
+   generated tail; a diagnostic on that line is reported as `inject-type` (or `inject-state` for a
+   `State<…>` parameter) at the parameter's original line. `shell.ts` may write a checked cell's value
+   type as `ValueOf<"cellName">` (an alias over an exported `__Cells` interface; `accept-state-deps`).
 2. **Type check.** One `ts.Program` over `prelude.d.ts`, the derived `cells.ts` and the derived
    `shell.ts`, plus two derived forms of `foreign.d.ts`: a module (`__foreign.ts`, the file with an
    `export { … }` of every name appended) that the `__F_<name>` alias of a foreign parameter reads, and
@@ -77,30 +77,36 @@ installed with `npm install`. TypeScript is pinned to 6.x because `typescript@7.
 
 `--json` gives `{ ok, errors[], cells[{ name, file, kind, tier, inputs[{ name, facet, source }], errors }], foreign[] }`.
 `kind` is `arrow | function | generator | async` (an `async function*` reports `generator`). `tier`
-is computed: `ref` if the cell returns `ref(…)` or its return type is `RefCell`; `owner` if a
+is computed: `state` if the cell returns `state(…)` or its return type is `StateCell`; `owner` if a
 generator calls `borrow`; `mut-local` if it calls `mut`; otherwise `default`; `shell` for `shell.ts`.
 
 ## run
 
 Cells are transpiled with `Bun.Transpiler({ loader: "ts" })`, written to `.build/` with an import of
 `prelude.runtime.ts` prepended, and imported. `.build/` gains one directory per run and is not cleaned up; it is in `.gitignore`. One runtime variable per cell, inputs wired from the
-analysed parameters (not from the stripped JS). A ref cell `count` becomes `count$ref` (calls the
-cell, turns its `RefCell` into a handle with `set`/`update` and no read) and `count` (a generator
-that yields the value now and once per commit). `count: Ref<number>` consumers take `count$ref`,
+analysed parameters (not from the stripped JS). A state cell `count` becomes `count$ref` (calls the
+cell, turns its `StateCell` into a handle with `set`/`update` and no read) and `count` (a generator
+that yields the value now and once per commit). `count: State<number>` consumers take `count$ref`,
 everything else takes `count`. `--order reverse` reverses the definition order of all variables.
 
 Every cell is defined with an observer, so every cell is forced. `settle` waits until
-`runtime._computing` is null, no observed cell is pending and no write is queued, for 5 consecutive
+`runtime._computing` is null, no observed cell is pending and no action call or write is pending, for 5 consecutive
 macrotasks, capped at `--settle-ms`; the cap is reported as `settled: false`. A generator that never
 ends (an animation loop) will always hit the cap.
 
-Write semantics of `run.ts`, exercised by `accept-ref` in both orders:
+Write semantics of `run.ts`, exercised by `accept-state` in both orders:
 
-- `set`/`update` outside an action throws `Ref count: set/update called outside an action`.
-- An action call at depth 0 queues its writes; they commit in a `setTimeout(0)` after the outermost
-  action returns. The fixture asserts the label is still `count: 0` immediately after the call and
+- `set`/`update` outside an action throws `State count: set/update called outside an action`.
+- An action call at depth 0 is a top-level call. Top-level calls run one at a time for the whole
+  runtime, in call order; one made by an event handler, a listener or a view control while another
+  is in flight waits. A call is in flight until its
+  function has returned, the promise-like it returned has settled, and every action it called has
+  finished. Its writes then commit together, in a `setTimeout(0)`. A call that throws or rejects keeps
+  none of them. The fixture asserts the label is still `count: 0` immediately after the call and
   `count: 1` after settling, that `label` evaluated once more, and that `increment` (depends only on
-  the Ref) and `count` did not re-evaluate.
+  the State) and `count` did not re-evaluate.
+- An action called from outside an event handler, a listener or a view control while a call is in
+  flight is counted as part of that call. Not specified; see the specification module.
 - An action called while a cell is evaluating throws `action called during a cell evaluation`
   (`reject-action-call` asserts this at run time too). "Evaluating" means the synchronous part of a
   cell function or of one generator step; the continuation of an async cell after its first `await`
@@ -113,9 +119,9 @@ names come from `ports/<name>/foreign.runtime.ts` (`export default { … }`); a 
 supply rejects with `<name> is not defined`, so a shell consumer is `shell-skip`
 (`accept-foreign-unsupplied`, added by the pilot porter).
 
-A ref cell may take dependencies, e.g. `(vars_initial: Js, decodeVars): RefCell<Vars> =>
-ref(decodeVars(vars_initial))`. `accept-ref-deps` asserts, in both orders, that a `set` sticks without
-re-evaluating the ref cell, and that a change to the dependency re-evaluates it once and resets the
+A state cell may take dependencies, e.g. `(vars_initial: Js, decodeVars): StateCell<Vars> =>
+state(decodeVars(vars_initial))`. `accept-state-deps` asserts, in both orders, that a `set` sticks without
+re-evaluating the state cell, and that a change to the dependency re-evaluates it once and resets the
 value from the new dependency (`n=5` after `setN(5)`, then `n=20` after the seed goes 1 to 2).
 
 Shell cells are defined and observed. A rejected shell cell whose message ends `is not defined`
@@ -135,7 +141,7 @@ Map/Set entries, plain objects with sorted keys, and **functions by kind only** 
 Runs `check.ts --json` and `run.ts --json` in both orders as subprocesses and prints one table. Tier
 counts for checked cells come from `check`. Shell/prose/import counts come from the first table in
 `MAP.md` that has a `tier` column, when that file exists; otherwise every `shell.ts` cell counts as
-`shell`. Percentages are over `default + mut-local + owner + ref + shell`. "Tests with no shell cell or
+`shell`. Percentages are over `default + mut-local + owner + state + shell`. "Tests with no shell cell or
 effect foreign in support" walks each test's inputs transitively through `cells.ts` and `shell.ts`.
 
 The near miss: `list` returns `[]`, `push` calls `list.push("p")`, `test_empty` asserts the list is empty. It passes tests in one definition order and fails them in the other. As `report.ts fixtures/reject-pusher` printed it on 2026-11-14
@@ -147,7 +153,7 @@ The near miss: `list` returns `[]`, `push` calls `list.push("p")`, `test_empty` 
 | tests + non-shell values identical across orders      | no: test_empty: test pass vs fail; test_empty: status fulfilled vs rejected |
 ```
 
-`accept-pusher-ref`, the same program with a ref and an action, passes `test_empty` in both orders.
+`accept-pusher-state`, the same program with a state cell and an action, passes `test_empty` in both orders.
 
 ## Porting a module
 
@@ -173,10 +179,10 @@ A ported module `<name>` is a directory `tools/lang-experiment/ports/<name>/`:
 
 Ported forms:
 
-- A `viewof x = Inputs.range(...)` ports as a ref cell `x` in `cells.ts` plus a shell cell
-  `x_view(x: Ref<number>, Inputs)` in `shell.ts` that builds the widget and calls `x.set` inside an
-  action (`fixtures/accept-ref/shell.ts`).
-- A `mutable x` ports as a ref cell; each `mutable x = …` write becomes an action.
+- A `viewof x = Inputs.range(...)` ports as a state cell `x` in `cells.ts` plus a shell cell
+  `x_view(x: State<number>, Inputs)` in `shell.ts` that builds the widget and calls `x.set` inside an
+  action (`fixtures/accept-state/shell.ts`).
+- A `mutable x` ports as a state cell; each `mutable x = …` write becomes an action.
 - World state read at call time (v1, after the pilot). A value such as `location.href` or
   `document.baseURI` is not a pure foreign. It is a shell source cell (`href` in `shell.ts`, which
   may be a generator that yields on change), decoded by a checked cell. A function that used to
@@ -184,9 +190,9 @@ Ported forms:
   `let linkTo = (href) => (target, opts) => ...`. Do not split a function into a checked
   half and a shell wrapper to avoid this; the dependency on the shell cell is the honest result
   and tests that depend on it count as having shell support.
-- A ref whose initial value comes from the world takes it as a dependency:
-  `let vars = (vars_initial: Js): RefCell<Vars> => ref(decodeVars(vars_initial))`.
-- `shell.ts` may name a checked cell's value type as `ValueOf<"cellName">` (`fixtures/accept-ref-deps/shell.ts`).
+- A state cell whose initial value comes from the world takes it as a dependency:
+  `let vars = (vars_initial: Js): StateCell<Vars> => state(decodeVars(vars_initial))`.
+- `shell.ts` may name a checked cell's value type as `ValueOf<"cellName">` (`fixtures/accept-state-deps/shell.ts`).
 - Prose cells (`md`, headings) go to `shell.ts` and are excluded from tier denominators.
 - `test_*` cells are ported with their assertions unchanged. If an assertion cannot be kept,
   record it in `GAPS.md`; do not weaken it.
@@ -194,7 +200,7 @@ Ported forms:
 ### Tiers (for `MAP.md`)
 
 `default` (checked, no opt-in) · `mut-local` (uses `Mut` inside, pure outside) · `owner` ·
-`ref` (a `RefCell`) · `shell` · `prose` (excluded) · `import` (an import variable; excluded).
+`state` (a `StateCell`) · `shell` · `prose` (excluded) · `import` (an import variable; excluded).
 A cell that yields `borrow` is counted in the `owner` tier.
 
 ### Checked mechanically vs by review
@@ -227,7 +233,7 @@ TypeScript reports it. *Review* means nothing mechanical.
 | plain identifier parameters | exact | `inject-pattern` for destructuring, defaults, rest. Not in RULES.md (2026-11-14); injection by name has no meaning for them |
 | untyped parameter gets the cell's value type | exact | derived source, `__CellValue` |
 | typed parameter assignable from the cell's value type | exact | `inject-type`; a shell cell's value is `Js` unless `foreign.d.ts` declares it (specification case S9.1, which replaced `reject-shell-js` on 2026-11-16) |
-| `Ref<X>` parameter names a cell returning `RefCell<X>` | approx | `inject-ref`. Recognised by the annotation being literally `Ref<…>`; `type R = Ref<number>; (count: R)` is treated as a value parameter and fails as `inject-type` |
+| `State<X>` parameter names a cell returning `StateCell<X>` | approx | `inject-state`. Recognised by the annotation being literally `State<…>`; `type R = State<number>; (count: R)` is treated as a value parameter and fails as `inject-type` |
 | free names | exact | `free-name`, by symbol: a declaration inside the cell, a prelude value, or a lib declaration whose name is on the allowlist (`URL`, `URLSearchParams` added in v1; `accept-basic`) |
 | `Math.random` | exact | `banned-member`, by receiver type, so `const M = Math; M.random()` and `Math["random"]` are caught |
 | no calling a cell by its module-level name | exact | `cell-by-name`; any value reference to a cell, not only calls, including a cell referring to itself |
@@ -264,21 +270,21 @@ TypeScript reports it. *Review* means nothing mechanical.
 |---|---|---|
 | `yield borrow(x)` in a generator cell | exact | `borrow-placement`: `borrow` anywhere else, including `const b = borrow(x); yield b` |
 | `Borrowed<T>` is read-only | exact | it is not `Mut`, so `member-write`/`mutating-method` reject writes |
-| not returned, not put in a ref | approx | `borrowed-escape` on return, yield, `ref(b)`, `.set(b)`/`.update`, literal, assignment to a `let`, capture by a closure. Slips: `frames.subarray(0)` (`s8`); widening to the plain type, `const p: Float32Array = frames; return p` (`w3`). The capture and literal cases are stricter than RULES.md, which bans only "hold", "return", "put in a ref" |
+| not returned, not put in a state cell | approx | `borrowed-escape` on return, yield, `state(b)`, `.set(b)`/`.update`, literal, assignment to a `let`, capture by a closure. Slips: `frames.subarray(0)` (`s8`); widening to the plain type, `const p: Float32Array = frames; return p` (`w3`). The capture and literal cases are stricter than RULES.md, which bans only "hold", "return", "put in a ref" |
 | not held across `await` | approx | `borrowed-await`: a reference textually after an `await` in the same function. Slips: a loop that reads before the `await` in the text (`s9`) |
 | `snapshot(b)` copies | runtime | `structuredClone`, or `.slice()` for typed arrays |
 
-### Refs and actions
+### State and actions
 
 | rule | status | how / what slips |
 |---|---|---|
-| `RefCell` declared by returning `ref(…)` | exact | `ref-placement`: `ref` only as the concise body or a return statement directly in the body of a sync, non-generator cell. `if (x) return ref(0)` and `x ? ref(0) : ref(1)` are rejected because `run.ts` decides which cells are ref cells from that same shape, before any code runs |
-| a `Ref` parameter is not a value dependency | runtime | `accept-ref`: `increment` does not re-evaluate when `count` changes |
-| `Ref<T>` has no read | type | `ts2339`; lite gives `no-member` (specification case S6.4, which replaced `reject-ref-read` on 2026-11-16) |
-| writes only lexically inside `action(…)` | approx | `ref-write`, on a receiver whose type has the Ref brand. Slips: widening drops the brand, `const r: { set(v: number): void } = c; r.set(1)` (`w1`). `run.ts` still throws `set/update called outside an action` for it |
+| `StateCell` declared by returning `state(…)` | exact | `state-placement`: `state` only as the concise body or a return statement directly in the body of a sync, non-generator cell. `if (x) return state(0)` and `x ? state(0) : state(1)` are rejected because `run.ts` decides which cells are state cells from that same shape, before any code runs |
+| a `State` parameter is not a value dependency | runtime | `accept-state`: `increment` does not re-evaluate when `count` changes |
+| `State<T>` has no read | type | `ts2339`; lite gives `no-member` (specification case S6.4, which replaced `reject-ref-read` on 2026-11-16) |
+| writes only lexically inside `action(…)` | approx | `state-write`, on a receiver whose type has the State brand. Slips: widening drops the brand, `const r: { set(v: number): void } = c; r.set(1)` (`w1`). `run.ts` still throws `set/update called outside an action` for it |
 | an `Action` called only inside `action(…)` | approx | `action-call`, on a callee whose type has the Action brand. Slips: `const f: () => void = a; f()` (`w2`). `run.ts` still throws `action called during a cell evaluation` for it |
 | an `Action` passed only to a parameter typed `Action` | approx | `action-pass` on a direct argument whose contextual type has no Action brand. Slips: an Action inside a record passed to an untyped parameter, `call({ a })` (`s11`) |
-| `viewof` → ref + `x_view(x: Ref<…>, Inputs)` shell cell; `mutable` writes → actions | review | `accept-ref/shell.ts` shows the shape |
+| `viewof` → state cell + `x_view(x: State<…>, Inputs)` shell cell; `mutable` writes → actions | review | `accept-state/shell.ts` shows the shape |
 
 ### Foreign values, prose, tests
 

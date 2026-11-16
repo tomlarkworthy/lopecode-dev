@@ -41,42 +41,42 @@ type Contours = {
 
 // ---- inputs (viewof) as refs; the widgets are *_view cells in shell.ts ----
 
-let tool = (): RefCell<Tool> => ref<Tool>("brush");
-let reset = (): RefCell<number> => ref(0);
-let view = (): RefCell<View> => ref<View>("lines");
-let params = (defaults): RefCell<typeof defaults> => ref(defaults);
-let height = (): RefCell<number> => ref(570);
-let cellSize = (): RefCell<number> => ref(1.5);
-let backgroundFilm = (): RefCell<number> => ref(0.1);
+let tool = (): StateCell<Tool> => state<Tool>("brush");
+let reset = (): StateCell<number> => state(0);
+let view = (): StateCell<View> => state<View>("lines");
+let params = (defaults): StateCell<typeof defaults> => state(defaults);
+let height = (): StateCell<number> => state(570);
+let cellSize = (): StateCell<number> => state(1.5);
+let backgroundFilm = (): StateCell<number> => state(0.1);
 // The original toggle starts false and every test returns "not run" until it is switched on. The
 // baseline forced it true; this harness has no per-run override, so the port starts it true.
-let runTests = (): RefCell<boolean> => ref(true);
+let runTests = (): StateCell<boolean> => state(true);
 
 // ---- mutables as refs; every write is an action ----
 
-let turn = (): RefCell<number> => ref(0);
-let finished = (): RefCell<Finished> => ref<Finished>(false);
-let pointer = (): RefCell<Pointer> => ref<Pointer>(undefined);
+let turn = (): StateCell<number> => state(0);
+let finished = (): StateCell<Finished> => state<Finished>(false);
+let pointer = (): StateCell<Pointer> => state<Pointer>(undefined);
 
 // canvas pointerdown: `if (tool === "brush") turn++; pointer = {...}`
-let pointerDown = (turn: Ref<number>, pointer: Ref<Pointer>) =>
+let pointerDown = (turn: State<number>, pointer: State<Pointer>) =>
   action((next: Pointer, rotate: boolean) => {
     if (rotate) turn.update((t) => t + 1);
     pointer.set(next);
   });
 // canvas pointermove: `if (pointer && pointer.down) pointer = { ...pointer, x, y }`
-let pointerMove = (pointer: Ref<Pointer>) =>
+let pointerMove = (pointer: State<Pointer>) =>
   action((x: number, y: number) => pointer.update((p) => (p && p.down ? { ...p, x, y } : p)));
 // canvas pointerup / pointercancel: `if (pointer) pointer = { ...pointer, down: false }`
-let pointerUp = (pointer: Ref<Pointer>) => action(() => pointer.update((p) => (p ? { ...p, down: false } : p)));
+let pointerUp = (pointer: State<Pointer>) => action(() => pointer.update((p) => (p ? { ...p, down: false } : p)));
 // tray: `finished = false; turn = 0` (an empty tray is a new picture)
-let resetPicture = (finished: Ref<Finished>, turn: Ref<number>) =>
+let resetPicture = (finished: State<Finished>, turn: State<number>) =>
   action(() => {
     finished.set(false);
     turn.set(0);
   });
 // mainLoop: `finished = { at, why }`
-let finishPicture = (finished: Ref<Finished>) => action((at: number, why: string) => finished.set({ at, why }));
+let finishPicture = (finished: State<Finished>) => action((at: number, why: string) => finished.set({ at, why }));
 
 // ---- data ----
 

@@ -97,6 +97,27 @@ spec_is = (got, want) => {
 // %%
 spec_flush = () => new Promise((r) => setTimeout(r, 0)).then(() => new Promise((r) => setTimeout(r, 0)))
 // %%
+spec_quiet = () => {
+  // no action call in flight or waiting, anywhere on the page (S6.13)
+  const q = ss.actionQueue();
+  return !q.inFlight && q.waiting === 0;
+}
+// %%
+spec_act = async (f) => {
+  // f run when no action call is in flight or waiting, so an action it calls starts at once (S6.13) and is
+  // not taken for part of another test's call; the frame cap only turns a hung call into an error
+  for (let i = 0; i < 600 && !spec_quiet(); i++) await new Promise((r) => requestAnimationFrame(r));
+  if (!spec_quiet()) throw new Error("an action call stayed in flight for 600 frames");
+  return f();
+}
+// %%
+spec_gate = () => {
+  // a promise the test resolves itself
+  let open;
+  const p = new Promise((r) => (open = r));
+  return { p, open };
+}
+// %%
 spec_frames = async (f, n = 600) => {
   // animation frames until f() resolves true, at most n; the last f()
   for (let i = 0; i < n && !(await f()); i++) await new Promise((r) => requestAnimationFrame(r));
@@ -224,11 +245,11 @@ md`**S2.2** An input is a plain identifier. A destructuring pattern, a default v
 // %%
 md`**S2.3** An input with no type annotation has the value type of the cell it names. An annotated input must accept that value type; otherwise it is \`[inject-type]\`.`
 // %%
-md`**S2.4** The value type of a cell is its return type \`T\`, except that \`Promise<T>\` gives \`T\`, a generator or async generator yielding \`Y\` gives \`Y\`, and \`RefCell<T>\` gives \`T\`. Annotating the input with the wrapped type, such as \`Promise<number>\`, is \`[inject-type]\`.`
+md`**S2.4** The value type of a cell is its return type \`T\`, except that \`Promise<T>\` gives \`T\`, a generator or async generator yielding \`Y\` gives \`Y\`, and \`StateCell<T>\` gives \`T\`. Annotating the input with the wrapped type, such as \`Promise<number>\`, is \`[inject-type]\`.`
 // %%
 md`**S2.5** The capabilities are the inputs \`now: Clock\`, \`random: Random\`, \`fetch: Fetch\`, \`log: Log\`, \`invalidation: Invalidation\`, \`compile: Compile\` and \`pool: Pool\`. \`Clock\` and \`Random\` are \`() => number\`. Any other annotation on a capability, such as \`now: number\`, is \`[inject-type]\`.`
 // %%
-md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`ref action mut freeze borrow snapshot equals on read\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`.`
+md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`state action mut freeze borrow snapshot equals on read\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`.`
 // %%
 md`**S2.7** Reading \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`, also through a local bound to the intrinsic and through a computed key such as \`Math["random"]\`. \`prototype\` on any other value is rejected by another rule, usually \`[no-member]\`.`
 // %%
@@ -236,7 +257,7 @@ md`**S2.8** A body that uses a cell by its name instead of taking it as a parame
 // %%
 md`**S2.9** A body is type-checked with \`null\` and \`undefined\` kept apart from other types. A mismatch is \`[type]\`, except for five checks with rules of their own: a parameter of a local function with neither an annotation nor a type from where the function is passed is \`[untyped-parameter]\`; a call with too few or too many arguments is \`[arity]\`; a property that an object literal's declared type does not have is \`[excess-property]\`; a value that may be \`undefined\` or \`null\` used as a number, read from, indexed or called is \`[possibly-undefined]\`; an assignment to a \`const\` local is \`[const-assign]\`.`
 // %%
-md`The cells of this section. \`s2_answer\` takes \`s2_base\` and the function \`s2_double\` with no annotations; \`s2_read\` takes an async cell, a generator and a ref cell by their value types.`
+md`The cells of this section. \`s2_answer\` takes \`s2_base\` and the function \`s2_double\` with no annotations; \`s2_read\` takes an async cell, a generator and a state cell by their value types.`
 // %%
 //ss: ./spec-2.ts
 // %%
@@ -247,7 +268,7 @@ spec_rejects_2 = [
   { statement: "S2.2", rule: "inject-pattern", source: "const d = (...xs: number[]) => xs.length;" },
   { statement: "S2.3", rule: "inject-type", source: "const a = () => \"s\";\nconst b = (a: number) => a + 1;" },
   { statement: "S2.4", rule: "inject-type", source: "const a = async () => 1;\nconst b = (a: Promise<number>) => 1;" },
-  { statement: "S2.4", rule: "inject-type", source: "const c = () => ref(true);\nconst d = (c: RefCell<boolean>) => 1;" },
+  { statement: "S2.4", rule: "inject-type", source: "const c = () => state(true);\nconst d = (c: StateCell<boolean>) => 1;" },
   { statement: "S2.4", rule: "inject-type", source: "const g = async function* () { yield \"x\"; };\nconst d = (g: number) => g;" },
   { statement: "S2.5", rule: "inject-type", source: "const roll = (now: number) => now;" },
   { statement: "S2.6", rule: "free-name", source: "const a = () => Date.now();" },
@@ -294,7 +315,7 @@ test_spec_S2_3 = {
 }
 // %%
 test_spec_S2_4 = {
-  spec_is(spec_okCells("const a = async () => 1;\nconst b = function* () { yield \"x\"; };\nconst g = async function* () { yield true; };\nconst c = () => ref(true);\nconst d = (a: number, b: string, g: boolean, c: boolean) => 1;"), "a:ok,b:ok,g:ok,c:ok,d:ok");
+  spec_is(spec_okCells("const a = async () => 1;\nconst b = function* () { yield \"x\"; };\nconst g = async function* () { yield true; };\nconst c = () => state(true);\nconst d = (a: number, b: string, g: boolean, c: boolean) => 1;"), "a:ok,b:ok,g:ok,c:ok,d:ok");
   spec_is(await spec_module.value("s2_read"), [43, "tea", 3]);
   return `${spec_rejectsFor("S2.4")}; s2_read gets ${JSON.stringify(await spec_module.value("s2_read"))}`;
 }
@@ -310,7 +331,7 @@ test_spec_S2_6 = {
   const names = /the intrinsics \\`([^`\\]+)\\`/.exec(statement)[1].split(" ");
   const bad = names.filter((n) => spec_okCells(`const a = () => ${n};`) !== "a:ok");
   if (bad.length) throw new Error(`not accepted as a value: ${bad.join(", ")}`);
-  spec_is(spec_okCells("const n = () => ref(0);\nconst a = (n: Ref<number>) => { const m = mut([1]); const f = freeze(m); return [equals(f, [1]), action(() => n.set(read(n) + 1))]; };"), "n:ok,a:ok");
+  spec_is(spec_okCells("const n = () => state(0);\nconst a = (n: State<number>) => { const m = mut([1]); const f = freeze(m); return [equals(f, [1]), action(() => n.set(read(n) + 1))]; };"), "n:ok,a:ok");
   return `${spec_rejectsFor("S2.6")}; ${names.length} intrinsics and the prelude functions accepted`;
 }
 // %%
@@ -559,7 +580,7 @@ md`**S5.1** A generator cell, sync or async, may keep a \`Mut\` across yields an
 // %%
 md`**S5.2** A cell that takes such a generator cell gets a \`Borrowed<T>\`, read-only. An annotation that is not \`Borrowed<…>\` is \`[inject-type]\`, and a write to it is \`[member-write]\`.`
 // %%
-md`**S5.3** A \`Borrowed\` may be read during its reader's synchronous evaluation. Returning it, yielding it, binding it to a second name, placing it in a literal, passing it to \`ref\`, or using it in a nested function is \`[borrowed-escape]\`.`
+md`**S5.3** A \`Borrowed\` may be read during its reader's synchronous evaluation. Returning it, yielding it, binding it to a second name, placing it in a literal, passing it to \`state\`, or using it in a nested function is \`[borrowed-escape]\`.`
 // %%
 md`**S5.4** Using a \`Borrowed\` after an \`await\` in the same function is \`[borrowed-await]\`. A value read from it before the \`await\` may be kept.`
 // %%
@@ -580,7 +601,7 @@ spec_rejects_5 = (() => {
     { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => frames;" },
     { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => {\n  const f = () => frames.length;\n  return f();\n};" },
     { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => [frames];" },
-    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => ref(frames);" },
+    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => state(frames);" },
     { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => {\n  let x = frames;\n  return 1;\n};" },
     { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = function* (frames) {\n  yield frames;\n};" },
     { statement: "S5.4", rule: "borrowed-await", source: frames + "const bad = async (frames) => {\n  await Promise.resolve();\n  return frames.length;\n};" },
@@ -633,122 +654,136 @@ test_spec_S5_5 = {
   return `${spec_rejectsFor("S5.5")}; a copy of an early frame is unchanged after the last; s5_kept is [3,6,9], s5_total 18`;
 }
 // %%
-md`## 6. Refs and actions
+md`## 6. State cells and actions
 
-A ref is a cell that holds state. Only an action writes to a ref. An action is called by an event handler, a listener or another action, never while a cell is being evaluated.`
+A state cell is a cell that holds state. Only an action writes to a state cell. An action is called by an event handler, a listener, a view control or another action, never while a cell is being evaluated.`
 // %%
-md`**S6.1** A ref cell is a sync, non-generator cell whose one returned expression is \`ref(v)\`; its value type is the type of \`v\` (S2.4). \`ref(...)\` anywhere else, bound to a local, in a conditional, in one of two returns, or in an async or generator cell, is \`[ref-placement]\`.`
+md`**S6.1** A state cell is a sync, non-generator cell whose one returned expression is \`state(v)\`; its value type is the type of \`v\` (S2.4). \`state(...)\` anywhere else, bound to a local, in a conditional, in one of two returns, or in an async or generator cell, is \`[state-placement]\`.`
 // %%
-md`**S6.2** A ref cell with inputs is made again, from its initial value, when an input changes. Until then it keeps what was written to it.`
+md`**S6.2** A state cell with inputs is made again, from its initial value, when an input changes. Until then it keeps what was written to it.`
 // %%
-md`**S6.3** An input that names a ref cell, \`c\` or \`c: T\`, gets its value and runs again after each write. An input \`c: Ref<T>\` gets the ref and does not run again when it is written. \`Ref<T>\` on a cell that is not a ref cell holding \`T\`, or on a capability or foreign declaration, is \`[inject-ref]\`.`
+md`**S6.3** An input that names a state cell, \`c\` or \`c: T\`, gets its value and runs again after each write. An input \`c: State<T>\` gets the state cell and does not run again when it is written. \`State<T>\` on a cell that is not a state cell holding \`T\`, or on a capability or foreign declaration, is \`[inject-state]\`.`
 // %%
-md`**S6.4** A \`Ref<T>\` has \`set(v: T)\` and \`update(f: (v: T) => T)\` and no other member. Reading another member is \`[no-member]\`; a value of the wrong type is \`[type]\`.`
+md`**S6.4** A \`State<T>\` has \`set(v: T)\` and \`update(f: (v: T) => T)\` and no other member. Reading another member is \`[no-member]\`; a value of the wrong type is \`[type]\`.`
 // %%
-md`**S6.5** \`set\` and \`update\` outside the body of an \`action(...)\` are \`[ref-write]\`, including in a function the cell returns and in a generator. At run time a write outside an action throws.`
+md`**S6.5** \`set\` and \`update\` outside the body of an \`action(...)\` are \`[state-write]\`, including in a function the cell returns and in a generator. At run time a write outside an action throws.`
 // %%
 md`**S6.6** \`action(f)\` has type \`Action<P>\`, where \`P\` is the parameter types of \`f\`. Calling an \`Action\` outside the body of an action is \`[action-call]\`. An \`Action\` may be returned, placed in a record or an array, or passed to a parameter typed \`Action\`; passing it to any other parameter is \`[action-pass]\`.`
 // %%
-md`**S6.7** The content type of a ref may not contain \`Ref\` or \`RefCell\`: not directly, and not in a record, an array, a union, a type argument or a function signature. That is \`[ref-in-ref]\`.`
+md`**S6.7** The content type of a state cell may not contain \`State\` or \`StateCell\`: not directly, and not in a record, an array, a union, a type argument or a function signature. That is \`[state-in-state]\`.`
 // %%
-md`**S6.8** Inside an action, \`read(r)\` with \`r: Ref<T>\` is a \`T\`: the stored value with every write made earlier in the call order, including by an action called before it in the same call. \`read\` outside the body of an action is \`[read-outside-action]\`, and at run time it throws.`
+md`**S6.8** Inside an action, \`read(r)\` with \`r: State<T>\` is a \`T\`: the stored value with every write made earlier in the call order, including by an action called before it in the same call. \`read\` outside the body of an action is \`[read-outside-action]\`, and at run time it throws.`
 // %%
-md`**S6.9** The body of an action may not use a value that depends on state: an input that takes a ref cell or an events cell by value, a capability other than \`invalidation\` and \`log\`, an input that takes a cell which depends on one of these, or a local computed from any of them. That is \`[action-capture]\`. Handles (\`Ref\`, \`Events\`), \`Action\`s, cells with no state, and the action's own parameters and locals are accepted. A value from the clock or the random source reaches an action as an argument.`
+md`**S6.9** The body of an action may not use a value that depends on state: an input that takes a state cell or an events cell by value, a capability other than \`invalidation\` and \`log\`, an input that takes a cell which depends on one of these, or a local computed from any of them. That is \`[action-capture]\`. Handles (\`State\`, \`Events\`), \`Action\`s, cells with no state, and the action's own parameters and locals are accepted. A value from the clock or the random source reaches an action as an argument.`
 // %%
-md`**S6.10** Each top-level action call is a flush group of its own. A write is applied when it is made, so an \`update\` whose function throws throws out of the call that made it. A call that throws keeps none of its writes, nor those of the actions it called; the writes of earlier calls are kept, and groups apply in the order of the calls.`
+md`**S6.10** Each top-level action call is a flush group of its own. A write is applied when it is made, so an \`update\` whose function throws throws out of the call that made it. A call that throws, or whose promise rejects, keeps none of its writes, nor those of the actions it called; the writes of earlier calls are kept, and groups apply in the order of the calls.`
 // %%
-md`**S6.11** An input \`c: Ref<T>\` gets the address of the ref cell \`c\`, which a write and \`read\` look up when they are made, so a \`Ref<T>\` taken before the ref cell is made again (S6.2) writes to the new one. When the ref cell is in error, because it does not check, it or one of its inputs threw, or it is not defined, a write or \`read\` throws inside the action call, and the call keeps none of its writes (S6.10).`
+md`**S6.11** An input \`c: State<T>\` gets the address of the state cell \`c\`, which a write and \`read\` look up when they are made, so a \`State<T>\` taken before the state cell is made again (S6.2) writes to the new one. When the state cell is in error, because it does not check, it or one of its inputs threw, or it is not defined, a write or \`read\` throws inside the action call, and the call keeps none of its writes (S6.10).`
+// %%
+md`**S6.12** The function given to \`action(...)\` may be sync or async, or return a promise-like. It may wait with \`await\`, \`.then\` or \`Promise.all\`; none of these has a meaning of its own.`
+// %%
+md`**S6.13** A top-level action call is one made by an event handler, a listener delivering a value, or a view control's change. Top-level calls go through one queue for the whole runtime and run one at a time, in call order. A call made when none is in flight or waiting starts at once, before its caller goes on. A call is in flight until its function has returned, the promise-like it returned, if any, has settled, and every action it called has finished. The next call in the queue starts only then.`
+// %%
+md`**S6.14** The writes of a top-level call, across its awaits and in the actions it calls, commit together once, when the call finishes. A call that throws, or whose promise rejects, keeps none of them (S6.10). Inside the call, \`read(r)\` is the committed value with the call's own earlier writes (S6.8).`
+// %%
+md`**S6.15** An action called inside an action runs as part of the caller's call. When it is async the caller may \`await\` it; when the caller does not, the top-level call still does not finish until it has.`
+// %%
+md`**S6.16** A throw from a call that started at once goes to its caller. A throw from a call that waited in the queue, and a rejection, are reported on the console with the name of the action.`
+// %%
+md`**S6.17** A call that is waiting in the queue, or paused at an \`await\`, when the cell that defines its action is edited finishes with the code it started with.`
 // %%
 md`The cells of this section. \`s6_copy\` reads \`s6_count\` when it is called; \`s6_bumpThenCopy\` writes \`s6_count\` and calls \`s6_copy\`, which sees that write (S6.8). \`s6_controls\` holds two actions in a record. \`s6_view\` has a button for each of \`s6_increment\` and \`s6_bumpThenCopy\` and shows both counts.`
 // %%
 //ss: ./spec-6.tsx
 // %%
 spec_rejects_6 = [
-  { statement: "S6.1", rule: "ref-placement", source: "const c = () => {\n  const r = ref(0);\n  return r;\n};" },
-  { statement: "S6.1", rule: "ref-placement", source: "const flag = () => true;\nconst d = (flag) => {\n  if (flag) return ref(0);\n  return ref(1);\n};" },
-  { statement: "S6.1", rule: "ref-placement", source: "const flag = () => true;\nconst e = (flag) => (flag ? ref(0) : ref(1));" },
-  { statement: "S6.1", rule: "ref-placement", source: "const c = async () => ref(0);" },
-  { statement: "S6.1", rule: "ref-placement", source: "const c = function* () {\n  yield ref(0);\n};" },
-  { statement: "S6.3", rule: "inject-ref", source: "const a = () => 1;\nconst b = (a: Ref<number>) => action(() => a.set(2));" },
-  { statement: "S6.3", rule: "inject-ref", source: "const e = (now: Ref<number>) => 1;" },
-  { statement: "S6.3", rule: "inject-ref", source: "const c = (): RefCell<number> => ref(0);\nconst t = (c: Ref<string>) => 1;" },
-  { statement: "S6.4", rule: "no-member", source: "const c = (): RefCell<number> => ref(0);\nconst b = (c: Ref<number>) => c.value;" },
-  { statement: "S6.4", rule: "type", source: "const c = (): RefCell<number> => ref(0);\nconst t = (c: Ref<number>) => action(() => c.set(\"x\"));" },
-  { statement: "S6.5", rule: "ref-write", source: "const c = (): RefCell<number> => ref(0);\nconst w = (c: Ref<number>) => {\n  c.set(1);\n  return 1;\n};" },
-  { statement: "S6.5", rule: "ref-write", source: "const c = (): RefCell<number> => ref(0);\nconst t = (c: Ref<number>) => () => c.set(1);" },
-  { statement: "S6.5", rule: "ref-write", source: "const c = (): RefCell<number> => ref(0);\nconst g = function* (c: Ref<number>) {\n  c.set(1);\n  yield 1;\n};" },
-  { statement: "S6.6", rule: "action-call", source: "const c = (): RefCell<number> => ref(0);\nconst a = (c: Ref<number>) => action(() => c.set(1));\nconst b = (a) => {\n  a();\n  return 1;\n};" },
-  { statement: "S6.6", rule: "action-pass", source: "const c = (): RefCell<number> => ref(0);\nconst a = (c: Ref<number>) => action(() => c.set(1));\nconst b = (a) => [1].map(a);" },
-  { statement: "S6.7", rule: "ref-in-ref", source: "const count = (): RefCell<number> => ref(0);\nconst which = (count: Ref<number>): RefCell<Ref<number>> => ref(count);" },
-  { statement: "S6.7", rule: "ref-in-ref", source: "const count = (): RefCell<number> => ref(0);\nconst inRecord = (count: Ref<number>): RefCell<{ readonly r: Ref<number> }> => ref({ r: count });" },
-  { statement: "S6.7", rule: "ref-in-ref", source: "const count = (): RefCell<number> => ref(0);\nconst inArray = (count: Ref<number>): RefCell<readonly Ref<number>[]> => ref([count]);" },
-  { statement: "S6.7", rule: "ref-in-ref", source: "const inUnion = (): RefCell<Ref<number> | null> => ref<Ref<number> | null>(null);" },
-  { statement: "S6.7", rule: "ref-in-ref", source: "const count = (): RefCell<number> => ref(0);\nconst inMap = (count: Ref<number>): RefCell<Map<string, Ref<number>>> => ref(new Map([[\"a\", count]]));" },
-  { statement: "S6.7", rule: "ref-in-ref", source: "const count = (): RefCell<number> => ref(0);\nconst inFunction = (count: Ref<number>): RefCell<() => Ref<number>> => ref(() => count);" },
-  { statement: "S6.8", rule: "read-outside-action", source: "const c = (): RefCell<number> => ref(0);\nconst r = (c: Ref<number>) => read(c);" },
-  { statement: "S6.9", rule: "action-capture", source: "const count = (): RefCell<number> => ref(0);\nconst other = (): RefCell<number> => ref(0);\nconst copy = (other: Ref<number>, count: number) => action(() => other.set(count + 1));" },
-  { statement: "S6.9", rule: "action-capture", source: "const count = (): RefCell<number> => ref(0);\nconst doubled = (count: number) => count * 2;\nconst other = (): RefCell<number> => ref(0);\nconst viaLocal = (other: Ref<number>, doubled: number) => {\n  const k = doubled + 1;\n  return action(() => other.set(k));\n};" },
-  { statement: "S6.9", rule: "action-capture", source: "const c = (): RefCell<number> => ref(0);\nconst d = (c: number) => c * 2;\nconst e = (d: number) => d + 1;\nconst o = (): RefCell<number> => ref(0);\nconst t = (o: Ref<number>, e: number) => action(() => o.set(e));" },
-  { statement: "S6.9", rule: "action-capture", source: "const other = (): RefCell<number> => ref(0);\nconst roll = (other: Ref<number>, random: Random) => action(() => other.set(random()));" },
-  { statement: "S6.9", rule: "action-capture", source: "const other = (): RefCell<number> => ref(0);\nconst stamp = (other: Ref<number>, now: Clock) => action(() => other.set(now()));" },
-  { statement: "S6.9", rule: "action-capture", source: "const other = (): RefCell<number> => ref(0);\nconst load = (other: Ref<number>, fetch: Fetch) =>\n  action(() => {\n    fetch(\"https://example.invalid/\");\n    other.set(1);\n  });" }
+  { statement: "S6.1", rule: "state-placement", source: "const c = () => {\n  const r = state(0);\n  return r;\n};" },
+  { statement: "S6.1", rule: "state-placement", source: "const flag = () => true;\nconst d = (flag) => {\n  if (flag) return state(0);\n  return state(1);\n};" },
+  { statement: "S6.1", rule: "state-placement", source: "const flag = () => true;\nconst e = (flag) => (flag ? state(0) : state(1));" },
+  { statement: "S6.1", rule: "state-placement", source: "const c = async () => state(0);" },
+  { statement: "S6.1", rule: "state-placement", source: "const c = function* () {\n  yield state(0);\n};" },
+  { statement: "S6.3", rule: "inject-state", source: "const a = () => 1;\nconst b = (a: State<number>) => action(() => a.set(2));" },
+  { statement: "S6.3", rule: "inject-state", source: "const e = (now: State<number>) => 1;" },
+  { statement: "S6.3", rule: "inject-state", source: "const c = (): StateCell<number> => state(0);\nconst t = (c: State<string>) => 1;" },
+  { statement: "S6.4", rule: "no-member", source: "const c = (): StateCell<number> => state(0);\nconst b = (c: State<number>) => c.value;" },
+  { statement: "S6.4", rule: "type", source: "const c = (): StateCell<number> => state(0);\nconst t = (c: State<number>) => action(() => c.set(\"x\"));" },
+  { statement: "S6.5", rule: "state-write", source: "const c = (): StateCell<number> => state(0);\nconst w = (c: State<number>) => {\n  c.set(1);\n  return 1;\n};" },
+  { statement: "S6.5", rule: "state-write", source: "const c = (): StateCell<number> => state(0);\nconst t = (c: State<number>) => () => c.set(1);" },
+  { statement: "S6.5", rule: "state-write", source: "const c = (): StateCell<number> => state(0);\nconst g = function* (c: State<number>) {\n  c.set(1);\n  yield 1;\n};" },
+  { statement: "S6.6", rule: "action-call", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a) => {\n  a();\n  return 1;\n};" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a) => [1].map(a);" },
+  { statement: "S6.7", rule: "state-in-state", source: "const count = (): StateCell<number> => state(0);\nconst which = (count: State<number>): StateCell<State<number>> => state(count);" },
+  { statement: "S6.7", rule: "state-in-state", source: "const count = (): StateCell<number> => state(0);\nconst inRecord = (count: State<number>): StateCell<{ readonly r: State<number> }> => state({ r: count });" },
+  { statement: "S6.7", rule: "state-in-state", source: "const count = (): StateCell<number> => state(0);\nconst inArray = (count: State<number>): StateCell<readonly State<number>[]> => state([count]);" },
+  { statement: "S6.7", rule: "state-in-state", source: "const inUnion = (): StateCell<State<number> | null> => state<State<number> | null>(null);" },
+  { statement: "S6.7", rule: "state-in-state", source: "const count = (): StateCell<number> => state(0);\nconst inMap = (count: State<number>): StateCell<Map<string, State<number>>> => state(new Map([[\"a\", count]]));" },
+  { statement: "S6.7", rule: "state-in-state", source: "const count = (): StateCell<number> => state(0);\nconst inFunction = (count: State<number>): StateCell<() => State<number>> => state(() => count);" },
+  { statement: "S6.8", rule: "read-outside-action", source: "const c = (): StateCell<number> => state(0);\nconst r = (c: State<number>) => read(c);" },
+  { statement: "S6.9", rule: "action-capture", source: "const count = (): StateCell<number> => state(0);\nconst other = (): StateCell<number> => state(0);\nconst copy = (other: State<number>, count: number) => action(() => other.set(count + 1));" },
+  { statement: "S6.9", rule: "action-capture", source: "const count = (): StateCell<number> => state(0);\nconst doubled = (count: number) => count * 2;\nconst other = (): StateCell<number> => state(0);\nconst viaLocal = (other: State<number>, doubled: number) => {\n  const k = doubled + 1;\n  return action(() => other.set(k));\n};" },
+  { statement: "S6.9", rule: "action-capture", source: "const c = (): StateCell<number> => state(0);\nconst d = (c: number) => c * 2;\nconst e = (d: number) => d + 1;\nconst o = (): StateCell<number> => state(0);\nconst t = (o: State<number>, e: number) => action(() => o.set(e));" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst roll = (other: State<number>, random: Random) => action(() => other.set(random()));" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => action(() => other.set(now()));" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst load = (other: State<number>, fetch: Fetch) =>\n  action(() => {\n    fetch(\"https://example.invalid/\");\n    other.set(1);\n  });" }
 ]
 // %%
 spec_rejects_6_view = spec_rejectsTable(spec_rejects_6)
 // %%
 test_spec_S6_1 = {
-  spec_is(spec_okCells("const a = () => ref(0);\nconst b = (): RefCell<string> => {\n  return ref(\"x\");\n};\nconst c = (a: number, b: string) => [a, b];"), "a:ok,b:ok,c:ok");
+  spec_is(spec_okCells("const a = () => state(0);\nconst b = (): StateCell<string> => {\n  return state(\"x\");\n};\nconst c = (a: number, b: string) => [a, b];"), "a:ok,b:ok,c:ok");
   // the source of this page's s6_count and s6_label, run in a module of its own, so the buttons of s6_view do not change what it reads
-  const L = await spec_load("const s6_count = (): RefCell<number> => ref(0);\nconst s6_label = (s6_count: number) => `count: ${s6_count}`;", {});
+  const L = await spec_load("const s6_count = (): StateCell<number> => state(0);\nconst s6_label = (s6_count: number) => `count: ${s6_count}`;", {});
   try { spec_is(await L.value("s6_label"), "count: 0"); } finally { L.dispose(); }
-  return `${spec_rejectsFor("S6.1")}; a ref cell's readers get its content (s6_label, run on its own, is "count: 0")`;
+  return `${spec_rejectsFor("S6.1")}; a state cell's readers get its content (s6_label, run on its own, is "count: 0")`;
 }
 // %%
 test_spec_S6_2 = {
-  const L = await spec_load("const seed = (): RefCell<number> => ref(1);\nconst vars = (seed: number): RefCell<{ readonly n: number }> => ref({ n: seed * 10 });\nconst label = (vars: { readonly n: number }) => `n=${vars.n}`;\nconst setN = (vars: Ref<{ readonly n: number }>) => action((n: number) => vars.set({ n }));\nconst bumpSeed = (seed: Ref<number>) => action(() => seed.update((s) => s + 1));", {});
+  const L = await spec_load("const seed = (): StateCell<number> => state(1);\nconst vars = (seed: number): StateCell<{ readonly n: number }> => state({ n: seed * 10 });\nconst label = (vars: { readonly n: number }) => `n=${vars.n}`;\nconst setN = (vars: State<{ readonly n: number }>) => action((n: number) => vars.set({ n }));\nconst bumpSeed = (seed: State<number>) => action(() => seed.update((s) => s + 1));", {});
   try {
     spec_is(await L.value("label"), "n=10");
     const made = spec_evals(L.module, "vars");
-    (await L.value("setN"))(5);
+    const setN = await L.value("setN");
+    await spec_act(() => setN(5));
     await spec_flush();
     spec_is(await L.value("label"), "n=5");
     spec_is(spec_evals(L.module, "vars") - made, 0);
-    (await L.value("bumpSeed"))();
+    const bumpSeed = await L.value("bumpSeed");
+    await spec_act(() => bumpSeed());
     await spec_flush();
     spec_is(await L.value("label"), "n=20");
     spec_is(spec_evals(L.module, "vars") - made, 1);
-    return "a write is kept (n=5) until the input changes; then the ref is made again from it (n=20), once";
+    return "a write is kept (n=5) until the input changes; then the state cell is made again from it (n=20), once";
   } finally { L.dispose(); }
 }
 // %%
 test_spec_S6_3 = {
   // names of its own: a run is counted per compiled text, and the tutorial has a count and an increment
-  const L = await spec_load("const clicks = (): RefCell<number> => ref(0);\nconst label = (clicks) => `count: ${clicks}`;\nconst increment = (clicks: Ref<number>) => action(() => clicks.update((c) => c + 1));", {});
+  const L = await spec_load("const clicks = (): StateCell<number> => state(0);\nconst label = (clicks) => `count: ${clicks}`;\nconst increment = (clicks: State<number>) => action(() => clicks.update((c) => c + 1));", {});
   try {
     spec_is(await L.value("label"), "count: 0");
     const runs = () => ["label", "increment", "clicks"].map((n) => spec_evals(L.module, n));
     const [label0, inc0, count0] = runs();
-    (await L.value("increment"))();
+    const inc = await L.value("increment");
+    await spec_act(() => inc());
     await spec_flush();
     spec_is(await L.value("label"), "count: 1");
     const [label1, inc1, count1] = runs();
     spec_is([label1 - label0, inc1 - inc0, count1 - count0], [1, 0, 0]);
-    const inc = await L.value("increment");
-    inc(); inc();
+    await spec_act(() => { inc(); inc(); });
     await spec_flush();
     spec_is(await L.value("label"), "count: 3");
-    return `${spec_rejectsFor("S6.3")}; a write runs label again once, and neither increment nor the ref cell`;
+    return `${spec_rejectsFor("S6.3")}; a write runs label again once, and neither increment nor the state cell`;
   } finally { L.dispose(); }
 }
 // %%
 test_spec_S6_4 = spec_rejectsFor("S6.4")
 // %%
 test_spec_S6_5 = {
-  const L = await spec_load("const count = (): RefCell<number> => ref(0);\nconst held = (count: Ref<number>) => [count];", {});
+  const L = await spec_load("const count = (): StateCell<number> => state(0);\nconst held = (count: State<number>) => [count];", {});
   try {
     const [handle] = await L.value("held");
     let msg = "";
-    try { handle.set(5); } catch (e) { msg = e.message; }
+    try { await spec_act(() => handle.set(5)); } catch (e) { msg = e.message; }
     if (!/outside an action/.test(msg)) throw new Error(`set outside an action gave ${JSON.stringify(msg)}`);
     await spec_flush();
     spec_is(await L.value("count"), 0);
@@ -757,24 +792,26 @@ test_spec_S6_5 = {
 }
 // %%
 test_spec_S6_6 = {
-  spec_is(spec_okCells("const c = (): RefCell<number> => ref(0);\nconst t = (c: Ref<number>) => action((n: number) => c.set(n));\nconst u = (t: Action<[number]>) => action(() => t(1));\nconst rec = (t: Action<[number]>) => ({ go: t });\nconst lst = (t: Action<[number]>) => [t];\nconst pass = (u: Action<[]>, t: Action<[number]>) => ({ u, t });"), "c:ok,t:ok,u:ok,rec:ok,lst:ok,pass:ok");
-  spec_is(spec_rulesOf({ source: "const c = (): RefCell<number> => ref(0);\nconst t = (c: Ref<number>) => action((n: number) => c.set(n));\nconst u = (t: Action<[string]>) => 1;" }), ["inject-type"]);
+  spec_is(spec_okCells("const c = (): StateCell<number> => state(0);\nconst t = (c: State<number>) => action((n: number) => c.set(n));\nconst u = (t: Action<[number]>) => action(() => t(1));\nconst rec = (t: Action<[number]>) => ({ go: t });\nconst lst = (t: Action<[number]>) => [t];\nconst pass = (u: Action<[]>, t: Action<[number]>) => ({ u, t });"), "c:ok,t:ok,u:ok,rec:ok,lst:ok,pass:ok");
+  spec_is(spec_rulesOf({ source: "const c = (): StateCell<number> => state(0);\nconst t = (c: State<number>) => action((n: number) => c.set(n));\nconst u = (t: Action<[string]>) => 1;" }), ["inject-type"]);
   return `${spec_rejectsFor("S6.6")}; an Action returned, in a record, in an array, or called in an action is accepted; Action<[number]> taken as Action<[string]> is [inject-type]`;
 }
 // %%
 test_spec_S6_7 = {
-  spec_is(spec_okCells("type Item = { readonly id: number; readonly tags: readonly string[] };\nconst items = (): RefCell<{ readonly list: readonly Item[]; readonly picked: Item | null }> => ref({ list: [{ id: 1, tags: [\"a\"] }], picked: null });"), "items:ok");
-  return `${spec_rejectsFor("S6.7")}; nested records, arrays and unions with no Ref are accepted`;
+  spec_is(spec_okCells("type Item = { readonly id: number; readonly tags: readonly string[] };\nconst items = (): StateCell<{ readonly list: readonly Item[]; readonly picked: Item | null }> => state({ list: [{ id: 1, tags: [\"a\"] }], picked: null });"), "items:ok");
+  return `${spec_rejectsFor("S6.7")}; nested records, arrays and unions with no State are accepted`;
 }
 // %%
 test_spec_S6_8 = {
-  const L = await spec_load("const count = (): RefCell<number> => ref(0);\nconst other = (): RefCell<number> => ref(0);\nconst copy = (other: Ref<number>, count: Ref<number>) => action(() => other.set(read(count) + 1));\nconst bumpThenCopy = (count: Ref<number>, copy: Action<[]>) =>\n  action(() => {\n    count.update((c) => c + 1);\n    copy();\n  });\nconst pair = (count: number, other: number) => [count, other];\nconst held = (count: Ref<number>) => [count];", {});
+  const L = await spec_load("const count = (): StateCell<number> => state(0);\nconst other = (): StateCell<number> => state(0);\nconst copy = (other: State<number>, count: State<number>) => action(() => other.set(read(count) + 1));\nconst bumpThenCopy = (count: State<number>, copy: Action<[]>) =>\n  action(() => {\n    count.update((c) => c + 1);\n    copy();\n  });\nconst pair = (count: number, other: number) => [count, other];\nconst held = (count: State<number>) => [count];", {});
   try {
-    (await L.value("bumpThenCopy"))();
+    const bumpThenCopy = await L.value("bumpThenCopy");
+    await spec_act(() => bumpThenCopy());
     await spec_flush();
     spec_is(await L.value("pair"), [1, 2]);
     let msg = "";
-    try { ss.read((await L.value("held"))[0]); } catch (e) { msg = e.message; }
+    const [held] = await L.value("held");
+    try { await spec_act(() => ss.read(held)); } catch (e) { msg = e.message; }
     if (!msg) throw new Error("read outside an action did not throw");
     const live = (n) => spec_module.value(n);
     const controls = await live("s6_controls");
@@ -784,25 +821,25 @@ test_spec_S6_8 = {
 }
 // %%
 test_spec_S6_9 = {
-  spec_is(spec_okCells("const k = () => 5;\nconst o = (): RefCell<number> => ref(0);\nconst t = (o: Ref<number>, k: number, log: Log, invalidation: Invalidation) => action((n: number) => {\n  log(\"set\");\n  o.set(k + n);\n});"), "k:ok,o:ok,t:ok");
+  spec_is(spec_okCells("const k = () => 5;\nconst o = (): StateCell<number> => state(0);\nconst t = (o: State<number>, k: number, log: Log, invalidation: Invalidation) => action((n: number) => {\n  log(\"set\");\n  o.set(k + n);\n});"), "k:ok,o:ok,t:ok");
   return `${spec_rejectsFor("S6.9")}; a cell with no state, log, invalidation and the action's argument are accepted`;
 }
 // %%
 test_spec_S6_10 = {
-  const L = await spec_load(`const p = (): RefCell<number> => ref(100);
-const q = (): RefCell<number> => ref(0);
-const r = (): RefCell<number> => ref(0);
-const s = (): RefCell<number> => ref(1);
-const setQ = (q: Ref<number>) => action(() => q.set(7));
-const transfer = (p: Ref<number>) => action(() => { p.update((v) => v - 10); throw new Error("midway"); });
-const failing = (r: Ref<number>) => action(() => { r.set(2); throw new Error("inner"); });
-const catches = (q: Ref<number>, failing: Action<[]>) => action(() => { q.update((v) => v + 1); try { failing(); } catch (e) {} q.update((v) => v + 1); });
-const breaks = (p: Ref<number>) => action(() => p.update((v) => { if (v > -1) throw new Error("in update"); return v; }));
-const step = (s: Ref<number>) => action((k: number) => s.update((v) => v * 2 + k));
-const wraps = (setQ: Action<[]>, r: Ref<number>) => action(() => { setQ(); r.update((v) => { if (v > -1) throw new Error("outer broke"); return v; }); });
+  const L = await spec_load(`const p = (): StateCell<number> => state(100);
+const q = (): StateCell<number> => state(0);
+const r = (): StateCell<number> => state(0);
+const s = (): StateCell<number> => state(1);
+const setQ = (q: State<number>) => action(() => q.set(7));
+const transfer = (p: State<number>) => action(() => { p.update((v) => v - 10); throw new Error("midway"); });
+const failing = (r: State<number>) => action(() => { r.set(2); throw new Error("inner"); });
+const catches = (q: State<number>, failing: Action<[]>) => action(() => { q.update((v) => v + 1); try { failing(); } catch (e) {} q.update((v) => v + 1); });
+const breaks = (p: State<number>) => action(() => p.update((v) => { if (v > -1) throw new Error("in update"); return v; }));
+const step = (s: State<number>) => action((k: number) => s.update((v) => v * 2 + k));
+const wraps = (setQ: Action<[]>, r: State<number>) => action(() => { setQ(); r.update((v) => { if (v > -1) throw new Error("outer broke"); return v; }); });
 const all = (p: number, q: number, r: number, s: number) => [p, q, r, s];`, {});
   try {
-    const call = async (n, ...a) => { let msg = ""; try { (await L.value(n))(...a); } catch (e) { msg = e.message; } await spec_flush(); return msg; };
+    const call = async (n, ...a) => { const f = await L.value(n); let msg = ""; try { await spec_act(() => f(...a)); } catch (e) { msg = e.message; } await spec_flush(); return msg; };
     spec_is(await call("setQ"), "");
     spec_is(await call("transfer"), "midway");
     spec_is(await L.value("all"), [100, 7, 0, 1]);
@@ -820,42 +857,185 @@ const all = (p: number, q: number, r: number, s: number) => [p, q, r, s];`, {});
 test_spec_S6_11 = {
   const E = await spec_editor([
     "const base = () => 1;",
-    "const n = (base: number): RefCell<number> => ref(base);",
-    "const other = (): RefCell<number> => ref(0);",
-    "const both = (n: Ref<number>, other: Ref<number>) => action(() => {\n  other.update((v) => v + 1);\n  n.update((v) => v + 1);\n});",
-    "const bumpBase = (n: Ref<number>) => action(() => n.set(read(n) + 10));",
+    "const n = (base: number): StateCell<number> => state(base);",
+    "const other = (): StateCell<number> => state(0);",
+    "const both = (n: State<number>, other: State<number>) => action(() => {\n  other.update((v) => v + 1);\n  n.update((v) => v + 1);\n});",
+    "const bumpBase = (n: State<number>) => action(() => n.set(read(n) + 10));",
     "const pair = (n: number, other: number) => [n, other];"
   ]);
   try {
     const both = await E.value("both");
-    const call = async (f) => { let msg = ""; try { f(); } catch (e) { msg = e.message; } await spec_flush(); return msg; };
+    const call = async (f) => { let msg = ""; try { await spec_act(() => f()); } catch (e) { msg = e.message; } await spec_flush(); return msg; };
     spec_is([await call(both), await E.value("pair")], ["", [2, 1]]);
     // an input that throws: the write to n throws, and other keeps 1
     await E.edit("base", 'const base = (): number => {\n  throw new Error("broken base");\n};');
     await E.value("n");
     const threw = await call(both);
-    if (!/^Ref n: n is in error: broken base/.test(threw)) throw new Error(`with base throwing: ${JSON.stringify(threw)}`);
+    if (!/^State n: n is in error: broken base/.test(threw)) throw new Error(`with base throwing: ${JSON.stringify(threw)}`);
     spec_is((await E.value("other")), 1);
-    // made again from a new input: the action taken before writes the new ref
+    // made again from a new input: the action taken before writes the new state cell
     await E.edit("base", "const base = () => 5;");
     await E.value("n");
     spec_is([await call(both), await E.value("pair")], ["", [6, 2]]);
-    // the ref cell does not check: the cell holding its Ref is not blocked, and its write throws
-    await E.edit("n", 'const n = (base: number): RefCell<number> => ref("x");');
+    // the state cell does not check: the cell holding its State is not blocked, and its write throws
+    await E.edit("n", 'const n = (base: number): StateCell<number> => state("x");');
     await E.value("n");
     spec_is([E.states().n, E.states().both, E.states().pair], ["rejected", "ok", "blocked by n"]);
     const rejected = await call(both);
-    if (!/^Ref n: n is in error: n does not check: \[/.test(rejected)) throw new Error(`with n rejected: ${JSON.stringify(rejected)}`);
+    if (!/^State n: n is in error: n does not check: \[/.test(rejected)) throw new Error(`with n rejected: ${JSON.stringify(rejected)}`);
     const readMsg = await call(await E.value("bumpBase"));
-    if (!/^Ref n: n is in error/.test(readMsg)) throw new Error(`read of a rejected n: ${JSON.stringify(readMsg)}`);
+    if (!/^State n: n is in error/.test(readMsg)) throw new Error(`read of a rejected n: ${JSON.stringify(readMsg)}`);
     spec_is((await E.value("other")), 2);
     // not defined
     E.variable("n").delete();
     const missing = await call(both);
-    if (!/^Ref n: n is not defined/.test(missing)) throw new Error(`with n deleted: ${JSON.stringify(missing)}`);
+    if (!/^State n: n is not defined/.test(missing)) throw new Error(`with n deleted: ${JSON.stringify(missing)}`);
     spec_is((await E.value("other")), 2);
-    return `a write throws when an input threw (${threw}), when the ref cell does not check, and when it is not defined; the call keeps none of its writes; an action taken before n was made again writes the new n`;
+    return `a write throws when an input threw (${threw}), when the state cell does not check, and when it is not defined; the call keeps none of its writes; an action taken before n was made again writes the new n`;
   } finally { E.dispose(); }
+}
+// %%
+test_spec_S6_12 = {
+  spec_is(spec_okCells(`const n = (): StateCell<number> => state(0);
+const viaAwait = (n: State<number>) => action(async (p: Promise<number>) => { n.set(1); const v = await p; n.set(read(n) + v); });
+const viaThen = (n: State<number>) => action((p: Promise<number>) => p.then((v) => n.set(v)));
+const viaAll = (n: State<number>) => action(async (p: Promise<number>, q: Promise<number>) => { const vs = await Promise.all([p, q]); n.set(vs.reduce((a, b) => a + b, 0)); });`), "n:ok,viaAwait:ok,viaThen:ok,viaAll:ok");
+  const L = await spec_load(`const n = (): StateCell<number> => state(0);
+const viaAwait = (n: State<number>) => action(async (p: Promise<number>) => { n.set(1); const v = await p; n.set(read(n) + v); });
+const viaThen = (n: State<number>) => action((p: Promise<number>) => p.then((v) => n.set(read(n) * v)));`, {});
+  const gs = [spec_gate(), spec_gate()];
+  try {
+    const [viaAwait, viaThen] = [await L.value("viaAwait"), await L.value("viaThen")];
+    for (const [f, k, g] of [[viaAwait, 4, gs[0]], [viaThen, 3, gs[1]]]) {
+      await spec_act(() => f(g.p));
+      g.open(k);
+      await spec_act(() => {});
+      await spec_flush();
+    }
+    spec_is(await L.value("n"), 15);
+    return "an async action, one returning a promise and one using Promise.all check; viaAwait and then viaThen leave n at (1 + 4) * 3";
+  } finally { gs.forEach((g) => g.open(0)); L.dispose(); }
+}
+// %%
+test_spec_S6_13 = {
+  const L = await spec_load(`const x = (): StateCell<number> => state(0);
+const slow = (x: State<number>) => action(async (p: Promise<number>) => { const v = await p; x.update((c) => c * 10 + v); });
+const tag = (x: State<number>) => action((k: number) => x.update((c) => c * 10 + k));`, {});
+  const g = spec_gate();
+  try {
+    const [slow, tag] = [await L.value("slow"), await L.value("tag")];
+    const order = [];
+    const q = await spec_act(() => {
+      ss.entry(null, () => { slow(g.p); order.push("slow called"); });
+      order.push("after slow");
+      ss.entry(null, () => tag(1));
+      ss.entry(null, () => tag(2));
+      return ss.actionQueue();
+    });
+    spec_is([q, order], [{ inFlight: true, waiting: 2 }, ["slow called", "after slow"]]);
+    g.open(3);
+    await spec_act(() => {});
+    await spec_flush();
+    spec_is(await L.value("x"), 312);
+    return "slow started at once; tag(1) and tag(2) waited and ran after it, in call order (x is 312)";
+  } finally { g.open(0); L.dispose(); }
+}
+// %%
+test_spec_S6_14 = {
+  const E = await spec_editor([
+    "const a = (): StateCell<number> => state(0);",
+    "const b = (): StateCell<number> => state(0);",
+    "const load = (a: State<number>, b: State<number>) => action(async (p: Promise<number>) => {\n  a.set(1);\n  const v = await p;\n  b.set(read(a) + v);\n  a.update((x) => x + 1);\n});",
+    "const pair = (a: number, b: number) => [a, b];"
+  ]);
+  const g = spec_gate();
+  try {
+    spec_is(await E.value("pair"), [0, 0]);
+    const load = await E.value("load"), runs = E.evals("pair");
+    await spec_act(() => load(g.p));
+    await spec_flush();
+    spec_is([ss.actionQueue().inFlight, await E.value("pair"), E.evals("pair") - runs], [true, [0, 0], 0]);
+    g.open(10);
+    await spec_act(() => {});
+    await spec_flush();
+    spec_is([await E.value("pair"), E.evals("pair") - runs], [[2, 11], 1]);
+    return "while the call waits nothing is committed; then a and b commit together, pair runs once, and read(a) after the await saw the call's own write (b is 11)";
+  } finally { g.open(0); E.dispose(); }
+}
+// %%
+test_spec_S6_15 = {
+  const L = await spec_load(`const x = (): StateCell<number> => state(0);
+const inner = (x: State<number>) => action(async (p: Promise<number>) => { const v = await p; x.update((c) => c + v); });
+const later = (x: State<number>) => action(async (q: Promise<number>) => { const v = await q; x.update((c) => c + v); });
+const outer = (inner: Action<[Promise<number>]>, later: Action<[Promise<number>]>, x: State<number>) =>
+  action(async (p: Promise<number>, q: Promise<number>, done: () => void) => { later(q); await inner(p); x.update((c) => c * 10); done(); });`, {});
+  const p = spec_gate(), q = spec_gate(), d = spec_gate();
+  try {
+    const outer = await L.value("outer");
+    await spec_act(() => outer(p.p, q.p, d.open));
+    p.open(1);
+    await d.p;
+    await spec_flush();
+    spec_is([ss.actionQueue().inFlight, await L.value("x")], [true, 0]);
+    q.open(100);
+    await spec_act(() => {});
+    await spec_flush();
+    spec_is(await L.value("x"), 110);
+    return "outer awaited inner and returned; the call stayed in flight with nothing committed until later, not awaited, finished; then x is (0 + 1) * 10 + 100";
+  } finally { p.open(0); q.open(0); L.dispose(); }
+}
+// %%
+test_spec_S6_16 = {
+  test_spec_S7_6; // both replace console.error, so they run one after the other
+  const said = [], was = console.error;
+  // messages from this test's actions are kept; any other goes on to the console
+  console.error = (...a) => {
+    const m = a.map((x) => (x instanceof Error ? x.message : String(x))).join(" ");
+    if (/action (bad|late) threw/.test(m)) said.push(m); else was(...a);
+  };
+  const L = await spec_load(`const x = (): StateCell<number> => state(0);
+const slow = (x: State<number>) => action(async (p: Promise<number>) => { const v = await p; x.set(v); });
+const bad = (x: State<number>) => action(() => { x.set(-1); throw new Error("bad threw"); });
+const late = (x: State<number>) => action(async (p: Promise<number>) => { x.set(-2); await p; throw new Error("late rejected"); });`, {});
+  const g = spec_gate(), h = spec_gate();
+  try {
+    const [slow, bad, late] = [await L.value("slow"), await L.value("bad"), await L.value("late")];
+    let atOnce = "";
+    try { await spec_act(() => ss.entry(null, () => bad())); } catch (e) { atOnce = e.message; }
+    let queued = "";
+    try { await spec_act(() => { ss.entry(null, () => slow(g.p)); ss.entry(null, () => bad()); }); } catch (e) { queued = e.message; }
+    g.open(5);
+    await spec_act(() => {});
+    await spec_act(() => late(h.p));
+    h.open(0);
+    await spec_act(() => {});
+    await spec_flush();
+    spec_is([atOnce, queued, await L.value("x")], ["bad threw", "", 5]);
+    const named = (a, m) => said.some((s) => s.includes(`action ${a}`) && s.includes(m));
+    if (!named("bad", "bad threw") || !named("late", "late rejected")) throw new Error(`console: ${JSON.stringify(said)}`);
+    return "bad, started at once, threw to its caller; bad queued after slow, and late's rejection, were reported naming the action; neither kept its write (x is 5)";
+  } finally { g.open(0); h.open(0); console.error = was; L.dispose(); }
+}
+// %%
+test_spec_S6_17 = {
+  const E = await spec_editor([
+    "const x = (): StateCell<number> => state(0);",
+    "const slow = (x: State<number>) => action(async (p: Promise<number>) => {\n  await p;\n  x.update((c) => c + 1);\n});",
+    "const tag = (x: State<number>) => action(() => x.update((c) => c * 10));"
+  ]);
+  const g = spec_gate();
+  try {
+    const [slow, tag] = [await E.value("slow"), await E.value("tag")];
+    await spec_act(() => { ss.entry(null, () => slow(g.p)); ss.entry(null, () => tag()); });
+    await E.edit("slow", "const slow = (x: State<number>) => action(async (p: Promise<number>) => {\n  await p;\n  x.update((c) => c + 100);\n});");
+    await E.edit("tag", "const tag = (x: State<number>) => action(() => x.update((c) => c * 1000));");
+    if ((await E.value("slow")) === slow || (await E.value("tag")) === tag) throw new Error("the edits did not make new actions");
+    g.open(0);
+    await spec_act(() => {});
+    await spec_flush();
+    spec_is(await E.value("x"), 10);
+    return "slow, paused at its await, and tag, waiting, were edited; both finished with their first code (x is (0 + 1) * 10)";
+  } finally { g.open(0); E.dispose(); }
 }
 // %%
 md`## 7. Events and listeners
@@ -866,7 +1046,7 @@ md`**S7.1** An input \`t: Events<T>\` gets a handle to the sync generator cell \
 // %%
 md`**S7.2** \`on(t, a)\` has type \`Listener\`. \`a\` must be an \`Action\` that accepts what \`t\` yields; otherwise it is \`[type]\`.`
 // %%
-md`**S7.3** A \`Listener\` is only the whole value of a sync, non-generator cell: what it returns, or a branch of a conditional it returns when every branch is one. In an array, a record or a ref, as an argument, in a nested function, in a union with another type, in an async or generator cell, and as the input of another cell, it is \`[listener-placement]\`.`
+md`**S7.3** A \`Listener\` is only the whole value of a sync, non-generator cell: what it returns, or a branch of a conditional it returns when every branch is one. In an array, a record or a state cell, as an argument, in a nested function, in a union with another type, in an async or generator cell, and as the input of another cell, it is \`[listener-placement]\`.`
 // %%
 md`**S7.4** While a listener is the value of its cell, its action runs once for each value the events cell yields, in order. The listener ends when its cell runs again, is deleted, or its module's variables are deleted. A listener cell that runs again, because it or its action was edited, leaves one listener, and no value is lost or delivered twice.`
 // %%
@@ -888,7 +1068,7 @@ spec_rejects_7 = [
   { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst on1 = (ticks: Events<number>, tick: Action<[number]>) => [on(ticks, tick)];" },
   { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst on1 = (ticks: Events<number>) => () => on(ticks, action((n: number) => {}));" },
   { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst on1 = (ticks: Events<number>, tick: Action<[number]>) => ({ l: on(ticks, tick) });" },
-  { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst on1 = (ticks: Events<number>, tick: Action<[number]>) => ref(on(ticks, tick));" },
+  { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst on1 = (ticks: Events<number>, tick: Action<[number]>) => state(on(ticks, tick));" },
   { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst g = () => (x: unknown) => 1;\nconst on1 = (ticks: Events<number>, tick: Action<[number]>, g: (x: unknown) => number) => g(on(ticks, tick));" },
   { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst flag = () => true;\nconst on1 = (ticks: Events<number>, tick: Action<[number]>, flag: boolean) => (flag ? on(ticks, tick) : null);" },
   { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst on1 = async (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick);" },
@@ -902,19 +1082,19 @@ spec_stream = (n, { throwEvery = 0 } = {}) => [
   // the cells of a module whose listener records each value of nums: count, last, gaps (a value that is
   // not the last plus one) and sum; toggle stops and starts nums; throwEvery makes every k-th call throw
   "type S = { readonly count: number; readonly last: number; readonly gaps: number; readonly sum: number };",
-  "const seen = (): RefCell<S> => ref<S>({ count: 0, last: 0, gaps: 0, sum: 0 });",
-  "const running = (): RefCell<boolean> => ref(true);",
+  "const seen = (): StateCell<S> => state<S>({ count: 0, last: 0, gaps: 0, sum: 0 });",
+  "const running = (): StateCell<boolean> => state(true);",
   `const nums = function* (running: boolean) {\n  if (!running) return;\n  for (let i = 1; i <= ${n}; i++) yield i;\n};`,
   "const weight = () => (v: number) => v;",
   throwEvery
-    ? `const record = (seen: Ref<S>, weight: (v: number) => number) =>\n  action((v: number) => {\n    seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (v === s.last + 1 ? 0 : 1), sum: s.sum + weight(v) }));\n    if (v % ${throwEvery} === 0) throw new Error(\`no \${v}\`);\n  });`
-    : "const record = (seen: Ref<S>, weight: (v: number) => number) =>\n  action((v: number) => seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (v === s.last + 1 ? 0 : 1), sum: s.sum + weight(v) })));",
+    ? `const record = (seen: State<S>, weight: (v: number) => number) =>\n  action((v: number) => {\n    seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (v === s.last + 1 ? 0 : 1), sum: s.sum + weight(v) }));\n    if (v % ${throwEvery} === 0) throw new Error(\`no \${v}\`);\n  });`
+    : "const record = (seen: State<S>, weight: (v: number) => number) =>\n  action((v: number) => seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (v === s.last + 1 ? 0 : 1), sum: s.sum + weight(v) })));",
   "const onNum = (nums: Events<number>, record: Action<[number]>) => on(nums, record);",
-  "const toggle = (running: Ref<boolean>) => action(() => running.update((r) => !r));"
+  "const toggle = (running: State<boolean>) => action(() => running.update((r) => !r));"
 ]
 // %%
 test_spec_S7_1 = {
-  spec_is(spec_okCells("const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst on1 = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick);\nconst s = (): RefCell<number> => ref(0);\nconst t = (s: Ref<number>, ticks: Events<number>) => action(() => s.set(1));"), "ticks:ok,tick:ok,on1:ok,s:ok,t:ok");
+  spec_is(spec_okCells("const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst on1 = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick);\nconst s = (): StateCell<number> => state(0);\nconst t = (s: State<number>, ticks: Events<number>) => action(() => s.set(1));"), "ticks:ok,tick:ok,on1:ok,s:ok,t:ok");
   return `${spec_rejectsFor("S7.1")}; a handle may also be taken by a cell that is not a listener`;
 }
 // %%
@@ -963,12 +1143,13 @@ test_spec_S7_5 = {
     const seen = () => E.value("seen");
     await spec_frames(async () => (await seen()).count >= 10);
     const listener = E.evals("onNum"), events = E.evals("nums"), handle = await E.value("nums");
-    (await E.value("toggle"))();
+    const toggle = await E.value("toggle");
+    await spec_act(() => toggle());
     await spec_flush();
     const c1 = (await seen()).count;
     for (let i = 0; i < 10; i++) await new Promise((r) => requestAnimationFrame(r));
     spec_is((await seen()).count, c1);
-    (await E.value("toggle"))();
+    await spec_act(() => toggle());
     await spec_flush();
     if (!(await spec_frames(async () => (await seen()).count >= c1 + 10))) throw new Error("did not start again");
     const s = await seen();
@@ -1002,10 +1183,10 @@ test_spec_S7_6 = {
 // %%
 test_spec_S7_7 = {
   const E = await spec_editor([
-    "const log = (): RefCell<readonly string[]> => ref<readonly string[]>([]);",
+    "const log = (): StateCell<readonly string[]> => state<readonly string[]>([]);",
     "const beats = function* () {\n  let i = 0;\n  while (true) yield i++;\n};",
-    "const addFirst = (log: Ref<readonly string[]>) => action((v: number) => log.update((l) => [...l, `first ${v}`]));",
-    "const addSecond = (log: Ref<readonly string[]>) => action((v: number) => log.update((l) => [...l, `second ${v}`]));",
+    "const addFirst = (log: State<readonly string[]>) => action((v: number) => log.update((l) => [...l, `first ${v}`]));",
+    "const addSecond = (log: State<readonly string[]>) => action((v: number) => log.update((l) => [...l, `second ${v}`]));",
     // placed first but named last, so place order and name order disagree
     "const zeta = (beats: Events<number>, addFirst: Action<[number]>) => on(beats, addFirst);",
     "const alpha = (beats: Events<number>, addSecond: Action<[number]>) => on(beats, addSecond);"
@@ -1031,13 +1212,13 @@ What the notebook does when an edit leaves cells that do not check. The edit is 
 // %%
 md`**S8.1** Every edit is stored, one that does not parse included, unless its text names no cell: no \`const <name>\`, \`let <name>\` or \`function <name>\` at its start, after comments and an optional \`export\`. An edit that takes the name of another cell is stored under another name (S1.6).`
 // %%
-md`**S8.2** After each edit every cell is ok, rejected or blocked. A rejected cell breaks a rule of its own, does not parse (\`[parse]\`), or uses a construct the checker has no rule for (\`[unsupported]\`, such as the array method \`with\`); a cell whose check fails because the type of an input changed is rejected with its own message. A blocked cell breaks no rule of its own but takes a cell that is not ok, other than as \`Ref<T>\` (S6.11).`
+md`**S8.2** After each edit every cell is ok, rejected or blocked. A rejected cell breaks a rule of its own, does not parse (\`[parse]\`), or uses a construct the checker has no rule for (\`[unsupported]\`, such as the array method \`with\`); a cell whose check fails because the type of an input changed is rejected with its own message. A blocked cell breaks no rule of its own but takes a cell that is not ok, other than as \`State<T>\` (S6.11).`
 // %%
 md`**S8.3** Only ok cells run. An edit and every other cell whose compiled form it changes are defined in one step, so no cell runs in between on a mix of old and new definitions. A rejected cell raises \`<name> does not check: [rule] …\` and its body never runs, at load or after an edit; the body is kept only as source. A blocked cell fails with the error of the input that is not ok.`
 // %%
-md`**S8.4** A cell whose compiled text an edit did not change is not defined again, so cells outside the broken part do not run again, and a ref cell that stays ok keeps its value.`
+md`**S8.4** A cell whose compiled text an edit did not change is not defined again, so cells outside the broken part do not run again, and a state cell that stays ok keeps its value.`
 // %%
-md`**S8.5** A ref cell blocked by an input, its own text unchanged, keeps its value when the input comes back with the value it had, and starts again from its initial value when the input comes back with a different value. A rejected ref cell starts again from its initial value when it is repaired.`
+md`**S8.5** A state cell blocked by an input, its own text unchanged, keeps its value when the input comes back with the value it had, and starts again from its initial value when the input comes back with a different value. A rejected state cell starts again from its initial value when it is repaired.`
 // %%
 md`**S8.6** A listener in the broken part ends when the edit is applied, and nothing is delivered to it after. When the part is repaired the listener attaches again, once.`
 // %%
@@ -1049,8 +1230,8 @@ spec_editFirst = [
   "const area = (width: number, height: number) => width * height;",
   "const aspect = (width, height) => (width / height).toFixed(2);",
   "const half = (area: number) => area / 2;",
-  "const count = (): RefCell<number> => ref(0);",
-  "const increment = (count: Ref<number>) => action(() => count.update((n) => n + 1));",
+  "const count = (): StateCell<number> => state(0);",
+  "const increment = (count: State<number>) => action(() => count.update((n) => n + 1));",
   "const label = (count: number) => `pressed ${count}`;",
   "const tall = (height: number) => height * 2;"
 ]
@@ -1127,12 +1308,12 @@ test_spec_S8_4 = {
 test_spec_S8_5 = {
   const E = await spec_editor([
     "const base = () => 5;",
-    "const seeded = (base: number): RefCell<number> => ref(base);",
-    "const own = (): RefCell<number> => ref(0);",
-    "const bump = (seeded: Ref<number>, own: Ref<number>) => action(() => { seeded.update((n) => n + 1); own.update((n) => n + 1); });",
+    "const seeded = (base: number): StateCell<number> => state(base);",
+    "const own = (): StateCell<number> => state(0);",
+    "const bump = (seeded: State<number>, own: State<number>) => action(() => { seeded.update((n) => n + 1); own.update((n) => n + 1); });",
     "const sq = (base: number) => base * base;",
-    "const fromSq = (sq: number): RefCell<number> => ref(sq);",
-    "const bumpSq = (fromSq: Ref<number>) => action(() => fromSq.update((n) => n + 1));"
+    "const fromSq = (sq: number): StateCell<number> => state(sq);",
+    "const bumpSq = (fromSq: State<number>) => action(() => fromSq.update((n) => n + 1));"
   ]);
   try {
     (await E.value("bumpSq"))();
@@ -1140,10 +1321,10 @@ test_spec_S8_5 = {
     await spec_flush();
     spec_is([await E.value("seeded"), await E.value("own"), await E.value("fromSq")], [7, 2, 26]);
     await E.edit("base", 'const base = () => "5";');
-    await E.edit("own", 'const own = (): RefCell<number> => ref("0");');
+    await E.edit("own", 'const own = (): StateCell<number> => state("0");');
     spec_is([E.states().fromSq, E.states().own], ["blocked by sq", "rejected"]);
     await E.edit("base", "const base = () => 5;");
-    await E.edit("own", "const own = (): RefCell<number> => ref(0);");
+    await E.edit("own", "const own = (): StateCell<number> => state(0);");
     spec_is([await E.value("fromSq"), await E.value("own"), await E.value("seeded")], [26, 0, 5]);
     await E.edit("base", "const base = () => 6;");
     spec_is(await E.value("fromSq"), 36);
@@ -1153,10 +1334,10 @@ test_spec_S8_5 = {
 // %%
 test_spec_S8_6 = {
   const E = await spec_editor([
-    "const seen = (): RefCell<{ readonly count: number; readonly last: number; readonly sum: number }> => ref({ count: 0, last: 0, sum: 0 });",
+    "const seen = (): StateCell<{ readonly count: number; readonly last: number; readonly sum: number }> => state({ count: 0, last: 0, sum: 0 });",
     "const by = () => 1;",
     "const nums = function* () {\n  for (let i = 1; i < 1000000; i++) yield i;\n};",
-    "const add = (seen: Ref<{ readonly count: number; readonly last: number; readonly sum: number }>, by: number) => action((v: number) => seen.update((s) => ({ count: s.count + 1, last: v, sum: s.sum + by })));",
+    "const add = (seen: State<{ readonly count: number; readonly last: number; readonly sum: number }>, by: number) => action((v: number) => seen.update((s) => ({ count: s.count + 1, last: v, sum: s.sum + by })));",
     "const onNum = (nums: Events<number>, add: Action<[number]>) => on(nums, add);"
   ]);
   try {
@@ -1290,11 +1471,11 @@ md`**S11.5** The cell is given a deep-frozen copy. An object keeps only the prop
 // %%
 md`**S11.6** A copy is made for each value that arrives, so a value changed in place by the other language and delivered again is seen. A copy equal to the last one the same parameter was given is that one, so the reading cell is not run again.`
 // %%
-md`**S11.7** \`x: Ref<T>\` takes the view of an Observable JavaScript \`viewof x\`, or the ref of a SoundScript ref cell \`x\` imported from another module. On any other cell in another language, and when two parameters in one module take the same view or ref as \`Ref\` of different types, it is \`[boundary-ref]\`.`
+md`**S11.7** \`x: State<T>\` takes the view of an Observable JavaScript \`viewof x\`, or a SoundScript state cell \`x\` imported from another module. On any other cell in another language, and when two parameters in one module take the same view or state cell as \`State\` of different types, it is \`[boundary-state]\`.`
 // %%
-md`**S11.8** A write through the \`Ref\` commits with its action: it sets the view's \`value\` and dispatches an \`input\` event. The \`Ref\` then holds what the view gives back, which a control may have rounded or clamped. A change made on the control is an action call of its own, a flush group like any other (section 6).`
+md`**S11.8** A write through the \`State\` commits with its action: it sets the view's \`value\` and dispatches an \`input\` event. The \`State\` then holds what the view gives back, which a control may have rounded or clamped. A change made on the control is an action call of its own, a flush group like any other (section 6).`
 // %%
-md`**S11.9** The value of a cell in another language is state: an action may not use it (\`[action-capture]\`, section 6). Take the view as \`Ref\` and \`read\` it inside the action.`
+md`**S11.9** The value of a cell in another language is state: an action may not use it (\`[action-capture]\`, section 6). Take the view as \`State\` and \`read\` it inside the action.`
 // %%
 md`**S11.10** Adding, deleting or renaming a cell in another language checks the module's SoundScript cells again.`
 // %%
@@ -1320,9 +1501,9 @@ spec_rejects_11 = [
   { statement: "S11.3", rule: "boundary-type", source: "const f = (m: Map<string, number>) => 1;", outside: [{ name: "m" }] },
   { statement: "S11.3", rule: "boundary-type", source: "const f = (o: { at: number; get(): number }) => 1;", outside: [{ name: "o" }] },
   { statement: "S11.3", rule: "boundary-type", source: "const f = (e: Events<number>) => 1;", outside: [{ name: "e" }] },
-  { statement: "S11.7", rule: "boundary-ref", source: "const f = (rows: Ref<number[]>) => 1;", outside: [{ name: "rows" }] },
-  { statement: "S11.7", rule: "boundary-ref", source: "const f = (level: Ref<number>) => 1;\nconst g = (level: Ref<string>) => 1;", outside: [{ name: "level", view: true }] },
-  { statement: "S11.9", rule: "action-capture", source: "const n = () => ref(0);\nconst copy = (n: Ref<number>, level: number) => action(() => n.set(level));", outside: [{ name: "level", view: true }] }
+  { statement: "S11.7", rule: "boundary-state", source: "const f = (rows: State<number[]>) => 1;", outside: [{ name: "rows" }] },
+  { statement: "S11.7", rule: "boundary-state", source: "const f = (level: State<number>) => 1;\nconst g = (level: State<string>) => 1;", outside: [{ name: "level", view: true }] },
+  { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, level: number) => action(() => n.set(level));", outside: [{ name: "level", view: true }] }
 ]
 // %%
 spec_rejects_11_view = spec_rejectsTable(spec_rejects_11)
@@ -1419,18 +1600,19 @@ test_spec_S11_7 = {
   const bump = [...runtime._variables].find((v) => v._module === spec_module && v._name === "s11_bump");
   const inputs = bump._inputs.map((i) => i._name);
   if (inputs.includes("viewof s11_level") || typeof (await spec_module.value("s11_bump")) !== "function" || typeof (await spec_module.value("s11_shown")) !== "number") throw new Error(`s11_bump takes ${inputs.join(", ")}`);
-  // a ref cell imported from another module
-  const A = await spec_load("const count = (): RefCell<number> => ref(0);", {});
+  // a state cell imported from another module
+  const A = await spec_load("const count = (): StateCell<number> => state(0);", {});
   try {
-    const B = await spec_load("const add = (count: Ref<number>) => action((k: number) => count.update((c) => c + k));\nconst seen = (count: number) => count;", { count: { from: A.module } });
+    const B = await spec_load("const add = (count: State<number>) => action((k: number) => count.update((c) => c + k));\nconst seen = (count: number) => count;", { count: { from: A.module } });
     try {
       spec_is(ss_outside(B.module).find((o) => o.name === "count"), { name: "count", ref: true });
-      (await B.value("add"))(5);
+      const add = await B.value("add");
+      await spec_act(() => add(5));
       await spec_flush();
       spec_is([await A.value("count"), await B.value("seen")], [5, 5]);
     } finally { B.dispose(); }
   } finally { A.dispose(); }
-  return `${spec_rejectsFor("S11.7")}; s11_bump takes viewof s11_level as Ref<number> with no input on it, s11_shown its value; add, in another module, takes the imported ref cell count as Ref<number> and writes it (5)`;
+  return `${spec_rejectsFor("S11.7")}; s11_bump takes viewof s11_level as State<number> with no input on it, s11_shown its value; add, in another module, takes the imported state cell count as State<number> and writes it (5)`;
 }
 // %%
 test_spec_S11_8 = {
@@ -1441,40 +1623,38 @@ test_spec_S11_8 = {
   const was = el.value;
   const flushed = () => new Promise((r) => setTimeout(r, 0)).then(() => new Promise((r) => setTimeout(r, 0)));
   // a change on the control
-  el.value = 2;
-  el.dispatchEvent(new Event("input", { bubbles: true }));
+  await spec_act(() => { el.value = 2; el.dispatchEvent(new Event("input", { bubbles: true })); });
   await flushed();
-  if (readNow() !== 2) throw new Error(`after the control's change the Ref holds ${readNow()}`);
+  if (readNow() !== 2) throw new Error(`after the control's change the State holds ${readNow()}`);
   let inputs = 0;
   const count = () => inputs++;
   el.addEventListener("input", count);
   try {
-    bump();
+    await spec_act(() => bump());
     await flushed();
-    if (el.value !== 5 || inputs !== 1 || readNow() !== 5) throw new Error(`after bump: control ${el.value}, ${inputs} input events, Ref ${readNow()}`);
-    big();
+    if (el.value !== 5 || inputs !== 1 || readNow() !== 5) throw new Error(`after bump: control ${el.value}, ${inputs} input events, State ${readNow()}`);
+    await spec_act(() => big());
     await flushed();
-    if (el.value !== 10 || readNow() !== 10) throw new Error(`after big: control ${el.value}, Ref ${readNow()}`);
+    if (el.value !== 10 || readNow() !== 10) throw new Error(`after big: control ${el.value}, State ${readNow()}`);
   } finally {
     el.removeEventListener("input", count);
-    el.value = was;
-    el.dispatchEvent(new Event("input", { bubbles: true }));
+    await spec_act(() => { el.value = was; el.dispatchEvent(new Event("input", { bubbles: true })); });
   }
-  return "the control's change reaches the Ref; a write sets the control and dispatches one input; set(99) holds 10";
+  return "the control's change reaches the State; a write sets the control and dispatches one input; set(99) holds 10";
 }
 // %%
 test_spec_S11_8_object = {
   // a view whose value is an array: a change on the control is not echoed back; a write dispatches one input
   const el = Object.assign(new EventTarget(), { value: [1, 2] });
-  const L = await spec_load("const len = (picked: number[]) => picked.length;\nconst clear = (picked: Ref<number[]>) => action(() => picked.set([]));", { "viewof picked": [[], () => el], picked: [["viewof picked"], async function* (v) { yield v.value; for (;;) yield await new Promise((r) => v.addEventListener("input", () => r(v.value), { once: true })); }] });
+  const L = await spec_load("const len = (picked: number[]) => picked.length;\nconst clear = (picked: State<number[]>) => action(() => picked.set([]));", { "viewof picked": [[], () => el], picked: [["viewof picked"], async function* (v) { yield v.value; for (;;) yield await new Promise((r) => v.addEventListener("input", () => r(v.value), { once: true })); }] });
   try {
     let inputs = 0;
     el.addEventListener("input", () => inputs++);
-    el.value = [1, 2, 3];
-    el.dispatchEvent(new Event("input"));
+    await spec_act(() => { el.value = [1, 2, 3]; el.dispatchEvent(new Event("input")); });
     await spec_flush();
     spec_is([inputs, await L.value("len")], [1, 3]);
-    (await L.value("clear"))();
+    const clear = await L.value("clear");
+    await spec_act(() => clear());
     await spec_flush();
     spec_is([inputs, el.value, await L.value("len")], [2, [], 0]);
     return "the control's change: one input event, len 3; clear: one more input event, the control holds [], len 0";
@@ -1522,9 +1702,9 @@ md`- An angle-bracket cast \`<number>e\` is \`[no-cast]\` when the module is che
 // %%
 md`- Whether a listener cell runs again when its events cell stops and starts again (S7.5). In the notebook the count differs from load to load: on 2026-11-16 \`onNum\` ran once more after a stop and a start in one load and not at all in another; the value of \`test_spec_S7_5\` gives this load's count. The stdlib's own test harness counts none.`
 // %%
-md`- A write to a ref while its cell is computing again, after an input changed and before the cell has run (S6.2). Today it goes to the ref as it was, and is kept only if the cell runs again with the same inputs.`
+md`- A write to a state cell while it is computing again, after an input changed and before the cell has run (S6.2). Today it goes to the state cell as it was, and is kept only if the cell runs again with the same inputs.`
 // %%
-md`- An \`Action\` held in a ref (an undo stack, a current tool). The checker accepts it; what the ref holds after the action's cell is edited or deleted is observed, not decided.`
+md`- An \`Action\` held in a state cell (an undo stack, a current tool). The checker accepts it; what the state cell holds after the action's cell is edited or deleted is observed, not decided.`
 // %%
 md`- The order of listeners in different modules. The runtime orders them by module name and then by place; a module with no name, such as one made for a test, is given a random one.`
 // %%
@@ -1541,6 +1721,14 @@ md`- \`compile(...)\` and \`pool\` beyond S2.5 and S8.7. The checker has three r
 md`- A dependency cycle that passes through a cell in another language. The checker is given only the names of those cells, not their inputs, so it cannot see one.`
 // %%
 md`- A DOM node from another language placed in JSX.`
+// %%
+md`- A promise started in an action that is neither awaited nor returned, and writes to a state cell when it settles. Today the write throws if no call is in flight; otherwise it is counted as part of the call in flight, whichever action that call belongs to.`
+// %%
+md`- A call that never finishes. Today it holds every later top-level call, on the whole page, and nothing ends it.`
+// %%
+md`- An action called inside an action whose promise rejects (S6.15). Today the top-level call does not fail for it: the writes made before the rejection are kept. When the caller awaits it and does not catch, the caller's own promise rejects and the call keeps none of its writes; when nothing handles the rejection, it is reported as an unhandled rejection.`
+// %%
+md`- An action called directly from Observable JavaScript, outside an event handler, a listener or a view control, while a call is in flight. Today it is counted as part of the call in flight, not queued.`
 // %%
 spec_coverage = Generators.observe((notify) => {
   // drawn again when a test settles and when a cell of this module is added, edited or deleted; a test that

@@ -59,9 +59,9 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   const by = (src: string) => new Map(compileModule(src, true, accepted(src)).map((v) => [v.name, v]));
   const g = by(await Bun.file(root + "lite/notebook/examples/09-breakout.tsx").text());
   const expect = (ok: boolean, what: string) => { if (!ok) { fail++; console.log("FAIL " + what); } };
-  expect(JSON.stringify(g.get("world")?.inputs) === JSON.stringify(["@variable", "ss", "start", "invalidation"]), "a ref cell takes its inputs, invalidation and its own variable: " + g.get("world")?.inputs);
-  expect(![...g.keys()].some((n) => n.startsWith("viewof ")), "a ref cell is one variable, no viewof");
-  expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["@variable", "ss", "step"]) && /\$ss\$\.refAt\(\$ss\$v, "world"\)/.test(g.get("tick")!.definition), "a Ref<T> parameter is no input; its argument is the address of the cell: " + g.get("tick")?.inputs);
+  expect(JSON.stringify(g.get("world")?.inputs) === JSON.stringify(["@variable", "ss", "start", "invalidation"]), "a state cell takes its inputs, invalidation and its own variable: " + g.get("world")?.inputs);
+  expect(![...g.keys()].some((n) => n.startsWith("viewof ")), "a state cell is one variable, no viewof");
+  expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["@variable", "ss", "step"]) && /\$ss\$\.refAt\(\$ss\$v, "world"\)/.test(g.get("tick")!.definition), "a State<T> parameter is no input; its argument is the address of the cell: " + g.get("tick")?.inputs);
   expect(/kind: "events"/.test(g.get("ticks")!.definition) && !g.has("viewof ticks"), "a generator taken as Events is one handle variable");
   expect(g.get("ticks")!.definition.startsWith("function (") && /prev: this, id:/.test(g.get("ticks")!.definition), "an events cell's definition is a function that passes this: " + g.get("ticks")!.definition.slice(0, 40));
   expect(JSON.stringify(g.get("ticks")?.inputs) === JSON.stringify(["ss", "ss_now", "playing", "over", "invalidation"]), "an events cell takes invalidation: " + g.get("ticks")?.inputs);

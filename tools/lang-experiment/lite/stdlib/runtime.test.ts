@@ -22,7 +22,7 @@ const run = async (name: string, f: () => Promise<void> | void) => {
   try { await f(); } catch (e) { ok(name, false, `threw ${(e as Error)?.stack ?? e}`); }
 };
 
-const flushed = () => until(() => !P.state.flushScheduled && P.state.queue.length === 0).then(() => tick(2));
+const flushed = () => until(() => P.idle()).then(() => tick(2));
 
 // Frames are run by hand: the events pump asks scheduler.frame for its next sync step.
 const C = await import("../browser/cells.ts");
@@ -76,17 +76,17 @@ async function frameUntil(f: () => boolean, n = 5000) {
 
 // record counts each value, and counts a gap whenever a value is not the last one plus one.
 const STREAM = `type S = { readonly count: number; readonly last: number; readonly gaps: number; readonly sum: number };
-const seen = (): RefCell<S> => ref<S>({ count: 0, last: 0, gaps: 0, sum: 0 });
-const running = (): RefCell<boolean> => ref(true);
+const seen = (): StateCell<S> => state<S>({ count: 0, last: 0, gaps: 0, sum: 0 });
+const running = (): StateCell<boolean> => state(true);
 const nums = function* (running: boolean) {
   if (!running) return;
   for (let i = 1; i <= 1000; i++) yield i;
 };
 const weight = () => (v: number) => v;
-const record = (seen: Ref<S>, weight: (v: number) => number) =>
+const record = (seen: State<S>, weight: (v: number) => number) =>
   action((v: number) => seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (v === s.last + 1 ? 0 : 1), sum: s.sum + weight(v) })));
 const onNum = (nums: Events<number>, record: Action<[number]>) => on(nums, record);
-const toggle = (running: Ref<boolean>) => action(() => running.update((r) => !r));`;
+const toggle = (running: State<boolean>) => action(() => running.update((r) => !r));`;
 
 
 await run("e1_async_generator_every_value_once", async () => {
@@ -173,28 +173,28 @@ await run("e7_sweep_ends_what_no_variable_holds", async () => {
   ok("e7_sweep_detaches_unheld", ss.running() === 0, `running ${ss.running()}`);
 });
 
-// Actions held in refs (Tom, 2026-11-15: wanted). These report what happens; they assert only that
+// Actions held in state cells (Tom, 2026-11-15: wanted). These report what happens; they assert only that
 // each case ran, and print what it observed.
-const AREF = await Bun.file(new URL("../../fixtures/lite-game/accept-action-in-ref/cells.tsx", import.meta.url).pathname).text();
+const AREF = await Bun.file(new URL("../../fixtures/lite-game/accept-action-in-state/cells.tsx", import.meta.url).pathname).text();
 const ASTACK = await Bun.file(new URL("../../fixtures/lite-game/accept-action-stack/cells.tsx", import.meta.url).pathname).text();
 const report = (name: string, what: unknown) => console.log(`  report ${name}: ${typeof what === "string" ? what : JSON.stringify(what)}`);
-await run("r_action_in_ref", async () => {
+await run("r_action_in_state", async () => {
   const p = await load(AREF);
   const press = async (n: string) => { p.value(n)(); await p.settle(); };
   await press("current");
   const afterApply = p.value("count");
   await press("useDec"); await press("current");
-  ok("r_ref_runs_the_action_it_holds", afterApply === 1 && p.value("count") === 0, `count ${afterApply} then ${p.value("count")}`);
-  // (a1) the ref's initial value comes from inc, a dependency: editing inc re-creates the ref
+  ok("r_state_runs_the_action_it_holds", afterApply === 1 && p.value("count") === 0, `count ${afterApply} then ${p.value("count")}`);
+  // (a1) the state cell's initial value comes from inc, a dependency: editing inc re-creates the state cell
   await press("useDec");
-  p.define("const inc = (count: Ref<number>) => action(() => count.update((c) => c + 10));");
+  p.define("const inc = (count: State<number>) => action(() => count.update((c) => c + 10));");
   await p.settle();
   const c0 = p.value("count"); await press("current");
-  report("a1 edit inc (the ref's initial value) after dec was stored", { refRecreated: p.value("current") === p.value("inc"), countChange: p.value("count") - c0 });
-  // (a2) dec stored by an action, then dec's cell edited: the ref keeps the old function
+  report("a1 edit inc (the state cell's initial value) after dec was stored", { refRecreated: p.value("current") === p.value("inc"), countChange: p.value("count") - c0 });
+  // (a2) dec stored by an action, then dec's cell edited: the state cell keeps the old function
   await press("useDec");
   const stored = p.value("current");
-  p.define("const dec = (count: Ref<number>) => action(() => count.update((c) => c - 100));");
+  p.define("const dec = (count: State<number>) => action(() => count.update((c) => c - 100));");
   await p.settle();
   const c1 = p.value("count"); await press("current");
   report("a2 edit dec after it was stored by useDec", { refHoldsOld: p.value("current") === stored, refHoldsNew: p.value("current") === p.value("dec"), countChange: p.value("count") - c1 });
@@ -204,8 +204,8 @@ await run("r_action_in_ref", async () => {
   const c2 = p.value("count");
   let threw = "";
   try { p.value("current")(); await p.settle(); } catch (e) { threw = String((e as Error).message); }
-  report("b delete dec's cell while the ref holds it", { stillCallable: !threw, threw, countChange: p.value("count") - c2, useDecError: p.errs.filter((e) => e.startsWith("useDec")).slice(-1)[0] ?? null });
-  // (c) equals on two refs holding the same action, and on two different actions
+  report("b delete dec's cell while the state cell holds it", { stillCallable: !threw, threw, countChange: p.value("count") - c2, useDecError: p.errs.filter((e) => e.startsWith("useDec")).slice(-1)[0] ?? null });
+  // (c) equals on two state cells holding the same action, and on two different actions
   report("c equals", { sameAction: P.equals(p.value("current"), p.value("current")), twoActions: P.equals(p.value("inc"), p.value("useInc")), twoCopiesOfOneText: P.equals(P.action(() => {}), P.action(() => {})) });
   for (const v of p.vars.values()) { ss.release(v._value); v.delete(); }
   p.runtime.dispose();
@@ -219,7 +219,7 @@ await run("r_action_stack", async () => {
   const down = { count: p.value("count"), undos: p.value("undos").length };
   ok("r_undo_stack_pops_and_runs_the_top", up.count === 3 && up.undos === 3 && down.count === 1 && down.undos === 1, JSON.stringify({ up, down }));
   // calling the stored action inside the update callback, as the checker also accepts
-  p.define("const undoInside = (undos: Ref<readonly Action<[]>[]>) => action(() => undos.update((u) => { const t = u[u.length - 1]; if (t) t(); return u.slice(0, -1); }));");
+  p.define("const undoInside = (undos: State<readonly Action<[]>[]>) => action(() => undos.update((u) => { const t = u[u.length - 1]; if (t) t(); return u.slice(0, -1); }));");
   await p.settle();
   let threw = "";
   try { p.value("undoInside")(); await p.settle(); } catch (e) { threw = String((e as Error).message); }
@@ -228,10 +228,10 @@ await run("r_action_stack", async () => {
   p.runtime.dispose();
 });
 {
-  // (e) a ref holding an action given to a compile island
+  // (e) a state cell holding an action given to a compile island
   const src = AREF.replace(/const view[\s\S]*$/, "") + "\nexport const label = (current: Action<[]>) => 1;\nexport const viaInput = (compile: Compile) => compile({ inputs: [\"current\"], refs: [], outputs: [\"label\"] });\nexport const viaRef = (compile: Compile) => compile({ inputs: [], refs: [\"current\"], outputs: [\"label\"] });\n";
   const r = checkSources({ cells: src, tsx: true });
-  report("e compile with a ref holding an action", r.cells.filter((c) => c.name.startsWith("via")).map((c) => `${c.name} ${c.status} ${c.errors.map((e) => `[${e.rule}] ${e.msg}`).join("; ")}`));
+  report("e compile with a state cell holding an action", r.cells.filter((c) => c.name.startsWith("via")).map((c) => `${c.name} ${c.status} ${c.errors.map((e) => `[${e.rule}] ${e.msg}`).join("; ")}`));
 }
 
 const val = (h: object) => P.refValues(h).next().value;
@@ -244,12 +244,12 @@ const val = (h: object) => P.refValues(h).next().value;
 const thrown = (f: () => void) => { try { f(); return ""; } catch (e) { return String((e as Error).message); } };
 await run("c2_flush_is_all_or_nothing", async () => {
   errors.length = 0; uncaught.length = 0;
-  const c = P.materialize(P.ref(1), "c") as any, d = P.materialize(P.ref(1), "d") as any;
+  const c = P.materialize(P.state(1), "c") as any, d = P.materialize(P.state(1), "d") as any;
   const gc = P.refValues(c); gc.next();
   const msg = thrown(() => P.action(() => { c.update((v: number) => v + 1); d.update(() => { throw new Error("in update"); }); })());
   await flushed();
   ok("c2_no_store_changed", val(c) === 1 && val(d) === 1, `c ${val(c)} d ${val(d)}`);
-  ok("c2_state_clean", P.state.queue.length === 0 && P.state.overlay.size === 0 && !P.state.flushScheduled);
+  ok("c2_state_clean", P.idle() && P.rt.ready.size === 0);
   ok("c2_error_thrown_at_the_call", msg === "in update" && uncaught.length === 0, `thrown ${JSON.stringify(msg)} uncaught ${uncaught.length}`);
   const pending = gc.next().value as Promise<unknown>;
   ok("c2_no_waiter_woken", pending instanceof Promise);
@@ -306,26 +306,26 @@ await run("c3_island_cache_bounded", async () => {
 
 
 // flush groups: each top-level action call applies or is dropped on its own, in call order
-const refOf = (v: unknown, name: string) => P.materialize(P.ref(v), name) as any;
+const refOf = (v: unknown, name: string) => P.materialize(P.state(v), name) as any;
 const named = (name: string, f: () => void) => { const a = P.action(f); P.actionNames.set(a, name); return a; };
 await run("g2_groups_either_side_of_a_throw_both_apply", async () => {
   const x = refOf(0, "x");
   const g = P.refValues(x); g.next();
-  const commits = P.state.commits;
+  const commits = P.rt.commits;
   named("A", () => x.update((v: number) => v + 1))();
   thrown(() => named("B", () => x.update(() => { throw new Error("B broke"); }))());
   named("C", () => x.update((v: number) => v + 10))();
   await flushed();
   ok("g2_x_is_plus_11", val(x) === 11, `x ${val(x)}`);
   const seen = g.next().value, after = g.next().value;
-  ok("g2_one_commit_one_version_bump", P.state.commits === commits + 1 && seen === 11 && after instanceof Promise, `commits +${P.state.commits - commits}, seen ${seen}`);
+  ok("g2_one_commit_one_version_bump", P.rt.commits === commits + 1 && seen === 11 && after instanceof Promise, `commits +${P.rt.commits - commits}, seen ${seen}`);
 });
-// States what a cell sees when one action writes two refs; it asserts only that the observation was made.
-await run("g6_observed_one_action_writing_two_refs", async () => {
-  const L = await load(`const a = (): RefCell<number> => ref(0);
-export const b = (): RefCell<number> => ref(0);
+// States what a cell sees when one action writes two state cells; it asserts only that the observation was made.
+await run("g6_observed_one_action_writing_two_state_cells", async () => {
+  const L = await load(`const a = (): StateCell<number> => state(0);
+export const b = (): StateCell<number> => state(0);
 export const pair = (a: number, b: number) => a * 100 + b;
-export const both = (a: Ref<number>, b: Ref<number>) => action(() => { a.set(1); b.set(2); });`);
+export const both = (a: State<number>, b: State<number>) => action(() => { a.set(1); b.set(2); });`);
   const seen: number[] = [];
   L.m.variable({ fulfilled: (v: number) => seen.push(v) }).define(["pair"], (p: number) => p);
   await L.settle();
@@ -377,10 +377,10 @@ async function editable(texts: string[], o: { reverse?: boolean; order?: boolean
 // load, after the first is edited and attaches again (now after the second), and when the module's
 // variables are defined in reverse.
 const ORDER = [
-  "const log = (): RefCell<readonly string[]> => ref<readonly string[]>([]);",
+  "const log = (): StateCell<readonly string[]> => state<readonly string[]>([]);",
   "const beats = function* () { let i = 0; while (true) yield i++; };",
-  "const addFirst = (log: Ref<readonly string[]>) => action((v: number) => log.update((l) => [...l, \"first\"]));",
-  "const addSecond = (log: Ref<readonly string[]>) => action((v: number) => log.update((l) => [...l, \"second\"]));",
+  "const addFirst = (log: State<readonly string[]>) => action((v: number) => log.update((l) => [...l, \"first\"]));",
+  "const addSecond = (log: State<readonly string[]>) => action((v: number) => log.update((l) => [...l, \"second\"]));",
   "const first = (beats: Events<number>, addFirst: Action<[number]>) => on(beats, addFirst);",
   "const second = (beats: Events<number>, addSecond: Action<[number]>) => on(beats, addSecond);",
 ];
@@ -438,17 +438,17 @@ await run("o2_two_events_cells_interleave", async () => {
 // cells re-run (settled) after every commit or not at all until the end. Every schedule must store the
 // same values. The same log against the `copy` shape the action-capture rule rejects, compiled with the
 // check bypassed, shows the property failing.
-const LOGGED = `const a = (): RefCell<number> => ref(1);
-const b = (): RefCell<number> => ref(0);
-const c = (): RefCell<number> => ref(0);
-const addA = (a: Ref<number>) => action((n: number) => a.update((x) => (x * 3 + n) % 1009));
-const copyAB = (a: Ref<number>, b: Ref<number>) => action(() => b.set((read(a) + read(b) * 7) % 10007));
-const risky = (a: Ref<number>, c: Ref<number>) =>
+const LOGGED = `const a = (): StateCell<number> => state(1);
+const b = (): StateCell<number> => state(0);
+const c = (): StateCell<number> => state(0);
+const addA = (a: State<number>) => action((n: number) => a.update((x) => (x * 3 + n) % 1009));
+const copyAB = (a: State<number>, b: State<number>) => action(() => b.set((read(a) + read(b) * 7) % 10007));
+const risky = (a: State<number>, c: State<number>) =>
   action((n: number) => {
     c.update((x) => x + n);
     if ((read(a) + n) % 5 === 0) throw new Error("risky");
   });
-const both = (addA: Action<[number]>, copyAB: Action<[]>, c: Ref<number>) =>
+const both = (addA: Action<[number]>, copyAB: Action<[]>, c: State<number>) =>
   action((n: number) => {
     addA(n);
     copyAB();
@@ -457,12 +457,12 @@ const both = (addA: Action<[number]>, copyAB: Action<[]>, c: Ref<number>) =>
 const ticks = function* () {
   for (let i = 1; i <= 100000; i++) yield i;
 };
-const tickC = (a: Ref<number>, c: Ref<number>) => action((t: number) => c.set((read(c) + read(a) * t) % 10007));
+const tickC = (a: State<number>, c: State<number>) => action((t: number) => c.set((read(c) + read(a) * t) % 10007));
 const onTickA = (ticks: Events<number>, addA: Action<[number]>) => on(ticks, addA);
 const onTickC = (ticks: Events<number>, tickC: Action<[number]>) => on(ticks, tickC);
 const total = (a: number, b: number, c: number) => a + b + c;`;
-const STALE = LOGGED.replace("const copyAB = (a: Ref<number>, b: Ref<number>) => action(() => b.set((read(a) + read(b) * 7) % 10007));",
-  "const copyAB = (a: number, b: Ref<number>) => action(() => b.set((a + read(b) * 7) % 10007));");
+const STALE = LOGGED.replace("const copyAB = (a: State<number>, b: State<number>) => action(() => b.set((read(a) + read(b) * 7) % 10007));",
+  "const copyAB = (a: number, b: State<number>) => action(() => b.set((a + read(b) * 7) % 10007));");
 const seeded = (seed: number) => () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 type Call = readonly ["addA" | "risky" | "both", number] | readonly ["copyAB"] | readonly ["frame"];
 const CALLS: Call[] = (() => {
@@ -530,47 +530,47 @@ await run("p2_the_rejected_copy_shape_breaks_it", async () => {
   ok("p2_schedules_disagree_when_the_check_is_bypassed", got[0] !== got[1], got.join(" "));
 });
 
-// A ref cell is one variable; a Ref<T> is the address of that variable, looked up when it is written.
+// A state cell is one variable; a State<T> is the address of that variable, looked up when it is written.
 const statesOf = (src: string, outside: { name: string; ref?: boolean }[] = []) => Object.fromEntries([...ss.cellStates(ss.checkCells(T.splitCells(src, true), true, outside).result)].map(([n, x]: any) => [n, x.state]));
-await run("w1_a_write_to_a_ref_in_error_throws_and_keeps_none", async () => {
+await run("w1_a_write_to_a_state_cell_in_error_throws_and_keeps_none", async () => {
   const SRC = `const base = () => 1;
-const n = (base: number): RefCell<number> => ref(base);
-const other = (): RefCell<number> => ref(0);
-const both = (n: Ref<number>, other: Ref<number>) => action(() => { other.update((v) => v + 1); n.update((v) => v + 1); });`;
+const n = (base: number): StateCell<number> => state(base);
+const other = (): StateCell<number> => state(0);
+const both = (n: State<number>, other: State<number>) => action(() => { other.update((v) => v + 1); n.update((v) => v + 1); });`;
   const p = await load(SRC);
-  ok("w1_one_variable_per_ref_cell", [...p.m._scope.keys()].every((k: string) => !k.startsWith("viewof ")) && JSON.stringify(p.vars.get("both")._inputs.map((i: any) => i._name)) === JSON.stringify(["@variable", "ss"]), JSON.stringify([...p.m._scope.keys()]));
+  ok("w1_one_variable_per_state_cell", [...p.m._scope.keys()].every((k: string) => !k.startsWith("viewof ")) && JSON.stringify(p.vars.get("both")._inputs.map((i: any) => i._name)) === JSON.stringify(["@variable", "ss"]), JSON.stringify([...p.m._scope.keys()]));
   const call = () => { try { p.value("both")(); return ""; } catch (e) { return (e as Error).message; } };
   const base = p.vars.get("base");
   base.define("base", [], () => { throw new Error("broken base"); });
   await p.settle();
   const inError = call();
   await p.settle();
-  ok("w1_input_threw", /^Ref n: n is in error: broken base/.test(inError) && p.value("other") === 0, `${inError}; other ${p.value("other")}`);
+  ok("w1_input_threw", /^State n: n is in error: broken base/.test(inError) && p.value("other") === 0, `${inError}; other ${p.value("other")}`);
   base.define("base", [], () => 1);
   await p.settle();
   const back = call();
   await p.settle();
   ok("w1_repaired_input_writes_again", back === "" && p.value("other") === 1 && p.value("n") === 2, `${back}; other ${p.value("other")}, n ${p.value("n")}`);
-  p.define(`const n = (base: number): RefCell<number> => ref("x");`);
+  p.define(`const n = (base: number): StateCell<number> => state("x");`);
   await p.settle();
   const rejected = call();
   await p.settle();
-  ok("w1_ref_cell_does_not_check", /^Ref n: n is in error: n does not check: \[/.test(rejected) && p.value("other") === 1, `${rejected}; other ${p.value("other")}`);
-  const holder = statesOf(SRC.replace("ref(base);", 'ref("x");'));
-  ok("w1_a_cell_holding_the_ref_is_not_blocked", holder.n === "rejected" && holder.both === "ok", JSON.stringify(holder));
+  ok("w1_state_cell_does_not_check", /^State n: n is in error: n does not check: \[/.test(rejected) && p.value("other") === 1, `${rejected}; other ${p.value("other")}`);
+  const holder = statesOf(SRC.replace("state(base);", 'state("x");'));
+  ok("w1_a_cell_holding_the_state_is_not_blocked", holder.n === "rejected" && holder.both === "ok", JSON.stringify(holder));
   p.vars.get("n").delete(); p.vars.delete("n");
   await p.settle();
   const missing = call();
-  ok("w1_ref_cell_deleted", /^Ref n: n is not defined/.test(missing), missing);
+  ok("w1_state_cell_deleted", /^State n: n is not defined/.test(missing), missing);
   p.runtime.dispose();
 });
-await run("w2_a_remade_ref_keeps_its_handles", async () => {
-  const p = await load(`const seed = (): RefCell<number> => ref(1);
-const vars = (seed: number): RefCell<{ readonly n: number }> => ref({ n: seed * 10 });
-const setN = (vars: Ref<{ readonly n: number }>) => action((n: number) => vars.set({ n }));
-const bumpSeed = (seed: Ref<number>) => action(() => seed.update((s) => s + 1));
-const h1 = (vars: Ref<{ readonly n: number }>) => [vars];
-const h2 = (vars: Ref<{ readonly n: number }>) => [vars];`);
+await run("w2_a_remade_state_cell_keeps_its_handles", async () => {
+  const p = await load(`const seed = (): StateCell<number> => state(1);
+const vars = (seed: number): StateCell<{ readonly n: number }> => state({ n: seed * 10 });
+const setN = (vars: State<{ readonly n: number }>) => action((n: number) => vars.set({ n }));
+const bumpSeed = (seed: State<number>) => action(() => seed.update((s) => s + 1));
+const h1 = (vars: State<{ readonly n: number }>) => [vars];
+const h2 = (vars: State<{ readonly n: number }>) => [vars];`);
   const setN = p.value("setN"), setN0 = p.evals("setN");
   p.value("bumpSeed")();
   await p.settle();
@@ -581,12 +581,12 @@ const h2 = (vars: Ref<{ readonly n: number }>) => [vars];`);
   ok("w2_one_handle_per_module_and_name", p.value("h1")[0] === p.value("h2")[0] && ss.equals(p.value("h1"), p.value("h2")), "");
   p.runtime.dispose();
 });
-await run("w3_a_ref_nothing_observes_is_written", async () => {
+await run("w3_a_state_cell_nothing_observes_is_written", async () => {
   const runtime = new Runtime();
   const m = runtime.module();
   m.define("ss", [], () => ss);
-  const src = `const hidden = (): RefCell<number> => ref(3);
-const add = (hidden: Ref<number>) => action(() => hidden.update((v) => v + 1));`;
+  const src = `const hidden = (): StateCell<number> => state(3);
+const add = (hidden: State<number>) => action(() => hidden.update((v) => v + 1));`;
   const ctx = T.contextFromCheck(ss.checkCells(T.splitCells(src, true)).result);
   let add: any = null;
   for (const t of T.splitCells(src, true)) for (const d of T.compileCell(t, true, ctx)) {
@@ -600,7 +600,7 @@ const add = (hidden: Ref<number>) => action(() => hidden.update((v) => v + 1));`
   ok("w3_written_once_it_ran", threw === "" && (await m.value("hidden")) === 4, `${threw}; hidden ${await m.value("hidden")}`);
   runtime.dispose();
 });
-await run("w4_a_ref_imported_from_another_module", async () => {
+await run("w4_a_state_cell_imported_from_another_module", async () => {
   const runtime = new Runtime();
   const compileInto = (m: any, src: string, outside: { name: string; ref?: boolean }[] = []) => {
     const ctx = T.contextFromCheck(ss.checkCells(T.splitCells(src, true), true, outside).result);
@@ -611,8 +611,8 @@ await run("w4_a_ref_imported_from_another_module", async () => {
     }
     return values;
   };
-  const A = `const count = (): RefCell<number> => ref(0);`;
-  const B = `const bumpB = (count: Ref<number>) => action(() => count.update((c) => c + 10));
+  const A = `const count = (): StateCell<number> => state(0);`;
+  const B = `const bumpB = (count: State<number>) => action(() => count.update((c) => c + 10));
 const seenB = (count: number) => count;`;
   const instances = [0, 1].map(() => {
     const a = runtime.module(), b = runtime.module();
@@ -629,9 +629,107 @@ const seenB = (count: number) => count;`;
   const got = instances.map((i) => [i.va.get("count"), i.vb.get("seenB")]);
   ok("w4_the_write_reaches_the_source_of_its_own_instance", JSON.stringify(got) === "[[0,0],[10,10]]", JSON.stringify(got));
   const plain = statesOf(B, [{ name: "count" }]);
-  ok("w4_an_import_that_is_not_a_ref_cell_is_boundary_ref", plain.bumpB === "rejected", JSON.stringify(plain));
+  ok("w4_an_import_that_is_not_a_state_cell_is_boundary_state", plain.bumpB === "rejected", JSON.stringify(plain));
   runtime.dispose();
 });
+// Async actions: one top-level call at a time for the whole runtime; a call's writes commit together
+// when it finishes, after its awaits and the actions it called. Each promise here is resolved by the test.
+const click = (f: () => unknown) => P.entry(null, f);
+const asyncNamed = (name: string, f: (...a: any[]) => unknown) => { const a = P.action(f); P.actionNames.set(a, name); return a; };
+await run("q1_writes_after_an_await_commit_once_when_the_call_finishes", async () => {
+  const n = refOf(0, "n"), m = refOf(0, "m");
+  const d = deferred();
+  const load = asyncNamed("load", async () => { n.set(1); await d.p; m.set((P.read(n) as number) + 1); n.update((v: number) => v + 10); });
+  load();
+  ok("q1_in_flight_and_no_commit_scheduled", P.actionQueue().inFlight === true && !P.rt.flushScheduled && P.rt.ready.size === 0);
+  d.resolve();
+  await flushed();
+  ok("q1_all_writes_commit_and_read_sees_own_write", val(n) === 11 && val(m) === 2, `n ${val(n)} m ${val(m)}`);
+});
+await run("q2_a_call_from_an_entry_waits_for_the_one_in_flight", async () => {
+  const x = refOf(1, "x");
+  const d = deferred();
+  const order: string[] = [];
+  const slow = asyncNamed("slow", async () => { order.push("slow"); await d.p; x.set(5); order.push("slow done"); });
+  const times = asyncNamed("times", () => { order.push("times"); x.update((v: number) => v * 10); });
+  click(() => slow());
+  click(() => times());
+  ok("q2_second_call_waits", JSON.stringify(order) === '["slow"]' && P.actionQueue().waiting === 1, JSON.stringify([order, P.actionQueue()]));
+  d.resolve();
+  await flushed();
+  ok("q2_runs_in_call_order_after_the_first_finishes", JSON.stringify(order) === '["slow","slow done","times"]' && val(x) === 50, `${JSON.stringify(order)} x ${val(x)}`);
+});
+await run("q3_a_rejected_call_keeps_none_of_its_writes", async () => {
+  errors.length = 0;
+  const x = refOf(1, "x"), y = refOf(1, "y");
+  const d = deferred();
+  const breaks = asyncNamed("breaks", async () => { x.set(2); await d.p; y.set(3); throw new Error("after await"); });
+  breaks();
+  d.resolve();
+  await flushed();
+  ok("q3_none_kept", val(x) === 1 && val(y) === 1, `x ${val(x)} y ${val(y)}`);
+  ok("q3_reported_naming_the_action", errors.some((e) => e.includes("action breaks") && e.includes("after await")), JSON.stringify(errors));
+});
+await run("q4_a_queued_call_that_throws_is_reported", async () => {
+  errors.length = 0;
+  const x = refOf(1, "x");
+  const d = deferred();
+  const slow = asyncNamed("slow2", async () => { await d.p; x.set(2); });
+  const bad = asyncNamed("bad", () => { x.set(9); throw new Error("queued throw"); });
+  click(() => slow());
+  let thrown = "";
+  try { click(() => bad()); } catch (e) { thrown = String(e); }
+  d.resolve();
+  await flushed();
+  ok("q4_not_thrown_to_the_caller", thrown === "", thrown);
+  ok("q4_reported_naming_the_action", errors.some((e) => e.includes("action bad") && e.includes("queued throw")), JSON.stringify(errors));
+  ok("q4_kept_only_the_first_call", val(x) === 2, `x ${val(x)}`);
+  const msg = thrown;
+  ok("q4_a_sync_throw_from_a_call_started_at_once_still_throws", (() => { try { click(() => bad()); return false; } catch (e) { return String((e as Error).message) === "queued throw"; } })(), msg);
+});
+await run("q5_nested_async_actions", async () => {
+  const x = refOf(0, "x");
+  const d1 = deferred(), d2 = deferred();
+  const inner = asyncNamed("inner", async () => { await d1.p; x.update((v: number) => v + 1); });
+  const detached = asyncNamed("detached", async () => { await d2.p; x.update((v: number) => v + 100); });
+  let outerDone = false;
+  const outer = asyncNamed("outer", async () => { detached(); await inner(); x.update((v: number) => v * 10); outerDone = true; });
+  outer();
+  d1.resolve();
+  await until(() => outerDone);
+  ok("q5_held_by_the_action_it_did_not_await", P.actionQueue().inFlight === true && !P.rt.flushScheduled && val(x) === 0, JSON.stringify(P.actionQueue()));
+  d2.resolve();
+  await flushed();
+  ok("q5_awaited_and_not_awaited_both_part_of_the_call", val(x) === 110, `x ${val(x)}`);
+});
+await run("q6_a_write_from_a_cell_evaluation_during_a_paused_call_throws", async () => {
+  const x = refOf(0, "x");
+  const d = deferred();
+  const slow = asyncNamed("slow3", async () => { await d.p; });
+  slow();
+  P.rt.evalDepth++;
+  const msg = thrown(() => x.set(1));
+  const call = thrown(() => slow());
+  P.rt.evalDepth--;
+  d.resolve();
+  await flushed();
+  ok("q6_write_throws", /outside an action/.test(msg), msg);
+  ok("q6_action_call_throws", /during a cell evaluation/.test(call), call);
+});
+await run("q7_async_listener_gets_every_value_once_in_order", async () => {
+  const h = C.events(undefined, "beats", [], () => (function* () { for (let i = 1; i <= 5; i++) yield i; })() as any, null);
+  const gates: (() => void)[] = [];
+  const got: number[] = [];
+  const act = asyncNamed("slowAdd", async (v: number) => { await new Promise<void>((r) => gates.push(r)); got.push(v); });
+  const l = C.listen(C.on(h, act), "onBeat", null);
+  for (let i = 0; i < 10; i++) frame();
+  ok("q7_one_call_in_flight_the_rest_wait", gates.length === 1 && P.actionQueue().waiting === 4, `${gates.length} started, ${P.actionQueue().waiting} waiting`);
+  for (let k = 0; k < 5; k++) { await until(() => gates.length > k); gates[k](); }
+  await flushed();
+  ok("q7_each_value_once_in_order", JSON.stringify(got) === "[1,2,3,4,5]", JSON.stringify(got));
+  C.release(l); C.release(h);
+});
+
 console.error = realError;
 if (uncaught.length) ok("no_uncaught_exceptions", false, String(uncaught[0]));
 console.log(`${pass} pass, ${fail} fail`);

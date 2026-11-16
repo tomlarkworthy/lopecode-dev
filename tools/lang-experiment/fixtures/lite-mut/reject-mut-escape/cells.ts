@@ -5,7 +5,7 @@ let bad_return = () => { const out = mut([1]); return out; };
 let bad_alias = () => { const out = mut([1]); const a = out; return freeze(a); };
 let bad_let_assign = () => { const out = mut([1]); let a: number[] = []; a = out; return a; };
 let bad_literal = () => { const out = mut([1]); const box = { out }; return box; };
-let bad_ref = () => { const out = mut([1]); return ref(out); };
+let bad_ref = () => { const out = mut([1]); return state(out); };
 let bad_promise = () => { const out = mut([1]); const p = Promise.resolve(out); out[0] = 2; return p; };
 let bad_generic = (id) => { const out = mut([1]); const same = id(out); out[0] = 3; return same; };
 let bad_plain_param = (keep) => { const out = mut([1]); return keep(out); };

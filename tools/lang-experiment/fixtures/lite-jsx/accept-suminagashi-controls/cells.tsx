@@ -1,6 +1,6 @@
 // suminagashi's widgets and canvas pointer handling as checked JSX cells (a proof, 2026-11-14).
-// The widget refs are copied from ports/suminagashi/cells.ts; turn, pointer, finished and reset are
-// one ref, canvasState, changed only by the pure `step`. `width` and
+// The widget state cells are copied from ports/suminagashi/cells.ts; turn, pointer, finished and reset are
+// one state cell, canvasState, changed only by the pure `step`. `width` and
 // `sequence` stand in for the port's cells of the same name. Everything here is checked; the DOM
 // is made by lite/jsx/render.ts from the Elem values these cells return.
 
@@ -10,7 +10,7 @@ type Pointer =
   | { readonly touch: number; readonly tool: Tool; readonly fluid: number; readonly x: number; readonly y: number; readonly down: boolean }
   | undefined;
 type Finished = false | { readonly at: number; readonly why: string };
-// Everything the pointer handlers read and write, in one ref, so each event is one pure step.
+// Everything the pointer handlers read and write, in one state cell, so each event is one pure step.
 type Canvas = { readonly turn: number; readonly pointer: Pointer; readonly finished: Finished; readonly resets: number };
 type Ev =
   | { readonly kind: "down"; readonly d: PointerData; readonly tool: Tool }
@@ -20,13 +20,13 @@ type Ev =
   | { readonly kind: "finish"; readonly at: number; readonly why: string };
 
 // ---- state (from ports/suminagashi/cells.ts) ----
-let tool = (): RefCell<Tool> => ref<Tool>("brush");
-let view = (): RefCell<View> => ref<View>("lines");
-let height = (): RefCell<number> => ref(570);
-let cellSize = (): RefCell<number> => ref(1.5);
-let backgroundFilm = (): RefCell<number> => ref(0.1);
-let runTests = (): RefCell<boolean> => ref(true);
-let canvasState = (): RefCell<Canvas> => ref<Canvas>({ turn: 0, pointer: undefined, finished: false, resets: 0 });
+let tool = (): StateCell<Tool> => state<Tool>("brush");
+let view = (): StateCell<View> => state<View>("lines");
+let height = (): StateCell<number> => state(570);
+let cellSize = (): StateCell<number> => state(1.5);
+let backgroundFilm = (): StateCell<number> => state(0.1);
+let runTests = (): StateCell<boolean> => state(true);
+let canvasState = (): StateCell<Canvas> => state<Canvas>({ turn: 0, pointer: undefined, finished: false, resets: 0 });
 // the port's turn, pointer, finished and reset, as parts of canvasState
 let turn = (canvasState) => canvasState.turn;
 let pointer = (canvasState) => canvasState.pointer;
@@ -64,13 +64,13 @@ let Toggle = () => (p: { readonly label: string; readonly value: boolean; readon
 // ---- setters: one action per widget ----
 let TOOLS = (): readonly Tool[] => ["brush", "blow", "stylus"];
 let VIEWS = (): readonly View[] => ["lines", "print", "surface pressure"];
-let pickTool = (TOOLS, tool: Ref<Tool>) => action((i: number) => tool.set(TOOLS[i] ?? "brush"));
-let pickView = (VIEWS, view: Ref<View>) => action((i: number) => view.set(VIEWS[i] ?? "lines"));
-let setHeight = (height: Ref<number>) => action((v: number) => height.set(v));
-let setCellSize = (cellSize: Ref<number>) => action((v: number) => cellSize.set(v));
-let setBackgroundFilm = (backgroundFilm: Ref<number>) => action((v: number) => backgroundFilm.set(v));
-let setRunTests = (runTests: Ref<boolean>) => action((v: boolean) => runTests.set(v));
-let emptyTray = (canvasState: Ref<Canvas>, step) => action(() => canvasState.update((s) => step(s, { kind: "empty" })));
+let pickTool = (TOOLS, tool: State<Tool>) => action((i: number) => tool.set(TOOLS[i] ?? "brush"));
+let pickView = (VIEWS, view: State<View>) => action((i: number) => view.set(VIEWS[i] ?? "lines"));
+let setHeight = (height: State<number>) => action((v: number) => height.set(v));
+let setCellSize = (cellSize: State<number>) => action((v: number) => cellSize.set(v));
+let setBackgroundFilm = (backgroundFilm: State<number>) => action((v: number) => backgroundFilm.set(v));
+let setRunTests = (runTests: State<boolean>) => action((v: boolean) => runTests.set(v));
+let emptyTray = (canvasState: State<Canvas>, step) => action(() => canvasState.update((s) => step(s, { kind: "empty" })));
 
 // ---- the eight *_view cells of ports/suminagashi/shell.ts, minus params_view ----
 let tool_view = (Radio, TOOLS, tool, pickTool) => <Radio label="tool" options={TOOLS} selected={TOOLS.indexOf(tool)} onPick={pickTool} />;
@@ -86,7 +86,7 @@ let reset_view = (emptyTray) => <button onClick={emptyTray}>empty the tray</butt
 // ---- pointer handling: one pure step per event ----
 // The step gets the committed state when the runtime applies it, so events that arrive before a
 // recompute still see each other's writes. The 2 s guard reads the event's own timestamp, so the
-// step needs no clock. `tool` is a separate widget ref; the handler reads it when it is called.
+// step needs no clock. `tool` is a separate widget state cell; the handler reads it when it is called.
 let step = (sequence) => (s: Canvas, e: Ev): Canvas => {
   if (e.kind === "empty") return { turn: 0, pointer: undefined, finished: false, resets: s.resets + 1 };
   if (e.kind === "finish") return { ...s, finished: { at: e.at, why: e.why } };
@@ -97,12 +97,12 @@ let step = (sequence) => (s: Canvas, e: Ev): Canvas => {
   const fluid = sequence[(turn - 1 + sequence.length) % sequence.length] ?? 0;
   return { ...s, turn, pointer: { touch: e.d.t, tool: e.tool, fluid, x: e.d.x, y: e.d.y, down: true } };
 };
-let pointerDown = (tool: Ref<Tool>, step, canvasState: Ref<Canvas>) =>
+let pointerDown = (tool: State<Tool>, step, canvasState: State<Canvas>) =>
   action((d: PointerData) => canvasState.update((s) => step(s, { kind: "down", d, tool: read(tool) })));
-let pointerMove = (step, canvasState: Ref<Canvas>) => action((d: PointerData) => canvasState.update((s) => step(s, { kind: "move", d })));
-let pointerUp = (step, canvasState: Ref<Canvas>) => action((d: PointerData) => canvasState.update((s) => step(s, { kind: "up" })));
+let pointerMove = (step, canvasState: State<Canvas>) => action((d: PointerData) => canvasState.update((s) => step(s, { kind: "move", d })));
+let pointerUp = (step, canvasState: State<Canvas>) => action((d: PointerData) => canvasState.update((s) => step(s, { kind: "up" })));
 // mainLoop's `finished = { at, why }` (the loop is not part of this fixture)
-let finishPicture = (step, canvasState: Ref<Canvas>) =>
+let finishPicture = (step, canvasState: State<Canvas>) =>
   action((at: number, why: string) => canvasState.update((s) => step(s, { kind: "finish", at, why })));
 let canvas_view = (width, height, pointerDown, pointerMove, pointerUp) => (
   <canvas

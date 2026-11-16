@@ -13,11 +13,11 @@ export { langOf, LANG };
 
 const SS = "$ss$"; // wrapper parameter bound to the stdlib runtime object
 export const STDLIB_INPUT = "ss";
-const PRELUDE = ["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "h", "read"];
+const PRELUDE = ["state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "h", "read"];
 // Capability parameter -> the variable the stdlib provides. invalidation is the runtime's own;
 // ss_compile is defined in each module that compiles, because compile reads that module's cells.
 export const CAP_INPUTS: Record<string, string> = { now: "ss_now", random: "ss_random", fetch: "ss_fetch", log: "ss_log", pool: "ss_pool", compile: "ss_compile", invalidation: "invalidation" };
-// the value variable of a ref cell as compiled before 2026-11-16, when a ref cell was two variables
+// the value variable of a state cell as compiled before 2026-11-16, when one was two variables
 const PROJECTION = "/*ss@ref*/";
 
 const header = (o: object) => `/*ss^${JSON.stringify(o).replaceAll("*/", "*\\/")}*/`;
@@ -130,7 +130,7 @@ export function contextFromCheck(result: CheckLike, _source?: string, _tsx = tru
 
 // The editor's three states of a cell: ok; rejected (the checker does not accept the cell itself, or it
 // does not parse); blocked (accepted, but a cell it takes is not ok, so it cannot run). A cell taken as
-// Ref<T> is not taken: a Ref is an address, and a write to a cell that is not ok throws.
+// State<T> is not taken: a State is an address, and a write to a cell that is not ok throws.
 export type CellState = { state: "ok" | "rejected" | "blocked"; why: string[]; blockedBy: string[] };
 export function cellStates(result: CheckLike): Map<string, CellState> {
   const accepted = acceptedOf(result);
@@ -156,7 +156,7 @@ export function cellStates(result: CheckLike): Map<string, CellState> {
 // The name a cell's text declares, read without parsing it (it may not parse).
 export const declaredName = (text: string): string | null => /^(?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+|(?:async\s+)?function\s*\*?\s*)([\w$]+)/.exec(text)?.[1] ?? null;
 // A cell the checker does not accept: its typed source is kept whole in the header, and the definition
-// only raises the checker's messages. A ref cell's also takes its variable, so a write to it raises them.
+// only raises the checker's messages. A state cell's also takes its variable, so a write to it raises them.
 function rejectedCell(text: string, name: string, why: string[], ref: boolean): Variable[] {
   const msg = `${JSON.stringify(name)}, ${JSON.stringify(why)}`;
   if (!ref) return [{ name, inputs: [STDLIB_INPUT], definition: `(${SS}) => ${LANG}${header({ d: text, rejected: why })}${SS}.rejected(${msg})` }];
@@ -224,7 +224,7 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   erasesToJs(typed, fn);
   const params = info.params.map((p) => p.name);
   const used = [...identifiers(parse(`(${lowered})`).program)].filter((n) => PRELUDE.includes(n) && !params.includes(n));
-  // a Ref<T> parameter is no input: its argument is the address of the cell, made from the variable
+  // a State<T> parameter is no input: its argument is the address of the cell, made from the variable
   const isRef = (p: string) => !!info.params.find((x) => x.name === p)?.refTyped;
   const inputs = [STDLIB_INPUT, ...info.params.filter((p) => !p.refTyped).map((p) => CAP_INPUTS[p.name] ?? p.name)];
   // a cell that calls on(...) is a listener: the checker allows on(...) only as the cell's whole value
@@ -235,14 +235,14 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   const hidden: string[] = [];
   const hiddenInputs: string[] = [];
   if ((kind === "events" || kind === "listener" || kind === "ref") && !params.includes("invalidation")) { hidden.push("$ss$inv"); hiddenInputs.push("invalidation"); }
-  // the variable itself: a ref cell's store is kept per variable, and a Ref<T> argument is an address in its module
+  // the variable itself: a state cell's store is kept per variable, and a State<T> argument is an address in its module
   const self = kind === "ref" || info.params.some((p) => p.refTyped) ? [SELF_VAR] : [];
 
   const inv = params.includes("invalidation") ? "invalidation" : hidden.includes("$ss$inv") ? "$ss$inv" : "null";
   const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
   const refArgs = refs.map((r, i) => { hidden.push(`$ss$r${i}`); hiddenInputs.push(r); return `${JSON.stringify(r)}: $ss$r${i}`; });
-  // a cell in another language crosses checked (boundary.ts): its value as a frozen copy; as a Ref, its
-  // view or its imported ref, with each written value checked
+  // a cell in another language crosses checked (boundary.ts): its value as a frozen copy; as a State, its
+  // view or its imported state cell, with each written value checked
   const crossing = (p: string) => {
     const b = info.params.find((x) => x.name === p)?.boundary;
     if (isRef(p)) return `${SS}.refAt(${SELF_VAR}, ${JSON.stringify(p)}${b ? `, ${JSON.stringify(b.shape)}, ${!!b.view}` : ""})`;
@@ -260,7 +260,7 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   const id = contentId(`${kind} ${info.name} ${memo} ${body}`);
   // an events cell's definition is a function, so the runtime's `this` (the variable's last value, its
   // handle) reaches the stdlib, which keeps the handle across runs
-  // a ref cell's definition is a named function that passes itself, through a defaulted last parameter
+  // a state cell's definition is a named function that passes itself, through a defaulted last parameter
   // that no input fills: the stdlib keeps the store per definition object, so a run with the same inputs
   // keeps the state (one module's variable, not every cell with the same text). The default, not the
   // body, names the function, so the body references only its parameters.

@@ -264,7 +264,7 @@ declare function BigInt(v: number | string | boolean): bigint;
 ${TYPED_ARRAYS.map(typedArray).join("\n")}
 `;
 
-// The prelude and capabilities of the specification, as declaration text; ref/action/mut/freeze/borrow/snapshot are also
+// The prelude and capabilities of the specification, as declaration text; state/action/mut/freeze/borrow/snapshot are also
 // special-cased by the checker (placement, freshness, ownership).
 export const PRELUDE_DECLS = `
 interface FetchResponse {
@@ -286,14 +286,14 @@ interface Pool { readonly size: number }
 // on(events, action) is a Listener; a cell whose whole value is one runs the action for each value.
 interface Events<T> { readonly events: string }
 interface Listener { readonly listener: string }
-interface Ref<T> {
+interface State<T> {
   set(v: T): void;
   update(f: (v: T) => T): void;
 }
 declare function equals(a: unknown, b: unknown): boolean;
 `;
 export const CAPABILITIES: Record<string, string> = { now: "Clock", random: "Random", fetch: "Fetch", log: "Log", invalidation: "Invalidation", compile: "Compile", pool: "Pool" };
-export const PRELUDE_FNS = new Set(["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "read"]);
+export const PRELUDE_FNS = new Set(["state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "read"]);
 
 // JSX: an element is a value. A renderer outside the checked cells turns it into DOM nodes; event
 // props are Actions and receive data, never DOM Event objects.

@@ -19,14 +19,14 @@ let s8 = (frames) => frames.subarray(0);
 let s9 = async (frames) => { let t = 0; for (let i = 0; i < 2; i++) { t += frames[0]; await Promise.resolve(); } return t; };
 // mut-after-freeze: a write textually before freeze, executed after it on the next iteration
 let s10 = () => { const out = mut([0]); let r: number[] = []; for (let i = 0; i < 2; i++) { out[0] = i; if (i === 0) r = freeze(out); } return r; };
-let c = (): RefCell<number> => ref(0);
-let a = (c: Ref<number>) => action(() => c.set(1));
+let c = (): StateCell<number> => state(0);
+let a = (c: State<number>) => action(() => c.set(1));
 // action-pass: an Action inside a record passed to a parameter not typed Action
 let s11 = (a) => { const call = (box: { a: () => void }) => box; return call({ a }); };
 // mutating-method: receiver typed by a type parameter
 let s12 = (o) => { const g = <T extends number[]>(xs: T) => xs.push(1); return g(o.xs); };
-// ref-write: the Ref widened to a structural type loses its brand (run.ts still throws at run time)
-let w1 = (c: Ref<number>) => { const r: { set(v: number): void } = c; r.set(1); return 1; };
+// state-write: the State widened to a structural type loses its brand (run.ts still throws at run time)
+let w1 = (c: State<number>) => { const r: { set(v: number): void } = c; r.set(1); return 1; };
 // action-call: the Action widened to () => void (run.ts still throws at run time)
 let w2 = (a) => { const f: () => void = a; f(); return 1; };
 // borrowed-escape: the Borrowed widened to its plain type, then returned

@@ -25,7 +25,7 @@ export function island(cells: IslandCell[], spec: IslandSpec): Island {
       problems.push({ name: from, msg: ISLAND_CAPABILITIES.has(n) ? `island cell ${from} takes the capability ${n}` : `island cell ${from} takes ${n}, which is not a cell` });
       return;
     }
-    if (c.refCell) problems.push({ name: n, msg: `${n} is a ref cell; list it in refs` });
+    if (c.refCell) problems.push({ name: n, msg: `${n} is a state cell; list it in refs` });
     for (const p of c.params) visit(p, n);
     order.push(n);
   };

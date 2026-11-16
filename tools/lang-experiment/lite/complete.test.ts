@@ -10,14 +10,14 @@ const ok = (name: string, cond: boolean, detail = "") => {
 
 const MODULE = [
   `type Ev = { readonly kind: "add"; readonly by: number } | { readonly kind: "undo" };`,
-  `function count(): RefCell<number> {\n  return ref(0);\n}`,
-  `const increment = (count: Ref<number>) => action(() => count.update((c) => c + 1));`,
+  `function count(): StateCell<number> {\n  return state(0);\n}`,
+  `const increment = (count: State<number>) => action(() => count.update((c) => c + 1));`,
   `const doubled = (count: number) => count * 2;`,
   `const plain = (count) => count;`,
   `const xs = () => [1, 2, 3];`,
   `const label = () => "abc";`,
   `const ticks = function* (now: Clock) {\n  for (;;) yield now();\n};`,
-  `const tick = (count: Ref<number>) => action((n: number) => count.set(n));`,
+  `const tick = (count: State<number>) => action((n: number) => count.set(n));`,
   `const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick);`,
   `const step = () => (e: Ev): number => {\n  if (e.kind === "add") return e.by;\n  return 0;\n};`,
   `const app = (count: number, increment: Action<[]>) => <div><button onClick={increment}>add</button>{count}</div>;`,
@@ -41,31 +41,31 @@ const has = (r: { labels: string[] }, ...ls: string[]) => ls.every((l) => r.labe
 const lacks = (r: { labels: string[] }, ...ls: string[]) => ls.every((l) => !r.labels.includes(l));
 const show = (r: { labels: string[]; mode: string }) => `${r.mode} ${JSON.stringify(r.labels)}`;
 
-// ---- read(ref) is offered only inside an action body, where it is legal
+// ---- read(s) is offered only inside an action body, where it is legal
 {
-  const inside = at("const increment = (count: Ref<number>) => action(() => count.set(re|))", "increment");
+  const inside = at("const increment = (count: State<number>) => action(() => count.set(re|))", "increment");
   const outside = at("const doubled = (count: number) => re|", "doubled");
-  ok("read is offered inside an action body", has(inside, "read") && inside.options.find((o) => o.label === "read")?.detail === "prelude: a ref's value inside an action", show(inside));
-  ok("read is not offered outside an action", lacks(outside, "read") && has(outside, "ref"), show(outside));
+  ok("read is offered inside an action body", has(inside, "read") && inside.options.find((o) => o.label === "read")?.detail === "prelude: a state cell's value inside an action", show(inside));
+  ok("read is not offered outside an action", lacks(outside, "read") && has(outside, "return"), show(outside));
 }
 
 // ---- members after a dot
 {
-  const r = at("const increment = (count: Ref<number>) => action(() => count.|)", "increment");
-  ok("Ref<T> parameter: exactly set and update", JSON.stringify(r.labels) === '["set","update"]', show(r));
-  ok("Ref<T> member detail is the member's type", r.options.find((o) => o.label === "set")?.detail === "(v: number) => void", JSON.stringify(r.options));
+  const r = at("const increment = (count: State<number>) => action(() => count.|)", "increment");
+  ok("State<T> parameter: exactly set and update", JSON.stringify(r.labels) === '["set","update"]', show(r));
+  ok("State<T> member detail is the member's type", r.options.find((o) => o.label === "set")?.detail === "(v: number) => void", JSON.stringify(r.options));
 }
 {
-  const r = at("const increment = (count: Ref<number>) => action(() => count.up|)", "increment");
-  ok("a half-typed member is filtered by its prefix", JSON.stringify(r.labels) === '["update"]' && r.from === "const increment = (count: Ref<number>) => action(() => count.".length, show(r));
+  const r = at("const increment = (count: State<number>) => action(() => count.up|)", "increment");
+  ok("a half-typed member is filtered by its prefix", JSON.stringify(r.labels) === '["update"]' && r.from === "const increment = (count: State<number>) => action(() => count.".length, show(r));
 }
 {
-  const r = at("const increment = (count: Ref<number>) => action(() => count.|", "increment");
+  const r = at("const increment = (count: State<number>) => action(() => count.|", "increment");
   ok("an unclosed call still answers", JSON.stringify(r.labels) === '["set","update"]', show(r));
 }
 {
   const r = at("const doubled = (count: number) => count.|", "doubled");
-  ok("value parameter of a ref cell: number members", has(r, "toFixed", "toString") && lacks(r, "set", "update"), show(r));
+  ok("value parameter of a state cell: number members", has(r, "toFixed", "toString") && lacks(r, "set", "update"), show(r));
 }
 {
   const r = at("const plain = (count) => count.|", "plain");
@@ -116,7 +116,7 @@ const show = (r: { labels: string[]; mode: string }) => `${r.mode} ${JSON.string
   ok("JSON offers parse and stringify", has(j, "parse", "stringify"), show(j));
 }
 {
-  const r = at("const f = (count: Ref<number>) => action(() => {\n  const y = count.|\n})");
+  const r = at("const f = (count: State<number>) => action(() => {\n  const y = count.|\n})");
   ok("member in an unfinished block body", JSON.stringify(r.labels) === '["set","update"]', show(r));
 }
 
@@ -140,12 +140,14 @@ const show = (r: { labels: string[]; mode: string }) => `${r.mode} ${JSON.string
 
 // ---- names, no dot
 {
-  const r = at("const f = (count: Ref<number>) => action(() => co|)");
+  const r = at("const f = (count: State<number>) => action(() => co|)");
   ok("a parameter is offered by prefix", has(r, "count") && lacks(r, "doubled"), show(r));
   const q = at("const f = (x: number) => {\n  const local = x + 1;\n  return lo|\n};");
   ok("a local is offered", has(q, "local"), show(q));
   const p = at("const f = (x: number) => r|");
-  ok("the prelude ref is offered, not other cells", has(p, "ref", "return") && lacks(p, "requestAnimationFrame"), show(p));
+  ok("a keyword is offered, not other cells", has(p, "return") && lacks(p, "requestAnimationFrame"), show(p));
+  const s = at("const f = (x: number) => st|");
+  ok("the prelude state is offered", has(s, "state"), show(s));
   const g = at("const f = (x: number) => doc|");
   ok("no browser globals", lacks(g, "document"), show(g));
   const m = at("const f = (x: number) => M|");
@@ -219,7 +221,7 @@ const show = (r: { labels: string[]; mode: string }) => `${r.mode} ${JSON.string
     ["const f = (a: number) => a + width;", "width", null, "const f = (a: number, width) => a + width;"],
     ["const f = (a: number) => a + p;", "p", "number", "const f = (a: number, p: number) => a + p;"],
     ["const f = (cb: (n: number) => void) => w;", "w", null, "const f = (cb: (n: number) => void, w) => w;"],
-    ["const f = (r: Ref<number>, s: \"a)\") => w;", "w", null, "const f = (r: Ref<number>, s: \"a)\", w) => w;"],
+    ["const f = (r: State<number>, s: \"a)\") => w;", "w", null, "const f = (r: State<number>, s: \"a)\", w) => w;"],
     ["const f = (\n  a: number,\n) => w;", "w", null, "const f = (\n  a: number, w\n) => w;"],
     ["function f(a) { return w; }", "w", null, "function f(a, w) { return w; }"],
     ["const g = function* (now: Clock) { yield w; };", "w", null, "const g = function* (now: Clock, w) { yield w; };"],
@@ -263,7 +265,7 @@ const show = (r: { labels: string[]; mode: string }) => `${r.mode} ${JSON.string
 // ---- speed: completion on the tutorial-sized module
 {
   const runs: number[] = [];
-  for (let i = 0; i < 20; i++) runs.push(at("const increment = (count: Ref<number>) => action(() => count.|)", "increment").ms);
+  for (let i = 0; i < 20; i++) runs.push(at("const increment = (count: State<number>) => action(() => count.|)", "increment").ms);
   runs.sort((a, b) => a - b);
   console.log(`  completion on a ${MODULE.length}-cell module: median ${runs[10].toFixed(1)} ms, max ${runs[19].toFixed(1)} ms`);
 }

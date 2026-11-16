@@ -12,7 +12,7 @@ const out = await page.evaluate(async () => {
   const lite = get("lite"), ex = get("examples");
   const res: any[] = [];
   for (const iters of [600, 2000]) for (const per of [1, 4]) {
-    const src = ex.workers.replace("ref(600)", `ref(${iters})`).replace("poolSize * 4", `poolSize * ${per}`);
+    const src = ex.workers.replace("state(600)", `state(${iters})`).replace("poolSize * 4", `poolSize * ${per}`);
     const p = lite.runCells(src, { tsx: true, checked: lite.checkSources({ cells: src, tsx: true }) });
     await p.settle(30000);
     const bands = p.value("bands"), a = p.value("inPool"), b = p.value("onMain");

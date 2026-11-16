@@ -3,8 +3,8 @@
 type Line = { item: string; qty: number };
 const shopTotal = (shop_basket: Line[], shop_price: number) => shop_basket.reduce((n, l) => n + l.qty, 0) * shop_price;
 
-// Taken as Ref, the slider is state: an action writes to it, and the slider moves.
-const cheaper = (shop_price: Ref<number>) => action(() => shop_price.update((p) => p - 0.5));
+// Taken as State, the slider is state: an action writes to it, and the slider moves.
+const cheaper = (shop_price: State<number>) => action(() => shop_price.update((p) => p - 0.5));
 
 const shopView = (shopTotal: number, cheaper: Action<[]>) => (
   <div>

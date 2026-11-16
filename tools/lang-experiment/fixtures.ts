@@ -85,12 +85,12 @@ for (const d of dirs) {
     const diffs = compareOrders(runs[0], runs[1]);
     note += `; (info) run: test_empty fwd ${runs[0].cells.find((x) => x.name === "test_empty")?.test} rev ${runs[1].cells.find((x) => x.name === "test_empty")?.test}, ${diffs.length} difference(s) across orders: ${diffs.join("; ")}`;
   }
-  if (d === "accept-pusher-ref" && runs) {
+  if (d === "accept-pusher-state" && runs) {
     const t = runs.map((r) => r.cells.find((x) => x.name === "test_empty")?.test);
     ok(d, t[0] === "pass" && t[1] === "pass", `test_empty fwd ${t[0]} rev ${t[1]}`);
   }
 
-  if (d === "accept-ref") {
+  if (d === "accept-state") {
     // The world calls the action: label recomputes, the action cell does not.
     for (const order of ["forward", "reverse"] as const) {
       const h = await loadPort(dir, { order });
@@ -99,14 +99,14 @@ for (const d of dirs) {
       ok(d, h.value("label") === "count: 0", `${order}: initial label ${h.value("label")}`);
       let threw = "";
       try { (h.value("count$ref") as { set(v: number): void }).set(5); } catch (e) { threw = String((e as Error).message); }
-      ok(d, threw.includes("outside an action"), `${order}: Ref.set outside an action did not throw`);
+      ok(d, threw.includes("outside an action"), `${order}: State.set outside an action did not throw`);
       (h.value("increment") as () => void)();
       ok(d, h.value("label") === "count: 0", `${order}: write committed synchronously inside the action call`);
       await h.settle(3000);
       ok(d, h.value("label") === "count: 1", `${order}: label after action ${h.value("label")}`);
       ok(d, h.evals("label") === label0 + 1, `${order}: label evaluated ${h.evals("label") - label0} more times, expected 1`);
       ok(d, h.evals("increment") === inc0, `${order}: increment re-evaluated ${h.evals("increment") - inc0} times, expected 0`);
-      ok(d, h.evals("count") === count0, `${order}: ref cell count re-evaluated`);
+      ok(d, h.evals("count") === count0, `${order}: state cell count re-evaluated`);
       (h.value("increment") as () => void)();
       (h.value("increment") as () => void)();
       await h.settle(3000);
@@ -116,8 +116,8 @@ for (const d of dirs) {
     note += "; action from outside: label recomputes, increment does not (both orders)";
   }
 
-  if (d === "accept-ref-deps") {
-    // A ref with a dependency: writes stick until the dependency changes, which re-creates the ref.
+  if (d === "accept-state-deps") {
+    // A state cell with a dependency: writes stick until the dependency changes, which re-creates it.
     for (const order of ["forward", "reverse"] as const) {
       const h = await loadPort(dir, { order });
       await h.settle(3000);
@@ -133,7 +133,7 @@ for (const d of dirs) {
       ok(d, h.evals("vars") === vars0 + 1, `${order}: vars evaluated ${h.evals("vars") - vars0} more times after its dependency changed, expected 1`);
       h.dispose();
     }
-    note += "; set sticks, dependency change re-creates the ref (both orders)";
+    note += "; set sticks, dependency change re-creates the state cell (both orders)";
   }
 
   if (failures.length === before) pass++;

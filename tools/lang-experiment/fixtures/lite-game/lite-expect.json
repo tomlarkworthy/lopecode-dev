@@ -1,7 +1,7 @@
 {
   "accept-breakout": [],
   "reject-game": [
-    "ref-write",
+    "state-write",
     "action-call",
     "type",
     "inject-events",
@@ -10,6 +10,6 @@
   "reject-listener": [
     "listener-placement"
   ],
-  "accept-action-in-ref": [],
+  "accept-action-in-state": [],
   "accept-action-stack": []
 }

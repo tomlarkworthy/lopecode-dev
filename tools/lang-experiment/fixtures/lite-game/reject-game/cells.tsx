@@ -1,12 +1,12 @@
 type W = { readonly n: number };
-const world = (): RefCell<W> => ref<W>({ n: 0 });
-const ok_tick = (world: Ref<W>) => action((dt: number) => world.update((w) => ({ n: w.n + dt })));
+const world = (): StateCell<W> => state<W>({ n: 0 });
+const ok_tick = (world: State<W>) => action((dt: number) => world.update((w) => ({ n: w.n + dt })));
 const ok_ticks = function* () {
   while (true) yield 16;
 };
 const ok_onTick = (ok_ticks: Events<number>, ok_tick: Action<[number]>) => on(ok_ticks, ok_tick);
 // A generator loop that writes the world itself: writes belong in actions.
-const bad_loop = function* (world: Ref<W>) {
+const bad_loop = function* (world: State<W>) {
   while (true) {
     world.update((w) => ({ n: w.n + 1 }));
     yield 1;
@@ -20,7 +20,7 @@ const bad_call_tick = (ok_tick: Action<[number]>) => {
 // on takes an action, not a function.
 const bad_on_fn = (ok_ticks: Events<number>) => on(ok_ticks, (dt: number) => dt);
 // The events are numbers; an action taking a string does not fit.
-const bad_on_type = (ok_ticks: Events<number>, world: Ref<W>) => on(ok_ticks, action((s: string) => world.set({ n: s.length })));
+const bad_on_type = (ok_ticks: Events<number>, world: State<W>) => on(ok_ticks, action((s: string) => world.set({ n: s.length })));
 // Events must name a generator cell, and its type must match what it yields.
 const bad_events_not_generator = (world: Events<W>) => world;
 const bad_events_wrong_type = (ok_ticks: Events<string>) => ok_ticks;

@@ -8,13 +8,13 @@ const step = () => (s: S, e: Ev): S => {
   return { total: s.total - last, history: s.history.slice(0, -1) };
 };
 
-const state = (): RefCell<S> => ref<S>({ total: 0, history: [] });
-const total = (state) => state.total;
-const history = (state) => state.history;
+const store = (): StateCell<S> => state<S>({ total: 0, history: [] });
+const total = (store) => store.total;
+const history = (store) => store.history;
 
-// Every write is state.update(s => step(s, event)): one function from old state to new state.
-const add = (state: Ref<S>, step) => action((by: number) => state.update((s) => step(s, { kind: "add", by })));
-const undo = (state: Ref<S>, step) => action(() => state.update((s) => step(s, { kind: "undo" })));
+// Every write is store.update(s => step(s, event)): one function from old state to new state.
+const add = (store: State<S>, step) => action((by: number) => store.update((s) => step(s, { kind: "add", by })));
+const undo = (store: State<S>, step) => action(() => store.update((s) => step(s, { kind: "undo" })));
 const add1 = (add: Action<[number]>) => action(() => add(1));
 const add10 = (add: Action<[number]>) => action(() => add(10));
 

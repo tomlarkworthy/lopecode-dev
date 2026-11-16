@@ -61,12 +61,12 @@ function syntaxPass(n: Node, report: (n: Node, rule: string, msg: string) => voi
 }
 
 // outside: the module's cells in other languages (Observable JavaScript, raw), by name; view when the
-// module also has `viewof <name>`; ref when the name is a SoundScript ref cell imported from another module.
+// module also has `viewof <name>`; ref when the name is a SoundScript state cell imported from another module.
 // A SoundScript cell takes one through an annotated parameter (boundary.ts).
 export type Outside = { name: string; view?: boolean; ref?: boolean };
 export type Sources = { cells: string; tsx?: boolean; foreign?: string | null; shell?: string | null; name?: string; outside?: readonly Outside[] | null };
-// per parameter that names an outside cell: its value's shape, and whether it is taken as Ref (view: of
-// an Observable JavaScript view; otherwise of an imported ref cell)
+// per parameter that names an outside cell: its value's shape, and whether it is taken as State (view: of
+// an Observable JavaScript view; otherwise of an imported state cell)
 export type Boundary = { shape: Shape; ref: boolean; view?: boolean };
 
 // Browser-safe: no file system. check.ts checkPort reads a port directory and calls this.
@@ -209,13 +209,13 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     const res = side(sp.outputs);
     return bad ? ERR : { k: "fn", tps: [], ps: [{ n: "args", t: args, opt: false }], ret: named("Promise", res) };
   };
-  // structuredClone carries data, not functions, refs, actions or borrowed views.
+  // structuredClone carries data, not functions, state handles, actions or borrowed views.
   const uncloneable = (t: Ty, depth = 0): string | null => {
     if (depth > 8) return null;
     if (t.k === "named" && reg.isAlias(t.n)) return uncloneable(reg.expand(t), depth + 1);
     switch (t.k) {
       case "fn": return "a function";
-      case "named": return ["Action", "Ref", "RefCell", "Mut", "Borrowed", "Promise", "Generator", "Pool", "Compile", "Events", "Listener"].includes(t.n) ? t.n : null;
+      case "named": return ["Action", "State", "StateCell", "Mut", "Borrowed", "Promise", "Generator", "Pool", "Compile", "Events", "Listener"].includes(t.n) ? t.n : null;
       case "arr": return uncloneable(t.el, depth + 1);
       case "tup": for (const x of t.els) { const w = uncloneable(x, depth + 1); if (w) return w; } return null;
       case "union": for (const x of t.ts) { const w = uncloneable(x, depth + 1); if (w) return w; } return null;
@@ -242,7 +242,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   const takenAsEvents = new Set<string>(cells.flatMap((c) => (c.fn.params as Node[]).filter((p) => p.typeAnnotation?.typeAnnotation?.type === "TSTypeReference" && p.typeAnnotation.typeAnnotation.typeName.name === "Events").map((p) => p.name as string)));
   // Listener cells: no other cell may take one, so a listener's lifetime is its own cell's value.
   const listenerCells = new Set<string>();
-  // State-dependent cells, with the reason: a ref cell (its value is state), a generator (its values),
+  // State-dependent cells, with the reason: a state cell (its value is state), a generator (its values),
   // a cell taking a capability other than invalidation or log, and any cell taking one of these by value.
   const stateful = new Map<string, string>();
   for (const c of order) {
@@ -259,13 +259,13 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       if (p.type !== "Identifier") { diag(p, "inject-pattern", "an injected parameter must be a plain identifier"); injected.push(ERR); continue; }
       const name: string = p.name;
       const ann = p.typeAnnotation?.typeAnnotation;
-      // Ref<T> and Events<T> take a handle to a ref cell / generator cell, not its value
+      // State<T> and Events<T> take a handle to a state cell / generator cell, not its value
       if (ann?.type === "TSTypeReference" && (ann.typeName.name === "Source" || ann.typeName.name === "Sub")) {
         diag(p, "inject-events", ann.typeName.name === "Source" ? "Source was renamed Events: type this parameter Events<...>" : "Sub was renamed Listener, and no cell may take a listener");
         injected.push(ERR); continue;
       }
-      const wrapper = ann?.type === "TSTypeReference" && (ann.typeName.name === "Ref" || ann.typeName.name === "Events") ? ann.typeName.name as string : null;
-      const handle = wrapper === "Ref" ? { rule: "inject-ref", what: "ref cell", inners: refInner, of: (t: Ty) => `of ${show(t)}` }
+      const wrapper = ann?.type === "TSTypeReference" && (ann.typeName.name === "State" || ann.typeName.name === "Events") ? ann.typeName.name as string : null;
+      const handle = wrapper === "State" ? { rule: "inject-state", what: "state cell", inners: refInner, of: (t: Ty) => `of ${show(t)}` }
         : wrapper ? { rule: "inject-events", what: "sync generator cell", inners: eventsInner, of: (t: Ty) => `yielding ${show(isNamed(t, "Events") ? t.args[0] : t)}` } : null;
       let vt: Ty;
       if (cellNames.has(name)) {
@@ -292,19 +292,19 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
         if (!ann) { diag(p, "boundary-unannotated", `${name} is a cell in another language; annotate the parameter with the type it must have, e.g. ${name}: number`); injected.push(ERR); continue; }
         if (wrapper === "Events") { diag(p, "boundary-type", `${name} is a cell in another language; it cannot be taken as Events`); injected.push(ERR); continue; }
         const o = outside.get(name)!;
-        if (wrapper === "Ref" && !o.view && !o.ref) { diag(p, "boundary-ref", `${name} has no viewof and is not an imported ref cell; only an Observable JavaScript view or a SoundScript ref cell imported from another module can be taken as Ref`); injected.push(ERR); continue; }
+        if (wrapper === "State" && !o.view && !o.ref) { diag(p, "boundary-state", `${name} has no viewof and is not an imported state cell; only an Observable JavaScript view or a SoundScript state cell imported from another module can be taken as State`); injected.push(ERR); continue; }
         const want = reg.convert(ann, { tps: new Set() }, P);
-        const inner = wrapper === "Ref" && isNamed(want, "Ref") ? want.args[0] : want;
+        const inner = wrapper === "State" && isNamed(want, "State") ? want.args[0] : want;
         if (hasErr(inner)) { injected.push(ERR); continue; } // a type lite does not know is reported where it is written
         const shape = shapeOf(inner, (t) => reg.expand(t), (n) => reg.isAlias(n));
         if ("error" in shape) { diag(p, "boundary-type", `${name}: ${show(inner)} cannot cross from another language: it is or holds ${shape.error}`); injected.push(ERR); continue; }
-        if (wrapper === "Ref") {
+        if (wrapper === "State") {
           const first = viewTypes.get(name);
-          if (first && !(reg.sub(first.ty, inner) && reg.sub(inner, first.ty))) { diag(p, "boundary-ref", `${o.view ? "viewof " : ""}${name} is taken as Ref<${show(first.ty)}> by ${first.cell}; every Ref to one ${o.view ? "view" : "ref"} has the same type`); injected.push(ERR); continue; }
+          if (first && !(reg.sub(first.ty, inner) && reg.sub(inner, first.ty))) { diag(p, "boundary-state", `${o.view ? "viewof " : ""}${name} is taken as State<${show(first.ty)}> by ${first.cell}; every State to one ${o.view ? "view" : "state cell"} has the same type`); injected.push(ERR); continue; }
           if (!first) viewTypes.set(name, { ty: inner, cell: c.name });
         }
         if (!boundaries.has(c.name)) boundaries.set(c.name, new Map());
-        boundaries.get(c.name)!.set(name, wrapper === "Ref" ? { shape, ref: true, view: !!o.view } : { shape, ref: false });
+        boundaries.get(c.name)!.set(name, wrapper === "State" ? { shape, ref: true, view: !!o.view } : { shape, ref: false });
         injected.push(want);
         continue;
       }
@@ -324,12 +324,12 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       if (p.type !== "Identifier") continue;
       const ann = p.typeAnnotation?.typeAnnotation;
       const wrapper = ann?.type === "TSTypeReference" ? ann.typeName?.name : null;
-      if (wrapper === "Ref" || wrapper === "Events") continue;
+      if (wrapper === "State" || wrapper === "Events") continue;
       const name: string = p.name;
       if (cellNames.has(name)) {
         const t = value.get(name);
         if (t && isNamed(t, "Action")) continue;
-        if (refInner.has(name)) tainted.set(name, `the value of the ref ${name}`);
+        if (refInner.has(name)) tainted.set(name, `the value of the state cell ${name}`);
         else if (byName.get(name)?.fn.generator) tainted.set(name, `the latest value of the events cell ${name}`);
         else if (stateful.has(name)) tainted.set(name, `${name} ${stateful.get(name)}`);
       } else if (shellNames.has(name)) tainted.set(name, `a shell cell's value`);
@@ -356,13 +356,13 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     let ret = fnT.k === "fn" ? fnT.ret : ERR;
     if (c.fn.async && isNamed(ret, "Promise")) ret = ret.args[0];
     if (c.fn.generator && isNamed(ret, "Generator")) { ret = ret.args[0]; if (!c.fn.async) eventsInner.set(c.name, ret); }
-    if (isNamed(ret, "RefCell")) {
-      const nested = holds(ret.args[0], ["Ref", "RefCell"]);
-      if (nested) r.errors.push({ rule: "ref-in-ref", line: P.line(c.fn.start), msg: `a ref holds ${show(ret.args[0])}, which contains ${nested}; a ref's content may not contain a Ref or RefCell` });
+    if (isNamed(ret, "StateCell")) {
+      const nested = holds(ret.args[0], ["State", "StateCell"]);
+      if (nested) r.errors.push({ rule: "state-in-state", line: P.line(c.fn.start), msg: `a state cell holds ${show(ret.args[0])}, which contains ${nested}; a state cell's content may not contain a State or StateCell` });
       refInner.set(c.name, ret.args[0]); ret = ret.args[0];
-      stateful.set(c.name, "is a ref");
+      stateful.set(c.name, "is a state cell");
     }
-    // a Listener is a whole cell value: not in a list, record, ref, union with another type, or function
+    // a Listener is a whole cell value: not in a list, record, state cell, union with another type, or function
     if (isNamed(ret, "Listener") || (ret.k === "union" && ret.ts.every((t) => isNamed(t, "Listener")))) listenerCells.add(c.name);
     else if (holds(ret, ["Listener"])) r.errors.push({ rule: "listener-placement", line: P.line(c.fn.start), msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` });
     const usable = !hasErr(ret) && (r.unsupported.length === 0 || !!c.fn.returnType);

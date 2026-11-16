@@ -5,16 +5,16 @@
 //     test_e5_language_hook; one instance of the core, one ss_registration;
 //  2. the live counter: a real click on "add one";
 //  3. the editor fork on the tutorial's `increment` (synthetic events): typed source shown, an
-//     unchanged save keeps text and pid, Ref<string> shows a diagnostic and is refused;
+//     unchanged save keeps text and pid, State<string> shows a diagnostic and is refused;
 //  4. export with exporter-3, reopen, run 1 and 2 there, compare SoundScript definitions, block ids
 //     and decompiled source, export again and compare the module blocks; then, on the original page,
 //     delete `onTick` while Breakout plays and check the clock stops; dispose a copy of the game while it plays;
 //  5. real Playwright clicks and keys on a fresh page: tally renders as one cell and its hotbar opens
-//     the ref source; a typed refused edit and a typed applied edit of `width`; a cell added with the
+//     the state cell source; a typed refused edit and a typed applied edit of `width`; a cell added with the
 //     hotbar's add button; Save in place from the lopepage menu (showSaveFilePicker is stubbed to
 //     write .scratch/saved.html); the saved file reopened with the edits in it;
 //  6. the core without the tutorial (build.ts --no-tutorial into .scratch/): core tests, the editor
-//     on `bump`, a new cell, a ref made plain and a ref again, export, reopen.
+//     on `bump`, a new cell, a state cell made plain and a state cell again, export, reopen.
 // No request to /@tomlarkworthy/ or api.observablehq.com may be made (a stripped module fetched).
 // The notebook file itself is never written.
 import { chromium, type Page } from "../../../../node_modules/playwright/index.mjs";
@@ -50,7 +50,7 @@ const power = Bun.spawnSync(["pmset", "-g", "batt"], { stdout: "pipe" }).stdout.
 console.log(`power: ${power}`);
 
 const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_stored_and_rejected", "test_ss_breaking_edit_names_its_cells", "test_ss_copy_keeps_its_name", "test_ss_failed_apply_changes_nothing", "test_ss_edits_do_not_grow_the_memo", "test_ss_instance_keeps_user_ids", "test_ss_ref_handle", "ss_registration"];
-const TUTORIAL_TESTS = ["test_shop_total", "test_ss_roundtrip", "test_ss_module_checks", "test_ss_counter", "test_half",
+const TUTORIAL_TESTS = ["test_shop_total", "test_ss_roundtrip", "test_ss_module_checks", "test_ss_counter", "test_half", "test_async_click",
   "test_examples_check_as_expected", "test_compile_pool_matches_main", "test_compile_refuses_unchecked", "test_breakout_listener", "test_breakout_memo", "benchmark"];
 
 
@@ -692,7 +692,7 @@ async function completion(page: Page) {
   // the editor's header names the cell's own inputs and outputs, not ss or unnamed observers
   const header = await inc.evaluate((el: Element) => [...el.querySelectorAll("span")].map((s) => s.textContent ?? "").filter((t) => /^(inputs|outputs):/.test(t.trim())).map((t) => t.trim()));
   report(header.some((t) => /^inputs: .*\bcount\b/.test(t)) && !header.some((t) => /\banon\b|\bss\b|invalidation/.test(t)), `completion: increment's editor header lists its own inputs, no anon or ss: ${JSON.stringify(header)}`);
-  const refList = await typeAndList(inc, head + "const increment = (count: Ref<number>) => action(() => count|)", ".");
+  const refList = await typeAndList(inc, head + "const increment = (count: State<number>) => action(() => count|)", ".");
   const why = refList.length ? "" : await inc.locator(".cm-content").first().evaluate((el: any) => {
     const rt = (window as any).__ojs_runtime;
     const view = [...rt._variables].find((v: any) => v._name === "EditorView")._value.findFromDOM(el.closest(".cm-editor"));
@@ -710,8 +710,8 @@ async function completion(page: Page) {
   const log = await page.evaluate(() => (window as any).__focusLog2.slice(-6));
   await page.keyboard.press("Enter");
   const accepted = await editorText(inc);
-  report(accepted === head + "const increment = (count: Ref<number>) => action(() => count.set)", `completion: Enter takes set: ${JSON.stringify(accepted.slice(head.length))}${accepted.endsWith("count.set)") ? "" : ` (completion ${atEnter}) ${JSON.stringify(log)}`}`);
-  const upd = await typeAndList(inc, head + "const increment = (count: Ref<number>) => action(() => count.up|)", "d");
+  report(accepted === head + "const increment = (count: State<number>) => action(() => count.set)", `completion: Enter takes set: ${JSON.stringify(accepted.slice(head.length))}${accepted.endsWith("count.set)") ? "" : ` (completion ${atEnter}) ${JSON.stringify(log)}`}`);
+  const upd = await typeAndList(inc, head + "const increment = (count: State<number>) => action(() => count.up|)", "d");
   const atTab = await status();
   const logTab = upd.length ? "" : JSON.stringify(await page.evaluate(() => (window as any).__focusLog2.slice(-6)));
   await page.keyboard.press("Tab");
@@ -720,7 +720,7 @@ async function completion(page: Page) {
   await place(inc, original);
   await page.keyboard.press("Escape");
 
-  // a value parameter of the ref cell: number members. app takes count: number
+  // a value parameter of the state cell: number members. app takes count: number
   const app = await openEditor(page, TUTORIAL, "app");
   if (app) {
     const o = await editorText(app);
@@ -872,15 +872,15 @@ async function uiPaths(page: Page, saved: string) {
   const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
   await tab(CORE);
   await page.waitForFunction(() => { const core = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript"); return [...document.querySelectorAll(".observablehq")].some((n: any) => n.isConnected && n.variable?._module === core && n.variable?._name === "tally"); }, null, { timeout: 10000 }).catch(() => {});
-  // a ref cell is one variable: one rendered node for tally, and its editor shows the ref source
+  // a state cell is one variable: one rendered node for tally, and its editor shows the state cell source
   const nodes = await page.evaluate(() => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
     return [...document.querySelectorAll(".observablehq")].filter((n: any) => n.variable?._module === core && /^(viewof )?tally$/.test(n.variable?._name)).map((n: any) => n.variable._name);
   });
-  report(nodes.length === 1 && nodes[0] === "tally", `ui: the ref cell tally renders as one cell (${JSON.stringify(nodes)})`);
+  report(nodes.length === 1 && nodes[0] === "tally", `ui: the state cell tally renders as one cell (${JSON.stringify(nodes)})`);
   const tally = await openEditor(page, CORE, "tally");
   const tallyText = tally ? await editorText(tally) : null;
-  report(!!tallyText && tallyText.includes("const tally = (): RefCell<number> => ref(0);"), `ui: clicking tally's hotbar opens its ref source: ${JSON.stringify(tallyText)}`);
+  report(!!tallyText && tallyText.includes("const tally = (): StateCell<number> => state(0);"), `ui: clicking tally's hotbar opens its state cell source: ${JSON.stringify(tallyText)}`);
 
   await tab(TUTORIAL);
   // a keyboard edit that breaks other cells is stored; then one that repairs them
@@ -1182,13 +1182,13 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
     const N = 120;
     const cells = [
       "type Seen = { readonly count: number; readonly last: number; readonly gaps: number };",
-      "const seen = (): RefCell<Seen> => ref<Seen>({ count: 0, last: 0, gaps: 0 });",
-      "const go = (): RefCell<boolean> => ref(true);",
+      "const seen = (): StateCell<Seen> => state<Seen>({ count: 0, last: 0, gaps: 0 });",
+      "const go = (): StateCell<boolean> => state(true);",
       `const nums = function* (go: boolean) {\n  if (!go) return;\n  for (let i = 1; i <= ${N}; i++) yield i;\n};`,
       "const weight = () => (v: number) => v;",
-      "const record = (seen: Ref<Seen>, weight: (v: number) => number) =>\n  action((v: number) => {\n    seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (weight(v) === s.last + 1 ? 0 : 1) }));\n    if (v % 10 === 0 && v > 1000) throw new Error(`no ${v}`);\n  });",
+      "const record = (seen: State<Seen>, weight: (v: number) => number) =>\n  action((v: number) => {\n    seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (weight(v) === s.last + 1 ? 0 : 1) }));\n    if (v % 10 === 0 && v > 1000) throw new Error(`no ${v}`);\n  });",
       "const onNum = (nums: Events<number>, record: Action<[number]>) => on(nums, record);",
-      "const flip = (go: Ref<boolean>) => action(() => go.update((g) => !g));",
+      "const flip = (go: State<boolean>) => action(() => go.update((g) => !g));",
     ];
     const out: any = {};
     const r0 = ss.running(), p0 = ss.pulling();
@@ -1219,7 +1219,7 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
     await frames(10);
     out.restart = { count: seen().count - c1, gaps: seen().gaps, onNumRuns: runs("onNum") - on0, numsRuns: runs("nums") - n0, sameHandle: get("nums")._value === h0 };
     // an action that throws on every tenth value: those values write nothing, the rest arrive
-    await edit("const record = (seen: Ref<Seen>, weight: (v: number) => number) =>\n  action((v: number) => {\n    seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (weight(v) === s.last + 1 ? 0 : 1) }));\n    if (v % 10 === 0) throw new Error(`no ${v}`);\n  });", "record");
+    await edit("const record = (seen: State<Seen>, weight: (v: number) => number) =>\n  action((v: number) => {\n    seen.update((s) => ({ count: s.count + 1, last: v, gaps: s.gaps + (weight(v) === s.last + 1 ? 0 : 1) }));\n    if (v % 10 === 0) throw new Error(`no ${v}`);\n  });", "record");
     const c2 = seen().count;
     get("flip")._value(); await frames(5); get("flip")._value();
     await until(() => seen().last === N - 1 && seen().count >= c2 + N - N / 10, 600);
@@ -1447,7 +1447,7 @@ async function tryIts(page: Page, firstOnly = false) {
   const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
   await page.waitForFunction(() => { const m = (window as any).__ojs_runtime?.mains?.get("@tomlarkworthy/soundscript-tutorial"); return m?._scope.get("benchmark")?._value && document.querySelector(".lite-lesson"); }, null, { timeout: 60000 });
   // A first cell: width -> 800 is applied; "800" is stored and breaks area and aspect (rejected) and what
-  // reads them (blocked); the two-cell change (area and aspect take a string) repairs them. A ref the edits
+  // reads them (blocked); the two-cell change (area and aspect take a string) repairs them. A state cell the edits
   // do not touch (count, after add one) keeps its value throughout.
   const statesOf = () => page.evaluate(async ([c, t]) => {
     const rt = (window as any).__ojs_runtime;
@@ -1929,7 +1929,7 @@ await testsPass(A.page, "original", RAW_CELLS, RAW_TESTS);
 await hookPass(A.page, "original");
 await oneCore(A.page, "original");
 await counterClick(A.page, "original");
-await editorOn(A.page, "original", TUTORIAL, "increment", "count: Ref<number>", "count: Ref<string>", "inject-ref");
+await editorOn(A.page, "original", TUTORIAL, "increment", "count: State<number>", "count: State<string>", "inject-state");
 await counterClick(A.page, "after the unchanged save");
 await testsPass(A.page, "after the unchanged save", TUTORIAL, TUTORIAL_TESTS);
 const fresh = await addCell(A.page, TUTORIAL, "half", "const tripled = (width: number) => width * 3;", false);
@@ -1945,7 +1945,7 @@ for (const m of [CORE, TUTORIAL, ...SECTIONS]) {
   const lA = ssLines(orig, m), l1 = ssLines(exp1, m);
   report(lA.length > 0 && JSON.stringify(lA) === JSON.stringify(l1), `export: ${m}: ${l1.length} SoundScript definition lines, identical to the original file's ${lA.length}`);
 }
-report(exp1.includes("/*ss:: Ref<number>*/"), "export: the type comments are in the exported module");
+report(exp1.includes("/*ss:: State<number>*/"), "export: the type comments are in the exported module");
 sameBlocks("export", orig, exp1);
 const rawA = await rawExport(rawHelpers(), orig, exp1, A.page, null);
 await instanceStops(A.page);
@@ -2016,7 +2016,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   await testsPass(C.page, "core-only", CORE, CORE_TESTS);
   await hookPass(C.page, "core-only");
   await coreCards(C.page, "core-only README");
-  await editorOn(C.page, "core-only", CORE, "bump", "tally: Ref<number>", "tally: Ref<string>", "inject-ref");
+  await editorOn(C.page, "core-only", CORE, "bump", "tally: State<number>", "tally: State<string>", "inject-state");
   // the editor commands on a SoundScript cell with the language registered; guard_probe is made for it, and deleted by it
   await addCell(C.page, CORE, "doubled", "const guard_probe = (tally: number) => tally * 2;", true);
   await commandGuard(C.page, "core-only (registered)", CORE, "guard_probe", "ss_keyOf", true);
@@ -2042,7 +2042,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   const NEW = "const tripled = (doubled: number) => doubled * 3;";
   const added = await addCell(C.page, CORE, "doubled", NEW, true);
   report(added.back === NEW && added.value === 0 && added.afterAnchor && added.held, `core-only: a new cell added through the editor: ${JSON.stringify(added)}`);
-  // a ref cell made plain and a ref again through apply: one variable throughout, and no viewof
+  // a state cell made plain and a state cell again through apply: one variable throughout, and no viewof
   const flips = await C.page.evaluate(async () => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
     const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
@@ -2050,12 +2050,12 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     const names = () => [...rt._variables].filter((v: any) => v._module === core && /^(viewof )?flag$/.test(v._name)).map((v: any) => v._name).sort();
     const out: any[] = [];
     const vars: any[] = [];
-    out.push(await lang.apply("const flag = (): RefCell<boolean> => ref(false);", vars, { module: { module: core }, variables: [get("tripled")] }), names());
+    out.push(await lang.apply("const flag = (): StateCell<boolean> => state(false);", vars, { module: { module: core }, variables: [get("tripled")] }), names());
     out.push(await lang.apply("const flag = () => true;", vars), names(), await core.value("flag"));
-    out.push(await lang.apply("const flag = (): RefCell<boolean> => ref(false);", vars), names(), await core.value("flag"));
+    out.push(await lang.apply("const flag = (): StateCell<boolean> => state(false);", vars), names(), await core.value("flag"));
     return out;
   });
-  report(JSON.stringify(flips.filter((x: any) => Array.isArray(x))) === JSON.stringify([["flag"], ["flag"], ["flag"]]) && flips[4] === true && flips[7] === false, `core-only: flag ref -> plain -> ref through apply: ${JSON.stringify(flips)}`);
+  report(JSON.stringify(flips.filter((x: any) => Array.isArray(x))) === JSON.stringify([["flag"], ["flag"], ["flag"]]) && flips[4] === true && flips[7] === false, `core-only: flag state -> plain -> state through apply: ${JSON.stringify(flips)}`);
   // A generator becomes an events handle when a cell takes it as Events<T>, and a plain generator again
   // when that cell is deleted outside apply (as the editor's delete button does). The consumer is
   // deleted at once, before onCodeChange's snapshot has seen it, which is the case that used to leave
@@ -2070,7 +2070,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
       const out: any = {};
       out.gen = await lang.apply("const pulse = function* () { while (true) yield 1; };", [], { module: { module: core }, variables: [get("tripled")] });
       out.before = kind();
-      if (consumer.includes("addn")) out.addn = await lang.apply("const addn = (tally: Ref<number>) => action((n: number) => tally.update((t) => t + n));", [], { module: { module: core }, variables: [get("pulse")] });
+      if (consumer.includes("addn")) out.addn = await lang.apply("const addn = (tally: State<number>) => action((n: number) => tally.update((t) => t + n));", [], { module: { module: core }, variables: [get("pulse")] });
       const r0 = ss.running();
       out.consumer = await lang.apply(consumer, [], { module: { module: core }, variables: [get("pulse")] });
       out.withConsumer = kind();
@@ -2091,18 +2091,18 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     report(typeof src.consumer === "string" && src.before === "cell" && src.withConsumer === "events" && src.afterDelete === "cell" && src.runningAfter === 0 && (!listens || src.runningWith === 1) && typeof src.roundtrip === "number", `core-only: pulse is an events cell while pulses${listens ? " listens to it" : " takes it as Events<number>"}, a plain generator once pulses is deleted before the snapshot saw it${listens ? ", and the listener ends" : ""}: ${JSON.stringify(src)}`);
   }
   await listenerOnce(C);
-  // (d) an action in a ref across a save: aCurrent starts as aInc and holds aDec when saved
+  // (d) an action in a state cell across a save: aCurrent starts as aInc and holds aDec when saved
   const stored = await C.page.evaluate(async () => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
     const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
     const lang = get("ss_language")._value;
     const res: any[] = [];
     for (const c of [
-      "const aCount = (): RefCell<number> => ref(0);",
-      "const aInc = (aCount: Ref<number>) => action(() => aCount.update((c) => c + 1));",
-      "const aDec = (aCount: Ref<number>) => action(() => aCount.update((c) => c - 1));",
-      "const aCurrent = (aInc: Action<[]>): RefCell<Action<[]>> => ref(aInc);",
-      "const aUseDec = (aCurrent: Ref<Action<[]>>, aDec: Action<[]>) => action(() => aCurrent.set(aDec));",
+      "const aCount = (): StateCell<number> => state(0);",
+      "const aInc = (aCount: State<number>) => action(() => aCount.update((c) => c + 1));",
+      "const aDec = (aCount: State<number>) => action(() => aCount.update((c) => c - 1));",
+      "const aCurrent = (aInc: Action<[]>): StateCell<Action<[]>> => state(aInc);",
+      "const aUseDec = (aCurrent: State<Action<[]>>, aDec: Action<[]>) => action(() => aCurrent.set(aDec));",
     ]) res.push(!!(await lang.apply(c, [], { module: { module: core }, variables: [get("tripled")] })));
     await core.value("aUseDec");
     get("aUseDec")._value();
@@ -2127,9 +2127,9 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
       for (let i = 0; i < 300 && get("aCount")._value === c0; i++) await new Promise((r) => requestAnimationFrame(r));
       return { isInc: cur === inc, isDec: cur === dec, countChange: get("aCount")._value - c0 };
     });
-    // a report, not a requirement: what a ref holding an action holds after a save and reopen
-    console.log(`  report (d) action in a ref across a save: before saving ${JSON.stringify(stored)}; on load ${JSON.stringify(loaded)}`);
-    report(stored.applied.every(Boolean) && (loaded.isInc || loaded.isDec), `core-only reopened: a ref that held an action when saved holds an action on load (${loaded.isInc ? "its initial aInc" : "the stored aDec"})`);
+    // a report, not a requirement: what a state cell holding an action holds after a save and reopen
+    console.log(`  report (d) action in a state cell across a save: before saving ${JSON.stringify(stored)}; on load ${JSON.stringify(loaded)}`);
+    report(stored.applied.every(Boolean) && (loaded.isInc || loaded.isDec), `core-only reopened: a state cell that held an action when saved holds an action on load (${loaded.isInc ? "its initial aInc" : "the stored aDec"})`);
   }
   const after = await D.page.evaluate(async (NEW) => {
     const rt = (window as any).__ojs_runtime;
@@ -2143,7 +2143,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     const flag = get("flag") ? lang.decompile([get("flag")]) : null;
     return { present: true, typed: text === NEW, verdict, editorSource: await lang.decompile([v]), value: await core.value("tripled"), flag: await flag, roundtrip: get("ss_roundtrip")._value(core) };
   }, NEW);
-  report(after.flag === "const flag = (): RefCell<boolean> => ref(false);", `core-only reopened: flag is a ref cell again after export: ${after.flag}, ${after.roundtrip} variables round trip`);
+  report(after.flag === "const flag = (): StateCell<boolean> => state(false);", `core-only reopened: flag is a state cell again after export: ${after.flag}, ${after.roundtrip} variables round trip`);
   report(after.present && after.typed && after.verdict === "ok" && after.editorSource === NEW && after.value === 0, `core-only reopened: the added cell survived the export as typed source that checks: ${JSON.stringify(after)}`);
   requests("core-only reopened page", D);
   await D.page.close();

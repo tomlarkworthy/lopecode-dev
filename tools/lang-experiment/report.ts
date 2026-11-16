@@ -45,12 +45,12 @@ export function report(dirIn: string) {
   const fwd = sub<RunResult>(["run.ts", dir, "--order", "forward", "--json"]);
   const rev = sub<RunResult>(["run.ts", dir, "--order", "reverse", "--json"]);
 
-  const tiers: Record<string, number> = { default: 0, "mut-local": 0, owner: 0, ref: 0, shell: 0, prose: 0, import: 0 };
+  const tiers: Record<string, number> = { default: 0, "mut-local": 0, owner: 0, state: 0, shell: 0, prose: 0, import: 0 };
   for (const c of check.cells) if (c.tier !== "shell") tiers[c.tier]++;
   const map = mapTiers(dir);
   if (map) for (const t of ["shell", "prose", "import"]) tiers[t] = map[t] ?? 0;
   else tiers.shell = check.cells.filter((c) => c.tier === "shell").length;
-  const denom = tiers.default + tiers["mut-local"] + tiers.owner + tiers.ref + tiers.shell;
+  const denom = tiers.default + tiers["mut-local"] + tiers.owner + tiers.state + tiers.shell;
 
   const diffs = compareOrders(fwd, rev);
 
@@ -95,7 +95,7 @@ export function report(dirIn: string) {
         ["cells: default", `${tiers.default}${pct(tiers.default)}`],
         ["cells: mut-local", `${tiers["mut-local"]}${pct(tiers["mut-local"])}`],
         ["cells: owner", `${tiers.owner}${pct(tiers.owner)}`],
-        ["cells: ref", `${tiers.ref}${pct(tiers.ref)}`],
+        ["cells: state", `${tiers.state}${pct(tiers.state)}`],
         ["cells: shell", `${tiers.shell}${pct(tiers.shell)}`],
         ["cells: prose / import (excluded)", `${tiers.prose} / ${tiers.import}`],
         ["tests passing, forward order", t(fwd)],

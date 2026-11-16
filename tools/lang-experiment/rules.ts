@@ -12,7 +12,7 @@ export const RULES: RuleInfo[] = [
   // Cells and injection
   { id: "inject-unknown", section: "Cells and injection", how: "exact", summary: "parameter names no cell, foreign declaration or capability" },
   { id: "inject-type", section: "Cells and injection", how: "exact", summary: "typed parameter not assignable from the named cell's value type" },
-  { id: "inject-ref", section: "Cells and injection", how: "approx", summary: "parameter typed Ref<X> must name a cell returning RefCell<X>" },
+  { id: "inject-state", section: "Cells and injection", how: "approx", summary: "parameter typed State<X> must name a cell returning StateCell<X>" },
   { id: "inject-pattern", section: "Cells and injection", how: "exact", summary: "injected parameter must be a plain identifier (no destructuring, default, rest)" },
   { id: "free-name", section: "Cells and injection", how: "exact", summary: "free name that is not a parameter, local, prelude name or allowed intrinsic" },
   { id: "banned-member", section: "Cells and injection", how: "exact", summary: "Math.random" },
@@ -43,23 +43,23 @@ export const RULES: RuleInfo[] = [
   { id: "mut-after-freeze", section: "Opt-in 1: Mut<T> locals", how: "approx", summary: "Mut binding used textually after freeze(binding)" },
   // Opt-in 2
   { id: "borrow-placement", section: "Opt-in 2: owner cells", how: "exact", summary: "borrow(x) only as the operand of yield in a generator cell" },
-  { id: "borrowed-escape", section: "Opt-in 2: owner cells", how: "approx", summary: "Borrowed value returned, yielded, put in a ref/literal/let, or captured by a closure" },
+  { id: "borrowed-escape", section: "Opt-in 2: owner cells", how: "approx", summary: "Borrowed value returned, yielded, put in a state cell/literal/let, or captured by a closure" },
   { id: "borrowed-await", section: "Opt-in 2: owner cells", how: "approx", summary: "Borrowed value used textually after an await in the same function" },
-  // Refs and actions
-  { id: "ref-placement", section: "Refs and actions", how: "exact", summary: "ref(...) only as the returned value of a sync, non-generator cell" },
-  { id: "ref-in-ref", section: "Refs and actions", how: "exact", summary: "a ref cell whose content type contains Ref or RefCell anywhere" },
-  { id: "ref-write", section: "Refs and actions", how: "approx", summary: "Ref.set/update outside the lexical body of action(...)" },
-  { id: "action-call", section: "Refs and actions", how: "approx", summary: "an Action called outside the lexical body of action(...)" },
-  { id: "action-pass", section: "Refs and actions", how: "approx", summary: "an Action passed to a parameter not typed Action" },
-  { id: "action-capture", section: "Refs and actions", how: "approx", summary: "an action body uses a value that depends on state (a ref's value, an events value, a capability, or a local computed from one)" },
-  { id: "read-outside-action", section: "Refs and actions", how: "exact", summary: "read(ref) outside the lexical body of action(...)" },
+  // State and actions
+  { id: "state-placement", section: "State and actions", how: "exact", summary: "state(...) only as the returned value of a sync, non-generator cell" },
+  { id: "state-in-state", section: "State and actions", how: "exact", summary: "a state cell whose content type contains State or StateCell anywhere" },
+  { id: "state-write", section: "State and actions", how: "approx", summary: "State.set/update outside the lexical body of action(...)" },
+  { id: "action-call", section: "State and actions", how: "approx", summary: "an Action called outside the lexical body of action(...)" },
+  { id: "action-pass", section: "State and actions", how: "approx", summary: "an Action passed to a parameter not typed Action" },
+  { id: "action-capture", section: "State and actions", how: "approx", summary: "an action body uses a value that depends on state (a state cell's value, an events value, a capability, or a local computed from one)" },
+  { id: "read-outside-action", section: "State and actions", how: "exact", summary: "read(s) outside the lexical body of action(...)" },
   // Foreign
   { id: "foreign-unmarked", section: "Foreign values and the shell", how: "exact", summary: "foreign.d.ts declaration without /** pure */ or /** effect */" },
   { id: "foreign-effect", section: "Foreign values and the shell", how: "exact", summary: "a checked cell takes an /** effect */ foreign" },
   // Cells in other languages (lite/boundary.ts)
   { id: "boundary-unannotated", section: "Observable JavaScript and raw cells", how: "exact", summary: "a parameter naming a cell in another language has no type annotation" },
   { id: "boundary-type", section: "Observable JavaScript and raw cells", how: "exact", summary: "a cell in another language taken as a type the boundary does not check (a function, a promise, a class, Events)" },
-  { id: "boundary-ref", section: "Observable JavaScript and raw cells", how: "exact", summary: "Ref<T> on a cell with no viewof, or two Ref types for one view" },
+  { id: "boundary-state", section: "Observable JavaScript and raw cells", how: "exact", summary: "State<T> on a cell with no viewof, or two State types for one view" },
 ];
 
 export const RULE_IDS = new Set(RULES.map((r) => r.id));

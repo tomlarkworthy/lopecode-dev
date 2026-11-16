@@ -1,7 +1,7 @@
 // The island: ordinary cells. Here on the main thread they compute one row (y0 = 0, y1 = 1).
 const width = () => 640;
 const height = () => 420;
-const maxIter = (): RefCell<number> => ref(600);
+const maxIter = (): StateCell<number> => state(600);
 const y0 = () => 0;
 const y1 = () => 1;
 
@@ -60,7 +60,7 @@ const image = async (inPool, bands, width: number, height: number) => {
   return freeze(out);
 };
 
-const setMaxIter = (maxIter: Ref<number>) => action((s: string) => maxIter.set(Number(s)));
+const setMaxIter = (maxIter: State<number>) => action((s: string) => maxIter.set(Number(s)));
 const app = (maxIter: number, setMaxIter: Action<[string]>) => (
   <label>
     iterations <input type="range" min={50} max={3000} step={50} value={maxIter} onInput={setMaxIter} /> <output>{maxIter}</output>

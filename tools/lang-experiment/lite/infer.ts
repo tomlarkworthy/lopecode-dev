@@ -561,7 +561,7 @@ export class Checker {
       let bad = false;
       for (const m of this.um(ot)) {
         if (m.k === "err") { bad = true; out.push(ERR); continue; }
-        if (isNamed(m, "Action") || isNamed(m, "RefCell")) { this.err(e, "type", `${show(m)} has no members`); bad = true; continue; }
+        if (isNamed(m, "Action") || isNamed(m, "StateCell")) { this.err(e, "type", `${show(m)} has no members`); bad = true; continue; }
         if (this.reg.expand(m).k === "err") { bad = true; out.push(ERR); continue; } // unconverted alias: reported where it was converted
         const p = this.reg.member(m, name);
         if (!p) { this.memberMissing(m, name, e.property); bad = true; out.push(ERR); continue; }
@@ -967,7 +967,7 @@ export class Checker {
         const fl = this.facts.memberFlags.get(m);
         if (fl?.mutates) this.writeRule(m.object, env, e, "mutating-method");
         const rt = this.facts.types.get(m.object);
-        if (rt && isNamed(rt, "Ref") && !env.fi.inAction) this.err(e, "ref-write", "Ref.set/update outside action(...)");
+        if (rt && isNamed(rt, "State") && !env.fi.inAction) this.err(e, "state-write", "State.set/update outside action(...)");
       }
       if (calleeT.k === "err") return bail(true);
       const isShort = e.optional || this.short.has(callee);
@@ -1111,11 +1111,11 @@ export class Checker {
         if (!isNamed(t, want)) { this.err(e, "type", `${name} needs a ${want}<T>, got ${show(t)}`); return ERR; }
         return name === "borrow" ? named("Borrowed", t.args[0]) : t.args[0];
       }
-      case "ref": {
+      case "state": {
         const a = one();
-        const inner = explicit?.[0] ?? (expected && isNamed(expected, "RefCell") ? expected.args[0] : undefined);
+        const inner = explicit?.[0] ?? (expected && isNamed(expected, "StateCell") ? expected.args[0] : undefined);
         const t = a ? this.check(a, env, inner) : ERR;
-        return named("RefCell", inner ?? widen(t));
+        return named("StateCell", inner ?? widen(t));
       }
       case "action": {
         const a = one();
@@ -1126,12 +1126,12 @@ export class Checker {
         return named("Action", { k: "tup", els: f.ps.map((p) => p.t) });
       }
       case "read": {
-        // read(ref): the value as of this point in the call order; only inside an action body
+        // read(s): the value as of this point in the call order; only inside an action body
         const a = one();
         if (!env.fi.inAction) this.err(e, "read-outside-action", "read(...) is only for an action body; a cell takes the value as a parameter");
         const t = a ? this.infer(a, env) : ERR;
         if (t.k === "err") return ERR;
-        if (!isNamed(t, "Ref")) { this.err(a!, "type", `read needs a Ref<T>, got ${show(t)}`); return ERR; }
+        if (!isNamed(t, "State")) { this.err(a!, "type", `read needs a State<T>, got ${show(t)}`); return ERR; }
         return t.args[0];
       }
       case "on": {

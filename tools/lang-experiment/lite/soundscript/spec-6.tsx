@@ -1,14 +1,14 @@
-const s6_count = (): RefCell<number> => ref(0);
+const s6_count = (): StateCell<number> => state(0);
 
 const s6_label = (s6_count: number) => `count: ${s6_count}`;
 
-const s6_increment = (s6_count: Ref<number>) => action(() => s6_count.update((c) => c + 1));
+const s6_increment = (s6_count: State<number>) => action(() => s6_count.update((c) => c + 1));
 
-const s6_other = (): RefCell<number> => ref(0);
+const s6_other = (): StateCell<number> => state(0);
 
-const s6_copy = (s6_other: Ref<number>, s6_count: Ref<number>) => action(() => s6_other.set(read(s6_count) + 1));
+const s6_copy = (s6_other: State<number>, s6_count: State<number>) => action(() => s6_other.set(read(s6_count) + 1));
 
-const s6_bumpThenCopy = (s6_count: Ref<number>, s6_copy: Action<[]>) =>
+const s6_bumpThenCopy = (s6_count: State<number>, s6_copy: Action<[]>) =>
   action(() => {
     s6_count.update((c) => c + 1);
     s6_copy();

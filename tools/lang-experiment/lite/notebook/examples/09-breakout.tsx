@@ -38,16 +38,16 @@ const step = (start: () => World) => (w: World, e: Ev): World => {
   return { ...w, bricks, score: w.score + (hit < 0 ? 0 : 10), ball: { x, y, vx, vy } };
 };
 
-const world = (start: () => World): RefCell<World> => ref<World>(start());
+const world = (start: () => World): StateCell<World> => state<World>(start());
 
 // The world's only writes: three actions, each one call of step.
-const tick = (world: Ref<World>, step) => action((dt: number) => world.update((w) => step(w, { kind: "tick", dt })));
-const aim = (world: Ref<World>, step) => action((p: PointerData) => world.update((w) => step(w, { kind: "aim", x: p.x })));
-const reset = (world: Ref<World>, step) => action(() => world.update((w) => step(w, { kind: "reset" })));
+const tick = (world: State<World>, step) => action((dt: number) => world.update((w) => step(w, { kind: "tick", dt })));
+const aim = (world: State<World>, step) => action((p: PointerData) => world.update((w) => step(w, { kind: "aim", x: p.x })));
+const reset = (world: State<World>, step) => action(() => world.update((w) => step(w, { kind: "reset" })));
 
 // Paused or playing is state of its own.
-const playing = (): RefCell<boolean> => ref(false);
-const toggle = (playing: Ref<boolean>) => action(() => playing.update((p) => !p));
+const playing = (): StateCell<boolean> => state(false);
+const toggle = (playing: State<boolean>) => action(() => playing.update((p) => !p));
 const over = (world) => world.lives === 0 || world.bricks.length === 0;
 
 // The clock is an ordinary generator cell: it yields the milliseconds since its last step and

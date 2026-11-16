@@ -18,14 +18,14 @@ export const SHELL_STDLIB = new Set([
 ]);
 
 export type Kind = "arrow" | "function" | "generator" | "async";
-export type Facet = "value" | "ref" | "capability" | "foreign";
+export type Facet = "value" | "state" | "capability" | "foreign";
 export type Source = "cell" | "shell" | "foreign" | "capability" | "stdlib" | "unknown";
 
 export type Param = {
   name: string; // "" when not an identifier
   node: ts.ParameterDeclaration;
   typed: boolean;
-  refTyped: boolean; // annotated Ref<...>
+  refTyped: boolean; // annotated State<...>
   plain: boolean; // identifier, no default, no rest
   facet: Facet;
   source: Source;
@@ -74,17 +74,17 @@ export function lineOf(sf: ts.SourceFile, pos: number) {
 }
 
 function isRefTypeNode(t: ts.TypeNode | undefined) {
-  return !!t && ts.isTypeReferenceNode(t) && ts.isIdentifier(t.typeName) && t.typeName.text === "Ref";
+  return !!t && ts.isTypeReferenceNode(t) && ts.isIdentifier(t.typeName) && t.typeName.text === "State";
 }
 
-// Does the function return ref(...) directly (concise body or a top-level return)?
+// Does the function return state(...) directly (concise body or a top-level return)?
 function returnsRefCall(fn: ts.FunctionLikeDeclaration): boolean {
   const isRefCall = (e: ts.Expression | undefined) => {
     if (!e) return false;
     e = unwrap(e);
-    return ts.isCallExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === "ref";
+    return ts.isCallExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === "state";
   };
-  if (fn.type && ts.isTypeReferenceNode(fn.type) && ts.isIdentifier(fn.type.typeName) && fn.type.typeName.text === "RefCell")
+  if (fn.type && ts.isTypeReferenceNode(fn.type) && ts.isIdentifier(fn.type.typeName) && fn.type.typeName.text === "StateCell")
     return true;
   const body = fn.body;
   if (!body) return false;
@@ -224,7 +224,7 @@ export function analyze(dir: string): Analysis {
       const target = byName.get(p.name);
       if (target) {
         p.source = target.file === "cells.ts" ? "cell" : "shell";
-        p.facet = p.refTyped ? "ref" : "value";
+        p.facet = p.refTyped ? "state" : "value";
       } else if (foreignByName.has(p.name)) {
         p.source = "foreign";
         p.facet = "foreign";
@@ -238,7 +238,7 @@ export function analyze(dir: string): Analysis {
         errors.push({ file: c.file, line, rule: "inject-unknown", message: `${c.name}: parameter ${p.name} names no cell, foreign declaration or capability` });
       }
       if (p.refTyped && p.source !== "cell" && p.source !== "shell" && p.source !== "unknown")
-        errors.push({ file: c.file, line, rule: "inject-ref", message: `${c.name}: ${p.name} is typed Ref<…> but is not a cell` });
+        errors.push({ file: c.file, line, rule: "inject-state", message: `${c.name}: ${p.name} is typed State<…> but is not a cell` });
       if (c.file === "cells.ts" && p.source === "foreign" && foreignByName.get(p.name)!.marker === "effect")
         errors.push({ file: c.file, line, rule: "foreign-effect", message: `${c.name}: ${p.name} is an /** effect */ foreign; a checked cell may take only pure ones` });
       // A foreign declaration that names a shell cell gives that shell cell its trusted type.

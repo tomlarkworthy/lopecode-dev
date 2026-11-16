@@ -43,7 +43,7 @@ A capability parameter becomes an input on one of this module's variables:
 // %%
 readme_storage = md`## How a cell is recognised and stored
 
-A cell compiles to ordinary JavaScript: one runtime variable. A ref cell's variable \`tally\` holds its value. A parameter \`tally: Ref<number>\` is not an input of the reading cell's variable: it receives the address of \`tally\`, its module and name, which a write looks up.
+A cell compiles to ordinary JavaScript: one runtime variable. A state cell's variable \`tally\` holds its value. A parameter \`tally: State<number>\` is not an input of the reading cell's variable: it receives the address of \`tally\`, its module and name, which a write looks up.
 
 A variable is SoundScript when the first comment in its definition is the marker \`/*{lang:"ss"}*/\`. The definition keeps the types as \`/*ss:…*/\` comments. It keeps JSX as \`/*ss<…*/\` comments beside the lowered \`h(...)\` calls. The typed source is therefore recovered from the definition text alone, and it survives a save (\`test_ss_roundtrip\`).`
 // %%
@@ -152,8 +152,8 @@ ss_moduleCells = (module) => {
 ss_outside = (module) => {
   // the module's cells in other languages (Observable JavaScript, raw, imports), by name, sorted: a
   // SoundScript cell may take one through an annotated parameter, checked when its value crosses.
-  // view: the module also has viewof <name>, so the cell can be taken as Ref. ref: <name> imports a
-  // SoundScript ref cell from another module, so it can be taken as Ref too.
+  // view: the module also has viewof <name>, so the cell can be taken as State. ref: <name> imports a
+  // SoundScript state cell from another module, so it can be taken as State too.
   const names = new Map();
   for (const v of runtime._variables) {
     if (v._module !== module || typeof v._name !== "string" || typeof v._definition !== "function") continue;
@@ -211,7 +211,7 @@ ss_deleted = {
 }
 // %%
 ss_instance = async (module, invalidation) => {
-  // A second copy of module's SoundScript cells in a module of its own, so a test drives its own refs
+  // A second copy of module's SoundScript cells in a module of its own, so a test drives its own state cells
   // and listeners, not the ones on the page. Ids get a suffix, so its memo and run counts are its
   // own too. Inputs its cells do not define (ss, ss_now, ...) are read from module. Deleted on invalidation.
   const vars = [...runtime._variables].filter((v) => v._module === module && typeof v._name === "string" && typeof v._definition === "function" && ss.langOf(String(v._definition)) === "ss");
@@ -571,7 +571,7 @@ ss_language = {
     }
     const own = new Set(variables);
     const name = keyOf(v._name);
-    // a Ref<T> parameter is no runtime input: the cells it takes, and the cells that take it, come from the checker
+    // a State<T> parameter is no runtime input: the cells it takes, and the cells that take it, come from the checker
     const refs = refsOf(v._module);
     const at = (n) => v._module?._scope?.get(n);
     const inputs = [...new Set([...variables.flatMap((x) => x._inputs), ...(refs.takes.get(name) ?? []).map(at)])].filter((i) => i && !own.has(i) && params.has(String(i._name)));
@@ -600,7 +600,7 @@ ss_language = {
     return entry;
   };
   const typesOf = (module) => (module ? checked(module).types : new Map());
-  // per cell, the cells it takes as Ref<T> and the cells that take it so
+  // per cell, the cells it takes as State<T> and the cells that take it so
   const refsOf = (module) => (module ? checked(module).refs : { takes: new Map(), takenBy: new Map() });
 
   // How the visualizer shows a value: only the kinds the normal Inspector cannot read are drawn here, as
@@ -827,17 +827,17 @@ test_ss_wrong_type_is_stored_and_rejected = {
   try {
     const inst = await ss_instance(ss_module, done);
     const original = await ss_language.decompile([inst._scope.get("bump")]);
-    const source = original.replace("tally: Ref<number>", "tally: Ref<string>");
-    if (source === original) throw new Error("bump has no tally: Ref<number> parameter to change");
+    const source = original.replace("tally: State<number>", "tally: State<string>");
+    if (source === original) throw new Error("bump has no tally: State<number> parameter to change");
     const r = ss_language.check(source, [inst._scope.get("bump")]);
-    if (r.ok || !r.store || !r.problems.some((p) => p.rule === "inject-ref")) throw new Error(`check: ${JSON.stringify(r.problems)}`);
+    if (r.ok || !r.store || !r.problems.some((p) => p.rule === "inject-state")) throw new Error(`check: ${JSON.stringify(r.problems)}`);
     const lint = ss_language.lint(source, [inst._scope.get("bump")]);
     if (!lint.some((d) => d.severity === "error")) throw new Error(`lint: ${JSON.stringify(lint)}`);
     const stored = await ss_language.apply(source, [inst._scope.get("bump")]);
     if (stored !== source) throw new Error(`stored ${JSON.stringify(stored)}`);
     let threw = null;
     try { await inst.value("bump"); } catch (e) { threw = e; }
-    if (!/^bump does not check: \[inject-ref\]/.test(threw?.message ?? "")) throw new Error(`bump gave ${threw?.message ?? "a value"}`);
+    if (!/^bump does not check: \[inject-state\]/.test(threw?.message ?? "")) throw new Error(`bump gave ${threw?.message ?? "a value"}`);
     await ss_language.apply(original, [inst._scope.get("bump")]);
     if (typeof (await inst.value("bump")) !== "function") throw new Error("bump did not come back after the repair");
     return `stored; bump raises "${threw.message.slice(0, 80)}"; repaired, it is an action again`;
@@ -849,8 +849,8 @@ test_ss_breaking_edit_names_its_cells = {
   // before an edit is stored, the editor says which cells it would break
   const v = ss_module._scope.get("tally");
   const original = await ss_language.decompile([v]);
-  const source = original.replace("RefCell<number> => ref(0)", 'RefCell<string> => ref("0")');
-  if (source === original) throw new Error("tally is not RefCell<number> => ref(0)");
+  const source = original.replace("StateCell<number> => state(0)", 'StateCell<string> => state("0")');
+  if (source === original) throw new Error("tally is not StateCell<number> => state(0)");
   const r = ss_language.check(source, [v]);
   // bump, reset and doubled take tally; a cell added later that reads doubled is blocked
   if (!r.store || !/^applying this breaks 3 cells: bump, reset, doubled(; blocks \d+ cells?: [\w, ]+)?$/.test(r.effect)) throw new Error(`effect ${JSON.stringify(r.effect)}`);
@@ -889,7 +889,7 @@ test_ss_failed_apply_changes_nothing = {
   try {
     const inst = await ss_instance(ss_module, done);
     const v = inst._scope.get("tally");
-    const source = (await ss_language.decompile([v])).replace("ref(0)", "ref(5)");
+    const source = (await ss_language.decompile([v])).replace("state(0)", "state(5)");
     if (!ss_language.check(source, [v]).ok) throw new Error("the edit to tally does not check");
     const before = snap(inst);
     ss_language.faults.afterEditDefine = inst;

@@ -8,7 +8,7 @@ const s2_later = async (s2_answer: number) => s2_answer + 1;
 
 const s2_word = function* () { yield "tea"; };
 
-const s2_counter = () => ref(3);
+const s2_counter = () => state(3);
 
 const s2_read = (s2_later: number, s2_word: string, s2_counter: number) => [s2_later, s2_word, s2_counter];
 

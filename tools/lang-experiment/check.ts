@@ -8,7 +8,7 @@ import { analyze, extractCells, lineOf, CAPABILITIES, type Cell, type Param, typ
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const PRELUDE_PATH = join(HERE, "prelude.d.ts");
 
-export const PRELUDE_VALUES = new Set(["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals", "read"]);
+export const PRELUDE_VALUES = new Set(["state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "read"]);
 const TYPED_ARRAYS = ["Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array", "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array", "Float16Array"];
 export const INTRINSICS = new Set([
   "Object", "Array", "Math", "JSON", "Number", "String", "Boolean", "BigInt", "Symbol", "Map", "Set", "Error", "TypeError", "RangeError", "RegExp", "Promise",
@@ -24,7 +24,7 @@ export type CellReport = {
   name: string;
   file: string;
   kind: string;
-  tier: "default" | "mut-local" | "owner" | "ref" | "shell";
+  tier: "default" | "mut-local" | "owner" | "state" | "shell";
   inputs: { name: string; facet: string; source: string }[];
   errors: CheckError[];
 };
@@ -133,7 +133,7 @@ function buildDerived(an: Analysis, file: "cells.ts" | "shell.ts"): Derived | nu
       const src = p.refTyped ? refAlias(p) : valueAlias(p);
       gen.push({
         text: `{ const __chk: Parameters<typeof ${c.name}>[${i}] = (undefined as unknown as ${src}); }`,
-        map: { file, line: pline, rule: p.refTyped ? "inject-ref" : "inject-type", prefix: `${c.name}: parameter ${p.name} (${p.source} ${p.name})${p.refTyped ? " is typed Ref<…> so must name a cell returning RefCell<…>" : ""}: ` },
+        map: { file, line: pline, rule: p.refTyped ? "inject-state" : "inject-type", prefix: `${c.name}: parameter ${p.name} (${p.source} ${p.name})${p.refTyped ? " is typed State<…> so must name a cell returning StateCell<…>" : ""}: ` },
       });
     });
   }
@@ -262,7 +262,7 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
   const typeOf = (n: ts.Node) => checker.getTypeAtLocation(n);
   const isMut = (n: ts.Node) => brand(typeOf(n), "__lc_mut");
   const isBorrowed = (n: ts.Node) => brand(typeOf(n), "__lc_borrowed");
-  const isRef = (n: ts.Node) => brand(typeOf(n), "__lc_ref");
+  const isRef = (n: ts.Node) => brand(typeOf(n), "__lc_state");
   const isAction = (n: ts.Node) => brand(typeOf(n), "__lc_action");
   const symDecl = (s: ts.Symbol | undefined) => s?.declarations?.[0];
   const fromPrelude = (id: ts.Node) => symDecl(checker.getSymbolAtLocation(id))?.getSourceFile().fileName === PRELUDE_PATH;
@@ -397,14 +397,14 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
     return ok;
   }
 
-  // a type that mentions Ref or RefCell anywhere: properties, elements, union members, type arguments, signatures
+  // a type that mentions State or StateCell anywhere: properties, elements, union members, type arguments, signatures
   const holdsRef = (t: ts.Type, seen = new Set<ts.Type>(), depth = 0): string | null => {
     if (seen.has(t) || depth > 10) return null;
     seen.add(t);
     if (isPrimitive(t)) return null;
     if (t.isUnionOrIntersection()) { for (const x of t.types) { const w = holdsRef(x, seen, depth + 1); if (w) return w; } return null; }
-    if (brand(t, "__lc_ref")) return "Ref";
-    if (brand(t, "__lc_refcell")) return "RefCell";
+    if (brand(t, "__lc_state")) return "State";
+    if (brand(t, "__lc_statecell")) return "StateCell";
     const parts: ts.Type[] = [];
     const args = [...((t as ts.TypeReference).target ? checker.getTypeArguments(t as ts.TypeReference) : []), ...(t.aliasTypeArguments ?? [])];
     const decl = symDecl(t.getSymbol());
@@ -423,7 +423,7 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
     return null;
   };
 
-  // action-capture: state-dependent cells, with the reason. A ref cell, a generator, a cell taking a
+  // action-capture: state-dependent cells, with the reason. A state cell, a generator, a cell taking a
   // capability other than invalidation or log, or a shell value, and a cell taking one of these by value.
   const stateful = new Map<string, string>();
   // cell.params come from the first analysis; the program's own parameter node is fn.parameters[i]
@@ -432,14 +432,14 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
     if (p.refTyped) return false;
     const pn = progParam(c, p);
     const t = pn?.type;
-    if (t && ts.isTypeReferenceNode(t) && ts.isIdentifier(t.typeName) && (t.typeName.text === "Events" || t.typeName.text === "Ref")) return false;
+    if (t && ts.isTypeReferenceNode(t) && ts.isIdentifier(t.typeName) && (t.typeName.text === "Events" || t.typeName.text === "State")) return false;
     return !(pn && isAction(pn.name));
   };
   for (let changed = true; changed; ) {
     changed = false;
     for (const c of cells) {
       if (stateful.has(c.name)) continue;
-      let why: string | null = c.returnsRef ? "is a ref" : c.isGenerator ? "is a generator" : null;
+      let why: string | null = c.returnsRef ? "is a state cell" : c.isGenerator ? "is a generator" : null;
       for (const p of c.params) {
         if (why) break;
         if (p.facet === "capability" && p.name !== "invalidation" && p.name !== "log") why = `takes the capability ${p.name}`;
@@ -462,7 +462,7 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
         if (!pn) continue;
         if (p.facet === "capability" && p.name !== "invalidation" && p.name !== "log") taint.set(pn, `capability ${p.name}`);
         else if (p.source === "shell" && takesByValue(cell, p)) taint.set(pn, "a shell cell's value");
-        else if (p.source === "cell" && takesByValue(cell, p) && stateful.has(p.name)) taint.set(pn, stateful.get(p.name) === "is a ref" ? `the value of the ref ${p.name}` : stateful.get(p.name) === "is a generator" ? `the latest value of the events cell ${p.name}` : `${p.name} ${stateful.get(p.name)}`);
+        else if (p.source === "cell" && takesByValue(cell, p) && stateful.has(p.name)) taint.set(pn, stateful.get(p.name) === "is a state cell" ? `the value of the state cell ${p.name}` : stateful.get(p.name) === "is a generator" ? `the latest value of the events cell ${p.name}` : `${p.name} ${stateful.get(p.name)}`);
       }
       const actionFnOf = (n: ts.Node): ts.Node | undefined => {
         for (let a = n.parent; a && a !== fn; a = a.parent)
@@ -499,17 +499,17 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
           const why = taint.get(d)!;
           push(n, "action-capture", why.startsWith("capability ")
             ? `${n.text} is a capability, so an action using it would make the stored state depend on something the calls do not record; take the value as an argument of the action`
-            : `${n.text} depends on state (${why}), so an action using it would act on the value from the cell's last run; read the ref inside the action with read(...), or pass the value to the action when it is called`);
+            : `${n.text} depends on state (${why}), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called`);
         });
       }
     }
     {
       const sig = checker.getSignaturesOfType(typeOf(fn), ts.SignatureKind.Call)[0];
       const ret = sig?.getReturnType();
-      if (ret && !cell.isGenerator && ret.getSymbol()?.getName() === "RefCell" && brand(ret, "__lc_refcell")) {
-        const inner = checker.getTypeOfSymbol(checker.getPropertyOfType(ret, "__lc_refcell")!);
+      if (ret && !cell.isGenerator && ret.getSymbol()?.getName() === "StateCell" && brand(ret, "__lc_statecell")) {
+        const inner = checker.getTypeOfSymbol(checker.getPropertyOfType(ret, "__lc_statecell")!);
         const w = holdsRef(inner, new Set());
-        if (w) push(fn, "ref-in-ref", `a ref holds ${checker.typeToString(inner)}, which contains ${w}; a ref's content may not contain a Ref or RefCell`);
+        if (w) push(fn, "state-in-state", `a state cell holds ${checker.typeToString(inner)}, which contains ${w}; a state cell's content may not contain a State or StateCell`);
       }
     }
     // The cell's own function is not a local: a self-reference is a reference by module-level name.
@@ -541,7 +541,7 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
         const c = climb(n);
         if (!(ts.isYieldExpression(c.parent) && enclosingFn(n) === fn && cell.isGenerator))
           push(n, "borrow-placement", "borrow(x) only as `yield borrow(x)` in a generator cell");
-      } else if (isPreludeCall(n, "ref")) {
+      } else if (isPreludeCall(n, "state")) {
         const c = climb(n);
         // Same shape run.ts recognises (analyze.returnsRefCall): concise body, or a return directly in the cell body.
         let u: ts.Node = n;
@@ -549,12 +549,12 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
         const body = fn.body;
         const ok = !cell.isGenerator && !cell.isAsync &&
           (body === u || (!!body && ts.isBlock(body) && ts.isReturnStatement(u.parent) && u.parent.parent === body));
-        if (!ok) push(n, "ref-placement", "ref(...) only as the concise body or a top-level return of a sync cell");
+        if (!ok) push(n, "state-placement", "state(...) only as the concise body or a top-level return of a sync cell");
       }
       if (ts.isCallExpression(n)) {
         const e = n.expression;
         if (ts.isPropertyAccessExpression(e) && (e.name.text === "set" || e.name.text === "update") && isRef(e.expression) && !insideAction(n))
-          push(n, "ref-write", `${e.getText(sf)}(): Ref writes only inside action(...)`);
+          push(n, "state-write", `${e.getText(sf)}(): State writes only inside action(...)`);
         else if (!isPreludeCall(n, "action") && isAction(e) && !insideAction(n))
           push(n, "action-call", `${e.getText(sf)}(): an Action may be called only inside action(...)`);
         else if (isPreludeCall(n, "read") && !insideAction(n))
@@ -597,8 +597,8 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
         else if (sink === "alias" && !(ts.isVariableDeclaration(at) && at.parent.flags & ts.NodeFlags.Const)) push(n, "borrowed-escape", `Borrowed ${name} held in a let`);
         else if (sink === "arg") {
           const callee = (at as ts.CallExpression).expression;
-          if (isPreludeCall(at, "ref") || (ts.isPropertyAccessExpression(callee) && (callee.name.text === "set" || callee.name.text === "update") && isRef(callee.expression)))
-            push(n, "borrowed-escape", `Borrowed ${name} put in a ref`);
+          if (isPreludeCall(at, "state") || (ts.isPropertyAccessExpression(callee) && (callee.name.text === "set" || callee.name.text === "update") && isRef(callee.expression)))
+            push(n, "borrowed-escape", `Borrowed ${name} put in a state cell`);
         }
         const ef = enclosingFn(n)!;
         if ((awaitsIn.get(ef) ?? []).some((end) => end <= n.getStart(sf))) push(n, "borrowed-await", `Borrowed ${name} used after an await`);
@@ -621,9 +621,9 @@ function lintCells(program: ts.Program, d: Derived, sf: ts.SourceFile, cells: Ce
 
 function tierOf(cell: Cell, checker: ts.TypeChecker, prelude: (n: ts.Node, name: string) => boolean): CellReport["tier"] {
   if (cell.file === "shell.ts") return "shell";
-  if (cell.returnsRef) return "ref";
+  if (cell.returnsRef) return "state";
   const sig = checker.getSignatureFromDeclaration(cell.fn);
-  if (sig && checker.getPropertyOfType(checker.getReturnTypeOfSignature(sig), "__lc_refcell")) return "ref";
+  if (sig && checker.getPropertyOfType(checker.getReturnTypeOfSignature(sig), "__lc_statecell")) return "state";
   let borrow = false, mutUse = false;
   forEachDescendant(cell.fn, (n) => {
     if (prelude(n, "borrow")) borrow = true;

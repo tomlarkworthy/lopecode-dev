@@ -1,7 +1,7 @@
 // A listener, on(events, action), is only the whole value of a cell.
 type W = { readonly n: number };
-const world = (): RefCell<W> => ref<W>({ n: 0 });
-const tick = (world: Ref<W>) => action((dt: number) => world.update((w) => ({ n: w.n + dt })));
+const world = (): StateCell<W> => state<W>({ n: 0 });
+const tick = (world: State<W>) => action((dt: number) => world.update((w) => ({ n: w.n + dt })));
 const ticks = function* () {
   while (true) yield 16;
 };
@@ -19,7 +19,7 @@ const bad_list = (ticks: Events<number>, tick: Action<[number]>) => [on(ticks, t
 const bad_record = (ticks: Events<number>, tick: Action<[number]>) => ({ clock: on(ticks, tick) });
 const bad_none = (ticks: Events<number>, tick: Action<[number]>, fast: boolean) => (fast ? on(ticks, tick) : null);
 const bad_inner = (ticks: Events<number>, tick: Action<[number]>) => () => on(ticks, tick);
-const bad_ref = (ticks: Events<number>, tick: Action<[number]>): RefCell<Listener> => ref(on(ticks, tick));
+const bad_ref = (ticks: Events<number>, tick: Action<[number]>): StateCell<Listener> => state(on(ticks, tick));
 const bad_argument = (ticks: Events<number>, tick: Action<[number]>) => [on(ticks, tick)].length;
 const bad_value = (ticks: Events<number>) => {
   const make = on;

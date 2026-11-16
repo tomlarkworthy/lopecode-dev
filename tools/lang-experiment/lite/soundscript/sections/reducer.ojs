@@ -1,6 +1,6 @@
 md`# SoundScript, section 5: one function for every change
 
-The cells of section 5 of \`@tomlarkworthy/soundscript-tutorial\`, as live SoundScript cells. They are a module of their own because their names (\`app\`, \`step\`, \`state\`) are used by other sections.`
+The cells of section 5 of \`@tomlarkworthy/soundscript-tutorial\`, as live SoundScript cells. They are a module of their own because their names (\`app\`, \`step\`, \`store\`) are used by other sections.`
 // %%
 //ss: 05-reducer.tsx
 // %%

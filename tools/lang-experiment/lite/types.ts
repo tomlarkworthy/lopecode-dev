@@ -1,5 +1,5 @@
 // Type representation, normalisation, printing, subtyping, substitution and inference unification.
-// Named types (aliases, interfaces, intrinsic classes, Mut/Ref/...) stay unexpanded until a Registry
+// Named types (aliases, interfaces, intrinsic classes, Mut/State/...) stay unexpanded until a Registry
 // expands them, so recursive aliases are finite.
 
 export type Flags = { mutates?: boolean; fresh?: boolean; view?: boolean; retains?: boolean; banned?: boolean; intrinsic?: boolean };
@@ -33,7 +33,7 @@ export const rec = (props: Record<string, Ty>, opt: string[] = []): Rec => ({
 });
 
 // Wrappers with fixed meaning. Everything else named is an alias/interface (Registry) or an intrinsic class.
-export const WRAPPERS = new Set(["Mut", "Ref", "RefCell", "Action", "Borrowed", "Promise", "Generator", "Iterable", "ArrayLike"]);
+export const WRAPPERS = new Set(["Mut", "State", "StateCell", "Action", "Borrowed", "Promise", "Generator", "Iterable", "ArrayLike"]);
 export const isNamed = (t: Ty, n: string): t is { k: "named"; n: string; args: Ty[] } => t.k === "named" && t.n === n;
 export const unwrap = (t: Ty): Ty => (isNamed(t, "Mut") || isNamed(t, "Borrowed") ? t.args[0] : t);
 // The type a read of the property sees: optional adds undefined.

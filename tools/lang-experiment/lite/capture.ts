@@ -96,4 +96,4 @@ export function captures(cellFn: Node, tainted: Map<string, string>): Capture[] 
 
 export const captureMessage = (c: Capture) => c.why.startsWith("capability ")
   ? `${c.name} is a capability, so an action using it would make the stored state depend on something the calls do not record; take the value as an argument of the action`
-  : `${c.name} depends on state (${c.why}), so an action using it would act on the value from the cell's last run; read the ref inside the action with read(...), or pass the value to the action when it is called`;
+  : `${c.name} depends on state (${c.why}), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called`;

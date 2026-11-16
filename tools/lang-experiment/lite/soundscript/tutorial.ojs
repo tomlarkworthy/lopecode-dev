@@ -29,7 +29,7 @@ md`## The four rules
 1. **Inputs are parameters.** A cell body may use its parameters, its own locals and a fixed list of built-ins. There are no globals.
 2. **Effects are parameters.** The clock, randomness, the network and logging are *capabilities*: reserved parameter names (\`now\`, \`random\`, \`fetch\`, \`log\`) that the notebook supplies. A cell that can give two answers for the same inputs says so in its signature.
 3. **Values do not change after they are returned.** A cell may build a value with local writes; once returned, it is read-only everywhere.
-4. **State changes only in actions.** State is a \`ref\` cell. A write to it must be inside \`action(...)\`, and a cell never calls an action. The page calls it, when a button is clicked or a frame arrives.
+4. **State changes only in actions.** State is a state cell, made by \`state(...)\`. A write to it must be inside \`action(...)\`, and a cell never calls an action. The page calls it, when a button is clicked or a frame arrives.
 
 Sections 1 to 5 teach these rules. Sections 6 to 9 show what they pay for.`
 // %%
@@ -71,7 +71,7 @@ md`**Try it.** Open \`leak\` and change \`return xs\` to \`return freeze(xs)\`. 
 // %%
 md`## 4. State and views
 
-State is a cell that returns \`ref(initial)\`. Other cells use it in two ways. A parameter named \`count\` gets the current value and runs again when it changes. A parameter typed \`Ref<number>\` gets the reference. It is not a dependency: the cell does not run again when the value changes.
+State is a state cell: a cell that returns \`state(initial)\`. Other cells use it in two ways. A parameter named \`count\` gets the current value and runs again when it changes. A parameter typed \`State<number>\` gets a handle to it. It is not a dependency: the cell does not run again when the value changes.
 
 A write must be inside \`action(...)\`. An action reads state with \`read(count)\`, not through a value parameter, so it always sees the current value. \`increment\`, \`clear\` and \`save\` are actions. A cell cannot call them; the page does, when a button is clicked.
 
@@ -83,9 +83,37 @@ sourceListing(tutorial_module, invalidation, { from: "count", to: "app" })
 // %%
 md`**Try it.** Press **add one**. Then open \`app\` and change \`onClick={increment}\` to \`onClick={count}\`. \`app\` no longer checks, because a number is not an action, and the buttons are replaced by the message. Change it back: the buttons return and the count is what it was.`
 // %%
+md`An action may be async. It can \`await\` a promise, such as an answer from a worker or a server, and write after it. Its writes commit together when it finishes, so a cell never sees half of them. Clicks are handled one at a time: a click made while an action is still waiting runs after it finishes.`
+// %%
+sourceListing(tutorial_module, invalidation, { from: "measure", to: "measureView" })
+// %%
+//ss: ./tutorial-async.tsx
+// %%
+test_async_click = {
+  tests_on;
+  // a copy whose source answers when this test opens the gate
+  const copy = await ss_instance(tutorial_module, invalidation);
+  let open;
+  const gate = new Promise((r) => (open = r));
+  copy._scope.get("measure").define("measure", [], () => (w) => gate.then(() => w.length));
+  const view = ss.mount(await copy.value("measureView"), null);
+  // waits are counted in animation frames until a condition holds; the cap only turns a hang into an error
+  const frames = async (f, n = 600) => { for (let i = 0; i < n && !(await f()); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
+  try {
+    if (!(await frames(() => { const q = ss.actionQueue(); return !q.inFlight && q.waiting === 0; }))) throw new Error("another action call stayed in flight");
+    view.querySelector("button").click();
+    const during = [ss.actionQueue().inFlight, await copy.value("wordSize")];
+    open();
+    const done = await frames(async () => (await copy.value("wordSize")) === 11);
+    if (JSON.stringify(during) !== "[true,0]") throw new Error(`while waiting: in flight and wordSize ${JSON.stringify(during)}`);
+    if (!done) throw new Error(`wordSize is ${await copy.value("wordSize")} after the answer`);
+    return "the click started measureWord; it waited for the answer with wordSize 0, then wrote 11";
+  } finally { open(); }
+}
+// %%
 md`## 5. One function for every change
 
-When state has several fields, separate actions that each change one field can leave it inconsistent. Here every action is the same line, \`state.update(s => step(s, event))\`, so one function, \`step\`, decides every transition. \`step\` is a plain function, and \`test_undo\` tests it without a page.`
+When state has several fields, separate actions that each change one field can leave it inconsistent. Here every action is the same line, \`store.update(s => step(s, event))\`, so one function, \`step\`, decides every transition. \`step\` is a plain function, and \`test_undo\` tests it without a page.`
 // %%
 reducer_view = framed(ss.mount(reducer_app, this))
 // %%
@@ -173,7 +201,7 @@ checkBox(src_free_component, { tsx: true })
 // %%
 md`## 9. A game
 
-Breakout, written with the pieces from the earlier sections. \`step(world, event)\` is the whole game, as in section 5. The world is one \`ref\`. The view is JSX, split into cells so that the bricks are not rebuilt while only the ball moves, as in section 6.
+Breakout, written with the pieces from the earlier sections. \`step(world, event)\` is the whole game, as in section 5. The world is one state cell. The view is JSX, split into cells so that the bricks are not rebuilt while only the ball moves, as in section 6.
 
 One piece is new. A game needs a clock, and a cell cannot call an action. \`ticks\` is a generator cell. It yields the time since the last frame while the game is playing, and yields nothing once \`playing\` is false. \`onTick\` returns \`on(ticks, tick)\`, a *listener*: the notebook runs the action \`tick\` once for each value of \`ticks\`. A parameter typed \`Events<number>\` is a handle to the generator and not its latest value, so \`onTick\` does not run again on every frame.`
 // %%
@@ -223,13 +251,13 @@ shop_basket = [{ item: "tea", qty: 2 }, { item: "cake", qty: 1 }]
 // %%
 md`The SoundScript cells that read them. A parameter that names a cell in another language must have a type. Each value that arrives is checked against that type and handed over as a frozen copy, so the SoundScript side holds what the type says and nothing the other cell can change later. If a value does not match, the reading cell fails, and its error names the place, such as \`rows[1].price: expected number, found string "12"\`. Cells that do not depend on it keep running.
 
-\`cheaper\` takes the slider as \`Ref<number>\`. Inside an action it can write to it: the slider moves, and every cell that reads \`shop_price\`, in either language, runs again. Moving the slider by hand counts as an action call.`
+\`cheaper\` takes the slider as \`State<number>\`. Inside an action it can write to it: the slider moves, and every cell that reads \`shop_price\`, in either language, runs again. Moving the slider by hand counts as an action call.`
 // %%
 sourceListing(tutorial_module, invalidation, { from: "type Line", to: "shopView" })
 // %%
 //ss: ./tutorial-ordinary.tsx
 // %%
-md`A parameter that reads an Observable JavaScript or raw cell and has no type is \`[boundary-unannotated]\`. A type the check cannot apply to a value, such as a function or a \`Promise\`, is \`[boundary-type]\`. \`Ref\` on a cell with no \`viewof\` is \`[boundary-ref]\`, unless the cell is a SoundScript ref cell imported from another module.`
+md`A parameter that reads an Observable JavaScript or raw cell and has no type is \`[boundary-unannotated]\`. A type the check cannot apply to a value, such as a function or a \`Promise\`, is \`[boundary-type]\`. \`State\` on a cell with no \`viewof\` is \`[boundary-state]\`, unless the cell is a SoundScript state cell imported from another module.`
 // %%
 test_shop_total = {
   const el = await tutorial_module.value("viewof shop_price");
@@ -252,9 +280,9 @@ Three kinds of cell are not memoised. A cell the checker rejects, such as \`leak
 
 Whether a cell is memoised depends on the other cells of its module, so a stored edit compiles again any other cell whose form it changes.`
 // %%
-md`### A ref cell is one variable
+md`### A state cell is one variable
 
-\`count\` in section 4 is one variable, which holds the current value and yields again after every committed write. A parameter \`count: Ref<number>\` is not an input of its cell's variable: it receives the address of \`count\`, its module and its name, and a write looks the variable up. So in section 6 \`doubled\` runs again on **bump** and \`bump\` does not. Writes made by one action call are committed together after it returns. A write to a ref whose cell is in error throws, and the action call that made it keeps none of its writes.`
+\`count\` in section 4 is one variable, which holds the current value and yields again after every committed write. A parameter \`count: State<number>\` is not an input of its cell's variable: it receives the address of \`count\`, its module and its name, and a write looks the variable up. So in section 6 \`doubled\` runs again on **bump** and \`bump\` does not. Writes made by one action call are committed together after it returns. A write to a state cell that is in error throws, and the action call that made it keeps none of its writes.`
 // %%
 ss_highlightCode(md`### Capabilities are cells of the core
 
@@ -285,7 +313,7 @@ The *island* is every cell upstream of the outputs, stopping at the inputs and r
 
 **The reactive link.** Each name in \`refs\` is a hidden input of the cell that calls \`compile\`, after its parameters; section 6's \`areaFn\` takes \`scale\` this way. Moving section 7's slider changes \`maxIter\`, \`inPool\` runs again and returns a new function with the new value inside it, and \`image\` recomputes because its input changed. Work still queued for the old function is dropped.
 
-**The rules**, each a rejection the checker's fixtures exercise: a name must be a cell; an island cell must be accepted, synchronous, and take no capability and no ref cell (put the ref cell in \`refs\`); inputs, refs and outputs must survive \`structuredClone\` (no functions, refs or actions); \`options.runtime\` must be a \`Pool\`; and a call must match the computed argument type. \`compile\` refuses to run unless the checker accepts the calling cell and every island cell (\`test_compile_refuses_unchecked\`). That refusal is the only guard: the island's code runs in the worker unsandboxed, and keeping it to its inputs is the checker's job.
+**The rules**, each a rejection the checker's fixtures exercise: a name must be a cell; an island cell must be accepted, synchronous, and take no capability and no state cell (put the state cell in \`refs\`); inputs, refs and outputs must survive \`structuredClone\` (no functions, refs or actions); \`options.runtime\` must be a \`Pool\`; and a call must match the computed argument type. \`compile\` refuses to run unless the checker accepts the calling cell and every island cell (\`test_compile_refuses_unchecked\`). That refusal is the only guard: the island's code runs in the worker unsandboxed, and keeping it to its inputs is the checker's job.
 
 Measured in headless Chromium over ten page loads on 2026-11-14: section 7's 640×420 image takes about 64 ms on the main thread and about 10 ms on a pool of 8 workers, and both give the same bytes (\`test_compile_pool_matches_main\`).`)
 // %%
@@ -306,7 +334,7 @@ md`### How the typed source is kept
 A compiled variable's definition is ordinary JavaScript. Its first comment is the marker \`/*{lang:"ss"}*/\`, the types are kept as \`/*ss:…*/\` comments, JSX as \`/*ss<…*/\` beside its lowered \`h(...)\` calls, and the text around the function (the comments before it, \`const name = \`) in a \`/*ss^{…}*/\` header. So the typed source is recovered from the definition alone, and a definition survives anything that keeps a function's text, such as saving the notebook. \`test_ss_roundtrip\` checks every live variable: decompile, compile again, and compare the text.`
 // %%
 md`### Editing
-Shift-Enter always stores the edit. The module is checked again, and each cell is then ok, rejected (it breaks a rule) or blocked (it depends on a cell that is not ok). Only ok cells run. A rejected or blocked cell keeps its source, shows why it is not running, and is saved that way. A \`ref\` whose own cell stays ok keeps its value while other cells are broken and repaired. A new cell takes the language of the cell it was added after; the picker in the editor's header shows it and changes it. The language registers on the \`cell_languages\` plugin point of this notebook's copy of \`@tomlarkworthy/cell-map\`, which the editor and the visualizer read.`
+Shift-Enter always stores the edit. The module is checked again, and each cell is then ok, rejected (it breaks a rule) or blocked (it depends on a cell that is not ok). Only ok cells run. A rejected or blocked cell keeps its source, shows why it is not running, and is saved that way. A state cell that stays ok keeps its value while other cells are broken and repaired. A new cell takes the language of the cell it was added after; the picker in the editor's header shows it and changes it. The language registers on the \`cell_languages\` plugin point of this notebook's copy of \`@tomlarkworthy/cell-map\`, which the editor and the visualizer read.`
 // %%
 md`### Why four sections are modules
 
@@ -316,7 +344,7 @@ Section 2's mistakes stay in a box because \`width\` and \`area\` are section 1'
 // %%
 md`## What is guaranteed
 
-For a cell the checker accepts: it reads only its parameters and the allowed built-ins; while it runs it writes only values it made; a \`ref\` changes only when the page calls an action; and every effect is a named parameter. A cell with no capability parameter returns the same value for the same inputs. A cell the checker rejects does not run. It shows the checker's message, and so does every cell that depends on it, until it is repaired. The stored state is decided by the ordered list of action calls and their arguments. It does not depend on which calls share a commit or on when cells run again.
+For a cell the checker accepts: it reads only its parameters and the allowed built-ins; while it runs it writes only values it made; a state cell changes only when the page calls an action; and every effect is a named parameter. A cell with no capability parameter returns the same value for the same inputs. A cell the checker rejects does not run. It shows the checker's message, and so does every cell that depends on it, until it is repaired. The stored state is decided by the ordered list of action calls and their arguments. It does not depend on which calls share a commit or on when cells run again.
 
 Not guaranteed:
 
@@ -337,7 +365,7 @@ A source file holds cells and type declarations, nothing else (\`[module-level]\
 | \`const x = (a, b) => …\` | a cell \`x\` with inputs \`a\` and \`b\`; \`let\`, a \`function\` expression and \`function x(a, b) {…}\` are the same |
 | \`const x = async (a) => …\` | value type \`T\` for a body returning \`Promise<T>\` |
 | \`const x = function* (a) {…}\` | a generator cell; value type \`Y\` for \`Generator<Y>\`; generators cannot be arrows |
-| \`const x = (): RefCell<T> => ref(v)\` | a ref cell: state, value type \`T\` (see State) |
+| \`const x = (): StateCell<T> => state(v)\` | a state cell: value type \`T\` (see State) |
 | \`const f = () => (n: number) => n * 2\` | a cell whose value is a function: two arrows, the outer one lists the inputs |
 | \`type T = …\`, \`interface I {…}\`, \`import type\` | allowed at top level, not cells |
 
@@ -350,12 +378,12 @@ Each parameter of a cell names what it reads. What it receives depends on the na
 | parameter | receives | a dependency on the value? |
 |---|---|---|
 | \`a\` or \`a: T\`, naming a cell | the cell's current value; an annotation must accept it (\`[inject-type]\`) | yes |
-| \`count: Ref<T>\`, naming a ref cell | the handle, with \`set\` and \`update\` and no read (\`[inject-ref]\` if not a ref cell of \`T\`) | no |
+| \`count: State<T>\`, naming a state cell | the handle, with \`set\` and \`update\` and no read (\`[inject-state]\` if not a state cell of \`T\`) | no |
 | \`ticks: Events<T>\`, naming a sync generator cell (*lite*) | a handle for \`on(...)\` (\`[inject-events]\` if not a generator yielding \`T\`) | no |
 | a capability name (next entry) | the host's object for that effect | no |
 | \`x: T\`, naming a cell in another language (section 10) | a frozen copy of its value, checked against \`T\` when it arrives (\`[boundary-unannotated]\` with no \`T\`, \`[boundary-type]\` if \`T\` cannot be checked) | yes |
-| \`x: Ref<T>\`, naming an Observable JavaScript \`viewof x\` | the view as a handle: \`set\` and \`update\` write the control (\`[boundary-ref]\` if there is no \`viewof x\` and \`x\` is not an imported ref cell) | no |
-| \`x: Ref<T>\`, naming a SoundScript ref cell imported from another module | the ref in the module it is imported from | no |
+| \`x: State<T>\`, naming an Observable JavaScript \`viewof x\` | the view as a handle: \`set\` and \`update\` write the control (\`[boundary-state]\` if there is no \`viewof x\` and \`x\` is not an imported state cell) | no |
+| \`x: State<T>\`, naming a SoundScript state cell imported from another module | the state cell in the module it is imported from | no |
 
 Once any cell takes a generator as \`Events\`, a parameter reading it without \`Events\` is \`[inject-events]\`, because it would receive the handle. No cell may take a listener cell (\`[listener-placement]\`). A name that is another variable of the module, in any language, is read through the checked boundary (section 10). Any other name is \`[inject-unknown]\`; a destructuring pattern is \`[inject-pattern]\`. A body may not use a cell's name without taking it as a parameter (\`[cell-by-name]\`).
 
@@ -379,7 +407,7 @@ A cell that takes none of these is deterministic.`
 // %%
 md`### Names a body may use
 
-Its parameters, its own locals, the prelude (\`ref\`, \`action\`, \`mut\`, \`freeze\`, \`borrow\`, \`snapshot\`, \`equals\`, and \`on\` in *lite*), and these intrinsics: \`Object Array Math JSON Number String Boolean BigInt Symbol Map Set Error TypeError RangeError RegExp Promise\`, the typed arrays, \`ArrayBuffer DataView TextEncoder TextDecoder Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone URL URLSearchParams\`. The v0 rules allow all of these, but the checker has no declarations yet for \`Symbol\`, \`DataView\`, \`TextEncoder\` and \`TextDecoder\`: using one is *unsupported*, and \`new\` on one is \`[new-non-intrinsic]\`; \`new Promise\` is also unsupported. Any other name is \`[free-name]\`. Some members of allowed objects are banned, \`Math.random\` among them (\`[banned-member]\`); a member a declared type does not have is \`[no-member]\`, and any member of an intrinsic that the checker's declarations leave out is reported *unsupported*, not ok.
+Its parameters, its own locals, the prelude (\`state\`, \`action\`, \`mut\`, \`freeze\`, \`borrow\`, \`snapshot\`, \`equals\`, and \`on\` in *lite*), and these intrinsics: \`Object Array Math JSON Number String Boolean BigInt Symbol Map Set Error TypeError RangeError RegExp Promise\`, the typed arrays, \`ArrayBuffer DataView TextEncoder TextDecoder Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone URL URLSearchParams\`. The v0 rules allow all of these, but the checker has no declarations yet for \`Symbol\`, \`DataView\`, \`TextEncoder\` and \`TextDecoder\`: using one is *unsupported*, and \`new\` on one is \`[new-non-intrinsic]\`; \`new Promise\` is also unsupported. Any other name is \`[free-name]\`. Some members of allowed objects are banned, \`Math.random\` among them (\`[banned-member]\`); a member a declared type does not have is \`[no-member]\`, and any member of an intrinsic that the checker's declarations leave out is reported *unsupported*, not ok.
 
 Not available at all: \`Date\`, \`console\`, \`window\`, \`document\`, \`globalThis\`, \`fetch\` (use the capability), timers, \`eval\`, \`Function\`.`
 // %%
@@ -423,16 +451,16 @@ md`### Lending a buffer: \`borrow\`, \`snapshot\`
 
 A generator cell may keep a \`Mut\` across yields and \`yield borrow(buf)\`; readers get a \`Borrowed<T>\`, read-only, valid during their own synchronous run. \`borrow\` appears only as the operand of \`yield\` (\`[borrow-placement]\`). A reader may not keep a \`Borrowed\` across \`await\` (\`[borrowed-await]\`), return it, store it or capture it in a nested function such as a \`map\` callback (\`[borrowed-escape]\`); \`snapshot(b)\` copies it to a plain \`T\`. A cell that reads a generator is not memoised, because the lent buffer changes in place between yields.`
 // %%
-md`### State: \`ref\`, \`action\`
+md`### State: \`state\`, \`action\`
 
 | construct | meaning |
 |---|---|
-| \`const count = (): RefCell<number> => ref(0)\` | a ref cell; \`ref(...)\` only as the returned value of a sync, non-generator cell (\`[ref-placement]\`); its content may not contain a \`Ref\` or \`RefCell\`, in a record, an array or a union (\`[ref-in-ref]\`) |
+| \`const count = (): StateCell<number> => state(0)\` | a state cell; \`state(...)\` only as the returned value of a sync, non-generator cell (\`[state-placement]\`); its content may not contain a \`State\` or \`StateCell\`, in a record, an array or a union (\`[state-in-state]\`) |
 | \`count\` or \`count: number\` as a parameter | the current value; the reader runs again after each committed write |
-| \`count: Ref<number>\` as a parameter | the handle: \`set(v)\`, \`update(f)\`, no read |
-| \`action((by: number) => count.update((c) => c + by))\` | an \`Action<[number]>\`; writes are legal only lexically inside \`action(...)\` (\`[ref-write]\`) |
-| \`read(count)\` inside an action, with \`count: Ref<number>\` | the value as of this point in the call order: the stored value plus the writes made earlier in the same commit; legal only inside an action body (\`[read-outside-action]\`) |
-| \`(other: Ref<number>, count: number) => action(() => other.set(count + 1))\` | rejected: an action body may not use a value that depends on state, that is a ref's or an events cell's value, \`now\`, \`random\` or \`fetch\`, or a local computed from one (\`[action-capture]\`); \`log\` is allowed. A value from the clock or the random source reaches an action as an argument, from an events cell or a view, so it is recorded with the call: Breakout's \`ticks\` takes \`now\` and yields \`dt\`, and \`onTick\` passes it to \`tick\`. |
+| \`count: State<number>\` as a parameter | the handle: \`set(v)\`, \`update(f)\`, no read |
+| \`action((by: number) => count.update((c) => c + by))\` | an \`Action<[number]>\`; writes are legal only lexically inside \`action(...)\` (\`[state-write]\`) |
+| \`read(count)\` inside an action, with \`count: State<number>\` | the value as of this point in the call order: the stored value plus the writes made earlier in the same commit; legal only inside an action body (\`[read-outside-action]\`) |
+| \`(other: State<number>, count: number) => action(() => other.set(count + 1))\` | rejected: an action body may not use a value that depends on state, that is a state cell's or an events cell's value, \`now\`, \`random\` or \`fetch\`, or a local computed from one (\`[action-capture]\`); \`log\` is allowed. A value from the clock or the random source reaches an action as an argument, from an events cell or a view, so it is recorded with the call: Breakout's \`ticks\` takes \`now\` and yields \`dt\`, and \`onTick\` passes it to \`tick\`. |
 
 A cell body never calls an action (\`[action-call]\`); an action may call another action inside its own body. A cell returns an action, puts it in a record, passes it to an \`Action\` parameter, a JSX event prop or \`on(...)\`; an action where something else is expected is \`[action-pass]\`. The host calls it. Writes made by one action call are committed together after it returns.`
 // %%
@@ -445,7 +473,7 @@ md`### Events and listeners: \`Events\`, \`on\` (*lite*)
 | \`const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick)\` | a listener: \`tick\` runs once for each value of \`ticks\`; the action must accept what \`ticks\` yields (\`[type]\`) |
 | \`flag ? on(a, x) : on(b, y)\` | a listener on one of two events cells |
 
-\`on(...)\` is legal only as the whole value of a sync cell: not in a list or record, a ref, a function's return, an argument, or a union with another value such as \`null\`, and no cell may take a listener cell (\`[listener-placement]\`). The generator is pulled only while a listener is attached, a sync one once per animation frame. If an action throws, the error is logged to the console as \`listener <cell>: action <action> threw on a value of events <events>\`, the action's writes are discarded, and the next value is still delivered. If the generator throws, the error is logged and it yields nothing more until it runs again. When two listener cells take the same events cell, each value goes to them in the order the cells appear in the module, and listeners in other modules after them, by module name; editing or re-running a listener does not change its place. Section 9.`
+\`on(...)\` is legal only as the whole value of a sync cell: not in a list or record, a state cell, a function's return, an argument, or a union with another value such as \`null\`, and no cell may take a listener cell (\`[listener-placement]\`). The generator is pulled only while a listener is attached, a sync one once per animation frame. If an action throws, the error is logged to the console as \`listener <cell>: action <action> threw on a value of events <events>\`, the action's writes are discarded, and the next value is still delivered. If the generator throws, the error is logged and it yields nothing more until it runs again. When two listener cells take the same events cell, each value goes to them in the order the cells appear in the module, and listeners in other modules after them, by module name; editing or re-running a listener does not change its place. Section 9.`
 // %%
 md`### Workers: \`compile\` (*lite*)
 
@@ -455,8 +483,8 @@ When the cell calling \`compile\` runs again (a ref it names changed), the old f
 
 | rule | |
 |---|---|
-| island cells accepted, synchronous, no capability, no ref cell (name it in \`refs\`) | \`[compile-island]\` |
-| inputs, refs and outputs survive \`structuredClone\`: no functions, refs, actions or borrowed values | \`[compile-boundary]\` |
+| island cells accepted, synchronous, no capability, no state cell (name it in \`refs\`) | \`[compile-island]\` |
+| inputs, refs and outputs survive \`structuredClone\`: no functions, state handles, actions or borrowed values | \`[compile-boundary]\` |
 | \`options.runtime\` is a \`Pool\` | \`[compile-options]\` |
 
 Each name in \`refs\` is a hidden input of the calling cell, so a change gives a new function. \`compile\` refuses to run it unless the checker accepts the calling cell and every island cell. Section 7.`
@@ -503,7 +531,7 @@ md`## Not built
 
 Discussed on 2026-11-14; none of these exists in the checker or in this page.
 
-- **Effects as tagged libraries.** \`ref\`, \`action\`, \`Events\` and \`on\` are special cases inside the checker. The proposal moves them into declaration files whose tags (\`@write\`, \`@handle\`, \`@cell\`) say what each function may do, so a new kind of effect needs a library rather than a checker change.
+- **Effects as tagged libraries.** \`state\`, \`action\`, \`Events\` and \`on\` are special cases inside the checker. The proposal moves them into declaration files whose tags (\`@write\`, \`@handle\`, \`@cell\`) say what each function may do, so a new kind of effect needs a library rather than a checker change.
 - **Actors**, as a library on those tags: an inbox cell, a post action, and the inbox's messages as \`Events<M>\`. A \`mailbox\` primitive in the checker was proposed and rejected.
 - **Label, do not reject.** Accept \`Math.random\` and label the cell *unsound*, and every cell that takes a capability from it, instead of rejecting it; a \`sound(...)\` marker would turn the label back into an error where it matters.
 - **Typed reflection.** A typed \`Variable\` and \`Module<C>\`, so a cell that defines or redefines other cells is checked and a redefinition rechecks the cells downstream. The checker lacks \`keyof\`, bounds and indexed access, which this needs.
@@ -561,6 +589,15 @@ test_compile_refuses_unchecked = {
   throw new Error("compile ran an island with a rejected cell");
 }
 // %%
+quietThen = async (f) => {
+  // f run once no action call is in flight or waiting, so an action it calls is a call of its own;
+  // the frame cap only turns a hung call into an error
+  const quiet = () => { const q = ss.actionQueue(); return !q.inFlight && q.waiting === 0; };
+  for (let i = 0; i < 600 && !quiet(); i++) await new Promise((r) => requestAnimationFrame(r));
+  if (!quiet()) throw new Error("an action call stayed in flight for 600 frames");
+  return f();
+}
+// %%
 test_breakout_listener = {
   tests_on;
   // its own copy of section 9's cells: the game on the page is not played or reset
@@ -572,11 +609,11 @@ test_breakout_listener = {
   for (const n of ["reset", "toggle", "world", "bricks", "onTick"]) await game.value(n);
   // the clock of this copy only: other tests on the page pull generators of their own
   const w0 = get("world"), on0 = runs("onTick"), t0 = runs("ticks"), h0 = get("ticks");
-  get("toggle")();
+  await quietThen(() => get("toggle")());
   let changes = 0, last = w0;
   await frames(() => { const w = get("world"); if (w !== last) { changes++; last = w; } return changes >= 10; });
   const playing = ss.pulling([h0]), w1 = get("world");
-  get("toggle")();
+  await quietThen(() => get("toggle")());
   await frames(() => ss.pulling([h0]) === 0, 60);
   const w2 = get("world"), paused = ss.pulling([h0]);
   await frames(() => false, 10);
@@ -608,12 +645,12 @@ test_breakout_memo = {
   // not depend on the frame rate (step clamps a tick to at most 50 ms of game time)
   const TICKS = 90;
   let frames = 0, changes = 0, last = get("world");
-  get("toggle")();
+  await quietThen(() => get("toggle")());
   // the frame cap only turns a hung page into an error
   const CAP = 3000;
   await new Promise((res) => { const f = () => { frames++; const w = get("world"); if (w !== last) { changes++; last = w; } if ((changes < TICKS || get("bricks").length === b0) && frames < CAP) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
   const h0 = get("ticks");
-  get("toggle")();
+  await quietThen(() => get("toggle")());
   // the clock has stopped, and the mutations of the last tick have been delivered
   for (let i = 0; i < 60 && ss.pulling([h0]) > 0; i++) await new Promise((r) => requestAnimationFrame(r));
   await new Promise((r) => requestAnimationFrame(r));
@@ -822,8 +859,8 @@ depGraph = (module, invalidation, { only = null } = {}) => {
       svg.append(g);
     }
     const kinds = new Set([...nodes.values()].map((x) => x.kind)), kindsE = new Set(edges.map((e) => e.kind));
-    const KEY = { cell: "cell", test: "test", ref: "state (ref cell)", action: "action", generator: "generator", listener: "listener", cap: "capability", rejected: "rejected" };
-    const EKEY = { value: "reads the value", handle: "gets the handle (Ref)", events: "gets the handle (Events)", refs: "compile refs" };
+    const KEY = { cell: "cell", test: "test", ref: "state cell", action: "action", generator: "generator", listener: "listener", cap: "capability", rejected: "rejected" };
+    const EKEY = { value: "reads the value", handle: "gets the handle (State)", events: "gets the handle (Events)", refs: "compile refs" };
     holder.replaceChildren(
       htl.html`<div class="lite-graph-scroll">${svg}</div>`,
       htl.html`<figcaption>Arrows run from a cell to the cells that take it as a parameter, from the checker's facts for this module. ${[...kinds].map((k) => htl.html`<span class=${"lite-key lite-node-" + k}><i></i>${KEY[k]}</span>`)} ${[...kindsE].filter((k) => k !== "value").map((k) => htl.html`<span class=${"lite-key lite-edge-" + k}><b></b>${EKEY[k]}</span>`)}</figcaption>`
@@ -905,7 +942,7 @@ checkBox = (src, { tsx = false } = {}) => {
 // %%
 kindOf = (v) => {
   const d = String(v._definition);
-  if (d.startsWith("function $ss$ref(")) return "ref cell: its value, again after each write";
+  if (d.startsWith("function $ss$ref(")) return "state cell: its value, again after each write";
   if (d.includes('kind: "events"')) return "events: a handle, pulled only while a listener is attached";
   if (!d.includes("$ss$.cell(")) return "type";
   const kind = d.includes("memo: true") ? "memoised on its inputs" : "not memoised";
@@ -1100,7 +1137,7 @@ test_ss_module_checks = {
   tests_on;
   const { result } = ss_check(tutorial_module);
   const got = Object.fromEntries(result.cells.map((c) => [c.name, c.status]));
-  const want = { width: "ok", height: "ok", area: "ok", aspect: "ok", scale: "ok", half: "ok", test_half: "ok", samples: "ok", histogram: "ok", leak: "rejected", late: "rejected", count: "ok", increment: "ok", clear: "ok", saved: "ok", save: "ok", app: "ok", n: "ok", inc: "ok", setN: "ok", Badge: "ok", NotElem: "ok", bad_attr_type: "rejected", bad_unknown_attr: "rejected", bad_unknown_element: "rejected", bad_handler_not_action: "rejected", bad_handler_wrong_args: "rejected", bad_component_props: "rejected", bad_component_missing_prop: "rejected", bad_component_not_elem: "rejected", bad_mut_in_jsx: "rejected", bad_child_object: "rejected", ok_all: "ok", shopTotal: "ok", cheaper: "ok", shopView: "ok" };
+  const want = { width: "ok", height: "ok", area: "ok", aspect: "ok", scale: "ok", half: "ok", test_half: "ok", samples: "ok", histogram: "ok", leak: "rejected", late: "rejected", count: "ok", increment: "ok", clear: "ok", saved: "ok", save: "ok", app: "ok", measure: "ok", word: "ok", wordSize: "ok", measureWord: "ok", measureView: "ok", n: "ok", inc: "ok", setN: "ok", Badge: "ok", NotElem: "ok", bad_attr_type: "rejected", bad_unknown_attr: "rejected", bad_unknown_element: "rejected", bad_handler_not_action: "rejected", bad_handler_wrong_args: "rejected", bad_component_props: "rejected", bad_component_missing_prop: "rejected", bad_component_not_elem: "rejected", bad_mut_in_jsx: "rejected", bad_child_object: "rejected", ok_all: "ok", shopTotal: "ok", cheaper: "ok", shopView: "ok" };
   if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(`verdicts ${JSON.stringify(got)}`);
   if (result.module.length) throw new Error(`module errors ${JSON.stringify(result.module)}`);
   return `${result.cells.length} cells: leak, late and the ten bad_* rejected, the rest ok`;

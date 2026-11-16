@@ -4,7 +4,7 @@
 //    transitively through the helpers it calls; a Borrowed is never captured
 //  - flow: no use of a Mut after freeze, no use of a Borrowed after await/yield (loops to a fixpoint;
 //    a call of a helper is a use of every Mut it captures)
-//  - ref(...) and borrow(...) placement
+//  - state(...) and borrow(...) placement
 import { kids, isFn, type Node } from "./parse.ts";
 import type { Checker, Binding } from "./infer.ts";
 import { isNamed, type Ty } from "./types.ts";
@@ -200,11 +200,11 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     } else if (pre === "borrow") {
       const p = parent.get(n);
       if (!(p?.type === "YieldExpression" && encl(n) === cellFn && cellFn.generator)) err(n, "borrow-placement", "borrow(x) only as the operand of yield in a generator cell");
-    } else if (pre === "ref") {
+    } else if (pre === "state") {
       const p = parent.get(n);
       const okBody = cellFn.body === n;
       const okRet = p?.type === "ReturnStatement" && parent.get(p) === cellFn.body;
-      if (!(okBody || okRet) || cellFn.async || cellFn.generator) err(n, "ref-placement", "ref(...) only as the returned value of a sync, non-generator cell");
+      if (!(okBody || okRet) || cellFn.async || cellFn.generator) err(n, "state-placement", "state(...) only as the returned value of a sync, non-generator cell");
     } else if (pre === "on") {
       // the cell's whole value: its expression body or a return of the cell function, through parentheses and conditional branches
       let cur = n, p = parent.get(n);

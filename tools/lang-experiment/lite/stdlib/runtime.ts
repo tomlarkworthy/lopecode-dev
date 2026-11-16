@@ -1,5 +1,5 @@
 // The SoundScript standard library's runtime half, bundled into @tomlarkworthy/soundscript as ss.js.gz.
-// Compiled cells call ss.cell(...); a Ref<T> parameter is ss.refAt(variable, name).
+// Compiled cells call ss.cell(...); a State<T> parameter is ss.refAt(variable, name).
 import * as P from "../../prelude.runtime.ts";
 import { h } from "../jsx/h.ts";
 import { create, patch } from "../jsx/render.ts";
@@ -71,20 +71,20 @@ export function checkCells(texts: string[], tsx = true, outside: readonly Outsid
 // The body of a cell the checker did not accept: it raises the checker's messages and runs nothing else.
 export function rejected(name: string, why: string[], variable?: object): never {
   const e = new Error(`${name} does not check: ${why.join("; ")}`);
-  // a ref cell's: a write to it throws this
+  // a state cell's: a write to it throws this
   if (variable) P.refFailed(variable as Parameters<typeof P.refFailed>[0], name, e);
   throw e;
 }
 
-export const { ref, action, mut, freeze, borrow, snapshot, equals, read } = P;
-// The Ref<T> a parameter receives: the address of name in the module of the variable `at` (the reading
+export const { state, action, mut, freeze, borrow, snapshot, equals, read, entry, idle, actionQueue } = P;
+// The State<T> a parameter receives: the address of name in the module of the variable `at` (the reading
 // cell's own, from @variable). With a shape, name is a cell in another language: an Observable JavaScript
-// viewof (view), or a SoundScript ref cell imported from another module; a written value is checked
+// viewof (view), or a SoundScript state cell imported from another module; a written value is checked
 // against shape (boundary.ts).
 export function refAt(at: object, name: string, shape?: Shape, view = false): object {
   return P.refAt(at as Parameters<typeof P.refAt>[0], name, shape ? (v) => checkShape(v, shape, name) : undefined, view);
 }
-// Whether a variable imports (through aliases: one input, from another module) a SoundScript ref cell.
+// Whether a variable imports (through aliases: one input, from another module) a SoundScript state cell.
 type Var = { _module?: unknown; _inputs?: Var[]; _definition?: unknown };
 export function importsRefCell(v: Var): boolean {
   let x: Var | undefined = v;
@@ -95,7 +95,7 @@ export function importsRefCell(v: Var): boolean {
   }
   return !!x && x !== v && typeof x._definition === "function" && String(x._definition).startsWith("function $ss$ref(");
 }
-// An Observable JavaScript view's element as a Ref<T>: its value is checked against shape on the way in
+// An Observable JavaScript view's element as a State<T>: its value is checked against shape on the way in
 // and on every write (boundary.ts)
 export function viewRef(el: unknown, shape: Shape, name: string): object {
   const e = el as { value: unknown; dispatchEvent?: unknown; addEventListener?: unknown };
@@ -131,19 +131,19 @@ export const forget = (definition: object) => {
 export const memoSize = () => memos.size;
 export const memoHas = (id: string) => memos.has(id);
 
-// self: a ref cell's definition; variable: its runtime variable (@variable)
+// self: a state cell's definition; variable: its runtime variable (@variable)
 type Opts = { kind: "cell" | "ref" | "events" | "listener"; name: string; memo: boolean; prev?: unknown; self?: object; variable?: object; id: string; invalidation: Promise<unknown> | null };
 
 export function cell(fn: (...a: unknown[]) => unknown, args: unknown[], o: Opts): unknown {
   const count = () => { stats.evals++; evalCounts.set(o.id, (evalCounts.get(o.id) ?? 0) + 1); };
   // an events cell's body runs when its inputs change; a re-run with the same inputs keeps the generator
   if (o.kind === "events") return events(o.prev, o.name, args, () => { count(); return guard(fn(...args) as Generator); }, o.invalidation);
-  // a ref cell run again with the same definition and inputs (Object.is) keeps its store, and so its
+  // a state cell run again with the same definition and inputs (Object.is) keeps its store, and so its
   // state: after an input failed and was repaired to the value it had, or an upstream re-run gave the same value
   if (o.kind === "ref") {
     return P.refRun(o.variable as Parameters<typeof P.refRun>[0], o.self, o.name, args, () => {
-      P.state.evalDepth++;
-      try { count(); return fn(...args); } finally { P.state.evalDepth--; }
+      P.rt.evalDepth++;
+      try { count(); return fn(...args); } finally { P.rt.evalDepth--; }
     }, o.invalidation, () => { stats.memoHits++; });
   }
   if (o.memo) {
@@ -155,14 +155,14 @@ export function cell(fn: (...a: unknown[]) => unknown, args: unknown[], o: Opts)
       return last.value;
     }
   }
-  P.state.evalDepth++;
+  P.rt.evalDepth++;
   let value: unknown;
   try {
     count();
     const r = fn(...args);
     value = generatorish(r) ? guard(r) : r;
   } finally {
-    P.state.evalDepth--;
+    P.rt.evalDepth--;
   }
   if (o.kind === "listener") listen(value, o.name, o.invalidation);
   else nameAction(value, o.name);

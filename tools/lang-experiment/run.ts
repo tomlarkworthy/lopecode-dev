@@ -79,18 +79,18 @@ async function importTranspiled(dir: string, file: string, tag: string) {
   const out = join(HERE, ".build", `${basename(dir)}-${process.pid}-${tag}-${buildCounter++}`);
   mkdirSync(out, { recursive: true });
   const target = join(out, file.replace(/\.ts$/, ".mjs"));
-  const header = `import { ref, action, mut, freeze, borrow, snapshot, equals, read } from ${JSON.stringify(pathToFileURL(PRELUDE_RT).href)};\n`;
+  const header = `import { state, action, mut, freeze, borrow, snapshot, equals, read } from ${JSON.stringify(pathToFileURL(PRELUDE_RT).href)};\n`;
   writeFileSync(target, header + js);
   return (await import(pathToFileURL(target).href)) as Record<string, unknown>;
 }
 
 function guardGenerator(g: Generator) {
   const wrap = (m: "next" | "return" | "throw") => (...a: unknown[]) => {
-    P.state.evalDepth++;
+    P.rt.evalDepth++;
     try {
       return (g[m] as (...x: unknown[]) => unknown)(...a);
     } finally {
-      P.state.evalDepth--;
+      P.rt.evalDepth--;
     }
   };
   return { next: wrap("next"), return: wrap("return"), throw: wrap("throw"), [Symbol.iterator]() { return this; } };
@@ -150,12 +150,12 @@ export async function loadPort(dirIn: string, opts: { order?: "forward" | "rever
     const raw = typeof f === "function" ? (f as (...a: unknown[]) => unknown) : () => { throw new Error(`${c.name} is not exported as a function`); };
     const counted = function (this: unknown, ...args: unknown[]) {
       counter.n++;
-      P.state.evalDepth++;
+      P.rt.evalDepth++;
       try {
         const r = raw.apply(this, args);
         return generatorish(r) ? guardGenerator(r) : r;
       } finally {
-        P.state.evalDepth--;
+        P.rt.evalDepth--;
       }
     };
     const inputs = c.params.map((p) => inputFor(c, p));
@@ -166,7 +166,7 @@ export async function loadPort(dirIn: string, opts: { order?: "forward" | "rever
         varName: `${c.name}$ref`, inputs, rec: refRec, raw,
         def: (...a: unknown[]) => {
           const r = counted(...a);
-          if (!P.isRefCell(r)) throw new Error(`${c.name} did not return ref(...)`);
+          if (!P.isStateCell(r)) throw new Error(`${c.name} did not return state(...)`);
           return P.materialize(r, c.name);
         },
       });
@@ -194,7 +194,7 @@ export async function loadPort(dirIn: string, opts: { order?: "forward" | "rever
     while (performance.now() - t0 < maxMs) {
       await new Promise((r) => setTimeout(r, 0));
       if (rt._computing) { stable = 0; await Promise.race([rt._computing, new Promise((r) => setTimeout(r, 20))]); continue; }
-      const busy = [...recs.values()].some((r) => r.observed && r.status === "pending") || P.state.flushScheduled || P.state.queue.length > 0;
+      const busy = [...recs.values()].some((r) => r.observed && r.status === "pending") || !P.idle();
       if (busy) { stable = 0; continue; }
       if (++stable >= 5) return true;
     }

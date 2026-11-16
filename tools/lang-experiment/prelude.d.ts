@@ -1,9 +1,9 @@
 // Global declarations seen by every port's cells.ts and shell.ts. Brands are string-keyed
 // properties so check.ts can recognise them with checker.getPropertyOfType.
 
-interface RefCell<T> { readonly __lc_refcell: T }
-interface Ref<T> {
-  readonly __lc_ref: (v: T) => T;
+interface StateCell<T> { readonly __lc_statecell: T }
+interface State<T> {
+  readonly __lc_state: (v: T) => T;
   set(v: T): void;
   update(f: (v: T) => T): void;
 }
@@ -25,20 +25,20 @@ type Fetch = ((url: string, init?: { method?: string; headers?: Record<string, s
 type Log = ((...args: unknown[]) => void) & { readonly __lc_cap: "log" };
 type Invalidation = Promise<void>;
 
-declare function ref<T>(initial: T): RefCell<T>;
+declare function state<T>(initial: T): StateCell<T>;
 declare function action<A extends unknown[] = []>(f: (...args: A) => void): Action<A>;
 declare function mut<T>(v: T): Mut<T>;
 declare function freeze<T>(m: Mut<T>): T;
 declare function borrow<T>(m: Mut<T>): Borrowed<T>;
 declare function snapshot<T>(b: Borrowed<T>): T;
 declare function equals(a: unknown, b: unknown): boolean;
-declare function read<T>(r: Ref<T>): T;
+declare function read<T>(r: State<T>): T;
 
 // Harness-only helpers used by the derived source (check.ts). Not callable from cells.
 type __CellValue<R> =
-  [R] extends [RefCell<infer T>] ? T :
+  [R] extends [StateCell<infer T>] ? T :
   [R] extends [PromiseLike<infer T>] ? T :
   [R] extends [Generator<infer Y, any, any>] ? Y :
   [R] extends [AsyncGenerator<infer Y, any, any>] ? Y :
   R;
-type __RefOf<R> = [R] extends [RefCell<infer T>] ? Ref<T> : "inject-ref: the named cell does not return RefCell";
+type __RefOf<R> = [R] extends [StateCell<infer T>] ? State<T> : "inject-state: the named cell does not return StateCell";

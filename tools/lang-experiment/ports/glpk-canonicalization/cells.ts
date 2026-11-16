@@ -13,7 +13,7 @@ type Expected = {
 };
 
 // viewof DEBUG: the value; the toggle is the shell cell DEBUG_view.
-let DEBUG = (): RefCell<boolean> => ref(false);
+let DEBUG = (): StateCell<boolean> => state(false);
 
 // ---- Preparation: identify operator and replace with < ----------------------------------
 

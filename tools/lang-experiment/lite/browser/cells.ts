@@ -8,12 +8,12 @@ export const generatorish = (v: any): v is Generator => !!v && typeof v.next ===
 // onValue sees each object a step yields (runtime.ts records them as lent)
 export function guard(g: Generator, onValue?: (v: object) => void) {
   const wrap = (m: "next" | "return" | "throw") => (...a: unknown[]) => {
-    P.state.evalDepth++;
+    P.rt.evalDepth++;
     try {
       const r = (g[m] as (...x: unknown[]) => IteratorResult<unknown>)(...a);
       if (onValue && r && typeof r.value === "object" && r.value !== null) onValue(r.value);
       return r;
-    } finally { P.state.evalDepth--; }
+    } finally { P.rt.evalDepth--; }
   };
   return { next: wrap("next"), return: wrap("return"), throw: wrap("throw"), [Symbol.iterator]() { return this; } };
 }
@@ -140,8 +140,9 @@ function orderOf(s: HState, h: unknown): Listener[] {
 }
 const handleOf = new WeakMap<HState, Handle>();
 
-// A value that arrives while actions are running waits in the queue. An action that throws is
-// logged and the next listener, and the next value, still run.
+// A value that arrives while actions are running waits in the queue. Each delivery is a top-level
+// action call, so one whose action is still running (async) holds the next in the runtime's queue. An
+// action that throws or rejects is logged and the next listener, and the next value, still run.
 function deliver(s: HState, v: unknown) {
   s.queue.push(v);
   if (s.draining) return;
@@ -151,9 +152,8 @@ function deliver(s: HState, v: unknown) {
       const x = s.queue.shift();
       for (const l of orderOf(s, handleOf.get(s))) {
         if (!s.listeners.has(l)) continue;
-        try { l.action(x); } catch (e) {
-          console.error(`listener ${ls.get(l)?.cell ?? "?"}: action ${actionNames.get(l.action) ?? "(anonymous)"} threw on a value of events ${s.name}:`, e);
-        }
+        const report = (e: unknown) => console.error(`listener ${ls.get(l)?.cell ?? "?"}: action ${actionNames.get(l.action) ?? "(anonymous)"} threw on a value of events ${s.name}:`, e);
+        try { P.entry(report, () => l.action(x)); } catch (e) { report(e); }
       }
     }
   } finally { s.draining = false; }

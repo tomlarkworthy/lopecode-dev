@@ -92,7 +92,7 @@ vars: [
 `;
 
 // viewof DEBUG: the toggle widget; its value is the ref cell DEBUG in cells.ts.
-export let DEBUG_view = (DEBUG: Ref<boolean>, Inputs) => {
+export let DEBUG_view = (DEBUG: State<boolean>, Inputs) => {
   const input = Inputs.toggle({ label: "log each simplification pass", value: false });
   input.addEventListener("input", action(() => DEBUG.set(input.value)));
   return input;

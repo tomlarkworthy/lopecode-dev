@@ -15,7 +15,7 @@ export type Completions = { from: number; to: number; options: Completion[]; mod
 const PH = "__ss_complete__";
 const KEYWORDS = "const let return if else for of in while do break continue switch case default function true false null undefined typeof async await yield try catch finally throw".split(" ");
 // types whose members a cell may not read: handles and actions are used whole
-const NO_MEMBERS = new Set(["Action", "RefCell", "Events", "Listener", "Compile"]);
+const NO_MEMBERS = new Set(["Action", "StateCell", "Events", "Listener", "Compile"]);
 
 // Where offset sits in text: in a string or comment, and the brackets open there (as closers).
 function scan(text: string, end: number): { quoted: boolean; closers: string[] } {
@@ -97,7 +97,7 @@ function typeAt(before: string): boolean {
 }
 const declared = (src: string) => [...src.matchAll(/(?:^|\n)\s*(?:export\s+)?(?:interface|type)\s+([\w$]+)/g)].map((m) => m[1]);
 // the types a cell may name: the prelude's, JSX's, the handle and ownership types, and the library generics
-const TYPE_NAMES = [...new Set([...declared(PRELUDE_DECLS), ...declared(JSX_DECLS), "Action", "RefCell", "Mut", "Borrowed", "Array", "ReadonlyArray", "Map", "Set", "Promise", "Generator", "Record", "number", "string", "boolean", "bigint", "unknown", "null", "undefined", "void", "readonly"])]
+const TYPE_NAMES = [...new Set([...declared(PRELUDE_DECLS), ...declared(JSX_DECLS), "Action", "StateCell", "Mut", "Borrowed", "Array", "ReadonlyArray", "Map", "Set", "Promise", "Generator", "Record", "number", "string", "boolean", "bigint", "unknown", "null", "undefined", "void", "readonly"])]
   .filter((n) => !["FetchResponse", "Child"].includes(n));
 
 const kindOf = (reg: Registry, t: Ty) => (reg.callSigs(t).length ? "method" : "property");
@@ -145,7 +145,7 @@ function scopeNames(ch: Checker, env: Env): Completion[] {
     for (const [name, b] of s.vars) {
       if (out.has(name) || name === PH) continue;
       // read is offered only inside an action body, the one place it is legal
-      if (b.kind === "prelude") { if (name !== "read" || env.fi?.inAction) out.set(name, { label: name, type: "function", detail: name === "read" ? "prelude: a ref's value inside an action" : "prelude" }); continue; }
+      if (b.kind === "prelude") { if (name !== "read" || env.fi?.inAction) out.set(name, { label: name, type: "function", detail: name === "read" ? "prelude: a state cell's value inside an action" : "prelude" }); continue; }
       const t = env.flow.get("#" + b.id) ?? b.t;
       const type = b.kind === "global" ? (ch.reg.callSigs(t).length ? "function" : "namespace") : b.kind === "fn" || ch.reg.callSigs(t).length ? "function" : "variable";
       out.set(name, { label: name, type, detail: b.kind === "global" ? "intrinsic" : show(t) });

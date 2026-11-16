@@ -28,43 +28,43 @@ export let live_finished = (live, finished) => {
 
 // ---- widgets: each viewof is a ref cell in cells.ts plus a *_view cell here ----
 
-export let tool_view = (tool: Ref<ValueOf<"tool">>, Inputs) => {
+export let tool_view = (tool: State<ValueOf<"tool">>, Inputs) => {
   const input = Inputs.radio(["brush", "blow", "stylus"], { value: "brush", label: "tool" });
   input.addEventListener("input", action(() => tool.set(input.value)));
   return input;
 };
-export let reset_view = (reset: Ref<number>, Inputs) => {
+export let reset_view = (reset: State<number>, Inputs) => {
   const input = Inputs.button("empty the tray");
   input.addEventListener("input", action(() => reset.set(input.value)));
   return input;
 };
-export let view_view = (view: Ref<ValueOf<"view">>, Inputs) => {
+export let view_view = (view: State<ValueOf<"view">>, Inputs) => {
   const input = Inputs.radio(["lines", "print", "surface pressure"], { value: "lines", label: "view" });
   input.addEventListener("input", action(() => view.set(input.value)));
   return input;
 };
-export let height_view = (height: Ref<number>, Inputs) => {
+export let height_view = (height: State<number>, Inputs) => {
   const input = Inputs.range([100, 1000], { value: 570, step: 1, label: "height" });
   input.addEventListener("input", action(() => height.set(input.value)));
   return input;
 };
-export let cellSize_view = (cellSize: Ref<number>, Inputs) => {
+export let cellSize_view = (cellSize: State<number>, Inputs) => {
   const input = Inputs.range([1, 4], { value: 1.5, step: 0.25, label: "grid cell size (px)" });
   input.addEventListener("input", action(() => cellSize.set(input.value)));
   return input;
 };
-export let backgroundFilm_view = (backgroundFilm: Ref<number>, Inputs) => {
+export let backgroundFilm_view = (backgroundFilm: State<number>, Inputs) => {
   const input = Inputs.range([0.02, 1], { value: 0.1, step: 0.01, label: "film already on the water" });
   input.addEventListener("input", action(() => backgroundFilm.set(input.value)));
   return input;
 };
-export let runTests_view = (runTests: Ref<boolean>, Inputs) => {
+export let runTests_view = (runTests: State<boolean>, Inputs) => {
   // the original starts false; see cells.ts runTests
   const input = Inputs.toggle({ label: "run the tests", value: true });
   input.addEventListener("input", action(() => runTests.set(input.value)));
   return input;
 };
-export let params_view = (params: Ref<ValueOf<"params">>, Inputs, defaults, html) => {
+export let params_view = (params: State<ValueOf<"params">>, Inputs, defaults, html) => {
   const range = (key: keyof typeof defaults, extent: number[], step: number, label: string) =>
     Inputs.range(extent, { value: defaults[key], step, label, width: 340 });
   const form = Inputs.form(

@@ -1448,7 +1448,7 @@ const _cml10 = function _test_cellmap_lang_tag_reads_the_first_comment(langTag,e
 };
 const _cml11 = function _test_cellmap_lang_from_the_marker(groupCells,expect)
 {
-  // runtime-shaped records through groupCells, so no module is made: a marked ref cell (handle and
+  // runtime-shaped records through groupCells, so no module is made: a marked state cell (handle and
   // value), a marked plain cell, an md cell quoting the marker, an ordinary viewof
   const mod = { _runtime: { _builtin: {} } };
   const mk = (name, inputs, def) => ({ _name: name, _type: 1, _module: mod, _inputs: [], _definition: def, _value: undefined, deps: inputs });
