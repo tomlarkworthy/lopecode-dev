@@ -244,6 +244,19 @@ for i,v in st.items():
     if put: late.append((put[-1]["at"],i,v))
 for t,i,v in sorted(late): P(" ",iso(t),v,i,"|",ISSUE.get(i,{}).get("title","")[:80])
 P("asks on closed issues:",len(late),"| 7d:",sum(1 for t,_,_ in late if t>=D7),"| closed issues carrying needs-owner:",sum(1 for i,v in st.items() if v in CLOSED_ST and "needs-owner" in lab[i]))
+# A persona's label put on after the close: no drain starts a session on a closed issue (retro 2026-11-16: the owner's
+# deploys of mvpc-shell-resolve-nsid and deployer-edge-check-renews-lease were never asked for, done at the pass, needs-worker after).
+P("\n## a persona's needs-* label put on after the move that closed the issue (work no drain starts)")
+dead=[]
+for i,v in st.items():
+    if v not in CLOSED_ST: continue
+    ev=BYID.get(i,[]); end=max([e["seq"] for e in ev if e["type"]=="moved"] or [0])
+    for e in ev:
+        if e["type"]=="labelled" and e["seq"]>end:
+            for l in e.get("add") or []:
+                if l.startswith("needs-") and l!="needs-owner": dead.append((e["at"],i,v,l))
+for t,i,v,l in sorted(dead): P(" ",iso(t),v,l,i,"|",ISSUE.get(i,{}).get("title","")[:80])
+P("persona labels on closed issues:",len(dead),"| 7d:",sum(1 for t,*_ in dead if t>=D7))
 
 # ---- an ask that is only a read of the owner's session (retro 2026-11-01: topic-dbsql-slow had three fixes deployed in 9 days
 # that no persona could measure, since logs.query is the owner's alone; its reads waited 2.5 days and then 11 h). The retro holds

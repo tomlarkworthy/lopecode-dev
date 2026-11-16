@@ -425,3 +425,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   placeholders, 5 of 10 owner waits said ended where 8 had, an after-link figure of 0 that `laptop` issues counted as doable
   hid (fixed in `measure.py`), a queue count, an approval-to-live time, a dry-run fault called a verify fault, an issue called
   one of the owner's yeses that was a prerequisite, an unexplained time, a missing date). 104.6k subagent tokens, 4m08s.
+- 2026-11-16 `plan/retros/2026-11-16.md`, authored by the spawning session: FIX, 4 findings (3 confirmed, 1 plausible), all
+  taken (a 7 d count with no source, after-link waits that counted projects waiting on parts, the new `drain2.ts` hold not
+  checking a refused label write (fixed in cloud-brain-dev `65577ce`), an old comment naming one writer of the label).
+  88.8k subagent tokens, 5m22s.
