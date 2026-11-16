@@ -42,7 +42,8 @@ mkdirSync(SCRATCH, { recursive: true });
 let passes = 0, fails = 0;
 // speed rows (their text starts "speed:") are counted apart: on battery power their budgets are not met
 const counts = { functional: { pass: 0, fail: 0 }, speed: { pass: 0, fail: 0 } };
-const report = (ok: boolean, what: string) => { console.log(`${ok ? "pass" : "FAIL"} ${what}`); ok ? passes++ : fails++; counts[what.startsWith("speed:") ? "speed" : "functional"][ok ? "pass" : "fail"]++; };
+let LAST = "(start)";
+const report = (ok: boolean, what: string) => { LAST = what.slice(0, 120); console.log(`${ok ? "pass" : "FAIL"} ${what}`); ok ? passes++ : fails++; counts[what.startsWith("speed:") ? "speed" : "functional"][ok ? "pass" : "fail"]++; };
 const power = Bun.spawnSync(["pmset", "-g", "batt"], { stdout: "pipe" }).stdout.toString().match(/'([^']+)'/)?.[1] ?? "unknown";
 console.log(`power: ${power}`);
 
@@ -149,6 +150,19 @@ async function open(path: string, saveTo?: string) {
     await Promise.race([Promise.all(tests.map((t: any) => m.value(t._name).catch(() => 0))), new Promise((r) => setTimeout(r, 60000))]);
   }, SPEC).catch(() => {});
   page.on("framenavigated", (f) => { if (f === page.mainFrame()) console.log(`  navigated: ${f.url().slice(0, 200)}`); });
+  // what ends a page's JavaScript context, with the check in progress: a navigation, a crash, a context replaced
+  const short = path.split("/").pop();
+  const cdp = await page.context().newCDPSession(page);
+  const mainId = (page.mainFrame() as any)._guid;
+  cdp.on("Runtime.executionContextDestroyed", (e: any) => console.log(`  CTX destroyed ${short} id ${e.executionContextId} after "${LAST}"`));
+  cdp.on("Runtime.executionContextsCleared", () => console.log(`  CTX all cleared ${short} after "${LAST}"`));
+  cdp.on("Runtime.executionContextCreated", (e: any) => { if (e.context?.auxData?.isDefault) console.log(`  CTX created ${short} id ${e.context.id} frame ${String(e.context.auxData.frameId).slice(0, 8)} ${String(e.context.origin).slice(0, 60)} after "${LAST}"`); });
+  cdp.on("Page.frameNavigated", (e: any) => console.log(`  CTX frameNavigated ${short} ${e.frame.parentId ? "child" : "main"} ${String(e.frame.url).slice(0, 120)} after "${LAST}"`));
+  cdp.on("Page.frameRequestedNavigation", (e: any) => console.log(`  CTX navigation requested ${short} ${e.reason} ${e.disposition} ${String(e.url).slice(0, 120)} after "${LAST}"`));
+  page.on("close", () => console.log(`  CTX page closed ${short} after "${LAST}"`));
+  await cdp.send("Runtime.enable").catch(() => {});
+  await cdp.send("Page.enable").catch(() => {});
+  void mainId;
   return { page, blocked, errors };
 }
 function requests(label: string, o: { blocked: string[]; errors: string[] }) {
@@ -510,7 +524,7 @@ async function valueOf(page: Page, module: string, cell: string): Promise<any> {
       console.log(`  valueOf: ${module}.value("${cell}") did not settle in 5 s (try ${i + 1}); retrying`);
     } catch (e) {
       if (i >= 3 || !/Execution context was destroyed|Promise was collected/.test(String((e as Error).message))) throw e;
-      console.log(`  valueOf: ${module}.value("${cell}"): ${String((e as Error).message).split("\n")[0]} (try ${i + 1}); retrying`);
+      console.log(`  valueOf: ${module}.value("${cell}"): ${String((e as Error).message).split("\n")[0]} (try ${i + 1}); retrying; after "${LAST}"; at ${new Error().stack!.split("\n").filter((l) => l.includes("verify.ts")).slice(1, 4).map((l) => l.trim().replace(/^at /, "").replace(/\(.*verify\.ts:/, "(verify.ts:")).join(" < ")}`);
     }
   }
 }
@@ -906,8 +920,19 @@ async function addByKeys(page: Page, module: string, anchor: string, text: strin
 // survives both, and is repaired by keys in the reopened file.
 const SNEAK = "const sneak = (width: number) => {\n  (globalThis as any).__ssSneak = ((globalThis as any).__ssSneak ?? 0) + 1;\n  return width;\n};";
 const BROKEN = "const broken = (width: number) => width +;";
+// A read-only evaluate, tried again when Playwright reports the context destroyed. On 2026-11-16 that error came
+// in 5 of 8 verify runs (4 retried by valueOf, 1 fatal here) with no navigation, crash or context destroyed in
+// the page's own CDP events (open() logs them as "CTX ..."), so it is taken as the harness's, not the notebook's.
+async function readOnly<T>(label: string, f: () => Promise<T>): Promise<T> {
+  for (let i = 0; ; i++) {
+    try { return await f(); } catch (e) {
+      if (i >= 3 || !/Execution context was destroyed|Promise was collected/.test(String((e as Error).message))) throw e;
+      console.log(`  ${label}: ${String((e as Error).message).split("\n")[0]} (try ${i + 1}); retrying; after "${LAST}"`);
+    }
+  }
+}
 async function neverRuns(page: Page, label: string) {
-  return page.evaluate(async ([t, c, sneak, broken]) => {
+  return readOnly(`neverRuns (${label})`, () => page.evaluate(async ([t, c, sneak, broken]) => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get(t), core = rt.mains.get(c);
     const ss = core._scope.get("ss")._value;
     const raised = async (n: string) => { try { await mod.value(n); return "a value"; } catch (e) { return String((e as Error)?.message ?? e); } };
@@ -917,7 +942,7 @@ async function neverRuns(page: Page, label: string) {
     try { rt0 = (await core.value("ss_roundtrip"))(mod); } catch (e) { rt0 = String((e as Error).message); }
     return { sneakRuns: (globalThis as any).__ssSneak ?? 0, sneak: await raised("sneak"), broken: await raised("broken"), sneakText: text("sneak") === sneak, brokenText: text("broken") === broken,
       states: [st.get("sneak")?.state, st.get("broken")?.state], roundtrip: rt0 };
-  }, [TUTORIAL, CORE, SNEAK, BROKEN]).then((r) => {
+  }, [TUTORIAL, CORE, SNEAK, BROKEN])).then((r) => {
     report(r.sneakRuns === 0 && /^sneak does not check: \[/.test(r.sneak) && /^broken does not check: \[parse\]/.test(r.broken) && r.sneakText && r.brokenText && r.states.join() === "rejected,rejected" && typeof r.roundtrip === "number",
       `${label}: sneak's body ran ${r.sneakRuns} times; sneak raises ${JSON.stringify(r.sneak.slice(0, 90))}; broken raises ${JSON.stringify(r.broken.slice(0, 90))}; both decompile as typed (${r.sneakText},${r.brokenText}); states ${r.states}; round trip ${r.roundtrip}`);
     return r;
