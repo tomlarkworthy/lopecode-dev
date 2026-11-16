@@ -742,7 +742,7 @@ const copy = (other: Ref<number>, count: number) => action(() => other.set(count
 - `action-capture`, in `lite/capture.ts` (called from `core.ts`) and in `check.ts`: an action body
   may not use a value that depends on state (rule text now S6.9 of the specification). Both checkers gave the same
   three errors on `fixtures/reject-action-capture`; `fixtures/accept-read` passed both. Both fixtures
-  were deleted on 2026-11-16: their cells are the S6.9 reject cases and `spec-6.ts`.
+  were deleted on 2026-11-16: their cells are the S6.9 reject cases and `spec-6.tsx`.
 - Property test `p1` (`stdlib/runtime.test.ts`): 300 seeded calls over three refs, five actions
   (one reads `a` to write `b`, one throws on some arguments, one calls two others) and frames that
   deliver one events value to two listeners, run under six schedules. All six stored

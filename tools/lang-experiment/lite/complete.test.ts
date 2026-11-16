@@ -1,6 +1,6 @@
 // Unit tests for lite/complete.ts: what completionsAt offers at a cursor, for each kind of name.
 // A cell written with `|` marks the cursor; the other cells are the module. Run: bun lite/complete.test.ts
-import { completionsAt } from "./complete.ts";
+import { completionsAt, annotationOf, addParameter } from "./complete.ts";
 import { checkSources } from "./core.ts";
 
 let pass = 0, fail = 0;
@@ -166,6 +166,70 @@ const show = (r: { labels: string[]; mode: string }) => `${r.mode} ${JSON.string
   ok("not the cell itself", lacks(s, "doubled") && has(s, "count"), show(s));
   const t = at("const f = (count: R|");
   ok("a type position is not a parameter name", t.mode !== "param", show(t));
+}
+
+// ---- parameter lists: cells in other languages (section 11)
+{
+  const outside = [{ name: "shop_price", view: true }, { name: "shop_basket" }, { name: "handle" }, { name: "count" }];
+  const values: Record<string, unknown> = { shop_price: 3, shop_basket: [{ item: "tea", qty: 2 }, { item: "cake", qty: 1 }], handle: () => 1 };
+  const annotate = (n: string) => annotationOf(values[n]);
+  const run = (text: string) => {
+    const cells = [...MODULE, text.replace("|", "")];
+    const r = completionsAt(cells, cells.length - 1, text.indexOf("|"), true, outside, annotate);
+    return { ...r, labels: r.options.map((o) => o.label) };
+  };
+  const r = run("const f = (shop|");
+  const price = r.options.find((o) => o.label === "shop_price"), basket = r.options.find((o) => o.label === "shop_basket");
+  ok("an other-language cell is offered in a parameter list with its annotation", r.mode === "param" && price?.apply === "shop_price: number" && basket?.apply === "shop_basket: { item: string; qty: number }[]", JSON.stringify(r.options));
+  const h = run("const f = (han|");
+  ok("a value with no readable type inserts name and colon only", JSON.stringify(h.options.map((o) => o.apply)) === '["handle: "]', JSON.stringify(h.options));
+  const c = run("const f = (co|");
+  ok("a SoundScript cell of the same name is offered bare, once", JSON.stringify(c.options.filter((o) => o.label === "count").map((o) => o.apply ?? null)) === "[null]", JSON.stringify(c.options));
+  const t = run("const f = (shop_price: number, shop|");
+  ok("an other-language parameter already there is not offered again", JSON.stringify(t.labels) === '["shop_basket"]', show(t));
+  const n = completionsAt([...MODULE, "const f = (shop"], MODULE.length, "const f = (shop".length, true, outside);
+  ok("without annotate, an other-language cell inserts name and colon", n.options.find((o) => o.label === "shop_price")?.apply === "shop_price: ", JSON.stringify(n.options));
+}
+{
+  const cases: [unknown, string | null][] = [
+    [1.5, "number"], ["a", "string"], [false, "boolean"], [[1, 2], "number[]"], [[["a"], ["b"]], "string[][]"],
+    [{ x: 1, y: "b" }, "{ x: number; y: string }"], [[{ x: 1 }, { x: 2 }], "{ x: number }[]"],
+    [[], null], [[1, "a"], null], [null, null], [undefined, null], [() => 1, null], [new Map(), null], [new Date(), null],
+    [{}, null], [{ "a-b": 1 }, null], [Promise.resolve(1), null], [{ a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8, i: 9 }, null],
+  ];
+  const wrong = cases.filter(([v, want]) => annotationOf(v) !== want).map(([v, want]) => `${String(v)}: ${annotationOf(v)} want ${want}`);
+  ok("annotationOf reads number, string, boolean, arrays and small plain objects only", !wrong.length, wrong.join("; "));
+  // every annotation it gives is one the boundary accepts (S11.3)
+  const bad = cases.filter(([, want]) => want).map(([, want]) => {
+    const r = checkSources({ cells: `const f = (v: ${want}) => 1;`, tsx: true, outside: [{ name: "v" }] });
+    return r.cells.every((c) => c.status === "ok") ? null : `${want}: ${JSON.stringify(r.cells.map((c) => c.errors))}`;
+  }).filter(Boolean);
+  ok("each suggested annotation checks at the boundary", !bad.length, bad.join("; "));
+}
+
+// ---- the edit that adds a parameter (the add-as-parameter fix)
+{
+  const add = (src: string, name: string, ann: string | null = null) => {
+    const e = addParameter(src, name, ann);
+    return e ? src.slice(0, e.from) + e.insert + src.slice(e.to) : null;
+  };
+  const cases: [string, string, string | null, string | null][] = [
+    ["const f = () => width;", "width", null, "const f = (width) => width;"],
+    ["const f = ( ) => width;", "width", null, "const f = (width) => width;"],
+    ["const f = (a: number) => a + width;", "width", null, "const f = (a: number, width) => a + width;"],
+    ["const f = (a: number) => a + p;", "p", "number", "const f = (a: number, p: number) => a + p;"],
+    ["const f = (cb: (n: number) => void) => w;", "w", null, "const f = (cb: (n: number) => void, w) => w;"],
+    ["const f = (r: Ref<number>, s: \"a)\") => w;", "w", null, "const f = (r: Ref<number>, s: \"a)\", w) => w;"],
+    ["const f = (\n  a: number,\n) => w;", "w", null, "const f = (\n  a: number, w\n) => w;"],
+    ["function f(a) { return w; }", "w", null, "function f(a, w) { return w; }"],
+    ["const g = function* (now: Clock) { yield w; };", "w", null, "const g = function* (now: Clock, w) { yield w; };"],
+    ["// note\nexport const f = (o: { a: number }) => w;", "w", null, "// note\nexport const f = (o: { a: number }, w) => w;"],
+    ["const f = (w: number) => w;", "w", null, null],
+    ["const f = x => x;", "w", null, null],
+    ["type T = number;", "w", null, null],
+  ];
+  const wrong = cases.filter(([src, n, a, want]) => add(src, n, a) !== want).map(([src, n, a, want]) => `${JSON.stringify(src)} + ${n}: ${JSON.stringify(add(src, n, a))} want ${JSON.stringify(want)}`);
+  ok("addParameter appends to the cell's own parameter list, or gives null", !wrong.length, wrong.join("; "));
 }
 
 // ---- incomplete or quoted text

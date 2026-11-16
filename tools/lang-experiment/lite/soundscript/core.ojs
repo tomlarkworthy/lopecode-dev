@@ -17,7 +17,7 @@ readme_use = ss_highlightCode(md`## Using it in a module
 To write SoundScript cells in another module of this notebook, import \`ss\` and each capability your cells name:
 
 \`\`\`
-import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_pool } from "@tomlarkworthy/soundscript"
+import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_pool, ss_source } from "@tomlarkworthy/soundscript"
 \`\`\`
 
 Every compiled cell takes \`ss\` as its first input. Add a cell after a SoundScript cell and type a source such as \`const total = (a: number, b: number) => a + b;\`. The editor's header shows the language the cell will be stored in, and lets you change it. A SoundScript cell is checked against the module's other SoundScript cells and, if it is \`ok\`, compiled and defined. A module whose cells call \`compile\` also defines \`ss_compile\`:
@@ -45,7 +45,7 @@ readme_storage = md`## How a cell is recognised and stored
 
 A cell compiles to ordinary JavaScript: one runtime variable, or two for a ref cell. In a ref cell, \`viewof tally\` holds the handle and \`tally\` holds the value. The \`viewof\` name makes the notebook's tools group the pair as one cell.
 
-A variable is SoundScript when its definition is an arrow function whose body starts with the marker \`/*{lang:"ss"}*/\`. The definition keeps the types as \`/*ss:…*/\` comments. It keeps JSX as \`/*ss<…*/\` comments beside the lowered \`h(...)\` calls. The typed source is therefore recovered from the definition text alone, and it survives a save (\`test_ss_roundtrip\`).`
+A variable is SoundScript when the first comment in its definition is the marker \`/*{lang:"ss"}*/\`. The definition keeps the types as \`/*ss:…*/\` comments. It keeps JSX as \`/*ss<…*/\` comments beside the lowered \`h(...)\` calls. The typed source is therefore recovered from the definition text alone, and it survives a save (\`test_ss_roundtrip\`).`
 // %%
 readme_memo = md`## When a cell does not run
 
@@ -63,7 +63,7 @@ The visualizer shows a cell's value with the normal Inspector. An action, a func
 
 For a cell whose variables carry the marker, the editor shows the typed source, and its header line shows the inferred type, as \`doubled : number\`. It reports the checker's diagnostics as you type. What the edit does to other cells is shown on its first line: the cells it breaks, blocks or repairs, and after Shift-Enter the cells it broke, blocked or repaired.
 
-Shift-Enter stores the edit whatever the checker says, unless it names no cell or another cell's name. A cell that is not \`ok\` compiles to a definition that raises the checker's messages, with its typed source kept in the marker comment. A stored edit compiles again any other cell whose compiled form it changes. \`ss_lifecycle\` does the same for a change made outside the editor, such as a deleted cell.`
+Shift-Enter stores the edit whatever the checker says, unless it names no cell. An edit that takes another cell's name is stored under \`<name> (2)\` and rejected (S1.6). A cell that is not \`ok\` compiles to a definition that raises the checker's messages, with its typed source kept in the marker comment. A stored edit compiles again any other cell whose compiled form it changes. \`ss_lifecycle\` does the same for a change made outside the editor, such as a deleted cell.`
 // %%
 readme_limits = md`## Limits
 
@@ -78,7 +78,7 @@ readme_api = ss_highlightCode(md`## API
 \`\`\`
 ss.checkSources({ cells, tsx, outside })  // the checker: per cell {name, status, errors, unsupported, value (its type)}
 ss.check(source, tsx = true, outside)  // checkSources, remembered for the last 16 sources; .facts per cell (not enumerable)
-ss.compileCell(source, tsx, context)   // one cell's source -> [{name, inputs, definition}]; context: ss_context(module texts)
+ss.compileCell(source, tsx, context, name?)  // one cell's source -> [{name, inputs, definition}]; context: ss_context(module texts); name: the variable's own name, which wins over the declared one
 ss.decompileVariable(definition)       // a compiled definition -> the cell's source, or null
 ss.compiler(() => source)              // the value of ss_compile: compile(...) for the cells of that source
 ss.evals(variable._definition)         // how many times a compiled cell's body has run
@@ -313,8 +313,8 @@ ss_language = {
   const lastEffect = new WeakMap();
 
   // {ok (the edited cell checks), store (Shift-Enter stores it), problems: [{line, rule, msg}] with lines
-  // relative to source, effect, defs, texts, state}. Every edit is stored except one that names no cell
-  // or takes the name of another cell of the module.
+  // relative to source, effect, defs, texts, state}. Every edit is stored except one that names no cell;
+  // one that takes the name of another cell is stored as "<name> (2)" and rejected.
   const check = (source, variables = [], cell) => {
     const module = moduleOf(variables, cell);
     const cells = ss_moduleCells(module);
@@ -373,14 +373,44 @@ ss_language = {
     return { ok: problems.length === 0 && state.state === "ok", store, problems, effect, statesBefore, statesAfter, defs, key, texts, state: state.state, status: mine?.status ?? (parseMsg !== undefined ? "rejected" : null), type: mine?.value ?? null };
   };
 
+  // the annotation the current value of a cell in another language suggests; the value is read, never computed
+  const annotationIn = (module, name) => {
+    const v = module?._scope?.get(name);
+    return v && !v._error ? ss.annotationOf(v._value) : null;
+  };
+  // a name the body reads that is a cell of the module: the parameter that takes it. A SoundScript cell is
+  // taken bare (its type is inferred); one in another language with its value's annotation, else unknown (S11.3)
+  const paramFix = (p, module) => {
+    const m = p.rule === "cell-by-name" ? /^cell ([\w$]+) referenced by name/.exec(p.msg) : p.rule === "free-name" ? /^free name ([\w$]+)$/.exec(p.msg) : null;
+    if (!m) return null;
+    const name = m[1];
+    let ann = null;
+    if (p.rule === "free-name") {
+      if (!module || !ss_outside(module).some((o) => o.name === name)) return null;
+      ann = annotationIn(module, name) ?? "unknown";
+    }
+    return { name, ann };
+  };
   const lint = (source, variables = [], cell) => {
     const starts = [0];
     for (let i = 0; i < source.length; i++) if (source[i] === "\n") starts.push(i + 1);
     const r = check(source, variables, cell);
+    const module = moduleOf(variables, cell);
     const diags = r.problems.map((p) => {
       const l = Math.min(Math.max(p.line, 1), starts.length) - 1;
       const to = l + 1 < starts.length ? starts[l + 1] - 1 : source.length;
-      return { from: starts[l], to: Math.max(to, starts[l]), severity: "error", message: `[${p.rule}] ${p.msg}` };
+      const d = { from: starts[l], to: Math.max(to, starts[l]), severity: "error", message: `[${p.rule}] ${p.msg}` };
+      const fix = paramFix(p, module);
+      if (fix && ss.addParameter(source, fix.name, fix.ann)) {
+        // the diagnostic covers the name where it is read on that line
+        const hit = new RegExp(`(?<![\\w$.])${fix.name.replace(/\$/g, "\\$")}(?![\\w$])`).exec(source.slice(d.from, d.to));
+        if (hit) { d.from += hit.index; d.to = d.from + fix.name.length; }
+        d.actions = [{ name: `Add ${fix.ann ? `${fix.name}: ${fix.ann}` : fix.name} as a parameter`, apply: (view) => {
+          const e = ss.addParameter(view.state.doc.toString(), fix.name, fix.ann);
+          if (e) view.dispatch({ changes: e });
+        } }];
+      }
+      return d;
     });
     // what applying would do to the other cells, or, once applied, what it did
     const done = r.key ? lastEffect.get(moduleOf(variables, cell))?.get(r.key) : null;
@@ -445,8 +475,8 @@ ss_language = {
     return v && String(v._definition) === d.definition && JSON.stringify(v._inputs.map((i) => i._name)) === JSON.stringify(d.inputs);
   });
 
-  // Stores the edit whatever its verdict (not stored, returning undefined: no cell name, or another
-  // cell's name). A cell the checker does not accept compiles to a definition that raises its messages.
+  // Stores the edit whatever its verdict (not stored, returning undefined: no cell name; another cell's
+  // name is stored as "<name> (2)"). A cell the checker does not accept compiles to a definition that raises its messages.
   // Every other cell whose compiled form the edit changes is compiled again too: one that becomes, or
   // stops being, accepted; a generator that became, or stopped being, taken as Events; a reader of a
   // generator, which is not memoised.
@@ -521,7 +551,7 @@ ss_language = {
     const at0 = cells.findIndex((c) => c.key === ownKey(variables));
     const at = at0 < 0 ? texts.length : at0;
     texts[at] = source;
-    return ss.completionsAt(texts, at, pos, tsx, module ? ss_outside(module) : null);
+    return ss.completionsAt(texts, at, pos, tsx, module ? ss_outside(module) : null, module ? (n) => annotationIn(module, n) : null);
   };
   // the editor's header: the cell's parameters as inputs (not ss or a hidden invalidation), named outputs
   const header = (variables) => {

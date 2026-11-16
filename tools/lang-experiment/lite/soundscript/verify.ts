@@ -703,6 +703,94 @@ async function completion(page: Page) {
   report(all.n > 20 && all.missed.length === 0, `completion: at each of ${all.n} member reads in the SoundScript cells of the core, tutorial and section modules the member read is offered${all.missed.length ? ": missed " + all.missed.slice(0, 8).join("; ") : ""}`);
   report(all.max < 30, `speed: one completion of count. in the ${all.cells}-cell tutorial module: median ${all.median.toFixed(1)} ms, max ${all.max.toFixed(1)} ms of 30 (budget 30 for the max)`);
 }
+// Three editor features with real keys and clicks (2026-11-16): the highlighting follows the language
+// picker before Shift-Enter; a parameter list completes the module's cells in other languages with an
+// annotation read from the value; a body that reads a cell by name offers to add it as a parameter.
+// Nothing is stored: each editor gets its original text back.
+async function editorFeatures(page: Page) {
+  const look = (host: any) => host.locator(".cm-content").first().evaluate((el: any) => {
+    const rt = (window as any).__ojs_runtime;
+    const cm = [...rt._variables].find((v: any) => v._name === "codemirror")._value;
+    const view = [...rt._variables].find((v: any) => v._name === "EditorView")._value.findFromDOM(el.closest(".cm-editor"));
+    return { lang: String(view.state.facet(cm.language)?.name ?? null), html: el.innerHTML };
+  });
+  const place = (host: any, text: string) => host.locator(".cm-content").first().evaluate((el: any, text: string) => {
+    const view = [...(window as any).__ojs_runtime._variables].find((v: any) => v._name === "EditorView")._value.findFromDOM(el.closest(".cm-editor"));
+    const at = text.indexOf("|");
+    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text.replace("|", "") }, ...(at >= 0 ? { selection: { anchor: at } } : {}) });
+    view.focus();
+  }, text);
+  const popup = () => page.evaluate(() => [...document.querySelectorAll(".cm-tooltip-autocomplete li")].map((li) => li.querySelector(".cm-completionLabel")?.textContent ?? ""));
+  const pickerValue = (host: any) => host.locator("select.e5-cell-language").first().evaluate((s: HTMLSelectElement) => s.value).catch(() => null);
+  const pickByKey = async (host: any, key: string) => { await host.locator("select.e5-cell-language").first().focus(); await page.keyboard.press(key); };
+  const app = await openEditor(page, TUTORIAL, "app");
+  if (!app) { report(false, "editor features: no editor for app"); return; }
+  const original = await editorText(app);
+  const defOfApp = () => page.evaluate((t) => { const rt = (window as any).__ojs_runtime, m = rt.mains.get(t); return String([...rt._variables].find((v: any) => v._module === m && v._name === "app")?._definition); }, TUTORIAL);
+  const def0 = await defOfApp();
+
+  // B1: the picker moves the highlighting at once; nothing is stored
+  const ss0 = await look(app);
+  await pickByKey(app, "O");
+  const asOjs = await pickerValue(app);
+  await until(page, async () => (await look(app)).lang !== ss0.lang, 5000);
+  const ojs = await look(app);
+  // B3 runs here, between the two picks: a select's type-to-select joins keys pressed within a second
+  // ("O" then "S" at once searched for "OS" and picked nothing); B3 takes several seconds
+  // B3: a body that reads a cell by name offers to take it as a parameter
+  const half = await openEditor(page, TUTORIAL, "half");
+  if (!half) { report(false, "editor features: no editor for half"); return; }
+  const o = await editorText(half);
+  const hh = o.slice(0, o.indexOf("const half"));
+  const fix = async (text: string, rule: string, name: string, button: string) => {
+    await typeInto(page, half, hh + text, false);
+    await until(page, async () => (await diagsOf(half)).some((d: string) => d.startsWith(`[${rule}]`)), 5000);
+    const before = await diagsOf(half);
+    await half.locator(".cm-lintRange-error", { hasText: new RegExp(`^${name}$`) }).last().hover();
+    const btn = page.locator(".cm-tooltip-lint .cm-diagnosticAction", { hasText: button }).first();
+    const shown = await btn.waitFor({ timeout: 5000 }).then(() => true).catch(() => false);
+    if (shown) await btn.click();
+    await until(page, async () => !(await diagsOf(half)).some((d: string) => d.startsWith(`[${rule}]`)), 5000);
+    return { before: before.filter((d: string) => d.startsWith("[")), shown, text: (await editorText(half)).slice(hh.length), after: (await diagsOf(half)).filter((d: string) => d.startsWith(`[${rule}]`)) };
+  };
+  const byName = await fix("const half = (area, scale) => scale(area, 0.5) + width;", "cell-by-name", "width", "Add width as a parameter");
+  report(byName.shown && byName.text === "const half = (area, scale, width) => scale(area, 0.5) + width;" && !byName.after.length,
+    `editor features: half reading width by name shows ${JSON.stringify(byName.before)}; clicking "Add width as a parameter" gives ${JSON.stringify(byName.text)} and the diagnostic goes (button shown ${byName.shown})`);
+  const free = await fix("const half = (area, scale) => scale(area, 0.5) + shop_price;", "free-name", "shop_price", "Add shop_price: number as a parameter");
+  report(free.shown && free.text === "const half = (area, scale, shop_price: number) => scale(area, 0.5) + shop_price;" && !free.after.length,
+    `editor features: half reading shop_price (Observable JavaScript) by name shows ${JSON.stringify(free.before)}; clicking "Add shop_price: number as a parameter" gives ${JSON.stringify(free.text)} and the diagnostic goes (button shown ${free.shown})`);
+  // B1, continued: picking SoundScript back restores the highlighting
+  await pickByKey(app, "S");
+  const back = await pickerValue(app);
+  await until(page, async () => (await look(app)).lang === ss0.lang, 5000);
+  const ss1 = await look(app);
+  report(asOjs === "ojs" && ojs.lang !== ss0.lang && ojs.html !== ss0.html && back === "ss" && ss1.lang === ss0.lang && ss1.html === ss0.html && (await defOfApp()) === def0 && (await editorText(app)) === original,
+    `editor features: picking Observable JavaScript by key on app re-highlights it before Shift-Enter (${ss0.lang} -> ${ojs.lang}, markup ${ojs.html !== ss0.html ? "changed" : "same"}), picking SoundScript (${back}) back restores it (${ss1.lang}, markup ${ss1.html === ss0.html ? "same" : "different"}); app is not stored (${(await defOfApp()) === def0})`);
+
+  // B2: a parameter list completes the cells in other languages with the annotation their values suggest
+  const h = original.slice(0, original.indexOf("const app"));
+  const complete = async (text: string, key: string) => {
+    await place(app, text);
+    await page.keyboard.type(key);
+    await page.locator(".cm-tooltip-autocomplete li").first().waitFor({ timeout: 5000 }).catch(() => {});
+    // CodeMirror ignores Enter for 75 ms after the list opens (interactionDelay)
+    await page.waitForTimeout(250);
+    const list = await popup();
+    await page.keyboard.press("Enter");
+    return { list, text: (await editorText(app)).slice(h.length) };
+  };
+  const price = await complete(h + "const app = (count: number, shop_p|) => count;", "r");
+  const basket = await complete(h + "const app = (count: number, shop_b|) => count;", "a");
+  report(JSON.stringify(price.list) === '["shop_price"]' && price.text === "const app = (count: number, shop_price: number) => count;"
+    && JSON.stringify(basket.list) === '["shop_basket"]' && basket.text === "const app = (count: number, shop_basket: { item: string; qty: number }[]) => count;",
+    `editor features: in app's parameter list shop_pr then Enter gives ${JSON.stringify(price.text)} (list ${JSON.stringify(price.list)}); shop_ba then Enter gives ${JSON.stringify(basket.text)} (list ${JSON.stringify(basket.list)})`);
+  await page.keyboard.press("Escape");
+  await place(app, original);
+
+  await typeInto(page, half, o, false);
+  await page.keyboard.press("Escape");
+  report((await editorText(half)) === o && (await editorText(app)) === original && (await valueOf(page, TUTORIAL, "half")) !== undefined, `editor features: app and half have their original text again, nothing stored`);
+}
 async function uiPaths(page: Page, saved: string) {
   const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
   await tab(CORE);
@@ -1776,6 +1864,7 @@ const E = await open(file, savedPath);
 await testsOn(E.page, "ui");
 await testsPass(E.page, "ui", CORE, CORE_TESTS);
 await completion(E.page);
+await editorFeatures(E.page);
 // raw cells edited by keys; the Save in place at the end of uiPaths keeps the last edit
 await rawOnPage(E.page, rawHelpers(), "ui raw");
 await pickerPaths(E.page, rawHelpers(), "ui picker");

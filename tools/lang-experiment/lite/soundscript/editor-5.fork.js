@@ -604,7 +604,10 @@ const _e6pick = function _languagePicker(cellLanguagesRef,cellLanguage,languageC
     while (n && !n.querySelector(".cm-editor")) n = n.parentElement;
     const ed = n?.querySelector(".cm-editor");
     const view = ed ? EditorView.findFromDOM(ed) : null;
-    if (view) codemirror.forceLinting?.(view);
+    if (!view) return;
+    // the editor's own listener moves its highlighting to the language picked
+    view.dispatch({ userEvent: "e5.language" });
+    codemirror.forceLinting?.(view);
   });
   return select;
 }
@@ -1180,7 +1183,7 @@ const _19d9pua = function _observableJS_lint(codemirror){return(
     })
 ]
 )};
-const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,literalCompletions,EditorState,decompiled,cellIdFacet,EditorView,states,compile_and_update,code_editor_view,replaceCodeMirrorDoc,observableJS_language,observableJS_highlightStyle,myDefaultTheme,cellLanguage,languageOf,unloadedLanguage,routeLanguage)
+const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,literalCompletions,EditorState,decompiled,cellIdFacet,EditorView,states,compile_and_update,code_editor_view,replaceCodeMirrorDoc,observableJS_language,observableJS_highlightStyle,myDefaultTheme,cellLanguage,languageOf,unloadedLanguage,routeLanguage,cellLanguagesRef)
 {
   if (!editedCell?.variables?.length)
     return;
@@ -1365,6 +1368,23 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
   let language;
   try { language = registered?.extension ? registered.extension(codemirror) : isJs ? codemirror.javascript() : observableJS_language; }
   catch (e) { console.error(e); extensionError = e; language = isJs ? codemirror.javascript() : observableJS_language; }
+  // the syntax highlighting follows the language the text would be stored in (the picker's), before it is stored
+  const languageSlot = new codemirror.Compartment();
+  let languageId = registered?.id ?? (isJs ? 'js' : 'ojs');
+  const extensionFor = id => {
+    if (id === 'ojs') return observableJS_language;
+    if (id === 'js') return codemirror.javascript();
+    const l = cellLanguagesRef.current.find(x => x.id === id);
+    if (!l) return null;
+    try { return l.extension ? l.extension(codemirror) : codemirror.javascript(); } catch (e) { console.error(e); return null; }
+  };
+  const followLanguage = (view, id) => {
+    if (!id || id === languageId || view.destroyed) return;
+    const ext = extensionFor(id);
+    if (!ext) return;
+    languageId = id;
+    view.dispatch({ effects: languageSlot.reconfigure(ext) });
+  };
   const state = EditorState.create({
     doc: decompiled,
     extensions: [
@@ -1372,15 +1392,19 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
       EditorView.updateListener.of(u => states.set(u.state.facet(cellIdFacet), u.state)),
       // the header's picker follows the text: typing a claimed source shows the language it will be stored in
       EditorView.updateListener.of(u => {
-        if (!u.docChanged) return;
+        // a pick in the header (the picker dispatches a userEvent e5.language) or typed text that changes the route
+        const picked = u.transactions.some(t => t.isUserEvent('e5.language'));
+        if (!u.docChanged && !picked) return;
         const text = u.state.doc.toString();
-        if (text.trim() === '{}') return;
+        const vars = editedCell?.variables ?? [];
+        const id = routeLanguage(text, vars, editedCell).id ?? cellLanguage(vars, editedCell);
+        // an update listener may not dispatch, so the reconfigure runs just after this update
+        if (id !== languageId) queueMicrotask(() => followLanguage(u.view, id));
+        if (!u.docChanged || text.trim() === '{}') return;
         let n = u.view.dom.parentElement;
         while (n && !n.querySelector('select.e5-cell-language')) n = n.parentElement;
         const sel = n?.querySelector('select.e5-cell-language');
         if (!sel || sel === document.activeElement) return;
-        const vars = editedCell?.variables ?? [];
-        const id = routeLanguage(text, vars, editedCell).id ?? cellLanguage(vars, editedCell);
         if ([...sel.options].some(o => o.value === id)) sel.value = id;
       }),
       codemirror.keymap.of([
@@ -1405,7 +1429,7 @@ const _125gzhe = function _editor_manager(editedCell,globalThis,codemirror,liter
         }
       ]),
       codemirror.EditorView.lineWrapping,
-      language,
+      languageSlot.of(language),
       codemirror.syntaxHighlighting(observableJS_highlightStyle),
       codemirror.autocompletion({
         // a cell a registered language claims completes only from that language; runtime values and
@@ -2885,7 +2909,7 @@ export default function define(runtime, observer) {
   $def("_7btuqg", "observableJS_language", ["codemirror","observable_lezer_parser"], _7btuqg);  
   $def("_1xf04v5", "observableJS_highlightStyle", ["codemirror","lezerhighlight"], _1xf04v5);  
   $def("_19d9pua", "observableJS_lint", ["codemirror"], _19d9pua);  
-  $def("_125gzhe", "editor_manager", ["editedCell","globalThis","codemirror","literalCompletions","EditorState","decompiled","cellIdFacet","EditorView","states","compile_and_update","code_editor_view","replaceCodeMirrorDoc","observableJS_language","observableJS_highlightStyle","myDefaultTheme","cellLanguage","languageOf","unloadedLanguage","routeLanguage"], _125gzhe);  
+  $def("_125gzhe", "editor_manager", ["editedCell","globalThis","codemirror","literalCompletions","EditorState","decompiled","cellIdFacet","EditorView","states","compile_and_update","code_editor_view","replaceCodeMirrorDoc","observableJS_language","observableJS_highlightStyle","myDefaultTheme","cellLanguage","languageOf","unloadedLanguage","routeLanguage","cellLanguagesRef"], _125gzhe);  
   $def("_65mlp5", "divToCell", [], _65mlp5);  
   $def("_bt6o0p", null, ["md"], _bt6o0p);  
   $def("_jh2ad1", "editor_refresh_from_runtime", ["editedCell","decompile","code_editor_view","replaceCodeMirrorDoc","queueMicrotask","onCodeChange","invalidation"], _jh2ad1);  

@@ -9,7 +9,7 @@ import { type Ty, show, named, isNamed, propT, members, UNKNOWN } from "./types.
 import { CAPABILITIES, PRELUDE_FNS, PRELUDE_DECLS, JSX_DECLS } from "./intrinsics.ts";
 import type { Node } from "./parse.ts";
 
-export type Completion = { label: string; type: string; detail?: string };
+export type Completion = { label: string; type: string; detail?: string; apply?: string };
 export type Completions = { from: number; to: number; options: Completion[]; mode: "member" | "name" | "param" | "type" | "jsx" | "none" };
 
 const PH = "__ss_complete__";
@@ -154,8 +154,71 @@ function scopeNames(ch: Checker, env: Env): Completion[] {
   return [...out.values()];
 }
 
-// outside: the module's cells in other languages (core.ts Outside), so a parameter that reads one has its annotated type
-export function completionsAt(cells: readonly string[], at: number, offset: number, tsx = true, outside: readonly Outside[] | null = null): Completions {
+const HEAD = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/;
+
+// The annotation a value in another language suggests, read from the value alone: number, string, boolean,
+// a non-empty array whose elements all suggest one annotation, or a small plain object of those. Anything
+// else (pending, null, a function, a class instance, a mixed array) suggests none.
+export function annotationOf(v: unknown, depth = 0): string | null {
+  if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") return typeof v;
+  if (depth > 2 || v === null || typeof v !== "object") return null;
+  if (Array.isArray(v)) {
+    if (!v.length || v.length > 1000) return null;
+    const first = annotationOf(v[0], depth + 1);
+    if (!first) return null;
+    for (let i = 1; i < v.length; i++) if (annotationOf(v[i], depth + 1) !== first) return null;
+    return `${first}[]`;
+  }
+  const proto = Object.getPrototypeOf(v);
+  if (proto !== Object.prototype && proto !== null) return null;
+  const keys = Object.keys(v);
+  if (!keys.length || keys.length > 8 || !keys.every((k) => /^[A-Za-z_$][\w$]*$/.test(k))) return null;
+  const parts: string[] = [];
+  for (const k of keys) {
+    const t = annotationOf((v as Record<string, unknown>)[k], depth + 1);
+    if (!t) return null;
+    parts.push(`${k}: ${t}`);
+  }
+  const out = `{ ${parts.join("; ")} }`;
+  return out.length > 120 ? null : out;
+}
+
+// The edit that adds name (with its annotation, when given) to the end of the cell's own parameter list,
+// or null when the text has no parameter list or already takes name.
+export function addParameter(source: string, name: string, annotation: string | null = null): { from: number; to: number; insert: string } | null {
+  const head = HEAD.exec(source);
+  if (!head) return null;
+  const open = head[0].length;
+  let depth = 0, close = -1, seg = "";
+  const names: string[] = [];
+  for (let i = open; i < source.length; i++) {
+    const c = source[i];
+    if (c === '"' || c === "'" || c === "`") {
+      let j = i + 1;
+      while (j < source.length && source[j] !== c) j += source[j] === "\\" ? 2 : 1;
+      seg += source.slice(i, j + 1); i = j; continue;
+    }
+    if ("([{<".includes(c)) depth++;
+    else if (")]}>".includes(c) && !(c === ">" && source[i - 1] === "=")) {
+      if (depth === 0) { if (c === ")") close = i; break; }
+      depth--;
+    }
+    if (depth === 0 && c === ",") { names.push(seg); seg = ""; continue; }
+    seg += c;
+  }
+  if (close < 0) return null;
+  names.push(seg);
+  if (names.some((p) => /^\s*(?:\.\.\.)?\s*([\w$]+)/.exec(p)?.[1] === name)) return null;
+  const param = annotation ? `${name}: ${annotation}` : name;
+  const inner = source.slice(open, close);
+  if (inner.trim() === "") return { from: open, to: close, insert: param };
+  const last = open + inner.trimEnd().length;
+  return { from: last, to: last, insert: inner.trimEnd().endsWith(",") ? ` ${param}` : `, ${param}` };
+}
+
+// outside: the module's cells in other languages (core.ts Outside), so a parameter that reads one has its annotated type.
+// annotate: for a parameter-list completion of an outside name, the annotation its current value suggests (or null).
+export function completionsAt(cells: readonly string[], at: number, offset: number, tsx = true, outside: readonly Outside[] | null = null, annotate: ((name: string) => string | null) | null = null): Completions {
   const text = cells[at] ?? "";
   const before0 = text.slice(0, offset);
   const prefix = /[\w$]*$/.exec(before0)![0];
@@ -198,6 +261,14 @@ export function completionsAt(cells: readonly string[], at: number, offset: numb
     const opts: Completion[] = [];
     for (const [n, t] of types) if (n !== self && !params.includes(n)) opts.push({ label: n, type: "variable", detail: `cell: ${t}` });
     for (const [n, t] of Object.entries(CAPABILITIES)) if (!params.includes(n) && !types.has(n)) opts.push({ label: n, type: "variable", detail: `capability: ${t}` });
+    // a cell in another language must be annotated (S11.2), so it is inserted with its colon
+    for (const o of outside ?? []) {
+      const n = o.name;
+      if (n === self || params.includes(n) || types.has(n) || n in CAPABILITIES || !n.startsWith(prefix)) continue;
+      let ann: string | null = null;
+      try { ann = annotate?.(n) ?? null; } catch {}
+      opts.push({ label: n, type: "variable", detail: ann ? `other language: ${ann}` : "other language: annotate its type", apply: `${n}: ${ann ?? ""}` });
+    }
     return pick("param", opts.sort((a, b) => a.label.localeCompare(b.label)));
   }
 
