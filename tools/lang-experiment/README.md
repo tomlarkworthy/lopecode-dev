@@ -102,7 +102,8 @@ Write semantics of `run.ts`, exercised by `accept-state` in both orders:
   is in flight waits. A call is in flight until its
   function has returned, the promise-like it returned has settled, and every action it called has
   finished. Its writes then commit together, in a `setTimeout(0)`. A call that throws or rejects keeps
-  none of them. The fixture asserts the label is still `count: 0` immediately after the call and
+  none of them, and so does one with a nested action whose promise rejects, unless the caller awaited
+  it and caught the rejection. The fixture asserts the label is still `count: 0` immediately after the call and
   `count: 1` after settling, that `label` evaluated once more, and that `increment` (depends only on
   the State) and `count` did not re-evaluate.
 - An action called from outside an event handler, a listener or a view control while a call is in

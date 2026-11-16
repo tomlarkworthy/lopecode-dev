@@ -18,6 +18,8 @@ type Call = {
   failed: boolean;
   finished: boolean;
   report: (e: unknown) => void;
+  // async actions called inside the call; one that rejected and that no caller handled fails the call
+  nested: { handled: boolean; rejected: boolean; error: unknown }[];
 };
 
 // the cell an action was defined by, when the runtime knows it; flush and listeners name actions by it
@@ -349,14 +351,19 @@ function finish(c: Call) {
   }
   pump();
 }
-const settle = (c: Call) => { if (!c.finished && c.returned && c.pending === 0) finish(c); };
-function wait(c: Call, r: PromiseLike<unknown>, own: boolean) {
+const settle = (c: Call) => {
+  if (c.finished || !c.returned || c.pending !== 0) return;
+  const lost = c.nested.find((n) => n.rejected && !n.handled);
+  if (lost && !c.failed) { c.failed = true; c.report(lost.error); }
+  finish(c);
+};
+function wait(c: Call, r: PromiseLike<unknown>) {
   c.pending++;
   Promise.resolve(r).then(
     () => { c.pending--; settle(c); },
     (e) => {
       c.pending--;
-      if (own && !c.failed) { c.failed = true; c.report(e); }
+      if (!c.failed) { c.failed = true; c.report(e); }
       settle(c);
     },
   );
@@ -370,7 +377,7 @@ function pump() {
 
 // A top-level call: it runs now (sync: a throw goes to the caller) or when the one before it finishes.
 function run(a: object, f: (...args: unknown[]) => unknown, args: unknown[], report: (e: unknown) => void, sync: boolean) {
-  const c: Call = { action: a, layer: new Map(), log: [], pending: 0, returned: false, failed: false, finished: false, report };
+  const c: Call = { action: a, layer: new Map(), log: [], pending: 0, returned: false, failed: false, finished: false, report, nested: [] };
   rt.call = c;
   rt.actionDepth++;
   let r: unknown;
@@ -386,7 +393,7 @@ function run(a: object, f: (...args: unknown[]) => unknown, args: unknown[], rep
     return;
   }
   rt.actionDepth--;
-  if (thenable(r)) wait(c, r, true);
+  if (thenable(r)) wait(c, r);
   c.returned = true;
   settle(c);
 }
@@ -403,9 +410,22 @@ export function action(f: (...args: unknown[]) => unknown) {
       let r: unknown;
       try { r = f(...args); } catch (e) { undoTo(c, mark); throw e; } finally { rt.actionDepth--; }
       if (!thenable(r)) return r;
-      wait(c, r, false);
-      // the caller may await this; one that does not still holds the call until it settles
-      return Promise.resolve(r).then((v) => v);
+      const n = { handled: false, rejected: false, error: undefined as unknown };
+      c.nested.push(n);
+      c.pending++;
+      Promise.resolve(r).then(
+        () => { c.pending--; settle(c); },
+        (e) => { n.rejected = true; n.error = e; c.pending--; settle(c); },
+      );
+      // the caller may await this; one that does not still holds the call until it settles. A rejection
+      // counts as handled once a rejection handler is attached (await, catch); the host is never told
+      const m = Promise.resolve(r).then((v) => v);
+      const then = m.then.bind(m);
+      then(undefined, () => {});
+      // an own constructor that is not Promise makes await call this then, not the built-in one
+      Object.defineProperty(m, "constructor", { value: undefined });
+      Object.defineProperty(m, "then", { value: (f?: unknown, g?: unknown) => { if (typeof g === "function") n.handled = true; return then(f as never, g as never); } });
+      return m;
     }
     const via = rt.entry;
     const report = via ? (e: unknown) => via(e, a) : reportTo(a);

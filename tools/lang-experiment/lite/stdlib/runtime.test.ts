@@ -730,6 +730,28 @@ await run("q7_async_listener_gets_every_value_once_in_order", async () => {
   C.release(l); C.release(h);
 });
 
+await run("q8_a_nested_rejection_fails_the_call_unless_caught", async () => {
+  const cases: [string, string, number[]][] = [["detached", "not awaited", [0, 0]], ["awaited", "awaited, not caught", [0, 0]], ["caught", "awaited and caught", [1, 1]]];
+  for (const [mode, label, want] of cases) {
+    errors.length = 0;
+    const x = refOf(0, "x"), y = refOf(0, "y");
+    const d = deferred();
+    const inner = asyncNamed("inner8", async () => { await d.p; throw new Error("inner rejected"); });
+    const outer = asyncNamed("outer8_" + mode, async () => {
+      x.set(1);
+      if (mode === "detached") inner();
+      else if (mode === "awaited") await inner();
+      else { try { await inner(); } catch (e) { y.set(1); } }
+    });
+    outer();
+    d.resolve();
+    await flushed();
+    ok(`q8_${mode}_${label.replace(/[ ,]+/g, "_")}`, JSON.stringify([val(x), val(y)]) === JSON.stringify(want), `${label}: x ${val(x)} y ${val(y)}`);
+    const reported = errors.filter((e) => e.includes("inner rejected")).length;
+    ok(`q8_${mode}_reported_${mode === "caught" ? "never" : "once"}`, reported === (mode === "caught" ? 0 : 1), JSON.stringify(errors));
+  }
+});
+
 console.error = realError;
 if (uncaught.length) ok("no_uncaught_exceptions", false, String(uncaught[0]));
 console.log(`${pass} pass, ${fail} fail`);

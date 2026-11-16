@@ -686,9 +686,9 @@ md`**S6.13** A top-level action call is one made by an event handler, a listener
 // %%
 md`**S6.14** The writes of a top-level call, across its awaits and in the actions it calls, commit together once, when the call finishes. A call that throws, or whose promise rejects, keeps none of them (S6.10). Inside the call, \`read(r)\` is the committed value with the call's own earlier writes (S6.8).`
 // %%
-md`**S6.15** An action called inside an action runs as part of the caller's call. When it is async the caller may \`await\` it; when the caller does not, the top-level call still does not finish until it has.`
+md`**S6.15** An action called inside an action runs as part of the caller's call. When it is async the caller may \`await\` it; when the caller does not, the top-level call still does not finish until it has. When its promise rejects, the whole top-level call fails, whether or not the caller awaited it: the call keeps none of its writes, nor those of any action it called, and the rejection is reported (S6.16). A caller that awaited it and caught the rejection with \`try\`/\`catch\` goes on: a caught error is not a failure.`
 // %%
-md`**S6.16** A throw from a call that started at once goes to its caller. A throw from a call that waited in the queue, and a rejection, are reported on the console with the name of the action.`
+md`**S6.16** A throw from a call that started at once goes to its caller. A throw from a call that waited in the queue, and a rejection that fails a call, are reported on the console with the name of the top-level action.`
 // %%
 md`**S6.17** A call that is waiting in the queue, or paused at an \`await\`, when the cell that defines its action is edited finishes with the code it started with.`
 // %%
@@ -983,6 +983,39 @@ const outer = (inner: Action<[Promise<number>]>, later: Action<[Promise<number>]
     spec_is(await L.value("x"), 110);
     return "outer awaited inner and returned; the call stayed in flight with nothing committed until later, not awaited, finished; then x is (0 + 1) * 10 + 100";
   } finally { p.open(0); q.open(0); L.dispose(); }
+}
+// %%
+test_spec_S6_15_rejects = {
+  test_spec_S6_16; // both replace console.error, so they run one after the other
+  const said = [], was = console.error;
+  // messages from this test's actions are kept; any other goes on to the console
+  console.error = (...a) => {
+    const m = a.map((x) => (x instanceof Error ? x.message : String(x))).join(" ");
+    if (/action (detached|awaited|caught) threw/.test(m)) said.push(m); else was(...a);
+  };
+  const L = await spec_load(`const x = (): StateCell<number> => state(0);
+const y = (): StateCell<number> => state(0);
+const inner = (y: State<number>) => action(async (p: Promise<number>) => { y.set(5); await p; throw new Error("inner rejected"); });
+const detached = (inner: Action<[Promise<number>]>, x: State<number>) => action((p: Promise<number>) => { x.set(1); inner(p); });
+const awaited = (inner: Action<[Promise<number>]>, x: State<number>) => action(async (p: Promise<number>) => { x.set(1); await inner(p); });
+const caught = (inner: Action<[Promise<number>]>, x: State<number>) => action(async (p: Promise<number>) => { x.set(1); try { await inner(p); } catch (e) { x.update((v) => v + 1); } });
+const pair = (x: number, y: number) => [x, y];`, {});
+  const gates = [spec_gate(), spec_gate(), spec_gate()];
+  try {
+    const got = [];
+    for (const [i, n] of ["detached", "awaited", "caught"].entries()) {
+      const f = await L.value(n);
+      await spec_act(() => f(gates[i].p));
+      gates[i].open(0);
+      await spec_act(() => {});
+      await spec_flush();
+      got.push(await L.value("pair"));
+    }
+    spec_is(got, [[0, 0], [0, 0], [2, 5]]);
+    const count = (a) => said.filter((m) => m.includes(`action ${a} threw`) && m.includes("inner rejected")).length;
+    spec_is([count("detached"), count("awaited"), count("caught")], [1, 1, 0]);
+    return "inner rejected: not awaited, and awaited without catch, the call kept none of its writes and was reported once; awaited and caught, the call went on and kept x 2 and inner's y 5";
+  } finally { gates.forEach((g) => g.open(0)); console.error = was; L.dispose(); }
 }
 // %%
 test_spec_S6_16 = {
@@ -1726,7 +1759,11 @@ md`- A promise started in an action that is neither awaited nor returned, and wr
 // %%
 md`- A call that never finishes. Today it holds every later top-level call, on the whole page, and nothing ends it.`
 // %%
-md`- An action called inside an action whose promise rejects (S6.15). Today the top-level call does not fail for it: the writes made before the rejection are kept. When the caller awaits it and does not catch, the caller's own promise rejects and the call keeps none of its writes; when nothing handles the rejection, it is reported as an unhandled rejection.`
+md`- A handler that makes several top-level calls, such as \`onClick={() => { begin(); load(); }}\`. An event attribute takes one action, so this is not provided.`
+// %%
+md`- The writes of an async action called inside an action, when the caller catches its rejection (S6.15). Today they are kept. A sync throw that the caller catches keeps none of the thrower's writes (S6.10).`
+// %%
+md`- A rejection that the caller handles with \`.then\` and no rejection function, such as \`inner().then(f)\`. Today it counts as not handled, and the call fails (S6.15), even when a later \`.catch\` on the result catches it.`
 // %%
 md`- An action called directly from Observable JavaScript, outside an event handler, a listener or a view control, while a call is in flight. Today it is counted as part of the call in flight, not queued.`
 // %%
