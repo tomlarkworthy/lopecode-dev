@@ -21,62 +21,19 @@ A ported module `<name>` is a directory `tools/lang-experiment/ports/<name>/`:
 
 ## Cells and injection
 
-- A cell's parameters are its inputs, injected by parameter name. (What a cell is: specification S1.1.) A parameter name must be a cell in this module, a name in
-  `foreign.d.ts`, or a capability.
-- A parameter may omit its type; it then has the named cell's value type. The harness fills it in.
-- The value type of a cell: return type `T` gives `T`; `Promise<T>` gives `T`; `Generator<Y>`
-  gives `Y`; `RefCell<T>` gives `T`.
-- Free names: a body may use its parameters, its own locals, the prelude (`ref`, `action`, `mut`,
-  `freeze`, `borrow`, `snapshot`, `equals`; in the lite checker also `on`), and allowed intrinsics. Any other free name is an error.
-  A cell may not call another cell by its module-level name; it must take it as a parameter.
-- Allowed intrinsics: `Object Array Math JSON Number String Boolean BigInt Symbol Map Set Error
-  TypeError RangeError RegExp Promise` the typed arrays, `ArrayBuffer DataView TextEncoder
-  TextDecoder Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent
-  decodeURIComponent encodeURI decodeURI atob btoa structuredClone URL URLSearchParams`. Not `Math.random`, `Date`,
-  `console`, `window`, `document`, `globalThis`, `fetch`, timers, `eval`, `Function`.
-- Capabilities are parameters with reserved names, provided by the harness: `now: Clock`
-  (`() => number`), `random: Random` (`() => number`), `fetch: Fetch`, `log: Log`, `invalidation`.
-- Preferred cell form (Tom, 2026-11-14; without `export` since 2026-11-15): `let x = (a: number) => 42 + a`.
-  Every cell is a function from dependencies to the cell's value; the outer parameter list is always the
-  dependency list. `let`/`const` with an arrow or function expression, and
-  `function`, are all the same thing. Generators cannot be arrows:
-  `let ticks = function* () { ... }`. Async arrows are fine.
-- There is no shortcut for function-valued cells. A cell whose value is a function is two arrows:
-  `let double = () => (n: number) => n * 2`.
+Moved on 2026-11-16 to section 2 of the specification module, `@tomlarkworthy/soundscript-spec` (`lite/soundscript/spec.ojs`).
 
 ## Immutable by default
 
-Banned in `cells.ts`: assignment to a member (`a.b = `, `a[i] = `), `++`/`--`/compound assignment
-on a member, `delete`, mutating methods (`push pop shift unshift splice sort reverse fill
-copyWithin set add delete clear`) on Array/Map/Set/typed arrays, `Object.assign` onto an existing
-value, `var`, `class`, `this`, `arguments`, `new` on anything but an allowed intrinsic, `any`,
-`as` casts other than `as const`, non-null `!`, `@ts-ignore`/`@ts-expect-error`, enums,
-namespaces, `import()`.
-
-Allowed: `throw`, `try`/`catch`, loops, local `let` (reassignment of a local).
-
-A `let` may be assigned from inside a nested function only if that function is a local helper
-that does not escape: it is bound to a local `const`/function declaration and every use of its
-name is a direct call (never passed as an argument, returned, stored in a literal, or yielded).
-Otherwise assigning a captured `let` is an error. (v1, after the pilot: the outright ban forced a
-recursive-descent parser to thread a `Mut` cursor through every helper.)
-
-`===` on two non-primitive operands is banned; use `equals(a, b)` (structural).
+Moved on 2026-11-16 to section 3 of the specification module.
 
 ## Opt-in 1: `Mut<T>` locals
 
-`const out = mut(new Float32Array(n))` gives `Mut<Float32Array>`. Member writes and mutating
-methods are allowed on a `Mut<T>` receiver. A `Mut<T>` value may be: bound to a local `const`,
-written to, read, passed to a parameter typed `Mut<…>`, passed to `freeze`. It may not be:
-returned, yielded, aliased to another binding, captured by a nested function, placed in an
-object/array literal, or used after `freeze(out)`. `freeze(out)` has type `T`.
+Moved on 2026-11-16 to section 4 of the specification module.
 
 ## Opt-in 2: owner cells
 
-A generator cell may keep a `Mut<T>` across yields and `yield borrow(x)`; its value type is
-`Borrowed<T>` (read-only). A consumer may read a `Borrowed<T>` during its own synchronous
-evaluation. It may not hold it across an `await`, return it, or put it in a ref; `snapshot(b)`
-copies it to a plain `T`. A cell that yields `borrow` is counted in the `Owner` tier.
+Moved on 2026-11-16 to section 5 of the specification module. A cell that yields `borrow` is counted in the `Owner` tier.
 
 ## Refs and actions (replaces `viewof` and `mutable`)
 

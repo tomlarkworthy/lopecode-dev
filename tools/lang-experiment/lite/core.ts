@@ -77,7 +77,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   const moduleErrs: LiteError[] = [];
   const tsx = !!src.tsx;
   const cellsSrc = src.cells;
-  const P = parse(cellsSrc, { jsx: tsx });
+  // a name declared again is checked under a stand-in name of the same length (distinctNames), so the
+  // first declaration keeps the name and the rest are rejected as duplicate-cell
+  const { P, dups } = distinctNames(cellsSrc, tsx);
   const mod = (p: Parsed, n: Node, rule: string, msg: string) => moduleErrs.push({ rule, line: p.line(n.start), msg });
   // conversion problems while loading foreign.d.ts are module-level (they would otherwise be silent)
   expandForErr = (t) => reg.expand(t);
@@ -365,16 +367,58 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     r.value = show(ret);
     r.status = r.errors.length ? "rejected" : r.unsupported.length ? "unsupported" : r.blockedBy.length ? "blocked" : "ok";
   }
+  // a later declaration of a name: reported as "<name> (2)", "<name> (3)", ... and rejected
+  const shown = new Map<string, string>();
+  for (const [ph, d] of dups) {
+    const first = cells.find((c) => c.name === d.name);
+    const at = first ? out.get(first.name)!.line : null;
+    const mine = out.get(ph);
+    if (!mine) { moduleErrs.push({ rule: "duplicate-cell", line: P.line(d.pos), msg: `${d.name} is already defined${at ? ` at line ${at}` : ""}` }); continue; }
+    let k = 2;
+    while (cellNames.has(`${d.name} (${k})`) || [...shown.values()].includes(`${d.name} (${k})`)) k++;
+    shown.set(ph, `${d.name} (${k})`);
+    mine.errors.unshift({ rule: "duplicate-cell", line: mine.line, msg: `${d.name} is already defined${at ? ` at line ${at}` : ""}` });
+    mine.status = "rejected";
+  }
+  const unPh = (x: string) => { for (const [ph, n] of shown) x = x.split(ph).join(n); for (const [ph, d] of dups) x = x.split(ph).join(d.name); return x; };
+  if (dups.size) for (const c of out.values()) {
+    c.name = shown.get(c.name) ?? c.name;
+    for (const e of [...c.errors, ...c.unsupported]) e.msg = unPh(e.msg);
+    c.blockedBy = c.blockedBy.map(unPh);
+    if (c.value) c.value = unPh(c.value);
+  }
   const list = cells.map((c) => out.get(c.name)!);
   const result: LiteResult = { port: dir, file: tsx ? "cells.tsx" : "cells.ts", ok: moduleErrs.length === 0 && list.every((c) => c.status === "ok"), module: moduleErrs, cells: list, ms: performance.now() - t0 };
   const facts = new Map(cells.map((c) => {
-    const f = factsOf(c.name, c.fn, c.stmt);
+    const f = factsOf(shown.get(c.name) ?? c.name, c.fn, c.stmt);
     const b = boundaries.get(c.name);
     if (b) f.params = f.params.map((p) => (b.has(p.name) ? { ...p, boundary: b.get(p.name) } : p));
-    return [c.name, f] as const;
+    return [f.name, f] as const;
   }));
   Object.defineProperty(result, "facts", { value: facts, enumerable: false });
   return result;
+}
+
+// The source parsed, with every name declared again at the top level replaced, in a copy, by a stand-in
+// of the same length (so positions and lines are unchanged), made of letters no cell uses. dups: stand-in
+// -> the name and where it was declared again.
+const STAND = Array.from({ length: 40 }, (_, i) => String.fromCharCode(0xa4d0 + i));
+function distinctNames(src: string, jsx: boolean): { P: Parsed; dups: Map<string, { name: string; pos: number }> } {
+  const dups = new Map<string, { name: string; pos: number }>();
+  let text = src;
+  for (;;) {
+    try { return { P: parse(text, { jsx }), dups }; } catch (e) {
+      const pos = (e as { pos?: number }).pos;
+      if (!(e instanceof SyntaxError) || typeof pos !== "number" || !/has already been declared/.test(e.message)) throw e;
+      const name = /^[\w$]+/.exec(text.slice(pos))?.[0];
+      if (!name) throw e;
+      let k = dups.size, ph = "";
+      for (let i = 0; i < name.length; i++) { ph = STAND[k % 40] + ph; k = Math.floor(k / 40); }
+      if (k > 0 || dups.has(ph)) throw e;
+      dups.set(ph, { name: src.slice(pos, pos + name.length), pos });
+      text = text.slice(0, pos) + ph + text.slice(pos + name.length);
+    }
+  }
 }
 
 function dedupe(es: LiteError[]): LiteError[] {

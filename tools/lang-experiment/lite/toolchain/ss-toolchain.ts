@@ -180,8 +180,12 @@ export function contentId(text: string): string {
 
 // With a module context, a cell that does not parse, does not compile, or that the check did not accept
 // compiles to rejectedCell; with none (a cell compiled on its own) those throw, as before.
+// A name declared again is stored as "<name> (2)", "<name> (3)", ... (core.ts reports it so); nameHint
+// names such a variable, and it compiles to the checker's messages under that name.
+export const isDuplicateKey = (key: string | null): key is string => !!key && /^[\w$]+ \(\d+\)$/.test(key);
 export function compileCell(text: string, tsx: boolean, ctx: Context = NO_CONTEXT, nameHint: string | null = null): Variable[] {
   if (!ctx.accepted) return compileChecked(text, tsx, ctx);
+  if (isDuplicateKey(nameHint) && ctx.why?.has(nameHint) && declaredName(text) !== nameHint) return rejectedCell(text, nameHint, ctx.why.get(nameHint)!, false);
   let out: Variable[];
   try { out = compileChecked(text, tsx, ctx); } catch (e) {
     const name = declaredName(text) ?? nameHint;

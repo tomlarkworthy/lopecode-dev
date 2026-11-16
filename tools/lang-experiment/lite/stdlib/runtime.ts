@@ -10,7 +10,7 @@ export { setListenerOrder, listenerOrderChanged };
 export { cellsOf };
 import { island, type IslandSpec } from "../island.ts";
 import { pagePool, runHere, type Pool } from "../browser/workers.ts";
-export { compileCell, compileModule, contextOf, contextFromCheck, acceptedOf, cellStates, declaredName, decompileVariable, decompileModule, langOf, cellOfVariable, splitCells, handleName } from "../toolchain/ss-toolchain.ts";
+export { isDuplicateKey, compileCell, compileModule, contextOf, contextFromCheck, acceptedOf, cellStates, declaredName, decompileVariable, decompileModule, langOf, cellOfVariable, splitCells, handleName } from "../toolchain/ss-toolchain.ts";
 import { declaredName } from "../toolchain/ss-toolchain.ts";
 import { parse } from "../parse.ts";
 import { checkSources, type Outside } from "../core.ts";
@@ -44,11 +44,16 @@ export function checkCells(texts: string[], tsx = true, outside: readonly Outsid
   const source = texts.join("\n\n");
   try { return { result: check(source, tsx, outside), source }; } catch (whole) {
     const unparsed = new Map<string, string>();
+    // the k-th declaration of a name is the checker's "<name> (k)" (core.ts distinctNames)
+    const seen = new Map<string, number>();
     const stood = texts.map((t) => {
+      const declared = declaredName(t);
+      const n = declared ? (seen.get(declared) ?? 0) + 1 : 0;
+      if (declared) seen.set(declared, n);
       try { parse(t, { jsx: tsx }); return t; } catch (e) {
-        const name = declaredName(t);
+        const name = declared;
         if (!name) return "";
-        unparsed.set(name, String((e as Error).message));
+        unparsed.set(n > 1 ? `${name} (${n})` : name, String((e as Error).message));
         return `const ${name} = () => $ss$unparsed;` + "\n".repeat(t.split("\n").length - 1);
       }
     }).filter((t) => t !== "");

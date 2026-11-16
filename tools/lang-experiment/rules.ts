@@ -7,7 +7,7 @@ export const RULES: RuleInfo[] = [
   // Files
   { id: "module-level", section: "Files", how: "exact", summary: "only cells, type/interface and import type at module level" },
   { id: "cell-not-function", section: "Files", how: "exact", summary: "a top-level let/const whose initializer is not an arrow or function expression" },
-  { id: "duplicate-cell", section: "Files", how: "exact", summary: "a cell name defined twice across cells.ts and shell.ts" },
+  { id: "duplicate-cell", section: "Files", how: "exact", summary: "a cell name defined twice, in cells.ts or across cells.ts and shell.ts" },
   // Cells and injection
   { id: "inject-unknown", section: "Cells and injection", how: "exact", summary: "parameter names no cell, foreign declaration or capability" },
   { id: "inject-type", section: "Cells and injection", how: "exact", summary: "typed parameter not assignable from the named cell's value type" },

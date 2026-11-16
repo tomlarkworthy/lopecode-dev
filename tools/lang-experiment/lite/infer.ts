@@ -615,6 +615,8 @@ export class Checker {
       if (e.argument.type !== "MemberExpression") { this.err(e, "no-delete", "delete"); return BOOL; }
       const ot = this.infer(e.argument.object, env);
       if (!isNamed(ot, "Mut")) this.err(e, "no-delete", "delete on a value that is not Mut");
+      // the property read too, so a name that is not a property is reported and completion sees the member
+      else this.infer(e.argument, env);
       return BOOL;
     }
     if (e.operator === "!") { this.cond(e.argument, env); return BOOL; }

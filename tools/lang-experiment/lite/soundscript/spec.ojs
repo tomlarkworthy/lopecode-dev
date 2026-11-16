@@ -26,7 +26,7 @@ md`**S1.4** Any other top-level statement is \`[module-level]\`, except \`var\`,
 // %%
 md`**S1.5** A top-level \`const\` or \`let\` that is not a function is \`[cell-not-function]\`. That includes a declaration with no initializer and one that destructures.`
 // %%
-md`**S1.6** Two cells with one name do not parse: the checker raises a \`SyntaxError\` and reports no cells.`
+md`**S1.6** A name declared by more than one cell belongs to the first. Each later cell with that name is \`[duplicate-cell]\` ("a is already defined at line 1") and is reported as \`a (2)\`, \`a (3)\` and so on. The first is checked as usual, and a cell that takes the name reads the first. In a notebook module, an edit that gives a cell the name of another cell is stored under \`a (2)\` and does not run.`
 // %%
 md`**S1.7** A cell with the name of a shell cell is \`[duplicate-cell]\`. A shell cell is an unchecked cell the checker is given beside the checked ones (section 9); a notebook module gives it none.`
 // %%
@@ -41,16 +41,16 @@ md`Rejected sources. Each is checked when the page loads; the fourth column is w
 spec_rejects_1 = [
   { statement: "S1.4", rule: "module-level", source: "for (;;) {}\nlet a = () => 1;" },
   { statement: "S1.4", rule: "module-level", source: "1 + 1;" },
-  { statement: "S1.4", rule: "module-level", source: "declare const x: number;" },
   { statement: "S1.5", rule: "cell-not-function", source: "let a = () => 1;\nlet x = 42;" },
   { statement: "S1.5", rule: "cell-not-function", source: "let x;" },
   { statement: "S1.5", rule: "cell-not-function", source: "const { a } = { a: () => 1 };" },
+  { statement: "S1.6", rule: "duplicate-cell", source: "const a = () => 1;\nconst a = () => 2;" },
   { statement: "S1.7", rule: "duplicate-cell", source: "let a = () => 1;", shell: "export let a = () => 2;" }
 ]
 // %%
 spec_rejects_1_view = spec_rejectsTable(spec_rejects_1)
 // %%
-spec_rejects = [...spec_rejects_1, ...spec_rejects_11]
+spec_rejects = [...spec_rejects_1, ...spec_rejects_2, ...spec_rejects_3, ...spec_rejects_4, ...spec_rejects_5, ...spec_rejects_11]
 // %%
 spec_rulesOf = (c) => {
   // the rule ids the checker reports for a reject case, sorted and without repeats. outside: the cells in
@@ -83,6 +83,12 @@ spec_okCells = (source) => {
   const rules = [...r.module, ...r.cells.flatMap((x) => x.errors)].map((e) => e.rule);
   if (rules.length) throw new Error(`${JSON.stringify(source)} gave ${JSON.stringify(rules)}`);
   return r.cells.map((c) => `${c.name}:${c.status}`).join(",");
+}
+// %%
+spec_is = (got, want) => {
+  // throws unless got and want are the same JSON
+  if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(`gave ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
+  return got;
 }
 // %%
 spec_okCellsWith = (source, outside) => {
@@ -130,10 +136,14 @@ test_spec_S1_4 = {
 test_spec_S1_5 = spec_rejectsFor("S1.5")
 // %%
 test_spec_S1_6 = {
-  let threw = null;
-  try { ss.check("const a = () => 1;\nconst a = () => 2;"); } catch (e) { threw = e; }
-  if (!(threw instanceof SyntaxError)) throw new Error(`gave ${threw ?? "no error"}`);
-  return threw.message;
+  const r = ss.check('const a = () => 1;\nconst b = (a: number) => a + 1;\nconst a = () => "x";\nconst a = () => 3;');
+  const got = r.cells.map((c) => `${c.name}:${c.status}:${c.errors.map((e) => e.msg).join("|")}`).join(",");
+  if (got !== "a:ok:,b:ok:,a (2):rejected:a is already defined at line 1,a (3):rejected:a is already defined at line 1") throw new Error(got);
+  if (r.cells[1].value !== "number") throw new Error(`b reads ${r.cells[1].value}, not the first a`);
+  // an edit naming another cell is stored, rejected, under the next free name
+  const e = ss_language.check("const s1_arrow = () => 9;", [], { module: { module: spec_module } });
+  if (!e.store || e.state !== "rejected" || e.defs.map((d) => d.name).join() !== "s1_arrow (2)" || !e.problems.some((p) => p.rule === "duplicate-cell")) throw new Error(`the edit gave store ${e.store}, ${e.state}, ${e.defs?.map((d) => d.name)}, ${JSON.stringify(e.problems)}`);
+  return `${spec_rejectsFor("S1.6")}; b reads the first a; an edit naming s1_arrow is stored as s1_arrow (2), rejected`;
 }
 // %%
 test_spec_S1_7 = spec_rejectsFor("S1.7")
@@ -146,19 +156,378 @@ test_spec_S1_8 = {
 // %%
 md`## 2. Inputs and names
 
-PROSE PENDING. Not migrated yet.`
+PROSE PENDING`
+// %%
+md`**S2.1** A cell's parameters are its inputs, taken by name. A parameter that names no cell of the module, foreign declaration, shell cell or capability (or, section 11, a variable in another language) is \`[inject-unknown]\`. Only the cell's own parameter list is its input list, so a cell whose value is a function is two arrows: \`const double = () => (n: number) => n * 2\`.`
+// %%
+md`**S2.2** An input is a plain identifier. A destructuring pattern, a default value or a rest parameter is \`[inject-pattern]\`.`
+// %%
+md`**S2.3** An input with no type annotation has the value type of the cell it names. An annotated input must accept that value type; otherwise it is \`[inject-type]\`.`
+// %%
+md`**S2.4** The value type of a cell is its return type \`T\`, except that \`Promise<T>\` gives \`T\`, a generator or async generator yielding \`Y\` gives \`Y\`, and \`RefCell<T>\` gives \`T\`. Annotating the input with the wrapped type, such as \`Promise<number>\`, is \`[inject-type]\`.`
+// %%
+md`**S2.5** The capabilities are the inputs \`now: Clock\`, \`random: Random\`, \`fetch: Fetch\`, \`log: Log\`, \`invalidation: Invalidation\`, \`compile: Compile\` and \`pool: Pool\`. \`Clock\` and \`Random\` are \`() => number\`. Any other annotation on a capability, such as \`now: number\`, is \`[inject-type]\`.`
+// %%
+md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`ref action mut freeze borrow snapshot equals on read\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone\` and the typed arrays. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`.`
+// %%
+md`**S2.7** Reading \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\` or a \`prototype\` member is \`[banned-member]\`, also through a local bound to \`Math\` or \`Object\` and through a computed key such as \`Math["random"]\`.`
+// %%
+md`**S2.8** A body that uses a cell by its name instead of taking it as a parameter is \`[cell-by-name]\`. That includes a cell calling itself. A local with a cell's name is a local.`
+// %%
+md`The cells of this section. \`s2_answer\` takes \`s2_base\` and the function \`s2_double\` with no annotations; \`s2_read\` takes an async cell, a generator and a ref cell by their value types.`
+// %%
+//ss: ./spec-2.ts
+// %%
+spec_rejects_2 = [
+  { statement: "S2.1", rule: "inject-unknown", source: "const double = (n: number) => n * 2;" },
+  { statement: "S2.2", rule: "inject-pattern", source: "const a = () => ({ x: 1 });\nconst b = ({ x }: { x: number }) => x;" },
+  { statement: "S2.2", rule: "inject-pattern", source: "const a = () => 1;\nconst c = (a = 1) => a;" },
+  { statement: "S2.2", rule: "inject-pattern", source: "const d = (...xs: number[]) => xs.length;" },
+  { statement: "S2.3", rule: "inject-type", source: "const a = () => \"s\";\nconst b = (a: number) => a + 1;" },
+  { statement: "S2.4", rule: "inject-type", source: "const a = async () => 1;\nconst b = (a: Promise<number>) => 1;" },
+  { statement: "S2.4", rule: "inject-type", source: "const c = () => ref(true);\nconst d = (c: RefCell<boolean>) => 1;" },
+  { statement: "S2.4", rule: "inject-type", source: "const g = async function* () { yield \"x\"; };\nconst d = (g: number) => g;" },
+  { statement: "S2.5", rule: "inject-type", source: "const roll = (now: number) => now;" },
+  { statement: "S2.6", rule: "free-name", source: "const a = () => Date.now();" },
+  { statement: "S2.6", rule: "free-name", source: "const b = () => typeof globalThis;" },
+  { statement: "S2.6", rule: "free-name", source: "const c = () => console;" },
+  { statement: "S2.6", rule: "free-name", source: "const c = () => setTimeout;" },
+  { statement: "S2.6", rule: "free-name", source: "const c = () => eval(\"1\");" },
+  { statement: "S2.7", rule: "banned-member", source: "const a = () => Math.random();" },
+  { statement: "S2.7", rule: "banned-member", source: "const b = () => {\n  const M = Math;\n  return M.random() + Math[\"random\"]();\n};" },
+  { statement: "S2.7", rule: "banned-member", source: "const b = () => Object.defineProperty({}, \"a\", {});" },
+  { statement: "S2.7", rule: "banned-member", source: "const b = () => Object.prototype;" },
+  { statement: "S2.8", rule: "cell-by-name", source: "const a = () => 1;\nconst b = () => a() + 1;" },
+  { statement: "S2.8", rule: "cell-by-name", source: "function f(): number {\n  return f();\n}" }
+]
+// %%
+spec_rejects_2_view = spec_rejectsTable(spec_rejects_2)
+// %%
+test_spec_S2_1 = {
+  spec_is(spec_okCells("const double = () => (n: number) => n * 2;\nconst four = (double) => double(2);"), "double:ok,four:ok");
+  spec_is(await spec_module.value("s2_answer"), 42);
+  return `${spec_rejectsFor("S2.1")}; a function-valued cell is two arrows; s2_answer is 42`;
+}
+// %%
+test_spec_S2_2 = spec_rejectsFor("S2.2")
+// %%
+test_spec_S2_3 = {
+  spec_is(spec_okCells("const a = () => \"s\";\nconst b = (a) => a.length;\nconst c = (a: string | number) => a;"), "a:ok,b:ok,c:ok");
+  return `${spec_rejectsFor("S2.3")}; an unannotated input and a wider annotation are accepted`;
+}
+// %%
+test_spec_S2_4 = {
+  spec_is(spec_okCells("const a = async () => 1;\nconst b = function* () { yield \"x\"; };\nconst g = async function* () { yield true; };\nconst c = () => ref(true);\nconst d = (a: number, b: string, g: boolean, c: boolean) => 1;"), "a:ok,b:ok,g:ok,c:ok,d:ok");
+  spec_is(await spec_module.value("s2_read"), [43, "tea", 3]);
+  return `${spec_rejectsFor("S2.4")}; s2_read gets ${JSON.stringify(await spec_module.value("s2_read"))}`;
+}
+// %%
+test_spec_S2_5 = {
+  spec_is(spec_okCells("const a = (now: Clock, random: Random, fetch: Fetch, log: Log, invalidation: Invalidation) => now() + random();\nconst b = (now, random, fetch, log, invalidation, compile, pool) => now() + random();"), "a:ok,b:ok");
+  return `${spec_rejectsFor("S2.5")}; every capability is accepted, annotated or not`;
+}
+// %%
+test_spec_S2_6 = {
+  const names = "Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Uint8ClampedArray".split(" ");
+  const bad = names.filter((n) => spec_okCells(`const a = () => ${n};`) !== "a:ok");
+  if (bad.length) throw new Error(`not accepted as a value: ${bad.join(", ")}`);
+  spec_is(spec_okCells("const n = () => ref(0);\nconst a = (n: Ref<number>) => { const m = mut([1]); const f = freeze(m); return [equals(f, [1]), action(() => n.set(read(n) + 1))]; };"), "n:ok,a:ok");
+  return `${spec_rejectsFor("S2.6")}; ${names.length} intrinsics and the prelude functions accepted`;
+}
+// %%
+test_spec_S2_7 = spec_rejectsFor("S2.7")
+// %%
+test_spec_S2_8 = {
+  spec_is(spec_okCells("const a = () => 1;\nconst b = () => { const a = 2; return a; };"), "a:ok,b:ok");
+  spec_is(await spec_module.value("s2_shadow"), 2);
+  return `${spec_rejectsFor("S2.8")}; a local named like a cell is the local (s2_shadow is 2)`;
+}
 // %%
 md`## 3. Immutable by default
 
-PROSE PENDING. Not migrated yet.`
+PROSE PENDING`
+// %%
+md`**S3.1** Writing a member of a value that is not \`Mut\` (section 4) is \`[member-write]\`: assignment, compound assignment, \`++\` and \`--\`, and a member as the target of a destructuring assignment. An object literal bound to a local \`const\` is not \`Mut\` either.`
+// %%
+md`**S3.2** Calling a mutating method on a receiver that is not \`Mut\` is \`[mutating-method]\`: \`push pop shift unshift splice sort reverse fill copyWithin\` on an array, those of them a typed array has and \`set\`, \`set delete clear\` on a \`Map\`, \`add delete clear\` on a \`Set\`. The copying methods (\`toSorted\`, \`toReversed\`, \`slice\`, \`map\`, \`filter\`) and spreads are accepted.`
+// %%
+md`**S3.3** \`Object.assign\` with an existing value as its first argument is \`[object-assign]\`. A spread, \`{ ...o, b: 2 }\`, builds the new value.`
+// %%
+md`**S3.4** \`delete\` on a value that is not \`Mut\` is \`[no-delete]\`. On a \`Mut\` it is accepted (S4.1).`
+// %%
+md`**S3.5** \`var\`, \`class\` (a declaration or an expression), \`this\` and \`arguments\` are \`[no-var]\`, \`[no-class]\`, \`[no-this]\` and \`[no-arguments]\`.`
+// %%
+md`**S3.6** \`new\` on anything but an allowed intrinsic (S2.6) is \`[new-non-intrinsic]\`. That includes \`new Date()\` and \`new C()\` where \`C\` is a local bound to an intrinsic.`
+// %%
+md`**S3.7** The type \`any\` is \`[no-any]\`. An \`as\` cast other than \`as const\` is \`[no-cast]\`. A non-null assertion \`x!\` is \`[no-non-null]\`. A \`@ts-ignore\`, \`@ts-expect-error\` or \`@ts-nocheck\` comment is \`[no-ts-ignore]\`.`
+// %%
+md`**S3.8** \`import(...)\` is \`[no-dynamic-import]\`.`
+// %%
+md`**S3.9** \`enum\` and \`const enum\` are \`[no-enum]\`. \`namespace\`, \`module\` and \`declare module\` are \`[no-namespace]\`.`
+// %%
+md`**S3.10** \`throw\`, \`try\`/\`catch\`/\`finally\`, loops and assigning a local \`let\` are accepted.`
+// %%
+md`**S3.11** A local \`let\` may be assigned from a nested function only when every function from the assignment out to the \`let\` is a local helper: bound to a local \`const\` or declared with \`function\`, and every use of its name a direct call. Otherwise it is \`[let-capture]\`: the helper is returned, passed as an argument, put in a literal, bound to a second name, or called from a function that escapes. Reading a captured \`let\` is accepted.`
+// %%
+md`**S3.12** \`===\`, \`!==\`, \`==\` and \`!=\` with two operands that may both be non-primitive is \`[strict-eq-object]\`. \`equals(a, b)\` compares structurally. Comparing with a primitive, \`null\` included, is accepted.`
+// %%
+md`The cells of this section. \`s3_parse\` is a recursive-descent parser whose helpers share the cursor \`let i\` (S3.11); \`s3_moved\` builds a new point with a spread.`
+// %%
+//ss: ./spec-3.ts
+// %%
+spec_rejects_3 = [
+  { statement: "S3.1", rule: "member-write", source: "const o = () => ({ a: 1, xs: [1] });\nconst w = (o) => {\n  o.a = 2;\n  o.xs[0] = 3;\n  o.a += 1;\n  o.a++;\n  --o.a;\n  return o;\n};" },
+  { statement: "S3.1", rule: "member-write", source: "const o = () => ({ a: 1 });\nconst d = (o) => {\n  [o.a] = [5];\n  ({ k: o.a } = { k: 6 });\n  return o;\n};" },
+  { statement: "S3.1", rule: "member-write", source: "const w = () => {\n  const l = { a: 1 };\n  l.a = 2;\n  return l;\n};" },
+  { statement: "S3.2", rule: "mutating-method", source: "const xs = () => [3, 1, 2];\nconst w = (xs) => [xs.push(1), xs.pop(), xs.shift(), xs.unshift(1), xs.splice(0, 1), xs.sort(), xs.reverse(), xs.fill(0), xs.copyWithin(0, 1)];" },
+  { statement: "S3.2", rule: "mutating-method", source: "const t = () => new Float32Array(2);\nconst w = (t) => {\n  t.set([1], 0);\n  t.fill(1);\n  return t.length;\n};" },
+  { statement: "S3.2", rule: "mutating-method", source: "const m = () => new Map<string, number>();\nconst s = () => new Set<number>();\nconst w = (m, s) => {\n  m.set(\"a\", 1);\n  m.delete(\"a\");\n  m.clear();\n  s.add(1);\n  s.delete(1);\n  s.clear();\n  return s.size;\n};" },
+  { statement: "S3.3", rule: "object-assign", source: "const o = () => ({ a: 1 });\nconst w = (o) => Object.assign(o, { b: 2 });" },
+  { statement: "S3.4", rule: "no-delete", source: "const o = (): { a?: number } => ({});\nconst d = (o) => {\n  delete o.a;\n  return o;\n};" },
+  { statement: "S3.5", rule: "no-var", source: "const a = () => {\n  var x = 1;\n  return x;\n};" },
+  { statement: "S3.5", rule: "no-class", source: "const a = () => {\n  class A {}\n  return typeof A;\n};" },
+  { statement: "S3.5", rule: "no-class", source: "const b = () => {\n  const K = class {};\n  return typeof K;\n};" },
+  { statement: "S3.5", rule: "no-this", source: "const a = () => {\n  const o = { v: 1, get() { return this.v; } };\n  return o.get();\n};" },
+  { statement: "S3.5", rule: "no-arguments", source: "const a = () => {\n  function g(..._xs: number[]) {\n    return arguments.length;\n  }\n  return g(1);\n};" },
+  { statement: "S3.6", rule: "new-non-intrinsic", source: "const a = () => {\n  const C = Map;\n  return new C();\n};" },
+  { statement: "S3.6", rule: "new-non-intrinsic", source: "const a = () => new Date();" },
+  { statement: "S3.7", rule: "no-any", source: "const a = () => {\n  const y: any = 1;\n  return y;\n};" },
+  { statement: "S3.7", rule: "no-any", source: "const a = (): any => 1;" },
+  { statement: "S3.7", rule: "no-cast", source: "const a = () => (1 as number) + 1;" },
+  { statement: "S3.7", rule: "no-non-null", source: "const m = () => new Map<string, number>([[\"a\", 1]]);\nconst g = (m) => m.get(\"a\")! + 1;" },
+  { statement: "S3.7", rule: "no-ts-ignore", source: "const a = () => {\n  // @ts-ignore\n  return 1;\n};" },
+  { statement: "S3.7", rule: "no-ts-ignore", source: "const b = () => {\n  // @ts-expect-error\n  return 1;\n};" },
+  { statement: "S3.7", rule: "no-ts-ignore", source: "const a = () => 1;\n// @ts-nocheck" },
+  { statement: "S3.8", rule: "no-dynamic-import", source: "const a = async () => {\n  const m = await import(\"./cells\");\n  return typeof m;\n};" },
+  { statement: "S3.9", rule: "no-enum", source: "enum E {\n  A,\n}\nconst a = () => 1;" },
+  { statement: "S3.9", rule: "no-enum", source: "const enum E { A }" },
+  { statement: "S3.9", rule: "no-namespace", source: "namespace N {\n  const x = 1;\n}\nconst a = () => 1;" },
+  { statement: "S3.9", rule: "no-namespace", source: "module M { const x = 1; }" },
+  { statement: "S3.9", rule: "no-namespace", source: "declare module \"x\" {}" },
+  { statement: "S3.11", rule: "let-capture", source: "const returned = () => {\n  let n = 0;\n  const inc = () => {\n    n = n + 1;\n  };\n  return inc;\n};" },
+  { statement: "S3.11", rule: "let-capture", source: "const passed = () => {\n  let n = 0;\n  [1, 2].forEach((x) => {\n    n += x;\n  });\n  return n;\n};" },
+  { statement: "S3.11", rule: "let-capture", source: "const stored = () => {\n  let [n] = [0];\n  const set = () => {\n    n = 1;\n  };\n  return { set };\n};" },
+  { statement: "S3.11", rule: "let-capture", source: "const aliased = () => {\n  let n = 0;\n  const inc = () => {\n    n++;\n  };\n  const again = inc;\n  again();\n  return n;\n};" },
+  { statement: "S3.11", rule: "let-capture", source: "const viaEscapingOuter = () => {\n  let n = 0;\n  const outer = () => {\n    const inner = () => {\n      n = 2;\n    };\n    inner();\n  };\n  return [outer];\n};" },
+  { statement: "S3.12", rule: "strict-eq-object", source: "const xs = () => [1];\nconst ys = () => [1];\nconst same = (xs, ys) => xs === ys;" },
+  { statement: "S3.12", rule: "strict-eq-object", source: "const xs = () => [1];\nconst ys = () => [1];\nconst loose = (xs, ys) => xs == ys || xs != ys || xs !== ys;" },
+  { statement: "S3.12", rule: "strict-eq-object", source: "const xs = (): number[] | string => [1];\nconst ys = (): number[] | string => \"a\";\nconst same = (xs, ys) => xs === ys;" }
+]
+// %%
+spec_rejects_3_view = spec_rejectsTable(spec_rejects_3)
+// %%
+test_spec_S3_1 = spec_rejectsFor("S3.1")
+// %%
+test_spec_S3_2 = {
+  spec_is(spec_okCells("const xs = () => [3, 1, 2];\nconst w = (xs) => [xs.toSorted(), xs.toReversed(), xs.slice(), xs.map((x) => x + 1), xs.filter((x) => x > 1), [...xs, 4]];"), "xs:ok,w:ok");
+  spec_is(await spec_module.value("s3_sorted"), [1, 2, 3]);
+  return `${spec_rejectsFor("S3.2")}; the copying methods are accepted; s3_sorted is [1,2,3]`;
+}
+// %%
+test_spec_S3_3 = {
+  spec_is(await spec_module.value("s3_moved"), { x: 2, y: 2 });
+  spec_is(await spec_module.value("s3_point"), { x: 1, y: 2 });
+  return `${spec_rejectsFor("S3.3")}; s3_moved is a new point, s3_point is unchanged`;
+}
+// %%
+test_spec_S3_4 = spec_rejectsFor("S3.4")
+// %%
+test_spec_S3_5 = spec_rejectsFor("S3.5")
+// %%
+test_spec_S3_6 = spec_rejectsFor("S3.6")
+// %%
+test_spec_S3_7 = {
+  spec_is(spec_okCells("const b = () => [\"x\"] as const;"), "b:ok");
+  return `${spec_rejectsFor("S3.7")}; as const is accepted`;
+}
+// %%
+test_spec_S3_8 = spec_rejectsFor("S3.8")
+// %%
+test_spec_S3_9 = spec_rejectsFor("S3.9")
+// %%
+test_spec_S3_10 = {
+  spec_is(spec_okCells("const a = () => {\n  let n = 0;\n  for (let i = 0; i < 3; i++) n += i;\n  while (n > 100) n--;\n  for (const x of [1]) n += x;\n  do { n += 1; } while (n < 0);\n  try {\n    if (n < 0) throw new Error(\"x\");\n  } catch (e) {\n    n = -1;\n  } finally {\n    n += 0;\n  }\n  return n;\n};"), "a:ok");
+  spec_is(await spec_module.value("s3_steps"), -6);
+  return "statements accepted; s3_steps is -6";
+}
+// %%
+test_spec_S3_11 = {
+  spec_is(spec_okCells("const a = () => {\n  let n = 0;\n  const inc = () => {\n    n++;\n  };\n  function add(k: number) {\n    n += k;\n  }\n  inc();\n  add(2);\n  const read = () => n;\n  return read();\n};"), "a:ok");
+  spec_is(await spec_module.value("s3_tree"), [1, [2, 30], []]);
+  return `${spec_rejectsFor("S3.11")}; helpers only called may assign; s3_tree is ${JSON.stringify(await spec_module.value("s3_tree"))}`;
+}
+// %%
+test_spec_S3_12 = {
+  spec_is(spec_okCells("const xs = (): number[] | null => [1];\nconst a = (xs) => xs === null || xs?.length === 1 || \"a\" === \"a\";"), "xs:ok,a:ok");
+  spec_is(await spec_module.value("s3_same"), [true, false]);
+  return `${spec_rejectsFor("S3.12")}; equals compares structurally (s3_same is [true,false])`;
+}
 // %%
 md`## 4. Mut locals
 
-PROSE PENDING. Not migrated yet.`
+PROSE PENDING`
+// %%
+md`**S4.1** \`const out = mut(e)\` gives \`out\` the type \`Mut<T>\`, where \`e\` has type \`T\`. On a \`Mut\` receiver, member writes, mutating methods and \`delete\` are accepted (S3.1, S3.2, S3.4). \`freeze(out)\` has type \`T\`.`
+// %%
+md`**S4.2** \`mut(...)\` is accepted only as the initializer of a local \`const\`. Anywhere else, a \`let\`, an argument or an array element, it is \`[mut-bind]\`.`
+// %%
+md`**S4.3** The argument of \`mut\` must be fresh: a literal, a spread copy, \`new\` on an intrinsic, or an intrinsic that returns a new value (\`Array.from\`, \`slice\`, \`map\`, \`structuredClone\`). A parameter, another binding or a frozen value is \`[mut-not-fresh]\`.`
+// %%
+md`**S4.4** A \`Mut\` may be read, written, passed to a parameter typed \`Mut<…>\` and passed to \`freeze\`. Returning it, yielding it, binding it to a second name, placing it in an array or object literal, or passing it to a parameter not typed \`Mut<…>\` is \`[mut-escape]\`.`
+// %%
+md`**S4.5** A nested function that uses a \`Mut\` of an enclosing function is \`[mut-capture]\`, unless it is a local helper in the sense of S3.11: bound to a local \`const\` or declared with \`function\`, and only called.`
+// %%
+md`**S4.6** Using a \`Mut\` after \`freeze\` of it, including by calling a helper that uses it, is \`[mut-after-freeze]\`.`
+// %%
+md`**S4.7** Only the first level of a \`Mut\` is writable. A write to, or a mutating method of, a value held inside it is \`[mut-deep-write]\`.`
+// %%
+md`**S4.8** A view of a \`Mut\` buffer (\`subarray\`, \`buffer\`, \`values()\`, or the receiver a mutating method returns) may only be consumed at once as an argument. Binding or returning one is \`[mut-view]\`.`
+// %%
+md`**S4.9** \`freeze\` of a \`Mut<…>\` parameter is \`[mut-freeze-param]\`. Only the function that called \`mut\` freezes it.`
+// %%
+md`The cells of this section. \`s4_blur\` writes a box blur into a \`Mut\` buffer; \`s4_counts\` writes a \`Mut\` map through a local helper (S4.5); \`s4_record\` deletes from a \`Mut\` object.`
+// %%
+//ss: ./spec-4.ts
+// %%
+spec_rejects_4 = [
+  { statement: "S4.2", rule: "mut-bind", source: "const a = () => {\n  let out = mut([0]);\n  out[0] = 1;\n  return freeze(out);\n};" },
+  { statement: "S4.2", rule: "mut-bind", source: "const a = () => freeze(mut([0]));" },
+  { statement: "S4.2", rule: "mut-bind", source: "const a = () => [mut([0])];" },
+  { statement: "S4.3", rule: "mut-not-fresh", source: "const xs = () => [1, 2, 3];\nconst bad = (xs) => {\n  const m = mut(xs);\n  m[0] = 9;\n  return freeze(m);\n};" },
+  { statement: "S4.3", rule: "mut-not-fresh", source: "const bad = () => {\n  const a = mut([1]);\n  const f = freeze(a);\n  const b = mut(f);\n  b[0] = 2;\n  return freeze(b);\n};" },
+  { statement: "S4.4", rule: "mut-escape", source: "const sum = () => (xs: number[]) => xs.reduce((p, q) => p + q, 0);\nconst a = (sum) => {\n  const out = mut([0, 1]);\n  const alias = out;\n  const arr = [out];\n  sum(out);\n  return out;\n};" },
+  { statement: "S4.4", rule: "mut-escape", source: "const b = () => {\n  const out = mut([0]);\n  return { out };\n};" },
+  { statement: "S4.4", rule: "mut-escape", source: "const g = function* () {\n  const out = mut([0, 1]);\n  yield out;\n};" },
+  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = mut([0]);\n  const f = () => out.length;\n  return f;\n};" },
+  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = mut([0]);\n  [1].forEach(() => {\n    out[0] = 1;\n  });\n  return freeze(out);\n};" },
+  { statement: "S4.6", rule: "mut-after-freeze", source: "const a = () => {\n  const out = mut([0]);\n  const r = freeze(out);\n  out[0] = 2;\n  return r;\n};" },
+  { statement: "S4.6", rule: "mut-after-freeze", source: "const a = () => {\n  const out = mut([0]);\n  const f = () => {\n    out[0] = 1;\n  };\n  const r = freeze(out);\n  f();\n  return r;\n};" },
+  { statement: "S4.7", rule: "mut-deep-write", source: "const a = () => {\n  const m = mut({ a: { b: 1 }, xs: [1] });\n  m.a.b = 2;\n  m.xs.push(2);\n  return freeze(m);\n};" },
+  { statement: "S4.8", rule: "mut-view", source: "const a = () => {\n  const t = mut(new Float32Array(4));\n  const v = t.subarray(0, 2);\n  return freeze(t);\n};" },
+  { statement: "S4.8", rule: "mut-view", source: "const a = () => {\n  const m = mut(new Map<string, number>());\n  const set = (k: string) => m.set(k, 1);\n  set(\"a\");\n  return freeze(m).size;\n};" },
+  { statement: "S4.9", rule: "mut-freeze-param", source: "const a = () => {\n  const g = (m: Mut<number[]>) => freeze(m);\n  return 1;\n};" }
+]
+// %%
+spec_rejects_4_view = spec_rejectsTable(spec_rejects_4)
+// %%
+test_spec_S4_1 = {
+  spec_is(spec_okCells("const a = () => {\n  const t = mut(new Float32Array(3));\n  t.fill(0);\n  t[1] = 2;\n  t[2] += 1;\n  t[0]++;\n  const m = mut(new Map<string, number>());\n  m.set(\"a\", 1);\n  m.delete(\"a\");\n  const o = mut({ a: 1, b: 2 });\n  delete o.a;\n  const xs = mut([3, 1]);\n  xs.push(2);\n  xs.sort((p, q) => p - q);\n  const r: number[] = freeze(xs);\n  return [freeze(t), freeze(m).size, freeze(o), r];\n};"), "a:ok");
+  const blur = Array.from(await spec_module.value("s4_blur"), (v) => Math.round(v * 1e6) / 1e6);
+  spec_is(blur, [0, 1, 1, 1, 0]);
+  spec_is(await spec_module.value("s4_record"), { b: 3 });
+  return `writes, mutating methods and delete on a Mut are accepted; s4_blur is ${JSON.stringify(blur)}, s4_record {"b":3}`;
+}
+// %%
+test_spec_S4_2 = spec_rejectsFor("S4.2")
+// %%
+test_spec_S4_3 = {
+  spec_is(spec_okCells("const xs = () => [1, 2, 3];\nconst o = () => ({ a: 1 });\nconst a = (xs, o) => {\n  const p = mut([...xs]);\n  const q = mut({ ...o });\n  const r = mut(Array.from(xs));\n  const s = mut(xs.slice(1));\n  const t = mut(xs.map((x) => x * 2));\n  const u = mut(structuredClone(xs));\n  const v = mut(new Map<string, number>());\n  p.push(4); q.a = 2; r.push(5); s.push(6); t.reverse(); u.reverse(); v.set(\"k\", 1);\n  return [freeze(p), freeze(q), freeze(r), freeze(s), freeze(t), freeze(u), freeze(v).size];\n};"), "xs:ok,o:ok,a:ok");
+  return `${spec_rejectsFor("S4.3")}; literals, spreads, new and fresh intrinsics are accepted`;
+}
+// %%
+test_spec_S4_4 = {
+  spec_is(spec_okCells("const a = () => {\n  const set0 = (m: Mut<number[]>) => {\n    m[0] = 5;\n  };\n  const out = mut([0, 1]);\n  set0(out);\n  const s = JSON.stringify(out);\n  return [freeze(out), s];\n};"), "a:ok");
+  return `${spec_rejectsFor("S4.4")}; a Mut<…> parameter and a read by JSON.stringify are accepted`;
+}
+// %%
+test_spec_S4_5 = {
+  spec_is(spec_okCells("const a = () => {\n  const out = mut([0]);\n  const f = () => out.length;\n  return f();\n};"), "a:ok");
+  spec_is(await spec_module.value("s4_counts"), [2, 1]);
+  return `${spec_rejectsFor("S4.5")}; a helper that is only called may use the Mut; s4_counts is [2,1]`;
+}
+// %%
+test_spec_S4_6 = spec_rejectsFor("S4.6")
+// %%
+test_spec_S4_7 = spec_rejectsFor("S4.7")
+// %%
+test_spec_S4_8 = {
+  spec_is(spec_okCells("const a = () => {\n  const t = mut(new Float32Array(4));\n  t.set(t.subarray(0, 2), 2);\n  return freeze(t);\n};"), "a:ok");
+  return `${spec_rejectsFor("S4.8")}; a view consumed at once as an argument is accepted`;
+}
+// %%
+test_spec_S4_9 = spec_rejectsFor("S4.9")
 // %%
 md`## 5. Owner cells
 
-PROSE PENDING. Not migrated yet.`
+PROSE PENDING`
+// %%
+md`**S5.1** A generator cell, sync or async, may keep a \`Mut\` across yields and \`yield borrow(x)\`. \`borrow(x)\` anywhere else, a nested generator included, is \`[borrow-placement]\`.`
+// %%
+md`**S5.2** A cell that takes such a generator cell gets a \`Borrowed<T>\`, read-only. An annotation that is not \`Borrowed<…>\` is \`[inject-type]\`, and a write to it is \`[member-write]\`.`
+// %%
+md`**S5.3** A \`Borrowed\` may be read during its reader's synchronous evaluation. Returning it, yielding it, binding it to a second name, placing it in a literal, passing it to \`ref\`, or using it in a nested function is \`[borrowed-escape]\`.`
+// %%
+md`**S5.4** Using a \`Borrowed\` after an \`await\` in the same function is \`[borrowed-await]\`. A value read from it before the \`await\` may be kept.`
+// %%
+md`**S5.5** \`snapshot(b)\` copies a \`Borrowed<T>\` to a plain \`T\`, which may be kept. \`snapshot\` of a value that is not \`Borrowed\` is \`[type]\`.`
+// %%
+md`The cells of this section. \`s5_frames\` lends one buffer three times, filled with \`k * (1, 2, 3)\` for \`k\` = 1, 2, 3; \`s5_total\` sums the frame it is lent and \`s5_kept\` keeps a copy.`
+// %%
+//ss: ./spec-5.ts
+// %%
+spec_rejects_5 = (() => {
+  // every case but the first reads this owner cell
+  const frames = "const frames = function* () {\n  const buf = mut(new Float32Array(2));\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield borrow(buf);\n  }\n};\n";
+  return [
+    { statement: "S5.1", rule: "borrow-placement", source: "const a = () => {\n  const b = mut([1]);\n  return snapshot(borrow(b));\n};" },
+    { statement: "S5.1", rule: "borrow-placement", source: "const g = function* () {\n  const b = mut([1]);\n  const f = function* () {\n    yield borrow(b);\n  };\n  yield 1;\n};" },
+    { statement: "S5.2", rule: "inject-type", source: frames + "const plain = (frames: Float32Array) => frames.length;" },
+    { statement: "S5.2", rule: "member-write", source: frames + "const w = (frames) => {\n  frames[0] = 1;\n  return 1;\n};" },
+    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => frames;" },
+    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => {\n  const f = () => frames.length;\n  return f();\n};" },
+    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => [frames];" },
+    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => ref(frames);" },
+    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => {\n  let x = frames;\n  return 1;\n};" },
+    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = function* (frames) {\n  yield frames;\n};" },
+    { statement: "S5.4", rule: "borrowed-await", source: frames + "const bad = async (frames) => {\n  await Promise.resolve();\n  return frames.length;\n};" },
+    { statement: "S5.5", rule: "type", source: "const f = () => snapshot([1]);" }
+  ];
+})()
+// %%
+spec_rejects_5_view = spec_rejectsTable(spec_rejects_5)
+// %%
+test_spec_S5_1 = {
+  spec_is(spec_okCells("const g = function* () {\n  const b = mut([1]);\n  b.push(2);\n  yield borrow(b);\n};\nconst h = async function* () {\n  const b = mut([1]);\n  yield borrow(b);\n};"), "g:ok,h:ok");
+  return `${spec_rejectsFor("S5.1")}; a sync and an async generator may yield borrow`;
+}
+// %%
+test_spec_S5_2 = {
+  const owner = "const frames = function* () {\n  const buf = mut(new Float32Array(2));\n  yield borrow(buf);\n};\n";
+  spec_is(spec_okCells(owner + "const a = (frames: Borrowed<Float32Array>) => frames.length;\nconst b = (frames) => frames.length;"), "frames:ok,a:ok,b:ok");
+  return `${spec_rejectsFor("S5.2")}; Borrowed<Float32Array> and no annotation are accepted`;
+}
+// %%
+test_spec_S5_3 = {
+  const owner = "const frames = function* () {\n  const buf = mut(new Float32Array(2));\n  yield borrow(buf);\n};\n";
+  spec_is(spec_okCells(owner + "const a = (frames) => {\n  let s = 0;\n  for (const v of frames) s += v;\n  return s + (frames.at(0) ?? 0);\n};"), "frames:ok,a:ok");
+  return `${spec_rejectsFor("S5.3")}; reads during the evaluation are accepted`;
+}
+// %%
+test_spec_S5_4 = {
+  const first = await spec_module.value("s5_first");
+  if (![1, 2, 3].includes(first)) throw new Error(`s5_first is ${first}`);
+  const owner = "const frames = function* () {\n  const buf = mut(new Float32Array(2));\n  yield borrow(buf);\n};\n";
+  spec_is(spec_okCells(owner + "const a = async (frames) => {\n  const x = frames.at(0) ?? 0;\n  await Promise.resolve();\n  return x;\n};"), "frames:ok,a:ok");
+  return `${spec_rejectsFor("S5.4")}; a value read before the await is kept (s5_first is ${first})`;
+}
+// %%
+test_spec_S5_5 = {
+  // an owner yields once a frame; frames(f) waits, frame by frame, until f() holds
+  const frames = async (f) => { for (let i = 0; i < 120 && !(await f()); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
+  const L = await spec_load("const frames = function* () {\n  const buf = mut(new Float32Array(3));\n  for (let k = 1; k <= 3; k++) {\n    for (let i = 0; i < buf.length; i++) buf[i] = k * (i + 1);\n    yield borrow(buf);\n  }\n};\nconst kept = (frames) => snapshot(frames);\nconst total = (frames) => {\n  let s = 0;\n  for (const v of frames) s += v;\n  return s;\n};", {});
+  try {
+    const kept0 = await L.value("kept"), was = Array.from(kept0), k = was[0];
+    spec_is(was, [k, 2 * k, 3 * k]);
+    if (k === 3) throw new Error("the first value read was the last frame; the copy cannot be told from the buffer");
+    if (!(await frames(async () => (await L.value("total")) === 18))) throw new Error("the owner did not reach its last frame");
+    // the copy taken at frame k is unchanged after the owner wrote frame 3 into the same buffer
+    spec_is(Array.from(kept0), was);
+    spec_is(Array.from(await L.value("kept")), [3, 6, 9]);
+  } finally { L.dispose(); }
+  if (!(await frames(async () => (await spec_module.value("s5_total")) === 18))) throw new Error("s5_total did not reach 18");
+  spec_is(Array.from(await spec_module.value("s5_kept")), [3, 6, 9]);
+  return `${spec_rejectsFor("S5.5")}; a copy of an early frame is unchanged after the last; s5_kept is [3,6,9], s5_total 18`;
+}
 // %%
 md`## 6. Refs and actions
 
@@ -382,6 +751,16 @@ test_spec_S11_10 = {
 md`## Not specified
 
 PROSE PENDING`
+// %%
+md`- \`DataView\`, \`TextEncoder\`, \`TextDecoder\` and \`Symbol\` were on the v0 list of allowed intrinsics, but the checker has no signatures for them: reading one leaves the cell unsupported, and \`new\` on one is \`[new-non-intrinsic]\`.`
+// %%
+md`- \`Object.assign\` onto a fresh literal (\`Object.assign({}, o)\`), \`satisfies\` and the array method \`with\` leave the cell unsupported: neither accepted nor rejected.`
+// %%
+md`- A prelude function used as a value, such as \`const f = () => mut\` or \`() => borrow\`, is accepted. Only \`on\` is rejected as a value (\`[listener-placement]\`). Whether passing \`mut\` or \`borrow\` around should be allowed is not decided.`
+// %%
+md`- An angle-bracket cast \`<number>e\` is \`[no-cast]\` when the module is checked without JSX; a notebook module is checked with JSX, where it does not parse.`
+// %%
+md`- A type declared twice: the first is used, and the second is a module-level \`[duplicate-cell]\` with no line of the first.`
 // %%
 md`- A top-level \`declare const\` is \`[module-level]\` today (S1.4). Whether an ambient declaration belongs in a module of cells is not decided.`
 // %%

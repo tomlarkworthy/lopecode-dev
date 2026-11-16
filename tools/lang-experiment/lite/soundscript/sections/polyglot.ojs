@@ -33,7 +33,7 @@ The editor's header has a picker that shows the language a cell will be stored i
 // %%
 md`The listing leaves out \`viewof height\` and \`summary\`. Observable JavaScript is built into the editor and is not a registered language.`
 // %%
-md`A SoundScript cell cannot read a raw or Observable JavaScript cell yet: \`fromRaw\` is rejected with \`[inject-unknown]\`.`
+md`A SoundScript cell reads a raw or Observable JavaScript cell through a typed parameter: \`fromRaw\` takes the raw cell \`area\` as a \`number\`, and the value is checked when it arrives.`
 // %%
 //ss: ./sections/polyglot.ts -width -doubledWidth
 // %%

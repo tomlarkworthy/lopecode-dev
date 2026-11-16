@@ -134,7 +134,7 @@ ss_moduleCells = (module) => {
     const key = ss_keyOf(v._name);
     // a compiled definition copied under another name (bump_copy) decompiles to the original's name;
     // the variable's own name wins, so recompiling it never defines a second bump
-    if (!key.startsWith("type ")) {
+    if (!key.startsWith("type ") && !ss.isDuplicateKey(key)) {
       const head = /^((?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:const\s+|let\s+|(?:async\s+)?function\s*\*?\s*))([\w$]+)/.exec(text);
       if (head && head[2] !== key) text = head[1] + key + text.slice(head[0].length);
     }
@@ -142,7 +142,10 @@ ss_moduleCells = (module) => {
     seen.add(key);
     out.push({ key, text, variable: v });
   }
-  return out;
+  // a name declared again (stored as "<name> (2)", ...) comes after every other cell, so the checker
+  // sees it as the later declaration, and the cell with the plain name keeps it
+  const dup = out.filter((c) => ss.isDuplicateKey(c.key)).sort((a, b) => (a.key < b.key ? -1 : 1));
+  return dup.length ? [...out.filter((c) => !ss.isDuplicateKey(c.key)), ...dup] : out;
 }
 // %%
 ss_outside = (module) => {
@@ -318,13 +321,27 @@ ss_language = {
     const oldKey = ownKey(variables);
     let at = cells.findIndex((c) => c.key === oldKey);
     if (at < 0) { texts.push(source); at = texts.length - 1; } else texts[at] = source;
+    // an edit that takes the name of another cell is stored as "<name> (2)" and rejected; it goes after
+    // the other cells, so the checker sees it as the later declaration
+    const named = ss.declaredName(source);
+    const takesCell = !!named && named !== oldKey && cells.some((c) => c.key === named);
+    if (takesCell && at !== texts.length - 1) { texts.splice(at, 1); texts.push(source); at = texts.length - 1; }
+    const there0 = named && named !== oldKey ? module?._scope?.get(named) : null;
+    const takesOther = !takesCell && !!there0 && !isSs(there0) && !variables.includes(there0);
     // one check of the module as edited gives the verdicts, the compile context and the cell facts
     let after = null, checkError = null;
-    const outside = module ? ss_outside(module) : null;
+    const outside = module ? ss_outside(module).filter((o) => !(takesOther && o.name === named)) : null;
     try { after = ss.checkCells(texts, true, outside).result; } catch (e) { checkError = e; }
     if (!after) return { ok: false, store: false, problems: [{ line: 1, rule: "check", msg: `${checkError.message}; a cell that does not parse is stored only when it starts with const, let or function <name>` }] };
-    let defs;
-    try { defs = ss.compileCell(source, tsx, ss.contextFromCheck(after), oldKey); }
+    let defs, ctx = ss.contextFromCheck(after), hint = oldKey;
+    if (takesCell && ss.isDuplicateKey(after.cells.at(-1)?.name)) hint = after.cells.at(-1).name;
+    if (takesOther) {
+      let k = 2;
+      while (module._scope.has(`${named} (${k})`)) k++;
+      hint = `${named} (${k})`;
+      ctx = { ...ctx, why: new Map([...(ctx.why ?? []), [hint, [`[duplicate-cell] ${named} is already defined in this module, in another language`]]]) };
+    }
+    try { defs = ss.compileCell(source, tsx, ctx, hint); }
     catch (e) { return { ok: false, store: false, problems: [{ line: e.loc?.line ?? 1, rule: "compile", msg: e.message }] }; }
     const key = keyOf(defs.at(-1).name);
     const own = new Set([...variables, ...(oldKey ? family(module, oldKey) : [])]);
@@ -341,6 +358,7 @@ ss_language = {
     if (parseMsg !== undefined) problems.push({ line: Number(/\((\d+):\d+\)/.exec(parseMsg)?.[1] ?? 1), rule: "parse", msg: parseMsg });
     for (const e of after.module) if (e.line > start && e.line <= end) problems.push(rel(e));
     const mine = parseMsg === undefined ? after.cells.find((c) => c.name === key) : null;
+    if (takesOther) problems.push({ line: 1, rule: "duplicate-cell", msg: `${named} is already defined in this module, in another language` });
     if (mine) {
       for (const e of mine.errors) problems.push(rel(e));
       for (const u of mine.unsupported) problems.push({ ...rel(u), rule: "unsupported" });

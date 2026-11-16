@@ -341,7 +341,7 @@ A source file holds cells and type declarations, nothing else (\`[module-level]\
 | \`const f = () => (n: number) => n * 2\` | a cell whose value is a function: two arrows, the outer one lists the inputs |
 | \`type T = …\`, \`interface I {…}\`, \`import type\` | allowed at top level, not cells |
 
-A top-level \`const\` or \`let\` that is not a function is \`[cell-not-function]\`; two cells with one name are a parse error (the table is replaced by the message). Two cells that read each other are \`[cycle]\`. A cell named \`test_*\` is a test and passes if it does not throw.`
+A top-level \`const\` or \`let\` that is not a function is \`[cell-not-function]\`; a second cell with the name of another is \`[duplicate-cell]\` and does not run, and the first keeps the name. Two cells that read each other are \`[cycle]\`. A cell named \`test_*\` is a test and passes if it does not throw.`
 // %%
 md`### Inputs
 
@@ -353,8 +353,10 @@ Each parameter of a cell names what it reads. What it receives depends on the na
 | \`count: Ref<T>\`, naming a ref cell | the handle, with \`set\` and \`update\` and no read (\`[inject-ref]\` if not a ref cell of \`T\`) | no |
 | \`ticks: Events<T>\`, naming a sync generator cell (*lite*) | a handle for \`on(...)\` (\`[inject-events]\` if not a generator yielding \`T\`) | no |
 | a capability name (next entry) | the host's object for that effect | no |
+| \`x: T\`, naming a cell in another language (section 10) | a frozen copy of its value, checked against \`T\` when it arrives (\`[boundary-unannotated]\` with no \`T\`, \`[boundary-type]\` if \`T\` cannot be checked) | yes |
+| \`x: Ref<T>\`, naming an Observable JavaScript \`viewof x\` | the view as a handle: \`set\` and \`update\` write the control (\`[boundary-ref]\` if there is no \`viewof x\`) | no |
 
-Once any cell takes a generator as \`Events\`, a parameter reading it without \`Events\` is \`[inject-events]\`, because it would receive the handle. No cell may take a listener cell (\`[listener-placement]\`). Any other name is \`[inject-unknown]\`; a destructuring pattern is \`[inject-pattern]\`. A body may not use a cell's name without taking it as a parameter (\`[cell-by-name]\`).
+Once any cell takes a generator as \`Events\`, a parameter reading it without \`Events\` is \`[inject-events]\`, because it would receive the handle. No cell may take a listener cell (\`[listener-placement]\`). A name that is another variable of the module, in any language, is read through the checked boundary (section 10). Any other name is \`[inject-unknown]\`; a destructuring pattern is \`[inject-pattern]\`. A body may not use a cell's name without taking it as a parameter (\`[cell-by-name]\`).
 
 Types: a parameter needs a type from an annotation or from its context (\`[untyped-parameter]\`); a type name that is not declared is \`[unknown-type]\`. Most other mismatches, such as a \`string\` where a \`number\` is wanted, are \`[type]\`; a call with the wrong number of arguments is \`[arity]\`.`
 // %%
