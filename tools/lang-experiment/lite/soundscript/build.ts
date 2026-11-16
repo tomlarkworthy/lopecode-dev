@@ -100,21 +100,21 @@ const EXPECT_REMOVED = [
 // attachment blocks quick_start carries that their module does not list (exporter-3 drops them on save)
 const EXPECT_ORPHANS = ["@tomlarkworthy/observablejs-toolchain/acorn-walk-8.3.2.js.gz"];
 
+const CHANGED = "const changed = async (n, from) => { for (let i = 0; i < 600; i++) { const v = await inst.value(n); if (v !== from) return v; await new Promise((r) => requestAnimationFrame(r)); } throw new Error(`${n} stayed ${from} for 600 frames`); };";
 const RAW: Record<string, Record<string, Variable>> = {
-  // written as variables so the handle input is spelled as the compiler spells it (viewof <cell>)
   [CORE]: {
     test_ss_ref_handle: {
       name: "test_ss_ref_handle",
       // on a private copy of the module, so the counter on the page keeps its count
-      inputs: ["ss_tests_on", "ss", "ss_instance", "ss_module"],
-      definition: "async (on, ss, ss_instance, mod) => { if (on !== true) throw new Error(\"the tests are off\"); let end; const done = new Promise((r) => (end = r)); try { const inst = await ss_instance(mod, done); const [handle, bump, reset] = await Promise.all([inst.value(\"viewof tally\"), inst.value(\"bump\"), inst.value(\"reset\")]); const g = ss.refValues(handle); const v0 = g.next().value; bump(); const v1 = await g.next().value; reset(); const v2 = await g.next().value; if (v1 !== v0 + 1 || v2 !== 0) throw new Error(`${v0} -> ${v1} -> ${v2}`); return `${v0} -> ${v1} -> ${v2}`; } finally { end(); } }",
+      inputs: ["ss_tests_on", "ss_instance", "ss_module"],
+      definition: `async (on, ss_instance, mod) => { if (on !== true) throw new Error("the tests are off"); let end; const done = new Promise((r) => (end = r)); try { const inst = await ss_instance(mod, done); ${CHANGED} const [bump, reset] = await Promise.all([inst.value("bump"), inst.value("reset")]); const v0 = await inst.value("tally"); bump(); const v1 = await changed("tally", v0); reset(); const v2 = await changed("tally", v1); if (v1 !== v0 + 1 || v2 !== 0) throw new Error(\`\${v0} -> \${v1} -> \${v2}\`); return \`\${v0} -> \${v1} -> \${v2}\`; } finally { end(); } }`,
     },
   },
   [TUTORIAL]: {
     test_ss_counter: {
       name: "test_ss_counter",
-      inputs: ["tests_on", "ss", "ss_instance", "tutorial_module"],
-      definition: "async (on, ss, ss_instance, mod) => { if (on !== true) throw new Error(\"the tests are off\"); let end; const done = new Promise((r) => (end = r)); try { const inst = await ss_instance(mod, done); const [handle, savedHandle, increment, clear, save] = await Promise.all([inst.value(\"viewof count\"), inst.value(\"viewof saved\"), inst.value(\"increment\"), inst.value(\"clear\"), inst.value(\"save\")]); const g = ss.refValues(handle), gs = ss.refValues(savedHandle); const v0 = g.next().value; gs.next(); increment(); const v1 = await g.next().value; save(); const s1 = await gs.next().value; clear(); const v2 = await g.next().value; if (v1 !== v0 + 1 || s1 !== v1 || v2 !== 0) throw new Error(`${v0} -> ${v1} (saved ${s1}) -> ${v2}`); return `${v0} -> ${v1}, saved ${s1} -> ${v2}`; } finally { end(); } }",
+      inputs: ["tests_on", "ss_instance", "tutorial_module"],
+      definition: `async (on, ss_instance, mod) => { if (on !== true) throw new Error("the tests are off"); let end; const done = new Promise((r) => (end = r)); try { const inst = await ss_instance(mod, done); ${CHANGED} const [increment, clear, save] = await Promise.all([inst.value("increment"), inst.value("clear"), inst.value("save")]); const v0 = await inst.value("count"), s0 = await inst.value("saved"); increment(); const v1 = await changed("count", v0); save(); const s1 = await changed("saved", s0); clear(); const v2 = await changed("count", v1); if (v1 !== v0 + 1 || s1 !== v1 || v2 !== 0) throw new Error(\`\${v0} -> \${v1} (saved \${s1}) -> \${v2}\`); return \`\${v0} -> \${v1}, saved \${s1} -> \${v2}\`; } finally { end(); } }`,
     },
   },
 };

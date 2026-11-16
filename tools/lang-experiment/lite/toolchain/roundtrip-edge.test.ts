@@ -69,11 +69,10 @@ if (typeof (toolchain as any).idOf === "function") {
   expect(JSON.stringify(run(d2)) === JSON.stringify({ id: "anon", n: 1 }), "C4 the cell still returns the user's object");
   expect(attempt(() => withId(d, "bad id")) instanceof Error, "C4 withId refuses an id that is not \\w+");
   const ref = compileCell(`const r = (): RefCell<number> => ref(0);`, false);
-  const proj = ref.find((v) => v.name === "r")!.definition;
-  expect(idOf(proj) === null && withId(proj, "x1") === proj, "C4 a ref's projection has no id");
+  expect(ref.length === 1 && ref[0].name === "r", "C4 a ref cell is one variable: " + ref.map((v) => v.name));
   const ty = def(`type T = { id: "z" };`);
   expect(idOf(ty) === null && withId(ty, "x1") === ty, "C4 a type variable has no id");
-  expect(idOf(ref.find((v) => v.name === "viewof r")!.definition) !== null, "C4 a ref's handle has an id");
+  expect(idOf(ref[0].definition) !== null, "C4 a ref cell's variable has an id");
 }
 
 // F1: TS-only expression forms erase to valid JS that computes the same value

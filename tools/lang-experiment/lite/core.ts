@@ -61,11 +61,13 @@ function syntaxPass(n: Node, report: (n: Node, rule: string, msg: string) => voi
 }
 
 // outside: the module's cells in other languages (Observable JavaScript, raw), by name; view when the
-// module also has `viewof <name>`. A SoundScript cell takes one through an annotated parameter (boundary.ts).
-export type Outside = { name: string; view?: boolean };
+// module also has `viewof <name>`; ref when the name is a SoundScript ref cell imported from another module.
+// A SoundScript cell takes one through an annotated parameter (boundary.ts).
+export type Outside = { name: string; view?: boolean; ref?: boolean };
 export type Sources = { cells: string; tsx?: boolean; foreign?: string | null; shell?: string | null; name?: string; outside?: readonly Outside[] | null };
-// per parameter that names an outside cell: its value's shape, and whether it is taken as Ref (the view)
-export type Boundary = { shape: Shape; ref: boolean };
+// per parameter that names an outside cell: its value's shape, and whether it is taken as Ref (view: of
+// an Observable JavaScript view; otherwise of an imported ref cell)
+export type Boundary = { shape: Shape; ref: boolean; view?: boolean };
 
 // Browser-safe: no file system. check.ts checkPort reads a port directory and calls this.
 // onCell: each cell's checker before it runs, so a caller can set hooks on it (completion)
@@ -289,7 +291,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
         // a cell in another language: the annotation is the type, checked when a value crosses
         if (!ann) { diag(p, "boundary-unannotated", `${name} is a cell in another language; annotate the parameter with the type it must have, e.g. ${name}: number`); injected.push(ERR); continue; }
         if (wrapper === "Events") { diag(p, "boundary-type", `${name} is a cell in another language; it cannot be taken as Events`); injected.push(ERR); continue; }
-        if (wrapper === "Ref" && !outside.get(name)!.view) { diag(p, "boundary-ref", `${name} has no viewof; only an Observable JavaScript view can be taken as Ref`); injected.push(ERR); continue; }
+        const o = outside.get(name)!;
+        if (wrapper === "Ref" && !o.view && !o.ref) { diag(p, "boundary-ref", `${name} has no viewof and is not an imported ref cell; only an Observable JavaScript view or a SoundScript ref cell imported from another module can be taken as Ref`); injected.push(ERR); continue; }
         const want = reg.convert(ann, { tps: new Set() }, P);
         const inner = wrapper === "Ref" && isNamed(want, "Ref") ? want.args[0] : want;
         if (hasErr(inner)) { injected.push(ERR); continue; } // a type lite does not know is reported where it is written
@@ -297,11 +300,11 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
         if ("error" in shape) { diag(p, "boundary-type", `${name}: ${show(inner)} cannot cross from another language: it is or holds ${shape.error}`); injected.push(ERR); continue; }
         if (wrapper === "Ref") {
           const first = viewTypes.get(name);
-          if (first && !(reg.sub(first.ty, inner) && reg.sub(inner, first.ty))) { diag(p, "boundary-ref", `viewof ${name} is taken as Ref<${show(first.ty)}> by ${first.cell}; every Ref to one view has the same type`); injected.push(ERR); continue; }
+          if (first && !(reg.sub(first.ty, inner) && reg.sub(inner, first.ty))) { diag(p, "boundary-ref", `${o.view ? "viewof " : ""}${name} is taken as Ref<${show(first.ty)}> by ${first.cell}; every Ref to one ${o.view ? "view" : "ref"} has the same type`); injected.push(ERR); continue; }
           if (!first) viewTypes.set(name, { ty: inner, cell: c.name });
         }
         if (!boundaries.has(c.name)) boundaries.set(c.name, new Map());
-        boundaries.get(c.name)!.set(name, { shape, ref: wrapper === "Ref" });
+        boundaries.get(c.name)!.set(name, wrapper === "Ref" ? { shape, ref: true, view: !!o.view } : { shape, ref: false });
         injected.push(want);
         continue;
       }

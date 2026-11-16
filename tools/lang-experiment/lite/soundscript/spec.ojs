@@ -657,6 +657,8 @@ md`**S6.9** The body of an action may not use a value that depends on state: an 
 // %%
 md`**S6.10** Each top-level action call is a flush group of its own. A write is applied when it is made, so an \`update\` whose function throws throws out of the call that made it. A call that throws keeps none of its writes, nor those of the actions it called; the writes of earlier calls are kept, and groups apply in the order of the calls.`
 // %%
+md`**S6.11** An input \`c: Ref<T>\` gets the address of the ref cell \`c\`, which a write and \`read\` look up when they are made, so a \`Ref<T>\` taken before the ref cell is made again (S6.2) writes to the new one. When the ref cell is in error, because it does not check, it or one of its inputs threw, or it is not defined, a write or \`read\` throws inside the action call, and the call keeps none of its writes (S6.10).`
+// %%
 md`The cells of this section. \`s6_copy\` reads \`s6_count\` when it is called; \`s6_bumpThenCopy\` writes \`s6_count\` and calls \`s6_copy\`, which sees that write (S6.8). \`s6_controls\` holds two actions in a record. \`s6_view\` has a button for each of \`s6_increment\` and \`s6_bumpThenCopy\` and shows both counts.`
 // %%
 //ss: ./spec-6.tsx
@@ -706,24 +708,25 @@ test_spec_S6_2 = {
   const L = await spec_load("const seed = (): RefCell<number> => ref(1);\nconst vars = (seed: number): RefCell<{ readonly n: number }> => ref({ n: seed * 10 });\nconst label = (vars: { readonly n: number }) => `n=${vars.n}`;\nconst setN = (vars: Ref<{ readonly n: number }>) => action((n: number) => vars.set({ n }));\nconst bumpSeed = (seed: Ref<number>) => action(() => seed.update((s) => s + 1));", {});
   try {
     spec_is(await L.value("label"), "n=10");
-    const made = spec_evals(L.module, "viewof vars");
+    const made = spec_evals(L.module, "vars");
     (await L.value("setN"))(5);
     await spec_flush();
     spec_is(await L.value("label"), "n=5");
-    spec_is(spec_evals(L.module, "viewof vars") - made, 0);
+    spec_is(spec_evals(L.module, "vars") - made, 0);
     (await L.value("bumpSeed"))();
     await spec_flush();
     spec_is(await L.value("label"), "n=20");
-    spec_is(spec_evals(L.module, "viewof vars") - made, 1);
+    spec_is(spec_evals(L.module, "vars") - made, 1);
     return "a write is kept (n=5) until the input changes; then the ref is made again from it (n=20), once";
   } finally { L.dispose(); }
 }
 // %%
 test_spec_S6_3 = {
-  const L = await spec_load("const count = (): RefCell<number> => ref(0);\nconst label = (count) => `count: ${count}`;\nconst increment = (count: Ref<number>) => action(() => count.update((c) => c + 1));", {});
+  // names of its own: a run is counted per compiled text, and the tutorial has a count and an increment
+  const L = await spec_load("const clicks = (): RefCell<number> => ref(0);\nconst label = (clicks) => `count: ${clicks}`;\nconst increment = (clicks: Ref<number>) => action(() => clicks.update((c) => c + 1));", {});
   try {
     spec_is(await L.value("label"), "count: 0");
-    const runs = () => ["label", "increment", "viewof count"].map((n) => spec_evals(L.module, n));
+    const runs = () => ["label", "increment", "clicks"].map((n) => spec_evals(L.module, n));
     const [label0, inc0, count0] = runs();
     (await L.value("increment"))();
     await spec_flush();
@@ -741,9 +744,9 @@ test_spec_S6_3 = {
 test_spec_S6_4 = spec_rejectsFor("S6.4")
 // %%
 test_spec_S6_5 = {
-  const L = await spec_load("const count = (): RefCell<number> => ref(0);", {});
+  const L = await spec_load("const count = (): RefCell<number> => ref(0);\nconst held = (count: Ref<number>) => [count];", {});
   try {
-    const handle = await L.value("viewof count");
+    const [handle] = await L.value("held");
     let msg = "";
     try { handle.set(5); } catch (e) { msg = e.message; }
     if (!/outside an action/.test(msg)) throw new Error(`set outside an action gave ${JSON.stringify(msg)}`);
@@ -765,13 +768,13 @@ test_spec_S6_7 = {
 }
 // %%
 test_spec_S6_8 = {
-  const L = await spec_load("const count = (): RefCell<number> => ref(0);\nconst other = (): RefCell<number> => ref(0);\nconst copy = (other: Ref<number>, count: Ref<number>) => action(() => other.set(read(count) + 1));\nconst bumpThenCopy = (count: Ref<number>, copy: Action<[]>) =>\n  action(() => {\n    count.update((c) => c + 1);\n    copy();\n  });\nconst pair = (count: number, other: number) => [count, other];", {});
+  const L = await spec_load("const count = (): RefCell<number> => ref(0);\nconst other = (): RefCell<number> => ref(0);\nconst copy = (other: Ref<number>, count: Ref<number>) => action(() => other.set(read(count) + 1));\nconst bumpThenCopy = (count: Ref<number>, copy: Action<[]>) =>\n  action(() => {\n    count.update((c) => c + 1);\n    copy();\n  });\nconst pair = (count: number, other: number) => [count, other];\nconst held = (count: Ref<number>) => [count];", {});
   try {
     (await L.value("bumpThenCopy"))();
     await spec_flush();
     spec_is(await L.value("pair"), [1, 2]);
     let msg = "";
-    try { ss.read(await L.value("viewof count")); } catch (e) { msg = e.message; }
+    try { ss.read((await L.value("held"))[0]); } catch (e) { msg = e.message; }
     if (!msg) throw new Error("read outside an action did not throw");
     const live = (n) => spec_module.value(n);
     const controls = await live("s6_controls");
@@ -812,6 +815,47 @@ const all = (p: number, q: number, r: number, s: number) => [p, q, r, s];`, {});
     spec_is(await L.value("all"), [100, 9, 0, 19]);
     return "a throwing call keeps none of its writes or its callees' (transfer, failing, wraps); an earlier call's write stays; an update that throws throws at the call; calls apply in order (s is 19)";
   } finally { L.dispose(); }
+}
+// %%
+test_spec_S6_11 = {
+  const E = await spec_editor([
+    "const base = () => 1;",
+    "const n = (base: number): RefCell<number> => ref(base);",
+    "const other = (): RefCell<number> => ref(0);",
+    "const both = (n: Ref<number>, other: Ref<number>) => action(() => {\n  other.update((v) => v + 1);\n  n.update((v) => v + 1);\n});",
+    "const bumpBase = (n: Ref<number>) => action(() => n.set(read(n) + 10));",
+    "const pair = (n: number, other: number) => [n, other];"
+  ]);
+  try {
+    const both = await E.value("both");
+    const call = async (f) => { let msg = ""; try { f(); } catch (e) { msg = e.message; } await spec_flush(); return msg; };
+    spec_is([await call(both), await E.value("pair")], ["", [2, 1]]);
+    // an input that throws: the write to n throws, and other keeps 1
+    await E.edit("base", 'const base = (): number => {\n  throw new Error("broken base");\n};');
+    await E.value("n");
+    const threw = await call(both);
+    if (!/^Ref n: n is in error: broken base/.test(threw)) throw new Error(`with base throwing: ${JSON.stringify(threw)}`);
+    spec_is((await E.value("other")), 1);
+    // made again from a new input: the action taken before writes the new ref
+    await E.edit("base", "const base = () => 5;");
+    await E.value("n");
+    spec_is([await call(both), await E.value("pair")], ["", [6, 2]]);
+    // the ref cell does not check: the cell holding its Ref is not blocked, and its write throws
+    await E.edit("n", 'const n = (base: number): RefCell<number> => ref("x");');
+    await E.value("n");
+    spec_is([E.states().n, E.states().both, E.states().pair], ["rejected", "ok", "blocked by n"]);
+    const rejected = await call(both);
+    if (!/^Ref n: n is in error: n does not check: \[/.test(rejected)) throw new Error(`with n rejected: ${JSON.stringify(rejected)}`);
+    const readMsg = await call(await E.value("bumpBase"));
+    if (!/^Ref n: n is in error/.test(readMsg)) throw new Error(`read of a rejected n: ${JSON.stringify(readMsg)}`);
+    spec_is((await E.value("other")), 2);
+    // not defined
+    E.variable("n").delete();
+    const missing = await call(both);
+    if (!/^Ref n: n is not defined/.test(missing)) throw new Error(`with n deleted: ${JSON.stringify(missing)}`);
+    spec_is((await E.value("other")), 2);
+    return `a write throws when an input threw (${threw}), when the ref cell does not check, and when it is not defined; the call keeps none of its writes; an action taken before n was made again writes the new n`;
+  } finally { E.dispose(); }
 }
 // %%
 md`## 7. Events and listeners
@@ -987,7 +1031,7 @@ What the notebook does when an edit leaves cells that do not check. The edit is 
 // %%
 md`**S8.1** Every edit is stored, one that does not parse included, unless its text names no cell: no \`const <name>\`, \`let <name>\` or \`function <name>\` at its start, after comments and an optional \`export\`. An edit that takes the name of another cell is stored under another name (S1.6).`
 // %%
-md`**S8.2** After each edit every cell is ok, rejected or blocked. A rejected cell breaks a rule of its own, does not parse (\`[parse]\`), or uses a construct the checker has no rule for (\`[unsupported]\`, such as the array method \`with\`); a cell whose check fails because the type of an input changed is rejected with its own message. A blocked cell breaks no rule of its own but takes a cell that is not ok.`
+md`**S8.2** After each edit every cell is ok, rejected or blocked. A rejected cell breaks a rule of its own, does not parse (\`[parse]\`), or uses a construct the checker has no rule for (\`[unsupported]\`, such as the array method \`with\`); a cell whose check fails because the type of an input changed is rejected with its own message. A blocked cell breaks no rule of its own but takes a cell that is not ok, other than as \`Ref<T>\` (S6.11).`
 // %%
 md`**S8.3** Only ok cells run. An edit and every other cell whose compiled form it changes are defined in one step, so no cell runs in between on a mix of old and new definitions. A rejected cell raises \`<name> does not check: [rule] …\` and its body never runs, at load or after an edit; the body is kept only as source. A blocked cell fails with the error of the input that is not ok.`
 // %%
@@ -1246,7 +1290,7 @@ md`**S11.5** The cell is given a deep-frozen copy. An object keeps only the prop
 // %%
 md`**S11.6** A copy is made for each value that arrives, so a value changed in place by the other language and delivered again is seen. A copy equal to the last one the same parameter was given is that one, so the reading cell is not run again.`
 // %%
-md`**S11.7** \`x: Ref<T>\` takes the view of an Observable JavaScript \`viewof x\`. On a cell with no \`viewof\`, and when two parameters in one module take the same view as \`Ref\` of different types, it is \`[boundary-ref]\`.`
+md`**S11.7** \`x: Ref<T>\` takes the view of an Observable JavaScript \`viewof x\`, or the ref of a SoundScript ref cell \`x\` imported from another module. On any other cell in another language, and when two parameters in one module take the same view or ref as \`Ref\` of different types, it is \`[boundary-ref]\`.`
 // %%
 md`**S11.8** A write through the \`Ref\` commits with its action: it sets the view's \`value\` and dispatches an \`input\` event. The \`Ref\` then holds what the view gives back, which a control may have rounded or clamped. A change made on the control is an action call of its own, a flush group like any other (section 6).`
 // %%
@@ -1285,13 +1329,13 @@ spec_rejects_11_view = spec_rejectsTable(spec_rejects_11)
 // %%
 spec_load = async (source, outside) => {
   // source's SoundScript cells compiled and run in a module of their own beside outside, {name: [inputs,
-  // function]}, plain variables standing for cells in other languages; every variable observed
+  // function]}, plain variables standing for cells in other languages, or {name: {from: module}}, an
+  // import of name from module; every variable observed
   const m = runtime.module();
   ss_instances.add(m);
   m.define("ss", [], () => ss);
-  for (const [n, [inputs, f]] of Object.entries(outside)) m.define(n, inputs, f);
-  const names = Object.keys(outside).filter((n) => !n.startsWith("viewof "));
-  const list = names.map((name) => (outside[`viewof ${name}`] ? { name, view: true } : { name }));
+  for (const [n, x] of Object.entries(outside)) if (Array.isArray(x)) m.define(n, x[0], x[1]); else m.import(n, x.from);
+  const list = ss_outside(m);
   const texts = ss.splitCells(source, true);
   const ctx = ss.contextFromCheck(ss.checkCells(texts, true, list).result);
   const defs = texts.flatMap((t) => ss.compileCell(t, true, ctx));
@@ -1374,8 +1418,19 @@ test_spec_S11_6 = {
 test_spec_S11_7 = {
   const bump = [...runtime._variables].find((v) => v._module === spec_module && v._name === "s11_bump");
   const inputs = bump._inputs.map((i) => i._name);
-  if (!inputs.includes("viewof s11_level") || typeof (await spec_module.value("s11_shown")) !== "number") throw new Error(`s11_bump takes ${inputs.join(", ")}`);
-  return `${spec_rejectsFor("S11.7")}; s11_bump takes viewof s11_level as Ref<number>, s11_shown its value`;
+  if (inputs.includes("viewof s11_level") || typeof (await spec_module.value("s11_bump")) !== "function" || typeof (await spec_module.value("s11_shown")) !== "number") throw new Error(`s11_bump takes ${inputs.join(", ")}`);
+  // a ref cell imported from another module
+  const A = await spec_load("const count = (): RefCell<number> => ref(0);", {});
+  try {
+    const B = await spec_load("const add = (count: Ref<number>) => action((k: number) => count.update((c) => c + k));\nconst seen = (count: number) => count;", { count: { from: A.module } });
+    try {
+      spec_is(ss_outside(B.module).find((o) => o.name === "count"), { name: "count", ref: true });
+      (await B.value("add"))(5);
+      await spec_flush();
+      spec_is([await A.value("count"), await B.value("seen")], [5, 5]);
+    } finally { B.dispose(); }
+  } finally { A.dispose(); }
+  return `${spec_rejectsFor("S11.7")}; s11_bump takes viewof s11_level as Ref<number> with no input on it, s11_shown its value; add, in another module, takes the imported ref cell count as Ref<number> and writes it (5)`;
 }
 // %%
 test_spec_S11_8 = {
@@ -1467,6 +1522,8 @@ md`- An angle-bracket cast \`<number>e\` is \`[no-cast]\` when the module is che
 // %%
 md`- Whether a listener cell runs again when its events cell stops and starts again (S7.5). In the notebook the count differs from load to load: on 2026-11-16 \`onNum\` ran once more after a stop and a start in one load and not at all in another; the value of \`test_spec_S7_5\` gives this load's count. The stdlib's own test harness counts none.`
 // %%
+md`- A write to a ref while its cell is computing again, after an input changed and before the cell has run (S6.2). Today it goes to the ref as it was, and is kept only if the cell runs again with the same inputs.`
+// %%
 md`- An \`Action\` held in a ref (an undo stack, a current tool). The checker accepts it; what the ref holds after the action's cell is edited or deleted is observed, not decided.`
 // %%
 md`- The order of listeners in different modules. The runtime orders them by module name and then by place; a module with no name, such as one made for a test, is given a random one.`
@@ -1528,7 +1585,7 @@ spec_coverageOf = (status, redraw) => {
 // %%
 viewof spec_module = thisModule()
 // %%
-import { ss, ss_instances, ss_language, ss_check } from "@tomlarkworthy/soundscript"
+import { ss, ss_instances, ss_language, ss_check, ss_outside } from "@tomlarkworthy/soundscript"
 // %%
 import { thisModule, runtime, realize, onCodeChange } from "@tomlarkworthy/runtime-sdk"
 // %%

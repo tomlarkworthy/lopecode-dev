@@ -43,7 +43,7 @@ A capability parameter becomes an input on one of this module's variables:
 // %%
 readme_storage = md`## How a cell is recognised and stored
 
-A cell compiles to ordinary JavaScript: one runtime variable, or two for a ref cell. In a ref cell, \`viewof tally\` holds the handle and \`tally\` holds the value. The \`viewof\` name makes the notebook's tools group the pair as one cell.
+A cell compiles to ordinary JavaScript: one runtime variable. A ref cell's variable \`tally\` holds its value. A parameter \`tally: Ref<number>\` is not an input of the reading cell's variable: it receives the address of \`tally\`, its module and name, which a write looks up.
 
 A variable is SoundScript when the first comment in its definition is the marker \`/*{lang:"ss"}*/\`. The definition keeps the types as \`/*ss:…*/\` comments. It keeps JSX as \`/*ss<…*/\` comments beside the lowered \`h(...)\` calls. The typed source is therefore recovered from the definition text alone, and it survives a save (\`test_ss_roundtrip\`).`
 // %%
@@ -121,10 +121,10 @@ ss_fetch = globalThis.fetch.bind(globalThis)
 // %%
 viewof ss_module = thisModule()
 // %%
-ss_keyOf = (name) => (name.startsWith("type ") ? name : name.replace(/^viewof /, ""))
+ss_keyOf = (name) => name
 // %%
 ss_moduleCells = (module) => {
-  // runtime order, one entry per cell: a ref cell's two variables give one
+  // runtime order, one entry per cell
   const out = [], seen = new Set();
   for (const v of runtime._variables) {
     if (v._module !== module || typeof v._name !== "string" || typeof v._definition !== "function") continue;
@@ -152,7 +152,8 @@ ss_moduleCells = (module) => {
 ss_outside = (module) => {
   // the module's cells in other languages (Observable JavaScript, raw, imports), by name, sorted: a
   // SoundScript cell may take one through an annotated parameter, checked when its value crosses.
-  // view: the module also has viewof <name>, so the cell can be taken as Ref.
+  // view: the module also has viewof <name>, so the cell can be taken as Ref. ref: <name> imports a
+  // SoundScript ref cell from another module, so it can be taken as Ref too.
   const names = new Map();
   for (const v of runtime._variables) {
     if (v._module !== module || typeof v._name !== "string" || typeof v._definition !== "function") continue;
@@ -160,9 +161,10 @@ ss_outside = (module) => {
     const view = v._name.startsWith("viewof ");
     const name = view ? v._name.slice(7) : v._name;
     if (!/^[\w$]+$/.test(name) || name === "ss") continue;
-    names.set(name, view || !!names.get(name));
+    const was = names.get(name) ?? {};
+    names.set(name, { view: view || !!was.view, ref: !!was.ref || (!view && ss.importsRefCell(v)) });
   }
-  return [...names].sort(([a], [b]) => (a < b ? -1 : 1)).map(([name, view]) => (view ? { name, view } : { name }));
+  return [...names].sort(([a], [b]) => (a < b ? -1 : 1)).map(([name, o]) => ({ name, ...(o.view ? { view: true } : {}), ...(o.ref ? { ref: true } : {}) }));
 }
 // %%
 ss_check = (module) => {
@@ -214,7 +216,7 @@ ss_instance = async (module, invalidation) => {
   // own too. Inputs its cells do not define (ss, ss_now, ...) are read from module. Deleted on invalidation.
   const vars = [...runtime._variables].filter((v) => v._module === module && typeof v._name === "string" && typeof v._definition === "function" && ss.langOf(String(v._definition)) === "ss");
   const names = new Set(vars.map((v) => v._name));
-  const outside = new Set(vars.flatMap((v) => v._inputs.map((i) => i._name)).filter((n) => !names.has(n) && n !== "invalidation"));
+  const outside = new Set(vars.flatMap((v) => v._inputs.map((i) => i._name)).filter((n) => !names.has(n) && n !== "invalidation" && n !== "@variable"));
   const tag = Math.random().toString(36).slice(2, 8);
   const fns = await realize(vars.map((v) => { const def = String(v._definition), id = ss.idOf(def); return id ? ss.withId(def, `${id}_${tag}`) : def; }), runtime);
   const inst = runtime.module();
@@ -280,13 +282,12 @@ ss_language = {
   const isSs = (v) => typeof v?._definition === "function" && ss.langOf(String(v._definition)) === "ss";
   const keyOf = ss_keyOf;
   const moduleOf = (variables, cell) => variables.find((v) => v?._module)?._module ?? cell?.module?.module;
-  const family = (module, key) => (key.startsWith("type ") ? [key] : [key, ss.handleName(key)]).map((n) => module?._scope?.get(n)).filter(isSs);
+  const family = (module, key) => [key].map((n) => module?._scope?.get(n)).filter(isSs);
   const ownKey = (variables) => { const v = variables.find(isSs); return v ? keyOf(v._name) : null; };
   const sourceOf = (v) => ss.decompileVariable(String(v._definition));
 
   const decompile = async (variables) => {
     for (const v of variables) if (isSs(v)) { const s = sourceOf(v); if (s !== null) return s; }
-    // a ref cell's value variable holds no source; its handle variable does
     const key = ownKey(variables);
     for (const v of family(moduleOf(variables), key)) { const s = sourceOf(v); if (s !== null) return s; }
     throw new Error(`no SoundScript source for ${key}`);
@@ -569,25 +570,38 @@ ss_language = {
       }
     }
     const own = new Set(variables);
-    const inputs = [...new Set(variables.flatMap((x) => x._inputs))].filter((i) => !own.has(i) && params.has(String(i._name).replace(/^viewof /, "")));
-    const outputs = [...new Set(variables.flatMap((x) => [...x._outputs]))].filter((o) => !own.has(o) && typeof o._name === "string" && o._name);
     const name = keyOf(v._name);
+    // a Ref<T> parameter is no runtime input: the cells it takes, and the cells that take it, come from the checker
+    const refs = refsOf(v._module);
+    const at = (n) => v._module?._scope?.get(n);
+    const inputs = [...new Set([...variables.flatMap((x) => x._inputs), ...(refs.takes.get(name) ?? []).map(at)])].filter((i) => i && !own.has(i) && params.has(String(i._name)));
+    const outputs = [...new Set([...variables.flatMap((x) => [...x._outputs]), ...(refs.takenBy.get(name) ?? []).map(at)])].filter((o) => o && !own.has(o) && typeof o._name === "string" && o._name);
     return { inputs, outputs, name, type: name.startsWith("type ") ? null : typesOf(v._module).get(name) ?? null };
   };
 
   // the checker's value type of each cell of a module, checked again only when one of its definitions changes
   const typeCache = new WeakMap();
-  const typesOf = (module) => {
-    if (!module) return new Map();
+  const checked = (module) => {
     const defs = [];
     for (const v of runtime._variables) if (v._module === module && isSs(v)) defs.push(v._definition);
     const hit = typeCache.get(module);
-    if (hit && hit.defs.length === defs.length && hit.defs.every((d, i) => d === defs[i])) return hit.types;
-    let types = new Map();
-    try { types = new Map(ss_check(module).result.cells.map((c) => [c.name, c.value])); } catch {}
-    typeCache.set(module, { defs, types });
-    return types;
+    if (hit && hit.defs.length === defs.length && hit.defs.every((d, i) => d === defs[i])) return hit;
+    let types = new Map(), refs = { takes: new Map(), takenBy: new Map() };
+    try {
+      const { result } = ss_check(module);
+      types = new Map(result.cells.map((c) => [c.name, c.value]));
+      for (const f of result.facts?.values() ?? []) for (const p of f.params) if (p.refTyped) {
+        refs.takes.set(f.name, [...(refs.takes.get(f.name) ?? []), p.name]);
+        refs.takenBy.set(p.name, [...(refs.takenBy.get(p.name) ?? []), f.name]);
+      }
+    } catch {}
+    const entry = { defs, types, refs };
+    typeCache.set(module, entry);
+    return entry;
   };
+  const typesOf = (module) => (module ? checked(module).types : new Map());
+  // per cell, the cells it takes as Ref<T> and the cells that take it so
+  const refsOf = (module) => (module ? checked(module).refs : { takes: new Map(), takenBy: new Map() });
 
   // How the visualizer shows a value: only the kinds the normal Inspector cannot read are drawn here, as
   // an inspector line (name = …) or, for an element, the element; null leaves the value to the Inspector.
@@ -668,6 +682,7 @@ ss_language = {
     lint,
     complete,
     header,
+    refsOf,
     inspect,
     apply,
     faults,
@@ -782,7 +797,7 @@ ss_tests_on = ss_run_tests ? true : invalidation
 test_ss_roundtrip = {
   ss_tests_on;
   const n = ss_roundtrip(ss_module);
-  if (n < 5) throw new Error(`${n} SoundScript variables in this module; the example alone has 5 (tally is two)`);
+  if (n < 4) throw new Error(`${n} SoundScript variables in this module; the example alone has 4`);
   return `${n} variables recompile to the same text and inputs`;
 }
 // %%
@@ -832,7 +847,7 @@ test_ss_wrong_type_is_stored_and_rejected = {
 test_ss_breaking_edit_names_its_cells = {
   ss_tests_on;
   // before an edit is stored, the editor says which cells it would break
-  const v = ss_module._scope.get("viewof tally");
+  const v = ss_module._scope.get("tally");
   const original = await ss_language.decompile([v]);
   const source = original.replace("RefCell<number> => ref(0)", 'RefCell<string> => ref("0")');
   if (source === original) throw new Error("tally is not RefCell<number> => ref(0)");
@@ -873,7 +888,7 @@ test_ss_failed_apply_changes_nothing = {
   const snap = (m) => JSON.stringify([...runtime._variables].filter((v) => v._module === m).map((v) => [v._name, String(v._definition), v._inputs.map((i) => i._name)]));
   try {
     const inst = await ss_instance(ss_module, done);
-    const v = inst._scope.get("viewof tally");
+    const v = inst._scope.get("tally");
     const source = (await ss_language.decompile([v])).replace("ref(0)", "ref(5)");
     if (!ss_language.check(source, [v]).ok) throw new Error("the edit to tally does not check");
     const before = snap(inst);

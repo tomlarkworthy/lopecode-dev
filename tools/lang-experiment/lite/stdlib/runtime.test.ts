@@ -363,7 +363,7 @@ async function editable(texts: string[], o: { reverse?: boolean; order?: boolean
   const settle = async () => { for (let i = 0; i < 5; i++) { await tick(3); await flushed(); } };
   // the host's answer to where a listener's cell is: this module, at its cell's place in the source
   if (o.order) ss.setListenerOrder((values) => values.map((x) => {
-    for (const [n, v] of vars) if (v._value === x) { const at = cells.findIndex((t) => ss.declaredName(t) === T.handleName(n) || ss.declaredName(t) === n); return at < 0 ? null : ["M", at] as const; }
+    for (const [n, v] of vars) if (v._value === x) { const at = cells.findIndex((t) => ss.declaredName(t) === n); return at < 0 ? null : ["M", at] as const; }
     return null;
   }));
   apply();
@@ -528,6 +528,109 @@ await run("p2_the_rejected_copy_shape_breaks_it", async () => {
     console.log(`  p2: check bypassed, ${sch.name}: ${got[got.length - 1]}`);
   }
   ok("p2_schedules_disagree_when_the_check_is_bypassed", got[0] !== got[1], got.join(" "));
+});
+
+// A ref cell is one variable; a Ref<T> is the address of that variable, looked up when it is written.
+const statesOf = (src: string, outside: { name: string; ref?: boolean }[] = []) => Object.fromEntries([...ss.cellStates(ss.checkCells(T.splitCells(src, true), true, outside).result)].map(([n, x]: any) => [n, x.state]));
+await run("w1_a_write_to_a_ref_in_error_throws_and_keeps_none", async () => {
+  const SRC = `const base = () => 1;
+const n = (base: number): RefCell<number> => ref(base);
+const other = (): RefCell<number> => ref(0);
+const both = (n: Ref<number>, other: Ref<number>) => action(() => { other.update((v) => v + 1); n.update((v) => v + 1); });`;
+  const p = await load(SRC);
+  ok("w1_one_variable_per_ref_cell", [...p.m._scope.keys()].every((k: string) => !k.startsWith("viewof ")) && JSON.stringify(p.vars.get("both")._inputs.map((i: any) => i._name)) === JSON.stringify(["@variable", "ss"]), JSON.stringify([...p.m._scope.keys()]));
+  const call = () => { try { p.value("both")(); return ""; } catch (e) { return (e as Error).message; } };
+  const base = p.vars.get("base");
+  base.define("base", [], () => { throw new Error("broken base"); });
+  await p.settle();
+  const inError = call();
+  await p.settle();
+  ok("w1_input_threw", /^Ref n: n is in error: broken base/.test(inError) && p.value("other") === 0, `${inError}; other ${p.value("other")}`);
+  base.define("base", [], () => 1);
+  await p.settle();
+  const back = call();
+  await p.settle();
+  ok("w1_repaired_input_writes_again", back === "" && p.value("other") === 1 && p.value("n") === 2, `${back}; other ${p.value("other")}, n ${p.value("n")}`);
+  p.define(`const n = (base: number): RefCell<number> => ref("x");`);
+  await p.settle();
+  const rejected = call();
+  await p.settle();
+  ok("w1_ref_cell_does_not_check", /^Ref n: n is in error: n does not check: \[/.test(rejected) && p.value("other") === 1, `${rejected}; other ${p.value("other")}`);
+  const holder = statesOf(SRC.replace("ref(base);", 'ref("x");'));
+  ok("w1_a_cell_holding_the_ref_is_not_blocked", holder.n === "rejected" && holder.both === "ok", JSON.stringify(holder));
+  p.vars.get("n").delete(); p.vars.delete("n");
+  await p.settle();
+  const missing = call();
+  ok("w1_ref_cell_deleted", /^Ref n: n is not defined/.test(missing), missing);
+  p.runtime.dispose();
+});
+await run("w2_a_remade_ref_keeps_its_handles", async () => {
+  const p = await load(`const seed = (): RefCell<number> => ref(1);
+const vars = (seed: number): RefCell<{ readonly n: number }> => ref({ n: seed * 10 });
+const setN = (vars: Ref<{ readonly n: number }>) => action((n: number) => vars.set({ n }));
+const bumpSeed = (seed: Ref<number>) => action(() => seed.update((s) => s + 1));
+const h1 = (vars: Ref<{ readonly n: number }>) => [vars];
+const h2 = (vars: Ref<{ readonly n: number }>) => [vars];`);
+  const setN = p.value("setN"), setN0 = p.evals("setN");
+  p.value("bumpSeed")();
+  await p.settle();
+  ok("w2_remade_from_the_input", p.value("vars").n === 20, JSON.stringify(p.value("vars")));
+  setN(5);
+  await p.settle();
+  ok("w2_the_old_handle_writes_the_new_store", p.value("vars").n === 5 && p.evals("setN") === setN0 && p.value("setN") === setN, `${JSON.stringify(p.value("vars"))}, setN ran ${p.evals("setN") - setN0} more times`);
+  ok("w2_one_handle_per_module_and_name", p.value("h1")[0] === p.value("h2")[0] && ss.equals(p.value("h1"), p.value("h2")), "");
+  p.runtime.dispose();
+});
+await run("w3_a_ref_nothing_observes_is_written", async () => {
+  const runtime = new Runtime();
+  const m = runtime.module();
+  m.define("ss", [], () => ss);
+  const src = `const hidden = (): RefCell<number> => ref(3);
+const add = (hidden: Ref<number>) => action(() => hidden.update((v) => v + 1));`;
+  const ctx = T.contextFromCheck(ss.checkCells(T.splitCells(src, true)).result);
+  let add: any = null;
+  for (const t of T.splitCells(src, true)) for (const d of T.compileCell(t, true, ctx)) {
+    const v = d.name === "add" ? m.variable({ fulfilled: (x: unknown) => (add = x) }) : m.variable();
+    v.define(d.name, d.inputs, (0, eval)(`(${d.definition})`));
+  }
+  await until(() => !!add);
+  let threw = "";
+  for (let i = 0; i < 50; i++) { try { add(); threw = ""; break; } catch (e) { threw = (e as Error).message; await tick(2); } }
+  await flushed();
+  ok("w3_written_once_it_ran", threw === "" && (await m.value("hidden")) === 4, `${threw}; hidden ${await m.value("hidden")}`);
+  runtime.dispose();
+});
+await run("w4_a_ref_imported_from_another_module", async () => {
+  const runtime = new Runtime();
+  const compileInto = (m: any, src: string, outside: { name: string; ref?: boolean }[] = []) => {
+    const ctx = T.contextFromCheck(ss.checkCells(T.splitCells(src, true), true, outside).result);
+    const values = new Map<string, unknown>();
+    for (const t of T.splitCells(src, true)) for (const d of T.compileCell(t, true, ctx)) {
+      if (!ctx.accepted!.has(d.name)) throw new Error(`${d.name} not accepted: ${ctx.why?.get(d.name)}`);
+      m.variable({ fulfilled: (x: unknown) => values.set(d.name, x) }).define(d.name, d.inputs, (0, eval)(`(${d.definition})`));
+    }
+    return values;
+  };
+  const A = `const count = (): RefCell<number> => ref(0);`;
+  const B = `const bumpB = (count: Ref<number>) => action(() => count.update((c) => c + 10));
+const seenB = (count: number) => count;`;
+  const instances = [0, 1].map(() => {
+    const a = runtime.module(), b = runtime.module();
+    for (const x of [a, b]) x.define("ss", [], () => ss);
+    const va = compileInto(a, A);
+    b.import("count", a);
+    const vb = compileInto(b, B, [{ name: "count", ref: true }]);
+    return { a, b, va, vb };
+  });
+  await until(() => instances.every((i) => typeof i.vb.get("bumpB") === "function"));
+  (instances[1].vb.get("bumpB") as () => void)();
+  await flushed();
+  await until(() => instances[1].vb.get("seenB") === 10 && instances[1].va.get("count") === 10);
+  const got = instances.map((i) => [i.va.get("count"), i.vb.get("seenB")]);
+  ok("w4_the_write_reaches_the_source_of_its_own_instance", JSON.stringify(got) === "[[0,0],[10,10]]", JSON.stringify(got));
+  const plain = statesOf(B, [{ name: "count" }]);
+  ok("w4_an_import_that_is_not_a_ref_cell_is_boundary_ref", plain.bumpB === "rejected", JSON.stringify(plain));
+  runtime.dispose();
 });
 console.error = realError;
 if (uncaught.length) ok("no_uncaught_exceptions", false, String(uncaught[0]));

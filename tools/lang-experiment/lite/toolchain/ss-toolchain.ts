@@ -17,6 +17,7 @@ const PRELUDE = ["ref", "action", "mut", "freeze", "borrow", "snapshot", "equals
 // Capability parameter -> the variable the stdlib provides. invalidation is the runtime's own;
 // ss_compile is defined in each module that compiles, because compile reads that module's cells.
 export const CAP_INPUTS: Record<string, string> = { now: "ss_now", random: "ss_random", fetch: "ss_fetch", log: "ss_log", pool: "ss_pool", compile: "ss_compile", invalidation: "invalidation" };
+// the value variable of a ref cell as compiled before 2026-11-16, when a ref cell was two variables
 const PROJECTION = "/*ss@ref*/";
 
 const header = (o: object) => `/*ss^${JSON.stringify(o).replaceAll("*/", "*\\/")}*/`;
@@ -128,7 +129,8 @@ export function contextFromCheck(result: CheckLike, _source?: string, _tsx = tru
 }
 
 // The editor's three states of a cell: ok; rejected (the checker does not accept the cell itself, or it
-// does not parse); blocked (accepted, but a cell it takes is not ok, so it cannot run).
+// does not parse); blocked (accepted, but a cell it takes is not ok, so it cannot run). A cell taken as
+// Ref<T> is not taken: a Ref is an address, and a write to a cell that is not ok throws.
 export type CellState = { state: "ok" | "rejected" | "blocked"; why: string[]; blockedBy: string[] };
 export function cellStates(result: CheckLike): Map<string, CellState> {
   const accepted = acceptedOf(result);
@@ -139,7 +141,7 @@ export function cellStates(result: CheckLike): Map<string, CellState> {
     const by = c.status === "blocked" && !c.errors.length && !c.unsupported?.length && !result.unparsed?.has(c.name) ? (c.blockedBy ?? []).filter((n) => names.has(n)) : [];
     out.set(c.name, accepted.has(c.name) ? { state: "ok", why: [], blockedBy: [] } : by.length ? { state: "blocked", why: [], blockedBy: by } : { state: "rejected", why: whyOf(result, c), blockedBy: [] });
   }
-  const takes = new Map([...(result.facts?.values() ?? [])].map((f) => [f.name, f.params.map((p) => p.name).filter((n) => out.has(n) && n !== f.name)] as const));
+  const takes = new Map([...(result.facts?.values() ?? [])].map((f) => [f.name, f.params.filter((p) => !p.refTyped).map((p) => p.name).filter((n) => out.has(n) && n !== f.name)] as const));
   for (let changed = true; changed; ) {
     changed = false;
     for (const [name, st] of out) {
@@ -154,18 +156,15 @@ export function cellStates(result: CheckLike): Map<string, CellState> {
 // The name a cell's text declares, read without parsing it (it may not parse).
 export const declaredName = (text: string): string | null => /^(?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+|(?:async\s+)?function\s*\*?\s*)([\w$]+)/.exec(text)?.[1] ?? null;
 // A cell the checker does not accept: its typed source is kept whole in the header, and the definition
-// only raises the checker's messages. A ref cell keeps its two variables, so its readers stay wired.
+// only raises the checker's messages. A ref cell's also takes its variable, so a write to it raises them.
 function rejectedCell(text: string, name: string, why: string[], ref: boolean): Variable[] {
-  const definition = `(${SS}) => ${LANG}${header({ d: text, rejected: why })}${SS}.rejected(${JSON.stringify(name)}, ${JSON.stringify(why)})`;
-  if (!ref) return [{ name, inputs: [STDLIB_INPUT], definition }];
-  return [
-    { name, inputs: [handleName(name), STDLIB_INPUT], definition: `(_, ${SS}) => ${LANG}${PROJECTION}${SS}.refValues(_)` },
-    { name: handleName(name), inputs: [STDLIB_INPUT], definition },
-  ];
+  const msg = `${JSON.stringify(name)}, ${JSON.stringify(why)}`;
+  if (!ref) return [{ name, inputs: [STDLIB_INPUT], definition: `(${SS}) => ${LANG}${header({ d: text, rejected: why })}${SS}.rejected(${msg})` }];
+  return [{ name, inputs: [VARIABLE_INPUT, STDLIB_INPUT], definition: `(${SELF_VAR}, ${SS}) => ${LANG}${header({ d: text, rejected: why })}${SS}.rejected(${msg}, ${SELF_VAR})` }];
 }
-
-// The variable a cell's value is read from, and the one that holds its handle.
-export const handleName = (name: string) => `viewof ${name}`;
+// the variable itself, always the first input: the exporter reads two inputs ending in @variable as an import
+const VARIABLE_INPUT = "@variable";
+const SELF_VAR = "$ss$v";
 
 // two 32-bit FNV-1a hashes with different offsets, as 13 base-36 digits
 export function contentId(text: string): string {
@@ -192,9 +191,9 @@ export function compileCell(text: string, tsx: boolean, ctx: Context = NO_CONTEX
     if (!name) throw e;
     return rejectedCell(text, name, ctx.why?.get(name) ?? [`[compile] ${(e as Error).message}`], false);
   }
-  const main = out.find((v) => !v.name.startsWith("viewof ") && !v.name.startsWith("type ")) ?? out[0];
+  const main = out[0];
   if (main.name.startsWith("type ") || ctx.accepted.has(main.name)) return out;
-  return rejectedCell(text, main.name, ctx.why?.get(main.name) ?? ["[rejected] not accepted by the checker"], out.length === 2);
+  return rejectedCell(text, main.name, ctx.why?.get(main.name) ?? ["[rejected] not accepted by the checker"], main.definition.startsWith(`function ${SS}ref(`));
 }
 
 function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
@@ -225,7 +224,9 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   erasesToJs(typed, fn);
   const params = info.params.map((p) => p.name);
   const used = [...identifiers(parse(`(${lowered})`).program)].filter((n) => PRELUDE.includes(n) && !params.includes(n));
-  const inputs = [STDLIB_INPUT, ...info.params.map((p) => (p.refTyped ? handleName(p.name) : CAP_INPUTS[p.name] ?? p.name))];
+  // a Ref<T> parameter is no input: its argument is the address of the cell, made from the variable
+  const isRef = (p: string) => !!info.params.find((x) => x.name === p)?.refTyped;
+  const inputs = [STDLIB_INPUT, ...info.params.filter((p) => !p.refTyped).map((p) => CAP_INPUTS[p.name] ?? p.name)];
   // a cell that calls on(...) is a listener: the checker allows on(...) only as the cell's whole value
   const kind = info.returnsRef ? "ref" : info.generator && ctx.events.has(info.name) ? "events" : used.includes("on") ? "listener" : "cell";
   // hidden inputs: invalidation for an events or listener cell (its generator stops, or its listener
@@ -233,17 +234,20 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   // functions, when one changes)
   const hidden: string[] = [];
   const hiddenInputs: string[] = [];
-  if ((kind === "events" || kind === "listener") && !params.includes("invalidation")) { hidden.push("$ss$inv"); hiddenInputs.push("invalidation"); }
+  if ((kind === "events" || kind === "listener" || kind === "ref") && !params.includes("invalidation")) { hidden.push("$ss$inv"); hiddenInputs.push("invalidation"); }
+  // the variable itself: a ref cell's store is kept per variable, and a Ref<T> argument is an address in its module
+  const self = kind === "ref" || info.params.some((p) => p.refTyped) ? [SELF_VAR] : [];
 
   const inv = params.includes("invalidation") ? "invalidation" : hidden.includes("$ss$inv") ? "$ss$inv" : "null";
   const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
   const refArgs = refs.map((r, i) => { hidden.push(`$ss$r${i}`); hiddenInputs.push(r); return `${JSON.stringify(r)}: $ss$r${i}`; });
-  // a cell in another language crosses checked (boundary.ts): its value as a frozen copy, its view as a Ref
+  // a cell in another language crosses checked (boundary.ts): its value as a frozen copy; as a Ref, its
+  // view or its imported ref, with each written value checked
   const crossing = (p: string) => {
     const b = info.params.find((x) => x.name === p)?.boundary;
+    if (isRef(p)) return `${SS}.refAt(${SELF_VAR}, ${JSON.stringify(p)}${b ? `, ${JSON.stringify(b.shape)}, ${!!b.view}` : ""})`;
     if (!b) return p;
-    const shape = JSON.stringify(b.shape);
-    return b.ref ? `${SS}.viewRef(${p}, ${shape}, ${JSON.stringify(p)})` : `${SS}.cross(${p}, ${shape}, ${JSON.stringify(`${info.name}.${p}`)})`;
+    return `${SS}.cross(${p}, ${JSON.stringify(b.shape)}, ${JSON.stringify(`${info.name}.${p}`)})`;
   };
   const args = params.map((p) => (p === "compile" ? `${SS}.compileFor(compile, ${JSON.stringify(info.name)}, {${refArgs.join(", ")}})` : crossing(p)));
   const memo = (kind === "cell" || kind === "listener") && !info.generator && !!ctx.accepted?.has(info.name) &&
@@ -260,21 +264,15 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   // that no input fills: the stdlib keeps the store per definition object, so a run with the same inputs
   // keeps the state (one module's variable, not every cell with the same text). The default, not the
   // body, names the function, so the body references only its parameters.
-  const prev = kind === "events" ? "prev: this, " : kind === "ref" ? "self: $ss$self, " : "";
+  const prev = kind === "events" ? "prev: this, " : kind === "ref" ? `self: $ss$self, variable: ${SELF_VAR}, ` : "";
   const opts = `{kind: ${JSON.stringify(kind)}, name: ${JSON.stringify(info.name)}, memo: ${memo}, ${prev}id: ${JSON.stringify(id)}, invalidation: ${inv}}`;
-  const head = `(${[SS, ...params, ...hidden].join(", ")})`;
-  const refHead = `(${[SS, ...params, ...hidden, `$ss$self = ${SS}ref`].join(", ")})`;
+  const named = params.filter((p) => !isRef(p));
+  const head = `(${[...self, SS, ...named, ...hidden].join(", ")})`;
+  const refHead = `(${[...self, SS, ...named, ...hidden, `$ss$self = ${SS}ref`].join(", ")})`;
   const definition = kind === "events" ? `function ${head} { ${destructure}return ${SS}.cell(${body}, ${opts}); }`
     : kind === "ref" ? `function ${SS}ref${refHead} { ${destructure}return ${SS}.cell(${body}, ${opts}); }`
     : `${head} => { ${destructure}return ${SS}.cell(${body}, ${opts}); }`;
-  const all = [...inputs, ...hiddenInputs];
-  if (kind === "ref") {
-    return [
-      { name: info.name, inputs: [handleName(info.name), STDLIB_INPUT], definition: `(_, ${SS}) => ${LANG}${PROJECTION}${SS}.refValues(_)` },
-      { name: handleName(info.name), inputs: all, definition },
-    ];
-  }
-  return [{ name: info.name, inputs: all, definition }];
+  return [{ name: info.name, inputs: [...(self.length ? [VARIABLE_INPUT] : []), ...inputs, ...hiddenInputs], definition }];
 }
 
 export function compileModule(src: string, tsx: boolean, accepted: ReadonlySet<string> | null = null): Variable[] {
@@ -317,8 +315,8 @@ export function decompileVariable(definition: string): string | null {
   return hdr.h + fn + hdr.t;
 }
 
-// Variables of one cell, by any one of their names.
-export const cellOfVariable = (name: string): string => name.replace(/^(viewof|type) /, "");
+// The cell a variable is, by the variable's name.
+export const cellOfVariable = (name: string): string => name.replace(/^type /, "");
 
 export function decompileModule(definitions: string[]): string {
   return definitions.map(decompileVariable).filter((s): s is string => s !== null).join("\n\n") + "\n";

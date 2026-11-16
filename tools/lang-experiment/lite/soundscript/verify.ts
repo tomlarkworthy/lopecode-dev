@@ -372,6 +372,8 @@ async function speed() {
   measure(`Breakout after a click on play: ${p.perSecond} world changes/s in ${p.framesPerSecond} animation frames/s`);
   // typing in a cell editor with the tutorial open: each lint checks the module once, and nothing runs or is stored
   await page.waitForFunction(() => (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript")._scope.get("ss")._value.pulling() === 0, null, { timeout: 10000 }).catch(() => {});
+  // the specification's tests run their own modules from load (S7.4 streams for many frames); the counts are of typing alone
+  await page.waitForFunction((names: string[]) => names.every((n) => { const v = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-spec")?._scope.get(n); return !v || !v._reachable || v._value !== undefined || v._error !== undefined; }), SPEC_TESTS, { timeout: 180000 }).catch(() => {});
   const ed = await openEditor(page, TUTORIAL, "half");
   if (!ed) report(false, "typing: no editor for half");
   else {
@@ -870,10 +872,10 @@ async function uiPaths(page: Page, saved: string) {
   const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
   await tab(CORE);
   await page.waitForFunction(() => { const core = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript"); return [...document.querySelectorAll(".observablehq")].some((n: any) => n.isConnected && n.variable?._module === core && n.variable?._name === "tally"); }, null, { timeout: 10000 }).catch(() => {});
-  // ref as one cell: one rendered node for tally and viewof tally, and its editor shows the ref source
+  // a ref cell is one variable: one rendered node for tally, and its editor shows the ref source
   const nodes = await page.evaluate(() => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
-    return [...document.querySelectorAll(".observablehq")].filter((n: any) => n.variable?._module === core && ["tally", "viewof tally"].includes(n.variable?._name)).map((n: any) => n.variable._name);
+    return [...document.querySelectorAll(".observablehq")].filter((n: any) => n.variable?._module === core && /^(viewof )?tally$/.test(n.variable?._name)).map((n: any) => n.variable._name);
   });
   report(nodes.length === 1 && nodes[0] === "tally", `ui: the ref cell tally renders as one cell (${JSON.stringify(nodes)})`);
   const tally = await openEditor(page, CORE, "tally");
@@ -1101,8 +1103,9 @@ async function breakStep(page: Page) {
   report(still && p2.score >= p0.score && p2.score === p1.score && p2.y === p1.y && p2.listeners === p0.listeners - 1 && states.step === "rejected" && states.tick === "blocked by step" && states.onTick === "blocked by tick",
     `breakout: step broken mid-game: the world keeps score ${p1.score} and stops (the same world for 30 frames: ${still}; ball y ${p1.y} -> ${p2.y}); listeners ${p0.listeners} -> ${p2.listeners}, clocks ${p0.clocks} -> ${p2.clocks}; ${JSON.stringify(states)}`);
   await typeInto(page, ed, text);
-  await until(page, async () => { const p = await probe(); return p.y !== p2.y && p.listeners === p0.listeners && p.clocks === 1; }, 5000);
-  const p3 = await probe();
+  // the sample that met the condition is the one reported: a bouncing ball comes back to the same y
+  let p3 = p2;
+  await until(page, async () => { p3 = await probe(); return p3.y !== p2.y && p3.listeners === p0.listeners && p3.clocks === 1; }, 5000);
   console.log(`  breakout repaired: ${JSON.stringify(p3)}`);
   report(p3.score >= p2.score && p3.y !== p2.y && p3.listeners === p0.listeners && p3.clocks === 1, `breakout: repaired, the game continues from score ${p2.score} (now ${p3.score}, ball moving ${p2.y} -> ${p3.y}) with ${p3.listeners} listeners (${p0.listeners} before the break) and ${p3.clocks} clock pulled`);
   await page.evaluate((b: string) => { const bm = (window as any).__ojs_runtime.mains.get(b); if (bm._scope.get("playing")._value) bm._scope.get("toggle")._value(); }, BR);
@@ -1231,8 +1234,8 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
     await frames(30);
     out.applied = applied;
     out.deleted = { pulledBefore: p1, pulledAfter: ss.pulling() - p0, listeners: ss.running() - r0, count: seen().count - c3 };
-    for (const n of ["record", "flip", "weight", "nums", "seen", "viewof seen", "go", "viewof go", "type Seen"]) get(n)?.delete();
-    await until(() => !get("seen") && !get("viewof seen") && !get("nums"));
+    for (const n of ["record", "flip", "weight", "nums", "seen", "go", "type Seen"]) get(n)?.delete();
+    await until(() => !get("seen") && !get("nums"));
     get("reset")._value();
     return out;
   });
@@ -1673,8 +1676,7 @@ async function cardsAndThemes() {
     const seen = new Set<string>(), want: { key: string; text: string }[] = [];
     for (const v of rt._variables) {
       if (v._module !== mod || typeof v._name !== "string" || typeof v._definition !== "function" || ss.langOf(String(v._definition)) !== "ss") continue;
-      const key = v._name.replace(/^viewof /, ""), text = ss.decompileVariable(String(v._definition));
-      // a ref cell's value variable holds no source; its handle variable does
+      const key = v._name, text = ss.decompileVariable(String(v._definition));
       if (seen.has(key) || text === null) continue;
       seen.add(key);
       want.push({ key, text });
@@ -2040,7 +2042,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   const NEW = "const tripled = (doubled: number) => doubled * 3;";
   const added = await addCell(C.page, CORE, "doubled", NEW, true);
   report(added.back === NEW && added.value === 0 && added.afterAnchor && added.held, `core-only: a new cell added through the editor: ${JSON.stringify(added)}`);
-  // a ref cell made plain and a ref again through apply: the handle variable comes and goes
+  // a ref cell made plain and a ref again through apply: one variable throughout, and no viewof
   const flips = await C.page.evaluate(async () => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
     const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
@@ -2053,7 +2055,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     out.push(await lang.apply("const flag = (): RefCell<boolean> => ref(false);", vars), names(), await core.value("flag"));
     return out;
   });
-  report(JSON.stringify(flips.filter((x: any) => Array.isArray(x))) === JSON.stringify([["flag", "viewof flag"], ["flag"], ["flag", "viewof flag"]]) && flips[4] === true && flips[7] === false, `core-only: flag ref -> plain -> ref through apply: ${JSON.stringify(flips)}`);
+  report(JSON.stringify(flips.filter((x: any) => Array.isArray(x))) === JSON.stringify([["flag"], ["flag"], ["flag"]]) && flips[4] === true && flips[7] === false, `core-only: flag ref -> plain -> ref through apply: ${JSON.stringify(flips)}`);
   // A generator becomes an events handle when a cell takes it as Events<T>, and a plain generator again
   // when that cell is deleted outside apply (as the editor's delete button does). The consumer is
   // deleted at once, before onCodeChange's snapshot has seen it, which is the case that used to leave
@@ -2138,7 +2140,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     const text = get("ss")._value.decompileVariable(String(v._definition));
     const verdict = get("ss_check")._value(core).result.cells.find((c: any) => c.name === "tripled")?.status;
     const lang = get("ss_language")._value;
-    const flag = get("viewof flag") && get("flag") ? lang.decompile([get("flag")]) : null;
+    const flag = get("flag") ? lang.decompile([get("flag")]) : null;
     return { present: true, typed: text === NEW, verdict, editorSource: await lang.decompile([v]), value: await core.value("tripled"), flag: await flag, roundtrip: get("ss_roundtrip")._value(core) };
   }, NEW);
   report(after.flag === "const flag = (): RefCell<boolean> => ref(false);", `core-only reopened: flag is a ref cell again after export: ${after.flag}, ${after.roundtrip} variables round trip`);

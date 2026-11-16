@@ -40,7 +40,8 @@ export const isRefCell = (v: unknown): v is { initial: unknown } => !!v && typeo
 export const isAction = (v: unknown) => typeof v === "function" && ACTION in v;
 export const isRefHandle = (v: unknown) => !!v && typeof v === "object" && REFHANDLE in v;
 
-const stores = new WeakMap<object, Store>();
+// handle -> the store it writes now: fixed for a materialized handle, looked up at each use for an address
+const targets = new WeakMap<object, () => Store>();
 
 function guardWrite(name: string) {
   if (state.actionDepth === 0) throw new Error(`Ref ${name}: set/update called outside an action`);
@@ -52,36 +53,40 @@ function write(store: Store, f: (v: unknown) => unknown) {
   state.queue.push({ store, had: state.overlay.has(store), prev: state.overlay.get(store), group: state.group! });
   state.overlay.set(store, next);
 }
-
-// Turn the RefCell a cell returned into the reference handle consumers typed Ref<T> receive.
-export function materialize(cell: { initial: unknown }, name: string) {
-  const store: Store = { name, value: cell.initial, version: 0, waiters: [] };
+function handleOf(name: string, target: () => Store, check: (v: unknown) => unknown = (v) => v) {
   const handle = Object.freeze({
     [REFHANDLE]: name,
     set(v: unknown) {
       guardWrite(name);
-      write(store, () => v);
+      const store = target();
+      write(store, () => check(v));
     },
     update(f: (v: unknown) => unknown) {
       guardWrite(name);
-      write(store, f);
+      const store = target();
+      write(store, (x) => check(f(x)));
     },
   });
-  stores.set(handle, store);
+  targets.set(handle, target);
   return handle;
+}
+
+// Turn the RefCell a cell returned into a handle on a store of its own (the port harness, run.ts).
+export function materialize(cell: { initial: unknown }, name: string) {
+  const store: Store = { name, value: cell.initial, version: 0, waiters: [] };
+  return handleOf(name, () => store);
 }
 
 // read(ref) inside an action: the committed value plus every write made earlier in call order
 export function read(handle: object): unknown {
-  const store = stores.get(handle);
-  if (!store) throw new Error("read(...) needs a Ref");
-  if (state.actionDepth === 0) throw new Error(`read(${store.name}) called outside an action`);
-  return current(store);
+  const target = targets.get(handle);
+  if (!target) throw new Error("read(...) needs a Ref");
+  if (state.actionDepth === 0) throw new Error(`read(${(handle as Record<symbol, string>)[REFHANDLE]}) called outside an action`);
+  return current(target());
 }
 
-// Value of a ref cell: yields the current value, then once per committed write.
-export function* refValues(handle: object): Generator<unknown> {
-  const store = stores.get(handle)!;
+// Values of a store: the current value, then once per committed write.
+function* valuesOf(store: Store): Generator<unknown> {
   let seen = store.version;
   yield store.value;
   for (;;) {
@@ -95,6 +100,143 @@ export function* refValues(handle: object): Generator<unknown> {
       });
     }
   }
+}
+// Value of a materialized handle's store (the port harness).
+export function refValues(handle: object): Generator<unknown> {
+  return valuesOf(targets.get(handle)!());
+}
+
+// A ref cell is one runtime variable holding its value. Its home, per variable: the store its last run
+// made, and whether the variable has a value now (live), is computing again (pending) or is in error.
+// A Ref<T> is an address, a module and a name, looked up in the module when it is used.
+type Variable = { _module: Module; _inputs?: Variable[]; _promise?: Promise<unknown>; _value?: unknown; _type?: number };
+type Module = { _scope: Map<string, Variable>; value(name: string): Promise<unknown> };
+type Home = { name: string; run: { def: unknown; args: unknown[]; store: Store } | null; state: "live" | "pending" | "error"; error: unknown; gen: number; promise?: unknown };
+const homes = new WeakMap<object, Home>();
+
+// One run of a ref cell's variable: the store of its last run when the definition and every input are the
+// same (Object.is), else a new one from make(), which runs the cell. Returns the values of the store.
+export function refRun(variable: Variable, def: unknown, name: string, args: unknown[], make: () => unknown, invalidation: Promise<unknown> | null, kept?: () => void): Generator<unknown> {
+  let home = homes.get(variable);
+  if (!home) homes.set(variable, (home = { name, run: null, state: "pending", error: null, gen: 0 }));
+  home.name = name;
+  const last = home.run;
+  let store: Store;
+  if (last && last.def === def && last.args.length === args.length && args.every((x, i) => Object.is(x, last.args[i]))) {
+    store = last.store;
+    kept?.();
+  } else {
+    let r: unknown;
+    try {
+      r = make();
+      if (!isRefCell(r)) throw new Error(`${name} did not return ref(...)`);
+    } catch (e) {
+      home.run = null;
+      home.state = "error";
+      home.error = e;
+      home.gen++;
+      throw e;
+    }
+    store = { name, value: r.initial, version: 0, waiters: [] };
+    home.run = { def, args, store };
+  }
+  const gen = ++home.gen;
+  home.state = "live";
+  home.error = null;
+  // the runtime sets the variable's promise before it calls the definition: this run's promise
+  home.promise = variable._promise;
+  const h = home;
+  invalidation?.then(() => {
+    if (h.gen !== gen) return;
+    h.state = "pending";
+    watch(variable, h, gen);
+  });
+  return valuesOf(store);
+}
+// A ref cell's variable whose definition raises e without running the cell (it does not check).
+export function refFailed(variable: Variable, name: string, e: unknown) {
+  let home = homes.get(variable);
+  if (!home) homes.set(variable, (home = { name, run: null, state: "error", error: e, gen: 0 }));
+  home.run = null;
+  home.state = "error";
+  home.error = e;
+  home.gen++;
+}
+// The variable is computing again: its definition runs again (refRun), or it fails (an input or the body
+// threw, or it does not check), or it gets a value that is not a ref's (it is no longer a ref cell).
+// Invalidated with no new computation, it became unreachable and keeps its store.
+function watch(variable: Variable, home: Home, gen: number) {
+  const p = variable._promise;
+  if (!p || typeof p.then !== "function") return;
+  p.then(
+    () => {
+      if (home.gen !== gen) return;
+      if (variable._promise !== p) return watch(variable, home, gen);
+      if (p === home.promise) home.state = "live";
+      else { home.state = "error"; home.error = new Error(`${home.name} is not a ref cell`); }
+    },
+    (e) => {
+      if (home.gen !== gen) return;
+      // a newer computation replaced this one
+      if (variable._promise !== p) return watch(variable, home, gen);
+      home.state = "error";
+      home.error = e;
+    },
+  );
+}
+
+// The variable a name leads to in a module: through import aliases (one input, from another module) to
+// the variable that defines it.
+function follow(module: Module, name: string): Variable | null {
+  let v = module._scope.get(name) ?? null;
+  for (let i = 0; v && i < 64; i++) {
+    if (homes.has(v)) return v;
+    const ins = v._inputs ?? [];
+    if (ins.length === 1 && ins[0] && ins[0]._module !== v._module) { v = ins[0]; continue; }
+    return v;
+  }
+  return v;
+}
+const reasonOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
+function storeAt(module: Module, name: string): Store {
+  const v = follow(module, name);
+  const home = v ? homes.get(v) : undefined;
+  // _type 2: a variable the runtime made for a name that is read and not defined
+  if (!home) throw new Error(`Ref ${name}: ${v && v._type !== 2 ? `${name} has no value as a ref cell` : `${name} is not defined`}`);
+  if (home.state === "error" || !home.run) throw new Error(`Ref ${name}: ${name} is in error: ${reasonOf(home.error)}`);
+  return home.run.store;
+}
+type ViewEl = { value: unknown; dispatchEvent(e: Event): boolean; addEventListener(t: string, f: () => void): void };
+function viewStoreAt(module: Module, name: string, check: (v: unknown) => unknown): Store {
+  const v = follow(module, `viewof ${name}`);
+  const el = v?._value as ViewEl | undefined;
+  if (!v) throw new Error(`Ref ${name}: viewof ${name} is not defined`);
+  if (!el || typeof el !== "object" || typeof el.addEventListener !== "function" || typeof el.dispatchEvent !== "function" || !("value" in el))
+    throw new Error(`Ref ${name}: viewof ${name} is in error or is not a view (an element with a value)`);
+  return targets.get(viewHandle(el, name, check))!();
+}
+
+// The Ref<T> a cell's parameter receives: the address of name in the module of the variable `at`. One
+// handle per module and name, so every cell of a module that takes it gets the same handle. view: name is
+// an Observable JavaScript viewof, written through its element. check: a written value's check (the
+// shape of a type that crosses from another language).
+const addresses = new WeakMap<object, Map<string, object>>();
+export function refAt(at: Variable, name: string, check?: (v: unknown) => unknown, view = false): object {
+  const module = at._module;
+  let byName = addresses.get(module);
+  if (!byName) addresses.set(module, (byName = new Map()));
+  const key = (view ? "viewof " : "") + name;
+  let handle = byName.get(key);
+  if (!handle) {
+    const target = view ? () => viewStoreAt(module, name, check ?? ((v) => v)) : () => storeAt(module, name);
+    handle = handleOf(name, target, check);
+    byName.set(key, handle);
+  }
+  // a target nothing observes has not run, so it has no store yet: it is asked for its value once
+  let ready = true;
+  try { targets.get(handle)!(); } catch { ready = false; }
+  if (!ready) queueMicrotask(() => { module.value(key).catch(() => {}); });
+  return handle;
 }
 
 // Commits the batch: every store the overlay holds takes its value, with one version bump, and its
@@ -130,16 +272,11 @@ function toView(view: NonNullable<Store["view"]>, v: unknown): unknown {
 // reader that takes it runs again only when the view itself is replaced. A change the user makes on the
 // control is an action call of its own, so it is a flush group like any other.
 const views = new WeakMap<object, object>();
-export function viewHandle(el: { value: unknown; dispatchEvent(e: Event): boolean; addEventListener(t: string, f: () => void): void }, name: string, check: (v: unknown) => unknown) {
+export function viewHandle(el: ViewEl, name: string, check: (v: unknown) => unknown) {
   const known = views.get(el);
   if (known) return known;
   const store: Store = { name, value: check(el.value), version: 0, waiters: [], view: { el, check } };
-  const handle = Object.freeze({
-    [REFHANDLE]: name,
-    set(v: unknown) { guardWrite(name); write(store, () => check(v)); },
-    update(f: (v: unknown) => unknown) { guardWrite(name); write(store, (x) => check(f(x))); },
-  });
-  stores.set(handle, store);
+  const handle = handleOf(name, () => store, check);
   views.set(el, handle);
   const changed = action(() => { const v = check(el.value); store.view!.fromControl = v; write(store, () => v); });
   actionNames.set(changed, `${name} (the view's control)`);

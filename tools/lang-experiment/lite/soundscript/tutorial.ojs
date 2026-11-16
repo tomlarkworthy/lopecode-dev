@@ -229,7 +229,7 @@ sourceListing(tutorial_module, invalidation, { from: "type Line", to: "shopView"
 // %%
 //ss: ./tutorial-ordinary.tsx
 // %%
-md`A parameter that reads an Observable JavaScript or raw cell and has no type is \`[boundary-unannotated]\`. A type the check cannot apply to a value, such as a function or a \`Promise\`, is \`[boundary-type]\`. \`Ref\` on a cell with no \`viewof\` is \`[boundary-ref]\`.`
+md`A parameter that reads an Observable JavaScript or raw cell and has no type is \`[boundary-unannotated]\`. A type the check cannot apply to a value, such as a function or a \`Promise\`, is \`[boundary-type]\`. \`Ref\` on a cell with no \`viewof\` is \`[boundary-ref]\`, unless the cell is a SoundScript ref cell imported from another module.`
 // %%
 test_shop_total = {
   const el = await tutorial_module.value("viewof shop_price");
@@ -244,7 +244,7 @@ What the notebook does with a SoundScript cell, one mechanism per cell. None of 
 // %%
 md`### What a cell compiles to
 
-The compiler turns each cell, one at a time, into one *variable* of the notebook's Observable runtime: the object that holds a value and recomputes when an input changes. A ref cell becomes two. Section 6's table lists every variable of its module. A plain cell's variable has the cell's name, and its inputs are \`ss\` (the standard library) and its parameter names.
+The compiler turns each cell, one at a time, into one *variable* of the notebook's Observable runtime: the object that holds a value and recomputes when an input changes. Section 6's table lists every variable of its module. A plain cell's variable has the cell's name, and its inputs are \`ss\` (the standard library) and its parameter names.
 
 A plain cell is *memoised*: when every input is the same value (\`Object.is\`) as on its last run, the body does not run and the variable keeps its last value. Observable still recomputes the readers, which then hit their own memo. This is sound because the checker accepts only cells that are functions of their inputs and never change a value they did not make. In ordinary Observable a cell can change an object in place and keep its identity, and memoising would hide the change.
 
@@ -252,11 +252,9 @@ Three kinds of cell are not memoised. A cell the checker rejects, such as \`leak
 
 Whether a cell is memoised depends on the other cells of its module, so a stored edit compiles again any other cell whose form it changes.`
 // %%
-md`### A ref cell is two variables
+md`### A ref cell is one variable
 
-\`count\` in section 4 is \`viewof count\`, which holds the handle that \`Ref<number>\` parameters receive and is made once, and \`count\`, which holds the current value and yields again after every committed write. So in section 6 \`doubled\` runs again on **bump** and \`bump\` does not. Writes made by one action call are committed together after it returns.
-
-The handle takes the \`viewof\` name so the notebook's tools group the pair as one cell, the way they group \`viewof x\` and \`x\`: the page shows \`count\`, and the editor opens the one source.`
+\`count\` in section 4 is one variable, which holds the current value and yields again after every committed write. A parameter \`count: Ref<number>\` is not an input of its cell's variable: it receives the address of \`count\`, its module and its name, and a write looks the variable up. So in section 6 \`doubled\` runs again on **bump** and \`bump\` does not. Writes made by one action call are committed together after it returns. A write to a ref whose cell is in error throws, and the action call that made it keeps none of its writes.`
 // %%
 ss_highlightCode(md`### Capabilities are cells of the core
 
@@ -356,7 +354,8 @@ Each parameter of a cell names what it reads. What it receives depends on the na
 | \`ticks: Events<T>\`, naming a sync generator cell (*lite*) | a handle for \`on(...)\` (\`[inject-events]\` if not a generator yielding \`T\`) | no |
 | a capability name (next entry) | the host's object for that effect | no |
 | \`x: T\`, naming a cell in another language (section 10) | a frozen copy of its value, checked against \`T\` when it arrives (\`[boundary-unannotated]\` with no \`T\`, \`[boundary-type]\` if \`T\` cannot be checked) | yes |
-| \`x: Ref<T>\`, naming an Observable JavaScript \`viewof x\` | the view as a handle: \`set\` and \`update\` write the control (\`[boundary-ref]\` if there is no \`viewof x\`) | no |
+| \`x: Ref<T>\`, naming an Observable JavaScript \`viewof x\` | the view as a handle: \`set\` and \`update\` write the control (\`[boundary-ref]\` if there is no \`viewof x\` and \`x\` is not an imported ref cell) | no |
+| \`x: Ref<T>\`, naming a SoundScript ref cell imported from another module | the ref in the module it is imported from | no |
 
 Once any cell takes a generator as \`Events\`, a parameter reading it without \`Events\` is \`[inject-events]\`, because it would receive the handle. No cell may take a listener cell (\`[listener-placement]\`). A name that is another variable of the module, in any language, is read through the checked boundary (section 10). Any other name is \`[inject-unknown]\`; a destructuring pattern is \`[inject-pattern]\`. A body may not use a cell's name without taking it as a parameter (\`[cell-by-name]\`).
 
@@ -906,8 +905,7 @@ checkBox = (src, { tsx = false } = {}) => {
 // %%
 kindOf = (v) => {
   const d = String(v._definition);
-  if (v._name.startsWith("viewof ")) return "ref cell: the handle";
-  if (d.includes("/*ss@ref*/")) return "ref cell: the value";
+  if (d.startsWith("function $ss$ref(")) return "ref cell: its value, again after each write";
   if (d.includes('kind: "events"')) return "events: a handle, pulled only while a listener is attached";
   if (!d.includes("$ss$.cell(")) return "type";
   const kind = d.includes("memo: true") ? "memoised on its inputs" : "not memoised";
@@ -946,8 +944,7 @@ moduleTable = (module, invalidation) => {
       const val = htl.html`<td class="v">`, runs = htl.html`<td>`;
       const update = (error) => {
         val.textContent = error !== undefined ? `throws: ${error?.message ?? error}` : fmt(v._value);
-        const h = module._scope.get(ss.handleName(key)) ?? v;
-        runs.textContent = String(ss.evals(String(h._definition).includes("$ss$.cell(") ? h._definition : v._definition));
+        runs.textContent = String(ss.evals(v._definition));
       };
       update();
       return { update, tr: htl.html`<tr class=${"lite-" + (r?.status ?? "blocked")}><td><code>${key}</code></td><td>${r ? badge(r.status) : ""}</td><td><code>${r?.value ?? ""}</code></td>${val}${runs}</tr>` };
