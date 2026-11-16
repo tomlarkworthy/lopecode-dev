@@ -155,7 +155,23 @@ function buildModule(name: string, ojs: string, files: File[]) {
   const allTexts = blocks.flatMap((b) => cellsOfBlock(b)?.texts ?? []);
   // the same context the core builds from its check
   const allSource = allTexts.join("\n\n");
-  const ctx = allTexts.length ? contextFromCheck(checkSources({ cells: allSource, tsx: true }), allSource, true) : contextOf(allTexts, true, null);
+  // the module's cells in other languages, as the core's ss_outside lists them: a SoundScript cell may take one
+  const outsideNames = new Map<string, boolean>();
+  blocks.forEach((src) => {
+    if (cellsOfBlock(src)) return;
+    const raw = /^\/\/raw: (\S+)$/.exec(src);
+    const names: (string | null)[] = /^define\s*\(/.test(src) ? (rawCompile ? [rawCompile(src).name] : [])
+      : raw ? [RAW[name]?.[raw[1]]?.name ?? null] : compile(src).map((x: any) => x._name ?? null);
+    for (const n of names) {
+      if (typeof n !== "string" || n.startsWith("module ")) continue;
+      const view = n.startsWith("viewof ");
+      const base = view ? n.slice(7) : n;
+      if (!/^[\w$]+$/.test(base) || base === "ss") continue;
+      outsideNames.set(base, view || !!outsideNames.get(base));
+    }
+  });
+  const outside = [...outsideNames].sort(([a], [b]) => (a < b ? -1 : 1)).map(([n, view]) => (view ? { name: n, view } : { name: n }));
+  const ctx = allTexts.length ? contextFromCheck(checkSources({ cells: allSource, tsx: true, outside }), allSource, true) : contextOf(allTexts, true, null);
   blocks.forEach((src, i) => {
     const ssm = cellsOfBlock(src), raw = /^\/\/raw: (\S+)$/.exec(src);
     if (ssm) {

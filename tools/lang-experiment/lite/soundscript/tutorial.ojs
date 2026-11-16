@@ -213,6 +213,29 @@ md`**Try it.** Press **play** and move the pointer over the board. Then open the
 // %%
 md`\`test_replay\` plays 600 frames twice, with no browser and no clock, and checks that both runs end with the same score and ball position. A recorded list of events always replays to the same game, because \`step\` depends only on its arguments.`
 // %%
+md`## 10. Working with ordinary cells
+
+PROSE PENDING`
+// %%
+viewof shop_price = Inputs.range([0, 10], { step: 0.5, value: 3, label: "price" })
+// %%
+shop_basket = [{ item: "tea", qty: 2 }, { item: "cake", qty: 1 }]
+// %%
+md`PROSE PENDING (the SoundScript cells that read them: an annotated parameter, the check on the way in, the slider taken as Ref)`
+// %%
+sourceListing(tutorial_module, invalidation, { from: "type Line", to: "shopView" })
+// %%
+//ss: ./tutorial-ordinary.tsx
+// %%
+md`A parameter that reads an Observable JavaScript or raw cell and has no type is \`[boundary-unannotated]\`. A type the check cannot apply to a value, such as a function or a \`Promise\`, is \`[boundary-type]\`. \`Ref\` on a cell with no \`viewof\` is \`[boundary-ref]\`.`
+// %%
+test_shop_total = {
+  const el = await tutorial_module.value("viewof shop_price");
+  const total = await tutorial_module.value("shopTotal");
+  if (total !== 3 * el.value) throw new Error(`shopTotal is ${total} at price ${el.value}`);
+  return `shopTotal ${total} at price ${el.value}`;
+}
+// %%
 md`## How it works
 
 What the notebook does with a SoundScript cell, one mechanism per cell. None of this is part of the checked language; it is the compiler, the standard library and the editor hook in \`@tomlarkworthy/soundscript\`, which has its own tab.`
@@ -904,8 +927,7 @@ liveRows = (module, invalidation, { head, cells, row, cls = "" }) => {
 // %%
 moduleTable = (module, invalidation) => {
   // verdicts come from the module's source, checked again when its code changes
-  let source = null, result = null;
-  const verdicts = () => { const s = ss_source(module); if (s !== source) { source = s; result = ss.check(s); } return result; };
+  const verdicts = () => ss_check(module).result;
   return liveRows(module, invalidation, {
     head: htl.html`<thead><tr><th>cell</th><th>check</th><th>type</th><th>value</th><th>runs</th></tr></thead>`,
     cells: () => { const res = verdicts(); return ss_moduleCells(module).filter((c) => !c.key.startsWith("type ")).map((c) => ({ ...c, variable: module._scope.get(c.key) ?? c.variable, verdict: res.cells.find((x) => x.name === c.key) })); },
@@ -1070,7 +1092,7 @@ test_ss_module_checks = {
   tests_on;
   const { result } = ss_check(tutorial_module);
   const got = Object.fromEntries(result.cells.map((c) => [c.name, c.status]));
-  const want = { width: "ok", height: "ok", area: "ok", aspect: "ok", scale: "ok", half: "ok", test_half: "ok", samples: "ok", histogram: "ok", leak: "rejected", late: "rejected", count: "ok", increment: "ok", clear: "ok", saved: "ok", save: "ok", app: "ok", n: "ok", inc: "ok", setN: "ok", Badge: "ok", NotElem: "ok", bad_attr_type: "rejected", bad_unknown_attr: "rejected", bad_unknown_element: "rejected", bad_handler_not_action: "rejected", bad_handler_wrong_args: "rejected", bad_component_props: "rejected", bad_component_missing_prop: "rejected", bad_component_not_elem: "rejected", bad_mut_in_jsx: "rejected", bad_child_object: "rejected", ok_all: "ok" };
+  const want = { width: "ok", height: "ok", area: "ok", aspect: "ok", scale: "ok", half: "ok", test_half: "ok", samples: "ok", histogram: "ok", leak: "rejected", late: "rejected", count: "ok", increment: "ok", clear: "ok", saved: "ok", save: "ok", app: "ok", n: "ok", inc: "ok", setN: "ok", Badge: "ok", NotElem: "ok", bad_attr_type: "rejected", bad_unknown_attr: "rejected", bad_unknown_element: "rejected", bad_handler_not_action: "rejected", bad_handler_wrong_args: "rejected", bad_component_props: "rejected", bad_component_missing_prop: "rejected", bad_component_not_elem: "rejected", bad_mut_in_jsx: "rejected", bad_child_object: "rejected", ok_all: "ok", shopTotal: "ok", cheaper: "ok", shopView: "ok" };
   if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(`verdicts ${JSON.stringify(got)}`);
   if (result.module.length) throw new Error(`module errors ${JSON.stringify(result.module)}`);
   return `${result.cells.length} cells: leak, late and the ten bad_* rejected, the rest ok`;

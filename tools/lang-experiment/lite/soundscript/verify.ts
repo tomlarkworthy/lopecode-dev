@@ -47,7 +47,7 @@ const power = Bun.spawnSync(["pmset", "-g", "batt"], { stdout: "pipe" }).stdout.
 console.log(`power: ${power}`);
 
 const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_stored_and_rejected", "test_ss_breaking_edit_names_its_cells", "test_ss_copy_keeps_its_name", "test_ss_failed_apply_changes_nothing", "test_ss_edits_do_not_grow_the_memo", "test_ss_instance_keeps_user_ids", "test_ss_ref_handle", "ss_registration"];
-const TUTORIAL_TESTS = ["test_ss_roundtrip", "test_ss_module_checks", "test_ss_counter", "test_half",
+const TUTORIAL_TESTS = ["test_shop_total", "test_ss_roundtrip", "test_ss_module_checks", "test_ss_counter", "test_half",
   "test_examples_check_as_expected", "test_compile_pool_matches_main", "test_compile_refuses_unchecked", "test_breakout_listener", "test_breakout_memo", "benchmark"];
 
 
@@ -92,7 +92,7 @@ function referenceChecks() {
   for (const f of files) add(checkSources({ cells: readFileSync(f, "utf8"), tsx: f.endsWith("x") }));
   const specCases = specRejects();
   // as for the fixtures, only the cells are checked (a shell case's rule needs a shell, which a notebook has not)
-  for (const c of specCases) add(checkSources({ cells: c.source, tsx: true }));
+  for (const c of specCases) add(checkSources({ cells: c.source, tsx: true, outside: c.outside }));
   const probed: string[] = [];
   for (const [rule, src] of Object.entries(RULE_PROBES)) { const r = checkSources({ cells: src }); add(r); if (r.cells[0]?.errors.some((e: any) => e.rule === rule)) probed.push(rule); }
   report(probed.length === Object.keys(RULE_PROBES).length, `reference: each rule probe reports its rule (${probed.join(", ")})`);
@@ -168,8 +168,8 @@ const read = (page: Page, name: string) => page.evaluate(async (name) => {
 const REJECTED_LESSON = ["leak", "late", "bad_attr_type", "bad_unknown_attr", "bad_unknown_element", "bad_handler_not_action", "bad_handler_wrong_args", "bad_component_props", "bad_component_missing_prop", "bad_component_not_elem", "bad_mut_in_jsx", "bad_child_object"];
 async function testsPass(page: Page, label: string, name: string, tests: string[], expectErrors: string[] = []) {
   if (name === TUTORIAL) expectErrors = [...expectErrors, ...REJECTED_LESSON];
-  // the polyglot page holds fromRaw, a SoundScript cell that reads a raw cell and is rejected on purpose
-  if (name === POLY) expectErrors = [...expectErrors, "fromRaw"];
+  // the specification holds s11_late_twice, which reads s11_late, a cell that exists only while test_spec_S11_10 runs
+  if (name === SPEC) expectErrors = [...expectErrors, "s11_late_twice"];
   let vars = null as Awaited<ReturnType<typeof read>>;
   for (let i = 0; i < 120; i++) {
     vars = await read(page, name);
@@ -461,7 +461,7 @@ function sameBlocks(label: string, a: string, b: string) {
 
 
 // --- real user paths: Playwright mouse and keyboard on the editor and the lopepage menu
-const SECTION_TESTS: Record<string, string[]> = { "@tomlarkworthy/soundscript-reducer": ["test_undo"], "@tomlarkworthy/soundscript-model": ["areaOf4"], "@tomlarkworthy/soundscript-workers": ["image"], "@tomlarkworthy/soundscript-breakout": ["test_replay"], "@tomlarkworthy/soundscript-polyglot": ["summary", "test_polyglot_listing", "test_polyglot_fromRaw_rejected"] };
+const SECTION_TESTS: Record<string, string[]> = { "@tomlarkworthy/soundscript-reducer": ["test_undo"], "@tomlarkworthy/soundscript-model": ["areaOf4"], "@tomlarkworthy/soundscript-workers": ["image"], "@tomlarkworthy/soundscript-breakout": ["test_replay"], "@tomlarkworthy/soundscript-polyglot": ["summary", "test_polyglot_listing", "test_polyglot_fromRaw"] };
 const MOD = process.platform === "darwin" ? "Meta" : "Control";
 let tagN = 0;
 // tags the editor host of a cell's variable so a locator can reach it; null when the cell has none in view

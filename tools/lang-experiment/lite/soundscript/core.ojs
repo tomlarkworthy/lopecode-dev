@@ -76,8 +76,8 @@ readme_limits = md`## Limits
 readme_api = ss_highlightCode(md`## API
 
 \`\`\`
-ss.checkSources({ cells, tsx })        // the checker: per cell {name, status, errors, unsupported, value (its type)}
-ss.check(source, tsx = true)           // checkSources, remembered for the last 16 sources; .facts per cell (not enumerable)
+ss.checkSources({ cells, tsx, outside })  // the checker: per cell {name, status, errors, unsupported, value (its type)}
+ss.check(source, tsx = true, outside)  // checkSources, remembered for the last 16 sources; .facts per cell (not enumerable)
 ss.compileCell(source, tsx, context)   // one cell's source -> [{name, inputs, definition}]; context: ss_context(module texts)
 ss.decompileVariable(definition)       // a compiled definition -> the cell's source, or null
 ss.compiler(() => source)              // the value of ss_compile: compile(...) for the cells of that source
@@ -90,7 +90,8 @@ ss.memoSize(), ss.memoHas(id)          // memo entries on the page; whether one 
 ss.idOf(definition), ss.withId(definition, id)  // read or replace a compiled definition's memo id
 ss_moduleCells(module)                 // a module's SoundScript cells: [{key, text, variable}]
 ss_source(module)                      // those cells' source, joined in runtime order
-ss_check(module)                       // checkSources over ss_source(module)
+ss_outside(module)                     // the module's cells in other languages: [{name, view?}]
+ss_check(module)                       // checkSources over ss_source(module), with ss_outside(module)
 ss_roundtrip(module)                   // decompile and recompile every cell; throws on a difference
 ss_language                            // the object registered on cell_languages; .inspect draws a value
 ss_instance(module, invalidation)      // a second, unseen copy of module's SoundScript cells, for tests
@@ -144,18 +145,34 @@ ss_moduleCells = (module) => {
   return out;
 }
 // %%
+ss_outside = (module) => {
+  // the module's cells in other languages (Observable JavaScript, raw, imports), by name, sorted: a
+  // SoundScript cell may take one through an annotated parameter, checked when its value crosses.
+  // view: the module also has viewof <name>, so the cell can be taken as Ref.
+  const names = new Map();
+  for (const v of runtime._variables) {
+    if (v._module !== module || typeof v._name !== "string" || typeof v._definition !== "function") continue;
+    if (ss.langOf(String(v._definition)) === "ss") continue;
+    const view = v._name.startsWith("viewof ");
+    const name = view ? v._name.slice(7) : v._name;
+    if (!/^[\w$]+$/.test(name) || name === "ss") continue;
+    names.set(name, view || !!names.get(name));
+  }
+  return [...names].sort(([a], [b]) => (a < b ? -1 : 1)).map(([name, view]) => (view ? { name, view } : { name }));
+}
+// %%
 ss_check = (module) => {
   // one check of the module; a cell that does not parse is checked as a stand-in (ss.checkCells)
   const cells = ss_moduleCells(module);
-  const { result } = ss.checkCells(cells.map((c) => c.text));
+  const { result } = ss.checkCells(cells.map((c) => c.text), true, ss_outside(module));
   return { cells, source: cells.map((c) => c.text).join("\n\n"), result, states: ss.cellStates(result) };
 }
 // %%
-ss_context = (texts) => {
+ss_context = (texts, module) => {
   // the compile context of a module's cells, from one (remembered) check of the whole module: which
   // cells are generators, which are taken as Events, which the checker accepts (only those run, and
   // only those are memoised; any other cell compiles to a definition that raises the checker's messages)
-  return ss.contextFromCheck(ss.checkCells(texts).result);
+  return ss.contextFromCheck(ss.checkCells(texts, true, module ? ss_outside(module) : null).result);
 }
 // %%
 ss_source = (module) => ss.joinCells(ss_moduleCells(module).map((c) => c.text))
@@ -163,7 +180,7 @@ ss_source = (module) => ss.joinCells(ss_moduleCells(module).map((c) => c.text))
 ss_roundtrip = (module) => {
   let n = 0;
   const cells = ss_moduleCells(module);
-  const ctx = ss_context(cells.map((c) => c.text));
+  const ctx = ss_context(cells.map((c) => c.text), module);
   for (const c of cells) {
     for (const d of ss.compileCell(c.text, true, ctx, c.key)) {
       const v = module._scope.get(d.name);
@@ -216,8 +233,11 @@ ss_lifecycle = {
   const touched = new Set();
   const off = onCodeChange(({ variable, previous }) => {
     const module = variable?._module ?? previous?._module;
-    if (!isSs(variable) && !isSs(previous)) return;
-    if (variable === null) ss_deleted(previous.variable);
+    // a cell in another language added, deleted or renamed changes what its SoundScript readers check against
+    const outsideNamed = !isSs(variable) && !isSs(previous) && variable?._name !== previous?._name && module?._scope?.has("ss") && !ss_instances.has(module);
+    if (outsideNamed) touched.add(module);
+    else if (!isSs(variable) && !isSs(previous)) return;
+    if (variable === null && !outsideNamed) ss_deleted(previous.variable);
     // every edit gives a new memo id; the old one is forgotten once no variable has that definition
     if (isSs(previous) && previous._definition !== variable?._definition) {
       const text = String(previous._definition);
@@ -300,7 +320,8 @@ ss_language = {
     if (at < 0) { texts.push(source); at = texts.length - 1; } else texts[at] = source;
     // one check of the module as edited gives the verdicts, the compile context and the cell facts
     let after = null, checkError = null;
-    try { after = ss.checkCells(texts).result; } catch (e) { checkError = e; }
+    const outside = module ? ss_outside(module) : null;
+    try { after = ss.checkCells(texts, true, outside).result; } catch (e) { checkError = e; }
     if (!after) return { ok: false, store: false, problems: [{ line: 1, rule: "check", msg: `${checkError.message}; a cell that does not parse is stored only when it starts with const, let or function <name>` }] };
     let defs;
     try { defs = ss.compileCell(source, tsx, ss.contextFromCheck(after), oldKey); }
@@ -326,7 +347,7 @@ ss_language = {
     }
     const statesAfter = ss.cellStates(after);
     let statesBefore = new Map();
-    try { statesBefore = ss.cellStates(ss.checkCells(cells.map((c) => c.text)).result); } catch {}
+    try { statesBefore = ss.cellStates(ss.checkCells(cells.map((c) => c.text), true, outside).result); } catch {}
     const state = statesAfter.get(key) ?? { state: "rejected", why: [], blockedBy: [] };
     if (state.state === "blocked") problems.push({ line: 1, rule: "blocked", msg: `blocked by ${state.blockedBy.join(", ")}: it does not run until ${state.blockedBy.length > 1 ? "they are" : "that is"} ok` });
     const effect = sayEffect(effectOf(statesBefore, statesAfter), false);
@@ -408,7 +429,7 @@ ss_language = {
     const order = [...runtime._variables];
     const anchor = [...old].sort((a, b) => order.indexOf(a) - order.indexOf(b)).at(-1) ?? cell?.variables?.at(-1);
     // every other cell whose compiled form the edit changes is compiled before anything is defined
-    const ctx = ss_context(r.texts);
+    const ctx = ss_context(r.texts, module);
     const plan = [];
     for (const c of ss_moduleCells(module)) {
       if (c.key === r.key || c.key === oldKey) continue;
@@ -449,7 +470,7 @@ ss_language = {
   // compiles again every cell of module (but skip) whose form the rest of the module changed
   const recompileNow = async (module, skip) => {
     const cells = ss_moduleCells(module);
-    const ctx = ss_context(cells.map((c) => c.text));
+    const ctx = ss_context(cells.map((c) => c.text), module);
     let n = 0;
     for (const c of cells) {
       if (c.key === skip) continue;
@@ -468,7 +489,7 @@ ss_language = {
     const at0 = cells.findIndex((c) => c.key === ownKey(variables));
     const at = at0 < 0 ? texts.length : at0;
     texts[at] = source;
-    return ss.completionsAt(texts, at, pos, tsx);
+    return ss.completionsAt(texts, at, pos, tsx, module ? ss_outside(module) : null);
   };
   // the editor's header: the cell's parameters as inputs (not ss or a hidden invalidation), named outputs
   const header = (variables) => {

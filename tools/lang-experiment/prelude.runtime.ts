@@ -4,7 +4,8 @@ const REFCELL = Symbol.for("lc.refcell");
 const ACTION = Symbol.for("lc.action");
 const REFHANDLE = Symbol.for("lc.ref");
 
-type Store = { name: string; value: unknown; version: number; waiters: (() => void)[] };
+// view: a Store that is an Observable JavaScript view's value (viewHandle); a commit writes it to the view
+type Store = { name: string; value: unknown; version: number; waiters: (() => void)[]; view?: { el: { value: unknown; dispatchEvent(e: Event): boolean }; check: (v: unknown) => unknown; fromControl?: unknown } };
 type Group = { action: object };
 
 // the cell an action was defined by, when the runtime knows it; flush and listeners name actions by it
@@ -104,7 +105,7 @@ function flush() {
   state.overlay = new Map();
   state.queue = [];
   if (!next.size) return;
-  for (const [st, v] of next) st.value = v;
+  for (const [st, v] of next) st.value = st.view ? toView(st.view, v) : v;
   for (const st of next.keys()) {
     st.version++;
     const ws = st.waiters;
@@ -112,6 +113,41 @@ function flush() {
     ws.forEach((f) => f());
   }
   state.commits++;
+}
+
+// a committed write to a view: the view takes the value and is told with an input event, as a user's change
+// would; the store keeps what the view holds afterwards (a control may round or clamp what it is given)
+let echoing = 0;
+function toView(view: NonNullable<Store["view"]>, v: unknown): unknown {
+  // the write came from the control itself: the view already holds it, so no second input event
+  if (view.fromControl !== undefined && view.fromControl === v) { view.fromControl = undefined; return v; }
+  view.el.value = v;
+  echoing++;
+  try { view.el.dispatchEvent(new Event("input", { bubbles: true })); } finally { echoing--; }
+  try { return view.check(view.el.value); } catch { return v; }
+}
+// A Ref<T> over an Observable JavaScript view (the value of its viewof variable). One handle per view, so a
+// reader that takes it runs again only when the view itself is replaced. A change the user makes on the
+// control is an action call of its own, so it is a flush group like any other.
+const views = new WeakMap<object, object>();
+export function viewHandle(el: { value: unknown; dispatchEvent(e: Event): boolean; addEventListener(t: string, f: () => void): void }, name: string, check: (v: unknown) => unknown) {
+  const known = views.get(el);
+  if (known) return known;
+  const store: Store = { name, value: check(el.value), version: 0, waiters: [], view: { el, check } };
+  const handle = Object.freeze({
+    [REFHANDLE]: name,
+    set(v: unknown) { guardWrite(name); write(store, () => check(v)); },
+    update(f: (v: unknown) => unknown) { guardWrite(name); write(store, (x) => check(f(x))); },
+  });
+  stores.set(handle, store);
+  views.set(el, handle);
+  const changed = action(() => { const v = check(el.value); store.view!.fromControl = v; write(store, () => v); });
+  actionNames.set(changed, `${name} (the view's control)`);
+  el.addEventListener("input", () => {
+    if (echoing) return;
+    try { changed(); } catch (e) { console.error(e); }
+  });
+  return handle;
 }
 
 function undoTo(mark: number) {

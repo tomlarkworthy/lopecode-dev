@@ -3,3 +3,4 @@ node_modules/
 .oracle-scratch/
 notebook/build/
 soundscript/.scratch/
+.oracle-scratch-spec/

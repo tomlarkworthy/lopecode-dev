@@ -114,15 +114,14 @@ export async function rawOnPage(page: Page, h: H, label: string) {
     `${label}: raw area reads SoundScript width and Observable JS height, raw squares is a generator, raw report is async, Observable JS summary reads raw: ${JSON.stringify({ ...v0, summary })}`);
   const a0 = await rawState(page, "area");
   report(a0?.lang === "raw" && a0.source === AREA && a0.definition.startsWith('function/*{lang:"raw"}*/ (width, height)'), `${label}: area is a raw cell whose source decompiles exactly: ${JSON.stringify(a0?.source)}`);
-  // SoundScript cannot read a raw cell: the checker has no type for it (inject-unknown). The page holds fromRaw,
-  // which is rejected; area is unaffected
+  // SoundScript reads a raw cell through an annotated parameter, checked when the value crosses: fromRaw is area + 1
   const ssOnRaw = await page.evaluate(async (poly) => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get(poly);
     let value; try { value = await mod.value("fromRaw"); } catch (e) { value = "THREW " + (e as Error).message; }
     const v = [...rt._variables].find((v: any) => v._name === "fromRaw" && v._module === mod);
-    return { value, area: await mod.value("area"), tagged: /\/\*\{lang:"ss"\}\*\//.test(String(v?._definition)) };
+    return { value, area: await mod.value("area"), tagged: /\/\*\{lang:"ss"\}\*\//.test(String(v?._definition)), crosses: /\.cross\(area, \{"k":"num"\}/.test(String(v?._definition)) };
   }, POLY);
-  report(/^THREW fromRaw does not check: \[inject-unknown\]/.test(String(ssOnRaw.value)) && ssOnRaw.tagged && ssOnRaw.area === 12, `${label}: the page's SoundScript cell fromRaw reads raw area and is rejected (inject-unknown); area is unaffected: ${JSON.stringify(ssOnRaw).slice(0, 300)}`);
+  report(ssOnRaw.value === 13 && ssOnRaw.tagged && ssOnRaw.crosses && ssOnRaw.area === 12, `${label}: the page's SoundScript cell fromRaw reads raw area, checked as a number on the way in: ${JSON.stringify(ssOnRaw).slice(0, 300)}`);
   // the listing: SoundScript and raw cells, each in its own language's colours
   await until(page, async () => !!(await page.evaluate((poly) => (window as any).__ojs_runtime.mains.get(poly)._scope.get("polyglot_listing")?._value?.textContent?.includes('define("report"'), POLY)), 10000);
   const listing = await page.evaluate((poly) => { const rt = (window as any).__ojs_runtime; const pre = rt.mains.get(poly)._scope.get("polyglot_listing")?._value; return pre ? { text: pre.textContent, spans: pre.querySelectorAll("span[class^=tok-]").length } : null; }, POLY);

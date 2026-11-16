@@ -2,7 +2,7 @@
 // while typing, so a copy is checked with a placeholder identifier at the cursor; if the copy does not
 // parse, the cell is cut at the cursor and its open brackets closed. When neither copy can be checked
 // the answer is an empty list, never a guess from runtime values.
-import { checkSources } from "./core.ts";
+import { checkSources, type Outside } from "./core.ts";
 import type { Checker, Env, Scope } from "./infer.ts";
 import { Registry } from "./registry.ts";
 import { type Ty, show, named, isNamed, propT, members, UNKNOWN } from "./types.ts";
@@ -154,7 +154,8 @@ function scopeNames(ch: Checker, env: Env): Completion[] {
   return [...out.values()];
 }
 
-export function completionsAt(cells: readonly string[], at: number, offset: number, tsx = true): Completions {
+// outside: the module's cells in other languages (core.ts Outside), so a parameter that reads one has its annotated type
+export function completionsAt(cells: readonly string[], at: number, offset: number, tsx = true, outside: readonly Outside[] | null = null): Completions {
   const text = cells[at] ?? "";
   const before0 = text.slice(0, offset);
   const prefix = /[\w$]*$/.exec(before0)![0];
@@ -193,7 +194,7 @@ export function completionsAt(cells: readonly string[], at: number, offset: numb
     const self = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:const|let|(?:async\s+)?function\*?)\s+([\w$]+)/.exec(before)?.[1];
     const others = cells.filter((_, i) => i !== at).join("\n\n");
     let types = new Map<string, string>();
-    try { types = new Map(checkSources({ cells: others, tsx }).cells.map((c) => [c.name, c.value ?? ""])); } catch {}
+    try { types = new Map(checkSources({ cells: others, tsx, outside }).cells.map((c) => [c.name, c.value ?? ""])); } catch {}
     const opts: Completion[] = [];
     for (const [n, t] of types) if (n !== self && !params.includes(n)) opts.push({ label: n, type: "variable", detail: `cell: ${t}` });
     for (const [n, t] of Object.entries(CAPABILITIES)) if (!params.includes(n) && !types.has(n)) opts.push({ label: n, type: "variable", detail: `capability: ${t}` });
@@ -212,7 +213,7 @@ export function completionsAt(cells: readonly string[], at: number, offset: numb
     const texts = cells.map((c, i) => (i === at ? v : c));
     let got: { kind: "member"; t: Ty; reg: Registry } | { kind: "name"; list: Completion[] } | null = null;
     try {
-      checkSources({ cells: texts.join("\n\n"), tsx }, {
+      checkSources({ cells: texts.join("\n\n"), tsx, outside }, {
         onCell: (_name, ch) => {
           ch.identHook = (e, env) => {
             if (e.name !== PH || got) return;

@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 import { checkPort, type LiteResult } from "./check.ts";
 import { parse, type Node } from "./parse.ts";
 import { kids } from "./own.ts";
+import { specRejects } from "./soundscript/spec-cases.ts";
+import { checkSources } from "./core.ts";
 
 const LITE = dirname(fileURLToPath(import.meta.url));
 const ROOT = dirname(LITE);
@@ -90,6 +92,34 @@ for (const d of legacy) {
   say(`| ${d} | ${expected}${want.length ? ` (${want.join(", ")})` : ""} | ${oRules.length ? "reject" : "accept"} | ${verdict(l)} | ${verdict(lu)} | ${fmt(lr)} | ${same ? "yes" : "no"} |`);
 }
 say(`\n${fixAgree}/${fixTotal} existing fixtures (known-slips excluded) get the expected verdict for the same reason under --unchecked-index.`);
+
+// ---- 1b. reject cases of the specification module (lite/soundscript/spec.ojs, spec_rejects*) ----
+// each case is written out as a port directory so both checkers read it as they read a fixture
+say("\n### Specification reject cases\n");
+say("| statement | source | expected | oracle | lite (--unchecked-index) | oracle same reason | lite same reason |");
+say("|---|---|---|---|---|---|---|");
+const SPEC_DIR = join(LITE, ".oracle-scratch-spec"); // deleted and rewritten on every run
+rmSync(SPEC_DIR, { recursive: true, force: true });
+let specOracle = 0, specLite = 0, specJudged = 0;
+const specCases = specRejects();
+specCases.forEach((c, i) => {
+  const dir = join(SPEC_DIR, String(i));
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "cells.ts"), c.source + "\n");
+  if (c.shell) writeFileSync(join(dir, "shell.ts"), c.shell + "\n");
+  // a case with cells in other languages (section 11) has nothing tsc can be given for them: n/a for the oracle
+  const o = c.outside ? null : oracle(dir);
+  const lu = c.outside ? checkSources({ cells: c.source, shell: c.shell, tsx: false, outside: c.outside }, { strictIndex: false }) : checkPort(dir, { strictIndex: false });
+  const oRules = o ? uniq([...o.module, ...[...o.cells.values()].flatMap((x) => x.rules)]) : [], lr = liteRules(lu);
+  const want = JSON.stringify([norm(c.rule)]);
+  const oSame = !!o && JSON.stringify(uniq(oRules.map(norm))) === want, lSame = JSON.stringify(uniq(lr.map(norm))) === want;
+  if (oSame) specOracle++;
+  if (o) specJudged++;
+  if (lSame) specLite++;
+  const others = c.outside ? ` (other languages: ${c.outside.map((x) => (x.view ? "viewof " : "") + x.name).join(", ") || "none"})` : "";
+  say(`| ${c.statement} | \`${c.source.replace(/\n/g, " ")}\`${c.shell ? " (shell: \`" + c.shell + "\`)" : ""}${others} | ${c.rule} | ${o ? fmt(oRules) : "n/a"} | ${fmt(lr)} | ${o ? (oSame ? "yes" : "no") : "n/a"} | ${lSame ? "yes" : "no"} |`);
+});
+say(`\n${specCases.length} specification reject cases: the oracle judges ${specJudged} (the rest name cells in other languages) and gives exactly the expected rule for ${specOracle}; lite gives it for ${specLite}.`);
 
 // ---- 2. lite fixtures ----
 say("\n### lite fixtures (fixtures/lite-*/)\n");

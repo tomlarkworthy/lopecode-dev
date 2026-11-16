@@ -10,6 +10,7 @@ import { CAPABILITIES } from "./intrinsics.ts";
 import { island, specOf, compileCalls } from "./island.ts";
 import { factsOf, type CellInfo } from "./facts.ts";
 import { captures, captureMessage } from "./capture.ts";
+import { shapeOf, type Shape } from "./boundary.ts";
 
 export type LiteError = { rule: string; line: number; msg: string };
 export type LiteCell = {
@@ -59,7 +60,12 @@ function syntaxPass(n: Node, report: (n: Node, rule: string, msg: string) => voi
   walk(n, null);
 }
 
-export type Sources = { cells: string; tsx?: boolean; foreign?: string | null; shell?: string | null; name?: string };
+// outside: the module's cells in other languages (Observable JavaScript, raw), by name; view when the
+// module also has `viewof <name>`. A SoundScript cell takes one through an annotated parameter (boundary.ts).
+export type Outside = { name: string; view?: boolean };
+export type Sources = { cells: string; tsx?: boolean; foreign?: string | null; shell?: string | null; name?: string; outside?: readonly Outside[] | null };
+// per parameter that names an outside cell: its value's shape, and whether it is taken as Ref (the view)
+export type Boundary = { shape: Shape; ref: boolean };
 
 // Browser-safe: no file system. check.ts checkPort reads a port directory and calls this.
 // onCell: each cell's checker before it runs, so a caller can set hooks on it (completion)
@@ -126,6 +132,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     seen.add(c.name);
   }
 
+  const outside = new Map((src.outside ?? []).map((o) => [o.name, o] as const));
+  const boundaries = new Map<string, Map<string, Boundary>>();
+  const viewTypes = new Map<string, { ty: Ty; cell: string }>();
   const out = new Map<string, LiteCell>();
   for (const c of cells) out.set(c.name, { name: c.name, status: "ok", line: P.line(c.stmt.start), errors: [], unsupported: [], blockedBy: [] });
   const cellOf = (pos: number) => cells.find((c) => c.stmt.start <= pos && pos < c.stmt.end);
@@ -274,6 +283,26 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
         vt = fv.t;
       } else if (shellNames.has(name)) vt = UNKNOWN;
       else if (name in CAPABILITIES) vt = named(CAPABILITIES[name]);
+      else if (outside.has(name)) {
+        // a cell in another language: the annotation is the type, checked when a value crosses
+        if (!ann) { diag(p, "boundary-unannotated", `${name} is a cell in another language; annotate the parameter with the type it must have, e.g. ${name}: number`); injected.push(ERR); continue; }
+        if (wrapper === "Events") { diag(p, "boundary-type", `${name} is a cell in another language; it cannot be taken as Events`); injected.push(ERR); continue; }
+        if (wrapper === "Ref" && !outside.get(name)!.view) { diag(p, "boundary-ref", `${name} has no viewof; only an Observable JavaScript view can be taken as Ref`); injected.push(ERR); continue; }
+        const want = reg.convert(ann, { tps: new Set() }, P);
+        const inner = wrapper === "Ref" && isNamed(want, "Ref") ? want.args[0] : want;
+        if (hasErr(inner)) { injected.push(ERR); continue; } // a type lite does not know is reported where it is written
+        const shape = shapeOf(inner, (t) => reg.expand(t), (n) => reg.isAlias(n));
+        if ("error" in shape) { diag(p, "boundary-type", `${name}: ${show(inner)} cannot cross from another language: it is or holds ${shape.error}`); injected.push(ERR); continue; }
+        if (wrapper === "Ref") {
+          const first = viewTypes.get(name);
+          if (first && !(reg.sub(first.ty, inner) && reg.sub(inner, first.ty))) { diag(p, "boundary-ref", `viewof ${name} is taken as Ref<${show(first.ty)}> by ${first.cell}; every Ref to one view has the same type`); injected.push(ERR); continue; }
+          if (!first) viewTypes.set(name, { ty: inner, cell: c.name });
+        }
+        if (!boundaries.has(c.name)) boundaries.set(c.name, new Map());
+        boundaries.get(c.name)!.set(name, { shape, ref: wrapper === "Ref" });
+        injected.push(want);
+        continue;
+      }
       else { diag(p, "inject-unknown", `parameter ${name} names no cell, foreign or capability`); injected.push(ERR); continue; }
       if (handle) { diag(p, handle.rule, `${name} is not a ${handle.what}`); injected.push(ERR); continue; }
       if (ann) {
@@ -299,6 +328,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
         else if (byName.get(name)?.fn.generator) tainted.set(name, `the latest value of the events cell ${name}`);
         else if (stateful.has(name)) tainted.set(name, `${name} ${stateful.get(name)}`);
       } else if (shellNames.has(name)) tainted.set(name, `a shell cell's value`);
+      else if (outside.has(name) && !(name in CAPABILITIES)) tainted.set(name, `the value of ${name}, a cell in another language`);
       // log writes nothing the program reads back; invalidation is the cell's own lifetime
       else if (name in CAPABILITIES && name !== "invalidation" && name !== "log") tainted.set(name, `capability ${name}`);
     }
@@ -337,7 +367,13 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   }
   const list = cells.map((c) => out.get(c.name)!);
   const result: LiteResult = { port: dir, file: tsx ? "cells.tsx" : "cells.ts", ok: moduleErrs.length === 0 && list.every((c) => c.status === "ok"), module: moduleErrs, cells: list, ms: performance.now() - t0 };
-  Object.defineProperty(result, "facts", { value: new Map(cells.map((c) => [c.name, factsOf(c.name, c.fn, c.stmt)])), enumerable: false });
+  const facts = new Map(cells.map((c) => {
+    const f = factsOf(c.name, c.fn, c.stmt);
+    const b = boundaries.get(c.name);
+    if (b) f.params = f.params.map((p) => (b.has(p.name) ? { ...p, boundary: b.get(p.name) } : p));
+    return [c.name, f] as const;
+  }));
+  Object.defineProperty(result, "facts", { value: facts, enumerable: false });
   return result;
 }
 

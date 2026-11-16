@@ -55,6 +55,10 @@ export const RULES: RuleInfo[] = [
   // Foreign
   { id: "foreign-unmarked", section: "Foreign values and the shell", how: "exact", summary: "foreign.d.ts declaration without /** pure */ or /** effect */" },
   { id: "foreign-effect", section: "Foreign values and the shell", how: "exact", summary: "a checked cell takes an /** effect */ foreign" },
+  // Cells in other languages (lite/boundary.ts)
+  { id: "boundary-unannotated", section: "Observable JavaScript and raw cells", how: "exact", summary: "a parameter naming a cell in another language has no type annotation" },
+  { id: "boundary-type", section: "Observable JavaScript and raw cells", how: "exact", summary: "a cell in another language taken as a type the boundary does not check (a function, a promise, a class, Events)" },
+  { id: "boundary-ref", section: "Observable JavaScript and raw cells", how: "exact", summary: "Ref<T> on a cell with no viewof, or two Ref types for one view" },
 ];
 
 export const RULE_IDS = new Set(RULES.map((r) => r.id));

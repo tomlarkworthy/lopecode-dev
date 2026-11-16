@@ -38,7 +38,7 @@ md`The cells of this section, written in SoundScript. \`s1_exported\` keeps its 
 // %%
 md`Rejected sources. Each is checked when the page loads; the fourth column is what the checker reports and the last whether that is the rule given.`
 // %%
-spec_rejects = [
+spec_rejects_1 = [
   { statement: "S1.4", rule: "module-level", source: "for (;;) {}\nlet a = () => 1;" },
   { statement: "S1.4", rule: "module-level", source: "1 + 1;" },
   { statement: "S1.4", rule: "module-level", source: "declare const x: number;" },
@@ -48,16 +48,22 @@ spec_rejects = [
   { statement: "S1.7", rule: "duplicate-cell", source: "let a = () => 1;", shell: "export let a = () => 2;" }
 ]
 // %%
+spec_rejects_1_view = spec_rejectsTable(spec_rejects_1)
+// %%
+spec_rejects = [...spec_rejects_1, ...spec_rejects_11]
+// %%
 spec_rulesOf = (c) => {
-  // the rule ids the checker reports for a reject case, sorted and without repeats
-  const r = ss.checkSources({ cells: c.source, shell: c.shell, tsx: true });
+  // the rule ids the checker reports for a reject case, sorted and without repeats. outside: the cells in
+  // other languages the case's module has (section 11)
+  const r = ss.checkSources({ cells: c.source, shell: c.shell, tsx: true, outside: c.outside });
   return [...new Set([...r.module, ...r.cells.flatMap((x) => x.errors)].map((e) => e.rule))].sort();
 }
 // %%
-spec_rejects_view = htl.html`<table><thead><tr><th></th><th>source</th><th>rule</th><th>checker</th><th></th></tr></thead><tbody>${spec_rejects.map((c) => {
+spec_rejectsTable = (cases) => htl.html`<table><thead><tr><th></th><th>source</th><th>rule</th><th>checker</th><th></th></tr></thead><tbody>${cases.map((c) => {
   const got = spec_rulesOf(c);
   const same = got.length === 1 && got[0] === c.rule;
-  return htl.html`<tr><td>${c.statement}</td><td><pre style="margin:0">${c.source}${c.shell ? "\n// shell: " + c.shell : ""}</pre></td><td>[${c.rule}]</td><td>${got.map((r) => `[${r}]`).join(" ")}</td><td>${same ? "same" : "DIFFERENT"}</td></tr>`;
+  const notes = [c.shell ? "// shell: " + c.shell : "", c.outside ? "// other languages: " + (c.outside.map((o) => (o.view ? "viewof " : "") + o.name).join(", ") || "none") : ""].filter(Boolean);
+  return htl.html`<tr><td>${c.statement}</td><td><pre style="margin:0">${[c.source, ...notes].join("\n")}</pre></td><td>[${c.rule}]</td><td>${got.map((r) => `[${r}]`).join(" ")}</td><td>${same ? "same" : "DIFFERENT"}</td></tr>`;
 })}</tbody></table>`
 // %%
 spec_rejectsFor = (statement) => {
@@ -74,6 +80,14 @@ spec_rejectsFor = (statement) => {
 spec_okCells = (source) => {
   // the cells of an accepted source, name:status; throws if the source is rejected
   const r = ss.check(source);
+  const rules = [...r.module, ...r.cells.flatMap((x) => x.errors)].map((e) => e.rule);
+  if (rules.length) throw new Error(`${JSON.stringify(source)} gave ${JSON.stringify(rules)}`);
+  return r.cells.map((c) => `${c.name}:${c.status}`).join(",");
+}
+// %%
+spec_okCellsWith = (source, outside) => {
+  // spec_okCells for a module that also has cells in other languages
+  const r = ss.checkSources({ cells: source, tsx: true, outside });
   const rules = [...r.module, ...r.cells.flatMap((x) => x.errors)].map((e) => e.rule);
   if (rules.length) throw new Error(`${JSON.stringify(source)} gave ${JSON.stringify(rules)}`);
   return r.cells.map((c) => `${c.name}:${c.status}`).join(",");
@@ -168,13 +182,214 @@ PROSE PENDING. Not migrated yet.`
 // %%
 md`## 11. Observable JavaScript and raw cells
 
-PROSE PENDING. Not written yet.`
+PROSE PENDING`
+// %%
+md`**S11.1** A parameter that names no SoundScript cell, foreign declaration, shell cell or capability, but names another variable of the module (an Observable JavaScript cell, a raw cell or an import), takes that variable's value. A parameter that names none of these is \`[inject-unknown]\`.`
+// %%
+md`**S11.2** Such a parameter must have a type annotation; without one it is \`[boundary-unannotated]\`.`
+// %%
+md`**S11.3** The annotation may use \`number\`, \`string\`, \`boolean\`, \`null\`, \`undefined\`, literal types, \`unknown\`, arrays, tuples, object types and interfaces with no methods or index signature, unions, and aliases of these. Any other annotation is \`[boundary-type]\`: a function type, \`Promise\`, \`Map\`, \`Set\` or another class, \`Events<T>\`.`
+// %%
+md`**S11.4** Each value that arrives is checked against the annotation. A value that does not match makes the reading cell throw a \`TypeError\` that names the place, such as \`rows[1].price: expected number, found string "12"\`. Cells that do not depend on the reading cell are not affected, and the reading cell runs again on the next value.`
+// %%
+md`**S11.5** The cell is given a deep-frozen copy. An object keeps only the properties its type declares. \`unknown\` accepts primitives, arrays and plain objects, and copies them whole; a function, a promise or an instance of a class is a mismatch (S11.4).`
+// %%
+md`**S11.6** A copy is made for each value that arrives, so a value changed in place by the other language and delivered again is seen. A copy equal to the last one the same parameter was given is that one, so the reading cell is not run again.`
+// %%
+md`**S11.7** \`x: Ref<T>\` takes the view of an Observable JavaScript \`viewof x\`. On a cell with no \`viewof\`, and when two parameters in one module take the same view as \`Ref\` of different types, it is \`[boundary-ref]\`.`
+// %%
+md`**S11.8** A write through the \`Ref\` commits with its action: it sets the view's \`value\` and dispatches an \`input\` event. The \`Ref\` then holds what the view gives back, which a control may have rounded or clamped. A change made on the control is an action call of its own, a flush group like any other (section 6).`
+// %%
+md`**S11.9** The value of a cell in another language is state: an action may not use it (\`[action-capture]\`, section 6). Take the view as \`Ref\` and \`read\` it inside the action.`
+// %%
+md`**S11.10** Adding, deleting or renaming a cell in another language checks the module's SoundScript cells again.`
+// %%
+md`PROSE PENDING (the cells of this section: \`s11_rows\` and \`viewof s11_level\` are Observable JavaScript, \`s11_raw_area\` is raw; the \`s11_\` cells after them are SoundScript)`
+// %%
+s11_rows = [{ price: 1, name: "tea" }, { price: 2.5, name: "cake" }]
+// %%
+viewof s11_level = Inputs.range([0, 10], { step: 1, value: 5, label: "s11_level" })
+// %%
+define("s11_raw_area", [], function () {
+  return 12;
+})
+// %%
+//ss: ./spec-11.ts
+// %%
+spec_rejects_11 = [
+  { statement: "S11.1", rule: "inject-unknown", source: "const f = (nothing: number) => nothing;", outside: [] },
+  { statement: "S11.2", rule: "boundary-unannotated", source: "const f = (rows) => 1;", outside: [{ name: "rows" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (g: () => number) => 1;", outside: [{ name: "g" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (p: Promise<number>) => 1;", outside: [{ name: "p" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (m: Map<string, number>) => 1;", outside: [{ name: "m" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (o: { at: number; get(): number }) => 1;", outside: [{ name: "o" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (e: Events<number>) => 1;", outside: [{ name: "e" }] },
+  { statement: "S11.7", rule: "boundary-ref", source: "const f = (rows: Ref<number[]>) => 1;", outside: [{ name: "rows" }] },
+  { statement: "S11.7", rule: "boundary-ref", source: "const f = (level: Ref<number>) => 1;\nconst g = (level: Ref<string>) => 1;", outside: [{ name: "level", view: true }] },
+  { statement: "S11.9", rule: "action-capture", source: "const n = () => ref(0);\nconst copy = (n: Ref<number>, level: number) => action(() => n.set(level));", outside: [{ name: "level", view: true }] }
+]
+// %%
+spec_rejects_11_view = spec_rejectsTable(spec_rejects_11)
+// %%
+spec_load = async (source, outside) => {
+  // source's SoundScript cells compiled and run in a module of their own beside outside, {name: [inputs,
+  // function]}, plain variables standing for cells in other languages; every variable observed
+  const m = runtime.module();
+  ss_instances.add(m);
+  m.define("ss", [], () => ss);
+  for (const [n, [inputs, f]] of Object.entries(outside)) m.define(n, inputs, f);
+  const names = Object.keys(outside).filter((n) => !n.startsWith("viewof "));
+  const list = names.map((name) => (outside[`viewof ${name}`] ? { name, view: true } : { name }));
+  const texts = ss.splitCells(source, true);
+  const ctx = ss.contextFromCheck(ss.checkCells(texts, true, list).result);
+  const defs = texts.flatMap((t) => ss.compileCell(t, true, ctx));
+  const fns = await realize(defs.map((d) => d.definition), runtime);
+  const vars = defs.map((d, i) => m.variable({}).define(d.name, d.inputs, fns[i]));
+  return { module: m, value: (n) => m.value(n), dispose: () => { for (const v of [...runtime._variables]) if (v._module === m) v.delete(); } };
+}
+// %%
+test_spec_S11_1 = {
+  const ok = spec_okCellsWith("const a = (rows: number[]) => rows.length;", [{ name: "rows" }]);
+  if (ok !== "a:ok") throw new Error(ok);
+  // now is the capability, a Clock, not the other language's number
+  const cap = spec_rulesOf({ source: "const a = (now: number) => now;", outside: [{ name: "now" }] });
+  if (JSON.stringify(cap) !== '["inject-type"]') throw new Error(`a capability named like another variable gave ${JSON.stringify(cap)}`);
+  // now is the SoundScript cell, a number, not the other language's string
+  const wins = spec_rulesOf({ source: "const now = () => 1;\nconst a = (now: string) => now;", outside: [{ name: "now" }] });
+  if (JSON.stringify(wins) !== '["inject-type"]') throw new Error(`a cell named like another variable gave ${JSON.stringify(wins)}`);
+  if ((await spec_module.value("s11_area")) !== 13) throw new Error("s11_area is not 13");
+  return `${spec_rejectsFor("S11.1")}; a capability and a SoundScript cell named like another variable win; s11_area reads the raw s11_raw_area`;
+}
+// %%
+test_spec_S11_2 = spec_rejectsFor("S11.2")
+// %%
+test_spec_S11_3 = {
+  const ok = spec_okCellsWith('type R = { a: number; b?: string[] };\nconst f = (x: R | null, y: unknown, z: [number, "a" | "b"], w: boolean, u: undefined) => 1;', ["x", "y", "z", "w", "u"].map((name) => ({ name })));
+  if (ok !== "f:ok") throw new Error(ok);
+  return `${spec_rejectsFor("S11.3")}; primitives, literals, unknown, tuples, optional properties and unions are accepted`;
+}
+// %%
+test_spec_S11_4 = {
+  let rows = [{ price: 1 }, { price: 2 }];
+  const L = await spec_load("const total = (rows: { price: number }[]) => rows.reduce((a, r) => a + r.price, 0);\nconst other = (rows: unknown) => 7;", { rows: [[], () => rows] });
+  try {
+    if ((await L.value("total")) !== 3) throw new Error("total is not 3");
+    L.module.redefine("rows", [], () => [{ price: 1 }, { price: "12" }]);
+    let msg = null;
+    try { await L.value("total"); } catch (e) { msg = e.message; if (!(e instanceof TypeError)) throw e; }
+    if (msg !== 'rows[1].price: expected number, found string "12"') throw new Error(`gave ${msg}`);
+    if ((await L.value("other")) !== 7) throw new Error("other is affected");
+    L.module.redefine("rows", [], () => [{ price: 4 }]);
+    if ((await L.value("total")) !== 4) throw new Error("total did not run again");
+    if ((await spec_module.value("s11_total")) !== 3.5) throw new Error("s11_total is not 3.5");
+    return msg;
+  } finally { L.dispose(); }
+}
+// %%
+test_spec_S11_5 = {
+  const L = await spec_load("const keep = (o: { xs: number[] }) => o;\nconst whole = (u: unknown) => u;\nconst fn = (f: unknown) => 1;\nconst either = (e: { a: number } | { a: string }, q: number[] | string[]) => [e.a, q.length];", { o: [[], () => ({ xs: [1], extra: 2 })], u: [[], () => ({ a: [1, { b: 2 }] })], f: [[], () => () => 1], e: [[], () => ({ a: "x" })], q: [[], () => ["y"]] });
+  try {
+    const o = await L.value("keep"), u = await L.value("whole");
+    if (!Object.isFrozen(o) || !Object.isFrozen(o.xs) || "extra" in o) throw new Error(`o is ${JSON.stringify(o)}, frozen ${Object.isFrozen(o)}`);
+    if (!Object.isFrozen(u.a[1]) || JSON.stringify(u) !== '{"a":[1,{"b":2}]}') throw new Error(`u is ${JSON.stringify(u)}`);
+    let msg = null;
+    try { await L.value("fn"); } catch (e) { msg = e.message; }
+    if (msg !== "f: expected data, found a function") throw new Error(`f gave ${msg}`);
+    const ev = await L.value("either");
+    if (JSON.stringify(ev) !== '["x",1]') throw new Error(`a union of objects or of arrays gave ${JSON.stringify(ev)}`);
+    return `a frozen copy with the declared properties; unknown copied whole; ${msg}`;
+  } finally { L.dispose(); }
+}
+// %%
+test_spec_S11_6 = {
+  const rows = [{ price: 1 }];
+  const L = await spec_load("const total = (rows: { price: number }[]) => rows.reduce((a, r) => a + r.price, 0);", { rows: [[], () => rows] });
+  try {
+    await L.value("total");
+    const v = [...runtime._variables].find((x) => x._module === L.module && x._name === "total");
+    const runs = ss.evals(v._definition);
+    rows[0].price = 5;
+    L.module.redefine("rows", [], () => rows);
+    if ((await L.value("total")) !== 5) throw new Error("a value changed in place was not seen");
+    L.module.redefine("rows", [], () => [{ price: 5 }]);
+    if ((await L.value("total")) !== 5) throw new Error("total");
+    const more = ss.evals(v._definition) - runs;
+    if (more !== 1) throw new Error(`total ran ${more} more times, expected 1`);
+    return "changed in place: seen; equal again: not run again";
+  } finally { L.dispose(); }
+}
+// %%
+test_spec_S11_7 = {
+  const bump = [...runtime._variables].find((v) => v._module === spec_module && v._name === "s11_bump");
+  const inputs = bump._inputs.map((i) => i._name);
+  if (!inputs.includes("viewof s11_level") || typeof (await spec_module.value("s11_shown")) !== "number") throw new Error(`s11_bump takes ${inputs.join(", ")}`);
+  return `${spec_rejectsFor("S11.7")}; s11_bump takes viewof s11_level as Ref<number>, s11_shown its value`;
+}
+// %%
+test_spec_S11_8 = {
+  const el = await spec_module.value("viewof s11_level");
+  const bump = await spec_module.value("s11_bump"), big = await spec_module.value("s11_big");
+  const handle = ss.viewRef(el, { k: "num" }, "s11_level");
+  const readNow = () => { let v; ss.action(() => { v = ss.read(handle); })(); return v; };
+  const was = el.value;
+  const flushed = () => new Promise((r) => setTimeout(r, 0)).then(() => new Promise((r) => setTimeout(r, 0)));
+  // a change on the control
+  el.value = 2;
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  await flushed();
+  if (readNow() !== 2) throw new Error(`after the control's change the Ref holds ${readNow()}`);
+  let inputs = 0;
+  const count = () => inputs++;
+  el.addEventListener("input", count);
+  try {
+    bump();
+    await flushed();
+    if (el.value !== 5 || inputs !== 1 || readNow() !== 5) throw new Error(`after bump: control ${el.value}, ${inputs} input events, Ref ${readNow()}`);
+    big();
+    await flushed();
+    if (el.value !== 10 || readNow() !== 10) throw new Error(`after big: control ${el.value}, Ref ${readNow()}`);
+  } finally {
+    el.removeEventListener("input", count);
+    el.value = was;
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  return "the control's change reaches the Ref; a write sets the control and dispatches one input; set(99) holds 10";
+}
+// %%
+test_spec_S11_9 = spec_rejectsFor("S11.9")
+// %%
+test_spec_S11_10 = {
+  const name = (n) => [...runtime._variables].find((v) => v._module === spec_module && v._name === n);
+  const rejected = () => /\.rejected\(/.test(String(name("s11_late_twice")?._definition));
+  const until = async (f) => { for (let i = 0; i < 200 && !f(); i++) await new Promise((r) => setTimeout(r, 50)); return f(); };
+  // edits run one at a time; the module is first settled, so the wait is for this test's change alone
+  await ss_language.settle(spec_module);
+  if (!rejected()) throw new Error("s11_late_twice runs before s11_late exists");
+  const late = spec_module.variable({}).define("s11_late", [], () => 21);
+  try {
+    if (!(await until(() => !rejected()))) throw new Error("s11_late_twice was not checked again when s11_late was added");
+    if ((await spec_module.value("s11_late_twice")) !== 42) throw new Error("s11_late_twice is not 42");
+    // renamed: s11_late no longer exists
+    late.define("s11_late_renamed", [], () => 21);
+    if (!(await until(rejected))) throw new Error("s11_late_twice was not checked again when s11_late was renamed");
+    late.define("s11_late", [], () => 21);
+    if (!(await until(() => !rejected()))) throw new Error("s11_late_twice was not checked again when the name came back");
+  } finally { late.delete(); }
+  if (!(await until(rejected))) throw new Error("s11_late_twice was not checked again when s11_late was deleted");
+  return "rejected; 42 once s11_late was added; rejected once it was renamed; 42 when renamed back; rejected once it was deleted";
+}
 // %%
 md`## Not specified
 
 PROSE PENDING`
 // %%
 md`- A top-level \`declare const\` is \`[module-level]\` today (S1.4). Whether an ambient declaration belongs in a module of cells is not decided.`
+// %%
+md`- A cell in another language read by an island of \`compile(...)\`. Today it is rejected: naming one as an island input is \`[compile-island]\` ("no cell k").`
+// %%
+md`- A dependency cycle that passes through a cell in another language. The checker is given only the names of those cells, not their inputs, so it cannot see one.`
+// %%
+md`- A DOM node from another language placed in JSX, and completion offering the names of cells in other languages.`
 // %%
 spec_coverage = {
   // statements are the **S<n>.<m>** marks in this module's cells; a test names the statements it checks
@@ -203,6 +418,6 @@ spec_coverage = {
 // %%
 viewof spec_module = thisModule()
 // %%
-import { ss } from "@tomlarkworthy/soundscript"
+import { ss, ss_instances, ss_language } from "@tomlarkworthy/soundscript"
 // %%
-import { thisModule, runtime } from "@tomlarkworthy/runtime-sdk"
+import { thisModule, runtime, realize } from "@tomlarkworthy/runtime-sdk"

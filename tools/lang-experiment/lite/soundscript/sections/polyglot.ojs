@@ -53,12 +53,11 @@ test_polyglot_listing = {
   return "the listing has the SoundScript and raw cells and leaves out viewof height and summary";
 }
 // %%
-test_polyglot_fromRaw_rejected = {
-  try { await polyglot_module.value("fromRaw"); } catch (e) {
-    if (/^fromRaw does not check: \[inject-unknown\]/.test(e.message)) return e.message;
-    throw e;
-  }
-  throw new Error("fromRaw ran");
+test_polyglot_fromRaw = {
+  // fromRaw reads the raw cell area through a parameter typed number
+  const [fromRaw, area] = await Promise.all([polyglot_module.value("fromRaw"), polyglot_module.value("area")]);
+  if (fromRaw !== area + 1) throw new Error(`fromRaw is ${fromRaw}, area ${area}`);
+  return `fromRaw is ${fromRaw}, area + 1`;
 }
 // %%
 viewof polyglot_module = thisModule()

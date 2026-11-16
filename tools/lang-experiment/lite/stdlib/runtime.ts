@@ -13,7 +13,9 @@ import { pagePool, runHere, type Pool } from "../browser/workers.ts";
 export { compileCell, compileModule, contextOf, contextFromCheck, acceptedOf, cellStates, declaredName, decompileVariable, decompileModule, langOf, cellOfVariable, splitCells, handleName } from "../toolchain/ss-toolchain.ts";
 import { declaredName } from "../toolchain/ss-toolchain.ts";
 import { parse } from "../parse.ts";
-import { checkSources } from "../core.ts";
+import { checkSources, type Outside } from "../core.ts";
+export { cross, crossings } from "../boundary.ts";
+import { checkShape, type Shape } from "../boundary.ts";
 export { checkSources };
 // checkSources for SoundScript cells, remembered for the last 16 sources. The editor asks about the
 // same module source several times per keystroke (lint, the cells an edit would break, the compile
@@ -22,11 +24,12 @@ const checks = new Map<string, ReturnType<typeof checkSources>>();
 // how many module checks have run (a remembered result, or a source that does not parse, is not one)
 let checked = 0;
 export const checksRun = () => checked;
-export function check(source: string, tsx = true): ReturnType<typeof checkSources> {
-  const key = (tsx ? "x" : "s") + source;
+// outside: the module's cells in other languages (core.ts Outside), part of the key
+export function check(source: string, tsx = true, outside: readonly Outside[] | null = null): ReturnType<typeof checkSources> {
+  const key = (tsx ? "x" : "s") + (outside?.length ? JSON.stringify(outside) : "") + "\u0000" + source;
   let r = checks.get(key);
   if (r) { checks.delete(key); checks.set(key, r); return r; }
-  r = checkSources({ cells: source, tsx });
+  r = checkSources({ cells: source, tsx, outside });
   checked++;
   checks.set(key, r);
   if (checks.size > 16) checks.delete(checks.keys().next().value!);
@@ -37,9 +40,9 @@ export function check(source: string, tsx = true): ReturnType<typeof checkSource
 // stand-in of the same name and line count whose value has no type, so a cell that takes it is blocked,
 // and the stand-in text does not depend on what was typed, so a keystroke there reuses the check.
 // result.unparsed maps each such cell's name to the parser's message; source is the text checked.
-export function checkCells(texts: string[], tsx = true): { result: ReturnType<typeof checkSources> & { unparsed?: Map<string, string> }; source: string } {
+export function checkCells(texts: string[], tsx = true, outside: readonly Outside[] | null = null): { result: ReturnType<typeof checkSources> & { unparsed?: Map<string, string> }; source: string } {
   const source = texts.join("\n\n");
-  try { return { result: check(source, tsx), source }; } catch (whole) {
+  try { return { result: check(source, tsx, outside), source }; } catch (whole) {
     const unparsed = new Map<string, string>();
     const stood = texts.map((t) => {
       try { parse(t, { jsx: tsx }); return t; } catch (e) {
@@ -52,7 +55,7 @@ export function checkCells(texts: string[], tsx = true): { result: ReturnType<ty
     if (!unparsed.size) throw whole;
     const checked = stood.join("\n\n");
     // the remembered result is shared, so the parse messages go on a copy
-    const base = check(checked, tsx);
+    const base = check(checked, tsx, outside);
     const result = { ...base, ok: false };
     Object.defineProperty(result, "facts", { value: base.facts, enumerable: false });
     Object.defineProperty(result, "unparsed", { value: unparsed, enumerable: false });
@@ -65,6 +68,14 @@ export function rejected(name: string, why: string[]): never {
 }
 
 export const { ref, action, mut, freeze, borrow, snapshot, equals, refValues, read } = P;
+// An Observable JavaScript view taken as Ref<T>: its value is checked against shape on the way in and
+// on every write (boundary.ts)
+export function viewRef(el: unknown, shape: Shape, name: string): object {
+  const e = el as { value: unknown; dispatchEvent?: unknown; addEventListener?: unknown };
+  if (!e || typeof e !== "object" || typeof e.addEventListener !== "function" || typeof e.dispatchEvent !== "function" || !("value" in e))
+    throw new TypeError(`viewof ${name}: expected a view (an element with a value), found ${e === null ? "null" : typeof e}`);
+  return P.viewHandle(e as Parameters<typeof P.viewHandle>[0], name, (v) => checkShape(v, shape, name));
+}
 export { h, on, create, patch, pagePool, running, pulling, release, sweep };
 
 // Values a generator has yielded. A reader of one may be handed the same buffer mutated between

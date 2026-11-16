@@ -234,7 +234,14 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   const inv = params.includes("invalidation") ? "invalidation" : hidden.includes("$ss$inv") ? "$ss$inv" : "null";
   const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
   const refArgs = refs.map((r, i) => { hidden.push(`$ss$r${i}`); hiddenInputs.push(r); return `${JSON.stringify(r)}: $ss$r${i}`; });
-  const args = params.map((p) => (p === "compile" ? `${SS}.compileFor(compile, ${JSON.stringify(info.name)}, {${refArgs.join(", ")}})` : p));
+  // a cell in another language crosses checked (boundary.ts): its value as a frozen copy, its view as a Ref
+  const crossing = (p: string) => {
+    const b = info.params.find((x) => x.name === p)?.boundary;
+    if (!b) return p;
+    const shape = JSON.stringify(b.shape);
+    return b.ref ? `${SS}.viewRef(${p}, ${shape}, ${JSON.stringify(p)})` : `${SS}.cross(${p}, ${shape}, ${JSON.stringify(`${info.name}.${p}`)})`;
+  };
+  const args = params.map((p) => (p === "compile" ? `${SS}.compileFor(compile, ${JSON.stringify(info.name)}, {${refArgs.join(", ")}})` : crossing(p)));
   const memo = (kind === "cell" || kind === "listener") && !info.generator && !!ctx.accepted?.has(info.name) &&
     !info.params.some((p) => NO_MEMO_CAPS.has(p.name) || (ctx.generators.has(p.name) && !p.eventsTyped));
   const inner = `${LANG}${header({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${typed}`;

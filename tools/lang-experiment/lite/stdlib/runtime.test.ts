@@ -34,13 +34,16 @@ const frame = () => { const fs = frames.splice(0); for (const f of fs) f(); retu
 // runs it: every variable observed, `ss` the stdlib, invalidation the runtime's own.
 const { Runtime } = await import("@observablehq/runtime");
 const { checkSources } = await import("../core.ts");
-async function load(src: string, opts: { unchecked?: boolean } = {}) {
-  const checked = checkSources({ cells: src, tsx: true });
+// outside: cells in another language, defined first as plain variables (name -> [inputs, definition])
+async function load(src: string, opts: { unchecked?: boolean; outside?: Record<string, [string[], (...a: any[]) => unknown]> } = {}) {
+  const outsideList = Object.keys(opts.outside ?? {}).filter((n) => !n.startsWith("viewof ")).map((n) => ({ name: n, view: !!opts.outside?.[`viewof ${n}`] }));
+  const checked = checkSources({ cells: src, tsx: true, outside: outsideList });
   const bad = checked.cells.filter((c) => c.status !== "ok");
   if (bad.length && !opts.unchecked) throw new Error(`not ok: ${bad.map((c) => `${c.name} ${c.status} ${JSON.stringify(c.errors)}`).join("; ")}`);
   const runtime = new Runtime();
   const m = runtime.module();
   m.define("ss", [], () => ss);
+  for (const [n, [ins, f]] of Object.entries(opts.outside ?? {})) m.define(n, ins, f);
   const vars = new Map<string, any>();
   const values = new Map<string, unknown>();
   const errs: string[] = [];
@@ -51,7 +54,7 @@ async function load(src: string, opts: { unchecked?: boolean } = {}) {
     const at = texts.findIndex((t) => ss.declaredName(t) === name);
     if (at < 0) texts.push(text); else if (texts[at] !== text) texts[at] = text;
     // unchecked: compiled as if the checker had accepted every cell, to show what a rule prevents
-    const ctx = T.contextFromCheck(ss.checkCells(texts).result);
+    const ctx = T.contextFromCheck(ss.checkCells(texts, true, outsideList).result);
     const now = opts.unchecked ? { ...ctx, accepted: new Set(texts.map((t) => ss.declaredName(t)!)), why: null } : ctx;
     for (const d of T.compileCell(text, true, now, name)) {
       const v = vars.get(d.name) ?? m.variable({ fulfilled: (x: unknown) => values.set(d.name, x), rejected: (e: unknown) => errs.push(`${d.name}: ${(e as Error)?.message ?? e}`) });
@@ -735,6 +738,80 @@ await run("p2_the_rejected_copy_shape_breaks_it", async () => {
     console.log(`  p2: check bypassed, ${sch.name}: ${got[got.length - 1]}`);
   }
   ok("p2_schedules_disagree_when_the_check_is_bypassed", got[0] !== got[1], got.join(" "));
+});
+// The checked boundary (boundary.ts): a cell in another language read by a SoundScript cell.
+class FakeRange extends EventTarget {
+  #v = 5;
+  get value() { return this.#v; }
+  set value(x: any) { this.#v = Math.min(10, Math.max(0, Math.round(Number(x)))); }
+}
+await run("boundary", async () => {
+  let src0: any = [{ price: 1, name: "a" }, { price: 2, name: "b" }];
+  const B = await load(`type Row = { price: number; name: string };
+const total = (rows: Row[]) => rows.reduce((a, r) => a + r.price, 0);
+const firstName = (rows: Row[]) => rows.map((r) => r.name).join(",");`, { outside: { rows: [["src"], (s: any) => s], src: [[], () => src0] } });
+  ok("boundary_value_crosses", B.value("total") === 3, String(B.value("total")));
+  const runs = B.evals("total");
+  // the other language mutates its array in place and delivers it again: a fresh copy, so the reader sees the change
+  src0[0].price = 10;
+  B.m.redefine("src", [], () => src0);
+  await B.settle();
+  ok("boundary_copy_per_delivery", B.value("total") === 12 && B.evals("total") === runs + 1, `${B.value("total")} evals ${B.evals("total") - runs}`);
+  // equal data delivered again: the same copy, so the reader's memo holds
+  B.m.redefine("src", [], () => [{ price: 10, name: "a" }, { price: 2, name: "b" }]);
+  await B.settle();
+  ok("boundary_equal_copy_is_memoised", B.evals("total") === runs + 1, `evals ${B.evals("total") - runs}`);
+  B.m.redefine("src", [], () => [{ price: 1, name: "a" }, { price: "12", name: "b" }]);
+  await B.settle();
+  ok("boundary_mismatch_errors_the_cell", B.errs.some((e) => e.startsWith("total: rows[1].price: expected number, found string \"12\"")), B.errs.join(" | "));
+  ok("boundary_mismatch_leaves_other_cells", B.value("firstName") === "a,b", String(B.value("firstName")));
+  B.m.redefine("src", [], () => [{ price: 1, name: "a" }]);
+  await B.settle();
+  ok("boundary_recovers", B.value("total") === 1, String(B.value("total")));
+});
+await run("boundary_frozen", async () => {
+  const B = await load(`const probe = (o: { xs: number[] }) => o;`, { outside: { o: [[], () => ({ xs: [1], extra: () => 1 })] } });
+  const pv = B.value("probe");
+  ok("boundary_copy_is_deep_frozen_and_drops_undeclared", Object.isFrozen(pv) && Object.isFrozen(pv.xs) && !("extra" in pv), JSON.stringify(pv) + B.errs.join());
+  const F = await load(`const n = (f: unknown) => 1;`, { outside: { f: [[], () => () => 1] } });
+  ok("boundary_function_rejected_at_run_time", F.errs.some((e) => /^n: f: expected data, found a function/.test(e)), F.errs.join(" | "));
+});
+await run("boundary_view", async () => {
+  const el = new FakeRange();
+  const B = await load(`const shown = (level: number) => level;
+const bump = (level: Ref<number>) => action(() => level.set(read(level) + 3));
+const big = (level: Ref<number>) => action(() => level.set(99));`, { outside: { "viewof level": [[], () => el], level: [["viewof level"], async function* (v: any) { yield v.value; for (;;) yield await new Promise((r) => v.addEventListener("input", () => r(v.value), { once: true })); }] } });
+  ok("boundary_view_value_crosses", B.value("shown") === 5, String(B.value("shown")));
+  let inputs = 0;
+  el.addEventListener("input", () => inputs++);
+  B.value("bump")();
+  await B.settle();
+  ok("boundary_view_write_sets_the_control", el.value === 8 && inputs === 1 && B.value("shown") === 8, `${el.value} ${inputs} ${B.value("shown")}`);
+  B.value("big")();
+  await B.settle();
+  ok("boundary_view_write_is_clamped_by_the_control", el.value === 10, String(el.value));
+  const h = B.m._scope.get("viewof level")._value;
+  const handle = ss.viewRef(h, { k: "num" } as any, "level");
+  const readNow = () => { let v: unknown; ss.action(() => { v = ss.read(handle); })(); return v; };
+  ok("boundary_view_read_is_what_the_control_holds", readNow() === 10, String(readNow()));
+  el.value = 2;
+  el.dispatchEvent(new Event("input"));
+  await B.settle();
+  ok("boundary_view_user_change_is_an_action", readNow() === 2 && B.value("shown") === 2, `${readNow()} ${B.value("shown")}`);
+});
+await run("boundary_view_object", async () => {
+  const el = Object.assign(new EventTarget(), { value: [1, 2] as unknown });
+  const B = await load(`const len = (picked: number[]) => picked.length;
+const clear = (picked: Ref<number[]>) => action(() => picked.set([]));`, { outside: { "viewof picked": [[], () => el], picked: [["viewof picked"], async function* (v: any) { yield v.value; for (;;) yield await new Promise((r) => v.addEventListener("input", () => r(v.value), { once: true })); }] } });
+  let inputs = 0;
+  el.addEventListener("input", () => inputs++);
+  el.value = [1, 2, 3];
+  el.dispatchEvent(new Event("input"));
+  await B.settle();
+  ok("boundary_view_object_user_change_dispatches_no_echo", inputs === 1 && B.value("len") === 3, `${inputs} input events, len ${B.value("len")}`);
+  B.value("clear")();
+  await B.settle();
+  ok("boundary_view_object_write_dispatches_once", inputs === 2 && Array.isArray(el.value) && (el.value as unknown[]).length === 0 && B.value("len") === 0, `${inputs} ${JSON.stringify(el.value)} ${B.value("len")}`);
 });
 console.error = realError;
 if (uncaught.length) ok("no_uncaught_exceptions", false, String(uncaught[0]));
