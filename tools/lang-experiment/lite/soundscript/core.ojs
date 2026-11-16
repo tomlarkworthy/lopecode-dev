@@ -82,8 +82,9 @@ ss.compileCell(source, tsx, context)   // one cell's source -> [{name, inputs, d
 ss.decompileVariable(definition)       // a compiled definition -> the cell's source, or null
 ss.compiler(() => source)              // the value of ss_compile: compile(...) for the cells of that source
 ss.evals(variable._definition)         // how many times a compiled cell's body has run
-ss.running()                           // listeners attached on the page
-ss.pulling()                           // events cells whose generator is being pulled
+ss.running(handles?)                   // listeners attached on the page (on these handles only, if given)
+ss.pulling(handles?)                   // events cells whose generator is being pulled (of these handles only, if given)
+ss.isEvents(value)                     // whether a value is an events cell's handle
 ss.release(value)                      // a deleted variable's listener ends, or its events stop
 ss.forget(definition)                  // drop a compiled definition's memo entry and run count
 ss.memoSize(), ss.memoHas(id)          // memo entries on the page; whether one id has one
@@ -397,8 +398,20 @@ ss_language = {
   // Replaces the variables in old with defs; new variables go after anchor.
   // With a transaction tx {made, doomed}, new variables are recorded and old ones are only marked, so
   // the caller can delete them on commit or undo everything.
-  const define = async (module, defs, old, anchor, tx = null) => {
-    const fns = await realize(defs.map((d) => d.definition), runtime);
+  // batches [{defs, old, anchor}]: every definition is realized first, then all are defined in one
+  // synchronous step, so the runtime never computes a cell between two of them (a reader the edit
+  // rejects would otherwise run once on the edited input). afterFirst runs after the first batch.
+  const defineAll = async (module, batches, tx = null, afterFirst = null) => {
+    const all = await realize(batches.flatMap((b) => b.defs.map((d) => d.definition)), runtime);
+    let k = 0;
+    return batches.map((b, i) => {
+      const out = defineNow(module, b.defs, b.old, b.anchor, tx, all.slice(k, (k += b.defs.length)));
+      if (i === 0) afterFirst?.();
+      return out;
+    });
+  };
+  const define = async (module, defs, old, anchor, tx = null) => (await defineAll(module, [{ defs, old, anchor }], tx))[0];
+  const defineNow = (module, defs, old, anchor, tx, fns) => {
     const fresh = [];
     const next = defs.map((d, i) => {
       let v = module._scope.get(d.name);
@@ -466,9 +479,9 @@ ss_language = {
     lastEffect.get(module).set(r.key, { text: source, msg });
     let next;
     try {
-      next = await define(module, r.defs, old, anchor, tx);
-      if (faults.afterEditDefine === module) throw new Error("injected fault after the edited cell was defined");
-      for (const p of plan) await define(module, p.defs, new Set(p.fam), p.fam.at(-1), tx);
+      [next] = await defineAll(module, [{ defs: r.defs, old, anchor }, ...plan.map((p) => ({ defs: p.defs, old: new Set(p.fam), anchor: p.fam.at(-1) }))], tx, () => {
+        if (faults.afterEditDefine === module) throw new Error("injected fault after the edited cell was defined");
+      });
     } catch (e) {
       lastEffect.get(module).delete(r.key);
       for (const v of tx.made) v.delete();
@@ -489,14 +502,15 @@ ss_language = {
   const recompileNow = async (module, skip) => {
     const cells = ss_moduleCells(module);
     const ctx = ss_context(cells.map((c) => c.text), module);
-    let n = 0;
+    const batches = [];
     for (const c of cells) {
       if (c.key === skip) continue;
       const defs = ss.compileCell(c.text, tsx, ctx, c.key);
       const fam = family(module, c.key);
-      if (!same(fam, defs)) { await define(module, defs, new Set(fam), fam.at(-1)); n++; }
+      if (!same(fam, defs)) batches.push({ defs, old: new Set(fam), anchor: fam.at(-1) });
     }
-    return n;
+    if (batches.length) await defineAll(module, batches);
+    return batches.length;
   };
 
   // completion at pos in source, with the module's other cells as context: {from, to, options, mode}

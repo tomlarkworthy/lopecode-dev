@@ -1,4 +1,4 @@
-// Unnarrowed unions are rejected; each narrowing form RULES relies on is accepted.
+// Unnarrowed unions are rejected; each narrowing form the rules rely on is accepted.
 type Shape = { readonly kind: "circle"; readonly r: number } | { readonly kind: "square"; readonly side: number };
 type Opt = { readonly name: string } | null | undefined;
 let s = (): Shape => ({ kind: "circle", r: 1 });

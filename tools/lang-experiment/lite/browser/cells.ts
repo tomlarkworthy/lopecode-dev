@@ -44,9 +44,11 @@ export const isEvents = (v: unknown): v is Handle => !!v && typeof v === "object
 export const isListener = (v: unknown): v is Listener => !!v && typeof v === "object" && LISTENER in v;
 export const on = (events: unknown, act: unknown) => Object.freeze({ [LISTENER]: true, events, action: act }) as Listener;
 export const nameAction = (a: unknown, cell: string) => { if (P.isAction(a) && !actionNames.has(a as object)) actionNames.set(a as object, cell); };
-export const running = () => attached.size;
+// of: count only listeners on these handles
+export const running = (of?: Iterable<object>) => { if (!of) return attached.size; const only = new Set(of); return [...attached].filter((l) => only.has(l.events as object)).length; };
 // events cells whose generator is being pulled: live, not finished, with a listener attached
-export const pulling = () => [...generating].filter((h) => { const s = hs.get(h)!; return !!s.gen && !s.done && s.listeners.size > 0; }).length;
+// of: count only these handles (other modules on the page, such as tests, pull generators of their own)
+export const pulling = (of?: Iterable<object>) => { const only = of ? new Set(of) : null; return [...generating].filter((h) => { const s = hs.get(h)!; return (!only || only.has(h)) && !!s.gen && !s.done && s.listeners.size > 0; }).length; };
 
 const same = (a: unknown[], b: unknown[]) => a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
 function stopGen(s: HState) {

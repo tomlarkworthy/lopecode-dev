@@ -264,7 +264,7 @@ declare function BigInt(v: number | string | boolean): bigint;
 ${TYPED_ARRAYS.map(typedArray).join("\n")}
 `;
 
-// RULES.md prelude and capabilities, as declaration text; ref/action/mut/freeze/borrow/snapshot are also
+// The prelude and capabilities of the specification, as declaration text; ref/action/mut/freeze/borrow/snapshot are also
 // special-cased by the checker (placement, freshness, ownership).
 export const PRELUDE_DECLS = `
 interface FetchResponse {

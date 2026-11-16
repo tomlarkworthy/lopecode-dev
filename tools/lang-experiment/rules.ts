@@ -1,5 +1,6 @@
-// Rule registry. Every id here must have a fixtures/reject-<id>/ directory (fixtures.ts asserts it).
-// `section` is the RULES.md section the rule comes from; `how` is "exact" or "approx" (see README).
+// Rule registry. Every id here must have a fixtures/reject-<id>/ directory or a case in the specification
+// module's spec_rejects (fixtures.ts asserts it). `section` is the RULES.md section (deleted 2026-11-16, see
+// README) the rule came from; `how` is "exact" or "approx" (see README).
 
 export type RuleInfo = { id: string; section: string; summary: string; how: "exact" | "approx" };
 

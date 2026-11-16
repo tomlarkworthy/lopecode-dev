@@ -1,5 +1,5 @@
 // Type erasure over the acorn-typescript tree, for the browser where Bun.Transpiler is absent.
-// Covers what RULES.md allows in cells.ts: annotations, type parameters and arguments, type
+// Covers what the specification (@tomlarkworthy/soundscript-spec) allows in cells.ts: annotations, type parameters and arguments, type
 // aliases, interfaces, `import type`, `as const`, optional-parameter `?`, and `export`.
 import { parse, type Node } from "../parse.ts";
 

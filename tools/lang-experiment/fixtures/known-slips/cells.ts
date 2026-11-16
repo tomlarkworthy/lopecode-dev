@@ -1,10 +1,10 @@
-// Programs that break a RULES.md rule but pass check: the stated limits of the approximations.
+// Programs that break a rule of the specification but pass check: the stated limits of the approximations.
 // fixtures.ts asserts check ACCEPTS this file; if a rule is tightened, move the line to a reject fixture
 // and update the README table.
 let o = () => ({ a: 1, xs: [1, 2] });
 // mutating-method: dispatch through a function value, not a method call on the receiver
 let s2 = (o) => { Array.prototype.push.call(o.xs, 3); return 1; };
-// immutability: Object.defineProperty is not on the RULES.md list
+// immutability: Object.defineProperty is not on the list of RULES.md (2026-11-14)
 let s3 = (o) => { Object.defineProperty(o, "a", { value: 9 }); return 1; };
 // mut-escape: a method whose result aliases the Mut buffer
 let s4 = () => { const out = mut(new Float32Array(4)); return out.subarray(0); };

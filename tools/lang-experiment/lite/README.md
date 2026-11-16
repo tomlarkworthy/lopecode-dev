@@ -1,6 +1,7 @@
 # lite: a small checker for the cell language
 
-A prototype checker for the language in `../RULES.md` that does not use TypeScript. It exists to
+A prototype checker for the language stated in the specification module `@tomlarkworthy/soundscript-spec`
+(`soundscript/spec.ojs`; until 2026-11-16 in `../RULES.md`, see `../README.md`) that does not use TypeScript. It exists to
 measure two things: how small a checker for this subset can be, and how much of the three ports it
 handles. The existing harness (`bun check.ts`, TypeScript's checker plus lint passes) is the oracle
 it is measured against. All numbers below are from `bun lite/oracle.ts`, run 2026-11-14 on this
@@ -57,7 +58,7 @@ it. A tag written after a member silently lands on the next one.
 
 `@mutates` marks a member that writes its receiver, `@fresh` one that returns a new value `mut()`
 may take, `@view` one whose result aliases the receiver, `@retains` one that keeps its argument,
-`@banned` one RULES forbids (`Math.random`, `Object.defineProperty`, …). Adding an intrinsic is a
+`@banned` one the rules forbid (`Math.random`, `Object.defineProperty`, …). Adding an intrinsic is a
 line of `.d.ts`.
 
 Type checking is one pass per function with a flow map for narrowing, keyed by binding and access
@@ -93,7 +94,7 @@ TypeScript's `noUncheckedIndexedAccess`; with `--unchecked-index` it is `T`, as 
 configuration. All 12 strict-mode rejections are of that kind, e.g.
 `constantsToRHSFn [possibly-undefined] MathNode | undefined is not assignable to MathNode`
 (15 such diagnostics on 14 lines in that one cell). Two existing accept fixtures also flip: `accept-let-helper`
-(`src[i] >= "0"`) and `accept-mut` (`blur`, `test_blur`). RULES does not say which mode is
+(`src[i] >= "0"`) and `accept-mut` (`blur`, `test_blur`). The rules do not say which mode is
 intended; the ports were written against the oracle, so they pass only the unchecked one.
 
 ### Existing fixtures
@@ -113,7 +114,7 @@ do not:
 - `reject-no-ts-ignore`: lite rejects with `no-ts-ignore` and also the type error the comment was
   hiding. Same verdict, one more reason.
 
-`known-slips` holds 13 slip cells (and 4 support cells) the oracle accepts and RULES forbids. Lite rejects 12 of them in
+`known-slips` holds 13 slip cells (and 4 support cells) the oracle accepts and the rules forbid. Lite rejects 12 of them in
 both modes. It accepts `s7`:
 
 ```ts
@@ -121,8 +122,8 @@ let s7 = (o) => { const f = () => { o = { a: 0, xs: [] }; }; f(); return 1; };
 ```
 
 The parameter follows the same helper rule as a `let`, and `f` is only called, so the
-reassignment is seen in order. Whether RULES means parameters to be stricter than `let`s is a
-question for RULES, not something lite can decide.
+reassignment is seen in order. Whether the rules mean parameters to be stricter than `let`s is a
+question for the specification, not something lite can decide.
 
 `bun fixtures.ts` still reports `55/55 fixtures pass` with the lite fixtures in place: they sit
 one directory deeper (`fixtures/lite-mut/<case>/`), which `fixtures.ts` does not scan.
@@ -263,8 +264,8 @@ mutant:
 
 The cell becomes `unsupported` on: `switch`, labels and `instanceof` anywhere, `try … finally`
 in a function that holds a Mut or Borrowed, type parameter
-constraints, destructuring assignment (`[a, b] = …`), `Object.assign` outside the forms RULES
-allows, unknown members of intrinsics, and any type syntax `registry.ts` does not convert
+constraints, destructuring assignment (`[a, b] = …`), `Object.assign` outside the forms the rules
+allow, unknown members of intrinsics, and any type syntax `registry.ts` does not convert
 (checked 2026-11-14: `keyof`, mapped, conditional, template literal and intersection types are
 each reported as unsupported in the cell that uses them, and a cell typed through such an alias
 from another cell is `blocked`). A problem converting
@@ -372,7 +373,7 @@ conditional child and an inline `action`.
   `step` the guard reads the event's own timestamp, `e.d.t - s.finished.at > 2000`, so no clock
   capability is needed.
 - **State in several refs is still not atomic.** `update` is atomic over one ref. The reducer works
-  because the four values were merged into one. RULES has no way to update two refs in one step.
+  because the four values were merged into one. The rules had no way to update two refs in one step.
 - **`tool` is read from the handler's last rebuild.** It is a separate widget ref. A tool change and
   a pointerdown before the next recompute would use the old tool. Not tested.
 - **The handler differs from the shell's in four places.** The shell calls
@@ -587,7 +588,9 @@ replaced.
   next value still runs. The reconciler, the per-set holder counts and `unlist` are gone:
   `stdlib/runtime.ts` went from 253 to 161 lines, `browser/cells.ts` from 26 to 165.
 - Exactly-once tests: `stdlib/runtime.test.ts` `e1`–`e7` (bun, a real Observable Runtime, frames
-  run by hand) and `soundscript/verify.ts` `listenerOnce` (headless Chromium, real frames).
+  run by hand) and `soundscript/verify.ts` `listenerOnce` (headless Chromium, real frames). `e1`
+  (sync), `e3` and `e5` moved on 2026-11-16 into `test_spec_S7_4` and `test_spec_S7_6` of the
+  specification module.
 - A new rule in both checkers, `ref-in-ref`: a ref's content may not contain `Ref` or `RefCell`.
   An `Action` in a ref is legal and wanted (`fixtures/lite-game/accept-action-in-ref`,
   `accept-action-stack`).
@@ -704,7 +707,7 @@ a cell the checker rejected (section 3's `leak`, section 8's eleven) still ran.
   its own runs on `globalThis` ran 0 times at the edit, in `ss_instance`, after an exporter-3
   export reopened, and after Save in place reopened. Breakout with `step` broken mid-game keeps
   score 10, listeners 1 -> 0, clocks 1 -> 0; repaired, 1 listener and 1 clock, the ball moving.
-- State that is lost, measured by `runtime.test.ts` `b5` (2026-11-15): a ref cell that is itself
+- State that is lost, measured by `runtime.test.ts` `b5` (2026-11-15; since 2026-11-16 `test_spec_S8_5`): a ref cell that is itself
   rejected (`own` given `ref("0")`, or `seeded = (base: number) => ref(base)` once `base` is a
   string) is replaced by a raising definition, so on repair it starts again from its initial value
   (`own` 2 -> 0, `seeded` 7 -> 5). A ref outside the broken part keeps its value (`kept` 2 -> 2).
@@ -727,7 +730,8 @@ a cell the checker rejected (section 3's `leak`, section 8's eleven) still ran.
     in a `@tomlarkworthy/soundscript*` module.
 - Unit tests: `stdlib/runtime.test.ts` `b1`–`b5` (break and repair, a rejected body never runs, an
   unparsable edit, a listener in the broken part detaching and attaching again) and `o1`–`o2`
-  (listener order).
+  (listener order). `b1`–`b5` and `c4` moved on 2026-11-16 into `test_spec_S8_2`–`test_spec_S8_7`;
+  `o1` stays, and its first two cases are also `test_spec_S7_7`.
 
 ### State is a function of the call log: `read` and `action-capture` (2026-11-15)
 
@@ -745,10 +749,12 @@ const copy = (other: Ref<number>, count: number) => action(() => other.set(count
   own writes and rethrows. The commit (a `setTimeout` macrotask, as before) stores each touched
   ref once, with one version bump. Before, writes were queued and applied at the commit, so an
   `update` function that threw was logged there as `action outer: an update threw…`; it now throws
-  out of the call. Tests changed for that: `c2`, `g1`, `g2`, `g3`, `g5` in `stdlib/runtime.test.ts`.
+  out of the call. Tests changed for that: `c2`, `g1`, `g2`, `g3`, `g5` in `stdlib/runtime.test.ts`
+  (`g1`, `g3`, `g5` moved on 2026-11-16 into `test_spec_S6_10` of the specification module).
 - `action-capture`, in `lite/capture.ts` (called from `core.ts`) and in `check.ts`: an action body
-  may not use a value that depends on state (rule text in `RULES.md`). Both checkers give the same
-  three errors on `fixtures/reject-action-capture`; `fixtures/accept-read` passes both.
+  may not use a value that depends on state (rule text now S6.9 of the specification). Both checkers gave the same
+  three errors on `fixtures/reject-action-capture`; `fixtures/accept-read` passed both. Both fixtures
+  were deleted on 2026-11-16: their cells are the S6.9 reject cases and `spec-6.ts`.
 - Property test `p1` (`stdlib/runtime.test.ts`): 300 seeded calls over three refs, five actions
   (one reads `a` to write `b`, one throws on some arguments, one calls two others) and frames that
   deliver one events value to two listeners, run under six schedules. All six stored
@@ -761,8 +767,9 @@ const copy = (other: Ref<number>, count: number) => action(() => other.set(count
   writes nothing the program reads back. The taint
   follows names, not values: `const unused = count` used only in `typeof unused` is rejected.
 - Capabilities in actions: `random()`, `now()` and `fetch(...)` inside an action body are
-  `action-capture` now (`fixtures/reject-action-capture` `roll`, `stamp`, `load`); before this they
-  were accepted. `log(...)` is accepted (`fixtures/accept-read` `say`). A random or time value
+  `action-capture` now (`roll`, `stamp`, `load` of `fixtures/reject-action-capture`, since 2026-11-16
+  S6.9 reject cases); before this they were accepted. `log(...)` is accepted (`say` of the deleted
+  `fixtures/accept-read`; since 2026-11-16 `test_spec_S6_9`). A random or time value
   reaches an action only as an argument, from an events cell's value through `on(...)` or from a
   view: Breakout's `ticks` takes `now` and yields `dt`, and `onTick` passes it to `tick`, which is
   accepted. Wrapping an action in
@@ -792,11 +799,11 @@ second ownership level through `own.ts`'s position rules and its dataflow, not a
 - **Cut, maybe:** generic inference has two extra steps, candidates from the expected return
   type and lambdas checked after the other arguments. Which port cells need each is not measured;
   disabling each and rerunning `oracle.ts` would show whether either can go.
-- **Add:** a complete declaration of the intrinsics RULES allows, generated once from
+- **Add:** a complete declaration of the intrinsics the rules allow, generated once from
   TypeScript's `lib.*.d.ts` with the effect tags added by hand. Then an unknown intrinsic member
   can be `no-member` instead of `unsupported`, which recovers the 12 rename mutants. The current
   `intrinsics.ts` is hand-written and covers what the ports and fixtures use.
-- **Add:** a decision in RULES on index reads (strict or unchecked) and on helpers capturing a Mut
+- **Add:** a decision in the specification on index reads (strict or unchecked) and on helpers capturing a Mut
   or reassigning a parameter. Lite implements one answer to each; the oracle the other.
 - **Add:** `switch` support in the ownership dataflow, the first unsupported construct a new port
   is likely to hit.

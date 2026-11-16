@@ -1,7 +1,0 @@
-{
-  "check": {
-    "rules": [
-      "ref-in-ref"
-    ]
-  }
-}

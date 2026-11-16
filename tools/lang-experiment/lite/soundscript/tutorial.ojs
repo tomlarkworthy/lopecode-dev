@@ -215,13 +215,15 @@ md`\`test_replay\` plays 600 frames twice, with no browser and no clock, and che
 // %%
 md`## 10. Working with ordinary cells
 
-PROSE PENDING`
+A SoundScript cell can read the other cells of its module: Observable JavaScript cells, raw cells and imports. This section has two Observable JavaScript cells, a slider and a list.`
 // %%
 viewof shop_price = Inputs.range([0, 10], { step: 0.5, value: 3, label: "price" })
 // %%
 shop_basket = [{ item: "tea", qty: 2 }, { item: "cake", qty: 1 }]
 // %%
-md`PROSE PENDING (the SoundScript cells that read them: an annotated parameter, the check on the way in, the slider taken as Ref)`
+md`The SoundScript cells that read them. A parameter that names a cell in another language must have a type. Each value that arrives is checked against that type and handed over as a frozen copy, so the SoundScript side holds what the type says and nothing the other cell can change later. If a value does not match, the reading cell fails, and its error names the place, such as \`rows[1].price: expected number, found string "12"\`. Cells that do not depend on it keep running.
+
+\`cheaper\` takes the slider as \`Ref<number>\`. Inside an action it can write to it: the slider moves, and every cell that reads \`shop_price\`, in either language, runs again. Moving the slider by hand counts as an action call.`
 // %%
 sourceListing(tutorial_module, invalidation, { from: "type Line", to: "shopView" })
 // %%
@@ -567,13 +569,14 @@ test_breakout_listener = {
   const get = (n) => game._scope.get(n)._value;
   const runs = (n) => ss.evals(game._scope.get(n)._definition);
   for (const n of ["reset", "toggle", "world", "bricks", "onTick"]) await game.value(n);
-  const w0 = get("world"), r0 = ss.pulling(), on0 = runs("onTick"), t0 = runs("ticks"), h0 = get("ticks");
+  // the clock of this copy only: other tests on the page pull generators of their own
+  const w0 = get("world"), on0 = runs("onTick"), t0 = runs("ticks"), h0 = get("ticks");
   get("toggle")();
   await wait(600);
-  const playing = ss.pulling() - r0, w1 = get("world");
+  const playing = ss.pulling([h0]), w1 = get("world");
   get("toggle")();
   await wait(200);
-  const w2 = get("world"), paused = ss.pulling() - r0;
+  const w2 = get("world"), paused = ss.pulling([h0]);
   await wait(300);
   const w3 = get("world");
   const onTick = runs("onTick") - on0, ticks = runs("ticks") - t0;

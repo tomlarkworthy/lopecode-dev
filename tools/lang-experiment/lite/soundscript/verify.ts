@@ -137,6 +137,17 @@ async function open(path: string, saveTo?: string) {
   page.on("crash", () => console.log(`  page crashed: ${path}`));
   page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) { console.log(`  console.error: ${m.text().slice(0, 400)}`); errors.push("console.error: " + m.text().slice(0, 200)); } });
   await page.goto(`file://${path}`);
+  // the specification's tests run at load and pull generators of their own; the checks that count listeners
+  // and clocks on the whole page start once they have settled
+  await page.evaluate(async (spec) => {
+    const until = async (f: () => unknown, ms: number) => { const t = Date.now(); while (!f() && Date.now() - t < ms) await new Promise((r) => setTimeout(r, 50)); return f(); };
+    const rt = () => (window as any).__ojs_runtime;
+    if (!(await until(() => rt()?.mains?.size, 60000))) return;
+    const m = rt().mains.get(spec);
+    if (!m) return;
+    const tests = [...rt()._variables].filter((v: any) => v._module === m && /^test_spec_/.test(v._name));
+    await Promise.race([Promise.all(tests.map((t: any) => m.value(t._name).catch(() => 0))), new Promise((r) => setTimeout(r, 60000))]);
+  }, SPEC).catch(() => {});
   page.on("framenavigated", (f) => { if (f === page.mainFrame()) console.log(`  navigated: ${f.url().slice(0, 200)}`); });
   return { page, blocked, errors };
 }
@@ -887,7 +898,8 @@ async function breakStep(page: Page) {
   const probe = () => page.evaluate((b: string) => {
     const rt = (window as any).__ojs_runtime, bm = rt.mains.get(b), ss = bm._scope.get("ss")._value;
     const w = bm._scope.get("world")._value;
-    return { score: w.score, bricks: w.bricks.length, lives: w.lives, y: w.ball.y, playing: bm._scope.get("playing")._value, listeners: ss.running(), clocks: ss.pulling() };
+    const hs = [...rt._variables].filter((v: any) => v._module === bm && ss.isEvents?.(v._value)).map((v: any) => v._value);
+    return { score: w.score, bricks: w.bricks.length, lives: w.lives, y: w.ball.y, playing: bm._scope.get("playing")._value, listeners: ss.running(hs), clocks: ss.pulling(hs) };
   }, BR);
   // play on the tutorial's copy of the game (section 9), then open the module to edit step
   const play = page.getByRole("button", { name: "play", exact: true }).first();
@@ -1420,7 +1432,7 @@ async function tryIts(page: Page, firstOnly = false) {
     const w1 = await world();
     await page.waitForTimeout(300);
     const w2 = await world();
-    const ssv = await page.evaluate(() => { const ss = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript")._scope.get("ss")._value; return { running: ss.running(), pulling: ss.pulling() }; });
+    const ssv = await page.evaluate((b: string) => { const rt = (window as any).__ojs_runtime, bm = rt.mains.get(b), ss = rt.mains.get("@tomlarkworthy/soundscript")._scope.get("ss")._value; const hs = [...rt._variables].filter((v: any) => v._module === bm && ss.isEvents?.(v._value)).map((v: any) => v._value); return { running: ss.running(hs), pulling: ss.pulling(hs) }; }, BR);
     report(w0.score > 0 && w1.score >= w0.score && w1.bricks <= w0.bricks && w2.y !== w1.y && ssv.running === 1 && ssv.pulling === 1, `try (section 9): step edited while playing: world ${JSON.stringify(w0)} -> ${JSON.stringify(w1)} -> ${JSON.stringify(w2)}, ${ssv.running} listener, ${ssv.pulling} clock`);
     // with the breakout module's own pane open in edit mode, every cell drawn by the language: the
     // kinds the normal Inspector cannot read, and the game still runs at frame rate

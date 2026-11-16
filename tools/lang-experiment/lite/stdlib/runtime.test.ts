@@ -88,18 +88,6 @@ const record = (seen: Ref<S>, weight: (v: number) => number) =>
 const onNum = (nums: Events<number>, record: Action<[number]>) => on(nums, record);
 const toggle = (running: Ref<boolean>) => action(() => running.update((r) => !r));`;
 
-await run("e1_every_value_once", async () => {
-  const p = await load(STREAM);
-  ok("e1_one_listener", ss.running() === 1, `running ${ss.running()}`);
-  await frameUntil(() => p.value("seen").count >= 1000);
-  for (let i = 0; i < 20; i++) frame();
-  await flushed();
-  const s = p.value("seen");
-  ok("e1_1000_yields_give_exactly_1000_actions_in_order", s.count === 1000 && s.gaps === 0 && s.sum === 500500, JSON.stringify(s));
-  ok("e1_no_runtime_errors", p.errs.length === 0, p.errs.join("; "));
-  for (const v of p.vars.values()) { ss.release(v._value); v.delete(); }
-  p.runtime.dispose();
-});
 
 await run("e1_async_generator_every_value_once", async () => {
   let n = 0, made = 0;
@@ -132,20 +120,6 @@ await run("e2_editing_a_dependency_of_the_action_mid_stream", async () => {
   p.runtime.dispose();
 });
 
-await run("e3_listener_rerun_leaves_one", async () => {
-  const p = await load(STREAM);
-  await frameUntil(() => p.value("seen").count >= 50);
-  p.define("const onNum = (nums: Events<number>, record: Action<[number]>) => /* again */ on(nums, record);");
-  await frameUntil(() => p.value("seen").count >= 60);
-  ok("e3_rerun_one_live_listener", ss.running() === 1, `running ${ss.running()}`);
-  await frameUntil(() => p.value("seen").count >= 1000);
-  for (let i = 0; i < 20; i++) frame();
-  await flushed();
-  const s = p.value("seen");
-  ok("e3_rerun_no_value_lost_or_doubled", s.count === 1000 && s.gaps === 0, JSON.stringify(s));
-  for (const v of p.vars.values()) { ss.release(v._value); v.delete(); }
-  p.runtime.dispose();
-});
 
 await run("e4_events_restart_without_listener_rerun", async () => {
   const p = await load(STREAM);
@@ -169,19 +143,6 @@ await run("e4_events_restart_without_listener_rerun", async () => {
   p.runtime.dispose();
 });
 
-await run("e5_throwing_action_keeps_the_stream", async () => {
-  errors.length = 0;
-  const p = await load(STREAM.replace("sum: s.sum + weight(v) })));", "sum: s.sum + weight(v) }));\n    if (v % 10 === 0) throw new Error(`no ${v}`);\n  });").replace("action((v: number) => seen.update(", "action((v: number) => {\n    seen.update("));
-  await frameUntil(() => p.value("seen").last >= 999);
-  for (let i = 0; i < 20; i++) frame();
-  await flushed();
-  const s = p.value("seen");
-  // each value v % 10 === 0 throws inside its action after its write, so that action writes nothing, and the next value still runs
-  ok("e5_900_of_1000_committed", s.count === 900 && s.last === 999, JSON.stringify(s));
-  ok("e5_error_names_events_and_action", errors.length === 100 && errors.every((m) => m.includes("listener onNum") && m.includes("action record") && m.includes("events nums")), `${errors.length} errors, first ${errors[0]}`);
-  for (const v of p.vars.values()) { ss.release(v._value); v.delete(); }
-  p.runtime.dispose();
-});
 
 await run("e6_deleting_the_listener_or_the_module_stops_delivery", async () => {
   const p = await load(STREAM);
@@ -275,32 +236,11 @@ await run("r_action_stack", async () => {
 
 const val = (h: object) => P.refValues(h).next().value;
 
-await run("c1_throwing_action_commits_nothing", async () => {
-  const a = P.materialize(P.ref(100), "a") as any, b = P.materialize(P.ref(0), "b") as any, x = P.materialize(P.ref(0), "x") as any;
-  P.action(() => x.set(7))();
-  const transfer = P.action(() => { a.update((v: number) => v - 10); throw new Error("midway"); });
-  let threw = false;
-  try { transfer(); } catch (e) { threw = (e as Error).message === "midway"; }
-  ok("c1_rethrows", threw);
-  await flushed();
-  ok("c1_writes_before_throw_discarded", val(a) === 100 && val(b) === 0, `a ${val(a)} b ${val(b)}`);
-  ok("c1_earlier_action_in_same_tick_kept", val(x) === 7, `x ${val(x)}`);
-});
 
-await run("c1_nested_action_caught", async () => {
-  const a = P.materialize(P.ref(0), "a") as any, b = P.materialize(P.ref(0), "b") as any, c = P.materialize(P.ref(0), "c") as any;
-  const inner = P.action(() => { b.set(2); throw new Error("inner"); });
-  P.action(() => { a.set(1); try { inner(); } catch {} c.set(3); })();
-  await flushed();
-  ok("c1_nested_writes_discarded_outer_kept", val(a) === 1 && val(b) === 0 && val(c) === 3, `a ${val(a)} b ${val(b)} c ${val(c)}`);
-  const d = P.materialize(P.ref(0), "d") as any;
-  const ok2 = P.action(() => d.set(5));
-  try { P.action(() => { ok2(); throw new Error("outer"); })(); } catch {}
-  await flushed();
-  ok("c1_outer_throw_discards_nested_success", val(d) === 0, `d ${val(d)}`);
-});
 
-// a write is applied when it is made, so an update that throws throws out of the call; returns the message
+// a write is applied when it is made, so an update that throws throws out of the call; returns the message.
+// What a SoundScript module sees of action atomicity, flush groups (S6.10), events and listeners (section 7),
+// the broken state (section 8) and the boundary (section 11) is tested in the specification notebook.
 const thrown = (f: () => void) => { try { f(); return ""; } catch (e) { return String((e as Error).message); } };
 await run("c2_flush_is_all_or_nothing", async () => {
   errors.length = 0; uncaught.length = 0;
@@ -364,31 +304,10 @@ await run("c3_island_cache_bounded", async () => {
   ok("c3_recent_island_keeps_key", new Set(keyOf(199)).size === 1, JSON.stringify(keyOf(199)));
 });
 
-// compile in a module where an unrelated cell does not parse: the island of ok cells still runs, and
-// one that takes the unparsable cell is refused
-await run("c4_compile_with_an_unparsable_cell_elsewhere", async () => {
-  const texts = ["const x = () => 1;", "const y = (x: number) => x + 1;", "const bad = (x: number) => x +;", "const z = (bad: number) => bad;", "const go = (compile: Compile) => compile({ inputs: [\"x\"], refs: [], outputs: [\"y\"] });"];
-  const c = ss.compiler(() => ss.joinCells(texts));
-  const r: any = await c.for("go", {})({ inputs: ["x"], refs: [], outputs: ["y"] } as any)({ x: 41 });
-  ok("c4_island_of_ok_cells_runs", r.y === 42, JSON.stringify(r));
-  let refused = "";
-  try { c.for("go", {})({ inputs: ["bad"], refs: [], outputs: ["z"] } as any); } catch (e) { refused = String((e as Error).message); }
-  ok("c4_island_with_the_unparsable_cell_refused", /not ok by the checker/.test(refused), refused);
-});
 
 // flush groups: each top-level action call applies or is dropped on its own, in call order
 const refOf = (v: unknown, name: string) => P.materialize(P.ref(v), name) as any;
 const named = (name: string, f: () => void) => { const a = P.action(f); P.actionNames.set(a, name); return a; };
-await run("g1_a_throwing_group_keeps_an_earlier_groups_writes", async () => {
-  errors.length = 0;
-  const x = refOf(0, "x"), y = refOf(5, "y");
-  named("A", () => x.set(1))();
-  const msg = thrown(() => named("B", () => y.update(() => { throw new Error("B broke"); }))());
-  await flushed();
-  ok("g1_x_set_by_A_lands", val(x) === 1, `x ${val(x)}`);
-  ok("g1_y_unchanged", val(y) === 5, `y ${val(y)}`);
-  ok("g1_B_throws_at_its_call", msg === "B broke" && !errors.some((m) => m.includes("B broke")), `thrown ${JSON.stringify(msg)} errors ${JSON.stringify(errors)}`);
-});
 await run("g2_groups_either_side_of_a_throw_both_apply", async () => {
   const x = refOf(0, "x");
   const g = P.refValues(x); g.next();
@@ -400,30 +319,6 @@ await run("g2_groups_either_side_of_a_throw_both_apply", async () => {
   ok("g2_x_is_plus_11", val(x) === 11, `x ${val(x)}`);
   const seen = g.next().value, after = g.next().value;
   ok("g2_one_commit_one_version_bump", P.state.commits === commits + 1 && seen === 11 && after instanceof Promise, `commits +${P.state.commits - commits}, seen ${seen}`);
-});
-await run("g3_a_group_is_dropped_whole", async () => {
-  const z = refOf(0, "z"), p = refOf(0, "p"), q = refOf(0, "q");
-  named("A", () => z.set(9))();
-  thrown(() => named("B", () => { p.set(3); q.update(() => { throw new Error("second write broke"); }); })());
-  await flushed();
-  ok("g3_neither_of_Bs_writes_lands", val(p) === 0 && val(q) === 0, `p ${val(p)} q ${val(q)}`);
-  ok("g3_As_write_lands", val(z) === 9, `z ${val(z)}`);
-});
-await run("g4_groups_apply_in_call_order", async () => {
-  const x = refOf(1, "x");
-  for (const k of [1, 2, 3]) named(`k${k}`, () => x.update((v: number) => v * 2 + k))();
-  await flushed();
-  ok("g4_value_of_applying_in_call_order", val(x) === ((1 * 2 + 1) * 2 + 2) * 2 + 3, `x ${val(x)}`);
-});
-await run("g5_nested_calls_belong_to_the_outermost_group", async () => {
-  errors.length = 0;
-  const x = refOf(0, "x"), y = refOf(0, "y"), w = refOf(0, "w");
-  const inner = named("inner", () => x.set(100));
-  named("before", () => w.set(1))();
-  const msg = thrown(() => named("outer", () => { inner(); y.update(() => { throw new Error("outer broke"); }); })());
-  await flushed();
-  ok("g5_nested_write_dropped_with_its_outer_call", val(x) === 0 && val(y) === 0 && val(w) === 1, `x ${val(x)} y ${val(y)} w ${val(w)}`);
-  ok("g5_outer_call_throws", msg === "outer broke", JSON.stringify(msg));
 });
 // States what a cell sees when one action writes two refs; it asserts only that the observation was made.
 await run("g6_observed_one_action_writing_two_refs", async () => {
@@ -477,112 +372,7 @@ async function editable(texts: string[], o: { reverse?: boolean; order?: boolean
   const states = () => Object.fromEntries([...ss.cellStates(ss.checkCells(cells).result)].map(([n, x]: any) => [n, x.state === "blocked" ? `blocked by ${x.blockedBy.join(",")}` : x.state]));
   return { m, vars, values, raised, edit, settle, states, value: (n: string) => values.get(n) as any, evals: (n: string) => ss.evals(vars.get(n)._definition), text: (n: string) => T.decompileVariable(defs.get(n)!) };
 }
-const FIRST = [
-  "const width = () => 640;",
-  "const height = () => 400;",
-  "const area = (width: number, height: number) => width * height;",
-  "const aspect = (width, height) => (width / height).toFixed(2);",
-  "const half = (area: number) => area / 2;",
-  "const count = (): RefCell<number> => ref(0);",
-  "const increment = (count: Ref<number>) => action(() => count.update((n) => n + 1));",
-  "const label = (count: number) => `pressed ${count}`;",
-  "const tall = (height: number) => height * 2;",
-];
-await run("b1_breaking_edit_is_stored_and_repaired", async () => {
-  const L = await editable(FIRST);
-  L.value("increment")();
-  await L.settle();
-  const runs0 = { height: L.evals("height"), tall: L.evals("tall"), label: L.evals("label"), count: L.evals("count") };
-  await L.edit("width", 'const width = () => "800";');
-  const st = L.states();
-  ok("b1_states", st.width === "ok" && st.area === "rejected" && st.aspect === "rejected" && st.half === "blocked by area" && st.tall === "ok", JSON.stringify(st));
-  ok("b1_rejected_raise_the_checker_message", /^area does not check: \[inject-type\]/.test(L.raised.get("area") ?? "") && /^aspect does not check: \[type\]/.test(L.raised.get("aspect") ?? ""), JSON.stringify([...L.raised]));
-  ok("b1_blocked_fails_through_dataflow", /area does not check/.test(L.raised.get("half") ?? ""), L.raised.get("half"));
-  ok("b1_unrelated_ref_keeps_its_count", L.value("count") === 1 && L.value("label") === "pressed 1", `${L.value("count")} ${L.value("label")}`);
-  // the two-cell change: area and aspect accept a string
-  await L.edit("area", "const area = (width: string, height: number) => Number(width) * height;");
-  await L.edit("aspect", "const aspect = (width: string, height: number) => (Number(width) / height).toFixed(2);");
-  const st2 = L.states();
-  ok("b1_two_cell_change_repairs", Object.values(st2).every((x) => x === "ok") && L.value("area") === 320000 && L.value("half") === 160000 && L.value("aspect") === "2.00", JSON.stringify(st2));
-  L.value("increment")();
-  await L.settle();
-  const runs1 = { height: L.evals("height"), tall: L.evals("tall"), label: L.evals("label") - 1, count: L.evals("count") };
-  ok("b1_outside_the_broken_part_nothing_ran_again", JSON.stringify(runs0) === JSON.stringify(runs1) && L.value("count") === 2, `${JSON.stringify(runs0)} ${JSON.stringify(runs1)} count ${L.value("count")}`);
-});
-await run("b2_rejected_body_never_runs", async () => {
-  (globalThis as any).__ssSneak = 0;
-  const L = await editable([...FIRST, "const sneak = (width: number) => { (globalThis as any).__ssSneak++; return width; };"]);
-  ok("b2_rejected_at_load", L.states().sneak === "rejected" && /^sneak does not check:/.test(L.raised.get("sneak") ?? "") && (globalThis as any).__ssSneak === 0, `${L.raised.get("sneak")} runs ${(globalThis as any).__ssSneak}`);
-  await L.edit("sneak", "const sneak = (width: number, height: number) => { (globalThis as any).__ssSneak++; return width + height; };");
-  ok("b2_rejected_after_an_edit", /^sneak does not check:/.test(L.raised.get("sneak") ?? "") && (globalThis as any).__ssSneak === 0, `runs ${(globalThis as any).__ssSneak}`);
-  ok("b2_typed_source_kept", L.text("sneak") === "const sneak = (width: number, height: number) => { (globalThis as any).__ssSneak++; return width + height; };", L.text("sneak") ?? "null");
-});
-await run("b3_unparsable_edit_is_stored_and_repaired", async () => {
-  const L = await editable(FIRST);
-  const BAD = "const tall = (height: number) => height *;";
-  await L.edit("tall", BAD);
-  ok("b3_stored_and_raises_the_parse_message", L.states().tall === "rejected" && /^tall does not check: \[parse\]/.test(L.raised.get("tall") ?? "") && L.text("tall") === BAD, `${L.raised.get("tall")} ${L.text("tall")}`);
-  ok("b3_others_run", L.value("area") === 256000 && L.value("label") === "pressed 0", `${L.value("area")} ${L.value("label")}`);
-  await L.edit("tall", "const tall = (height: number) => height * 3;");
-  ok("b3_repaired", L.value("tall") === 1200 && L.states().tall === "ok", String(L.value("tall")));
-});
-await run("b4_listener_in_the_broken_part_detaches_and_reattaches", async () => {
-  const L = await editable([
-    "const total = (): RefCell<number> => ref(0);",
-    "const by = () => 1;",
-    "const nums = function* () { for (let i = 0; i < 1000000; i++) yield i; };",
-    "const add = (total: Ref<number>, by: number) => action((v: number) => total.update((t) => t + by));",
-    "const onNum = (nums: Events<number>, add: Action<[number]>) => on(nums, add);",
-  ]);
-  const r0 = ss.running();
-  await frameUntil(() => L.value("total") >= 5);
-  await L.edit("by", 'const by = () => "1";');
-  const r1 = ss.running(), t1 = L.value("total");
-  for (let i = 0; i < 20; i++) frame();
-  await L.settle();
-  const t2 = L.value("total");
-  ok("b4_broken_listener_detached", L.states().add === "rejected" && L.states().onNum === "blocked by add" && r1 === r0 - 1 && t2 === t1, `${JSON.stringify(L.states())} running ${r0} -> ${r1}, total ${t1} -> ${t2}`);
-  await L.edit("by", "const by = () => 2;");
-  const r2 = ss.running();
-  await frameUntil(() => L.value("total") >= t2 + 10);
-  ok("b4_repaired_listener_reattached_once", r2 === r0 && L.value("total") >= t2 + 10 && (L.value("total") - t2) % 2 === 0, `running ${r2}, total ${t2} -> ${L.value("total")}`);
-  L.vars.get("onNum").delete();
-  await L.settle();
-});
 
-// Reported: what a ref in the broken part keeps. kept takes no input; seeded's initial value reads
-// base; own is itself made rejected and then repaired.
-await run("b5_state_lost_in_the_broken_part", async () => {
-  const L = await editable([
-    "const base = () => 5;",
-    "const kept = (): RefCell<number> => ref(0);",
-    "const seeded = (base: number): RefCell<number> => ref(base);",
-    "const own = (): RefCell<number> => ref(0);",
-    "const bump = (kept: Ref<number>, seeded: Ref<number>, own: Ref<number>) => action(() => { kept.update((n) => n + 1); seeded.update((n) => n + 1); own.update((n) => n + 1); });",
-    "const sq = (base: number) => base * base;",
-    "const fromSq = (sq: number): RefCell<number> => ref(sq);",
-    "const bumpSq = (fromSq: Ref<number>) => action(() => fromSq.update((n) => n + 1));",
-  ]);
-  L.value("bumpSq")();
-  L.value("bump")(); L.value("bump")();
-  await L.settle();
-  const before = { kept: L.value("kept"), seeded: L.value("seeded"), own: L.value("own"), fromSq: L.value("fromSq") };
-  await L.edit("base", 'const base = () => "5";');
-  await L.edit("own", 'const own = (): RefCell<number> => ref("0");');
-  const broken = L.states();
-  await L.edit("base", "const base = () => 5;");
-  await L.edit("own", "const own = (): RefCell<number> => ref(0);");
-  const after = { kept: L.value("kept"), seeded: L.value("seeded"), own: L.value("own"), fromSq: L.value("fromSq") };
-  console.log(`  b5: before ${JSON.stringify(before)}; broken ${JSON.stringify(broken)}; repaired ${JSON.stringify(after)}`);
-  ok("b5_untouched_ref_kept", after.kept === before.kept, JSON.stringify({ before, after }));
-  // a ref blocked by its input, with its own text unchanged, keeps its state when the input comes back
-  // with the value it had; a rejected ref, whose definition was replaced, starts again
-  ok("b5_blocked_ref_kept_when_its_input_returns_the_same_value", after.fromSq === before.fromSq, JSON.stringify({ before, after }));
-  ok("b5_rejected_refs_restart", after.own === 0 && after.seeded === 5, JSON.stringify(after));
-  // the same ref given a different input value starts again from it
-  await L.edit("base", "const base = () => 6;");
-  ok("b5_blocked_ref_restarts_on_a_new_input_value", L.value("fromSq") === 36, String(L.value("fromSq")));
-});
 // Two listeners on one events cell run, for each value, in their cells' source order: on a fresh
 // load, after the first is edited and attaches again (now after the second), and when the module's
 // variables are defined in reverse.
@@ -738,80 +528,6 @@ await run("p2_the_rejected_copy_shape_breaks_it", async () => {
     console.log(`  p2: check bypassed, ${sch.name}: ${got[got.length - 1]}`);
   }
   ok("p2_schedules_disagree_when_the_check_is_bypassed", got[0] !== got[1], got.join(" "));
-});
-// The checked boundary (boundary.ts): a cell in another language read by a SoundScript cell.
-class FakeRange extends EventTarget {
-  #v = 5;
-  get value() { return this.#v; }
-  set value(x: any) { this.#v = Math.min(10, Math.max(0, Math.round(Number(x)))); }
-}
-await run("boundary", async () => {
-  let src0: any = [{ price: 1, name: "a" }, { price: 2, name: "b" }];
-  const B = await load(`type Row = { price: number; name: string };
-const total = (rows: Row[]) => rows.reduce((a, r) => a + r.price, 0);
-const firstName = (rows: Row[]) => rows.map((r) => r.name).join(",");`, { outside: { rows: [["src"], (s: any) => s], src: [[], () => src0] } });
-  ok("boundary_value_crosses", B.value("total") === 3, String(B.value("total")));
-  const runs = B.evals("total");
-  // the other language mutates its array in place and delivers it again: a fresh copy, so the reader sees the change
-  src0[0].price = 10;
-  B.m.redefine("src", [], () => src0);
-  await B.settle();
-  ok("boundary_copy_per_delivery", B.value("total") === 12 && B.evals("total") === runs + 1, `${B.value("total")} evals ${B.evals("total") - runs}`);
-  // equal data delivered again: the same copy, so the reader's memo holds
-  B.m.redefine("src", [], () => [{ price: 10, name: "a" }, { price: 2, name: "b" }]);
-  await B.settle();
-  ok("boundary_equal_copy_is_memoised", B.evals("total") === runs + 1, `evals ${B.evals("total") - runs}`);
-  B.m.redefine("src", [], () => [{ price: 1, name: "a" }, { price: "12", name: "b" }]);
-  await B.settle();
-  ok("boundary_mismatch_errors_the_cell", B.errs.some((e) => e.startsWith("total: rows[1].price: expected number, found string \"12\"")), B.errs.join(" | "));
-  ok("boundary_mismatch_leaves_other_cells", B.value("firstName") === "a,b", String(B.value("firstName")));
-  B.m.redefine("src", [], () => [{ price: 1, name: "a" }]);
-  await B.settle();
-  ok("boundary_recovers", B.value("total") === 1, String(B.value("total")));
-});
-await run("boundary_frozen", async () => {
-  const B = await load(`const probe = (o: { xs: number[] }) => o;`, { outside: { o: [[], () => ({ xs: [1], extra: () => 1 })] } });
-  const pv = B.value("probe");
-  ok("boundary_copy_is_deep_frozen_and_drops_undeclared", Object.isFrozen(pv) && Object.isFrozen(pv.xs) && !("extra" in pv), JSON.stringify(pv) + B.errs.join());
-  const F = await load(`const n = (f: unknown) => 1;`, { outside: { f: [[], () => () => 1] } });
-  ok("boundary_function_rejected_at_run_time", F.errs.some((e) => /^n: f: expected data, found a function/.test(e)), F.errs.join(" | "));
-});
-await run("boundary_view", async () => {
-  const el = new FakeRange();
-  const B = await load(`const shown = (level: number) => level;
-const bump = (level: Ref<number>) => action(() => level.set(read(level) + 3));
-const big = (level: Ref<number>) => action(() => level.set(99));`, { outside: { "viewof level": [[], () => el], level: [["viewof level"], async function* (v: any) { yield v.value; for (;;) yield await new Promise((r) => v.addEventListener("input", () => r(v.value), { once: true })); }] } });
-  ok("boundary_view_value_crosses", B.value("shown") === 5, String(B.value("shown")));
-  let inputs = 0;
-  el.addEventListener("input", () => inputs++);
-  B.value("bump")();
-  await B.settle();
-  ok("boundary_view_write_sets_the_control", el.value === 8 && inputs === 1 && B.value("shown") === 8, `${el.value} ${inputs} ${B.value("shown")}`);
-  B.value("big")();
-  await B.settle();
-  ok("boundary_view_write_is_clamped_by_the_control", el.value === 10, String(el.value));
-  const h = B.m._scope.get("viewof level")._value;
-  const handle = ss.viewRef(h, { k: "num" } as any, "level");
-  const readNow = () => { let v: unknown; ss.action(() => { v = ss.read(handle); })(); return v; };
-  ok("boundary_view_read_is_what_the_control_holds", readNow() === 10, String(readNow()));
-  el.value = 2;
-  el.dispatchEvent(new Event("input"));
-  await B.settle();
-  ok("boundary_view_user_change_is_an_action", readNow() === 2 && B.value("shown") === 2, `${readNow()} ${B.value("shown")}`);
-});
-await run("boundary_view_object", async () => {
-  const el = Object.assign(new EventTarget(), { value: [1, 2] as unknown });
-  const B = await load(`const len = (picked: number[]) => picked.length;
-const clear = (picked: Ref<number[]>) => action(() => picked.set([]));`, { outside: { "viewof picked": [[], () => el], picked: [["viewof picked"], async function* (v: any) { yield v.value; for (;;) yield await new Promise((r) => v.addEventListener("input", () => r(v.value), { once: true })); }] } });
-  let inputs = 0;
-  el.addEventListener("input", () => inputs++);
-  el.value = [1, 2, 3];
-  el.dispatchEvent(new Event("input"));
-  await B.settle();
-  ok("boundary_view_object_user_change_dispatches_no_echo", inputs === 1 && B.value("len") === 3, `${inputs} input events, len ${B.value("len")}`);
-  B.value("clear")();
-  await B.settle();
-  ok("boundary_view_object_write_dispatches_once", inputs === 2 && Array.isArray(el.value) && (el.value as unknown[]).length === 0 && B.value("len") === 0, `${inputs} ${JSON.stringify(el.value)} ${B.value("len")}`);
 });
 console.error = realError;
 if (uncaught.length) ok("no_uncaught_exceptions", false, String(uncaught[0]));

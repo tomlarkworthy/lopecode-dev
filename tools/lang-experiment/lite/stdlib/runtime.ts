@@ -5,7 +5,7 @@ import { h } from "../jsx/h.ts";
 import { create, patch } from "../jsx/render.ts";
 import { lowerJsx } from "../jsx/lower.ts";
 import { erase } from "../browser/erase.ts";
-import { on, events, listen, nameAction, running, pulling, release, sweep, generatorish, cellsOf, guard as guardWith, setListenerOrder, listenerOrderChanged } from "../browser/cells.ts";
+import { on, events, listen, nameAction, running, pulling, isEvents, release, sweep, generatorish, cellsOf, guard as guardWith, setListenerOrder, listenerOrderChanged } from "../browser/cells.ts";
 export { setListenerOrder, listenerOrderChanged };
 export { cellsOf };
 import { island, type IslandSpec } from "../island.ts";
@@ -81,7 +81,7 @@ export function viewRef(el: unknown, shape: Shape, name: string): object {
     throw new TypeError(`viewof ${name}: expected a view (an element with a value), found ${e === null ? "null" : typeof e}`);
   return P.viewHandle(e as Parameters<typeof P.viewHandle>[0], name, (v) => checkShape(v, shape, name));
 }
-export { h, on, create, patch, pagePool, running, pulling, release, sweep };
+export { h, on, create, patch, pagePool, running, pulling, isEvents, release, sweep };
 
 // Values a generator has yielded. A reader of one may be handed the same buffer mutated between
 // yields (borrow), so a memoised cell does not reuse its last value when one of these is an input.

@@ -1,6 +1,14 @@
 # lang-experiment harness
 
-Checks and runs ports written under `RULES.md`. Built 2026-11-14 against the RULES.md that has the
+Checks and runs ports. The rules of the language are stated in the specification module
+`@tomlarkworthy/soundscript-spec` (`lite/soundscript/spec.ojs`, built into
+`lopebooks/notebooks/soundscript.html`); how to port a module is in "Porting a module" in this file.
+Until 2026-11-16 both were in `RULES.md`, which was then deleted; its last text is
+`git show a92fbbf7:tools/lang-experiment/RULES.md` (branch `soundscript-experiment`), sections 2-5
+already reduced to pointers. Older records here (`ports/*/GAPS.md`, `lite/NOTES-*.md`, `lite/notebook/tutorial.ojs`, `archive/`) cite it,
+with line numbers, as it then was.
+
+Built 2026-11-14 against the RULES.md that has the
 `let x = (a: number) => 42 + a` cell form (`export` before it is accepted and not needed, 2026-11-15) (no function-cell shortcut).
 
 Run from this directory. A port is any directory holding `cells.ts` (and optionally `shell.ts`,
@@ -31,7 +39,7 @@ installed with `npm install`. TypeScript is pinned to 6.x because `typescript@7.
 
 | file | role |
 |---|---|
-| `rules.ts` | rule ids. `fixtures.ts` fails if an id has no `fixtures/reject-<id>/` |
+| `rules.ts` | rule ids. `fixtures.ts` fails if an id has neither a `fixtures/reject-<id>/` nor a reject case in the specification module |
 | `analyze.ts` | syntactic pass shared by all three commands: cells, kind, outer parameters, facet (`value`/`ref`/`capability`/`foreign`), foreign declarations |
 | `prelude.d.ts` | `Ref RefCell ref Action action Mut mut freeze Borrowed borrow snapshot equals Js Clock Random Fetch Log`. Brands are string-keyed properties (`__lc_mut`, `__lc_borrowed`, `__lc_ref`, `__lc_refcell`, `__lc_action`) found with `checker.getPropertyOfType` |
 | `prelude.runtime.ts` | runtime half: ref stores, the write queue, `action`, identity `mut/freeze/borrow`, copying `snapshot`, structural `equals`, capabilities |
@@ -78,7 +86,7 @@ Every cell is defined with an observer, so every cell is forced. `settle` waits 
 macrotasks, capped at `--settle-ms`; the cap is reported as `settled: false`. A generator that never
 ends (an animation loop) will always hit the cap.
 
-Write semantics, all exercised by `accept-ref` in both orders:
+Write semantics of `run.ts`, exercised by `accept-ref` in both orders:
 
 - `set`/`update` outside an action throws `Ref count: set/update called outside an action`.
 - An action call at depth 0 queues its writes; they commit in a `setTimeout(0)` after the outermost
@@ -133,6 +141,59 @@ The near miss: `list` returns `[]`, `push` calls `list.push("p")`, `test_empty` 
 
 `accept-pusher-ref`, the same program with a ref and an action, passes `test_empty` in both orders.
 
+## Porting a module
+
+Moved here from `RULES.md` on 2026-11-16, text unchanged except where noted. What a cell may be
+and do is the specification module's; this section is how a port is laid out and counted.
+
+Question under test: can real lopecode modules be written in a checked, immutable-by-default
+subset of TypeScript where a cell is a function and its parameters are its dependencies, and
+what fraction of each module lands in each tier? Background: `plan/substrates-winter-2026.md`.
+
+If a construct has no home in the specification, do not invent one silently: record it in the
+port's `GAPS.md` (construct, cell, what you did instead).
+
+A ported module `<name>` is a directory `tools/lang-experiment/ports/<name>/`:
+
+- `cells.ts` checked cells; what its top level may hold is section 1 of the specification.
+- `shell.ts` shell cells: same shape, ordinary TypeScript, not linted. DOM, canvas, WebGL,
+  `md`, `htl`, `Inputs`, `d3`, `Plot`, timers, anything reflective.
+- `foreign.d.ts` trusted signatures for imported cells and libraries (section 9 of the specification).
+  Each declaration is counted as trust surface.
+- `GAPS.md` constructs with no home, and every place a test assertion had to change (it should not).
+- `MAP.md` one row per original cell: original name, tier, port name(s), note.
+
+Ported forms:
+
+- A `viewof x = Inputs.range(...)` ports as a ref cell `x` in `cells.ts` plus a shell cell
+  `x_view(x: Ref<number>, Inputs)` in `shell.ts` that builds the widget and calls `x.set` inside an
+  action (`fixtures/accept-ref/shell.ts`).
+- A `mutable x` ports as a ref cell; each `mutable x = …` write becomes an action.
+- World state read at call time (v1, after the pilot). A value such as `location.href` or
+  `document.baseURI` is not a pure foreign. It is a shell source cell (`href` in `shell.ts`, which
+  may be a generator that yields on change), decoded by a checked cell. A function that used to
+  read it when called becomes a cell that depends on the decoded value and returns the function:
+  `let linkTo = (href) => (target, opts) => ...`. Do not split a function into a checked
+  half and a shell wrapper to avoid this; the dependency on the shell cell is the honest result
+  and tests that depend on it count as having shell support.
+- A ref whose initial value comes from the world takes it as a dependency:
+  `let vars = (vars_initial: Js): RefCell<Vars> => ref(decodeVars(vars_initial))`.
+- `shell.ts` may name a checked cell's value type as `ValueOf<"cellName">` (`fixtures/accept-ref-deps/shell.ts`).
+- Prose cells (`md`, headings) go to `shell.ts` and are excluded from tier denominators.
+- `test_*` cells are ported with their assertions unchanged. If an assertion cannot be kept,
+  record it in `GAPS.md`; do not weaken it.
+
+### Tiers (for `MAP.md`)
+
+`default` (checked, no opt-in) · `mut-local` (uses `Mut` inside, pure outside) · `owner` ·
+`ref` (a `RefCell`) · `shell` · `prose` (excluded) · `import` (an import variable; excluded).
+A cell that yields `borrow` is counted in the `owner` tier.
+
+### Checked mechanically vs by review
+
+The rule table states, for every rule, whether `check` enforces it exactly, enforces an
+approximation (say which), or leaves it to review. A port's "passes check" means only the former two.
+
 ## Rule table
 
 *Exact* means every reject fixture fires and no counterexample is known. *Approx* gives the method and
@@ -145,8 +206,8 @@ TypeScript reports it. *Review* means nothing mechanical.
 | rule | status | how / what slips |
 |---|---|---|
 | only cells, `type`/`interface`, `import type` at module level | exact | `module-level`. A top-level `enum`/`namespace`/`class`/`var` is reported under its own id instead |
-| a top-level `let/const` that is not a function | exact | `cell-not-function`. Follows from the 2026-11-14 cell form ("every cell is a function"); RULES.md does not name it as a separate rule |
-| cell name unique across `cells.ts`/`shell.ts` | exact | `duplicate-cell`; not in RULES.md, needed so injection is unambiguous |
+| a top-level `let/const` that is not a function | exact | `cell-not-function`. Follows from the 2026-11-14 cell form ("every cell is a function"); RULES.md (2026-11-14) did not name it as a separate rule |
+| cell name unique across `cells.ts`/`shell.ts` | exact | `duplicate-cell`; not in RULES.md (2026-11-14), needed so injection is unambiguous |
 | `shell.ts` same shape, not linted | as stated | only exported functions are cells; non-exported helpers are allowed. `shell.ts` **is** type-checked strictly, with stdlib parameters (`md`, `Inputs`, …) typed `any` |
 | `GAPS.md`, `MAP.md` content | review | `MAP.md` is read by `report.ts` only for tier counts |
 
@@ -155,9 +216,9 @@ TypeScript reports it. *Review* means nothing mechanical.
 | rule | status | how / what slips |
 |---|---|---|
 | parameter must name a cell, foreign or capability | exact | `inject-unknown`. Shell cells may also take Observable stdlib names (list in `analyze.ts`) |
-| plain identifier parameters | exact | `inject-pattern` for destructuring, defaults, rest. Not in RULES.md; injection by name has no meaning for them |
+| plain identifier parameters | exact | `inject-pattern` for destructuring, defaults, rest. Not in RULES.md (2026-11-14); injection by name has no meaning for them |
 | untyped parameter gets the cell's value type | exact | derived source, `__CellValue` |
-| typed parameter assignable from the cell's value type | exact | `inject-type`; a shell cell's value is `Js` unless `foreign.d.ts` declares it (`reject-shell-js`) |
+| typed parameter assignable from the cell's value type | exact | `inject-type`; a shell cell's value is `Js` unless `foreign.d.ts` declares it (specification case S9.1, which replaced `reject-shell-js` on 2026-11-16) |
 | `Ref<X>` parameter names a cell returning `RefCell<X>` | approx | `inject-ref`. Recognised by the annotation being literally `Ref<…>`; `type R = Ref<number>; (count: R)` is treated as a value parameter and fails as `inject-type` |
 | free names | exact | `free-name`, by symbol: a declaration inside the cell, a prelude value, or a lib declaration whose name is on the allowlist (`URL`, `URLSearchParams` added in v1; `accept-basic`) |
 | `Math.random` | exact | `banned-member`, by receiver type, so `const M = Math; M.random()` and `Math["random"]` are caught |
@@ -205,7 +266,7 @@ TypeScript reports it. *Review* means nothing mechanical.
 |---|---|---|
 | `RefCell` declared by returning `ref(…)` | exact | `ref-placement`: `ref` only as the concise body or a return statement directly in the body of a sync, non-generator cell. `if (x) return ref(0)` and `x ? ref(0) : ref(1)` are rejected because `run.ts` decides which cells are ref cells from that same shape, before any code runs |
 | a `Ref` parameter is not a value dependency | runtime | `accept-ref`: `increment` does not re-evaluate when `count` changes |
-| `Ref<T>` has no read | type | `reject-ref-read`, `ts2339` |
+| `Ref<T>` has no read | type | `ts2339`; lite gives `no-member` (specification case S6.4, which replaced `reject-ref-read` on 2026-11-16) |
 | writes only lexically inside `action(…)` | approx | `ref-write`, on a receiver whose type has the Ref brand. Slips: widening drops the brand, `const r: { set(v: number): void } = c; r.set(1)` (`w1`). `run.ts` still throws `set/update called outside an action` for it |
 | an `Action` called only inside `action(…)` | approx | `action-call`, on a callee whose type has the Action brand. Slips: `const f: () => void = a; f()` (`w2`). `run.ts` still throws `action called during a cell evaluation` for it |
 | an `Action` passed only to a parameter typed `Action` | approx | `action-pass` on a direct argument whose contextual type has no Action brand. Slips: an Action inside a record passed to an untyped parameter, `call({ a })` (`s11`) |
@@ -221,7 +282,7 @@ TypeScript reports it. *Review* means nothing mechanical.
 | prose cells go to `shell.ts` | review | `report.ts` can only tell prose from shell through `MAP.md` |
 | test assertions unchanged | review | |
 
-## RULES.md points that needed a decision
+## RULES.md points that needed a decision (2026-11-14)
 
 - `async function*` is not in the list of cell forms. It is accepted and reported as kind `generator`.
 - "Capabilities" includes `invalidation` but gives it no type name; it is `Promise<void>` (`Invalidation`).
