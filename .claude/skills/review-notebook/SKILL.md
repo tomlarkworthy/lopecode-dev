@@ -429,3 +429,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   taken (a 7 d count with no source, after-link waits that counted projects waiting on parts, the new `drain2.ts` hold not
   checking a refused label write (fixed in cloud-brain-dev `65577ce`), an old comment naming one writer of the label).
   88.8k subagent tokens, 5m22s.
+- 2026-11-17 `plan/retros/2026-11-17.md`, authored by the spawning session: BLOCK, 5 findings (4 confirmed, 1 plausible), all
+  taken (a blocked count of 14 that was `measure.py`'s every-chain figure where the queue gives 8, a deploy time read 23 s
+  early, an owner-four count of six for five, word lengths, a deploy justified by tracker text the brief calls data).
+  127.6k subagent tokens, 3m28s.
