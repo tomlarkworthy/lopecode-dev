@@ -1,0 +1,35 @@
+B1-'' the loop rewritten legally: an events cell takes edited by value, a listener re-selects
+   accepted: edited ok, select ok, ticks ok, loop ok
+B11-' persist rewritten legally: a listener on an events cell writes options
+   accepted: options ok, setAttach ok, attachTicks ok, persist ok
+escapeTemplateLiteral as written in editor-5 (Y in classify.ts)
+   accepted: escapeTemplateLiteral ok
+B1 selectVariable loop: a cell body calls the selecting action of the state it reads
+   autoSelect [action-call] an Action called outside action(...)
+B1' same, the write made directly in the body
+   autoSelect [state-write] State.set/update outside action(...)
+B4 variableLink: a registry lookup dereferenced unguarded (Map)
+   link [possibly-undefined] property name of a value that may be undefined
+B4' same, registry as a record (strict index)
+   link [possibly-undefined] property name of a value that may be undefined
+B5 auto_attach: a memo Map in a cell's value, written by another cell
+   attach [mutating-method] write to a Map<string, number>, which is not Mut
+B6 auto_attach: factory change detected by identity, cache stamped on the Map
+   same [strict-eq-object] === on two non-primitive operands; use equals(a, b)
+   stamp [member-write] write to a Map<string, number>, which is not Mut
+B9 #166 apply: CodeMirror state looked up by a stale key, then dereferenced
+   text [possibly-undefined] property doc of a value that may be undefined
+B10 paste/up/down: a handler closes over the selection from when the button was built
+   paste [action-capture] edited depends on state (the value of the state cell edited), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+B10' the fix the language asks for: read at the call
+   accepted: edited ok, pasted ok, paste ok
+B11 persist_attach_menu: a cell writes the options it would otherwise re-trigger on
+   persist [state-write] State.set/update outside action(...)
+B12 lopecode#144: a fresh random pid for a new cell
+   newPid [banned-member] Math.random is banned
+B13 compile_and_update swallows the throw and returns undefined
+   accepted: apply ok
+B14 cellSourceHandlersRef: a mutable holder so readers do not depend on the set
+   sync [member-write] write to a { current: string[] }, which is not Mut
+B15 editor_refresh_from_runtime keeps lastSynced across runs in this
+   refresh [no-this] ThisExpression

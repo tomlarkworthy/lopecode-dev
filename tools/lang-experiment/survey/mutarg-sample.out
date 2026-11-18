@@ -1,0 +1,6 @@
+@tomlarkworthy/mermaid-lens.state: 50 writes to arguments, e.g. stmt.kind = "comment" | stmt.kind = "header" | stmt.kind = "end" | c.span = [c.span[0], b]
+@tomlarkworthy/linux-sbc.execute: 22 writes to arguments, e.g. cpu.lr_addr = addr | cpu.lr_valid = true | cpu.lr_valid = false | cpu.csrs[768] = mstatus & ~6280 | mpie << 3 | 1 << 7 | 0 << 
+@spec/ordinal-diagram.engine: 5 writes to arguments, e.g. l.sort(cmp) | members.push(w) | members.sort(cmp) | m.sort(cmp)
+@tomlarkworthy/belief-geometry.beliefKitFactory: 17 writes to arguments, e.g. T[0][0][1] = 1 | T[1][1][2] = 1 | T[0][2][0] = 0.5 | T[1][2][0] = 0.5
+@tomlarkworthy/parametric-svg.pseudoInverseStepMxN: 1 writes to arguments, e.g. x[i] = s / aii
+@tomlarkworthy/coded-landmark-tracking.fitHomographyScaled: 3 writes to arguments, e.g. r.push((m.x - p.dx) / SIG_POS, (m.y - p.dy) / SIG_POS) | r.push(soft((ea - p.a) / (SIG_REL * p.a)), soft((eb - p.b) / | M[i][j] += u[i] * u[j]

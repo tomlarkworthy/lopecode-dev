@@ -1,0 +1,10 @@
+hand>classifier	cells	lines	examples
+H>H	7	34	viewof attachContextManu(INPUTS,FNH) viewof editedCell(INPUTS) viewof addCells(INPUTS,FNH) viewof remove(INPUTS,FNH) viewof up(INPUTS,FNH) viewof down(INPUTS,FNH) viewof options(INPUTS,FNH)
+H>N	19	239	hotbar_shell(DOM,JSX) languageChoice(MUT) newCellLanguage(FN) moveCell(FN) createCell(FN) deleteCell(FN) viewof select(DOM,INPUTS,FNH) setOption(DOM,MUT,FN,LIB)
+H>Y	3	28	findCellByVariable() findCellIndex() lookupCellByIndex()
+N>H	12	161	viewof paste(INPUTS,FNH) observableJS_lint(FNH) (anon)(FILE) test_completion_string_literal(FNH) test_completion_string_prefix(FNH) test_completion_array_literal(FNH) test_completion_number_literal(FNH) test_completion_bool_template_regexp(FNH)
+N>N	66	2136	title_variable(RT,FN) (anon)(FN) editors(MUT) auto_attach(RT,DOM,MUT,FNH) divToVar(RT) hotbarTemplate(RT,FN) cellEditor(DOM,MUT,MUTARG,FN) editor_panel(DOM,TIMER,CLASS,JSX,FNH)
+N>Y	7	53	(anon)() module() (anon)() replaceCodeMirrorDoc() editor_jobs() cellSourceHandlers() javascriptPlugin()
+P>P	24	109	title() (anon)() (anon)() (anon)() (anon)() (anon)() (anon)() (anon)()
+Y>H	2	9	viewof combine(INPUTS) viewof edit(INPUTS)
+Y>Y	1	6	escapeTemplateLiteral()

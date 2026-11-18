@@ -1,0 +1,65 @@
+1a js-toolchain decompile typed as a function
+   shown: rejected [boundary-type] decompileJs: (vars: unknown) => string cannot cross from another language: it is or holds a function
+1b decompile taken as unknown, then called
+   shown: ok
+1c runtime-sdk runtime as unknown, read a member
+   n: ok
+1d editor-5's own import name compile collides with the capability
+   defs: rejected [inject-type] compile: Compile is not assignable to (src: string) => unknown[]
+1e Promise from another language
+   v: rejected [boundary-type] source: Promise<string> cannot cross from another language: it is or holds a promise
+1f port mode: foreign.d.ts /** effect */ decompile
+   shown: rejected [foreign-effect] checked cell takes /** effect */ foreign decompile
+1g port mode: foreign.d.ts /** pure */ decompile
+   shown: ok
+1h notebook module: a top-level declare
+   module [module-level] TSDeclareFunction at module level
+   shown: rejected [inject-unknown] parameter decompile names no cell, foreign or capability
+2a owner cell constructs EditorView from an outside class
+   view: rejected [new-non-intrinsic] new on something that is not an allowed intrinsic; [mut-not-fresh] mut(e) needs a fresh value: a literal, a spread copy, new on an intrinsic, or an intrinsic marked @fresh
+2b owner cell: mut of an outside instance
+   view: rejected [mut-not-fresh] mut(e) needs a fresh value: a literal, a spread copy, new on an intrinsic, or an intrinsic marked @fresh
+2c state cell holding the outside view
+   held: ok
+2d call a method on the outside view
+   text: ok
+2e dispatch on the view inside an action
+   src: ok
+   save: rejected [action-capture] code_editor_view depends on state (the value of code_editor_view, a cell in another language), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+2f JSX: place the outside DOM node as a child
+   panel: rejected [type] unknown is not assignable to Child; [type] unknown[] is not assignable to Child[]; [type] { class: "cell-editor"; children: unknown[] } is not assignable to CommonProps
+2g JSX: textarea for the source, onKeyDown for Shift-Enter
+   src: ok
+   setSrc: ok
+   panel: rejected [no-member] <textarea> is not a declared element
+   box: rejected [excess-property] property onKeyDown is not in InputProps
+2h JSX: a ref attribute to reach the node
+   panel: rejected [excess-property] property ref is not in CommonProps
+3a define a variable from an action through an outside runtime
+   go: rejected [action-capture] runtime depends on state (the value of runtime, a cell in another language), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+3b the capability list: compile reaches the runtime?
+   go: ok
+   x: ok
+3c realize (source -> function) typed as a function
+   go: rejected [boundary-type] realize: (src: string[]) => Promise<unknown[]> cannot cross from another language: it is or holds a function
+3d free name runtime / globalThis
+   go: rejected [free-name] free name globalThis
+3e an action writing a state cell that Observable JS watches (the only outward write)
+   pending: ok
+   save: ok
+cross unknown <- function: code_editor_view: expected data, found a function
+cross unknown <- class instance: code_editor_view: expected data, found a EditorView object
+cross unknown <- DOM-like object with a method: code_editor_view.dispatch: expected data, found a function
+3f action writes an Observable JavaScript viewof save_request as State<{pid, source, seq}>
+   save: ok 
+EditorView as {state:{doc:string}}: p: expected an object, found a EditorView object
+Variable as {_name:string}: p: expected an object, found a Variable object
+plain {_name, _definition: fn} as {_name:string}: accepted {"_name":"x"}
+before any re-render: foreign node present
+same Elem object re-rendered: foreign node survives
+equal but new Elem re-rendered: foreign node removed
+new Elem, header text changed: foreign node removed
+direct: rejected [action-capture] [possibly-undefined]
+const local: rejected [action-capture] [possibly-undefined]
+map callback param: ok 
+map over a state cell's value: ok 

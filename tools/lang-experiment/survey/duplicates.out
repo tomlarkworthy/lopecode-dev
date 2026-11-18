@@ -1,0 +1,12 @@
+11 groups, 13 redundant ids
+  d/4a1fa3c167b752e5  =  @tomlarkworthy/viewroutine
+  d/b2bbebd2f186ed03  =  @mootari/range-slider
+  @mbostock/copy-to-clipboard  =  @mbostock/pbcopy
+  @endpointservices/netlify  =  @tomlarkworthy/netlify-deploy
+  d/e1c39d41e8e944b0  =  @mootari/access-runtime
+  @tomlarkworthy/serverside-cells  =  @endpointservices/serverless-cells  =  @tomlarkworthy/serverless-cells
+  d/f92778131fd76559  =  @tomlarkworthy/view
+  @tomlarkworthy/tests  =  @tomlarkworthy/tester
+  @endpointservices/endpoint-services-footer  =  @endpointservices/footer  =  d/58f3eb7334551ae6
+  d/57d79353bac56631@44  =  d/57d79353bac56631
+  @tomlarkworthy/agentic-planner-prototype  =  @tomlarkworthy/agentic-planner

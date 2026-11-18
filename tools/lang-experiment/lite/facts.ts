@@ -6,7 +6,7 @@ import { parse, type Node } from "./parse.ts";
 import { specOf, compileCalls, type IslandSpec } from "./island.ts";
 
 // span: the cell's statement in the source that was parsed, [start, end)
-export type CellInfo = { name: string; span?: [number, number]; params: { name: string; refTyped: boolean; eventsTyped: boolean; boundary?: { shape: unknown; ref: boolean; view?: boolean } }[]; returnsRef: boolean; generator: boolean; compiles: IslandSpec[] };
+export type CellInfo = { name: string; span?: [number, number]; params: { name: string; refTyped: boolean; eventsTyped: boolean; boundary?: { shape: unknown; ref: boolean } }[]; returnsRef: boolean; generator: boolean; compiles: IslandSpec[] };
 function isRefCall(e: Node | null | undefined): boolean {
   while (e && (e.type === "ParenthesizedExpression" || e.type === "TSAsExpression")) e = e.expression;
   return !!e && e.type === "CallExpression" && e.callee.type === "Identifier" && e.callee.name === "state";

@@ -1,0 +1,2422 @@
+{
+ "es-module-shims@2.6.2": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 258
+ },
+ "@observablehq/runtime@6.0.0": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 258
+ },
+ "@observablehq/inspector@5.0.1": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 258
+ },
+ "@mbostock/safe-local-storage": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 258
+ },
+ "@mootari/access-runtime": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 258
+ },
+ "@tomlarkworthy/acorn-8-11-3": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/cell-map": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_cell-map.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/cells-to-clipboard": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_cells-to-clipboard.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/claude-code-pairing": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_claude-code-pairing.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/codemirror-6-v2": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_codemirror-6-v2.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/command-palette": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_command-palette.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/dataflow-templating": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_dataflow-templating.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/dom-view": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_dom-view.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/editor-5": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_editor-5.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/escodegen": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 205
+ },
+ "@tomlarkworthy/exporter-3": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_exporter-3.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/file-sync": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_file-sync.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/fileattachments": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_fileattachments.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/flow-queue": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_flow-queue.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/golden-layout-2-6-0": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_golden-layout-2-6-0.html",
+  "source": "canonical",
+  "copies": 194
+ },
+ "@tomlarkworthy/import-notebook": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_import-notebook.html",
+  "source": "canonical",
+  "copies": 218
+ },
+ "@tomlarkworthy/inspector": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_inspector.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/isomorphic-git-1-30-1": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 258
+ },
+ "@tomlarkworthy/jest-expect-standalone": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_jest-expect-standalone.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/jszip-3-10-1": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 258
+ },
+ "@tomlarkworthy/lightning-fs-4-6-0": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 258
+ },
+ "@tomlarkworthy/local-change-history": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_local-change-history.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/local-storage-view": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_local-storage-view.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/lopepage-urls": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_lopepage-urls.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/module-map": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_module-map.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/module-selection": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_module-selection.html",
+  "source": "canonical",
+  "copies": 218
+ },
+ "@tomlarkworthy/observable-runtime": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_observable-runtime.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/observable-runtime-v6": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_observable-runtime-v6.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/observablehq-lezer": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_observablehq-lezer.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/observablejs-toolchain": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_observablejs-toolchain.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/reversible-attachment": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_reversible-attachment.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/runtime-sdk": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_runtime-sdk.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/spectral-layout": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_spectral-layout.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/stream-operators": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_stream-operators.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/summarizejs": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_summarizejs.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/tests": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_tests.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/themes": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_themes.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/view": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_view.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/visualizer": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_visualizer.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "d/57d79353bac56631": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 252
+ },
+ "@tomlarkworthy/invoke-variable": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_invoke-variable.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/plugin-registry": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_plugin-registry.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/modules": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_modules.html",
+  "source": "canonical",
+  "copies": 257
+ },
+ "@tomlarkworthy/lopepage-2": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html",
+  "source": "canonical",
+  "copies": 251
+ },
+ "@tomlarkworthy/save-in-place": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_save-in-place.html",
+  "source": "canonical",
+  "copies": 250
+ },
+ "@tomlarkworthy/bootloader": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_bootloader.html",
+  "source": "canonical",
+  "copies": 258
+ },
+ "@tomlarkworthy/dexie-4": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_compile-zig.html",
+  "source": "any",
+  "copies": 3
+ },
+ "@tomlarkworthy/notes": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_notes.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/at-login": {
+  "notebook": "lopecode/notebooks/atproto.html",
+  "source": "canonical",
+  "copies": 18
+ },
+ "@tomlarkworthy/at-write": {
+  "notebook": "lopecode/notebooks/atproto.html",
+  "source": "canonical",
+  "copies": 18
+ },
+ "@tomlarkworthy/atproto": {
+  "notebook": "lopecode/notebooks/atproto.html",
+  "source": "canonical",
+  "copies": 18
+ },
+ "@tomlarkworthy/ledger": {
+  "notebook": "lopecode/notebooks/ledger.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/annotate": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_annotate.html",
+  "source": "canonical",
+  "copies": 35
+ },
+ "@tomlarkworthy/ui-testing": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_ui-testing.html",
+  "source": "canonical",
+  "copies": 27
+ },
+ "@tomlarkworthy/editable-md": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_editable-md.html",
+  "source": "canonical",
+  "copies": 54
+ },
+ "@tomlarkworthy/js-toolchain": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html",
+  "source": "canonical",
+  "copies": 27
+ },
+ "@tomlarkworthy/prosemirror": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_prosemirror.html",
+  "source": "canonical",
+  "copies": 55
+ },
+ "@tomlarkworthy/lopecode-tour": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_lopecode-tour.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/debugger": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_debugger.html",
+  "source": "canonical",
+  "copies": 8
+ },
+ "@tomlarkworthy/lite-youtube-embed": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_lite-youtube-embed.html",
+  "source": "canonical",
+  "copies": 7
+ },
+ "@tomlarkworthy/manipulate": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_manipulate.html",
+  "source": "canonical",
+  "copies": 7
+ },
+ "@tomlarkworthy/modern-screenshot": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_modern-screenshot.html",
+  "source": "canonical",
+  "copies": 22
+ },
+ "@tomlarkworthy/observable-notes": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_observable-notes.html",
+  "source": "canonical",
+  "copies": 4
+ },
+ "@tomlarkworthy/openai-responses-api": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_openai-responses-api.html",
+  "source": "canonical",
+  "copies": 22
+ },
+ "@tomlarkworthy/robocoop-2": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_robocoop-2.html",
+  "source": "canonical",
+  "copies": 21
+ },
+ "@tomlarkworthy/robocoop-3": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_robocoop-3.html",
+  "source": "canonical",
+  "copies": 10
+ },
+ "@tomlarkworthy/tabbed-pane-view": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_tabbed-pane-view.html",
+  "source": "canonical",
+  "copies": 22
+ },
+ "@tomlarkworthy/whisper-input": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_whisper-input.html",
+  "source": "canonical",
+  "copies": 22
+ },
+ "d/1f41fef8b019cf4e": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_atlas.html",
+  "source": "any",
+  "copies": 18
+ },
+ "d/e1c39d41e8e944b0": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_debugger.html",
+  "source": "any",
+  "copies": 9
+ },
+ "@tomlarkworthy/secrets": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_secrets.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/at-read": {
+  "notebook": "lopecode/notebooks/atproto.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/at-publish": {
+  "notebook": "lopecode/notebooks/atproto.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/lopepage": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_lopepage.html",
+  "source": "canonical",
+  "copies": 11
+ },
+ "@tomlarkworthy/lopefeed": {
+  "notebook": "lopecode/notebooks/lopefeed.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/debugger-2": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_debugger-2.html",
+  "source": "canonical",
+  "copies": 7
+ },
+ "@tomlarkworthy/atproto-comments": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_atproto-comments.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/import-wizard-js": {
+  "notebook": "lopecode/notebooks/import_wizards.html",
+  "source": "canonical",
+  "copies": 9
+ },
+ "@tomlarkworthy/import-wizard-file": {
+  "notebook": "lopecode/notebooks/import_wizards.html",
+  "source": "canonical",
+  "copies": 7
+ },
+ "@tomlarkworthy/import-wizard-notebook": {
+  "notebook": "lopecode/notebooks/import_wizards.html",
+  "source": "canonical",
+  "copies": 7
+ },
+ "@tomlarkworthy/exporter-2": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_exporter-2.html",
+  "source": "canonical",
+  "copies": 10
+ },
+ "@tomlarkworthy/atlas": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_atlas.html",
+  "source": "canonical",
+  "copies": 4
+ },
+ "@tomlarkworthy/observablejs-reference": {
+  "notebook": "lopecode/notebooks/tomlarkworthy_observablejs-reference.html",
+  "source": "canonical",
+  "copies": 4
+ },
+ "@tomlarkworthy/lopecode-vision": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_lopecode-vision.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/reactive-reflective-testing": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_reactive-reflective-testing.html",
+  "source": "canonical",
+  "copies": 4
+ },
+ "@tomlarkworthy/lopepage-2-tests": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_lopepage-2.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/inputs-reference": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_inputs-reference.html",
+  "source": "canonical",
+  "copies": 15
+ },
+ "@tomlarkworthy/blank-notebook": {
+  "notebook": "lopecode/notebooks/quick_start.html",
+  "source": "canonical",
+  "copies": 11
+ },
+ "@tomlarkworthy/robocoop-5": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+  "source": "canonical",
+  "copies": 17
+ },
+ "@tomlarkworthy/robocoop-5-engine": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+  "source": "canonical",
+  "copies": 17
+ },
+ "@tomlarkworthy/robocoop-5-srctools": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+  "source": "canonical",
+  "copies": 17
+ },
+ "@tomlarkworthy/markdown-wiki": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_markdown-wiki.html",
+  "source": "canonical",
+  "copies": 21
+ },
+ "@tomlarkworthy/robocoop-5-core": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+  "source": "canonical",
+  "copies": 18
+ },
+ "@tomlarkworthy/robocoop-5-tools": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+  "source": "canonical",
+  "copies": 18
+ },
+ "@tomlarkworthy/grid-container": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_grid-container.html",
+  "source": "canonical",
+  "copies": 15
+ },
+ "@tomlarkworthy/svg-lens": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_svg-lens.html",
+  "source": "canonical",
+  "copies": 10
+ },
+ "@tomlarkworthy/sticky": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_sticky.html",
+  "source": "canonical",
+  "copies": 16
+ },
+ "@tomlarkworthy/robocoop-5-context": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+  "source": "canonical",
+  "copies": 17
+ },
+ "@tomlarkworthy/robocoop-5-sessions": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+  "source": "canonical",
+  "copies": 10
+ },
+ "@tomlarkworthy/local-disk": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+  "source": "canonical",
+  "copies": 12
+ },
+ "@tomlarkworthy/switchboard": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop-5.html",
+  "source": "canonical",
+  "copies": 8
+ },
+ "@tomlarkworthy/justbash-filesync": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+  "source": "canonical",
+  "copies": 4
+ },
+ "@tomlarkworthy/robocoop-4-bash": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/robocoop-4-bash-session": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/robocoop-4-bash-terminal": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/robocoop-4-core": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/robocoop-4-tools": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/robocoop-4-engine": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/robocoop-4-hostbridge": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/robocoop-4": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/robocoop-4-tests": {
+  "notebook": "lopecode/notebooks/@tomlarkworthy_robocoop-4.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/justbash-terminal": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+  "source": "canonical",
+  "copies": 4
+ },
+ "@tomlarkworthy/justbash-session": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+  "source": "canonical",
+  "copies": 4
+ },
+ "@tomlarkworthy/just-bash": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+  "source": "canonical",
+  "copies": 4
+ },
+ "@tomlarkworthy/bulk-jumpgate": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_bulk-jumpgate.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/jumpgate": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jumpgate.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/native-file-system-adapter": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_native-file-system-adapter.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/url-query-field-view": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_url-query-field-view.html",
+  "source": "canonical",
+  "copies": 4
+ },
+ "@mbostock/copy-to-clipboard": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_animated-kirigami.html",
+  "source": "any",
+  "copies": 3
+ },
+ "@mbostock/tweet": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html",
+  "source": "any",
+  "copies": 3
+ },
+ "@observablehq/htl": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_animated-kirigami.html",
+  "source": "any",
+  "copies": 16
+ },
+ "@tomlarkworthy/bulma": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 10
+ },
+ "@tomlarkworthy/reconcile-nanomorph": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_animated-kirigami.html",
+  "source": "any",
+  "copies": 14
+ },
+ "@tomlarkworthy/tweetstorm": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_tweetstorm.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@mootari/signature": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_animated-kirigami.html",
+  "source": "any",
+  "copies": 11
+ },
+ "@observablehq/inputs": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_animated-kirigami.html",
+  "source": "any",
+  "copies": 7
+ },
+ "@tomlarkworthy/animation": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_animation.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/footer": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_2d-spatial-wormhole-warp.html",
+  "source": "any",
+  "copies": 35
+ },
+ "@tomlarkworthy/moltbook": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_moltbook.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/firestore-messaging": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_firestore-messaging.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/fsm": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_fsm.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/compile-dataflow": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_compile-dataflow.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/computational-blogs-with-claude-code-connectivity": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_computational-blogs-with-claude-code-connectivity.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "d/1f41fef8b019cf4e@94": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_compile-zig.html",
+  "source": "any",
+  "copies": 3
+ },
+ "d/57d79353bac56631@44": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_compile-zig.html",
+  "source": "any",
+  "copies": 6
+ },
+ "@jashkenas/inputs": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 21
+ },
+ "@tomlarkworthy/ilda-laser-show-player": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_ilda-laser-show-player.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/robocoop-5-spec-lock": {
+  "notebook": "lopebooks/notebooks/ratchet-code.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/utils": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_utils.html",
+  "source": "canonical",
+  "copies": 7
+ },
+ "@tomlarkworthy/linux-sbc": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_linux-sbc.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/unaggregating-cloudwatch-metrics": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_unaggregating-cloudwatch-metrics.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/expression-fuzzer": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_mip.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/mip": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_mip.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/glpk-canonicalization": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_mip.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/glpk-js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_mip.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/mathjs": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_mip.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/randomid": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_randomid.html",
+  "source": "canonical",
+  "copies": 7
+ },
+ "@tomlarkworthy/simplest-cms": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_simplest-cms.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/sticky-footer-in-list": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_sticky-footer-in-list.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/lazer-simulator": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_lazer-simulator.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/slides": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_slides.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/reveal-js-6": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_reveal-js-6.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/audio-inputs": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_audio-inputs.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/grid@1105": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_sequencer.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/juice": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_juice.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/sequencer": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_sequencer.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/viewroutine": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_viewroutine.html",
+  "source": "canonical",
+  "copies": 9
+ },
+ "@twitter/density-plot@4159": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_audio-inputs.html",
+  "source": "any",
+  "copies": 2
+ },
+ "@tomlarkworthy/parametric-svg": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_parametric-svg.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/howto-monitoring": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_howto-monitoring.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/xrpc-client": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-shell": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/cloudflare-iac-fixtures": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/cloudflare-iac": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-deployer": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-core": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-kernel": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-proxy": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-whatsapp": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-bluesky": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-static": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-blob": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-library": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-feed": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-browser": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-inbox": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-logs": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-snapshot": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-knowledge": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-issues": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-container": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-ai": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-git": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-dashboard": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-topic": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-fly": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-usage": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-loop": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/cloud-brain": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/cloud-brain-docs": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-secrets": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-feedback": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-operator": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/brain-db": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/cloud-brain-specs": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloud-brain.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/daw": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_daw.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/gallery": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_gallery.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/switch-dataflow": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_switch-dataflow.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/mermaid-9-2-2": {
+  "notebook": "lopebooks/notebooks/Source-last programming.html",
+  "source": "any",
+  "copies": 2
+ },
+ "@tomlarkworthy/annotate-data": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_annotate.html",
+  "source": "canonical",
+  "copies": 4
+ },
+ "@tomlarkworthy/csv-column-chooser": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_lopecode-live-2026.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/lopecode-live-2026": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_lopecode-live-2026.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/pyodide": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_pyodide.html",
+  "source": "canonical",
+  "copies": 5
+ },
+ "@tomlarkworthy/cw-share-auth": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_aws-dashboard.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/cw-metrics": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_aws-dashboard.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js": {
+  "notebook": "lopebooks/notebooks/Source-last programming.html",
+  "source": "any",
+  "copies": 1
+ },
+ "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.16/dist/plot.umd.min.js": {
+  "notebook": "lopebooks/notebooks/Source-last programming.html",
+  "source": "any",
+  "copies": 1
+ },
+ "https://cdn.jsdelivr.net/npm/@observablehq/inputs@0.12.0/dist/inputs.min.js": {
+  "notebook": "lopebooks/notebooks/Source-last programming.html",
+  "source": "any",
+  "copies": 1
+ },
+ "https://cdn.jsdelivr.net/npm/htl@0.3.1/dist/htl.min.js": {
+  "notebook": "lopebooks/notebooks/Source-last programming.html",
+  "source": "any",
+  "copies": 1
+ },
+ "https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js": {
+  "notebook": "lopebooks/notebooks/Source-last programming.html",
+  "source": "any",
+  "copies": 1
+ },
+ "https://cdn.jsdelivr.net/npm/@observablehq/highlight.js@2.0.0/highlight.min.js": {
+  "notebook": "lopebooks/notebooks/Source-last programming.html",
+  "source": "any",
+  "copies": 1
+ },
+ "https://cdn.jsdelivr.net/npm/marked@0.3.12/marked.min.js": {
+  "notebook": "lopebooks/notebooks/Source-last programming.html",
+  "source": "any",
+  "copies": 1
+ },
+ "https://unpkg.com/@observablehq/stdlib?module": {
+  "notebook": "lopebooks/notebooks/Source-last programming.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/coded-landmark-tracking": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/assembly-script": {
+  "notebook": "lopebooks/notebooks/assembly_script.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/coded-landmark-tracking-data": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/observablejs-toolchain-2": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_dataflow-islands.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/dataflow-islands": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_dataflow-islands.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/suminagashi": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_suminagashi.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@endpointservices/footer": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 8
+ },
+ "@endpointservices/onversion": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 8
+ },
+ "@endpointservices/sentry": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 8
+ },
+ "@endpointservices/serverless-cells/cookie-signature-1.1.0.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 6
+ },
+ "@endpointservices/serverless-cells": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 6
+ },
+ "@tomlarkworthy/unrolling-a-deploy-command": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_unrolling-a-deploy-command.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "d/fa1f6059e44da1d5": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 8
+ },
+ "@tomlarkworthy/code-facts": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_code-facts.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/monty": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_monty.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/building-a-team-chore-app": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_building-a-team-chore-app.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/imgchooser": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_imgchooser.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/foc-annotations": {
+  "notebook": "lopebooks/notebooks/Feeling_of_Computing.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/foc-wiki": {
+  "notebook": "lopebooks/notebooks/Feeling_of_Computing.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/foc-projects": {
+  "notebook": "lopebooks/notebooks/Feeling_of_Computing.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/foc-demos": {
+  "notebook": "lopebooks/notebooks/Feeling_of_Computing.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/foc-people": {
+  "notebook": "lopebooks/notebooks/Feeling_of_Computing.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/foc-chat": {
+  "notebook": "lopebooks/notebooks/Feeling_of_Computing.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/foc-data": {
+  "notebook": "lopebooks/notebooks/Feeling_of_Computing.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/lopecode-newsletter-001": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_lopecode-newsletter-001.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/pause-and-play-book": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_pause-and-play-book.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@chitacan/rss": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@endpointservices/endpoint-login-with-comment": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@endpointservices/endpoint-services-footer": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@endpointservices/footer-with-backups": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@endpointservices/get-comments": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@endpointservices/login": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@endpointservices/netlify": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@endpointservices/utils": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@endpointservices/webcode": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@endpointservices/webcode-ui": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@mbostock/disposal": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 5
+ },
+ "@mbostock/synchronized-views": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 5
+ },
+ "@tomlarkworthy/api-hosting-with-express/cookie-signature-1.1.0.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@tomlarkworthy/api-hosting-with-express": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@tomlarkworthy/blog-navigation": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@tomlarkworthy/blog-netlify-deployment-manager": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-netlify-deployment-manager.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/blog-sidebar": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@tomlarkworthy/fetchp": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 6
+ },
+ "@tomlarkworthy/firebase-admin": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@tomlarkworthy/github-backups": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@tomlarkworthy/netlify-deploy": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 3
+ },
+ "@tomlarkworthy/repository-dispatch-min": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@tomlarkworthy/secure-random-id@65": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@tomlarkworthy/serverless-cells/cookie-signature-1.1.0.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 6
+ },
+ "@tomlarkworthy/serverless-cells": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 6
+ },
+ "@tomlarkworthy/serverside-cells/cookie-signature-1.1.0.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@tomlarkworthy/serverside-cells": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@tomlarkworthy/testing": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_testing.html",
+  "source": "canonical",
+  "copies": 10
+ },
+ "d/4a1fa3c167b752e5": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "d/58f3eb7334551ae6": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "d/9bed702f80a3797e": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 5
+ },
+ "d/f92778131fd76559": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@tomlarkworthy/svg-twist": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_svg-twist.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/n-door-monty-hall": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_n-door-monty-hall.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/codestrates": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_codestrates.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/colorpicker": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_colorpicker.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/twitter-trending-notebook-bot-dataset-2022": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_twitter-trending-notebook-bot-dataset-2022.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/robocoop-gallery": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop-gallery.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@spec/ordinal-diagram": {
+  "notebook": "lopebooks/notebooks/ordinal-diagram.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/virtual-monorepo": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_virtual-monorepo.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/mutable-form-input": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_mutable-form-input.html",
+  "source": "canonical",
+  "copies": 4
+ },
+ "@tomlarkworthy/vertical-sliders": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_vertical-sliders.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/wormhole2": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_wormhole2.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/decoder.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/gf256.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/version.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/gf256poly.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/databr.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/detector.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/qrcode.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/datamask.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/errorlevel.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/datablock.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/findpat.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/formatinf.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/rsdecoder.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/bitmat.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/alignpat.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/bmparser.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode/grid.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jsqrcode": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jsqrcode.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/invariants-of-the-observable-runtime": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_invariants-of-the-observable-runtime.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/code-metrics": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_code-metrics.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/literateobject": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_literateobject.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/observables-now-temporal-spacing-is-60-frames-per-second": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_observables-now-temporal-spacing-is-60-frames-per-second.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/lopecode-newsletter-002": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_lopecode-newsletter-002.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/sheet": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_sheet.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/blm-us-wealth": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blm-us-wealth.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@mbostock/form-input": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_infinite-kirigami-the-endless-wall.html",
+  "source": "any",
+  "copies": 4
+ },
+ "@tomlarkworthy/kirigami-turret": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_kirigami-turret.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/mermaid-lens": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_mermaid-lens.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/hacker-favourites-analysis": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_hacker-favourites-analysis.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@bumbeishvili/comments-on-notebooks": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@bumbeishvili/continent-selector": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@bumbeishvili/data-driven-range-sliders": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@bumbeishvili/extract-empty-hierarchy-from-flat-data": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@bumbeishvili/fetcher": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@bumbeishvili/group": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@bumbeishvili/input-groups": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@bumbeishvili/observable-multiselect-input": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@bumbeishvili/persistent-select-input": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@bumbeishvili/utils": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@bumbeishvili/wrangle": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@d3/color-legend": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@d3/example-components": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 2
+ },
+ "@d3/radial-tree": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@gampleman/table": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@spond/revised-sars-cov-2-analytics-page": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@spond/usual-vs-unusual-mutation-analyses": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "d/d229a22b4a9fdc4b": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "d/df43e9bfccb61dab": {
+  "notebook": "lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/belief-geometry": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_belief-geometry.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/blog-first-post": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_blog-first-post.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/linux-emu": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_linux-emu.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/svg-boinger": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_svg-boinger.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/tiny-notebook": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_tiny-notebook.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/wiki": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_wiki.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/jev": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jev.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-map": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-duel": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-duel-encounter": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-mining": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-board": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-station": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-app-impl": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-app": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-audio": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-shipyard": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-backdrops": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-render": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-missions": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-lab": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-game": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-engine": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-components": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/corepox-assets": {
+  "notebook": "lopebooks/notebooks/corepox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/robocoop-5-voice": {
+  "notebook": "lopebooks/notebooks/robocoop-5-voice-try.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/robocoop-5-voice-try": {
+  "notebook": "lopebooks/notebooks/robocoop-5-voice-try.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/dependancy": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_notebook-semantics.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/notebook-semantics": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_notebook-semantics.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/repo1": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_repo1.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/ego-graph": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_ego-graph.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/metaprogramming": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_remote-cell-value.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/remote-cell-value": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_remote-cell-value.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/wormhole": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_wormhole.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/animated-kirigami": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_animated-kirigami.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/spreadsheet": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_spreadsheet.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/raw-cells": {
+  "notebook": "lopebooks/notebooks/soundscript.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/soundscript": {
+  "notebook": "lopebooks/notebooks/soundscript.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/soundscript-tutorial": {
+  "notebook": "lopebooks/notebooks/soundscript.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/soundscript-reducer": {
+  "notebook": "lopebooks/notebooks/soundscript.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/soundscript-model": {
+  "notebook": "lopebooks/notebooks/soundscript.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/soundscript-workers": {
+  "notebook": "lopebooks/notebooks/soundscript.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/soundscript-breakout": {
+  "notebook": "lopebooks/notebooks/soundscript.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/soundscript-polyglot": {
+  "notebook": "lopebooks/notebooks/soundscript.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/soundscript-spec": {
+  "notebook": "lopebooks/notebooks/soundscript.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/agentic-planner": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/agentic-planner-prototype": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/aws4fetch": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+  "source": "any",
+  "copies": 3
+ },
+ "@tomlarkworthy/editor-4": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/exporter": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+  "source": "any",
+  "copies": 2
+ },
+ "@tomlarkworthy/gepa": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/robocoop-eval": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/robocoop3-training": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_robocoop3-training.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/infinite-kirigami-the-endless-wall": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_infinite-kirigami-the-endless-wall.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/aqi_no_loop_breaking": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_aqi_no_loop_breaking.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/circular-barcode-simulator": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_circular-barcode-simulator.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@tomlarkworthy/fast-1d-circular-barcode-matching": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_fast-1d-circular-barcode-matching.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "d/b2bbebd2f186ed03": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_circular-barcode-simulator.html",
+  "source": "any",
+  "copies": 3
+ },
+ "@tomlarkworthy/tarot": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_tarot.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/tarot-app": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_tarot.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/tarot-deck": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_tarot.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/lazer-cut-plant-pot": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_lazer-cut-plant-pot.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "d/2320fab09283ad21.js?v=4&resolutions=9db5cebfe7dcda5f@602": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_lazer-cut-plant-pot.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/claude-code-browser": {
+  "notebook": "lopebooks/notebooks/Caged_Code.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/synchronizing-external-state-into-bigquery-efficiently": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_synchronizing-external-state-into-bigquery-efficiently.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/tom-larkworthy": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_tom-larkworthy.html",
+  "source": "canonical",
+  "copies": 3
+ },
+ "@mbostock/pbcopy": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@mkfreeman/plot-tooltip": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@observablehq/plot-exploration-penguins": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@observablehq/plot-stack": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/cloudevents-explorer": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@zanarmstrong/highlight-color-w-dropdown": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html",
+  "source": "any",
+  "copies": 1
+ },
+ "d/d2dffac0e42406e8": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@fil/table-extractor": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html",
+  "source": "any",
+  "copies": 2
+ },
+ "@mbostock/hello-lodash-fp": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_womens-suffrage.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@mbostock/scrubber": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_womens-suffrage.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/womens-suffrage": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_womens-suffrage.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/butter-synth": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/why-claude-code-codes-well": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_coding_harness_tuning_blog.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/single-stroke-font": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_single-stroke-font.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/redirect-debugging": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_redirect-debugging.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/p5-sandbox": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_p5-sandbox.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/systems-tabletop": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_systems-tabletop.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/justbash": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_justbash.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/sign-a-pdf/pdf-lib.min.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_sign-a-pdf.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/sign-a-pdf/pdf.worker.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_sign-a-pdf.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/sign-a-pdf/pdf.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_sign-a-pdf.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/sign-a-pdf": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_sign-a-pdf.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/ilda-virtual-laser-test-pattern": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_ilda-virtual-laser-test-pattern.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/neato": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_neato.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/parametric-kirigami-the-castle-wall": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_parametric-kirigami-the-castle-wall.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/single-file-revolution": {
+  "notebook": "lopebooks/notebooks/single_file_revolution.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/jamstack": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_jamstack.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/rate-estimation": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_rate-estimation.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/rate-estimation-min": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_rate-estimation-min.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@mootari/range-slider": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_wms-leaflet-gca-dev.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/wms-leaflet-gca-dev": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_wms-leaflet-gca-dev.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/coffeescript-demo": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_coffeescript-demo.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/most-favorited-hacker-news-youtube-videos": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_most-favorited-hacker-news-youtube-videos.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/tester": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_tester.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/codemirror-6": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_userspace-editor.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/userspace-editor": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_userspace-editor.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/realtime-multi-barcode-tracking": {
+  "notebook": "lopebooks/notebooks/tomlarkworthy_realtime-multi-barcode-tracking.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/lazer-light": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_lazer-light.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/linkpreview": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_linkpreview.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@shaunlebron/color-picker": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_radial-explosion.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/radial-explosion": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_radial-explosion.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/2d-spatial-wormhole-warp": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_2d-spatial-wormhole-warp.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/webxr-dom-overlay": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_webxr-dom-overlay.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/notebook-kit": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_notebook-kit.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/notebook-kit-examples": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_notebook-kit-examples.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/micro-kernel-design": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_micro-kernel-design.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "d/23a966af27d94974": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_lopecode-substrate-2026.html",
+  "source": "any",
+  "copies": 2
+ },
+ "d/5c408e8ef210709e": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_lopecode-substrate-2026.html",
+  "source": "any",
+  "copies": 2
+ },
+ "@tomlarkworthy/dijkstra": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_dijkstra.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/ink": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_ink.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/codemirror-6-22-2-view": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/editor": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/minicell": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/moldable-webpage": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/track-parent": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_moldable-webpage.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/tiktok": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_tiktok.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/infinite-canvas": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_infinite-canvas.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/linear-app-technical-deep-dive": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_linear-app-technical-deep-dive.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/async-lambda-sqs-eventbridge-benchmark": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_async-lambda-sqs-eventbridge-benchmark.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/phiresky-sqlite-query/sqlite.worker.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_phiresky-sqlite-query.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/phiresky-sqlite-query/sqlite.worker%401.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_phiresky-sqlite-query.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/phiresky-sqlite-query": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_phiresky-sqlite-query.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/vr-hackerspace": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_vr-hackerspace.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@spec/modular-arm": {
+  "notebook": "lopebooks/notebooks/modular_robot_prototype.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/subdomain-certification": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_subdomain-certification.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/pause-and-play-shop": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_pause-and-play-shop.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/compile-zig": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_compile-zig.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/testblog": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_testblog.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/notebook-visualizer": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_notebook-visualizer.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/rss-feed": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_rss-feed.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/howto-import-react-application/runtime-main.b53eba1f.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_howto-import-react-application.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/howto-import-react-application/main.cf9a6b73.chunk.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_howto-import-react-application.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/howto-import-react-application/2.d04965b1.chunk.js": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_howto-import-react-application.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/howto-import-react-application": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_howto-import-react-application.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/matrix-background": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_matrix-background.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/retro-title-graphic": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_retro-title-graphic.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@d3/scatterplot": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_juice-and-charts.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/juice-and-charts": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_juice-and-charts.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/view-examples": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_view-examples.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@sdaas/d3-timeseries": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html",
+  "source": "any",
+  "copies": 1
+ },
+ "@tomlarkworthy/bitcoin-energy": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_bitcoin-energy.html",
+  "source": "canonical",
+  "copies": 1
+ },
+ "@tomlarkworthy/my-lopebooks": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_my-lopebooks.html",
+  "source": "canonical",
+  "copies": 2
+ },
+ "@tomlarkworthy/lopecode-substrate-2026": {
+  "notebook": "lopebooks/notebooks/@tomlarkworthy_lopecode-substrate-2026.html",
+  "source": "canonical",
+  "copies": 1
+ }
+}

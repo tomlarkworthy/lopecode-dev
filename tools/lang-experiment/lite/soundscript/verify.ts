@@ -872,7 +872,7 @@ async function uiPaths(page: Page, saved: string) {
   const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
   await tab(CORE);
   await page.waitForFunction(() => { const core = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript"); return [...document.querySelectorAll(".observablehq")].some((n: any) => n.isConnected && n.variable?._module === core && n.variable?._name === "tally"); }, null, { timeout: 10000 }).catch(() => {});
-  // a state cell is one variable: one rendered node for tally, and its editor shows the state cell source
+  // a state cell as one cell: one rendered node for tally and viewof tally, and its editor shows the state cell source
   const nodes = await page.evaluate(() => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
     return [...document.querySelectorAll(".observablehq")].filter((n: any) => n.variable?._module === core && /^(viewof )?tally$/.test(n.variable?._name)).map((n: any) => n.variable._name);
@@ -1234,8 +1234,8 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
     await frames(30);
     out.applied = applied;
     out.deleted = { pulledBefore: p1, pulledAfter: ss.pulling() - p0, listeners: ss.running() - r0, count: seen().count - c3 };
-    for (const n of ["record", "flip", "weight", "nums", "seen", "go", "type Seen"]) get(n)?.delete();
-    await until(() => !get("seen") && !get("nums"));
+    for (const n of ["record", "flip", "weight", "nums", "seen", "viewof seen", "go", "viewof go", "type Seen"]) get(n)?.delete();
+    await until(() => !get("seen") && !get("viewof seen") && !get("nums"));
     get("reset")._value();
     return out;
   });
@@ -1676,7 +1676,8 @@ async function cardsAndThemes() {
     const seen = new Set<string>(), want: { key: string; text: string }[] = [];
     for (const v of rt._variables) {
       if (v._module !== mod || typeof v._name !== "string" || typeof v._definition !== "function" || ss.langOf(String(v._definition)) !== "ss") continue;
-      const key = v._name, text = ss.decompileVariable(String(v._definition));
+      const key = v._name.replace(/^viewof /, ""), text = ss.decompileVariable(String(v._definition));
+      // a state cell's value variable holds no source; its handle variable does
       if (seen.has(key) || text === null) continue;
       seen.add(key);
       want.push({ key, text });
@@ -2042,7 +2043,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   const NEW = "const tripled = (doubled: number) => doubled * 3;";
   const added = await addCell(C.page, CORE, "doubled", NEW, true);
   report(added.back === NEW && added.value === 0 && added.afterAnchor && added.held, `core-only: a new cell added through the editor: ${JSON.stringify(added)}`);
-  // a state cell made plain and a state cell again through apply: one variable throughout, and no viewof
+  // a state cell made plain and a state cell again through apply: the handle variable comes and goes
   const flips = await C.page.evaluate(async () => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
     const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
@@ -2055,7 +2056,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     out.push(await lang.apply("const flag = (): StateCell<boolean> => state(false);", vars), names(), await core.value("flag"));
     return out;
   });
-  report(JSON.stringify(flips.filter((x: any) => Array.isArray(x))) === JSON.stringify([["flag"], ["flag"], ["flag"]]) && flips[4] === true && flips[7] === false, `core-only: flag state -> plain -> state through apply: ${JSON.stringify(flips)}`);
+  report(JSON.stringify(flips.filter((x: any) => Array.isArray(x))) === JSON.stringify([["flag", "viewof flag"], ["flag"], ["flag", "viewof flag"]]) && flips[4] === true && flips[7] === false, `core-only: flag state -> plain -> state through apply: ${JSON.stringify(flips)}`);
   // A generator becomes an events handle when a cell takes it as Events<T>, and a plain generator again
   // when that cell is deleted outside apply (as the editor's delete button does). The consumer is
   // deleted at once, before onCodeChange's snapshot has seen it, which is the case that used to leave
@@ -2140,7 +2141,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     const text = get("ss")._value.decompileVariable(String(v._definition));
     const verdict = get("ss_check")._value(core).result.cells.find((c: any) => c.name === "tripled")?.status;
     const lang = get("ss_language")._value;
-    const flag = get("flag") ? lang.decompile([get("flag")]) : null;
+    const flag = get("viewof flag") && get("flag") ? lang.decompile([get("flag")]) : null;
     return { present: true, typed: text === NEW, verdict, editorSource: await lang.decompile([v]), value: await core.value("tripled"), flag: await flag, roundtrip: get("ss_roundtrip")._value(core) };
   }, NEW);
   report(after.flag === "const flag = (): StateCell<boolean> => state(false);", `core-only reopened: flag is a state cell again after export: ${after.flag}, ${after.roundtrip} variables round trip`);

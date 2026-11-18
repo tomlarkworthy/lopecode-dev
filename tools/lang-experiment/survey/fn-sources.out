@@ -1,0 +1,73 @@
+cells re-classified 12916, mismatching cells.jsonl 0, sole FN/FNH cells with no recorded trigger 0
+
+FNH sole-blocker: source	cells	lines	%lines
+own module cell	998	19983	97
+  of which same module only	837	16413	80
+  of which imported from another surveyed module	161	3570	17
+Observable stdlib	12	44	0
+third-party / vendored lib	59	481	2
+undetermined	3	16	0
+
+FNH stdlib names (cell counted under each): name	cells	lines
+require	11	41
+__query	1	3
+
+FNH libraries: name	cells	lines
+lodash	10	182
+(unparsed loader) parser	12	74
+express-router-browserify	2	47
+(unparsed loader) kit	8	41
+vendored @bumbeishvili/utils	2	27
+moment	1	17
+firebasejs	5	15
+cookie-parser-browserify	1	12
+topojson-client	4	12
+sql.js-httpvfs	1	12
+
+FNH undetermined deps: name	cells	lines
+firebase [import from unsurveyed 1]	3	16
+listen [import from unsurveyed 1]	2	10
+
+FN sole-blocker: source	cells	lines	%lines
+own module cell	1418	12341	98
+  of which same module only	926	7286	58
+  of which imported from another surveyed module	492	5055	40
+Observable stdlib	2	46	0
+third-party / vendored lib	26	122	1
+undetermined	20	96	1
+
+FN stdlib names (cell counted under each): name	cells	lines
+FileAttachment	2	46
+
+FN libraries: name	cells	lines
+vendored @bumbeishvili/utils	23	108
+vendored @d3/example-components	3	14
+
+FN undetermined deps: name	cells	lines
+firebase [import from unsurveyed 1]	3	27
+interval [import from unsurveyed d/b2bbebd2f186ed03@1803]	3	16
+createDemo [import from unsurveyed 1]	4	12
+fetchp [import from unsurveyed 4]	1	11
+toc [import from unsurveyed d/9bed702f80a3797e@402]	2	9
+createLogin [import from unsurveyed 1]	2	6
+exporter2 [unresolved name]	1	3
+deck [import from unsurveyed 1]	1	3
+welcomeBox [import from unsurveyed 1]	1	3
+download [import from unsurveyed 1]	1	3
+
+own modules imported as functions (FN/FNH sole cells of other modules): module	importing modules	importing cells	lines
+@tomlarkworthy/cloudflare-iac	26	127	3380
+@tomlarkworthy/exporter-3	17	24	345
+@tomlarkworthy/tests	13	14	57
+@jashkenas/inputs	12	62	468
+@tomlarkworthy/observablejs-toolchain	9	12	139
+@tomlarkworthy/soundscript	7	138	582
+@tomlarkworthy/sticky	6	47	266
+@tomlarkworthy/fileattachments	6	10	71
+@tomlarkworthy/serverside-cells	6	6	37
+@tomlarkworthy/exporter-2	6	6	18
+@tomlarkworthy/corepox-engine	5	10	275
+@tomlarkworthy/foc-data	5	8	180
+@tomlarkworthy/flow-queue	5	5	18
+@tomlarkworthy/robocoop-5-core	4	14	512
+@mootari/signature	4	11	58

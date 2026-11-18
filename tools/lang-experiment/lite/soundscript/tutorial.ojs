@@ -280,9 +280,9 @@ Three kinds of cell are not memoised. A cell the checker rejects, such as \`leak
 
 Whether a cell is memoised depends on the other cells of its module, so a stored edit compiles again any other cell whose form it changes.`
 // %%
-md`### A state cell is one variable
+md`### A state cell is two variables
 
-\`count\` in section 4 is one variable, which holds the current value and yields again after every committed write. A parameter \`count: State<number>\` is not an input of its cell's variable: it receives the address of \`count\`, its module and its name, and a write looks the variable up. So in section 6 \`doubled\` runs again on **bump** and \`bump\` does not. Writes made by one action call are committed together after it returns. A write to a state cell that is in error throws, and the action call that made it keeps none of its writes.`
+\`count\` in section 4 is two runtime variables, as an Observable \`viewof\` is: \`viewof count\` holds the handle and \`count\` holds the current value, which yields again after every committed write. A parameter \`count: State<number>\` is an input on \`viewof count\`, which does not change when the value does. So in section 6 \`doubled\` runs again on **bump** and \`bump\` does not. Writes made by one action call are committed together after it finishes. A cell that takes the \`State\` of a state cell in error is blocked.`
 // %%
 ss_highlightCode(md`### Capabilities are cells of the core
 
@@ -382,7 +382,7 @@ Each parameter of a cell names what it reads. What it receives depends on the na
 | \`ticks: Events<T>\`, naming a sync generator cell (*lite*) | a handle for \`on(...)\` (\`[inject-events]\` if not a generator yielding \`T\`) | no |
 | a capability name (next entry) | the host's object for that effect | no |
 | \`x: T\`, naming a cell in another language (section 10) | a frozen copy of its value, checked against \`T\` when it arrives (\`[boundary-unannotated]\` with no \`T\`, \`[boundary-type]\` if \`T\` cannot be checked) | yes |
-| \`x: State<T>\`, naming an Observable JavaScript \`viewof x\` | the view as a handle: \`set\` and \`update\` write the control (\`[boundary-state]\` if there is no \`viewof x\` and \`x\` is not an imported state cell) | no |
+| \`x: State<T>\`, naming an Observable JavaScript \`viewof x\` | the view as a handle: \`set\` and \`update\` write the control. A state cell of another module is taken the same way, imported as \`viewof x\`. (\`[boundary-state]\` if there is no \`viewof x\`) | no |
 | \`x: State<T>\`, naming a SoundScript state cell imported from another module | the state cell in the module it is imported from | no |
 
 Once any cell takes a generator as \`Events\`, a parameter reading it without \`Events\` is \`[inject-events]\`, because it would receive the handle. No cell may take a listener cell (\`[listener-placement]\`). A name that is another variable of the module, in any language, is read through the checked boundary (section 10). Any other name is \`[inject-unknown]\`; a destructuring pattern is \`[inject-pattern]\`. A body may not use a cell's name without taking it as a parameter (\`[cell-by-name]\`).
@@ -942,7 +942,8 @@ checkBox = (src, { tsx = false } = {}) => {
 // %%
 kindOf = (v) => {
   const d = String(v._definition);
-  if (d.startsWith("function $ss$ref(")) return "state cell: its value, again after each write";
+  if (v._name.startsWith("viewof ")) return "state cell: the handle";
+  if (d.includes("/*ss@ref*/")) return "state cell: the value";
   if (d.includes('kind: "events"')) return "events: a handle, pulled only while a listener is attached";
   if (!d.includes("$ss$.cell(")) return "type";
   const kind = d.includes("memo: true") ? "memoised on its inputs" : "not memoised";
@@ -981,7 +982,8 @@ moduleTable = (module, invalidation) => {
       const val = htl.html`<td class="v">`, runs = htl.html`<td>`;
       const update = (error) => {
         val.textContent = error !== undefined ? `throws: ${error?.message ?? error}` : fmt(v._value);
-        runs.textContent = String(ss.evals(v._definition));
+        const h = module._scope.get(ss.handleName(key)) ?? v;
+        runs.textContent = String(ss.evals(String(h._definition).includes("$ss$.cell(") ? h._definition : v._definition));
       };
       update();
       return { update, tr: htl.html`<tr class=${"lite-" + (r?.status ?? "blocked")}><td><code>${key}</code></td><td>${r ? badge(r.status) : ""}</td><td><code>${r?.value ?? ""}</code></td>${val}${runs}</tr>` };

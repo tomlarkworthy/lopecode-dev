@@ -1,0 +1,16 @@
+L1 parseViewDSL verbatim from the module (no types added)
+   dslExamples: ok
+   parseViewDSL: rejected [untyped-parameter] L3 parameter has no type and no contextual type; [untyped-parameter] L7 parameter has no type and no contextual type; [mutating-method] L16 write to a never[], which is not Mut; [type] L16 1 is not assignable to never
+L2 parseViewDSL typed; push -> spread, input[i] -> charAt, err(): never
+   dslExamples: ok
+   parseViewDSL: ok
+   test_parseViewDSL: ok
+L3 normalizeWeights verbatim shape: writes child.size, delete child.weight on its argument
+   normalizeWeights: rejected [member-write] L8 write to a GL, which is not Mut; [no-delete] L8 delete on a value that is not Mut
+L3b normalizeWeights rewritten to return a new tree
+   normalizeWeights: ok
+L4 serializeGoldenDSL typed (groups.nb ?? "" in extractNotebookAndCell); Math.round(string) -> Number(); `!node.size.endsWith` -> size === undefined
+   serializeGoldenDSL: ok
+   extractNotebookAndCell: ok
+L5 a consumer in another module takes listModules (a function) across the boundary
+   shown: rejected [boundary-type] L2 listModules: (hash: string) => string[] cannot cross from another language: it is or holds a function

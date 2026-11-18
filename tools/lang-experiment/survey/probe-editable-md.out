@@ -1,0 +1,26 @@
+E1 escapeMarkdownInline, unescapeMarkdownInline (Y); the test with the imported expect
+   escapeMarkdownInline: rejected [untyped-parameter] L2 parameter has no type and no contextual type; [type] L2 (c: err) => err is not assignable to string
+   unescapeMarkdownInline: ok
+   test_escapeMarkdownInline_inverse: rejected [boundary-type] L4 expect: (v: string) => { toBe: (w: string) => void } cannot cross from another language: it is or holds a function
+E1b the same test with expect(...).toBe rewritten as a throw
+   escapeMarkdownInline: rejected [untyped-parameter] L2 parameter has no type and no contextual type; [type] L2 (c: err) => err is not assignable to string
+   unescapeMarkdownInline: ok
+   test_escapeMarkdownInline_inverse: ok
+E2 tokenizeMarkdownTemplate: parts.push on a local, input[i] indexing
+   unescapeMarkdownInline: ok
+   tokenizeMarkdownTemplate: ok
+E3 randstr verbatim (Math.random)
+   randstr: rejected [banned-member] L2 Math.random is banned
+E3b randstr with the random capability
+   randstr: ok
+E4 editor_theme_css as JSX <style>
+   editor_theme_css: rejected [no-member] L2 <style> is not a declared element
+E4b editor_theme_css as a CSS string (an OJS helper would wrap it in <style>)
+   editor_theme_css_text: ok
+E5 escaped_code_block_markdown calls the OJS mdCellSourceToMarkdown
+   escaped_code_block_ojs: ok
+   escaped_code_block_markdown: rejected [boundary-type] L3 mdCellSourceToMarkdown: (s: string) => string cannot cross from another language: it is or holds a function
+E6 replace(regex, (c: string) => ...) with the parameter annotated
+   escapeMarkdownInline: rejected [type] L2 (c: string) => string is not assignable to string
+E6b replaceAll / split-join form without a callback
+   escapeMarkdownInline: ok

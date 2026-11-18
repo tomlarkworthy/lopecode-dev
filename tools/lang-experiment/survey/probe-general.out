@@ -1,0 +1,22 @@
+G1 a kernel writing into a Mut<Float32Array> parameter (MUTARG with a Mut-typed argument)
+   fill: ok
+   filled: ok
+G2 reduce with an accumulator mutated in the callback (MUTARG)
+   evens: rejected [mutating-method] L2 write to a number[], which is not Mut
+G2b the same as filter
+   evens: ok
+G3 new Date(t).toISOString() (DATE)
+   stamp: rejected [new-non-intrinsic] L2 new on something that is not an allowed intrinsic
+G4 an htl view inside the JSX vocabulary, with a click handler (Y by tag scan)
+   count: ok
+   inc: ok
+   view: ok
+G5 an htl view with <a href> and <table> (JSX by tag scan)
+   view: rejected [no-member] L2 <a> is not a declared element; [no-member] L2 <table> is not a declared element
+G6 width taken as an outside number (BUILTIN: whether the runtime resolves it is not a checker question)
+   half: ok
+G7 Object.assign onto a fresh literal, and .catch on a promise (unsupported-method list)
+   merged: unsupported
+   safe: unsupported
+G8 for..of over an array of records, === between records (strict-eq-object, which classify.ts cannot see)
+   findIndex: rejected [strict-eq-object] L2 === on two non-primitive operands; use equals(a, b)

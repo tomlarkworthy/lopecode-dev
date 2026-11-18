@@ -1,0 +1,9 @@
+selected: ok
+seq: ok
+select: ok
+save: ok
+status: ok
+picker: ok
+header: ok
+pickerButtons: ok
+box: rejected [no-member] line 43 <textarea> is not a declared element

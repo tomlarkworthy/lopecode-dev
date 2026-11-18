@@ -842,11 +842,10 @@ const _1jdpo9p = function _filter(showBuiltins,showAnon){return(
   (showBuiltins || (v.module !== "builtin" && v.name !== "module builtin")) &&
   (showAnon || typeof v.name == "string")
 )};
-const _10gdqhm = function _edges(filteredMap,variableToCell,filter,languageOf){return(
+const _10gdqhm = function _edges(filteredMap,variableToCell,filter){return(
 filteredMap.flatMap((cell) =>
   cell.variables.flatMap((variable) =>
-    // fork in soundscript.html: a language's refsOf(module) names the cells a cell takes with no runtime input
-    [...variable._inputs, ...(languageOf(cell.variables, cell)?.refsOf?.(variable._module)?.takes?.get(variable._name) ?? []).map((n) => variable._module._scope.get(n)).filter(Boolean)]
+    variable._inputs
       .map((input) => [variableToCell.get(variable), variableToCell.get(input)])
       .filter(([source, imported]) => imported && filter(imported))
   )
@@ -1562,7 +1561,7 @@ export default function define(runtime, observer) {
   $def("_hishw1", "variableToCell", ["runtimeMap"], _hishw1);  
   $def("_szpnyp", "filteredMap", ["runtimeMap","filter"], _szpnyp);  
   $def("_1jdpo9p", "filter", ["showBuiltins","showAnon"], _1jdpo9p);  
-  $def("_10gdqhm", "edges", ["filteredMap","variableToCell","filter","languageOf"], _10gdqhm);  
+  $def("_10gdqhm", "edges", ["filteredMap","variableToCell","filter"], _10gdqhm);  
   main.define("linkTo", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("linkTo", _));  
   main.define("isOnObservableCom", ["module @tomlarkworthy/lopepage-urls", "@variable"], (_, v) => v.import("isOnObservableCom", _));  
   main.define("moduleMap", ["module @tomlarkworthy/module-map", "@variable"], (_, v) => v.import("moduleMap", _));

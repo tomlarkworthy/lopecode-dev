@@ -124,7 +124,11 @@ spec_frames = async (f, n = 600) => {
   return f();
 }
 // %%
-spec_evals = (module, name) => ss.evals([...runtime._variables].find((v) => v._module === module && v._name === name)._definition)
+spec_evals = (module, name) => {
+  // body runs of a cell; a state cell's body runs in its handle variable
+  const v = (n) => [...runtime._variables].find((x) => x._module === module && x._name === n);
+  return ss.evals((v(ss.handleName(name)) ?? v(name))._definition);
+}
 // %%
 spec_editor = async (texts) => {
   // a module of its own, with ss, whose cells are applied and edited as the editor does (ss_language.apply);
@@ -656,37 +660,37 @@ test_spec_S5_5 = {
 // %%
 md`## 6. State cells and actions
 
-A state cell is a cell that holds state. Only an action writes to a state cell. An action is called by an event handler, a listener, a view control or another action, never while a cell is being evaluated.`
+A state cell is a cell that holds state. Only an action writes to a state cell. An action is called by an event handler, a listener or another action, never while a cell is being evaluated.`
 // %%
 md`**S6.1** A state cell is a sync, non-generator cell whose one returned expression is \`state(v)\`; its value type is the type of \`v\` (S2.4). \`state(...)\` anywhere else, bound to a local, in a conditional, in one of two returns, or in an async or generator cell, is \`[state-placement]\`.`
 // %%
 md`**S6.2** A state cell with inputs is made again, from its initial value, when an input changes. Until then it keeps what was written to it.`
 // %%
-md`**S6.3** An input that names a state cell, \`c\` or \`c: T\`, gets its value and runs again after each write. An input \`c: State<T>\` gets the state cell and does not run again when it is written. \`State<T>\` on a cell that is not a state cell holding \`T\`, or on a capability or foreign declaration, is \`[inject-state]\`.`
+md`**S6.3** An input that names a state cell, \`c\` or \`c: T\`, gets its value and runs again after each commit that wrote it (S6.14). An input \`c: State<T>\` gets the state cell and does not run again when it is written. \`State<T>\` on a cell that is not a state cell holding \`T\`, or on a capability or foreign declaration, is \`[inject-state]\`.`
 // %%
 md`**S6.4** A \`State<T>\` has \`set(v: T)\` and \`update(f: (v: T) => T)\` and no other member. Reading another member is \`[no-member]\`; a value of the wrong type is \`[type]\`.`
 // %%
-md`**S6.5** \`set\` and \`update\` outside the body of an \`action(...)\` are \`[state-write]\`, including in a function the cell returns and in a generator. At run time a write outside an action throws.`
+md`**S6.5** \`set\` and \`update\` outside the body of an \`action(...)\` are \`[state-write]\`, including in a function the cell returns and in a generator. At run time a write made while no call is in flight throws.`
 // %%
 md`**S6.6** \`action(f)\` has type \`Action<P>\`, where \`P\` is the parameter types of \`f\`. Calling an \`Action\` outside the body of an action is \`[action-call]\`. An \`Action\` may be returned, placed in a record or an array, or passed to a parameter typed \`Action\`; passing it to any other parameter is \`[action-pass]\`.`
 // %%
 md`**S6.7** The content type of a state cell may not contain \`State\` or \`StateCell\`: not directly, and not in a record, an array, a union, a type argument or a function signature. That is \`[state-in-state]\`.`
 // %%
-md`**S6.8** Inside an action, \`read(r)\` with \`r: State<T>\` is a \`T\`: the stored value with every write made earlier in the call order, including by an action called before it in the same call. \`read\` outside the body of an action is \`[read-outside-action]\`, and at run time it throws.`
+md`**S6.8** Inside an action, \`read(r)\` with \`r: State<T>\` is a \`T\`: the stored value with every write made earlier in the call order, including by an action called before it in the same call. \`read\` outside the body of an action is \`[read-outside-action]\`, and at run time, while no call is in flight, it throws.`
 // %%
 md`**S6.9** The body of an action may not use a value that depends on state: an input that takes a state cell or an events cell by value, a capability other than \`invalidation\` and \`log\`, an input that takes a cell which depends on one of these, or a local computed from any of them. That is \`[action-capture]\`. Handles (\`State\`, \`Events\`), \`Action\`s, cells with no state, and the action's own parameters and locals are accepted. A value from the clock or the random source reaches an action as an argument.`
 // %%
-md`**S6.10** Each top-level action call is a flush group of its own. A write is applied when it is made, so an \`update\` whose function throws throws out of the call that made it. A call that throws, or whose promise rejects, keeps none of its writes, nor those of the actions it called; the writes of earlier calls are kept, and groups apply in the order of the calls.`
+md`**S6.10** A write is applied to its call when it is made, so an \`update\` whose function throws throws out of the call that made it. A top-level call that throws, or whose promise rejects, keeps none of its writes, nor those of the actions it called; the writes of earlier calls are kept, and calls apply in the order they were made. An action called inside a call is a plain function call: when it throws and its caller catches the throw, the writes it made before throwing are kept.`
 // %%
-md`**S6.11** An input \`c: State<T>\` gets the address of the state cell \`c\`, which a write and \`read\` look up when they are made, so a \`State<T>\` taken before the state cell is made again (S6.2) writes to the new one. When the state cell is in error, because it does not check, it or one of its inputs threw, or it is not defined, a write or \`read\` throws inside the action call, and the call keeps none of its writes (S6.10).`
+md`**S6.11** A state cell is two runtime variables: \`viewof c\` holds its handle and \`c\` holds its value. An input \`c: State<T>\` is an input on \`viewof c\` and gets the handle. The handle is the same object when the state cell is made again (S6.2), so a \`State<T>\` taken before writes to the new state cell. While the state cell is in error, because it does not check, it or one of its inputs threw, or it is not defined, a cell that takes its \`State<T>\` does not run: it is blocked when the state cell does not check (S8.2), and has the error of the input that threw otherwise (S8.3).`
 // %%
 md`**S6.12** The function given to \`action(...)\` may be sync or async, or return a promise-like. It may wait with \`await\`, \`.then\` or \`Promise.all\`; none of these has a meaning of its own.`
 // %%
-md`**S6.13** A top-level action call is one made by an event handler, a listener delivering a value, or a view control's change. Top-level calls go through one queue for the whole runtime and run one at a time, in call order. A call made when none is in flight or waiting starts at once, before its caller goes on. A call is in flight until its function has returned, the promise-like it returned, if any, has settled, and every action it called has finished. The next call in the queue starts only then.`
+md`**S6.13** A top-level action call is one made by an event handler, by a listener delivering a value, or by any caller when no call is in flight. Top-level calls go through one queue for the whole runtime and run one at a time, in call order. A call made when none is in flight or waiting starts at once, before its caller goes on. A call is in flight until its function has returned and the promise-like it returned, if any, has settled. The next call in the queue starts only then.`
 // %%
-md`**S6.14** The writes of a top-level call, across its awaits and in the actions it calls, commit together once, when the call finishes. A call that throws, or whose promise rejects, keeps none of them (S6.10). Inside the call, \`read(r)\` is the committed value with the call's own earlier writes (S6.8).`
+md`**S6.14** The writes of a top-level call, across its awaits and in the actions it calls, commit together once, after the call finishes. Calls that finish before that commit share it, so a reader runs once for them and sees none of the values between. A call that throws, or whose promise rejects, keeps none of them (S6.10). Inside the call, \`read(r)\` is the committed value with the call's own earlier writes (S6.8).`
 // %%
-md`**S6.15** An action called inside an action runs as part of the caller's call. When it is async the caller may \`await\` it; when the caller does not, the top-level call still does not finish until it has. When its promise rejects, the whole top-level call fails, whether or not the caller awaited it: the call keeps none of its writes, nor those of any action it called, and the rejection is reported (S6.16). A caller that awaited it and caught the rejection with \`try\`/\`catch\` goes on: a caught error is not a failure.`
+md`**S6.15** An action called inside an action is a plain function call that runs as part of the caller's call. When it is async the caller may \`await\` it, and its rejection is then the caller's to catch or to pass on. An async action that the caller neither awaits nor returns does not hold the call: the call finishes without it, a write it makes afterwards, when no call is in flight, throws \`set/update called outside an action\`, and its rejection is an unhandled promise rejection of the page, not a report under S6.16.`
 // %%
 md`**S6.16** A throw from a call that started at once goes to its caller. A throw from a call that waited in the queue, and a rejection that fails a call, are reported on the console with the name of the top-level action.`
 // %%
@@ -772,6 +776,7 @@ test_spec_S6_3 = {
     await spec_act(() => { inc(); inc(); });
     await spec_flush();
     spec_is(await L.value("label"), "count: 3");
+    spec_is(runs()[0] - label1, 1); // two calls finished before one commit: one run
     return `${spec_rejectsFor("S6.3")}; a write runs label again once, and neither increment nor the state cell`;
   } finally { L.dispose(); }
 }
@@ -844,13 +849,13 @@ const all = (p: number, q: number, r: number, s: number) => [p, q, r, s];`, {});
     spec_is(await call("transfer"), "midway");
     spec_is(await L.value("all"), [100, 7, 0, 1]);
     spec_is(await call("catches"), "");
-    spec_is(await L.value("all"), [100, 9, 0, 1]);
+    spec_is(await L.value("all"), [100, 9, 2, 1]);
     spec_is(await call("breaks"), "in update");
     for (const k of [1, 2, 3]) await call("step", k);
-    spec_is(await L.value("all"), [100, 9, 0, ((1 * 2 + 1) * 2 + 2) * 2 + 3]);
+    spec_is(await L.value("all"), [100, 9, 2, ((1 * 2 + 1) * 2 + 2) * 2 + 3]);
     spec_is(await call("wraps"), "outer broke");
-    spec_is(await L.value("all"), [100, 9, 0, 19]);
-    return "a throwing call keeps none of its writes or its callees' (transfer, failing, wraps); an earlier call's write stays; an update that throws throws at the call; calls apply in order (s is 19)";
+    spec_is(await L.value("all"), [100, 9, 2, 19]);
+    return "a throwing call keeps none of its writes or its callees' (transfer, wraps); a callee that throws inside a call that catches it keeps its writes (failing's r is 2); an earlier call's write stays; an update that throws throws at the call; calls apply in order (s is 19)";
   } finally { L.dispose(); }
 }
 // %%
@@ -860,38 +865,30 @@ test_spec_S6_11 = {
     "const n = (base: number): StateCell<number> => state(base);",
     "const other = (): StateCell<number> => state(0);",
     "const both = (n: State<number>, other: State<number>) => action(() => {\n  other.update((v) => v + 1);\n  n.update((v) => v + 1);\n});",
-    "const bumpBase = (n: State<number>) => action(() => n.set(read(n) + 10));",
     "const pair = (n: number, other: number) => [n, other];"
   ]);
   try {
-    const both = await E.value("both");
-    const call = async (f) => { let msg = ""; try { await spec_act(() => f()); } catch (e) { msg = e.message; } await spec_flush(); return msg; };
-    spec_is([await call(both), await E.value("pair")], ["", [2, 1]]);
-    // an input that throws: the write to n throws, and other keeps 1
+    const call = async () => { const f = await E.value("both"); if (typeof f !== "function") return f; await spec_act(() => f()); await spec_flush(); return ""; };
+    const before = await E.value("both");
+    spec_is([await call(), await E.value("pair")], ["", [2, 1]]);
+    // an input that throws: the cell holding n's State is blocked by it
     await E.edit("base", 'const base = (): number => {\n  throw new Error("broken base");\n};');
-    await E.value("n");
-    const threw = await call(both);
-    if (!/^State n: n is in error: broken base/.test(threw)) throw new Error(`with base throwing: ${JSON.stringify(threw)}`);
-    spec_is((await E.value("other")), 1);
-    // made again from a new input: the action taken before writes the new state cell
+    spec_is(await call(), { error: "broken base" });
+    // made again from a new input: the State taken before writes the new state cell
     await E.edit("base", "const base = () => 5;");
-    await E.value("n");
-    spec_is([await call(both), await E.value("pair")], ["", [6, 2]]);
-    // the state cell does not check: the cell holding its State is not blocked, and its write throws
+    spec_is([(await E.value("both")) === before, await call(), await E.value("pair")], [true, "", [6, 2]]);
+    // the state cell does not check: the holder is blocked by it
     await E.edit("n", 'const n = (base: number): StateCell<number> => state("x");');
-    await E.value("n");
-    spec_is([E.states().n, E.states().both, E.states().pair], ["rejected", "ok", "blocked by n"]);
-    const rejected = await call(both);
-    if (!/^State n: n is in error: n does not check: \[/.test(rejected)) throw new Error(`with n rejected: ${JSON.stringify(rejected)}`);
-    const readMsg = await call(await E.value("bumpBase"));
-    if (!/^State n: n is in error/.test(readMsg)) throw new Error(`read of a rejected n: ${JSON.stringify(readMsg)}`);
-    spec_is((await E.value("other")), 2);
+    spec_is([E.states().n, E.states().both, E.states().pair], ["rejected", "blocked by n", "blocked by n"]);
+    const rejected = await call();
+    if (!/^n does not check: \[/.test(rejected.error ?? "")) throw new Error(`with n rejected: ${JSON.stringify(rejected)}`);
     // not defined
     E.variable("n").delete();
-    const missing = await call(both);
-    if (!/^State n: n is not defined/.test(missing)) throw new Error(`with n deleted: ${JSON.stringify(missing)}`);
-    spec_is((await E.value("other")), 2);
-    return `a write throws when an input threw (${threw}), when the state cell does not check, and when it is not defined; the call keeps none of its writes; an action taken before n was made again writes the new n`;
+    E.variable("viewof n").delete();
+    const missing = await call();
+    if (!/viewof n is not defined/.test(missing.error ?? "")) throw new Error(`with n deleted: ${JSON.stringify(missing)}`);
+    spec_is(await E.value("other"), 2);
+    return `the holder of n's State is blocked when an input threw, when n does not check (${rejected.error}) and when it is not defined (${missing.error}); a State taken before n was made again writes the new n`;
   } finally { E.dispose(); }
 }
 // %%
@@ -970,19 +967,22 @@ const later = (x: State<number>) => action(async (q: Promise<number>) => { const
 const outer = (inner: Action<[Promise<number>]>, later: Action<[Promise<number>]>, x: State<number>) =>
   action(async (p: Promise<number>, q: Promise<number>, done: () => void) => { later(q); await inner(p); x.update((c) => c * 10); done(); });`, {});
   const p = spec_gate(), q = spec_gate(), d = spec_gate();
+  // later's write comes after the call committed: it throws, and its promise is a rejection no one handles
+  const host = [], onRejection = (e) => { if (/outside an action/.test(e.reason?.message)) { host.push(e.reason.message); e.preventDefault(); } };
+  window.addEventListener("unhandledrejection", onRejection);
   try {
     const outer = await L.value("outer");
     await spec_act(() => outer(p.p, q.p, d.open));
     p.open(1);
     await d.p;
     await spec_flush();
-    spec_is([ss.actionQueue().inFlight, await L.value("x")], [true, 0]);
+    spec_is([ss.actionQueue().inFlight, await L.value("x")], [false, 10]);
     q.open(100);
-    await spec_act(() => {});
+    await spec_frames(() => host.length > 0);
     await spec_flush();
-    spec_is(await L.value("x"), 110);
-    return "outer awaited inner and returned; the call stayed in flight with nothing committed until later, not awaited, finished; then x is (0 + 1) * 10 + 100";
-  } finally { p.open(0); q.open(0); L.dispose(); }
+    spec_is([await L.value("x"), host.length], [10, 1]);
+    return "outer awaited inner and returned; the call committed x = (0 + 1) * 10 without waiting for later, which it did not await; later's write after the commit threw outside an action, as an unhandled rejection";
+  } finally { p.open(0); q.open(0); window.removeEventListener("unhandledrejection", onRejection); L.dispose(); }
 }
 // %%
 test_spec_S6_15_rejects = {
@@ -993,6 +993,9 @@ test_spec_S6_15_rejects = {
     const m = a.map((x) => (x instanceof Error ? x.message : String(x))).join(" ");
     if (/action (detached|awaited|caught) threw/.test(m)) said.push(m); else was(...a);
   };
+  // a rejection that reaches no call goes to the host
+  const host = [], onRejection = (e) => { if (/inner rejected/.test(e.reason?.message)) { host.push(e.reason.message); e.preventDefault(); } };
+  window.addEventListener("unhandledrejection", onRejection);
   const L = await spec_load(`const x = (): StateCell<number> => state(0);
 const y = (): StateCell<number> => state(0);
 const inner = (y: State<number>) => action(async (p: Promise<number>) => { y.set(5); await p; throw new Error("inner rejected"); });
@@ -1007,15 +1010,16 @@ const pair = (x: number, y: number) => [x, y];`, {});
       const f = await L.value(n);
       await spec_act(() => f(gates[i].p));
       gates[i].open(0);
+      if (n === "detached") await spec_frames(() => host.length > 0);
       await spec_act(() => {});
       await spec_flush();
       got.push(await L.value("pair"));
     }
-    spec_is(got, [[0, 0], [0, 0], [2, 5]]);
+    spec_is(got, [[1, 5], [1, 5], [2, 5]]);
     const count = (a) => said.filter((m) => m.includes(`action ${a} threw`) && m.includes("inner rejected")).length;
-    spec_is([count("detached"), count("awaited"), count("caught")], [1, 1, 0]);
-    return "inner rejected: not awaited, and awaited without catch, the call kept none of its writes and was reported once; awaited and caught, the call went on and kept x 2 and inner's y 5";
-  } finally { gates.forEach((g) => g.open(0)); console.error = was; L.dispose(); }
+    spec_is([count("detached"), count("awaited"), count("caught"), host.length], [0, 1, 0, 1]);
+    return "inner rejected: not awaited, the call committed x 1 and inner's y 5 when detached returned, and the rejection reached the host unhandled; awaited without catch, the call kept none of its writes and was reported once; awaited and caught, the call went on and kept x 2";
+  } finally { gates.forEach((g) => g.open(0)); console.error = was; window.removeEventListener("unhandledrejection", onRejection); L.dispose(); }
 }
 // %%
 test_spec_S6_16 = {
@@ -1243,9 +1247,9 @@ md`## 8. Editing a module with broken cells
 
 What the notebook does when an edit leaves cells that do not check. The edit is always stored, and a cell that does not check does not run.`
 // %%
-md`**S8.1** Every edit is stored, one that does not parse included, unless its text names no cell: no \`const <name>\`, \`let <name>\` or \`function <name>\` at its start, after comments and an optional \`export\`. An edit that takes the name of another cell is stored under another name (S1.6).`
+md`**S8.1** Every edit is stored, one that does not parse included, unless its text names no cell: no \`const <name>\`, \`let <name>\` or function declaration (S1.1) at its start, after comments and an optional \`export\`. An edit that takes the name of another cell is stored under another name (S1.6).`
 // %%
-md`**S8.2** After each edit every cell is ok, rejected or blocked. A rejected cell breaks a rule of its own, does not parse (\`[parse]\`), or uses a construct the checker has no rule for (\`[unsupported]\`, such as the array method \`with\`); a cell whose check fails because the type of an input changed is rejected with its own message. A blocked cell breaks no rule of its own but takes a cell that is not ok, other than as \`State<T>\` (S6.11).`
+md`**S8.2** After each edit every cell is ok, rejected or blocked. A rejected cell breaks a rule of its own, does not parse (\`[parse]\`), or uses a construct the checker has no rule for (\`[unsupported]\`, such as the array method \`with\`); a cell whose check fails because the type of an input changed is rejected with its own message. A blocked cell breaks no rule of its own but takes a cell that is not ok, as a value or as \`State<T>\`.`
 // %%
 md`**S8.3** Only ok cells run. An edit and every other cell whose compiled form it changes are defined in one step, so no cell runs in between on a mix of old and new definitions. A rejected cell raises \`<name> does not check: [rule] …\` and its body never runs, at load or after an edit; the body is kept only as source. A blocked cell fails with the error of the input that is not ok.`
 // %%
@@ -1504,11 +1508,11 @@ md`**S11.5** The cell is given a deep-frozen copy. An object keeps only the prop
 // %%
 md`**S11.6** A copy is made for each value that arrives, so a value changed in place by the other language and delivered again is seen. A copy equal to the last one the same parameter was given is that one, so the reading cell is not run again.`
 // %%
-md`**S11.7** \`x: State<T>\` takes the view of an Observable JavaScript \`viewof x\`, or a SoundScript state cell \`x\` imported from another module. On any other cell in another language, and when two parameters in one module take the same view or state cell as \`State\` of different types, it is \`[boundary-state]\`.`
+md`**S11.7** \`x: State<T>\` takes the view of an Observable JavaScript \`viewof x\`, or the handle of a SoundScript state cell imported from another module with \`import {viewof x} from …\`. Each write is checked against \`T\`. On any other cell in another language, and when two parameters in one module take the same view or state cell as \`State\` of different types, it is \`[boundary-state]\`.`
 // %%
-md`**S11.8** A write through the \`State\` commits with its action: it sets the view's \`value\` and dispatches an \`input\` event. The \`State\` then holds what the view gives back, which a control may have rounded or clamped. A change made on the control is an action call of its own, a flush group like any other (section 6).`
+md`**S11.8** The view holds the value. A write through the \`State\` commits with its action: it sets the view's \`value\` and dispatches an \`input\` event. \`read\` inside an action gives what the control holds at that moment, which the control may have rounded or clamped, with the call's own earlier writes. A change the user makes on the control is not an action call.`
 // %%
-md`**S11.9** The value of a cell in another language is state: an action may not use it (\`[action-capture]\`, section 6). Take the view as \`State\` and \`read\` it inside the action.`
+md`**S11.9** The value of a cell in another language is state: an action may not use it (\`[action-capture]\`, section 6). Take the view as \`State\` and \`read\` it inside the action; when the cell has no view, pass the value to the action as an argument.`
 // %%
 md`**S11.10** Adding, deleting or renaming a cell in another language checks the module's SoundScript cells again.`
 // %%
@@ -1536,7 +1540,8 @@ spec_rejects_11 = [
   { statement: "S11.3", rule: "boundary-type", source: "const f = (e: Events<number>) => 1;", outside: [{ name: "e" }] },
   { statement: "S11.7", rule: "boundary-state", source: "const f = (rows: State<number[]>) => 1;", outside: [{ name: "rows" }] },
   { statement: "S11.7", rule: "boundary-state", source: "const f = (level: State<number>) => 1;\nconst g = (level: State<string>) => 1;", outside: [{ name: "level", view: true }] },
-  { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, level: number) => action(() => n.set(level));", outside: [{ name: "level", view: true }] }
+  { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, level: number) => action(() => n.set(level));", outside: [{ name: "level", view: true }] },
+  { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, rows: number) => action(() => n.set(rows));", outside: [{ name: "rows" }] }
 ]
 // %%
 spec_rejects_11_view = spec_rejectsTable(spec_rejects_11)
@@ -1632,20 +1637,20 @@ test_spec_S11_6 = {
 test_spec_S11_7 = {
   const bump = [...runtime._variables].find((v) => v._module === spec_module && v._name === "s11_bump");
   const inputs = bump._inputs.map((i) => i._name);
-  if (inputs.includes("viewof s11_level") || typeof (await spec_module.value("s11_bump")) !== "function" || typeof (await spec_module.value("s11_shown")) !== "number") throw new Error(`s11_bump takes ${inputs.join(", ")}`);
+  if (!inputs.includes("viewof s11_level") || typeof (await spec_module.value("s11_bump")) !== "function" || typeof (await spec_module.value("s11_shown")) !== "number") throw new Error(`s11_bump takes ${inputs.join(", ")}`);
   // a state cell imported from another module
   const A = await spec_load("const count = (): StateCell<number> => state(0);", {});
   try {
-    const B = await spec_load("const add = (count: State<number>) => action((k: number) => count.update((c) => c + k));\nconst seen = (count: number) => count;", { count: { from: A.module } });
+    const B = await spec_load("const add = (count: State<number>) => action((k: number) => count.update((c) => c + k));\nconst seen = (count: number) => count;", { count: { from: A.module }, "viewof count": { from: A.module } });
     try {
-      spec_is(ss_outside(B.module).find((o) => o.name === "count"), { name: "count", ref: true });
+      spec_is(ss_outside(B.module).find((o) => o.name === "count"), { name: "count", view: true });
       const add = await B.value("add");
       await spec_act(() => add(5));
       await spec_flush();
       spec_is([await A.value("count"), await B.value("seen")], [5, 5]);
     } finally { B.dispose(); }
   } finally { A.dispose(); }
-  return `${spec_rejectsFor("S11.7")}; s11_bump takes viewof s11_level as State<number> with no input on it, s11_shown its value; add, in another module, takes the imported state cell count as State<number> and writes it (5)`;
+  return `${spec_rejectsFor("S11.7")}; s11_bump takes viewof s11_level as State<number> through an input on it, s11_shown its value; add, in another module, takes the imported state cell count as State<number> through its imported viewof count and writes it (5)`;
 }
 // %%
 test_spec_S11_8 = {
@@ -1721,7 +1726,7 @@ md`## Not specified
 
 Behaviour the code has today that this page does not promise. Each item is undecided or unfinished, and none should be relied on.`
 // %%
-md`- \`DataView\`, \`TextEncoder\`, \`TextDecoder\` and \`Symbol\` were on the v0 list of allowed intrinsics, but the checker has no signatures for them: reading one leaves the cell unsupported, and \`new\` on one is \`[new-non-intrinsic]\`.`
+md`- \`DataView\`, \`TextEncoder\`, \`TextDecoder\` and \`Symbol\` were on the first list of allowed intrinsics (the tutorial's rule list), but the checker has no signatures for them: reading one leaves the cell unsupported, and \`new\` on one is \`[new-non-intrinsic]\`.`
 // %%
 md`- \`BigInt64Array\` and \`BigUint64Array\` are \`[free-name]\`: the checker models the other nine typed arrays (S2.6) but not these two. Whether they should be allowed is not decided.`
 // %%
@@ -1761,11 +1766,13 @@ md`- A call that never finishes. Today it holds every later top-level call, on t
 // %%
 md`- A handler that makes several top-level calls, such as \`onClick={() => { begin(); load(); }}\`. An event attribute takes one action, so this is not provided.`
 // %%
-md`- The writes of an async action called inside an action, when the caller catches its rejection (S6.15). Today they are kept. A sync throw that the caller catches keeps none of the thrower's writes (S6.10).`
+md`- A change the user makes on a view's control while an action call that wrote the view is waiting to commit. Today the commit replaces the user's change.`
 // %%
-md`- A rejection that the caller handles with \`.then\` and no rejection function, such as \`inner().then(f)\`. Today it counts as not handled, and the call fails (S6.15), even when a later \`.catch\` on the result catches it.`
+md`- An action taken before its state cell went into error, and called while the state cell is in error. Today it writes the state cell's last store, and the write is kept if the state cell is repaired with the same inputs.`
 // %%
-md`- An action called directly from Observable JavaScript, outside an event handler, a listener or a view control, while a call is in flight. Today it is counted as part of the call in flight, not queued.`
+md`- \`set\`, \`update\` or \`read\` on a handle from outside an action, such as Observable JavaScript holding \`viewof c\`, while a call is in flight. Today it does not throw and is counted as part of the call in flight.`
+// %%
+md`- An action called directly from Observable JavaScript, outside an event handler or a listener, while a call is in flight. Today it is counted as part of the call in flight, not queued.`
 // %%
 spec_coverage = Generators.observe((notify) => {
   // drawn again when a test settles and when a cell of this module is added, edited or deleted; a test that

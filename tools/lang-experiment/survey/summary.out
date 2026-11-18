@@ -1,0 +1,58 @@
+notebook modules 433; vendored/blob modules 11; non-module JS blocks 40
+cells 12916 (code 9729, prose 3066, blob 32, loaders 89); import variables 2499
+lines 264657 (code 233762, prose 26046, blob 4570)
+by code lines: Y 17%  H 11%  N 72%
+literal-data cells (Y): 913 cells, 12168 lines; Y on logic lines 13%
+by code cells: Y 28%  H 17%  N 55%
+modules >=80% Y+H by code lines: 23 of 427 (>=80% Y alone: 13)
+modules >=50% Y+H by code lines: 64 of 427 (>=50% Y alone: 32)
+  of the 259 with >=150 code lines: >=80% Y+H 9
+  of the 259 with >=150 code lines: >=50% Y+H 33
+
+blocker	primary cells	primary lines	sole-N-blocker cells	sole lines	any cells	any lines
+DOM	1184	63687	384	9805	1355	85078
+RT	758	37024	239	3840	758	37024
+FNH	1150	21559	1072	20524	2473	76968
+JSX	810	14523	613	11749	1268	46787
+FN	1486	14203	1466	12605	2518	62770
+CLASS	307	10771	84	1305	529	38349
+MUT	263	8752	149	1890	441	28720
+MUTARG	83	7134	83	7134	473	61257
+LIB	198	4938	124	2576	284	14186
+WEBAPI	133	3591	88	1917	465	34598
+DATE	83	3022	71	2483	177	12922
+INPUTS	459	2830	459	2830	610	4630
+TIMER	63	1349	48	852	300	30396
+FILE	59	337	56	304	138	1453
+STORAGE	5	88	4	79	8	244
+BUILTIN	9	71	9	71	91	3978
+
+module	cells	codeCells	codeLines	literalLines	logicLines	Y%logic	H%logic	N%logic	dominant	copies	notebook
+@tomlarkworthy/fast-1d-circular-barcode-matching	67	47	1110	6	1104	85	1	14	LIB	2	lopebooks/notebooks/@tomlarkworthy_fast-1d-circular-barcode-matching.html
+d/d2dffac0e42406e8	79	56	926	43	883	84	2	14	LIB	1	lopebooks/notebooks/@tomlarkworthy_cloudevents-explorer.html
+@tomlarkworthy/api-hosting-with-express	18	10	322	0	322	72	11	17	CLASS	4	lopebooks/notebooks/@tomlarkworthy_blog-first-post.html
+@tomlarkworthy/lopepage-urls	40	31	544	34	510	65	3	31	DOM	258	lopecode/notebooks/@tomlarkworthy_lopepage-urls.html
+@tomlarkworthy/robocoop-5-engine	117	91	1181	16	1165	52	13	35	DOM	17	lopebooks/notebooks/@tomlarkworthy_robocoop-5.html
+@tomlarkworthy/corepox-map	17	15	495	64	431	49	4	47	DOM	1	lopebooks/notebooks/corepox.html
+@tomlarkworthy/corepox-audio	7	6	433	0	433	47	4	49	DOM	1	lopebooks/notebooks/corepox.html
+@tomlarkworthy/code-facts	57	52	1042	3	1039	47	3	51	RT	1	lopebooks/notebooks/tomlarkworthy_code-facts.html
+@tomlarkworthy/svg-lens	352	308	8477	198	8279	42	6	53	DOM	10	lopebooks/notebooks/tomlarkworthy_svg-lens.html
+@spec/modular-arm	246	172	2657	182	2475	41	16	43	MUT	1	lopebooks/notebooks/modular_robot_prototype.html
+@tomlarkworthy/spectral-layout	45	31	825	0	825	40	12	49	LIB	258	lopebooks/notebooks/@tomlarkworthy_spectral-layout.html
+@tomlarkworthy/themes	14	11	429	0	429	39	1	59	DOM	258	lopecode/notebooks/@tomlarkworthy_themes.html
+@tomlarkworthy/lazer-cut-plant-pot	33	23	911	9	902	39	15	46	JSX	1	lopebooks/notebooks/@tomlarkworthy_lazer-cut-plant-pot.html
+@tomlarkworthy/exporter-2	81	64	1804	203	1601	38	2	61	RT	10	lopecode/notebooks/@tomlarkworthy_exporter-2.html
+@tomlarkworthy/bulk-jumpgate	31	25	777	591	186	37	12	52	FN	2	lopebooks/notebooks/@tomlarkworthy_bulk-jumpgate.html
+@tomlarkworthy/corepox-app-impl	14	9	529	24	505	36	0	64	DOM	1	lopebooks/notebooks/corepox.html
+@tomlarkworthy/retro-title-graphic	13	12	225	0	225	35	21	44	JSX	1	lopebooks/notebooks/@tomlarkworthy_retro-title-graphic.html
+@tomlarkworthy/at-write	28	25	1424	22	1402	33	0	67	DATE	18	lopecode/notebooks/atproto.html
+@bumbeishvili/fetcher	33	20	209	22	187	33	2	65	LIB	1	lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html
+@spond/revised-sars-cov-2-analytics-page	86	81	1366	284	1082	32	8	61	FN	1	lopebooks/notebooks/@spond_revised-sars-cov-2-analytics-page.html
+@tomlarkworthy/linux-sbc	51	43	2426	63	2363	31	1	68	MUTARG	1	lopebooks/notebooks/@tomlarkworthy_linux-sbc.html
+@tomlarkworthy/exporter-3	159	140	3752	216	3536	31	4	65	RT	258	lopecode/notebooks/@tomlarkworthy_exporter-3.html
+@tomlarkworthy/computational-blogs-with-claude-code-connectivity	5	3	230	0	230	30	3	67	DOM	1	lopebooks/notebooks/@tomlarkworthy_computational-blogs-with-claude-code-connectivity.html
+@tomlarkworthy/corepox-shipyard	12	11	285	0	285	28	20	52	DOM	1	lopebooks/notebooks/corepox.html
+@tomlarkworthy/coded-landmark-tracking	157	136	7207	82	7125	28	8	64	DOM	1	lopebooks/notebooks/tomlarkworthy_coded-landmark-tracking.html
+
+Y lines needing a rewrite: expect 1561, fetch 1160, console 131, Math.random 221, replace-fn 352, performance 21, unsupported-method 1928, Date.now 201, write-in-body 3, now 30 of 39883
+MUTARG-only cells: 83, 6263 lines would be Y and 871 H after a pure rewrite: Y 20% H 11%

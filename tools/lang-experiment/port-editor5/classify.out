@@ -1,0 +1,27 @@
+category	cells	lines	Y	H	N	P	linesY	linesH	linesN
+md	24	109	0	0	0	24	0	0	0
+reflect	11	193	0	1	10	0	0	11	182
+view	13	439	0	1	12	0	0	39	400
+state	34	110	4	15	15	0	11	38	61
+events	22	486	0	11	11	0	0	101	385
+pure	17	208	1	10	6	0	6	121	81
+cm	9	512	0	0	9	0	0	0	512
+runtime	6	330	0	0	6	0	0	0	330
+test	23	407	0	0	23	0	0	0	407
+total 159 2794
+largest:
+  editor_manager	cm	271	N
+  dragReorder	events	167	N
+  cellEditor	view	153	N
+  compile_and_update	runtime	126	N
+  command_processor	runtime	105	N
+  literalCompletions	cm	84	N
+  editor_refresh_from_runtime	events	75	N
+  auto_attach	view	56	N
+  hotbar	view	56	N
+  editorTemplate	reflect	52	N
+FN	81 cells	1242 lines
+RT	8 cells	489 lines
+DOM	3 cells	248 lines
+JSX	7 cells	213 lines
+MUT	8 cells	69 lines

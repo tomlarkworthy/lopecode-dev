@@ -1,0 +1,21 @@
+R1 hook_prompt, rule_prompt_role, test_rule_role_fires (Y)
+   hook_prompt: ok
+   rule_prompt_role: ok
+   test_rule_role_fires: ok
+R2 openrouter_orderModels (Y) and openrouter_models taking the OJS catalog {ids, vision: Set}
+   openrouter_orderModels: rejected [unknown-type] L2 unknown type ReadonlySet
+   demoMode: ok
+   openrouter_models: rejected [boundary-type] L11 openrouter_catalog: Catalog cannot cross from another language: it is or holds vision: err, which the boundary does not check
+R2b same, the catalog passed as {ids, vision: string[]} by an OJS helper cell
+   openrouter_orderModels: ok
+   demoMode: ok
+   openrouter_models: ok
+R3 rule_turnEnd_unwritten: u.clear() on sessionState.unwritten (caller's Map)
+   rule_turnEnd_unwritten: rejected [mutating-method] L9 write to a Map<string, string>, which is not Mut
+R4 keyView re-exports the OJS viewof element
+   keyView: ok
+R5 demoMode, endpointBase over OJS values
+   endpointBase: ok
+   demoMode: ok
+R6 rule_turnEnd_zero_tool_calls captures zeroToolCallGate from another module
+   rule_turnEnd_zero_tool_calls: rejected [boundary-type] L2 zeroToolCallGate: (ctx: { kind: string }) => string | null cannot cross from another language: it is or holds a function

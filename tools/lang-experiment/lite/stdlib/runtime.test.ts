@@ -1,6 +1,8 @@
 // Unit tests for lite/stdlib/runtime.ts and prelude.runtime.ts: events and listeners (exactly once),
 // action atomicity, flush atomicity, memo/run-count/island-cache bounds. Run: bun lite/stdlib/runtime.test.ts
-(globalThis as any).requestAnimationFrame = (f: () => void) => setTimeout(f, 1);
+// the Runtime's frames; g6 runs them by hand
+let raf = (f: () => void) => void setTimeout(f, 1);
+(globalThis as any).requestAnimationFrame = (f: () => void) => raf(f);
 const ss = await import("./runtime.ts");
 const P = await import("../../prelude.runtime.ts");
 const T = await import("../toolchain/ss-toolchain.ts");
@@ -8,6 +10,9 @@ const T = await import("../toolchain/ss-toolchain.ts");
 let pass = 0, fail = 0;
 const uncaught: unknown[] = [];
 process.on("uncaughtException", (e) => uncaught.push(e));
+// a promise an action neither awaited nor returned, rejected after its call committed, reaches the host
+const unhandled: unknown[] = [];
+process.on("unhandledRejection", (e) => void unhandled.push(e));
 const ok = (name: string, cond: boolean, detail = "") => {
   if (cond) { pass++; console.log(`pass ${name}`); } else { fail++; console.log(`FAIL ${name}${detail ? ": " + detail : ""}`); }
 };
@@ -320,21 +325,44 @@ await run("g2_groups_either_side_of_a_throw_both_apply", async () => {
   const seen = g.next().value, after = g.next().value;
   ok("g2_one_commit_one_version_bump", P.rt.commits === commits + 1 && seen === 11 && after instanceof Promise, `commits +${P.rt.commits - commits}, seen ${seen}`);
 });
-// States what a cell sees when one action writes two state cells; it asserts only that the observation was made.
-await run("g6_observed_one_action_writing_two_state_cells", async () => {
+// One action writes two state cells: what a reader of both sees, with the Runtime's frames run by hand.
+// onlyB writes b alone, then both writes a and b. In one task (both after some microtasks) the two calls
+// commit together, in one setTimeout(0); a commit per call would tear here. The reader
+// never sees one new and one old value. In two tasks with no frame between, the reader sees b from the
+// first call beside a from the second: b's generator delivered -1 and is pulled again only on the next frame.
+await run("g6_a_reader_of_two_state_cells_one_action_wrote", async () => {
   const L = await load(`const a = (): StateCell<number> => state(0);
 export const b = (): StateCell<number> => state(0);
-export const pair = (a: number, b: number) => a * 100 + b;
-export const both = (a: State<number>, b: State<number>) => action(() => { a.set(1); b.set(2); });`);
-  const seen: number[] = [];
-  L.m.variable({ fulfilled: (v: number) => seen.push(v) }).define(["pair"], (p: number) => p);
+export const pair = (a: number, b: number) => [a, b];
+export const both = (a: State<number>, b: State<number>) => action((k: number) => { a.set(k); b.set(k); });
+export const onlyB = (b: State<number>) => action((k: number) => b.set(k));`);
+  const seen: [number, number][] = [];
+  L.m.variable({ fulfilled: (v: [number, number]) => seen.push(v) }).define(["pair"], (p: [number, number]) => p);
   await L.settle();
-  const before = L.evals("pair");
-  L.value("both")();
-  await L.settle();
-  const runs = L.evals("pair") - before;
-  console.log(`  g6: one action writes a and b; pair saw ${JSON.stringify(seen)}, ran ${runs} more time(s)`);
-  ok("g6_observation_made", seen.length > 0 && seen[seen.length - 1] === 102, JSON.stringify(seen));
+  const queued: (() => void)[] = [];
+  raf = (f) => void queued.push(f);
+  const commits = (n: number) => until(() => P.rt.commits >= n);
+  const frames = async () => { for (let i = 0; i < 100; i++) { await tick(0); const fs = queued.splice(0); if (!fs.length) return; fs.forEach((f) => f()); } };
+  const torn = (from: number) => seen.slice(from).filter(([x, y]) => x !== y && !(y === -1 && x === seen[from - 1][0]));
+  try {
+    const both = L.value("both"), onlyB = L.value("onlyB");
+    const at1 = seen.length, c1 = P.rt.commits;
+    // b's waiter has delivered -1 to its generator before both runs, in the same task
+    onlyB(-1);
+    for (let i = 0; i < 5; i++) await null;
+    both(1);
+    await commits(c1 + 1); await frames();
+    const sameTask = torn(at1);
+    const at2 = seen.length, c2 = P.rt.commits;
+    onlyB(-1);
+    await commits(c2 + 1);
+    both(2);
+    await commits(c2 + 2); await frames();
+    const twoTasks = torn(at2);
+    console.log(`  g6: one task saw ${JSON.stringify(seen.slice(at1, at2))}; two tasks, no frame between, saw ${JSON.stringify(seen.slice(at2))}`);
+    ok("g6_one_task_never_one_new_and_one_old", sameTask.length === 0 && JSON.stringify(seen[at2 - 1]) === "[1,1]", JSON.stringify(seen.slice(at1, at2)));
+    ok("g6_two_tasks_before_one_frame_show_b_from_the_first_call", JSON.stringify(twoTasks) === "[[2,-1]]" && JSON.stringify(seen[seen.length - 1]) === "[2,2]", JSON.stringify(seen.slice(at2)));
+  } finally { raf = (f) => void setTimeout(f, 1); await frames(); L.runtime.dispose(); }
 });
 
 // The broken state (2026-11-15): every edit is stored; a cell the checker does not accept compiles to a
@@ -530,38 +558,42 @@ await run("p2_the_rejected_copy_shape_breaks_it", async () => {
   ok("p2_schedules_disagree_when_the_check_is_bypassed", got[0] !== got[1], got.join(" "));
 });
 
-// A state cell is one variable; a State<T> is the address of that variable, looked up when it is written.
-const statesOf = (src: string, outside: { name: string; ref?: boolean }[] = []) => Object.fromEntries([...ss.cellStates(ss.checkCells(T.splitCells(src, true), true, outside).result)].map(([n, x]: any) => [n, x.state]));
-await run("w1_a_write_to_a_state_cell_in_error_throws_and_keeps_none", async () => {
+// A state cell is two variables, viewof <name> (the handle) and <name> (the value); a State<T> parameter is an
+// input on the handle, so a cell holding it is blocked while the state cell is in error.
+const statesOf = (src: string, outside: { name: string; view?: boolean }[] = []) => Object.fromEntries([...ss.cellStates(ss.checkCells(T.splitCells(src, true), true, outside).result)].map(([n, x]: any) => [n, x.state]));
+await run("w1_a_cell_holding_the_state_of_a_cell_in_error_is_blocked", async () => {
   const SRC = `const base = () => 1;
 const n = (base: number): StateCell<number> => state(base);
 const other = (): StateCell<number> => state(0);
 const both = (n: State<number>, other: State<number>) => action(() => { other.update((v) => v + 1); n.update((v) => v + 1); });`;
   const p = await load(SRC);
-  ok("w1_one_variable_per_state_cell", [...p.m._scope.keys()].every((k: string) => !k.startsWith("viewof ")) && JSON.stringify(p.vars.get("both")._inputs.map((i: any) => i._name)) === JSON.stringify(["@variable", "ss"]), JSON.stringify([...p.m._scope.keys()]));
-  const call = () => { try { p.value("both")(); return ""; } catch (e) { return (e as Error).message; } };
+  ok("w1_two_variables_per_state_cell", JSON.stringify(p.vars.get("both")._inputs.map((i: any) => i._name)) === JSON.stringify(["ss", "viewof n", "viewof other"]) && p.m._scope.has("viewof n"), JSON.stringify([...p.m._scope.keys()]));
+  const error = async () => { try { await p.m.value("both"); return ""; } catch (e) { return (e as Error).message; } };
+  const held = p.value("both");
   const base = p.vars.get("base");
   base.define("base", [], () => { throw new Error("broken base"); });
   await p.settle();
-  const inError = call();
+  const inError = await error();
+  ok("w1_input_threw", inError === "broken base", inError);
+  // an action taken before the break still holds the handle: its write goes to n's last store, unseen
+  const stale = (() => { try { held(); return ""; } catch (e) { return (e as Error).message; } })();
   await p.settle();
-  ok("w1_input_threw", /^State n: n is in error: broken base/.test(inError) && p.value("other") === 0, `${inError}; other ${p.value("other")}`);
   base.define("base", [], () => 1);
   await p.settle();
-  const back = call();
+  ok("w1_a_held_action_writes_while_n_is_in_error_and_the_repair_keeps_it", stale === "" && p.value("other") === 1 && p.value("n") === 2, `${stale}; other ${p.value("other")}, n ${p.value("n")}`);
+  p.value("both")();
   await p.settle();
-  ok("w1_repaired_input_writes_again", back === "" && p.value("other") === 1 && p.value("n") === 2, `${back}; other ${p.value("other")}, n ${p.value("n")}`);
+  ok("w1_repaired_input_with_the_same_value_keeps_the_state", p.value("other") === 2 && p.value("n") === 3, `other ${p.value("other")}, n ${p.value("n")}`);
   p.define(`const n = (base: number): StateCell<number> => state("x");`);
   await p.settle();
-  const rejected = call();
-  await p.settle();
-  ok("w1_state_cell_does_not_check", /^State n: n is in error: n does not check: \[/.test(rejected) && p.value("other") === 1, `${rejected}; other ${p.value("other")}`);
+  const rejected = await error();
+  ok("w1_state_cell_does_not_check", /^n does not check: \[/.test(rejected), rejected);
   const holder = statesOf(SRC.replace("state(base);", 'state("x");'));
-  ok("w1_a_cell_holding_the_state_is_not_blocked", holder.n === "rejected" && holder.both === "ok", JSON.stringify(holder));
-  p.vars.get("n").delete(); p.vars.delete("n");
+  ok("w1_the_holder_is_blocked_by_it", holder.n === "rejected" && holder.both === "blocked", JSON.stringify(holder));
+  for (const k of ["n", "viewof n"]) { p.vars.get(k).delete(); p.vars.delete(k); }
   await p.settle();
-  const missing = call();
-  ok("w1_state_cell_deleted", /^State n: n is not defined/.test(missing), missing);
+  const missing = await error();
+  ok("w1_state_cell_deleted", /viewof n is not defined/.test(missing), missing);
   p.runtime.dispose();
 });
 await run("w2_a_remade_state_cell_keeps_its_handles", async () => {
@@ -578,7 +610,7 @@ const h2 = (vars: State<{ readonly n: number }>) => [vars];`);
   setN(5);
   await p.settle();
   ok("w2_the_old_handle_writes_the_new_store", p.value("vars").n === 5 && p.evals("setN") === setN0 && p.value("setN") === setN, `${JSON.stringify(p.value("vars"))}, setN ran ${p.evals("setN") - setN0} more times`);
-  ok("w2_one_handle_per_module_and_name", p.value("h1")[0] === p.value("h2")[0] && ss.equals(p.value("h1"), p.value("h2")), "");
+  ok("w2_one_handle_per_state_cell", p.value("h1")[0] === p.value("h2")[0] && ss.equals(p.value("h1"), p.value("h2")), "");
   p.runtime.dispose();
 });
 await run("w3_a_state_cell_nothing_observes_is_written", async () => {
@@ -602,11 +634,11 @@ const add = (hidden: State<number>) => action(() => hidden.update((v) => v + 1))
 });
 await run("w4_a_state_cell_imported_from_another_module", async () => {
   const runtime = new Runtime();
-  const compileInto = (m: any, src: string, outside: { name: string; ref?: boolean }[] = []) => {
+  const compileInto = (m: any, src: string, outside: { name: string; view?: boolean }[] = []) => {
     const ctx = T.contextFromCheck(ss.checkCells(T.splitCells(src, true), true, outside).result);
     const values = new Map<string, unknown>();
     for (const t of T.splitCells(src, true)) for (const d of T.compileCell(t, true, ctx)) {
-      if (!ctx.accepted!.has(d.name)) throw new Error(`${d.name} not accepted: ${ctx.why?.get(d.name)}`);
+      if (!ctx.accepted!.has(T.cellOfVariable(d.name))) throw new Error(`${d.name} not accepted: ${ctx.why?.get(d.name)}`);
       m.variable({ fulfilled: (x: unknown) => values.set(d.name, x) }).define(d.name, d.inputs, (0, eval)(`(${d.definition})`));
     }
     return values;
@@ -619,7 +651,8 @@ const seenB = (count: number) => count;`;
     for (const x of [a, b]) x.define("ss", [], () => ss);
     const va = compileInto(a, A);
     b.import("count", a);
-    const vb = compileInto(b, B, [{ name: "count", ref: true }]);
+    b.import("viewof count", a);
+    const vb = compileInto(b, B, [{ name: "count", view: true }]);
     return { a, b, va, vb };
   });
   await until(() => instances.every((i) => typeof i.vb.get("bumpB") === "function"));
@@ -629,7 +662,7 @@ const seenB = (count: number) => count;`;
   const got = instances.map((i) => [i.va.get("count"), i.vb.get("seenB")]);
   ok("w4_the_write_reaches_the_source_of_its_own_instance", JSON.stringify(got) === "[[0,0],[10,10]]", JSON.stringify(got));
   const plain = statesOf(B, [{ name: "count" }]);
-  ok("w4_an_import_that_is_not_a_state_cell_is_boundary_state", plain.bumpB === "rejected", JSON.stringify(plain));
+  ok("w4_an_import_with_no_viewof_is_boundary_state", plain.bumpB === "rejected", JSON.stringify(plain));
   runtime.dispose();
 });
 // Async actions: one top-level call at a time for the whole runtime; a call's writes commit together
@@ -640,8 +673,9 @@ await run("q1_writes_after_an_await_commit_once_when_the_call_finishes", async (
   const n = refOf(0, "n"), m = refOf(0, "m");
   const d = deferred();
   const load = asyncNamed("load", async () => { n.set(1); await d.p; m.set((P.read(n) as number) + 1); n.update((v: number) => v + 10); });
+  const commits = P.rt.commits;
   load();
-  ok("q1_in_flight_and_no_commit_scheduled", P.actionQueue().inFlight === true && !P.rt.flushScheduled && P.rt.ready.size === 0);
+  ok("q1_in_flight_and_nothing_committed", P.actionQueue().inFlight === true && P.rt.commits === commits && val(n) === 0);
   d.resolve();
   await flushed();
   ok("q1_all_writes_commit_and_read_sees_own_write", val(n) === 11 && val(m) === 2, `n ${val(n)} m ${val(m)}`);
@@ -688,6 +722,7 @@ await run("q4_a_queued_call_that_throws_is_reported", async () => {
   ok("q4_a_sync_throw_from_a_call_started_at_once_still_throws", (() => { try { click(() => bad()); return false; } catch (e) { return String((e as Error).message) === "queued throw"; } })(), msg);
 });
 await run("q5_nested_async_actions", async () => {
+  unhandled.length = 0;
   const x = refOf(0, "x");
   const d1 = deferred(), d2 = deferred();
   const inner = asyncNamed("inner", async () => { await d1.p; x.update((v: number) => v + 1); });
@@ -697,10 +732,12 @@ await run("q5_nested_async_actions", async () => {
   outer();
   d1.resolve();
   await until(() => outerDone);
-  ok("q5_held_by_the_action_it_did_not_await", P.actionQueue().inFlight === true && !P.rt.flushScheduled && val(x) === 0, JSON.stringify(P.actionQueue()));
-  d2.resolve();
   await flushed();
-  ok("q5_awaited_and_not_awaited_both_part_of_the_call", val(x) === 110, `x ${val(x)}`);
+  ok("q5_not_held_by_the_action_it_did_not_await", P.idle() && val(x) === 10, `${JSON.stringify(P.actionQueue())} x ${val(x)}`);
+  d2.resolve();
+  await until(() => unhandled.length > 0);
+  await flushed();
+  ok("q5_a_write_after_the_commit_throws_outside_an_action", val(x) === 10 && unhandled.length === 1 && /outside an action/.test(String((unhandled[0] as Error)?.message)), `x ${val(x)}, ${unhandled.map(String)}`);
 });
 await run("q6_a_write_from_a_cell_evaluation_during_a_paused_call_throws", async () => {
   const x = refOf(0, "x");
@@ -730,10 +767,11 @@ await run("q7_async_listener_gets_every_value_once_in_order", async () => {
   C.release(l); C.release(h);
 });
 
-await run("q8_a_nested_rejection_fails_the_call_unless_caught", async () => {
-  const cases: [string, string, number[]][] = [["detached", "not awaited", [0, 0]], ["awaited", "awaited, not caught", [0, 0]], ["caught", "awaited and caught", [1, 1]]];
-  for (const [mode, label, want] of cases) {
-    errors.length = 0;
+await run("q8_a_nested_rejection_fails_the_call_when_it_reaches_the_call", async () => {
+  // detached: the call commits when outer returns; the rejection reaches the host as unhandled
+  const cases: [string, string, number[], number, number][] = [["detached", "not awaited", [1, 0], 0, 1], ["awaited", "awaited, not caught", [0, 0], 1, 0], ["caught", "awaited and caught", [1, 1], 0, 0]];
+  for (const [mode, label, want, consoled, host] of cases) {
+    errors.length = 0; unhandled.length = 0;
     const x = refOf(0, "x"), y = refOf(0, "y");
     const d = deferred();
     const inner = asyncNamed("inner8", async () => { await d.p; throw new Error("inner rejected"); });
@@ -744,12 +782,26 @@ await run("q8_a_nested_rejection_fails_the_call_unless_caught", async () => {
       else { try { await inner(); } catch (e) { y.set(1); } }
     });
     outer();
+    await flushed();
     d.resolve();
+    if (host) await until(() => unhandled.length >= host);
     await flushed();
     ok(`q8_${mode}_${label.replace(/[ ,]+/g, "_")}`, JSON.stringify([val(x), val(y)]) === JSON.stringify(want), `${label}: x ${val(x)} y ${val(y)}`);
     const reported = errors.filter((e) => e.includes("inner rejected")).length;
-    ok(`q8_${mode}_reported_${mode === "caught" ? "never" : "once"}`, reported === (mode === "caught" ? 0 : 1), JSON.stringify(errors));
+    ok(`q8_${mode}_reported_${consoled}_to_the_console_${host}_to_the_host`, reported === consoled && unhandled.length === host, `${JSON.stringify(errors)} unhandled ${unhandled.length}`);
   }
+});
+await run("q9_an_action_that_awaits_then_awaits_another_runs_it_in_its_own_call", async () => {
+  const x = refOf(0, "x");
+  const d = deferred();
+  const inner = asyncNamed("inner9", async () => { x.update((v: number) => v + 1); return "inner done"; });
+  const twice = asyncNamed("twice9", (k: number) => { x.update((v: number) => v + k); return k * 2; });
+  let got: unknown[] = [];
+  const outer = asyncNamed("outer9", async () => { await d.p; got = [await inner(), twice(3)]; x.update((v: number) => v * 10); });
+  click(() => outer());
+  d.resolve();
+  await flushed();
+  ok("q9_inner_ran_inside_the_call_and_returned", JSON.stringify(got) === '["inner done",6]' && val(x) === 40 && P.idle(), `${JSON.stringify(got)} x ${val(x)} ${JSON.stringify(P.actionQueue())}`);
 });
 
 console.error = realError;

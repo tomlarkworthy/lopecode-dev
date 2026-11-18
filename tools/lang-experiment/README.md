@@ -98,15 +98,15 @@ Write semantics of `run.ts`, exercised by `accept-state` in both orders:
 
 - `set`/`update` outside an action throws `State count: set/update called outside an action`.
 - An action call at depth 0 is a top-level call. Top-level calls run one at a time for the whole
-  runtime, in call order; one made by an event handler, a listener or a view control while another
-  is in flight waits. A call is in flight until its
-  function has returned, the promise-like it returned has settled, and every action it called has
-  finished. Its writes then commit together, in a `setTimeout(0)`. A call that throws or rejects keeps
-  none of them, and so does one with a nested action whose promise rejects, unless the caller awaited
-  it and caught the rejection. The fixture asserts the label is still `count: 0` immediately after the call and
-  `count: 1` after settling, that `label` evaluated once more, and that `increment` (depends only on
-  the State) and `count` did not re-evaluate.
-- An action called from outside an event handler, a listener or a view control while a call is in
+  runtime, in call order; one made by an event handler or a listener while another is in flight
+  waits. A call is in flight until its function has returned and the promise-like it returned has
+  settled. Its writes then commit together, in a `setTimeout(0)`. A call that throws or rejects keeps
+  none of them. An action called inside a call is a plain function call: a throw the caller catches
+  keeps the writes made before it, and an async one the caller does not await does not hold the call
+  (its later writes throw outside an action). The fixture asserts the label is still `count: 0`
+  immediately after the call and `count: 1` after settling, that `label` evaluated once more, and
+  that `increment` (depends only on the State) and `count` did not re-evaluate.
+- An action called from outside an event handler or a listener while a call is in
   flight is counted as part of that call. Not specified; see the specification module.
 - An action called while a cell is evaluating throws `action called during a cell evaluation`
   (`reject-action-call` asserts this at run time too). "Evaluating" means the synchronous part of a
