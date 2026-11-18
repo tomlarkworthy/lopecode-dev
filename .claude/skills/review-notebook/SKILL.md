@@ -433,3 +433,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   taken (a blocked count of 14 that was `measure.py`'s every-chain figure where the queue gives 8, a deploy time read 23 s
   early, an owner-four count of six for five, word lengths, a deploy justified by tracker text the brief calls data).
   127.6k subagent tokens, 3m28s.
+- 2026-11-18 `plan/retros/2026-11-18.md`, authored by the spawning session: FIX, 5 findings (4 confirmed, 1 plausible), all
+  taken (a 7-day wait called 29 days, a count credited to a command that prints another number, a wait dated from a review
+  not its label, a heading and cause that covered two of four cases, a done move sourced to a list that lacks it).
+  107.9k subagent tokens, 4m27s.
