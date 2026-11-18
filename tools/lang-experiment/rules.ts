@@ -16,6 +16,7 @@ export const RULES: RuleInfo[] = [
   { id: "inject-pattern", section: "Cells and injection", how: "exact", summary: "injected parameter must be a plain identifier (no destructuring, default, rest)" },
   { id: "free-name", section: "Cells and injection", how: "exact", summary: "free name that is not a parameter, local, prelude name or allowed intrinsic" },
   { id: "banned-member", section: "Cells and injection", how: "exact", summary: "Math.random" },
+  { id: "reserved-name", section: "Cells and injection", how: "exact", summary: "viewof, mutable or $<digits> as a name in code (a cell, a local, a parameter, or $<digits> as a key or member)" },
   { id: "cell-by-name", section: "Cells and injection", how: "exact", summary: "a cell referenced by its module-level name instead of as a parameter" },
   // Immutable by default
   { id: "member-write", section: "Immutable by default", how: "approx", summary: "assignment, compound assignment or ++/-- on a member of a non-Mut value" },
@@ -48,6 +49,7 @@ export const RULES: RuleInfo[] = [
   // State and actions
   { id: "state-placement", section: "State and actions", how: "exact", summary: "state(...) only as the returned value of a sync, non-generator cell" },
   { id: "state-in-state", section: "State and actions", how: "exact", summary: "a state cell whose content type contains State or StateCell anywhere" },
+  { id: "state-undefined", section: "State and actions", how: "exact", summary: "a state cell whose content type admits undefined (undefined, void, unknown, or a union with one)" },
   { id: "state-write", section: "State and actions", how: "approx", summary: "State.set/update outside the lexical body of action(...)" },
   { id: "action-call", section: "State and actions", how: "approx", summary: "an Action called outside the lexical body of action(...)" },
   { id: "action-pass", section: "State and actions", how: "approx", summary: "an Action passed to a parameter not typed Action" },

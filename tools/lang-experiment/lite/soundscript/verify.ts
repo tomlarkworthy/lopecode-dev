@@ -244,10 +244,10 @@ async function testsOn(page: Page, label: string, boot = true) {
       const st: Record<string, string> = {};
       for (const v of rt._variables) if (typeof v._name === "string" && /^test_(ss_|breakout|compile|examples)/.test(v._name) && v._module && [...rt.mains.values()].includes(v._module))
         st[v._name] = v._value !== undefined ? "ran" : "pending";
-      const ss = [...rt._variables].find((v: any) => v._name === "ss" && v._value?.running)?._value;
+      const ss = [...rt._variables].find((v: any) => v._name === "soundscript" && v._value?.running)?._value;
       const bm = rt.mains.get("@tomlarkworthy/soundscript-breakout");
       const ball = bm?._scope.get("ballView");
-      return { ran: Object.entries(st).filter(([, x]) => x !== "pending").map(([n]) => n), pending: Object.keys(st).length, running: ss?.running(), pulling: ss?.pulling(), ballRuns: ball ? ss?.evals(ball._definition) : null };
+      return { ran: Object.entries(st).filter(([, x]) => x !== "pending").map(([n]) => n), pending: Object.keys(st).length, running: ss?.running(), pulling: ss?.pulling(), ballRuns: ball ? ss?.evals(ss.idOf(String(ball._definition))) : null };
     });
     report(idle.ran.length === 0 && idle.pulling === 0 && (idle.ballRuns ?? 0) <= 1, `${label}: at boot ${idle.pending} test cells are pending and none ran (${JSON.stringify(idle.ran)}); listeners attached ${idle.running}, clocks pulled ${idle.pulling}; the page's ballView ran ${idle.ballRuns} times`);
   }
@@ -279,9 +279,9 @@ async function testsOn(page: Page, label: string, boot = true) {
 // brick, and paddleView, onTick and ticks not at all.
 const playFrames = (page: Page, n: number) => page.evaluate(async (n) => {
   const bm = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-breakout");
-  const ss = bm._scope.get("ss")._value;
+  const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
   const names = ["ballView", "bricksView", "paddleView", "onTick", "ticks"];
-  const runs = () => Object.fromEntries(names.map((c) => [c, ss.evals(bm._scope.get(c)._definition)]));
+  const runs = () => Object.fromEntries(names.map((c) => [c, ss.evals(ss.idOf(String(bm._scope.get(c)._definition)))]));
   const world = () => bm._scope.get("world")._value;
   let last = world(), seq = "", r0: Record<string, number> | null = null, b0 = 0, t0 = 0, waited = 0;
   // the cap on frames before the first change only turns a game that never starts into a failure
@@ -340,7 +340,7 @@ async function speed() {
     const lang = core._scope.get("ss_language")._value;
     const v = tut._scope.get("width");
     const src = await lang.decompile([v]);
-    const ss = core._scope.get("ss")._value;
+    const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
     const t: number[] = [];
     lang.check(src, [v]);
     const c0 = ss.checksRun(), e0 = ss.stats.evals;
@@ -371,7 +371,7 @@ async function speed() {
   report(playOk(p, FRAMES), `breakout: after a click on play, ${playSays(p, FRAMES)}`);
   measure(`Breakout after a click on play: ${p.perSecond} world changes/s in ${p.framesPerSecond} animation frames/s`);
   // typing in a cell editor with the tutorial open: each lint checks the module once, and nothing runs or is stored
-  await page.waitForFunction(() => (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript")._scope.get("ss")._value.pulling() === 0, null, { timeout: 10000 }).catch(() => {});
+  await page.waitForFunction(() => [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value.pulling() === 0, null, { timeout: 10000 }).catch(() => {});
   // the specification's tests run their own modules from load (S7.4 streams for many frames); the counts are of typing alone
   await page.waitForFunction((names: string[]) => names.every((n) => { const v = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-spec")?._scope.get(n); return !v || !v._reachable || v._value !== undefined || v._error !== undefined; }), SPEC_TESTS, { timeout: 180000 }).catch(() => {});
   const ed = await openEditor(page, TUTORIAL, "half");
@@ -381,7 +381,7 @@ async function speed() {
     await page.keyboard.press("End");
     const base = await page.evaluate(() => {
       const w = window as any, rt = w.__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript"), tut = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
-      const lang = core._scope.get("ss_language")._value, ss = core._scope.get("ss")._value;
+      const lang = core._scope.get("ss_language")._value, ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
       w.__lint = { n: 0, last: null };
       if (!lang.__lintWrapped) { const lint = lang.lint; lang.lint = (src: string, ...a: any[]) => { const r = lint(src, ...a); w.__lint.n++; w.__lint.last = src; return r; }; lang.__lintWrapped = true; }
       w.__defs = new Map([...rt._variables].filter((v: any) => v._module === tut).map((v: any) => [v, v._definition]));
@@ -393,7 +393,7 @@ async function speed() {
     await page.waitForFunction((doc) => (window as any).__lint.last === doc, doc, { timeout: 10000 }).catch(() => {});
     const r = await page.evaluate(([base, doc]: any) => {
       const w = window as any, rt = w.__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript"), tut = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
-      const ss = core._scope.get("ss")._value;
+      const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
       const redefined = [...rt._variables].filter((v: any) => v._module === tut && w.__defs.get(v) !== v._definition).map((v: any) => v._name);
       return { lints: w.__lint.n, linted: w.__lint.last === doc && doc.includes(" + 0".repeat(8)), checks: ss.checksRun() - base.checks, evals: ss.stats.evals - base.evals, redefined, longtasks: w.__longtasks.filter((e: any) => e.at >= base.t0).map((e: any) => Math.round(e.ms)) };
     }, [base, doc]);
@@ -434,7 +434,7 @@ async function editorOn(page: Page, label: string, module: string, cell: string,
     const find = (name: string, mod?: any) => [...rt._variables].find((v: any) => v._name === name && (!mod || v._module === mod));
     const mod = rt.mains.get(module);
     const inc = find(cell, mod);
-    const editors = find("editors")?._value, EditorView = find("EditorView")?._value, ss = find("ss", rt.mains.get("@tomlarkworthy/soundscript"))._value;
+    const editors = find("editors")?._value, EditorView = find("EditorView")?._value, ss = find("soundscript", rt.mains.get("@tomlarkworthy/soundscript"))._value;
     const until = async (fn: () => any, what: string, ms = 15000) => {
       const t0 = Date.now();
       for (;;) { const got = await fn(); if (got) return got; if (Date.now() - t0 > ms) throw new Error(`${what} not reached in ${ms} ms`); await new Promise((r) => setTimeout(r, 100)); }
@@ -554,7 +554,8 @@ let tagN = 0;
 const tagEditor = (page: Page, module: string, cell: string) => page.evaluate(async ([module, cell, tag]) => {
   const rt = (window as any).__ojs_runtime;
   const mod = rt.mains.get(module);
-  const v = [...rt._variables].find((v: any) => v._module === mod && v._name === cell);
+  // a viewof cell (a state cell among them) is drawn, and edited, by its viewof variable
+  const v = mod._scope.get(`viewof ${cell}`) ?? [...rt._variables].find((v: any) => v._module === mod && v._name === cell);
   const editors = [...rt._variables].find((v: any) => v._name === "editors")?._value;
   for (let i = 0; i < 150; i++) {
     const host = editors?.get(v);
@@ -747,7 +748,7 @@ async function completion(page: Page) {
     const rt = (window as any).__ojs_runtime;
     const find = (n: string, m?: any) => [...rt._variables].find((v: any) => v._name === n && (!m || v._module === m));
     const lang = find("ss_language")._value, cellsOf = find("ss_moduleCells")._value;
-    const work = find("ss", rt.mains.get(core))._value.completionWork;
+    const work = find("soundscript", rt.mains.get(core))._value.completionWork;
     const missed: string[] = [], times: number[] = [];
     let n = 0;
     const w0 = { ...work };
@@ -871,13 +872,13 @@ async function editorFeatures(page: Page) {
 async function uiPaths(page: Page, saved: string) {
   const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
   await tab(CORE);
-  await page.waitForFunction(() => { const core = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript"); return [...document.querySelectorAll(".observablehq")].some((n: any) => n.isConnected && n.variable?._module === core && n.variable?._name === "tally"); }, null, { timeout: 10000 }).catch(() => {});
-  // a state cell as one cell: one rendered node for tally and viewof tally, and its editor shows the state cell source
+  await page.waitForFunction(() => { const core = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript"); return [...document.querySelectorAll(".observablehq")].some((n: any) => n.isConnected && n.variable?._module === core && n.variable?._name === "viewof tally"); }, null, { timeout: 10000 }).catch(() => {});
+  // a state cell as one cell: one rendered node for tally and viewof tally (viewof tally's, as Observable draws a viewof cell), and its editor shows the state cell source
   const nodes = await page.evaluate(() => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
     return [...document.querySelectorAll(".observablehq")].filter((n: any) => n.variable?._module === core && /^(viewof )?tally$/.test(n.variable?._name)).map((n: any) => n.variable._name);
   });
-  report(nodes.length === 1 && nodes[0] === "tally", `ui: the state cell tally renders as one cell (${JSON.stringify(nodes)})`);
+  report(nodes.length === 1 && nodes[0] === "viewof tally", `ui: the state cell tally renders as one cell (${JSON.stringify(nodes)})`);
   const tally = await openEditor(page, CORE, "tally");
   const tallyText = tally ? await editorText(tally) : null;
   report(!!tallyText && tallyText.includes("const tally = (): StateCell<number> => state(0);"), `ui: clicking tally's hotbar opens its state cell source: ${JSON.stringify(tallyText)}`);
@@ -996,7 +997,7 @@ async function readOnly<T>(label: string, f: () => Promise<T>): Promise<T> {
 async function neverRuns(page: Page, label: string) {
   return readOnly(`neverRuns (${label})`, () => page.evaluate(async ([t, c, sneak, broken]) => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get(t), core = rt.mains.get(c);
-    const ss = core._scope.get("ss")._value;
+    const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
     const raised = async (n: string) => { try { await mod.value(n); return "a value"; } catch (e) { return String((e as Error)?.message ?? e); } };
     const text = (n: string) => { const v = mod._scope.get(n); return v ? ss.decompileVariable(String(v._definition)) : null; };
     const st = (await core.value("ss_check"))(mod).states;
@@ -1071,7 +1072,7 @@ async function brokenState(savedTo: string) {
 async function breakStep(page: Page) {
   const BR = "@tomlarkworthy/soundscript-breakout";
   const probe = () => page.evaluate((b: string) => {
-    const rt = (window as any).__ojs_runtime, bm = rt.mains.get(b), ss = bm._scope.get("ss")._value;
+    const rt = (window as any).__ojs_runtime, bm = rt.mains.get(b), ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
     const w = bm._scope.get("world")._value;
     const hs = [...rt._variables].filter((v: any) => v._module === bm && ss.isEvents?.(v._value)).map((v: any) => v._value);
     return { score: w.score, bricks: w.bricks.length, lives: w.lives, y: w.ball.y, playing: bm._scope.get("playing")._value, listeners: ss.running(hs), clocks: ss.pulling(hs) };
@@ -1114,7 +1115,7 @@ async function afterReload(page: Page) {
   const w = await valueOf(page, TUTORIAL, "width"), q = await valueOf(page, TUTORIAL, "quadrupled");
   const text = await page.evaluate(() => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
-    const ss = [...rt._variables].find((v: any) => v._name === "ss" && v._module === rt.mains.get("@tomlarkworthy/soundscript"))._value;
+    const ss = [...rt._variables].find((v: any) => v._name === "soundscript" && v._module === rt.mains.get("@tomlarkworthy/soundscript"))._value;
     const v = [...rt._variables].find((v: any) => v._module === mod && v._name === "quadrupled");
     return v ? ss.decompileVariable(String(v._definition)) : null;
   });
@@ -1125,7 +1126,7 @@ async function deleteStops(page: Page) {
   const r = await page.evaluate(async () => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get("@tomlarkworthy/soundscript-breakout");
     const get = (n: string) => [...rt._variables].find((v: any) => v._module === mod && v._name === n);
-    const ss = [...rt._variables].find((v: any) => v._name === "ss" && v._module === rt.mains.get("@tomlarkworthy/soundscript"))._value;
+    const ss = [...rt._variables].find((v: any) => v._name === "soundscript" && v._module === rt.mains.get("@tomlarkworthy/soundscript"))._value;
     const frame = () => new Promise((res) => requestAnimationFrame(res));
     // the frame cap only turns a hang into a failure
     const until = async (f: () => boolean, n = 300) => { for (let i = 0; i < n && !f(); i++) await frame(); return f(); };
@@ -1147,7 +1148,7 @@ async function deleteStops(page: Page) {
 async function instanceStops(page: Page) {
   const r = await page.evaluate(async () => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript"), bm = rt.mains.get("@tomlarkworthy/soundscript-breakout");
-    const ss = core._scope.get("ss")._value, ss_instance = await core.value("ss_instance");
+    const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value, ss_instance = await core.value("ss_instance");
     const frame = () => new Promise((res) => requestAnimationFrame(res));
     // the frame cap only turns a hang into a failure
     const until = async (f: () => boolean, n = 300) => { for (let i = 0; i < n && !f(); i++) await frame(); return f(); };
@@ -1173,7 +1174,7 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
   const r = await C.page.evaluate(async () => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
     const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
-    const lang = get("ss_language")._value, ss = get("ss")._value;
+    const lang = get("ss_language")._value, ss = get("soundscript")._value;
     const frames = (n: number) => new Promise<void>((res) => { let i = 0; const f = () => (++i >= n ? res() : requestAnimationFrame(f)); requestAnimationFrame(f); });
     const until = async (f: () => boolean, n = 600) => { for (let i = 0; i < n && !f(); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
     const add = (text: string) => lang.apply(text, [], { module: { module: core }, variables: [get("tripled")] });
@@ -1194,7 +1195,7 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
     const r0 = ss.running(), p0 = ss.pulling();
     for (const c of cells) if (!(await add(c))) return { refused: c };
     const seen = () => get("seen")._value;
-    const runs = (n: string) => ss.evals(get(n)._definition);
+    const runs = (n: string) => ss.evals(ss.idOf(String(get(n)._definition)));
     await until(() => seen()?.count >= 30);
     out.listenersAt30 = ss.running() - r0;
     // the action's dependency is edited twice while values arrive
@@ -1234,7 +1235,7 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
     await frames(30);
     out.applied = applied;
     out.deleted = { pulledBefore: p1, pulledAfter: ss.pulling() - p0, listeners: ss.running() - r0, count: seen().count - c3 };
-    for (const n of ["record", "flip", "weight", "nums", "seen", "viewof seen", "go", "viewof go", "type Seen"]) get(n)?.delete();
+    for (const n of ["record", "flip", "weight", "nums", "seen", "viewof seen", "go", "viewof go", "$ss$type$Seen"]) get(n)?.delete();
     await until(() => !get("seen") && !get("viewof seen") && !get("nums"));
     get("reset")._value();
     return out;
@@ -1310,11 +1311,11 @@ async function commandGuard(page: Page, label: string, module: string, cell: str
         row("copy", copied.length === 0 && /not copied/.test(warns.at(-1)!) && changed(before).length === 0, `refused, nothing copied: ${warns.at(-1)}`);
       }
       // paste: a compiled SoundScript text pasted as Observable JS, by name onto a marked cell and onto a plain cell
-      const compiledOjs = `${cell} = ($ss$) => $ss$.cell(/*{lang:"ss"}*/ () => 1)`;
+      const compiledOjs = `${cell} = ss.cell(/*{lang:"ss"}*/ () => 1)`;
       const plain = find(plainName, mod);
       before = snap(); w0 = warns.length;
       const plainDef = plain ? String(plain._definition) : null;
-      clip = [{ mode: "js", value: compiledOjs }, ...(plain ? [{ mode: "js", value: `${plain._name} = ($ss$) => $ss$.cell(/*{lang:"ss"}*/ () => 2)` }] : [])];
+      clip = [{ mode: "js", value: compiledOjs }, ...(plain ? [{ mode: "js", value: `${plain._name} = ss.cell(/*{lang:"ss"}*/ () => 2)` }] : [])];
       // the cell the paste lands on is in the cell map (a cell added just before may not be yet)
       const findCell0 = await val("findCell");
       await until(() => findCell0(target)?.module?.module, `the cell map holding ${cell}`);
@@ -1422,7 +1423,9 @@ const rawHelpers = () => ({ report, openEditor, typeInto, editorText, diagsOf, v
 // the text of the table row for `cell` in the first table (in DOM order) matching `sel` that has one
 const rowText = (page: Page, sel: string, cell: string) => page.evaluate(([sel, cell]) => {
   // a SoundScript cell of the tutorial: its name, "ok" or "rejected", then its inspector line
-  const node = sel === ".lite-panel" ? document.querySelector(`.lp2-pane[data-module="@tomlarkworthy/soundscript-tutorial"] .observablehq[cell="${cell}"]`) : null;
+  // a state cell is drawn by its handle variable, viewof <name>
+  const at = (c: string) => document.querySelector(`.lp2-pane[data-module="@tomlarkworthy/soundscript-tutorial"] .observablehq[cell="${c}"]`);
+  const node = sel === ".lite-panel" ? at(cell) ?? at(`viewof ${cell}`) : null;
   if (node) return `${cell} ${node.classList.contains("observablehq--error") ? "rejected" : "ok"} | ${node.textContent!.trim()}`;
   for (const t of document.querySelectorAll(sel)) for (const tr of t.querySelectorAll("tr")) {
     if (tr.querySelector("td code")?.textContent === cell) {
@@ -1435,9 +1438,9 @@ const rowText = (page: Page, sel: string, cell: string) => page.evaluate(([sel, 
 }, [sel, cell]);
 const runsOf = (page: Page, module: string) => page.evaluate((module) => {
   const rt = (window as any).__ojs_runtime, mod = rt.mains.get(module);
-  const ss = mod._scope.get("ss")._value;
+  const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
   const out: Record<string, number> = {};
-  for (const v of rt._variables) if (v._module === mod && typeof v._name === "string" && String(v._definition).includes("$ss$.cell(")) out[v._name] = ss.evals(v._definition);
+  for (const v of rt._variables) if (v._module === mod && typeof v._name === "string" && ss.compiledKind(String(v._definition))?.callee === "cell") out[v._name] = ss.evals(ss.idOf(String(v._definition)));
   return out;
 }, module);
 
@@ -1474,7 +1477,7 @@ async function tryIts(page: Page, firstOnly = false) {
   report(/const width = \(\) => 800;/.test(s800.listing) && s800.line === "width = 800", `try (first cell): after the edit the listing shows the new source and width's line its value: ${JSON.stringify(s800.line)}`);
   // memo: the cells outside the broken part do not run again while it is broken and repaired
   const OUTSIDE = ["height", "scale", "samples", "histogram", "count", "increment", "app"];
-  const outsideRuns = () => page.evaluate(([c, t, names]) => { const rt = (window as any).__ojs_runtime, ss = rt.mains.get(c)._scope.get("ss")._value, m = rt.mains.get(t); return Object.fromEntries((names as string[]).map((n) => [n, ss.evals(m._scope.get(n)._definition)])); }, [CORE, TUTORIAL, OUTSIDE] as const);
+  const outsideRuns = () => page.evaluate(([c, t, names]) => { const rt = (window as any).__ojs_runtime, ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value, m = rt.mains.get(t); return Object.fromEntries((names as string[]).map((n) => [n, ss.evals(ss.idOf(String(m._scope.get(n)._definition)))])); }, [CORE, TUTORIAL, OUTSIDE] as const);
   const runs0 = await outsideRuns();
   // typed, not yet applied: the editor says what applying would break
   await typeInto(page, width, 'const width = () => "800";', false);
@@ -1636,7 +1639,7 @@ async function tryIts(page: Page, firstOnly = false) {
     const w1 = await world();
     await until(page, async () => (await world()).y !== w1.y, 5000);
     const w2 = await world();
-    const ssv = await page.evaluate((b: string) => { const rt = (window as any).__ojs_runtime, bm = rt.mains.get(b), ss = rt.mains.get("@tomlarkworthy/soundscript")._scope.get("ss")._value; const hs = [...rt._variables].filter((v: any) => v._module === bm && ss.isEvents?.(v._value)).map((v: any) => v._value); return { running: ss.running(hs), pulling: ss.pulling(hs) }; }, BR);
+    const ssv = await page.evaluate((b: string) => { const rt = (window as any).__ojs_runtime, bm = rt.mains.get(b), ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value; const hs = [...rt._variables].filter((v: any) => v._module === bm && ss.isEvents?.(v._value)).map((v: any) => v._value); return { running: ss.running(hs), pulling: ss.pulling(hs) }; }, BR);
     report(w0.score > 0 && w1.score >= w0.score && w1.bricks <= w0.bricks && w2.y !== w1.y && ssv.running === 1 && ssv.pulling === 1, `try (section 9): step edited while playing: world ${JSON.stringify(w0)} -> ${JSON.stringify(w1)} -> ${JSON.stringify(w2)}, ${ssv.running} listener, ${ssv.pulling} clock`);
     // with the breakout module's own pane open in edit mode, every cell drawn by the language: the
     // kinds the normal Inspector cannot read, and the game still gets a new world on every frame
@@ -1645,7 +1648,7 @@ async function tryIts(page: Page, firstOnly = false) {
       const line = (c: string) => (pane.querySelector(`.observablehq[cell="${c}"]`)?.textContent ?? "").trim();
       // the three pieces app places are lines (positioned by a parent they have not got); app is mounted
       const views = [...["bricksView", "paddleView", "ballView"].map(line), (() => { const n = pane.querySelector('.observablehq[cell="app"] .ss-view') as HTMLElement | null; return n ? `app ${n.tagName.toLowerCase()} ${Math.round(n.getBoundingClientRect().height)}px` : "app none"; })()];
-      return { ticks: line("ticks"), onTick: line("onTick"), ball: line("type Ball").slice(0, 40), tick: line("tick"), step: line("step"), views };
+      return { ticks: line("ticks"), onTick: line("onTick"), ball: line("$ss$type$Ball").slice(0, 40), tick: line("tick"), step: line("step"), views };
     }, BR);
     const EDIT_FRAMES = 60;
     const pe = await playFrames(page, EDIT_FRAMES);
@@ -1672,7 +1675,7 @@ async function cardsAndThemes() {
   await page.waitForFunction(() => { const m = (window as any).__ojs_runtime?.mains?.get("@tomlarkworthy/soundscript-tutorial"); return m?._scope.get("benchmark")?._value && document.querySelectorAll(".lite-graph svg").length === 2; }, null, { timeout: 60000 });
   const c = await page.evaluate((T) => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get(T);
-    const ss = mod._scope.get("ss")._value;
+    const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
     const seen = new Set<string>(), want: { key: string; text: string }[] = [];
     for (const v of rt._variables) {
       if (v._module !== mod || typeof v._name !== "string" || typeof v._definition !== "function" || ss.langOf(String(v._definition)) !== "ss") continue;
@@ -1686,10 +1689,11 @@ async function cardsAndThemes() {
     const listings = [...pane.querySelectorAll(".lite-listing")].map((l) => l.textContent ?? "");
     // each lesson cell's live source is in a listing, and its own cell is on the page as any cell is
     const missing = want.filter(({ text }) => !listings.some((l) => l.includes(text))).map((w) => w.key);
-    const node = (key: string) => pane.querySelector(`.observablehq[cell="${key}"]`) as HTMLElement | null;
+    // a state cell is drawn by its handle variable, viewof <name>, as Observable draws a viewof cell
+    const node = (key: string) => (pane.querySelector(`.observablehq[cell="${key}"]`) ?? pane.querySelector(`.observablehq[cell="viewof ${key}"]`)) as HTMLElement | null;
     const hidden = want.filter(({ key }) => !node(key)?.offsetParent).map((w) => w.key);
     const editors = [...rt._variables].find((v: any) => v._name === "editors")?._value;
-    const nobar = want.filter(({ key }) => !editors?.get(mod._scope.get(key))?.offsetParent).map((w) => w.key);
+    const nobar = want.filter(({ key }) => !editors?.get(mod._scope.get(`viewof ${key}`) ?? mod._scope.get(key))?.offsetParent).map((w) => w.key);
     // a cell that does not check shows its error with the rule named, as an error line
     const rejected = want.filter(({ key }) => { const n = node(key); return n?.classList.contains("observablehq--error") && !/does not check: \[/.test(n.textContent ?? ""); }).map((w) => w.key);
     // the kinds the normal Inspector cannot read are drawn as one line or, an element, mounted
@@ -1770,15 +1774,16 @@ async function coreCards(page: Page, label: string) {
   await page.waitForFunction(([C, pane]) => document.querySelector(`[title^="${C}  ("]`) || document.querySelector(pane), [CORE, pane], { timeout: 20000 });
   if (await tab.count()) await tab.first().click();
   const KEYS = ["tally", "bump", "reset", "doubled"];
-  const lines = () => page.evaluate(([pane, keys]) => (keys as string[]).map((k) => (document.querySelector(`${pane} .observablehq[cell="${k}"]`)?.textContent ?? "").trim()), [pane, KEYS] as const);
-  const shown = await until(page, () => page.evaluate(([pane, keys]) => (keys as string[]).every((k) => (document.querySelector(`${pane} .observablehq[cell="${k}"]`) as HTMLElement | null)?.offsetParent), [pane, KEYS] as const), 20000);
+  // tally, a state cell, is drawn by its handle variable, viewof tally
+  const lines = () => page.evaluate(([pane, keys]) => (keys as string[]).map((k) => (document.querySelector(`${pane} .observablehq[cell="${k === "tally" ? "viewof tally" : k}"]`)?.textContent ?? "").trim()), [pane, KEYS] as const);
+  const shown = await until(page, () => page.evaluate(([pane, keys]) => (keys as string[]).every((k) => (document.querySelector(`${pane} .observablehq[cell="${k === "tally" ? "viewof tally" : k}"]`) as HTMLElement | null)?.offsetParent), [pane, KEYS] as const), 20000);
   const r = await page.evaluate(([pane, C, keys]) => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get(C);
     const root = document.querySelector(pane)!;
     const top = (e: Element | null) => (e ? Math.round(e.getBoundingClientRect().top + root.scrollTop) : null);
-    const cells = (keys as string[]).map((key) => { const n = root.querySelector(`.observablehq[cell="${key}"]`) as HTMLElement | null; return { key, text: (n?.textContent ?? "").trim(), visible: !!n?.offsetParent, top: top(n) }; });
+    const cells = (keys as string[]).map((key) => { const n = root.querySelector(`.observablehq[cell="${key === "tally" ? "viewof tally" : key}"]`) as HTMLElement | null; return { key, text: (n?.textContent ?? "").trim(), visible: !!n?.offsetParent, top: top(n) }; });
     const editors = [...rt._variables].find((v: any) => v._name === "editors")?._value;
-    const nobar = cells.filter((c) => !editors?.get(core._scope.get(c.key))?.offsetParent).map((c) => c.key);
+    const nobar = cells.filter((c) => !editors?.get(core._scope.get(`viewof ${c.key}`) ?? core._scope.get(c.key))?.offsetParent).map((c) => c.key);
     const h1 = [...root.querySelectorAll("h1")].find((h) => h.textContent === "SoundScript") ?? null;
     const view = root.querySelector('.observablehq[cell="example_view"]') as HTMLElement | null;
     const listing = root.querySelector('.observablehq[cell="readme_listing"] .cell-listing') as HTMLElement | null;
@@ -1835,7 +1840,8 @@ async function touch() {
   // left and upward, as a thumb moves: an upward drag on a page that may scroll would scroll it
   for (let i = 1; i <= 10; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: at(0.5 - 0.04 * i, 15 * i) });
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await until(page, async () => (await world()).paddle !== before.world.paddle, 3000);
+  // the value variable takes each commit on the next animation frame, so wait for the whole drag, not the first move
+  await until(page, async () => (await world()).paddle < before.world.paddle - 60, 3000);
   const after = { world: await world(), scroll: await scroll(), top: (await canvas.boundingBox())!.y };
   // the board's place on the screen is the test: a pane's scrollTop also moves when content above it
   // grows late (scroll anchoring keeps the board where it is), which is not the drag scrolling the page
@@ -1919,8 +1925,8 @@ await testsPass(A.page, "original", TUTORIAL, TUTORIAL_TESTS);
   // the Breakout tests ran on copies: the page's game was neither played nor reset
   const g = await A.page.evaluate(() => {
     const rt = (window as any).__ojs_runtime, bm = rt.mains.get("@tomlarkworthy/soundscript-breakout");
-    const ss = bm._scope.get("ss")._value;
-    return { ballRuns: ss.evals(bm._scope.get("ballView")._definition), y: bm._scope.get("world")._value.ball.y, pulling: ss.pulling() };
+    const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
+    return { ballRuns: ss.evals(ss.idOf(String(bm._scope.get("ballView")._definition))), y: bm._scope.get("world")._value.ball.y, pulling: ss.pulling() };
   });
   report(g.ballRuns <= 1 && g.y === 180 && g.pulling === 0, `original: after the tests, the page's Breakout is as it booted: ballView ran ${g.ballRuns} times, ball at y ${g.y}, ${g.pulling} clocks pulled`);
 }
@@ -2065,7 +2071,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     const src = await C.page.evaluate(async (consumer) => {
       const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
       const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
-      const lang = get("ss_language")._value, ss = get("ss")._value;
+      const lang = get("ss_language")._value, ss = get("soundscript")._value;
       const kind = () => /kind: "(\w+)"/.exec(String(get("pulse")?._definition))?.[1];
       const until = async (f: () => boolean) => { for (let i = 0; i < 100 && !f(); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
       const out: any = {};
@@ -2138,7 +2144,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
     const v = get("tripled");
     if (!v) return { present: false };
-    const text = get("ss")._value.decompileVariable(String(v._definition));
+    const text = get("soundscript")._value.decompileVariable(String(v._definition));
     const verdict = get("ss_check")._value(core).result.cells.find((c: any) => c.name === "tripled")?.status;
     const lang = get("ss_language")._value;
     const flag = get("viewof flag") && get("flag") ? lang.decompile([get("flag")]) : null;
@@ -2212,9 +2218,9 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     return out;
   }, TUTORIAL);
   // raw-cells is registered on this page too; only "ss" must be absent
-  report(!g2.error && !g2.registeredAtOpen?.includes("ss") && /^width = \$ss\$\.cell\(/.test(g2.shownBefore ?? "") && g2.diagnostics?.some((d: string) => /not loaded yet/.test(d)) && g2.savedUnchanged,
+  report(!g2.error && !g2.registeredAtOpen?.includes("ss") && /^width = ss\.cell\(/.test(g2.shownBefore ?? "") && g2.diagnostics?.some((d: string) => /not loaded yet/.test(d)) && g2.savedUnchanged,
     `core-not-main: with no language registered the editor on width shows the compiled text, says it is not loaded, and Shift-Enter saves nothing: ${JSON.stringify({ ...g2, shownAfter: undefined })}`);
-  report(!g2.error && /^const width = \(\) => 640;$/m.test(g2.shownAfter ?? "") && !g2.shownAfter.includes("$ss$"), `core-not-main: after registration the open editor shows the typed source: ${JSON.stringify(g2.shownAfter ?? g2.error)}`);
+  report(!g2.error && /^const width = \(\) => 640;$/m.test(g2.shownAfter ?? "") && !g2.shownAfter.includes("ss.cell("), `core-not-main: after registration the open editor shows the typed source: ${JSON.stringify(g2.shownAfter ?? g2.error)}`);
   report(!g2.error && g2.lineBefore !== g2.lineAfter && g2.lineAfter === "increment = ƒ action()", `core-not-main: increment's line is the normal Inspector's before registration (${JSON.stringify(g2.lineBefore?.slice(0, 60))}) and the language's after, without a reload (${JSON.stringify(g2.lineAfter ?? g2.error)})`);
   // a language whose editor extension throws leaves the plain editor, with the error shown
   const g1 = await U.page.evaluate(async (tut) => {

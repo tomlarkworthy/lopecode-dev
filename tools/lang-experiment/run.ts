@@ -6,6 +6,8 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve, dirname, basename } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { analyze, type Cell } from "./analyze.ts";
+// a state cell's value is Observable's own Generators.input of its handle (a view)
+import { input } from "../../vendor/observable-stdlib/src/generators/input.js";
 import * as P from "./prelude.runtime.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -170,7 +172,7 @@ export async function loadPort(dirIn: string, opts: { order?: "forward" | "rever
           return P.materialize(r, c.name);
         },
       });
-      defs.push({ varName: c.name, inputs: [`${c.name}$ref`], rec, def: (h: unknown) => P.refValues(h as object) });
+      defs.push({ varName: c.name, inputs: [`${c.name}$ref`], rec, def: (h: unknown) => input(h) });
     } else defs.push({ varName: c.name, inputs, rec, def: counted, raw });
   }
 

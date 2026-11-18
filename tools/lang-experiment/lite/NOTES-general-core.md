@@ -208,14 +208,16 @@ editor reads a stored cell through `Function.prototype.toString`, which that tes
 `lite/toolchain/ss-toolchain.ts`. A cell compiles to a wrapper whose first comment is the marker:
 
 ```
+// Note 2026-11-18: the shape of 2026-11-14; since 2026-11-18 it is `function _clear(ss, count) {return( ss.cell(...) );}`
 ($ss$, count) => { const {action} = $ss$; return $ss$.cell(/*{lang:"ss"}*//*ss^{"h":"export const clear = ","t":";"}*/(count/*ss:: Ref<number>*/) => action(() => count.set(0)), "cell", "clear", [count]); }
 ```
 
 The `/*ss^…*/` header holds the text around the function (leading comments, `export const x =`, the
 `;`). JSX is lowered to `h(...)` with the original kept as `/*ss<…*/h(...)/*ss>*/`. A ref cell is two
-variables, `ref count` (the handle) and `count` (`$ss$.refValues(_)`, marked `/*ss@ref*/`). A `type`
+variables, `ref count` (the handle) and `count` (`$ss$.refValues(_)`, marked `/*ss@ref*/`) (Note 2026-11-18:
+now `viewof count` and `count = Generators.input(viewof count)`; a type is `$ss$type$X`). A `type`
 or `interface` is a variable `type X` whose header holds the declaration. Prelude names a body uses are
-destructured from the stdlib's `ss`; capabilities map to stdlib variables `ss_now`, `ss_random`,
+destructured from the stdlib's `ss` (Note 2026-11-18: now the runtime module's `ss`, not the checker's `soundscript`); capabilities map to stdlib variables `ss_now`, `ss_random`,
 `ss_log`, `ss_fetch` (one shared value, not one per cell as browser/run.ts makes them).
 
 Measured 2026-11-14:

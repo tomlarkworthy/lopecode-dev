@@ -6,6 +6,9 @@ let raf = (f: () => void) => void setTimeout(f, 1);
 const ss = await import("./runtime.ts");
 const P = await import("../../prelude.runtime.ts");
 const T = await import("../toolchain/ss-toolchain.ts");
+const { idOf } = T;
+// a handle is an Observable view: what a state cell's value variable reads is Observable's own Generators.input of it
+const { input } = await import(new URL("../../../../vendor/observable-stdlib/src/generators/input.js", import.meta.url).pathname as any);
 
 let pass = 0, fail = 0;
 const uncaught: unknown[] = [];
@@ -48,6 +51,7 @@ async function load(src: string, opts: { unchecked?: boolean; outside?: Record<s
   const runtime = new Runtime();
   const m = runtime.module();
   m.define("ss", [], () => ss);
+  m.define("Generators", [], () => ({ input }));
   for (const [n, [ins, f]] of Object.entries(opts.outside ?? {})) m.define(n, ins, f);
   const vars = new Map<string, any>();
   const values = new Map<string, unknown>();
@@ -70,7 +74,7 @@ async function load(src: string, opts: { unchecked?: boolean; outside?: Record<s
   for (const t of [...texts]) define(t);
   const settle = async () => { for (let i = 0; i < 5; i++) { await tick(3); await flushed(); } };
   await settle();
-  return { m, vars, values, errs, define, settle, runtime, value: (n: string) => values.get(n) as any, evals: (n: string) => ss.evals(vars.get(n)._definition) };
+  return { m, vars, values, errs, define, settle, runtime, value: (n: string) => values.get(n) as any, evals: (n: string) => ss.evals(idOf(String(vars.get(n)._definition))) };
 }
 // Frames until f() holds or n frames have run; actions flush between frames.
 async function frameUntil(f: () => boolean, n = 5000) {
@@ -239,7 +243,8 @@ await run("r_action_stack", async () => {
   report("e compile with a state cell holding an action", r.cells.filter((c) => c.name.startsWith("via")).map((c) => `${c.name} ${c.status} ${c.errors.map((e) => `[${e.rule}] ${e.msg}`).join("; ")}`));
 }
 
-const val = (h: object) => P.refValues(h).next().value;
+const val = (h: any) => h.value;
+const told = (h: EventTarget) => { const n = { count: 0 }; h.addEventListener("input", () => n.count++); return n; };
 
 
 
@@ -250,14 +255,14 @@ const thrown = (f: () => void) => { try { f(); return ""; } catch (e) { return S
 await run("c2_flush_is_all_or_nothing", async () => {
   errors.length = 0; uncaught.length = 0;
   const c = P.materialize(P.state(1), "c") as any, d = P.materialize(P.state(1), "d") as any;
-  const gc = P.refValues(c); gc.next();
+  const gc = input(c), tc = told(c); await gc.next().value;
   const msg = thrown(() => P.action(() => { c.update((v: number) => v + 1); d.update(() => { throw new Error("in update"); }); })());
   await flushed();
   ok("c2_no_store_changed", val(c) === 1 && val(d) === 1, `c ${val(c)} d ${val(d)}`);
   ok("c2_state_clean", P.idle() && P.rt.ready.size === 0);
   ok("c2_error_thrown_at_the_call", msg === "in update" && uncaught.length === 0, `thrown ${JSON.stringify(msg)} uncaught ${uncaught.length}`);
   const pending = gc.next().value as Promise<unknown>;
-  ok("c2_no_waiter_woken", pending instanceof Promise);
+  ok("c2_no_input_told", tc.count === 0, `told ${tc.count}`);
   P.action(() => { c.update((v: number) => v + 1); c.update((v: number) => v * 10); })();
   const woke = await Promise.race([pending, tick(200).then(() => "timeout")]);
   ok("c2_later_flush_chains_and_wakes", woke === 20 && val(c) === 20, `woke ${woke} c ${val(c)}`);
@@ -269,19 +274,20 @@ await run("c3_forget_matches_compiled_definitions", async () => {
   const [v] = T.compileCell("const fz = (n: number) => n + 1;", true);
   const fn = (0, eval)(`(${v.definition})`);
   fn(ss, 1);
-  ok("c3_evals_counts_compiled_definition", ss.evals(fn) === 1, `evals ${ss.evals(fn)}`);
-  ss.forget(fn);
-  ok("c3_forget_drops_run_count", ss.evals(fn) === 0, `evals ${ss.evals(fn)}`);
+  ok("c3_evals_counts_compiled_definition", ss.evals(idOf(String(fn))) === 1, `evals ${ss.evals(idOf(String(fn)))}`);
+  ss.forget(idOf(String(fn)));
+  ok("c3_forget_drops_run_count", ss.evals(idOf(String(fn))) === 0, `evals ${ss.evals(idOf(String(fn)))}`);
 });
 
 await run("c3_200_edits_keep_memo_size", async () => {
   const sizes: number[] = [];
-  let prev: any = null;
+  // the definitions here carry no source, so the id is passed as the caller of forget passes it: as data
+  let prev: string | null = null;
   for (let i = 0; i < 200; i++) {
     const def = defFor(`e${i}`);
     def(ss, null);
     if (prev) ss.forget(prev);
-    prev = def;
+    prev = `e${i}`;
     sizes.push(ss.memoSize());
   }
   ok("c3_memo_size_constant", sizes.every((s) => s === sizes[1]), `sizes ${sizes.slice(0, 3)}..${sizes.slice(-3)}`);
@@ -315,15 +321,14 @@ const refOf = (v: unknown, name: string) => P.materialize(P.state(v), name) as a
 const named = (name: string, f: () => void) => { const a = P.action(f); P.actionNames.set(a, name); return a; };
 await run("g2_groups_either_side_of_a_throw_both_apply", async () => {
   const x = refOf(0, "x");
-  const g = P.refValues(x); g.next();
+  const tx = told(x);
   const commits = P.rt.commits;
   named("A", () => x.update((v: number) => v + 1))();
   thrown(() => named("B", () => x.update(() => { throw new Error("B broke"); }))());
   named("C", () => x.update((v: number) => v + 10))();
   await flushed();
   ok("g2_x_is_plus_11", val(x) === 11, `x ${val(x)}`);
-  const seen = g.next().value, after = g.next().value;
-  ok("g2_one_commit_one_version_bump", P.rt.commits === commits + 1 && seen === 11 && after instanceof Promise, `commits +${P.rt.commits - commits}, seen ${seen}`);
+  ok("g2_one_commit_one_input", P.rt.commits === commits + 1 && tx.count === 1, `commits +${P.rt.commits - commits}, told ${tx.count}`);
 });
 // One action writes two state cells: what a reader of both sees, with the Runtime's frames run by hand.
 // onlyB writes b alone, then both writes a and b. In one task (both after some microtasks) the two calls
@@ -373,6 +378,7 @@ async function editable(texts: string[], o: { reverse?: boolean; order?: boolean
   const runtime = new Runtime();
   const m = runtime.module();
   m.define("ss", [], () => ss);
+  m.define("Generators", [], () => ({ input }));
   const vars = new Map<string, any>(), defs = new Map<string, string>(), values = new Map<string, unknown>(), raised = new Map<string, string>();
   let cells = [...texts];
   const apply = () => {
@@ -398,7 +404,7 @@ async function editable(texts: string[], o: { reverse?: boolean; order?: boolean
   await settle();
   const edit = async (name: string, text: string) => { cells = cells.map((t) => (ss.declaredName(t) === name ? text : t)); apply(); await settle(); };
   const states = () => Object.fromEntries([...ss.cellStates(ss.checkCells(cells).result)].map(([n, x]: any) => [n, x.state === "blocked" ? `blocked by ${x.blockedBy.join(",")}` : x.state]));
-  return { m, vars, values, raised, edit, settle, states, value: (n: string) => values.get(n) as any, evals: (n: string) => ss.evals(vars.get(n)._definition), text: (n: string) => T.decompileVariable(defs.get(n)!) };
+  return { m, vars, values, raised, edit, settle, states, value: (n: string) => values.get(n) as any, evals: (n: string) => ss.evals(idOf(String(vars.get(n)._definition))), text: (n: string) => T.decompileVariable(defs.get(n)!) };
 }
 
 // Two listeners on one events cell run, for each value, in their cells' source order: on a fresh
@@ -617,6 +623,7 @@ await run("w3_a_state_cell_nothing_observes_is_written", async () => {
   const runtime = new Runtime();
   const m = runtime.module();
   m.define("ss", [], () => ss);
+  m.define("Generators", [], () => ({ input }));
   const src = `const hidden = (): StateCell<number> => state(3);
 const add = (hidden: State<number>) => action(() => hidden.update((v) => v + 1));`;
   const ctx = T.contextFromCheck(ss.checkCells(T.splitCells(src, true)).result);
@@ -648,7 +655,7 @@ await run("w4_a_state_cell_imported_from_another_module", async () => {
 const seenB = (count: number) => count;`;
   const instances = [0, 1].map(() => {
     const a = runtime.module(), b = runtime.module();
-    for (const x of [a, b]) x.define("ss", [], () => ss);
+    for (const x of [a, b]) { x.define("ss", [], () => ss); x.define("Generators", [], () => ({ input })); }
     const va = compileInto(a, A);
     b.import("count", a);
     b.import("viewof count", a);

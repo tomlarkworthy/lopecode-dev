@@ -43,11 +43,20 @@ const SYNTAX: Record<string, string> = {
   TSNonNullExpression: "no-non-null", ImportExpression: "no-dynamic-import", TSEnumDeclaration: "no-enum",
   TSModuleDeclaration: "no-namespace", TSTypeAssertion: "no-cast",
 };
+// A compiled cell is Observable JavaScript: it reads viewof and mutable as keywords, and names a cell's viewof
+// inputs $0, $1, …, so a name of the code (not of a type, which is kept in a comment) may not be one of these.
+// viewof and mutable stay usable as a property's key or a member's name; $<digits> is reserved there too.
+const RESERVED_MSG = (name: string) => /^\$\d+$/.test(name)
+  ? `${name} is reserved: Observable JavaScript names a cell's viewof inputs $0, $1, …`
+  : `${name} is reserved: Observable JavaScript reads it as a keyword`;
+export const reservedName = (name: string) => /^\$\d+$/.test(name) || name === "viewof" || name === "mutable";
 function syntaxPass(n: Node, report: (n: Node, rule: string, msg: string) => void, unsup: (n: Node, what: string) => void) {
-  const walk = (x: any, parent: any) => {
+  const walk = (x: any, parent: any, inType = false) => {
     if (!x || typeof x !== "object") return;
-    if (Array.isArray(x)) { x.forEach((y) => walk(y, parent)); return; }
+    if (Array.isArray(x)) { x.forEach((y) => walk(y, parent, inType)); return; }
     if (typeof x.type !== "string") return;
+    const named = parent && !parent.computed && ((parent.type === "MemberExpression" && parent.property === x) || (parent.type === "Property" && parent.key === x && parent.value !== x));
+    if (x.type === "Identifier" && !inType && reservedName(x.name) && !(named && !/^\$\d+$/.test(x.name))) report(x, "reserved-name", RESERVED_MSG(x.name));
     const r = SYNTAX[x.type];
     if (r) report(x, r, x.type);
     if (x.type === "TSAsExpression" && !(x.typeAnnotation.type === "TSTypeReference" && x.typeAnnotation.typeName?.name === "const")) report(x, "no-cast", "as cast");
@@ -55,10 +64,11 @@ function syntaxPass(n: Node, report: (n: Node, rule: string, msg: string) => voi
     if (x.type === "VariableDeclaration" && x.kind === "var") report(x, "no-var", "var");
     if (x.type === "Identifier" && x.name === "arguments" && !(parent?.type === "MemberExpression" && parent.property === x && !parent.computed) && !(parent?.type === "Property" && parent.key === x))
       report(x, "no-arguments", "arguments");
-    for (const k in x) if (k !== "loc") walk(x[k], x);
+    for (const k in x) if (k !== "loc") walk(x[k], x, inType || TYPE_POSITIONS.has(k));
   };
   walk(n, null);
 }
+const TYPE_POSITIONS = new Set(["typeAnnotation", "returnType", "typeParameters", "typeArguments"]);
 
 // outside: the module's cells in other languages (Observable JavaScript, raw), by name; view when the
 // module also has `viewof <name>` (an Observable JavaScript view, or a SoundScript state cell imported with its
@@ -222,6 +232,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       default: return null;
     }
   };
+  // undefined is a value of t: t is undefined, void or unknown, or a union with one of them (aliases expanded)
+  const admitsUndefined = (t: Ty, depth = 0): boolean => depth <= 12 && (t.k === "undef" || t.k === "void" || t.k === "unknown" ||
+    (t.k === "named" && reg.isAlias(t.n) && admitsUndefined(reg.expand(t), depth + 1)) || (t.k === "union" && t.ts.some((x) => admitsUndefined(x, depth + 1))));
   // the first of names that t mentions anywhere (aliases expanded), or null
   const holds = (t: Ty, names: string[], depth = 0): string | null => {
     if (depth > 12) return null;
@@ -252,6 +265,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     opts.onCell?.(c.name, ch, c.fn);
     const diag = (n: Node, rule: string, msg: string) => r.errors.push({ rule, line: P.line(n.start), msg });
     syntaxPass(c.fn, diag, (n, w) => ch.unsupported(n, w));
+    if (reservedName(c.name)) diag(c.fn, "reserved-name", RESERVED_MSG(c.name));
     // injection
     const injected: Ty[] = [];
     for (const p of c.fn.params as Node[]) {
@@ -356,6 +370,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     if (c.fn.async && isNamed(ret, "Promise")) ret = ret.args[0];
     if (c.fn.generator && isNamed(ret, "Generator")) { ret = ret.args[0]; if (!c.fn.async) eventsInner.set(c.name, ret); }
     if (isNamed(ret, "StateCell")) {
+      // Observable's Generators.input, which reads a state cell's value, skips an undefined value
+      if (admitsUndefined(ret.args[0])) r.errors.push({ rule: "state-undefined", line: P.line(c.fn.start), msg: `a state cell's value may not be undefined (its type is ${show(ret.args[0])}): Observable skips an undefined value, so the cell would never have one. Use null` });
       const nested = holds(ret.args[0], ["State", "StateCell"]);
       if (nested) r.errors.push({ rule: "state-in-state", line: P.line(c.fn.start), msg: `a state cell holds ${show(ret.args[0])}, which contains ${nested}; a state cell's content may not contain a State or StateCell` });
       refInner.set(c.name, ret.args[0]); ret = ret.args[0];

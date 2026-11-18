@@ -1,7 +1,7 @@
 // The SoundScript standard library's runtime half. build.ts makes cells of it (soundscript/ts-cells.ts):
 // @tomlarkworthy/soundscript-runtime, and @tomlarkworthy/soundscript-checker for what reaches the parser.
-// Compiled cells call ss.cell(...); a state cell's value variable calls ss.refValues(handle).
-import { rt, stateRun, isRefHandle, viewHandle } from "../../prelude.runtime.ts";
+// Compiled cells call ss.cell(...); a state cell's value variable is Observable's Generators.input(handle).
+import { rt, stateRun, unpark, isRefHandle, viewHandle } from "../../prelude.runtime.ts";
 import { h } from "../jsx/h.ts";
 import { create, patch } from "../jsx/render.ts";
 import { lowerJsx } from "../jsx/lower.ts";
@@ -11,7 +11,7 @@ export { setListenerOrder, listenerOrderChanged };
 export { cellsOf };
 import { island, type IslandSpec } from "../island.ts";
 import { pagePool, runHere, type Pool } from "../browser/workers.ts";
-export { isDuplicateKey, compileCell, compileModule, contextOf, contextFromCheck, acceptedOf, cellStates, declaredName, decompileVariable, decompileModule, langOf, cellOfVariable, splitCells, handleName } from "../toolchain/ss-toolchain.ts";
+export { isDuplicateKey, compileCell, compileCellText, compileModule, contextOf, contextFromCheck, acceptedOf, cellStates, declaredName, decompileVariable, decompileModule, langOf, cellOfVariable, splitCells, handleName, variableName, keyOfVariable, STATE_VALUE } from "../toolchain/ss-toolchain.ts";
 import { declaredName } from "../toolchain/ss-toolchain.ts";
 import { parse } from "../parse.ts";
 import { checkSources, type Outside } from "../core.ts";
@@ -74,7 +74,7 @@ export function rejected(name: string, why: string[]): never {
   throw new Error(`${name} does not check: ${why.join("; ")}`);
 }
 
-export { state, action, mut, freeze, borrow, snapshot, equals, read, entry, idle, actionQueue, refValues } from "../../prelude.runtime.ts";
+export { state, action, mut, freeze, borrow, snapshot, equals, read, entry, idle, actionQueue } from "../../prelude.runtime.ts";
 // The value of a viewof variable as a State<T>: an Observable JavaScript view's element, whose value is
 // checked against shape on the way in, or an imported SoundScript state cell's handle; every write is
 // checked against shape (boundary.ts)
@@ -96,40 +96,31 @@ const lentGuard = (g: Generator) => guard(g, (v) => lent.add(v));
 // edit changes the id, so it starts empty; equal text with equal inputs gives the same value.
 const memos = new Map<string, { args: unknown[]; value: unknown }>();
 export const stats = { evals: 0, memoHits: 0 };
-// body runs per compiled text: a variable's count is evals(variable._definition)
+// body runs per compiled text, by the compiler's memo id (the id option of the cell's call; a caller holding a
+// definition reads it with the toolchain's idOf, so nothing here parses code)
 const evalCounts = new Map<string, number>();
-const idOfDefinition = new WeakMap<object, string | null>();
-// The compiler's memo id: the id in the options object it writes last in a cell's definition. A user's
-// own `id:` property cannot match, because nothing follows the options object but `); }`.
-export const MEMO_ID = /\bid: "(\w+)"(?=, invalidation: [\w$]+\}\); \}$)/;
-export const evals = (definition: object) => {
-  if (!idOfDefinition.has(definition)) idOfDefinition.set(definition, MEMO_ID.exec(String(definition))?.[1] ?? null);
-  const id = idOfDefinition.get(definition);
-  return id ? evalCounts.get(id) ?? 0 : 0;
-};
-
-// drops what memos and run counts keep for a compiled definition that no variable holds any more
-export const forget = (definition: object) => {
-  const id = MEMO_ID.exec(String(definition))?.[1];
-  if (id) { memos.delete(id); evalCounts.delete(id); }
+export const evals = (id: string | null) => (id ? evalCounts.get(id) ?? 0 : 0);
+// drops what memos, run counts and parked state handles keep for an id no variable's definition has any more
+export const forget = (id: string | null) => {
+  if (id) { memos.delete(id); evalCounts.delete(id); unpark(id); }
 };
 export const memoSize = () => memos.size;
 export const memoHas = (id: string) => memos.has(id);
 
-// self: a state cell's definition
-type Opts = { kind: "cell" | "ref" | "events" | "listener"; name: string; memo: boolean; prev?: unknown; self?: object; id: string; invalidation: Promise<unknown> | null };
+// prev: an events or state cell's variable's last value (this)
+type Opts = { kind: "cell" | "ref" | "events" | "listener"; name: string; memo: boolean; prev?: unknown; id: string; invalidation: Promise<unknown> | null };
 
 export function cell(fn: (...a: unknown[]) => unknown, args: unknown[], o: Opts): unknown {
   const count = () => { stats.evals++; evalCounts.set(o.id, (evalCounts.get(o.id) ?? 0) + 1); };
   // an events cell's body runs when its inputs change; a re-run with the same inputs keeps the generator
   if (o.kind === "events") return events(o.prev, o.name, args, () => { count(); return lentGuard(fn(...args) as Generator); }, o.invalidation);
-  // a state cell run again with the same definition and inputs (Object.is) keeps its store, and so its
+  // a state cell run again with the same compiled text and inputs (Object.is) keeps its store, and so its
   // state: after an input failed and was repaired to the value it had, or an upstream re-run gave the same value
   if (o.kind === "ref") {
-    return stateRun(o.self!, o.name, args, () => {
+    return stateRun(o.prev, o.id, o.name, args, () => {
       rt.evalDepth++;
       try { count(); return fn(...args); } finally { rt.evalDepth--; }
-    }, () => { stats.memoHits++; });
+    }, () => { stats.memoHits++; }, o.invalidation);
   }
   if (o.memo) {
     const last = memos.get(o.id);

@@ -6,7 +6,8 @@ const REFHANDLE = Symbol.for("lc.state");
 
 // el: an Observable JavaScript view (viewHandle), which holds the committed value itself
 type ViewEl = { value: unknown; dispatchEvent(e: Event): boolean };
-type Store = { name: string; value: unknown; version: number; waiters: (() => void)[]; el?: ViewEl; check?: (v: unknown) => unknown };
+// handle: the state cell's handle whose store this is, told of each commit
+type Store = { name: string; value: unknown; handle?: object; el?: ViewEl; check?: (v: unknown) => unknown };
 // One top-level action call, from when it starts until it finishes: its writes, applied in call order
 type Call = Map<Store, unknown>;
 
@@ -52,7 +53,7 @@ export const isRefHandle = (v: unknown) => !!v && typeof v === "object" && REFHA
 const stores = new WeakMap<object, Store>();
 const over = new WeakMap<object, object>();
 const storeOf = (h: object): Store | undefined => stores.get(over.get(h) ?? h);
-const newStore = (name: string, value: unknown): Store => ({ name, value, version: 0, waiters: [] });
+const newStore = (name: string, value: unknown): Store => ({ name, value });
 
 // the call a write or read belongs to: the one running synchronously, or, outside any cell evaluation,
 // the one in flight (its code after an await)
@@ -65,20 +66,25 @@ function write(h: object, f: (v: unknown) => unknown) {
   const store = storeOf(h)!;
   c.set(store, f(current(store))); // an update function that throws throws here, inside the call
 }
+// A handle is an Observable view: an EventTarget whose value is the committed state, which dispatches
+// input on each commit, so Observable's Generators.input(handle) is the state cell's value.
 // check: a written value's check (the shape of a type that crosses from another language)
 function handleOf(name: string, check: (v: unknown) => unknown = (v) => v): object {
-  const h: object = Object.freeze({
-    [REFHANDLE]: name,
-    set: (v: unknown) => write(h, () => check(v)),
-    update: (f: (v: unknown) => unknown) => write(h, (x) => check(f(x))),
+  const h = new EventTarget();
+  Object.defineProperties(h, {
+    [REFHANDLE]: { value: name },
+    set: { value: (v: unknown) => write(h, () => check(v)) },
+    update: { value: (f: (v: unknown) => unknown) => write(h, (x) => check(f(x))) },
+    value: { get: () => { const st = storeOf(h)!; return st.el ? st.check!(st.el.value) : st.value; } },
   });
   return h;
 }
+const setStore = (h: object, value: unknown) => stores.set(h, { ...newStore((h as Record<symbol, string>)[REFHANDLE], value), handle: h });
 
 // Turn the StateCell a cell returned into a handle on a store of its own (the port harness, run.ts).
 export function materialize(cell: { initial: unknown }, name: string) {
   const h = handleOf(name);
-  stores.set(h, newStore(name, cell.initial));
+  setStore(h, cell.initial);
   return h;
 }
 
@@ -90,48 +96,56 @@ export function read(handle: object): unknown {
   return current(store);
 }
 
-// The values of a handle's store: the current value, then once per committed write (a state cell's value
-// variable).
-export function* refValues(handle: object): Generator<unknown> {
-  const store = storeOf(handle)!;
-  let seen = store.version;
-  yield store.value;
-  for (;;) {
-    if (store.version !== seen) yield ((seen = store.version), store.value);
-    else yield new Promise<void>((res) => store.waiters.push(res)).then(() => ((seen = store.version), store.value));
-  }
-}
-
-const runs = new WeakMap<object, { args: unknown[]; handle: object }>();
-// A state cell's handle variable. One handle per definition (self), so a cell taking State<T> keeps it across
-// runs; a new store from make(), which runs the cell, unless every input is the same (Object.is) as on the
-// last run, which keeps the store and so the state.
-export function stateRun(self: object, name: string, args: unknown[], make: () => unknown, kept?: () => void): object {
-  const last = runs.get(self);
-  if (last && last.args.length === args.length && args.every((x, i) => Object.is(x, last.args[i]))) { kept?.(); return last.handle; }
-  const r = make();
-  if (!isStateCell(r)) throw new Error(`${name} did not return state(...)`);
-  const handle = last?.handle ?? handleOf(name);
-  stores.set(handle, newStore(name, r.initial));
-  runs.set(self, { args, handle });
+// each handle's compiled text (its memo id) and the inputs of its last run
+const runs = new WeakMap<object, { id: string; args: unknown[] }>();
+// id -> the handle of a run whose variable was invalidated and has not run again with it as its last value
+const parked = new Map<string, object>();
+// A state cell's handle variable. prev is the variable's last value: its handle, when the same compiled text
+// (id) made it, is kept, so a cell taking State<T> keeps it across runs; a new store from make(), which runs
+// the cell, unless every input is the same (Object.is) as on the last run, which keeps the store and so the
+// state. A run whose input failed leaves the variable no last value, so each run's handle is parked when its
+// invalidation resolves, and a run with no last value takes the handle parked under its id. Two variables
+// with the same compiled text can meet there: one that first runs while the other's input fails takes its handle.
+// drops the handle parked under id (a definition no variable holds any more, lite/stdlib/runtime.ts forget)
+export const unpark = (id: string) => void parked.delete(id);
+// a handle whose variable is deleted is never parked, so a later variable with the same text does not take it
+const released = new WeakSet<object>();
+export const releaseHandle = (h: unknown) => {
+  if (!h || typeof h !== "object" || !runs.has(h)) return;
+  released.add(h);
+  const id = runs.get(h)!.id;
+  if (parked.get(id) === h) parked.delete(id);
+};
+export function stateRun(prev: unknown, id: string, name: string, args: unknown[], make: () => unknown, kept: () => void, invalidation: Promise<unknown> | null): object {
+  // prev is any other value (globalThis, in a sloppy-mode definition) when the variable has no last value
+  const was = prev && typeof prev === "object" ? runs.get(prev) : undefined;
+  let h = was ? (was.id === id ? (prev as object) : undefined) : parked.get(id);
+  if (h && parked.get(id) === h) parked.delete(id);
+  const last = h && runs.get(h);
+  if (!h || !last || last.args.length !== args.length || !args.every((x, i) => Object.is(x, last.args[i]))) {
+    const r = make();
+    if (!isStateCell(r)) throw new Error(`${name} did not return state(...)`);
+    h ??= handleOf(name);
+    setStore(h, r.initial);
+    runs.set(h, { id, args });
+  } else kept();
+  const handle = h;
+  invalidation?.then(() => { if (!released.has(handle)) parked.set(id, handle); });
   return handle;
 }
 
-// Commits the writes of the calls that finished since the last commit: every store takes its value, with
-// one version bump, and its readers are woken.
+// Commits the writes of the calls that finished since the last commit: every store takes its value, then
+// each view is told with an input event, as a user's change would tell it.
 function commit() {
   const layer = rt.ready;
   rt.ready = new Map();
   for (const [st, v] of layer) {
     st.value = v;
-    // a view takes the value and is told with an input event, as a user's change would tell it
-    if (st.el) { st.el.value = v; st.el.dispatchEvent(new Event("input", { bubbles: true })); }
+    if (st.el) st.el.value = v;
   }
   for (const st of layer.keys()) {
-    st.version++;
-    const ws = st.waiters;
-    st.waiters = [];
-    ws.forEach((f) => f());
+    if (st.el) st.el.dispatchEvent(new Event("input", { bubbles: true }));
+    else if (st.handle && stores.get(st.handle) === st) (st.handle as EventTarget).dispatchEvent(new Event("input"));
   }
   rt.commits++;
 }

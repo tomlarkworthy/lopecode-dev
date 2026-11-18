@@ -96,13 +96,13 @@ test_async_click = {
   let open;
   const gate = new Promise((r) => (open = r));
   copy._scope.get("measure").define("measure", [], () => (w) => gate.then(() => w.length));
-  const view = ss.mount(await copy.value("measureView"), null);
+  const view = soundscript.mount(await copy.value("measureView"), null);
   // waits are counted in animation frames until a condition holds; the cap only turns a hang into an error
   const frames = async (f, n = 600) => { for (let i = 0; i < n && !(await f()); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
   try {
-    if (!(await frames(() => { const q = ss.actionQueue(); return !q.inFlight && q.waiting === 0; }))) throw new Error("another action call stayed in flight");
+    if (!(await frames(() => { const q = soundscript.actionQueue(); return !q.inFlight && q.waiting === 0; }))) throw new Error("another action call stayed in flight");
     view.querySelector("button").click();
-    const during = [ss.actionQueue().inFlight, await copy.value("wordSize")];
+    const during = [soundscript.actionQueue().inFlight, await copy.value("wordSize")];
     open();
     const done = await frames(async () => (await copy.value("wordSize")) === 11);
     if (JSON.stringify(during) !== "[true,0]") throw new Error(`while waiting: in flight and wordSize ${JSON.stringify(during)}`);
@@ -115,7 +115,7 @@ md`## 5. One function for every change
 
 When state has several fields, separate actions that each change one field can leave it inconsistent. Here every action is the same line, \`store.update(s => step(s, event))\`, so one function, \`step\`, decides every transition. \`step\` is a plain function, and \`test_undo\` tests it without a page.`
 // %%
-reducer_view = framed(ss.mount(reducer_app, this))
+reducer_view = framed(soundscript.mount(reducer_app, this))
 // %%
 sourceListing(reducer_module, invalidation)
 // %%
@@ -129,7 +129,7 @@ md`## 6. Skipping cells that did not change
 
 A cell that depends only on its inputs, and whose inputs are the same values as last time, would return the same value. So the notebook does not run it. The table counts how many times each cell body has run.`
 // %%
-model_view = framed(ss.mount(model_app, this))
+model_view = framed(soundscript.mount(model_app, this))
 // %%
 sourceListing(model_module, invalidation)
 // %%
@@ -145,7 +145,7 @@ A cell that touches nothing but its inputs can run anywhere. \`compile\` takes a
 
 This Mandelbrot set is computed in bands by a pool of workers. Move the slider to change the iteration count.`
 // %%
-workers_view = framed(ss.mount(workers_app, this))
+workers_view = framed(soundscript.mount(workers_app, this))
 // %%
 workers_picture = {
   const canvas = this ?? htl.html`<canvas class="lite-mandel">`;
@@ -208,7 +208,7 @@ One piece is new. A game needs a clock, and a cell cannot call an action. \`tick
 breakout_view = {
   // the game's own view, with its state (press play, paused, game over) drawn over the board
   const root = this ?? htl.html`<div class="lite-game"><div class="lite-game-state" aria-live="polite"></div></div>`;
-  const game = ss.mount(breakout_app, root.__game ?? null);
+  const game = soundscript.mount(breakout_app, root.__game ?? null);
   if (game !== root.__game) { root.__game?.remove(); root.prepend(game); root.__game = game; }
   const label = breakout_over ? (/game over/.test(breakout_status) ? "game over · press new game" : "cleared · press new game") : breakout_playing ? "" : "press play";
   const state = root.querySelector(".lite-game-state");
@@ -289,7 +289,7 @@ ss_highlightCode(md`### Capabilities are cells of the core
 A capability parameter becomes an input on a variable of \`@tomlarkworthy/soundscript\`: \`now\` is \`ss_now\`, \`random\` is \`ss_random\`, \`fetch\` is \`ss_fetch\`, \`log\` is \`ss_log\` and \`pool\` is \`ss_pool\`; \`invalidation\` is the runtime's own. Section 6's \`stamped\` takes \`now\`, so its inputs list \`ss_now\`. \`compile\` is \`ss_compile\`, which a module that compiles defines for itself, because \`compile\` reads that module's cells:
 
 \`\`\`
-ss_compile = ss.compiler(() => ss_source(my_module))
+ss_compile = soundscript.compiler(() => ss_source(my_module))
 viewof my_module = thisModule()
 \`\`\``)
 // %%
@@ -409,7 +409,9 @@ md`### Names a body may use
 
 Its parameters, its own locals, the prelude (\`state\`, \`action\`, \`mut\`, \`freeze\`, \`borrow\`, \`snapshot\`, \`equals\`, and \`on\` in *lite*), and these intrinsics: \`Object Array Math JSON Number String Boolean BigInt Symbol Map Set Error TypeError RangeError RegExp Promise\`, the typed arrays, \`ArrayBuffer DataView TextEncoder TextDecoder Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone URL URLSearchParams\`. The v0 rules allow all of these, but the checker has no declarations yet for \`Symbol\`, \`DataView\`, \`TextEncoder\` and \`TextDecoder\`: using one is *unsupported*, and \`new\` on one is \`[new-non-intrinsic]\`; \`new Promise\` is also unsupported. Any other name is \`[free-name]\`. Some members of allowed objects are banned, \`Math.random\` among them (\`[banned-member]\`); a member a declared type does not have is \`[no-member]\`, and any member of an intrinsic that the checker's declarations leave out is reported *unsupported*, not ok.
 
-Not available at all: \`Date\`, \`console\`, \`window\`, \`document\`, \`globalThis\`, \`fetch\` (use the capability), timers, \`eval\`, \`Function\`.`
+Not available at all: \`Date\`, \`console\`, \`window\`, \`document\`, \`globalThis\`, \`fetch\` (use the capability), timers, \`eval\`, \`Function\`.
+
+\`viewof\`, \`mutable\` and \`$\` followed by digits are reserved: none may name a cell, a parameter or a local (\`[reserved-name]\`), because a compiled cell is Observable JavaScript (S2.10).`
 // %%
 md`### Immutable values
 
@@ -455,7 +457,7 @@ md`### State: \`state\`, \`action\`
 
 | construct | meaning |
 |---|---|
-| \`const count = (): StateCell<number> => state(0)\` | a state cell; \`state(...)\` only as the returned value of a sync, non-generator cell (\`[state-placement]\`); its content may not contain a \`State\` or \`StateCell\`, in a record, an array or a union (\`[state-in-state]\`) |
+| \`const count = (): StateCell<number> => state(0)\` | a state cell; \`state(...)\` only as the returned value of a sync, non-generator cell (\`[state-placement]\`); its content may not admit \`undefined\` (\`[state-undefined]\`, S6.18); its content may not contain a \`State\` or \`StateCell\`, in a record, an array or a union (\`[state-in-state]\`) |
 | \`count\` or \`count: number\` as a parameter | the current value; the reader runs again after each committed write |
 | \`count: State<number>\` as a parameter | the handle: \`set(v)\`, \`update(f)\`, no read |
 | \`action((by: number) => count.update((c) => c + by))\` | an \`Action<[number]>\`; writes are legal only lexically inside \`action(...)\` (\`[state-write]\`) |
@@ -558,7 +560,7 @@ test_examples_check_as_expected = {
   const want = { cells: [7, 0], errors: [8, 5], mut: [4, 2], counter: [6, 0], reducer: [10, 0], model: [10, 0], workers: [13, 0], rejectJsx: [17, 11], game: [21, 0] };
   const got = {};
   for (const [k, [n, rejected]] of Object.entries(want)) {
-    const r = ss.checkSources({ cells: examples[k], tsx: k !== "cells" && k !== "errors" && k !== "mut" });
+    const r = soundscript.checkSources({ cells: examples[k], tsx: k !== "cells" && k !== "errors" && k !== "mut" });
     const bad = r.cells.filter((c) => c.status === "rejected").length;
     got[k] = [r.cells.length, bad];
     if (r.cells.length !== n || bad !== rejected) throw new Error(`${k}: ${r.cells.length} cells, ${bad} rejected; want ${n}, ${rejected}`);
@@ -579,7 +581,7 @@ test_compile_refuses_unchecked = {
   // the workers example with one island cell made to read Math.random, which the checker rejects
   const source = examples.workers.replace("out[at + 3] = 255;", "out[at + 3] = Math.random();");
   if (source === examples.workers) throw new Error("rows no longer writes out[at + 3] = 255; update this test");
-  const c = ss.compiler(() => source);
+  const c = soundscript.compiler(() => source);
   try {
     c.for("inPool", { width: 8, height: 8, maxIter: 10 })({ inputs: ["y0", "y1"], refs: ["width", "height", "maxIter"], outputs: ["rows"] });
   } catch (e) {
@@ -592,7 +594,7 @@ test_compile_refuses_unchecked = {
 quietThen = async (f) => {
   // f run once no action call is in flight or waiting, so an action it calls is a call of its own;
   // the frame cap only turns a hung call into an error
-  const quiet = () => { const q = ss.actionQueue(); return !q.inFlight && q.waiting === 0; };
+  const quiet = () => { const q = soundscript.actionQueue(); return !q.inFlight && q.waiting === 0; };
   for (let i = 0; i < 600 && !quiet(); i++) await new Promise((r) => requestAnimationFrame(r));
   if (!quiet()) throw new Error("an action call stayed in flight for 600 frames");
   return f();
@@ -605,17 +607,17 @@ test_breakout_listener = {
   // waits are counted in animation frames until a condition holds; the cap only turns a hung page into an error
   const frames = async (f, n = 600) => { for (let i = 0; i < n && !f(); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
   const get = (n) => game._scope.get(n)._value;
-  const runs = (n) => ss.evals(game._scope.get(n)._definition);
+  const runs = (n) => soundscript.evals(soundscript.idOf(String(game._scope.get(n)._definition)));
   for (const n of ["reset", "toggle", "world", "bricks", "onTick"]) await game.value(n);
   // the clock of this copy only: other tests on the page pull generators of their own
   const w0 = get("world"), on0 = runs("onTick"), t0 = runs("ticks"), h0 = get("ticks");
   await quietThen(() => get("toggle")());
   let changes = 0, last = w0;
   await frames(() => { const w = get("world"); if (w !== last) { changes++; last = w; } return changes >= 10; });
-  const playing = ss.pulling([h0]), w1 = get("world");
+  const playing = soundscript.pulling([h0]), w1 = get("world");
   await quietThen(() => get("toggle")());
-  await frames(() => ss.pulling([h0]) === 0, 60);
-  const w2 = get("world"), paused = ss.pulling([h0]);
+  await frames(() => soundscript.pulling([h0]) === 0, 60);
+  const w2 = get("world"), paused = soundscript.pulling([h0]);
   await frames(() => false, 10);
   const w3 = get("world");
   const onTick = runs("onTick") - on0, ticks = runs("ticks") - t0;
@@ -630,10 +632,10 @@ test_breakout_memo = {
   const game = await ss_instance(breakout_module, invalidation);
   const get = (n) => game._scope.get(n)._value;
   for (const n of ["reset", "toggle", "world", "bricks", "app"]) await game.value(n);
-  const runs = (n) => ss.evals(game._scope.get(n)._definition);
+  const runs = (n) => soundscript.evals(soundscript.idOf(String(game._scope.get(n)._definition)));
   // the copy's app drawn into a node of its own, as breakout_view draws the page's
   let view = null;
-  const drawn = new Promise((res) => invalidation.then(observe(game._scope.get("app"), { fulfilled(a) { view = ss.mount(a, view); res(); } })));
+  const drawn = new Promise((res) => invalidation.then(observe(game._scope.get("app"), { fulfilled(a) { view = soundscript.mount(a, view); res(); } })));
   await drawn;
   const muts = {};
   const mo = new MutationObserver((rs) => { for (const r of rs) { const k = r.type === "attributes" ? "attr " + r.attributeName : r.type; muts[k] = (muts[k] ?? 0) + (r.type === "childList" ? r.addedNodes.length + r.removedNodes.length : 1); } });
@@ -652,7 +654,7 @@ test_breakout_memo = {
   const h0 = get("ticks");
   await quietThen(() => get("toggle")());
   // the clock has stopped, and the mutations of the last tick have been delivered
-  for (let i = 0; i < 60 && ss.pulling([h0]) > 0; i++) await new Promise((r) => requestAnimationFrame(r));
+  for (let i = 0; i < 60 && soundscript.pulling([h0]) > 0; i++) await new Promise((r) => requestAnimationFrame(r));
   await new Promise((r) => requestAnimationFrame(r));
   mo.disconnect();
   const ran = Object.fromEntries(names.map((n) => [n, runs(n) - n0[n]]));
@@ -671,11 +673,11 @@ md`## Appendix: the declarations JSX is checked against
 
 The checker's own declarations, as this page's bundle carries them. A tag not listed is an error (\`<blink>\` in section 8).`
 // %%
-htl.html`<pre class="lite-src">${ss.JSX_DECLS.trim()}</pre>`
+htl.html`<pre class="lite-src">${soundscript.JSX_DECLS.trim()}</pre>`
 // %%
 md`## Appendix: this notebook's code
 
-\`ss\` is imported from \`@tomlarkworthy/soundscript\`. It is the object \`soundscript\` of \`@tomlarkworthy/soundscript-checker\`, assembled from ordinary cells: the checker and the per-cell compiler in that module, and the library that live cells call (state, actions, events, the JSX renderer) in \`@tomlarkworthy/soundscript-runtime\`. The build generates both modules from the TypeScript sources. Only the parser, a third-party library, is a gzipped attachment. The example sources are attachments of this module, and the boxes and \`test_examples_check_as_expected\` read them; the live cells were compiled from the same files when the notebook was built.
+Compiled cells take \`ss\` of \`@tomlarkworthy/soundscript-runtime\`: the library that live cells call (state, actions, events, the JSX renderer), as ordinary cells. The checker and the per-cell compiler are the object \`soundscript\` of \`@tomlarkworthy/soundscript-checker\`, also ordinary cells, which this module's listings and tests use. The build generates both modules from the TypeScript sources. Only the parser, a third-party library, is a gzipped attachment. The example sources are attachments of this module, and the boxes and \`test_examples_check_as_expected\` read them; the live cells were compiled from the same files when the notebook was built.
 
 Before each group of lesson cells is a \`sourceListing\` cell of this module. It shows the group's source, decompiled from the cells' live definitions and read again when the module's code changes, coloured with the editor's TypeScript parser (the core's \`ss_highlight\`). The lesson cells after it are shown as any cell is: a value with the normal Inspector, an action, a function, a listener, an events cell or a type as one line drawn by the core's \`ss_language.inspect\`, an element mounted, and a cell that does not check as its error.`
 // %%
@@ -685,7 +687,7 @@ checkTime = {
   const ts = [];
   for (let i = 0; i < 20; i++) {
     const t0 = performance.now();
-    ss.checkSources({ cells: examples.workers, tsx: true });
+    soundscript.checkSources({ cells: examples.workers, tsx: true });
     ts.push(performance.now() - t0);
   }
   return ts.sort((a, b) => a - b)[10];
@@ -924,7 +926,7 @@ testTable = (modules, invalidation) => {
 // %%
 checkBox = (src, { tsx = false } = {}) => {
   let checked;
-  try { checked = ss.checkSources({ cells: src, tsx }); }
+  try { checked = soundscript.checkSources({ cells: src, tsx }); }
   catch (e) { return htl.html`<div class="lite-panel lite-err">${e.message}</div>`; }
   const lines = src.split("\n");
   const body = htl.html`<tbody>`;
@@ -943,11 +945,13 @@ checkBox = (src, { tsx = false } = {}) => {
 kindOf = (v) => {
   const d = String(v._definition);
   if (v._name.startsWith("viewof ")) return "state cell: the handle";
-  if (d.includes("/*ss@ref*/")) return "state cell: the value";
-  if (d.includes('kind: "events"')) return "events: a handle, pulled only while a listener is attached";
-  if (!d.includes("$ss$.cell(")) return "type";
-  const kind = d.includes("memo: true") ? "memoised on its inputs" : "not memoised";
-  const extra = /\$ss\$r0/.test(d) ? "; compile refs as inputs" : d.includes('kind: "listener"') ? "; a listener" : "";
+  if (d === soundscript.STATE_VALUE) return "state cell: the value";
+  // the options of the cell's ss.cell call, from its parse
+  const k = soundscript.compiledKind(d);
+  if (k?.kind === "events") return "events: a handle, pulled only while a listener is attached";
+  if (k?.callee !== "cell") return "type";
+  const kind = k.memo ? "memoised on its inputs" : "not memoised";
+  const extra = k.refs.length ? "; compile refs as inputs" : k.kind === "listener" ? "; a listener" : "";
   return `cell, ${kind}${extra}`;
 }
 // %%
@@ -977,13 +981,13 @@ moduleTable = (module, invalidation) => {
   const verdicts = () => ss_check(module).result;
   return liveRows(module, invalidation, {
     head: htl.html`<thead><tr><th>cell</th><th>check</th><th>type</th><th>value</th><th>runs</th></tr></thead>`,
-    cells: () => { const res = verdicts(); return ss_moduleCells(module).filter((c) => !c.key.startsWith("type ")).map((c) => ({ ...c, variable: module._scope.get(c.key) ?? c.variable, verdict: res.cells.find((x) => x.name === c.key) })); },
+    cells: () => { const res = verdicts(); return ss_moduleCells(module).filter((c) => !c.key.startsWith("type ")).map((c) => ({ ...c, variable: module._scope.get(soundscript.variableName(c.key)) ?? c.variable, verdict: res.cells.find((x) => x.name === c.key) })); },
     row: ({ key, variable: v, verdict: r }) => {
       const val = htl.html`<td class="v">`, runs = htl.html`<td>`;
       const update = (error) => {
         val.textContent = error !== undefined ? `throws: ${error?.message ?? error}` : fmt(v._value);
-        const h = module._scope.get(ss.handleName(key)) ?? v;
-        runs.textContent = String(ss.evals(String(h._definition).includes("$ss$.cell(") ? h._definition : v._definition));
+        const h = module._scope.get(soundscript.handleName(key)) ?? v;
+        runs.textContent = String(soundscript.evals(soundscript.idOf(String(h._definition)) ?? soundscript.idOf(String(v._definition))));
       };
       update();
       return { update, tr: htl.html`<tr class=${"lite-" + (r?.status ?? "blocked")}><td><code>${key}</code></td><td>${r ? badge(r.status) : ""}</td><td><code>${r?.value ?? ""}</code></td>${val}${runs}</tr>` };
@@ -994,11 +998,11 @@ moduleTable = (module, invalidation) => {
 variableTable = (module, invalidation) => liveRows(module, invalidation, {
   cls: "lite-vars",
   head: htl.html`<thead><tr><th>variable</th><th>inputs</th><th>kind</th><th>runs</th></tr></thead>`,
-  cells: () => [...runtime._variables].filter((v) => v._module === module && typeof v._name === "string" && typeof v._definition === "function" && ss.langOf(String(v._definition)) === "ss").map((variable) => ({ variable })),
+  cells: () => [...runtime._variables].filter((v) => v._module === module && typeof v._name === "string" && ss_isSs(v)).map((variable) => ({ variable })),
   row: ({ variable: v }) => {
-    const counted = String(v._definition).includes("$ss$.cell(");
+    const id = soundscript.idOf(String(v._definition));
     const runs = htl.html`<td>`;
-    const update = () => { runs.textContent = counted ? String(ss.evals(v._definition)) : ""; };
+    const update = () => { runs.textContent = id ? String(soundscript.evals(id)) : ""; };
     update();
     return { update, tr: htl.html`<tr><td><code>${v._name}</code></td><td><code>${v._inputs.map((i) => i._name).join(", ")}</code></td><td>${kindOf(v)}</td>${runs}</tr>` };
   },
@@ -1148,7 +1152,7 @@ test_ss_module_checks = {
 //raw: test_ss_counter
 // %%
 // the capabilities are imported for cells a reader adds; a compiled cell that takes now reads ss_now
-import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_roundtrip, ss_instance, ss_highlight, ss_highlightCode, ss_hl_css, cellListing } from "@tomlarkworthy/soundscript"
+import { ss, soundscript, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_isSs, ss_roundtrip, ss_instance, ss_highlight, ss_highlightCode, ss_hl_css, cellListing } from "@tomlarkworthy/soundscript"
 // %%
 import { app as reducer_app, reducer_module } from "@tomlarkworthy/soundscript-reducer"
 // %%

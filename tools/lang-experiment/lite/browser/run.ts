@@ -5,6 +5,8 @@ import { type Node } from "../parse.ts";
 import { lowerJsx } from "../jsx/lower.ts";
 import { h } from "../jsx/h.ts";
 import { erase } from "./erase.ts";
+// a state cell's value is Observable's own Generators.input of its handle (a view)
+import { input } from "../../../../vendor/observable-stdlib/src/generators/input.js";
 import * as P from "../../prelude.runtime.ts";
 import { island, type IslandSpec } from "../island.ts";
 import { CAPABILITIES, PRELUDE_FNS } from "../intrinsics.ts";
@@ -146,7 +148,7 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
         if (!P.isStateCell(r)) throw new Error(`${c.name} did not return state(...)`);
         return P.materialize(r, c.name);
       });
-      main.variable(observe(rec)).define(c.name, [`${c.name}$ref`], (hd: unknown) => P.refValues(hd as object));
+      main.variable(observe(rec)).define(c.name, [`${c.name}$ref`], (hd: unknown) => input(hd));
       variables.push({ name: `${c.name}$ref`, inputs, kind: "state cell: the handle State<T> parameters get" }, { name: c.name, inputs: [`${c.name}$ref`], kind: "state cell: its current value, one per write" });
     } else if (c.generator) {
       main.variable(observe(rec)).define(c.name, inputs, counted);

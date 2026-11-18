@@ -26,7 +26,7 @@ md`**S1.4** Any other top-level statement is \`[module-level]\`, except \`var\`,
 // %%
 md`**S1.5** A top-level \`const\` or \`let\` that is not a function is \`[cell-not-function]\`. That includes a declaration with no initializer and one that destructures.`
 // %%
-md`**S1.6** A name declared by more than one cell belongs to the first. Each later cell with that name is \`[duplicate-cell]\` ("a is already defined at line 1") and is reported as \`a (2)\`, \`a (3)\` and so on. The first is checked as usual, and a cell that takes the name reads the first. In a notebook module, an edit that gives a cell the name of another cell is stored under \`a (2)\` and does not run.`
+md`**S1.6** A name declared by more than one cell belongs to the first. Each later cell with that name is \`[duplicate-cell]\` ("a is already defined at line 1") and is reported as \`a (2)\`, \`a (3)\` and so on. The first is checked as usual, and a cell that takes the name reads the first. In a notebook module, an edit that gives a cell the name of another cell is stored under \`a (2)\` and does not run. The compiled variable of \`a (2)\` is named \`$ss$2$a\`, and a type declaration \`type X\` is the variable \`$ss$type$X\`, so that each has a legal Observable JavaScript name.`
 // %%
 md`**S1.7** A cell with the name of a shell cell is \`[duplicate-cell]\`. A shell cell is an unchecked cell the checker is given beside the checked ones (section 9); a notebook module gives it none.`
 // %%
@@ -59,7 +59,7 @@ spec_rejects = [...spec_rejects_1, ...spec_rejects_2, ...spec_rejects_3, ...spec
 spec_rulesOf = (c) => {
   // the rule ids the checker reports for a reject case, sorted and without repeats. outside: the cells in
   // other languages the case's module has (section 11)
-  const r = ss.checkSources({ cells: c.source, shell: c.shell, tsx: true, outside: c.outside });
+  const r = soundscript.checkSources({ cells: c.source, shell: c.shell, tsx: true, outside: c.outside });
   return [...new Set([...r.module, ...r.cells.flatMap((x) => x.errors)].map((e) => e.rule))].sort();
 }
 // %%
@@ -83,7 +83,7 @@ spec_rejectsFor = (statement) => {
 // %%
 spec_okCells = (source) => {
   // the cells of an accepted source, name:status; throws if the source is rejected
-  const r = ss.check(source);
+  const r = soundscript.check(source);
   const rules = [...r.module, ...r.cells.flatMap((x) => x.errors)].map((e) => e.rule);
   if (rules.length) throw new Error(`${JSON.stringify(source)} gave ${JSON.stringify(rules)}`);
   return r.cells.map((c) => `${c.name}:${c.status}`).join(",");
@@ -99,7 +99,7 @@ spec_flush = () => new Promise((r) => setTimeout(r, 0)).then(() => new Promise((
 // %%
 spec_quiet = () => {
   // no action call in flight or waiting, anywhere on the page (S6.13)
-  const q = ss.actionQueue();
+  const q = soundscript.actionQueue();
   return !q.inFlight && q.waiting === 0;
 }
 // %%
@@ -127,7 +127,7 @@ spec_frames = async (f, n = 600) => {
 spec_evals = (module, name) => {
   // body runs of a cell; a state cell's body runs in its handle variable
   const v = (n) => [...runtime._variables].find((x) => x._module === module && x._name === n);
-  return ss.evals((v(ss.handleName(name)) ?? v(name))._definition);
+  return soundscript.evals(soundscript.idOf(String((v(soundscript.handleName(name)) ?? v(name))._definition)));
 }
 // %%
 spec_editor = async (texts) => {
@@ -145,15 +145,15 @@ spec_editor = async (texts) => {
     edit: (name, text) => ss_language.apply(text, [variable(name)], at),
     states: () => Object.fromEntries([...ss_check(m).states].map(([n, x]) => [n, x.state === "blocked" ? `blocked by ${x.blockedBy.join(",")}` : x.state])),
     value: async (n) => { try { return await m.value(n); } catch (e) { return { error: e.message }; } },
-    evals: (n) => ss.evals(variable(n)._definition),
-    text: (n) => ss.decompileVariable(String(variable(n)._definition)),
-    dispose: () => { for (const v of [...runtime._variables]) if (v._module === m) { ss.release(v._value); v.delete(); } }
+    evals: (n) => soundscript.evals(soundscript.idOf(String(variable(n)._definition))),
+    text: (n) => soundscript.decompileVariable(String(variable(n)._definition)),
+    dispose: () => { for (const v of [...runtime._variables]) if (v._module === m) { soundscript.release(v._value); v.delete(); } }
   };
 }
 // %%
 spec_okCellsWith = (source, outside) => {
   // spec_okCells for a module that also has cells in other languages
-  const r = ss.checkSources({ cells: source, tsx: true, outside });
+  const r = soundscript.checkSources({ cells: source, tsx: true, outside });
   const rules = [...r.module, ...r.cells.flatMap((x) => x.errors)].map((e) => e.rule);
   if (rules.length) throw new Error(`${JSON.stringify(source)} gave ${JSON.stringify(rules)}`);
   return r.cells.map((c) => `${c.name}:${c.status}`).join(",");
@@ -196,13 +196,13 @@ test_spec_S1_4 = {
 test_spec_S1_5 = spec_rejectsFor("S1.5")
 // %%
 test_spec_S1_6 = {
-  const r = ss.check('const a = () => 1;\nconst b = (a: number) => a + 1;\nconst a = () => "x";\nconst a = () => 3;');
+  const r = soundscript.check('const a = () => 1;\nconst b = (a: number) => a + 1;\nconst a = () => "x";\nconst a = () => 3;');
   const got = r.cells.map((c) => `${c.name}:${c.status}:${c.errors.map((e) => e.msg).join("|")}`).join(",");
   if (got !== "a:ok:,b:ok:,a (2):rejected:a is already defined at line 1,a (3):rejected:a is already defined at line 1") throw new Error(got);
   if (r.cells[1].value !== "number") throw new Error(`b reads ${r.cells[1].value}, not the first a`);
   // an edit naming another cell is stored, rejected, under the next free name
   const e = ss_language.check("const s1_arrow = () => 9;", [], { module: { module: spec_module } });
-  if (!e.store || e.state !== "rejected" || e.defs.map((d) => d.name).join() !== "s1_arrow (2)" || !e.problems.some((p) => p.rule === "duplicate-cell")) throw new Error(`the edit gave store ${e.store}, ${e.state}, ${e.defs?.map((d) => d.name)}, ${JSON.stringify(e.problems)}`);
+  if (!e.store || e.state !== "rejected" || e.defs.map((d) => soundscript.keyOfVariable(d.name)).join() !== "s1_arrow (2)" || !e.problems.some((p) => p.rule === "duplicate-cell")) throw new Error(`the edit gave store ${e.store}, ${e.state}, ${e.defs?.map((d) => d.name)}, ${JSON.stringify(e.problems)}`);
   return `${spec_rejectsFor("S1.6")}; b reads the first a; an edit naming s1_arrow is stored as s1_arrow (2), rejected`;
 }
 // %%
@@ -212,7 +212,7 @@ test_spec_S1_6_first_deleted = {
   const m = runtime.module();
   m.define("ss", [], () => ss);
   const at = { module: { module: m } };
-  const named = () => [...runtime._variables].filter((v) => v._module === m && typeof v._name === "string" && v._name.startsWith("dupa")).map((v) => v._name).sort().join(",");
+  const named = () => [...runtime._variables].filter((v) => v._module === m && typeof v._name === "string" && soundscript.keyOfVariable(v._name).startsWith("dupa")).map((v) => soundscript.keyOfVariable(v._name)).sort().join(",");
   const until = async (f) => { for (let i = 0; i < 200 && !f(); i++) await new Promise((r) => setTimeout(r, 50)); return f(); };
   try {
     await ss_language.apply("const dupa = () => 1;", [], at);
@@ -234,7 +234,7 @@ test_spec_S1_8 = {
 }
 // %%
 test_spec_S1_9 = {
-  const st = ss.check("const a = (b: number) => b + 1;\nconst b = (a: number) => a + 1;").cells.map((c) => `${c.name}:${c.status}`).join(",");
+  const st = soundscript.check("const a = (b: number) => b + 1;\nconst b = (a: number) => a + 1;").cells.map((c) => `${c.name}:${c.status}`).join(",");
   spec_is(st, "a:rejected,b:rejected");
   return `${spec_rejectsFor("S1.9")}; both cells of a two-cell cycle are rejected`;
 }
@@ -260,6 +260,8 @@ md`**S2.7** Reading \`Math.random\`, \`Object.defineProperty\`, \`Object.defineP
 md`**S2.8** A body that uses a cell by its name instead of taking it as a parameter is \`[cell-by-name]\`. That includes a cell calling itself. A local with a cell's name is a local.`
 // %%
 md`**S2.9** A body is type-checked with \`null\` and \`undefined\` kept apart from other types. A mismatch is \`[type]\`, except for five checks with rules of their own: a parameter of a local function with neither an annotation nor a type from where the function is passed is \`[untyped-parameter]\`; a call with too few or too many arguments is \`[arity]\`; a property that an object literal's declared type does not have is \`[excess-property]\`; a value that may be \`undefined\` or \`null\` used as a number, read from, indexed or called is \`[possibly-undefined]\`; an assignment to a \`const\` local is \`[const-assign]\`.`
+// %%
+md`**S2.10** \`viewof\`, \`mutable\` and \`$\` followed by digits (\`$0\`, \`$12\`) are reserved. Using one as the name of a cell, a parameter or a local is \`[reserved-name]\`, and so is \`$0\` as a property key or a member name. \`viewof\` and \`mutable\` may still be a property key or a member name, and a type may use any of them. A compiled cell is Observable JavaScript, which reads \`viewof\` and \`mutable\` as keywords and names a cell's \`viewof\` inputs \`$0\`, \`$1\` and so on.`
 // %%
 md`The cells of this section. \`s2_answer\` takes \`s2_base\` and the function \`s2_double\` with no annotations; \`s2_read\` takes an async cell, a generator and a state cell by their value types.`
 // %%
@@ -300,6 +302,10 @@ spec_rejects_2 = [
   { statement: "S2.9", rule: "arity", source: "const g = () => {\n  const h = (x: number) => x;\n  return h(1, 2);\n};" },
   { statement: "S2.9", rule: "excess-property", source: "const g = () => {\n  const p: { readonly x: number } = { x: 1, y: 2 };\n  return p.x;\n};" },
   { statement: "S2.9", rule: "possibly-undefined", source: "const g = () => {\n  const xs: readonly number[] = [1];\n  const x = xs.find((v) => v > 0);\n  return x + 1;\n};" },
+  { statement: "S2.10", rule: "reserved-name", source: "const a = () => {\n  const viewof = 1;\n  return viewof;\n};" },
+  { statement: "S2.10", rule: "reserved-name", source: "const mutable = () => 1;" },
+  { statement: "S2.10", rule: "reserved-name", source: "const a = () => {\n  const $0 = 1;\n  return $0;\n};" },
+  { statement: "S2.10", rule: "reserved-name", source: "const a = () => ({ $1: 2 });" },
   { statement: "S2.9", rule: "const-assign", source: "const g = () => {\n  const x = 1;\n  x = 2;\n  return x;\n};" }
 ]
 // %%
@@ -696,6 +702,8 @@ md`**S6.16** A throw from a call that started at once goes to its caller. A thro
 // %%
 md`**S6.17** A call that is waiting in the queue, or paused at an \`await\`, when the cell that defines its action is edited finishes with the code it started with.`
 // %%
+md`**S6.18** The content type of a state cell may not admit \`undefined\`: it may not be \`undefined\`, \`void\` or \`unknown\`, or a union with one of them, directly or through a type alias. That is \`[state-undefined]\`. A property of the content may be optional. A state cell's value variable is Observable's \`Generators.input\` of its handle, which skips an \`undefined\` value, so the cell would have none; use \`null\`. \`State\`, \`StateCell\` and \`Events\` written without a type argument are \`[type]\`.`
+// %%
 md`The cells of this section. \`s6_copy\` reads \`s6_count\` when it is called; \`s6_bumpThenCopy\` writes \`s6_count\` and calls \`s6_copy\`, which sees that write (S6.8). \`s6_controls\` holds two actions in a record. \`s6_view\` has a button for each of \`s6_increment\` and \`s6_bumpThenCopy\` and shows both counts.`
 // %%
 //ss: ./spec-6.tsx
@@ -728,7 +736,12 @@ spec_rejects_6 = [
   { statement: "S6.9", rule: "action-capture", source: "const c = (): StateCell<number> => state(0);\nconst d = (c: number) => c * 2;\nconst e = (d: number) => d + 1;\nconst o = (): StateCell<number> => state(0);\nconst t = (o: State<number>, e: number) => action(() => o.set(e));" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst roll = (other: State<number>, random: Random) => action(() => other.set(random()));" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => action(() => other.set(now()));" },
-  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst load = (other: State<number>, fetch: Fetch) =>\n  action(() => {\n    fetch(\"https://example.invalid/\");\n    other.set(1);\n  });" }
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst load = (other: State<number>, fetch: Fetch) =>\n  action(() => {\n    fetch(\"https://example.invalid/\");\n    other.set(1);\n  });" },
+  { statement: "S6.18", rule: "state-undefined", source: "const c = () => state(undefined);" },
+  { statement: "S6.18", rule: "state-undefined", source: "const c = (): StateCell<number | undefined> => state<number | undefined>(1);" },
+  { statement: "S6.18", rule: "state-undefined", source: "const c = (): StateCell<unknown> => state(1);" },
+  { statement: "S6.18", rule: "state-undefined", source: "type N = number | undefined;\nconst c = (): StateCell<N> => state(1);" },
+  { statement: "S6.18", rule: "type", source: "const c = (): StateCell => state(1);" }
 ]
 // %%
 spec_rejects_6_view = spec_rejectsTable(spec_rejects_6)
@@ -816,7 +829,7 @@ test_spec_S6_8 = {
     spec_is(await L.value("pair"), [1, 2]);
     let msg = "";
     const [held] = await L.value("held");
-    try { await spec_act(() => ss.read(held)); } catch (e) { msg = e.message; }
+    try { await spec_act(() => soundscript.read(held)); } catch (e) { msg = e.message; }
     if (!msg) throw new Error("read outside an action did not throw");
     const live = (n) => spec_module.value(n);
     const controls = await live("s6_controls");
@@ -923,11 +936,11 @@ const tag = (x: State<number>) => action((k: number) => x.update((c) => c * 10 +
     const [slow, tag] = [await L.value("slow"), await L.value("tag")];
     const order = [];
     const q = await spec_act(() => {
-      ss.entry(null, () => { slow(g.p); order.push("slow called"); });
+      soundscript.entry(null, () => { slow(g.p); order.push("slow called"); });
       order.push("after slow");
-      ss.entry(null, () => tag(1));
-      ss.entry(null, () => tag(2));
-      return ss.actionQueue();
+      soundscript.entry(null, () => tag(1));
+      soundscript.entry(null, () => tag(2));
+      return soundscript.actionQueue();
     });
     spec_is([q, order], [{ inFlight: true, waiting: 2 }, ["slow called", "after slow"]]);
     g.open(3);
@@ -951,7 +964,7 @@ test_spec_S6_14 = {
     const load = await E.value("load"), runs = E.evals("pair");
     await spec_act(() => load(g.p));
     await spec_flush();
-    spec_is([ss.actionQueue().inFlight, await E.value("pair"), E.evals("pair") - runs], [true, [0, 0], 0]);
+    spec_is([soundscript.actionQueue().inFlight, await E.value("pair"), E.evals("pair") - runs], [true, [0, 0], 0]);
     g.open(10);
     await spec_act(() => {});
     await spec_flush();
@@ -976,7 +989,7 @@ const outer = (inner: Action<[Promise<number>]>, later: Action<[Promise<number>]
     p.open(1);
     await d.p;
     await spec_flush();
-    spec_is([ss.actionQueue().inFlight, await L.value("x")], [false, 10]);
+    spec_is([soundscript.actionQueue().inFlight, await L.value("x")], [false, 10]);
     q.open(100);
     await spec_frames(() => host.length > 0);
     await spec_flush();
@@ -1038,9 +1051,9 @@ const late = (x: State<number>) => action(async (p: Promise<number>) => { x.set(
   try {
     const [slow, bad, late] = [await L.value("slow"), await L.value("bad"), await L.value("late")];
     let atOnce = "";
-    try { await spec_act(() => ss.entry(null, () => bad())); } catch (e) { atOnce = e.message; }
+    try { await spec_act(() => soundscript.entry(null, () => bad())); } catch (e) { atOnce = e.message; }
     let queued = "";
-    try { await spec_act(() => { ss.entry(null, () => slow(g.p)); ss.entry(null, () => bad()); }); } catch (e) { queued = e.message; }
+    try { await spec_act(() => { soundscript.entry(null, () => slow(g.p)); soundscript.entry(null, () => bad()); }); } catch (e) { queued = e.message; }
     g.open(5);
     await spec_act(() => {});
     await spec_act(() => late(h.p));
@@ -1063,7 +1076,7 @@ test_spec_S6_17 = {
   const g = spec_gate();
   try {
     const [slow, tag] = [await E.value("slow"), await E.value("tag")];
-    await spec_act(() => { ss.entry(null, () => slow(g.p)); ss.entry(null, () => tag()); });
+    await spec_act(() => { soundscript.entry(null, () => slow(g.p)); soundscript.entry(null, () => tag()); });
     await E.edit("slow", "const slow = (x: State<number>) => action(async (p: Promise<number>) => {\n  await p;\n  x.update((c) => c + 100);\n});");
     await E.edit("tag", "const tag = (x: State<number>) => action(() => x.update((c) => c * 1000));");
     if ((await E.value("slow")) === slow || (await E.value("tag")) === tag) throw new Error("the edits did not make new actions");
@@ -1401,7 +1414,7 @@ test_spec_S8_6 = {
 // %%
 test_spec_S8_7 = {
   const texts = ["const x = () => 1;", "const y = (x: number) => x + 1;", "const bad = (x: number) => x +;", "const z = (bad: number) => bad;", "const go = (compile: Compile) => compile({ inputs: [\"x\"], refs: [], outputs: [\"y\"] });"];
-  const c = ss.compiler(() => ss.joinCells(texts));
+  const c = soundscript.compiler(() => soundscript.joinCells(texts));
   const r = await c.for("go", {})({ inputs: ["x"], refs: [], outputs: ["y"] })({ x: 41 });
   spec_is(r.y, 42);
   let refused = "";
@@ -1436,7 +1449,7 @@ spec_rejects_9_view = spec_rejectsTable(spec_rejects_9)
 // %%
 test_spec_S9_1 = {
   for (const source of ["const b = (raw) => (typeof raw === \"number\" ? raw + 1 : 0);", "const b = (raw: unknown) => 1;", "const b = (raw: Js) => 1;"]) {
-    const r = ss.checkSources({ cells: source, shell: "export let raw = () => JSON.parse(\"1\");", tsx: true });
+    const r = soundscript.checkSources({ cells: source, shell: "export let raw = () => JSON.parse(\"1\");", tsx: true });
     spec_is(r.cells.map((c) => `${c.name}:${c.status}:${c.errors.length}`), ["b:ok:0"]);
   }
   spec_is(spec_rulesOf({ source: "const b = (raw) => raw + 1;", shell: "export let raw = () => 1;" }), ["type"]);
@@ -1450,7 +1463,7 @@ test_spec_S9_2 = {
 }
 // %%
 test_spec_S9_3 = {
-  const rules = (cells, foreign) => { const r = ss.checkSources({ cells, foreign, tsx: true }); return [...r.module, ...r.cells.flatMap((c) => c.errors)].map((e) => e.rule).sort(); };
+  const rules = (cells, foreign) => { const r = soundscript.checkSources({ cells, foreign, tsx: true }); return [...r.module, ...r.cells.flatMap((c) => c.errors)].map((e) => e.rule).sort(); };
   spec_is(rules("const a = () => 1;", "declare const thing: number;"), ["foreign-unmarked"]);
   spec_is(rules("const a = (send) => typeof send;", "/** effect */\ndeclare const send: (s: string) => void;"), ["foreign-effect"]);
   spec_is(rules("const a = (lib: number) => lib + 1;", "/** pure */\ndeclare const lib: number;"), []);
@@ -1555,9 +1568,9 @@ spec_load = async (source, outside) => {
   m.define("ss", [], () => ss);
   for (const [n, x] of Object.entries(outside)) if (Array.isArray(x)) m.define(n, x[0], x[1]); else m.import(n, x.from);
   const list = ss_outside(m);
-  const texts = ss.splitCells(source, true);
-  const ctx = ss.contextFromCheck(ss.checkCells(texts, true, list).result);
-  const defs = texts.flatMap((t) => ss.compileCell(t, true, ctx));
+  const texts = soundscript.splitCells(source, true);
+  const ctx = soundscript.contextFromCheck(soundscript.checkCells(texts, true, list).result);
+  const defs = texts.flatMap((t) => soundscript.compileCell(t, true, ctx));
   const fns = await realize(defs.map((d) => d.definition), runtime);
   const vars = defs.map((d, i) => m.variable({}).define(d.name, d.inputs, fns[i]));
   return { module: m, value: (n) => m.value(n), dispose: () => { for (const v of [...runtime._variables]) if (v._module === m) v.delete(); } };
@@ -1622,13 +1635,13 @@ test_spec_S11_6 = {
   try {
     await L.value("total");
     const v = [...runtime._variables].find((x) => x._module === L.module && x._name === "total");
-    const runs = ss.evals(v._definition);
+    const runs = soundscript.evals(soundscript.idOf(String(v._definition)));
     rows[0].price = 5;
     L.module.redefine("rows", [], () => rows);
     if ((await L.value("total")) !== 5) throw new Error("a value changed in place was not seen");
     L.module.redefine("rows", [], () => [{ price: 5 }]);
     if ((await L.value("total")) !== 5) throw new Error("total");
-    const more = ss.evals(v._definition) - runs;
+    const more = soundscript.evals(soundscript.idOf(String(v._definition))) - runs;
     if (more !== 1) throw new Error(`total ran ${more} more times, expected 1`);
     return "changed in place: seen; equal again: not run again";
   } finally { L.dispose(); }
@@ -1656,8 +1669,8 @@ test_spec_S11_7 = {
 test_spec_S11_8 = {
   const el = await spec_module.value("viewof s11_level");
   const bump = await spec_module.value("s11_bump"), big = await spec_module.value("s11_big");
-  const handle = ss.viewRef(el, { k: "num" }, "s11_level");
-  const readNow = () => { let v; ss.action(() => { v = ss.read(handle); })(); return v; };
+  const handle = soundscript.viewRef(el, { k: "num" }, "s11_level");
+  const readNow = () => { let v; soundscript.action(() => { v = soundscript.read(handle); })(); return v; };
   const was = el.value;
   const flushed = () => new Promise((r) => setTimeout(r, 0)).then(() => new Promise((r) => setTimeout(r, 0)));
   // a change on the control
@@ -1703,7 +1716,7 @@ test_spec_S11_9 = spec_rejectsFor("S11.9")
 // %%
 test_spec_S11_10 = {
   const name = (n) => [...runtime._variables].find((v) => v._module === spec_module && v._name === n);
-  const rejected = () => /\.rejected\(/.test(String(name("s11_late_twice")?._definition));
+  const rejected = () => soundscript.compiledKind(String(name("s11_late_twice")?._definition))?.callee === "rejected";
   const until = async (f) => { for (let i = 0; i < 200 && !f(); i++) await new Promise((r) => setTimeout(r, 50)); return f(); };
   // edits run one at a time; the module is first settled, so the wait is for this test's change alone
   await ss_language.settle(spec_module);
@@ -1817,7 +1830,7 @@ spec_coverageOf = (status, redraw) => {
 // %%
 viewof spec_module = thisModule()
 // %%
-import { ss, ss_instances, ss_language, ss_check, ss_outside } from "@tomlarkworthy/soundscript"
+import { ss, soundscript, ss_instances, ss_language, ss_check, ss_outside } from "@tomlarkworthy/soundscript"
 // %%
 import { thisModule, runtime, realize, onCodeChange } from "@tomlarkworthy/runtime-sdk"
 // %%

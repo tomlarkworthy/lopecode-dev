@@ -20,10 +20,10 @@ To write SoundScript cells in another module of this notebook, import \`ss\` and
 import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_pool, ss_source } from "@tomlarkworthy/soundscript"
 \`\`\`
 
-Every compiled cell takes \`ss\` as its first input. Add a cell after a SoundScript cell and type a source such as \`const total = (a: number, b: number) => a + b;\`. The editor's header shows the language the cell will be stored in, and lets you change it. A SoundScript cell is checked against the module's other SoundScript cells and, if it is \`ok\`, compiled and defined. A module whose cells call \`compile\` also defines \`ss_compile\`:
+Every compiled cell takes \`ss\` as an input: the object \`ss\` of \`@tomlarkworthy/soundscript-runtime\`, which holds what compiled cells call. The checker and compiler are \`soundscript\` of \`@tomlarkworthy/soundscript-checker\`, which the tooling cells of this module use. Add a cell after a SoundScript cell and type a source such as \`const total = (a: number, b: number) => a + b;\`. The editor's header shows the language the cell will be stored in, and lets you change it. A SoundScript cell is checked against the module's other SoundScript cells and, if it is \`ok\`, compiled and defined. A module whose cells call \`compile\` also defines \`ss_compile\`:
 
 \`\`\`
-ss_compile = ss.compiler(() => ss_source(my_module))
+ss_compile = soundscript.compiler(() => ss_source(my_module))
 viewof my_module = thisModule()   // from @tomlarkworthy/runtime-sdk
 \`\`\``)
 // %%
@@ -75,20 +75,23 @@ readme_limits = md`## Limits
 // %%
 readme_api = ss_highlightCode(md`## API
 
+\`evals\` and \`forget\` take a cell's memo id, which \`idOf\` reads from a compiled definition; \`compiledKind\` gives the kind of a compiled definition.
+
 \`\`\`
-ss.checkSources({ cells, tsx, outside })  // the checker: per cell {name, status, errors, unsupported, value (its type)}
-ss.check(source, tsx = true, outside)  // checkSources, remembered for the last 16 sources; .facts per cell (not enumerable)
-ss.compileCell(source, tsx, context, name?)  // one cell's source -> [{name, inputs, definition}]; context: ss_context(module texts); name: the variable's own name, which wins over the declared one
-ss.decompileVariable(definition)       // a compiled definition -> the cell's source, or null
-ss.compiler(() => source)              // the value of ss_compile: compile(...) for the cells of that source
-ss.evals(variable._definition)         // how many times a compiled cell's body has run
-ss.running(handles?)                   // listeners attached on the page (on these handles only, if given)
-ss.pulling(handles?)                   // events cells whose generator is being pulled (of these handles only, if given)
-ss.isEvents(value)                     // whether a value is an events cell's handle
-ss.release(value)                      // a deleted variable's listener ends, or its events stop
-ss.forget(definition)                  // drop a compiled definition's memo entry and run count
-ss.memoSize(), ss.memoHas(id)          // memo entries on the page; whether one id has one
-ss.idOf(definition), ss.withId(definition, id)  // read or replace a compiled definition's memo id
+soundscript.checkSources({ cells, tsx, outside })  // the checker: per cell {name, status, errors, unsupported, value (its type)}
+soundscript.check(source, tsx = true, outside)  // checkSources, remembered for the last 16 sources; .facts per cell (not enumerable)
+soundscript.compileCell(source, tsx, context, name?)  // one cell's source -> [{name, inputs, definition}]; context: ss_context(module texts); name: the variable's own name, which wins over the declared one
+soundscript.decompileVariable(definition)       // a compiled definition -> the cell's source, or null
+soundscript.compiler(() => source)              // the value of ss_compile: compile(...) for the cells of that source
+soundscript.evals(soundscript.idOf(definition)) // how many times a compiled cell's body has run (by its memo id)
+soundscript.running(handles?)                   // listeners attached on the page (on these handles only, if given)
+soundscript.pulling(handles?)                   // events cells whose generator is being pulled (of these handles only, if given)
+soundscript.isEvents(value)                     // whether a value is an events cell's handle
+soundscript.release(value)                      // a deleted variable's listener ends, or its events stop
+soundscript.forget(id)                          // drop a memo id's memo entry, run count and parked state handle
+soundscript.memoSize(), soundscript.memoHas(id)          // memo entries on the page; whether one id has one
+soundscript.idOf(definition), soundscript.withId(definition, id)  // read or replace a compiled definition's memo id (from its parsed ss.cell call)
+soundscript.compiledKind(definition)             // {kind, memo, refs} of a compiled cell's ss.cell call, or null
 ss_moduleCells(module)                 // a module's SoundScript cells: [{key, text, variable}]
 ss_source(module)                      // those cells' source, joined in runtime order
 ss_outside(module)                     // the module's cells in other languages: [{name, view?}]
@@ -111,23 +114,32 @@ ss_fetch = globalThis.fetch.bind(globalThis)
 // %%
 viewof ss_module = thisModule()
 // %%
-ss_keyOf = (name) => (name.startsWith("type ") ? name : name.replace(/^viewof /, ""))
+ss_keyOf = (name) => soundscript.keyOfVariable(name)
+// %%
+ss_isSs = (v) => {
+  // a SoundScript variable: its definition carries the language marker, or it is the value variable of a
+  // SoundScript state cell (Observable's own Generators.input of the handle, which holds no source)
+  if (typeof v?._definition !== "function") return false;
+  const def = String(v._definition);
+  if (soundscript.langOf(def) === "ss") return true;
+  const handle = def === soundscript.STATE_VALUE && typeof v._name === "string" ? v._module?._scope?.get(`viewof ${v._name}`) : null;
+  return typeof handle?._definition === "function" && soundscript.langOf(String(handle._definition)) === "ss";
+}
 // %%
 ss_moduleCells = (module) => {
   // runtime order, one entry per cell: a state cell's two variables give one
   const out = [], seen = new Set();
   for (const v of runtime._variables) {
     if (v._module !== module || typeof v._name !== "string" || typeof v._definition !== "function") continue;
-    const def = String(v._definition);
-    if (ss.langOf(def) !== "ss") continue;
-    let text = ss.decompileVariable(def);
+    if (!ss_isSs(v)) continue;
+    let text = soundscript.decompileVariable(String(v._definition));
     if (text === null) continue;
     const key = ss_keyOf(v._name);
     // a compiled definition copied under another name (bump_copy) decompiles to the original's name;
     // the variable's own name wins, so recompiling it never defines a second bump
-    if (!key.startsWith("type ") && !ss.isDuplicateKey(key)) {
-      const head = /^((?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:const\s+|let\s+|(?:async\s+)?function\s*\*?\s*))([\w$]+)/.exec(text);
-      if (head && head[2] !== key) text = head[1] + key + text.slice(head[0].length);
+    if (!key.startsWith("type ") && !soundscript.isDuplicateKey(key)) {
+      const head = soundscript.declaredNameAt(text);
+      if (head && head.name !== key) text = text.slice(0, head.start) + key + text.slice(head.end);
     }
     if (seen.has(key)) continue;
     seen.add(key);
@@ -135,8 +147,8 @@ ss_moduleCells = (module) => {
   }
   // a name declared again (stored as "<name> (2)", ...) comes after every other cell, so the checker
   // sees it as the later declaration, and the cell with the plain name keeps it
-  const dup = out.filter((c) => ss.isDuplicateKey(c.key)).sort((a, b) => (a.key < b.key ? -1 : 1));
-  return dup.length ? [...out.filter((c) => !ss.isDuplicateKey(c.key)), ...dup] : out;
+  const dup = out.filter((c) => soundscript.isDuplicateKey(c.key)).sort((a, b) => (a.key < b.key ? -1 : 1));
+  return dup.length ? [...out.filter((c) => !soundscript.isDuplicateKey(c.key)), ...dup] : out;
 }
 // %%
 ss_outside = (module) => {
@@ -147,7 +159,7 @@ ss_outside = (module) => {
   const names = new Map();
   for (const v of runtime._variables) {
     if (v._module !== module || typeof v._name !== "string" || typeof v._definition !== "function") continue;
-    if (ss.langOf(String(v._definition)) === "ss") continue;
+    if (ss_isSs(v)) continue;
     const view = v._name.startsWith("viewof ");
     const name = view ? v._name.slice(7) : v._name;
     if (!/^[\w$]+$/.test(name) || name === "ss") continue;
@@ -157,27 +169,27 @@ ss_outside = (module) => {
 }
 // %%
 ss_check = (module) => {
-  // one check of the module; a cell that does not parse is checked as a stand-in (ss.checkCells)
+  // one check of the module; a cell that does not parse is checked as a stand-in (soundscript.checkCells)
   const cells = ss_moduleCells(module);
-  const { result } = ss.checkCells(cells.map((c) => c.text), true, ss_outside(module));
-  return { cells, source: cells.map((c) => c.text).join("\n\n"), result, states: ss.cellStates(result) };
+  const { result } = soundscript.checkCells(cells.map((c) => c.text), true, ss_outside(module));
+  return { cells, source: cells.map((c) => c.text).join("\n\n"), result, states: soundscript.cellStates(result) };
 }
 // %%
 ss_context = (texts, module) => {
   // the compile context of a module's cells, from one (remembered) check of the whole module: which
   // cells are generators, which are taken as Events, which the checker accepts (only those run, and
   // only those are memoised; any other cell compiles to a definition that raises the checker's messages)
-  return ss.contextFromCheck(ss.checkCells(texts, true, module ? ss_outside(module) : null).result);
+  return soundscript.contextFromCheck(soundscript.checkCells(texts, true, module ? ss_outside(module) : null).result);
 }
 // %%
-ss_source = (module) => ss.joinCells(ss_moduleCells(module).map((c) => c.text))
+ss_source = (module) => soundscript.joinCells(ss_moduleCells(module).map((c) => c.text))
 // %%
 ss_roundtrip = (module) => {
   let n = 0;
   const cells = ss_moduleCells(module);
   const ctx = ss_context(cells.map((c) => c.text), module);
   for (const c of cells) {
-    for (const d of ss.compileCell(c.text, true, ctx, c.key)) {
+    for (const d of soundscript.compileCell(c.text, true, ctx, c.key)) {
       const v = module._scope.get(d.name);
       if (!v) throw new Error(`${d.name}: no variable`);
       if (String(v._definition) !== d.definition) throw new Error(`${d.name}: the definition does not recompile to itself`);
@@ -188,7 +200,7 @@ ss_roundtrip = (module) => {
   return n;
 }
 // %%
-ss_pool = ss.lazyPool()
+ss_pool = soundscript.lazyPool()
 // %%
 ss_instances = new WeakSet()
 // %%
@@ -196,24 +208,25 @@ ss_deleted = {
   // A deleted variable's listener ends, or its events stop, once: the runtime does not resolve a
   // deleted variable's invalidation, and one deletion reaches both apply and onCodeChange.
   const done = new WeakSet();
-  return (v) => { if (done.has(v)) return; done.add(v); ss.release(v._value); };
+  return (v) => { if (done.has(v)) return; done.add(v); soundscript.release(v._value); };
 }
 // %%
 ss_instance = async (module, invalidation) => {
   // A second copy of module's SoundScript cells in a module of its own, so a test drives its own state cells
   // and listeners, not the ones on the page. Ids get a suffix, so its memo and run counts are its
   // own too. Inputs its cells do not define (ss, ss_now, ...) are read from module. Deleted on invalidation.
-  const vars = [...runtime._variables].filter((v) => v._module === module && typeof v._name === "string" && typeof v._definition === "function" && ss.langOf(String(v._definition)) === "ss");
+  const vars = [...runtime._variables].filter((v) => v._module === module && typeof v._name === "string" && ss_isSs(v));
   const names = new Set(vars.map((v) => v._name));
-  const outside = new Set(vars.flatMap((v) => v._inputs.map((i) => i._name)).filter((n) => !names.has(n) && n !== "invalidation" && n !== "@variable"));
+  // Generators, like invalidation, is the runtime's own, so the instance module resolves it itself
+  const outside = new Set(vars.flatMap((v) => v._inputs.map((i) => i._name)).filter((n) => !names.has(n) && n !== "invalidation" && n !== "@variable" && n !== "Generators"));
   const tag = Math.random().toString(36).slice(2, 8);
-  const fns = await realize(vars.map((v) => { const def = String(v._definition), id = ss.idOf(def); return id ? ss.withId(def, `${id}_${tag}`) : def; }), runtime);
+  const fns = await realize(vars.map((v) => { const def = String(v._definition), id = soundscript.idOf(def); return id ? soundscript.withId(def, `${id}_${tag}`) : def; }), runtime);
   const inst = runtime.module();
   ss_instances.add(inst);
   for (const n of outside) inst.define(n, [], () => module.value(n));
   const made = vars.map((v, i) => inst.define(v._name, v._inputs.map((x) => x._name), fns[i]));
   const cancels = made.map((v) => observe(v, {}));
-  invalidation.then(() => { cancels.forEach((c) => c()); for (const v of [...runtime._variables]) if (v._module === inst) { ss_deleted(v); ss.forget(v._definition); v.delete(); } });
+  invalidation.then(() => { cancels.forEach((c) => c()); for (const v of [...runtime._variables]) if (v._module === inst) { ss_deleted(v); soundscript.forget(soundscript.idOf(String(v._definition))); v.delete(); } });
   return inst;
 }
 // %%
@@ -223,7 +236,7 @@ ss_lifecycle = {
   // between two snapshots produces no event of its own, so on any SoundScript change the whole
   // module is recompiled to its fixpoint (settle), and listeners and events that no variable holds
   // any more are stopped (sweep). The runtime does not resolve a deleted variable's invalidation.
-  const isSs = (v) => typeof v?._definition === "function" && ss.langOf(String(v._definition)) === "ss";
+  const isSs = ss_isSs;
   let scheduled = false;
   const touched = new Set();
   const off = onCodeChange(({ variable, previous }) => {
@@ -236,15 +249,15 @@ ss_lifecycle = {
     // every edit gives a new memo id; the old one is forgotten once no variable has that definition
     if (isSs(previous) && previous._definition !== variable?._definition) {
       const text = String(previous._definition);
-      if (![...runtime._variables].some((x) => x._definition && String(x._definition) === text)) ss.forget(previous._definition);
+      if (![...runtime._variables].some((x) => x._definition && String(x._definition) === text)) soundscript.forget(soundscript.idOf(text));
     }
     if (module?._scope?.has("ss") && !ss_instances.has(module)) touched.add(module);
     if (scheduled) return;
     scheduled = true;
     queueMicrotask(() => {
       scheduled = false;
-      ss.sweep(new Set([...runtime._variables].map((x) => x._value)));
-      ss.listenerOrderChanged();
+      soundscript.sweep(new Set([...runtime._variables].map((x) => x._value)));
+      soundscript.listenerOrderChanged();
       for (const m of touched) ss_language.settle(m).catch((e) => console.error(e));
       touched.clear();
     });
@@ -253,7 +266,7 @@ ss_lifecycle = {
   // and its place among that module's variables, which is the order the module is saved in
   const unnamed = new WeakMap();
   const nameOf = (m) => { for (const [n, x] of runtime.mains ?? []) if (x === m) return n; if (!unnamed.has(m)) unnamed.set(m, `~${Math.random().toString(36).slice(2, 8)}`); return unnamed.get(m); };
-  ss.setListenerOrder((values) => {
+  soundscript.setListenerOrder((values) => {
     const want = new Set(values), at = new Map(), seen = new Map();
     for (const v of runtime._variables) {
       const n = (seen.get(v._module) ?? 0) + 1;
@@ -262,18 +275,18 @@ ss_lifecycle = {
     }
     return values.map((x) => { const p = at.get(x); return p ? [nameOf(p[0]), p[1]] : null; });
   });
-  invalidation.then(() => { off(); ss.setListenerOrder(null); });
+  invalidation.then(() => { off(); soundscript.setListenerOrder(null); });
   return "a change outside apply recompiles its module and stops listeners and events no variable holds";
 }
 // %%
 ss_language = {
   const tsx = true;
-  const isSs = (v) => typeof v?._definition === "function" && ss.langOf(String(v._definition)) === "ss";
+  const isSs = ss_isSs;
   const keyOf = ss_keyOf;
   const moduleOf = (variables, cell) => variables.find((v) => v?._module)?._module ?? cell?.module?.module;
-  const family = (module, key) => (key.startsWith("type ") ? [key] : [key, ss.handleName(key)]).map((n) => module?._scope?.get(n)).filter(isSs);
+  const family = (module, key) => (key.startsWith("type ") ? [soundscript.variableName(key)] : [soundscript.variableName(key), soundscript.handleName(key)]).map((n) => module?._scope?.get(n)).filter(isSs);
   const ownKey = (variables) => { const v = variables.find(isSs); return v ? keyOf(v._name) : null; };
-  const sourceOf = (v) => ss.decompileVariable(String(v._definition));
+  const sourceOf = (v) => soundscript.decompileVariable(String(v._definition));
 
   const decompile = async (variables) => {
     for (const v of variables) if (isSs(v)) { const s = sourceOf(v); if (s !== null) return s; }
@@ -315,7 +328,7 @@ ss_language = {
     if (at < 0) { texts.push(source); at = texts.length - 1; } else texts[at] = source;
     // an edit that takes the name of another cell is stored as "<name> (2)" and rejected; it goes after
     // the other cells, so the checker sees it as the later declaration
-    const named = ss.declaredName(source);
+    const named = soundscript.declaredName(source);
     const takesCell = !!named && named !== oldKey && cells.some((c) => c.key === named);
     if (takesCell && at !== texts.length - 1) { texts.splice(at, 1); texts.push(source); at = texts.length - 1; }
     const there0 = named && named !== oldKey ? module?._scope?.get(named) : null;
@@ -323,17 +336,17 @@ ss_language = {
     // one check of the module as edited gives the verdicts, the compile context and the cell facts
     let after = null, checkError = null;
     const outside = module ? ss_outside(module).filter((o) => !(takesOther && o.name === named)) : null;
-    try { after = ss.checkCells(texts, true, outside).result; } catch (e) { checkError = e; }
+    try { after = soundscript.checkCells(texts, true, outside).result; } catch (e) { checkError = e; }
     if (!after) return { ok: false, store: false, problems: [{ line: 1, rule: "check", msg: `${checkError.message}; a cell that does not parse is stored only when it starts with const, let or function <name>` }] };
-    let defs, ctx = ss.contextFromCheck(after), hint = oldKey;
-    if (takesCell && ss.isDuplicateKey(after.cells.at(-1)?.name)) hint = after.cells.at(-1).name;
+    let defs, ctx = soundscript.contextFromCheck(after), hint = oldKey;
+    if (takesCell && soundscript.isDuplicateKey(after.cells.at(-1)?.name)) hint = after.cells.at(-1).name;
     if (takesOther) {
       let k = 2;
-      while (module._scope.has(`${named} (${k})`)) k++;
+      while (module._scope.has(soundscript.variableName(`${named} (${k})`))) k++;
       hint = `${named} (${k})`;
       ctx = { ...ctx, why: new Map([...(ctx.why ?? []), [hint, [`[duplicate-cell] ${named} is already defined in this module, in another language`]]]) };
     }
-    try { defs = ss.compileCell(source, tsx, ctx, hint); }
+    try { defs = soundscript.compileCell(source, tsx, ctx, hint); }
     catch (e) { return { ok: false, store: false, problems: [{ line: e.loc?.line ?? 1, rule: "compile", msg: e.message }] }; }
     const key = keyOf(defs.at(-1).name);
     const own = new Set([...variables, ...(oldKey ? family(module, oldKey) : [])]);
@@ -355,9 +368,9 @@ ss_language = {
       for (const e of mine.errors) problems.push(rel(e));
       for (const u of mine.unsupported) problems.push({ ...rel(u), rule: "unsupported" });
     }
-    const statesAfter = ss.cellStates(after);
+    const statesAfter = soundscript.cellStates(after);
     let statesBefore = new Map();
-    try { statesBefore = ss.cellStates(ss.checkCells(cells.map((c) => c.text), true, outside).result); } catch {}
+    try { statesBefore = soundscript.cellStates(soundscript.checkCells(cells.map((c) => c.text), true, outside).result); } catch {}
     const state = statesAfter.get(key) ?? { state: "rejected", why: [], blockedBy: [] };
     if (state.state === "blocked") problems.push({ line: 1, rule: "blocked", msg: `blocked by ${state.blockedBy.join(", ")}: it does not run until ${state.blockedBy.length > 1 ? "they are" : "that is"} ok` });
     const effect = sayEffect(effectOf(statesBefore, statesAfter), false);
@@ -367,7 +380,7 @@ ss_language = {
   // the annotation the current value of a cell in another language suggests; the value is read, never computed
   const annotationIn = (module, name) => {
     const v = module?._scope?.get(name);
-    return v && !v._error ? ss.annotationOf(v._value) : null;
+    return v && !v._error ? soundscript.annotationOf(v._value) : null;
   };
   // a name the body reads that is a cell of the module: the parameter that takes it. A SoundScript cell is
   // taken bare (its type is inferred); one in another language with its value's annotation, else unknown (S11.3)
@@ -392,12 +405,13 @@ ss_language = {
       const to = l + 1 < starts.length ? starts[l + 1] - 1 : source.length;
       const d = { from: starts[l], to: Math.max(to, starts[l]), severity: "error", message: `[${p.rule}] ${p.msg}` };
       const fix = paramFix(p, module);
-      if (fix && ss.addParameter(source, fix.name, fix.ann)) {
+      if (fix && soundscript.addParameter(source, fix.name, fix.ann)) {
         // the diagnostic covers the name where it is read on that line
-        const hit = new RegExp(`(?<![\\w$.])${fix.name.replace(/\$/g, "\\$")}(?![\\w$])`).exec(source.slice(d.from, d.to));
-        if (hit) { d.from += hit.index; d.to = d.from + fix.name.length; }
+        const toks = soundscript.tokensOf(source.slice(d.from, d.to));
+        const hit = toks.find((t, i) => t.label === "name" && t.value === fix.name && toks[i - 1]?.label !== ".");
+        if (hit) { d.to = d.from + hit.end; d.from += hit.start; }
         d.actions = [{ name: `Add ${fix.ann ? `${fix.name}: ${fix.ann}` : fix.name} as a parameter`, apply: (view) => {
-          const e = ss.addParameter(view.state.doc.toString(), fix.name, fix.ann);
+          const e = soundscript.addParameter(view.state.doc.toString(), fix.name, fix.ann);
           if (e) view.dispatch({ changes: e });
         } }];
       }
@@ -408,9 +422,9 @@ ss_language = {
     const say = r.effect || (done && done.text === source ? done.msg : "");
     if (say) diags.push({ from: 0, to: Math.min(starts[1] ? starts[1] - 1 : source.length, source.length), severity: "info", message: say });
     // `export` is still accepted, so a stored cell round-trips; the form is without it
-    const exp = /^((?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*)(export\s+)(?=const\b|let\b|function\b|async\b|type\b|interface\b)/.exec(source);
-    if (exp) {
-      const from = exp[1].length, to = from + exp[2].length;
+    const [t0, t1] = soundscript.tokensOf(source, 2);
+    if (t0?.label === "export" && t1 && ["const", "let", "function", "async", "type", "interface"].includes(String(t1.value))) {
+      const from = t0.start, to = t1.start;
       diags.push({ from, to, severity: "hint", message: "export is not needed", actions: [{ name: "Remove export", apply: (view, f, t) => view.dispatch({ changes: { from: f, to: t } }) }] });
     }
     return diags;
@@ -453,13 +467,13 @@ ss_language = {
       let at = [...runtime._variables].indexOf(anchor) + 1;
       for (const v of fresh) repositionSetElement(runtime._variables, v, at++);
     }
-    const drop = (v) => { ss_deleted(v); ss.forget(v._definition); v.delete(); };
+    const drop = (v) => { ss_deleted(v); soundscript.forget(soundscript.idOf(String(v._definition))); v.delete(); };
     for (const v of old) if (!next.includes(v)) tx ? tx.doomed.push(v) : drop(v);
     return next;
   };
   const forgetUnheld = (definition) => {
     const text = String(definition);
-    if (![...runtime._variables].some((x) => x._definition && String(x._definition) === text)) ss.forget(definition);
+    if (![...runtime._variables].some((x) => x._definition && String(x._definition) === text)) soundscript.forget(soundscript.idOf(text));
   };
   const same = (vs, defs) => vs.length === defs.length && defs.every((d) => {
     const v = vs.find((x) => x._name === d.name);
@@ -485,7 +499,7 @@ ss_language = {
     const plan = [];
     for (const c of ss_moduleCells(module)) {
       if (c.key === r.key || c.key === oldKey) continue;
-      const defs = ss.compileCell(c.text, tsx, ctx, c.key);
+      const defs = soundscript.compileCell(c.text, tsx, ctx, c.key);
       const fam = family(module, c.key);
       if (!same(fam, defs)) plan.push({ defs, fam });
     }
@@ -509,7 +523,7 @@ ss_language = {
       for (const s of saved) s.v.define(s.name, s.inputs, s.definition);
       throw e;
     }
-    for (const v of new Set(tx.doomed)) { ss_deleted(v); ss.forget(v._definition); v.delete(); }
+    for (const v of new Set(tx.doomed)) { ss_deleted(v); soundscript.forget(soundscript.idOf(String(v._definition))); v.delete(); }
     // a reused Kit head no longer has shadows; theirs were deleted with the rest of old
     for (const v of next) v._shadow?.clear?.();
     variables.splice(0, variables.length, ...next);
@@ -526,7 +540,7 @@ ss_language = {
     const batches = [];
     for (const c of cells) {
       if (c.key === skip) continue;
-      const defs = ss.compileCell(c.text, tsx, ctx, c.key);
+      const defs = soundscript.compileCell(c.text, tsx, ctx, c.key);
       const fam = family(module, c.key);
       if (!same(fam, defs)) batches.push({ defs, old: new Set(fam), anchor: fam.at(-1) });
     }
@@ -542,23 +556,14 @@ ss_language = {
     const at0 = cells.findIndex((c) => c.key === ownKey(variables));
     const at = at0 < 0 ? texts.length : at0;
     texts[at] = source;
-    return ss.completionsAt(texts, at, pos, tsx, module ? ss_outside(module) : null, module ? (n) => annotationIn(module, n) : null);
+    return soundscript.completionsAt(texts, at, pos, tsx, module ? ss_outside(module) : null, module ? (n) => annotationIn(module, n) : null);
   };
   // the editor's header: the cell's parameters as inputs (not ss or a hidden invalidation), named outputs
   const header = (variables) => {
-    const v = variables.find((x) => isSs(x) && ss.decompileVariable(String(x._definition)) !== null);
+    const v = variables.find((x) => isSs(x) && soundscript.decompileVariable(String(x._definition)) !== null);
     if (!v) return null;
-    const text = ss.decompileVariable(String(v._definition));
-    const open = /^(?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/.exec(text);
-    const params = new Set();
-    if (open) {
-      let depth = 0, part = "";
-      for (const ch of text.slice(open.index + open[0].length)) {
-        if ("([{<".includes(ch)) depth++;
-        if (")]}>".includes(ch)) { if (depth === 0) { params.add(/^\s*([\w$]+)/.exec(part)?.[1]); break; } depth--; }
-        if (ch === "," && depth === 0) { params.add(/^\s*([\w$]+)/.exec(part)?.[1]); part = ""; } else part += ch;
-      }
-    }
+    const text = soundscript.decompileVariable(String(v._definition));
+    const params = new Set(soundscript.paramsOf(text) ?? []);
     const own = new Set(variables);
     const inputs = [...new Set(variables.flatMap((x) => x._inputs))].filter((i) => !own.has(i) && params.has(String(i._name).replace(/^viewof /, "")));
     const outputs = [...new Set(variables.flatMap((x) => [...x._outputs]))].filter((o) => !own.has(o) && typeof o._name === "string" && o._name);
@@ -600,6 +605,17 @@ ss_language = {
     const key = keyOf(variable._name);
     // a type cell has no value, so it is drawn while pending; every other cell waits for its value
     if (pending && !key.startsWith("type ")) return null;
+    // a state cell is drawn as Observable draws a viewof cell, by its handle variable: its value, as the normal
+    // Inspector shows it, drawn again on each commit (the handle's input event)
+    if (variable._name.startsWith("viewof ") && value instanceof EventTarget && "value" in value) {
+      const el = document.createElement("div"), shown = new Inspector(el);
+      root.__ssHandle?.();
+      const draw = () => shown.fulfilled(value.value, key);
+      value.addEventListener("input", draw);
+      root.__ssHandle = () => value.removeEventListener("input", draw);
+      draw();
+      return el;
+    }
     const def = String(variable._definition);
     if (key.startsWith("type ")) {
       const text = sourceOf(variable);
@@ -607,14 +623,14 @@ ss_language = {
     }
     const type = typesOf(variable._module).get(key);
     if (!type) return null;
-    if (def.includes('kind: "events"')) return line(key, `events Events<${type}>`);
+    if (soundscript.compiledKind(def)?.kind === "events") return line(key, `events Events<${type}>`);
     if (type === "Elem" && value && typeof value === "object" && "tag" in value) {
       // an element placed by position:absolute against a parent it has not got yet (Breakout's
       // bricksView) has no box of its own; mounted alone it would cover the cells after it
       const pos = (e) => /position\s*:\s*(absolute|relative|fixed)/.exec(String(e?.props?.style ?? ""))?.[1];
       const placed = (e) => pos(e) === "absolute" || (!pos(e) && (e?.children ?? []).some((c) => c && typeof c === "object" && placed(c)));
       if (placed(value)) return line(key, `<${value.tag || "fragment"}> element, positioned by its parent`);
-      const el = ss.mount(value, root.__ssView ?? null);
+      const el = soundscript.mount(value, root.__ssView ?? null);
       el.classList?.add("ss-view");
       root.__ssView = el;
       return el;
@@ -635,7 +651,9 @@ ss_language = {
   // cell or a type does; the editor takes the claim only when the built-in parser rejects the text
   const claimsSource = (source, cell) => {
     const module = cell?.module?.module;
-    return !!module?._scope?.has("ss") && /^\s*(?:(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/)\s*)*(?:export\s+)?(?:const|let|(?:async\s+)?function|type|interface)\b/.test(source);
+    const [t0, t1] = soundscript.tokensOf(source, 2);
+    const first = t0?.label === "export" ? t1 : t0;
+    return !!module?._scope?.has("ss") && !!first && ["const", "let", "function", "async", "type", "interface"].includes(String(first.value));
   };
 
   // Edits and recompiles run one at a time, so a recompile never reads a module another is halfway
@@ -725,7 +743,7 @@ cellListing = {
   // cell_languages: each cell's source is its language's decompile, coloured by its highlight when it has one;
   // read again when the module's code changes. A cell of no registered language is left out.
   const pre = htl.html`<pre class="cell-listing ss-hl">`;
-  const keyOf = (name) => String(name).replace(/^(viewof|mutable|initial) /, "");
+  const keyOf = (name) => soundscript.keyOfVariable(String(name).replace(/^(mutable|initial) /, ""));
   let shown = null, queued = false, round = 0;
   const draw = async () => {
     queued = false;
@@ -880,7 +898,7 @@ test_ss_failed_apply_changes_nothing = {
 test_ss_edits_do_not_grow_the_memo = {
   ss_tests_on;
   // each edit gives the cell a new memo id; the old id's entry and run count are forgotten
-  if (typeof ss.memoHas !== "function") throw new Error("ss.memoHas is missing");
+  if (typeof soundscript.memoHas !== "function") throw new Error("soundscript.memoHas is missing");
   let end;
   const done = new Promise((r) => (end = r));
   try {
@@ -894,8 +912,8 @@ test_ss_edits_do_not_grow_the_memo = {
     };
     // other tests run at the same time and add entries of their own, so the edited cell's ids are counted
     const ids = [];
-    for (let k = 3; k < 203; k++) { await edit(k); ids.push(ss.idOf(String(inst._scope.get("doubled")._definition))); }
-    const kept = ids.filter((id) => ss.memoHas(id));
+    for (let k = 3; k < 203; k++) { await edit(k); ids.push(soundscript.idOf(String(inst._scope.get("doubled")._definition))); }
+    const kept = ids.filter((id) => soundscript.memoHas(id));
     if (new Set(ids).size !== ids.length) throw new Error("two edits gave one memo id");
     if (kept.length !== 1 || kept[0] !== ids.at(-1)) throw new Error(`after 200 edits ${kept.length} of their memo ids are kept: ${kept.slice(0, 5)}`);
     return `200 edits of doubled: only the last one's memo entry is kept`;
@@ -914,7 +932,7 @@ test_ss_instance_keeps_user_ids = {
     if (made === undefined) throw new Error("tagged was not stored");
     const b = await ss_instance(a, done);
     const value = await b.value("tagged");
-    const ida = ss.idOf(String(a._scope.get("tagged")._definition)), idb = ss.idOf(String(b._scope.get("tagged")._definition));
+    const ida = soundscript.idOf(String(a._scope.get("tagged")._definition)), idb = soundscript.idOf(String(b._scope.get("tagged")._definition));
     if (value.id !== "anon" || !idb || idb === ida || !idb.startsWith(ida + "_")) throw new Error(`value ${JSON.stringify(value)}, ids ${ida} -> ${idb}`);
     return `tagged keeps id "anon"; its memo id ${ida} became ${idb}`;
   } finally { end(); }
@@ -932,6 +950,8 @@ import { runtime, realize, thisModule, repositionSetElement, onCodeChange, obser
 // %%
 import { plugins } from "@tomlarkworthy/plugin-registry"
 // %%
+import { Inspector } from "@tomlarkworthy/inspector"
+// %%
 import { cellMap, languageOf, cellLanguagesVersion } from "@tomlarkworthy/cell-map"
 // %%
 import { tests } from "@tomlarkworthy/tests"
@@ -940,4 +960,6 @@ import { codemirror } from "@tomlarkworthy/codemirror-6-v2"
 // %%
 import { lezerhighlight } from "@tomlarkworthy/observablehq-lezer"
 // %%
-import { soundscript as ss } from "@tomlarkworthy/soundscript-checker"
+import { soundscript } from "@tomlarkworthy/soundscript-checker"
+// %%
+import { ss } from "@tomlarkworthy/soundscript-runtime"

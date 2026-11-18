@@ -14,6 +14,9 @@ export const ALLOWED_GLOBALS = new Set(
     "ArrayBuffer DataView TextEncoder TextDecoder Infinity NaN undefined isNaN isFinite parseInt parseFloat " +
     "encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone URL URLSearchParams").split(" ").concat(TYPED_ARRAYS),
 );
+// the allowed globals Observable's parser does not know, so a compiled cell takes each one it uses as an input
+// (the runtime resolves it to the global); ojs-roundtrip.test.ts checks this list against the parser
+export const OJS_INPUT_GLOBALS = ["structuredClone", "URLSearchParams"];
 
 const typedArray = (N: string) => `
 interface ${N} {

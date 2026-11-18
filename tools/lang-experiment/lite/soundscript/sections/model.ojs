@@ -4,10 +4,10 @@ The cells of section 6 of \`@tomlarkworthy/soundscript-tutorial\`, as live Sound
 // %%
 //ss: 06-model.tsx
 // %%
-ss_compile = ss.compiler(() => ss_source(model_module))
+ss_compile = soundscript.compiler(() => ss_source(model_module))
 // %%
 viewof model_module = thisModule()
 // %%
-import { ss, ss_now, ss_source } from "@tomlarkworthy/soundscript"
+import { ss, soundscript, ss_now, ss_source } from "@tomlarkworthy/soundscript"
 // %%
 import { thisModule } from "@tomlarkworthy/runtime-sdk"

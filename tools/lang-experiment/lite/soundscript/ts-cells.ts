@@ -9,6 +9,7 @@
 import { readFileSync } from "node:fs";
 import { join, resolve, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { syntaxStub } from "../toolchain/module-js.ts";
 import * as acorn from "acorn";
 import { parse, type Node } from "../parse.ts";
 import { erase } from "../browser/erase.ts";
@@ -40,8 +41,8 @@ const PARSER_CELLS = [
   "acorn = parser_lib.acorn",
   "tsPlugin = parser_lib.tsPlugin",
 ];
-// globals a generated cell may take as an input (the runtime resolves them on window)
-const GLOBALS = new Set(["globalThis", "structuredClone", "Event"]);
+// globals a generated cell may take as an input (the runtime resolves them: Generators is its builtin, the rest are on window)
+const GLOBALS = new Set(["globalThis", "structuredClone", "Event", "EventTarget", "Generators"]);
 // each section's heading and, per module it gives cells to, one sentence on what those cells do in the notebook
 // (keyed by source file; a file that gives a module cells and has no sentence for it stops the build)
 const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?: string; checker?: string }> = {
@@ -79,7 +80,7 @@ function testCells(file: string, compile: Compile) {
   const cells = readFileSync(file, "utf8").split(/^\/\/ %%.*$/m).map((x) => x.trim()).filter(Boolean);
   const vs = cells.flatMap((c) => compile(c));
   const names = vs.map((v) => v._name).filter((n): n is string => !!n);
-  const bad = vs.filter((v) => !/^test_\w+$/.test(v._name ?? "") || /throw Object\.assign\(new SyntaxError\(/.test(String(v._definition)));
+  const bad = vs.filter((v) => !/^test_\w+$/.test(v._name ?? "") || syntaxStub(String(v._definition)) !== null);
   if (bad.length) throw new Error(`${file}: every cell is a test_* cell that compiles: ${bad.map((v) => v._name ?? String(v._definition).slice(0, 80)).join(", ")}`);
   return { cells, names, inputs: [...new Set(vs.flatMap((v) => v._inputs ?? []))] };
 }
@@ -262,7 +263,7 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   let lastFile = "";
   const emit = (g: Group, src: string) => {
     const r = compile(src);
-    if (!r.length || r.some((v) => /throw Object\.assign\(new SyntaxError\(/.test(String(v._definition)))) throw new Error(`does not compile: ${String(r[0]?._definition).slice(0, 200)}`);
+    if (!r.length || r.some((v) => syntaxStub(String(v._definition)) !== null)) throw new Error(`does not compile: ${String(r[0]?._definition).slice(0, 200)}`);
     cells[g.module!].push(src);
   };
   for (const g of groups) {
@@ -280,7 +281,9 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
     const single = g.stmts.length === 1 && names.length === 1 ? g.stmts[0] : null;
     if (single) {
       const n = names[0];
-      const init = single.text.replace(/^(?:const|let|var)\s+[\w$]+\s*=\s*/, "").replace(/;\s*$/, "");
+      const decl: any = acorn.parse(single.text, { ecmaVersion: "latest", sourceType: "module" }).body[0];
+      const x = decl.type === "VariableDeclaration" ? decl.declarations[0].init : null;
+      const init = x ? single.text.slice(x.start, x.end) : single.text;
       // an object literal is parenthesised, or it reads as a block
       const plain = single.kind === "const" ? `${n} = ${init.startsWith("{") ? `(${init})` : init}` : withComment(single.text, single.comment);
       const selfRef = (compile(plain)[0]._inputs ?? []).includes(n);
@@ -318,8 +321,12 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   const missing = ssKeys.filter((k) => !runtimeNames.has(k) && !cells[CHECKER].some((src) => compile(src).some((v) => v._name === k)));
   if (missing.length) throw new Error(`entry.ts exports ${missing.join(", ")}, which no generated cell defines`);
   for (const k of ssKeys) if (runtimeNames.has(k)) takes.add(k);
+  // ss, what compiled cells take: entry.ts's names the runtime module defines, so a compiled cell depends on
+  // the runtime module only (lite/toolchain/ojs-roundtrip.test.ts checks every member a compiled cell uses is one)
+  if (runtimeNames.has("ss")) throw new Error("ss is a generated runtime cell's name");
+  const runtimeKeys = ssKeys.filter((k) => runtimeNames.has(k));
   const checker = [
-    `md\`# SoundScript checker and compiler\n\nThe SoundScript checker, the compiler from a checked cell to runtime variables, and the editor support. \\\`soundscript\\\` is the object compiled cells take as \\\`ss\\\`. Examples are in \\\`@tomlarkworthy/soundscript-tutorial\\\`.\n\nThe build generates these cells from the TypeScript sources in \\\`tools/lang-experiment/lite/\\\`, so an edit made here is lost at the next build. The parser is the attachment \\\`acorn-typescript.js.gz\\\`.\``,
+    `md\`# SoundScript checker and compiler\n\nThe SoundScript checker, the compiler from a checked cell to runtime variables, and the editor support. \\\`soundscript\\\` is this module's object: the checker, the compiler and the editor support, with the runtime's names too. Compiled cells take \\\`ss\\\` of \\\`@tomlarkworthy/soundscript-runtime\\\` instead, so they do not depend on this module. Examples are in \\\`@tomlarkworthy/soundscript-tutorial\\\`.\n\nThe build generates these cells from the TypeScript sources in \\\`tools/lang-experiment/lite/\\\`, so an edit made here is lost at the next build. The parser is the attachment \\\`acorn-typescript.js.gz\\\`.\``,
     ...PARSER_CELLS,
     `soundscript = ({ ${ssKeys.join(", ")} })`,
     ...cells[CHECKER],
@@ -327,6 +334,7 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   ];
   const runtime = [
     `md\`# SoundScript runtime\n\nWhat compiled SoundScript cells call: state cells, actions and the write queue, events and listeners, the JSX renderer, and the checks on values from cells in other languages. This module imports nothing. Examples are in \\\`@tomlarkworthy/soundscript-tutorial\\\`.\n\nThe build generates these cells from \\\`tools/lang-experiment/prelude.runtime.ts\\\` and the TypeScript sources in \\\`tools/lang-experiment/lite/\\\`, so an edit made here is lost at the next build.\``,
+    `ss = ({ ${runtimeKeys.join(", ")} })`,
     ...cells[RUNTIME],
   ];
   return {

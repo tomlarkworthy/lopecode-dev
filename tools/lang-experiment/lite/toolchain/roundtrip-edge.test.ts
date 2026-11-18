@@ -44,7 +44,7 @@ const def = (src: string, tsx = false) => compileCell(src, tsx).at(-1)!.definiti
   const ctx = contextFromCheck(r);
   const by = new Map(src.split("\n\n").map((t) => { const v = compileCell(t, true, ctx).at(-1)!; return [v.name, v]; }));
   const ticks = by.get("ticks")!;
-  expect(ticks.definition.startsWith("function (") && /kind: "events", name: "ticks", memo: false, prev: this, id: "\w+", invalidation: \$ss\$inv\}\); \}$/.test(ticks.definition), "an events cell passes this and takes invalidation: " + ticks.definition.slice(-90));
+  expect(ticks.definition.startsWith("function _ticks(") && /kind: "events", name: "ticks", memo: false, prev: this, id: "\w+", invalidation: invalidation\}\)\);\}$/.test(ticks.definition), "an events cell passes this and takes invalidation: " + ticks.definition.slice(-90));
   expect(decompileVariable(ticks.definition) === src.split("\n\n")[0], "an events cell decompiles to its source");
   const onTick = by.get("onTick")!;
   expect(/kind: "listener"/.test(onTick.definition) && onTick.inputs.at(-1) === "invalidation" && /memo: true/.test(onTick.definition), "a listener takes invalidation and is memoised: " + JSON.stringify(onTick.inputs));
@@ -65,7 +65,7 @@ if (typeof (toolchain as any).idOf === "function") {
   expect(idOf(d2) === "abc_123", "C4 withId sets the compiler id: " + idOf(d2));
   expect(decompileVariable(d2) === src, "C4 withId leaves the user's id: \"anon\" alone: " + decompileVariable(d2));
   expect(d2.replace(`id: "abc_123", invalidation:`, `id: "${id}", invalidation:`) === d, "C4 withId changes only the compiler id");
-  expect(/\bid: "(\w+)", invalidation: [\w$]+\}\); \}$/.exec(d2)?.[1] === "abc_123", "C4 runtime evals regex reads the new id");
+  expect((toolchain as any).compiledKind(d2)?.kind === "cell" && idOf(d2) === "abc_123", "C4 the parsed options carry the new id");
   expect(JSON.stringify(run(d2)) === JSON.stringify({ id: "anon", n: 1 }), "C4 the cell still returns the user's object");
   expect(attempt(() => withId(d, "bad id")) instanceof Error, "C4 withId refuses an id that is not \\w+");
   const ref = compileCell(`const r = (): StateCell<number> => state(0);`, false);

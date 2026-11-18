@@ -16,7 +16,7 @@
 //    quick_start's copy still equals <name>.base.js (the copy the fork was made from).
 //  - every module block not reachable from MAINS removed, checked against EXPECT_REMOVED.
 // In a .ojs file, `//ss: <file> [-cell ...]` becomes that file's SoundScript cells compiled by
-// ss-toolchain (minus the named cells), and `//raw: <name>` the variable RAW[module][name].
+// ss-toolchain (minus the named cells), and `//raw: <name>` the Observable JavaScript cell RAW[module][name].
 // The default output is guarded: built.sha256 records the hash of the file this script last wrote,
 // and a soundscript.html whose content differs (saved from the browser) is never overwritten.
 import { createHash } from "node:crypto";
@@ -25,7 +25,8 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compiler, splitSeed } from "../../../spec-notebook.ts";
 import { blockContent, blockSpans, findSpan } from "../../../lib/notebook-blocks.ts";
-import { compileCell, contextOf, contextFromCheck, splitCells, type Variable } from "../toolchain/ss-toolchain.ts";
+import { compileCell, contextOf, contextFromCheck, splitCells, declaredName, type Variable } from "../toolchain/ss-toolchain.ts";
+import { syntaxStub } from "../toolchain/module-js.ts";
 import { checkSources } from "../core.ts";
 import { checkHtml } from "../../../lope-preflight.ts";
 import { importNotebookModule } from "../../../notebook-import.ts";
@@ -104,21 +105,14 @@ const EXPECT_REMOVED = [
 const EXPECT_ORPHANS = ["@tomlarkworthy/observablejs-toolchain/acorn-walk-8.3.2.js.gz"];
 
 const CHANGED = "const changed = async (n, from) => { for (let i = 0; i < 600; i++) { const v = await inst.value(n); if (v !== from) return v; await new Promise((r) => requestAnimationFrame(r)); } throw new Error(`${n} stayed ${from} for 600 frames`); };";
-const RAW: Record<string, Record<string, Variable>> = {
+// Observable JavaScript cells written here rather than in a .ojs file, compiled with the standard compiler like the rest
+const RAW: Record<string, Record<string, string>> = {
   [CORE]: {
-    test_ss_ref_handle: {
-      name: "test_ss_ref_handle",
-      // on a private copy of the module, so the counter on the page keeps its count
-      inputs: ["ss_tests_on", "ss_instance", "ss_module"],
-      definition: `async (on, ss_instance, mod) => { if (on !== true) throw new Error("the tests are off"); let end; const done = new Promise((r) => (end = r)); try { const inst = await ss_instance(mod, done); ${CHANGED} const [bump, reset] = await Promise.all([inst.value("bump"), inst.value("reset")]); const v0 = await inst.value("tally"); bump(); const v1 = await changed("tally", v0); reset(); const v2 = await changed("tally", v1); if (v1 !== v0 + 1 || v2 !== 0) throw new Error(\`\${v0} -> \${v1} -> \${v2}\`); return \`\${v0} -> \${v1} -> \${v2}\`; } finally { end(); } }`,
-    },
+    // on a private copy of the module, so the counter on the page keeps its count
+    test_ss_ref_handle: `test_ss_ref_handle = { if (ss_tests_on !== true) throw new Error("the tests are off"); let end; const done = new Promise((r) => (end = r)); try { const inst = await ss_instance(ss_module, done); ${CHANGED} const [bump, reset] = await Promise.all([inst.value("bump"), inst.value("reset")]); const v0 = await inst.value("tally"); bump(); const v1 = await changed("tally", v0); reset(); const v2 = await changed("tally", v1); if (v1 !== v0 + 1 || v2 !== 0) throw new Error(\`\${v0} -> \${v1} -> \${v2}\`); return \`\${v0} -> \${v1} -> \${v2}\`; } finally { end(); } }`,
   },
   [TUTORIAL]: {
-    test_ss_counter: {
-      name: "test_ss_counter",
-      inputs: ["tests_on", "ss_instance", "tutorial_module"],
-      definition: `async (on, ss_instance, mod) => { if (on !== true) throw new Error("the tests are off"); let end; const done = new Promise((r) => (end = r)); try { const inst = await ss_instance(mod, done); ${CHANGED} const [increment, clear, save] = await Promise.all([inst.value("increment"), inst.value("clear"), inst.value("save")]); const v0 = await inst.value("count"), s0 = await inst.value("saved"); increment(); const v1 = await changed("count", v0); save(); const s1 = await changed("saved", s0); clear(); const v2 = await changed("count", v1); if (v1 !== v0 + 1 || s1 !== v1 || v2 !== 0) throw new Error(\`\${v0} -> \${v1} (saved \${s1}) -> \${v2}\`); return \`\${v0} -> \${v1}, saved \${s1} -> \${v2}\`; } finally { end(); } }`,
-    },
+    test_ss_counter: `test_ss_counter = { if (tests_on !== true) throw new Error("the tests are off"); let end; const done = new Promise((r) => (end = r)); try { const inst = await ss_instance(tutorial_module, done); ${CHANGED} const [increment, clear, save] = await Promise.all([inst.value("increment"), inst.value("clear"), inst.value("save")]); const v0 = await inst.value("count"), s0 = await inst.value("saved"); increment(); const v1 = await changed("count", v0); save(); const s1 = await changed("saved", s0); clear(); const v2 = await changed("count", v1); if (v1 !== v0 + 1 || s1 !== v1 || v2 !== 0) throw new Error(\`\${v0} -> \${v1} (saved \${s1}) -> \${v2}\`); return \`\${v0} -> \${v1}, saved \${s1} -> \${v2}\`; } finally { end(); } }`,
   },
 };
 
@@ -130,7 +124,7 @@ const js = await b.outputs[0].text();
 if (/["']node:/.test(js)) throw new Error("bundle still refers to a node: module");
 const gz = Bun.gzipSync(new TextEncoder().encode(js), { level: 9 });
 // the parser bundle's sizes in bytes, for the tutorial's table, written at each build; constants, so no boot work decompresses it again
-RAW[TUTORIAL].ss_bytes = { name: "ss_bytes", inputs: [], definition: `() => ({ raw: ${new TextEncoder().encode(js).length}, gz: ${gz.length} })` };
+RAW[TUTORIAL].ss_bytes = `ss_bytes = ({ raw: ${new TextEncoder().encode(js).length}, gz: ${gz.length} })`;
 
 type File = { name: string; mime: string; base64: boolean; data: string };
 const q = JSON.stringify;
@@ -151,7 +145,7 @@ function buildModule(name: string, ojs: string, files: File[], given?: string[])
     const file = ssm[1].startsWith("./") ? join(HERE, ssm[1]) : join(EXAMPLES, ssm[1]);
     const skip = new Set(ssm[2].split(" -").filter(Boolean));
     const tsx = file.endsWith("x");
-    const texts = splitCells(readFileSync(file, "utf8"), tsx).filter((t) => ![...skip].some((s) => new RegExp(`^(?:\\s*//[^\\n]*\\n)*\\s*(?:export\\s+)?(?:const|let|function)\\s+${s}\\b`).test(t)));
+    const texts = splitCells(readFileSync(file, "utf8"), tsx).filter((t) => !skip.has(declaredName(t) ?? ""));
     return { texts, tsx, skip };
   };
   const blocks = given ?? splitSeed(readFileSync(join(HERE, ojs), "utf8"));
@@ -166,7 +160,7 @@ function buildModule(name: string, ojs: string, files: File[], given?: string[])
     if (cellsOfBlock(src)) return;
     const raw = /^\/\/raw: (\S+)$/.exec(src);
     const names: (string | null)[] = /^define\s*\(/.test(src) ? (rawCompile ? [rawCompile(src).name] : [])
-      : raw ? [RAW[name]?.[raw[1]]?.name ?? null] : compile(src).map((x: any) => x._name ?? null);
+      : raw ? (RAW[name]?.[raw[1]] ? compile(RAW[name][raw[1]]).map((x: any) => x._name ?? null) : []) : compile(src).map((x: any) => x._name ?? null);
     for (const n of names) {
       if (typeof n !== "string" || n.startsWith("module ")) continue;
       const view = n.startsWith("viewof ");
@@ -200,16 +194,16 @@ function buildModule(name: string, ojs: string, files: File[], given?: string[])
       return;
     }
     if (raw) {
-      const v = RAW[name]?.[raw[1]];
-      if (!v) throw new Error(`no raw variable ${raw[1]} for ${name}`);
-      addVar("_raw_" + v.name, v);
+      const text = RAW[name]?.[raw[1]];
+      if (!text) throw new Error(`no raw variable ${raw[1]} for ${name}`);
+      for (const s of compile(text)) addVar("_raw_" + String(s._name).replace(/[^A-Za-z0-9_$]/g, "_"), { name: s._name, inputs: s._inputs ?? [], definition: String(s._definition) } as Variable);
       return;
     }
     const specs = compile(src);
     if (!specs.length) throw new Error(`${ojs} cell ${i} compiles to nothing: ${src.slice(0, 80)}`);
     specs.forEach((s: any, j: number) => {
-      const stub = /throw Object\.assign\(new SyntaxError\((".*?")\), \{_sourceExpression:/.exec(String(s._definition));
-      if (stub) throw new Error(`${ojs} cell ${i}: ${JSON.parse(stub[1])} :: ${src.slice(0, 80)}`);
+      const stub = syntaxStub(String(s._definition));
+      if (stub !== null) throw new Error(`${ojs} cell ${i}: ${stub} :: ${src.slice(0, 80)}`);
       const vname = s._name ?? null, inputs = s._inputs ?? [];
       if (typeof vname === "string" && (vname.startsWith("module ") || inputs.includes("@variable"))) {
         imports.push(`  main.define(${q(vname)}, ${q(inputs)}, ${s._definition});`);

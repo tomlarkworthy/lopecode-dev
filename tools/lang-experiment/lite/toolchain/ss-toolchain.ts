@@ -5,23 +5,20 @@
 import * as acorn from "acorn";
 import { parse, kids, type Node } from "../parse.ts";
 import { lowerJsx } from "../jsx/lower.ts";
-import { cellsOf, preludeCalls, type CellInfo } from "../facts.ts";
-import { commentTypes, uncommentTypes, langOf, LANG, esc, unesc } from "./comment-types.ts";
-import { CAPABILITIES, PRELUDE_FNS } from "../intrinsics.ts";
-import { MEMO_ID } from "../stdlib/runtime.ts";
+import { cellsOf, preludeCalls, globalRefs, type CellInfo } from "../facts.ts";
+import { commentTypes, langOf, LANG, esc, unesc } from "./comment-types.ts";
+import { CAPABILITIES, PRELUDE_FNS, OJS_INPUT_GLOBALS } from "../intrinsics.ts";
 
 export type Variable = { name: string; inputs: string[]; definition: string };
 export { langOf, LANG };
 
-const SS = "$ss$"; // wrapper parameter bound to the stdlib runtime object
+// the input, and the definition's parameter, bound to the stdlib runtime object
 export const STDLIB_INPUT = "ss";
 // the prelude functions, and h, the JSX element function lowered JSX calls
 const PRELUDE = [...PRELUDE_FNS, "h"];
 // Capability parameter -> the variable the stdlib provides: ss_<name>, except invalidation, the runtime's own;
 // ss_compile is defined in each module that compiles, because compile reads that module's cells.
 export const CAP_INPUTS: Record<string, string> = Object.fromEntries(Object.keys(CAPABILITIES).map((n) => [n, n === "invalidation" ? n : `ss_${n}`]));
-// marks a state cell's value variable, which holds no source (its handle variable does)
-const PROJECTION = "/*ss@ref*/";
 
 const header = (o: object) => `/*ss^${JSON.stringify(o).replaceAll("*/", "*\\/")}*/`;
 
@@ -30,7 +27,11 @@ function reserved(text: string) {
 }
 
 // lowerJsx keeps each top-level element's source in a /*ss<...*/ comment, escaped in a way that cannot
-// hold "*\/"; rewrite each kept original with esc, which decompile inverts exactly
+// hold "*\/"; rewrite each kept original as a JSON string with esc, which unkeep inverts exactly. A JSON
+// string holds no line terminator, so after `return` the comment does not end the statement (ASI).
+const keep = (s: string) => esc(JSON.stringify(s).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029"));
+// a kept original: a JSON string, or (compiled before 2026-11-18) the element's text, which starts with <
+const unkeep = (s: string) => (s.startsWith('"') ? JSON.parse(unesc(s)) : unesc(s));
 function keepJsx(fnSrc: string): string {
   const s = `(${fnSrc})`;
   const originals: string[] = [];
@@ -40,7 +41,7 @@ function keepJsx(fnSrc: string): string {
   };
   visit(parse(s, { jsx: true }).program);
   let i = 0;
-  const out = lowerJsx(s, { keep: true }).replace(/\/\*ss<[\s\S]*?\*\//g, () => `/*ss<${esc(originals[i++])}*/`);
+  const out = lowerJsx(s, { keep: true }).replace(/\/\*ss<[\s\S]*?\*\//g, () => `/*ss<${keep(originals[i++])}*/`);
   if (i !== originals.length) throw new Error("JSX originals and kept comments do not match");
   return out.slice(1, -1);
 }
@@ -155,21 +156,80 @@ export function cellStates(result: CheckLike): Map<string, CellState> {
   return out;
 }
 
-// The name a cell's text declares, read without parsing it (it may not parse).
-export const declaredName = (text: string): string | null => /^(?:\s*(?:\/\/[^\n]*|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+|(?:async\s+)?function\s*\*?\s*)([\w$]+)/.exec(text)?.[1] ?? null;
+// The name a cell's text declares and where it is, read with acorn's tokenizer, so a text that does not parse
+// has one too: [export] const|let <name>, or [export] [async] function [*] <name>.
+export function declaredNameAt(text: string): { name: string; start: number; end: number } | null {
+  try {
+    const it = acorn.tokenizer(text, { ecmaVersion: "latest" });
+    let t = it.getToken();
+    if (t.type.keyword === "export") t = it.getToken();
+    if (t.type.keyword === "const" || (t.type.label === "name" && t.value === "let")) t = it.getToken();
+    else {
+      if (t.type.label === "name" && t.value === "async") t = it.getToken();
+      if (t.type.keyword !== "function") return null;
+      t = it.getToken();
+      if (t.type.label === "*") t = it.getToken();
+    }
+    return t.type.label === "name" ? { name: t.value, start: t.start, end: t.end } : null;
+  } catch { return null; }
+}
+export const declaredName = (text: string): string | null => declaredNameAt(text)?.name ?? null;
+// The tokens of a text, from acorn's tokenizer, as far as it reads (a text that does not parse has a prefix
+// that does). TypeScript's own syntax tokenizes as JavaScript's punctuation and names.
+export type Token = { label: string; value: unknown; start: number; end: number };
+export function tokensOf(text: string, max = Infinity): Token[] {
+  const out: Token[] = [];
+  try {
+    const it = acorn.tokenizer(text, { ecmaVersion: "latest" });
+    for (let t = it.getToken(); t.type !== acorn.tokTypes.eof && out.length < max; t = it.getToken())
+      out.push({ label: t.type.keyword ?? t.type.label, value: t.value, start: t.start, end: t.end });
+  } catch {}
+  return out;
+}
+// The parameter names of the cell a text declares, from its parse; null for a text that does not parse
+export function paramsOf(text: string): string[] | null {
+  try { const c = cellsOf(lowerJsx(text))[0]; return c ? c.params.map((p) => p.name) : null; } catch { return null; }
+}
+
+// A cell's key is the checker's name for it: the declared name, "<name> (2)" for a later declaration of a
+// name (core.ts), "type <name>" for a type. Its variable is named so that Observable can name a cell so:
+// "$ss$type$<name>" and "$ss$2$<name>"; any other key is its own variable name.
+export const variableName = (key: string): string => {
+  const dup = /^([\w$]+) \((\d+)\)$/.exec(key);
+  return dup ? `$ss$${dup[2]}$${dup[1]}` : key.startsWith("type ") ? `$ss$type$${key.slice(5)}` : key;
+};
+// the key of a variable, by any of its names (a state cell's viewof <name> too)
+export const keyOfVariable = (name: string): string => {
+  const n = name.replace(/^viewof /, "");
+  const m = /^\$ss\$(type|\d+)\$([\w$]+)$/.exec(n);
+  return !m ? n : m[1] === "type" ? `type ${m[2]}` : `${m[2]} (${m[1]})`;
+};
+// A state cell is the pair Observable makes of `viewof <name> = …`: viewof <name> holds the handle a State<T>
+// parameter takes (a view: its value is the state, and it tells of each commit with an input event), <name> is
+// Observable's own Generators.input of it.
+// a state cell's value variable: the definition the standard compiler gives the value of a viewof cell
+export const STATE_VALUE = "(G, _) => G.input(_)";
+export const handleName = (key: string) => `viewof ${variableName(key)}`;
+
+// One Observable cell, `[viewof ]<name> = <body>`, and the variables Observable's compiler makes of it.
+// body(r) writes the body; r(input) writes a reference to an input and returns how it is spelled: the input's
+// name in the cell text, and in the definition the same, except that `viewof x` is a parameter $0, $1, … The
+// inputs are the references in order of first use, as the compiler lists them.
+type Built = { text: string; vars: Variable[] };
+function ojsCell(name: string, view: boolean, block: boolean, body: (r: (input: string) => string) => string): Built {
+  const order: string[] = [];
+  const text = body((i) => { if (!order.includes(i)) order.push(i); return i; });
+  const dollar = new Map(order.filter((i) => i.startsWith("viewof ")).map((i, k) => [i, `$${k}`]));
+  const js = body((i) => dollar.get(i) ?? i);
+  const definition = `function _${name}(${order.map((i) => dollar.get(i) ?? i).join(",")}) ${block ? js : `{return (${js});}`}`;
+  const own = { name: view ? `viewof ${name}` : name, inputs: order, definition };
+  return { text: `${own.name} = ${text}`, vars: view ? [own, { name, inputs: ["Generators", own.name], definition: STATE_VALUE }] : [own] };
+}
+
 // A cell the checker does not accept: its typed source is kept whole in the header, and the definition
 // only raises the checker's messages. A state cell keeps its two variables, so its readers stay wired.
-function rejectedCell(text: string, name: string, why: string[], ref: boolean): Variable[] {
-  const definition = `(${SS}) => ${LANG}${header({ d: text, rejected: why })}${SS}.rejected(${JSON.stringify(name)}, ${JSON.stringify(why)})`;
-  return ref ? stateCell(name, [STDLIB_INPUT], definition) : [{ name, inputs: [STDLIB_INPUT], definition }];
-}
-// A state cell is two variables, as viewof x is: viewof <name> holds the handle a State<T> parameter takes,
-// <name> its value. The viewof name makes the notebook's tools show the pair as one cell.
-export const handleName = (name: string) => `viewof ${name}`;
-const stateCell = (name: string, inputs: string[], definition: string): Variable[] => [
-  { name, inputs: [handleName(name), STDLIB_INPUT], definition: `(_, ${SS}) => ${LANG}${PROJECTION}${SS}.refValues(_)` },
-  { name: handleName(name), inputs, definition },
-];
+const rejectedCell = (text: string, key: string, why: string[], ref: boolean): Built =>
+  ojsCell(variableName(key), ref, false, (r) => `${r(STDLIB_INPUT)}.rejected(${LANG}${header({ d: text, rejected: why })}${JSON.stringify(key)}, ${JSON.stringify(why)})`);
 
 // two 32-bit FNV-1a hashes with different offsets, as 13 base-36 digits
 export function contentId(text: string): string {
@@ -187,28 +247,30 @@ export const isDuplicateKey = (key: string | null): key is string => !!key && /^
 // With a module context, a cell that does not parse, does not compile, or that the check did not accept
 // compiles to rejectedCell; with none (a cell compiled on its own) those throw, as before.
 // nameHint names a variable whose name is declared again, and it compiles to the checker's messages under that name.
-export function compileCell(text: string, tsx: boolean, ctx: Context = NO_CONTEXT, nameHint: string | null = null): Variable[] {
+export const compileCell = (text: string, tsx: boolean, ctx: Context = NO_CONTEXT, nameHint: string | null = null): Variable[] => build(text, tsx, ctx, nameHint).vars;
+// the same cell as Observable cell text: Observable's compiler makes compileCell's variables of it
+export const compileCellText = (text: string, tsx: boolean, ctx: Context = NO_CONTEXT, nameHint: string | null = null): string => build(text, tsx, ctx, nameHint).text;
+function build(text: string, tsx: boolean, ctx: Context, nameHint: string | null): Built {
   if (!ctx.accepted) return compileChecked(text, tsx, ctx);
   if (isDuplicateKey(nameHint) && ctx.why?.has(nameHint) && declaredName(text) !== nameHint) return rejectedCell(text, nameHint, ctx.why.get(nameHint)!, false);
-  let out: Variable[];
+  let out: Built & { key?: string; ref?: boolean };
   try { out = compileChecked(text, tsx, ctx); } catch (e) {
     const name = declaredName(text) ?? nameHint;
     if (!name) throw e;
     return rejectedCell(text, name, ctx.why?.get(name) ?? [`[compile] ${(e as Error).message}`], false);
   }
-  const main = out[0];
-  if (main.name.startsWith("type ") || ctx.accepted.has(main.name)) return out;
-  return rejectedCell(text, main.name, ctx.why?.get(main.name) ?? ["[rejected] not accepted by the checker"], out.length === 2);
+  if (!out.key || ctx.accepted.has(out.key)) return out;
+  return rejectedCell(text, out.key, ctx.why?.get(out.key) ?? ["[rejected] not accepted by the checker"], !!out.ref);
 }
 
-function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
+function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key?: string; ref?: boolean } {
   reserved(text);
   const P = parse(text, { jsx: tsx });
   if (P.program.body.length !== 1) throw new Error("a cell is exactly one top-level statement");
   const st: Node = P.program.body[0];
   const d: Node | null = st.type === "ExportNamedDeclaration" ? st.declaration : st;
   if (d && /^TS(TypeAlias|Interface)Declaration$/.test(d.type)) {
-    return [{ name: `type ${d.id.name}`, inputs: [], definition: `() => ${LANG}${header({ d: text })}undefined` }];
+    return ojsCell(variableName(`type ${d.id.name}`), false, false, () => `void ${LANG}${header({ d: text })}0`);
   }
   let fn: Node | null = null;
   // with or without `export`
@@ -228,53 +290,45 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   const typed = asExpr(commentTypes, lowered);
   erasesToJs(typed, fn);
   const params = info.params.map((p) => p.name);
-  const used = [...identifiers(parse(`(${lowered})`).program)].filter((n) => PRELUDE.includes(n) && !params.includes(n));
-  // a State<T> parameter takes the handle variable
-  const inputs = [STDLIB_INPUT, ...info.params.map((p) => (p.refTyped ? handleName(p.name) : CAP_INPUTS[p.name] ?? p.name))];
+  const loweredFn = parse(`(${lowered})`).program;
+  const used = [...identifiers(loweredFn)].filter((n) => PRELUDE.includes(n) && !params.includes(n));
+  // the allowed globals Observable's parser does not know are inputs, in order of first use
+  const globals = OJS_INPUT_GLOBALS.map((g) => [g, Math.min(...[...globalRefs(loweredFn, g)].map((n) => n.start))] as const).filter(([, at]) => at < Infinity).sort((a, b) => a[1] - b[1]).map(([g]) => g);
   // a cell that calls the prelude's on(...) is a listener: the checker allows on(...) only as the cell's whole value
   const kind = info.returnsRef ? "ref" : info.generator && ctx.events.has(info.name) ? "events" : preludeCalls(fn, "on").size ? "listener" : "cell";
-  // hidden inputs: invalidation for an events or listener cell (its generator stops, or its listener
-  // ends, when it runs again), and the refs of its compile(...) calls (it re-runs, and returns new
-  // functions, when one changes)
-  const hidden: string[] = [];
-  const hiddenInputs: string[] = [];
-  if ((kind === "events" || kind === "listener") && !params.includes("invalidation")) { hidden.push("$ss$inv"); hiddenInputs.push("invalidation"); }
-
-  const inv = params.includes("invalidation") ? "invalidation" : hidden.includes("$ss$inv") ? "$ss$inv" : "null";
   const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
-  const refArgs = refs.map((r, i) => { hidden.push(`$ss$r${i}`); hiddenInputs.push(r); return `${JSON.stringify(r)}: $ss$r${i}`; });
-  // a cell in another language crosses checked (boundary.ts): its value as a frozen copy; as a State, the
-  // value of its viewof (a view, or an imported state cell's handle), with each written value checked
-  const crossing = (p: string) => {
-    const b = info.params.find((x) => x.name === p)?.boundary;
-    if (!b) return p;
-    const shape = JSON.stringify(b.shape);
-    return b.ref ? `${SS}.viewRef(${p}, ${shape}, ${JSON.stringify(p)})` : `${SS}.cross(${p}, ${shape}, ${JSON.stringify(`${info.name}.${p}`)})`;
-  };
-  const args = params.map((p) => (p === "compile" ? `${SS}.compileFor(compile, ${JSON.stringify(info.name)}, {${refArgs.join(", ")}})` : crossing(p)));
+  // an events or listener cell takes invalidation (its generator stops, or its listener ends, when it runs
+  // again), and so does a state cell (its handle is kept for its next run while an input fails)
+  const inv = params.includes("invalidation") || kind !== "cell";
   const memo = (kind === "cell" || kind === "listener") && !info.generator && !!ctx.accepted?.has(info.name) &&
     !info.params.some((p) => NO_MEMO_CAPS.has(p.name) || (ctx.generators.has(p.name) && !p.eventsTyped));
   const inner = `${LANG}${header({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${typed}`;
-  const destructure = used.length ? `const {${used.join(", ")}} = ${SS}; ` : "";
+  // a parameter's argument, r spelling each input. A State<T> parameter takes the handle variable; a
+  // capability the variable that provides it; compile, compileFor over ss_compile with the refs of its calls
+  // (it re-runs, and returns new functions, when one changes). A cell in another language crosses checked
+  // (boundary.ts): its value as a frozen copy; as a State, the value of its viewof (a view, or an imported
+  // state cell's handle), with each written value checked.
+  const arg = (p: CellInfo["params"][number], r: (i: string) => string) => {
+    const input = p.refTyped ? `viewof ${p.name}` : CAP_INPUTS[p.name] ?? p.name;
+    if (p.name === "compile") return `${r(STDLIB_INPUT)}.compileFor(${r(input)}, ${JSON.stringify(info.name)}, {${refs.map((x) => `${JSON.stringify(x)}: ${r(x)}`).join(", ")}})`;
+    if (!p.boundary) return r(input);
+    const shape = JSON.stringify(p.boundary.shape);
+    return p.boundary.ref ? `${r(STDLIB_INPUT)}.viewRef(${r(input)}, ${shape}, ${JSON.stringify(p.name)})` : `${r(STDLIB_INPUT)}.cross(${r(input)}, ${shape}, ${JSON.stringify(`${info.name}.${p.name}`)})`;
+  };
   // id: a hash of the compiled text. The memo is keyed by it, so equal text with equal inputs shares a
   // result (sound for a pure cell) and any edit starts empty.
-  const body = `${inner}, [${args.join(", ")}]`;
-  const id = contentId(`${kind} ${info.name} ${memo} ${body}`);
-  // an events cell's definition is a function, so the runtime's `this` (the variable's last value, its
-  // handle) reaches the stdlib, which keeps the handle across runs
-  // a state cell's definition is a named function that passes itself, through a defaulted last parameter
-  // that no input fills: the stdlib keeps the store per definition object, so a run with the same inputs
-  // keeps the state (one module's variable, not every cell with the same text). The default, not the
-  // body, names the function, so the body references only its parameters.
-  const prev = kind === "events" ? "prev: this, " : kind === "ref" ? "self: $ss$self, " : "";
-  const opts = `{kind: ${JSON.stringify(kind)}, name: ${JSON.stringify(info.name)}, memo: ${memo}, ${prev}id: ${JSON.stringify(id)}, invalidation: ${inv}}`;
-  const head = `(${[SS, ...params, ...hidden].join(", ")})`;
-  const refHead = `(${[SS, ...params, ...hidden, `$ss$self = ${SS}ref`].join(", ")})`;
-  const definition = kind === "events" ? `function ${head} { ${destructure}return ${SS}.cell(${body}, ${opts}); }`
-    : kind === "ref" ? `function ${SS}ref${refHead} { ${destructure}return ${SS}.cell(${body}, ${opts}); }`
-    : `${head} => { ${destructure}return ${SS}.cell(${body}, ${opts}); }`;
-  const all = [...inputs, ...hiddenInputs];
-  return kind === "ref" ? stateCell(info.name, all, definition) : [{ name: info.name, inputs: all, definition }];
+  const call = (r: (i: string) => string, id: string) => {
+    const head = `${r(STDLIB_INPUT)}.cell(${inner}`;
+    globals.forEach(r);
+    const args = `[${info.params.map((p) => arg(p, r)).join(", ")}]`;
+    // events and state cells pass this, the variable's last value (the handle), so the stdlib keeps the handle across runs
+    const prev = kind === "events" || kind === "ref" ? "prev: this, " : "";
+    return `${head}, ${args}, {kind: ${JSON.stringify(kind)}, name: ${JSON.stringify(info.name)}, memo: ${memo}, ${prev}id: ${JSON.stringify(id)}, invalidation: ${inv ? r("invalidation") : "null"}})`;
+  };
+  const id = contentId(`${kind} ${info.name} ${memo} ${call((i) => i, "")}`);
+  const block = used.length > 0;
+  const out = ojsCell(variableName(info.name), kind === "ref", block, (r) => block ? `{ const {${used.join(", ")}} = ${r(STDLIB_INPUT)}; return ${call(r, id)}; }` : call(r, id));
+  return { ...out, key: info.name, ref: kind === "ref" };
 }
 
 export function compileModule(src: string, tsx: boolean, accepted: ReadonlySet<string> | null = null): Variable[] {
@@ -283,40 +337,95 @@ export function compileModule(src: string, tsx: boolean, accepted: ReadonlySet<s
   return texts.flatMap((c) => compileCell(c, tsx, ctx));
 }
 
-// The compiler's memo id (MEMO_ID, stdlib/runtime.ts)
-export const idOf = (definition: string): string | null => MEMO_ID.exec(definition)?.[1] ?? null;
+// A compiled definition, parsed once: the marker and header comments, the ss.cell or ss.rejected call the
+// marker opens, and that call's options ({kind, name, memo, id, ...}, a literal's value and range each).
+// null for a definition that is not SoundScript. Remembered per definition text.
+export type Compiled = {
+  comments: acorn.Comment[]; header: Record<string, string>; headerEnd: number; call: any; fn: any;
+  callee: "cell" | "rejected" | null; options: Record<string, { value: unknown; start: number; end: number }>; refs: string[];
+};
+const parsedCompiled = new Map<string, Compiled | null>();
+export function parseCompiled(definition: string): Compiled | null {
+  const hit = parsedCompiled.get(definition);
+  if (hit !== undefined) return hit;
+  let out: Compiled | null = null;
+  if (langOf(definition) === "ss") {
+    const comments: acorn.Comment[] = [];
+    const root = acorn.parseExpressionAt(definition, 0, { ecmaVersion: "latest", onComment: comments });
+    const at = comments.findIndex((c) => c.type === "Block" && `/*${c.value}*/` === LANG);
+    const head = comments[at + 1];
+    if (!head || head.start !== comments[at].end || !head.value.startsWith("ss^")) throw new Error("SoundScript variable without a header comment");
+    // the call the marker opens: its first argument starts where the header ends
+    let call: any = null;
+    const find = (n: any) => {
+      if (call || !n || typeof n.type !== "string") return;
+      if (n.type === "CallExpression" && n.arguments[0]?.start === head.end) { call = n; return; }
+      for (const k in n) { const v = (n as any)[k]; if (Array.isArray(v)) v.forEach(find); else if (v && typeof v.type === "string") find(v); }
+    };
+    find(root);
+    // a type cell's marker opens no call (void /*…*/0): its header holds its source
+    const callee = !call ? null : call.callee.type === "MemberExpression" && !call.callee.computed && call.callee.object.type === "Identifier" && call.callee.object.name === STDLIB_INPUT && ["cell", "rejected"].includes(call.callee.property.name) ? call.callee.property.name : null;
+    const options: Compiled["options"] = {};
+    const last = call?.arguments.at(-1);
+    if (callee === "cell" && last?.type === "ObjectExpression")
+      for (const p of last.properties) if (p.type === "Property" && !p.computed && p.key.type === "Identifier" && p.value.type === "Literal") options[p.key.name] = { value: p.value.value, start: p.value.start, end: p.value.end };
+    // compile refs: the names in ss.compileFor(input, "name", {"ref": ref, ...})
+    const refs: string[] = [];
+    if (callee === "cell") for (const a of call.arguments.slice(1)) {
+      if (a.type === "CallExpression" && a.callee.type === "MemberExpression" && a.callee.property?.name === "compileFor" && a.arguments[2]?.type === "ObjectExpression")
+        for (const p of a.arguments[2].properties) if (p.type === "Property" && p.key.type === "Literal") refs.push(String(p.key.value));
+    }
+    out = { comments, header: JSON.parse(head.value.slice(3)), headerEnd: head.end, call, fn: call?.arguments[0] ?? null, callee, options, refs };
+  }
+  if (parsedCompiled.size > 4096) parsedCompiled.delete(parsedCompiled.keys().next().value!);
+  parsedCompiled.set(definition, out);
+  return out;
+}
+// The compiler's memo id: the id option of a compiled cell's ss.cell call; null for any other definition
+export const idOf = (definition: string): string | null => {
+  const id = parseCompiled(definition)?.options.id?.value;
+  return typeof id === "string" ? id : null;
+};
+// what a compiled definition calls: ss.cell, with its kind option ("cell", "ref", "events", "listener"), memo
+// flag and compile refs, or ss.rejected (a cell that does not check); null for any other definition
+export const compiledKind = (definition: string): { callee: "cell" | "rejected"; kind: string | null; memo: boolean; refs: string[] } | null => {
+  const p = parseCompiled(definition);
+  if (!p?.callee) return null;
+  const kind = p.options.kind?.value;
+  return { callee: p.callee, kind: typeof kind === "string" ? kind : null, memo: p.options.memo?.value === true, refs: p.refs };
+};
 export function withId(definition: string, id: string): string {
   if (!/^\w+$/.test(id)) throw new Error(`a memo id is word characters only: ${JSON.stringify(id)}`);
-  return definition.replace(MEMO_ID, () => `id: "${id}"`);
+  const at = parseCompiled(definition)?.options.id;
+  return at ? definition.slice(0, at.start) + JSON.stringify(id) + definition.slice(at.end) : definition;
 }
 
 // The cell source a variable holds; null for a variable that is not SoundScript or is a generated part of a cell.
+// The source is in the comments and the function that follow the marker, whatever wraps the call around them
+// (the compiler's definition, Observable's own, or the cell text).
 export function decompileVariable(definition: string): string | null {
-  if (langOf(definition) !== "ss") return null;
-  const at = definition.indexOf(LANG) + LANG.length;
-  if (definition.startsWith(PROJECTION, at)) return null;
-  if (!definition.startsWith("/*ss^", at)) throw new Error("SoundScript variable without a header comment");
-  const hEnd = definition.indexOf("*/", at) + 2;
-  const hdr = JSON.parse(definition.slice(at + 5, hEnd - 2));
-  if (typeof hdr.d === "string") return hdr.d;
-  const ast: any = acorn.parseExpressionAt(definition, 0, { ecmaVersion: "latest" });
-  const ret = ast.body.body.find((s: any) => s.type === "ReturnStatement");
-  let end = ret.argument.arguments[0].end;
-  // a JSX element or a type (`x as T`, `x!`) that ends an arrow body closes after the function node does
-  for (;;) {
-    if (definition.startsWith("/*ss>*/", end)) end += 7;
-    else if (definition.startsWith("/*ss:", end)) end = definition.indexOf("*/", end) + 2;
-    else break;
+  const p = parseCompiled(definition);
+  if (!p) return null;
+  if (typeof p.header.d === "string") return p.header.d;
+  if (!p.fn) throw new Error("SoundScript variable whose marker opens no call");
+  // the function, and the comments that close it: a JSX element or a type (`x as T`, `x!`) that ends an
+  // arrow body closes after the function node does
+  let end = p.fn.end;
+  for (const c of p.comments) if (c.start === end && c.type === "Block" && (c.value === "ss>" || c.value.startsWith("ss:"))) end = c.end;
+  // the text between the header and end, each kept comment put back: /*ss:T*/ is T, and /*ss<E*/…/*ss>*/
+  // (a lowered JSX element) is the element E
+  let out = "", at = p.headerEnd, inJsx = false;
+  for (const c of p.comments) {
+    if (c.start < p.headerEnd || c.end > end || c.type !== "Block") continue;
+    if (inJsx) { if (c.value === "ss>") { inJsx = false; at = c.end; } continue; }
+    if (c.value.startsWith("ss<")) { out += definition.slice(at, c.start) + unkeep(c.value.slice(3)); inJsx = true; }
+    else if (c.value.startsWith("ss:")) { out += definition.slice(at, c.start) + unesc(c.value.slice(3)); at = c.end; }
   }
-  const fnJs = definition.slice(hEnd, end);
-  // split around each lowered JSX element: odd parts are the kept originals, even parts plain code
-  const parts = fnJs.split(/\/\*ss<([\s\S]*?)\*\/[\s\S]*?\/\*ss>\*\//);
-  const fn = parts.map((p, i) => (i % 2 ? unesc(p) : uncommentTypes(p))).join("");
-  return hdr.h + fn + hdr.t;
+  return p.header.h + out + definition.slice(at, end) + p.header.t;
 }
 
-// Variables of one cell, by any one of their names.
-export const cellOfVariable = (name: string): string => name.replace(/^(viewof|type) /, "");
+// Variables of one cell, by any one of their names: the cell's name (a type's own name)
+export const cellOfVariable = (name: string): string => keyOfVariable(name).replace(/^type /, "");
 
 export function decompileModule(definitions: string[]): string {
   return definitions.map(decompileVariable).filter((s): s is string => s !== null).join("\n\n") + "\n";

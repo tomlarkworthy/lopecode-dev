@@ -38,7 +38,8 @@ for (const f of files) {
       for (const v of vs) {
         vars++;
         acorn.parseExpressionAt(v.definition, 0, { ecmaVersion: "latest" });
-        if (langOf(v.definition) !== "ss") throw new Error(`${v.name}: first comment is not the lang marker`);
+        // a state cell's value variable is Observable's own, and holds no source
+        if (langOf(v.definition) !== "ss" && v.definition !== "(G, _) => G.input(_)") throw new Error(`${v.name}: first comment is not the lang marker`);
         const back = (0, eval)(`(${v.definition})`).toString();
         if (back !== v.definition) throw new Error(`${v.name}: Function.toString changed the text`);
       }
@@ -59,23 +60,23 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   const by = (src: string) => new Map(compileModule(src, true, accepted(src)).map((v) => [v.name, v]));
   const g = by(await Bun.file(root + "lite/notebook/examples/09-breakout.tsx").text());
   const expect = (ok: boolean, what: string) => { if (!ok) { fail++; console.log("FAIL " + what); } };
-  expect(JSON.stringify(g.get("world")?.inputs) === JSON.stringify(["viewof world", "ss"]), "a state cell's value variable reads its handle first: " + g.get("world")?.inputs);
-  expect(JSON.stringify(g.get("viewof world")?.inputs) === JSON.stringify(["ss", "start"]), "a state cell's handle is viewof world and takes its inputs: " + g.get("viewof world")?.inputs);
+  expect(JSON.stringify(g.get("world")?.inputs) === JSON.stringify(["Generators", "viewof world"]) && g.get("world")?.definition === "(G, _) => G.input(_)", "a state cell's value variable is Generators.input of its handle: " + g.get("world")?.inputs);
+  expect(JSON.stringify(g.get("viewof world")?.inputs) === JSON.stringify(["ss", "start", "invalidation"]), "a state cell's handle is viewof world and takes its inputs, and invalidation: " + g.get("viewof world")?.inputs);
   expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["ss", "viewof world", "step"]), "a State<T> parameter reads the handle: " + g.get("tick")?.inputs);
   expect([...g.values()].every((v) => !v.inputs.includes("@variable")), "no variable takes @variable (the exporter reads two inputs ending in @variable as an import)");
   expect(/kind: "events"/.test(g.get("ticks")!.definition) && !g.has("viewof ticks"), "a generator taken as Events is one handle variable");
-  expect(g.get("ticks")!.definition.startsWith("function (") && /prev: this, id:/.test(g.get("ticks")!.definition), "an events cell's definition is a function that passes this: " + g.get("ticks")!.definition.slice(0, 40));
+  expect(g.get("ticks")!.definition.startsWith("function _ticks(") && /prev: this, id:/.test(g.get("ticks")!.definition), "an events cell's definition is a function that passes this: " + g.get("ticks")!.definition.slice(0, 40));
   expect(JSON.stringify(g.get("ticks")?.inputs) === JSON.stringify(["ss", "ss_now", "playing", "over", "invalidation"]), "an events cell takes invalidation: " + g.get("ticks")?.inputs);
   expect(JSON.stringify(g.get("onTick")?.inputs) === JSON.stringify(["ss", "ticks", "tick", "invalidation"]) && /kind: "listener"/.test(g.get("onTick")!.definition), "on(...) makes a listener that takes invalidation: " + g.get("onTick")?.inputs);
   expect(/memo: true/.test(g.get("bricksView")!.definition), "bricksView is memoised");
   expect(/memo: false/.test(g.get("ticks")!.definition), "a generator is not memoised");
   const w = by(await Bun.file(root + "lite/notebook/examples/07-workers.tsx").text());
-  expect(JSON.stringify(w.get("inPool")?.inputs) === JSON.stringify(["ss", "ss_compile", "ss_pool", "width", "height", "maxIter"]), "compile refs are hidden inputs: " + w.get("inPool")?.inputs);
+  expect(JSON.stringify(w.get("inPool")?.inputs) === JSON.stringify(["ss", "ss_compile", "width", "height", "maxIter", "ss_pool"]), "compile refs are inputs, in the order the definition reads them: " + w.get("inPool")?.inputs);
   const m = by(await Bun.file(root + "lite/notebook/examples/06-model.tsx").text());
   expect(/memo: false/.test(m.get("stamped")!.definition), "a cell taking now is not memoised");
   const mutSrc = await Bun.file(root + "lite/notebook/examples/03-mut.ts").text();
   const mu = new Map(compileModule(mutSrc, false, accepted(mutSrc, false)).map((v) => [v.name, v]));
-  expect(/\$ss\$\.rejected\(/.test(mu.get("leak")!.definition) && /\$ss\$\.rejected\(/.test(mu.get("late")!.definition) && !/\bxs\b/.test(mu.get("leak")!.definition.slice(mu.get("leak")!.definition.indexOf("*/$ss$"))), "cells the checker rejects (leak, late) compile to a body that only raises");
+  expect(/\bss\.rejected\(/.test(mu.get("leak")!.definition) && /\bss\.rejected\(/.test(mu.get("late")!.definition) && !/\bxs\b/.test(mu.get("leak")!.definition.slice(mu.get("leak")!.definition.lastIndexOf("*/"))), "cells the checker rejects (leak, late) compile to a body that only raises");
   expect([...mu.values()].some((v) => /memo: true/.test(v.definition)), "an accepted cell of 03-mut is memoised");
   expect(compileModule(mutSrc, false).every((v) => !/memo: true/.test(v.definition)), "with no verdicts, nothing is memoised");
 }

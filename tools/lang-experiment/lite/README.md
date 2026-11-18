@@ -487,7 +487,8 @@ evaluations. Stopping that would have meant the asking cell depending on `world`
 the subscription every frame.
 
 **What replaced it: `Source<T>` and `on`.** Tom asked "is a subscription a ref over a
-generator?". A ref's value cell is already a generator (`refValues` in `prelude.runtime.ts`); a
+generator?". A ref's value cell is already a generator (`refValues` in `prelude.runtime.ts`; PROSE PENDING:
+since 2026-11-18 a state cell is `viewof c` with `c = Generators.input(viewof c)`, and `refValues` is gone); a
 subscription runs the other way, events into an action. So:
 
 - a generator cell (`ticks`, yielding the milliseconds since its last step) is an event source;
@@ -682,7 +683,7 @@ a cell the checker rejected (section 3's `leak`, section 8's eleven) still ran.
   takes it is blocked. `cellStates(result)` (`toolchain/ss-toolchain.ts`) gives each cell
   `ok | rejected | blocked`, with the checker's messages or the cells it is blocked by.
 - `compileCell(text, tsx, ctx, name)` with a check context compiles a cell that is not accepted to
-  `$ss$.rejected(name, why)`, which throws `<name> does not check: [rule] msg; …`. The typed text
+  `$ss$.rejected(name, why)` (PROSE PENDING: now `ss.rejected`, `ss` being the runtime module's object), which throws `<name> does not check: [rule] msg; …`. The typed text
   is in the `/*ss^{"d":…,"rejected":…}*/` header, so `decompile(compile(src)) === src` holds for a
   rejected or unparsable cell too (`toolchain/ss-toolchain.test.ts`, 37 files, 2026-11-15).
 - The editor (`soundscript/core.ojs` `ss_language`) shows, while typing, `applying this breaks 2
@@ -716,6 +717,8 @@ a cell the checker rejected (section 3's `leak`, section 8's eleven) still ran.
     which is not one of its inputs`, once per ref cell (8 findings). The name now appears only in a
     defaulted parameter no input fills. `soundscript/build.ts` fails if preflight reports anything
     in a `@tomlarkworthy/soundscript*` module.
+  - PROSE PENDING (2026-11-18): `$ss$ref`/`$ss$self` are gone. A state cell's handle is `viewof c` and
+    the body reads it as `this`; compiled cells take `ss` of `@tomlarkworthy/soundscript-runtime`.
 - Unit tests: `stdlib/runtime.test.ts` `b1`–`b5` (break and repair, a rejected body never runs, an
   unparsable edit, a listener in the broken part detaching and attaching again) and `o1`–`o2`
   (listener order). `b1`–`b5` and `c4` moved on 2026-11-16 into `test_spec_S8_2`–`test_spec_S8_7`;

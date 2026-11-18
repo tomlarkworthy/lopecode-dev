@@ -30,6 +30,7 @@ const keyName = (k: Node): string | null => (k.type === "Identifier" ? k.name : 
 
 let DECLS: [Parsed, Parsed, Parsed] | null = null;
 
+const ONE_ARG = new Set(["State", "StateCell", "Events", "Mut", "Borrowed"]);
 export class Registry {
   types = new Map<string, Decl>();
   values = new Map<string, ValueDecl>();
@@ -156,6 +157,8 @@ export class Registry {
         if (name === "Array" || name === "ReadonlyArray") return arr(args[0] ?? UNKNOWN);
         if (name === "Record" && args.length === 2 && args[0].k === "str") return { k: "rec", props: new Map(), index: args[1] };
         if (name === "Action") return named("Action", args[0] ?? { k: "tup", els: [] });
+        // the prelude's own generics, whatever a module declares under their names
+        if (ONE_ARG.has(name) && args.length !== 1) { this.onErr(n, "type", `${name} takes one type argument, as ${name}<T>`); return ERR; }
         if (WRAPPERS.has(name) || this.types.has(name)) return named(name, ...args);
         if (name === "ValueOf") { this.onUnsup(n, "ValueOf in checked cells"); return ERR; }
         this.onErr(n, "unknown-type", `unknown type ${name}`);

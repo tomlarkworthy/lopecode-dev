@@ -14,6 +14,7 @@ import { Runtime } from "@observablehq/runtime";
 import { blockContent } from "../../../lib/notebook-blocks.ts";
 import { loadNotebook } from "../../../lope-runtime.js";
 import { generate, ENTRY, RUNTIME, CHECKER } from "./ts-cells.ts";
+import { moduleJs } from "../toolchain/module-js.ts";
 
 process.on("unhandledRejection", () => {});
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -48,7 +49,9 @@ const keys = Object.keys(entry).filter((k) => k !== "default").sort();
 }
 
 // 2. the built modules, headless
-const runtime = new Runtime();
+// Generators is a builtin of the notebook's runtime; here, Observable's own Generators.input, which the runtime tests use
+const { input } = await import(join(ROOT, "vendor/observable-stdlib/src/generators/input.js"));
+const runtime = new Runtime({ Generators: { input } });
 const mods = new Map<string, any>();
 const realize = (def: string) => new Function(`return (${def});`)();
 const load = (name: string, inject: Record<string, unknown> = {}) => {
@@ -56,23 +59,22 @@ const load = (name: string, inject: Record<string, unknown> = {}) => {
   if (!src) throw new Error(`no ${name} block`);
   const m = runtime.module();
   mods.set(name, m);
-  // the definitions, and the imports and $def calls of define(), read from the block's text
-  const consts = new Map([...src.matchAll(/^const (_\w+) = ([\s\S]*?);\n(?=const _|\nexport default)/gm)].map((x) => [x[1], x[2]]));
-  for (const x of src.matchAll(/^  \$def\("(\w+)", ("[^"]*"|null), (\[[^\]]*\]), \w+\);$/gm)) {
-    const name = JSON.parse(x[2]), inputs = JSON.parse(x[3]);
-    if (name !== null && name in inject) m.define(name, [], () => inject[name]);
-    else m.define(name, inputs, realize(consts.get(x[1])!));
+  // the definitions, and the imports and $def calls of define(), read from the block's parse
+  const { variables, imports } = moduleJs(src);
+  for (const v of variables) {
+    if (v.name !== null && v.name in inject) m.define(v.name, [], () => inject[v.name!]);
+    else m.define(v.name, v.inputs, realize(v.definition));
   }
-  for (const x of src.matchAll(/^  main\.define\("([^"]+)", \["module ([^"]+)","@variable"\], \(_, v\) => v\.import\((?:"(\w+)", )?"(\w+)", _\)\);$/gm)) {
-    const from = mods.get(x[2]);
-    if (!from) throw new Error(`${name} imports ${x[2]}, not loaded`);
-    m.import(x[3] ?? x[4], x[4], from);
+  for (const x of imports) {
+    const from = mods.get(x.from);
+    if (!from) throw new Error(`${name} imports ${x.from}, not loaded`);
+    m.import(x.remote, x.local, from);
   }
   return m;
 };
 // every named cell of a module evaluates; the runtime module first, alone
 const all = async (name: string) => {
-  const names = [...blockContent(html, name)!.matchAll(/^  \$def\("\w+", "([^"]+)"/gm)].map((x) => x[1]);
+  const names = moduleJs(blockContent(html, name)!).variables.map((v) => v.name).filter((n): n is string => n !== null);
   const failed: string[] = [];
   for (const n of names) await mods.get(name).value(n).catch((e: Error) => failed.push(`${n}: ${e.message}`));
   t(failed.length === 0, `${name}: all ${names.length} named cells evaluate${failed.length ? "; " + failed.join("; ") : ""}`);

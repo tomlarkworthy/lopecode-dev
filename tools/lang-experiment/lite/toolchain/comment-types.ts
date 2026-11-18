@@ -2,10 +2,6 @@
 import { parse, type Node } from "../parse.ts";
 import * as acorn from "acorn";
 
-const acornTok = (js: string, onComment: (block: boolean, text: string) => void) => {
-  for (const _ of acorn.tokenizer(js, { ecmaVersion: "latest", sourceType: "module", onComment }));
-};
-
 const OPEN = "/*ss:", CLOSE = "*/";
 const COMMENT_TYPE_KEYS = new Set(["typeAnnotation", "returnType", "typeParameters", "typeArguments"]);
 
@@ -79,13 +75,21 @@ const tokens = (js: string, onComment?: (block: boolean, text: string, start: nu
 export const LANG = '/*{lang:"ss"}*/';
 
 // The language of a compiled text is named by its first comment, if that comment is a {lang:...} marker.
+// Read with acorn's tokenizer up to that comment only; remembered per text, since it runs over every variable.
+const langs = new Map<string, string | null>();
 export function langOf(js: string): string | null {
+  const hit = langs.get(js);
+  if (hit !== undefined) return hit;
   let first: string | null = null;
   try {
-    acornTok(js, (_block: boolean, text: string) => { if (first === null) first = text; });
-  } catch { return null; }
+    const it = acorn.tokenizer(js, { ecmaVersion: "latest", sourceType: "module", onComment: (block: boolean, text: string) => { if (first === null) first = text; } });
+    for (let t = it.getToken(); first === null && t.type !== acorn.tokTypes.eof; t = it.getToken());
+  } catch {}
   const m = first === null ? null : /^\{lang:"([a-z]+)"\}$/.exec(first);
-  return m ? m[1] : null;
+  const lang = m ? m[1] : null;
+  if (langs.size > 4096) langs.delete(langs.keys().next().value!);
+  langs.set(js, lang);
+  return lang;
 }
 
 // Types to /*ss:...*/ comments; the result is plain JS.
@@ -100,15 +104,12 @@ export function commentTypes(src: string): string {
 }
 
 export function uncommentTypes(js: string): string {
+  // the type comments, found by acorn's tokenizer (a comment's text, never a string's), each put back as its text
+  const kept: [number, number, string][] = [];
+  for (const _ of acorn.tokenizer(js, { ecmaVersion: "latest", sourceType: "module", onComment: (block: boolean, text: string, start: number, end: number) => { if (block && text.startsWith("ss:")) kept.push([start, end, unesc(text.slice(3))]); } }));
   let out = "", at = 0;
-  for (;;) {
-    const s = js.indexOf(OPEN, at);
-    if (s < 0) return out + js.slice(at);
-    const e = js.indexOf(CLOSE, s + OPEN.length);
-    if (e < 0) throw new Error("unterminated type comment");
-    out += js.slice(at, s) + unesc(js.slice(s + OPEN.length, e));
-    at = e + CLOSE.length;
-  }
+  for (const [start, end, text] of kept) { out += js.slice(at, start) + text; at = end; }
+  return out + js.slice(at);
 }
 
 export const compile = (src: string): string => LANG + commentTypes(src);

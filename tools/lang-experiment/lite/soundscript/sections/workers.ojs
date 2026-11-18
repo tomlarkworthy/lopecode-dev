@@ -15,10 +15,10 @@ picture = {
   return canvas;
 }
 // %%
-ss_compile = ss.compiler(() => ss_source(workers_module))
+ss_compile = soundscript.compiler(() => ss_source(workers_module))
 // %%
 viewof workers_module = thisModule()
 // %%
-import { ss, ss_pool, ss_source } from "@tomlarkworthy/soundscript"
+import { ss, soundscript, ss_pool, ss_source } from "@tomlarkworthy/soundscript"
 // %%
 import { thisModule } from "@tomlarkworthy/runtime-sdk"

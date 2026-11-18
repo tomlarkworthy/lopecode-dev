@@ -10,7 +10,15 @@ export type CellInfo = { name: string; span?: [number, number]; params: { name: 
 
 // The calls in fn of the prelude function `name`: the callee is that bare name and no parameter or
 // declaration between the call and the cell binds it. A property key, a type member or a local of that name is not one.
-export function preludeCalls(fn: Node, name: string): Set<Node> {
+export const preludeCalls = (fn: Node, name: string): Set<Node> =>
+  freeUses(fn, name, (n) => n.type === "CallExpression" && n.callee.type === "Identifier" && n.callee.name === name);
+// The references in fn to the global `name` that no parameter or declaration binds
+export const globalRefs = (fn: Node, name: string): Set<Node> =>
+  freeUses(fn, name, (n, p) => n.type === "Identifier" && n.name === name && !(p && !p.computed &&
+    ((p.type === "MemberExpression" && p.property === n) || (/^(Property|MethodDefinition|PropertyDefinition)$/.test(p.type) && p.key === n && p.value !== n))) &&
+    !(p && /^(Labeled|Break|Continue)Statement$/.test(p.type)));
+// the nodes in fn that pick accepts, outside every scope in which `name` is bound
+function freeUses(fn: Node, name: string, pick: (n: Node, parent: Node | null) => boolean): Set<Node> {
   const binds = (p: Node | null): boolean => !!p && (p.type === "Identifier" ? p.name === name
     : p.type === "ObjectPattern" ? p.properties.some((x: Node) => binds(x.type === "RestElement" ? x.argument : x.value))
     : p.type === "ArrayPattern" ? p.elements.some(binds)
@@ -18,16 +26,16 @@ export function preludeCalls(fn: Node, name: string): Set<Node> {
   const declares = (st: Node): boolean => st.type === "VariableDeclaration" ? st.declarations.some((d: Node) => binds(d.id))
     : /^(Function|Class)Declaration$/.test(st.type) && st.id?.name === name;
   const out = new Set<Node>();
-  const walk = (n: Node) => {
+  const walk = (n: Node, parent: Node | null) => {
     if (/^(Arrow)?Function(Expression|Declaration)$/.test(n.type) && (n.params.some(binds) || (n.type === "FunctionExpression" && n.id?.name === name))) return;
     if ((n.type === "BlockStatement" || n.type === "StaticBlock") && n.body.some(declares)) return;
     if (n.type === "SwitchStatement" && n.cases.some((c: Node) => c.consequent.some(declares))) return;
     if (n.type === "CatchClause" && binds(n.param)) return;
     if (/^For(In|Of)?Statement$/.test(n.type) && [n.init, n.left].some((x) => x?.type === "VariableDeclaration" && declares(x))) return;
-    if (n.type === "CallExpression" && n.callee.type === "Identifier" && n.callee.name === name) out.add(n);
-    kids(n).forEach(walk);
+    if (pick(n, parent)) out.add(n);
+    kids(n).forEach((k) => walk(k, n));
   };
-  walk(fn);
+  walk(fn, null);
   return out;
 }
 
