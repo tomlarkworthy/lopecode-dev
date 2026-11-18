@@ -61,7 +61,7 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   const g = by(await Bun.file(root + "lite/notebook/examples/09-breakout.tsx").text());
   const expect = (ok: boolean, what: string) => { if (!ok) { fail++; console.log("FAIL " + what); } };
   expect(JSON.stringify(g.get("world")?.inputs) === JSON.stringify(["Generators", "viewof world"]) && g.get("world")?.definition === "(G, _) => G.input(_)", "a state cell's value variable is Generators.input of its handle: " + g.get("world")?.inputs);
-  expect(JSON.stringify(g.get("viewof world")?.inputs) === JSON.stringify(["ss", "start", "invalidation"]), "a state cell's handle is viewof world and takes its inputs, and invalidation: " + g.get("viewof world")?.inputs);
+  expect(JSON.stringify(g.get("viewof world")?.inputs) === JSON.stringify(["ss", "start"]), "a state cell's handle is viewof world and takes its inputs: " + g.get("viewof world")?.inputs);
   expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["ss", "viewof world", "step"]), "a State<T> parameter reads the handle: " + g.get("tick")?.inputs);
   expect([...g.values()].every((v) => !v.inputs.includes("@variable")), "no variable takes @variable (the exporter reads two inputs ending in @variable as an import)");
   expect(/kind: "events"/.test(g.get("ticks")!.definition) && !g.has("viewof ticks"), "a generator taken as Events is one handle variable");

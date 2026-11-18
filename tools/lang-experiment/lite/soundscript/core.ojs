@@ -88,8 +88,7 @@ soundscript.running(handles?)                   // listeners attached on the pag
 soundscript.pulling(handles?)                   // events cells whose generator is being pulled (of these handles only, if given)
 soundscript.isEvents(value)                     // whether a value is an events cell's handle
 soundscript.release(value)                      // a deleted variable's listener ends, or its events stop
-soundscript.forget(id)                          // drop a memo id's memo entry, run count and parked state handle
-soundscript.unpark(id)                          // drop only the parked state handle
+soundscript.forget(id)                          // drop a memo id's memo entry and run count
 soundscript.memoSize(), soundscript.memoHas(id)          // memo entries on the page; whether one id has one
 soundscript.idOf(definition), soundscript.withId(definition, id)  // read or replace a compiled definition's memo id (from its parsed ss.cell call)
 soundscript.compiledKind(definition)             // {kind, memo, refs} of a compiled cell's ss.cell call, or null
@@ -247,13 +246,6 @@ ss_lifecycle = {
     if (outsideNamed) touched.add(module);
     else if (!isSs(variable) && !isSs(previous)) return;
     if (variable === null && !outsideNamed) ss_deleted(previous.variable);
-    // by now a deleted variable's value is gone, so ss_deleted cannot reach its state handle, which the delete's
-    // invalidation parked under the definition's id for the next cell with that text to take. It is dropped
-    // unless a live variable with that text has no value (its input failed; the parked handle may be its own).
-    if (variable === null && isSs(previous)) {
-      const text = String(previous._definition);
-      if (![...runtime._variables].some((x) => x._value === undefined && x._definition && String(x._definition) === text)) soundscript.unpark(soundscript.idOf(text));
-    }
     // every edit gives a new memo id; the old one is forgotten once no variable has that definition
     if (isSs(previous) && previous._definition !== variable?._definition) {
       const text = String(previous._definition);

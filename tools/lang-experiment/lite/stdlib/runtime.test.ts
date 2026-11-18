@@ -581,15 +581,15 @@ const both = (n: State<number>, other: State<number>) => action(() => { other.up
   await p.settle();
   const inError = await error();
   ok("w1_input_threw", inError === "broken base", inError);
-  // an action taken before the break still holds the handle: its write goes to n's last store, unseen
+  // an action taken before the break still holds the old handle: its write to n goes to a store no variable has
   const stale = (() => { try { held(); return ""; } catch (e) { return (e as Error).message; } })();
   await p.settle();
   base.define("base", [], () => 1);
   await p.settle();
-  ok("w1_a_held_action_writes_while_n_is_in_error_and_the_repair_keeps_it", stale === "" && p.value("other") === 1 && p.value("n") === 2, `${stale}; other ${p.value("other")}, n ${p.value("n")}`);
+  ok("w1_a_held_action_writes_while_n_is_in_error_and_the_repaired_n_starts_again", stale === "" && p.value("other") === 1 && p.value("n") === 1, `${stale}; other ${p.value("other")}, n ${p.value("n")}`);
   p.value("both")();
   await p.settle();
-  ok("w1_repaired_input_with_the_same_value_keeps_the_state", p.value("other") === 2 && p.value("n") === 3, `other ${p.value("other")}, n ${p.value("n")}`);
+  ok("w1_the_repaired_holder_writes_the_new_state", p.value("other") === 2 && p.value("n") === 2, `other ${p.value("other")}, n ${p.value("n")}`);
   p.define(`const n = (base: number): StateCell<number> => state("x");`);
   await p.settle();
   const rejected = await error();

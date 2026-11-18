@@ -180,11 +180,10 @@ function detach(l: Listener) {
 }
 
 // The value of a deleted variable: the runtime does not resolve its invalidation, so the module calls this.
-// a deleted variable's value: its listener or events end, and a state handle is not kept for a later variable
+// a deleted variable's value: its listener or events end
 export function release(v: unknown) {
   if (isListener(v)) detach(v);
   else if (isEvents(v)) { const s = hs.get(v)!; stopGen(s); s.dead = true; }
-  else releaseHandle(v);
 }
 let generation = 0;
 const bornAt = new Map<object, number>();

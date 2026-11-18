@@ -98,30 +98,14 @@ export function read(handle: object): unknown {
 
 // each handle's compiled text (its memo id) and the inputs of its last run
 const runs = new WeakMap<object, { id: string; args: unknown[] }>();
-// id -> the handle of a run whose variable was invalidated and has not run again with it as its last value
-const parked = new Map<string, object>();
-// A state cell's handle variable. prev is the variable's last value: its handle, when the same compiled text
-// (id) made it, is kept, so a cell taking State<T> keeps it across runs; a new store from make(), which runs
-// the cell, unless every input is the same (Object.is) as on the last run, which keeps the store and so the
-// state. A run whose input failed leaves the variable no last value, so each run's handle is parked when its
-// invalidation resolves, and a run with no last value takes the handle parked under its id. Two variables
-// with the same compiled text can meet there: one that first runs while the other's input fails takes its handle.
-// drops the handle parked under id (a definition no variable holds any more, lite/stdlib/runtime.ts forget)
-export const unpark = (id: string) => void parked.delete(id);
-// a handle whose variable is deleted is never parked, so a later variable with the same text does not take it
-const released = new WeakSet<object>();
-export const releaseHandle = (h: unknown) => {
-  if (!h || typeof h !== "object" || !runs.has(h)) return;
-  released.add(h);
-  const id = runs.get(h)!.id;
-  if (parked.get(id) === h) parked.delete(id);
-};
-export function stateRun(prev: unknown, id: string, name: string, args: unknown[], make: () => unknown, kept: () => void, invalidation: Promise<unknown> | null): object {
+// A state cell's handle variable. prev is the variable's last value, as the Runtime gives it: its handle, when
+// the same compiled text (id) made it, is kept, so a cell taking State<T> keeps it across runs; a new store from
+// make(), which runs the cell, unless every input is the same (Object.is) as on the last run, which keeps the
+// store and so the state. A variable with no last value (its first run, or after an error) starts again.
+export function stateRun(prev: unknown, id: string, name: string, args: unknown[], make: () => unknown, kept: () => void): object {
   // prev is any other value (globalThis, in a sloppy-mode definition) when the variable has no last value
-  const was = prev && typeof prev === "object" ? runs.get(prev) : undefined;
-  let h = was ? (was.id === id ? (prev as object) : undefined) : parked.get(id);
-  if (h && parked.get(id) === h) parked.delete(id);
-  const last = h && runs.get(h);
+  const last = prev && typeof prev === "object" ? runs.get(prev) : undefined;
+  let h = last?.id === id ? (prev as object) : undefined;
   if (!h || !last || last.args.length !== args.length || !args.every((x, i) => Object.is(x, last.args[i]))) {
     const r = make();
     if (!isStateCell(r)) throw new Error(`${name} did not return state(...)`);
@@ -129,9 +113,7 @@ export function stateRun(prev: unknown, id: string, name: string, args: unknown[
     setStore(h, r.initial);
     runs.set(h, { id, args });
   } else kept();
-  const handle = h;
-  invalidation?.then(() => { if (!released.has(handle)) parked.set(id, handle); });
-  return handle;
+  return h;
 }
 
 // Commits the writes of the calls that finished since the last commit: every store takes its value, then

@@ -302,9 +302,8 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   // a cell that calls the prelude's on(...) is a listener: the checker allows on(...) only as the cell's whole value
   const kind = info.returnsRef ? "ref" : info.generator && ctx.events.has(info.name) ? "events" : preludeCalls(fn, "on").size ? "listener" : "cell";
   const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
-  // an events or listener cell takes invalidation (its generator stops, or its listener ends, when it runs
-  // again), and so does a state cell (its handle is kept for its next run while an input fails)
-  const inv = params.includes("invalidation") || kind !== "cell";
+  // an events or listener cell takes invalidation: its generator stops, or its listener ends, when it runs again
+  const inv = params.includes("invalidation") || kind === "events" || kind === "listener";
   const memo = (kind === "cell" || kind === "listener") && !info.generator && !!ctx.accepted?.has(info.name) &&
     !info.params.some((p) => NO_MEMO_CAPS.has(p.name) || (ctx.generators.has(p.name) && !p.eventsTyped));
   const inner = `${LANG}${header({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${typed}`;
