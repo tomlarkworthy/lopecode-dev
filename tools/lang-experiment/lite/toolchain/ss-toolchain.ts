@@ -5,18 +5,21 @@
 import * as acorn from "acorn";
 import { parse, kids, type Node } from "../parse.ts";
 import { lowerJsx } from "../jsx/lower.ts";
-import { cellsOf, type CellInfo } from "../facts.ts";
+import { cellsOf, preludeCalls, type CellInfo } from "../facts.ts";
 import { commentTypes, uncommentTypes, langOf, LANG, esc, unesc } from "./comment-types.ts";
+import { CAPABILITIES, PRELUDE_FNS } from "../intrinsics.ts";
+import { MEMO_ID } from "../stdlib/runtime.ts";
 
 export type Variable = { name: string; inputs: string[]; definition: string };
 export { langOf, LANG };
 
 const SS = "$ss$"; // wrapper parameter bound to the stdlib runtime object
 export const STDLIB_INPUT = "ss";
-const PRELUDE = ["state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "h", "read"];
-// Capability parameter -> the variable the stdlib provides. invalidation is the runtime's own;
+// the prelude functions, and h, the JSX element function lowered JSX calls
+const PRELUDE = [...PRELUDE_FNS, "h"];
+// Capability parameter -> the variable the stdlib provides: ss_<name>, except invalidation, the runtime's own;
 // ss_compile is defined in each module that compiles, because compile reads that module's cells.
-export const CAP_INPUTS: Record<string, string> = { now: "ss_now", random: "ss_random", fetch: "ss_fetch", log: "ss_log", pool: "ss_pool", compile: "ss_compile", invalidation: "invalidation" };
+export const CAP_INPUTS: Record<string, string> = Object.fromEntries(Object.keys(CAPABILITIES).map((n) => [n, n === "invalidation" ? n : `ss_${n}`]));
 // marks a state cell's value variable, which holds no source (its handle variable does)
 const PROJECTION = "/*ss@ref*/";
 
@@ -179,11 +182,11 @@ export function contentId(text: string): string {
   return a.toString(36).padStart(7, "0") + b.toString(36).padStart(7, "0");
 }
 
+// A name declared again is stored as "<name> (2)", "<name> (3)", ... (core.ts reports it so).
+export const isDuplicateKey = (key: string | null): key is string => !!key && /^[\w$]+ \(\d+\)$/.test(key);
 // With a module context, a cell that does not parse, does not compile, or that the check did not accept
 // compiles to rejectedCell; with none (a cell compiled on its own) those throw, as before.
-// A name declared again is stored as "<name> (2)", "<name> (3)", ... (core.ts reports it so); nameHint
-// names such a variable, and it compiles to the checker's messages under that name.
-export const isDuplicateKey = (key: string | null): key is string => !!key && /^[\w$]+ \(\d+\)$/.test(key);
+// nameHint names a variable whose name is declared again, and it compiles to the checker's messages under that name.
 export function compileCell(text: string, tsx: boolean, ctx: Context = NO_CONTEXT, nameHint: string | null = null): Variable[] {
   if (!ctx.accepted) return compileChecked(text, tsx, ctx);
   if (isDuplicateKey(nameHint) && ctx.why?.has(nameHint) && declaredName(text) !== nameHint) return rejectedCell(text, nameHint, ctx.why.get(nameHint)!, false);
@@ -228,8 +231,8 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Variable[] {
   const used = [...identifiers(parse(`(${lowered})`).program)].filter((n) => PRELUDE.includes(n) && !params.includes(n));
   // a State<T> parameter takes the handle variable
   const inputs = [STDLIB_INPUT, ...info.params.map((p) => (p.refTyped ? handleName(p.name) : CAP_INPUTS[p.name] ?? p.name))];
-  // a cell that calls on(...) is a listener: the checker allows on(...) only as the cell's whole value
-  const kind = info.returnsRef ? "ref" : info.generator && ctx.events.has(info.name) ? "events" : used.includes("on") ? "listener" : "cell";
+  // a cell that calls the prelude's on(...) is a listener: the checker allows on(...) only as the cell's whole value
+  const kind = info.returnsRef ? "ref" : info.generator && ctx.events.has(info.name) ? "events" : preludeCalls(fn, "on").size ? "listener" : "cell";
   // hidden inputs: invalidation for an events or listener cell (its generator stops, or its listener
   // ends, when it runs again), and the refs of its compile(...) calls (it re-runs, and returns new
   // functions, when one changes)
@@ -280,13 +283,11 @@ export function compileModule(src: string, tsx: boolean, accepted: ReadonlySet<s
   return texts.flatMap((c) => compileCell(c, tsx, ctx));
 }
 
-// The compiler's memo id: the id in the options object it writes last in a cell's definition. A user's
-// own `id:` property cannot match, because nothing follows the options object but `); }`.
-const ID_AT = /\bid: "(\w+)"(?=, invalidation: [\w$]+\}\); \}$)/;
-export const idOf = (definition: string): string | null => ID_AT.exec(definition)?.[1] ?? null;
+// The compiler's memo id (MEMO_ID, stdlib/runtime.ts)
+export const idOf = (definition: string): string | null => MEMO_ID.exec(definition)?.[1] ?? null;
 export function withId(definition: string, id: string): string {
   if (!/^\w+$/.test(id)) throw new Error(`a memo id is word characters only: ${JSON.stringify(id)}`);
-  return definition.replace(ID_AT, () => `id: "${id}"`);
+  return definition.replace(MEMO_ID, () => `id: "${id}"`);
 }
 
 // The cell source a variable holds; null for a variable that is not SoundScript or is a generated part of a cell.

@@ -13,7 +13,7 @@ export type Completion = { label: string; type: string; detail?: string; apply?:
 export type Completions = { from: number; to: number; options: Completion[]; mode: "member" | "name" | "param" | "type" | "jsx" | "none" };
 
 const PH = "__ss_complete__";
-const KEYWORDS = "const let return if else for of in while do break continue switch case default function true false null undefined typeof async await yield try catch finally throw".split(" ");
+const KEYWORD_NAMES = "const let return if else for of in while do break continue switch case default function true false null undefined typeof async await yield try catch finally throw".split(" ");
 // types whose members a cell may not read: handles and actions are used whole
 const NO_MEMBERS = new Set(["Action", "StateCell", "Events", "Listener", "Compile"]);
 
@@ -310,7 +310,7 @@ export function completionsAt(cells: readonly string[], at: number, offset: numb
     if (!got) continue;
     const g = got as any;
     if (g.kind === "member") return pick("member", membersOf(g.reg, g.t) ?? []);
-    const kw = KEYWORDS.map((k) => ({ label: k, type: "keyword" }));
+    const kw = KEYWORD_NAMES.map((k) => ({ label: k, type: "keyword" }));
     return pick("name", [...g.list, ...kw.filter((k) => !g.list.some((x: Completion) => x.label === k.label))].sort((a, b) => a.label.localeCompare(b.label)));
   }
   return { ...none(), mode: member ? "member" : "name" };

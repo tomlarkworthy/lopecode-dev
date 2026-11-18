@@ -1,0 +1,38 @@
+// %%
+test_checker_roundtrip = {
+  const ss = soundscript;
+  const source = [
+    "const width = () => 3;",
+    "// a comment kept with its cell\nconst area = (width: number): number => width * width;",
+    "const count = (): StateCell<number> => state(0);",
+    "const increment = (count: State<number>) => action(() => count.update((c) => c + 1));",
+  ].join("\n\n");
+  const result = ss.checkSources({ cells: source, tsx: true });
+  const notOk = result.cells.filter((c) => c.status !== "ok" || c.errors.length);
+  if (notOk.length) throw new Error(`does not check: ${notOk.map((c) => `${c.name} ${c.status} ${JSON.stringify(c.errors)}`).join("; ")}`);
+  const ctx = ss.contextFromCheck(result, source, true);
+  const texts = ss.splitCells(source, true);
+  const variables = texts.map((t) => ss.compileCell(t, true, ctx));
+  const back = variables.map((vs) => vs.map((v) => ss.decompileVariable(v.definition)).filter((x) => x !== null));
+  const lost = texts.filter((t, i) => back[i].length !== 1 || back[i][0] !== t);
+  if (lost.length) throw new Error(`not recovered exactly: ${lost.join(" | ")}`);
+  // run the plain cells, each with ss and the values of the cells it takes
+  const values = { ss };
+  for (const v of variables.flat().filter((v) => ["width", "area"].includes(v.name))) values[v.name] = new Function(`return (${v.definition});`)()(...v.inputs.map((n) => values[n]));
+  if (values.area !== 9) throw new Error(`area is ${values.area}, expected 9`);
+  return `${texts.length} cells checked, compiled and recovered; area ${values.area}`;
+}
+// %%
+test_checker_on_as_a_property_is_not_a_listener = {
+  const ss = soundscript;
+  const source = "const cfg = () => ({ on: true, n: 1 });\n\nconst use = (cfg: { readonly on: boolean; readonly n: number }) => cfg.n + 1;";
+  const result = ss.checkSources({ cells: source, tsx: true });
+  if (result.cells.some((c) => c.status !== "ok")) throw new Error(JSON.stringify(result.cells.map((c) => [c.name, c.status])));
+  const ctx = ss.contextFromCheck(result, source, true);
+  const [cfg, use] = ss.splitCells(source, true).map((t) => ss.compileCell(t, true, ctx)[0]);
+  const run = (v, ...args) => new Function(`return (${v.definition});`)()(ss, ...args);
+  const value = run(cfg);
+  const n = run(use, value);
+  if (value?.on !== true || n !== 2) throw new Error(`cfg ${JSON.stringify(value)}, use ${n}`);
+  return n;
+}

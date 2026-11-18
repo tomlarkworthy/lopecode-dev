@@ -7,6 +7,7 @@ import { h } from "../jsx/h.ts";
 import { erase } from "./erase.ts";
 import * as P from "../../prelude.runtime.ts";
 import { island, type IslandSpec } from "../island.ts";
+import { CAPABILITIES, PRELUDE_FNS } from "../intrinsics.ts";
 import { cellsOf, on, events, listen, nameAction, release, guard, generatorish, type CellInfo } from "./cells.ts";
 export { cellsOf, on, guard, generatorish, type CellInfo };
 import { pagePool, runHere, type Pool } from "./workers.ts";
@@ -18,8 +19,10 @@ export type Capabilities = { now?: (cell: string) => () => number; random?: (cel
 // The checker's verdict per cell, as checkSources returns it; compile refuses an island that is not all ok.
 export type Verdicts = { cells: { name: string; status: string; errors: unknown[] }[] };
 
-const CAPS = new Set(["now", "random", "fetch", "log", "invalidation", "compile", "pool"]);
-const PRELUDE = ["state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "h", "read"];
+const CAPS = new Set(Object.keys(CAPABILITIES));
+const PRELUDE_VALUES: Record<string, unknown> = { state: P.state, action: P.action, mut: P.mut, freeze: P.freeze, borrow: P.borrow, snapshot: P.snapshot, equals: P.equals, on, read: P.read, h };
+const PRELUDE = [...PRELUDE_FNS, "h"];
+if (PRELUDE.some((n) => !(n in PRELUDE_VALUES))) throw new Error("a prelude function has no runtime value");
 export type Program = ReturnType<typeof runCells>;
 
 let programs = 0;
@@ -31,7 +34,7 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
   const cells = cellsOf(ts);
   const names = cells.map((c) => c.name);
   const exports = new Function(...PRELUDE, `"use strict";\n${js}\nreturn {${names.join(", ")}};`)(
-    P.state, P.action, P.mut, P.freeze, P.borrow, P.snapshot, P.equals, on, h, P.read) as Record<string, (...a: unknown[]) => unknown>;
+    ...PRELUDE.map((n) => PRELUDE_VALUES[n])) as Record<string, (...a: unknown[]) => unknown>;
   const byName = new Map(cells.map((c) => [c.name, c]));
   const caps = opts.caps ?? {};
   const runtime = new Runtime();

@@ -2,12 +2,13 @@
 // output, stopping at inputs (the call's arguments) and refs (values read from the graph when the
 // calling cell runs). Shared by the checker (core.ts) and the runner (browser/run.ts).
 import { kids } from "./parse.ts";
+import { CAPABILITIES } from "./intrinsics.ts";
 
 export type IslandCell = { name: string; params: string[]; refCell?: boolean };
 export type IslandSpec = { inputs: string[]; refs: string[]; outputs: string[] };
 export type Island = { order: string[]; problems: { name: string; msg: string }[] };
 
-export const ISLAND_CAPABILITIES = new Set(["now", "random", "fetch", "log", "invalidation", "compile", "pool"]);
+export const ISLAND_CAPABILITIES = new Set(Object.keys(CAPABILITIES));
 
 export function island(cells: IslandCell[], spec: IslandSpec): Island {
   const by = new Map(cells.map((c) => [c.name, c]));

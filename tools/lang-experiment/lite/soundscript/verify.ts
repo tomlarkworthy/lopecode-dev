@@ -531,13 +531,13 @@ const ssSource = (page: Page, name: string) => page.evaluate((name) => {
 }, name);
 const ssLines = (html: string, name: string) => (blockContent(html, name) ?? "").split("\n").filter((l) => l.includes('/*{lang:"ss"}*/')).sort();
 const ids = (html: string) => new Set(blockSpans(html).map((s) => s.id));
-// the tutorial's bundle-size row is a constant build.ts writes; it must be the bundle the file embeds
+// the tutorial's bundle-size row is a constant build.ts writes; it must be the parser bundle the file embeds
 {
   const html = readFileSync(file, "utf8");
-  const gz = Buffer.from((blockContent(html, "@tomlarkworthy/soundscript/ss.js.gz") ?? "").replace(/\s+/g, ""), "base64");
+  const gz = Buffer.from((blockContent(html, "@tomlarkworthy/soundscript-checker/acorn-typescript.js.gz") ?? "").replace(/\s+/g, ""), "base64");
   const raw = gz.length ? Bun.gunzipSync(gz).length : 0;
   const m = /raw: (\d+), gz: (\d+)/.exec(blockContent(html, TUTORIAL) ?? "");
-  report(!!m && +m[1] === raw && +m[2] === gz.length, `ss_bytes: the size row (${m?.[1]} raw, ${m?.[2]} gz) is the embedded ss.js.gz (${raw} raw, ${gz.length} gz)`);
+  report(!!m && +m[1] === raw && +m[2] === gz.length, `ss_bytes: the size row (${m?.[1]} raw, ${m?.[2]} gz) is the embedded acorn-typescript.js.gz (${raw} raw, ${gz.length} gz)`);
 }
 function sameBlocks(label: string, a: string, b: string) {
   const A = ids(a), B = ids(b);

@@ -1,16 +1,15 @@
 // Parser adapter: the only file that knows which parser is used. acorn + @sveltejs/acorn-typescript.
 // Returns an ESTree/TS-ESTree program, the comments, and a helper for the comments before a node.
-import { Parser } from "acorn";
+import * as acorn from "acorn";
 import { tsPlugin } from "@sveltejs/acorn-typescript";
 
 export type Node = { type: string; start: number; end: number; loc: { start: { line: number; column: number } }; [k: string]: any };
 export type Comment = { block: boolean; text: string; start: number; end: number };
 export type Parsed = { program: Node; comments: Comment[]; src: string; leading(n: Node): Comment[]; line(pos: number): number };
 
-const TS = Parser.extend(tsPlugin() as any);
-const TSX = Parser.extend(tsPlugin({ jsx: true }) as any);
+const TS = acorn.Parser.extend(tsPlugin() as any);
+const TSX = acorn.Parser.extend(tsPlugin({ jsx: true }) as any);
 
-// jsx: parse a .tsx file. Off for .ts, where `<T>(x)` would otherwise read as an element.
 const SKIP = new Set(["loc", "typeAnnotation", "returnType", "typeParameters", "typeArguments", "start", "end", "type"]);
 // Child nodes in source order, types excluded.
 export function kids(n: Node): Node[] {
@@ -25,6 +24,7 @@ export function kids(n: Node): Node[] {
 }
 export const isFn = (n: Node | null | undefined): boolean => !!n && /^(ArrowFunctionExpression|FunctionExpression|FunctionDeclaration)$/.test(n.type);
 
+// jsx: parse a .tsx file. Off for .ts, where `<T>(x)` would otherwise read as an element.
 export function parse(src: string, opts: { jsx?: boolean } = {}): Parsed {
   const comments: Comment[] = [];
   const program = (opts.jsx ? TSX : TS).parse(src, {

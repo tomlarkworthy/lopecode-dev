@@ -1,6 +1,8 @@
 // bun lite/soundscript/build.ts [--force] [--out file.html] [--no-tutorial] [--no-spec]
 // Builds lopebooks/notebooks/soundscript.html from lopecode/notebooks/quick_start.html:
-//  - @tomlarkworthy/soundscript (core.ojs): the language. Attachment ss.js.gz (entry.ts).
+//  - @tomlarkworthy/soundscript (core.ojs): the language. Its `ss` is the checker module's `soundscript`.
+//  - @tomlarkworthy/soundscript-runtime and @tomlarkworthy/soundscript-checker: the TypeScript sources entry.ts
+//    reaches, as cells (ts-cells.ts). The checker module's one attachment is the parser, acorn-typescript.js.gz.
 //  - @tomlarkworthy/raw-cells (raw-cells.ojs): a second cell language, define(label, inputs, function).
 //    It does not import the core and the core does not name it. Left out of MAINS with --no-raw (a test
 //    artefact; needs --out), so its cells are those of a language that is not loaded.
@@ -28,6 +30,7 @@ import { checkSources } from "../core.ts";
 import { checkHtml } from "../../../lope-preflight.ts";
 import { importNotebookModule } from "../../../notebook-import.ts";
 import * as acorn from "acorn";
+import { generate, ENTRY, RUNTIME, CHECKER, PARSER_FILE, PARSER_ENTRY } from "./ts-cells.ts";
 
 process.on("unhandledRejection", () => {});
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -119,12 +122,14 @@ const RAW: Record<string, Record<string, Variable>> = {
   },
 };
 
-const b = await Bun.build({ entrypoints: [join(HERE, "entry.ts")], target: "browser", format: "esm", minify: true });
+// the parser, the only bundled code; the rest of what entry.ts exports is generated cells
+writeFileSync(join(HERE, ".scratch/parser-entry.ts"), PARSER_ENTRY);
+const b = await Bun.build({ entrypoints: [join(HERE, ".scratch/parser-entry.ts")], target: "browser", format: "esm", minify: true });
 if (!b.success) throw new Error(b.logs.join("\n"));
 const js = await b.outputs[0].text();
 if (/["']node:/.test(js)) throw new Error("bundle still refers to a node: module");
 const gz = Bun.gzipSync(new TextEncoder().encode(js), { level: 9 });
-// the bundle's sizes in bytes, for the tutorial's table, written at each build; constants, so no boot work decompresses it again
+// the parser bundle's sizes in bytes, for the tutorial's table, written at each build; constants, so no boot work decompresses it again
 RAW[TUTORIAL].ss_bytes = { name: "ss_bytes", inputs: [], definition: `() => ({ raw: ${new TextEncoder().encode(js).length}, gz: ${gz.length} })` };
 
 type File = { name: string; mime: string; base64: boolean; data: string };
@@ -134,7 +139,7 @@ const { compile, dispose } = await compiler();
 // set once raw-cells is built: its own raw_compile, run on a headless runtime (tools/notebook-import.ts)
 let rawCompile: ((source: string) => { name: string | null; inputs: string[]; definition: string; error?: string }) | null = null;
 
-function buildModule(name: string, ojs: string, files: File[]) {
+function buildModule(name: string, ojs: string, files: File[], given?: string[]) {
   const consts: string[] = [], defs: string[] = [], imports: string[] = [], ssNames: string[] = [];
   const addVar = (pid: string, v: Variable) => {
     consts.push(`const ${pid} = ${v.definition};`);
@@ -149,7 +154,7 @@ function buildModule(name: string, ojs: string, files: File[]) {
     const texts = splitCells(readFileSync(file, "utf8"), tsx).filter((t) => ![...skip].some((s) => new RegExp(`^(?:\\s*//[^\\n]*\\n)*\\s*(?:export\\s+)?(?:const|let|function)\\s+${s}\\b`).test(t)));
     return { texts, tsx, skip };
   };
-  const blocks = splitSeed(readFileSync(join(HERE, ojs), "utf8"));
+  const blocks = given ?? splitSeed(readFileSync(join(HERE, ojs), "utf8"));
   // one context for the whole module: a cell's compiled form depends on the other cells (ss-toolchain Context)
   // only cells the checker accepts are memoised, judged over the module's whole source as the core does
   const allTexts = blocks.flatMap((b) => cellsOfBlock(b)?.texts ?? []);
@@ -238,7 +243,9 @@ function buildModule(name: string, ojs: string, files: File[]) {
   return { html, consts: consts.length, ssNames };
 }
 
-let core, tutorial, rawCells, spec, sections: ReturnType<typeof buildModule>[] = [];
+let core, tutorial, rawCells, spec, sections: ReturnType<typeof buildModule>[] = [], runtimeMod, checkerMod, generated;
+// the keys of ss: what entry.ts exports
+const ssKeys = Object.keys(await import(ENTRY)).filter((k) => k !== "default").sort();
 try {
   rawCells = buildModule(RAW_CELLS, "raw-cells.ojs", []);
   {
@@ -248,7 +255,10 @@ try {
     const m = await importNotebookModule(path, { overrides: { acorn } });
     rawCompile = await m.value("raw_compile");
   }
-  core = buildModule(CORE, "core.ojs", [{ name: "ss.js.gz", mime: "application/gzip", base64: true, data: Buffer.from(gz).toString("base64") }]);
+  generated = generate(compile, ssKeys);
+  runtimeMod = buildModule(RUNTIME, "(generated runtime)", [], generated.runtime);
+  checkerMod = buildModule(CHECKER, "(generated checker)", [{ name: PARSER_FILE, mime: "application/gzip", base64: true, data: Buffer.from(gz).toString("base64") }], generated.checker);
+  core = buildModule(CORE, "core.ojs", []);
   if (withTutorial) {
     const files: File[] = readdirSync(EXAMPLES).sort().map((f) => {
       const data = readFileSync(join(EXAMPLES, f), "utf8");
@@ -284,7 +294,7 @@ const forks = FORKS.map(({ id, file }) => {
 
 const host = findSpan(html, HOST);
 if (!host) throw new Error(`no ${HOST} block in ${BASE}`);
-html = html.slice(0, host.start) + rawCells.html + "\n" + core.html + (tutorial ? "\n" + tutorial.html : "") + sections.map((x) => "\n" + x.html).join("") + (spec ? "\n" + spec.html : "") + html.slice(host.end);
+html = html.slice(0, host.start) + rawCells.html + "\n" + runtimeMod.html + "\n" + checkerMod.html + "\n" + core.html + (tutorial ? "\n" + tutorial.html : "") + sections.map((x) => "\n" + x.html).join("") + (spec ? "\n" + spec.html : "") + html.slice(host.end);
 
 const conf = JSON.parse(blockContent(html, "bootconf.json")!);
 conf.mains = MAINS;
@@ -333,7 +343,7 @@ for (const s of [...spans].reverse()) {
 const after = new Set(blockSpans(html).map((s) => s.id));
 const lost = ids.filter((id) => id !== HOST && !after.has(id) && !removed.includes(owner(id) ?? "") && !orphans.includes(id));
 if (lost.length) throw new Error(`splice lost ${lost.join(", ")}`);
-if (!after.has(CORE + "/ss.js.gz") || (withTutorial && !after.has(TUTORIAL + "/09-breakout.tsx"))) throw new Error("an attachment is not a top-level block");
+if (!after.has(CHECKER + "/" + encodeURIComponent(PARSER_FILE)) || (withTutorial && !after.has(TUTORIAL + "/09-breakout.tsx"))) throw new Error("an attachment is not a top-level block");
 for (const f of forks) if (blockContent(html, f.id)?.trim() !== f.fork.trim()) throw new Error(`the ${f.id} fork did not land`);
 // the SoundScript modules must have no preflight finding: a compiled cell depends only on its declared inputs
 const own = checkHtml(html).filter((p) => /^@tomlarkworthy\/(?:soundscript[\w-]*|raw-cells)[: ]/.test(p.detail));
@@ -341,7 +351,7 @@ if (own.length) throw new Error(`preflight: ${own.length} finding(s) in the Soun
 writeFileSync(OUT, html);
 if (guarded) writeFileSync(HASH_FILE, sha(html) + "\n");
 console.log(JSON.stringify({
-  out: OUT, bytes: Buffer.byteLength(html), bytesBeforeStrip: sizeBefore, removed, orphans, bundle: js.length, bundleGz: gz.length,
+  out: OUT, bytes: Buffer.byteLength(html), bytesBeforeStrip: sizeBefore, removed, orphans, parser: js.length, parserGz: gz.length, generated: generated.stats, runtimeVariables: runtimeMod.consts, checkerVariables: checkerMod.consts,
   rawCellsVariables: rawCells.consts, coreVariables: core.consts, tutorialVariables: tutorial?.consts ?? 0, coreSoundScript: core.ssNames, tutorialSoundScript: tutorial?.ssNames ?? [], sectionVariables: sections.map((x) => x.consts), specVariables: spec?.consts ?? 0, mains: conf.mains, hash: conf.hash,
   forks: forks.map(({ fork, ...f }) => f),
 }, null, 2));

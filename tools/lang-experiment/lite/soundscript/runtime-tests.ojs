@@ -1,0 +1,52 @@
+// %%
+test_runtime_action_commits_a_write = {
+  // a state cell's handle, as a compiled state cell gets it from cell(..., {kind: "ref"})
+  const count = cell(() => state(0), [], { kind: "ref", name: "test_count", memo: false, self: {}, id: "test_runtime_commit", invalidation: null });
+  const values = refValues(count);
+  const v0 = values.next().value;
+  const increment = action(() => count.update((v) => v + 1));
+  entry(null, () => increment());
+  // the next value arrives with the commit
+  const v1 = await values.next().value;
+  if (v0 !== 0 || v1 !== 1) throw new Error(`count went ${v0} -> ${v1}, expected 0 -> 1`);
+  return `${v0} -> ${v1}`;
+}
+// %%
+test_runtime_queued_call_runs_after_the_one_in_flight = {
+  const x = cell(() => state(1), [], { kind: "ref", name: "test_x", memo: false, self: {}, id: "test_runtime_queue", invalidation: null });
+  const values = refValues(x);
+  values.next();
+  const order = [];
+  let release;
+  const gate = new Promise((r) => (release = r));
+  const slow = action(async () => { order.push("slow"); await gate; x.set(5); order.push("slow done"); });
+  const times = action(() => { order.push("times"); x.update((v) => v * 10); });
+  entry(null, () => slow());
+  entry(null, () => times());
+  if (order.includes("times")) throw new Error(`times ran while slow was in flight: ${order.join(", ")}`);
+  release();
+  const v = await values.next().value;
+  if (order.join() !== "slow,slow done,times" || v !== 50) throw new Error(`order ${order.join(", ")}, x ${v}; expected slow, slow done, times and x 50`);
+  return `${order.join(", ")}; x ${v}`;
+}
+// %%
+test_runtime_cross_rejects_wrong_shapes = {
+  const shape = { k: "rec", props: [["n", { k: "num" }, false], ["tags", { k: "arr", el: { k: "str" } }, false]] };
+  const wrong = [null, 1, [1], { n: "1", tags: [] }, { n: 1, tags: [2] }, { tags: [] }, { n: 1, tags: "a" }];
+  const messages = wrong.map((v) => {
+    try { cross(v, shape, "test_cross.p"); return `accepted ${JSON.stringify(v)}`; } catch (e) { return e instanceof TypeError ? e.message : `threw a ${e?.constructor?.name}: ${e}`; }
+  });
+  const bad = messages.filter((m) => !m.startsWith("p"));
+  if (bad.length) throw new Error(bad.join("; "));
+  return messages;
+}
+// %%
+test_runtime_crossed_value_is_a_deep_frozen_copy = {
+  const shape = { k: "rec", props: [["xs", { k: "arr", el: { k: "rec", props: [["a", { k: "num" }, false]] } }, false]] };
+  const given = { xs: [{ a: 1 }], extra: true };
+  const got = cross(given, shape, "test_freeze.p");
+  const frozen = Object.isFrozen(got) && Object.isFrozen(got.xs) && Object.isFrozen(got.xs[0]);
+  const copied = got !== given && got.xs !== given.xs && got.xs[0] !== given.xs[0] && !Object.isFrozen(given);
+  if (!frozen || !copied || "extra" in got || got.xs[0].a !== 1) throw new Error(`frozen ${frozen}, copied ${copied}, ${JSON.stringify(got)}`);
+  return JSON.stringify(got);
+}

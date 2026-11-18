@@ -2,17 +2,41 @@
 // parameter names and whether each is typed State<T> or Events<T>, whether it returns state(...), whether it
 // is a generator, and its compile(...) calls. The checker computes these from its own parse (LiteCell
 // .facts), so a caller holding a check result does not parse the cells again; cellsOf parses source.
-import { parse, type Node } from "./parse.ts";
+import { parse, kids, type Node } from "./parse.ts";
 import { specOf, compileCalls, type IslandSpec } from "./island.ts";
 
 // span: the cell's statement in the source that was parsed, [start, end)
 export type CellInfo = { name: string; span?: [number, number]; params: { name: string; refTyped: boolean; eventsTyped: boolean; boundary?: { shape: unknown; ref: boolean } }[]; returnsRef: boolean; generator: boolean; compiles: IslandSpec[] };
-function isRefCall(e: Node | null | undefined): boolean {
-  while (e && (e.type === "ParenthesizedExpression" || e.type === "TSAsExpression")) e = e.expression;
-  return !!e && e.type === "CallExpression" && e.callee.type === "Identifier" && e.callee.name === "state";
+
+// The calls in fn of the prelude function `name`: the callee is that bare name and no parameter or
+// declaration between the call and the cell binds it. A property key, a type member or a local of that name is not one.
+export function preludeCalls(fn: Node, name: string): Set<Node> {
+  const binds = (p: Node | null): boolean => !!p && (p.type === "Identifier" ? p.name === name
+    : p.type === "ObjectPattern" ? p.properties.some((x: Node) => binds(x.type === "RestElement" ? x.argument : x.value))
+    : p.type === "ArrayPattern" ? p.elements.some(binds)
+    : p.type === "AssignmentPattern" ? binds(p.left) : p.type === "RestElement" ? binds(p.argument) : false);
+  const declares = (st: Node): boolean => st.type === "VariableDeclaration" ? st.declarations.some((d: Node) => binds(d.id))
+    : /^(Function|Class)Declaration$/.test(st.type) && st.id?.name === name;
+  const out = new Set<Node>();
+  const walk = (n: Node) => {
+    if (/^(Arrow)?Function(Expression|Declaration)$/.test(n.type) && (n.params.some(binds) || (n.type === "FunctionExpression" && n.id?.name === name))) return;
+    if ((n.type === "BlockStatement" || n.type === "StaticBlock") && n.body.some(declares)) return;
+    if (n.type === "SwitchStatement" && n.cases.some((c: Node) => c.consequent.some(declares))) return;
+    if (n.type === "CatchClause" && binds(n.param)) return;
+    if (/^For(In|Of)?Statement$/.test(n.type) && [n.init, n.left].some((x) => x?.type === "VariableDeclaration" && declares(x))) return;
+    if (n.type === "CallExpression" && n.callee.type === "Identifier" && n.callee.name === name) out.add(n);
+    kids(n).forEach(walk);
+  };
+  walk(fn);
+  return out;
 }
 
 export function factsOf(name: string, fn: Node, stmt?: Node): CellInfo {
+  const stateCalls = preludeCalls(fn, "state");
+  const isRefCall = (e: Node | null | undefined): boolean => {
+    while (e && (e.type === "ParenthesizedExpression" || e.type === "TSAsExpression")) e = e.expression;
+    return !!e && stateCalls.has(e);
+  };
   const rt = fn.returnType?.typeAnnotation;
   const returnsRef = (rt?.type === "TSTypeReference" && rt.typeName.name === "StateCell") ||
     (fn.body.type === "BlockStatement" ? fn.body.body.some((s: Node) => s.type === "ReturnStatement" && isRefCall(s.argument)) : isRefCall(fn.body));

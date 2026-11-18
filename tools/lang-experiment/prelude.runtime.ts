@@ -102,10 +102,10 @@ export function* refValues(handle: object): Generator<unknown> {
   }
 }
 
+const runs = new WeakMap<object, { args: unknown[]; handle: object }>();
 // A state cell's handle variable. One handle per definition (self), so a cell taking State<T> keeps it across
 // runs; a new store from make(), which runs the cell, unless every input is the same (Object.is) as on the
 // last run, which keeps the store and so the state.
-const runs = new WeakMap<object, { args: unknown[]; handle: object }>();
 export function stateRun(self: object, name: string, args: unknown[], make: () => unknown, kept?: () => void): object {
   const last = runs.get(self);
   if (last && last.args.length === args.length && args.every((x, i) => Object.is(x, last.args[i]))) { kept?.(); return last.handle; }
@@ -136,10 +136,10 @@ function commit() {
   rt.commits++;
 }
 
+const views = new WeakMap<object, object>();
 // A State<T> over the value of a viewof variable: an Observable JavaScript view, which is its own store (a read
 // is what the control holds now, so one it rounded or clamped), or an imported state cell's handle. One handle
 // per view, so a reader that takes it runs again only when the view itself is replaced.
-const views = new WeakMap<object, object>();
 export function viewHandle(el: ViewEl, name: string, check: (v: unknown) => unknown) {
   const known = views.get(el);
   if (known) return known;

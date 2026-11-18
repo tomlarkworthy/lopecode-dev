@@ -21,7 +21,8 @@ export type FnInfo = {
 };
 export class Scope {
   vars = new Map<string, Binding>();
-  constructor(public parent: Scope | null) {}
+  parent: Scope | null;
+  constructor(parent: Scope | null) { this.parent = parent; }
   get(n: string): Binding | undefined { return this.vars.get(n) ?? this.parent?.get(n); }
 }
 export type Env = { scope: Scope; flow: Map<string, Ty>; fi: FnInfo };
@@ -53,7 +54,13 @@ export class Checker {
   // called with every identifier read and its environment (completion reads the scope at a placeholder)
   identHook: ((e: Node, env: Env) => void) | null = null;
 
-  constructor(public reg: Registry, public cellNames: Set<string>, public parsed: Parsed) {
+  reg: Registry;
+  cellNames: Set<string>;
+  parsed: Parsed;
+  constructor(reg: Registry, cellNames: Set<string>, parsed: Parsed) {
+    this.reg = reg;
+    this.cellNames = cellNames;
+    this.parsed = parsed;
     reg.onUnsup = (n, what) => this.unsupported(n, what);
     reg.onErr = (n, rule, msg) => this.err(n, rule, msg);
     for (const name of PRELUDE_FNS) this.globals.vars.set(name, { id: ++nextId, name, t: ERR, kind: "prelude", node: null as any, fi: null });

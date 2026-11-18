@@ -7,7 +7,7 @@ const acornTok = (js: string, onComment: (block: boolean, text: string) => void)
 };
 
 const OPEN = "/*ss:", CLOSE = "*/";
-const TYPE_KEYS = new Set(["typeAnnotation", "returnType", "typeParameters", "typeArguments"]);
+const COMMENT_TYPE_KEYS = new Set(["typeAnnotation", "returnType", "typeParameters", "typeArguments"]);
 
 function cutsOf(src: string): [number, number][] {
   const P = parse(src);
@@ -52,7 +52,7 @@ function cutsOf(src: string): [number, number][] {
       const v = n[k];
       const each = (x: any) => {
         if (!x || typeof x.type !== "string") return;
-        if (TYPE_KEYS.has(k)) cuts.push([x.start, x.end]);
+        if (COMMENT_TYPE_KEYS.has(k)) cuts.push([x.start, x.end]);
         else walk(x);
       };
       if (Array.isArray(v)) v.forEach(each);

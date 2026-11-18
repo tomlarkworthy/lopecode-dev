@@ -36,8 +36,8 @@ export class Registry {
   strictIndex = true;
   onUnsup: (n: Node, what: string) => void = () => {};
   onErr: (n: Node, rule: string, msg: string) => void = () => {};
-  private expandMemo = new Map<string, Ty>();
-  private ifaceMemo = new Map<string, Rec>();
+  expandMemo = new Map<string, Ty>();
+  ifaceMemo = new Map<string, Rec>();
 
   constructor() {
     // the declaration texts are constants and nothing writes to a parsed tree, so they are parsed once

@@ -203,5 +203,31 @@ for (const src of [
   expect(sig(a) === sig(b) && a.cells.length === 2 && a.cells.every((c) => c.status === "ok"), `E1 with and without export check the same: ${sig(a)} vs ${sig(b)}`);
 }
 
+// A cell is a listener only when it calls the prelude's on, and a state cell only when it returns the
+// prelude's state(...): a property key, a type member or a local binding of either name is neither
+{
+  const ss = await import("../stdlib/runtime.ts");
+  const src = [
+    "const cfg = () => ({ on: true, n: 1 });",
+    "const use = (cfg: { readonly on: boolean; readonly n: number }) => cfg.n + 1;",
+    "const sum = () => { const on = (a: number, b: number) => a + b; return on(1, 2); };",
+    "const inc = () => [1, 2].map((on: number) => on + 1);",
+    "const box = () => { const state = (x: number) => ({ initial: x }); return state(3); };",
+  ].join("\n\n");
+  const r = checkSources({ cells: src, tsx: false });
+  const ctx = contextFromCheck(r, src, false);
+  const vs = new Map(toolchain.splitCells(src, false).flatMap((t) => compileCell(t, false, ctx)).map((v) => [v.name, v]));
+  expect(r.cells.every((c) => c.status === "ok"), `L1 the cells check ok: ${JSON.stringify(r.cells.map((c) => [c.name, c.status]))}`);
+  for (const name of ["cfg", "use", "sum", "inc", "box"]) expect(/kind: "cell"/.test(vs.get(name)?.definition ?? ""), `L1 ${name} compiles as a plain cell, not a listener or state cell`);
+  const value = (name: string, ...args: unknown[]) => attempt(() => (0, eval)(`(${vs.get(name)!.definition})`)(ss, ...args));
+  const cfg = value("cfg");
+  expect(JSON.stringify(cfg) === '{"on":true,"n":1}', `L1 cfg runs: ${cfg instanceof Error ? cfg.message : JSON.stringify(cfg)}`);
+  const use = value("use", cfg);
+  expect(use === 2, `L1 use runs: ${use instanceof Error ? use.message : use}`);
+  expect(value("sum") === 3 && JSON.stringify(value("inc")) === "[2,3]" && JSON.stringify(value("box")) === '{"initial":3}', `L1 sum, inc and box run as plain cells`);
+  const lis = compileCell("const l = (ev: Events<number>, act: Action<[number]>) => on(ev, act);", false);
+  expect(/kind: "listener"/.test(lis[0].definition), "L1 a cell that returns the prelude's on(...) is still a listener");
+}
+
 console.log(`${n - fail} of ${n} edge checks pass`);
 if (fail) process.exit(1);

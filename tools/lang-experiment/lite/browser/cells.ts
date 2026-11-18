@@ -1,27 +1,23 @@
 // The parts of the cell runner that need no Observable Runtime: cell shapes read from source, events
 // handles and listeners, and the guard a generator runs under. run.ts (the private runner) and
 // stdlib/runtime.ts (the notebook bundle, which has no Runtime) both use them.
-import * as P from "../../prelude.runtime.ts";
+import { rt, actionNames, isAction, entry } from "../../prelude.runtime.ts";
 export { cellsOf, factsOf, type CellInfo } from "../facts.ts";
 
 export const generatorish = (v: any): v is Generator => !!v && typeof v.next === "function" && typeof v.return === "function";
 // onValue sees each object a step yields (runtime.ts records them as lent)
 export function guard(g: Generator, onValue?: (v: object) => void) {
   const wrap = (m: "next" | "return" | "throw") => (...a: unknown[]) => {
-    P.rt.evalDepth++;
+    rt.evalDepth++;
     try {
       const r = (g[m] as (...x: unknown[]) => IteratorResult<unknown>)(...a);
       if (onValue && r && typeof r.value === "object" && r.value !== null) onValue(r.value);
       return r;
-    } finally { P.rt.evalDepth--; }
+    } finally { rt.evalDepth--; }
   };
   return { next: wrap("next"), return: wrap("return"), throw: wrap("throw"), [Symbol.iterator]() { return this; } };
 }
 
-// An events cell's value is a handle. One handle per variable: a re-run with other inputs replaces
-// the generator inside it, so a listener holding the handle does not run again. The generator is
-// pulled only while a listener is attached: a sync one once per animation frame, an async one as
-// soon as each next() resolves. Each value goes to every attached listener once, in order.
 const EVENTS = Symbol("events");
 const LISTENER = Symbol("listener");
 type Gen = { next(): any; return(): any };
@@ -34,7 +30,6 @@ type HState = {
 };
 const hs = new WeakMap<object, HState>();
 const ls = new WeakMap<object, { runs: number; cell: string }>();
-const actionNames = P.actionNames;
 const attached = new Set<Listener>();
 const generating = new Set<Handle>();
 // what pulls a sync generator's next value; tests replace it
@@ -43,7 +38,7 @@ export const scheduler = { frame: (f: () => void) => void requestAnimationFrame(
 export const isEvents = (v: unknown): v is Handle => !!v && typeof v === "object" && hs.has(v);
 export const isListener = (v: unknown): v is Listener => !!v && typeof v === "object" && LISTENER in v;
 export const on = (events: unknown, act: unknown) => Object.freeze({ [LISTENER]: true, events, action: act }) as Listener;
-export const nameAction = (a: unknown, cell: string) => { if (P.isAction(a) && !actionNames.has(a as object)) actionNames.set(a as object, cell); };
+export const nameAction = (a: unknown, cell: string) => { if (isAction(a) && !actionNames.has(a as object)) actionNames.set(a as object, cell); };
 // of: count only listeners on these handles
 export const running = (of?: Iterable<object>) => { if (!of) return attached.size; const only = new Set(of); return [...attached].filter((l) => only.has(l.events as object)).length; };
 // events cells whose generator is being pulled: live, not finished, with a listener attached
@@ -58,13 +53,17 @@ function stopGen(s: HState) {
   if (g) try { g.return(); } catch {}
 }
 
+// An events cell's value is a handle. One handle per variable: a re-run with other inputs replaces
+// the generator inside it, so a listener holding the handle does not run again. The generator is
+// pulled only while a listener is attached: a sync one once per animation frame, an async one as
+// soon as each next() resolves. Each value goes to every attached listener once, in order.
 // prev: the variable's last value (`this` of its definition); args: the cell's inputs; make: a fresh generator
 export function events(prev: unknown, name: string, args: unknown[], make: () => Gen, invalidation: Promise<unknown> | null): Handle {
   const reuse = isEvents(prev) && !hs.get(prev)!.dead && hs.get(prev)!.name === name;
   const h: Handle = reuse ? prev : Object.freeze({ [EVENTS]: true, name }) as Handle;
   if (!reuse) hs.set(h, { name, args: null, gen: null, no: 0, done: false, dead: false, listeners: new Set(), queue: [], draining: false, busy: false, run: null, order: null });
   const s = hs.get(h)!;
-  handleOf.set(s, h);
+  handleOfState.set(s, h);
   if (!s.args || !same(s.args, args)) {
     stopGen(s);
     s.gen = make(); s.args = args; s.done = false;
@@ -138,7 +137,7 @@ function orderOf(s: HState, h: unknown): Listener[] {
   if (own && keyed.every((x) => x.k)) { s.order = out; ordered.add(s); }
   return out;
 }
-const handleOf = new WeakMap<HState, Handle>();
+const handleOfState = new WeakMap<HState, Handle>();
 
 // A value that arrives while actions are running waits in the queue. Each delivery is a top-level
 // action call, so one whose action is still running (async) holds the next in the runtime's queue. An
@@ -150,10 +149,10 @@ function deliver(s: HState, v: unknown) {
   try {
     while (s.queue.length) {
       const x = s.queue.shift();
-      for (const l of orderOf(s, handleOf.get(s))) {
+      for (const l of orderOf(s, handleOfState.get(s))) {
         if (!s.listeners.has(l)) continue;
         const report = (e: unknown) => console.error(`listener ${ls.get(l)?.cell ?? "?"}: action ${actionNames.get(l.action) ?? "(anonymous)"} threw on a value of events ${s.name}:`, e);
-        try { P.entry(report, () => l.action(x)); } catch (e) { report(e); }
+        try { entry(report, () => l.action(x)); } catch (e) { report(e); }
       }
     }
   } finally { s.draining = false; }
@@ -185,10 +184,10 @@ export function release(v: unknown) {
   if (isListener(v)) detach(v);
   else if (isEvents(v)) { const s = hs.get(v)!; stopGen(s); s.dead = true; }
 }
-// Detaches listeners and stops generators that no live variable holds. One made since the last
-// sweep is spared once: it may be a value the runtime has not assigned yet.
 let generation = 0;
 const bornAt = new Map<object, number>();
+// Detaches listeners and stops generators that no live variable holds. One made since the last
+// sweep is spared once: it may be a value the runtime has not assigned yet.
 export function sweep(values: Set<unknown>) {
   generation++;
   for (const x of [...attached, ...generating]) {

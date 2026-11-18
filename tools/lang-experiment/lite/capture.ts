@@ -7,7 +7,7 @@ import { kids, isFn, type Node } from "./parse.ts";
 
 export type Capture = { node: Node; name: string; why: string };
 
-const isAction = (n: Node) => n.type === "CallExpression" && n.callee?.type === "Identifier" && n.callee.name === "action";
+const isActionCall = (n: Node) => n.type === "CallExpression" && n.callee?.type === "Identifier" && n.callee.name === "action";
 
 // identifier nodes that read a binding (not property names, keys, labels or JSX attribute names)
 function refs(n: Node, out: Node[] = [], parent: Node | null = null, key = ""): Node[] {
@@ -62,7 +62,7 @@ export function captures(cellFn: Node, tainted: Map<string, string>): Capture[] 
   // locals of the cell, outside any action body, computed from a tainted name (to a fixpoint)
   const locals: { names: Set<string>; from: Node }[] = [];
   (function walk(n: Node) {
-    if (isAction(n)) return;
+    if (isActionCall(n)) return;
     if (n.type === "VariableDeclarator" && n.init) locals.push({ names: bound(n.id, new Set()), from: n.init });
     if (n.type === "FunctionDeclaration" && n.id) locals.push({ names: new Set([n.id.name]), from: n.body });
     for (const k of kids(n)) walk(k);
@@ -79,7 +79,7 @@ export function captures(cellFn: Node, tainted: Map<string, string>): Capture[] 
   if (!taint.size) return [];
   const out: Capture[] = [];
   (function walk(n: Node) {
-    if (isAction(n)) {
+    if (isActionCall(n)) {
       const f = n.arguments?.[0];
       if (f && isFn(f)) {
         const own = declaredIn(f);

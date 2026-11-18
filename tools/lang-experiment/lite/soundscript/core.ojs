@@ -1,6 +1,6 @@
 readme_title = md`# SoundScript
 
-This module is the SoundScript language: the checker, the compiler from a checked cell to runtime variables, the library those variables call, and the editor support. It does not need the tutorial module; a notebook can keep this one and drop the other.
+This module connects SoundScript to the notebook: the cell language registered with the editor, the listings and the inspector. The checker and compiler are in \`@tomlarkworthy/soundscript-checker\` and the library that compiled cells call is in \`@tomlarkworthy/soundscript-runtime\`. It does not need the tutorial module; a notebook can keep this one and drop the other.
 
 Four SoundScript cells and a view that uses them:`
 // %%
@@ -100,16 +100,6 @@ ss_highlight(text), ss_highlightCode(node)  // TypeScript colouring as spans; an
 cellListing(module, invalidation, {from, to})  // a module's cells in any registered language, as one listing
 ss_tests_on                            // pending until "run the tests" is on; test cells take it as an input
 \`\`\``)
-// %%
-ss = {
-  const stream = (await FileAttachment("ss.js.gz").stream()).pipeThrough(new DecompressionStream("gzip"));
-  const url = URL.createObjectURL(new Blob([await new Response(stream).text()], { type: "text/javascript" }));
-  try {
-    return await import(url);
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
 // %%
 ss_now = () => performance.now()
 // %%
@@ -949,3 +939,5 @@ import { tests } from "@tomlarkworthy/tests"
 import { codemirror } from "@tomlarkworthy/codemirror-6-v2"
 // %%
 import { lezerhighlight } from "@tomlarkworthy/observablehq-lezer"
+// %%
+import { soundscript as ss } from "@tomlarkworthy/soundscript-checker"

@@ -4,7 +4,7 @@
 import type { Elem } from "./h.ts";
 import { entry } from "../../prelude.runtime.ts";
 
-const EVENTS: Record<string, [string, (e: any, node: any) => unknown[]]> = {
+const DOM_EVENTS: Record<string, [string, (e: any, node: any) => unknown[]]> = {
   onClick: ["click", () => []],
   onInput: ["input", (_e, node) => [String(node.value)]],
   onPointerDown: ["pointerdown", (e) => [ptr(e)]],
@@ -31,7 +31,7 @@ export function patch(node: any, x: Elem): void {
   if (old === x) return; // the same value as last time: nothing below it changed
   for (const [k, v] of Object.entries(x.props)) {
     if (k === "key" || k === "children") continue;
-    const ev = EVENTS[k];
+    const ev = DOM_EVENTS[k];
     if (ev) {
       // an event handler: each action it calls is a top-level call
       if (!(k in node.__handlers)) node.addEventListener(ev[0], (e: Event) => { const f = node.__handlers[k]; if (f) entry(null, () => f(...ev[1](e, node))); });
@@ -41,7 +41,7 @@ export function patch(node: any, x: Elem): void {
     else if (old.props[k] !== v) node.setAttribute(k, String(v));
   }
   for (const k of Object.keys(old.props)) if (!(k in x.props)) {
-    if (EVENTS[k]) node.__handlers[k] = undefined;
+    if (DOM_EVENTS[k]) node.__handlers[k] = undefined;
     else if (PROPS.has(k)) node[k] = k === "value" ? "" : false; // removeAttribute does not reset a property
     else node.removeAttribute(k);
   }
