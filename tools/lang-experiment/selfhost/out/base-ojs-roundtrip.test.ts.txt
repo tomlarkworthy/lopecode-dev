@@ -1,0 +1,8 @@
+ss members compiled cells read: action, borrow, cell, compileFor, cross, equals, freeze, h, mut, on, read, rejected, snapshot, state, viewRef
+study: 37 cells (41 variables), 0 failure(s)
+generated: 335 cells (335 variables), 0 failure(s)
+notebook: 165 cells (180 variables), 0 failure(s)
+ss-members: 189 compiled definitions read 15 distinct members of ss, 0 failure(s)
+globals: 45 globals, 0 failure(s)
+values: 44 values compared at 8 snapshots, 0 failure(s)
+all pass

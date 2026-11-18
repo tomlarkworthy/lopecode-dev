@@ -230,7 +230,9 @@ test_spec_S1_7 = spec_rejectsFor("S1.7")
 test_spec_S1_8 = {
   const got = spec_okCells("const a = () => 1, b = (a: number) => a + 1;");
   if (got !== "a:ok,b:ok") throw new Error(got);
-  return "one statement, two cells";
+  const L = await spec_load("const a = () => 1, b = (a: number) => a + 1;", {});
+  try { spec_is(await L.value("b"), 2); } finally { L.dispose(); }
+  return "one statement, two cells; both run (b is 2)";
 }
 // %%
 test_spec_S1_9 = {
@@ -355,7 +357,9 @@ test_spec_S2_8 = {
 // %%
 test_spec_S2_9 = {
   spec_is(spec_okCells("const g = () => [1, 2].map((v) => v + 1);\nconst h = () => {\n  const xs: readonly number[] = [1];\n  const x = xs.find((v) => v > 0);\n  return x === undefined ? 0 : x + 1;\n};"), "g:ok,h:ok");
-  return `${spec_rejectsFor("S2.9")}; a callback parameter typed by map, and a value narrowed by a check for undefined, are accepted`;
+  // an optional parameter takes undefined, so one optional parameter can be passed on to another
+  spec_is(spec_okCells("const k = () => {\n  function f(n?: number): number {\n    return n === undefined ? 0 : n;\n  }\n  const g = (n?: number): number => f(n);\n  return g(1);\n};"), "k:ok");
+  return `${spec_rejectsFor("S2.9")}; a callback parameter typed by map, a value narrowed by a check for undefined, and an optional parameter passed on to an optional parameter are accepted`;
 }
 // %%
 md`## 3. Immutable by default
@@ -1573,7 +1577,9 @@ spec_load = async (source, outside) => {
   const defs = texts.flatMap((t) => soundscript.compileCell(t, true, ctx));
   const fns = await realize(defs.map((d) => d.definition), runtime);
   const vars = defs.map((d, i) => m.variable({}).define(d.name, d.inputs, fns[i]));
-  return { module: m, value: (n) => m.value(n), dispose: () => { for (const v of [...runtime._variables]) if (v._module === m) v.delete(); } };
+  // dispose releases each value before deleting: a state cell's handle that is not released is parked for the next
+  // cell with the same text to take (another test's x would start from this one's state)
+  return { module: m, value: (n) => m.value(n), dispose: () => { for (const v of [...runtime._variables]) if (v._module === m) { soundscript.release(v._value); v.delete(); } } };
 }
 // %%
 test_spec_S11_1 = {

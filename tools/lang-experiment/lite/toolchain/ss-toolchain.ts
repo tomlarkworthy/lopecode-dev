@@ -71,7 +71,11 @@ export function splitCells(src: string, tsx: boolean): string[] {
   for (const st of P.program.body as Node[]) {
     const lead = P.leading(st);
     const start = lead.length ? lead[0].start : st.start;
-    out.push(src.slice(start, st.end));
+    // S1.8: a statement of several declarators is one cell text per declarator, the comments with the first
+    const decl = st.type === "ExportNamedDeclaration" ? st.declaration : st;
+    const ds: Node[] = decl?.type === "VariableDeclaration" && decl.declarations.length > 1 ? decl.declarations : [];
+    if (ds.length) ds.forEach((d, i) => out.push((i ? "" : src.slice(start, st.start)) + src.slice(st.start, decl.declarations[0].start) + src.slice(d.start, d.end) + ";"));
+    else out.push(src.slice(start, st.end));
     end = st.end;
   }
   if (P.comments.some((c) => c.start >= end)) throw new Error("a comment after the last cell has no cell to belong to");
@@ -277,6 +281,7 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   if (d?.type === "FunctionDeclaration") fn = d;
   else if (d?.type === "VariableDeclaration" && d.kind !== "var" && d.declarations.length === 1 &&
     /^(Arrow)?FunctionExpression$/.test(d.declarations[0].init?.type ?? "")) fn = d.declarations[0].init;
+  if (d?.type === "VariableDeclaration" && d.declarations.length > 1) throw new Error(`one editor cell holds one cell; write ${d.declarations.map((x: Node) => x.id?.name).join(" and ")} as separate cells`);
   if (!fn) throw new Error(`unsupported top-level statement (${st.type}); a cell is a top-level function, const or let`);
 
   const declared = fn === d ? d.id?.name : d.declarations[0].id?.name;

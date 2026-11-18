@@ -1,0 +1,239 @@
+{
+  "out": "/Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/soundscript.html",
+  "bytes": 3491560,
+  "bytesBeforeStrip": 5730748,
+  "removed": [
+    "@tomlarkworthy/annotate",
+    "@tomlarkworthy/at-login",
+    "@tomlarkworthy/at-write",
+    "@tomlarkworthy/atproto",
+    "@tomlarkworthy/debugger-2",
+    "@tomlarkworthy/editable-md",
+    "@tomlarkworthy/escodegen",
+    "@tomlarkworthy/grid-container",
+    "@tomlarkworthy/import-wizard-file",
+    "@tomlarkworthy/import-wizard-js",
+    "@tomlarkworthy/import-wizard-notebook",
+    "@tomlarkworthy/inputs-reference",
+    "@tomlarkworthy/local-disk",
+    "@tomlarkworthy/markdown-wiki",
+    "@tomlarkworthy/prosemirror",
+    "@tomlarkworthy/robocoop-5",
+    "@tomlarkworthy/robocoop-5-context",
+    "@tomlarkworthy/robocoop-5-core",
+    "@tomlarkworthy/robocoop-5-engine",
+    "@tomlarkworthy/robocoop-5-sessions",
+    "@tomlarkworthy/robocoop-5-srctools",
+    "@tomlarkworthy/robocoop-5-tools",
+    "@tomlarkworthy/sticky",
+    "@tomlarkworthy/svg-lens",
+    "@tomlarkworthy/switchboard"
+  ],
+  "orphans": [
+    "@tomlarkworthy/observablejs-toolchain/acorn-walk-8.3.2.js.gz"
+  ],
+  "parser": 232523,
+  "parserGz": 63930,
+  "generated": {
+    "statements": 312,
+    "dropped": [
+      "reset",
+      "materialize",
+      "hash",
+      "makeRandom",
+      "makeClock",
+      "makeLog",
+      "uncommentTypes",
+      "compile",
+      "decompile"
+    ],
+    "tests": {
+      "runtime": [
+        "test_runtime_action_commits_a_write",
+        "test_runtime_queued_call_runs_after_the_one_in_flight",
+        "test_runtime_cross_rejects_wrong_shapes",
+        "test_runtime_crossed_value_is_a_deep_frozen_copy"
+      ],
+      "checker": [
+        "test_checker_roundtrip",
+        "test_checker_on_as_a_property_is_not_a_listener"
+      ]
+    },
+    "singleCells": 185,
+    "blockCells": 53,
+    "soundScriptCells": 39,
+    "groups": [
+      [
+        "pumping",
+        "pump"
+      ],
+      [
+        "create",
+        "patch"
+      ],
+      [
+        "kick",
+        "pull"
+      ],
+      [
+        "placeOf",
+        "setListenerOrder",
+        "orderOf"
+      ],
+      [
+        "generation",
+        "sweep"
+      ],
+      [
+        "shared",
+        "pagePool"
+      ],
+      [
+        "checked",
+        "checksRun",
+        "check"
+      ],
+      [
+        "made",
+        "compiler"
+      ],
+      [
+        "DECLS",
+        "Registry"
+      ],
+      [
+        "nextId",
+        "fresh",
+        "Checker"
+      ],
+      [
+        "expandForErr",
+        "hasErr",
+        "checkSources"
+      ]
+    ],
+    "globals": [
+      "Event",
+      "EventTarget",
+      "Generators",
+      "globalThis",
+      "structuredClone"
+    ],
+    "runtimeCells": 135,
+    "checkerCells": 208,
+    "imported": 40
+  },
+  "runtimeVariables": 135,
+  "checkerVariables": 207,
+  "rawCellsVariables": 17,
+  "coreVariables": 58,
+  "tutorialVariables": 180,
+  "coreSoundScript": [
+    "viewof tally",
+    "tally",
+    "bump",
+    "reset",
+    "doubled"
+  ],
+  "tutorialSoundScript": [
+    "width",
+    "height",
+    "area",
+    "aspect",
+    "scale",
+    "half",
+    "test_half",
+    "samples",
+    "histogram",
+    "leak",
+    "late",
+    "viewof count",
+    "count",
+    "increment",
+    "clear",
+    "viewof saved",
+    "saved",
+    "save",
+    "app",
+    "measure",
+    "viewof word",
+    "word",
+    "viewof wordSize",
+    "wordSize",
+    "measureWord",
+    "measureView",
+    "viewof n",
+    "n",
+    "inc",
+    "setN",
+    "Badge",
+    "NotElem",
+    "bad_attr_type",
+    "bad_unknown_attr",
+    "bad_unknown_element",
+    "bad_handler_not_action",
+    "bad_handler_wrong_args",
+    "bad_component_props",
+    "bad_component_missing_prop",
+    "bad_component_not_elem",
+    "bad_mut_in_jsx",
+    "bad_child_object",
+    "ok_all",
+    "$ss$type$Line",
+    "shopTotal",
+    "cheaper",
+    "shopView"
+  ],
+  "sectionVariables": [
+    16,
+    15,
+    19,
+    30,
+    20
+  ],
+  "specVariables": 342,
+  "mains": [
+    "@tomlarkworthy/lopepage-2",
+    "@tomlarkworthy/soundscript-tutorial",
+    "@tomlarkworthy/soundscript-reducer",
+    "@tomlarkworthy/soundscript-model",
+    "@tomlarkworthy/soundscript-workers",
+    "@tomlarkworthy/soundscript-breakout",
+    "@tomlarkworthy/soundscript-polyglot",
+    "@tomlarkworthy/soundscript",
+    "@tomlarkworthy/soundscript-spec",
+    "@tomlarkworthy/raw-cells",
+    "@tomlarkworthy/claude-code-pairing",
+    "@tomlarkworthy/save-in-place"
+  ],
+  "hash": "#view=S100(@tomlarkworthy/soundscript-tutorial,@tomlarkworthy/soundscript,@tomlarkworthy/soundscript-polyglot,@tomlarkworthy/soundscript-spec)",
+  "forks": [
+    {
+      "id": "@tomlarkworthy/editor-5",
+      "baseLines": 2762,
+      "forkLines": 3050,
+      "removed": 57,
+      "added": 345,
+      "baseBytes": 118231,
+      "forkBytes": 138843
+    },
+    {
+      "id": "@tomlarkworthy/cell-map",
+      "baseLines": 1440,
+      "forkLines": 1633,
+      "removed": 5,
+      "added": 198,
+      "baseBytes": 68322,
+      "forkBytes": 79310
+    },
+    {
+      "id": "@tomlarkworthy/visualizer",
+      "baseLines": 891,
+      "forkLines": 920,
+      "removed": 5,
+      "added": 34,
+      "baseBytes": 47694,
+      "forkBytes": 49572
+    }
+  ]
+}

@@ -6,6 +6,9 @@
 // imports between them are unaliased, so an import is dropped and the name is the cell. A declaration
 // that neither the `soundscript` object nor a test cell reaches is left out. Each module ends with the
 // test_* cells of runtime-tests.ojs or checker-tests.ojs.
+// A SoundScript section (SS_FILES) is cells already: each of its cells is compiled by compileCellText, as the
+// notebook compiles a SoundScript cell, and kept whole, type declarations included, so the notebook can check
+// and edit it. The TypeScript files that link it for bun (BOOTSTRAP) give no cells.
 import { readFileSync } from "node:fs";
 import { join, resolve, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,15 +16,23 @@ import { syntaxStub } from "../toolchain/module-js.ts";
 import * as acorn from "acorn";
 import { parse, type Node } from "../parse.ts";
 import { erase } from "../browser/erase.ts";
+import { splitCells, compileCell, compileCellText, contextFromCheck, acceptedOf } from "../toolchain/ss-toolchain.ts";
+import { checkSources } from "../core.ts";
 
 type Compile = (src: string) => { _name?: string | null; _inputs?: string[]; _definition: unknown }[];
 const LITE = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const ENTRY = join(LITE, "soundscript/entry.ts");
 export const RUNTIME = "@tomlarkworthy/soundscript-runtime";
 export const CHECKER = "@tomlarkworthy/soundscript-checker";
+// the input compiled SoundScript cells take: the runtime module's ss
+const STDLIB = "ss";
 // in dependency order; where each declaration goes is decided in generate() ("module placement")
-const RUNTIME_FILES = ["../prelude.runtime.ts", "types.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "browser/workers.ts"];
+const RUNTIME_FILES = ["../prelude.runtime.ts", "types.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "browser/workers.ts"];
 const SPLIT = "stdlib/runtime.ts";
+// SoundScript sections, and the files bun reaches that link them (types.ts imports types.ss.ts through link.ts)
+export const SS_SOURCES = ["types.ss.ts"];
+const SS_FILES = new Set(SS_SOURCES);
+const BOOTSTRAP = ["types.ts", "link.ts"];
 const CHECKER_FILES = ["parse.ts", "intrinsics.ts", "registry.ts", "infer.ts", "own.ts", "capture.ts", "island.ts", "facts.ts", "core.ts", "complete.ts", "jsx/lower.ts", "browser/erase.ts", "toolchain/comment-types.ts", "toolchain/ss-toolchain.ts"];
 // the third-party imports, and the cells of the checker module that provide them
 const THIRD_PARTY: Record<string, { namespace?: string; names?: string[] }> = { acorn: { namespace: "acorn" }, "@sveltejs/acorn-typescript": { names: ["tsPlugin"] } };
@@ -47,7 +58,8 @@ const GLOBALS = new Set(["globalThis", "structuredClone", "Event", "EventTarget"
 // (keyed by source file; a file that gives a module cells and has no sentence for it stops the build)
 const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?: string; checker?: string }> = {
   "../prelude.runtime.ts": { title: "State cells and actions", runtime: "The store behind each state cell and its handle, actions, the queue of top-level action calls, and the commit that applies their writes." },
-  "types.ts": { title: "Types", checker: "How the checker represents a type, and union, substitution, widening and display over those types." },
+  // PROSE PENDING: the sentence should say these cells are SoundScript, compiled from lite/types.ss.ts
+  "types.ss.ts": { title: "Types", checker: "How the checker represents a type, and union, substitution, widening and display over those types. These cells are SoundScript." },
   "boundary.ts": { title: "Values from other languages", checkerTitle: "Shapes for values from other languages", runtime: "`cross` and `checkShape` check a value from a cell in another language against a shape and return a deep-frozen copy.", checker: "`shapeOf` turns a parameter's type annotation into the shape the runtime checks." },
   "jsx/h.ts": { title: "Elements", runtime: "`h` makes the element values that compiled JSX evaluates to." },
   "jsx/render.ts": { title: "Rendering", runtime: "`create` and `patch` turn element values into DOM nodes, and patch a node in place when its tag is unchanged." },
@@ -85,7 +97,7 @@ function testCells(file: string, compile: Compile) {
   return { cells, names, inputs: [...new Set(vs.flatMap((v) => v._inputs ?? []))] };
 }
 
-type Stmt = { file: string; names: string[]; isLet: boolean; kind: "function" | "class" | "const"; text: string; comment: string; exported: boolean; inputs: string[] };
+type Stmt = { file: string; names: string[]; isLet: boolean; kind: "function" | "class" | "const" | "ss"; text: string; comment: string; exported: boolean; inputs: string[] };
 type Group = { file: string; stmts: Stmt[]; module?: string; deps: Set<Group>; name: string };
 
 // the files bundled from entry.ts, by their relative imports
@@ -103,13 +115,41 @@ function reachable(): string[] {
 }
 
 const isTs = (n: Node) => /^TS/.test(n.type) || (n.type === "ImportDeclaration");
+// the end of the comments a file opens with: its header, about the source file; no cell takes them
+function headerEnd(src: string): number {
+  let at = 0;
+  for (const c of parse(src).comments) { if (src.slice(at, c.start).trim()) break; at = c.end; }
+  return at;
+}
+// A SoundScript section: one statement per cell (a type declaration too), its text the Observable cell
+// compileCellText gives. Every cell must be accepted by the checker, or it would compile to a stub that throws.
+// the cell texts of a SoundScript section, its header left out
+export function ssCellTexts(file: string): string[] {
+  const src = readFileSync(join(LITE, file), "utf8");
+  return splitCells(src.slice(headerEnd(src)).trimStart(), false);
+}
+function ssStatements(file: string, compile: Compile): Stmt[] {
+  const texts = ssCellTexts(file);
+  const r = checkSources({ cells: texts.join("\n\n"), tsx: true });
+  const accepted = acceptedOf(r);
+  const bad = [...r.module.map((e) => `[${e.rule}] ${e.msg}`), ...r.cells.filter((c) => !accepted.has(c.name)).map((c) => `${c.name}: ${c.status} ${c.errors.map((e) => `[${e.rule}] ${e.msg}`).join("; ")}`)];
+  if (bad.length) throw new Error(`${file}: the checker does not accept every cell: ${bad.join(" | ")}`);
+  const ctx = contextFromCheck(r);
+  const shape = (vs: { name: string | null; inputs: string[]; definition: string }[]) => JSON.stringify(vs.map((v) => [v.name, v.inputs, v.definition]));
+  return texts.map((t) => {
+    const text = compileCellText(t, false, ctx);
+    const vs = compile(text).map((v) => ({ name: v._name ?? null, inputs: v._inputs ?? [], definition: String(v._definition) }));
+    if (shape(vs) !== shape(compileCell(t, false, ctx))) throw new Error(`${file}: the standard compile of ${t.slice(0, 60)} differs from compileCell`);
+    if (vs.length !== 1 || !vs[0].name) throw new Error(`${file}: ${t.slice(0, 60)} is not one named variable`);
+    return { file, names: [vs[0].name], isLet: false, kind: "ss", text, comment: "", exported: true, inputs: vs[0].inputs };
+  });
+}
 function statements(file: string, compile: Compile): Stmt[] {
+  if (SS_FILES.has(file)) return ssStatements(file, compile);
   const src = readFileSync(join(LITE, file), "utf8");
   const P = parse(src);
   const out: Stmt[] = [];
-  // the comments the file opens with are its header, about the source file; no cell takes them
-  let at = 0;
-  for (const c of P.comments) { if (src.slice(at, c.start).trim()) break; at = c.end; }
+  const at = headerEnd(src);
   for (const s of P.program.body as Node[]) {
     if (s.type === "ImportDeclaration") {
       if (s.importKind === "type") continue;
@@ -192,7 +232,7 @@ export type Generated = { runtime: string[]; checker: string[]; stats: Record<st
 
 export function generate(compile: Compile, ssKeys: string[]): Generated {
   const files = [...RUNTIME_FILES, SPLIT, ...CHECKER_FILES];
-  const want = reachable(), have = [...files].sort();
+  const want = reachable(), have = [...files, ...BOOTSTRAP].sort();
   if (JSON.stringify(want) !== JSON.stringify(have)) throw new Error(`entry.ts reaches ${JSON.stringify(want)}; ts-cells.ts lists ${JSON.stringify(have)}`);
   const stmts = files.flatMap((f) => statements(f, compile));
   const owner = new Map<string, Stmt>();
@@ -249,7 +289,8 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   };
   const runtimeSide = (g: Group) => (RUNTIME_FILES.includes(g.file) || g.file === SPLIT) && !reaches(g);
   const inRuntime = closure([...rootsOf(ssKeys).filter(runtimeSide), ...rootsOf(tests[RUNTIME].inputs)]);
-  const kept = closure([...rootsOf(ssKeys), ...rootsOf(tests[CHECKER].inputs), ...inRuntime]);
+  // a SoundScript section is kept whole: the notebook checks its cells against its type declarations
+  const kept = closure([...rootsOf(ssKeys), ...rootsOf(tests[CHECKER].inputs), ...inRuntime, ...groups.filter((g) => SS_FILES.has(g.file))]);
   for (const g of kept) g.module = inRuntime.has(g) ? RUNTIME : CHECKER;
   const dropped = groups.filter((g) => !kept.has(g));
   for (const g of inRuntime) {
@@ -259,7 +300,7 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   for (const g of kept) if (g.module === RUNTIME) for (const d of g.deps) if (d.module !== RUNTIME) throw new Error(`runtime cell ${g.stmts[0].names[0]} takes checker cell ${d.stmts[0].names[0]}`);
   // names other cells take, plus every exported name
   const cells = { [RUNTIME]: [] as string[], [CHECKER]: [] as string[] };
-  const shapes = { single: 0, block: 0, groups: [] as string[][] };
+  const shapes = { single: 0, block: 0, ss: 0, groups: [] as string[][] };
   let lastFile = "";
   const emit = (g: Group, src: string) => {
     const r = compile(src);
@@ -279,6 +320,7 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
     }
     const names = g.stmts.flatMap((s) => s.names);
     const single = g.stmts.length === 1 && names.length === 1 ? g.stmts[0] : null;
+    if (single?.kind === "ss") { emit(g, single.text); shapes.ss++; continue; }
     if (single) {
       const n = names[0];
       const decl: any = acorn.parse(single.text, { ecmaVersion: "latest", sourceType: "module" }).body[0];
@@ -306,7 +348,7 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   }
   for (const m of [RUNTIME, CHECKER]) if (tests[m].cells.length) cells[m].push(`md\`## Tests\n\n${mdText(TESTS_LINE[m])}\``, ...tests[m].cells);
   // inputs that are neither cells nor the parser's: globals, listed
-  const known = new Set([...owner.keys(), ...groups.map((g) => g.name).filter(Boolean), ...tests[RUNTIME].names, ...tests[CHECKER].names, "acorn", "tsPlugin", "parser_lib", "md", "FileAttachment", "soundscript"]);
+  const known = new Set([...owner.keys(), ...groups.map((g) => g.name).filter(Boolean), ...tests[RUNTIME].names, ...tests[CHECKER].names, "acorn", "tsPlugin", "parser_lib", "md", "FileAttachment", "soundscript", STDLIB]);
   const strays = new Set<string>();
   for (const m of [RUNTIME, CHECKER]) for (const src of cells[m]) for (const v of compile(src)) for (const i of v._inputs ?? []) if (!known.has(i)) strays.add(i);
   const unexpected = [...strays].filter((n) => !GLOBALS.has(n));
@@ -321,6 +363,8 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   const missing = ssKeys.filter((k) => !runtimeNames.has(k) && !cells[CHECKER].some((src) => compile(src).some((v) => v._name === k)));
   if (missing.length) throw new Error(`entry.ts exports ${missing.join(", ")}, which no generated cell defines`);
   for (const k of ssKeys) if (runtimeNames.has(k)) takes.add(k);
+  // compiled SoundScript cells take ss, the runtime module's
+  if (cells[CHECKER].some((src) => compile(src).some((v) => (v._inputs ?? []).includes(STDLIB)))) takes.add(STDLIB);
   // ss, what compiled cells take: entry.ts's names the runtime module defines, so a compiled cell depends on
   // the runtime module only (lite/toolchain/ojs-roundtrip.test.ts checks every member a compiled cell uses is one)
   if (runtimeNames.has("ss")) throw new Error("ss is a generated runtime cell's name");
@@ -339,6 +383,6 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   ];
   return {
     runtime, checker,
-    stats: { statements: stmts.length, dropped: dropped.flatMap((g) => g.stmts.flatMap((s) => s.names)), tests: { runtime: tests[RUNTIME].names, checker: tests[CHECKER].names }, singleCells: shapes.single, blockCells: shapes.block, groups: shapes.groups, globals: [...strays].sort(), runtimeCells: runtime.length, checkerCells: checker.length, imported: takes.size },
+    stats: { statements: stmts.length, dropped: dropped.flatMap((g) => g.stmts.flatMap((s) => s.names)), tests: { runtime: tests[RUNTIME].names, checker: tests[CHECKER].names }, singleCells: shapes.single, blockCells: shapes.block, soundScriptCells: shapes.ss, groups: shapes.groups, globals: [...strays].sort(), runtimeCells: runtime.length, checkerCells: checker.length, imported: takes.size },
   };
 }

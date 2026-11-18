@@ -1,0 +1,7 @@
+spec $ss$type$S1Pair: state rejected, store true, problems [], defs ["$ss$type$S1Pair"]
+spec $ss$type$S3Tree: state rejected, store true, problems [], defs ["$ss$type$S3Tree"]
+spec $ss$type$S9Size: state rejected, store true, problems [], defs ["$ss$type$S9Size"]
+checker $ss$type$Flags: state rejected, store true, problems [], defs ["$ss$type$Flags"]
+checker $ss$type$Param: state rejected, store true, problems [], defs ["$ss$type$Param"]
+checker $ss$type$Fn: state rejected, store true, problems [], defs ["$ss$type$Fn"]
+checker union edited to push onto ts (edited): state rejected, problems ["mutating-method"]

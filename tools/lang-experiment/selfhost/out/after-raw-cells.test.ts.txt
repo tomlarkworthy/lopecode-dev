@@ -1,0 +1,19 @@
+pass round trip "define(\"area\", [\"width\", \"height\"], function (widt"
+pass round trip "define(null, [], () => 1)"
+pass round trip "define(\"x\", [\"a\"], async (a) => {\n  // a comment k"
+pass round trip "define(\"g\", [], function* () { yield 1; yield 2; }"
+pass round trip "define(\"h\", [\"viewof k\", \"mutable m\"], async funct"
+pass round trip "define(\"t\", [], x => x)"
+pass round trip "define(\"u\", [], async x => x)"
+pass round trip "define(\"w\", [\"a\", \"b\"], (a, b) => a + b)"
+pass outside the function the text is normalised: "define(\"area\", [\"width\", \"height\"], (w, h) => w * h)"
+pass broken "define(\"bad\", [\"a\"], (a) => { return a + ; })": Unexpected token (1:41) (name bad)
+pass broken "define(": Unexpected token (1:7) (name kept)
+pass broken "define(\"two\", [], () => 1); x = 2": a raw cell is one define(label, inputs, function) call (name two)
+pass broken "define(\"n\", [1], () => 1)": the inputs are an array of strings (name n)
+pass broken "define(\"f\", [], 42)": the third argument is a function expression (name f)
+pass broken "area = 3": a raw cell is one define(label, inputs, function) call (name null)
+pass a closing script tag is stored escaped, as an error: a raw cell cannot hold </script: the saved notebook keeps each module in a script element
+pass parse counts parameters and inputs
+pass a rest parameter takes any number of inputs
+18 pass, 0 fail

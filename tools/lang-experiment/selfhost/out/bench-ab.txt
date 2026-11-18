@@ -1,0 +1,24 @@
+orig:
+tutorial module (42 cells): median 1.57 ms of 201 (min 1.16, max 5.78)
+spec*.ts (10 files, one check each): median 3.06 ms of 201 (min 2.23, max 5.36)
+port:
+tutorial module (42 cells): median 1.57 ms of 201 (min 1.14, max 5.94)
+spec*.ts (10 files, one check each): median 3.13 ms of 201 (min 2.23, max 6.24)
+orig:
+tutorial module (42 cells): median 1.59 ms of 201 (min 1.24, max 4.77)
+spec*.ts (10 files, one check each): median 3.05 ms of 201 (min 2.30, max 5.95)
+port:
+tutorial module (42 cells): median 1.55 ms of 201 (min 1.17, max 5.73)
+spec*.ts (10 files, one check each): median 3.09 ms of 201 (min 2.28, max 6.24)
+orig:
+tutorial module (42 cells): median 1.56 ms of 201 (min 1.20, max 5.04)
+spec*.ts (10 files, one check each): median 3.09 ms of 201 (min 2.32, max 5.75)
+port:
+tutorial module (42 cells): median 1.57 ms of 201 (min 1.19, max 5.64)
+spec*.ts (10 files, one check each): median 2.96 ms of 201 (min 2.32, max 6.73)
+orig:
+tutorial module (42 cells): median 1.55 ms of 201 (min 1.19, max 6.22)
+spec*.ts (10 files, one check each): median 3.14 ms of 201 (min 2.28, max 6.07)
+port:
+tutorial module (42 cells): median 1.58 ms of 201 (min 1.19, max 6.34)
+spec*.ts (10 files, one check each): median 3.24 ms of 201 (min 2.42, max 8.82)

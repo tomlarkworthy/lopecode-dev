@@ -1,0 +1,70 @@
+NUM: ok : Ty
+STR: ok : Ty
+BIGINT: ok : Ty
+NULL: ok : Ty
+UNDEF: ok : Ty
+VOID: ok : Ty
+NEVER: ok : Ty
+UNKNOWN: ok : Ty
+OBJECT: ok : Ty
+ERR: ok : Ty
+SYMBOL: ok : Ty
+TRUE: ok : Ty
+FALSE: ok : Ty
+BOOL: ok : Ty
+lit: ok : (v: string | number | boolean) => Ty
+arr: ok : (el: Ty) => Ty
+named: ok : (n: string, ...r: Ty[]) => Ty
+rec: ok : (props: { [k: string]: Ty }, p1?: string[]) => Rec
+WRAPPERS: ok : Set<string>
+isNamed: unsupported : (t: Ty, n: string) => err
+    [unsupported] L49 TypePredicate type
+unwrap: rejected : (t: Ty) => Ty (blocked by isNamed)
+    [no-member] L51 no property args on { k: "num" }
+    [no-member] L51 no property args on { k: "str" }
+    [no-member] L51 no property args on { k: "bigint" }
+    [no-member] L51 no property args on { k: "null" }
+    [no-member] L51 no property args on { k: "undef" }
+    [no-member] L51 no property args on { k: "void" }
+    [no-member] L51 no property args on { k: "never" }
+    [no-member] L51 no property args on { k: "unknown" }
+    [no-member] L51 no property args on { k: "object" }
+    [no-member] L51 no property args on { k: "symbol" }
+    [no-member] L51 no property args on { k: "err" }
+    [no-member] L51 no property args on { k: "lit"; v: string | number | boolean }
+    [no-member] L51 no property args on Rec
+    [no-member] L51 no property args on { k: "arr"; el: Ty }
+    [no-member] L51 no property args on { k: "tup"; els: Ty[] }
+    [no-member] L51 no property args on Fn
+    [no-member] L51 no property args on { k: "union"; ts: Ty[] }
+    [no-member] L51 no property args on { k: "tv"; n: string }
+propT: blocked : (p: Prop) => Ty (blocked by union)
+tpNames: rejected : (tp: err) => string[]
+    [no-any] L55 TSAnyKeyword
+union: rejected : (ts: Ty[]) => Ty (blocked by show)
+    [mutating-method] L61 write to a Ty[], which is not Mut
+    [mutating-method] L73 write to a Set<string>, which is not Mut
+    [mutating-method] L74 write to a Ty[], which is not Mut
+    [possibly-undefined] L76 Ty | undefined is not assignable to Ty
+    [unsupported] L59 recursive function without a return type
+members: ok : (t: Ty) => Ty[]
+show: rejected : (t: Ty, p1?: err) => string
+    [untyped-parameter] L82 parameter has no type and no contextual type
+    [type] L82 function lacks an ending return statement and its return type string does not include undefined
+    [unsupported] L85 switch
+subst: rejected : (t: Ty, m: Subst) => Ty (blocked by union)
+    [no-cast] L131 as cast
+    [type] L116 function lacks an ending return statement and its return type Ty does not include undefined
+    [unsupported] L118 switch
+hasTv: rejected : (t: Ty, names?: Set<string>) => boolean
+    [type] L140 function lacks an ending return statement and its return type boolean does not include undefined
+    [unsupported] L141 switch
+instantiate: rejected : (f: Fn, fresh: number) => { f: Fn; tvs: string[] } (blocked by subst)
+    [no-cast] L159 as cast
+    [no-cast] L160 as cast
+    [type] L160 { decl: Fn } is not assignable to Fn
+    [type] L160 { f: { decl: Fn }; tvs: string[] } is not assignable to { f: Fn; tvs: string[] }
+    [let-capture] L158 param fresh assigned from a function that escapes
+widen: blocked : (t: Ty) => Ty (blocked by union)
+isPrimitive: ok : (t: Ty) => boolean
+31 cells, 10 not ok, 38 messages, 0 module errors

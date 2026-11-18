@@ -40,8 +40,10 @@ function cutsOf(src: string): [number, number][] {
       return;
     }
     if (n.type === "Identifier" && n.optional) {
-      const q = src.indexOf("?", n.start + n.name.length);
-      if (q >= 0) cuts.push([q, q + 1]);
+      // the ? is the first token after the name (a comment between them is not one)
+      const from = n.start + n.name.length;
+      const t = acorn.tokenizer(src.slice(from), { ecmaVersion: "latest" }).getToken();
+      if (t.type.label === "?") cuts.push([from + t.start, from + t.end]);
     }
     for (const k in n) {
       if (k === "loc" || k === "start" || k === "end" || k === "type") continue;

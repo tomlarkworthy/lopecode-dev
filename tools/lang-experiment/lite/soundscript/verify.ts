@@ -49,7 +49,7 @@ const measure = (what: string) => { console.log(`measure ${what}`); measurements
 const power = Bun.spawnSync(["pmset", "-g", "batt"], { stdout: "pipe" }).stdout.toString().match(/'([^']+)'/)?.[1] ?? "unknown";
 console.log(`power: ${power}`);
 
-const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_stored_and_rejected", "test_ss_breaking_edit_names_its_cells", "test_ss_copy_keeps_its_name", "test_ss_failed_apply_changes_nothing", "test_ss_edits_do_not_grow_the_memo", "test_ss_instance_keeps_user_ids", "test_ss_ref_handle", "ss_registration"];
+const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_stored_and_rejected", "test_ss_breaking_edit_names_its_cells", "test_ss_copy_keeps_its_name", "test_ss_failed_apply_changes_nothing", "test_ss_edits_do_not_grow_the_memo", "test_ss_instance_keeps_user_ids", "test_ss_deleted_state_is_not_inherited", "test_ss_ref_handle", "ss_registration"];
 const TUTORIAL_TESTS = ["test_shop_total", "test_ss_roundtrip", "test_ss_module_checks", "test_ss_counter", "test_half", "test_async_click",
   "test_examples_check_as_expected", "test_compile_pool_matches_main", "test_compile_refuses_unchecked", "test_breakout_listener", "test_breakout_memo", "benchmark"];
 
@@ -120,7 +120,7 @@ let ftN = 0;
 const CPU = process.argv.includes("--cpu") ? Number(process.argv[process.argv.indexOf("--cpu") + 1]) : 1;
 const browser = await chromium.launch();
 try {
-async function open(path: string, saveTo?: string) {
+async function open(path: string, saveTo?: string, specWait = true) {
   const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
   if (saveTo) await stubPicker(page, saveTo);
   if (FOCUS_TRACE) {
@@ -142,15 +142,19 @@ async function open(path: string, saveTo?: string) {
   await page.goto(`file://${path}`);
   // the specification's tests run at load and pull generators of their own; the checks that count listeners
   // and clocks on the whole page start once they have settled
-  await page.evaluate(async (spec) => {
+  const waited = !specWait ? "skipped" : await page.evaluate(async (spec) => {
     const until = async (f: () => unknown, ms: number) => { const t = Date.now(); while (!f() && Date.now() - t < ms) await new Promise((r) => setTimeout(r, 50)); return f(); };
     const rt = () => (window as any).__ojs_runtime;
-    if (!(await until(() => rt()?.mains?.size, 60000))) return;
+    if (!(await until(() => rt()?.mains?.size, 60000))) return "no mains";
     const m = rt().mains.get(spec);
-    if (!m) return;
+    if (!m) return `no ${spec} among ${rt().mains.size} mains`;
     const tests = [...rt()._variables].filter((v: any) => v._module === m && /^test_spec_/.test(v._name));
-    await Promise.race([Promise.all(tests.map((t: any) => m.value(t._name).catch(() => 0))), new Promise((r) => setTimeout(r, 60000))]);
-  }, SPEC).catch(() => {});
+    if (!tests.length) return "no spec tests defined yet";
+    const all = await Promise.race([Promise.all(tests.map((t: any) => m.value(t._name).catch(() => 0))).then(() => true), new Promise((r) => setTimeout(() => r(false), 60000))]);
+    return all ? "ok" : `${tests.length} spec tests not settled in 60 s`;
+  }, SPEC).catch((e: Error) => `evaluate failed: ${String(e.message).split("\n")[0]}`);
+  // printed, not judged: a later check that needs a cell waits on that cell
+  if (waited !== "ok") console.log(`  open ${path.split("/").pop()}: spec tests wait ${waited}`);
   page.on("framenavigated", (f) => { if (f === page.mainFrame()) console.log(`  navigated: ${f.url().slice(0, 200)}`); });
   // what ends a page's JavaScript context, with the check in progress: a navigation, a crash, a context replaced
   const short = path.split("/").pop();
@@ -350,6 +354,30 @@ async function speed() {
     const cells = core._scope.get("ss_moduleCells")._value(tut).length;
     return { cells, median: t[15], max: t[29], checks, evals };
   });
+  // the checker module's SoundScript section (ts-cells.ts SS_FILES, lite/types.ss.ts): the core checks that module's
+  // SoundScript cells, with its Observable JavaScript cells outside, and an edit of each cell to its own text, as
+  // the editor makes it, is ok and has no problems
+  const sec = await page.evaluate(async () => {
+    const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
+    const lang = core._scope.get("ss_language")._value, check = core._scope.get("ss_check")._value;
+    // the checker module is the one that defines parser_lib
+    const mod = [...rt._variables].find((x: any) => x._name === "parser_lib")._module;
+    const ss = [...rt._variables].find((x: any) => x._module === mod && x._name === "soundscript")._value;
+    const vars = [...rt._variables].filter((v: any) => v._module === mod && ss.langOf(String(v._definition)) === "ss");
+    const states = check(mod).states;
+    const notOk = vars.map((v: any) => ss.keyOfVariable(v._name)).filter((k: string) => !k.startsWith("type ") && states.get(k)?.state !== "ok");
+    const edits: string[] = [];
+    for (const v of vars) {
+      const src = await lang.decompile([v]);
+      if (src !== ss.decompileVariable(String(v._definition))) { edits.push(`${v._name}: decompile differs`); continue; }
+      const e = lang.check(src, [v], { module: { module: mod } });
+      // a type cell's edit is stored with no problems; its state is "rejected", as for the specification's type cells
+      const isType = ss.keyOfVariable(v._name).startsWith("type ");
+      if ((isType ? !e.store : e.state !== "ok") || e.problems.length) edits.push(`${v._name}: ${e.state} ${JSON.stringify(e.problems).slice(0, 120)}`);
+    }
+    return { cells: vars.length, values: vars.filter((v: any) => !ss.keyOfVariable(v._name).startsWith("type ")).length, notOk, edits };
+  });
+  report(sec.cells > 0 && sec.notOk.length === 0 && sec.edits.length === 0, `checker module: its ${sec.cells} SoundScript cells (${sec.values} with values) are ok by ss_check, and each, edited to its own text, checks ok (a type cell: is stored with no problems)${sec.notOk.length ? "; not ok: " + sec.notOk.join(", ") : ""}${sec.edits.length ? "; " + sec.edits.slice(0, 5).join("; ") : ""}`);
   report(ks.checks === 30 && ks.evals === 0, `lint: 30 lints of width, each a different edit, against the ${ks.cells}-cell tutorial module ran ${ks.checks} module checks and ${ks.evals} cell bodies (want 30 and 0)`);
   measure(`one keystroke's lint of width against the ${ks.cells}-cell tutorial module: median ${ks.median.toFixed(1)} ms, max ${ks.max.toFixed(1)} ms of 30`);
   // the Mandelbrot timing the tutorial shows (its benchmark cell, measured during boot): the pool and the
@@ -997,7 +1025,8 @@ async function readOnly<T>(label: string, f: () => Promise<T>): Promise<T> {
 async function neverRuns(page: Page, label: string) {
   return readOnly(`neverRuns (${label})`, () => page.evaluate(async ([t, c, sneak, broken]) => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get(t), core = rt.mains.get(c);
-    const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
+    // awaited: on a reopened page the tutorial's cells can have values before the core's soundscript does
+    const ss = await core.value("soundscript");
     const raised = async (n: string) => { try { await mod.value(n); return "a value"; } catch (e) { return String((e as Error)?.message ?? e); } };
     const text = (n: string) => { const v = mod._scope.get(n); return v ? ss.decompileVariable(String(v._definition)) : null; };
     const st = (await core.value("ss_check"))(mod).states;
@@ -1875,6 +1904,27 @@ if (process.argv.includes("--focus-repro")) {
   console.log(`focus-repro: ${failed} of ${n} failed`);
   await browser.close();
   process.exit(0);
+}
+if (process.argv.includes("--broken-repro")) {
+  // brokenState's check on a reopened export, n times, without open()'s wait for the spec tests: the check must
+  // wait for what it reads. Needs .scratch/export-broken.html from a run that reached brokenState.
+  const n = Number(process.argv[process.argv.indexOf("--broken-repro") + 1]) || 20;
+  const xPath = join(SCRATCH, "export-broken.html");
+  const before = fails;
+  let failed = 0;
+  for (let i = 0; i < n; i++) {
+    const X = await open(xPath, undefined, false);
+    const f0 = fails;
+    try {
+      await X.page.waitForFunction((t: string) => (window as any).__ojs_runtime?.mains?.get(t)?._scope.get("half")?._value !== undefined, TUTORIAL, { timeout: 60000 });
+      await neverRuns(X.page, `broken-repro ${i}`);
+    } catch (e) { report(false, `broken-repro ${i}: ${String((e as Error).message).split("\n")[0]}`); }
+    if (fails > f0) failed++;
+    await X.page.close();
+  }
+  console.log(`broken-repro: ${failed} of ${n} failed`);
+  await browser.close();
+  process.exit(fails > before ? 1 : 0);
 }
 const tryOnly = process.argv.includes("--try-only") || process.argv.includes("--broken-only");
 const uiOnly = process.argv.includes("--ui-only") || tryOnly;

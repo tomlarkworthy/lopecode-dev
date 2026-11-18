@@ -1,0 +1,32 @@
+NUM: ok : Ty
+STR: ok : Ty
+BIGINT: ok : Ty
+NULL: ok : Ty
+UNDEF: ok : Ty
+VOID: ok : Ty
+NEVER: ok : Ty
+UNKNOWN: ok : Ty
+OBJECT: ok : Ty
+ERR: ok : Ty
+SYMBOL: ok : Ty
+TRUE: ok : Ty
+FALSE: ok : Ty
+BOOL: ok : Ty
+lit: ok : (v: string | number | boolean) => Ty
+arr: ok : (el: Ty) => Ty
+named: ok : (n: string, ...r: Ty[]) => Ty
+rec: ok : (props: { [k: string]: Ty }, p1?: string[]) => Rec
+WRAPPERS: ok : Set<string>
+isNamed: ok : (t: Ty, n: string) => boolean
+unwrap: ok : (t: Ty) => Ty
+propT: ok : (p: Prop) => Ty
+tpNames: ok : (tp: { params?: { name: string | { name: … } }[] } | null | undefined) => string[]
+union: ok : (ts: Ty[]) => Ty
+members: ok : (t: Ty) => Ty[]
+show: ok : (t: Ty, p1?: number) => string
+subst: ok : (t: Ty, m: Subst) => Ty
+hasTv: ok : (t: Ty, names?: Set<string> | undefined) => boolean
+instantiate: ok : (f: Fn, fresh: number) => { f: Fn; tvs: string[] }
+widen: ok : (t: Ty) => Ty
+isPrimitive: ok : (t: Ty) => boolean
+31 cells, 0 not ok, 0 messages, 0 module errors

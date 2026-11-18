@@ -89,6 +89,7 @@ soundscript.pulling(handles?)                   // events cells whose generator 
 soundscript.isEvents(value)                     // whether a value is an events cell's handle
 soundscript.release(value)                      // a deleted variable's listener ends, or its events stop
 soundscript.forget(id)                          // drop a memo id's memo entry, run count and parked state handle
+soundscript.unpark(id)                          // drop only the parked state handle
 soundscript.memoSize(), soundscript.memoHas(id)          // memo entries on the page; whether one id has one
 soundscript.idOf(definition), soundscript.withId(definition, id)  // read or replace a compiled definition's memo id (from its parsed ss.cell call)
 soundscript.compiledKind(definition)             // {kind, memo, refs} of a compiled cell's ss.cell call, or null
@@ -246,6 +247,13 @@ ss_lifecycle = {
     if (outsideNamed) touched.add(module);
     else if (!isSs(variable) && !isSs(previous)) return;
     if (variable === null && !outsideNamed) ss_deleted(previous.variable);
+    // by now a deleted variable's value is gone, so ss_deleted cannot reach its state handle, which the delete's
+    // invalidation parked under the definition's id for the next cell with that text to take. It is dropped
+    // unless a live variable with that text has no value (its input failed; the parked handle may be its own).
+    if (variable === null && isSs(previous)) {
+      const text = String(previous._definition);
+      if (![...runtime._variables].some((x) => x._value === undefined && x._definition && String(x._definition) === text)) soundscript.unpark(soundscript.idOf(text));
+    }
     // every edit gives a new memo id; the old one is forgotten once no variable has that definition
     if (isSs(previous) && previous._definition !== variable?._definition) {
       const text = String(previous._definition);
@@ -936,6 +944,42 @@ test_ss_instance_keeps_user_ids = {
     if (value.id !== "anon" || !idb || idb === ida || !idb.startsWith(ida + "_")) throw new Error(`value ${JSON.stringify(value)}, ids ${ida} -> ${idb}`);
     return `tagged keeps id "anon"; its memo id ${ida} became ${idb}`;
   } finally { end(); }
+}
+// %%
+test_ss_deleted_state_is_not_inherited = {
+  ss_tests_on;
+  // a state cell deleted outside apply (the editor's delete button) while a cell with the same text lives in
+  // another module: a new cell with that text starts from state(0), not from the deleted cell's state
+  const T = "const deletedKept = (): StateCell<number> => state(0);";
+  const made = [];
+  const mod = async (texts) => {
+    const m = runtime.module();
+    made.push(m);
+    m.define("ss", [], () => ss);
+    for (const t of texts) if (await ss_language.apply(t, [], { module: { module: m } }) === undefined) throw new Error(`not stored: ${t}`);
+    return m;
+  };
+  const frames = async (f) => { for (let i = 0; i < 600 && !(await f()); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
+  try {
+    const twin = await mod([T]);
+    await twin.value("deletedKept");
+    const a = await mod([T, "const setKept = (deletedKept: State<number>) => action(() => deletedKept.set(7));"]);
+    const set = await a.value("setKept");
+    if (!(await frames(() => soundscript.idle()))) throw new Error("an action call stayed in flight for 600 frames");
+    soundscript.entry(null, () => set());
+    if (!(await frames(async () => (await a.value("deletedKept")) === 7))) throw new Error("deletedKept did not become 7");
+    const doomed = [...runtime._variables].filter((v) => v._module === a && v._name !== "ss");
+    let seen;
+    const deletionSeen = new Promise((r) => (seen = r));
+    const off = onCodeChange(({ variable, previous }) => { if (variable === null && doomed.includes(previous?.variable)) seen(); });
+    try { for (const v of doomed) v.delete(); await deletionSeen; } finally { off(); }
+    const b = await mod([T]);
+    const start = await b.value("deletedKept");
+    if (start !== 0) throw new Error(`the new deletedKept started at ${start}, the deleted cell's state`);
+    return "deletedKept set to 7 and deleted outside apply, with a twin alive: a new deletedKept starts at 0";
+  } finally {
+    for (const m of made) for (const v of [...runtime._variables]) if (v._module === m) { soundscript.release(v._value); v.delete(); }
+  }
 }
 // %%
 //raw: test_ss_ref_handle

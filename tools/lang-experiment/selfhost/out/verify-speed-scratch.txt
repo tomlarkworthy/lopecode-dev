@@ -1,0 +1,34 @@
+power: AC Power
+pass ss_bytes: the size row (234934 raw, 63930 gz) is the embedded acorn-typescript.js.gz (234934 raw, 63930 gz)
+pass reference: each rule probe reports its rule (untyped-parameter, unknown-type, const-assign)
+pass reference: 65 rule ids named, 65 produced by 51 examples and fixtures, 193 specification cases plus 3 probes; named but never produced [], produced but not named []
+pass reference: 19 constructs the reference calls unsupported are reported unsupported
+pass prose: @tomlarkworthy/soundscript: 11 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-tutorial: 60 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-reducer: 1 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-model: 1 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-workers: 1 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-breakout: 1 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-polyglot: 7 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-spec: 142 md cells, no repository path and no "below"/"above"
+pass load: the tutorial's title and a checker verdict both render (title, verdict)
+measure load to the tutorial's title rendered: 586 ms
+measure load to the first checker verdict on the page: 586 ms
+pass checker module: its 39 SoundScript cells (31 with values) are ok by ss_check, and each, edited to its own text, checks ok (a type cell: is stored with no problems)
+pass lint: 30 lints of width, each a different edit, against the 42-cell tutorial module ran 30 module checks and 0 cell bodies (want 30 and 0)
+measure one keystroke's lint of width against the 42-cell tutorial module: median 2.8 ms, max 4.4 ms of 30
+pass workers: Mandelbrot in 32 bands: the pool and the main thread give the same bytes (true); 8 of the pool's 8 workers answered jobs ([45,44,47,47,42,42,43,42], 352 in all)
+measure Mandelbrot: main thread 65.6 ms, pool of 8 26.2 ms (medians of 7)
+pass breakout: after a click on play, 90 of 90 animation frames saw a new world; runs {"ballView":90,"bricksView":1,"paddleView":0,"onTick":0,"ticks":0} for 1 broken bricks; over false
+measure Breakout after a click on play: 55.9 world changes/s in 55.9 animation frames/s
+pass typing: 32 keys into half's editor with the tutorial open: the text as typed was linted (true); 1 lints ran 2 module checks (one each, and one of the module as it is), 0 cell bodies ran, redefined []
+measure typing 32 keys into half's editor (40 ms apart): 0 tasks over 50 ms []
+18 pass, 0 fail
+measurements (printed, not judged):
+  load to the tutorial's title rendered: 586 ms
+  load to the first checker verdict on the page: 586 ms
+  one keystroke's lint of width against the 42-cell tutorial module: median 2.8 ms, max 4.4 ms of 30
+  Mandelbrot: main thread 65.6 ms, pool of 8 26.2 ms (medians of 7)
+  Breakout after a click on play: 55.9 world changes/s in 55.9 animation frames/s
+  typing 32 keys into half's editor (40 ms apart): 0 tasks over 50 ms []
+power AC Power; functional 18 pass 0 fail; measurements 6

@@ -1,0 +1,97 @@
+pass e1_async_1000_values_exactly_once_in_order
+pass e2_action_edited_twice_no_value_lost_or_doubled
+pass e2_listener_ran_once_per_new_action
+pass e2_one_listener
+pass e4_stopped_while_running_is_false
+pass e4_restarted_from_1
+pass e4_events_ran_twice_listener_not_at_all
+pass e4_one_listener
+pass e6_deleted_listener_delivers_nothing
+pass e6_disposed_module_stops_its_generator
+pass e7_attached
+pass e7_sweep_detaches_unheld
+pass r_state_runs_the_action_it_holds
+  report a1 edit inc (the state cell's initial value) after dec was stored: {"refRecreated":true,"countChange":10}
+  report a2 edit dec after it was stored by useDec: {"refHoldsOld":true,"refHoldsNew":false,"countChange":-1}
+  report b delete dec's cell while the state cell holds it: {"stillCallable":true,"threw":"","countChange":-1,"useDecError":"useDec: dec is not defined"}
+  report c equals: {"sameAction":true,"twoActions":false,"twoCopiesOfOneText":false}
+pass r_undo_stack_pops_and_runs_the_top
+  report stack: an action called inside undos.update's callback: {"threw":"","count":0,"undos":0,"errors":[]}
+  report e compile with a state cell holding an action: ["viaInput rejected [compile-boundary] current: Action<[]> cannot cross to a worker (Action)","viaRef rejected [compile-boundary] current: Action<[]> cannot cross to a worker (Action)"]
+pass c2_no_store_changed
+pass c2_state_clean
+pass c2_error_thrown_at_the_call
+pass c2_no_input_told
+pass c2_later_flush_chains_and_wakes
+pass c3_evals_counts_compiled_definition
+pass c3_forget_drops_run_count
+pass c3_memo_size_constant
+pass c3_memo_dropped_after_forget
+pass c3_island_cache_size_bounded
+pass c3_keys_never_reused_for_other_text
+pass c3_evicted_island_gets_fresh_key
+pass c3_evicted_island_runs_correctly
+pass c3_recent_island_keeps_key
+pass g2_x_is_plus_11
+pass g2_one_commit_one_input
+  g6: one task saw [[1,1]]; two tasks, no frame between, saw [[2,-1],[2,2]]
+pass g6_one_task_never_one_new_and_one_old
+pass g6_two_tasks_before_one_frame_show_b_from_the_first_call
+pass o1_fresh_load
+pass o1_after_first_reattaches
+pass o1_defined_in_reverse
+  o1: with no host order (attach order): defined in reverse ["first,second"]; after first is edited ["second,first"]
+  o2: a sync and an async events cell, frames run by hand with a macrotask between: ["s0","a0","a1","a2","a3","s1","s2","s3"]
+pass o2_both_delivered
+  p1: commit after every call, cells re-run: [96,3408,2719,6223,18]
+  p1: commit after every call, cells not re-run: [96,3408,2719,6223,18]
+  p1: one commit at the end: [96,3408,2719,6223,18]
+  p1: commits at random points (seed 1), cells re-run: [96,3408,2719,6223,18]
+  p1: commits at random points (seed 2), cells re-run: [96,3408,2719,6223,18]
+  p1: commits at random points (seed 3), cells re-run: [96,3408,2719,6223,18]
+pass p1_every_schedule_stores_the_same_values
+pass p1_the_log_exercises_throws_and_frames
+pass p1_no_runtime_errors
+pass p2_checker_rejects_copyAB
+  p2: the accepted program compiled the same way: [96,3408,2719,6223,18], errors 0
+pass p2_the_bypass_alone_changes_nothing
+  p2: check bypassed, commit after every call, cells re-run: [96,8043,2719,10858,18]
+  p2: check bypassed, one commit at the end: [96,4170,2719,6985,18]
+pass p2_schedules_disagree_when_the_check_is_bypassed
+pass w1_two_variables_per_state_cell
+pass w1_input_threw
+pass w1_a_held_action_writes_while_n_is_in_error_and_the_repair_keeps_it
+pass w1_repaired_input_with_the_same_value_keeps_the_state
+pass w1_state_cell_does_not_check
+pass w1_the_holder_is_blocked_by_it
+pass w1_state_cell_deleted
+pass w2_remade_from_the_input
+pass w2_the_old_handle_writes_the_new_store
+pass w2_one_handle_per_state_cell
+pass w3_written_once_it_ran
+pass w4_the_write_reaches_the_source_of_its_own_instance
+pass w4_an_import_with_no_viewof_is_boundary_state
+pass q1_in_flight_and_nothing_committed
+pass q1_all_writes_commit_and_read_sees_own_write
+pass q2_second_call_waits
+pass q2_runs_in_call_order_after_the_first_finishes
+pass q3_none_kept
+pass q3_reported_naming_the_action
+pass q4_not_thrown_to_the_caller
+pass q4_reported_naming_the_action
+pass q4_kept_only_the_first_call
+pass q4_a_sync_throw_from_a_call_started_at_once_still_throws
+pass q5_not_held_by_the_action_it_did_not_await
+pass q5_a_write_after_the_commit_throws_outside_an_action
+pass q6_write_throws
+pass q6_action_call_throws
+pass q7_one_call_in_flight_the_rest_wait
+pass q7_each_value_once_in_order
+pass q8_detached_not_awaited
+pass q8_detached_reported_0_to_the_console_1_to_the_host
+pass q8_awaited_awaited_not_caught
+pass q8_awaited_reported_1_to_the_console_0_to_the_host
+pass q8_caught_awaited_and_caught
+pass q8_caught_reported_0_to_the_console_0_to_the_host
+pass q9_inner_ran_inside_the_call_and_returned
+78 pass, 0 fail

@@ -74,7 +74,7 @@ export function rejected(name: string, why: string[]): never {
   throw new Error(`${name} does not check: ${why.join("; ")}`);
 }
 
-export { state, action, mut, freeze, borrow, snapshot, equals, read, entry, idle, actionQueue } from "../../prelude.runtime.ts";
+export { state, action, mut, freeze, borrow, snapshot, equals, read, entry, idle, actionQueue, unpark } from "../../prelude.runtime.ts";
 // The value of a viewof variable as a State<T>: an Observable JavaScript view's element, whose value is
 // checked against shape on the way in, or an imported SoundScript state cell's handle; every write is
 // checked against shape (boundary.ts)

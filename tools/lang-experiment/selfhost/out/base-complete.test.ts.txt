@@ -1,0 +1,60 @@
+pass the test module checks
+pass read is offered inside an action body
+pass read is not offered outside an action
+pass State<T> parameter: exactly set and update
+pass State<T> member detail is the member's type
+pass a half-typed member is filtered by its prefix
+pass an unclosed call still answers
+pass value parameter of a state cell: number members
+pass omitted parameter type comes from the named cell
+pass Mut<T[]> local offers mutating methods
+pass a plain array offers no mutating method
+pass Mut typed array offers set and fill
+pass a plain typed array offers no set or fill
+pass string members
+pass a union of records narrowed by kind offers the narrowed members
+pass an unnarrowed union offers the common members
+pass record members with their types
+pass Action offers nothing
+pass Events offers nothing
+pass Listener offers nothing
+pass Math offers the allowed intrinsics, not random
+pass Object offers allowed statics, not defineProperty
+pass JSON offers parse and stringify
+pass member in an unfinished block body
+pass a cursor before an existing member name
+pass after a closed template literal
+pass <button on| offers onClick
+pass <input | offers its declared props
+pass a parameter is offered by prefix
+pass a local is offered
+pass a keyword is offered, not other cells
+pass the prelude state is offered
+pass no browser globals
+pass allowed intrinsics are offered
+pass another cell is not a name in scope
+pass mut from the prelude
+pass in a parameter list: cells and capabilities
+pass by prefix, without the parameters already there
+pass not the cell itself
+pass a type position is not a parameter name
+pass an other-language cell is offered in a parameter list with its annotation
+pass a value with no readable type inserts name and colon only
+pass a SoundScript cell of the same name is offered bare, once
+pass an other-language parameter already there is not offered again
+pass without annotate, an other-language cell inserts name and colon
+pass annotationOf reads number, string, boolean, arrays and small plain objects only
+pass each suggested annotation checks at the boundary
+pass addParameter appends to the cell's own parameter list, or gives null
+pass inside a string: nothing
+pass inside a comment: nothing
+pass two unclosed parens
+pass an unclosed if test
+pass unparseable text answers with no runtime names
+pass a name offers on
+pass a parameter type offers Events
+pass a return type offers Listener
+pass a type argument offers number
+pass the old name Source is not offered
+  completion on a 12-cell module: median 0.5 ms, max 1.6 ms
+58 pass, 0 fail

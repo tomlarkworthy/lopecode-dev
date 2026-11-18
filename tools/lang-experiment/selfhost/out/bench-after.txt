@@ -1,0 +1,6 @@
+tutorial module (42 cells): median 1.59 ms of 201 (min 1.16, max 7.07)
+spec*.ts (10 files, one check each): median 3.10 ms of 201 (min 2.29, max 6.33)
+tutorial module (42 cells): median 1.89 ms of 201 (min 1.29, max 6.79)
+spec*.ts (10 files, one check each): median 3.66 ms of 201 (min 2.39, max 7.10)
+tutorial module (42 cells): median 1.84 ms of 201 (min 1.15, max 7.31)
+spec*.ts (10 files, one check each): median 3.01 ms of 201 (min 2.26, max 6.23)

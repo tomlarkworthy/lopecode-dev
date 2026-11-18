@@ -20,7 +20,7 @@ import { run, diffRuns } from "../../ojs-roundtrip/harness.ts";
 import { compileCell, compileCellText, contextFromCheck, decompileVariable, langOf, declaredName, STATE_VALUE } from "./ss-toolchain.ts";
 import { checkCells } from "../stdlib/runtime.ts";
 import { ALLOWED_GLOBALS, OJS_INPUT_GLOBALS } from "../intrinsics.ts";
-import { RUNTIME, CHECKER } from "../soundscript/ts-cells.ts";
+import { RUNTIME, CHECKER, SS_SOURCES, ssCellTexts } from "../soundscript/ts-cells.ts";
 import { moduleJs } from "./module-js.ts";
 import * as acorn from "acorn";
 
@@ -109,18 +109,33 @@ const cellsOf = (vs: V[]): V[][] => {
 };
 // module blocks only, not their file attachments
 const modules = blocks(html).filter((b) => /^@tomlarkworthy\/soundscript(-[\w-]+)?$/.test(b.id) && b.attrs.includes('data-mime="application/javascript"')).map((b) => b.id);
+const generatedSs: string[] = [];
 for (const m of modules) {
   const all = cellsOf(defsOf(m));
   const generated = m === RUNTIME || m === CHECKER;
   for (const cell of all) {
     const ss = cell.find((v) => langOf(v.definition) === "ss");
-    if (generated) {
+    if (generated && ss) {
+      // a SoundScript section of the generated modules (ts-cells.ts SS_FILES): a notebook SoundScript cell
+      if (cell.length !== 1) fail("generated-ss", `${m} ${cell[0].name}`, "a generated SoundScript cell has more than one variable");
+      const source = decompileVariable(ss.definition);
+      generatedSs.push(source ?? "");
+      await trip("generated-ss", `${m} ${ss.name}`, cell, source);
+    } else if (generated) {
       if (cell[0].name === null || !cell[0].name.startsWith("module ")) await trip("generated", `${m} ${cell[0].name}`, cell, null);
     } else if (ss) {
       if (cell.length > 1 && !(cell.length === 2 && cell[1].definition === STATE_VALUE)) fail("notebook", `${m} ${cell[0].name}`, "a SoundScript cell other than a state cell has more than one variable");
       await trip("notebook", `${m} ${ss.name}`, cell, decompileVariable(ss.definition));
     }
   }
+}
+
+// 2a. the generated modules' SoundScript cells decompile to exactly the cells of their source files
+{
+  const c = counts.get("generated-ss") ?? { cells: 0, vars: 0, fail: 0 };
+  counts.set("generated-ss", c);
+  const want = SS_SOURCES.flatMap(ssCellTexts);
+  if (JSON.stringify(generatedSs) !== JSON.stringify(want)) fail("generated-ss", SS_SOURCES.join(", "), `the decompiled cells are not the source's ${want.length} cells in order (got ${generatedSs.length})`);
 }
 
 // 2b. compiled cells depend on the runtime module only: every member of ss a compiled definition reads
@@ -152,7 +167,7 @@ for (const m of modules) {
     return out;
   };
   const used = new Set<string>();
-  const ssDefs = [...compiled, ...modules.filter((m) => m !== RUNTIME && m !== CHECKER).flatMap(defsOf)].filter((v) => langOf(v.definition) === "ss" && v.inputs.includes("ss"));
+  const ssDefs = [...compiled, ...modules.filter((m) => m !== RUNTIME).flatMap(defsOf)].filter((v) => langOf(v.definition) === "ss" && v.inputs.includes("ss"));
   for (const v of ssDefs) {
     c.cells++;
     const bad = membersOf(v.definition).filter((m) => (used.add(m), !keys.has(m)));

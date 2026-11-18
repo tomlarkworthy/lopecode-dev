@@ -37,6 +37,8 @@ export type Facts = {
 export type Diag = { node: Node; rule: string; msg: string };
 
 let nextId = 0;
+// type variables made by instantiate so far, page-wide, so two instantiations never share a name
+let fresh = 0;
 // Action<[A, B]> called as (a0: A, a1: B) => void
 const actionFn = (args: Ty): Fn => ({ k: "fn", tps: [], ps: (args.k === "tup" ? args.els : []).map((t, i) => ({ n: "a" + i, t, opt: false })), ret: VOID });
 // what typeof x === tag says of an unknown x
@@ -1022,7 +1024,8 @@ export class Checker {
   }
   // Apply one signature: rank-1 inference over arguments, callbacks after the arguments that fix their parameters.
   apply(e: Node, sig0: Fn, env: Env, expected: Ty | undefined, explicit?: Ty[]): Ty {
-    const { f: sig, tvs } = instantiate(sig0);
+    const { f: sig, tvs } = instantiate(sig0, fresh);
+    fresh += sig0.tps.length;
     const tvSet = new Set(tvs);
     const m: Subst = new Map();
     if (explicit) {
@@ -1058,7 +1061,9 @@ export class Checker {
       const lam = (a.type === "ArrowFunctionExpression" || a.type === "FunctionExpression") && a.params.some((q: Node) => !(q.type === "AssignmentPattern" ? q.left : q).typeAnnotation);
       if (lam && hasTv(cur(p), tvSet)) { deferred.push(i); return; }
       const pc = cur(p);
-      if (!hasTv(pc, tvSet)) { argT[i] = this.check(a, env, pc); return; }
+      // an optional parameter takes undefined; a function argument keeps the parameter's own type as its context
+      const fnArg = a.type === "ArrowFunctionExpression" || a.type === "FunctionExpression";
+      if (!hasTv(pc, tvSet)) { argT[i] = this.check(a, env, sig.ps[i]?.opt && !fnArg ? union([pc, UNDEF]) : pc); return; }
       const t = this.check(a, env, this.ctxOnly(ctxSubst(p), tvSet), true);
       argT[i] = t;
       this.reg.unify(p, t, m, tvSet);

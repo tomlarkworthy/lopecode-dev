@@ -1,0 +1,21 @@
+lite/infer.ts(595,54): error TS2345: Argument of type 'Ty' is not assignable to parameter of type '{ k: "arr"; el: Ty; } | { k: "tup"; els: Ty[]; }'.
+lite/types.ss.ts(53,23): error TS7006: Parameter 'union' implicitly has an 'any' type.
+lite/types.ss.ts(53,30): error TS7006: Parameter 'UNDEF' implicitly has an 'any' type.
+lite/types.ss.ts(58,23): error TS7006: Parameter 'show' implicitly has an 'any' type.
+lite/types.ss.ts(58,29): error TS7006: Parameter 'ERR' implicitly has an 'any' type.
+lite/types.ss.ts(58,34): error TS7006: Parameter 'UNKNOWN' implicitly has an 'any' type.
+lite/types.ss.ts(58,43): error TS7006: Parameter 'NEVER' implicitly has an 'any' type.
+lite/types.ss.ts(65,16): error TS2304: Cannot find name 'mut'.
+lite/types.ss.ts(66,14): error TS2304: Cannot find name 'Mut'.
+lite/types.ss.ts(66,26): error TS2304: Cannot find name 'mut'.
+lite/types.ss.ts(75,16): error TS2304: Cannot find name 'freeze'.
+lite/types.ss.ts(114,23): error TS7006: Parameter 'union' implicitly has an 'any' type.
+lite/types.ss.ts(128,21): error TS2304: Cannot find name 'mut'.
+lite/types.ss.ts(130,33): error TS2304: Cannot find name 'freeze'.
+lite/types.ss.ts(151,29): error TS7006: Parameter 'subst' implicitly has an 'any' type.
+lite/types.ss.ts(162,23): error TS7006: Parameter 'STR' implicitly has an 'any' type.
+lite/types.ss.ts(162,28): error TS7006: Parameter 'NUM' implicitly has an 'any' type.
+lite/types.ss.ts(162,33): error TS7006: Parameter 'BOOL' implicitly has an 'any' type.
+lite/types.ss.ts(162,39): error TS7006: Parameter 'union' implicitly has an 'any' type.
+lite/types.ss.ts(171,29): error TS7006: Parameter 'members' implicitly has an 'any' type.
+lite/types.ss.ts(172,21): error TS7006: Parameter 'm' implicitly has an 'any' type.

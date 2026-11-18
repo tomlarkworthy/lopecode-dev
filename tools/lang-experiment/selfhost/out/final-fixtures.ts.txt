@@ -1,0 +1,16 @@
+PASS accept-basic: accepted; tests fwd 5/5 rev 5/5; orders identical true
+PASS accept-foreign: accepted; tests fwd 2/2 rev 2/2; orders identical true
+PASS accept-foreign-libname: accepted; tests fwd 1/1 rev 1/1; orders identical true
+PASS accept-foreign-unsupplied: accepted; tests fwd 1/1 rev 1/1; orders identical true; run: usesMissing as expected at run time
+PASS accept-owner: accepted; tests fwd 2/2 rev 2/2; orders identical true
+PASS accept-pusher-state: accepted; tests fwd 1/1 rev 1/1; orders identical true
+PASS accept-state: accepted; tests fwd 1/1 rev 1/1; orders identical true; action from outside: label recomputes, increment does not (both orders)
+PASS accept-state-deps: accepted; tests fwd 1/1 rev 1/1; orders identical true; set sticks, dependency change re-creates the state cell (both orders)
+PASS known-slips: accepted
+PASS reject-action-call: rejected [action-call]; run: b as expected at run time
+PASS reject-foreign-effect: rejected [foreign-effect]
+PASS reject-foreign-unmarked: rejected [foreign-unmarked]
+PASS reject-inject-state: rejected [inject-state]
+PASS reject-pusher: rejected [mutating-method]; (info) run: test_empty fwd pass rev fail, 2 difference(s) across orders: test_empty: test pass vs fail; test_empty: status fulfilled vs rejected
+
+14/14 fixtures pass; 49 lint/injection rules registered, 49 with a reject case (47 of them in the specification module); 0 failure(s)

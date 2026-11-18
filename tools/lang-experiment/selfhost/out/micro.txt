@@ -1,0 +1,4 @@
+original: union 20.4 ms, show 5.8 ms, subst 4.7 ms, widen 41.1 ms (20000 calls, median of 15)
+port: union 24.0 ms, show 7.2 ms, subst 4.6 ms, widen 50.3 ms (20000 calls, median of 15)
+original: union 21.0 ms, show 6.2 ms, subst 4.6 ms, widen 43.7 ms (20000 calls, median of 15)
+port: union 25.0 ms, show 7.8 ms, subst 4.8 ms, widen 53.0 ms (20000 calls, median of 15)

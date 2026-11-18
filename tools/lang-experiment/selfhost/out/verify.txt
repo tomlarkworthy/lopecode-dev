@@ -1,0 +1,558 @@
+power: AC Power
+pass ss_bytes: the size row (234934 raw, 63930 gz) is the embedded acorn-typescript.js.gz (234934 raw, 63930 gz)
+pass reference: each rule probe reports its rule (untyped-parameter, unknown-type, const-assign)
+pass reference: 65 rule ids named, 65 produced by 51 examples and fixtures, 193 specification cases plus 3 probes; named but never produced [], produced but not named []
+pass reference: 19 constructs the reference calls unsupported are reported unsupported
+pass prose: @tomlarkworthy/soundscript: 11 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-tutorial: 60 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-reducer: 1 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-model: 1 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-workers: 1 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-breakout: 1 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-polyglot: 7 md cells, no repository path and no "below"/"above"
+pass prose: @tomlarkworthy/soundscript-spec: 142 md cells, no repository path and no "below"/"above"
+pass cells: 42 lesson cells each in one of 11 listings as its live source (missing []) and on the page as its own cell in edit mode (not shown []); every one that does not check names its rule ([])
+pass cells: every lesson cell has a visible edit bar (without one: [])
+pass cells: values drawn by the language: {"increment":"increment = ƒ action()","setN":"setN = ƒ action(number)","scale":"scale = ƒ (n: number, by: number) => number","Badge":"Badge = ƒ (p: { text: string }) => Elem","app":true}
+pass cells: the first listing ("// A cell is an exported function. Its p") is at y 549 of an 800 px window
+pass breakout: the board is 640 px at 1280, 468 px at 500 after play and pause, 640 px at 1280 again
+pass themes: the default (dark) theme is complete from the file, with no stylesheet requested from the network ([])
+pass themes: the dark and light renders differ (light background rgb(255, 255, 255)); 15 and 15 kinds of text measured
+pass themes: every kind of text reads at 4.5:1 or more; lowest dark 4.91, light 5.21; under 4.5: dark [], light []
+pass themes: switching to air requests only its three stylesheets that the file does not carry: ["abstract-light.css","syntax-light.css","theme-air.css"]
+pass themes: page errors 0
+pass phone: every listing fits its box (clipped [])
+pass phone (390 px): page width 390, elements past the edge [], the Breakout board spans x 16 to 374, diagrams (scroll/client width) 358/358, 358/358
+pass phone: @tomlarkworthy/soundscript-tutorial: 158 variables, 0 in error
+pass phone: the 12 lesson cells rejected on purpose do not run; each raises its checker message
+pass phone: page errors 0
+pass touch (390 px): a tap on play starts the game (true); a drag left moves the paddle from x 160 to 44.80000305175781; the board stays at y 304 -> 304 (window and pane scroll 0,16992,0,0,0 -> 0,17200,0,0,0)
+pass touch: page errors 0
+pass core README: one source listing of tally, bump, reset and doubled (equal to core-example.ts, blank lines aside; 81 coloured spans)
+pass core README: the title, then the cells ["tally = 0","bump = ƒ action()","reset = ƒ action()","doubled = 0"], each with a visible edit bar (without: []), then the counter view ("bump reset tally = 0, doubled = 0")
+pass core README: bump changes tally's line to "tally = 1"
+  CTX created soundscript.html id 3 frame 7EA096E2 file:// after "core README: bump changes tally's line to "tally = 1""
+pass try (first cell): the open editor's header reads "width : number"; the page line "width = 640"
+pass try (first cell): width 800 updates area, aspect, half: {"area":320000,"aspect":"2.00","half":160000,"test_half":"THREW half is 160000"}
+pass try (first cell): after the edit the listing shows the new source and width's line its value: "width = 800"
+pass try (first cell): typing width = "800" says, before Shift-Enter, "applying this breaks 2 cells: area, aspect; blocks 2 cells: half, test_half"; width is still 800
+pass try (first cell): after the breaking edit the editor still has focus (true) and the typed text
+  first cell broken: ["area rejected","aspect rejected","half blocked by area","test_half blocked by half"]; values {"area":"THREW area does not check: [inject-type] width: string is not assignable to number","aspect":"THREW aspect does not check: [type] string used as a number","half":"THREW area does not check: [inject-type] width: string is not assignable to number"}
+pass try (first cell): width "800" is stored; area and aspect are rejected and raise their messages, half is blocked by area: ["area rejected","aspect rejected","half blocked by area","test_half blocked by half"]; ["applying this breaks 2 cells: area, aspect; blocks 2 cells: half, test_half"]
+pass try (first cell): area shows the checker's message as its error, and half shows area's: "area = Error: area does not check: [inject-type] width: string is not assignable to number"; "half = RuntimeError: area does not check: [inject-type] width: string is not ass"
+pass try (first cell): with area and aspect taking a string every cell is ok again, half 160000; count kept 1
+pass try (first cell): the cells outside the broken part did not run again through the break and both repairs: {"height":1,"scale":1,"samples":1,"histogram":1,"count":0,"increment":1,"app":2} -> {"height":1,"scale":1,"samples":1,"histogram":1,"count":0,"increment":1,"app":2}
+pass try (first cell): width back to 640 and area and aspect as they were: every cell ok, area 256000, count 0 -> 1 throughout
+pass try (section 2): doubled with label: string: before "doubledrejectednumber | line 6 [inject-type] label: string is not assignable to numberconst doubled = (label: number) => label * 2;"; after "doubledrejectednumber | line 6 [type] string used as a numberconst doubled = (label: string) => label * 2;"
+pass try (section 3): leak with return freeze(xs) is applied and its row reads ok: "leak ok | leak = \n    \n  Array(4) [1, 2, 3, 4]"
+pass try (section 4): add one counts 1 -> 2; onClick={count} is stored, app's 3 buttons are replaced by "app = Error: app does not check: [type] number is not assignable to Action<[]>; [type] { onClick: number; children: \"add one\"[] } is not assignable to ButtonPro": ["this edit broke 1 cell: app","[type] number is not assignable to Action<[]>","[type] { onClick: number; children: \"add one\"[] } is not assignable to ButtonProps"]
+pass try (section 4): changed back, the 3 buttons return and count is still 2
+  navigated: file:///Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/soundscript.html#open=@tomlarkworthy/soundscript-reducer
+  navigated: file:///Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/soundscript.html#view=S100(@tomlarkworthy/soundscript-tutorial,@tomlarkworthy/soundscript,@tomlarkworthy/soundscript-polyglot,@tomlark
+pass try (section 5): + last is applied and test_undo fails: "THREW undo left 6"; its row on the tutorial: "test_undookstringthrows: undo left 62"
+pass try (section 6): one bump, body runs per cell {"viewof count":0,"bump":0,"doubled":1,"stamped":1,"side":0,"scale":1,"area":1,"areaFn":1,"areaOf4":1,"app":1}; stamped's kind "cell, not memoised"
+pass try (section 7): measure again times both again: {"poolSize":8,"hardware":18,"bands":32,"runs":7,"mainMs":65.5,"poolMs":10.199999988079071,"same":true}
+pass try (section 9): the board's state label at boot, playing, paused, over, new game: ["press play","","press play","game over · press new game","press play"]
+  navigated: file:///Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/soundscript.html#open=@tomlarkworthy/soundscript-breakout
+  navigated: file:///Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/soundscript.html#view=S100(@tomlarkworthy/soundscript-tutorial,@tomlarkworthy/soundscript,@tomlarkworthy/soundscript-polyglot,@tomlark
+pass try (section 9): step edited while playing: world {"score":10,"lives":3,"bricks":23,"y":127.95200000286114} -> {"score":10,"lives":3,"bricks":23,"y":137.55200000286115} -> {"score":10,"lives":3,"bricks":23,"y":153.56800000190748}, 1 listener, 1 clock
+pass try (section 9): the breakout pane draws {"ticks":"ticks = events Events<number>","onTick":"onTick = listener ticks → tick","ball":"type Ball = { readonly x: number; readon","tick":"tick = ƒ action(number)","step":"step = ƒ (w: World, e: Ev) => World","views":["bricksView = <div> element, positioned by its parent","paddleView = <div> element, positioned by its parent","ballView = <div> element, positioned by its parent","app div 286px"]}
+pass try (section 9): playing with the breakout pane open in edit mode, 60 of 60 animation frames saw a new world; runs {"ballView":60,"bricksView":0,"paddleView":0,"onTick":0,"ticks":0} for 0 broken bricks; over false
+measure Breakout playing with its own pane open in edit mode: 60 world changes/s in 60 animation frames/s
+pass try-it page: no module fetched from the network
+pass try-it page: page errors 0
+  try-it page: aborted 2: https://storage.googleapis.com/publicartifacts/blogimages/notebookwebhook.mov https://cdn.jsdelivr.net/npm/@observablehq/highlight.js@2.0.0/async-languages/index.js
+  CTX page closed soundscript.html after "try-it page: page errors 0"
+pass load: the tutorial's title and a checker verdict both render (title, verdict)
+measure load to the tutorial's title rendered: 594 ms
+measure load to the first checker verdict on the page: 594 ms
+pass checker module: its 39 SoundScript cells (31 with values) are ok by ss_check, and each, edited to its own text, checks ok (a type cell: is stored with no problems)
+pass lint: 30 lints of width, each a different edit, against the 42-cell tutorial module ran 30 module checks and 0 cell bodies (want 30 and 0)
+measure one keystroke's lint of width against the 42-cell tutorial module: median 2.7 ms, max 4.3 ms of 30
+pass workers: Mandelbrot in 32 bands: the pool and the main thread give the same bytes (true); 8 of the pool's 8 workers answered jobs ([43,43,42,44,46,45,45,44], 352 in all)
+measure Mandelbrot: main thread 66.0 ms, pool of 8 30.9 ms (medians of 7)
+pass breakout: after a click on play, 90 of 90 animation frames saw a new world; runs {"ballView":90,"bricksView":1,"paddleView":0,"onTick":0,"ticks":0} for 1 broken bricks; over false
+measure Breakout after a click on play: 56.1 world changes/s in 56.1 animation frames/s
+pass typing: 32 keys into half's editor with the tutorial open: the text as typed was linted (true); 1 lints ran 2 module checks (one each, and one of the module as it is), 0 cell bodies ran, redefined []
+measure typing 32 keys into half's editor (40 ms apart): 0 tasks over 50 ms []
+  CTX created soundscript.html id 3 frame B5518882 file:// after "typing: 32 keys into half's editor with the tutorial open: the text as typed was linted (true); 1 lints ran 2 module che"
+pass original: at boot 17 test cells are pending and none ran ([]); listeners attached 2, clocks pulled 0; the page's ballView ran 1 times
+  original: turned on 2 test toggles (362 ms)
+pass original: @tomlarkworthy/soundscript: 92 variables, 0 in error
+pass original: @tomlarkworthy/soundscript#test_ss_roundtrip: 5 variables recompile to the same text and inputs
+pass original: @tomlarkworthy/soundscript#test_ss_example_checks: tally, bump, reset, doubled: ok
+pass original: @tomlarkworthy/soundscript#test_ss_unchanged_source_checks: bump: ok, type Action<[]>
+pass original: @tomlarkworthy/soundscript#test_ss_wrong_type_is_stored_and_rejected: stored; bump raises "bump does not check: [inject-state] tally is not a state cell of State<string>"; repaired, it is an action again
+pass original: @tomlarkworthy/soundscript#test_ss_breaking_edit_names_its_cells: applying this breaks 3 cells: bump, reset, doubled
+pass original: @tomlarkworthy/soundscript#test_ss_copy_keeps_its_name: bump_copy recompiles as bump_copy; one bump
+pass original: @tomlarkworthy/soundscript#test_ss_failed_apply_changes_nothing: the injected fault "injected fault after the edited cell was defined" left the module as it was
+pass original: @tomlarkworthy/soundscript#test_ss_edits_do_not_grow_the_memo: 200 edits of doubled: only the last one's memo entry is kept
+pass original: @tomlarkworthy/soundscript#test_ss_instance_keeps_user_ids: tagged keeps id "anon"; its memo id 0xq9qg70rxq7ro became 0xq9qg70rxq7ro_mjmuj9
+pass original: @tomlarkworthy/soundscript#test_ss_ref_handle: 0 -> 1 -> 0
+pass original: @tomlarkworthy/soundscript#ss_registration: ok
+pass original: @tomlarkworthy/soundscript-tutorial: 158 variables, 0 in error
+pass original: @tomlarkworthy/soundscript-tutorial#test_shop_total: shopTotal 9 at price 3
+pass original: @tomlarkworthy/soundscript-tutorial#test_ss_roundtrip: 47 variables recompile to the same text and inputs
+pass original: @tomlarkworthy/soundscript-tutorial#test_ss_module_checks: 41 cells: leak, late and the ten bad_* rejected, the rest ok
+pass original: @tomlarkworthy/soundscript-tutorial#test_ss_counter: 0 -> 1, saved 1 -> 0
+pass original: @tomlarkworthy/soundscript-tutorial#test_half: ok
+pass original: @tomlarkworthy/soundscript-tutorial#test_async_click: the click started measureWord; it waited for the answer with wordSize 0, then wrote 11
+pass original: @tomlarkworthy/soundscript-tutorial#test_examples_check_as_expected: {"cells":[7,0],"errors":[8,5],"mut":[4,2],"counter":[6,0],"reducer":[10,0],"model":[10,0],"workers":[13,0],"rejectJsx":[17,11],"game":[21,0]}
+pass original: @tomlarkworthy/soundscript-tutorial#test_compile_pool_matches_main: 1075200 bytes from 32 pool calls equal one main-thread call
+pass original: @tomlarkworthy/soundscript-tutorial#test_compile_refuses_unchecked: compile refused: inPool, rows not ok by the checker
+pass original: @tomlarkworthy/soundscript-tutorial#test_breakout_listener: play: the clock runs and the ball moved 180 -> 158.6; pause: it stops and the world stays the same object; ticks ran twice, onTick not at all
+pass original: @tomlarkworthy/soundscript-tutorial#test_breakout_memo: {"frames":92,"worldChanges":90,"broken":1,"runs":{"ballView":91,"bricksView":1,"paddleView":0,"status":91,"app":92,"ticks":2,"onTick":0},"domMutations":{"characterData":3,"attr style":90,"childList":1}}
+pass original: @tomlarkworthy/soundscript-tutorial#benchmark: {"poolSize":8,"hardware":18,"bands":32,"runs":7,"mainMs":66.5,"poolMs":37,"same":true}
+pass original: the 12 lesson cells rejected on purpose do not run; each raises its checker message
+pass original: the counter tests ran on copies; the page's count 2 -> 2, tally 3 -> 3
+pass original: after the tests, the page's Breakout is as it booted: ballView ran 1 times, ball at y 180, 0 clocks pulled
+pass original: @tomlarkworthy/soundscript-reducer: 23 variables, 0 in error
+pass original: @tomlarkworthy/soundscript-reducer#test_undo: ok
+pass original: @tomlarkworthy/soundscript-model: 25 variables, 0 in error
+pass original: @tomlarkworthy/soundscript-model#areaOf4: 16
+pass original: @tomlarkworthy/soundscript-workers: 29 variables, 0 in error
+pass original: @tomlarkworthy/soundscript-workers#image: ok
+pass original: @tomlarkworthy/soundscript-breakout: 38 variables, 0 in error
+pass original: @tomlarkworthy/soundscript-breakout#test_replay: 3 bricks in 600 frames, score 30, lives 3
+pass original: @tomlarkworthy/soundscript-polyglot: 25 variables, 0 in error
+pass original: @tomlarkworthy/soundscript-polyglot#summary: ok
+pass original: @tomlarkworthy/soundscript-polyglot#test_polyglot_listing: the listing has the SoundScript and raw cells and leaves out viewof height and summary
+pass original: @tomlarkworthy/soundscript-polyglot#test_polyglot_fromRaw: fromRaw is 13, area + 1
+FAIL original: @tomlarkworthy/soundscript-spec: 224 variables, 1 in error
+    test_spec_S6_17: gave 110, expected 10
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S1_1: 7 forms check as cells; the live cells give [1,2,4,1,4]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S1_2: the same cells with and without export (a:ok,c:ok); s1_exported is 5
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S1_3: type, interface and import type are accepted and are not cells
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S1_4: 2 source(s) give exactly [module-level]; var, class, enum and namespace give their own rules
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S1_5: 3 source(s) give exactly [cell-not-function]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S1_6: 1 source(s) give exactly [duplicate-cell]; b reads the first a; an edit naming s1_arrow is stored as s1_arrow (2), rejected
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S1_6_first_deleted: dupa (2) became dupa, with value 2, once the first dupa was deleted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S1_7: 1 source(s) give exactly [duplicate-cell]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S1_8: one statement, two cells
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S1_9: 2 source(s) give exactly [cycle]; both cells of a two-cell cycle are rejected
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S2_1: 1 source(s) give exactly [inject-unknown]; a function-valued cell is two arrows; s2_answer is 42
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S2_2: 3 source(s) give exactly [inject-pattern]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S2_3: 1 source(s) give exactly [inject-type]; an unannotated input and a wider annotation are accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S2_4: 3 source(s) give exactly [inject-type]; s2_read gets [43,"tea",3]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S2_5: 1 source(s) give exactly [inject-type]; every capability is accepted, annotated or not
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S2_6: 7 source(s) give exactly [free-name]; 41 intrinsics and the prelude functions accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S2_7: 10 source(s) give exactly [banned-member, no-member]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S2_8: 2 source(s) give exactly [cell-by-name]; a local named like a cell is the local (s2_shadow is 2)
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S2_9: 7 source(s) give exactly [type, untyped-parameter, arity, excess-property, possibly-undefined, const-assign]; a callback parameter typed by map, and a value narrowed by a check for undefined, are accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S3_1: 7 source(s) give exactly [member-write]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S3_2: 16 source(s) give exactly [mutating-method]; the copying methods are accepted; s3_sorted is [1,2,3]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S3_3: 1 source(s) give exactly [object-assign]; s3_moved is a new point, s3_point is unchanged
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S3_4: 1 source(s) give exactly [no-delete]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S3_5: 5 source(s) give exactly [no-var, no-class, no-this, no-arguments]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S3_6: 2 source(s) give exactly [new-non-intrinsic]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S3_7: 7 source(s) give exactly [no-any, no-cast, no-non-null, no-ts-ignore]; as const is accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S3_8: 1 source(s) give exactly [no-dynamic-import]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S3_9: 5 source(s) give exactly [no-enum, no-namespace]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S3_10: statements accepted; s3_steps is -6
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S3_11: 5 source(s) give exactly [let-capture]; helpers only called may assign; s3_tree is [1,[2,30],[]]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S3_12: 3 source(s) give exactly [strict-eq-object]; equals compares structurally (s3_same is [true,false])
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S4_1: writes, mutating methods and delete on a Mut are accepted; s4_blur is [0,1,1,1,0], s4_record {"b":3}
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S4_2: 3 source(s) give exactly [mut-bind]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S4_3: 2 source(s) give exactly [mut-not-fresh]; literals, spreads, new and fresh intrinsics are accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S4_4: 6 source(s) give exactly [mut-escape]; a Mut<…> parameter and a read by JSON.stringify are accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S4_5: 2 source(s) give exactly [mut-capture]; a helper that is only called may use the Mut; s4_counts is [2,1]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S4_6: 2 source(s) give exactly [mut-after-freeze]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S4_7: 1 source(s) give exactly [mut-deep-write]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S4_8: 2 source(s) give exactly [mut-view]; a view consumed at once as an argument is accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S4_9: 1 source(s) give exactly [mut-freeze-param]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S5_1: 2 source(s) give exactly [borrow-placement]; a sync and an async generator may yield borrow
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S5_2: 2 source(s) give exactly [inject-type, member-write]; Borrowed<Float32Array> and no annotation are accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S5_3: 6 source(s) give exactly [borrowed-escape]; reads during the evaluation are accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S5_4: 1 source(s) give exactly [borrowed-await]; a value read before the await is kept (s5_first is 3)
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S5_5: 1 source(s) give exactly [type]; a copy of an early frame is unchanged after the last; s5_kept is [3,6,9], s5_total 18
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_1: 5 source(s) give exactly [state-placement]; a state cell's readers get its content (s6_label, run on its own, is "count: 0")
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_2: a write is kept (n=5) until the input changes; then the state cell is made again from it (n=20), once
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_3: 3 source(s) give exactly [inject-state]; a write runs label again once, and neither increment nor the state cell
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_4: 2 source(s) give exactly [no-member, type]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_5: 3 source(s) give exactly [state-write]; at run time: State count: set/update called outside an action
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_6: 2 source(s) give exactly [action-call, action-pass]; an Action returned, in a record, in an array, or called in an action is accepted; Action<[number]> taken as Action<[string]> is [inject-type]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_7: 6 source(s) give exactly [state-in-state]; nested records, arrays and unions with no State are accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_8: 1 source(s) give exactly [read-outside-action]; copy sees the write made before it in the same call ([1,2]); s6_controls holds s6_increment and s6_bumpThenCopy, which this test does not call, so the page's own counts stay at 0; read outside an action throws: read(count) called outside an action
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_9: 6 source(s) give exactly [action-capture]; a cell with no state, log, invalidation and the action's argument are accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_10: a throwing call keeps none of its writes or its callees' (transfer, wraps); a callee that throws inside a call that catches it keeps its writes (failing's r is 2); an earlier call's write stays; an update that throws throws at the call; calls apply in order (s is 19)
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_11: the holder of n's State is blocked when an input threw, when n does not check (n does not check: [type] "x" is not assignable to number) and when it is not defined (viewof n is not defined); a State taken before n was made again writes the new n
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_12: an async action, one returning a promise and one using Promise.all check; viaAwait and then viaThen leave n at (1 + 4) * 3
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_13: slow started at once; tag(1) and tag(2) waited and ran after it, in call order (x is 312)
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_14: while the call waits nothing is committed; then a and b commit together, pair runs once, and read(a) after the await saw the call's own write (b is 11)
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_15: outer awaited inner and returned; the call committed x = (0 + 1) * 10 without waiting for later, which it did not await; later's write after the commit threw outside an action, as an unhandled rejection
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_15_rejects: inner rejected: not awaited, the call committed x 1 and inner's y 5 when detached returned, and the rejection reached the host unhandled; awaited without catch, the call kept none of its writes and was reported once; awaited and caught, the call went on and kept x 2
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S6_16: bad, started at once, threw to its caller; bad queued after slow, and late's rejection, were reported naming the action; neither kept its write (x is 5)
+FAIL original: @tomlarkworthy/soundscript-spec#test_spec_S6_17: gave 110, expected 10
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S7_1: 3 source(s) give exactly [inject-events]; a handle may also be taken by a cell that is not a listener
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S7_2: 1 source(s) give exactly [type]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S7_3: 9 source(s) give exactly [listener-placement]; a conditional of two listeners is accepted; s7_seen is [1,2,3]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S7_4: 60 values, each once in order; after two edits 40 values with none lost or delivered twice; deleted, it delivers nothing
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S7_5: stopped at 15; started again from 1; nums ran twice more and kept its handle (onNum ran 1 more times)
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S7_6: 6 of 60 calls threw and kept nothing; the rest were delivered (count 54, last 59); "listener onNum: action record threw on a value of events nums: no 10"
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S7_7: zeta (placed first), then alpha, on each of 25 beats, 13 of them after zeta was edited
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S8_1: an edit naming no cell is not stored; an unparsable one, an exported one and one after a comment are
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S8_2: area and aspect are rejected by their own checks when width became a string; half is blocked by area; tall does not parse and is rejected; w uses with and is rejected: w does not check: [unsupported] intrinsic member Array.with
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S8_3: a rejected body never ran and is kept as source; area raises its message and half fails with it; an unparsable edit raises [parse] while the rest run, and an edit repairs it
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S8_4: broken and repaired in three edits; height, tall, label and count did not run again, and count kept 1
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S8_5: fromSq, blocked by sq, kept 26 when base came back as 5 and started again at 36 from 6; own and seeded, rejected, started again
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S8_6: nothing delivered while add was rejected (count held at 32); after the repair one listener, 13 calls for 13 values; 7 call(s) from the start of the edit to its end, sum 32
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S8_7: the island x, y runs (y is 42) beside an unparsable cell; compile refused: z not ok by the checker
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S9_1: 3 source(s) give exactly [inject-type, no-any]; no annotation, unknown and Js are accepted, and an unannotated input is unknown (raw + 1 is [type])
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S9_2: a decoder narrowing with typeof, in and Array.isArray is accepted; s9_size is {w:3,h:1.5}, without extra
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S9_3: unmarked: [foreign-unmarked]; an effect foreign taken: [foreign-effect]; a pure one, and one named like a global, accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S10_1: 1 source(s) give exactly [free-name]; a test takes what it tests as a parameter
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S10_2: test_ok resolves; test_fails throws and test_later rejects; test_s10_double passes
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S11_1: 1 source(s) give exactly [inject-unknown]; a capability and a SoundScript cell named like another variable win; s11_area reads the raw s11_raw_area
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S11_2: 1 source(s) give exactly [boundary-unannotated]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S11_3: 5 source(s) give exactly [boundary-type]; primitives, literals, unknown, tuples, optional properties and unions are accepted
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S11_4: rows[1].price: expected number, found string "12"
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S11_5: a frozen copy with the declared properties; unknown copied whole; f: expected data, found a function
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S11_6: changed in place: seen; equal again: not run again
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S11_7: 2 source(s) give exactly [boundary-state]; s11_bump takes viewof s11_level as State<number> through an input on it, s11_shown its value; add, in another module, takes the imported state cell count as State<number> through its imported viewof count and writes it (5)
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S11_8: the control's change reaches the State; a write sets the control and dispatches one input; set(99) holds 10
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S11_8_object: the control's change: one input event, len 3; clear: one more input event, the control holds [], len 0
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S11_9: 2 source(s) give exactly [action-capture]
+pass original: @tomlarkworthy/soundscript-spec#test_spec_S11_10: rejected; 42 once s11_late was added; rejected once it was renamed; 42 when renamed back; rejected once it was deleted
+pass original: @tomlarkworthy/raw-cells: 36 variables, 0 in error
+pass original: @tomlarkworthy/raw-cells#test_raw_roundtrip: 6 sources decompile to themselves
+pass original: @tomlarkworthy/raw-cells#test_raw_broken_keeps_text: Unexpected token (1:41) | a raw cell cannot hold </script: the saved notebook keeps each module in a script element
+pass original: @tomlarkworthy/raw-cells#test_raw_lint: warning: the function takes 0 parameters and the cell has 1 input | error: no_such_cell_here names no cell of this module, builtin or global | error: Unexpected token (1:18) | error: raw_mark is another cell of this module; Shift-Enter does not save this | zzz_typo names no cell of this module, builtin or global
+pass original: @tomlarkworthy/raw-cells#test_raw_complete: 75 names offered inside the inputs array
+pass original: @tomlarkworthy/raw-cells#raw_registration: ok
+pass original: editor-5 test_e5_language_hook: ok tagged cells and claimed sources route to the registered language; an unloaded tag or a marked compiled text is never saved
+pass original: one ss_registration variable (1); the tutorial's import of the core is the main module (true)
+pass original: live counter click: output 2 -> 3
+pass original: save stores read(count): "saved 3" after a click at 3, "saved 3" after one more add
+pass original: increment opens as typed SoundScript source: "// A parameter typed State<number> receives the reference, not the value, and is not a dependency.\n// Writes are legal only inside action(...).\nconst increment = (count: State<number>) => action(() => count.update((c) => c + 1));"
+pass original: unchanged save redefines increment with the same text and pid, one variable (true,true,true,true)
+pass original: count: State<string> shows a diagnostic: ["this edit broke 1 cell: increment; blocked 1 cell: app","[inject-state] count is not a state cell of State<string>"]
+pass original: the rejected save is stored as typed and increment raises the checker's message (true,true,true): "increment does not check: [inject-state] count is not a state cell of State<string>"
+pass original: typing the original back repairs increment: the same compiled text, a value again (true,true)
+pass after the unchanged save: live counter click: output 4 -> 5
+pass after the unchanged save: save stores read(count): "saved 5" after a click at 5, "saved 5" after one more add
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial: 158 variables, 0 in error
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial#test_shop_total: shopTotal 9 at price 3
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial#test_ss_roundtrip: 47 variables recompile to the same text and inputs
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial#test_ss_module_checks: 41 cells: leak, late and the ten bad_* rejected, the rest ok
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial#test_ss_counter: 0 -> 1, saved 1 -> 0
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial#test_half: ok
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial#test_async_click: the click started measureWord; it waited for the answer with wordSize 0, then wrote 11
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial#test_examples_check_as_expected: {"cells":[7,0],"errors":[8,5],"mut":[4,2],"counter":[6,0],"reducer":[10,0],"model":[10,0],"workers":[13,0],"rejectJsx":[17,11],"game":[21,0]}
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial#test_compile_pool_matches_main: 1075200 bytes from 32 pool calls equal one main-thread call
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial#test_compile_refuses_unchecked: compile refused: inPool, rows not ok by the checker
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial#test_breakout_listener: play: the clock runs and the ball moved 180 -> 158.6; pause: it stops and the world stays the same object; ticks ran twice, onTick not at all
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial#test_breakout_memo: {"frames":92,"worldChanges":90,"broken":1,"runs":{"ballView":91,"bricksView":1,"paddleView":0,"status":91,"app":92,"ticks":2,"onTick":0},"domMutations":{"characterData":3,"attr style":90,"childList":1}}
+pass after the unchanged save: @tomlarkworthy/soundscript-tutorial#benchmark: {"poolSize":8,"hardware":18,"bands":32,"runs":7,"mainMs":66.5,"poolMs":37,"same":true}
+pass after the unchanged save: the 12 lesson cells rejected on purpose do not run; each raises its checker message
+pass editor: a new cell is applied as SoundScript after its anchor: {"back":"const tripled = (width: number) => width * 3;","value":1920,"afterAnchor":true,"held":true}
+pass export: @tomlarkworthy/soundscript: 5 SoundScript definition lines, identical to the original file's 5
+pass export: @tomlarkworthy/soundscript-tutorial: 43 SoundScript definition lines, identical to the original file's 43
+pass export: @tomlarkworthy/soundscript-reducer: 12 SoundScript definition lines, identical to the original file's 12
+pass export: @tomlarkworthy/soundscript-model: 10 SoundScript definition lines, identical to the original file's 10
+pass export: @tomlarkworthy/soundscript-workers: 13 SoundScript definition lines, identical to the original file's 13
+pass export: @tomlarkworthy/soundscript-breakout: 25 SoundScript definition lines, identical to the original file's 25
+pass export: @tomlarkworthy/soundscript-polyglot: 3 SoundScript definition lines, identical to the original file's 3
+pass export: the type comments are in the exported module
+pass export: the export has the built file's 100 block ids
+pass export: @tomlarkworthy/soundscript-polyglot: 3 raw definition lines, identical to the original file's 3
+pass disposing a playing copy of the game stops its clock and its listener: playing {"listeners":1,"pulled":1,"moved":true}, disposed {"listeners":0,"pulled":0,"vars":3}
+pass deleting onTick while playing stops the clock: clocks pulled +1 -> +0, listeners -1, world unchanged true
+pass original page: no module fetched from the network
+pass original page: page errors 0
+  original page: aborted 2: https://storage.googleapis.com/publicartifacts/blogimages/notebookwebhook.mov https://cdn.jsdelivr.net/npm/@observablehq/highlight.js@2.0.0/async-languages/index.js
+  CTX page closed soundscript.html after "original page: page errors 0"
+  CTX created export-1.html id 3 frame D5C050AC file:// after "original page: page errors 0"
+pass reopened export: at boot 17 test cells are pending and none ran ([]); listeners attached 2, clocks pulled 0; the page's ballView ran 1 times
+  reopened export: turned on 2 test toggles (378 ms)
+pass reopened export: @tomlarkworthy/soundscript: 92 variables, 0 in error
+pass reopened export: @tomlarkworthy/soundscript#test_ss_roundtrip: 5 variables recompile to the same text and inputs
+pass reopened export: @tomlarkworthy/soundscript#test_ss_example_checks: tally, bump, reset, doubled: ok
+pass reopened export: @tomlarkworthy/soundscript#test_ss_unchanged_source_checks: bump: ok, type Action<[]>
+pass reopened export: @tomlarkworthy/soundscript#test_ss_wrong_type_is_stored_and_rejected: stored; bump raises "bump does not check: [inject-state] tally is not a state cell of State<string>"; repaired, it is an action again
+pass reopened export: @tomlarkworthy/soundscript#test_ss_breaking_edit_names_its_cells: applying this breaks 3 cells: bump, reset, doubled
+pass reopened export: @tomlarkworthy/soundscript#test_ss_copy_keeps_its_name: bump_copy recompiles as bump_copy; one bump
+pass reopened export: @tomlarkworthy/soundscript#test_ss_failed_apply_changes_nothing: the injected fault "injected fault after the edited cell was defined" left the module as it was
+pass reopened export: @tomlarkworthy/soundscript#test_ss_edits_do_not_grow_the_memo: 200 edits of doubled: only the last one's memo entry is kept
+pass reopened export: @tomlarkworthy/soundscript#test_ss_instance_keeps_user_ids: tagged keeps id "anon"; its memo id 0xq9qg70rxq7ro became 0xq9qg70rxq7ro_srlg17
+pass reopened export: @tomlarkworthy/soundscript#test_ss_ref_handle: 0 -> 1 -> 0
+pass reopened export: @tomlarkworthy/soundscript#ss_registration: ok
+pass reopened export: @tomlarkworthy/soundscript-tutorial: 158 variables, 0 in error
+pass reopened export: @tomlarkworthy/soundscript-tutorial#test_shop_total: shopTotal 9 at price 3
+pass reopened export: @tomlarkworthy/soundscript-tutorial#test_ss_roundtrip: 47 variables recompile to the same text and inputs
+pass reopened export: @tomlarkworthy/soundscript-tutorial#test_ss_module_checks: 41 cells: leak, late and the ten bad_* rejected, the rest ok
+pass reopened export: @tomlarkworthy/soundscript-tutorial#test_ss_counter: 0 -> 1, saved 1 -> 0
+pass reopened export: @tomlarkworthy/soundscript-tutorial#test_half: ok
+pass reopened export: @tomlarkworthy/soundscript-tutorial#test_async_click: the click started measureWord; it waited for the answer with wordSize 0, then wrote 11
+pass reopened export: @tomlarkworthy/soundscript-tutorial#test_examples_check_as_expected: {"cells":[7,0],"errors":[8,5],"mut":[4,2],"counter":[6,0],"reducer":[10,0],"model":[10,0],"workers":[13,0],"rejectJsx":[17,11],"game":[21,0]}
+pass reopened export: @tomlarkworthy/soundscript-tutorial#test_compile_pool_matches_main: 1075200 bytes from 32 pool calls equal one main-thread call
+pass reopened export: @tomlarkworthy/soundscript-tutorial#test_compile_refuses_unchecked: compile refused: inPool, rows not ok by the checker
+pass reopened export: @tomlarkworthy/soundscript-tutorial#test_breakout_listener: play: the clock runs and the ball moved 180 -> 157.1; pause: it stops and the world stays the same object; ticks ran twice, onTick not at all
+pass reopened export: @tomlarkworthy/soundscript-tutorial#test_breakout_memo: {"frames":92,"worldChanges":90,"broken":1,"runs":{"ballView":91,"bricksView":1,"paddleView":0,"status":91,"app":92,"ticks":2,"onTick":0},"domMutations":{"characterData":3,"attr style":90,"childList":1}}
+pass reopened export: @tomlarkworthy/soundscript-tutorial#benchmark: {"poolSize":8,"hardware":18,"bands":32,"runs":7,"mainMs":66.90000000596046,"poolMs":40.400000005960464,"same":true}
+pass reopened export: the 12 lesson cells rejected on purpose do not run; each raises its checker message
+pass reopened export: @tomlarkworthy/soundscript-reducer: 23 variables, 0 in error
+pass reopened export: @tomlarkworthy/soundscript-reducer#test_undo: ok
+pass reopened export: @tomlarkworthy/soundscript-model: 25 variables, 0 in error
+pass reopened export: @tomlarkworthy/soundscript-model#areaOf4: 16
+pass reopened export: @tomlarkworthy/soundscript-workers: 29 variables, 0 in error
+pass reopened export: @tomlarkworthy/soundscript-workers#image: ok
+pass reopened export: @tomlarkworthy/soundscript-breakout: 38 variables, 0 in error
+pass reopened export: @tomlarkworthy/soundscript-breakout#test_replay: 3 bricks in 600 frames, score 30, lives 3
+pass reopened export: @tomlarkworthy/soundscript-polyglot: 25 variables, 0 in error
+pass reopened export: @tomlarkworthy/soundscript-polyglot#summary: ok
+pass reopened export: @tomlarkworthy/soundscript-polyglot#test_polyglot_listing: the listing has the SoundScript and raw cells and leaves out viewof height and summary
+pass reopened export: @tomlarkworthy/soundscript-polyglot#test_polyglot_fromRaw: fromRaw is 13, area + 1
+FAIL reopened export: @tomlarkworthy/soundscript-spec: 224 variables, 1 in error
+    test_spec_S6_17: gave 110, expected 10
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S1_1: 7 forms check as cells; the live cells give [1,2,4,1,4]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S1_2: the same cells with and without export (a:ok,c:ok); s1_exported is 5
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S1_3: type, interface and import type are accepted and are not cells
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S1_4: 2 source(s) give exactly [module-level]; var, class, enum and namespace give their own rules
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S1_5: 3 source(s) give exactly [cell-not-function]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S1_6: 1 source(s) give exactly [duplicate-cell]; b reads the first a; an edit naming s1_arrow is stored as s1_arrow (2), rejected
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S1_6_first_deleted: dupa (2) became dupa, with value 2, once the first dupa was deleted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S1_7: 1 source(s) give exactly [duplicate-cell]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S1_8: one statement, two cells
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S1_9: 2 source(s) give exactly [cycle]; both cells of a two-cell cycle are rejected
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S2_1: 1 source(s) give exactly [inject-unknown]; a function-valued cell is two arrows; s2_answer is 42
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S2_2: 3 source(s) give exactly [inject-pattern]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S2_3: 1 source(s) give exactly [inject-type]; an unannotated input and a wider annotation are accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S2_4: 3 source(s) give exactly [inject-type]; s2_read gets [43,"tea",3]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S2_5: 1 source(s) give exactly [inject-type]; every capability is accepted, annotated or not
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S2_6: 7 source(s) give exactly [free-name]; 41 intrinsics and the prelude functions accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S2_7: 10 source(s) give exactly [banned-member, no-member]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S2_8: 2 source(s) give exactly [cell-by-name]; a local named like a cell is the local (s2_shadow is 2)
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S2_9: 7 source(s) give exactly [type, untyped-parameter, arity, excess-property, possibly-undefined, const-assign]; a callback parameter typed by map, and a value narrowed by a check for undefined, are accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S3_1: 7 source(s) give exactly [member-write]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S3_2: 16 source(s) give exactly [mutating-method]; the copying methods are accepted; s3_sorted is [1,2,3]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S3_3: 1 source(s) give exactly [object-assign]; s3_moved is a new point, s3_point is unchanged
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S3_4: 1 source(s) give exactly [no-delete]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S3_5: 5 source(s) give exactly [no-var, no-class, no-this, no-arguments]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S3_6: 2 source(s) give exactly [new-non-intrinsic]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S3_7: 7 source(s) give exactly [no-any, no-cast, no-non-null, no-ts-ignore]; as const is accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S3_8: 1 source(s) give exactly [no-dynamic-import]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S3_9: 5 source(s) give exactly [no-enum, no-namespace]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S3_10: statements accepted; s3_steps is -6
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S3_11: 5 source(s) give exactly [let-capture]; helpers only called may assign; s3_tree is [1,[2,30],[]]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S3_12: 3 source(s) give exactly [strict-eq-object]; equals compares structurally (s3_same is [true,false])
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S4_1: writes, mutating methods and delete on a Mut are accepted; s4_blur is [0,1,1,1,0], s4_record {"b":3}
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S4_2: 3 source(s) give exactly [mut-bind]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S4_3: 2 source(s) give exactly [mut-not-fresh]; literals, spreads, new and fresh intrinsics are accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S4_4: 6 source(s) give exactly [mut-escape]; a Mut<…> parameter and a read by JSON.stringify are accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S4_5: 2 source(s) give exactly [mut-capture]; a helper that is only called may use the Mut; s4_counts is [2,1]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S4_6: 2 source(s) give exactly [mut-after-freeze]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S4_7: 1 source(s) give exactly [mut-deep-write]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S4_8: 2 source(s) give exactly [mut-view]; a view consumed at once as an argument is accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S4_9: 1 source(s) give exactly [mut-freeze-param]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S5_1: 2 source(s) give exactly [borrow-placement]; a sync and an async generator may yield borrow
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S5_2: 2 source(s) give exactly [inject-type, member-write]; Borrowed<Float32Array> and no annotation are accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S5_3: 6 source(s) give exactly [borrowed-escape]; reads during the evaluation are accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S5_4: 1 source(s) give exactly [borrowed-await]; a value read before the await is kept (s5_first is 3)
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S5_5: 1 source(s) give exactly [type]; a copy of an early frame is unchanged after the last; s5_kept is [3,6,9], s5_total 18
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_1: 5 source(s) give exactly [state-placement]; a state cell's readers get its content (s6_label, run on its own, is "count: 0")
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_2: a write is kept (n=5) until the input changes; then the state cell is made again from it (n=20), once
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_3: 3 source(s) give exactly [inject-state]; a write runs label again once, and neither increment nor the state cell
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_4: 2 source(s) give exactly [no-member, type]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_5: 3 source(s) give exactly [state-write]; at run time: State count: set/update called outside an action
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_6: 2 source(s) give exactly [action-call, action-pass]; an Action returned, in a record, in an array, or called in an action is accepted; Action<[number]> taken as Action<[string]> is [inject-type]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_7: 6 source(s) give exactly [state-in-state]; nested records, arrays and unions with no State are accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_8: 1 source(s) give exactly [read-outside-action]; copy sees the write made before it in the same call ([1,2]); s6_controls holds s6_increment and s6_bumpThenCopy, which this test does not call, so the page's own counts stay at 0; read outside an action throws: read(count) called outside an action
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_9: 6 source(s) give exactly [action-capture]; a cell with no state, log, invalidation and the action's argument are accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_10: a throwing call keeps none of its writes or its callees' (transfer, wraps); a callee that throws inside a call that catches it keeps its writes (failing's r is 2); an earlier call's write stays; an update that throws throws at the call; calls apply in order (s is 19)
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_11: the holder of n's State is blocked when an input threw, when n does not check (n does not check: [type] "x" is not assignable to number) and when it is not defined (viewof n is not defined); a State taken before n was made again writes the new n
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_12: an async action, one returning a promise and one using Promise.all check; viaAwait and then viaThen leave n at (1 + 4) * 3
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_13: slow started at once; tag(1) and tag(2) waited and ran after it, in call order (x is 312)
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_14: while the call waits nothing is committed; then a and b commit together, pair runs once, and read(a) after the await saw the call's own write (b is 11)
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_15: outer awaited inner and returned; the call committed x = (0 + 1) * 10 without waiting for later, which it did not await; later's write after the commit threw outside an action, as an unhandled rejection
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_15_rejects: inner rejected: not awaited, the call committed x 1 and inner's y 5 when detached returned, and the rejection reached the host unhandled; awaited without catch, the call kept none of its writes and was reported once; awaited and caught, the call went on and kept x 2
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_16: bad, started at once, threw to its caller; bad queued after slow, and late's rejection, were reported naming the action; neither kept its write (x is 5)
+FAIL reopened export: @tomlarkworthy/soundscript-spec#test_spec_S6_17: gave 110, expected 10
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S7_1: 3 source(s) give exactly [inject-events]; a handle may also be taken by a cell that is not a listener
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S7_2: 1 source(s) give exactly [type]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S7_3: 9 source(s) give exactly [listener-placement]; a conditional of two listeners is accepted; s7_seen is [1,2,3]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S7_4: 60 values, each once in order; after two edits 39 values with none lost or delivered twice; deleted, it delivers nothing
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S7_5: stopped at 15; started again from 1; nums ran twice more and kept its handle (onNum ran 1 more times)
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S7_6: 6 of 60 calls threw and kept nothing; the rest were delivered (count 54, last 59); "listener onNum: action record threw on a value of events nums: no 10"
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S7_7: zeta (placed first), then alpha, on each of 28 beats, 13 of them after zeta was edited
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S8_1: an edit naming no cell is not stored; an unparsable one, an exported one and one after a comment are
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S8_2: area and aspect are rejected by their own checks when width became a string; half is blocked by area; tall does not parse and is rejected; w uses with and is rejected: w does not check: [unsupported] intrinsic member Array.with
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S8_3: a rejected body never ran and is kept as source; area raises its message and half fails with it; an unparsable edit raises [parse] while the rest run, and an edit repairs it
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S8_4: broken and repaired in three edits; height, tall, label and count did not run again, and count kept 1
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S8_5: fromSq, blocked by sq, kept 26 when base came back as 5 and started again at 36 from 6; own and seeded, rejected, started again
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S8_6: nothing delivered while add was rejected (count held at 27); after the repair one listener, 13 calls for 13 values; 12 call(s) from the start of the edit to its end, sum 27
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S8_7: the island x, y runs (y is 42) beside an unparsable cell; compile refused: z not ok by the checker
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S9_1: 3 source(s) give exactly [inject-type, no-any]; no annotation, unknown and Js are accepted, and an unannotated input is unknown (raw + 1 is [type])
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S9_2: a decoder narrowing with typeof, in and Array.isArray is accepted; s9_size is {w:3,h:1.5}, without extra
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S9_3: unmarked: [foreign-unmarked]; an effect foreign taken: [foreign-effect]; a pure one, and one named like a global, accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S10_1: 1 source(s) give exactly [free-name]; a test takes what it tests as a parameter
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S10_2: test_ok resolves; test_fails throws and test_later rejects; test_s10_double passes
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S11_1: 1 source(s) give exactly [inject-unknown]; a capability and a SoundScript cell named like another variable win; s11_area reads the raw s11_raw_area
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S11_2: 1 source(s) give exactly [boundary-unannotated]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S11_3: 5 source(s) give exactly [boundary-type]; primitives, literals, unknown, tuples, optional properties and unions are accepted
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S11_4: rows[1].price: expected number, found string "12"
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S11_5: a frozen copy with the declared properties; unknown copied whole; f: expected data, found a function
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S11_6: changed in place: seen; equal again: not run again
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S11_7: 2 source(s) give exactly [boundary-state]; s11_bump takes viewof s11_level as State<number> through an input on it, s11_shown its value; add, in another module, takes the imported state cell count as State<number> through its imported viewof count and writes it (5)
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S11_8: the control's change reaches the State; a write sets the control and dispatches one input; set(99) holds 10
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S11_8_object: the control's change: one input event, len 3; clear: one more input event, the control holds [], len 0
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S11_9: 2 source(s) give exactly [action-capture]
+pass reopened export: @tomlarkworthy/soundscript-spec#test_spec_S11_10: rejected; 42 once s11_late was added; rejected once it was renamed; 42 when renamed back; rejected once it was deleted
+pass reopened export: @tomlarkworthy/raw-cells: 36 variables, 0 in error
+pass reopened export: @tomlarkworthy/raw-cells#test_raw_roundtrip: 6 sources decompile to themselves
+pass reopened export: @tomlarkworthy/raw-cells#test_raw_broken_keeps_text: Unexpected token (1:41) | a raw cell cannot hold </script: the saved notebook keeps each module in a script element
+pass reopened export: @tomlarkworthy/raw-cells#test_raw_lint: warning: the function takes 0 parameters and the cell has 1 input | error: no_such_cell_here names no cell of this module, builtin or global | error: Unexpected token (1:18) | error: raw_mark is another cell of this module; Shift-Enter does not save this | zzz_typo names no cell of this module, builtin or global
+pass reopened export: @tomlarkworthy/raw-cells#test_raw_complete: 74 names offered inside the inputs array
+pass reopened export: @tomlarkworthy/raw-cells#raw_registration: ok
+pass export: @tomlarkworthy/soundscript-polyglot: 3 raw definition lines, identical to the original file's 3
+pass reopened export: the three raw cells decompile to the same sources and are still raw
+pass reopened export: editor-5 test_e5_language_hook: ok tagged cells and claimed sources route to the registered language; an unloaded tag or a marked compiled text is never saved
+pass reopened export: live counter click: output 0 -> 1
+pass reopened export: save stores read(count): "saved 1" after a click at 1, "saved 1" after one more add
+pass reopened export: the tutorial's SoundScript source decompiles to the same 5328 chars
+pass second export: the @tomlarkworthy/soundscript block equals the first export's
+pass second export: the @tomlarkworthy/soundscript-tutorial block equals the first export's
+pass second export: the @tomlarkworthy/soundscript-reducer block equals the first export's
+pass second export: the @tomlarkworthy/soundscript-model block equals the first export's
+pass second export: the @tomlarkworthy/soundscript-workers block equals the first export's
+pass second export: the @tomlarkworthy/soundscript-breakout block equals the first export's
+pass second export: the @tomlarkworthy/soundscript-polyglot block equals the first export's
+pass reopened page: no module fetched from the network
+pass reopened page: page errors 0
+  reopened page: aborted 2: https://storage.googleapis.com/publicartifacts/blogimages/notebookwebhook.mov https://cdn.jsdelivr.net/npm/@observablehq/highlight.js@2.0.0/async-languages/index.js
+  CTX page closed export-1.html after "reopened page: page errors 0"
+  CTX created soundscript.html id 3 frame 7ABCAD38 file:// after "reopened page: page errors 0"
+pass ui: at boot 17 test cells are pending and none ran ([]); listeners attached 2, clocks pulled 0; the page's ballView ran 1 times
+  ui: turned on 2 test toggles (403 ms)
+pass ui: @tomlarkworthy/soundscript: 92 variables, 0 in error
+pass ui: @tomlarkworthy/soundscript#test_ss_roundtrip: 5 variables recompile to the same text and inputs
+pass ui: @tomlarkworthy/soundscript#test_ss_example_checks: tally, bump, reset, doubled: ok
+pass ui: @tomlarkworthy/soundscript#test_ss_unchanged_source_checks: bump: ok, type Action<[]>
+pass ui: @tomlarkworthy/soundscript#test_ss_wrong_type_is_stored_and_rejected: stored; bump raises "bump does not check: [inject-state] tally is not a state cell of State<string>"; repaired, it is an action again
+pass ui: @tomlarkworthy/soundscript#test_ss_breaking_edit_names_its_cells: applying this breaks 3 cells: bump, reset, doubled
+pass ui: @tomlarkworthy/soundscript#test_ss_copy_keeps_its_name: bump_copy recompiles as bump_copy; one bump
+pass ui: @tomlarkworthy/soundscript#test_ss_failed_apply_changes_nothing: the injected fault "injected fault after the edited cell was defined" left the module as it was
+pass ui: @tomlarkworthy/soundscript#test_ss_edits_do_not_grow_the_memo: 200 edits of doubled: only the last one's memo entry is kept
+pass ui: @tomlarkworthy/soundscript#test_ss_instance_keeps_user_ids: tagged keeps id "anon"; its memo id 0xq9qg70rxq7ro became 0xq9qg70rxq7ro_l5z383
+pass ui: @tomlarkworthy/soundscript#test_ss_ref_handle: 0 -> 1 -> 0
+pass ui: @tomlarkworthy/soundscript#ss_registration: ok
+pass completion: increment's editor header lists its own inputs, no anon or ss: ["inputs: viewof count","inputs: viewof count","outputs: app","outputs: app"]
+pass completion: typing count. in increment lists exactly set and update: ["set","update"]
+pass completion: Enter takes set: "const increment = (count: State<number>) => action(() => count.set)"
+pass completion: count.upd then Tab gives update: ["update"] "const increment = (count: State<number>) => action(() => count.update)" (completion active) 
+pass completion: count. in app (count: number) lists number members: ["toExponential","toFixed","toPrecision","toString"]
+pass completion: an ordinary cell still completes from runtime values (Math. lists random): 44 items
+pass completion: at each of 140 member reads in the SoundScript cells of the core, tutorial and section modules the member read is offered
+pass completion: the 140 member completions ran 141 module checks (one to four each); 30 completions of count. in the 42-cell tutorial module ran 30 module checks inferring 1230 cells (one check each, the whole module each time)
+measure one completion of count. in the 42-cell tutorial module: median 2.0 ms, max 3.5 ms of 30
+pass editor features: half reading width by name shows ["[cell-by-name] cell width referenced by name; take it as a parameter"]; clicking "Add width as a parameter" gives "const half = (area, scale, width) => scale(area, 0.5) + width;" and the diagnostic goes (button shown true)
+pass editor features: half reading shop_price (Observable JavaScript) by name shows ["[free-name] free name shop_price"]; clicking "Add shop_price: number as a parameter" gives "const half = (area, scale, shop_price: number) => scale(area, 0.5) + shop_price;" and the diagnostic goes (button shown true)
+pass editor features: picking Observable JavaScript by key on app re-highlights it before Shift-Enter (typescript -> observable-javascript, markup changed), picking SoundScript (ss) back restores it (typescript, markup same); app is not stored (true)
+pass editor features: in app's parameter list shop_pr then Enter gives "const app = (count: number, shop_price: number) => count;" (list ["shop_price"]); shop_ba then Enter gives "const app = (count: number, shop_basket: { item: string; qty: number }[]) => count;" (list ["shop_basket"])
+pass editor features: app and half have their original text again, nothing stored
+pass ui raw: @tomlarkworthy/raw-cells: 36 variables, 0 in error
+pass ui raw: @tomlarkworthy/raw-cells#test_raw_roundtrip: 6 sources decompile to themselves
+pass ui raw: @tomlarkworthy/raw-cells#test_raw_broken_keeps_text: Unexpected token (1:41) | a raw cell cannot hold </script: the saved notebook keeps each module in a script element
+pass ui raw: @tomlarkworthy/raw-cells#test_raw_lint: warning: the function takes 0 parameters and the cell has 1 input | error: no_such_cell_here names no cell of this module, builtin or global | error: Unexpected token (1:18) | error: raw_mark is another cell of this module; Shift-Enter does not save this | zzz_typo names no cell of this module, builtin or global
+pass ui raw: @tomlarkworthy/raw-cells#test_raw_complete: 75 names offered inside the inputs array
+pass ui raw: @tomlarkworthy/raw-cells#raw_registration: ok
+pass ui raw: @tomlarkworthy/soundscript-polyglot: 25 variables, 0 in error
+pass ui raw: @tomlarkworthy/soundscript-polyglot#area: 12
+pass ui raw: @tomlarkworthy/soundscript-polyglot#squares: 144
+pass ui raw: @tomlarkworthy/soundscript-polyglot#report: area 12, last square 144
+pass ui raw: @tomlarkworthy/soundscript-polyglot#summary: ok
+pass ui raw: @tomlarkworthy/soundscript-polyglot#doubledWidth: 8
+pass ui raw: raw area reads SoundScript width and Observable JS height, raw squares is a generator, raw report is async, Observable JS summary reads raw: {"area":12,"squares":144,"report":"area 12, last square 144","doubled":8,"summary":"area 12, last square 144; the SoundScript cell doubledWidth is 8."}
+pass ui raw: area is a raw cell whose source decompiles exactly: "define(\"area\", [\"width\", \"height\"], function (width, height) {\n  // a raw cell: the function as written, its inputs as listed\n  return width * height;\n})"
+pass ui raw: the page's SoundScript cell fromRaw reads raw area, checked as a number on the way in: {"value":13,"area":12,"tagged":true,"crosses":true}
+pass ui raw: cellListing shows the raw sources beside the SoundScript ones, coloured (121 spans), with fromRaw, and without viewof height or summary
+pass ui raw: copy of raw area puts its source on the clipboard; compiled text pasted onto it is refused and the cell is unchanged: {"copied":"define(\"area\", [\"width\", \"height\"], function (width, height) {\n  // a raw cell: the function as written, its inputs as listed\n  return width * height;\n})","copyWarn":"","pasteWarn":"not saved: this text carries a /*{lang:\"raw\"}*/ marker, so it is a compiled cell, not source; th
+pass ui raw: area's editor shows its source as written: "define(\"area\", [\"width\", \"height\"], function (width, height) {\n  // a raw cell: the function as written, its inputs as listed\n  return width * height;\n})"
+pass ui raw: by keys, an edit of the body: {"name":"area","inputs":["width","height"],"value":120}
+pass ui raw: by keys, a change of the inputs: {"name":"area","inputs":["height"],"value":300}
+pass ui raw: by keys, a rename (the same variable): {"name":"surface","inputs":["height"],"value":300}
+pass ui raw: after the rename, squares reads a name nothing defines: "THREW area is not defined"
+pass ui raw: by keys, made anonymous: {"name":null,"inputs":["height"],"value":null}
+pass ui raw: by keys, an async function: {"name":"area","inputs":["width","height"],"value":12}
+pass ui raw: by keys, a generator function: {"name":"area","inputs":["width","height"],"value":12}
+pass ui raw: by keys, a syntax error is stored with its text; area raises it and the editor shows it: {"value":"THREW Unexpected token (2:17)","diags":["Unexpected token (2:17)"]}
+pass ui raw: by keys, the syntax error repaired, the kept text saved: {"name":"area","inputs":["width","height"],"value":12}
+pass ui raw: its readers run again: {"squares":144,"report":"area 12, last square 144"}
+pass ui raw: a raw cell added with the add button and typed: perimeter 14, after report, raw
+pass ui picker: a cell added after doubledWidth shows SoundScript in its picker, and const k = () => 1 is stored as SoundScript: {"aLang":"ss","tag":"ss","source":"const k = () => 1"}
+pass ui picker: a cell added after summary shows Observable JavaScript, still does with define("k5", …) typed, and k2 = 1 is stored as Observable JavaScript: {"bLang":"ojs","bDefine":"ojs","tag":null}
+pass ui picker: function k3(width) added after doubledWidth is SoundScript: {"tag":"ss","value":5}
+pass ui picker: after report the picker shows raw, switches to SoundScript as export const k4 = … is typed, and the cell is stored as SoundScript: {"dLang":"raw","dTyped":"ss","tag":"ss","source":"export const k4 = (width: number) => width * 10"}
+pass ui picker: k2 picked as SoundScript by key is stored as SoundScript with its pid: {"toSs":"ss","tag":"ss","source":"const k2 = () => 2"}
+pass ui picker: k2 picked back to Observable JavaScript is stored as Observable JavaScript: {"nowSs":"ss","tag":null}
+pass ui picker: k picked as raw by key is stored as a raw cell: {"toRaw":"raw","tag":"raw","source":"define(\"k\", [], () => 5)"}
+pass ui picker: a language picked and not applied is reset when the editor is closed and opened again: {"before":"ss","after":"ojs"}
+pass ui picker: typed text is claimed only when Observable JavaScript rejects it (define(...) and function kx(a) stay Observable JavaScript), and an exported cell gets the hint "export is not needed" with a fix: {"ssText":"ss","ojsText":null,"define":null,"fn":null,"hint":{"from":0,"to":7,"message":"export is not needed","fix":"Remove export"}}
+pass ui: the state cell tally renders as one cell (["viewof tally"])
+pass ui: clicking tally's hotbar opens its state cell source: "// A state cell holds a value that actions change. A parameter typed State<number> gets the handle; only an action may write it.\nconst tally = (): StateCell<number> => state(0);"
+pass ui: a typed width = "640" plus Shift-Enter is stored; the editor says what it broke, and area raises its message: ["this edit broke 2 cells: area, aspect; blocked 2 cells: half, test_half"], area "THREW area does not check: [inject-type] width: string is not assignable to number"
+pass ui: typed width = 600 plus Shift-Enter is applied: width 600, area 240000
+pass ui: a new cell typed as SoundScript is linted by its checker before it is applied: ["[inject-type] width: number is not assignable to string"]
+pass ui: a cell added with the add button and typed as SoundScript is applied: quadrupled 2400, placed after half, 0 empty cells left
+  navigated: file:///Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/soundscript.html#open=@tomlarkworthy/soundscript-breakout
+  navigated: file:///Users/tom.larkworthy/dev/lopecode-dev/lopebooks/notebooks/soundscript.html#view=S100(@tomlarkworthy/soundscript-tutorial,@tomlarkworthy/soundscript,@tomlarkworthy/soundscript-polyglot,@tomlark
+pass ui: the breakout link opens its module; a typed edit of paddleView is applied; duplicate names [], round trip 27
+pass ui after the section edit: @tomlarkworthy/soundscript-breakout: 38 variables, 0 in error
+pass ui after the section edit: @tomlarkworthy/soundscript-breakout#test_replay: 3 bricks in 600 frames, score 30, lives 3
+pass ui: the menu's Save in place wrote 4803011 bytes
+pass ui page: no module fetched from the network
+pass ui page: page errors 0
+  ui page: aborted 2: https://storage.googleapis.com/publicartifacts/blogimages/notebookwebhook.mov https://cdn.jsdelivr.net/npm/@observablehq/highlight.js@2.0.0/async-languages/index.js
+  CTX page closed soundscript.html after "ui page: page errors 0"
+  CTX created saved.html id 3 frame 0D049FB1 file:// after "ui page: page errors 0"
+pass reload after save: at boot 17 test cells are pending and none ran ([]); listeners attached 2, clocks pulled 0; the page's ballView ran 1 times
+  reload after save: turned on 2 test toggles (433 ms)
+pass reload after save: @tomlarkworthy/soundscript-tutorial: 159 variables, 0 in error
+pass reload after save: @tomlarkworthy/soundscript-tutorial#test_shop_total: shopTotal 9 at price 3
+pass reload after save: @tomlarkworthy/soundscript-tutorial#test_ss_roundtrip: 48 variables recompile to the same text and inputs
+pass reload after save: @tomlarkworthy/soundscript-tutorial#test_ss_counter: 0 -> 1, saved 1 -> 0
+pass reload after save: @tomlarkworthy/soundscript-tutorial#test_async_click: the click started measureWord; it waited for the answer with wordSize 0, then wrote 11
+pass reload after save: @tomlarkworthy/soundscript-tutorial#test_examples_check_as_expected: {"cells":[7,0],"errors":[8,5],"mut":[4,2],"counter":[6,0],"reducer":[10,0],"model":[10,0],"workers":[13,0],"rejectJsx":[17,11],"game":[21,0]}
+pass reload after save: @tomlarkworthy/soundscript-tutorial#test_compile_pool_matches_main: 1075200 bytes from 32 pool calls equal one main-thread call
+pass reload after save: @tomlarkworthy/soundscript-tutorial#test_compile_refuses_unchecked: compile refused: inPool, rows not ok by the checker
+pass reload after save: @tomlarkworthy/soundscript-tutorial#test_breakout_listener: play: the clock runs and the ball moved 180 -> 158.9; pause: it stops and the world stays the same object; ticks ran twice, onTick not at all
+pass reload after save: @tomlarkworthy/soundscript-tutorial#test_breakout_memo: {"frames":92,"worldChanges":90,"broken":1,"runs":{"ballView":91,"bricksView":1,"paddleView":0,"status":91,"app":92,"ticks":2,"onTick":0},"domMutations":{"characterData":3,"attr style":90,"childList":1}}
+pass reload after save: @tomlarkworthy/soundscript-tutorial#benchmark: {"poolSize":8,"hardware":18,"bands":32,"runs":7,"mainMs":66.5,"poolMs":42.400000005960464,"same":true}
+pass reload after save: the 12 lesson cells rejected on purpose do not run; each raises its checker message
+pass reload after save: width 600, quadrupled 2400, as typed source "const quadrupled = (width: number) => width * 4;"
+pass reload after save: @tomlarkworthy/soundscript-polyglot: 26 variables, 0 in error
+pass reload after save: @tomlarkworthy/soundscript-polyglot#area: 12
+pass reload after save: @tomlarkworthy/soundscript-polyglot#perimeter: 14
+pass reload after save: @tomlarkworthy/soundscript-polyglot#summary: ok
+pass reload after save: the saved file reopened holds the keyed edit of area and the added perimeter, both raw: {"area":"define(\"area\", [\"width\", \"height\"], function (width, height) {\n  // a raw cell: the function as written, its inputs as listed\n  // edited by keys, kept by the save\n  return width * height;\n})","perimeter":"define(\"perimeter\", [\"width\", \"height\"], (w, h) => 2 * (w + h))"}
+pass reloaded saved page: no module fetched from the network
+pass reloaded saved page: page errors 0
+  reloaded saved page: aborted 2: https://storage.googleapis.com/publicartifacts/blogimages/notebookwebhook.mov https://cdn.jsdelivr.net/npm/@observablehq/highlight.js@2.0.0/async-languages/index.js
+  CTX page closed saved.html after "reloaded saved page: page errors 0"
+  CTX created soundscript.html id 3 frame 92F95718 file:// after "reloaded saved page: page errors 0"
+pass broken state: an unparsable cell typed with the add button is stored and its editor shows the parser's message: ["[parse] Unexpected token (1:41)"]
+pass broken state: the sneak cell's editor shows the checker's message: ["[no-cast] as cast","[no-any] TSAnyKeyword","[free-name] free name globalThis"]
+pass broken state: at the edit: sneak's body ran 0 times; sneak raises "sneak does not check: [no-cast] as cast; [no-any] TSAnyKeyword; [free-name] free name glob"; broken raises "broken does not check: [parse] Unexpected token (1:41)"; both decompile as typed (true,true); states rejected,rejected; round trip 49
+pass broken state: in ss_instance's copy sneak raises and its body ran 0 times; half there is 128000
+  CTX created export-broken.html id 3 frame 7EB7F867 file:// after "broken state: in ss_instance's copy sneak raises and its body ran 0 times; half there is 128000"
+FAIL stopped by an error: evaluate: TypeError: Cannot read properties of undefined (reading '_value')
+    at eval (eval at evaluate (:313:29), <anonymous>:2:179)
+    at UtilityScript.evaluate (<anonymous>:315:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+    at readOnly (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/soundscript/verify.ts:1015:24)
+    at neverRuns (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/soundscript/verify.ts:1022:10)
+    at brokenState (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/soundscript/verify.ts:1072:9)
+    at processTicksAndRejections (native:7:39)
+  CTX page closed export-broken.html after "broken state: in ss_instance's copy sneak raises and its body ran 0 times; half there is 128000"
+  CTX page closed soundscript.html after "broken state: in ss_instance's copy sneak raises and its body ran 0 times; half there is 128000"
+493 pass, 5 fail
+measurements (printed, not judged):
+  Breakout playing with its own pane open in edit mode: 60 world changes/s in 60 animation frames/s
+  load to the tutorial's title rendered: 594 ms
+  load to the first checker verdict on the page: 594 ms
+  one keystroke's lint of width against the 42-cell tutorial module: median 2.7 ms, max 4.3 ms of 30
+  Mandelbrot: main thread 66.0 ms, pool of 8 30.9 ms (medians of 7)
+  Breakout after a click on play: 56.1 world changes/s in 56.1 animation frames/s
+  typing 32 keys into half's editor (40 ms apart): 0 tasks over 50 ms []
+  one completion of count. in the 42-cell tutorial module: median 2.0 ms, max 3.5 ms of 30
+power AC Power; functional 493 pass 4 fail; measurements 8
+verify exit 1
