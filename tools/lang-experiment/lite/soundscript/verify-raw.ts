@@ -366,6 +366,8 @@ export async function pickerPaths(page: Page, h: H, label: string) {
   const before = await pickerValue(e);
   await e.locator(".hotbar").first().click();
   const closed = await cm().waitFor({ state: "hidden", timeout: 10000 }).then(() => true, () => false);
+  // the header's picker is drawn again after the close dropped the pick, not in the same task
+  await until(page, async () => (await pickerValue(await editorByPid(page, h, k2pid))) === "ojs", 10000);
   e = await editorByPid(page, h, k2pid);
   const after = await pickerValue(e);
   report(closed && before === "ss" && after === "ojs", `${label}: a language picked and not applied is reset when the editor is closed and opened again: ${JSON.stringify({ wasOpen, before, closed, after })}`);

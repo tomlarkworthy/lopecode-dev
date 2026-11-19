@@ -1,7 +1,7 @@
 // The parts of the cell runner that need no Observable Runtime: cell shapes read from source, events
 // handles and listeners, and the guard a generator runs under. run.ts (the private runner) and
 // stdlib/runtime.ts (the notebook bundle, which has no Runtime) both use them.
-import { rt, actionNames, isAction, entry, releaseHandle } from "../../prelude.runtime.ts";
+import { rt, actionNames, isAction, entry, nameOf } from "../../prelude.runtime.ts";
 export { cellsOf, factsOf, type CellInfo } from "../facts.ts";
 
 export const generatorish = (v: any): v is Generator => !!v && typeof v.next === "function" && typeof v.return === "function";
@@ -50,12 +50,13 @@ function stopGen(s: HState) {
   if (g) try { g.return(); } catch {}
 }
 
-// An events cell's value is a handle. One handle per variable: a re-run with other inputs replaces
-// the generator inside it, so a listener holding the handle does not run again. The generator is
-// pulled only while a listener is attached: a sync one once per animation frame, an async one as
-// soon as each next() resolves. Each value goes to every attached listener once, in order.
-// prev: the variable's last value (`this` of its definition); args: the cell's inputs; make: a fresh generator
-export function events(prev: unknown, name: string, args: unknown[], make: () => Gen, invalidation: Promise<unknown> | null): Handle {
+// An events cell's value is a handle: <name> = ss.events(this, name, [inputs], fn, invalidation). One handle per
+// variable: a re-run with other inputs replaces the generator inside it, so a listener holding the handle does
+// not run again. The generator is pulled only while a listener is attached: a sync one once per animation frame,
+// an async one as soon as each next() resolves. Each value goes to every attached listener once, in order.
+// prev: the variable's last value (`this` of its definition); args: the cell's inputs; make: the generator
+// function, called with args; each step runs as a cell evaluation (guard)
+export function events(prev: unknown, name: string, args: unknown[], make: (...a: unknown[]) => Gen, invalidation: Promise<unknown> | null): Handle {
   const reuse = isEvents(prev) && !hs.get(prev)!.dead && hs.get(prev)!.name === name;
   const h: Handle = reuse ? prev : Object.freeze({ [EVENTS]: true, name }) as Handle;
   if (!reuse) hs.set(h, { name, args: null, gen: null, no: 0, done: false, dead: false, listeners: new Set(), queue: [], draining: false, busy: false, run: null, order: null });
@@ -63,7 +64,7 @@ export function events(prev: unknown, name: string, args: unknown[], make: () =>
   handleOfState.set(s, h);
   if (!s.args || !same(s.args, args)) {
     stopGen(s);
-    s.gen = make(); s.args = args; s.done = false;
+    s.gen = guard(make(...args) as Generator); s.args = args; s.done = false;
     generating.add(h);
     kick(s);
   }
@@ -148,7 +149,7 @@ function deliver(s: HState, v: unknown) {
       const x = s.queue.shift();
       for (const l of orderOf(s, handleOfState.get(s))) {
         if (!s.listeners.has(l)) continue;
-        const report = (e: unknown) => console.error(`listener ${ls.get(l)?.cell ?? "?"}: action ${actionNames.get(l.action) ?? "(anonymous)"} threw on a value of events ${s.name}:`, e);
+        const report = (e: unknown) => console.error(`listener ${ls.get(l)?.cell ?? "?"}: action ${nameOf(l.action)} threw on a value of events ${s.name}:`, e);
         try { entry(report, () => l.action(x)); } catch (e) { report(e); }
       }
     }
@@ -157,6 +158,7 @@ function deliver(s: HState, v: unknown) {
 
 // A listener cell's run attaches its value until that run's invalidation, which the runtime resolves
 // before the cell's next definition is called, so one listener variable is never attached twice.
+// A compiled listener cell is <name> = ss.listen(fn(...inputs), name, invalidation).
 export function listen(l: unknown, cell: string, invalidation: Promise<unknown> | null): Listener {
   if (!isListener(l)) throw new Error(`${cell} must return on(events, action)`);
   const s = hs.get(l.events as object);

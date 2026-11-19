@@ -1,13 +1,14 @@
 // The SoundScript standard library's runtime half. build.ts makes cells of it (soundscript/ts-cells.ts):
 // @tomlarkworthy/soundscript-runtime, and @tomlarkworthy/soundscript-checker for what reaches the parser.
-// A compiled cell that is not plain calls ss.cell(...); a state cell's value variable is Observable's Generators.input(handle).
-import { rt, stateRun, isRefHandle, viewHandle } from "../../prelude.runtime.ts";
+// A compiled cell is its typed function applied to its inputs; a state cell is ss.ref(...), an events cell
+// ss.events(...), a listener ss.listen(...), and a state cell's value variable is Observable's Generators.input(handle).
+import { isRefHandle, viewHandle } from "../../prelude.runtime.ts";
 import { h } from "../jsx/h.ts";
 import { create, patch } from "../jsx/render.ts";
 import { lowerJsx } from "../jsx/lower.ts";
 import { erase } from "../browser/erase.ts";
-import { on, events, listen, nameAction, running, pulling, isEvents, release, sweep, generatorish, cellsOf, guard, setListenerOrder, listenerOrderChanged } from "../browser/cells.ts";
-export { setListenerOrder, listenerOrderChanged };
+import { on, events, listen, running, pulling, isEvents, release, sweep, cellsOf, setListenerOrder, listenerOrderChanged } from "../browser/cells.ts";
+export { setListenerOrder, listenerOrderChanged, events, listen };
 export { cellsOf };
 import { island, type IslandSpec } from "../island.ts";
 import { pagePool, runHere, type Pool } from "../browser/workers.ts";
@@ -74,7 +75,7 @@ export function rejected(name: string, why: string[]): never {
   throw new Error(`${name} does not check: ${why.join("; ")}`);
 }
 
-export { state, action, mut, freeze, borrow, snapshot, equals, read, entry, idle, actionQueue } from "../../prelude.runtime.ts";
+export { state, action, mut, freeze, borrow, snapshot, equals, read, entry, idle, actionQueue, ref, actionNamer } from "../../prelude.runtime.ts";
 // The value of a viewof variable as a State<T>: an Observable JavaScript view's element, whose value is
 // checked against shape on the way in, or an imported SoundScript state cell's handle; every write is
 // checked against shape (boundary.ts)
@@ -86,35 +87,6 @@ export function viewRef(el: unknown, shape: Shape, name: string): object {
   return viewHandle(e as Parameters<typeof viewHandle>[0], name, (v) => checkShape(v, shape, name));
 }
 export { h, on, create, patch, pagePool, running, pulling, isEvents, release, sweep };
-
-// prev: an events or state cell's variable's last value (this)
-type Opts = { kind: "cell" | "ref" | "events" | "listener"; name: string; prev?: unknown; invalidation: Promise<unknown> | null };
-
-// A compiled cell that is not plain (ss-toolchain.ts isPlain): a state, events or listener cell, a generator, or a
-// cell that calls a built-in or takes a value crossing from another language. A plain cell calls nothing here.
-export function cell(fn: (...a: unknown[]) => unknown, args: unknown[], o: Opts): unknown {
-  // an events cell's body runs when its inputs change; a re-run with the same inputs keeps the generator
-  if (o.kind === "events") return events(o.prev, o.name, args, () => guard(fn(...args) as Generator), o.invalidation);
-  // a state cell run again with the same function text and inputs (Object.is) keeps its store, and so its
-  // state: an upstream re-run gave the same value. After an error the variable has no last value and starts again
-  if (o.kind === "ref") {
-    return stateRun(o.prev, String(fn), o.name, args, () => {
-      rt.evalDepth++;
-      try { return fn(...args); } finally { rt.evalDepth--; }
-    });
-  }
-  rt.evalDepth++;
-  let value: unknown;
-  try {
-    const r = fn(...args);
-    value = generatorish(r) ? guard(r) : r;
-  } finally {
-    rt.evalDepth--;
-  }
-  if (o.kind === "listener") listen(value, o.name, o.invalidation);
-  else nameAction(value, o.name);
-  return value;
-}
 
 // page-wide, so two modules' islands never share a key in one pool
 let made = 0;

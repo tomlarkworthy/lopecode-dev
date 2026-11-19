@@ -13,6 +13,9 @@ type Call = Map<Store, unknown>;
 
 // the cell an action was defined by, when the runtime knows it; flush and listeners name actions by it
 export const actionNames = new WeakMap<object, string>();
+// the host's lookup of the cell whose value an action is, for an action actionNames does not name
+export const actionNamer = { of: null as ((a: object) => string | null) | null };
+export const nameOf = (a: object) => actionNames.get(a) ?? actionNamer.of?.(a) ?? "(anonymous)";
 
 export const rt = {
   evalDepth: 0, // >0 while a cell definition (or a generator step) runs synchronously
@@ -98,16 +101,20 @@ export function read(handle: object): unknown {
 
 // each handle's function text and the inputs of its last run
 const runs = new WeakMap<object, { id: string; args: unknown[] }>();
-// A state cell's handle variable. prev is the variable's last value, as the Runtime gives it: its handle, when
-// the same function text (id) made it, is kept, so a cell taking State<T> keeps it across runs; a new store from
-// make(), which runs the cell, unless every input is the same (Object.is) as on the last run, which keeps the
-// store and so the state. A variable with no last value (its first run, or after an error) starts again.
-export function stateRun(prev: unknown, id: string, name: string, args: unknown[], make: () => unknown): object {
+// A state cell's handle variable: viewof <name> = ss.ref(this, name, [inputs], fn). prev is the variable's last
+// value, as the Runtime gives it: its handle, when the same function text made it, is kept, so a cell taking
+// State<T> keeps it across runs; a new store from fn(...args) unless every input is the same (Object.is) as on
+// the last run, which keeps the store and so the state. A variable with no last value (its first run, or after
+// an error) starts again.
+export function ref(prev: unknown, name: string, args: unknown[], fn: (...a: unknown[]) => unknown): object {
+  const id = String(fn);
   // prev is any other value (globalThis, in a sloppy-mode definition) when the variable has no last value
   const last = prev && typeof prev === "object" ? runs.get(prev) : undefined;
   let h = last?.id === id ? (prev as object) : undefined;
   if (!h || !last || last.args.length !== args.length || !args.every((x, i) => Object.is(x, last.args[i]))) {
-    const r = make();
+    rt.evalDepth++;
+    let r: unknown;
+    try { r = fn(...args); } finally { rt.evalDepth--; }
     if (!isStateCell(r)) throw new Error(`${name} did not return state(...)`);
     h ??= handleOf(name);
     setStore(h, r.initial);
@@ -147,7 +154,6 @@ export function viewHandle(el: ViewEl, name: string, check: (v: unknown) => unkn
 }
 
 const thenable = (r: unknown): r is PromiseLike<unknown> => typeof (r as { then?: unknown } | null)?.then === "function";
-const nameOf = (a: object) => actionNames.get(a) ?? "(anonymous)";
 const reportTo = (a: object) => (e: unknown) => console.error(`action ${nameOf(a)} threw:`, e);
 
 // Runs f while an event handler, or a listener delivery is calling actions: each action
@@ -200,6 +206,8 @@ export function action(f: (...args: unknown[]) => unknown) {
     if (rt.evalDepth > 0 && rt.actionDepth === 0) throw new Error("action called during a cell evaluation");
     // inside the call in flight (in its body, or after an await outside an entry): a plain function call
     if (rt.call && (rt.actionDepth > 0 || !rt.entry)) return inAction(() => f(...args));
+    // named while it is still its cell's value: an edit before its error is reported does not lose the name
+    if (!actionNames.has(a)) { const n = actionNamer.of?.(a); if (n) actionNames.set(a, n); }
     const via = rt.entry;
     const report = via ? (e: unknown) => via(e, a) : reportTo(a);
     if (!rt.call && !rt.waiting.length) run(() => f(...args), report, true);

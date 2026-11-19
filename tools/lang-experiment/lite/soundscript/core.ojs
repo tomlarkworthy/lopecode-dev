@@ -49,7 +49,7 @@ A variable is SoundScript when the first comment in its definition is the marker
 // %%
 readme_memo = md`## When a cell runs
 
-A plain cell compiles to its function applied to its inputs, an ordinary Observable cell, and the Observable runtime decides when it runs: when it is first read, and again whenever one of its inputs was computed again. The runtime does not compare values, so a cell whose input was recomputed to the same value still runs. Until 2026-11-19 \`ss.cell\` kept a result per cell and skipped the body on equal inputs; that was removed with the wrapper.
+A plain cell compiles to its function applied to its inputs, an ordinary Observable cell, and the Observable runtime decides when it runs: when it is first read, and again whenever one of its inputs was computed again. The runtime does not compare values, so a cell whose input was recomputed to the same value still runs. A cell that calls a built-in or reads a cell of another language has the same shape and also takes \`ss\`. A state cell is \`ss.ref(this, name, inputs, fn)\`, an events cell \`ss.events(this, name, inputs, fn, invalidation)\` and a listener cell \`ss.listen(value, name, invalidation)\`. Until 2026-11-19 every cell was a call of \`ss.cell\`, which kept a result per cell and skipped the body on equal inputs; both are gone.
 
 A rejected cell does not run: its definition only raises the checker's messages.`
 // %%
@@ -83,7 +83,7 @@ soundscript.running(handles?)                   // listeners attached on the pag
 soundscript.pulling(handles?)                   // events cells whose generator is being pulled (of these handles only, if given)
 soundscript.isEvents(value)                     // whether a value is an events cell's handle
 soundscript.release(value)                      // a deleted variable's listener ends, or its events stop
-soundscript.compiledKind(definition)             // the kind of a compiled definition (a plain cell, or an ss.cell call), or null
+soundscript.compiledKind(definition)             // the kind of a compiled definition (plain, apply, ref, events, listen or rejected), or null
 ss_moduleCells(module)                 // a module's SoundScript cells: [{key, text, variable}]
 ss_source(module)                      // those cells' source, joined in runtime order
 ss_outside(module)                     // the module's cells in other languages: [{name, view?}]
@@ -262,7 +262,9 @@ ss_lifecycle = {
     }
     return values.map((x) => { const p = at.get(x); return p ? [nameOf(p[0]), p[1]] : null; });
   });
-  invalidation.then(() => { off(); soundscript.setListenerOrder(null); });
+  // the name an error report gives an action: the SoundScript cell whose value it is
+  soundscript.actionNamer.of = (a) => { for (const v of runtime._variables) if (v._value === a && isSs(v)) return ss_keyOf(v._name); return null; };
+  invalidation.then(() => { off(); soundscript.setListenerOrder(null); soundscript.actionNamer.of = null; });
   return "a change outside apply recompiles its module and stops listeners and events no variable holds";
 }
 // %%

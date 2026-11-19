@@ -4,23 +4,22 @@ import * as acorn from "acorn";
 import * as toolchain from "./ss-toolchain.ts";
 import { compileCell, decompileVariable, contextFromCheck } from "./ss-toolchain.ts";
 import { checkSources } from "../core.ts";
-// an events cell's compiled definition, read on its parse: a function named _<name> whose ss.cell options
-// pass this as prev and the invalidation input
+// an events cell's compiled definition, read on its parse: a function named _<name> that calls
+// ss.events(this, "<name>", [inputs], fn, invalidation)
 const passesThis = (def: string, name: string) => {
   const fn: any = acorn.parseExpressionAt(def, 0, { ecmaVersion: "latest" });
-  const o = toolchain.parseCompiled(def)?.call?.arguments.at(-1);
-  const opt = (k: string) => o?.type === "ObjectExpression" ? o.properties.find((p: any) => p.key?.name === k)?.value : undefined;
-  return fn.type === "FunctionExpression" && fn.id?.name === `_${name}` && toolchain.compiledKind(def)?.kind === "events" && opt("name")?.value === name &&
-    opt("prev")?.type === "ThisExpression" && opt("invalidation")?.type === "Identifier" && opt("invalidation").name === "invalidation";
+  const p = toolchain.parseCompiled(def), a = p?.call?.arguments ?? [];
+  return fn.type === "FunctionExpression" && fn.id?.name === `_${name}` && toolchain.compiledKind(def)?.kind === "events" && p?.name === name &&
+    a[0]?.type === "ThisExpression" && a.at(-1)?.type === "Identifier" && a.at(-1).name === "invalidation";
 };
 
 
 let fail = 0, n = 0;
 const expect = (ok: boolean, what: string) => { n++; if (!ok) { fail++; console.log("FAIL " + what); } };
 const attempt = <T>(f: () => T): T | Error => { try { return f(); } catch (e) { return e as Error; } };
-// a stand-in for the stdlib object: cell(fn, args) calls fn
-const fakeSS = { cell: (f: (...a: unknown[]) => unknown, args: unknown[]) => f(...args), h: (tag: unknown, props: unknown, ...kids: unknown[]) => ({ tag, props, kids }) };
-const run = (def: string, ...args: unknown[]) => (0, eval)(`(${def})`)(fakeSS, ...args);
+// a stand-in for the stdlib object, passed to a definition that takes ss
+const fakeSS = { h: (tag: unknown, props: unknown, ...kids: unknown[]) => ({ tag, props, kids }) };
+const run = (def: string, ...args: unknown[]) => (0, eval)(`(${def})`)(...(toolchain.compiledKind(def)?.callee === "plain" ? [] : [fakeSS]), ...args);
 
 // compiles, every definition parses and survives Function.toString, and decompiles to the exact source
 function roundTrips(src: string, tsx: boolean): string | null {
@@ -57,10 +56,10 @@ const def = (src: string, tsx = false) => compileCell(src, tsx).at(-1)!.definiti
   expect(passesThis(ticks.definition, "ticks"), "an events cell passes this and takes invalidation: " + ticks.definition.slice(-90));
   expect(decompileVariable(ticks.definition) === src.split("\n\n")[0], "an events cell decompiles to its source");
   const onTick = by.get("onTick")!;
-  expect(/kind: "listener"/.test(onTick.definition) && onTick.inputs.at(-1) === "invalidation", "a listener takes invalidation: " + JSON.stringify(onTick.inputs));
+  expect(toolchain.compiledKind(onTick.definition)?.callee === "listen" && onTick.inputs.at(-1) === "invalidation", "a listener takes invalidation: " + JSON.stringify(onTick.inputs));
   const label = by.get("label")!;
   expect(toolchain.compiledKind(label.definition)?.callee === "plain" && !label.inputs.includes("invalidation"), "a cell that takes Events but does not call on is a plain cell: " + JSON.stringify(label.inputs));
-  expect(!by.get("fast")!.inputs.includes("invalidation") && /kind: "cell"/.test(by.get("pulses")!.definition) === false, "fast has no invalidation; pulses is events");
+  expect(!by.get("fast")!.inputs.includes("invalidation") && toolchain.compiledKind(by.get("pulses")!.definition)?.callee === "events", "fast has no invalidation; pulses is events");
 }
 
 // C4: a definition carries no compiler id, and a user's `id:` property is untouched. A checked plain cell is its
@@ -80,8 +79,9 @@ expect(!("idOf" in toolchain) && !("withId" in toolchain), "C4 ss-toolchain has 
   expect(toolchain.compiledKind(by.get(texts[3])![0].definition)?.callee === "plain", "C4 a property named like a built-in (r.h) leaves a cell plain");
   const held = by.get(texts[6])![0];
   expect(JSON.stringify(held.inputs) === JSON.stringify(["viewof n"]) && toolchain.compiledKind(held.definition)?.callee === "plain", "C4 a plain cell taking State<T> takes viewof n: " + JSON.stringify(held.inputs));
-  for (const t of [texts[5], texts[7], texts[8]]) expect(by.get(t)!.every((v) => v.inputs[0] === "ss" || v.inputs[0] === "Generators"), "C4 a state cell, a cell calling action and a generator still take ss: " + t);
-  expect(toolchain.compiledKind(compileCell(texts[2], true).at(-1)!.definition)?.callee === "cell", "C4 with no module context a cell stays an ss.cell");
+  for (const t of [texts[5], texts[7]]) expect(by.get(t)!.every((v) => v.inputs[0] === "ss" || v.inputs[0] === "Generators"), "C4 a state cell and a cell calling action still take ss: " + t);
+  expect(toolchain.compiledKind(by.get(texts[8])![0].definition)?.callee === "plain", "C4 a generator no cell takes as Events is a plain cell: " + by.get(texts[8])![0].definition);
+  expect(toolchain.compiledKind(compileCell(texts[2], true).at(-1)!.definition)?.callee === "plain", "C4 with no module context a cell compiles to the same shape");
 }
 
 // F1: TS-only expression forms erase to valid JS that computes the same value
@@ -234,7 +234,7 @@ for (const src of [
   expect(use === 2, `L1 use runs: ${use instanceof Error ? use.message : use}`);
   expect(value("sum") === 3 && JSON.stringify(value("inc")) === "[2,3]" && JSON.stringify(value("box")) === '{"initial":3}', `L1 sum, inc and box run as plain cells`);
   const lis = compileCell("const l = (ev: Events<number>, act: Action<[number]>) => on(ev, act);", false);
-  expect(/kind: "listener"/.test(lis[0].definition), "L1 a cell that returns the prelude's on(...) is still a listener");
+  expect(toolchain.compiledKind(lis[0].definition)?.callee === "listen", "L1 a cell that returns the prelude's on(...) is still a listener");
 }
 
 console.log(`${n - fail} of ${n} edge checks pass`);

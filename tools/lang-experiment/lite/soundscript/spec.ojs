@@ -692,7 +692,7 @@ A state cell is a cell that holds state. Only an action writes to a state cell. 
 // %%
 md`**S6.1** A state cell is a sync, non-generator cell whose one returned expression is \`state(v)\`; its value type is the type of \`v\` (S2.4). \`state(...)\` anywhere else, bound to a local, in a conditional, in one of two returns, or in an async or generator cell, is \`[state-placement]\`.`
 // %%
-md`**S6.2** A state cell with inputs is made again, from its initial value, when an input changes. Until then it keeps what was written to it.`
+md`**S6.2** A state cell with inputs is made again, from its initial value, when an input changes. Until then it keeps what was written to it, also when it runs again with the same inputs. An input changes when it is not the same value (\`Object.is\`): a new object with equal content is a change, so a state cell whose input is an object built by another cell starts again each time that cell runs.`
 // %%
 md`**S6.3** An input that names a state cell, \`c\` or \`c: T\`, gets its value and runs again after each commit that wrote it (S6.14). An input \`c: State<T>\` gets the state cell and does not run again when it is written. \`State<T>\` on a cell that is not a state cell holding \`T\`, or on a capability or foreign declaration, is \`[inject-state]\`.`
 // %%
@@ -710,7 +710,7 @@ md`**S6.9** The body of an action may not use a value that depends on state: an 
 // %%
 md`**S6.10** A write is applied to its call when it is made, so an \`update\` whose function throws throws out of the call that made it. A top-level call that throws, or whose promise rejects, keeps none of its writes, nor those of the actions it called; the writes of earlier calls are kept, and calls apply in the order they were made. An action called inside a call is a plain function call: when it throws and its caller catches the throw, the writes it made before throwing are kept.`
 // %%
-md`**S6.11** A state cell is two runtime variables: \`viewof c\` holds its handle and \`c\` holds its value. An input \`c: State<T>\` is an input on \`viewof c\` and gets the handle. The handle is the same object when the state cell is made again (S6.2), so a \`State<T>\` taken before writes to the new state cell. After the state cell was in error it may have a new handle (S8.5); a cell that takes its \`State<T>\` runs again with the handle it then has. While the state cell is in error, a cell that takes its \`State<T>\` does not run: it is blocked when the state cell does not check (S8.2), and has the error of the input that threw when the state cell or one of its inputs threw (S8.3). When the state cell's variables are deleted, the holder is rejected, \`[inject-unknown]\` (S2.1), once the module has seen the deletion.`
+md`**S6.11** A state cell is two runtime variables: \`viewof c\` holds its handle and \`c\` holds its value. An input \`c: State<T>\` is an input on \`viewof c\` and gets the handle. The handle is the same object when the state cell is made again (S6.2), so a \`State<T>\` taken before writes to the new state cell. After the state cell was in error it may have a new handle (S8.5); a cell that takes its \`State<T>\` runs again with the handle it then has. While the state cell is in error, a cell that takes its \`State<T>\` does not run: it is blocked when the state cell does not check (S8.2), and has the error of the input that threw when the state cell or one of its inputs threw (S8.3). When the state cell's variables are deleted, the holder is rejected, \`[inject-unknown]\` (S2.1), once the module has seen the deletion; until then it raises the runtime's \`viewof c is not defined\`. A function made from the \`State<T>\` before an error and kept outside the dataflow may write to the old handle, which no cell reads.`
 // %%
 md`**S6.12** The function given to \`action(...)\` may be sync or async, or return a promise-like. It may wait with \`await\`, \`.then\` or \`Promise.all\`; none of these has a meaning of its own.`
 // %%
@@ -1138,7 +1138,7 @@ md`**S7.3** A \`Listener\` is only the whole value of a sync, non-generator cell
 // %%
 md`**S7.4** While a listener is the value of its cell, its action runs once for each value the events cell yields, in order. The listener ends when its cell runs again, is deleted, or its module's variables are deleted. A listener cell that runs again, because it or its action was edited, leaves one listener, and no value is lost or delivered twice.`
 // %%
-md`**S7.5** Starting and stopping events is dataflow: the events cell takes inputs and yields nothing when it should not run. When an input changes, the events cell runs again from its start and keeps its handle. An events cell writes nothing (S6.5).`
+md`**S7.5** Starting and stopping events is dataflow: the events cell takes inputs and yields nothing when it should not run. When an input changes (\`Object.is\`, as in S6.2), the events cell runs again from its start and keeps its handle; run again with the same inputs it keeps its generator. An events cell writes nothing (S6.5).`
 // %%
 md`**S7.6** When a listener's action throws, that call keeps none of its writes (S6.10), the next value is still delivered, and the console reports the error naming the listener, the action and the events cell.`
 // %%
@@ -1802,7 +1802,7 @@ md`- A prelude function used as a value, such as \`const f = () => mut\` or \`()
 // %%
 md`- An angle-bracket cast \`<number>e\` is \`[no-cast]\` when the module is checked without JSX; a notebook module is checked with JSX, where it does not parse.`
 // %%
-md`- Whether a listener cell runs again when its events cell stops and starts again (S7.5). In the notebook the count differs from load to load: on 2026-11-16 \`onNum\` ran once more after a stop and a start in one load and not at all in another; the value of \`test_spec_S7_5\` gives this load's count. The stdlib's own test harness counts none.`
+md`- How many times a listener cell runs again when its events cell stops and starts again (S7.5). By S8.4 it runs at least once for each run of the events cell; \`test_spec_S7_5\` reports the count and does not assert it. The counts recorded on 2026-11-16 (once in one load, none in another) were taken while cells were memoised, which ended on 2026-11-19.`
 // %%
 md`- A write to a state cell while it is computing again, after an input changed and before the cell has run (S6.2). Today it goes to the state cell as it was, and is kept only if the cell runs again with the same inputs.`
 // %%

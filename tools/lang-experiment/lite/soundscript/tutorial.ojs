@@ -958,13 +958,14 @@ kindOf = (v) => {
   const d = String(v._definition);
   if (v._name.startsWith("viewof ")) return "state cell: the handle";
   if (d === soundscript.STATE_VALUE) return "state cell: the value";
-  // the options of the cell's ss.cell call, from its parse
+  // the compiled shape, from its parse
   const k = soundscript.compiledKind(d);
   if (k?.kind === "events") return "events: a handle, pulled only while a listener is attached";
-  if (k?.callee === "plain") return "cell: its function applied to its inputs";
-  if (k?.callee !== "cell") return "type";
-  const extra = k.refs.length ? ", compile refs as inputs" : k.kind === "listener" ? ", a listener" : "";
-  return `cell${extra}`;
+  if (k?.callee === "listen") return "cell, a listener";
+  if (k?.callee === "rejected") return "rejected: raises the checker's messages";
+  if (k?.callee !== "plain" && k?.callee !== "apply") return "type";
+  const extra = k.refs.length ? ", compile refs as inputs" : k.callee === "apply" ? ", taking ss" : "";
+  return `cell: its function applied to its inputs${extra}`;
 }
 // %%
 liveRows = (module, invalidation, { head, cells, row, cls = "" }) => {

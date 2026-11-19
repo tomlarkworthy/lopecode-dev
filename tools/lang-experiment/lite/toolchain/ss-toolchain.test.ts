@@ -3,14 +3,13 @@ import { Glob } from "bun";
 import * as acorn from "acorn";
 import { compileModule, compileCell, contextOf, decompileModule, decompileVariable, splitCells, langOf } from "./ss-toolchain.ts";
 import * as toolchain from "./ss-toolchain.ts";
-// an events cell's compiled definition, read on its parse: a function named _<name> whose ss.cell options
-// pass this as prev and the invalidation input
+// an events cell's compiled definition, read on its parse: a function named _<name> that calls
+// ss.events(this, "<name>", [inputs], fn, invalidation)
 const passesThis = (def: string, name: string) => {
   const fn: any = acorn.parseExpressionAt(def, 0, { ecmaVersion: "latest" });
-  const o = toolchain.parseCompiled(def)?.call?.arguments.at(-1);
-  const opt = (k: string) => o?.type === "ObjectExpression" ? o.properties.find((p: any) => p.key?.name === k)?.value : undefined;
-  return fn.type === "FunctionExpression" && fn.id?.name === `_${name}` && toolchain.compiledKind(def)?.kind === "events" && opt("name")?.value === name &&
-    opt("prev")?.type === "ThisExpression" && opt("invalidation")?.type === "Identifier" && opt("invalidation").name === "invalidation";
+  const p = toolchain.parseCompiled(def), a = p?.call?.arguments ?? [];
+  return fn.type === "FunctionExpression" && fn.id?.name === `_${name}` && toolchain.compiledKind(def)?.kind === "events" && p?.name === name &&
+    a[0]?.type === "ThisExpression" && a.at(-1)?.type === "Identifier" && a.at(-1).name === "invalidation";
 };
 
 import { checkSources } from "../core.ts";
@@ -75,10 +74,10 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   expect(JSON.stringify(g.get("viewof world")?.inputs) === JSON.stringify(["ss", "start"]), "a state cell's handle is viewof world and takes its inputs: " + g.get("viewof world")?.inputs);
   expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["ss", "viewof world", "step"]), "a State<T> parameter reads the handle: " + g.get("tick")?.inputs);
   expect([...g.values()].every((v) => !v.inputs.includes("@variable")), "no variable takes @variable (the exporter reads two inputs ending in @variable as an import)");
-  expect(/kind: "events"/.test(g.get("ticks")!.definition) && !g.has("viewof ticks"), "a generator taken as Events is one handle variable");
+  expect(toolchain.compiledKind(g.get("ticks")!.definition)?.callee === "events" && !g.has("viewof ticks"), "a generator taken as Events is one handle variable");
   expect(passesThis(g.get("ticks")!.definition, "ticks"), "an events cell's definition is a function that passes this: " + g.get("ticks")!.definition.slice(0, 40));
   expect(JSON.stringify(g.get("ticks")?.inputs) === JSON.stringify(["ss", "ss_now", "playing", "over", "invalidation"]), "an events cell takes invalidation: " + g.get("ticks")?.inputs);
-  expect(JSON.stringify(g.get("onTick")?.inputs) === JSON.stringify(["ss", "ticks", "tick", "invalidation"]) && /kind: "listener"/.test(g.get("onTick")!.definition), "on(...) makes a listener that takes invalidation: " + g.get("onTick")?.inputs);
+  expect(JSON.stringify(g.get("onTick")?.inputs) === JSON.stringify(["ss", "ticks", "tick", "invalidation"]) && toolchain.compiledKind(g.get("onTick")!.definition)?.callee === "listen", "on(...) makes a listener that takes invalidation: " + g.get("onTick")?.inputs);
   const w = by(await Bun.file(root + "lite/notebook/examples/07-workers.tsx").text());
   expect(JSON.stringify(w.get("inPool")?.inputs) === JSON.stringify(["ss", "ss_compile", "width", "height", "maxIter", "ss_pool"]), "compile refs are inputs, in the order the definition reads them: " + w.get("inPool")?.inputs);
   const m = by(await Bun.file(root + "lite/notebook/examples/06-model.tsx").text());

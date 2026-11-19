@@ -122,7 +122,8 @@ let ftN = 0;
 const CPU = process.argv.includes("--cpu") ? Number(process.argv[process.argv.indexOf("--cpu") + 1]) : 1;
 const browser = await chromium.launch();
 try {
-async function open(path: string, saveTo?: string, specWait = true) {
+// count: the boot check (testsOn) reads how many times each cell ran; only then is the profiler on
+async function open(path: string, saveTo?: string, specWait = true, count = false) {
   const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
   if (saveTo) await stubPicker(page, saveTo);
   if (FOCUS_TRACE) {
@@ -141,6 +142,13 @@ async function open(path: string, saveTo?: string, specWait = true) {
   page.on("pageerror", (e) => errors.push(String(e.message)));
   page.on("crash", () => console.log(`  page crashed: ${path}`));
   page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) { console.log(`  console.error: ${m.text().slice(0, 400)}`); errors.push("console.error: " + m.text().slice(0, 200)); } });
+  // how many times each function the page runs is called, until the boot check reads it (testsOn)
+  if (count) {
+    const prof = await page.context().newCDPSession(page);
+    await prof.send("Profiler.enable");
+    await prof.send("Profiler.startPreciseCoverage", { callCount: true, detailed: false });
+    profilers.set(page, prof);
+  }
   await page.goto(`file://${path}`);
   // the specification's tests run at load and pull generators of their own; the checks that count listeners
   // and clocks on the whole page start once they have settled
@@ -240,9 +248,38 @@ async function oneCore(page: Page, label: string) {
 
 // Tests are gated by a "run the tests" toggle in each module that has them. At boot they must be
 // pending, cost nothing and leave the page's examples alone; then a real click turns them on.
-// the page's ballView computations at boot, per label: the runtime's count (_version), which boot churn of the
-// ss import raises above one; the tests must not add to it (they run on copies)
+// the page's ballView computes at boot, per label: the runtime's count (_version), which counts a compute
+// superseded before it called the definition (each import of ss redefines itself once, so cells below it are
+// scheduled and superseded at boot); the tests must not add to it (they run on copies)
 const bootBallRuns = new Map<string, number | null>();
+// a page open() started counting function calls on (Profiler precise coverage)
+const profilers = new WeakMap<Page, any>();
+const BREAKOUT = "@tomlarkworthy/soundscript-breakout";
+// How many times each SoundScript cell taking ss in the core, the tutorial and Breakout ran at boot: calls of
+// its definition, counted by the profiler, so a compute the runtime superseded before the call is not one.
+// Read once per page, before anything presses a button (the original page reads it before its counter presses).
+const bootCounts = new WeakMap<Page, { module: string; name: string; fn: string; runs: number | null }[]>();
+async function bootRuns(page: Page) {
+  if (bootCounts.has(page)) return bootCounts.get(page)!;
+  const prof = profilers.get(page);
+  if (!prof) return null;
+  profilers.delete(page);
+  await page.waitForFunction((b) => { const m = (window as any).__ojs_runtime.mains.get(b); return !m || m._scope.get("app")?._value !== undefined; }, BREAKOUT, { timeout: 60000 });
+  const { result } = await prof.send("Profiler.takePreciseCoverage");
+  await prof.send("Profiler.stopPreciseCoverage");
+  await prof.detach();
+  const cells: { module: string; name: string; fn: string }[] = await page.evaluate((mods) => {
+    const rt = (window as any).__ojs_runtime;
+    const ss = [...rt._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
+    return mods.flatMap((m: string) => { const mod = rt.mains.get(m); return [...rt._variables].filter((v: any) => mod && v._module === mod && typeof v._name === "string" && ss.compiledKind(String(v._definition))?.kind && v._inputs.some((i: any) => i._name === "ss")).map((v: any) => ({ module: m, name: v._name, fn: v._definition.name })); });
+  }, [CORE, TUTORIAL, BREAKOUT]);
+  const out = cells.map((c) => {
+    const hits = result.filter((s: any) => s.url === `file://${c.module}`).flatMap((s: any) => s.functions.filter((f: any) => f.functionName === c.fn));
+    return { ...c, runs: hits.length === 1 ? hits[0].ranges[0].count as number : null };
+  });
+  bootCounts.set(page, out);
+  return out;
+}
 async function testsOn(page: Page, label: string, boot = true) {
   const t0 = Date.now();
   await page.waitForFunction(() => document.querySelectorAll("label").length > 0 && [...document.querySelectorAll("label")].some((l) => /run the tests/.test(l.textContent ?? "")), null, { timeout: 60000 });
@@ -260,7 +297,13 @@ async function testsOn(page: Page, label: string, boot = true) {
       return { ran: Object.entries(st).filter(([, x]) => x !== "pending").map(([n]) => n), pending: Object.keys(st).length, running: ss?.running(), pulling: ss?.pulling(), ballRuns: ball ? ball._version : null };
     });
     bootBallRuns.set(label, idle.ballRuns);
-    report(idle.ran.length === 0 && idle.pulling === 0, `${label}: at boot ${idle.pending} test cells are pending and none ran (${JSON.stringify(idle.ran)}); listeners attached ${idle.running}, clocks pulled ${idle.pulling}; the page's ballView computed ${idle.ballRuns} times`);
+    const runs = await bootRuns(page);
+    const ball = runs?.find((c) => c.module === BREAKOUT && c.name === "ballView")?.runs ?? null;
+    report(idle.ran.length === 0 && idle.pulling === 0 && (idle.ballRuns === null || ball === 1), `${label}: at boot ${idle.pending} test cells are pending and none ran (${JSON.stringify(idle.ran)}); listeners attached ${idle.running}, clocks pulled ${idle.pulling}; the page's ballView ran ${ball} times (the runtime computed it ${idle.ballRuns} times)`);
+    if (runs) {
+      const more = runs.filter((c) => c.runs === null || c.runs > 1).map((c) => `${c.module.split("/")[1]}:${c.name} ${c.runs}`);
+      report(runs.length > 0 && !more.length, `${label}: at boot each of the ${runs.length} SoundScript cells that take ss in the core, the tutorial and Breakout ran at most once (${runs.filter((c) => c.runs === 1).length} once, ${runs.filter((c) => c.runs === 0).length} not read); more than once or not found: ${JSON.stringify(more)}`);
+    }
   }
   // each toggle is found by the module whose cell holds it; when its pane shows another tab, that
   // module's tab is clicked first. The tutorial goes last, so its tab is the one left showing.
@@ -1462,11 +1505,11 @@ async function commandGuard(page: Page, label: string, module: string, cell: str
         row("copy", copied.length === 0 && /not copied/.test(warns.at(-1)!) && changed(before).length === 0, `refused, nothing copied: ${warns.at(-1)}`);
       }
       // paste: a compiled SoundScript text pasted as Observable JS, by name onto a marked cell and onto a plain cell
-      const compiledOjs = `${cell} = ss.cell(/*{lang:"ss"}*/ () => 1)`;
+      const compiledOjs = `${cell} = (/*{lang:"ss"}*/ () => 1)()`;
       const plain = find(plainName, mod);
       before = snap(); w0 = warns.length;
       const plainDef = plain ? String(plain._definition) : null;
-      clip = [{ mode: "js", value: compiledOjs }, ...(plain ? [{ mode: "js", value: `${plain._name} = ss.cell(/*{lang:"ss"}*/ () => 2)` }] : [])];
+      clip = [{ mode: "js", value: compiledOjs }, ...(plain ? [{ mode: "js", value: `${plain._name} = (/*{lang:"ss"}*/ () => 2)()` }] : [])];
       // the cell the paste lands on is in the cell map (a cell added just before may not be yet)
       const findCell0 = await val("findCell");
       await until(() => findCell0(target)?.module?.module, `the cell map holding ${cell}`);
@@ -1592,7 +1635,7 @@ const runsOf = (page: Page, module: string) => page.evaluate((module) => {
   const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
   const out: Record<string, number> = {};
   // the runtime's count of each variable's runs
-  for (const v of rt._variables) if (v._module === mod && typeof v._name === "string" && ["cell", "plain"].includes(ss.compiledKind(String(v._definition))?.callee)) out[v._name] = v._version;
+  for (const v of rt._variables) if (v._module === mod && typeof v._name === "string" && ss.compiledKind(String(v._definition))?.kind) out[v._name] = v._version;
   return out;
 }, module);
 
@@ -2072,10 +2115,12 @@ if (!variantOnly && !process.argv.includes("--no-try") && !process.argv.includes
   await G.page.close();
 }
 if ((!uiOnly && !variantOnly || speedOnly) && !process.argv.includes("--no-speed")) await speed();
-const A = uiOnly || variantOnly ? null as any : await open(file);
+const A = uiOnly || variantOnly ? null as any : await open(file, undefined, true, true);
 if (!uiOnly && !variantOnly) {
 // the counter tests press their buttons on copies: the page's counters keep what the reader set
 await A.page.waitForFunction(([c, t]: string[]) => { const rt = (window as any).__ojs_runtime; return rt?.mains?.get(t)?._scope.get("increment")?._value && rt.mains.get(c)?._scope.get("bump")?._value; }, [CORE, TUTORIAL], { timeout: 60000 });
+// the boot counts are read before the presses below run the counters' readers again
+await bootRuns(A.page);
 const pressed = () => A.page.evaluate(async ([c, t]: string[]) => {
   const rt = (window as any).__ojs_runtime;
   return { count: await rt.mains.get(t).value("count"), tally: await rt.mains.get(c).value("tally") };
@@ -2135,7 +2180,7 @@ requests("original page", A);
 await A.page.close();
 
 
-const B = await open(exp1Path);
+const B = await open(exp1Path, undefined, true, true);
 
 
 await testsOn(B.page, "reopened export");
@@ -2159,7 +2204,7 @@ await B.page.close();
 const savedPath = join(SCRATCH, "saved.html");
 if (!variantOnly && !tryOnly) {
 rmSync(savedPath, { force: true });
-const E = await open(file, savedPath);
+const E = await open(file, savedPath, true, true);
 await testsOn(E.page, "ui");
 await testsPass(E.page, "ui", CORE, CORE_TESTS);
 await completion(E.page);
@@ -2172,7 +2217,7 @@ await uiPaths(E.page, savedPath);
 requests("ui page", E);
 await E.page.close();
 if (existsSync(savedPath)) {
-  const F = await open(savedPath);
+  const F = await open(savedPath, undefined, true, true);
   await testsOn(F.page, "reload after save");
   // the edits change width and add a cell, so the two tests that pin section 1's values and the verdict list are left out
   const changed = ["test_ss_module_checks", "test_half"];
@@ -2193,7 +2238,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   report(built.exitCode === 0, `core-only: built ${variant}${built.exitCode ? ": " + built.stderr.toString().slice(-400) : ""}`);
   const vhtml = readFileSync(variant, "utf8");
   report(!ids(vhtml).has(TUTORIAL) && ![...ids(vhtml)].some((id) => id.startsWith(TUTORIAL + "/")), "core-only: no tutorial block or attachment in the file");
-  const C = await open(variant);
+  const C = await open(variant, undefined, true, true);
   await testsOn(C.page, "core-only");
   await testsPass(C.page, "core-only", CORE, CORE_TESTS);
   await hookPass(C.page, "core-only");
@@ -2247,7 +2292,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
       const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
       const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
       const lang = get("ss_language")._value, ss = get("soundscript")._value;
-      const kind = () => /kind: "(\w+)"/.exec(String(get("pulse")?._definition))?.[1];
+      const kind = () => { const d = get("pulse")?._definition; return d ? ss.compiledKind(String(d))?.kind : undefined; };
       const until = async (f: () => boolean) => { for (let i = 0; i < 100 && !f(); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
       const out: any = {};
       out.gen = await lang.apply("const pulse = function* () { while (true) yield 1; };", [], { module: { module: core }, variables: [get("tripled")] });
@@ -2296,7 +2341,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   writeFileSync(cexpPath, cexp);
   requests("core-only page", C);
   await C.page.close();
-  const D = await open(cexpPath);
+  const D = await open(cexpPath, undefined, true, true);
   await testsOn(D.page, "core-only reopened");
   await testsPass(D.page, "core-only reopened", CORE, CORE_TESTS);
   {
@@ -2402,7 +2447,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   })();
   report(!g2.error && !g2.registeredAtOpen?.includes("ss") && shownCompiled && g2.diagnostics?.some((d: string) => /not loaded yet/.test(d)) && g2.savedUnchanged,
     `core-not-main: with no language registered the editor on width shows the compiled text, says it is not loaded, and Shift-Enter saves nothing: ${JSON.stringify({ ...g2, shownBefore: g2.shownBefore?.slice(0, 60), shownAfter: undefined })}`);
-  report(!g2.error && /^const width = \(\) => 640;$/m.test(g2.shownAfter ?? "") && !g2.shownAfter.includes("ss.cell("), `core-not-main: after registration the open editor shows the typed source: ${JSON.stringify(g2.shownAfter ?? g2.error)}`);
+  report(!g2.error && /^const width = \(\) => 640;$/m.test(g2.shownAfter ?? ""), `core-not-main: after registration the open editor shows the typed source: ${JSON.stringify(g2.shownAfter ?? g2.error)}`);
   report(!g2.error && g2.lineBefore !== g2.lineAfter && g2.lineAfter === "increment = ƒ action()", `core-not-main: increment's line is the normal Inspector's before registration (${JSON.stringify(g2.lineBefore?.slice(0, 60))}) and the language's after, without a reload (${JSON.stringify(g2.lineAfter ?? g2.error)})`);
   // a language whose editor extension throws leaves the plain editor, with the error shown
   const g1 = await U.page.evaluate(async (tut) => {
