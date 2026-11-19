@@ -20,7 +20,7 @@ To write SoundScript cells in another module of this notebook, import \`ss\` and
 import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_pool, ss_source } from "@tomlarkworthy/soundscript"
 \`\`\`
 
-Every compiled cell takes \`ss\` as an input: the object \`ss\` of \`@tomlarkworthy/soundscript-runtime\`, which holds what compiled cells call. The checker and compiler are \`soundscript\` of \`@tomlarkworthy/soundscript-checker\`, which the tooling cells of this module use. Add a cell after a SoundScript cell and type a source such as \`const total = (a: number, b: number) => a + b;\`. The editor's header shows the language the cell will be stored in, and lets you change it. A SoundScript cell is checked against the module's other SoundScript cells and, if it is \`ok\`, compiled and defined. A module whose cells call \`compile\` also defines \`ss_compile\`:
+Every compiled cell takes \`ss\` as an input: the object \`ss\` of \`@tomlarkworthy/soundscript-runtime\`, which holds what compiled cells call. The checker and compiler are \`soundscript\` of \`@tomlarkworthy/soundscript-checker\`, which the tooling cells of this module use. Add a cell after a SoundScript cell and type a source such as \`const total = (a: number, b: number) => a + b;\`. The editor's header shows the language the cell is stored in. Picking another language there changes the view, not the cell: a SoundScript cell viewed as Observable JavaScript shows its compiled cell text, which cannot be saved from that view, and an Observable JavaScript cell viewed as SoundScript shows \`const <name> = (<inputs>) => <body>;\`, which Shift-Enter stores as SoundScript if it checks. A view that cannot be made (text that does not parse, a \`viewof\` or \`mutable\` cell, a cell with no name, an import, a cell that uses \`this\`) leaves the text as it was and shows the reason beside the picker. A SoundScript cell is checked against the module's other SoundScript cells and, if it is \`ok\`, compiled and defined. A module whose cells call \`compile\` also defines \`ss_compile\`:
 
 \`\`\`
 ss_compile = soundscript.compiler(() => ss_source(my_module))
@@ -97,7 +97,8 @@ ss_source(module)                      // those cells' source, joined in runtime
 ss_outside(module)                     // the module's cells in other languages: [{name, view?}]
 ss_check(module)                       // checkSources over ss_source(module), with ss_outside(module)
 ss_roundtrip(module)                   // decompile and recompile every cell; throws on a difference
-ss_language                            // the object registered on cell_languages; .inspect draws a value
+ss_language                            // the object registered on cell_languages; .inspect draws a value;
+                                       // .hosts(module), .toBuiltin(source, …), .fromBuiltin(source, …) serve the editor's language picker
 ss_instance(module, invalidation)      // a second, unseen copy of module's SoundScript cells, for tests
 ss_highlight(text), ss_highlightCode(node)  // TypeScript colouring as spans; an md cell's code blocks coloured
 cellListing(module, invalidation, {from, to})  // a module's cells in any registered language, as one listing
@@ -664,8 +665,10 @@ ss_language = {
     if (target !== "ojs") return { reason: "a SoundScript cell compiles to Observable JavaScript, not Notebook Kit JavaScript" };
     const r = check(source, variables, cell);
     const parse = r.problems.find((p) => p.rule === "parse" || p.rule === "check" || p.rule === "compile");
-    if (parse) return { reason: `the text does not parse: ${parse.msg}` };
-    if (!r.store) return { reason: r.problems[0]?.msg ?? "the text names no cell" };
+    // the first line of the message; what follows it is about storing, and a pick stores nothing
+    if (parse) return { reason: `the text does not parse: ${String(parse.msg).split(";")[0]}` };
+    const dup = r.problems.find((p) => p.rule === "duplicate-cell");
+    if (dup) return { reason: `${soundscript.declaredName(source) ?? "this name"} is already defined in this module` };
     return { text: soundscript.compileCellText(source, tsx, r.ctx, r.hint) };
   };
   // fromBuiltin: Observable JavaScript as SoundScript. compiled: the variables the standard compiler made of
@@ -989,7 +992,9 @@ test_ss_deleted_state_is_not_inherited = {
     let seen;
     const deletionSeen = new Promise((r) => (seen = r));
     const off = onCodeChange(({ variable, previous }) => { if (variable === null && doomed.includes(previous?.variable)) seen(); });
-    try { for (const v of doomed) v.delete(); await deletionSeen; } finally { off(); }
+    let saw = false;
+    deletionSeen.then(() => (saw = true));
+    try { for (const v of doomed) v.delete(); if (!(await frames(() => saw))) throw new Error("the deletion was not reported in 600 frames"); } finally { off(); }
     const b = await mod([T]);
     const start = await b.value("deletedKept");
     if (start !== 0) throw new Error(`the new deletedKept started at ${start}, the deleted cell's state`);

@@ -2101,7 +2101,7 @@ const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionS
   const apply = async (source, variables = [], cell, route = routeLanguage(source, variables, cell)) => {
     try {
       const pasted = MARKED.exec(source)?.[1];
-      if (pasted) { console.warn(new Error(`not saved: this text carries a /*{lang:"${pasted}"}*/ marker, so it is a compiled cell, not source; the cell is unchanged`)); return undefined; }
+      if (pasted) { console.warn(new Error(`not saved: this text carries a /*{lang:"${pasted}"}*/ marker, so it is a compiled cell, not source; to edit the cell, pick ${pasted} in its header. The cell is unchanged`)); return undefined; }
       // saving a tagged cell through the js/ojs path would replace it with its compiled text; checked
       // before the picked language, so the picker cannot write over a cell of a language not loaded
       const unloaded = unloadedLanguage(variables, cell);

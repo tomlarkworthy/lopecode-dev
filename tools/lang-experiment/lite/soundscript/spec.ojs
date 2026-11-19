@@ -692,7 +692,7 @@ md`**S6.9** The body of an action may not use a value that depends on state: an 
 // %%
 md`**S6.10** A write is applied to its call when it is made, so an \`update\` whose function throws throws out of the call that made it. A top-level call that throws, or whose promise rejects, keeps none of its writes, nor those of the actions it called; the writes of earlier calls are kept, and calls apply in the order they were made. An action called inside a call is a plain function call: when it throws and its caller catches the throw, the writes it made before throwing are kept.`
 // %%
-md`**S6.11** A state cell is two runtime variables: \`viewof c\` holds its handle and \`c\` holds its value. An input \`c: State<T>\` is an input on \`viewof c\` and gets the handle. The handle is the same object when the state cell is made again (S6.2), so a \`State<T>\` taken before writes to the new state cell. After the state cell was in error it has a new handle (S8.5), and a cell that takes its \`State<T>\` runs again with it. While the state cell is in error, because it does not check, it or one of its inputs threw, or it is not defined, a cell that takes its \`State<T>\` does not run: it is blocked when the state cell does not check (S8.2), and has the error of the input that threw otherwise (S8.3).`
+md`**S6.11** A state cell is two runtime variables: \`viewof c\` holds its handle and \`c\` holds its value. An input \`c: State<T>\` is an input on \`viewof c\` and gets the handle. The handle is the same object when the state cell is made again (S6.2), so a \`State<T>\` taken before writes to the new state cell. After the state cell was in error it may have a new handle (S8.5); a cell that takes its \`State<T>\` runs again with the handle it then has. While the state cell is in error, a cell that takes its \`State<T>\` does not run: it is blocked when the state cell does not check (S8.2), and has the error of the input that threw when the state cell or one of its inputs threw (S8.3). When the state cell's variables are deleted, the holder is rejected, \`[inject-unknown]\` (S2.1), once the module has seen the deletion.`
 // %%
 md`**S6.12** The function given to \`action(...)\` may be sync or async, or return a promise-like. It may wait with \`await\`, \`.then\` or \`Promise.all\`; none of these has a meaning of its own.`
 // %%
@@ -894,21 +894,32 @@ test_spec_S6_11 = {
     // an input that throws: the cell holding n's State is blocked by it
     await E.edit("base", 'const base = (): number => {\n  throw new Error("broken base");\n};');
     spec_is(await call(), { error: "broken base" });
-    // after the error n has a new handle, and its holder runs again with it
+    // after the error n is made again from the new input; whether its handle is a new one depends on the runtime (S8.5)
     await E.edit("base", "const base = () => 7;");
-    spec_is([(await E.value("both")) === before, await call(), await E.value("pair")], [false, "", [8, 3]]);
+    spec_is([await call(), await E.value("pair")], ["", [8, 3]]);
     // the state cell does not check: the holder is blocked by it
     await E.edit("n", 'const n = (base: number): StateCell<number> => state("x");');
     spec_is([E.states().n, E.states().both, E.states().pair], ["rejected", "blocked by n", "blocked by n"]);
     const rejected = await call();
     if (!/^n does not check: \[/.test(rejected.error ?? "")) throw new Error(`with n rejected: ${JSON.stringify(rejected)}`);
-    // not defined
+    // not defined: both raises "viewof n is not defined" only until ss_lifecycle sees the deletion (onCodeChange
+    // polls) and checks both again, which rejects it (S2.1); when call() lands in that window is timing, so the
+    // test waits for the recheck, bounded only to fail with a message
+    const def0 = String(E.variable("both")._definition);
+    let off = () => {};
+    const rechecked = Promise.race([
+      new Promise((r) => { off = onCodeChange(() => { if (String(E.variable("both")?._definition) !== def0) r(true); }); }),
+      new Promise((r) => setTimeout(() => r(false), 20000))
+    ]);
     E.variable("n").delete();
     E.variable("viewof n").delete();
+    const seen = await rechecked;
+    off();
+    if (!seen) throw new Error("with n deleted: both was not checked again in 20 s");
     const missing = await call();
-    if (!/viewof n is not defined/.test(missing.error ?? "")) throw new Error(`with n deleted: ${JSON.stringify(missing)}`);
+    if (!/^both does not check: \[inject-unknown\] parameter n names no cell/.test(missing.error ?? "")) throw new Error(`with n deleted: ${JSON.stringify(missing)}`);
     spec_is(await E.value("other"), 3);
-    return `the holder of n's State is blocked when an input threw, when n does not check (${rejected.error}) and when it is not defined (${missing.error}); a State taken before n was made again writes the new n`;
+    return `the holder of n's State is blocked when an input threw, when n does not check (${rejected.error}) and, once checked again after n was deleted, rejected (${missing.error}); a State taken before n was made again writes the new n`;
   } finally { E.dispose(); }
 }
 // %%
@@ -1275,7 +1286,7 @@ md`**S8.3** Only ok cells run. An edit and every other cell whose compiled form 
 // %%
 md`**S8.4** A cell whose compiled text an edit did not change is not defined again, so cells outside the broken part do not run again, and a state cell that stays ok keeps its value.`
 // %%
-md`**S8.5** A state cell that was in error starts again from its initial value: one blocked by an input when the input comes back, whatever its value, one whose input threw when the input has a value again, and a rejected one when it is repaired. The runtime gives a variable in error no last value, and a state cell keeps its value only through its variable's last value (S6.2).`
+md`**S8.5** A state cell keeps its value only through its variable's last value (S6.2), and the runtime clears the last value of a variable in error. So a state cell that was in error (blocked by an input, an input that threw, or rejected and repaired) starts again from its initial value. The one exception is the runtime's own: when the failed run was replaced by a newer run before it settled, the last value is not cleared, and S6.2 applies as if there had been no error. Which of the two happens is not specified; a state cell that must survive an error should not have inputs that can fail.`
 // %%
 md`**S8.6** A listener in the broken part ends when the edit is applied, and nothing is delivered to it after. When the part is repaired the listener attaches again, once.`
 // %%
@@ -1382,10 +1393,13 @@ test_spec_S8_5 = {
     spec_is([E.states().fromSq, E.states().own], ["blocked by sq", "rejected"]);
     await E.edit("base", "const base = () => 5;");
     await E.edit("own", "const own = (): StateCell<number> => state(0);");
-    spec_is([await E.value("fromSq"), await E.value("own"), await E.value("seeded")], [25, 0, 5]);
+    // each started again, or (the failed run replaced before it settled) kept what was written
+    const after = [await E.value("fromSq"), await E.value("own"), await E.value("seeded")];
+    const either = [[25, 26], [0, 2], [5, 7]];
+    if (!after.every((v, i) => either[i].includes(v))) throw new Error(`after the repair: ${JSON.stringify(after)}`);
     await E.edit("base", "const base = () => 6;");
     spec_is(await E.value("fromSq"), 36);
-    return "fromSq, blocked by sq at 26, started again at 25 when base came back as 5, and at 36 from 6; own and seeded, rejected, started again";
+    return `after the repair fromSq, own and seeded are ${JSON.stringify(after)} (each its initial value or the value written); fromSq starts again at 36 from 6`;
   } finally { E.dispose(); }
 }
 // %%

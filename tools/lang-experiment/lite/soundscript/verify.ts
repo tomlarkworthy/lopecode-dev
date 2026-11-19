@@ -142,17 +142,18 @@ async function open(path: string, saveTo?: string, specWait = true) {
   await page.goto(`file://${path}`);
   // the specification's tests run at load and pull generators of their own; the checks that count listeners
   // and clocks on the whole page start once they have settled
-  const waited = !specWait ? "skipped" : await page.evaluate(async (spec) => {
+  // mains register one by one, so the wait is for every main the file's bootconf declares, then for the spec's tests
+  const declared: string[] = JSON.parse(blockContent(readFileSync(path, "utf8"), "bootconf.json") ?? "{}").mains ?? [];
+  const waited = !specWait ? "skipped" : !declared.includes(SPEC) ? "ok" : await page.evaluate(async ([spec, declared]) => {
     const until = async (f: () => unknown, ms: number) => { const t = Date.now(); while (!f() && Date.now() - t < ms) await new Promise((r) => setTimeout(r, 50)); return f(); };
     const rt = () => (window as any).__ojs_runtime;
-    if (!(await until(() => rt()?.mains?.size, 60000))) return "no mains";
+    if (!(await until(() => rt()?.mains && declared.every((d) => rt().mains.has(d)), 60000))) return `mains not all registered in 60 s: missing ${declared.filter((d) => !rt()?.mains?.has(d)).join(", ")}`;
     const m = rt().mains.get(spec);
-    if (!m) return `no ${spec} among ${rt().mains.size} mains`;
     const tests = [...rt()._variables].filter((v: any) => v._module === m && /^test_spec_/.test(v._name));
     if (!tests.length) return "no spec tests defined yet";
     const all = await Promise.race([Promise.all(tests.map((t: any) => m.value(t._name).catch(() => 0))).then(() => true), new Promise((r) => setTimeout(() => r(false), 60000))]);
     return all ? "ok" : `${tests.length} spec tests not settled in 60 s`;
-  }, SPEC).catch((e: Error) => `evaluate failed: ${String(e.message).split("\n")[0]}`);
+  }, [SPEC, declared] as [string, string[]]).catch((e: Error) => `evaluate failed: ${String(e.message).split("\n")[0]}`);
   // printed, not judged: a later check that needs a cell waits on that cell
   if (waited !== "ok") console.log(`  open ${path.split("/").pop()}: spec tests wait ${waited}`);
   page.on("framenavigated", (f) => { if (f === page.mainFrame()) console.log(`  navigated: ${f.url().slice(0, 200)}`); });
@@ -582,11 +583,12 @@ let tagN = 0;
 const tagEditor = (page: Page, module: string, cell: string) => page.evaluate(async ([module, cell, tag]) => {
   const rt = (window as any).__ojs_runtime;
   const mod = rt.mains.get(module);
-  // a viewof cell (a state cell among them) is drawn, and edited, by its viewof variable
-  const v = mod._scope.get(`viewof ${cell}`) ?? [...rt._variables].find((v: any) => v._module === mod && v._name === cell);
-  const editors = [...rt._variables].find((v: any) => v._name === "editors")?._value;
+  // a viewof cell (a state cell among them) is drawn, and edited, by its viewof variable; both it and the
+  // editors Map are looked up on every try, so a variable replaced or a Map computed late is still found
+  const varOf = () => mod._scope.get(`viewof ${cell}`) ?? [...rt._variables].find((v: any) => v._module === mod && v._name === cell);
+  const editorsMap = () => [...rt._variables].find((v: any) => v._name === "editors" && v._value instanceof Map)?._value;
   for (let i = 0; i < 150; i++) {
-    const host = editors?.get(v);
+    const host = editorsMap()?.get(varOf());
     if (host?.querySelector(".hotbar")) { host.setAttribute("data-verify", tag); host.scrollIntoView({ block: "center" }); return tag; }
     await new Promise((r) => setTimeout(r, 100));
   }
@@ -1079,9 +1081,24 @@ async function uiPaths(page: Page, saved: string) {
   report(existsSync(saved) && readFileSync(saved, "utf8").length > 1e6, `ui: the menu's Save in place wrote ${existsSync(saved) ? readFileSync(saved, "utf8").length : 0} bytes`);
 }
 // A new cell by real keys: the add button on anchor's hotbar, then typed text and Shift-Enter.
+// why the last addByKeys returned null, for the failure's message
+let addWhy = "";
+const editorsState = (page: Page, module: string, cell: string) => page.evaluate(([module, cell]) => {
+  const rt = (window as any).__ojs_runtime, mod = rt.mains.get(module);
+  const named = [...rt._variables].filter((v: any) => v._name === "editors");
+  const v = mod._scope.get(`viewof ${cell}`) ?? [...rt._variables].find((v: any) => v._module === mod && v._name === cell);
+  const ed = named.find((x: any) => x._value instanceof Map)?._value;
+  const host = ed?.get(v);
+  const sameName = ed ? [...ed.keys()].filter((k: any) => k._module === mod && (k._name === cell || k._name === `viewof ${cell}`)).length : -1;
+  return { editorsVars: named.map((x: any) => `${x._module?._name ?? "?"}:${x._value instanceof Map ? "map" + x._value.size : typeof x._value}`), firstIsMap: named[0]?._value instanceof Map,
+    vName: v?._name, vInEditors: !!host, hostConnected: host?.isConnected, hostHotbar: !!host?.querySelector?.(".hotbar"), sameNameKeys: sameName, observed: !!v?._observer?._node, divs: document.querySelectorAll(".observablehq").length };
+}, [module, cell]);
 async function addByKeys(page: Page, module: string, anchor: string, text: string, tagName: string) {
+  addWhy = "";
   const t = await tagEditor(page, module, anchor);
-  if (!t) return null;
+  if (!t) { addWhy = `no hotbar for ${anchor}: ${JSON.stringify(await editorsState(page, module, anchor))}`; return null; }
+  const count = () => page.evaluate((m) => { const rt = (window as any).__ojs_runtime; return [...rt._variables].filter((v: any) => v._module === rt.mains.get(m)).length; }, module);
+  const n0 = await count();
   await page.locator(`[data-verify="${t}"] .add-cell-btn`).first().click();
   await page.waitForFunction(() => [...document.querySelectorAll(".cm-editor")].some((e) => (e.querySelector(".cm-content")?.textContent ?? "").trim() === "{}"), null, { timeout: 15000 }).catch(() => {});
   const ok = await page.evaluate((tagName) => {
@@ -1090,13 +1107,15 @@ async function addByKeys(page: Page, module: string, anchor: string, text: strin
     host.setAttribute("data-verify", tagName);
     return true;
   }, tagName);
-  if (!ok) return null;
+  if (!ok) { addWhy = `the add button made no empty editor in 15 s; variables in ${module} ${n0} -> ${await count()}; editors with text "{}" ${await page.evaluate(() => [...document.querySelectorAll(".cm-editor")].filter((e) => (e.querySelector(".cm-content")?.textContent ?? "").trim() === "{}").length)}`; return null; }
   const host = page.locator(`[data-verify="${tagName}"]`);
   await typeInto(page, host, text);
   // the stored cell gets an editor of its own; that one is returned
   const name = /const (\w+)/.exec(text)![1];
-  await until(page, async () => !!(await defOf(page, module, name)));
-  return openEditor(page, module, name);
+  const stored = await until(page, async () => !!(await defOf(page, module, name)));
+  const ed = await openEditor(page, module, name);
+  if (!ed) addWhy = `${name} ${stored ? "stored" : "not stored in 10 s"}; no hotbar for it: ${JSON.stringify(await editorsState(page, module, name))}`;
+  return ed;
 }
 // A rejected cell never runs: SNEAK's body counts its runs on globalThis, which the checker rejects, so
 // the count stays absent. Checked at the edit, in ss_instance, after an exporter-3 export reopened, and
@@ -1139,10 +1158,10 @@ async function brokenState(savedTo: string) {
   const page = P.page;
   await page.waitForFunction(([c, t]: string[]) => { const rt = (window as any).__ojs_runtime; return rt?.mains?.get(t)?._scope.get("half")?._value !== undefined && rt.mains.get(c)?._scope.get("ss_language")?._value; }, [CORE, TUTORIAL], { timeout: 60000 });
   const sneak = await addByKeys(page, TUTORIAL, "half", SNEAK, "sneak");
-  if (!sneak) { report(false, "broken state: no add button on half"); await page.close(); return; }
+  if (!sneak) { report(false, `broken state: no add button on half: ${addWhy}`); await page.close(); return; }
   await until(page, async () => (await diagsOf(sneak).catch(() => [])).length > 0);
   const broken = await addByKeys(page, TUTORIAL, "half", BROKEN, "broken");
-  if (!broken) { report(false, "broken state: no second add"); await page.close(); return; }
+  if (!broken) { report(false, `broken state: no second add: ${addWhy}`); await page.close(); return; }
   await until(page, async () => (await diagsOf(broken).catch(() => [])).some((d: string) => d.startsWith("[parse]")));
   const bd = await diagsOf(broken);
   report(bd.some((d: string) => d.startsWith("[parse]")) && !!(await defOf(page, TUTORIAL, "broken")), `broken state: an unparsable cell typed with the add button is stored and its editor shows the parser's message: ${JSON.stringify(bd)}`);
