@@ -2,7 +2,7 @@
 test_runtime_action_commits_a_write = {
   // a state cell's handle, as a compiled state cell gets it from cell(..., {kind: "ref"}); its value, as the
   // state cell's value variable reads it, is Observable's Generators.input of it
-  const count = cell(() => state(0), [], { kind: "ref", name: "test_count", memo: false, id: "test_runtime_commit", invalidation: null });
+  const count = cell(() => state(0), [], { kind: "ref", name: "test_count", invalidation: null });
   const values = Generators.input(count);
   const v0 = await values.next().value;
   const increment = action(() => count.update((v) => v + 1));
@@ -14,7 +14,7 @@ test_runtime_action_commits_a_write = {
 }
 // %%
 test_runtime_queued_call_runs_after_the_one_in_flight = {
-  const x = cell(() => state(1), [], { kind: "ref", name: "test_x", memo: false, id: "test_runtime_queue", invalidation: null });
+  const x = cell(() => state(1), [], { kind: "ref", name: "test_x", invalidation: null });
   const values = Generators.input(x);
   await values.next().value;
   const order = [];

@@ -124,10 +124,28 @@ spec_frames = async (f, n = 600) => {
   return f();
 }
 // %%
+spec_runs = {
+  // computations of a variable the runtime started since spec_runs was first asked about it: the pending calls
+  // of an observer (runtime-sdk observe), one per computation. observe also calls pending once on attaching, in
+  // a microtask it queues then; the first answer waits for it and does not count it.
+  const counts = new WeakMap();
+  return async (v) => {
+    let c = counts.get(v);
+    if (!c) {
+      c = { n: 0 };
+      counts.set(v, c);
+      observe(v, { pending: () => c.n++ });
+      await null;
+      c.n = 0;
+    }
+    return c.n;
+  };
+}
+// %%
 spec_evals = (module, name) => {
-  // body runs of a cell; a state cell's body runs in its handle variable
+  // runs of a cell (spec_runs); a state cell runs in its handle variable
   const v = (n) => [...runtime._variables].find((x) => x._module === module && x._name === n);
-  return soundscript.evals(soundscript.idOf(String((v(soundscript.handleName(name)) ?? v(name))._definition)));
+  return spec_runs(v(soundscript.handleName(name)) ?? v(name));
 }
 // %%
 spec_editor = async (texts) => {
@@ -145,7 +163,7 @@ spec_editor = async (texts) => {
     edit: (name, text) => ss_language.apply(text, [variable(name)], at),
     states: () => Object.fromEntries([...ss_check(m).states].map(([n, x]) => [n, x.state === "blocked" ? `blocked by ${x.blockedBy.join(",")}` : x.state])),
     value: async (n) => { try { return await m.value(n); } catch (e) { return { error: e.message }; } },
-    evals: (n) => soundscript.evals(soundscript.idOf(String(variable(n)._definition))),
+    evals: (n) => spec_runs(variable(soundscript.handleName(n)) ?? variable(n)),
     text: (n) => soundscript.decompileVariable(String(variable(n)._definition)),
     dispose: () => { for (const v of [...runtime._variables]) if (v._module === m) { soundscript.release(v._value); v.delete(); } }
   };
@@ -762,17 +780,17 @@ test_spec_S6_2 = {
   const L = await spec_load("const seed = (): StateCell<number> => state(1);\nconst vars = (seed: number): StateCell<{ readonly n: number }> => state({ n: seed * 10 });\nconst label = (vars: { readonly n: number }) => `n=${vars.n}`;\nconst setN = (vars: State<{ readonly n: number }>) => action((n: number) => vars.set({ n }));\nconst bumpSeed = (seed: State<number>) => action(() => seed.update((s) => s + 1));", {});
   try {
     spec_is(await L.value("label"), "n=10");
-    const made = spec_evals(L.module, "vars");
+    const made = await spec_evals(L.module, "vars");
     const setN = await L.value("setN");
     await spec_act(() => setN(5));
     await spec_flush();
     spec_is(await L.value("label"), "n=5");
-    spec_is(spec_evals(L.module, "vars") - made, 0);
+    spec_is((await spec_evals(L.module, "vars")) - made, 0);
     const bumpSeed = await L.value("bumpSeed");
     await spec_act(() => bumpSeed());
     await spec_flush();
     spec_is(await L.value("label"), "n=20");
-    spec_is(spec_evals(L.module, "vars") - made, 1);
+    spec_is((await spec_evals(L.module, "vars")) - made, 1);
     return "a write is kept (n=5) until the input changes; then the state cell is made again from it (n=20), once";
   } finally { L.dispose(); }
 }
@@ -782,18 +800,18 @@ test_spec_S6_3 = {
   const L = await spec_load("const clicks = (): StateCell<number> => state(0);\nconst label = (clicks) => `count: ${clicks}`;\nconst increment = (clicks: State<number>) => action(() => clicks.update((c) => c + 1));", {});
   try {
     spec_is(await L.value("label"), "count: 0");
-    const runs = () => ["label", "increment", "clicks"].map((n) => spec_evals(L.module, n));
-    const [label0, inc0, count0] = runs();
+    const runs = () => Promise.all(["label", "increment", "clicks"].map((n) => spec_evals(L.module, n)));
+    const [label0, inc0, count0] = await runs();
     const inc = await L.value("increment");
     await spec_act(() => inc());
     await spec_flush();
     spec_is(await L.value("label"), "count: 1");
-    const [label1, inc1, count1] = runs();
+    const [label1, inc1, count1] = await runs();
     spec_is([label1 - label0, inc1 - inc0, count1 - count0], [1, 0, 0]);
     await spec_act(() => { inc(); inc(); });
     await spec_flush();
     spec_is(await L.value("label"), "count: 3");
-    spec_is(runs()[0] - label1, 1); // two calls finished before one commit: one run
+    spec_is((await runs())[0] - label1, 1); // two calls finished before one commit: one run
     return `${spec_rejectsFor("S6.3")}; a write runs label again once, and neither increment nor the state cell`;
   } finally { L.dispose(); }
 }
@@ -886,11 +904,13 @@ test_spec_S6_11 = {
   ]);
   try {
     const call = async () => { const f = await E.value("both"); if (typeof f !== "function") return f; await spec_act(() => f()); await spec_flush(); return ""; };
-    const before = await E.value("both");
+    const before = await E.value("both"), handle = await E.value("viewof n");
     spec_is([await call(), await E.value("pair")], ["", [2, 1]]);
-    // made again from a new input: the handle is the same, so the State taken before writes the new state cell
+    // made again from a new input: the handle is the same, so the State taken before (in before, the action
+    // both returned then) writes the new state cell
     await E.edit("base", "const base = () => 5;");
-    spec_is([(await E.value("both")) === before, await call(), await E.value("pair")], [true, "", [6, 2]]);
+    const callBefore = async () => { await spec_act(() => before()); await spec_flush(); return ""; };
+    spec_is([(await E.value("viewof n")) === handle, await callBefore(), await E.value("pair")], [true, "", [6, 2]]);
     // an input that throws: the cell holding n's State is blocked by it
     await E.edit("base", 'const base = (): number => {\n  throw new Error("broken base");\n};');
     spec_is(await call(), { error: "broken base" });
@@ -979,14 +999,14 @@ test_spec_S6_14 = {
   const g = spec_gate();
   try {
     spec_is(await E.value("pair"), [0, 0]);
-    const load = await E.value("load"), runs = E.evals("pair");
+    const load = await E.value("load"), runs = await E.evals("pair");
     await spec_act(() => load(g.p));
     await spec_flush();
-    spec_is([soundscript.actionQueue().inFlight, await E.value("pair"), E.evals("pair") - runs], [true, [0, 0], 0]);
+    spec_is([soundscript.actionQueue().inFlight, await E.value("pair"), (await E.evals("pair")) - runs], [true, [0, 0], 0]);
     g.open(10);
     await spec_act(() => {});
     await spec_flush();
-    spec_is([await E.value("pair"), E.evals("pair") - runs], [[2, 11], 1]);
+    spec_is([await E.value("pair"), (await E.evals("pair")) - runs], [[2, 11], 1]);
     return "while the call waits nothing is committed; then a and b commit together, pair runs once, and read(a) after the await saw the call's own write (b is 11)";
   } finally { g.open(0); E.dispose(); }
 }
@@ -1182,8 +1202,10 @@ test_spec_S7_4 = {
     await spec_flush();
     spec_is(await A.value("seen"), { count: 60, last: 60, gaps: 0, sum: 1830 });
   } finally { A.dispose(); }
-  // a long stream: the listener edited, its action's input edited, then the listener deleted
-  const B = await spec_editor(spec_stream(1000000));
+  // a long stream: the listener edited, its action's input edited, an input of nums run again with the same
+  // value (nums keeps its generator and handle, and onNum runs again on equal inputs), then the listener deleted
+  const long = spec_stream(1000000).flatMap((t) => soundscript.declaredName(t) !== "nums" ? [t] : ["const limit = () => 1000000;", "const nums = function* (running: boolean, limit: number) {\n  if (!running) return;\n  for (let i = 1; i <= limit; i++) yield i;\n};"]);
+  const B = await spec_editor(long);
   try {
     const count = async () => (await B.value("seen")).count;
     const exact = async () => { const s = await B.value("seen"); if (s.gaps !== 0 || s.count !== s.last) throw new Error(`a value lost or doubled: ${JSON.stringify(s)}`); return s.count; };
@@ -1195,13 +1217,20 @@ test_spec_S7_4 = {
     await B.edit("weight", "const weight = () => (v: number) => v * 1;");
     const at2 = await count();
     await spec_frames(async () => (await count()) >= at2 + 10);
+    await exact();
+    const handle = await B.value("nums"), onNum0 = await B.evals("onNum");
+    await B.edit("limit", "const limit = () => /* again */ 1000000;");
+    const at3 = await count();
+    await spec_frames(async () => (await count()) >= at3 + 10);
     const n = await exact();
+    const again = (await B.evals("onNum")) - onNum0;
+    spec_is([again > 0, (await B.value("nums")) === handle, soundscript.running([handle])], [true, true, 1]);
     B.variable("onNum").delete();
     await spec_flush();
     const stopped = await count();
     for (let i = 0; i < 10; i++) await new Promise((r) => requestAnimationFrame(r));
     spec_is(await count(), stopped);
-    return `60 values, each once in order; after two edits ${n} values with none lost or delivered twice; deleted, it delivers nothing`;
+    return `60 values, each once in order; after three edits (the last ran onNum again ${again} times on equal inputs) ${n} values with none lost or delivered twice, one listener; deleted, it delivers nothing`;
   } finally { B.dispose(); }
 }
 // %%
@@ -1210,7 +1239,7 @@ test_spec_S7_5 = {
   try {
     const seen = () => E.value("seen");
     await spec_frames(async () => (await seen()).count >= 10);
-    const listener = E.evals("onNum"), events = E.evals("nums"), handle = await E.value("nums");
+    const listener = await E.evals("onNum"), events = await E.evals("nums"), handle = await E.value("nums");
     const toggle = await E.value("toggle");
     await spec_act(() => toggle());
     await spec_flush();
@@ -1223,8 +1252,8 @@ test_spec_S7_5 = {
     const s = await seen();
     // started again from 1: one gap, where the values went back to 1
     spec_is(s.gaps, 1);
-    spec_is([E.evals("nums") - events, (await E.value("nums")) === handle], [2, true]);
-    return `stopped at ${c1}; started again from 1; nums ran twice more and kept its handle (onNum ran ${E.evals("onNum") - listener} more times)`;
+    spec_is([(await E.evals("nums")) - events, (await E.value("nums")) === handle], [2, true]);
+    return `stopped at ${c1}; started again from 1; nums ran twice more and kept its handle (onNum ran ${(await E.evals("onNum")) - listener} more times)`;
   } finally { E.dispose(); }
 }
 // %%
@@ -1284,7 +1313,7 @@ md`**S8.2** After each edit every cell is ok, rejected or blocked. A rejected ce
 // %%
 md`**S8.3** Only ok cells run. An edit and every other cell whose compiled form it changes are defined in one step, so no cell runs in between on a mix of old and new definitions. A rejected cell raises \`<name> does not check: [rule] …\` and its body never runs, at load or after an edit; the body is kept only as source. A blocked cell fails with the error of the input that is not ok.`
 // %%
-md`**S8.4** A cell whose compiled text an edit did not change is not defined again, so cells outside the broken part do not run again, and a state cell that stays ok keeps its value.`
+md`**S8.4** A cell whose compiled text an edit did not change is not defined again, so the edit itself does not run cells outside the broken part, and a state cell that stays ok keeps its value. When a cell runs is otherwise the runtime's rule: a cell runs again whenever one of its inputs was computed again, equal value or not.`
 // %%
 md`**S8.5** A state cell keeps its value only through its variable's last value (S6.2), and the runtime clears the last value of a variable in error. So a state cell that was in error (blocked by an input, an input that threw, or rejected and repaired) starts again from its initial value. The one exception is the runtime's own: when the failed run was replaced by a newer run before it settled, the last value is not cleared, and S6.2 applies as if there had been no error. Which of the two happens is not specified; a state cell that must survive an error should not have inputs that can fail.`
 // %%
@@ -1361,14 +1390,14 @@ test_spec_S8_4 = {
   try {
     (await E.value("increment"))();
     if (!(await spec_frames(async () => (await E.value("label")) === "pressed 1"))) throw new Error("the write did not reach label");
-    const runs = () => ["height", "tall", "label", "count"].map((n) => E.evals(n));
-    const before = runs();
+    const runs = () => Promise.all(["height", "tall", "label", "count"].map((n) => E.evals(n)));
+    const before = await runs();
     await E.edit("width", 'const width = () => "800";');
     await E.edit("area", "const area = (width: string, height: number) => Number(width) * height;");
     await E.edit("aspect", "const aspect = (width: string, height: number) => (Number(width) / height).toFixed(2);");
     spec_is(Object.values(E.states()).every((x) => x === "ok"), true);
     spec_is([await E.value("area"), await E.value("half"), await E.value("aspect"), await E.value("count")], [320000, 160000, "2.00", 1]);
-    spec_is(runs(), before);
+    spec_is(await runs(), before);
     return "broken and repaired in three edits; height, tall, label and count did not run again, and count kept 1";
   } finally { E.dispose(); }
 }
@@ -1540,7 +1569,7 @@ md`**S11.4** Each value that arrives is checked against the annotation. A value 
 // %%
 md`**S11.5** The cell is given a deep-frozen copy. An object keeps only the properties its type declares. \`unknown\` accepts primitives, arrays and plain objects, and copies them whole; a function, a promise or an instance of a class is a mismatch (S11.4).`
 // %%
-md`**S11.6** A copy is made for each value that arrives, so a value changed in place by the other language and delivered again is seen. A copy equal to the last one the same parameter was given is that one, so the reading cell is not run again.`
+md`**S11.6** A copy is made for each value that arrives, so a value changed in place by the other language and delivered again is seen. The reading cell runs for each value that arrives, as the runtime runs any cell whose input was computed again; an equal copy does not stop it.`
 // %%
 md`**S11.7** \`x: State<T>\` takes the view of an Observable JavaScript \`viewof x\`, or the handle of a SoundScript state cell imported from another module with \`import {viewof x} from …\`. Each write is checked against \`T\`. On any other cell in another language, and when two parameters in one module take the same view or state cell as \`State\` of different types, it is \`[boundary-state]\`.`
 // %%
@@ -1656,15 +1685,16 @@ test_spec_S11_6 = {
   try {
     await L.value("total");
     const v = [...runtime._variables].find((x) => x._module === L.module && x._name === "total");
-    const runs = soundscript.evals(soundscript.idOf(String(v._definition)));
+    const runs = await spec_runs(v);
     rows[0].price = 5;
     L.module.redefine("rows", [], () => rows);
     if ((await L.value("total")) !== 5) throw new Error("a value changed in place was not seen");
     L.module.redefine("rows", [], () => [{ price: 5 }]);
     if ((await L.value("total")) !== 5) throw new Error("total");
-    const more = soundscript.evals(soundscript.idOf(String(v._definition))) - runs;
-    if (more !== 1) throw new Error(`total ran ${more} more times, expected 1`);
-    return "changed in place: seen; equal again: not run again";
+    const more = (await spec_runs(v)) - runs;
+    // the runtime runs a cell again when an input's variable runs again, equal value or not
+    if (more !== 2) throw new Error(`total ran ${more} more times, expected 2`);
+    return "changed in place: seen; equal again: run again, and still 5";
   } finally { L.dispose(); }
 }
 // %%
@@ -1853,6 +1883,6 @@ viewof spec_module = thisModule()
 // %%
 import { ss, soundscript, ss_instances, ss_language, ss_check, ss_outside } from "@tomlarkworthy/soundscript"
 // %%
-import { thisModule, runtime, realize, onCodeChange } from "@tomlarkworthy/runtime-sdk"
+import { thisModule, runtime, realize, onCodeChange, observe } from "@tomlarkworthy/runtime-sdk"
 // %%
 import { linkTo } from "@tomlarkworthy/lopepage-urls"

@@ -96,13 +96,13 @@ export function read(handle: object): unknown {
   return current(store);
 }
 
-// each handle's compiled text (its memo id) and the inputs of its last run
+// each handle's function text and the inputs of its last run
 const runs = new WeakMap<object, { id: string; args: unknown[] }>();
 // A state cell's handle variable. prev is the variable's last value, as the Runtime gives it: its handle, when
-// the same compiled text (id) made it, is kept, so a cell taking State<T> keeps it across runs; a new store from
+// the same function text (id) made it, is kept, so a cell taking State<T> keeps it across runs; a new store from
 // make(), which runs the cell, unless every input is the same (Object.is) as on the last run, which keeps the
 // store and so the state. A variable with no last value (its first run, or after an error) starts again.
-export function stateRun(prev: unknown, id: string, name: string, args: unknown[], make: () => unknown, kept: () => void): object {
+export function stateRun(prev: unknown, id: string, name: string, args: unknown[], make: () => unknown): object {
   // prev is any other value (globalThis, in a sloppy-mode definition) when the variable has no last value
   const last = prev && typeof prev === "object" ? runs.get(prev) : undefined;
   let h = last?.id === id ? (prev as object) : undefined;
@@ -112,7 +112,7 @@ export function stateRun(prev: unknown, id: string, name: string, args: unknown[
     h ??= handleOf(name);
     setStore(h, r.initial);
     runs.set(h, { id, args });
-  } else kept();
+  }
   return h;
 }
 

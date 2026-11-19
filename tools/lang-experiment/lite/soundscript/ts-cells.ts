@@ -65,7 +65,7 @@ const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?:
   "jsx/render.ts": { title: "Rendering", runtime: "`create` and `patch` turn element values into DOM nodes, and patch a node in place when its tag is unchanged." },
   "browser/cells.ts": { title: "Events and listeners", runtime: "Events cells' handles and generators, the listeners `on` makes, delivery of each value to them, and `sweep`, which stops what no variable holds." },
   "browser/workers.ts": { title: "Worker pool", checkerTitle: "Running an island on the page", runtime: "The pool of web workers that runs the islands `compile` makes.", checker: "`runHere` runs an island on the page when no pool is given." },
-  "stdlib/runtime.ts": { title: "Running a compiled cell", checkerTitle: "Checking a module for the editor and compile", runtime: "`cell`, which every compiled definition calls (memo, run counts, state, events and listener cells), with `viewRef`, `mount` and the worker pool made on first use.", checker: "`check` and `checkCells` check a module's cells and keep recent results; `compiler` checks and builds the island of a `compile(...)` call." },
+  "stdlib/runtime.ts": { title: "Running a compiled cell", checkerTitle: "Checking a module for the editor and compile", runtime: "`cell`, which every compiled definition calls (state, events and listener cells, and cells that call a built-in), with `viewRef`, `mount` and the worker pool made on first use.", checker: "`check` and `checkCells` check a module's cells and keep recent results; `compiler` checks and builds the island of a `compile(...)` call." },
   "parse.ts": { title: "Parser", checker: "Parses TypeScript and TSX with acorn and acorn-typescript, and keeps the comments." },
   "intrinsics.ts": { title: "Prelude declarations", checker: "The declaration text the checker reads for the prelude, the capabilities, JSX and the allowed globals, and the lists of prelude functions and capability names." },
   "registry.ts": { title: "Declarations and subtyping", checker: "Declarations by name, conversion of type syntax, expansion of aliases, member lookup, subtyping and unification." },
@@ -363,8 +363,9 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   const missing = ssKeys.filter((k) => !runtimeNames.has(k) && !cells[CHECKER].some((src) => compile(src).some((v) => v._name === k)));
   if (missing.length) throw new Error(`entry.ts exports ${missing.join(", ")}, which no generated cell defines`);
   for (const k of ssKeys) if (runtimeNames.has(k)) takes.add(k);
-  // compiled SoundScript cells take ss, the runtime module's
-  if (cells[CHECKER].some((src) => compile(src).some((v) => (v._inputs ?? []).includes(STDLIB)))) takes.add(STDLIB);
+  // the checker module hosts SoundScript cells when it has a SoundScript section, so it has ss, the runtime
+  // module's, which the editor reads as the mark of a module that holds them (a plain cell does not take it)
+  if (stmts.some((s) => s.kind === "ss") || cells[CHECKER].some((src) => compile(src).some((v) => (v._inputs ?? []).includes(STDLIB)))) takes.add(STDLIB);
   // ss, what compiled cells take: entry.ts's names the runtime module defines, so a compiled cell depends on
   // the runtime module only (lite/toolchain/ojs-roundtrip.test.ts checks every member a compiled cell uses is one)
   if (runtimeNames.has("ss")) throw new Error("ss is a generated runtime cell's name");

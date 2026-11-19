@@ -82,28 +82,15 @@ export function splitCells(src: string, tsx: boolean): string[] {
   return out;
 }
 
-const identifiers = (n: Node, acc = new Set<string>()): Set<string> => {
-  if (!n || typeof n !== "object") return acc;
-  if (n.type === "Identifier") acc.add(n.name);
-  for (const k in n) {
-    if (k === "loc") continue;
-    const v = (n as any)[k];
-    if (Array.isArray(v)) v.forEach((x) => x && typeof x.type === "string" && identifiers(x, acc));
-    else if (v && typeof v.type === "string") identifiers(v, acc);
-  }
-  return acc;
-};
-
 // What one cell's compiled form depends on in the rest of its module: which cells are generators,
-// which of those some cell takes as Events<T>, and which cells the checker accepted (only those are
-// memoised; null, as for a cell compiled on its own, memoises none). compileModule works it out.
+// which of those some cell takes as Events<T>, and which cells the checker accepted (null, as for a cell
+// compiled on its own, rejects none). compileModule works it out.
 // facts: each cell's facts (facts.ts) when a check result supplied them, so compileCell does not parse
 // for them again.
 // why: for each cell the check did not accept, the checker's messages. With a module context (accepted
 // not null) such a cell compiles to a definition that only raises them; its body never runs.
 export type Context = { generators: ReadonlySet<string>; events: ReadonlySet<string>; accepted: ReadonlySet<string> | null; facts?: ReadonlyMap<string, CellInfo> | null; why?: ReadonlyMap<string, string[]> | null };
 const NO_CONTEXT: Context = { generators: new Set(), events: new Set(), accepted: null };
-const NO_MEMO_CAPS = new Set(["now", "random", "fetch", "log"]);
 
 export function contextOf(texts: string[], tsx: boolean, accepted: ReadonlySet<string> | null = null): Context {
   const infos = texts.flatMap((t) => { try { return cellsOf(tsx ? lowerJsx(t) : t); } catch { return []; } });
@@ -115,7 +102,7 @@ function contextOfFacts(infos: Iterable<CellInfo>, accepted: ReadonlySet<string>
   const events = new Set(list.flatMap((c) => c.params.filter((p) => p.eventsTyped && generators.has(p.name)).map((p) => p.name)));
   return { generators, events, accepted, facts, why };
 }
-// the cells a check result accepts: ok, with no errors. Only these run, and only these are memoised.
+// the cells a check result accepts: ok, with no errors. Only these run.
 type CheckCell = { name: string; status: string; errors: { rule: string; msg: string }[]; unsupported?: { msg: string }[]; blockedBy?: string[]; value?: string };
 type CheckLike = { cells: CheckCell[]; facts?: ReadonlyMap<string, CellInfo>; unparsed?: ReadonlyMap<string, string> };
 export const acceptedOf = (result: CheckLike) => new Set(result.cells.filter((c) => c.status === "ok" && !c.errors.length && !result.unparsed?.has(c.name)).map((c) => c.name));
@@ -235,17 +222,6 @@ function ojsCell(name: string, view: boolean, block: boolean, body: (r: (input: 
 const rejectedCell = (text: string, key: string, why: string[], ref: boolean): Built =>
   ojsCell(variableName(key), ref, false, (r) => `${r(STDLIB_INPUT)}.rejected(${LANG}${header({ d: text, rejected: why })}${JSON.stringify(key)}, ${JSON.stringify(why)})`);
 
-// two 32-bit FNV-1a hashes with different offsets, as 13 base-36 digits
-export function contentId(text: string): string {
-  let a = 0x811c9dc5, b = 0x01000193 ^ 0x5bd1e995;
-  for (let i = 0; i < text.length; i++) {
-    const c = text.charCodeAt(i);
-    a = Math.imul(a ^ c, 0x01000193) >>> 0;
-    b = Math.imul(b ^ c, 0x01000193 + 2) >>> 0;
-  }
-  return a.toString(36).padStart(7, "0") + b.toString(36).padStart(7, "0");
-}
-
 // A name declared again is stored as "<name> (2)", "<name> (3)", ... (core.ts reports it so).
 export const isDuplicateKey = (key: string | null): key is string => !!key && /^[\w$]+ \(\d+\)$/.test(key);
 // With a module context, a cell that does not parse, does not compile, or that the check did not accept
@@ -296,7 +272,8 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   erasesToJs(typed, fn);
   const params = info.params.map((p) => p.name);
   const loweredFn = parse(`(${lowered})`).program;
-  const used = [...identifiers(loweredFn)].filter((n) => PRELUDE.includes(n) && !params.includes(n));
+  // the built-ins the body calls or reads: free references only, not a property, a key or a local of that name
+  const used = PRELUDE.filter((n) => globalRefs(loweredFn, n).size > 0);
   // the allowed globals Observable's parser does not know are inputs, in order of first use
   const globals = OJS_INPUT_GLOBALS.map((g) => [g, Math.min(...[...globalRefs(loweredFn, g)].map((n) => n.start))] as const).filter(([, at]) => at < Infinity).sort((a, b) => a[1] - b[1]).map(([g]) => g);
   // a cell that calls the prelude's on(...) is a listener: the checker allows on(...) only as the cell's whole value
@@ -304,8 +281,6 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
   // an events or listener cell takes invalidation: its generator stops, or its listener ends, when it runs again
   const inv = params.includes("invalidation") || kind === "events" || kind === "listener";
-  const memo = (kind === "cell" || kind === "listener") && !info.generator && !!ctx.accepted?.has(info.name) &&
-    !info.params.some((p) => NO_MEMO_CAPS.has(p.name) || (ctx.generators.has(p.name) && !p.eventsTyped));
   const inner = `${LANG}${header({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${typed}`;
   // a parameter's argument, r spelling each input. A State<T> parameter takes the handle variable; a
   // capability the variable that provides it; compile, compileFor over ss_compile with the refs of its calls
@@ -319,21 +294,29 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
     const shape = JSON.stringify(p.boundary.shape);
     return p.boundary.ref ? `${r(STDLIB_INPUT)}.viewRef(${r(input)}, ${shape}, ${JSON.stringify(p.name)})` : `${r(STDLIB_INPUT)}.cross(${r(input)}, ${shape}, ${JSON.stringify(`${info.name}.${p.name}`)})`;
   };
-  // id: a hash of the compiled text. The memo is keyed by it, so equal text with equal inputs shares a
-  // result (sound for a pure cell) and any edit starts empty.
-  const call = (r: (i: string) => string, id: string) => {
+  const call = (r: (i: string) => string) => {
     const head = `${r(STDLIB_INPUT)}.cell(${inner}`;
     globals.forEach(r);
     const args = `[${info.params.map((p) => arg(p, r)).join(", ")}]`;
     // events and state cells pass this, the variable's last value (the handle), so the stdlib keeps the handle across runs
     const prev = kind === "events" || kind === "ref" ? "prev: this, " : "";
-    return `${head}, ${args}, {kind: ${JSON.stringify(kind)}, name: ${JSON.stringify(info.name)}, memo: ${memo}, ${prev}id: ${JSON.stringify(id)}, invalidation: ${inv ? r("invalidation") : "null"}})`;
+    return `${head}, ${args}, {kind: ${JSON.stringify(kind)}, name: ${JSON.stringify(info.name)}, ${prev}invalidation: ${inv ? r("invalidation") : "null"}})`;
   };
-  const id = contentId(`${kind} ${info.name} ${memo} ${call((i) => i, "")}`);
+  // a plain cell is an ordinary Observable cell: its typed function applied to its inputs, with no ss
+  if (isPlain({ kind, generator: info.generator, used, params: info.params, accepted: ctx.accepted })) {
+    const out = ojsCell(variableName(info.name), false, false, (r) => { globals.forEach(r); return `(${inner})(${info.params.map((p) => arg(p, r)).join(", ")})`; });
+    return { ...out, key: info.name, ref: false };
+  }
   const block = used.length > 0;
-  const out = ojsCell(variableName(info.name), kind === "ref", block, (r) => block ? `{ const {${used.join(", ")}} = ${r(STDLIB_INPUT)}; return ${call(r, id)}; }` : call(r, id));
+  const out = ojsCell(variableName(info.name), kind === "ref", block, (r) => block ? `{ const {${used.join(", ")}} = ${r(STDLIB_INPUT)}; return ${call(r)}; }` : call(r));
   return { ...out, key: info.name, ref: kind === "ref" };
 }
+
+// A cell that compiles to its function applied to its inputs: kind "cell" (not state, events or a listener),
+// not a generator, calling no built-in, with no input that crosses from another language and no compile, and
+// checked (accepted is null for a cell compiled with no module context, which stays an ss.cell).
+export const isPlain = (c: { kind: string; generator: boolean; used: readonly string[]; params: CellInfo["params"]; accepted: ReadonlySet<string> | null }) =>
+  c.kind === "cell" && !c.generator && !c.used.length && !!c.accepted && !c.params.some((p) => p.name === "compile" || p.boundary);
 
 export function compileModule(src: string, tsx: boolean, accepted: ReadonlySet<string> | null = null): Variable[] {
   const texts = splitCells(src, tsx);
@@ -341,12 +324,13 @@ export function compileModule(src: string, tsx: boolean, accepted: ReadonlySet<s
   return texts.flatMap((c) => compileCell(c, tsx, ctx));
 }
 
-// A compiled definition, parsed once: the marker and header comments, the ss.cell or ss.rejected call the
-// marker opens, and that call's options ({kind, name, memo, id, ...}, a literal's value and range each).
+// A compiled definition, parsed once: the marker and header comments, the call the marker opens (ss.cell or
+// ss.rejected, whose first argument follows the header; or a plain cell's call, whose callee, the cell's
+// function, follows it), and an ss.cell call's options ({kind, name, ...}, a literal's value and range each).
 // null for a definition that is not SoundScript. Remembered per definition text.
 export type Compiled = {
   comments: acorn.Comment[]; header: Record<string, string>; headerEnd: number; call: any; fn: any;
-  callee: "cell" | "rejected" | null; options: Record<string, { value: unknown; start: number; end: number }>; refs: string[];
+  callee: "cell" | "rejected" | "plain" | null; options: Record<string, { value: unknown; start: number; end: number }>; refs: string[];
 };
 const parsedCompiled = new Map<string, Compiled | null>();
 export function parseCompiled(definition: string): Compiled | null {
@@ -359,16 +343,17 @@ export function parseCompiled(definition: string): Compiled | null {
     const at = comments.findIndex((c) => c.type === "Block" && `/*${c.value}*/` === LANG);
     const head = comments[at + 1];
     if (!head || head.start !== comments[at].end || !head.value.startsWith("ss^")) throw new Error("SoundScript variable without a header comment");
-    // the call the marker opens: its first argument starts where the header ends
-    let call: any = null;
+    // the call the marker opens: its first argument, or for a plain cell its callee, starts where the header ends
+    let call: any = null, plain = false;
     const find = (n: any) => {
       if (call || !n || typeof n.type !== "string") return;
       if (n.type === "CallExpression" && n.arguments[0]?.start === head.end) { call = n; return; }
+      if (n.type === "CallExpression" && n.callee.start === head.end) { call = n; plain = true; return; }
       for (const k in n) { const v = (n as any)[k]; if (Array.isArray(v)) v.forEach(find); else if (v && typeof v.type === "string") find(v); }
     };
     find(root);
     // a type cell's marker opens no call (void /*…*/0): its header holds its source
-    const callee = !call ? null : call.callee.type === "MemberExpression" && !call.callee.computed && call.callee.object.type === "Identifier" && call.callee.object.name === STDLIB_INPUT && ["cell", "rejected"].includes(call.callee.property.name) ? call.callee.property.name : null;
+    const callee = !call ? null : plain ? "plain" : call.callee.type === "MemberExpression" && !call.callee.computed && call.callee.object.type === "Identifier" && call.callee.object.name === STDLIB_INPUT && ["cell", "rejected"].includes(call.callee.property.name) ? call.callee.property.name : null;
     const options: Compiled["options"] = {};
     const last = call?.arguments.at(-1);
     if (callee === "cell" && last?.type === "ObjectExpression")
@@ -379,31 +364,21 @@ export function parseCompiled(definition: string): Compiled | null {
       if (a.type === "CallExpression" && a.callee.type === "MemberExpression" && a.callee.property?.name === "compileFor" && a.arguments[2]?.type === "ObjectExpression")
         for (const p of a.arguments[2].properties) if (p.type === "Property" && p.key.type === "Literal") refs.push(String(p.key.value));
     }
-    out = { comments, header: JSON.parse(head.value.slice(3)), headerEnd: head.end, call, fn: call?.arguments[0] ?? null, callee, options, refs };
+    out = { comments, header: JSON.parse(head.value.slice(3)), headerEnd: head.end, call, fn: plain ? call.callee : call?.arguments[0] ?? null, callee, options, refs };
   }
   if (parsedCompiled.size > 4096) parsedCompiled.delete(parsedCompiled.keys().next().value!);
   parsedCompiled.set(definition, out);
   return out;
 }
-// The compiler's memo id: the id option of a compiled cell's ss.cell call; null for any other definition
-export const idOf = (definition: string): string | null => {
-  const id = parseCompiled(definition)?.options.id?.value;
-  return typeof id === "string" ? id : null;
-};
-// what a compiled definition calls: ss.cell, with its kind option ("cell", "ref", "events", "listener"), memo
-// flag and compile refs, or ss.rejected (a cell that does not check); null for any other definition
-export const compiledKind = (definition: string): { callee: "cell" | "rejected"; kind: string | null; memo: boolean; refs: string[] } | null => {
+// what a compiled definition calls: ss.cell, with its kind option ("cell", "ref", "events", "listener") and
+// compile refs; ss.rejected (a cell that does not check); or nothing, a plain cell (kind "cell"); null for any
+// other definition
+export const compiledKind = (definition: string): { callee: "cell" | "rejected" | "plain"; kind: string | null; refs: string[] } | null => {
   const p = parseCompiled(definition);
   if (!p?.callee) return null;
-  const kind = p.options.kind?.value;
-  return { callee: p.callee, kind: typeof kind === "string" ? kind : null, memo: p.options.memo?.value === true, refs: p.refs };
+  const kind = p.callee === "plain" ? "cell" : p.options.kind?.value;
+  return { callee: p.callee, kind: typeof kind === "string" ? kind : null, refs: p.refs };
 };
-export function withId(definition: string, id: string): string {
-  if (!/^\w+$/.test(id)) throw new Error(`a memo id is word characters only: ${JSON.stringify(id)}`);
-  const at = parseCompiled(definition)?.options.id;
-  return at ? definition.slice(0, at.start) + JSON.stringify(id) + definition.slice(at.end) : definition;
-}
-
 // The cell source a variable holds; null for a variable that is not SoundScript or is a generated part of a cell.
 // The source is in the comments and the function that follow the marker, whatever wraps the call around them
 // (the compiler's definition, Observable's own, or the cell text).

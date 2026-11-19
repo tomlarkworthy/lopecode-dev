@@ -1,12 +1,11 @@
 // Unit tests for lite/stdlib/runtime.ts and prelude.runtime.ts: events and listeners (exactly once),
-// action atomicity, flush atomicity, memo/run-count/island-cache bounds. Run: bun lite/stdlib/runtime.test.ts
+// action atomicity, flush atomicity, run-count and island-cache bounds. Run: bun lite/stdlib/runtime.test.ts
 // the Runtime's frames; g6 runs them by hand
 let raf = (f: () => void) => void setTimeout(f, 1);
 (globalThis as any).requestAnimationFrame = (f: () => void) => raf(f);
 const ss = await import("./runtime.ts");
 const P = await import("../../prelude.runtime.ts");
 const T = await import("../toolchain/ss-toolchain.ts");
-const { idOf } = T;
 // a handle is an Observable view: what a state cell's value variable reads is Observable's own Generators.input of it
 const { input } = await import(new URL("../../../../vendor/observable-stdlib/src/generators/input.js", import.meta.url).pathname as any);
 
@@ -55,6 +54,8 @@ async function load(src: string, opts: { unchecked?: boolean; outside?: Record<s
   for (const [n, [ins, f]] of Object.entries(opts.outside ?? {})) m.define(n, ins, f);
   const vars = new Map<string, any>();
   const values = new Map<string, unknown>();
+  // computations the Runtime started, per variable: its observer's pending, called once for each
+  const runs = new Map<string, number>();
   const errs: string[] = [];
   // a cell defined later is checked with the module as it then is, as the editor checks an edit
   const texts = T.splitCells(src, true);
@@ -66,7 +67,7 @@ async function load(src: string, opts: { unchecked?: boolean; outside?: Record<s
     const ctx = T.contextFromCheck(ss.checkCells(texts, true, outsideList).result);
     const now = opts.unchecked ? { ...ctx, accepted: new Set(texts.map((t) => ss.declaredName(t)!)), why: null } : ctx;
     for (const d of T.compileCell(text, true, now, name)) {
-      const v = vars.get(d.name) ?? m.variable({ fulfilled: (x: unknown) => values.set(d.name, x), rejected: (e: unknown) => errs.push(`${d.name}: ${(e as Error)?.message ?? e}`) });
+      const v = vars.get(d.name) ?? m.variable({ pending: () => runs.set(d.name, (runs.get(d.name) ?? 0) + 1), fulfilled: (x: unknown) => values.set(d.name, x), rejected: (e: unknown) => errs.push(`${d.name}: ${(e as Error)?.message ?? e}`) });
       vars.set(d.name, v);
       v.define(d.name, d.inputs, (0, eval)(`(${d.definition})`));
     }
@@ -74,7 +75,7 @@ async function load(src: string, opts: { unchecked?: boolean; outside?: Record<s
   for (const t of [...texts]) define(t);
   const settle = async () => { for (let i = 0; i < 5; i++) { await tick(3); await flushed(); } };
   await settle();
-  return { m, vars, values, errs, define, settle, runtime, value: (n: string) => values.get(n) as any, evals: (n: string) => ss.evals(idOf(String(vars.get(n)._definition))) };
+  return { m, vars, values, errs, define, settle, runtime, value: (n: string) => values.get(n) as any, evals: (n: string) => runs.get(n.startsWith("viewof ") || !vars.has(`viewof ${n}`) ? n : `viewof ${n}`) ?? 0 };
 }
 // Frames until f() holds or n frames have run; actions flush between frames.
 async function frameUntil(f: () => boolean, n = 5000) {
@@ -146,7 +147,8 @@ await run("e4_events_restart_without_listener_rerun", async () => {
   const s = p.value("seen");
   ok("e4_stopped_while_running_is_false", stopped, `count ${c1} -> ${p.value("seen").count}`);
   ok("e4_restarted_from_1", s.count >= c1 + 30 && s.gaps === 1, JSON.stringify(s));
-  ok("e4_events_ran_twice_listener_not_at_all", p.evals("nums") - nums0 === 2 && p.evals("onNum") === onNum0 && p.value("nums") === h0, `nums +${p.evals("nums") - nums0}, onNum +${p.evals("onNum") - onNum0}, same handle ${p.value("nums") === h0}`);
+  // the listener runs again with each run of nums (its input), and stays one listener (e4_one_listener)
+  ok("e4_events_ran_twice_kept_its_handle", p.evals("nums") - nums0 === 2 && p.value("nums") === h0, `nums +${p.evals("nums") - nums0}, onNum +${p.evals("onNum") - onNum0}, same handle ${p.value("nums") === h0}`);
   ok("e4_one_listener", ss.running() === 1, `running ${ss.running()}`);
   for (const v of p.vars.values()) { ss.release(v._value); v.delete(); }
   p.runtime.dispose();
@@ -268,32 +270,6 @@ await run("c2_flush_is_all_or_nothing", async () => {
   ok("c2_later_flush_chains_and_wakes", woke === 20 && val(c) === 20, `woke ${woke} c ${val(c)}`);
 });
 
-const defFor = (id: string) => (0, eval)(`(function (ss, invalidation) { return ss.cell(() => ({ id: "${id}" }), [], {kind: "cell", name: "e", memo: true, id: "${id}", invalidation: null}); })`);
-
-await run("c3_forget_matches_compiled_definitions", async () => {
-  const [v] = T.compileCell("const fz = (n: number) => n + 1;", true);
-  const fn = (0, eval)(`(${v.definition})`);
-  fn(ss, 1);
-  ok("c3_evals_counts_compiled_definition", ss.evals(idOf(String(fn))) === 1, `evals ${ss.evals(idOf(String(fn)))}`);
-  ss.forget(idOf(String(fn)));
-  ok("c3_forget_drops_run_count", ss.evals(idOf(String(fn))) === 0, `evals ${ss.evals(idOf(String(fn)))}`);
-});
-
-await run("c3_200_edits_keep_memo_size", async () => {
-  const sizes: number[] = [];
-  // the definitions here carry no source, so the id is passed as the caller of forget passes it: as data
-  let prev: string | null = null;
-  for (let i = 0; i < 200; i++) {
-    const def = defFor(`e${i}`);
-    def(ss, null);
-    if (prev) ss.forget(prev);
-    prev = `e${i}`;
-    sizes.push(ss.memoSize());
-  }
-  ok("c3_memo_size_constant", sizes.every((s) => s === sizes[1]), `sizes ${sizes.slice(0, 3)}..${sizes.slice(-3)}`);
-  ok("c3_memo_dropped_after_forget", (ss.forget(prev), ss.memoSize() === sizes[0] - 1), `size ${ss.memoSize()}`);
-});
-
 await run("c3_island_cache_bounded", async () => {
   let i = 0;
   const c = ss.compiler(() => `const x = () => 1;\nexport const y = (x: number) => x + ${i};\nexport const go = (compile: Compile) => compile({ inputs: ["x"], refs: [], outputs: ["y"] });\n`);
@@ -380,6 +356,8 @@ async function editable(texts: string[], o: { reverse?: boolean; order?: boolean
   m.define("ss", [], () => ss);
   m.define("Generators", [], () => ({ input }));
   const vars = new Map<string, any>(), defs = new Map<string, string>(), values = new Map<string, unknown>(), raised = new Map<string, string>();
+  // computations the Runtime started, per variable: its observer's pending, called once for each
+  const runs = new Map<string, number>();
   let cells = [...texts];
   const apply = () => {
     const ctx = T.contextFromCheck(ss.checkCells(cells).result);
@@ -388,7 +366,7 @@ async function editable(texts: string[], o: { reverse?: boolean; order?: boolean
       seen.add(d.name);
       if (defs.get(d.name) === d.definition) continue;
       defs.set(d.name, d.definition);
-      const v = vars.get(d.name) ?? m.variable({ fulfilled: (x: unknown) => { values.set(d.name, x); raised.delete(d.name); }, rejected: (e: unknown) => { values.delete(d.name); raised.set(d.name, String((e as Error)?.message ?? e)); } });
+      const v = vars.get(d.name) ?? m.variable({ pending: () => runs.set(d.name, (runs.get(d.name) ?? 0) + 1), fulfilled: (x: unknown) => { values.set(d.name, x); raised.delete(d.name); }, rejected: (e: unknown) => { values.delete(d.name); raised.set(d.name, String((e as Error)?.message ?? e)); } });
       vars.set(d.name, v);
       v.define(d.name, d.inputs, (0, eval)(`(${d.definition})`));
     }
@@ -404,7 +382,7 @@ async function editable(texts: string[], o: { reverse?: boolean; order?: boolean
   await settle();
   const edit = async (name: string, text: string) => { cells = cells.map((t) => (ss.declaredName(t) === name ? text : t)); apply(); await settle(); };
   const states = () => Object.fromEntries([...ss.cellStates(ss.checkCells(cells).result)].map(([n, x]: any) => [n, x.state === "blocked" ? `blocked by ${x.blockedBy.join(",")}` : x.state]));
-  return { m, vars, values, raised, edit, settle, states, value: (n: string) => values.get(n) as any, evals: (n: string) => ss.evals(idOf(String(vars.get(n)._definition))), text: (n: string) => T.decompileVariable(defs.get(n)!) };
+  return { m, vars, values, raised, edit, settle, states, value: (n: string) => values.get(n) as any, evals: (n: string) => runs.get(n.startsWith("viewof ") || !vars.has(`viewof ${n}`) ? n : `viewof ${n}`) ?? 0, text: (n: string) => T.decompileVariable(defs.get(n)!) };
 }
 
 // Two listeners on one events cell run, for each value, in their cells' source order: on a fresh
@@ -615,7 +593,8 @@ const h2 = (vars: State<{ readonly n: number }>) => [vars];`);
   ok("w2_remade_from_the_input", p.value("vars").n === 20, JSON.stringify(p.value("vars")));
   setN(5);
   await p.settle();
-  ok("w2_the_old_handle_writes_the_new_store", p.value("vars").n === 5 && p.evals("setN") === setN0 && p.value("setN") === setN, `${JSON.stringify(p.value("vars"))}, setN ran ${p.evals("setN") - setN0} more times`);
+  // setN, read before vars was made again, holds the handle, which writes the new store
+  ok("w2_the_old_handle_writes_the_new_store", p.value("vars").n === 5, `${JSON.stringify(p.value("vars"))}, setN ran ${p.evals("setN") - setN0} more times`);
   ok("w2_one_handle_per_state_cell", p.value("h1")[0] === p.value("h2")[0] && ss.equals(p.value("h1"), p.value("h2")), "");
   p.runtime.dispose();
 });

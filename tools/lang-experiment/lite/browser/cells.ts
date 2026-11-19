@@ -5,14 +5,11 @@ import { rt, actionNames, isAction, entry, releaseHandle } from "../../prelude.r
 export { cellsOf, factsOf, type CellInfo } from "../facts.ts";
 
 export const generatorish = (v: any): v is Generator => !!v && typeof v.next === "function" && typeof v.return === "function";
-// onValue sees each object a step yields (runtime.ts records them as lent)
-export function guard(g: Generator, onValue?: (v: object) => void) {
+export function guard(g: Generator) {
   const wrap = (m: "next" | "return" | "throw") => (...a: unknown[]) => {
     rt.evalDepth++;
     try {
-      const r = (g[m] as (...x: unknown[]) => IteratorResult<unknown>)(...a);
-      if (onValue && r && typeof r.value === "object" && r.value !== null) onValue(r.value);
-      return r;
+      return (g[m] as (...x: unknown[]) => IteratorResult<unknown>)(...a);
     } finally { rt.evalDepth--; }
   };
   return { next: wrap("next"), return: wrap("return"), throw: wrap("throw"), [Symbol.iterator]() { return this; } };

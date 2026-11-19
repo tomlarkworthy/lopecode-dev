@@ -85,9 +85,6 @@ export async function run(vars: Var[], stdlib: any = ss) {
   snaps.push({ ...snap(), ...calls });
   runtime.dispose();
   await tick(); // the invalidations dispose resolves run their callbacks
-  // the variables are gone: drop what the stdlib keeps for their definitions (the core's ss_lifecycle does this
-  // when no variable holds a definition), so a later run of the same text starts with no state of this one
-  for (const v of vars) stdlib.forget?.(T.idOf(v.definition));
   return snaps;
 }
 export const ACTIONS: [string, unknown][] = [["increment", undefined], ["save", undefined], ["tick", 5], ["cheaper", undefined], ["measureCount", undefined]];

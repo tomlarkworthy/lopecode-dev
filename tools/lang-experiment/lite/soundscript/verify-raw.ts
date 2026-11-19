@@ -357,14 +357,18 @@ export async function pickerPaths(page: Page, h: H, label: string) {
   const k3 = await rawState(page, "k");
   report(toRaw === "raw" && k3?.tag === "raw" && k3.lang === "raw" && k3.source === 'define("k", [], () => 5)' && (await valueOf(page, POLY, "k")) === 5, `${label}: k picked as raw by key is stored as a raw cell: ${JSON.stringify({ toRaw, tag: k3?.tag, source: k3?.source })}`);
   // a pick for unsaved text goes when the editor closes
+  // the hotbar toggles the editor, so it is opened first if an earlier step left it closed
   e = await editorByPid(page, h, k2pid);
+  const cm = () => e.locator(".cm-editor").first();
+  const wasOpen = await cm().isVisible();
+  if (!wasOpen) { await e.locator(".hotbar").first().click(); await cm().waitFor({ state: "visible", timeout: 10000 }); }
   await pickByKey(page, e, "S");
   const before = await pickerValue(e);
   await e.locator(".hotbar").first().click();
-  await e.locator(".cm-editor").first().waitFor({ state: "hidden", timeout: 10000 }).catch(() => {});
+  const closed = await cm().waitFor({ state: "hidden", timeout: 10000 }).then(() => true, () => false);
   e = await editorByPid(page, h, k2pid);
   const after = await pickerValue(e);
-  report(before === "ss" && after === "ojs", `${label}: a language picked and not applied is reset when the editor is closed and opened again: ${JSON.stringify({ before, after })}`);
+  report(closed && before === "ss" && after === "ojs", `${label}: a language picked and not applied is reset when the editor is closed and opened again: ${JSON.stringify({ wasOpen, before, closed, after })}`);
   // the claim rule and the export hint, asked directly
   const asked = await page.evaluate(async (poly) => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get(poly);

@@ -30,9 +30,11 @@ test_checker_on_as_a_property_is_not_a_listener = {
   if (result.cells.some((c) => c.status !== "ok")) throw new Error(JSON.stringify(result.cells.map((c) => [c.name, c.status])));
   const ctx = ss.contextFromCheck(result, source, true);
   const [cfg, use] = ss.splitCells(source, true).map((t) => ss.compileCell(t, true, ctx)[0]);
-  const run = (v, ...args) => new Function(`return (${v.definition});`)()(ss, ...args);
+  // both are plain cells: the function applied to its inputs, with no ss
+  const run = (v, ...args) => new Function(`return (${v.definition});`)()(...args);
   const value = run(cfg);
   const n = run(use, value);
-  if (value?.on !== true || n !== 2) throw new Error(`cfg ${JSON.stringify(value)}, use ${n}`);
+  const kinds = [cfg, use].map((v) => ss.compiledKind(v.definition)?.callee);
+  if (value?.on !== true || n !== 2 || kinds.some((k) => k !== "plain")) throw new Error(`cfg ${JSON.stringify(value)}, use ${n}, compiled as ${kinds}`);
   return n;
 }

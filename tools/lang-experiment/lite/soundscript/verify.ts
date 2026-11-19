@@ -20,6 +20,8 @@
 import { chromium, type Page } from "../../../../node_modules/playwright/index.mjs";
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { checkSources } from "../core.ts";
+import * as acorn from "acorn";
+import { compiledKind } from "../toolchain/ss-toolchain.ts";
 import { specRejects } from "./spec-cases.ts";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -49,7 +51,7 @@ const measure = (what: string) => { console.log(`measure ${what}`); measurements
 const power = Bun.spawnSync(["pmset", "-g", "batt"], { stdout: "pipe" }).stdout.toString().match(/'([^']+)'/)?.[1] ?? "unknown";
 console.log(`power: ${power}`);
 
-const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_stored_and_rejected", "test_ss_breaking_edit_names_its_cells", "test_ss_copy_keeps_its_name", "test_ss_failed_apply_changes_nothing", "test_ss_edits_do_not_grow_the_memo", "test_ss_instance_keeps_user_ids", "test_ss_deleted_state_is_not_inherited", "test_ss_ref_handle", "ss_registration"];
+const CORE_TESTS = ["test_ss_roundtrip", "test_ss_example_checks", "test_ss_unchanged_source_checks", "test_ss_wrong_type_is_stored_and_rejected", "test_ss_breaking_edit_names_its_cells", "test_ss_copy_keeps_its_name", "test_ss_failed_apply_changes_nothing", "test_ss_instance_keeps_user_ids", "test_ss_deleted_state_is_not_inherited", "test_ss_ref_handle", "ss_registration"];
 const TUTORIAL_TESTS = ["test_shop_total", "test_ss_roundtrip", "test_ss_module_checks", "test_ss_counter", "test_half", "test_async_click",
   "test_examples_check_as_expected", "test_compile_pool_matches_main", "test_compile_refuses_unchecked", "test_breakout_listener", "test_breakout_memo", "benchmark"];
 
@@ -238,6 +240,9 @@ async function oneCore(page: Page, label: string) {
 
 // Tests are gated by a "run the tests" toggle in each module that has them. At boot they must be
 // pending, cost nothing and leave the page's examples alone; then a real click turns them on.
+// the page's ballView computations at boot, per label: the runtime's count (_version), which boot churn of the
+// ss import raises above one; the tests must not add to it (they run on copies)
+const bootBallRuns = new Map<string, number | null>();
 async function testsOn(page: Page, label: string, boot = true) {
   const t0 = Date.now();
   await page.waitForFunction(() => document.querySelectorAll("label").length > 0 && [...document.querySelectorAll("label")].some((l) => /run the tests/.test(l.textContent ?? "")), null, { timeout: 60000 });
@@ -252,9 +257,10 @@ async function testsOn(page: Page, label: string, boot = true) {
       const ss = [...rt._variables].find((v: any) => v._name === "soundscript" && v._value?.running)?._value;
       const bm = rt.mains.get("@tomlarkworthy/soundscript-breakout");
       const ball = bm?._scope.get("ballView");
-      return { ran: Object.entries(st).filter(([, x]) => x !== "pending").map(([n]) => n), pending: Object.keys(st).length, running: ss?.running(), pulling: ss?.pulling(), ballRuns: ball ? ss?.evals(ss.idOf(String(ball._definition))) : null };
+      return { ran: Object.entries(st).filter(([, x]) => x !== "pending").map(([n]) => n), pending: Object.keys(st).length, running: ss?.running(), pulling: ss?.pulling(), ballRuns: ball ? ball._version : null };
     });
-    report(idle.ran.length === 0 && idle.pulling === 0 && (idle.ballRuns ?? 0) <= 1, `${label}: at boot ${idle.pending} test cells are pending and none ran (${JSON.stringify(idle.ran)}); listeners attached ${idle.running}, clocks pulled ${idle.pulling}; the page's ballView ran ${idle.ballRuns} times`);
+    bootBallRuns.set(label, idle.ballRuns);
+    report(idle.ran.length === 0 && idle.pulling === 0, `${label}: at boot ${idle.pending} test cells are pending and none ran (${JSON.stringify(idle.ran)}); listeners attached ${idle.running}, clocks pulled ${idle.pulling}; the page's ballView computed ${idle.ballRuns} times`);
   }
   // each toggle is found by the module whose cell holds it; when its pane shows another tab, that
   // module's tab is clicked first. The tutorial goes last, so its tab is the one left showing.
@@ -280,13 +286,13 @@ async function testsOn(page: Page, label: string, boot = true) {
 
 // --- the work behind what used to be speed budgets: counts of checks, evaluations and frames; the times are measurements
 // Breakout while playing, counted by frame: from the first animation frame that sees a new world, n frames.
-// Each of them must see a new world; ballView runs once per world, bricksView at most once per broken
-// brick, and paddleView, onTick and ticks not at all.
+// Each of them must see a new world; ballView runs once per world, and bricksView, paddleView, onTick and
+// ticks at most once per world.
 const playFrames = (page: Page, n: number) => page.evaluate(async (n) => {
   const bm = (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-breakout");
   const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
   const names = ["ballView", "bricksView", "paddleView", "onTick", "ticks"];
-  const runs = () => Object.fromEntries(names.map((c) => [c, ss.evals(ss.idOf(String(bm._scope.get(c)._definition)))]));
+  const runs = () => Object.fromEntries(names.map((c) => [c, bm._scope.get(c)._version]));
   const world = () => bm._scope.get("world")._value;
   let last = world(), seq = "", r0: Record<string, number> | null = null, b0 = 0, t0 = 0, waited = 0;
   // the cap on frames before the first change only turns a game that never starts into a failure
@@ -311,8 +317,9 @@ const playFrames = (page: Page, n: number) => page.evaluate(async (n) => {
 }, n);
 type Play = Awaited<ReturnType<typeof playFrames>>;
 // a frame that sees no new world is a matter of when the frame fell, so it is printed and not failed on:
-// what is checked is that each new world drew the ball once and ran nothing else
-const playOk = (p: Play, n: number) => !!p.ran && p.changes > 0 && !p.over && p.ran.ballView === p.changes && p.ran.bricksView <= p.broken && p.ran.paddleView === 0 && p.ran.onTick === 0 && p.ran.ticks === 0;
+// what is checked is that each new world drew the ball once, and ran each other view, the listener and the
+// events variable at most once (the runtime runs a cell when its input's variable runs, equal value or not)
+const playOk = (p: Play, n: number) => !!p.ran && p.changes > 0 && !p.over && p.ran.ballView === p.changes && ["bricksView", "paddleView", "onTick", "ticks"].every((c) => p.ran![c] <= p.changes);
 const playSays = (p: Play, n: number) => `${p.changes} of ${n} animation frames saw a new world${p.changes < n ? ` (${p.seq})` : ""}; runs ${JSON.stringify(p.ran)} for ${p.broken} broken bricks; over ${p.over}`;
 
 async function speed() {
@@ -348,9 +355,11 @@ async function speed() {
     const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
     const t: number[] = [];
     lang.check(src, [v]);
-    const c0 = ss.checksRun(), e0 = ss.stats.evals;
+    // computations of the page's SoundScript variables: the runtime's count of each variable's runs
+    const computed = () => [...rt._variables].reduce((n: number, x: any) => n + (typeof x._definition === "function" && ss.langOf(String(x._definition)) === "ss" ? x._version : 0), 0);
+    const c0 = ss.checksRun(), e0 = computed();
     for (let i = 0; i < 30; i++) { const a = performance.now(); lang.lint(src.replace(/\d+/, String(600 + i)), [v]); t.push(performance.now() - a); }
-    const checks = ss.checksRun() - c0, evals = ss.stats.evals - e0;
+    const checks = ss.checksRun() - c0, evals = computed() - e0;
     t.sort((x, y) => x - y);
     const cells = core._scope.get("ss_moduleCells")._value(tut).length;
     return { cells, median: t[15], max: t[29], checks, evals };
@@ -414,7 +423,8 @@ async function speed() {
       w.__lint = { n: 0, last: null };
       if (!lang.__lintWrapped) { const lint = lang.lint; lang.lint = (src: string, ...a: any[]) => { const r = lint(src, ...a); w.__lint.n++; w.__lint.last = src; return r; }; lang.__lintWrapped = true; }
       w.__defs = new Map([...rt._variables].filter((v: any) => v._module === tut).map((v: any) => [v, v._definition]));
-      return { t0: performance.now(), checks: ss.checksRun(), evals: ss.stats.evals };
+      w.__computed = () => [...rt._variables].reduce((n: number, x: any) => n + (typeof x._definition === "function" && ss.langOf(String(x._definition)) === "ss" ? x._version : 0), 0);
+      return { t0: performance.now(), checks: ss.checksRun(), evals: w.__computed() };
     });
     await page.keyboard.type(" + 0".repeat(8), { delay: 40 });
     // the lint runs after the editor's pause: the wait is for the lint of the text as typed
@@ -424,7 +434,7 @@ async function speed() {
       const w = window as any, rt = w.__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript"), tut = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
       const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
       const redefined = [...rt._variables].filter((v: any) => v._module === tut && w.__defs.get(v) !== v._definition).map((v: any) => v._name);
-      return { lints: w.__lint.n, linted: w.__lint.last === doc && doc.includes(" + 0".repeat(8)), checks: ss.checksRun() - base.checks, evals: ss.stats.evals - base.evals, redefined, longtasks: w.__longtasks.filter((e: any) => e.at >= base.t0).map((e: any) => Math.round(e.ms)) };
+      return { lints: w.__lint.n, linted: w.__lint.last === doc && doc.includes(" + 0".repeat(8)), checks: ss.checksRun() - base.checks, evals: w.__computed() - base.evals, redefined, longtasks: w.__longtasks.filter((e: any) => e.at >= base.t0).map((e: any) => Math.round(e.ms)) };
     }, [base, doc]);
     // a lint checks the module as edited; the module as it is, checked once, is remembered
     report(r.linted && r.lints > 0 && r.checks <= r.lints + 1 && r.evals === 0 && r.redefined.length === 0,
@@ -1336,7 +1346,7 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
     const r0 = ss.running(), p0 = ss.pulling();
     for (const c of cells) if (!(await add(c))) return { refused: c };
     const seen = () => get("seen")._value;
-    const runs = (n: string) => ss.evals(ss.idOf(String(get(n)._definition)));
+    const runs = (n: string) => get(n)._version;
     await until(() => seen()?.count >= 30);
     out.listenersAt30 = ss.running() - r0;
     // the action's dependency is edited twice while values arrive
@@ -1385,8 +1395,8 @@ async function listenerOnce(C: { page: Page; errors: string[] }) {
   for (const e of thrown) C.errors.splice(C.errors.indexOf(e), 1);
   report(r.applied?.length === 4 && r.applied.every((x: string) => x.endsWith("applied")) && r.listenersAt30 === 1 && r.listenersAfterRerun === 1 && r.stream?.count === 120 && r.stream.gaps === 0,
     `exactly once: 120 yields gave ${r.stream?.count} actions with ${r.stream?.gaps} gaps, across two edits of the action's dependency and a re-run of the listener; listeners ${r.listenersAt30}, after the re-run ${r.listenersAfterRerun}; edits ${JSON.stringify(r.applied)}${r.refused ? `; refused ${r.refused}` : ""}`);
-  report(r.stopped && r.restart?.count === 120 && r.restart.gaps === 1 && r.restart.onNumRuns === 0 && r.restart.numsRuns === 2 && r.restart.sameHandle,
-    `exactly once: the events cell stopped and restarted without the listener running again: ${JSON.stringify({ stopped: r.stopped, ...r.restart })}`);
+  report(r.stopped && r.restart?.count === 120 && r.restart.gaps === 1 && r.restart.onNumRuns === r.restart.numsRuns && r.restart.numsRuns === 2 && r.restart.sameHandle,
+    `exactly once: the events cell stopped and restarted, keeping its handle; the listener ran again with it and lost nothing: ${JSON.stringify({ stopped: r.stopped, ...r.restart })}`);
   report(r.throwing?.committed === 108 && r.throwing.last === 119 && thrown.length === 12,
     `exactly once: an action throwing on every tenth of 120 values: ${r.throwing?.committed} committed, last ${r.throwing?.last}; ${thrown.length} console errors naming onNum, record and nums`);
   report(r.deleted?.pulledBefore === 1 && r.deleted.pulledAfter === 0 && r.deleted.listeners === 0 && r.deleted.count === 0,
@@ -1581,7 +1591,8 @@ const runsOf = (page: Page, module: string) => page.evaluate((module) => {
   const rt = (window as any).__ojs_runtime, mod = rt.mains.get(module);
   const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
   const out: Record<string, number> = {};
-  for (const v of rt._variables) if (v._module === mod && typeof v._name === "string" && ss.compiledKind(String(v._definition))?.callee === "cell") out[v._name] = ss.evals(ss.idOf(String(v._definition)));
+  // the runtime's count of each variable's runs
+  for (const v of rt._variables) if (v._module === mod && typeof v._name === "string" && ["cell", "plain"].includes(ss.compiledKind(String(v._definition))?.callee)) out[v._name] = v._version;
   return out;
 }, module);
 
@@ -1616,9 +1627,9 @@ async function tryIts(page: Page, firstOnly = false) {
   await until(page, async () => { const x = await shown800(); return /\(\) => 800;/.test(x.listing) && x.line === "width = 800"; });
   const s800 = await shown800();
   report(/const width = \(\) => 800;/.test(s800.listing) && s800.line === "width = 800", `try (first cell): after the edit the listing shows the new source and width's line its value: ${JSON.stringify(s800.line)}`);
-  // memo: the cells outside the broken part do not run again while it is broken and repaired
+  // the cells outside the broken part do not run again while it is broken and repaired
   const OUTSIDE = ["height", "scale", "samples", "histogram", "count", "increment", "app"];
-  const outsideRuns = () => page.evaluate(([c, t, names]) => { const rt = (window as any).__ojs_runtime, ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value, m = rt.mains.get(t); return Object.fromEntries((names as string[]).map((n) => [n, ss.evals(ss.idOf(String(m._scope.get(n)._definition)))])); }, [CORE, TUTORIAL, OUTSIDE] as const);
+  const outsideRuns = () => page.evaluate(([c, t, names]) => { const m = (window as any).__ojs_runtime.mains.get(t); return Object.fromEntries((names as string[]).map((n) => [n, m._scope.get(n)._version])); }, [CORE, TUTORIAL, OUTSIDE] as const);
   const runs0 = await outsideRuns();
   // typed, not yet applied: the editor says what applying would break
   await typeInto(page, width, 'const width = () => "800";', false);
@@ -1737,7 +1748,7 @@ async function tryIts(page: Page, firstOnly = false) {
   const r1 = await runsOf(page, MD);
   const delta = Object.fromEntries(Object.keys(r1).map((k) => [k, r1[k] - (r0[k] ?? 0)]));
   const stampedKind = await page.evaluate(() => [...document.querySelectorAll(".lite-vars tr")].find((tr) => tr.querySelector("td code")?.textContent === "stamped")?.children[2]?.textContent);
-  report(delta.doubled === 1 && delta.app === 1 && delta.stamped === 1 && delta.scale === 1 && delta.area === 1 && delta.areaFn === 1 && delta.areaOf4 === 1 && delta.side === 0 && delta.bump === 0 && stampedKind === "cell, not memoised", `try (section 6): one bump, body runs per cell ${JSON.stringify(delta)}; stamped's kind ${JSON.stringify(stampedKind)}`);
+  report(delta.doubled === 1 && delta.app === 1 && delta.stamped === 1 && delta.scale === 1 && delta.area === 1 && delta.areaFn === 1 && delta.areaOf4 === 1 && delta.side === 0 && delta.bump === 0 && stampedKind === "cell: its function applied to its inputs", `try (section 6): one bump, body runs per cell ${JSON.stringify(delta)}; stamped's kind ${JSON.stringify(stampedKind)}`);
 
   // section 7: measure again
   const b0 = await valueOf(page, TUTORIAL, "benchmark");
@@ -2088,9 +2099,10 @@ await testsPass(A.page, "original", TUTORIAL, TUTORIAL_TESTS);
   const g = await A.page.evaluate(() => {
     const rt = (window as any).__ojs_runtime, bm = rt.mains.get("@tomlarkworthy/soundscript-breakout");
     const ss = [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
-    return { ballRuns: ss.evals(ss.idOf(String(bm._scope.get("ballView")._definition))), y: bm._scope.get("world")._value.ball.y, pulling: ss.pulling() };
+    return { ballRuns: bm._scope.get("ballView")._version, y: bm._scope.get("world")._value.ball.y, pulling: ss.pulling() };
   });
-  report(g.ballRuns <= 1 && g.y === 180 && g.pulling === 0, `original: after the tests, the page's Breakout is as it booted: ballView ran ${g.ballRuns} times, ball at y ${g.y}, ${g.pulling} clocks pulled`);
+  const atBoot = bootBallRuns.get("original");
+  report(g.ballRuns === atBoot && g.y === 180 && g.pulling === 0, `original: after the tests, the page's Breakout is as it booted: ballView computed ${g.ballRuns} times (${atBoot} at boot), ball at y ${g.y}, ${g.pulling} clocks pulled`);
 }
 for (const m of SECTIONS) await testsPass(A.page, "original", m, SECTION_TESTS[m]);
 await testsPass(A.page, "original", SPEC, SPEC_TESTS);
@@ -2359,7 +2371,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
       const EditorView = find("EditorView")._value, codemirror = find("codemirror")._value;
       const view = () => { const cm = host.querySelector(".cm-editor"); return cm && EditorView.findFromDOM(cm); };
       await until(() => view()?.state.doc.toString().trim(), "text in the editor");
-      out.shownBefore = view().state.doc.toString().slice(0, 60);
+      out.shownBefore = view().state.doc.toString();
       out.diagnostics = await until(() => { const ds: string[] = []; codemirror.forEachDiagnostic?.(view().state, (d: any) => ds.push(d.message)); return ds.length ? ds : null; }, "a diagnostic");
       const def0 = inc._definition;
       const warns: string[] = [], warn0 = console.warn;
@@ -2381,8 +2393,15 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     return out;
   }, TUTORIAL);
   // raw-cells is registered on this page too; only "ss" must be absent
-  report(!g2.error && !g2.registeredAtOpen?.includes("ss") && /^width = ss\.cell\(/.test(g2.shownBefore ?? "") && g2.diagnostics?.some((d: string) => /not loaded yet/.test(d)) && g2.savedUnchanged,
-    `core-not-main: with no language registered the editor on width shows the compiled text, says it is not loaded, and Shift-Enter saves nothing: ${JSON.stringify({ ...g2, shownAfter: undefined })}`);
+  // the compiled text shown is width's plain cell: "width =" and a definition whose first comment is the marker
+  const shownCompiled = (() => {
+    try {
+      const t = [...acorn.tokenizer(g2.shownBefore ?? "", { ecmaVersion: "latest" })];
+      return t[0]?.value === "width" && t[1]?.type.label === "=" && compiledKind((g2.shownBefore as string).slice(t[1].end))?.callee === "plain";
+    } catch { return false; }
+  })();
+  report(!g2.error && !g2.registeredAtOpen?.includes("ss") && shownCompiled && g2.diagnostics?.some((d: string) => /not loaded yet/.test(d)) && g2.savedUnchanged,
+    `core-not-main: with no language registered the editor on width shows the compiled text, says it is not loaded, and Shift-Enter saves nothing: ${JSON.stringify({ ...g2, shownBefore: g2.shownBefore?.slice(0, 60), shownAfter: undefined })}`);
   report(!g2.error && /^const width = \(\) => 640;$/m.test(g2.shownAfter ?? "") && !g2.shownAfter.includes("ss.cell("), `core-not-main: after registration the open editor shows the typed source: ${JSON.stringify(g2.shownAfter ?? g2.error)}`);
   report(!g2.error && g2.lineBefore !== g2.lineAfter && g2.lineAfter === "increment = ƒ action()", `core-not-main: increment's line is the normal Inspector's before registration (${JSON.stringify(g2.lineBefore?.slice(0, 60))}) and the language's after, without a reload (${JSON.stringify(g2.lineAfter ?? g2.error)})`);
   // a language whose editor extension throws leaves the plain editor, with the error shown

@@ -1,6 +1,6 @@
 // The SoundScript standard library's runtime half. build.ts makes cells of it (soundscript/ts-cells.ts):
 // @tomlarkworthy/soundscript-runtime, and @tomlarkworthy/soundscript-checker for what reaches the parser.
-// Compiled cells call ss.cell(...); a state cell's value variable is Observable's Generators.input(handle).
+// A compiled cell that is not plain calls ss.cell(...); a state cell's value variable is Observable's Generators.input(handle).
 import { rt, stateRun, isRefHandle, viewHandle } from "../../prelude.runtime.ts";
 import { h } from "../jsx/h.ts";
 import { create, patch } from "../jsx/render.ts";
@@ -87,62 +87,32 @@ export function viewRef(el: unknown, shape: Shape, name: string): object {
 }
 export { h, on, create, patch, pagePool, running, pulling, isEvents, release, sweep };
 
-// Values a generator has yielded. A reader of one may be handed the same buffer mutated between
-// yields (borrow), so a memoised cell does not reuse its last value when one of these is an input.
-const lent = new WeakSet<object>();
-const lentGuard = (g: Generator) => guard(g, (v) => lent.add(v));
-
-// Per compiled text (opts.id, a hash made by the compiler), the inputs and value of its last run. An
-// edit changes the id, so it starts empty; equal text with equal inputs gives the same value.
-const memos = new Map<string, { args: unknown[]; value: unknown }>();
-export const stats = { evals: 0, memoHits: 0 };
-// body runs per compiled text, by the compiler's memo id (the id option of the cell's call; a caller holding a
-// definition reads it with the toolchain's idOf, so nothing here parses code)
-const evalCounts = new Map<string, number>();
-export const evals = (id: string | null) => (id ? evalCounts.get(id) ?? 0 : 0);
-// drops what memos and run counts keep for an id no variable's definition has any more
-export const forget = (id: string | null) => {
-  if (id) { memos.delete(id); evalCounts.delete(id); }
-};
-export const memoSize = () => memos.size;
-export const memoHas = (id: string) => memos.has(id);
-
 // prev: an events or state cell's variable's last value (this)
-type Opts = { kind: "cell" | "ref" | "events" | "listener"; name: string; memo: boolean; prev?: unknown; id: string; invalidation: Promise<unknown> | null };
+type Opts = { kind: "cell" | "ref" | "events" | "listener"; name: string; prev?: unknown; invalidation: Promise<unknown> | null };
 
+// A compiled cell that is not plain (ss-toolchain.ts isPlain): a state, events or listener cell, a generator, or a
+// cell that calls a built-in or takes a value crossing from another language. A plain cell calls nothing here.
 export function cell(fn: (...a: unknown[]) => unknown, args: unknown[], o: Opts): unknown {
-  const count = () => { stats.evals++; evalCounts.set(o.id, (evalCounts.get(o.id) ?? 0) + 1); };
   // an events cell's body runs when its inputs change; a re-run with the same inputs keeps the generator
-  if (o.kind === "events") return events(o.prev, o.name, args, () => { count(); return lentGuard(fn(...args) as Generator); }, o.invalidation);
-  // a state cell run again with the same compiled text and inputs (Object.is) keeps its store, and so its
+  if (o.kind === "events") return events(o.prev, o.name, args, () => guard(fn(...args) as Generator), o.invalidation);
+  // a state cell run again with the same function text and inputs (Object.is) keeps its store, and so its
   // state: an upstream re-run gave the same value. After an error the variable has no last value and starts again
   if (o.kind === "ref") {
-    return stateRun(o.prev, o.id, o.name, args, () => {
+    return stateRun(o.prev, String(fn), o.name, args, () => {
       rt.evalDepth++;
-      try { count(); return fn(...args); } finally { rt.evalDepth--; }
-    }, () => { stats.memoHits++; });
-  }
-  if (o.memo) {
-    const last = memos.get(o.id);
-    if (last && args.length === last.args.length && args.every((v, i) => Object.is(v, last.args[i]) && !(typeof v === "object" && v !== null && lent.has(v)))) {
-      stats.memoHits++;
-      // a memo hit is still a new run of the cell: the listener it returns again is attached for this run
-      if (o.kind === "listener") listen(last.value, o.name, o.invalidation);
-      return last.value;
-    }
+      try { return fn(...args); } finally { rt.evalDepth--; }
+    });
   }
   rt.evalDepth++;
   let value: unknown;
   try {
-    count();
     const r = fn(...args);
-    value = generatorish(r) ? lentGuard(r) : r;
+    value = generatorish(r) ? guard(r) : r;
   } finally {
     rt.evalDepth--;
   }
   if (o.kind === "listener") listen(value, o.name, o.invalidation);
   else nameAction(value, o.name);
-  if (o.memo) memos.set(o.id, { args, value });
   return value;
 }
 

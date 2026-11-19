@@ -47,13 +47,11 @@ A cell compiles to ordinary JavaScript: one runtime variable, or two for a state
 
 A variable is SoundScript when the first comment in its definition is the marker \`/*{lang:"ss"}*/\`. The definition keeps the types as \`/*ss:…*/\` comments. It keeps JSX as \`/*ss<…*/\` comments beside the lowered \`h(...)\` calls. The typed source is therefore recovered from the definition text alone, and it survives a save (\`test_ss_roundtrip\`).`
 // %%
-readme_memo = md`## When a cell does not run
+readme_memo = md`## When a cell runs
 
-\`ss.cell\` memoises on \`id\`, a hash of the compiled text. The compiler writes \`id\` into the definition. When every input is the same value (\`Object.is\`) as on the last run, the body does not run.
+A plain cell compiles to its function applied to its inputs, an ordinary Observable cell, and the Observable runtime decides when it runs: when it is first read, and again whenever one of its inputs was computed again. The runtime does not compare values, so a cell whose input was recomputed to the same value still runs. Until 2026-11-19 \`ss.cell\` kept a result per cell and skipped the body on equal inputs; that was removed with the wrapper.
 
-An edit starts with an empty memo. Two cells with equal text and equal inputs share a result; this is sound because both compute the same value.
-
-The compiler sets \`memo: true\` only on a plain cell that the checker accepts over its whole module (\`ss_context\`). It never sets it on a generator, on a reader of a generator that is not taken as \`Events\`, or on a cell taking \`now\`, \`random\`, \`fetch\` or \`log\`. A rejected cell does not run: its definition only raises the checker's messages.`
+A rejected cell does not run: its definition only raises the checker's messages.`
 // %%
 readme_editing = md`## Editing
 
@@ -75,23 +73,17 @@ readme_limits = md`## Limits
 // %%
 readme_api = ss_highlightCode(md`## API
 
-\`evals\` and \`forget\` take a cell's memo id, which \`idOf\` reads from a compiled definition; \`compiledKind\` gives the kind of a compiled definition.
-
 \`\`\`
 soundscript.checkSources({ cells, tsx, outside })  // the checker: per cell {name, status, errors, unsupported, value (its type)}
 soundscript.check(source, tsx = true, outside)  // checkSources, remembered for the last 16 sources; .facts per cell (not enumerable)
 soundscript.compileCell(source, tsx, context, name?)  // one cell's source -> [{name, inputs, definition}]; context: ss_context(module texts); name: the variable's own name, which wins over the declared one
 soundscript.decompileVariable(definition)       // a compiled definition -> the cell's source, or null
 soundscript.compiler(() => source)              // the value of ss_compile: compile(...) for the cells of that source
-soundscript.evals(soundscript.idOf(definition)) // how many times a compiled cell's body has run (by its memo id)
 soundscript.running(handles?)                   // listeners attached on the page (on these handles only, if given)
 soundscript.pulling(handles?)                   // events cells whose generator is being pulled (of these handles only, if given)
 soundscript.isEvents(value)                     // whether a value is an events cell's handle
 soundscript.release(value)                      // a deleted variable's listener ends, or its events stop
-soundscript.forget(id)                          // drop a memo id's memo entry and run count
-soundscript.memoSize(), soundscript.memoHas(id)          // memo entries on the page; whether one id has one
-soundscript.idOf(definition), soundscript.withId(definition, id)  // read or replace a compiled definition's memo id (from its parsed ss.cell call)
-soundscript.compiledKind(definition)             // {kind, memo, refs} of a compiled cell's ss.cell call, or null
+soundscript.compiledKind(definition)             // the kind of a compiled definition (a plain cell, or an ss.cell call), or null
 ss_moduleCells(module)                 // a module's SoundScript cells: [{key, text, variable}]
 ss_source(module)                      // those cells' source, joined in runtime order
 ss_outside(module)                     // the module's cells in other languages: [{name, view?}]
@@ -178,8 +170,8 @@ ss_check = (module) => {
 // %%
 ss_context = (texts, module) => {
   // the compile context of a module's cells, from one (remembered) check of the whole module: which
-  // cells are generators, which are taken as Events, which the checker accepts (only those run, and
-  // only those are memoised; any other cell compiles to a definition that raises the checker's messages)
+  // cells are generators, which are taken as Events, which the checker accepts (only those run; any
+  // other cell compiles to a definition that raises the checker's messages)
   return soundscript.contextFromCheck(soundscript.checkCells(texts, true, module ? ss_outside(module) : null).result);
 }
 // %%
@@ -214,20 +206,19 @@ ss_deleted = {
 // %%
 ss_instance = async (module, invalidation) => {
   // A second copy of module's SoundScript cells in a module of its own, so a test drives its own state cells
-  // and listeners, not the ones on the page. Ids get a suffix, so its memo and run counts are its
-  // own too. Inputs its cells do not define (ss, ss_now, ...) are read from module. Deleted on invalidation.
+  // and listeners, not the ones on the page. Inputs its cells do not define (ss, ss_now, ...) are read from
+  // module. Deleted on invalidation.
   const vars = [...runtime._variables].filter((v) => v._module === module && typeof v._name === "string" && ss_isSs(v));
   const names = new Set(vars.map((v) => v._name));
   // Generators, like invalidation, is the runtime's own, so the instance module resolves it itself
   const outside = new Set(vars.flatMap((v) => v._inputs.map((i) => i._name)).filter((n) => !names.has(n) && n !== "invalidation" && n !== "@variable" && n !== "Generators"));
-  const tag = Math.random().toString(36).slice(2, 8);
-  const fns = await realize(vars.map((v) => { const def = String(v._definition), id = soundscript.idOf(def); return id ? soundscript.withId(def, `${id}_${tag}`) : def; }), runtime);
+  const fns = await realize(vars.map((v) => String(v._definition)), runtime);
   const inst = runtime.module();
   ss_instances.add(inst);
   for (const n of outside) inst.define(n, [], () => module.value(n));
   const made = vars.map((v, i) => inst.define(v._name, v._inputs.map((x) => x._name), fns[i]));
   const cancels = made.map((v) => observe(v, {}));
-  invalidation.then(() => { cancels.forEach((c) => c()); for (const v of [...runtime._variables]) if (v._module === inst) { ss_deleted(v); soundscript.forget(soundscript.idOf(String(v._definition))); v.delete(); } });
+  invalidation.then(() => { cancels.forEach((c) => c()); for (const v of [...runtime._variables]) if (v._module === inst) { ss_deleted(v); v.delete(); } });
   return inst;
 }
 // %%
@@ -247,11 +238,6 @@ ss_lifecycle = {
     if (outsideNamed) touched.add(module);
     else if (!isSs(variable) && !isSs(previous)) return;
     if (variable === null && !outsideNamed) ss_deleted(previous.variable);
-    // every edit gives a new memo id; the old one is forgotten once no variable has that definition
-    if (isSs(previous) && previous._definition !== variable?._definition) {
-      const text = String(previous._definition);
-      if (![...runtime._variables].some((x) => x._definition && String(x._definition) === text)) soundscript.forget(soundscript.idOf(text));
-    }
     if (module?._scope?.has("ss") && !ss_instances.has(module)) touched.add(module);
     if (scheduled) return;
     scheduled = true;
@@ -457,10 +443,7 @@ ss_language = {
         fresh.push(v);
         tx?.made.push(v);
       }
-      const was = v._definition;
       v.define(d.name, d.inputs, fns[i]);
-      // a reused variable's old definition is forgotten here: onCodeChange polls, so it can miss one
-      if (was && String(was) !== d.definition) forgetUnheld(was);
       return v;
     });
     // placed before the old variables go, since a deleted anchor has no position
@@ -468,13 +451,9 @@ ss_language = {
       let at = [...runtime._variables].indexOf(anchor) + 1;
       for (const v of fresh) repositionSetElement(runtime._variables, v, at++);
     }
-    const drop = (v) => { ss_deleted(v); soundscript.forget(soundscript.idOf(String(v._definition))); v.delete(); };
+    const drop = (v) => { ss_deleted(v); v.delete(); };
     for (const v of old) if (!next.includes(v)) tx ? tx.doomed.push(v) : drop(v);
     return next;
-  };
-  const forgetUnheld = (definition) => {
-    const text = String(definition);
-    if (![...runtime._variables].some((x) => x._definition && String(x._definition) === text)) soundscript.forget(soundscript.idOf(text));
   };
   const same = (vs, defs) => vs.length === defs.length && defs.every((d) => {
     const v = vs.find((x) => x._name === d.name);
@@ -484,8 +463,7 @@ ss_language = {
   // Stores the edit whatever its verdict (not stored, returning undefined: no cell name; another cell's
   // name is stored as "<name> (2)"). A cell the checker does not accept compiles to a definition that raises its messages.
   // Every other cell whose compiled form the edit changes is compiled again too: one that becomes, or
-  // stops being, accepted; a generator that became, or stopped being, taken as Events; a reader of a
-  // generator, which is not memoised.
+  // stops being, accepted; a generator that became, or stopped being, taken as Events.
   const applyNow = async (source, variables = [], cell) => {
     const r = check(source, variables, cell);
     if (!r.store) return undefined;
@@ -524,7 +502,7 @@ ss_language = {
       for (const s of saved) s.v.define(s.name, s.inputs, s.definition);
       throw e;
     }
-    for (const v of new Set(tx.doomed)) { ss_deleted(v); soundscript.forget(soundscript.idOf(String(v._definition))); v.delete(); }
+    for (const v of new Set(tx.doomed)) { ss_deleted(v); v.delete(); }
     // a reused Kit head no longer has shadows; theirs were deleted with the rest of old
     for (const v of next) v._shadow?.clear?.();
     variables.splice(0, variables.length, ...next);
@@ -648,7 +626,7 @@ ss_language = {
     return null;
   };
 
-  // typed text is SoundScript when its module has ss, which every compiled cell takes, and it starts as a
+  // typed text is SoundScript when its module imports ss (a compiled cell that is not plain takes it), and it starts as a
   // cell or a type does; the editor takes the claim only when the built-in parser rejects the text
   const claimsSource = (source, cell) => {
     const module = cell?.module?.module;
@@ -657,7 +635,7 @@ ss_language = {
     return !!module?._scope?.has("ss") && !!first && ["const", "let", "function", "async", "type", "interface"].includes(String(first.value));
   };
 
-  // a module can hold SoundScript cells when it has ss, which every compiled cell takes
+  // a module can hold SoundScript cells when it imports ss (a compiled cell that is not plain takes it)
   const hosts = (module) => !!module?._scope?.has("ss");
   // The editor's language picker. toBuiltin: the cell as Observable JavaScript cell text, exactly the text
   // Observable's compiler makes this cell's variables of, compiled in its module as apply would.
@@ -923,34 +901,9 @@ test_ss_failed_apply_changes_nothing = {
   } finally { end(); }
 }
 // %%
-test_ss_edits_do_not_grow_the_memo = {
-  ss_tests_on;
-  // each edit gives the cell a new memo id; the old id's entry and run count are forgotten
-  if (typeof soundscript.memoHas !== "function") throw new Error("soundscript.memoHas is missing");
-  let end;
-  const done = new Promise((r) => (end = r));
-  try {
-    const inst = await ss_instance(ss_module, done);
-    const edit = async (k) => {
-      const v = inst._scope.get("doubled");
-      const source = (await ss_language.decompile([v])).replace(/tally \* \d+/, `tally * ${k}`);
-      if (await ss_language.apply(source, [v]) === undefined) throw new Error(`edit ${k} was not stored`);
-      if ((await inst.value("doubled")) !== (await inst.value("tally")) * k) throw new Error(`doubled is not tally * ${k}`);
-      await new Promise((r) => queueMicrotask(r));
-    };
-    // other tests run at the same time and add entries of their own, so the edited cell's ids are counted
-    const ids = [];
-    for (let k = 3; k < 203; k++) { await edit(k); ids.push(soundscript.idOf(String(inst._scope.get("doubled")._definition))); }
-    const kept = ids.filter((id) => soundscript.memoHas(id));
-    if (new Set(ids).size !== ids.length) throw new Error("two edits gave one memo id");
-    if (kept.length !== 1 || kept[0] !== ids.at(-1)) throw new Error(`after 200 edits ${kept.length} of their memo ids are kept: ${kept.slice(0, 5)}`);
-    return `200 edits of doubled: only the last one's memo entry is kept`;
-  } finally { end(); }
-}
-// %%
 test_ss_instance_keeps_user_ids = {
   ss_tests_on;
-  // ss_instance gives the copy's memo ids a suffix; a cell's own \`id:\` property is left as written
+  // ss_instance copies each definition as it is, so a cell's own \`id:\` property is left as written
   let end;
   const done = new Promise((r) => (end = r));
   try {
@@ -960,9 +913,9 @@ test_ss_instance_keeps_user_ids = {
     if (made === undefined) throw new Error("tagged was not stored");
     const b = await ss_instance(a, done);
     const value = await b.value("tagged");
-    const ida = soundscript.idOf(String(a._scope.get("tagged")._definition)), idb = soundscript.idOf(String(b._scope.get("tagged")._definition));
-    if (value.id !== "anon" || !idb || idb === ida || !idb.startsWith(ida + "_")) throw new Error(`value ${JSON.stringify(value)}, ids ${ida} -> ${idb}`);
-    return `tagged keeps id "anon"; its memo id ${ida} became ${idb}`;
+    const same = String(a._scope.get("tagged")._definition) === String(b._scope.get("tagged")._definition);
+    if (value.id !== "anon" || !same) throw new Error(`value ${JSON.stringify(value)}, the copy's definition is the same text: ${same}`);
+    return `tagged keeps id "anon"; the copy's definition is the same text`;
   } finally { end(); }
 }
 // %%

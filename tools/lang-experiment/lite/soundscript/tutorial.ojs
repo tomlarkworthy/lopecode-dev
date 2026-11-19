@@ -272,13 +272,11 @@ What the notebook does with a SoundScript cell, one mechanism per cell. None of 
 // %%
 md`### What a cell compiles to
 
-The compiler turns each cell, one at a time, into one *variable* of the notebook's Observable runtime: the object that holds a value and recomputes when an input changes. Section 6's table lists every variable of its module. A plain cell's variable has the cell's name, and its inputs are \`ss\` (the standard library) and its parameter names.
+The compiler turns each cell, one at a time, into one *variable* of the notebook's Observable runtime: the object that holds a value and recomputes when an input changes. Section 6's table lists every variable of its module. A plain cell's variable has the cell's name and its inputs are its parameter names; a cell that calls a built-in such as \`action\` also takes \`ss\` (the standard library).
 
-A plain cell is *memoised*: when every input is the same value (\`Object.is\`) as on its last run, the body does not run and the variable keeps its last value. Observable still recomputes the readers, which then hit their own memo. This is sound because the checker accepts only cells that are functions of their inputs and never change a value they did not make. In ordinary Observable a cell can change an object in place and keep its identity, and memoising would hide the change.
+The runtime decides when a cell runs: when it is first read, and again whenever one of its inputs was computed again. It does not compare values, so a cell whose input was recomputed to an equal value runs too.
 
-Three kinds of cell are not memoised. A cell the checker rejects, such as \`leak\` or section 8's mistakes, does not run at all: its variable raises the checker's message. A cell that takes \`now\`, \`random\`, \`fetch\` or \`log\` can differ between two runs on the same inputs. A cell that reads a generator's values may be lent the same buffer, changed between yields (\`yield borrow(buf)\`).
-
-Whether a cell is memoised depends on the other cells of its module, so a stored edit compiles again any other cell whose form it changes.`
+A cell the checker rejects, such as \`leak\` or section 8's mistakes, does not run at all: its variable raises the checker's message.`
 // %%
 md`### A state cell is two variables
 
@@ -325,7 +323,7 @@ md`### The renderer
 
 Each JSX node becomes an \`h(tag, props, ...children)\` call, and \`h\` returns a frozen \`{tag, props, children}\` value. The page shows a cell whose type is \`Elem\` by handing that value to the renderer (\`ss.mount\`, called from the core's \`ss_language.inspect\`), 75 lines outside the checked language. The renderer creates the DOM once, then patches it in place each time \`app\` produces a new value: the same tag at the same position reuses the node, an element that is the same object as last time is skipped, and children that all carry \`key\` are matched by key. It calls the actions when DOM events arrive, decoding each event into data (\`PointerData\` from a \`PointerEvent\`, a string from an \`input\`); that decoding is trusted code.
 
-Section 9 is built on this. \`bricks\`, \`ball\` and \`paddle\` each select one part of the world, and \`bricksView\`, \`paddleView\` and \`ballView\` draw one part each. \`step\` returns the same \`bricks\` array when nothing was hit, so \`bricksView\`'s body does not run and \`app\` gets the same element object as before, and the 24 bricks cost one comparison per frame. A broken brick removes one node. \`test_breakout_memo\` measures this on a copy of the game; on 2026-11-15 in headless Chromium, 92 animation frames gave 90 changes of the world; \`ballView\` ran 91 times, \`bricksView\` once for each brick that broke (4), \`paddleView\` not at all with no pointer moving, \`ticks\` twice (play, then pause) and \`onTick\` not at all. The DOM saw 90 \`style\` writes, 7 text changes and 4 nodes removed.
+Section 9 is built on this. \`bricks\`, \`ball\` and \`paddle\` each select one part of the world, and \`bricksView\`, \`paddleView\` and \`ballView\` draw one part each. Every one of them runs on every frame, because the runtime runs a cell whenever its input was computed again. What keeps the page cheap is \`mount\`, which changes only the DOM nodes whose description changed: a moving ball is one \`style\` write, and a broken brick removes one node. \`test_breakout_memo\` plays a copy of the game for 90 ticks and bounds the DOM writes.
 
 The board is \`div\`s positioned by \`style\` strings, since the checked JSX tags have no SVG or canvas drawing. A transparent \`canvas\` on top supplies \`onPointerMove\`.`
 // %%
@@ -591,6 +589,17 @@ test_compile_refuses_unchecked = {
   throw new Error("compile ran an island with a rejected cell");
 }
 // %%
+runsOf = {
+  // computations the runtime started for a variable since runsOf first saw it, the one it then held included:
+  // the pending calls of an observer (runtime-sdk observe), one per computation and one on attaching
+  const counts = new WeakMap();
+  return (v) => {
+    let c = counts.get(v);
+    if (!c) { c = { n: 0 }; counts.set(v, c); observe(v, { pending: () => c.n++ }); }
+    return c.n;
+  };
+}
+// %%
 quietThen = async (f) => {
   // f run once no action call is in flight or waiting, so an action it calls is a call of its own;
   // the frame cap only turns a hung call into an error
@@ -607,10 +616,9 @@ test_breakout_listener = {
   // waits are counted in animation frames until a condition holds; the cap only turns a hung page into an error
   const frames = async (f, n = 600) => { for (let i = 0; i < n && !f(); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
   const get = (n) => game._scope.get(n)._value;
-  const runs = (n) => soundscript.evals(soundscript.idOf(String(game._scope.get(n)._definition)));
   for (const n of ["reset", "toggle", "world", "bricks", "onTick"]) await game.value(n);
   // the clock of this copy only: other tests on the page pull generators of their own
-  const w0 = get("world"), on0 = runs("onTick"), t0 = runs("ticks"), h0 = get("ticks");
+  const w0 = get("world"), h0 = get("ticks");
   await quietThen(() => get("toggle")());
   let changes = 0, last = w0;
   await frames(() => { const w = get("world"); if (w !== last) { changes++; last = w; } return changes >= 10; });
@@ -620,11 +628,12 @@ test_breakout_listener = {
   const w2 = get("world"), paused = soundscript.pulling([h0]);
   await frames(() => false, 10);
   const w3 = get("world");
-  const onTick = runs("onTick") - on0, ticks = runs("ticks") - t0;
   if (playing !== 1 || w1.ball.y === w0.ball.y) throw new Error(`playing: ${playing} clocks pulled, ball ${w0.ball.y} -> ${w1.ball.y}; a hidden tab gets no animation frames`);
   if (paused !== 0 || w3 !== w2) throw new Error(`paused: ${paused} clocks pulled, the world ${w3 === w2 ? "kept" : "changed"}`);
-  if (onTick !== 0 || ticks !== 2 || get("ticks") !== h0) throw new Error(`onTick ran ${onTick} times, ticks ${ticks} times, same handle ${get("ticks") === h0}`);
-  return `play: the clock runs and the ball moved ${w0.ball.y} -> ${w1.ball.y.toFixed(1)}; pause: it stops and the world stays the same object; ticks ran twice, onTick not at all`;
+  // onTick runs again with each run of ticks, and stays one listener on the one handle
+  const listeners = soundscript.running([h0]);
+  if (listeners !== 1 || get("ticks") !== h0) throw new Error(`${listeners} listeners on ticks, same handle ${get("ticks") === h0}`);
+  return `play: the clock runs and the ball moved ${w0.ball.y} -> ${w1.ball.y.toFixed(1)}; pause: it stops and the world stays the same object; ticks kept its handle, with one listener`;
 }
 // %%
 test_breakout_memo = {
@@ -632,15 +641,17 @@ test_breakout_memo = {
   const game = await ss_instance(breakout_module, invalidation);
   const get = (n) => game._scope.get(n)._value;
   for (const n of ["reset", "toggle", "world", "bricks", "app"]) await game.value(n);
-  const runs = (n) => soundscript.evals(soundscript.idOf(String(game._scope.get(n)._definition)));
+  const runs = (n) => runsOf(game._scope.get(n));
   // the copy's app drawn into a node of its own, as breakout_view draws the page's
   let view = null;
   const drawn = new Promise((res) => invalidation.then(observe(game._scope.get("app"), { fulfilled(a) { view = soundscript.mount(a, view); res(); } })));
   await drawn;
   const muts = {};
   const mo = new MutationObserver((rs) => { for (const r of rs) { const k = r.type === "attributes" ? "attr " + r.attributeName : r.type; muts[k] = (muts[k] ?? 0) + (r.type === "childList" ? r.addedNodes.length + r.removedNodes.length : 1); } });
-  const names = ["ballView", "bricksView", "paddleView", "status", "app", "ticks", "onTick"];
+  const names = ["ball", "bricks", "paddle", "ballView", "bricksView", "paddleView", "status", "app", "ticks", "onTick"];
   mo.observe(view, { subtree: true, childList: true, attributes: true, characterData: true });
+  names.forEach(runs);
+  await null;
   const n0 = Object.fromEntries(names.map((n) => [n, runs(n)]));
   const b0 = get("bricks").length;
   // played for a number of delivered ticks and until a brick breaks, not for a time, so the counts do
@@ -661,10 +672,11 @@ test_breakout_memo = {
   const broken = b0 - get("bricks").length;
   if (changes < TICKS) throw new Error(`only ${changes} world changes in ${frames} frames; a hidden tab gets no animation frames`);
   if (broken < 1) throw new Error("no brick broke, so the keyed path was not exercised");
+  // each view runs once for each run of its input (the runtime runs a cell when its input's variable runs,
+  // equal value or not); the DOM takes only what changed: a style write per ball or paddle move, a node per
+  // broken brick
+  for (const [view, input] of [["ballView", "ball"], ["bricksView", "bricks"], ["paddleView", "paddle"]]) if (ran[view] > ran[input]) throw new Error(`${view} ran ${ran[view]} times for ${ran[input]} runs of ${input}`);
   if ((muts["attr style"] ?? 0) > ran.ballView + ran.paddleView + 2) throw new Error(`${muts["attr style"]} style writes for ${ran.ballView + ran.paddleView} ball and paddle draws`);
-  if (ran.bricksView > broken) throw new Error(`bricksView ran ${ran.bricksView} times for ${broken} broken bricks`);
-  if (ran.paddleView > 0) throw new Error(`paddleView ran ${ran.paddleView} times with no pointer move`);
-  if (ran.onTick > 0 || ran.ticks > 2) throw new Error(`onTick ran ${ran.onTick} times and ticks ${ran.ticks} times for one play and one pause`);
   if ((muts.childList ?? 0) > broken) throw new Error(`${muts.childList} nodes added or removed for ${broken} broken bricks`);
   return { frames, worldChanges: changes, broken, runs: ran, domMutations: muts };
 }
@@ -949,10 +961,10 @@ kindOf = (v) => {
   // the options of the cell's ss.cell call, from its parse
   const k = soundscript.compiledKind(d);
   if (k?.kind === "events") return "events: a handle, pulled only while a listener is attached";
+  if (k?.callee === "plain") return "cell: its function applied to its inputs";
   if (k?.callee !== "cell") return "type";
-  const kind = k.memo ? "memoised on its inputs" : "not memoised";
-  const extra = k.refs.length ? "; compile refs as inputs" : k.kind === "listener" ? "; a listener" : "";
-  return `cell, ${kind}${extra}`;
+  const extra = k.refs.length ? ", compile refs as inputs" : k.kind === "listener" ? ", a listener" : "";
+  return `cell${extra}`;
 }
 // %%
 liveRows = (module, invalidation, { head, cells, row, cls = "" }) => {
@@ -986,8 +998,7 @@ moduleTable = (module, invalidation) => {
       const val = htl.html`<td class="v">`, runs = htl.html`<td>`;
       const update = (error) => {
         val.textContent = error !== undefined ? `throws: ${error?.message ?? error}` : fmt(v._value);
-        const h = module._scope.get(soundscript.handleName(key)) ?? v;
-        runs.textContent = String(soundscript.evals(soundscript.idOf(String(h._definition)) ?? soundscript.idOf(String(v._definition))));
+        runs.textContent = String(runsOf(module._scope.get(soundscript.handleName(key)) ?? v));
       };
       update();
       return { update, tr: htl.html`<tr class=${"lite-" + (r?.status ?? "blocked")}><td><code>${key}</code></td><td>${r ? badge(r.status) : ""}</td><td><code>${r?.value ?? ""}</code></td>${val}${runs}</tr>` };
@@ -1000,9 +1011,8 @@ variableTable = (module, invalidation) => liveRows(module, invalidation, {
   head: htl.html`<thead><tr><th>variable</th><th>inputs</th><th>kind</th><th>runs</th></tr></thead>`,
   cells: () => [...runtime._variables].filter((v) => v._module === module && typeof v._name === "string" && ss_isSs(v)).map((variable) => ({ variable })),
   row: ({ variable: v }) => {
-    const id = soundscript.idOf(String(v._definition));
     const runs = htl.html`<td>`;
-    const update = () => { runs.textContent = id ? String(soundscript.evals(id)) : ""; };
+    const update = () => { runs.textContent = String(runsOf(v)); };
     update();
     return { update, tr: htl.html`<tr><td><code>${v._name}</code></td><td><code>${v._inputs.map((i) => i._name).join(", ")}</code></td><td>${kindOf(v)}</td>${runs}</tr>` };
   },

@@ -2074,7 +2074,7 @@ const _e5lng3 = async function _test_e5_language_hook(cellLanguagesRef,languageO
 const _1whoy5n = function _91(md){return(
 md`### Apply Update`
 )};
-const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionSetElement,decompile,cellLanguage,defineJsCell,sourceLanguage,pinOnCreate,claimCellSource,unloadedLanguage,langTag,transpileJavaScript,routeLanguage,languageChoice)
+const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionSetElement,decompile,cellLanguage,defineJsCell,sourceLanguage,pinOnCreate,claimCellSource,unloadedLanguage,langTag,transpileJavaScript,routeLanguage,languageChoice,acorn)
 {
   // Typed source that does not parse may be claimed by a "cell_source_handlers" plugin, which supplies
   // the source to compile instead. chosen is a language id from the editor's picker (see routeLanguage).
@@ -2096,11 +2096,18 @@ const _gk83fp = function _compile_and_update(compile,runtime,realize,repositionS
     if (out !== undefined && pid) languageChoice.delete(pid);
     return out;
   };
-  // a language marker in the text means it is a compiled definition, which is never typed source
-  const MARKED = /\/\*\{lang:"([\w-]+)"\}\*\//;
+  // a language marker in a comment of the text means it is a compiled definition, which is never typed
+  // source: acorn's tokenizer collects every block comment (up to the first token it cannot read, as typed
+  // text may not parse), and each is read as langTag reads a definition's first comment
+  const markerIn = (source) => {
+    const comments = [];
+    try { for (const _ of acorn.tokenizer(source, { ecmaVersion: "latest", allowHashBang: true, onComment: comments })); } catch {}
+    for (const c of comments) if (c.type === "Block") { const lang = langTag(`/*${c.value}*/`); if (lang) return lang; }
+    return null;
+  };
   const apply = async (source, variables = [], cell, route = routeLanguage(source, variables, cell)) => {
     try {
-      const pasted = MARKED.exec(source)?.[1];
+      const pasted = markerIn(source);
       if (pasted) { console.warn(new Error(`not saved: this text carries a /*{lang:"${pasted}"}*/ marker, so it is a compiled cell, not source; to edit the cell, pick ${pasted} in its header. The cell is unchanged`)); return undefined; }
       // saving a tagged cell through the js/ojs path would replace it with its compiled text; checked
       // before the picked language, so the picker cannot write over a cell of a language not loaded
@@ -2869,7 +2876,9 @@ export default function define(runtime, observer) {
   main.define("module @tomlarkworthy/fileattachments", async () => runtime.module((await import("/@tomlarkworthy/fileattachments.js?v=4")).default));  
   main.define("module @tomlarkworthy/runtime-sdk", async () => runtime.module((await import("/@tomlarkworthy/runtime-sdk.js?v=4")).default));  
   main.define("module @tomlarkworthy/codemirror-6-v2", async () => runtime.module((await import("/@tomlarkworthy/codemirror-6-v2.js?v=4")).default));  
-  main.define("module @tomlarkworthy/observablejs-toolchain", async () => runtime.module((await import("/@tomlarkworthy/observablejs-toolchain.js?v=4")).default));  
+  main.define("module @tomlarkworthy/observablejs-toolchain", async () => runtime.module((await import("/@tomlarkworthy/observablejs-toolchain.js?v=4")).default));
+  main.define("module @tomlarkworthy/acorn-8-11-3", async () => runtime.module((await import("/@tomlarkworthy/acorn-8-11-3.js?v=4")).default));
+  main.define("acorn", ["module @tomlarkworthy/acorn-8-11-3", "@variable"], (_, v) => v.import("acorn", _));  
   main.define("module @tomlarkworthy/module-map", async () => runtime.module((await import("/@tomlarkworthy/module-map.js?v=4")).default));
   main.define("module @tomlarkworthy/ui-testing", async () => runtime.module((await import("/@tomlarkworthy/ui-testing.js?v=4")).default));
   main.define("module @tomlarkworthy/jest-expect-standalone", async () => runtime.module((await import("/@tomlarkworthy/jest-expect-standalone.js?v=4")).default));  
@@ -2994,7 +3003,7 @@ export default function define(runtime, observer) {
   $def("_e6djs", "defineJsCell", ["transpileJavaScript","defineCell","displayStateOf","realize","runtime","repositionSetElement","decompile"], _e6djs);  
   $def("_e5lng3", "test_e5_language_hook", ["cellLanguagesRef","languageOf","cellLanguage","sourceLanguage","decompile","compile_and_update","expect"], _e5lng3);
   $def("_1whoy5n", null, ["md"], _1whoy5n);  
-  $def("_gk83fp", "compile_and_update", ["compile","runtime","realize","repositionSetElement","decompile","cellLanguage","defineJsCell","sourceLanguage","pinOnCreate","claimCellSource","unloadedLanguage","langTag","transpileJavaScript","routeLanguage","languageChoice"], _gk83fp);
+  $def("_gk83fp", "compile_and_update", ["compile","runtime","realize","repositionSetElement","decompile","cellLanguage","defineJsCell","sourceLanguage","pinOnCreate","claimCellSource","unloadedLanguage","langTag","transpileJavaScript","routeLanguage","languageChoice","acorn"], _gk83fp);
   $def("_e5csh1", "cellSourceHandlers", ["plugins"], _e5csh1);
   $def("_e5csh2", "cellSourceHandlersRef", ["plugins","invalidation"], _e5csh2);
   $def("_e5csh4", "claimCellSource", ["parser","transpileJavaScript","cellSourceHandlersRef"], _e5csh4);

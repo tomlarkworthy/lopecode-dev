@@ -1,9 +1,19 @@
-// bun lite/toolchain/roundtrip-edge.test.ts — compile/decompile edge cases: Sub-typed cells, the memo id,
+// bun lite/toolchain/roundtrip-edge.test.ts — compile/decompile edge cases: Sub-typed cells, plain cells and ids,
 // TS constructs the eraser must not break, comment terminators and control characters in source.
 import * as acorn from "acorn";
 import * as toolchain from "./ss-toolchain.ts";
 import { compileCell, decompileVariable, contextFromCheck } from "./ss-toolchain.ts";
 import { checkSources } from "../core.ts";
+// an events cell's compiled definition, read on its parse: a function named _<name> whose ss.cell options
+// pass this as prev and the invalidation input
+const passesThis = (def: string, name: string) => {
+  const fn: any = acorn.parseExpressionAt(def, 0, { ecmaVersion: "latest" });
+  const o = toolchain.parseCompiled(def)?.call?.arguments.at(-1);
+  const opt = (k: string) => o?.type === "ObjectExpression" ? o.properties.find((p: any) => p.key?.name === k)?.value : undefined;
+  return fn.type === "FunctionExpression" && fn.id?.name === `_${name}` && toolchain.compiledKind(def)?.kind === "events" && opt("name")?.value === name &&
+    opt("prev")?.type === "ThisExpression" && opt("invalidation")?.type === "Identifier" && opt("invalidation").name === "invalidation";
+};
+
 
 let fail = 0, n = 0;
 const expect = (ok: boolean, what: string) => { n++; if (!ok) { fail++; console.log("FAIL " + what); } };
@@ -44,36 +54,34 @@ const def = (src: string, tsx = false) => compileCell(src, tsx).at(-1)!.definiti
   const ctx = contextFromCheck(r);
   const by = new Map(src.split("\n\n").map((t) => { const v = compileCell(t, true, ctx).at(-1)!; return [v.name, v]; }));
   const ticks = by.get("ticks")!;
-  expect(ticks.definition.startsWith("function _ticks(") && /kind: "events", name: "ticks", memo: false, prev: this, id: "\w+", invalidation: invalidation\}\)\);\}$/.test(ticks.definition), "an events cell passes this and takes invalidation: " + ticks.definition.slice(-90));
+  expect(passesThis(ticks.definition, "ticks"), "an events cell passes this and takes invalidation: " + ticks.definition.slice(-90));
   expect(decompileVariable(ticks.definition) === src.split("\n\n")[0], "an events cell decompiles to its source");
   const onTick = by.get("onTick")!;
-  expect(/kind: "listener"/.test(onTick.definition) && onTick.inputs.at(-1) === "invalidation" && /memo: true/.test(onTick.definition), "a listener takes invalidation and is memoised: " + JSON.stringify(onTick.inputs));
+  expect(/kind: "listener"/.test(onTick.definition) && onTick.inputs.at(-1) === "invalidation", "a listener takes invalidation: " + JSON.stringify(onTick.inputs));
   const label = by.get("label")!;
-  expect(/kind: "cell"/.test(label.definition) && !label.inputs.includes("invalidation"), "a cell that takes Events but does not call on is a plain cell: " + JSON.stringify(label.inputs));
+  expect(toolchain.compiledKind(label.definition)?.callee === "plain" && !label.inputs.includes("invalidation"), "a cell that takes Events but does not call on is a plain cell: " + JSON.stringify(label.inputs));
   expect(!by.get("fast")!.inputs.includes("invalidation") && /kind: "cell"/.test(by.get("pulses")!.definition) === false, "fast has no invalidation; pulses is events");
 }
 
-// C4: the compiler's memo id is read and replaced structurally; a user's `id:` property is untouched
-expect(typeof (toolchain as any).idOf === "function" && typeof (toolchain as any).withId === "function", "C4 ss-toolchain exports idOf and withId");
-if (typeof (toolchain as any).idOf === "function") {
-  const { idOf, withId } = toolchain as any as { idOf: (d: string) => string | null; withId: (d: string, id: string) => string };
+// C4: a definition carries no compiler id, and a user's `id:` property is untouched. A checked plain cell is its
+// typed function applied to its inputs, with no ss; it decompiles to its source and runs with no stdlib.
+expect(!("idOf" in toolchain) && !("withId" in toolchain), "C4 ss-toolchain has no idOf or withId");
+{
   const src = `const user = () => ({ id: "anon", n: 1 });`;
   const d = def(src);
-  const id = idOf(d);
-  expect(typeof id === "string" && /^\w+$/.test(id!) && d.includes(`id: "${id}", invalidation:`), "C4 idOf returns the compiler id: " + id);
-  const d2 = withId(d, "abc_123");
-  expect(idOf(d2) === "abc_123", "C4 withId sets the compiler id: " + idOf(d2));
-  expect(decompileVariable(d2) === src, "C4 withId leaves the user's id: \"anon\" alone: " + decompileVariable(d2));
-  expect(d2.replace(`id: "abc_123", invalidation:`, `id: "${id}", invalidation:`) === d, "C4 withId changes only the compiler id");
-  expect((toolchain as any).compiledKind(d2)?.kind === "cell" && idOf(d2) === "abc_123", "C4 the parsed options carry the new id");
-  expect(JSON.stringify(run(d2)) === JSON.stringify({ id: "anon", n: 1 }), "C4 the cell still returns the user's object");
-  expect(attempt(() => withId(d, "bad id")) instanceof Error, "C4 withId refuses an id that is not \\w+");
-  const ref = compileCell(`const r = (): StateCell<number> => state(0);`, false);
-  const proj = ref.find((v) => v.name === "r")!.definition;
-  expect(idOf(proj) === null && withId(proj, "x1") === proj, "C4 a state cell's value variable has no id");
-  const ty = def(`type T = { id: "z" };`);
-  expect(idOf(ty) === null && withId(ty, "x1") === ty, "C4 a type variable has no id");
-  expect(idOf(ref.find((v) => v.name === "viewof r")!.definition) !== null, "C4 a state cell's handle has an id");
+  expect(decompileVariable(d) === src && JSON.stringify(run(d)) === JSON.stringify({ id: "anon", n: 1 }), "C4 a user's id property is kept and returned: " + decompileVariable(d));
+  const texts = ["const width = () => 640;", "const height = () => 2;", "const area = (width: number, height: number) => width * height;", "const pick = (r: { h: number }) => r.h;", "const r = () => ({ h: 3 });", "const n = (): StateCell<number> => state(0);", "const held = (n: State<number>) => [n];", "const bump = (n: State<number>) => action(() => n.update((x) => x + 1));", "const ticks = function* () {\n  yield 1;\n};"];
+  const ctx = contextFromCheck(checkSources({ cells: texts.join("\n\n"), tsx: true }));
+  const by = new Map(texts.map((t) => [t, compileCell(t, true, ctx)]));
+  const area = by.get(texts[2])!;
+  expect(toolchain.compileCellText(texts[2], true, ctx) === `area = (/*{lang:"ss"}*//*ss^{"h":"const area = ","t":";"}*/(width/*ss:: number*/, height/*ss:: number*/) => width * height)(width, height)`, "C4 a plain cell's text: " + toolchain.compileCellText(texts[2], true, ctx));
+  expect(area.length === 1 && JSON.stringify(area[0].inputs) === JSON.stringify(["width", "height"]) && toolchain.compiledKind(area[0].definition)?.callee === "plain", "C4 a plain cell takes its inputs and no ss: " + JSON.stringify(area[0].inputs));
+  expect(decompileVariable(area[0].definition) === texts[2] && (0, eval)(`(${area[0].definition})`)(3, 4) === 12, "C4 a plain cell decompiles to its source and runs with no stdlib");
+  expect(toolchain.compiledKind(by.get(texts[3])![0].definition)?.callee === "plain", "C4 a property named like a built-in (r.h) leaves a cell plain");
+  const held = by.get(texts[6])![0];
+  expect(JSON.stringify(held.inputs) === JSON.stringify(["viewof n"]) && toolchain.compiledKind(held.definition)?.callee === "plain", "C4 a plain cell taking State<T> takes viewof n: " + JSON.stringify(held.inputs));
+  for (const t of [texts[5], texts[7], texts[8]]) expect(by.get(t)!.every((v) => v.inputs[0] === "ss" || v.inputs[0] === "Generators"), "C4 a state cell, a cell calling action and a generator still take ss: " + t);
+  expect(toolchain.compiledKind(compileCell(texts[2], true).at(-1)!.definition)?.callee === "cell", "C4 with no module context a cell stays an ss.cell");
 }
 
 // F1: TS-only expression forms erase to valid JS that computes the same value
@@ -206,7 +214,6 @@ for (const src of [
 // A cell is a listener only when it calls the prelude's on, and a state cell only when it returns the
 // prelude's state(...): a property key, a type member or a local binding of either name is neither
 {
-  const ss = await import("../stdlib/runtime.ts");
   const src = [
     "const cfg = () => ({ on: true, n: 1 });",
     "const use = (cfg: { readonly on: boolean; readonly n: number }) => cfg.n + 1;",
@@ -218,8 +225,9 @@ for (const src of [
   const ctx = contextFromCheck(r, src, false);
   const vs = new Map(toolchain.splitCells(src, false).flatMap((t) => compileCell(t, false, ctx)).map((v) => [v.name, v]));
   expect(r.cells.every((c) => c.status === "ok"), `L1 the cells check ok: ${JSON.stringify(r.cells.map((c) => [c.name, c.status]))}`);
-  for (const name of ["cfg", "use", "sum", "inc", "box"]) expect(/kind: "cell"/.test(vs.get(name)?.definition ?? ""), `L1 ${name} compiles as a plain cell, not a listener or state cell`);
-  const value = (name: string, ...args: unknown[]) => attempt(() => (0, eval)(`(${vs.get(name)!.definition})`)(ss, ...args));
+  for (const name of ["cfg", "use", "sum", "inc", "box"]) expect(toolchain.compiledKind(vs.get(name)?.definition ?? "")?.callee === "plain", `L1 ${name} compiles as a plain cell, not a listener or state cell`);
+  // a plain cell takes no ss
+  const value = (name: string, ...args: unknown[]) => attempt(() => (0, eval)(`(${vs.get(name)!.definition})`)(...args));
   const cfg = value("cfg");
   expect(JSON.stringify(cfg) === '{"on":true,"n":1}', `L1 cfg runs: ${cfg instanceof Error ? cfg.message : JSON.stringify(cfg)}`);
   const use = value("use", cfg);
