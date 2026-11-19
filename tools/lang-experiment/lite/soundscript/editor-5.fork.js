@@ -573,20 +573,19 @@ const _e6choice = function _languageChoice(){return(
 // keyed by the cell's first pid, which a change of language keeps: pid -> {lang, from: "picker" | "new"}
 new Map()
 )};
-const _e6pick = function _languagePicker(cellLanguagesRef,cellLanguage,languageChoice,EditorView,codemirror,states,routeLanguage){return(
+const _e6pick = function _languagePicker(cellLanguagesRef,cellLanguage,languageChoice,EditorView,codemirror,states,routeLanguage,compile,parser){return(
 (editedCell) => {
   const key = editedCell?.variables?.[0]?.pid;
   // the language the current text would be stored in: a pick, the tag, a claim, else a new cell's default
   const vars = editedCell?.variables ?? [];
-  const doc = states.get(vars[0])?.doc?.toString();
-  const routed = doc != null && doc.trim() !== "{}" ? routeLanguage(doc, vars, editedCell).id : null;
-  const current = routed ?? languageChoice.get(key)?.lang ?? cellLanguage(vars, editedCell);
+  const languageNow = (doc) => (doc != null && doc.trim() !== "{}" ? routeLanguage(doc, vars, editedCell).id : null) ?? languageChoice.get(key)?.lang ?? cellLanguage(vars, editedCell);
+  const current = languageNow(states.get(vars[0])?.doc?.toString());
   const options = [...cellLanguagesRef.current.map((l) => [l.id, l.label ?? l.id]), ["ojs", "Observable JavaScript"], ["js", "JavaScript"]];
   if (!options.some(([id]) => id === current)) options.push([current, `${current} (not loaded)`]);
   const select = document.createElement("select");
   select.className = "e5-cell-language";
   select.setAttribute("aria-label", "cell language");
-  select.title = "the language Shift-Enter reads this cell's text as";
+  select.title = "the language Shift-Enter reads this cell's text as; picking one rewrites the text in it";
   select.style.cssText = "font: inherit; font-size: 11px; margin-right: 6px;";
   for (const [id, label] of options) {
     const o = document.createElement("option");
@@ -596,20 +595,67 @@ const _e6pick = function _languagePicker(cellLanguagesRef,cellLanguage,languageC
     select.append(o);
   }
   select.value = current;
-  // the choice is read at the next Shift-Enter; the text is not changed, and the editor is linted again as the language picked
+  // why the last pick did not change the language
+  const reason = document.createElement("span");
+  reason.className = "e5-cell-language-reason";
+  reason.setAttribute("role", "status");
+  reason.setAttribute("aria-live", "polite");
+  reason.style.cssText = "font-size: 11px; color: var(--theme-foreground-faint, #a00); margin-right: 6px;";
+  const builtin = (id) => id === "ojs" || id === "js";
+  const registered = (id) => cellLanguagesRef.current.find((l) => l.id === id) ?? null;
+  // The text in language from, rewritten in language to: {text}, {reason}, or {} to keep the text as it is
+  // (the {} a new cell is made with, ojs <-> js, or a language without toBuiltin/fromBuiltin).
+  // Registered languages translate through Observable JavaScript.
+  const translate = (text, from, to) => {
+    if (from === to || text.trim() === "{}" || (builtin(from) && builtin(to))) return {};
+    const src = registered(from), dst = registered(to);
+    if (!builtin(from) && !src?.toBuiltin) return {};
+    if (!builtin(to) && !dst?.fromBuiltin) return {};
+    const ask = (f) => { try { return f() ?? { reason: "no answer" }; } catch (e) { console.error(e); return { reason: String(e?.message ?? e) }; } };
+    let mid = { text }, lang = from;
+    if (!builtin(from)) {
+      lang = builtin(to) ? to : "ojs";
+      mid = ask(() => src.toBuiltin(text, vars, editedCell, lang));
+      if (mid.reason !== undefined || builtin(to)) return mid;
+    }
+    let compiled = null, expression;
+    if (lang === "ojs") {
+      // the compiler turns a text that does not parse into a definition that throws, so the parser is asked first;
+      // it also tells `x = y` from `x = { return (y); }`, which the compiler writes alike
+      try { expression = parser.parseCell(mid.text).body?.type !== "BlockStatement"; }
+      catch (e) { return { reason: `the text does not parse as Observable JavaScript: ${e?.message ?? e}` }; }
+      try { compiled = compile(mid.text).map((v) => ({ name: v._name ?? null, inputs: v._inputs ?? [], definition: String(v._definition) })); }
+      catch (e) { return { reason: `the text does not compile as Observable JavaScript: ${e?.message ?? e}` }; }
+    }
+    return ask(() => dst.fromBuiltin(mid.text, vars, editedCell, { lang, compiled, expression }));
+  };
+  // a pick rewrites the text in the language picked when it can; the next Shift-Enter stores it in that language.
+  // A text that does not translate is left as it was, with the language, and the reason is shown.
   select.addEventListener("change", () => {
     if (!key) return;
-    languageChoice.set(key, { lang: select.value, from: "picker" });
+    const to = select.value;
     let n = select.parentElement;
     while (n && !n.querySelector(".cm-editor")) n = n.parentElement;
     const ed = n?.querySelector(".cm-editor");
     const view = ed ? EditorView.findFromDOM(ed) : null;
+    const text = view ? view.state.doc.toString() : states.get(vars[0])?.doc?.toString() ?? "";
+    const from = languageNow(text);
+    const out = translate(text, from, to);
+    if (out.reason !== undefined) {
+      select.value = from;
+      reason.textContent = `not switched to ${select.querySelector(`option[value="${to}"]`)?.textContent ?? to}: ${out.reason}`;
+      return;
+    }
+    reason.textContent = "";
+    languageChoice.set(key, { lang: to, from: "picker" });
     if (!view) return;
     // the editor's own listener moves its highlighting to the language picked
-    view.dispatch({ userEvent: "e5.language" });
+    view.dispatch({ ...(typeof out.text === "string" && out.text !== text ? { changes: { from: 0, to: view.state.doc.length, insert: out.text } } : {}), userEvent: "e5.language" });
     codemirror.forceLinting?.(view);
   });
-  return select;
+  const wrap = document.createElement("span");
+  wrap.append(select, reason);
+  return wrap;
 }
 )};
 const _e6claim = function _claimedLanguage(cellLanguagesRef,cellLanguage,parser,transpileJavaScript){return(
@@ -641,10 +687,15 @@ const _e6route = function _routeLanguage(cellLanguagesRef,languageChoice,languag
   return entry?.from === "new" && typeof source === "string" && source.trim() !== "{}" ? byId(entry.lang) : { id: null, registered: null };
 }
 )};
-const _e6new = function _newCellLanguage(cellLanguage){return(
-// a new cell's language: that of the cell it is added after, else the most common in its module
+const _e6new = function _newCellLanguage(cellLanguage,cellLanguagesRef){return(
+// a new cell's language: that of the cell it is added after, else the first registered language its module
+// can host (the language's hosts(module)), else the most common in its module
 (anchor) => {
   if (anchor?.variables?.length) return cellLanguage(anchor.variables, anchor);
+  const module = anchor?.module?.module;
+  const ask = (l) => { try { return !!l.hosts?.(module); } catch (e) { console.error(e); return false; } };
+  const hosting = module ? cellLanguagesRef.current.find(ask) : null;
+  if (hosting) return hosting.id;
   const counts = new Map();
   for (const c of anchor?.module?.cells ?? []) if (c.variables?.length) { const l = cellLanguage(c.variables, c); counts.set(l, (counts.get(l) ?? 0) + 1); }
   return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "ojs";
@@ -2856,11 +2907,11 @@ export default function define(runtime, observer) {
   $def("_n8s6yl", null, ["viewof editedCell"], _n8s6yl);  
   $def("_ytd2rq", null, ["nav","editedCell"], _ytd2rq);  
   $def("_1t4gep6", "nav", ["html","cellLinks","languageOf","languagePicker"], _1t4gep6);
-  $def("_e6pick", "languagePicker", ["cellLanguagesRef","cellLanguage","languageChoice","EditorView","codemirror","states","routeLanguage"], _e6pick);
+  $def("_e6pick", "languagePicker", ["cellLanguagesRef","cellLanguage","languageChoice","EditorView","codemirror","states","routeLanguage","compile","parser"], _e6pick);
   $def("_e6choice", "languageChoice", [], _e6choice);
   $def("_e6claim", "claimedLanguage", ["cellLanguagesRef","cellLanguage","parser","transpileJavaScript"], _e6claim);
   $def("_e6route", "routeLanguage", ["cellLanguagesRef","languageChoice","languageOf","claimedLanguage"], _e6route);
-  $def("_e6new", "newCellLanguage", ["cellLanguage"], _e6new);  
+  $def("_e6new", "newCellLanguage", ["cellLanguage","cellLanguagesRef"], _e6new);  
   $def("_1tv9qxo", "cellLinks", ["html","variableLink"], _1tv9qxo);  
   $def("_1opggh8", "identity", ["lookupVariable","editorModule"], _1opggh8);  
   $def("_15v1lje", "variableLink", ["identity","modules","navHref"], _15v1lje);  

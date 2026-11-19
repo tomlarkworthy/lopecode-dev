@@ -434,3 +434,73 @@ export const cellOfVariable = (name: string): string => keyOfVariable(name).repl
 export function decompileModule(definitions: string[]): string {
   return definitions.map(decompileVariable).filter((s): s is string => s !== null).join("\n\n") + "\n";
 }
+
+// An Observable JavaScript cell as SoundScript text, from the variables the standard compiler makes of it
+// ({name, inputs, definition}): `const <name> = (<inputs>) => <body>;`, the body sliced verbatim from the
+// definition. expression: whether the cell's body is an expression (the parser's cell.body), which the
+// definition cannot tell from `{return (x);}`; when not given, that form is read as an expression.
+// A cell that does not translate gives {reason}.
+type Translated = { text: string } | { reason: string };
+const isIdentifier = (s: string) => s.length > 0 && acorn.isIdentifierStart(s.codePointAt(0)!, true) && [...s].slice(1).every((c) => acorn.isIdentifierChar(c.codePointAt(0)!, true));
+// `this` or `arguments` read by the cell's own function: an arrow would read its surroundings' instead
+function ownThis(n: any): string | null {
+  if (!n || typeof n.type !== "string") return null;
+  if (n.type === "ThisExpression") return "this";
+  if (n.type === "Identifier" && n.name === "arguments") return "arguments";
+  if (n.type === "FunctionExpression" || n.type === "FunctionDeclaration" || n.type === "ClassBody") return null;
+  for (const k in n) {
+    if (k === "type" || k === "start" || k === "end") continue;
+    const v = n[k];
+    const hit = Array.isArray(v) ? v.reduce((h: string | null, x: any) => h ?? ownThis(x), null) : ownThis(v);
+    if (hit) return hit;
+  }
+  return null;
+}
+export function fromObservableVariables(vars: { name: string | null; inputs: string[]; definition: string }[], opts: { expression?: boolean } = {}): Translated {
+  if (!vars.length) return { reason: "the text compiles to no variable" };
+  const names = vars.map((v) => v.name ?? "");
+  if (names.some((n) => n.startsWith("viewof "))) return { reason: "a viewof cell has no SoundScript form" };
+  if (names.some((n) => n.startsWith("mutable ") || n.startsWith("initial "))) return { reason: "a mutable cell has no SoundScript form" };
+  if (names.some((n) => n.startsWith("module ")) || vars.some((v) => v.inputs.includes("@variable"))) return { reason: "an import has no SoundScript form" };
+  if (vars.length !== 1) return { reason: `the text compiles to ${vars.length} variables; a SoundScript cell is one` };
+  const [{ name, inputs, definition }] = vars;
+  if (!name) return { reason: "an anonymous cell has no SoundScript form; a SoundScript cell is named" };
+  if (!isIdentifier(name)) return { reason: `the cell name ${name} is not an identifier` };
+  const bad = inputs.find((i) => !isIdentifier(i));
+  if (bad) return { reason: `the cell takes ${bad}, which a SoundScript parameter cannot name` };
+  if (inputs.includes(STDLIB_INPUT)) return { reason: `the cell takes ${STDLIB_INPUT}, the input every compiled SoundScript cell takes` };
+  const cap = inputs.find((i) => i in CAP_INPUTS && CAP_INPUTS[i] !== i);
+  if (cap) return { reason: `the cell takes ${cap}, which as a SoundScript parameter is the ${cap} capability` };
+  let fn: any;
+  try { fn = acorn.parseExpressionAt(definition, 0, { ecmaVersion: "latest", preserveParens: true }); } catch (e) { return { reason: `the definition does not parse: ${(e as Error).message}` }; }
+  if (fn.end !== definition.length || !/^(Arrow)?FunctionExpression$/.test(fn.type)) return { reason: "the definition is not a function" };
+  if (fn.params.length !== inputs.length || fn.params.some((p: any, i: number) => p.type !== "Identifier" || p.name !== inputs[i])) return { reason: "the definition's parameters are not its inputs" };
+  const own = ownThis(fn.body);
+  if (own) return { reason: `the definition reads ${own}, which a SoundScript cell's arrow function does not have` };
+  const head = `const ${name} = ${fn.async ? "async " : ""}`;
+  const params = `(${inputs.join(", ")})`;
+  const body = fn.body;
+  // Observable's compiler writes an expression cell as {return (<expression>);}
+  const ret = body.type === "BlockStatement" && body.body.length === 1 && body.body[0].type === "ReturnStatement" && body.body[0].argument?.type === "ParenthesizedExpression" ? body.body[0].argument : null;
+  const block = fn.generator || (body.type === "BlockStatement" && !(ret && opts.expression !== false));
+  const candidates: string[] = [];
+  if (fn.generator) candidates.push(`${head}function* ${params} ${definition.slice(body.start, body.end)};`);
+  else if (body.type !== "BlockStatement") candidates.push(`${head}${params} => ${definition.slice(body.start, body.end)};`);
+  else if (ret && opts.expression !== false) {
+    const inner = definition.slice(ret.start + 1, ret.end - 1);
+    candidates.push(`${head}${params} => ${inner};`, `${head}${params} => (${inner});`);
+  } else candidates.push(`${head}${params} => ${definition.slice(body.start, body.end)};`);
+  let why = "";
+  for (const text of candidates) {
+    // the text must read back as one const of a function whose body is the slice, not a reparse that
+    // took the slice apart (an object literal read as a block)
+    try {
+      const st = parse(text, { jsx: true }).program.body;
+      const init = st.length === 1 && st[0].type === "VariableDeclaration" && st[0].declarations.length === 1 ? st[0].declarations[0].init : null;
+      const want = fn.generator ? "FunctionExpression" : "ArrowFunctionExpression";
+      if (init?.type === want && (init.body.type === "BlockStatement") === block && st[0].end === text.length) return { text };
+      why = "it reads back as a different cell";
+    } catch (e) { why = (e as Error).message; }
+  }
+  return { reason: `the translation does not parse as SoundScript: ${why}` };
+}

@@ -777,6 +777,8 @@ const copy = (other: Ref<number>, count: number) => action(() => other.set(count
   rejected by the rule
   (`bun lite/check.ts horde`: 37 ok, before and after).
 
+PROSE PENDING (2026-11-19): a section on the language picker rewriting the text. SoundScript -> Observable JavaScript gives the compiled cell text (`compileCellText`, tag and source comments kept); Observable JavaScript -> SoundScript gives a tagged cell's source (`decompileVariable`), else `const <name> = (<inputs>) => <body>;` (`fromObservableVariables`); viewof, mutable, anonymous cells, imports, `this`/`arguments`, and inputs that are not identifiers, `ss`, or a capability name are refused, and a refused or unparsable text keeps its text and language with the reason shown beside the picker. The step-1 counts (lite/soundscript/.scratch/measure-default.out.txt). The same change is pending in core.ojs `readme_use` ("lets you change it"), tutorial.ojs's editing paragraph ("the picker ... shows it and changes it") and sections/polyglot.ojs's picker paragraph, and a sentence that a new cell with no cell to follow is SoundScript in a module with `ss`.
+
 ## Not done
 
 **Owned collections** (`mut([mut(…)])`, a Mut holding Muts) were the stretch goal and are not

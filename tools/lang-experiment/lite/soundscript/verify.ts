@@ -897,6 +897,99 @@ async function editorFeatures(page: Page) {
   await page.keyboard.press("Escape");
   report((await editorText(half)) === o && (await editorText(app)) === original && (await valueOf(page, TUTORIAL, "half")) !== undefined, `editor features: app and half have their original text again, nothing stored`);
 }
+// The language picker rewrites the text: SoundScript -> Observable JavaScript gives the text Observable's own
+// decompiler gives the compiled cell, and back gives the source; a text that does not parse or translate is
+// left as it was, with the select, and the reason shown. Nothing is stored.
+async function languageSwitch(page: Page) {
+  const sel = (host: any) => host.locator("select.e5-cell-language").first();
+  const pickerValue = (host: any) => sel(host).evaluate((s: HTMLSelectElement) => s.value).catch(() => null);
+  const reasonOf = (host: any) => host.locator(".e5-cell-language-reason").first().textContent().catch(() => null);
+  const pick = async (host: any, id: string) => { const t0 = await editorText(host); await sel(host).selectOption(id); return t0; };
+  const close = async (host: any) => { await host.locator(".hotbar").first().click(); await host.locator(".cm-editor").first().waitFor({ state: "hidden", timeout: 10000 }).catch(() => {}); };
+  const decompiled = (module: string, cell: string) => page.evaluate(async ([module, cell]) => {
+    const rt = (window as any).__ojs_runtime, mod = rt.mains.get(module);
+    const vs = [...rt._variables].filter((v: any) => v._module === mod && (v._name === cell || v._name === `viewof ${cell}`));
+    return await [...rt._variables].find((v: any) => v._name === "decompileOjs" && typeof v._value === "function")._value(vs);
+  }, [module, cell]);
+  const half = await openEditor(page, TUTORIAL, "half");
+  if (!half) { report(false, "language switch: no editor for half"); return; }
+  const def0 = await defOf(page, TUTORIAL, "half");
+  const o = await editorText(half);
+  const want = await decompiled(TUTORIAL, "half");
+  await pick(half, "ojs");
+  await until(page, async () => (await editorText(half)) !== o, 5000);
+  const t1 = await editorText(half), p1 = await pickerValue(half);
+  report(t1 === want && p1 === "ojs", `language switch: picking Observable JavaScript on half (SoundScript) rewrites the text to Observable's decompilation of its compiled variables: ${JSON.stringify({ equal: t1 === want, picker: p1, text: t1.slice(0, 120) })}`);
+  // the marker guard: compiled text stored as Observable JavaScript is refused, so Shift-Enter stores nothing here
+  const warns = () => page.evaluate(() => { const w = window as any; if (!w.__lsWarn) { w.__lsWarn = []; const w0 = console.warn; console.warn = (...a: any[]) => { w.__lsWarn.push(String(a[0]?.message ?? a[0])); return w0(...a); }; } return w.__lsWarn.length as number; });
+  const w0 = await warns();
+  await typeInto(page, half, t1);
+  await until(page, async () => (await warns()) > w0, 10000);
+  const said = await page.evaluate(() => (window as any).__lsWarn.at(-1));
+  report((await defOf(page, TUTORIAL, "half")) === def0 && (await editorText(half)) === t1, `language switch: Shift-Enter on half's compiled text with Observable JavaScript picked stores nothing (the marker guard): ${JSON.stringify(said).slice(0, 160)}`);
+  await pick(half, "ss");
+  await until(page, async () => (await editorText(half)) !== t1, 5000);
+  const t2 = await editorText(half), p2 = await pickerValue(half);
+  await pick(half, "ojs");
+  await until(page, async () => (await editorText(half)) !== t2, 5000);
+  const t3 = await editorText(half);
+  report(t2 === o && p2 === "ss" && t3 === t1, `language switch: SoundScript -> Observable JavaScript -> SoundScript gives half's source again (${t2 === o}), and Observable JavaScript (tagged) -> SoundScript -> Observable JavaScript gives the same text (${t3 === t1})`);
+  await pick(half, "ss");
+  await until(page, async () => (await editorText(half)) === o, 5000);
+  // a text that does not parse is left as it is, with the select, and the reason is shown
+  await typeInto(page, half, "const half = (area, scale", false);
+  const broken = await editorText(half);
+  await pick(half, "ojs");
+  await until(page, async () => !!(await reasonOf(half)), 5000);
+  const r1 = await reasonOf(half), p3 = await pickerValue(half);
+  report((await editorText(half)) === broken && p3 === "ss" && !!r1 && (await defOf(page, TUTORIAL, "half")) === def0, `language switch: picking Observable JavaScript on a half that does not parse leaves the text and the select (${p3}) and says why: ${JSON.stringify(r1)}`);
+  await typeInto(page, half, o, false);
+  await page.keyboard.press("Escape");
+  await close(half);
+  const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
+  await tab(CORE);
+  // an Observable JavaScript cell is translated: ss_now = () => performance.now()
+  const now = await openEditor(page, CORE, "ss_now");
+  if (!now) { report(false, "language switch: no editor for ss_now"); return; }
+  const n0 = await editorText(now), nd0 = await defOf(page, CORE, "ss_now");
+  await pick(now, "ss");
+  await until(page, async () => (await editorText(now)) !== n0, 5000);
+  const n1 = await editorText(now), np = await pickerValue(now);
+  report(n0 === "ss_now = () => performance.now()" && n1 === "const ss_now = () => () => performance.now();" && np === "ss" && (await defOf(page, CORE, "ss_now")) === nd0, `language switch: picking SoundScript on ss_now (Observable JavaScript) rewrites ${JSON.stringify(n0)} to ${JSON.stringify(n1)} (picker ${np}); nothing stored`);
+  await close(now);
+  // Observable JavaScript that does not parse is left as it is, with the select, and the reason is shown
+  const now2 = await openEditor(page, CORE, "ss_now");
+  if (!now2) { report(false, "language switch: no editor for ss_now again"); return; }
+  await typeInto(page, now2, "ss_now = (", false);
+  await pick(now2, "ss");
+  await until(page, async () => !!(await reasonOf(now2)), 5000);
+  const r3 = await reasonOf(now2), np2 = await pickerValue(now2);
+  report((await editorText(now2)) === "ss_now = (" && np2 === "ojs" && !!r3 && (await defOf(page, CORE, "ss_now")) === nd0, `language switch: picking SoundScript on an ss_now that does not parse leaves the text and the select (${np2}) and says why: ${JSON.stringify(r3)}`);
+  await typeInto(page, now2, n0, false);
+  await page.keyboard.press("Escape");
+  await close(now2);
+  // a viewof cell does not translate: refused with a reason, the text and the select unchanged
+  const mod = await openEditor(page, CORE, "ss_module");
+  if (!mod) { report(false, "language switch: no editor for ss_module"); return; }
+  const m0 = await editorText(mod), mp0 = await pickerValue(mod);
+  await pick(mod, "ss");
+  await until(page, async () => !!(await reasonOf(mod)), 5000);
+  const r2 = await reasonOf(mod), mp1 = await pickerValue(mod);
+  report(m0 === "viewof ss_module = thisModule()" && mp0 === "ojs" && mp1 === "ojs" && (await editorText(mod)) === m0 && /viewof/.test(r2 ?? ""), `language switch: picking SoundScript on viewof ss_module is refused, text and select (${mp1}) unchanged: ${JSON.stringify(r2)}`);
+  await close(mod);
+  await tab(TUTORIAL);
+  // a new cell's language: the cell it is added after, else the first registered language its module can host.
+  // The editor's add buttons always pass a cell with variables, so the second rule is asked directly.
+  const langs = await page.evaluate(([tut, core]) => {
+    const rt = (window as any).__ojs_runtime;
+    const get = (n: string) => [...rt._variables].find((v: any) => v._name === n && v._type === 1)?._value;
+    const newCellLanguage = get("newCellLanguage");
+    const at = (m: string, n: string) => { const mod = rt.mains.get(m); return { module: { module: mod }, variables: [...rt._variables].filter((v: any) => v._module === mod && v._name === n) }; };
+    const host = (m: any) => ({ module: { module: m, cells: [] }, variables: [] });
+    return { afterSs: newCellLanguage(at(tut, "half")), afterOjs: newCellLanguage(at(core, "ss_now")), emptyHosting: newCellLanguage(host(rt.mains.get(core))), emptyPlain: newCellLanguage(host(rt.mains.get("@tomlarkworthy/lopepage-2"))) };
+  }, [TUTORIAL, CORE]);
+  report(langs.afterSs === "ss" && langs.afterOjs === "ojs" && langs.emptyHosting === "ss" && langs.emptyPlain === "ojs", `language switch: a new cell after half is SoundScript, after ss_now Observable JavaScript; with no cell to follow, SoundScript in a module with ss, Observable JavaScript in one without: ${JSON.stringify(langs)}`);
+}
 async function uiPaths(page: Page, saved: string) {
   const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
   await tab(CORE);
@@ -2040,6 +2133,7 @@ await testsOn(E.page, "ui");
 await testsPass(E.page, "ui", CORE, CORE_TESTS);
 await completion(E.page);
 await editorFeatures(E.page);
+await languageSwitch(E.page);
 // raw cells edited by keys; the Save in place at the end of uiPaths keeps the last edit
 await rawOnPage(E.page, rawHelpers(), "ui raw");
 await pickerPaths(E.page, rawHelpers(), "ui picker");

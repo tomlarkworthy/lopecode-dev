@@ -374,7 +374,7 @@ ss_language = {
     const state = statesAfter.get(key) ?? { state: "rejected", why: [], blockedBy: [] };
     if (state.state === "blocked") problems.push({ line: 1, rule: "blocked", msg: `blocked by ${state.blockedBy.join(", ")}: it does not run until ${state.blockedBy.length > 1 ? "they are" : "that is"} ok` });
     const effect = sayEffect(effectOf(statesBefore, statesAfter), false);
-    return { ok: problems.length === 0 && state.state === "ok", store, problems, effect, statesBefore, statesAfter, defs, key, texts, state: state.state, status: mine?.status ?? (parseMsg !== undefined ? "rejected" : null), type: mine?.value ?? null };
+    return { ok: problems.length === 0 && state.state === "ok", store, problems, effect, statesBefore, statesAfter, defs, key, texts, ctx, hint, state: state.state, status: mine?.status ?? (parseMsg !== undefined ? "rejected" : null), type: mine?.value ?? null };
   };
 
   // the annotation the current value of a cell in another language suggests; the value is read, never computed
@@ -656,6 +656,28 @@ ss_language = {
     return !!module?._scope?.has("ss") && !!first && ["const", "let", "function", "async", "type", "interface"].includes(String(first.value));
   };
 
+  // a module can hold SoundScript cells when it has ss, which every compiled cell takes
+  const hosts = (module) => !!module?._scope?.has("ss");
+  // The editor's language picker. toBuiltin: the cell as Observable JavaScript cell text, exactly the text
+  // Observable's compiler makes this cell's variables of, compiled in its module as apply would.
+  const toBuiltin = (source, variables = [], cell, target = "ojs") => {
+    if (target !== "ojs") return { reason: "a SoundScript cell compiles to Observable JavaScript, not Notebook Kit JavaScript" };
+    const r = check(source, variables, cell);
+    const parse = r.problems.find((p) => p.rule === "parse" || p.rule === "check" || p.rule === "compile");
+    if (parse) return { reason: `the text does not parse: ${parse.msg}` };
+    if (!r.store) return { reason: r.problems[0]?.msg ?? "the text names no cell" };
+    return { text: soundscript.compileCellText(source, tsx, r.ctx, r.hint) };
+  };
+  // fromBuiltin: Observable JavaScript as SoundScript. compiled: the variables the standard compiler made of
+  // source; a compiled SoundScript cell gives its own source back, any other cell is translated.
+  const fromBuiltin = (source, variables = [], cell, { lang, compiled, expression } = {}) => {
+    if (!hosts(moduleOf(variables, cell))) return { reason: "this module has no ss, which a SoundScript cell takes" };
+    if (lang !== "ojs" || !compiled) return { reason: "only Observable JavaScript translates to SoundScript" };
+    const vars = compiled.map((v) => ({ name: v.name ?? null, inputs: v.inputs ?? [], definition: String(v.definition) }));
+    for (const v of vars) if (soundscript.langOf(v.definition) === "ss") { const s = soundscript.decompileVariable(v.definition); if (s !== null) return { text: s }; }
+    return soundscript.fromObservableVariables(vars, { expression });
+  };
+
   // Edits and recompiles run one at a time, so a recompile never reads a module another is halfway
   // through defining. settle(module) queues at most one pending recompile per module.
   let queue = Promise.resolve();
@@ -672,6 +694,9 @@ ss_language = {
     id: "ss",
     label: "SoundScript",
     claimsSource,
+    hosts,
+    toBuiltin,
+    fromBuiltin,
     decompile,
     check,
     lint,

@@ -5,5 +5,5 @@ export { lowerJsx } from "../jsx/lower.ts";
 export { erase } from "../browser/erase.ts";
 export { INTRINSIC_DECLS, PRELUDE_DECLS, JSX_DECLS } from "../intrinsics.ts";
 export * from "../stdlib/runtime.ts";
-export { STDLIB_INPUT, CAP_INPUTS, LANG, idOf, withId, compiledKind, declaredNameAt, tokensOf, paramsOf } from "../toolchain/ss-toolchain.ts";
+export { STDLIB_INPUT, CAP_INPUTS, LANG, idOf, withId, compiledKind, declaredNameAt, tokensOf, paramsOf, fromObservableVariables } from "../toolchain/ss-toolchain.ts";
 export { completionsAt, annotationOf, addParameter } from "../complete.ts";
