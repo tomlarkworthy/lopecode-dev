@@ -437,3 +437,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   taken (a 7-day wait called 29 days, a count credited to a command that prints another number, a wait dated from a review
   not its label, a heading and cause that covered two of four cases, a done move sourced to a list that lacks it).
   107.9k subagent tokens, 4m27s.
+- 2026-11-19 `plan/retros/2026-11-19.md`, authored by the spawning session: FIX, 5 findings (4 confirmed, 1 plausible), all
+  taken (the deployer's upload-form check left out of a list of checks said to be all, a regex count stated as fact, 19
+  approvals that included one by the owner, an "It" with the wrong subject, a row in the owner's table not yet his).
+  100.6k subagent tokens, 2m58s.
