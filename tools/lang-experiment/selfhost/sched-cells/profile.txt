@@ -1,0 +1,51 @@
+split cells 41, lines max 29 median 4, >20: step 29
+  init 1, blank 4, wantsValues 1, isStale 1, mustRemake 1, parksOnInvalidation 1, needsPlacing 1, nextListener 8, sweepVerdict 2, kick 6, stopGen 4, enqueue 4, fail 6, detach 10, releaseHandle 10, callNext 9, takeValue 14, drainOnce 4, drain 3, onOpen 4, onRun 10, onMade 7, onPending 4, onListen 10, onLinv 6, onPull 7, onGot 7, onResolved 10, onAwaiting 4, onRejected 5, onPlaced 6, onAbort 4, forgetOrders 3, onReleaseAction 3, onSweep 12, step 29, hidAt 1, candidates 1, liveEvents 1, running 2, pulling 2
+giant cells 8, lines max 189 median 2, >20: step 189
+function literals inside the step function's body (made per call, plus per loop turn): giant 13, split step 0
+L=1 H=0: 20000 deliveries, 5.00 steps/value (pull 1.00 got 1.00 drain 2.00 kick 1.00), 6.00 effects/value
+same output as the linked split step on all 100002 steps: giant true, island true
+live run through the shell: 2.03 us/value (one run, includes the recording wrapper)
+replay linked split step          0.87-0.93 us/value
+replay giant step                 0.88-0.93 us/value
+replay island, sync runHere       8.21-8.43 us/value
+replay copy 5 maps only           0.44-0.48 us/value
+replay return state               0.05-0.08 us/value
+replay island, compile (await)    8.50-8.69 us/value
+live step once              0.75-0.96 us/value
+live step twice             1.52-1.83 us/value
+live step + copy-only       1.27-1.55 us/value
+live step + return-state    0.82-0.91 us/value
+split cells 41, lines max 29 median 4, >20: step 29
+  init 1, blank 4, wantsValues 1, isStale 1, mustRemake 1, parksOnInvalidation 1, needsPlacing 1, nextListener 8, sweepVerdict 2, kick 6, stopGen 4, enqueue 4, fail 6, detach 10, releaseHandle 10, callNext 9, takeValue 14, drainOnce 4, drain 3, onOpen 4, onRun 10, onMade 7, onPending 4, onListen 10, onLinv 6, onPull 7, onGot 7, onResolved 10, onAwaiting 4, onRejected 5, onPlaced 6, onAbort 4, forgetOrders 3, onReleaseAction 3, onSweep 12, step 29, hidAt 1, candidates 1, liveEvents 1, running 2, pulling 2
+giant cells 8, lines max 189 median 2, >20: step 189
+function literals inside the step function's body (made per call, plus per loop turn): giant 13, split step 0
+L=3 H=0: 60000 deliveries, 7.00 steps/value (pull 1.00 got 1.00 drain 4.00 kick 1.00), 10.00 effects/value
+same output as the linked split step on all 140002 steps: giant true, island true
+live run through the shell: 2.69 us/value (one run, includes the recording wrapper)
+replay linked split step          1.28-1.69 us/value
+replay giant step                 1.32-1.46 us/value
+replay island, sync runHere       12.20-12.67 us/value
+replay copy 5 maps only           0.71-0.78 us/value
+replay return state               0.06-0.13 us/value
+replay island, compile (await)    12.84-13.24 us/value
+live step once              1.23-1.32 us/value
+live step twice             2.29-2.40 us/value
+live step + copy-only       1.88-1.95 us/value
+live step + return-state    1.26-1.27 us/value
+split cells 41, lines max 29 median 4, >20: step 29
+  init 1, blank 4, wantsValues 1, isStale 1, mustRemake 1, parksOnInvalidation 1, needsPlacing 1, nextListener 8, sweepVerdict 2, kick 6, stopGen 4, enqueue 4, fail 6, detach 10, releaseHandle 10, callNext 9, takeValue 14, drainOnce 4, drain 3, onOpen 4, onRun 10, onMade 7, onPending 4, onListen 10, onLinv 6, onPull 7, onGot 7, onResolved 10, onAwaiting 4, onRejected 5, onPlaced 6, onAbort 4, forgetOrders 3, onReleaseAction 3, onSweep 12, step 29, hidAt 1, candidates 1, liveEvents 1, running 2, pulling 2
+giant cells 8, lines max 189 median 2, >20: step 189
+function literals inside the step function's body (made per call, plus per loop turn): giant 13, split step 0
+L=1 H=100: 20000 deliveries, 5.00 steps/value (pull 1.00 got 1.00 drain 2.00 kick 1.00), 6.00 effects/value
+same output as the linked split step on all 100002 steps: giant true, island true
+live run through the shell: 13.13 us/value (one run, includes the recording wrapper)
+replay linked split step          7.49-8.83 us/value
+replay giant step                 6.04-8.10 us/value
+replay island, sync runHere       16.61-18.51 us/value
+replay copy 5 maps only           5.15-7.35 us/value
+replay return state               0.05-0.08 us/value
+replay island, compile (await)    14.41-16.30 us/value
+live step once              4.20-6.40 us/value
+live step twice             9.81-10.47 us/value
+live step + copy-only       9.62-10.58 us/value
+live step + return-state    4.62-6.62 us/value

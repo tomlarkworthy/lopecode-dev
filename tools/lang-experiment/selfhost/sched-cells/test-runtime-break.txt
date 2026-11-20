@@ -1,0 +1,87 @@
+FAIL e1_async_1000_values_exactly_once_in_order: 667 values, made 1
+FAIL e2_action_edited_twice_no_value_lost_or_doubled: {"count":667,"last":1000,"gaps":333,"sum":334000}
+pass e2_listener_ran_once_per_new_action
+pass e2_one_listener
+pass e4_stopped_while_running_is_false
+FAIL e4_restarted_from_1: {"count":81,"last":61,"gaps":41,"sum":2501}
+pass e4_events_ran_twice_kept_its_handle
+pass e4_one_listener
+pass e6_deleted_listener_delivers_nothing
+pass e6_disposed_module_stops_its_generator
+pass e7_attached
+pass e7_sweep_detaches_unheld
+pass r_state_runs_the_action_it_holds
+  report a1 edit inc (the state cell's initial value) after dec was stored: {"refRecreated":true,"countChange":10}
+  report a2 edit dec after it was stored by useDec: {"refHoldsOld":true,"refHoldsNew":false,"countChange":-1}
+  report b delete dec's cell while the state cell holds it: {"stillCallable":true,"threw":"","countChange":-1,"useDecError":"useDec: dec is not defined"}
+  report c equals: {"sameAction":true,"twoActions":false,"twoCopiesOfOneText":false}
+pass r_undo_stack_pops_and_runs_the_top
+  report stack: an action called inside undos.update's callback: {"threw":"","count":0,"undos":0,"errors":[]}
+  report e compile with a state cell holding an action: ["viaInput rejected [compile-boundary] current: Action<[]> cannot cross to a worker (Action)","viaRef rejected [compile-boundary] current: Action<[]> cannot cross to a worker (Action)"]
+pass c2_no_store_changed
+pass c2_state_clean
+pass c2_error_thrown_at_the_call
+pass c2_no_input_told
+pass c2_later_flush_chains_and_wakes
+pass c3_island_cache_size_bounded
+pass c3_keys_never_reused_for_other_text
+pass c3_evicted_island_gets_fresh_key
+pass c3_evicted_island_runs_correctly
+pass c3_recent_island_keeps_key
+pass g2_x_is_plus_11
+pass g2_one_commit_one_input
+  g6: one task saw [[1,1]]; two tasks, no frame between, saw [[2,-1],[2,2]]
+pass g6_one_task_never_one_new_and_one_old
+pass g6_two_tasks_before_one_frame_show_b_from_the_first_call
+FAIL o1_fresh_load: ["second","first","first","second","second","first","first","second"]
+FAIL o1_after_first_reattaches: ["second","first","first","second","second","first","first","second"]
+FAIL o1_defined_in_reverse: ["second","first","first","second","second","first","first","second"]
+  o1: with no host order (attach order): defined in reverse ["second,first","first,second"]; after first is edited ["first,second","second,first"]
+  o2: a sync and an async events cell, frames run by hand with a macrotask between: ["a0","a1","a3","s1","s3"]
+FAIL o2_both_delivered: ["a0","a1","a3","s1","s3"]
+  p1: commit after every call, cells re-run: [649,993,3951,5593,15]
+  p1: commit after every call, cells not re-run: [502,6974,5856,13332,17]
+  p1: one commit at the end: [412,8033,2202,10647,10]
+  p1: commits at random points (seed 1), cells re-run: [649,993,3951,5593,15]
+  p1: commits at random points (seed 2), cells re-run: [502,6974,5856,13332,17]
+  p1: commits at random points (seed 3), cells re-run: [412,8033,2202,10647,10]
+FAIL p1_every_schedule_stores_the_same_values: [649,993,3951,5593,15] [502,6974,5856,13332,17] [412,8033,2202,10647,10] [649,993,3951,5593,15] [502,6974,5856,13332,17] [412,8033,2202,10647,10]
+pass p1_the_log_exercises_throws_and_frames
+pass p1_no_runtime_errors
+pass p2_checker_rejects_copyAB
+  p2: the accepted program compiled the same way: [649,993,3951,5593,15], errors 0
+FAIL p2_the_bypass_alone_changes_nothing: {"a":649,"b":993,"c":3951,"total":5593,"threw":15,"errs":0} vs {"a":502,"b":6974,"c":5856,"total":13332,"threw":17,"errs":0}
+  p2: check bypassed, commit after every call, cells re-run: [412,2895,2202,5509,10]
+  p2: check bypassed, one commit at the end: [649,4170,3951,8770,15]
+pass p2_schedules_disagree_when_the_check_is_bypassed
+pass w1_two_variables_per_state_cell
+pass w1_input_threw
+pass w1_a_held_action_writes_while_n_is_in_error_and_the_repaired_n_starts_again
+pass w1_the_repaired_holder_writes_the_new_state
+pass w1_state_cell_does_not_check
+pass w1_the_holder_is_blocked_by_it
+pass w1_state_cell_deleted
+pass w2_remade_from_the_input
+pass w2_the_old_handle_writes_the_new_store
+pass w2_one_handle_per_state_cell
+pass w3_written_once_it_ran
+pass w4_the_write_reaches_the_source_of_its_own_instance
+pass w4_an_import_with_no_viewof_is_boundary_state
+pass s1_ran_before_its_caller_went_on
+pass s1_committed_later
+pass s1_one_commit
+pass s2_the_call_has_ended
+pass s2_the_write_after_the_await_threw
+pass s3_write_throws
+pass s3_read_throws
+pass s3_callbacks_throw
+pass s3_an_action_called_later_is_its_own_call
+pass s4_write_throws
+pass s4_action_call_throws
+pass s4_nothing_kept
+FAIL s5_each_value_once_in_order: [1,2,4,5]
+pass s6_nested_returns_top_level_does_not
+pass k1_test_checker_action_capture_by_binding
+pass k1_test_checker_iterator_rules
+57 pass, 10 fail
+sched: 2 imports of cells.ts redirected, 15121 steps run, step BROKEN
