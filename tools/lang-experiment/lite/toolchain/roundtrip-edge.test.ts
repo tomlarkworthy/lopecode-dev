@@ -17,9 +17,9 @@ const passesThis = (def: string, name: string) => {
 let fail = 0, n = 0;
 const expect = (ok: boolean, what: string) => { n++; if (!ok) { fail++; console.log("FAIL " + what); } };
 const attempt = <T>(f: () => T): T | Error => { try { return f(); } catch (e) { return e as Error; } };
-// a stand-in for the stdlib object, passed to a definition that takes ss
-const fakeSS = { h: (tag: unknown, props: unknown, ...kids: unknown[]) => ({ tag, props, kids }) };
-const run = (def: string, ...args: unknown[]) => (0, eval)(`(${def})`)(...(toolchain.compiledKind(def)?.callee === "plain" ? [] : [fakeSS]), ...args);
+// stand-ins for the runtime cells a definition takes, by input name; its other parameters take args in order
+const fakeRuntime: Record<string, unknown> = { ss_h: (tag: unknown, props: unknown, ...kids: unknown[]) => ({ tag, props, kids }) };
+const run = (def: string, ...args: unknown[]) => (0, eval)(`(${def})`)(...(acorn.parseExpressionAt(def, 0, { ecmaVersion: "latest" }) as any).params.map((p: any) => (p.name in fakeRuntime ? fakeRuntime[p.name] : args.shift())));
 
 // compiles, every definition parses and survives Function.toString, and decompiles to the exact source
 function roundTrips(src: string, tsx: boolean): string | null {
@@ -79,7 +79,7 @@ expect(!("idOf" in toolchain) && !("withId" in toolchain), "C4 ss-toolchain has 
   expect(toolchain.compiledKind(by.get(texts[3])![0].definition)?.callee === "plain", "C4 a property named like a built-in (r.h) leaves a cell plain");
   const held = by.get(texts[6])![0];
   expect(JSON.stringify(held.inputs) === JSON.stringify(["viewof n"]) && toolchain.compiledKind(held.definition)?.callee === "plain", "C4 a plain cell taking State<T> takes viewof n: " + JSON.stringify(held.inputs));
-  for (const t of [texts[5], texts[7]]) expect(by.get(t)!.every((v) => v.inputs[0] === "ss" || v.inputs[0] === "Generators"), "C4 a state cell and a cell calling action still take ss: " + t);
+  expect(JSON.stringify([...by.get(texts[5])!, ...by.get(texts[7])!].map((v) => v.inputs)) === JSON.stringify([["ss_state", "ss_ref"], ["Generators", "viewof n"], ["ss_action", "viewof n"]]), "C4 a state cell takes ss_state and ss_ref, a cell calling action takes ss_action: " + JSON.stringify([...by.get(texts[5])!, ...by.get(texts[7])!].map((v) => v.inputs)));
   expect(toolchain.compiledKind(by.get(texts[8])![0].definition)?.callee === "plain", "C4 a generator no cell takes as Events is a plain cell: " + by.get(texts[8])![0].definition);
   expect(toolchain.compiledKind(compileCell(texts[2], true).at(-1)!.definition)?.callee === "plain", "C4 with no module context a cell compiles to the same shape");
 }

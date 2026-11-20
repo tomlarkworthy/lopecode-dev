@@ -62,6 +62,6 @@ test_polyglot_fromRaw = {
 // %%
 viewof polyglot_module = thisModule()
 // %%
-import { ss, cellListing } from "@tomlarkworthy/soundscript"
+import { cellListing } from "@tomlarkworthy/soundscript"
 // %%
 import { thisModule } from "@tomlarkworthy/runtime-sdk"

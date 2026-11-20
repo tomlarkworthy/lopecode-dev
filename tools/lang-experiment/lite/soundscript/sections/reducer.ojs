@@ -6,6 +6,4 @@ The cells of section 5 of \`@tomlarkworthy/soundscript-tutorial\`, as live Sound
 // %%
 viewof reducer_module = thisModule()
 // %%
-import { ss } from "@tomlarkworthy/soundscript"
-// %%
 import { thisModule } from "@tomlarkworthy/runtime-sdk"

@@ -17,7 +17,7 @@ import { syntaxStub } from "../toolchain/module-js.ts";
 import * as acorn from "acorn";
 import { parse, type Node } from "../parse.ts";
 import { erase } from "../browser/erase.ts";
-import { splitCells, compileCell, compileCellText, contextFromCheck, acceptedOf } from "../toolchain/ss-toolchain.ts";
+import { splitCells, compileCell, compileCellText, contextFromCheck, acceptedOf, inputsIn, INPUTS, RUNTIME_CELLS } from "../toolchain/ss-toolchain.ts";
 import { checkSources } from "../core.ts";
 
 type Compile = (src: string) => { _name?: string | null; _inputs?: string[]; _definition: unknown }[];
@@ -28,8 +28,8 @@ export const CHECKER = "@tomlarkworthy/soundscript-checker";
 export const WORKERS = "@tomlarkworthy/soundscript-workers";
 // the add-on's roots: ss_pool = pagePool()
 const WORKERS_ROOTS = ["pagePool"];
-// the input compiled SoundScript cells take: the runtime module's ss
-const STDLIB = "ss";
+// the inputs compiled SoundScript cells take for runtime cells (ss_freeze ...), each to the runtime cell it imports
+const RUNTIME_INPUTS = new Map(RUNTIME_CELLS.map((n) => [INPUTS[n], n]));
 // in dependency order; where each declaration goes is decided in generate() ("module placement")
 const RUNTIME_FILES = ["../prelude.runtime.ts", "runtime.ss.ts", "types.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "browser/workers.ts"];
 const SPLIT = "stdlib/runtime.ts";
@@ -141,7 +141,8 @@ function ssStatements(file: string, compile: Compile): Stmt[] {
   const accepted = acceptedOf(r);
   const bad = [...r.module.map((e) => `[${e.rule}] ${e.msg}`), ...r.cells.filter((c) => !accepted.has(c.name)).map((c) => `${c.name}: ${c.status} ${c.errors.map((e) => `[${e.rule}] ${e.msg}`).join("; ")}`)];
   if (bad.length) throw new Error(`${file}: the checker does not accept every cell: ${bad.join(" | ")}`);
-  const ctx = contextFromCheck(r);
+  // a section of the runtime module takes the runtime cells as its own cells
+  const ctx = { ...contextFromCheck(r), inputs: inputsIn(SS_HOME[file] === RUNTIME) };
   const shape = (vs: { name: string | null; inputs: string[]; definition: string }[]) => JSON.stringify(vs.map((v) => [v.name, v.inputs, v.definition]));
   return texts.map((t) => {
     const text = compileCellText(t, false, ctx);
@@ -357,7 +358,7 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   }
   for (const m of [RUNTIME, CHECKER]) if (tests[m].cells.length) cells[m].push(`md\`## Tests\n\n${mdText(TESTS_LINE[m])}\``, ...tests[m].cells);
   // inputs that are neither cells nor the parser's: globals, listed
-  const known = new Set([...owner.keys(), ...groups.map((g) => g.name).filter(Boolean), ...tests[RUNTIME].names, ...tests[CHECKER].names, "acorn", "tsPlugin", "parser_lib", "md", "FileAttachment", "soundscript", STDLIB]);
+  const known = new Set([...owner.keys(), ...groups.map((g) => g.name).filter(Boolean), ...tests[RUNTIME].names, ...tests[CHECKER].names, "acorn", "tsPlugin", "parser_lib", "md", "FileAttachment", "soundscript", ...RUNTIME_INPUTS.keys()]);
   const strays = new Set<string>();
   for (const m of [RUNTIME, CHECKER, WORKERS]) for (const src of cells[m]) for (const v of compile(src)) for (const i of v._inputs ?? []) if (!known.has(i)) strays.add(i);
   const unexpected = [...strays].filter((n) => !GLOBALS.has(n));
@@ -372,23 +373,20 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   const missing = ssKeys.filter((k) => !runtimeNames.has(k) && !cells[CHECKER].some((src) => compile(src).some((v) => v._name === k)));
   if (missing.length) throw new Error(`entry.ts exports ${missing.join(", ")}, which no generated cell defines`);
   for (const k of ssKeys) if (runtimeNames.has(k)) takes.add(k);
-  // the checker module hosts SoundScript cells when it has a SoundScript section, so it has ss, the runtime
-  // module's, which the editor reads as the mark of a module that holds them (a plain cell does not take it)
-  if (stmts.some((s) => s.kind === "ss") || cells[CHECKER].some((src) => compile(src).some((v) => (v._inputs ?? []).includes(STDLIB)))) takes.add(STDLIB);
-  // ss, what compiled cells take: entry.ts's names the runtime module defines, so a compiled cell depends on
-  // the runtime module only (lite/toolchain/ojs-roundtrip.test.ts checks every member a compiled cell uses is one)
-  if (runtimeNames.has("ss")) throw new Error("ss is a generated runtime cell's name");
-  const runtimeKeys = ssKeys.filter((k) => runtimeNames.has(k));
+  // the runtime cells the checker's compiled cells take, imported under their inputs' names (freeze as ss_freeze). It
+  // hosts SoundScript cells (its SoundScript section), so it imports rejected as ss_rejected, which the editor reads
+  // as the mark of a module that holds them
+  const aliased = new Set(cells[CHECKER].flatMap((src) => compile(src).flatMap((v) => (v._inputs ?? []).filter((i) => RUNTIME_INPUTS.has(i)))));
+  if (stmts.some((s) => s.kind === "ss" && SS_HOME[s.file] === CHECKER)) aliased.add(INPUTS.rejected);
   const checker = [
     `md\`# SoundScript checker and compiler\n\nThe SoundScript checker, the compiler from a checked cell to runtime variables, and the editor support. \\\`soundscript\\\` is this module's object: the checker, the compiler and the editor support, with the runtime's names too. Compiled cells take \\\`ss\\\` of \\\`@tomlarkworthy/soundscript-runtime\\\` instead, so they do not depend on this module. Examples are in \\\`@tomlarkworthy/soundscript-tutorial\\\`.\n\nThe build generates these cells from the TypeScript sources in \\\`tools/lang-experiment/lite/\\\`, so an edit made here is lost at the next build. The parser is the attachment \\\`acorn-typescript.js.gz\\\`.\``,
     ...PARSER_CELLS,
     `soundscript = ({ ${ssKeys.join(", ")} })`,
     ...cells[CHECKER],
-    `import { ${[...takes].sort().join(", ")} } from "${RUNTIME}"`,
+    `import { ${[...[...takes].sort(), ...[...aliased].sort().map((i) => `${RUNTIME_INPUTS.get(i)} as ${i}`)].join(", ")} } from "${RUNTIME}"`,
   ];
   const runtime = [
     `md\`# SoundScript runtime\n\nWhat compiled SoundScript cells call: state cells, actions and the write queue, events and listeners, the JSX renderer, and the checks on values from cells in other languages. This module imports nothing. Examples are in \\\`@tomlarkworthy/soundscript-tutorial\\\`.\n\nThe build generates these cells from \\\`tools/lang-experiment/prelude.runtime.ts\\\` and the TypeScript sources in \\\`tools/lang-experiment/lite/\\\`, so an edit made here is lost at the next build.\``,
-    `ss = ({ ${runtimeKeys.join(", ")} })`,
     ...cells[RUNTIME],
   ];
   // the add-on takes the cells it needs from the other two modules; nothing takes a cell of it but the module that imports ss_pool

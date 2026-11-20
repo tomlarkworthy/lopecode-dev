@@ -1,7 +1,7 @@
 // The SoundScript standard library's runtime half. build.ts makes cells of it (soundscript/ts-cells.ts):
 // @tomlarkworthy/soundscript-runtime, and @tomlarkworthy/soundscript-checker for what reaches the parser.
-// A compiled cell is its typed function applied to its inputs; a state cell is ss.ref(...), an events cell
-// ss.events(...), a listener ss.listen(...), and a state cell's value variable is Observable's Generators.input(handle).
+// A compiled cell is its typed function applied to its inputs; a state cell is ss_ref(...), an events cell
+// ss_events(...), a listener ss_listen(...), and a state cell's value variable is Observable's Generators.input(handle).
 import { isRefHandle, viewHandle } from "../../prelude.runtime.ts";
 import { h } from "../jsx/h.ts";
 import { create, patch } from "../jsx/render.ts";

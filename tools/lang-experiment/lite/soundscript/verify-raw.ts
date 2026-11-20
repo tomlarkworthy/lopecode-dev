@@ -11,6 +11,9 @@
 //    loaded, Shift-Enter stores nothing, copy is refused, the compiled-text paste is refused.
 import type { Page } from "../../../../node_modules/playwright/index.mjs";
 import { blockContent } from "../../../lib/notebook-blocks.ts";
+import * as acorn from "acorn";
+import * as acornWalk from "acorn-walk";
+import { INPUTS, langOf } from "../toolchain/ss-toolchain.ts";
 
 export const RAW_CELLS = "@tomlarkworthy/raw-cells";
 export const POLY = "@tomlarkworthy/soundscript-polyglot";
@@ -119,9 +122,21 @@ export async function rawOnPage(page: Page, h: H, label: string) {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get(poly);
     let value; try { value = await mod.value("fromRaw"); } catch (e) { value = "THREW " + (e as Error).message; }
     const v = [...rt._variables].find((v: any) => v._name === "fromRaw" && v._module === mod);
-    return { value, area: await mod.value("area"), tagged: /\/\*\{lang:"ss"\}\*\//.test(String(v?._definition)), crosses: /\.cross\(area, \{"k":"num"\}/.test(String(v?._definition)) };
+    return { value, area: await mod.value("area"), definition: String(v?._definition) };
   }, POLY);
-  report(ssOnRaw.value === 13 && ssOnRaw.tagged && ssOnRaw.crosses && ssOnRaw.area === 12, `${label}: the page's SoundScript cell fromRaw reads raw area, checked as a number on the way in: ${JSON.stringify(ssOnRaw).slice(0, 300)}`);
+  // the compiled definition calls ss_cross(area, {"k":"num"}, ...): the value of area crosses as a number
+  const tagged = langOf(ssOnRaw.definition) === "ss";
+  let crosses = false;
+  try {
+    acornWalk.simple(acorn.parse(`(${ssOnRaw.definition})`, { ecmaVersion: "latest" }), {
+      CallExpression(n: any) {
+        const [a, shape] = n.arguments;
+        if (n.callee.type === "Identifier" && n.callee.name === INPUTS.cross && a?.type === "Identifier" && a.name === "area" && shape?.type === "ObjectExpression"
+          && shape.properties.some((p: any) => (p.key.value ?? p.key.name) === "k" && p.value.value === "num")) crosses = true;
+      },
+    });
+  } catch {}
+  report(ssOnRaw.value === 13 && tagged && crosses && ssOnRaw.area === 12, `${label}: the page's SoundScript cell fromRaw reads raw area, checked as a number on the way in: ${JSON.stringify({ value: ssOnRaw.value, area: ssOnRaw.area, tagged, crosses })}`);
   // the listing: SoundScript and raw cells, each in its own language's colours
   await until(page, async () => !!(await page.evaluate((poly) => (window as any).__ojs_runtime.mains.get(poly)._scope.get("polyglot_listing")?._value?.textContent?.includes('define("report"'), POLY)), 10000);
   const listing = await page.evaluate((poly) => { const rt = (window as any).__ojs_runtime; const pre = rt.mains.get(poly)._scope.get("polyglot_listing")?._value; return pre ? { text: pre.textContent, spans: pre.querySelectorAll("span[class^=tok-]").length } : null; }, POLY);

@@ -1,11 +1,11 @@
 // Links a file of SoundScript cells for bun, where no Observable runtime wires them: each exported cell is
 // called once, with the values of the cells its parameters name. The checker allows a cell no free name but
 // the prelude functions and the intrinsics, so each cell's text (erased JavaScript under bun) is evaluated
-// again in a scope holding the prelude, as a compiled cell takes it from ss. Parameter names are read from
+// again in a scope holding the prelude, as a compiled cell takes each built-in as an input. Parameter names are read from
 // that text's parse. Only cells of the same file can be taken.
 // The caller passes the prelude: prelude.runtime.ts imports runtime-ss.ts, so this file importing it would be a
 // cycle in which runtime-ss.ts links before the prelude's exports exist. runtime-ss.ts passes none: its cells
-// use no built-in (a cell that does takes ss in the notebook, which the runtime module cannot give it).
+// use no built-in (in the notebook such a cell would take the runtime module's own cell of that name).
 import * as acorn from "acorn";
 import { PRELUDE_FNS } from "./intrinsics.ts";
 

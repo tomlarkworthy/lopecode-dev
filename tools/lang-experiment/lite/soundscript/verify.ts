@@ -264,7 +264,7 @@ const bootBallRuns = new Map<string, number | null>();
 // a page open() started counting function calls on (Profiler precise coverage)
 const profilers = new WeakMap<Page, any>();
 const BREAKOUT = "@tomlarkworthy/soundscript-breakout";
-// How many times each SoundScript cell taking ss in the core, the tutorial and Breakout ran at boot: calls of
+// How many times each SoundScript cell taking a runtime cell (ss_<name>) in the core, the tutorial and Breakout ran at boot: calls of
 // its definition, counted by the profiler, so a compute the runtime superseded before the call is not one.
 // Read once per page, before anything presses a button (the original page reads it before its counter presses).
 const bootCounts = new WeakMap<Page, { module: string; name: string; fn: string; runs: number | null }[]>();
@@ -280,7 +280,7 @@ async function bootRuns(page: Page) {
   const cells: { module: string; name: string; fn: string }[] = await page.evaluate((mods) => {
     const rt = (window as any).__ojs_runtime;
     const ss = [...rt._variables].find((x: any) => x._name === "soundscript" && x._value)._value;
-    return mods.flatMap((m: string) => { const mod = rt.mains.get(m); return [...rt._variables].filter((v: any) => mod && v._module === mod && typeof v._name === "string" && ss.compiledKind(String(v._definition))?.kind && v._inputs.some((i: any) => i._name === "ss")).map((v: any) => ({ module: m, name: v._name, fn: v._definition.name })); });
+    return mods.flatMap((m: string) => { const mod = rt.mains.get(m); return [...rt._variables].filter((v: any) => mod && v._module === mod && typeof v._name === "string" && ss.compiledKind(String(v._definition))?.kind && v._inputs.some((i: any) => ss.RUNTIME_CELLS.some((n: string) => ss.INPUTS[n] === i._name))).map((v: any) => ({ module: m, name: v._name, fn: v._definition.name })); });
   }, [CORE, TUTORIAL, BREAKOUT]);
   const out = cells.map((c) => {
     const hits = result.filter((s: any) => s.url === `file://${c.module}`).flatMap((s: any) => s.functions.filter((f: any) => f.functionName === c.fn));
@@ -311,7 +311,7 @@ async function testsOn(page: Page, label: string, boot = true) {
     report(idle.ran.length === 0 && idle.pulling === 0 && (idle.ballRuns === null || ball === 1), `${label}: at boot ${idle.pending} test cells are pending and none ran (${JSON.stringify(idle.ran)}); listeners attached ${idle.running}, clocks pulled ${idle.pulling}; the page's ballView ran ${ball} times (the runtime computed it ${idle.ballRuns} times)`);
     if (runs) {
       const more = runs.filter((c) => c.runs === null || c.runs > 1).map((c) => `${c.module.split("/")[1]}:${c.name} ${c.runs}`);
-      report(runs.length > 0 && !more.length, `${label}: at boot each of the ${runs.length} SoundScript cells that take ss in the core, the tutorial and Breakout ran at most once (${runs.filter((c) => c.runs === 1).length} once, ${runs.filter((c) => c.runs === 0).length} not read); more than once or not found: ${JSON.stringify(more)}`);
+      report(runs.length > 0 && !more.length, `${label}: at boot each of the ${runs.length} SoundScript cells that take a runtime cell in the core, the tutorial and Breakout ran at most once (${runs.filter((c) => c.runs === 1).length} once, ${runs.filter((c) => c.runs === 0).length} not read); more than once or not found: ${JSON.stringify(more)}`);
     }
   }
   // each toggle is found by the module whose cell holds it; when its pane shows another tab, that
@@ -420,13 +420,13 @@ async function speed() {
   // the checker module's SoundScript section (ts-cells.ts SS_FILES, lite/types.ss.ts): the core checks that module's
   // SoundScript cells, with its Observable JavaScript cells outside, and an edit of each cell to its own text, as
   // the editor makes it, is ok and has no problems
-  // the same for the runtime module's section (lite/runtime.ss.ts), whose module defines ss rather than taking it
+  // the same for the runtime module's section (lite/runtime.ss.ts), whose cells take the runtime's own cells. Each
+  // module's SoundScript cells, compiled again by the core, give the variables the build made (ss_roundtrip)
   const section = (marker: string) => page.evaluate(async (marker: string) => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
     const lang = core._scope.get("ss_language")._value, check = core._scope.get("ss_check")._value;
-    // the checker module is the one that defines parser_lib, the runtime module the one whose ss takes its cells
-    // (an importer's ss takes @variable, an ss_instance module's takes nothing)
-    const mod = [...rt._variables].find((x: any) => x._name === marker && (marker !== "ss" || x._inputs.some((i: any) => i._name === "rejected")))._module;
+    // the checker module is the one that defines parser_lib, the runtime module the core's ss_runtimeModule
+    const mod = marker === "ss_runtimeModule" ? core._scope.get(marker)._value : [...rt._variables].find((x: any) => x._name === marker)._module;
     const ss = [...rt._variables].find((x: any) => x._name === "soundscript" && x._module._scope.has("parser_lib"))._value;
     const vars = [...rt._variables].filter((v: any) => v._module === mod && ss.langOf(String(v._definition)) === "ss");
     const states = check(mod).states;
@@ -440,11 +440,13 @@ async function speed() {
       const isType = ss.keyOfVariable(v._name).startsWith("type ");
       if ((isType ? !e.store : e.state !== "ok") || e.problems.length) edits.push(`${v._name}: ${e.state} ${JSON.stringify(e.problems).slice(0, 120)}`);
     }
-    return { cells: vars.length, values: vars.filter((v: any) => !ss.keyOfVariable(v._name).startsWith("type ")).length, notOk, edits };
+    let trip: number | string;
+    try { trip = core._scope.get("ss_roundtrip")._value(mod); } catch (e) { trip = String((e as Error).message); }
+    return { cells: vars.length, values: vars.filter((v: any) => !ss.keyOfVariable(v._name).startsWith("type ")).length, notOk, edits, trip };
   }, marker);
-  for (const [label, marker] of [["checker", "parser_lib"], ["runtime", "ss"]]) {
+  for (const [label, marker] of [["checker", "parser_lib"], ["runtime", "ss_runtimeModule"]]) {
     const sec = await section(marker);
-    report(sec.cells > 0 && sec.notOk.length === 0 && sec.edits.length === 0, `${label} module: its ${sec.cells} SoundScript cells (${sec.values} with values) are ok by ss_check, and each, edited to its own text, checks ok (a type cell: is stored with no problems)${sec.notOk.length ? "; not ok: " + sec.notOk.join(", ") : ""}${sec.edits.length ? "; " + sec.edits.slice(0, 5).join("; ") : ""}`);
+    report(sec.cells > 0 && sec.notOk.length === 0 && sec.edits.length === 0 && sec.trip === sec.cells, `${label} module: its ${sec.cells} SoundScript cells (${sec.values} with values) are ok by ss_check, each, edited to its own text, checks ok (a type cell: is stored with no problems), and compiled again by the core gives the build's variables (${sec.trip})${sec.notOk.length ? "; not ok: " + sec.notOk.join(", ") : ""}${sec.edits.length ? "; " + sec.edits.slice(0, 5).join("; ") : ""}`);
   }
   report(ks.checks === 30 && ks.evals === 0, `lint: 30 lints of width, each a different edit, against the ${ks.cells}-cell tutorial module ran ${ks.checks} module checks and ${ks.evals} cell bodies (want 30 and 0)`);
   measure(`one keystroke's lint of width against the ${ks.cells}-cell tutorial module: median ${ks.median.toFixed(1)} ms, max ${ks.max.toFixed(1)} ms of 30`);
@@ -1129,16 +1131,16 @@ async function uiPaths(page: Page, saved: string) {
   await until(page, async () => (await diagsOf(fresh)).some((d: string) => d.includes("[inject-type]")));
   const typedDiags = await diagsOf(fresh);
   report(typedDiags.some((d: string) => d.includes("[inject-type]")), `ui: a new cell typed as SoundScript is linted by its checker before it is applied: ${JSON.stringify(typedDiags)}`);
-  const NEW = "const quadrupled = (width: number) => width * 4;";
+  const NEW = QUADRUPLED;
   await typeInto(page, fresh, NEW);
   await until(page, async () => (await valueOf(page, TUTORIAL, "quadrupled")) === 2400);
   const q = await page.evaluate(() => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
     const order = [...rt._variables].filter((v: any) => v._module === mod);
     const names = order.map((v: any) => v._name);
-    return { after: names[names.indexOf("quadrupled") - 1], index: names.indexOf("quadrupled"), empties: order.filter((v: any) => String(v._definition).replace(/\s/g, "").includes("{return({})}") || String(v._definition).trim() === "{}").length };
+    return { after: names[names.indexOf("quadrupled") - 1], index: names.indexOf("quadrupled"), empties: order.filter((v: any) => String(v._definition).replace(/\s/g, "").includes("{return({})}") || String(v._definition).trim() === "{}").length, imported: mod._scope.has("ss_equals") };
   });
-  report((await valueOf(page, TUTORIAL, "quadrupled")) === 2400 && q.after === "half" && q.empties === 0, `ui: a cell added with the add button and typed as SoundScript is applied: quadrupled ${await valueOf(page, TUTORIAL, "quadrupled")}, placed after ${q.after}, ${q.empties} empty cells left`);
+  report((await valueOf(page, TUTORIAL, "quadrupled")) === 2400 && q.after === "half" && q.empties === 0 && q.imported, `ui: a cell added with the add button and typed as SoundScript is applied: quadrupled ${await valueOf(page, TUTORIAL, "quadrupled")}, placed after ${q.after}, ${q.empties} empty cells left; ss_equals, which the module lacked, imported: ${q.imported}`);
 
   // a section module opened from its link under the tutorial's table, then edited by keyboard
   await page.locator("a", { hasText: "@tomlarkworthy/soundscript-breakout" }).first().click();
@@ -1340,15 +1342,19 @@ async function breakStep(page: Page) {
   report(p3.score >= p2.score && p3.y !== p2.y && p3.listeners === p0.listeners && p3.clocks === 1, `breakout: repaired, the game continues from score ${p2.score} (now ${p3.score}, ball moving ${p2.y} -> ${p3.y}) with ${p3.listeners} listeners (${p0.listeners} before the break) and ${p3.clocks} clock pulled`);
   await page.evaluate((b: string) => { const bm = (window as any).__ojs_runtime.mains.get(b); if (bm._scope.get("playing")._value) bm._scope.get("toggle")._value(); }, BR);
 }
+// a cell typed in the tutorial that uses equals, a built-in no tutorial cell uses, so storing it adds an import
+const QUADRUPLED = "const quadrupled = (width: number) => (equals(width, 600) ? width * 4 : 0);";
 async function afterReload(page: Page) {
   const w = await valueOf(page, TUTORIAL, "width"), q = await valueOf(page, TUTORIAL, "quadrupled");
-  const text = await page.evaluate(() => {
+  const { text, imported } = await page.evaluate(async () => {
     const rt = (window as any).__ojs_runtime, mod = rt.mains.get("@tomlarkworthy/soundscript-tutorial");
     const ss = [...rt._variables].find((v: any) => v._name === "soundscript" && v._module === rt.mains.get("@tomlarkworthy/soundscript"))._value;
     const v = [...rt._variables].find((v: any) => v._module === mod && v._name === "quadrupled");
-    return v ? ss.decompileVariable(String(v._definition)) : null;
+    // the import apply added was saved as an import: the runtime module's equals
+    const imported = mod._scope.has("ss_equals") && (await mod.value("ss_equals")) === ss.equals;
+    return { text: v ? ss.decompileVariable(String(v._definition)) : null, imported };
   });
-  report(w === 600 && q === 2400 && text === "const quadrupled = (width: number) => width * 4;", `reload after save: width ${w}, quadrupled ${q}, as typed source ${JSON.stringify(text)}`);
+  report(w === 600 && q === 2400 && text === QUADRUPLED && imported, `reload after save: width ${w}, quadrupled ${q}, as typed source ${JSON.stringify(text)}; ss_equals imported from the runtime module: ${imported}`);
 }
 // deleting the listener cell stops delivery (the runtime does not resolve its invalidation)
 async function deleteStops(page: Page) {

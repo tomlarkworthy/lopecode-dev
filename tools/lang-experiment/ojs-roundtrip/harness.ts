@@ -30,7 +30,7 @@ export function outside(stdlib: any = ss) {
   const view = new EventTarget() as any;
   view.value = 3;
   return {
-    ss: stdlib, Generators, ss_now: () => 0, ss_random: () => 0.5, ss_log: () => {},
+    ...Object.fromEntries(T.RUNTIME_CELLS.map((n: string) => [T.INPUTS[n], stdlib[n]])), Generators, ss_now: () => 0, ss_random: () => 0.5, ss_log: () => {},
     ss_fetch: async () => ({ status: 200 }), ss_compile: () => "compiled",
     shop_basket: [{ item: "a", qty: 2 }, { item: "b", qty: 1 }],
     "viewof shop_price": view, shop_price: 3,

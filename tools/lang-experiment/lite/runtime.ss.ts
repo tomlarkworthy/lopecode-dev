@@ -1,6 +1,6 @@
-// Runtime cells written in SoundScript: the declarations of the runtime module that check as SoundScript and
-// take no built-in (a cell that calls state, action, mut, freeze, … takes ss, which the runtime module builds
-// from these cells). Under bun, runtime-ss.ts links them; in the notebook they are compiled cells of
+// Runtime cells written in SoundScript: the declarations of the runtime module that check as SoundScript. A cell
+// that uses a built-in takes the runtime module's own cell of that name (ss-toolchain inputsIn(true)); none does
+// yet. Under bun, runtime-ss.ts links them; in the notebook they are compiled cells of
 // @tomlarkworthy/soundscript-runtime, which its JavaScript cells take as inputs. selfhost/NOTES-runtime-port.md
 
 export type Shape =

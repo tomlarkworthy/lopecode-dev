@@ -284,7 +284,7 @@ md`### A state cell is two variables
 // %%
 ss_highlightCode(md`### Capabilities are cells of the core
 
-A capability parameter becomes an input on a variable of \`@tomlarkworthy/soundscript\`: \`now\` is \`ss_now\`, \`random\` is \`ss_random\`, \`fetch\` is \`ss_fetch\`, \`log\` is \`ss_log\` and \`pool\` is \`ss_pool\`; \`invalidation\` is the runtime's own. Section 6's \`stamped\` takes \`now\`, so its inputs list \`ss_now\`. \`compile\` is \`ss_compile\`, which a module that compiles defines for itself, because \`compile\` reads that module's cells:
+A capability parameter becomes an input on a variable of \`@tomlarkworthy/soundscript\`: \`now\` is \`ss_now\`, \`random\` is \`ss_random\`, \`fetch\` is \`ss_fetch\`, and \`log\` is \`ss_log\`; \`invalidation\` is the runtime's own. \`pool\` is \`ss_pool\` of the add-on \`@tomlarkworthy/soundscript-workers\`, which a module imports only if a cell of it takes \`pool\`. Section 6's \`stamped\` takes \`now\`, so its inputs list \`ss_now\`. \`compile\` is \`ss_compile\`, which a module that compiles defines for itself, because \`compile\` reads that module's cells:
 
 \`\`\`
 ss_compile = soundscript.compiler(() => ss_source(my_module))
@@ -399,7 +399,7 @@ Reserved parameter names; the host supplies one per cell that asks.
 | \`log\` | \`Log = (...args) => void\` | a line in the program's log |
 | \`invalidation\` | \`Promise<void>\` | resolves when this run of the cell is replaced |
 | \`compile\` | \`Compile\` (*lite*) | turns a group of cells into a function (section 7) |
-| \`pool\` | \`Pool\` (*lite*), \`{ size: number }\` | the page's worker pool, for \`compile\`'s \`runtime\` |
+| \`pool\` | \`Pool\` (*lite*), \`{ size: number }\` | the page's worker pool, for \`compile\`'s \`runtime\`; from the add-on module |
 
 A cell that takes none of these is deterministic.`
 // %%
@@ -964,7 +964,7 @@ kindOf = (v) => {
   if (k?.callee === "listen") return "cell, a listener";
   if (k?.callee === "rejected") return "rejected: raises the checker's messages";
   if (k?.callee !== "plain" && k?.callee !== "apply") return "type";
-  const extra = k.refs.length ? ", compile refs as inputs" : k.callee === "apply" ? ", taking ss" : "";
+  const extra = k.refs.length ? ", compile refs as inputs" : k.callee === "apply" ? ", taking runtime cells (ss_<name>)" : "";
   return `cell: its function applied to its inputs${extra}`;
 }
 // %%
@@ -1163,7 +1163,7 @@ test_ss_module_checks = {
 //raw: test_ss_counter
 // %%
 // the capabilities are imported for cells a reader adds; a compiled cell that takes now reads ss_now
-import { ss, soundscript, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_isSs, ss_roundtrip, ss_instance, ss_highlight, ss_highlightCode, ss_hl_css, cellListing } from "@tomlarkworthy/soundscript"
+import { soundscript, ss_now, ss_random, ss_log, ss_fetch, ss_check, ss_source, ss_moduleCells, ss_isSs, ss_roundtrip, ss_instance, ss_highlight, ss_highlightCode, ss_hl_css, cellListing } from "@tomlarkworthy/soundscript"
 // %%
 import { app as reducer_app, reducer_module } from "@tomlarkworthy/soundscript-reducer"
 // %%

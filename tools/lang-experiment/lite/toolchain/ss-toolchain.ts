@@ -12,13 +12,17 @@ import { CAPABILITIES, PRELUDE_FNS, OJS_INPUT_GLOBALS } from "../intrinsics.ts";
 export type Variable = { name: string; inputs: string[]; definition: string };
 export { langOf, LANG };
 
-// the input, and the definition's parameter, bound to the stdlib runtime object
-export const STDLIB_INPUT = "ss";
 // the prelude functions, and h, the JSX element function lowered JSX calls
 const PRELUDE = [...PRELUDE_FNS, "h"];
-// Capability parameter -> the variable the stdlib provides: ss_<name>, except invalidation, the runtime's own;
-// ss_compile is defined in each module that compiles, because compile reads that module's cells.
-export const CAP_INPUTS: Record<string, string> = Object.fromEntries(Object.keys(CAPABILITIES).map((n) => [n, n === "invalidation" ? n : `ss_${n}`]));
+// the runtime module's cells a compiled cell can take: the built-ins its body uses and what its compiled form calls
+export const RUNTIME_CELLS = [...PRELUDE, "ref", "events", "listen", "cross", "viewRef", "compileFor", "rejected"];
+// A capability parameter or a runtime cell -> the input that provides it: ss_<name>, except invalidation, the
+// runtime's own. ss_compile is defined in each module that compiles, because compile reads that module's cells; a
+// runtime cell is imported from the runtime module under that name, and the runtime module takes its own cell
+// (inputsIn(true)). Context.inputs is the table of the module a cell is compiled for.
+export const inputsIn = (runtimeModule: boolean): Record<string, string> =>
+  Object.fromEntries([...Object.keys(CAPABILITIES), ...RUNTIME_CELLS].map((n) => [n, n === "invalidation" || (runtimeModule && RUNTIME_CELLS.includes(n)) ? n : `ss_${n}`]));
+export const INPUTS = inputsIn(false);
 
 const header = (o: object) => `/*ss^${JSON.stringify(o).replaceAll("*/", "*\\/")}*/`;
 
@@ -89,7 +93,8 @@ export function splitCells(src: string, tsx: boolean): string[] {
 // for them again.
 // why: for each cell the check did not accept, the checker's messages. With a module context (accepted
 // not null) such a cell compiles to a definition that only raises them; its body never runs.
-export type Context = { generators: ReadonlySet<string>; events: ReadonlySet<string>; accepted: ReadonlySet<string> | null; facts?: ReadonlyMap<string, CellInfo> | null; why?: ReadonlyMap<string, string[]> | null };
+// inputs: the module's input table (inputsIn), INPUTS when not given.
+export type Context = { generators: ReadonlySet<string>; events: ReadonlySet<string>; accepted: ReadonlySet<string> | null; facts?: ReadonlyMap<string, CellInfo> | null; why?: ReadonlyMap<string, string[]> | null; inputs?: Record<string, string> };
 const NO_CONTEXT: Context = { generators: new Set(), events: new Set(), accepted: null };
 
 export function contextOf(texts: string[], tsx: boolean, accepted: ReadonlySet<string> | null = null): Context {
@@ -219,8 +224,8 @@ function ojsCell(name: string, view: boolean, block: boolean, body: (r: (input: 
 
 // A cell the checker does not accept: its typed source is kept whole in the header, and the definition
 // only raises the checker's messages. A state cell keeps its two variables, so its readers stay wired.
-const rejectedCell = (text: string, key: string, why: string[], ref: boolean): Built =>
-  ojsCell(variableName(key), ref, false, (r) => `${r(STDLIB_INPUT)}.rejected(${LANG}${header({ d: text, rejected: why })}${JSON.stringify(key)}, ${JSON.stringify(why)})`);
+const rejectedCell = (text: string, key: string, why: string[], ref: boolean, IN: Record<string, string>): Built =>
+  ojsCell(variableName(key), ref, false, (r) => `${r(IN.rejected)}(${LANG}${header({ d: text, rejected: why })}${JSON.stringify(key)}, ${JSON.stringify(why)})`);
 
 // A name declared again is stored as "<name> (2)", "<name> (3)", ... (core.ts reports it so).
 export const isDuplicateKey = (key: string | null): key is string => !!key && /^[\w$]+ \(\d+\)$/.test(key);
@@ -232,15 +237,16 @@ export const compileCell = (text: string, tsx: boolean, ctx: Context = NO_CONTEX
 export const compileCellText = (text: string, tsx: boolean, ctx: Context = NO_CONTEXT, nameHint: string | null = null): string => build(text, tsx, ctx, nameHint).text;
 function build(text: string, tsx: boolean, ctx: Context, nameHint: string | null): Built {
   if (!ctx.accepted) return compileChecked(text, tsx, ctx);
-  if (isDuplicateKey(nameHint) && ctx.why?.has(nameHint) && declaredName(text) !== nameHint) return rejectedCell(text, nameHint, ctx.why.get(nameHint)!, false);
+  const IN = ctx.inputs ?? INPUTS;
+  if (isDuplicateKey(nameHint) && ctx.why?.has(nameHint) && declaredName(text) !== nameHint) return rejectedCell(text, nameHint, ctx.why.get(nameHint)!, false, IN);
   let out: Built & { key?: string; ref?: boolean };
   try { out = compileChecked(text, tsx, ctx); } catch (e) {
     const name = declaredName(text) ?? nameHint;
     if (!name) throw e;
-    return rejectedCell(text, name, ctx.why?.get(name) ?? [`[compile] ${(e as Error).message}`], false);
+    return rejectedCell(text, name, ctx.why?.get(name) ?? [`[compile] ${(e as Error).message}`], false, IN);
   }
   if (!out.key || ctx.accepted.has(out.key)) return out;
-  return rejectedCell(text, out.key, ctx.why?.get(out.key) ?? ["[rejected] not accepted by the checker"], !!out.ref);
+  return rejectedCell(text, out.key, ctx.why?.get(out.key) ?? ["[rejected] not accepted by the checker"], !!out.ref, IN);
 }
 
 function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key?: string; ref?: boolean } {
@@ -272,10 +278,13 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   erasesToJs(typed, fn);
   const params = info.params.map((p) => p.name);
   const loweredFn = parse(`(${lowered})`).program;
-  // the built-ins the body calls or reads: free references only, not a property, a key or a local of that name
+  const IN = ctx.inputs ?? INPUTS;
+  // the built-ins the body calls or reads: free references only, not a property, a key or a local of that name.
+  // Each is bound to its input at the top of the definition, unless its input has its own name (the runtime module)
   const used = PRELUDE.filter((n) => globalRefs(loweredFn, n).size > 0);
-  // the allowed globals Observable's parser does not know are inputs, in order of first use
-  const globals = OJS_INPUT_GLOBALS.map((g) => [g, Math.min(...[...globalRefs(loweredFn, g)].map((n) => n.start))] as const).filter(([, at]) => at < Infinity).sort((a, b) => a[1] - b[1]).map(([g]) => g);
+  const bound = used.filter((n) => IN[n] !== n);
+  // the allowed globals Observable's parser does not know, and built-ins read by their own name, are inputs, in order of first use
+  const globals = [...OJS_INPUT_GLOBALS, ...used.filter((n) => IN[n] === n)].map((g) => [g, Math.min(...[...globalRefs(loweredFn, g)].map((n) => n.start))] as const).filter(([, at]) => at < Infinity).sort((a, b) => a[1] - b[1]).map(([g]) => g);
   // a cell that calls the prelude's on(...) is a listener: the checker allows on(...) only as the cell's whole value
   const kind = info.returnsRef ? "ref" : info.generator && ctx.events.has(info.name) ? "events" : preludeCalls(fn, "on").size ? "listener" : "cell";
   const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
@@ -286,11 +295,11 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   // (boundary.ts): its value as a frozen copy; as a State, the value of its viewof (a view, or an imported
   // state cell's handle), with each written value checked.
   const arg = (p: CellInfo["params"][number], r: (i: string) => string) => {
-    const input = p.refTyped ? `viewof ${p.name}` : CAP_INPUTS[p.name] ?? p.name;
-    if (p.name === "compile") return `${r(STDLIB_INPUT)}.compileFor(${r(input)}, ${JSON.stringify(info.name)}, {${refs.map((x) => `${JSON.stringify(x)}: ${r(x)}`).join(", ")}})`;
+    const input = p.refTyped ? `viewof ${p.name}` : p.name in CAPABILITIES ? IN[p.name] : p.name;
+    if (p.name === "compile") return `${r(IN.compileFor)}(${r(input)}, ${JSON.stringify(info.name)}, {${refs.map((x) => `${JSON.stringify(x)}: ${r(x)}`).join(", ")}})`;
     if (!p.boundary) return r(input);
     const shape = JSON.stringify(p.boundary.shape);
-    return p.boundary.ref ? `${r(STDLIB_INPUT)}.viewRef(${r(input)}, ${shape}, ${JSON.stringify(p.name)})` : `${r(STDLIB_INPUT)}.cross(${r(input)}, ${shape}, ${JSON.stringify(`${info.name}.${p.name}`)})`;
+    return p.boundary.ref ? `${r(IN.viewRef)}(${r(input)}, ${shape}, ${JSON.stringify(p.name)})` : `${r(IN.cross)}(${r(input)}, ${shape}, ${JSON.stringify(`${info.name}.${p.name}`)})`;
   };
   const args = (r: (i: string) => string) => info.params.map((p) => arg(p, r)).join(", ");
   const name = JSON.stringify(info.name);
@@ -300,18 +309,17 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   // Any other cell is its function applied to its inputs.
   const expr = (r: (i: string) => string) => {
     if (kind === "ref" || kind === "events") {
-      const head = `${r(STDLIB_INPUT)}.${kind}(this, ${name}, [${args(r)}], `;
+      const head = `${r(IN[kind])}(this, ${name}, [${args(r)}], `;
       globals.forEach(r);
       return `${head}${inner}${kind === "events" ? `, ${r("invalidation")}` : ""})`;
     }
-    const listen = kind === "listener" ? `${r(STDLIB_INPUT)}.listen(` : "";
+    const listen = kind === "listener" ? `${r(IN.listen)}(` : "";
     globals.forEach(r);
     const applied = `(${inner})(${args(r)})`;
     return listen ? `${listen}${applied}, ${name}, ${r("invalidation")})` : applied;
   };
-  // the built-ins the body calls come from ss
-  const block = used.length > 0;
-  const out = ojsCell(variableName(info.name), kind === "ref", block, (r) => block ? `{ const {${used.join(", ")}} = ${r(STDLIB_INPUT)}; return ${expr(r)}; }` : expr(r));
+  const block = bound.length > 0;
+  const out = ojsCell(variableName(info.name), kind === "ref", block, (r) => block ? `{ const ${bound.map((n) => `${n} = ${r(IN[n])}`).join(", ")}; return ${expr(r)}; }` : expr(r));
   return { ...out, key: info.name, ref: kind === "ref" };
 }
 
@@ -322,16 +330,19 @@ export function compileModule(src: string, tsx: boolean, accepted: ReadonlySet<s
 }
 
 // A compiled definition, parsed once: the marker and header comments, the function that follows them, and the
-// call that takes it: its function applied to its inputs (inside ss.listen for a listener), or ss.ref, ss.events
-// or ss.rejected (whose first argument, the key, follows the header). callee names that shape: "plain" when
-// nothing outside the function reads ss, "apply" when the cell takes ss (built-ins, or inputs that cross).
-// name: the cell name ss.ref, ss.events or ss.listen is given. null for a definition that is not SoundScript.
+// call that takes it: its function applied to its inputs (inside listen for a listener), or ref, events or
+// rejected (whose first argument, the key, follows the header), each called by its input (ss_ref, or the runtime
+// module's own ref). callee names that shape: "plain" when nothing outside the function reads a runtime cell,
+// "apply" when something does (a built-in bound to its input, or an input that crosses).
+// name: the cell name ref, events or listen is given. null for a definition that is not SoundScript.
 // Remembered per definition text.
 export type Shape = "plain" | "apply" | "listen" | "ref" | "events" | "rejected";
 export type Compiled = { comments: acorn.Comment[]; header: Record<string, string>; headerEnd: number; call: any; fn: any; callee: Shape | null; name: string | null; refs: string[] };
-// the property of ss a call calls, when it is one of names
-const ssCall = (n: any, names: readonly string[]): string | null =>
-  n?.type === "CallExpression" && n.callee.type === "MemberExpression" && !n.callee.computed && n.callee.object.type === "Identifier" && n.callee.object.name === STDLIB_INPUT && names.includes(n.callee.property.name) ? n.callee.property.name : null;
+// the runtime cell a call calls by its input in any module, when it is one of names
+const rtCall = (n: any, names: readonly string[]): string | null =>
+  n?.type === "CallExpression" && n.callee.type === "Identifier" ? names.find((x) => n.callee.name === x || n.callee.name === INPUTS[x]) ?? null : null;
+// ss_<name> -> the runtime cell name
+const RUNTIME_INPUTS = new Map(RUNTIME_CELLS.map((n) => [INPUTS[n], n]));
 const children = (n: any) => Object.keys(n).flatMap((k) => { const v = n[k]; return Array.isArray(v) ? v : [v]; }).filter((v) => v && typeof v.type === "string");
 const parsedCompiled = new Map<string, Compiled | null>();
 export function parseCompiled(definition: string): Compiled | null {
@@ -355,20 +366,20 @@ export function parseCompiled(definition: string): Compiled | null {
       for (const c of children(n)) find(c, n);
     };
     find(root, null);
-    // outside the function: does anything read ss, and the names in ss.compileFor(input, "name", {"ref": ref, ...})
+    // outside the function: does anything read a runtime cell, and the names in compileFor(input, "name", {"ref": ref, ...})
     let ss = false;
     const refs: string[] = [];
     const scan = (n: any) => {
       if (n === fn) return;
-      if (n.type === "Identifier" && n.name === STDLIB_INPUT) ss = true;
-      if (n.type === "CallExpression" && n.callee.type === "MemberExpression" && n.callee.property?.name === "compileFor" && n.arguments[2]?.type === "ObjectExpression")
+      if ((n.type === "Identifier" && RUNTIME_INPUTS.has(n.name)) || rtCall(n, ["cross", "viewRef", "compileFor"])) ss = true;
+      if (rtCall(n, ["compileFor"]) && n.arguments[2]?.type === "ObjectExpression")
         for (const p of n.arguments[2].properties) if (p.type === "Property" && p.key.type === "Literal") refs.push(String(p.key.value));
       for (const c of children(n)) scan(c);
     };
     scan(root);
     // a type cell's marker opens no call (void /*…*/0): its header holds its source
-    const listen = call && fn === call.callee && ssCall(up, ["listen"]) && up.arguments[0] === call ? up : null;
-    const callee = (!call ? null : fn === call.callee ? (listen ? "listen" : ss ? "apply" : "plain") : ssCall(call, ["ref", "events", "rejected"])) as Shape | null;
+    const listen = call && fn === call.callee && rtCall(up, ["listen"]) && up.arguments[0] === call ? up : null;
+    const callee = (!call ? null : fn === call.callee ? (listen ? "listen" : ss ? "apply" : "plain") : rtCall(call, ["ref", "events", "rejected"])) as Shape | null;
     const named = (listen ?? (callee === "ref" || callee === "events" ? call : null))?.arguments[1];
     out = { comments, header: JSON.parse(head.value.slice(3)), headerEnd: head.end, call, fn, callee, name: named?.type === "Literal" && typeof named.value === "string" ? named.value : null, refs };
   }
@@ -447,8 +458,9 @@ export function fromObservableVariables(vars: { name: string | null; inputs: str
   if (!isIdentifier(name)) return { reason: `the cell name ${name} is not an identifier` };
   const bad = inputs.find((i) => !isIdentifier(i));
   if (bad) return { reason: `the cell takes ${bad}, which a SoundScript parameter cannot name` };
-  if (inputs.includes(STDLIB_INPUT)) return { reason: `the cell takes ${STDLIB_INPUT}, the input every compiled SoundScript cell takes` };
-  const cap = inputs.find((i) => i in CAP_INPUTS && CAP_INPUTS[i] !== i);
+  const rt = inputs.find((i) => RUNTIME_INPUTS.has(i));
+  if (rt) return { reason: `the cell takes ${rt}, the input compiled SoundScript cells take for the runtime's ${RUNTIME_INPUTS.get(rt)}` };
+  const cap = inputs.find((i) => i in CAPABILITIES && INPUTS[i] !== i);
   if (cap) return { reason: `the cell takes ${cap}, which as a SoundScript parameter is the ${cap} capability` };
   let fn: any;
   try { fn = acorn.parseExpressionAt(definition, 0, { ecmaVersion: "latest", preserveParens: true }); } catch (e) { return { reason: `the definition does not parse: ${(e as Error).message}` }; }

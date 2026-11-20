@@ -103,7 +103,7 @@ export function read(handle: object): unknown {
 
 // each handle's function text and the inputs of its last run
 const runs = new WeakMap<object, { id: string; args: unknown[] }>();
-// A state cell's handle variable: viewof <name> = ss.ref(this, name, [inputs], fn). prev is the variable's last
+// A state cell's handle variable: viewof <name> = ss_ref(this, name, [inputs], fn). prev is the variable's last
 // value, as the Runtime gives it: its handle, when the same function text made it, is kept, so a cell taking
 // State<T> keeps it across runs; a new store from fn(...args) unless every input is the same (Object.is) as on
 // the last run, which keeps the store and so the state. A variable with no last value (its first run, or after

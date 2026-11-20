@@ -1,6 +1,6 @@
 // %%
 test_runtime_action_commits_a_write = {
-  // a state cell's handle, as a compiled state cell gets it from ss.ref(this, name, [inputs], fn); its value, as the
+  // a state cell's handle, as a compiled state cell gets it from ss_ref(this, name, [inputs], fn); its value, as the
   // state cell's value variable reads it, is Observable's Generators.input of it
   const count = ref(undefined, "test_count", [], () => state(0));
   const values = Generators.input(count);

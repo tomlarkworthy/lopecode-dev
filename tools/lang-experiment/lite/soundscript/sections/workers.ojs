@@ -1,6 +1,6 @@
 md`# SoundScript, section 7: running cells on other threads
 
-The cells of section 7 of \`@tomlarkworthy/soundscript-tutorial\`, as live SoundScript cells, in a module of their own because their names are used by other sections. \`inPool\` and \`onMain\` call \`compile\`, which reads this module's cells, so the module defines \`ss_compile\`; \`pool\` is the core's \`ss_pool\`.`
+The cells of section 7 of \`@tomlarkworthy/soundscript-tutorial\`, as live SoundScript cells, in a module of their own because their names are used by other sections. \`inPool\` and \`onMain\` call \`compile\`, which reads this module's cells, so the module defines \`ss_compile\`; \`pool\` is \`ss_pool\`, imported from the add-on \`@tomlarkworthy/soundscript-workers\`.`
 // %%
 //ss: 07-workers.tsx
 // %%
@@ -19,7 +19,7 @@ ss_compile = soundscript.compiler(() => ss_source(workers_module))
 // %%
 viewof workers_module = thisModule()
 // %%
-import { ss, soundscript, ss_source } from "@tomlarkworthy/soundscript"
+import { soundscript, ss_source } from "@tomlarkworthy/soundscript"
 // %%
 import { ss_pool } from "@tomlarkworthy/soundscript-workers"
 // %%

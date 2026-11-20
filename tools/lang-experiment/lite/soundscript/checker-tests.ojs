@@ -16,8 +16,8 @@ test_checker_roundtrip = {
   const back = variables.map((vs) => vs.map((v) => ss.decompileVariable(v.definition)).filter((x) => x !== null));
   const lost = texts.filter((t, i) => back[i].length !== 1 || back[i][0] !== t);
   if (lost.length) throw new Error(`not recovered exactly: ${lost.join(" | ")}`);
-  // run the plain cells, each with ss and the values of the cells it takes
-  const values = { ss };
+  // run the plain cells, each with the values of the cells it takes
+  const values = {};
   for (const v of variables.flat().filter((v) => ["width", "area"].includes(v.name))) values[v.name] = new Function(`return (${v.definition});`)()(...v.inputs.map((n) => values[n]));
   if (values.area !== 9) throw new Error(`area is ${values.area}, expected 9`);
   return `${texts.length} cells checked, compiled and recovered; area ${values.area}`;

@@ -6,6 +6,6 @@ The cells of section 9 of \`@tomlarkworthy/soundscript-tutorial\`, as live Sound
 // %%
 viewof breakout_module = thisModule()
 // %%
-import { ss, ss_now } from "@tomlarkworthy/soundscript"
+import { ss_now } from "@tomlarkworthy/soundscript"
 // %%
 import { thisModule } from "@tomlarkworthy/runtime-sdk"

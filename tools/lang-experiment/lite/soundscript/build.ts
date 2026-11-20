@@ -27,7 +27,7 @@ import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compiler, splitSeed } from "../../../spec-notebook.ts";
 import { blockContent, blockSpans, findSpan } from "../../../lib/notebook-blocks.ts";
-import { compileCell, contextOf, contextFromCheck, splitCells, declaredName, type Variable } from "../toolchain/ss-toolchain.ts";
+import { compileCell, contextOf, contextFromCheck, splitCells, declaredName, INPUTS, RUNTIME_CELLS, type Variable } from "../toolchain/ss-toolchain.ts";
 import { syntaxStub } from "../toolchain/module-js.ts";
 import { checkSources } from "../core.ts";
 import { checkHtml } from "../../../lope-preflight.ts";
@@ -130,6 +130,8 @@ RAW[TUTORIAL].ss_bytes = `ss_bytes = ({ raw: ${new TextEncoder().encode(js).leng
 
 type File = { name: string; mime: string; base64: boolean; data: string };
 const q = JSON.stringify;
+// ss_<name> -> the runtime cell it imports
+const RUNTIME_INPUTS = new Map(RUNTIME_CELLS.map((n) => [INPUTS[n], n]));
 const { compile, dispose } = await compiler();
 
 // set once raw-cells is built: its own raw_compile, run on a headless runtime (tools/notebook-import.ts)
@@ -167,18 +169,21 @@ function buildModule(name: string, ojs: string, files: File[], given?: string[])
       if (typeof n !== "string" || n.startsWith("module ")) continue;
       const view = n.startsWith("viewof ");
       const base = view ? n.slice(7) : n;
-      if (!/^[\w$]+$/.test(base) || base === "ss") continue;
+      if (!/^[\w$]+$/.test(base) || RUNTIME_INPUTS.has(base)) continue;
       outsideNames.set(base, view || !!outsideNames.get(base));
     }
   });
   const outside = [...outsideNames].sort(([a], [b]) => (a < b ? -1 : 1)).map(([n, view]) => (view ? { name: n, view } : { name: n }));
   const ctx = allTexts.length ? contextFromCheck(checkSources({ cells: allSource, tsx: true, outside }), allSource, true) : contextOf(allTexts, true, null);
+  // the runtime cells the module's compiled cells take, and rejected, the mark of a module that hosts SoundScript
+  const takes = new Set<string>(allTexts.length ? [INPUTS.rejected] : []);
   blocks.forEach((src, i) => {
     const ssm = cellsOfBlock(src), raw = /^\/\/raw: (\S+)$/.exec(src);
     if (ssm) {
       const { texts, tsx, skip } = ssm;
       const per = texts.map((t) => compileCell(t, tsx, ctx));
       const vs = per.flat();
+      for (const v of vs) for (const n of v.inputs) if (RUNTIME_INPUTS.has(n)) takes.add(n);
       for (const s of skip) if (vs.some((v) => v.name === s)) throw new Error(`${ojs}: ${s} was not left out`);
       for (const cell of per) {
         for (const v of cell) {
@@ -214,6 +219,11 @@ function buildModule(name: string, ojs: string, files: File[], given?: string[])
       addVar(`_ss${i}_${j}`, { name: vname, inputs, definition: String(s._definition) } as Variable);
     });
   });
+  // imported from the runtime module under their inputs' names (freeze as ss_freeze)
+  if (takes.size) for (const s of compile(`import { ${[...takes].sort().map((n) => `${RUNTIME_INPUTS.get(n)} as ${n}`).join(", ")} } from "${RUNTIME}"`)) {
+    const line = `  main.define(${q(s._name)}, ${q(s._inputs ?? [])}, ${s._definition});`;
+    if (!imports.includes(line)) imports.push(line);
+  }
   const prologue = `  const fileAttachments = new Map(${q(files.map((f) => f.name))}.map((name) => {
     const module_name = ${q(name)};
     const {status, mime, bytes} = window.lopecode.contentSync(module_name + "/" + encodeURIComponent(name));

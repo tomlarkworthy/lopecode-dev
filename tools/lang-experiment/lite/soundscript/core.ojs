@@ -17,7 +17,8 @@ readme_use = ss_highlightCode(md`## Using it in a module
 To write SoundScript cells in another module of this notebook, import \`ss\` and each capability your cells name:
 
 \`\`\`
-import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_pool, ss_source } from "@tomlarkworthy/soundscript"
+import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_source } from "@tomlarkworthy/soundscript"
+import { ss_pool } from "@tomlarkworthy/soundscript-workers"   // only in a module with a cell that takes pool
 \`\`\`
 
 Every compiled cell takes \`ss\` as an input: the object \`ss\` of \`@tomlarkworthy/soundscript-runtime\`, which holds what compiled cells call. The checker and compiler are \`soundscript\` of \`@tomlarkworthy/soundscript-checker\`, which the tooling cells of this module use. Add a cell after a SoundScript cell and type a source such as \`const total = (a: number, b: number) => a + b;\`. The editor's header shows the language the cell is stored in. Picking another language there changes the view, not the cell: a SoundScript cell viewed as Observable JavaScript shows its compiled cell text, which cannot be saved from that view, and an Observable JavaScript cell viewed as SoundScript shows \`const <name> = (<inputs>) => <body>;\`, which Shift-Enter stores as SoundScript if it checks. A view that cannot be made (text that does not parse, a \`viewof\` or \`mutable\` cell, a cell with no name, an import, a cell that uses \`this\`) leaves the text as it was and shows the reason beside the picker. A SoundScript cell is checked against the module's other SoundScript cells and, if it is \`ok\`, compiled and defined. A module whose cells call \`compile\` also defines \`ss_compile\`:
@@ -37,7 +38,7 @@ A capability parameter becomes an input on one of this module's variables:
 | \`random\` | \`ss_random\` |
 | \`fetch\` | \`ss_fetch\` |
 | \`log\` | \`ss_log\` |
-| \`pool\` | \`ss_pool\` (workers start on first use) |
+| \`pool\` | \`ss_pool\` of the add-on \`@tomlarkworthy/soundscript-workers\`, not of this module (workers start when a cell that takes \`pool\` first runs) |
 | \`compile\` | \`ss_compile\`, defined by the module that uses it |
 | \`invalidation\` | the runtime's own \`invalidation\` |`
 // %%
@@ -107,6 +108,8 @@ ss_fetch = globalThis.fetch.bind(globalThis)
 // %%
 viewof ss_module = thisModule()
 // %%
+ss_runtimeModule = ss_module.value("module @tomlarkworthy/soundscript-runtime")
+// %%
 ss_keyOf = (name) => soundscript.keyOfVariable(name)
 // %%
 ss_isSs = (v) => {
@@ -155,7 +158,7 @@ ss_outside = (module) => {
     if (ss_isSs(v)) continue;
     const view = v._name.startsWith("viewof ");
     const name = view ? v._name.slice(7) : v._name;
-    if (!/^[\w$]+$/.test(name) || name === "ss") continue;
+    if (!/^[\w$]+$/.test(name) || soundscript.RUNTIME_CELLS.some((n) => soundscript.INPUTS[n] === name)) continue;
     names.set(name, view || !!names.get(name));
   }
   return [...names].sort(([a], [b]) => (a < b ? -1 : 1)).map(([name, view]) => (view ? { name, view } : { name }));
@@ -171,8 +174,8 @@ ss_check = (module) => {
 ss_context = (texts, module) => {
   // the compile context of a module's cells, from one (remembered) check of the whole module: which
   // cells are generators, which are taken as Events, which the checker accepts (only those run; any
-  // other cell compiles to a definition that raises the checker's messages)
-  return soundscript.contextFromCheck(soundscript.checkCells(texts, true, module ? ss_outside(module) : null).result);
+  // other cell compiles to a definition that raises the checker's messages); the runtime module takes its own cells
+  return { ...soundscript.contextFromCheck(soundscript.checkCells(texts, true, module ? ss_outside(module) : null).result), inputs: soundscript.inputsIn(!!module && module === ss_runtimeModule) };
 }
 // %%
 ss_source = (module) => soundscript.joinCells(ss_moduleCells(module).map((c) => c.text))
@@ -232,11 +235,11 @@ ss_lifecycle = {
   const off = onCodeChange(({ variable, previous }) => {
     const module = variable?._module ?? previous?._module;
     // a cell in another language added, deleted or renamed changes what its SoundScript readers check against
-    const outsideNamed = !isSs(variable) && !isSs(previous) && variable?._name !== previous?._name && module?._scope?.has("ss") && !ss_instances.has(module);
+    const outsideNamed = !isSs(variable) && !isSs(previous) && variable?._name !== previous?._name && ss_language.hosts(module) && !ss_instances.has(module);
     if (outsideNamed) touched.add(module);
     else if (!isSs(variable) && !isSs(previous)) return;
     if (variable === null && !outsideNamed) ss_deleted(previous.variable);
-    if (module?._scope?.has("ss") && !ss_instances.has(module)) touched.add(module);
+    if (ss_language.hosts(module) && !ss_instances.has(module)) touched.add(module);
     if (scheduled) return;
     scheduled = true;
     queueMicrotask(() => {
@@ -325,7 +328,7 @@ ss_language = {
     const outside = module ? ss_outside(module).filter((o) => !(takesOther && o.name === named)) : null;
     try { after = soundscript.checkCells(texts, true, outside).result; } catch (e) { checkError = e; }
     if (!after) return { ok: false, store: false, problems: [{ line: 1, rule: "check", msg: `${checkError.message}; a cell that does not parse is stored only when it starts with const, let or function <name>` }] };
-    let defs, ctx = soundscript.contextFromCheck(after), hint = oldKey;
+    let defs, ctx = { ...soundscript.contextFromCheck(after), inputs: soundscript.inputsIn(!!module && module === ss_runtimeModule) }, hint = oldKey;
     if (takesCell && soundscript.isDuplicateKey(after.cells.at(-1)?.name)) hint = after.cells.at(-1).name;
     if (takesOther) {
       let k = 2;
@@ -423,7 +426,17 @@ ss_language = {
   // batches [{defs, old, anchor}]: every definition is realized first, then all are defined in one
   // synchronous step, so the runtime never computes a cell between two of them (a reader the edit
   // rejects would otherwise run once on the edited input). afterFirst runs after the first batch.
+  // the runtime cells the definitions take that module lacks are imported first, as the build imports them (freeze as ss_freeze)
+  const RUNTIME = new Map(soundscript.RUNTIME_CELLS.map((n) => [soundscript.INPUTS[n], n])), MV = "module @tomlarkworthy/soundscript-runtime";
+  const importInputs = async (module, defs, tx) => {
+    const want = [...new Set(defs.flatMap((d) => d.inputs))].filter((i) => RUNTIME.has(i) && !module._scope.has(i));
+    if (!want.length) return;
+    const fns = await realize(want.map((i) => `(_, v) => v.import(${JSON.stringify(RUNTIME.get(i))}, ${JSON.stringify(i)}, _)`), runtime);
+    if (!module._scope.has(MV)) tx?.made.push(module.variable().define(MV, [], ss_module._scope.get(MV)._definition));
+    tx?.made.push(...want.map((i, k) => module.variable().define(i, [MV, "@variable"], fns[k])));
+  };
   const defineAll = async (module, batches, tx = null, afterFirst = null) => {
+    await importInputs(module, batches.flatMap((b) => b.defs), tx);
     const all = await realize(batches.flatMap((b) => b.defs.map((d) => d.definition)), runtime);
     let k = 0;
     return batches.map((b, i) => {
@@ -626,17 +639,18 @@ ss_language = {
     return null;
   };
 
-  // typed text is SoundScript when its module imports ss (a compiled cell that is not plain takes it), and it starts as a
-  // cell or a type does; the editor takes the claim only when the built-in parser rejects the text
+  // typed text is SoundScript when its module hosts SoundScript cells, and it starts as a cell or a type does; the
+  // editor takes the claim only when the built-in parser rejects the text
   const claimsSource = (source, cell) => {
     const module = cell?.module?.module;
     const [t0, t1] = soundscript.tokensOf(source, 2);
     const first = t0?.label === "export" ? t1 : t0;
-    return !!module?._scope?.has("ss") && !!first && ["const", "let", "function", "async", "type", "interface"].includes(String(first.value));
+    return hosts(module) && !!first && ["const", "let", "function", "async", "type", "interface"].includes(String(first.value));
   };
 
-  // a module can hold SoundScript cells when it imports ss (a compiled cell that is not plain takes it)
-  const hosts = (module) => !!module?._scope?.has("ss");
+  // a module can hold SoundScript cells when it is the runtime module or imports rejected as ss_rejected (what any of
+  // its cells compiles to when the checker does not accept it), as the build makes every module with SoundScript cells
+  const hosts = (module) => !!module && (module === ss_runtimeModule || module._scope.has(soundscript.INPUTS.rejected));
   // The editor's language picker. toBuiltin: the cell as Observable JavaScript cell text, exactly the text
   // Observable's compiler makes this cell's variables of, compiled in its module as apply would.
   const toBuiltin = (source, variables = [], cell, target = "ojs") => {
@@ -652,7 +666,7 @@ ss_language = {
   // fromBuiltin: Observable JavaScript as SoundScript. compiled: the variables the standard compiler made of
   // source; a compiled SoundScript cell gives its own source back, any other cell is translated.
   const fromBuiltin = (source, variables = [], cell, { lang, compiled, expression } = {}) => {
-    if (!hosts(moduleOf(variables, cell))) return { reason: "this module has no ss, which a SoundScript cell takes" };
+    if (!hosts(moduleOf(variables, cell))) return { reason: `this module does not import rejected as ${soundscript.INPUTS.rejected} from @tomlarkworthy/soundscript-runtime, the mark of a module with SoundScript cells` };
     if (lang !== "ojs" || !compiled) return { reason: "only Observable JavaScript translates to SoundScript" };
     const vars = compiled.map((v) => ({ name: v.name ?? null, inputs: v.inputs ?? [], definition: String(v.definition) }));
     for (const v of vars) if (soundscript.langOf(v.definition) === "ss") { const s = soundscript.decompileVariable(v.definition); if (s !== null) return { text: s }; }
@@ -928,7 +942,7 @@ test_ss_deleted_state_is_not_inherited = {
   const mod = async (texts) => {
     const m = runtime.module();
     made.push(m);
-    m.define("ss", [], () => ss);
+    m.define(soundscript.INPUTS.rejected, [], () => soundscript.rejected);
     for (const t of texts) if (await ss_language.apply(t, [], { module: { module: m } }) === undefined) throw new Error(`not stored: ${t}`);
     return m;
   };
@@ -941,7 +955,7 @@ test_ss_deleted_state_is_not_inherited = {
     if (!(await frames(() => soundscript.idle()))) throw new Error("an action call stayed in flight for 600 frames");
     soundscript.entry(null, () => set());
     if (!(await frames(async () => (await a.value("deletedKept")) === 7))) throw new Error("deletedKept did not become 7");
-    const doomed = [...runtime._variables].filter((v) => v._module === a && v._name !== "ss");
+    const doomed = [...runtime._variables].filter((v) => v._module === a && v._name !== soundscript.INPUTS.rejected);
     let seen;
     const deletionSeen = new Promise((r) => (seen = r));
     const off = onCodeChange(({ variable, previous }) => { if (variable === null && doomed.includes(previous?.variable)) seen(); });
@@ -980,5 +994,3 @@ import { codemirror } from "@tomlarkworthy/codemirror-6-v2"
 import { lezerhighlight } from "@tomlarkworthy/observablehq-lezer"
 // %%
 import { soundscript } from "@tomlarkworthy/soundscript-checker"
-// %%
-import { ss } from "@tomlarkworthy/soundscript-runtime"

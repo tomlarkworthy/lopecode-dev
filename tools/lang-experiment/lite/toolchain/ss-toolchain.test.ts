@@ -71,19 +71,19 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   const g = by(await Bun.file(root + "lite/notebook/examples/09-breakout.tsx").text());
   const expect = (ok: boolean, what: string) => { if (!ok) { fail++; console.log("FAIL " + what); } };
   expect(JSON.stringify(g.get("world")?.inputs) === JSON.stringify(["Generators", "viewof world"]) && g.get("world")?.definition === "(G, _) => G.input(_)", "a state cell's value variable is Generators.input of its handle: " + g.get("world")?.inputs);
-  expect(JSON.stringify(g.get("viewof world")?.inputs) === JSON.stringify(["ss", "start"]), "a state cell's handle is viewof world and takes its inputs: " + g.get("viewof world")?.inputs);
-  expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["ss", "viewof world", "step"]), "a State<T> parameter reads the handle: " + g.get("tick")?.inputs);
+  expect(JSON.stringify(g.get("viewof world")?.inputs) === JSON.stringify(["ss_state", "ss_ref", "start"]), "a state cell's handle is viewof world and takes its inputs: " + g.get("viewof world")?.inputs);
+  expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["ss_action", "viewof world", "step"]), "a State<T> parameter reads the handle: " + g.get("tick")?.inputs);
   expect([...g.values()].every((v) => !v.inputs.includes("@variable")), "no variable takes @variable (the exporter reads two inputs ending in @variable as an import)");
   expect(toolchain.compiledKind(g.get("ticks")!.definition)?.callee === "events" && !g.has("viewof ticks"), "a generator taken as Events is one handle variable");
   expect(passesThis(g.get("ticks")!.definition, "ticks"), "an events cell's definition is a function that passes this: " + g.get("ticks")!.definition.slice(0, 40));
-  expect(JSON.stringify(g.get("ticks")?.inputs) === JSON.stringify(["ss", "ss_now", "playing", "over", "invalidation"]), "an events cell takes invalidation: " + g.get("ticks")?.inputs);
-  expect(JSON.stringify(g.get("onTick")?.inputs) === JSON.stringify(["ss", "ticks", "tick", "invalidation"]) && toolchain.compiledKind(g.get("onTick")!.definition)?.callee === "listen", "on(...) makes a listener that takes invalidation: " + g.get("onTick")?.inputs);
+  expect(JSON.stringify(g.get("ticks")?.inputs) === JSON.stringify(["ss_events", "ss_now", "playing", "over", "invalidation"]), "an events cell takes invalidation: " + g.get("ticks")?.inputs);
+  expect(JSON.stringify(g.get("onTick")?.inputs) === JSON.stringify(["ss_on", "ss_listen", "ticks", "tick", "invalidation"]) && toolchain.compiledKind(g.get("onTick")!.definition)?.callee === "listen", "on(...) makes a listener that takes invalidation: " + g.get("onTick")?.inputs);
   const w = by(await Bun.file(root + "lite/notebook/examples/07-workers.tsx").text());
-  expect(JSON.stringify(w.get("inPool")?.inputs) === JSON.stringify(["ss", "ss_compile", "width", "height", "maxIter", "ss_pool"]), "compile refs are inputs, in the order the definition reads them: " + w.get("inPool")?.inputs);
+  expect(JSON.stringify(w.get("inPool")?.inputs) === JSON.stringify(["ss_compileFor", "ss_compile", "width", "height", "maxIter", "ss_pool"]), "compile refs are inputs, in the order the definition reads them: " + w.get("inPool")?.inputs);
   const m = by(await Bun.file(root + "lite/notebook/examples/06-model.tsx").text());
   const mutSrc = await Bun.file(root + "lite/notebook/examples/03-mut.ts").text();
   const mu = new Map(compileModule(mutSrc, false, accepted(mutSrc, false)).map((v) => [v.name, v]));
-  expect(/\bss\.rejected\(/.test(mu.get("leak")!.definition) && /\bss\.rejected\(/.test(mu.get("late")!.definition) && !/\bxs\b/.test(mu.get("leak")!.definition.slice(mu.get("leak")!.definition.lastIndexOf("*/"))), "cells the checker rejects (leak, late) compile to a body that only raises");
+  expect(["leak", "late"].every((n) => toolchain.compiledKind(mu.get(n)!.definition)?.callee === "rejected" && JSON.stringify(mu.get(n)!.inputs) === JSON.stringify(["ss_rejected"])), "cells the checker rejects (leak, late) compile to a body that only raises: ss_rejected(...)");
 }
 console.log(`${pass} files pass, ${fail} fail; ${cells} cells, ${vars} variables; ${skipped} cells skipped (pool or compile); ${factsCompared} cells compiled the same from the check's facts`);
 if (fail) process.exit(1);

@@ -38,9 +38,11 @@ C.scheduler.frame = (f) => void frames.push(f);
 const frame = () => { const fs = frames.splice(0); for (const f of fs) f(); return fs.length; };
 
 // A SoundScript module compiled by the toolchain and run in a real Observable Runtime, as the notebook
-// runs it: every variable observed, `ss` the stdlib, invalidation the runtime's own.
+// runs it: every variable observed, the runtime cells as ss_<name> inputs, invalidation the runtime's own.
 const { Runtime } = await import("@observablehq/runtime");
 const { checkSources } = await import("../core.ts");
+// the runtime cells compiled cells take, each as its own input (ss_state, ...), as a module importing them has them
+const defineRuntime = (m: any) => { for (const n of T.RUNTIME_CELLS) m.define(T.INPUTS[n], [], () => (ss as any)[n]); };
 // outside: cells in another language, defined first as plain variables (name -> [inputs, definition])
 async function load(src: string, opts: { unchecked?: boolean; outside?: Record<string, [string[], (...a: any[]) => unknown]> } = {}) {
   const outsideList = Object.keys(opts.outside ?? {}).filter((n) => !n.startsWith("viewof ")).map((n) => ({ name: n, view: !!opts.outside?.[`viewof ${n}`] }));
@@ -49,7 +51,7 @@ async function load(src: string, opts: { unchecked?: boolean; outside?: Record<s
   if (bad.length && !opts.unchecked) throw new Error(`not ok: ${bad.map((c) => `${c.name} ${c.status} ${JSON.stringify(c.errors)}`).join("; ")}`);
   const runtime = new Runtime();
   const m = runtime.module();
-  m.define("ss", [], () => ss);
+  defineRuntime(m);
   m.define("Generators", [], () => ({ input }));
   for (const [n, [ins, f]] of Object.entries(opts.outside ?? {})) m.define(n, ins, f);
   const vars = new Map<string, any>();
@@ -353,7 +355,7 @@ export const onlyB = (b: State<number>) => action((k: number) => b.set(k));`);
 async function editable(texts: string[], o: { reverse?: boolean; order?: boolean } = {}) {
   const runtime = new Runtime();
   const m = runtime.module();
-  m.define("ss", [], () => ss);
+  defineRuntime(m);
   m.define("Generators", [], () => ({ input }));
   const vars = new Map<string, any>(), defs = new Map<string, string>(), values = new Map<string, unknown>(), raised = new Map<string, string>();
   // computations the Runtime started, per variable: its observer's pending, called once for each
@@ -551,7 +553,7 @@ const n = (base: number): StateCell<number> => state(base);
 const other = (): StateCell<number> => state(0);
 const both = (n: State<number>, other: State<number>) => action(() => { other.update((v) => v + 1); n.update((v) => v + 1); });`;
   const p = await load(SRC);
-  ok("w1_two_variables_per_state_cell", JSON.stringify(p.vars.get("both")._inputs.map((i: any) => i._name)) === JSON.stringify(["ss", "viewof n", "viewof other"]) && p.m._scope.has("viewof n"), JSON.stringify([...p.m._scope.keys()]));
+  ok("w1_two_variables_per_state_cell", JSON.stringify(p.vars.get("both")._inputs.map((i: any) => i._name)) === JSON.stringify(["ss_action", "viewof n", "viewof other"]) && p.m._scope.has("viewof n"), JSON.stringify([...p.m._scope.keys()]));
   const error = async () => { try { await p.m.value("both"); return ""; } catch (e) { return (e as Error).message; } };
   const held = p.value("both");
   const base = p.vars.get("base");
@@ -601,7 +603,7 @@ const h2 = (vars: State<{ readonly n: number }>) => [vars];`);
 await run("w3_a_state_cell_nothing_observes_is_written", async () => {
   const runtime = new Runtime();
   const m = runtime.module();
-  m.define("ss", [], () => ss);
+  defineRuntime(m);
   m.define("Generators", [], () => ({ input }));
   const src = `const hidden = (): StateCell<number> => state(3);
 const add = (hidden: State<number>) => action(() => hidden.update((v) => v + 1));`;
@@ -634,7 +636,7 @@ await run("w4_a_state_cell_imported_from_another_module", async () => {
 const seenB = (count: number) => count;`;
   const instances = [0, 1].map(() => {
     const a = runtime.module(), b = runtime.module();
-    for (const x of [a, b]) { x.define("ss", [], () => ss); x.define("Generators", [], () => ({ input })); }
+    for (const x of [a, b]) { defineRuntime(x); x.define("Generators", [], () => ({ input })); }
     const va = compileInto(a, A);
     b.import("count", a);
     b.import("viewof count", a);

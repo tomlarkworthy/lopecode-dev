@@ -17,12 +17,11 @@ import { blocks, blockContent } from "../../../lib/notebook-blocks.ts";
 import { loadOjs } from "../../ojs-roundtrip/ojs.ts";
 import { CORPUS, EXTRA, OUTSIDE } from "../../ojs-roundtrip/corpus.ts";
 import { run, diffRuns } from "../../ojs-roundtrip/harness.ts";
-import { compileCell, compileCellText, contextFromCheck, decompileVariable, langOf, declaredName, STATE_VALUE } from "./ss-toolchain.ts";
+import { compileCell, compileCellText, contextFromCheck, decompileVariable, langOf, declaredName, STATE_VALUE, INPUTS, RUNTIME_CELLS, inputsIn } from "./ss-toolchain.ts";
 import { checkCells } from "../stdlib/runtime.ts";
 import { ALLOWED_GLOBALS, OJS_INPUT_GLOBALS } from "../intrinsics.ts";
 import { RUNTIME, CHECKER, SS_SOURCES, ssCellTexts } from "../soundscript/ts-cells.ts";
 import { moduleJs } from "./module-js.ts";
-import * as acorn from "acorn";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "../../../..");
@@ -138,43 +137,35 @@ for (const m of modules) {
   if (JSON.stringify(generatedSs) !== JSON.stringify(want)) fail("generated-ss", SS_SOURCES.join(", "), `the decompiled cells are not the source's ${want.length} cells in order (got ${generatedSs.length})`);
 }
 
-// 2b. compiled cells depend on the runtime module only: every member of ss a compiled definition reads
-// (ss.x, or const { x } = ss) is an input of the runtime module's ss cell, whose inputs are its keys
+// 2b. compiled cells depend on the runtime module only: no compiled definition takes ss, and each runtime cell one
+// takes (ss_<name>) is, in its module, an import of the runtime module's cell <name>; in the runtime module it is
+// that cell itself. Every module with SoundScript cells imports rejected as ss_rejected, the mark of one.
 {
   const c = { cells: 0, vars: 0, fail: 0 };
-  counts.set("ss-members", c);
-  const ssCell = defsOf(RUNTIME).find((v) => v.name === "ss");
-  if (!ssCell) fail("ss-members", RUNTIME, "the runtime module defines no ss");
-  const keys = new Set(ssCell?.inputs ?? []);
-  const membersOf = (def: string): string[] => {
-    const out: string[] = [];
-    // ss read any other way (passed on, aliased, spread) is "[bare]", which no key matches
-    const read = new Set<any>();
-    const walk = (n: any) => {
-      if (!n || typeof n.type !== "string") return;
-      if (n.type === "MemberExpression" && n.object.type === "Identifier" && n.object.name === "ss") { read.add(n.object); out.push(n.computed ? "[computed]" : n.property.name); }
-      if (n.type === "VariableDeclarator" && n.init?.type === "Identifier" && n.init.name === "ss" && n.id.type === "ObjectPattern") {
-        read.add(n.init);
-        for (const p of n.id.properties) out.push(p.type === "Property" && !p.computed ? p.key.name : "[rest]");
-      }
-      if (/Function/.test(n.type)) n.params.forEach((p: any) => read.add(p));
-      if (n.type === "MemberExpression" && !n.computed) read.add(n.property);
-      if (n.type === "Property" && !n.computed && !n.shorthand) read.add(n.key);
-      if (n.type === "Identifier" && n.name === "ss" && !read.has(n)) out.push("[bare]");
-      for (const k in n) { const v = n[k]; if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v.type === "string") walk(v); }
-    };
-    try { walk(acorn.parseExpressionAt(def, 0, { ecmaVersion: "latest" })); } catch (e) { throw new Error(`${(e as Error).message} in ${def.slice(0, 200)}`); }
-    return out;
-  };
+  counts.set("runtime-inputs", c);
+  const runtimeCells = new Set(defsOf(RUNTIME).map((v) => v.name));
   const used = new Set<string>();
-  const ssDefs = [...compiled, ...modules.filter((m) => m !== RUNTIME).flatMap(defsOf)].filter((v) => langOf(v.definition) === "ss" && v.inputs.includes("ss"));
-  for (const v of ssDefs) {
-    c.cells++;
-    const bad = membersOf(v.definition).filter((m) => (used.add(m), !keys.has(m)));
-    if (bad.length) fail("ss-members", String(v.name), `reads ss.${bad.join(", ss.")}, which the runtime's ss does not hold`);
+  for (const m of modules) {
+    const { imports } = moduleJs(blockContent(html, m)!);
+    const own = new Map(imports.filter((i) => i.from === RUNTIME).map((i) => [i.local, i.remote]));
+    const table = inputsIn(m === RUNTIME);
+    const defs = defsOf(m).filter((v) => langOf(v.definition) === "ss");
+    if (defs.length && m !== RUNTIME && own.get(INPUTS.rejected) !== "rejected") fail("runtime-inputs", m, `has SoundScript cells and does not import rejected as ${INPUTS.rejected}`);
+    for (const v of defs) {
+      c.cells++;
+      if (v.inputs.includes("ss")) fail("runtime-inputs", `${m} ${v.name}`, "takes ss");
+      for (const n of RUNTIME_CELLS) {
+        const i = table[n];
+        if (!v.inputs.includes(i)) continue;
+        used.add(n);
+        if (m === RUNTIME ? !runtimeCells.has(n) : own.get(i) !== n) fail("runtime-inputs", `${m} ${v.name}`, `takes ${i}, which is not ${m === RUNTIME ? "a cell of the runtime module" : `an import of ${n} from ${RUNTIME}`}`);
+      }
+    }
   }
+  for (const v of compiled) for (const n of RUNTIME_CELLS) if (v.inputs.includes(INPUTS[n])) used.add(n);
+  for (const n of used) if (!runtimeCells.has(n)) fail("runtime-inputs", n, "compiled cells take it and the runtime module does not define it");
   c.vars = used.size;
-  log(`ss members compiled cells read: ${[...used].sort().join(", ")}`);
+  log(`runtime cells compiled cells take: ${[...used].sort().join(", ")}`);
 }
 
 // 3. the allowed globals the parser does not know are exactly OJS_INPUT_GLOBALS
@@ -196,7 +187,7 @@ for (const [n, x, y] of d.rows) failures.push(`[values] ${n}: compiled ${x}; rou
 
 ojs.dispose();
 for (const f of failures) console.log("FAIL", f);
-for (const [g, c] of counts) console.log(`${g}: ${c.cells - (g === "values" ? 0 : 0)} ${g === "values" ? `values compared at ${c.vars} snapshots` : g === "globals" ? "globals" : g === "ss-members" ? `compiled definitions read ${c.vars} distinct members of ss` : `cells (${c.vars} variables)`}, ${c.fail} failure(s)`);
+for (const [g, c] of counts) console.log(`${g}: ${c.cells - (g === "values" ? 0 : 0)} ${g === "values" ? `values compared at ${c.vars} snapshots` : g === "globals" ? "globals" : g === "runtime-inputs" ? `compiled definitions take ${c.vars} distinct runtime cells` : `cells (${c.vars} variables)`}, ${c.fail} failure(s)`);
 const total = [...counts.values()].reduce((n, c) => n + c.fail, 0);
 console.log(total ? `${total} failure(s)` : "all pass");
 process.exit(total ? 1 : 0);

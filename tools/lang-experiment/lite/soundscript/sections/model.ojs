@@ -8,6 +8,6 @@ ss_compile = soundscript.compiler(() => ss_source(model_module))
 // %%
 viewof model_module = thisModule()
 // %%
-import { ss, soundscript, ss_now, ss_source } from "@tomlarkworthy/soundscript"
+import { soundscript, ss_now, ss_source } from "@tomlarkworthy/soundscript"
 // %%
 import { thisModule } from "@tomlarkworthy/runtime-sdk"

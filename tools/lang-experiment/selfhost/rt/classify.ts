@@ -109,3 +109,28 @@ const all = Object.values(tot).reduce((a, x) => [a[0] + x[0], a[1] + x[1]], [0, 
 for (const k of ["a", "b", "c", "d"]) console.log(`${k}: ${tot[k][0]} declarations (${(100 * tot[k][0] / all[0]).toFixed(0)}%), ${tot[k][1]} lines (${(100 * tot[k][1] / all[1]).toFixed(0)}%)`);
 console.log(`all: ${all[0]} declarations, ${all[1]} lines; landed ${landed} declarations, ${landedLines} lines`);
 for (const [k, g] of [...groups].sort()) console.log(`${k}\t${g.cells}\t${g.lines}\t${g.names.join(" ")}`);
+// Limit 1 of NOTES-runtime-port.md (a cell that uses a built-in took ss, which the runtime module builds from its own
+// cells) is gone since 2026-11-20: a compiled cell takes each runtime cell it uses as its own input, and in the runtime
+// module that input is the sibling cell. The port attempts that use a built-in, and their verdict there: a cell that
+// is not ok is still blocked by its own messages (check.ts prints them).
+{
+  const { splitCells, declaredName } = await import("../../lite/toolchain/ss-toolchain.ts");
+  const { checkCells } = await import("../../lite/stdlib/runtime.ts");
+  const { globalRefs } = await import("../../lite/facts.ts");
+  const { PRELUDE_FNS } = await import("../../lite/intrinsics.ts");
+  const out: string[] = [];
+  for (const f of ["prelude", "boundary", "jsx", "cells", "workers"]) {
+    const tsx = f === "jsx";
+    const texts = splitCells(readFileSync(join(import.meta.dir, `${f}.ss.ts`), "utf8"), tsx);
+    const verdict = new Map(checkCells(texts, tsx).result.cells.map((c: any) => [c.name, c.status === "ok" && !c.errors.length ? "ok" : c.status]));
+    for (const t of texts) {
+      // the cell's value: a const's initialiser, or the function a declaration is
+      const st = parse(t, { jsx: tsx }).program.body[0];
+      const d = st.type === "ExportNamedDeclaration" ? st.declaration : st;
+      const fn = d.type === "VariableDeclaration" ? d.declarations[0].init : d;
+      const used = fn ? [...PRELUDE_FNS, "h"].filter((n) => globalRefs(fn, n).size > 0) : [];
+      if (used.length) out.push(`${declaredName(t)} (${f}.ss.ts) uses ${used.join(", ")}: ${verdict.get(declaredName(t)!) ?? "?"}`);
+    }
+  }
+  console.log(`port attempts that use a built-in: ${out.length}\n  ${out.join("\n  ")}`);
+}
