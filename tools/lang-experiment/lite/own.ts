@@ -146,7 +146,8 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
       }
       case "ForOfStatement": return p.right === x ? null : "for...of target";
       case "TemplateLiteral": case "ExpressionStatement": case "UnaryExpression": case "BinaryExpression": return null;
-      case "IfStatement": case "WhileStatement": case "DoWhileStatement": case "ForStatement": return p.test === x ? null : "statement";
+      case "IfStatement": case "WhileStatement": case "DoWhileStatement": case "ForStatement": case "SwitchCase": return p.test === x ? null : "statement";
+      case "SwitchStatement": return p.discriminant === x ? null : "statement";
       case "ConditionalExpression": return p.test === x ? null : position(p, kind, undefined);
       case "LogicalExpression": case "ChainExpression": return position(p, kind, undefined);
       case "VariableDeclarator": return "bound to a second name";
@@ -236,7 +237,8 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     if (!tracked.size) return;
     const borrowed = [...tracked].filter(isBorB);
     type St = Set<Binding>;
-    const loops: { breaks: St[]; conts: St[] }[] = [];
+    // innermost first: a loop takes break and continue, a switch only break
+    const loops: { breaks: St[]; conts: St[]; isSwitch?: boolean }[] = [];
     let tryAcc: St[] | null = null;
     const join = (...ss: (St | null)[]): St | null => {
       const live = ss.filter((x): x is St => !!x);
@@ -315,7 +317,8 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
         }
         case "BreakStatement": case "ContinueStatement":
           if (s.label) { ch.unsupported(s, "labelled break/continue in a function holding a Mut/Borrowed"); return null; }
-          loops[loops.length - 1]?.[s.type === "BreakStatement" ? "breaks" : "conts"].push(st);
+          if (s.type === "BreakStatement") loops[loops.length - 1]?.breaks.push(st);
+          else loops.findLast((l) => !l.isSwitch)?.conts.push(st);
           return null;
         case "WhileStatement": case "DoWhileStatement": case "ForStatement": case "ForOfStatement": {
           let entry = st;
@@ -359,7 +362,22 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
           const c = s.handler ? stmt(s.handler.body, new Set(seen)) : null;
           return join(a, c);
         }
-        case "SwitchStatement": case "LabeledStatement":
+        case "SwitchStatement": {
+          // every test may run before a body is entered; a body is entered by its case or from the body before it
+          let tests = expr(s.discriminant, st);
+          for (const c of s.cases) if (c.test) tests = expr(c.test, tests);
+          const ctx = { breaks: [] as St[], conts: [] as St[], isSwitch: true };
+          loops.push(ctx);
+          let prev: St | null = null;
+          for (const c of s.cases) {
+            let cur: St | null = join(tests, prev);
+            for (const x of c.consequent) { if (!cur) break; cur = stmt(x, cur); }
+            prev = cur;
+          }
+          loops.pop();
+          return join(prev, ...ctx.breaks, s.cases.some((c: Node) => !c.test) ? null : tests);
+        }
+        case "LabeledStatement":
           ch.unsupported(s, `${s.type} in a function holding a Mut/Borrowed`);
           return st;
         default:

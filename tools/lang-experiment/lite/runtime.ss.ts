@@ -27,17 +27,14 @@ export const borrow = () => <T,>(v: T): T => v;
 // what a value of a shape is, for a mismatch message (boundary.ts copy)
 export const want = () => {
   const w = (s: Shape): string => {
-    if (s.k === "num") return "number";
-    if (s.k === "str") return "string";
-    if (s.k === "bool") return "boolean";
-    if (s.k === "null") return "null";
-    if (s.k === "undef") return "undefined";
-    if (s.k === "unknown") return "data";
-    if (s.k === "lit") return JSON.stringify(s.v);
-    if (s.k === "arr") return "an array";
-    if (s.k === "tup") return `an array of ${s.els.length}`;
-    if (s.k === "union") return s.ts.map(w).join(" or ");
-    return "an object";
+    switch (s.k) {
+      case "num": return "number"; case "str": return "string"; case "bool": return "boolean";
+      case "null": return "null"; case "undef": return "undefined"; case "unknown": return "data";
+      case "lit": return JSON.stringify(s.v);
+      case "arr": return "an array"; case "tup": return `an array of ${s.els.length}`;
+      case "rec": return "an object";
+      case "union": return s.ts.map(w).join(" or ");
+    }
   };
   return w;
 };

@@ -121,7 +121,17 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   }
   // cells.ts module level
   const cells: CellDef[] = [];
-  const rest = reg.load(P, "user", true);
+  // a type or interface with a built-in type's name is not loaded: the cells read the built-in
+  const builtin = reg.builtinTypeNames();
+  const clash = new Set<Node>();
+  for (const st of P.program.body as Node[]) {
+    const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st;
+    if ((d.type === "TSTypeAliasDeclaration" || d.type === "TSInterfaceDeclaration") && builtin.has(d.id.name)) {
+      clash.add(d);
+      mod(P, d, "builtin-type-name", `${d.id.name} is a built-in type; give this ${d.type === "TSInterfaceDeclaration" ? "interface" : "type"} another name`);
+    }
+  }
+  const rest = reg.load(P, "user", true, clash);
   for (const st of rest) {
     // a cell is a top-level function or const/let, with or without `export` (2026-11-15: without is the form)
     const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st;

@@ -82,29 +82,31 @@ export const show = () => {
   function show(t: Ty, depth: number): string {
     if (depth > 6) return "…";
     const s = (x: Ty) => show(x, depth + 1);
-    if (t.k === "num") return "number";
-    if (t.k === "str") return "string";
-    if (t.k === "undef") return "undefined";
-    if (t.k === "lit") return typeof t.v === "string" ? JSON.stringify(t.v) : String(t.v);
-    if (t.k === "arr") return (t.el.k === "union" || t.el.k === "fn" ? `(${s(t.el)})` : s(t.el)) + "[]";
-    if (t.k === "tup") return `[${t.els.map(s).join(", ")}]`;
-    if (t.k === "union") {
-      const hasT = t.ts.some((x) => x.k === "lit" && x.v === true), hasF = t.ts.some((x) => x.k === "lit" && x.v === false);
-      const rest = t.ts.filter((x) => !(hasT && hasF && x.k === "lit" && typeof x.v === "boolean")).map(s);
-      return (hasT && hasF ? [...rest, "boolean"] : rest).join(" | ");
+    switch (t.k) {
+      case "num": return "number";
+      case "str": return "string";
+      case "undef": return "undefined";
+      case "lit": return typeof t.v === "string" ? JSON.stringify(t.v) : String(t.v);
+      case "arr": return (t.el.k === "union" || t.el.k === "fn" ? `(${s(t.el)})` : s(t.el)) + "[]";
+      case "tup": return `[${t.els.map(s).join(", ")}]`;
+      case "union": {
+        const hasT = t.ts.some((x) => x.k === "lit" && x.v === true), hasF = t.ts.some((x) => x.k === "lit" && x.v === false);
+        const rest = t.ts.filter((x) => !(hasT && hasF && x.k === "lit" && typeof x.v === "boolean")).map(s);
+        return (hasT && hasF ? [...rest, "boolean"] : rest).join(" | ");
+      }
+      case "named": return t.args.length ? `${t.n}<${t.args.map(s).join(", ")}>` : t.n;
+      case "tv": return t.n;
+      case "fn": return `${t.tps.length ? `<${t.tps.join(", ")}>` : ""}(${[...t.ps.map((p) => `${p.n}${p.opt ? "?" : ""}: ${s(p.t)}`), ...(t.rest ? [`...r: ${s(t.rest)}[]`] : [])].join(", ")}) => ${s(t.ret)}`;
+      case "rec": {
+        const ps = [
+          ...[...t.props].map(([k, p]) => `${k}${p.opt ? "?" : ""}: ${s(p.t)}`),
+          ...(t.index ? [`[k: string]: ${s(t.index)}`] : []),
+          ...(t.calls ?? []).map(s),
+        ];
+        return `{ ${ps.join("; ")} }`;
+      }
+      default: return t.k;
     }
-    if (t.k === "named") return t.args.length ? `${t.n}<${t.args.map(s).join(", ")}>` : t.n;
-    if (t.k === "tv") return t.n;
-    if (t.k === "fn") return `${t.tps.length ? `<${t.tps.join(", ")}>` : ""}(${[...t.ps.map((p) => `${p.n}${p.opt ? "?" : ""}: ${s(p.t)}`), ...(t.rest ? [`...r: ${s(t.rest)}[]`] : [])].join(", ")}) => ${s(t.ret)}`;
-    if (t.k === "rec") {
-      const ps = [
-        ...[...t.props].map(([k, p]) => `${k}${p.opt ? "?" : ""}: ${s(p.t)}`),
-        ...(t.index ? [`[k: string]: ${s(t.index)}`] : []),
-        ...(t.calls ?? []).map(s),
-      ];
-      return `{ ${ps.join("; ")} }`;
-    }
-    return t.k;
   }
   return (t: Ty, depth: number = 0): string => show(t, depth);
 };
@@ -118,31 +120,35 @@ export const subst = (union) => {
   }
   function subst(t: Ty, m: Subst): Ty {
     if (m.size === 0) return t;
-    if (t.k === "tv") return m.get(t.n) ?? t;
-    if (t.k === "arr") return { k: "arr", el: subst(t.el, m) };
-    if (t.k === "tup") return { k: "tup", els: t.els.map((x) => subst(x, m)) };
-    if (t.k === "union") return union(t.ts.map((x) => subst(x, m)));
-    if (t.k === "named") return t.args.length ? { k: "named", n: t.n, args: t.args.map((x) => subst(x, m)) } : t;
-    if (t.k === "fn") return substFn(t, m);
-    if (t.k === "rec") {
-      const props = mut(new Map<string, Prop>());
-      for (const [k, p] of t.props) props.set(k, { ...p, t: subst(p.t, m) });
-      return { k: "rec", props: freeze(props), index: t.index && subst(t.index, m), calls: t.calls?.map((c) => substFn(c, m)), ctors: t.ctors?.map((c) => substFn(c, m)) };
+    switch (t.k) {
+      case "tv": return m.get(t.n) ?? t;
+      case "arr": return { k: "arr", el: subst(t.el, m) };
+      case "tup": return { k: "tup", els: t.els.map((x) => subst(x, m)) };
+      case "union": return union(t.ts.map((x) => subst(x, m)));
+      case "named": return t.args.length ? { k: "named", n: t.n, args: t.args.map((x) => subst(x, m)) } : t;
+      case "fn": return substFn(t, m);
+      case "rec": {
+        const props = mut(new Map<string, Prop>());
+        for (const [k, p] of t.props) props.set(k, { ...p, t: subst(p.t, m) });
+        return { k: "rec", props: freeze(props), index: t.index && subst(t.index, m), calls: t.calls?.map((c) => substFn(c, m)), ctors: t.ctors?.map((c) => substFn(c, m)) };
+      }
+      default: return t;
     }
-    return t;
   }
   return subst;
 };
 export const hasTv = () => {
   function hasTv(t: Ty, names?: Set<string>): boolean {
-    if (t.k === "tv") return !names || names.has(t.n);
-    if (t.k === "arr") return hasTv(t.el, names);
-    if (t.k === "tup") return t.els.some((x) => hasTv(x, names));
-    if (t.k === "union") return t.ts.some((x) => hasTv(x, names));
-    if (t.k === "named") return t.args.some((x) => hasTv(x, names));
-    if (t.k === "fn") return t.ps.some((p) => hasTv(p.t, names)) || (!!t.rest && hasTv(t.rest, names)) || hasTv(t.ret, names);
-    if (t.k === "rec") return [...t.props.values()].some((p) => hasTv(p.t, names)) || (!!t.index && hasTv(t.index, names));
-    return false;
+    switch (t.k) {
+      case "tv": return !names || names.has(t.n);
+      case "arr": return hasTv(t.el, names);
+      case "tup": return t.els.some((x) => hasTv(x, names));
+      case "union": return t.ts.some((x) => hasTv(x, names));
+      case "named": return t.args.some((x) => hasTv(x, names));
+      case "fn": return t.ps.some((p) => hasTv(p.t, names)) || (!!t.rest && hasTv(t.rest, names)) || hasTv(t.ret, names);
+      case "rec": return [...t.props.values()].some((p) => hasTv(p.t, names)) || (!!t.index && hasTv(t.index, names));
+      default: return false;
+    }
   }
   return hasTv;
 };

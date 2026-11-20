@@ -7,3 +7,4 @@ export { INTRINSIC_DECLS, PRELUDE_DECLS, JSX_DECLS } from "../intrinsics.ts";
 export * from "../stdlib/runtime.ts";
 export { INPUTS, inputsIn, RUNTIME_CELLS, LANG, compiledKind, declaredNameAt, tokensOf, paramsOf, fromObservableVariables } from "../toolchain/ss-toolchain.ts";
 export { completionsAt, annotationOf, addParameter } from "../complete.ts";
+export { builtinTypeNames } from "../registry.ts";

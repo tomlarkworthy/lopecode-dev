@@ -266,3 +266,93 @@ function of `evalDepth`, `actionDepth`, whether a call is in flight, `entry`, `w
 | `selfhost/rt/orig/`, `selfhost/rt/runtime.orig.ts` | the files before the port; the originals the diff test runs |
 | `selfhost/repro-unknown-null-narrow.ss.ts`, `selfhost/repro-prelude-type-name.ss.ts` | findings 1 and 2 |
 | `selfhost/runtime-inventory.ts`, `out/runtime-inventory.pre-port.json` | the inventory, and its pre-port output |
+
+## 2026-11-20 notes: switch, two defects, reading unknown values (PROSE PENDING)
+
+Terse notes, to be written up. Probes are in `lite/soundscript/.scratch/` (`unk-probe.ts`, `unk-probe2.ts`, `globals-use.ts`, `globals-mods.ts`).
+
+- `switch` is now checked (spec S3.13 to S3.18). Item 4 above estimated ~40 lines of own.ts. The actual count is about 56 lines in infer.ts `switchStmt` and its loop `breaks` stack, about 28 in own.ts, and 0 in the compiler, which keeps the body verbatim. The new rules are `switch-fallthrough` and `switch-declaration`. `show`, `subst` and `hasTv` in `lite/types.ss.ts` and `want` in `lite/runtime.ss.ts` are switches again, as in the originals. `bun selfhost/diff.ts` and `bun selfhost/rt/diff.ts` show no differences.
+- Finding 1 (repro-unknown-null-narrow) is fixed. `cond` now keeps `#k!null` and `#k!undef` exclusion facts, so a later `typeof` test drops `null` and `undefined` (S9.4). The displayed types did not change.
+- Finding 2 (repro-prelude-type-name) is fixed by the rule `[builtin-type-name]` (S1.10). The declaration is not loaded. This also closes a hole found by probing: a user `interface Array<T>{ push… }` with no `@mutates` let `xs.push` through on a non-Mut.
+- Holes found, not fixed (the task was design only):
+  - `"then" in v` with `v: unknown` and no narrowing is accepted. It throws a TypeError on a primitive.
+  - `typeof u === "function"` on an unknown makes `u` callable with any arguments.
+  - A `State` reached as `unknown` (`const u: unknown = n`), narrowed with `typeof`/`in`, allows `u.set(5)` outside an action. The same write is `[state-write]` when written as `n.set(5)`.
+  - An `Action` reached through unknown can be called the same way.
+  - Every option below has to reject these: `in` on a right operand not narrowed to an object, and a call of a value narrowed only by `typeof "function"` (new rule, say `unknown-call`). Estimated cost: ~10 checker lines under any option.
+
+### Reading values of unknown shape: three options
+
+All three options keep these rejected: `as` casts, writes to a value of unknown shape, the two holes above, and `===` between two possibly non-primitive operands (S3.12).
+
+**A. Narrow to a read-only record and array.**
+- Rules:
+  - `typeof v === "object" && v !== null` narrows `v: unknown` to `{ readonly [k: string]: unknown }`.
+  - `Array.isArray(v)` narrows it to `readonly unknown[]`.
+  - On that record, `v[k]` with `k: string` is `unknown`, `k in v` is allowed, and `Object.keys(v)` is `readonly string[]`.
+- What it cannot do: it has no way to tell a Map, a Set or a Date from a record. `Object.keys(new Map([[1, 2]]))` is `[]`, so the `equals` below says two different Maps are equal. Because of this, A cannot port `equals` alone.
+```ts
+const equals = () => function equals(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (Array.isArray(a)) return Array.isArray(b) && a.length === b.length && a.every((x, i) => equals(x, b[i]));
+  if (typeof a !== "object" || a === null || typeof b !== "object" || b === null || Array.isArray(b)) return false;
+  if (!Object.is(Object.getPrototypeOf(a), Object.getPrototypeOf(b))) return false;
+  const ka = Object.keys(a), kb = Object.keys(b);
+  return ka.length === kb.length && ka.every((k) => k in b && equals(a[k], b[k]));
+};
+```
+- Estimated cost: ~35 checker lines (an index rule on the record, narrowing on `typeof`/`isArray`, the `in` operand rule) and 2 intrinsics declarations (`Object.keys` and `Object.getPrototypeOf` on unknown).
+- Spec statements touched: S9.2 (it becomes PROSE PENDING) and 2 new statements.
+- Cost in simplicity: an index read on unknown data runs any getter it reaches.
+
+**B. Prelude inspection functions.**
+- Signatures:
+  - `kindOf(v: unknown): "null" | "undefined" | "boolean" | "number" | "bigint" | "string" | "symbol" | "function" | "array" | "typed" | "map" | "set" | "record" | "other"`. It returns `"record"` only when the prototype is `Object.prototype` or `null`, and `"other"` for handles, class instances and Dates.
+  - `keysOf(v: unknown): readonly unknown[]`. It gives the own enumerable string keys of a record, the indices of an array or typed array, the keys of a map, the values of a set, and `[]` for anything else.
+  - `at(v: unknown, k: unknown): unknown`. It reads an own data property through its descriptor, or `Map.get`. It never calls a getter, and it gives `undefined` for an accessor or a missing key.
+- These are ordinary prelude functions. Narrowing is the existing literal comparison `kindOf(a) === "map"`, and the checker gains no new typing rule.
+```ts
+const equals = () => function equals(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  const k = kindOf(a);
+  if (k !== kindOf(b) || !(k === "array" || k === "typed" || k === "map" || k === "set" || k === "record")) return false;
+  if (!Object.is(Object.getPrototypeOf(a), Object.getPrototypeOf(b))) return false;
+  const ka = keysOf(a), kb = keysOf(b);
+  if (ka.length !== kb.length) return false;
+  if (k === "set") return ka.every((x) => kb.includes(x));
+  return ka.every((x) => kb.includes(x) && equals(at(a, x), at(b, x)));
+};
+```
+- This matches the original: values are compared deeply, while map keys and set members are compared by identity.
+- Estimated cost: ~6 checker lines (3 prelude signatures and `Object.getPrototypeOf` on unknown) plus ~30 lines of runtime in `prelude.runtime.ts`.
+- Spec statements touched: S2.6's prelude list (PROSE PENDING) and 3 new statements, one per function.
+- Cost in simplicity: three names that TypeScript does not have. Ported code moves further from its original: `a instanceof Map` becomes `kindOf(a) === "map"`.
+
+**C. `instanceof` against intrinsic constructors, on top of A.**
+- Rules:
+  - `v instanceof C`, with `C` one of `Array Map Set Error RegExp ArrayBuffer` or a typed array, narrows `v` to the read-only form of `C`: `ReadonlyMap<unknown, unknown>`, `ReadonlySet<unknown>`, `readonly unknown[]`, and so on.
+  - The false branch keeps `v` unchanged.
+  - Any other right operand is rejected (new rule, say `instanceof-non-intrinsic`).
+```ts
+const equals = () => function equals(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (!Object.is(Object.getPrototypeOf(a), Object.getPrototypeOf(b))) return false;
+  if (a instanceof Map) return b instanceof Map && a.size === b.size && [...a].every(([k, v]) => b.has(k) && equals(v, b.get(k)));
+  if (a instanceof Set) return b instanceof Set && a.size === b.size && [...a].every((v) => b.has(v));
+  if (Array.isArray(a)) return Array.isArray(b) && a.length === b.length && a.every((x, i) => equals(x, b[i]));
+  const ka = Object.keys(a), kb = Object.keys(b);
+  return ka.length === kb.length && ka.every((k) => k in b && equals(a[k], b[k]));
+};
+```
+- This is the closest to `prelude.runtime.ts` `equals`; only the casts are gone. Typed arrays fall through to `Object.keys`, which gives their indices.
+- Estimated cost: A's ~35 lines plus ~25 for `instanceof` narrowing in `cond`, plus ~3 in own.ts.
+- Spec statements touched: S9.2 and 3 new statements.
+- Cost in simplicity: nominal tests enter a structural checker. A Map from another realm fails `instanceof` and is then compared as an empty record. That is A's failure, narrowed to foreign realms.
+
+**Recommendation: B.**
+- It adds the fewest checker lines and no typing rule; the narrowing it relies on (literal comparison) is already specified.
+- `at` runs no getter.
+- It is the only option where the cross-realm and Map-as-record cases cannot give a wrong answer.
+- Its cost is vocabulary that TypeScript does not have.
+- If staying close to the original TypeScript matters more, take C, and take it whole, since A alone cannot write `equals`.

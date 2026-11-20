@@ -25,7 +25,11 @@ export class Scope {
   constructor(parent: Scope | null) { this.parent = parent; }
   get(n: string): Binding | undefined { return this.vars.get(n) ?? this.parent?.get(n); }
 }
-export type Env = { scope: Scope; flow: Map<string, Ty>; fi: FnInfo };
+// dead: the statements are after a return, throw, break or continue (a break there ends no switch)
+// a flow key that is not a path: a path starts with "#", so no property name can produce one of these
+const exclusion = (x: string, path: string) => `!${x} ${path}`;
+const pathOf = (key: string) => (key.startsWith("!") ? key.slice(key.indexOf(" ") + 1) : key);
+export type Env = { scope: Scope; flow: Map<string, Ty>; fi: FnInfo; dead?: boolean };
 export type CallFact = { sig?: Fn; prelude?: string; helper?: Binding };
 export type Facts = {
   types: Map<Node, Ty>;
@@ -201,7 +205,7 @@ export class Checker {
   }
   dropRoot(flow: Map<string, Ty>, b: Binding) {
     const k = "#" + b.id;
-    for (const key of [...flow.keys()]) if (key === k || key.startsWith(k + ".")) flow.delete(key);
+    for (const key of [...flow.keys()]) { const p = pathOf(key); if (p === k || p.startsWith(k + ".")) flow.delete(key); }
   }
   join(a: Map<string, Ty> | null, b: Map<string, Ty> | null): Map<string, Ty> | null {
     if (!a) return b;
@@ -228,9 +232,16 @@ export class Checker {
     const t = this.infer(e, env);
     const T = new Map(env.flow), F = new Map(env.flow);
     const type = (n: Node) => this.facts.types.get(n);
+    // A branch where the test cannot pass on null (or undefined) records that as the key exclusion("null", k)
+    // (or "undef"), so a later narrowing of k drops that member, whichever test came first. join keeps a key
+    // only when both sides have it; dropRoot removes it with the narrowings of its root.
     const narrow = (n: Node, nt: Ty | undefined, by: (t: Ty, branch: boolean) => Ty) => {
       const k = this.pathKey(n, env);
-      if (k && nt) { T.set(k, by(nt, true)); F.set(k, by(nt, false)); }
+      if (!k || !nt) return;
+      for (const [M, br] of [[T, true], [F, false]] as const) {
+        for (const x of [NULL, UNDEF]) if (by(x, br).k === "never") M.set(exclusion(x.k, k), NEVER);
+        M.set(k, this.filter(by(nt, br), (m) => !(m.k === "null" ? M.has(exclusion("null", k)) : (m.k === "undef" || m.k === "void") && M.has(exclusion("undef", k)))));
+      }
     };
     // P.f's test also narrows P to the members whose f can pass it
     const discriminant = (m: Node, can: (pt: Ty, branch: boolean) => boolean) => {
@@ -823,7 +834,7 @@ export class Checker {
     // Narrowings of const roots survive into a closure; let and reassigned-parameter roots do not.
     const flow = new Map<string, Ty>();
     if (env) for (const [k, t] of env.flow) {
-      const id = Number(k.slice(1).split(".")[0]);
+      const id = Number(pathOf(k).slice(1).split(".")[0]);
       const b = this.findBinding(env.scope, id);
       if (b && (b.kind === "const" || b.kind === "fn" || (b.kind === "param" && !b.assigned))) flow.set(k, t);
     }
@@ -1166,7 +1177,7 @@ export class Checker {
   stmts(list: Node[], env: Env): boolean {
     let live = true;
     for (const s of list) {
-      if (!live) { const dead = { ...env, flow: new Map(env.flow) }; this.stmt(s, dead); continue; }
+      if (!live) { const dead = { ...env, flow: new Map(env.flow), dead: true }; this.stmt(s, dead); continue; }
       live = this.stmt(s, env);
     }
     return live;
@@ -1233,13 +1244,16 @@ export class Checker {
           if (s.left.kind === "var") this.err(s.left, "no-var", "var");
           this.bindPattern(d.id, el ?? ERR, inner, s.left.kind === "const" ? "const" : "let");
         } else this.unsupported(s.left, "for...of over an existing binding");
+        this.breaks.push(null);
         this.sub1(s.body, inner);
+        this.breaks.pop();
         env.flow = head;
         return true;
       }
       case "ForInStatement": this.unsupported(s, "for...in"); return true;
       case "BreakStatement": case "ContinueStatement":
         if (s.label) this.unsupported(s, "labelled break/continue");
+        else if (s.type === "BreakStatement" && !env.dead) this.breaks.at(-1)?.push(new Map(env.flow));
         return false;
       case "TryStatement": {
         const before = new Map(env.flow);
@@ -1261,7 +1275,7 @@ export class Checker {
         }
         return live;
       }
-      case "SwitchStatement": this.unsupported(s, "switch"); return true;
+      case "SwitchStatement": return this.switchStmt(s, env);
       case "ClassDeclaration": this.declare(env, s.id.name, ERR, "const", s.id); return true; // no-class (syntax pass)
       case "LabeledStatement": this.unsupported(s, "label"); return true;
       case "TSTypeAliasDeclaration": case "TSInterfaceDeclaration": this.unsupported(s, "local type declaration"); return true;
@@ -1314,6 +1328,7 @@ export class Checker {
     const head = new Map(inner.flow);
     let F: Map<string, Ty> | null = null;
     let bodyEnv: Env;
+    this.breaks.push(null);
     if (s.type === "DoWhileStatement") {
       bodyEnv = { ...inner, flow: new Map(head) };
       this.sub1(s.body, bodyEnv);
@@ -1327,10 +1342,62 @@ export class Checker {
       this.sub1(s.body, bodyEnv);
       if (s.type === "ForStatement" && s.update) this.infer(s.update, bodyEnv);
     }
+    this.breaks.pop();
     const infinite = s.type !== "DoWhileStatement" && !s.test || (s.test?.type === "Literal" && s.test.value === true);
     const brk = this.hasBreak(s.body);
     if (infinite && !brk) return false;
     env.flow = brk || !F ? head : F;
+    return true;
+  }
+  // The flows at the breaks of the innermost switch, or null while a loop is innermost (a loop's exit flow
+  // is its head, after invalidate).
+  breaks: (Map<string, Ty>[] | null)[] = [];
+  // switch: each case is checked as the condition d === test, in the flow where every earlier test was
+  // false; a body runs in the flow where its test (or one of the empty cases before it) is true, default
+  // where every test is false. rest: the values of d that no case has taken, for exhaustiveness.
+  switchStmt(s: Node, env: Env): boolean {
+    const d = s.discriminant;
+    const dt = this.infer(d, env);
+    let rest = dt;
+    let none = new Map(env.flow);
+    const taken: (Map<string, Ty> | null)[] = [];
+    for (const c of s.cases) {
+      if (!c.test) { taken.push(null); continue; }
+      const eq = { type: "BinaryExpression", operator: "===", left: d, right: c.test, start: c.test.start, end: c.test.end, loc: c.test.loc } as Node;
+      // the discriminant is read again for each case; its own problems were reported by the first read
+      const nd = this.diags.length, nu = this.unsup.length;
+      const [T, F] = this.cond(eq, { ...env, flow: none });
+      const inD = (x: Diag) => x.node.start >= d.start && x.node.end <= d.end;
+      for (let i = this.diags.length - 1; i >= nd; i--) if (inD(this.diags[i])) this.diags.splice(i, 1);
+      for (let i = this.unsup.length - 1; i >= nu; i--) if (inD(this.unsup[i])) this.unsup.splice(i, 1);
+      taken.push(T);
+      none = F;
+      const bt = this.facts.types.get(c.test);
+      // cond compares a path with what the earlier cases left; any other discriminant is compared with rest here
+      if (bt && !this.pathKey(d, env) && !this.noOverlap(dt, bt) && this.noOverlap(rest, bt))
+        this.err(c.test, "type", `case ${show(bt)}: no value of ${show(dt)} is left for it after the earlier cases`);
+      if (bt && (bt.k === "lit" || bt.k === "null" || bt.k === "undef")) rest = this.narrowEq(rest, bt, false, false);
+    }
+    this.rec(d, dt);
+    const exits: Map<string, Ty>[] = [];
+    let into: Map<string, Ty> | null = null; // the flow into the next body from the cases before it
+    this.breaks.push(exits);
+    for (const [i, c] of (s.cases as Node[]).entries()) {
+      const flow = this.join(into, taken[i] ?? none)!;
+      for (const st of c.consequent) if (st.type === "VariableDeclaration" || st.type === "FunctionDeclaration" || st.type === "ClassDeclaration")
+        this.err(st, "switch-declaration", "a declaration directly in a case is visible to every case of the switch; put the case's statements in a block { … }");
+      if (!c.consequent.length) { into = flow; continue; }
+      const inner: Env = { ...env, scope: new Scope(env.scope), flow: new Map(flow) };
+      this.hoist(c.consequent, inner);
+      const end = this.stmts(c.consequent, inner);
+      if (end && i < s.cases.length - 1) this.err(c, "switch-fallthrough", "this case falls through into the next one; end it with break, return, throw or continue");
+      into = end ? inner.flow : null;
+    }
+    this.breaks.pop();
+    if (into) exits.push(into);
+    if (!s.cases.some((c: Node) => !c.test) && rest.k !== "never") exits.push(none);
+    if (!exits.length) return false;
+    env.flow = exits.reduce((a, b) => this.join(a, b)!);
     return true;
   }
   // an unlabelled break of this loop (not of a nested loop or switch)

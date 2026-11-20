@@ -34,6 +34,8 @@ md`**S1.8** One \`const\` or \`let\` statement may declare several cells: \`cons
 // %%
 md`**S1.9** A cell that takes itself, or takes a cell that through its own inputs takes it back, is \`[cycle]\` ("dependency cycle a -> b -> a"). Every cell on the cycle is rejected.`
 // %%
+md`**S1.10** A top-level \`type\` or \`interface\` named as one of the checker's own types, \`Array ReadonlyArray Record Js ValueOf String Number Boolean RegExp RegExpMatchArray Map Set Error Promise ArrayBuffer URL URLSearchParams Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array Mut Borrowed State StateCell Action Events Listener Generator Iterable ArrayLike Clock Random Fetch FetchResponse Log Invalidation Compile Pool Elem Child PointerData CommonProps ButtonProps InputProps CanvasProps IntrinsicElements\`, is \`[builtin-type-name]\`. It is not loaded: the cells of the module read the checker's type of that name.`
+// %%
 md`The cells of this section, written in SoundScript. \`s1_exported\` keeps its \`export\` (S1.2), and the editor marks it "export is not needed".`
 // %%
 //ss: ./spec.ts
@@ -49,7 +51,10 @@ spec_rejects_1 = [
   { statement: "S1.6", rule: "duplicate-cell", source: "const a = () => 1;\nconst a = () => 2;" },
   { statement: "S1.7", rule: "duplicate-cell", source: "let a = () => 1;", shell: "export let a = () => 2;" },
   { statement: "S1.9", rule: "cycle", source: "const a = (a: number) => a + 1;" },
-  { statement: "S1.9", rule: "cycle", source: "const a = (b: number) => b + 1;\nconst b = (a: number) => a + 1;" }
+  { statement: "S1.9", rule: "cycle", source: "const a = (b: number) => b + 1;\nconst b = (a: number) => a + 1;" },
+  { statement: "S1.10", rule: "builtin-type-name", source: "type Listener = { readonly n: number };" },
+  { statement: "S1.10", rule: "builtin-type-name", source: "interface Array<T> { readonly length: number; push(x: T): number }" },
+  { statement: "S1.10", rule: "builtin-type-name", source: "type Pool = { readonly size: number };\nconst a = (pool: Pool) => pool.size;" }
 ]
 // %%
 spec_rejects_1_view = spec_rejectsTable(spec_rejects_1)
@@ -253,6 +258,20 @@ test_spec_S1_8 = {
   return "one statement, two cells; both run (b is 2)";
 }
 // %%
+test_spec_S1_10 = {
+  // the names are read from S1.10's own text; each, declared as a type, is rejected
+  const statement = [...runtime._variables].filter((v) => v._module === spec_module).map((v) => String(v._definition)).find((d) => d.includes("**S1.10**"));
+  const names = /own types, \\`([^`\\]+)\\`/.exec(statement)[1].split(" ");
+  spec_is([...names].sort(), soundscript.builtinTypeNames());
+  const bad = names.filter((n) => JSON.stringify(spec_rulesOf({ source: `type ${n} = { readonly n: number };` })) !== '["builtin-type-name"]');
+  if (bad.length) throw new Error(`not rejected: ${bad.join(", ")}`);
+  // the cells read the built-in: a user Array without @mutates does not let push through, a user Pool does not retype the capability
+  spec_is(spec_rulesOf({ source: "interface Array<T> { push(x: T): number }\nconst xs = () => [1];\nconst w = (xs) => xs.push(1);" }), ["builtin-type-name", "mutating-method"]);
+  spec_is(spec_rulesOf({ source: "type Pool = { readonly m: number };\nconst a = (pool: Pool) => pool.m;" }), ["builtin-type-name", "no-member"]);
+  spec_is(spec_okCells("type ListenerOf = { readonly n: number };\nconst one = () => (l: ListenerOf): number => l.n;"), "one:ok");
+  return `${spec_rejectsFor("S1.10")}; the list is the checker's, all ${names.length} names rejected; the cells read the built-in; another name is accepted`;
+}
+// %%
 test_spec_S1_9 = {
   const st = soundscript.check("const a = (b: number) => b + 1;\nconst b = (a: number) => a + 1;").cells.map((c) => `${c.name}:${c.status}`).join(",");
   spec_is(st, "a:rejected,b:rejected");
@@ -408,7 +427,19 @@ md`**S3.11** A local \`let\` may be assigned from a nested function only when ev
 // %%
 md`**S3.12** \`===\`, \`!==\`, \`==\` and \`!=\` with two operands that may both be non-primitive is \`[strict-eq-object]\`. \`equals(a, b)\` compares structurally. Comparing with a primitive, \`null\` included, is accepted.`
 // %%
-md`The cells of this section. \`s3_parse\` is a recursive-descent parser whose helpers share the cursor \`let i\` (S3.11); \`s3_moved\` builds a new point with a spread.`
+md`**S3.13** \`switch\` is accepted. Each case is checked as the condition \`d === e\`, where \`d\` is the discriminant and \`e\` the case's value: two operands that may both be non-primitive are \`[strict-eq-object]\`, and a value that has nothing in common with the values of \`d\` no earlier case took is \`[type]\`, a repeated case included.`
+// %%
+md`**S3.14** A case's body is checked with the narrowings of its test being true and of every earlier test being false, as in an \`if\` chain of the same tests. Empty cases before a body (\`case "a": case "b":\`) give it either case's narrowings. \`default\`, wherever it is written, has every test false. In \`switch (t.k)\`, a case narrows \`t\` to the members whose \`k\` can equal its value.`
+// %%
+md`**S3.15** A case body that is not empty, is followed by another case, and can reach its end is \`[switch-fallthrough]\`. A body ends with \`break\`, which ends the switch, or with \`return\`, \`throw\` or \`continue\`. The last body may reach its end.`
+// %%
+md`**S3.16** \`const\`, \`let\`, \`function\` or \`class\` written directly in a case is \`[switch-declaration]\`, because it would be in scope in every case. In a block inside the case, \`case 1: { const x = 2; return x; }\`, it is accepted.`
+// %%
+md`**S3.17** A \`switch\` with no \`default\`, whose case values have literal, \`null\` or \`undefined\` types that together are every value of the discriminant's type, always takes a case. When every body then ends in \`return\` or \`throw\`, the code after the switch is unreachable and a function needs no \`return\` after it. When the type has a value no case lists, such as any \`string\`, the switch may take none.`
+// %%
+md`**S3.18** The rules of sections 3 to 7 apply in a case body as in the body of an \`if\`: a \`Mut\` returned from a case is \`[mut-escape]\`, a \`State\` written in a case outside an action is \`[state-write]\`, and a \`Mut\` frozen in a case and used after the switch, through \`break\` or through \`continue\` and the next iteration, is \`[mut-after-freeze]\`.`
+// %%
+md`The cells of this section. \`s3_parse\` is a recursive-descent parser whose helpers share the cursor \`let i\` (S3.11); \`s3_moved\` builds a new point with a spread; \`s3_area\` is a switch over the tag of a union with a case for each member and no \`default\`, and \`s3_kind\` groups empty cases and has a \`default\` with a block.`
 // %%
 //ss: ./spec-3.ts
 // %%
@@ -465,7 +496,24 @@ spec_rejects_3 = [
   { statement: "S3.11", rule: "let-capture", source: "const viaEscapingOuter = () => {\n  let n = 0;\n  const outer = () => {\n    const inner = () => {\n      n = 2;\n    };\n    inner();\n  };\n  return [outer];\n};" },
   { statement: "S3.12", rule: "strict-eq-object", source: "const xs = () => [1];\nconst ys = () => [1];\nconst same = (xs, ys) => xs === ys;" },
   { statement: "S3.12", rule: "strict-eq-object", source: "const xs = () => [1];\nconst ys = () => [1];\nconst loose = (xs, ys) => xs == ys || xs != ys || xs !== ys;" },
-  { statement: "S3.12", rule: "strict-eq-object", source: "const xs = (): number[] | string => [1];\nconst ys = (): number[] | string => \"a\";\nconst same = (xs, ys) => xs === ys;" }
+  { statement: "S3.12", rule: "strict-eq-object", source: "const xs = (): number[] | string => [1];\nconst ys = (): number[] | string => \"a\";\nconst same = (xs, ys) => xs === ys;" },
+  { statement: "S3.13", rule: "strict-eq-object", source: "const f = () => (a: readonly number[], b: readonly number[]): number => {\n  switch (a) {\n    case b: return 1;\n  }\n  return 0;\n};" },
+  { statement: "S3.13", rule: "type", source: "const f = () => (a: number): number => {\n  switch (a) {\n    case \"x\": return 1;\n  }\n  return 0;\n};" },
+  { statement: "S3.13", rule: "type", source: "const f = () => (a: \"x\" | \"y\"): number => {\n  switch (a) {\n    case \"x\": return 1;\n    case \"x\": return 2;\n  }\n  return 0;\n};" },
+  { statement: "S3.13", rule: "type", source: "const g = () => (): \"x\" | \"y\" => \"x\";\nconst f = (g: () => \"x\" | \"y\") => (): number => {\n  switch (g()) {\n    case \"x\": return 1;\n    case \"x\": return 2;\n  }\n  return 0;\n};" },
+  { statement: "S3.14", rule: "no-member", source: "type T = { readonly k: \"n\"; readonly v: number } | { readonly k: \"s\"; readonly s: string };\nconst f = () => (t: T): number => {\n  switch (t.k) {\n    case \"s\": return t.v;\n  }\n  return 0;\n};" },
+  { statement: "S3.14", rule: "possibly-undefined", source: "const f = () => (a: number | undefined): number => {\n  switch (a) {\n    case 1: return 1;\n    default: return a + 1;\n  }\n};" },
+  { statement: "S3.15", rule: "switch-fallthrough", source: "const f = () => (a: number): number => {\n  let n = 0;\n  switch (a) {\n    case 1: n = 1;\n    case 2: n = 2; break;\n  }\n  return n;\n};" },
+  { statement: "S3.15", rule: "switch-fallthrough", source: "const f = () => (a: number, b: boolean): number => {\n  switch (a) {\n    case 1: if (b) break;\n    default: return 2;\n  }\n  return 1;\n};" },
+  { statement: "S3.16", rule: "switch-declaration", source: "const f = () => (a: number): number => {\n  switch (a) {\n    case 1: const x = 2; return x;\n  }\n  return 0;\n};" },
+  { statement: "S3.16", rule: "switch-declaration", source: "const f = () => (a: number): number => {\n  switch (a) {\n    case 1: function g(): number { return 2; } return g();\n  }\n  return 0;\n};" },
+  { statement: "S3.17", rule: "type", source: "type T = { readonly k: \"n\"; readonly v: number } | { readonly k: \"s\"; readonly s: string };\nconst f = () => (t: T): number => {\n  switch (t.k) {\n    case \"n\": return t.v;\n  }\n};" },
+  { statement: "S3.17", rule: "type", source: "const f = () => (c: string): number => {\n  switch (c) {\n    case \"a\": return 1;\n    case \"b\": return 2;\n  }\n};" },
+  { statement: "S3.18", rule: "mut-escape", source: "const f = () => (a: number) => {\n  const m = mut([1]);\n  switch (a) {\n    case 1: return m;\n  }\n  return freeze(m);\n};" },
+  { statement: "S3.18", rule: "state-write", source: "const n = () => state(0);\nconst w = (n: State<number>) => (a: number): number => {\n  switch (a) {\n    case 1: n.set(1); return 1;\n  }\n  return 0;\n};" },
+  { statement: "S3.18", rule: "mut-after-freeze", source: "const f = () => (a: number): readonly number[] => {\n  const m = mut([1]);\n  let out: readonly number[] = [];\n  switch (a) {\n    case 1: out = freeze(m); break;\n  }\n  m.push(2);\n  return out;\n};" },
+  { statement: "S3.18", rule: "mut-after-freeze", source: "const f = () => (xs: readonly number[]): readonly number[] => {\n  const m = mut([1]);\n  let out: readonly number[] = [];\n  for (const x of xs) {\n    switch (x) {\n      case 1: out = freeze(m); continue;\n    }\n    m.push(x);\n  }\n  return out;\n};" },
+  { statement: "S3.18", rule: "let-capture", source: "const f = () => (a: number): number => {\n  let n = 0;\n  switch (a) {\n    case 1: return [1].map((x) => { n = x; return x; }).length;\n  }\n  return n;\n};" }
 ]
 // %%
 spec_rejects_3_view = spec_rejectsTable(spec_rejects_3)
@@ -515,6 +563,47 @@ test_spec_S3_12 = {
   spec_is(spec_okCells("const xs = (): number[] | null => [1];\nconst a = (xs) => xs === null || xs?.length === 1 || \"a\" === \"a\";"), "xs:ok,a:ok");
   spec_is(await spec_module.value("s3_same"), [true, false]);
   return `${spec_rejectsFor("S3.12")}; equals compares structurally (s3_same is [true,false])`;
+}
+// %%
+test_spec_S3_13 = {
+  spec_is(spec_okCells("const f = () => (a: number, b: string): number => {\n  switch (a) {\n    case 1: return 1;\n    case 2: { if (b === \"x\") return 3; break; }\n    default: return 0;\n  }\n  return 2;\n};\nconst g = () => (s: string | null): number => {\n  switch (s) {\n    case null: return 0;\n    case \"\": return 1;\n  }\n  return s.length;\n};"), "f:ok,g:ok");
+  spec_is(await spec_module.value("s3_kinds"), ["vowel", "space", "digit", "other"]);
+  return `${spec_rejectsFor("S3.13")}; switch on a number and on string | null is accepted; s3_kinds is ${JSON.stringify(await spec_module.value("s3_kinds"))}`;
+}
+// %%
+test_spec_S3_14 = {
+  // a switch and the if chain of the same tests give the same verdict and rules
+  const pairs = [
+    ["switch (t.k) { case \"n\": return t.v; case \"s\": return t.s.length; } return 0;", "if (t.k === \"n\") return t.v; if (t.k === \"s\") return t.s.length; return 0;"],
+    ["switch (t.k) { case \"s\": return t.v; } return 0;", "if (t.k === \"s\") return t.v; return 0;"],
+    ["switch (t.k) { case \"n\": return 1; default: return t.s.length; }", "if (t.k === \"n\") return 1; return t.s.length;"],
+    ["switch (t.k) { case \"n\": case \"s\": return t.k.length; } return 0;", "if (t.k === \"n\" || t.k === \"s\") return t.k.length; return 0;"],
+    ["switch (u) { case undefined: return 0; default: return u.length; }", "if (u === undefined) return 0; return u.length;"],
+  ];
+  const head = "type T = { readonly k: \"n\"; readonly v: number } | { readonly k: \"s\"; readonly s: string };\nconst f = () => (t: T, u: string | undefined): number => {\n";
+  for (const [sw, chain] of pairs) spec_is(spec_rulesOf({ source: head + sw + "\n};" }), spec_rulesOf({ source: head + chain + "\n};" }));
+  return `${spec_rejectsFor("S3.14")}; ${pairs.length} switches give the rules of their if chains`;
+}
+// %%
+test_spec_S3_15 = {
+  spec_is(spec_okCells("const f = () => (a: number): number => {\n  let n = 0;\n  switch (a) {\n    case 1: case 2: n = 1; break;\n    case 3: throw new Error(\"3\");\n    case 4: return 4;\n    default: n = 5;\n  }\n  return n;\n};\nconst g = () => (xs: readonly number[]): number => {\n  let n = 0;\n  for (const x of xs) {\n    switch (x) {\n      case 0: continue;\n      default: n += x;\n    }\n  }\n  return n;\n};"), "f:ok,g:ok");
+  return `${spec_rejectsFor("S3.15")}; empty cases, break, throw, return, continue and a last body that reaches its end are accepted`;
+}
+// %%
+test_spec_S3_16 = {
+  spec_is(spec_okCells("const f = () => (a: number): number => {\n  switch (a) {\n    case 1: { const x = 2; return x; }\n    default: { const x = 3; return x; }\n  }\n};"), "f:ok");
+  return `${spec_rejectsFor("S3.16")}; a declaration in a block inside a case is accepted`;
+}
+// %%
+test_spec_S3_17 = {
+  spec_is(spec_okCells("const f = () => (a: \"x\" | \"y\" | null): number => {\n  switch (a) {\n    case \"x\": return 1;\n    case \"y\": return 2;\n    case null: return 3;\n  }\n};\nconst g = () => (b: boolean): string => {\n  switch (b) {\n    case true: return \"t\";\n    case false: return \"f\";\n  }\n};"), "f:ok,g:ok");
+  spec_is(await spec_module.value("s3_areas"), [9, 10, 0]);
+  return `${spec_rejectsFor("S3.17")}; cases covering a union of literals and null, and true and false, need no return after; s3_areas is [9,10,0]`;
+}
+// %%
+test_spec_S3_18 = {
+  spec_is(spec_okCells("const f = () => (a: number): readonly number[] => {\n  const m = mut([1]);\n  switch (a) {\n    case 1: m.push(2); break;\n    case 2: { m.push(3); break; }\n    default: m.push(4);\n  }\n  return freeze(m);\n};\nconst n = () => state(0);\nconst bump = (n: State<number>) => action((a: number) => {\n  switch (a) {\n    case 1: n.set(1); break;\n    default: n.update((x) => x + a);\n  }\n});"), "f:ok,n:ok,bump:ok");
+  return `${spec_rejectsFor("S3.18")}; a Mut written in cases and frozen after, and a State written in a case inside an action, are accepted`;
 }
 // %%
 md`## 4. Mut locals
@@ -1483,6 +1572,8 @@ md`**S9.2** A checked function from \`unknown\` that narrows with \`typeof\`, \`
 // %%
 md`**S9.3** A foreign declaration (\`declare const\` or \`declare function\`, given to the checker beside the cells) is the trusted signature of an imported cell or library. Each is marked \`/** pure */\` or \`/** effect */\`; an unmarked one is \`[foreign-unmarked]\`, and a checked cell that takes an \`effect\` one is \`[foreign-effect]\`. A foreign declaration's name is used before a global of the same name. A notebook module has none.`
 // %%
+md`**S9.4** The narrowings of one value combine in any order: a test that excludes \`null\` or \`undefined\` (\`v !== null\`, \`v != null\`, \`!!v\`) and a later \`typeof v === "object"\` narrow \`v\` to \`object\`, as when \`typeof\` is tested first. An assignment to \`v\` ends the exclusion.`
+// %%
 md`The cells of this section. \`s9_raw\` is Observable JavaScript; \`s9_size\` takes it as \`unknown\` and \`s9_decodeSize\` builds a typed \`{ w, h }\` from it.`
 // %%
 s9_raw = ({ w: 3, h: 1.5, extra: true })
@@ -1492,7 +1583,12 @@ s9_raw = ({ w: 3, h: 1.5, extra: true })
 spec_rejects_9 = [
   { statement: "S9.1", rule: "inject-type", source: "const b = (raw: number) => raw + 1;", shell: "export let raw = () => JSON.parse(\"1\");" },
   { statement: "S9.1", rule: "inject-type", source: "const b = (raw: string[]) => raw.length;", shell: "export let raw = () => JSON.parse(\"1\");" },
-  { statement: "S9.1", rule: "no-any", source: "const b = (raw: any) => 1;", shell: "export let raw = () => JSON.parse(\"1\");" }
+  { statement: "S9.1", rule: "no-any", source: "const b = (raw: any) => 1;", shell: "export let raw = () => JSON.parse(\"1\");" },
+  { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (v: unknown): boolean => typeof v === \"object\" && \"then\" in v;" },
+  { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (v: unknown): boolean => v !== undefined && typeof v === \"object\" && \"then\" in v;" },
+  { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (v: unknown, b: boolean): boolean => (b ? v !== null : true) && typeof v === \"object\" && \"then\" in v;" },
+  { statement: "S9.4", rule: "possibly-undefined", source: "type V = { readonly a: { readonly x: number } | null | undefined; readonly \"a!null\": number | undefined };\nconst f = () => (v: V): number => v[\"a!null\"] !== undefined && v.a !== undefined ? v.a.x : 0;" },
+  { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (w: unknown): boolean => {\n  let v = w;\n  if (v === null) return false;\n  v = w;\n  return typeof v === \"object\" && \"then\" in v;\n};" }
 ]
 // %%
 spec_rejects_9_view = spec_rejectsTable(spec_rejects_9)
@@ -1519,6 +1615,11 @@ test_spec_S9_3 = {
   spec_is(rules("const a = (lib: number) => lib + 1;", "/** pure */\ndeclare const lib: number;"), []);
   spec_is(rules("const href = (location) => location.myHref;\nconst b = (href: string) => href;", "/** pure */\ndeclare const location: { readonly myHref: string };"), []);
   return "unmarked: [foreign-unmarked]; an effect foreign taken: [foreign-effect]; a pure one, and one named like a global, accepted";
+}
+// %%
+test_spec_S9_4 = {
+  spec_is(spec_okCells("const a = () => (v: unknown): boolean => typeof v === \"object\" && v !== null && \"then\" in v;\nconst b = () => (v: unknown): boolean => v !== null && typeof v === \"object\" && \"then\" in v;\nconst c = () => (v: unknown): boolean => !!v && typeof v === \"object\" && \"then\" in v;\nconst d = () => (v: unknown): boolean => v != null && typeof v === \"object\" && \"then\" in v;\nconst e = () => (v: unknown): boolean => {\n  if (v === null) return false;\n  return typeof v === \"object\" && \"then\" in v;\n};\nconst g = () => (v: unknown): boolean => v === null || (typeof v === \"object\" && \"then\" in v);"), "a:ok,b:ok,c:ok,d:ok,e:ok,g:ok");
+  return `${spec_rejectsFor("S9.4")}; the null test before or after typeof, !!, != null, an early return and || are accepted`;
 }
 // %%
 md`## 10. Tests

@@ -31,6 +31,8 @@ const keyName = (k: Node): string | null => (k.type === "Identifier" ? k.name : 
 let DECLS: [Parsed, Parsed, Parsed] | null = null;
 
 const ONE_ARG = new Set(["State", "StateCell", "Events", "Mut", "Borrowed"]);
+// names convert reads before any declaration
+const CONVERT_NAMES = ["Js", "Array", "ReadonlyArray", "Record", "Action", "ValueOf"];
 export class Registry {
   types = new Map<string, Decl>();
   values = new Map<string, ValueDecl>();
@@ -48,13 +50,21 @@ export class Registry {
     this.load(DECLS[2], "jsx"); // structural, unlike the opaque intrinsic interfaces
   }
 
+  // The type names the checker gives a meaning of its own: declared by the intrinsics, the prelude or JSX,
+  // the wrappers, and the names convert reads first. Read before the user's declarations are loaded.
+  builtinTypeNames(): Set<string> {
+    return new Set([...[...this.types].filter(([, d]) => d.origin !== "user" && d.origin !== "foreign").map(([n]) => n), ...WRAPPERS, ...CONVERT_NAMES]);
+  }
+
   // Top-level type/interface/declare statements of a file. Returns non-declaration statements untouched.
-  load(p: Parsed, origin: Origin, typesOnly = false): Node[] {
+  // skip: declarations not to load (core.ts: a user type with a built-in name).
+  load(p: Parsed, origin: Origin, typesOnly = false, skip: Set<Node> = new Set()): Node[] {
     const rest: Node[] = [];
     const fnDecls = new Map<string, Node[]>();
     for (const st of p.program.body as Node[]) {
       const d = st.type === "ExportNamedDeclaration" && st.declaration && /^TS(TypeAlias|Interface)Declaration$/.test(st.declaration.type) ? st.declaration : st;
       if (typesOnly && d.type !== "TSTypeAliasDeclaration" && d.type !== "TSInterfaceDeclaration") { rest.push(st); continue; }
+      if (skip.has(d)) continue;
       if (d.type === "TSTypeAliasDeclaration" || d.type === "TSInterfaceDeclaration") {
         const name = d.id.name;
         const tps = tpNames(d.typeParameters);
@@ -441,4 +451,8 @@ function marker(p: Parsed, n: Node): "pure" | "effect" | null {
     if (/^\*\s*effect\s*$/.test(c.text.trim())) return "effect";
   }
   return null;
+}
+// the type names a top-level type or interface may not take (S1.10)
+export function builtinTypeNames(): string[] {
+  return [...new Registry().builtinTypeNames()].sort();
 }

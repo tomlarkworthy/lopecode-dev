@@ -51,3 +51,33 @@ const s3_steps = () => {
   }
   return n;
 };
+
+type S3Shape = { readonly k: "square"; readonly side: number } | { readonly k: "rect"; readonly w: number; readonly h: number } | { readonly k: "dot" };
+
+const s3_area = () => (s: S3Shape): number => {
+  switch (s.k) {
+    case "square": return s.side * s.side;
+    case "rect": return s.w * s.h;
+    case "dot": return 0;
+  }
+};
+
+const s3_areas = (s3_area) => [s3_area({ k: "square", side: 3 }), s3_area({ k: "rect", w: 2, h: 5 }), s3_area({ k: "dot" })];
+
+const s3_kind = () => (c: string): string => {
+  let kind = "other";
+  switch (c) {
+    case "a": case "e": case "i": case "o": case "u":
+      kind = "vowel";
+      break;
+    case " ":
+      return "space";
+    default: {
+      const code = c.charCodeAt(0);
+      if (code >= 48 && code <= 57) kind = "digit";
+    }
+  }
+  return kind;
+};
+
+const s3_kinds = (s3_kind) => ["e", " ", "7", "x"].map(s3_kind);

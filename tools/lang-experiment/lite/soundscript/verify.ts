@@ -67,7 +67,6 @@ const RULE_PROBES: Record<string, string> = {
   "const-assign": "const f = () => { const a = 1; a = 2; return a; };",
 };
 const UNSUPPORTED_PROBES: [string, string, boolean?][] = [
-  ["switch", "const f = () => (a: number) => { switch (a) { case 1: return 1; } return 0; };"],
   ["for…in", "const f = () => (o: { readonly a: number }) => { let n = 0; for (const k in o) n++; return n; };"],
   ["instanceof", "const f = () => (x: Error) => x instanceof Error;"],
   ["??=", "const f = () => { let a: number | undefined = undefined; a ??= 1; return a; };"],

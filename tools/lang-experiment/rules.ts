@@ -36,6 +36,9 @@ export const RULES: RuleInfo[] = [
   { id: "no-namespace", section: "Immutable by default", how: "exact", summary: "namespace / module declaration" },
   { id: "no-dynamic-import", section: "Immutable by default", how: "exact", summary: "import()" },
   { id: "let-capture", section: "Immutable by default", how: "exact", summary: "a let assigned from inside a nested function" },
+  { id: "switch-fallthrough", section: "Immutable by default", how: "exact", summary: "a non-empty case body that can reach its end, followed by another case" },
+  { id: "switch-declaration", section: "Immutable by default", how: "exact", summary: "const, let, function or class directly in a case, not in a block" },
+  { id: "builtin-type-name", section: "Files", how: "exact", summary: "a top-level type or interface named as one of the checker's own types (Listener, Array, Pool, ...)" },
   { id: "strict-eq-object", section: "Immutable by default", how: "exact", summary: "=== / !== (and ==, !=) on two non-primitive operands" },
   // Opt-in 1
   { id: "mut-bind", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "mut(...) must be the initializer of a local const" },

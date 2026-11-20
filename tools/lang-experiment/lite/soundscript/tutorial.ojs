@@ -409,7 +409,7 @@ Its parameters, its own locals, the prelude (\`state\`, \`action\`, \`mut\`, \`f
 
 Not available at all: \`Date\`, \`console\`, \`window\`, \`document\`, \`globalThis\`, \`fetch\` (use the capability), timers, \`eval\`, \`Function\`.
 
-\`viewof\`, \`mutable\` and \`$\` followed by digits are reserved: none may name a cell, a parameter or a local (\`[reserved-name]\`), because a compiled cell is Observable JavaScript (S2.10).`
+\`viewof\`, \`mutable\` and \`$\` followed by digits are reserved: none may name a cell, a parameter or a local (\`[reserved-name]\`), because a compiled cell is Observable JavaScript (S2.10). A top-level \`type\` or \`interface\` may not take the name of one of the checker's own types, such as \`Listener\`, \`Pool\` or \`Array\` (\`[builtin-type-name]\`, S1.10).`
 // %%
 md`### Immutable values
 
@@ -427,9 +427,9 @@ Values are read-only. Rejected:
 | \`new\` on anything but an allowed intrinsic | \`[new-non-intrinsic]\` |
 | \`any\`, \`as\` (except \`as const\`), \`x!\`, \`@ts-ignore\`, \`enum\`, \`namespace\`, \`import()\` | \`[no-any]\` (inside a cell; not checked in a top-level \`type\`), \`[no-cast]\`, \`[no-non-null]\`, \`[no-ts-ignore]\`, \`[no-enum]\`, \`[no-namespace]\`, \`[no-dynamic-import]\` |
 
-Allowed: local \`let\` and reassigning it, loops, \`throw\`, \`try\`/\`catch\`. A \`let\` may be assigned from a nested function only if that function is a local helper called directly and never passed on (\`[let-capture]\`). Reading a property or index of a value that may be \`undefined\` is \`[possibly-undefined]\`. On this page an index read \`a[i]\` has type \`T | undefined\`, so \`xs[0] * 2\` is rejected; narrow it or write \`xs[0] ?? 0\`. (The comparison in "How good is the checker" uses \`T\`, as TypeScript does.)
+Allowed: local \`let\` and reassigning it, loops, \`switch\`, \`throw\`, \`try\`/\`catch\`. A case body that can reach its end with another case after it is \`[switch-fallthrough]\`, and a declaration written directly in a case is \`[switch-declaration]\`; put it in a block. A \`let\` may be assigned from a nested function only if that function is a local helper called directly and never passed on (\`[let-capture]\`). Reading a property or index of a value that may be \`undefined\` is \`[possibly-undefined]\`. On this page an index read \`a[i]\` has type \`T | undefined\`, so \`xs[0] * 2\` is rejected; narrow it or write \`xs[0] ?? 0\`. (The comparison in "How good is the checker" uses \`T\`, as TypeScript does.)
 
-Not modelled, reported *unsupported*: \`switch\`, \`for…in\`, \`instanceof\`, \`??=\` \`&&=\` \`||=\`, destructuring assignment (\`[a, b] = [b, a]\`), tagged templates, the comma operator, \`satisfies\`, a \`type\` declared inside a body, \`yield*\`, \`for await\`, and, in a function holding a \`Mut\`, \`try/finally\` and labelled \`break\`.`
+Not modelled, reported *unsupported*: \`for…in\`, \`instanceof\`, \`??=\` \`&&=\` \`||=\`, destructuring assignment (\`[a, b] = [b, a]\`), tagged templates, the comma operator, \`satisfies\`, a \`type\` declared inside a body, \`yield*\`, \`for await\`, and, in a function holding a \`Mut\`, \`try/finally\` and labelled \`break\`.`
 // %%
 md`### Local mutation: \`mut\`, \`freeze\`
 
