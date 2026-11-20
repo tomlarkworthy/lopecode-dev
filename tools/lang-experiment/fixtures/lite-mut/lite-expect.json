@@ -2,7 +2,7 @@
   "reject-mut-not-fresh": ["mut-not-fresh"],
   "reject-mut-deep-write": ["mut-deep-write"],
   "reject-mut-freeze-flow": ["mut-after-freeze"],
-  "reject-mut-view": ["mut-view"],
+  "reject-mut-view": ["mut-view", "iterator-cell"],
   "reject-mut-escape": ["mut-escape", "arity", "type"],
   "reject-mut-capture": ["mut-capture", "mut-after-freeze"],
   "reject-mut-freeze-param": ["mut-freeze-param"],

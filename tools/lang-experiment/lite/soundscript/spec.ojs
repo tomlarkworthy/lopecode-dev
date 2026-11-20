@@ -431,6 +431,8 @@ md`**S3.17** A \`switch\` with no \`default\`, whose case values have literal, \
 // %%
 md`**S3.18** The rules of sections 3 to 7 apply in a case body as in the body of an \`if\`: a \`Mut\` returned from a case is \`[mut-escape]\`, a \`State\` written in a case outside an action is \`[state-write]\`, and a \`Mut\` frozen in a case and used after the switch, through \`break\` or through \`continue\` and the next iteration, is \`[mut-after-freeze]\`.`
 // %%
+md`**S3.19** A nested function that uses a binding of an enclosing function whose type may hold an iterator is \`[iterator-capture]\`, and a cell whose value, state cell content or events value may hold one is \`[iterator-cell]\`: reading an iterator uses it up. A type may hold one when it is or contains \`Iterable<T>\` (what \`values()\`, \`keys()\` and \`entries()\` return), \`Generator<T>\` or a type parameter; a function type, \`Action\`, \`State\` and \`Events\` hold none. An array, a string, a \`Map\` and a \`Set\` may be kept, and \`[...it]\` copies an iterator into an array.`
+// %%
 md`The cells of this section. \`s3_parse\` is a recursive-descent parser whose helpers share the cursor \`let i\` (S3.11); \`s3_moved\` builds a new point with a spread; \`s3_area\` is a switch over the tag of a union with a case for each member and no \`default\`, and \`s3_kind\` groups empty cases and has a \`default\` with a block.`
 // %%
 //ss: ./spec-3.ts
@@ -505,7 +507,14 @@ spec_rejects_3 = [
   { statement: "S3.18", rule: "state-write", source: "const n = () => state(0);\nconst w = (n: State<number>) => (a: number): number => {\n  switch (a) {\n    case 1: n.set(1); return 1;\n  }\n  return 0;\n};" },
   { statement: "S3.18", rule: "mut-after-freeze", source: "const f = () => (a: number): readonly number[] => {\n  const m = mut([1]);\n  let out: readonly number[] = [];\n  switch (a) {\n    case 1: out = freeze(m); break;\n  }\n  m.push(2);\n  return out;\n};" },
   { statement: "S3.18", rule: "mut-after-freeze", source: "const f = () => (xs: readonly number[]): readonly number[] => {\n  const m = mut([1]);\n  let out: readonly number[] = [];\n  for (const x of xs) {\n    switch (x) {\n      case 1: out = freeze(m); continue;\n    }\n    m.push(x);\n  }\n  return out;\n};" },
-  { statement: "S3.18", rule: "let-capture", source: "const f = () => (a: number): number => {\n  let n = 0;\n  switch (a) {\n    case 1: return [1].map((x) => { n = x; return x; }).length;\n  }\n  return n;\n};" }
+  { statement: "S3.18", rule: "let-capture", source: "const f = () => (a: number): number => {\n  let n = 0;\n  switch (a) {\n    case 1: return [1].map((x) => { n = x; return x; }).length;\n  }\n  return n;\n};" },
+  { statement: "S3.19", rule: "iterator-capture", source: "const counter = () => {\n  const it = [1, 2, 3].values();\n  return (n: number) => {\n    let s = 0;\n    for (const x of it) s += x;\n    return s + n;\n  };\n};" },
+  { statement: "S3.19", rule: "iterator-capture", source: "const later = () => (it: Iterable<number>) => () => [...it].length;" },
+  { statement: "S3.19", rule: "iterator-capture", source: "const boxed = () => {\n  const r = { it: new Map([[\"a\", 1]]).entries() };\n  return () => [...r.it].length;\n};" },
+  { statement: "S3.19", rule: "iterator-capture", source: "const keep = () => {\n  const hold = <T,>(x: T) => () => x;\n  const g = hold([1, 2].values());\n  return [...g()].length;\n};" },
+  { statement: "S3.19", rule: "iterator-cell", source: "const it = () => [1, 2, 3].values();" },
+  { statement: "S3.19", rule: "iterator-cell", source: "const s = () => state([1, 2, 3].values());" },
+  { statement: "S3.19", rule: "iterator-cell", source: "const e = function* () {\n  yield new Set([1]).keys();\n};" }
 ]
 // %%
 spec_rejects_3_view = spec_rejectsTable(spec_rejects_3)
@@ -596,6 +605,11 @@ test_spec_S3_17 = {
 test_spec_S3_18 = {
   spec_is(spec_okCells("const f = () => (a: number): readonly number[] => {\n  const m = mut([1]);\n  switch (a) {\n    case 1: m.push(2); break;\n    case 2: { m.push(3); break; }\n    default: m.push(4);\n  }\n  return freeze(m);\n};\nconst n = () => state(0);\nconst bump = (n: State<number>) => action((a: number) => {\n  switch (a) {\n    case 1: n.set(1); break;\n    default: n.update((x) => x + a);\n  }\n});"), "f:ok,n:ok,bump:ok");
   return `${spec_rejectsFor("S3.18")}; a Mut written in cases and frozen after, and a State written in a case inside an action, are accepted`;
+}
+// %%
+test_spec_S3_19 = {
+  spec_is(spec_okCells("const xs = () => [1, 2, 3];\nconst sum = () => (it: Iterable<number>) => {\n  let s = 0;\n  for (const x of it) s += x;\n  return s;\n};\nconst later = (xs: readonly number[], sum: (it: Iterable<number>) => number) => {\n  const m = new Map([[\"a\", 1]]);\n  const values = () => [...m.values()].length;\n  return () => sum(xs) + values() + [...\"ab\"].length;\n};"), "xs:ok,sum:ok,later:ok");
+  return `${spec_rejectsFor("S3.19")}; a function that captures an array, a Map or a function taking an Iterable, and one that copies an iterator into an array, are accepted`;
 }
 // %%
 md`## 4. Mut locals
@@ -953,6 +967,13 @@ spec_rejects_6 = [
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst roll = (other: State<number>, random: Random) => action(() => other.set(random()));" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => action(() => other.set(now()));" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst load = (other: State<number>, fetch: Fetch) =>\n  action(() => {\n    fetch(\"https://example.invalid/\");\n    other.set(1);\n  });" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  let q = () => 1;\n  q = now;\n  return action(() => other.set(q()));\n};" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  for (const q of [now]) return action(() => other.set(q()));\n  return action(() => other.set(0));\n};" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) =>\n  action(() => {\n    const f = (now: number) => now;\n    other.set(now() + f(1));\n  });" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  const { q = now }: { readonly q?: () => number } = {};\n  return action(() => other.set(q()));\n};" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  const box = mut([() => 1]);\n  box[0] = now;\n  const f = box[0] ?? (() => 0);\n  return action(() => other.set(f()));\n};" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst make = (other: State<number>) => (h: () => number) => action(() => other.set(h()));\nconst stamp = (now: Clock, make: (h: () => number) => Action<[]>) => make(now);" },
+  { statement: "S6.9", rule: "action-capture", source: "const xs = (): StateCell<readonly number[]> => state([1, 2]);\nconst other = (): StateCell<number> => state(0);\nconst pick = (xs: readonly number[], other: State<number>) => xs.map((x) => action(() => other.set(x)));" },
   { statement: "S6.18", rule: "state-undefined", source: "const c = () => state(undefined);" },
   { statement: "S6.18", rule: "state-undefined", source: "const c = (): StateCell<number | undefined> => state<number | undefined>(1);" },
   { statement: "S6.18", rule: "state-undefined", source: "const c = (): StateCell<unknown> => state(1);" },
@@ -1102,8 +1123,9 @@ test_spec_S6_8 = {
 }
 // %%
 test_spec_S6_9 = {
+  spec_is(spec_okCells("const k = () => 3;\nconst other = (): StateCell<number> => state(0);\nconst t = (other: State<number>, k: number) => {\n  const j = k + 1;\n  const g = (x: number) => x + j;\n  return action(() => other.set(g(1)));\n};"), "k:ok,other:ok,t:ok");
   spec_is(spec_okCells("const k = () => 5;\nconst o = (): StateCell<number> => state(0);\nconst t = (o: State<number>, k: number, log: Log, invalidation: Invalidation) => action((n: number) => {\n  log(\"set\");\n  o.set(k + n);\n});"), "k:ok,o:ok,t:ok");
-  return `${spec_rejectsFor("S6.9")}; a cell with no state, log, invalidation and the action's argument are accepted`;
+  return `${spec_rejectsFor("S6.9")}; a cell with no state, log, invalidation, the action's argument, and a const or function computed from a cell with no state, are accepted`;
 }
 // %%
 test_spec_S6_10 = {

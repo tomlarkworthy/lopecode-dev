@@ -36,27 +36,27 @@ let width = () => 640;
 let sequence = () => [2, 0, 1];
 
 // ---- components: plain checked functions from props to Elem ----
-let Radio = () => (p: { readonly label: string; readonly options: readonly string[]; readonly selected: number; readonly onPick: Action<[number]> }): Elem => (
+let Radio = () => (p: { readonly label: string; readonly options: readonly { readonly label: string; readonly pick: Action<[]> }[]; readonly selected: number }): Elem => (
   <fieldset>
     <legend>{p.label}</legend>
     {p.options.map((o, i) => (
       <label>
-        <input type="radio" checked={i === p.selected} onClick={action(() => p.onPick(i))} />
-        {o}
+        <input type="radio" checked={i === p.selected} onClick={o.pick} />
+        {o.label}
       </label>
     ))}
   </fieldset>
 );
-let Range = () => (p: { readonly label: string; readonly min: number; readonly max: number; readonly step: number; readonly value: number; readonly onValue: Action<[number]> }): Elem => (
+let Range = () => (p: { readonly label: string; readonly min: number; readonly max: number; readonly step: number; readonly value: number; readonly onValue: Action<[string]> }): Elem => (
   <label>
     {p.label}
-    <input type="range" min={p.min} max={p.max} step={p.step} value={p.value} onInput={action((s: string) => p.onValue(Number(s)))} />
+    <input type="range" min={p.min} max={p.max} step={p.step} value={p.value} onInput={p.onValue} />
     <output>{p.value}</output>
   </label>
 );
-let Toggle = () => (p: { readonly label: string; readonly value: boolean; readonly onValue: Action<[boolean]> }): Elem => (
+let Toggle = () => (p: { readonly label: string; readonly value: boolean; readonly onToggle: Action<[]> }): Elem => (
   <label>
-    <input type="checkbox" checked={p.value} onClick={action(() => p.onValue(!p.value))} />
+    <input type="checkbox" checked={p.value} onClick={p.onToggle} />
     {p.label}
   </label>
 );
@@ -64,23 +64,32 @@ let Toggle = () => (p: { readonly label: string; readonly value: boolean; readon
 // ---- setters: one action per widget ----
 let TOOLS = (): readonly Tool[] => ["brush", "blow", "stylus"];
 let VIEWS = (): readonly View[] => ["lines", "print", "surface pressure"];
-let pickTool = (TOOLS, tool: State<Tool>) => action((i: number) => tool.set(TOOLS[i] ?? "brush"));
-let pickView = (VIEWS, view: State<View>) => action((i: number) => view.set(VIEWS[i] ?? "lines"));
-let setHeight = (height: State<number>) => action((v: number) => height.set(v));
-let setCellSize = (cellSize: State<number>) => action((v: number) => cellSize.set(v));
-let setBackgroundFilm = (backgroundFilm: State<number>) => action((v: number) => backgroundFilm.set(v));
-let setRunTests = (runTests: State<boolean>) => action((v: boolean) => runTests.set(v));
+// an action may not use a component's props (S6.9), so each option has its own action and a range's action takes the text
+let pickTool = (tool: State<Tool>) => [
+  { label: "brush", pick: action(() => tool.set("brush")) },
+  { label: "blow", pick: action(() => tool.set("blow")) },
+  { label: "stylus", pick: action(() => tool.set("stylus")) },
+];
+let pickView = (view: State<View>) => [
+  { label: "lines", pick: action(() => view.set("lines")) },
+  { label: "print", pick: action(() => view.set("print")) },
+  { label: "surface pressure", pick: action(() => view.set("surface pressure")) },
+];
+let setHeight = (height: State<number>) => action((s: string) => height.set(Number(s)));
+let setCellSize = (cellSize: State<number>) => action((s: string) => cellSize.set(Number(s)));
+let setBackgroundFilm = (backgroundFilm: State<number>) => action((s: string) => backgroundFilm.set(Number(s)));
+let setRunTests = (runTests: State<boolean>) => action(() => runTests.update((v) => !v));
 let emptyTray = (canvasState: State<Canvas>, step) => action(() => canvasState.update((s) => step(s, { kind: "empty" })));
 
 // ---- the eight *_view cells of ports/suminagashi/shell.ts, minus params_view ----
-let tool_view = (Radio, TOOLS, tool, pickTool) => <Radio label="tool" options={TOOLS} selected={TOOLS.indexOf(tool)} onPick={pickTool} />;
-let view_view = (Radio, VIEWS, view, pickView) => <Radio label="view" options={VIEWS} selected={VIEWS.indexOf(view)} onPick={pickView} />;
+let tool_view = (Radio, TOOLS, tool, pickTool) => <Radio label="tool" options={pickTool} selected={TOOLS.indexOf(tool)} />;
+let view_view = (Radio, VIEWS, view, pickView) => <Radio label="view" options={pickView} selected={VIEWS.indexOf(view)} />;
 let height_view = (Range, height, setHeight) => <Range label="height" min={100} max={1000} step={1} value={height} onValue={setHeight} />;
 let cellSize_view = (Range, cellSize, setCellSize) => <Range label="grid cell size (px)" min={1} max={4} step={0.25} value={cellSize} onValue={setCellSize} />;
 let backgroundFilm_view = (Range, backgroundFilm, setBackgroundFilm) => (
   <Range label="film already on the water" min={0.02} max={1} step={0.01} value={backgroundFilm} onValue={setBackgroundFilm} />
 );
-let runTests_view = (Toggle, runTests, setRunTests) => <Toggle label="run the tests" value={runTests} onValue={setRunTests} />;
+let runTests_view = (Toggle, runTests, setRunTests) => <Toggle label="run the tests" value={runTests} onToggle={setRunTests} />;
 let reset_view = (emptyTray) => <button onClick={emptyTray}>empty the tray</button>;
 
 // ---- pointer handling: one pure step per event ----

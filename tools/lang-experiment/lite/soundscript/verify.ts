@@ -118,6 +118,9 @@ function referenceChecks() {
   }
 }
 
+// --quick: only the original page (boot counts, every test_* cell, the unchanged save); not a full pass
+const QUICK = process.argv.includes("--quick");
+class QuickDone extends Error {}
 const FOCUS_TRACE = process.argv.includes("--focus-trace");
 let ftN = 0;
 const CPU = process.argv.includes("--cpu") ? Number(process.argv[process.argv.indexOf("--cpu") + 1]) : 1;
@@ -2138,7 +2141,7 @@ const speedOnly = process.argv.includes("--speed-only");
 // --guard-only: only the core-not-main pass (the editor commands with no language registered)
 const guardOnly = process.argv.includes("--guard-only");
 const variantOnly = process.argv.includes("--variant-only") || speedOnly || guardOnly;
-if (!variantOnly && !process.argv.includes("--no-try") && !process.argv.includes("--broken-only")) {
+if (!QUICK && !variantOnly && !process.argv.includes("--no-try") && !process.argv.includes("--broken-only")) {
   await cardsAndThemes();
   await phone();
   await touch();
@@ -2154,7 +2157,7 @@ if (!variantOnly && !process.argv.includes("--no-try") && !process.argv.includes
   requests("try-it page", G);
   await G.page.close();
 }
-if ((!uiOnly && !variantOnly || speedOnly) && !process.argv.includes("--no-speed")) await speed();
+if ((!uiOnly && !variantOnly || speedOnly) && !process.argv.includes("--no-speed") && !QUICK) await speed();
 const A = uiOnly || variantOnly ? null as any : await open(file, undefined, true, true);
 if (!uiOnly && !variantOnly) {
 // the counter tests press their buttons on copies: the page's counters keep what the reader set
@@ -2218,6 +2221,7 @@ await instanceStops(A.page);
 await deleteStops(A.page);
 requests("original page", A);
 await A.page.close();
+if (QUICK) throw new QuickDone();
 
 
 const B = await open(exp1Path, undefined, true, true);
@@ -2527,11 +2531,10 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
 }
 } catch (e) {
   // a thrown error ends the run early; it counts as a failure, so a partial run cannot read as a pass
-  console.log(`FAIL stopped by an error: ${(e as Error)?.stack ?? e}`);
-  fails++;
+  if (!(e instanceof QuickDone)) { console.log(`FAIL stopped by an error: ${(e as Error)?.stack ?? e}`); fails++; }
 }
 await browser.close().catch(() => {});
 console.log(`${passes} pass, ${fails} fail`);
 console.log(`measurements (printed, not judged):${measurements.map((m) => "\n  " + m).join("")}`);
-console.log(`power ${power}; functional ${counts.functional.pass} pass ${counts.functional.fail} fail; measurements ${measurements.length}`);
+console.log(`${QUICK ? "QUICK (original page only); " : ""}power ${power}; functional ${counts.functional.pass} pass ${counts.functional.fail} fail; measurements ${measurements.length}`);
 process.exit(fails ? 1 : 0);

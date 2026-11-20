@@ -40,6 +40,8 @@ export const RULES: RuleInfo[] = [
   { id: "switch-declaration", section: "Immutable by default", how: "exact", summary: "const, let, function or class directly in a case, not in a block" },
   { id: "builtin-type-name", section: "Files", how: "exact", summary: "a top-level type or interface named as one of the checker's own types (Listener, Array, Pool, ...)" },
   { id: "strict-eq-object", section: "Immutable by default", how: "exact", summary: "=== / !== (and ==, !=) on two non-primitive operands" },
+  { id: "iterator-capture", section: "Immutable by default", how: "approx", summary: "a nested function uses a binding of an enclosing function whose type may hold an iterator (Iterable, Generator or a type parameter)" },
+  { id: "iterator-cell", section: "Immutable by default", how: "approx", summary: "a cell's value (a state cell's content, an events value) whose type may hold an iterator" },
   // Opt-in 1
   { id: "mut-bind", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "mut(...) must be the initializer of a local const" },
   { id: "mut-escape", section: "Opt-in 1: Mut<T> locals", how: "approx", summary: "Mut value returned, yielded, aliased, put in a literal, or passed to a non-Mut parameter" },
@@ -56,7 +58,7 @@ export const RULES: RuleInfo[] = [
   { id: "state-write", section: "State and actions", how: "approx", summary: "State.set/update outside the lexical body of action(...)" },
   { id: "action-call", section: "State and actions", how: "approx", summary: "an Action called outside the lexical body of action(...)" },
   { id: "action-pass", section: "State and actions", how: "approx", summary: "an Action passed to a parameter not typed Action" },
-  { id: "action-capture", section: "State and actions", how: "approx", summary: "an action body uses a value that depends on state (a state cell's value, an events value, a capability, or a local computed from one)" },
+  { id: "action-capture", section: "State and actions", how: "approx", summary: "an action body uses a value that depends on state (a state cell's value, an events value, a capability, or a local computed from one), or a let, a Mut, an enclosing function's parameter, or a const computed from one" },
   { id: "read-outside-action", section: "State and actions", how: "exact", summary: "read(s) outside the lexical body of action(...)" },
   // Foreign
   { id: "foreign-unmarked", section: "Foreign values and the shell", how: "exact", summary: "foreign.d.ts declaration without /** pure */ or /** effect */" },

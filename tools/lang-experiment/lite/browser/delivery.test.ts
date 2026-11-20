@@ -117,7 +117,7 @@ const ONE = fetchThenStore("    yield loaded;");
 const TWO = fetchThenStore("    yield loaded;\n    yield loaded + \"!\";");
 const valuesOf = (two: boolean) => (x: string) => (two ? [x, x + "!"] : [x]);
 
-type Case = { title: string; src: string; two?: boolean; first: string; second: string; later: string[]; extra: Choice[] };
+type Case = { title: string; src: string; two?: boolean; first: string; second: string; later: string[]; extra: Choice[]; thin?: boolean };
 type Outcome = { invalid: true } | { next: Choice[] } | { problem: string | null; trace: string[] };
 async function run(k: Case, prefix: Choice[]): Promise<Outcome> {
   log.length = 0; jobs.length = 0; P.reset();
@@ -161,13 +161,21 @@ async function run(k: Case, prefix: Choice[]): Promise<Outcome> {
   } finally { W.dispose(); WB?.dispose(); }
 }
 
+// --full explores every ordering. Without it a thin case follows, below depth THIN_FROM, every second
+// choice (which ones depends on the prefix, so it is the same set on every run).
+const FULL = process.argv.includes("--full"), THIN_FROM = 5;
+function thinned(k: Case, prefix: Choice[], next: Choice[]): Choice[] {
+  if (FULL || !k.thin || prefix.length < THIN_FROM || next.length < 2) return next;
+  let h = 0; for (const c of prefix) for (const ch of c) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return next.filter((_, i) => (i + h) % 2 === 0);
+}
 async function explore(k: Case) {
   let n = 0, bad = 0;
   const fails: string[] = [];
   const dfs = async (prefix: Choice[]): Promise<void> => {
     const r = await run(k, prefix);
     if ("invalid" in r) return;
-    if ("next" in r) { if (prefix.length > 18) throw new Error("too deep " + prefix.join(" ")); for (const c of r.next) await dfs([...prefix, c]); return; }
+    if ("next" in r) { if (prefix.length > 18) throw new Error("too deep " + prefix.join(" ")); for (const c of thinned(k, prefix, r.next)) await dfs([...prefix, c]); return; }
     n++;
     if (r.problem) { bad++; if (fails.length < 3) fails.push(`  e.g. ${prefix.join(" ")}: ${r.problem}${process.argv.includes("--trace") ? "\n    " + r.trace.join("\n    ") : ""}`); }
   };
@@ -182,7 +190,7 @@ const cases: Case[] = [
   { title: "one value per answer, a Runtime frame already requested", src: ONE, first: "hello", second: "second", later: ["third"], extra: ["X"] },
   { title: "one value per answer, the listener cell runs again", src: ONE, first: "hello", second: "second", later: ["third"], extra: ["X", "L"] },
   { title: "one value per answer, the action is made again", src: ONE, first: "hello", second: "second", later: ["third"], extra: ["X", "S"] },
-  { title: "one value per answer, a second copy of the module starts its listener", src: ONE, first: "hello", second: "second", later: ["third"], extra: ["X", "B"] },
+  { title: "one value per answer, a second copy of the module starts its listener", src: ONE, first: "hello", second: "second", later: ["third"], extra: ["X", "B"], thin: true },
   { title: "two values per answer", src: TWO, two: true, first: "hello", second: "second", later: ["third"], extra: ["X"] },
   { title: "an answer equal to the one before it", src: ONE, first: "same", second: "same", later: ["same"], extra: ["X"] }
 ];

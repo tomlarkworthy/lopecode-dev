@@ -4,12 +4,12 @@
 import { parse, type Node, type Parsed } from "./parse.ts";
 import { Registry } from "./registry.ts";
 import { Checker } from "./infer.ts";
-import { ownership, actionEscapes } from "./own.ts";
+import { ownership, actionEscapes, iterIn } from "./own.ts";
 import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec } from "./types.ts";
 import { CAPABILITIES } from "./intrinsics.ts";
 import { island, specOf, compileCalls } from "./island.ts";
 import { factsOf, type CellInfo } from "./facts.ts";
-import { captures, captureMessage } from "./capture.ts";
+import { captures, opaqueCaptures, captureMessage } from "./capture.ts";
 import { shapeOf, type Shape } from "./boundary.ts";
 
 export type LiteError = { rule: string; line: number; msg: string };
@@ -308,6 +308,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
         const fv = reg.values.get(name)!;
         if (fv.marker === "effect") diag(p, "foreign-effect", `checked cell takes /** effect */ foreign ${name}`);
         vt = fv.t;
+        const fit = iterIn(vt, reg);
+        if (fit) diag(p, "iterator-cell", `foreign ${name}: ${show(vt)} may hold an iterator (${fit}); every cell that takes it would use up the same one`);
       } else if (shellNames.has(name)) vt = UNKNOWN;
       else if (name in CAPABILITIES) vt = named(CAPABILITIES[name]);
       else if (outside.has(name)) {
@@ -364,12 +366,14 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     const firstTaint = [...tainted.entries()][0];
     if (firstTaint) stateful.set(c.name, firstTaint[1].startsWith("capability ") ? `takes the ${firstTaint[1]}` : `reads ${firstTaint[0]}`);
     if (c.fn.generator) stateful.set(c.name, `is a generator`);
-    for (const cap of captures(c.fn, tainted)) diag(cap.node, "action-capture", captureMessage(cap));
+    const viaName = captures(c.fn, tainted);
+    for (const cap of viaName) diag(cap.node, "action-capture", captureMessage(cap));
     let fnT: Ty = ERR;
     try {
       fnT = ch.fnExpr(c.fn, null, undefined, { injected });
       for (const e of ownership(c.fn, ch)) ch.err(e.node, e.rule, e.msg);
       for (const e of actionEscapes(c.fn, ch)) ch.err(e.node, e.rule, e.msg);
+      for (const cap of opaqueCaptures(c.fn, ch, tainted, new Set(viaName.map((x) => x.node)))) ch.err(cap.node, "action-capture", captureMessage(cap));
     } catch (e) {
       ch.unsupported(c.fn, `checker crashed: ${(e as Error).message}`);
     }
@@ -389,6 +393,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       refInner.set(c.name, ret.args[0]); ret = ret.args[0];
       stateful.set(c.name, "is a state cell");
     }
+    const it = iterIn(ret, reg);
+    if (it) r.errors.push({ rule: "iterator-cell", line: P.line(c.fn.start), msg: `value ${show(ret)} may hold an iterator (${it}); every cell that takes it would use up the same one, so what each computes would depend on the order the cells run in. Make it an array` });
     // a Listener is a whole cell value: not in a list, record, state cell, union with another type, or function
     if (isNamed(ret, "Listener") || (ret.k === "union" && ret.ts.every((t) => isNamed(t, "Listener")))) listenerCells.add(c.name);
     else if (holds(ret, ["Listener"])) r.errors.push({ rule: "listener-placement", line: P.line(c.fn.start), msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` });

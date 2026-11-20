@@ -4,8 +4,9 @@
 // a tainted name inside an action body is reported. Names the action declares itself (its parameters
 // and locals) are not the cell's, whatever they are called.
 import { kids, isFn, type Node } from "./parse.ts";
+import type { Checker, Binding } from "./infer.ts";
 
-export type Capture = { node: Node; name: string; why: string };
+export type Capture = { node: Node; name: string; why: string; opaque?: boolean };
 
 const isActionCall = (n: Node) => n.type === "CallExpression" && n.callee?.type === "Identifier" && n.callee.name === "action";
 
@@ -94,6 +95,69 @@ export function captures(cellFn: Node, tainted: Map<string, string>): Capture[] 
   return out;
 }
 
-export const captureMessage = (c: Capture) => c.why.startsWith("capability ")
+// The same rule by binding, default-deny: from outside itself an action body may use only a prelude name, a global,
+// a cell input that holds no state, or a const or function whose own free references pass. A let, a catch binding,
+// a Mut, or a parameter of an enclosing function does not (a caller may pass it a state-dependent value).
+export function opaqueCaptures(cellFn: Node, ch: Checker, tainted: Map<string, string>, skip: Set<Node>): Capture[] {
+  if (!ch.actionBodies.size) return [];
+  const F = ch.facts, parent = new Map<Node, Node>(), ids: Node[] = [], comps: Node[] = [];
+  (function walk(n: Node, p: Node | null) {
+    if (p) parent.set(n, p);
+    if (n.type === "Identifier") ids.push(n);
+    // a component name has no binding in the facts, so it is not followed
+    if (p?.type === "JSXOpeningElement" && p.name === n && (n.type !== "JSXIdentifier" || /^[A-Z]/.test(n.name))) comps.push(n);
+    for (const c of kids(n)) walk(c, n);
+  })(cellFn, null);
+  const within = (x: Node, f: Node) => x.start >= f.start && x.end <= f.end;
+  const local = (b: Binding) => b.kind !== "prelude" && b.kind !== "global";
+  const free = (span: Node[]) => ids.flatMap((r) => {
+    const b = F.bindingOf.get(r);
+    return b && local(b) && b.node !== r && span.some((s) => within(r, s)) && !span.some((s) => within(b.node, s)) ? [b] : [];
+  });
+  const bad = new Map<Binding, string | null>(), visiting = new Set<Binding>();
+  const why = (b: Binding): string | null => {
+    if (!local(b)) return null;
+    if (b.cellParam) return tainted.get(b.name) ?? null;
+    if (bad.has(b)) return bad.get(b)!;
+    if (visiting.has(b)) return null; // a function that calls itself: decided by its other references
+    visiting.add(b);
+    const w = why1(b);
+    visiting.delete(b);
+    if (w || !visiting.size) bad.set(b, w);
+    return w;
+  };
+  const why1 = (b: Binding): string | null => {
+    if (b.kind === "param") return "is a parameter of an enclosing function, so a caller may pass it a value that depends on state";
+    if (b.kind === "let") return "is a let or a catch binding, so its value is not fixed where it is declared";
+    if (b.mutOwned) return "is a Mut, which the cell may change after the action is made";
+    let span: Node[] | null = b.fnNode ? [b.fnNode] : null;
+    if (!span) {
+      let d = parent.get(b.node);
+      while (d && d.type !== "VariableDeclarator") d = parent.get(d);
+      const decl = d && parent.get(d), loop = decl && parent.get(decl);
+      span = loop?.type === "ForOfStatement" && loop.left === decl ? [decl, loop.right] : d?.init ? [d] : null;
+    }
+    if (!span) return "is bound where the checker does not follow its value";
+    if (comps.some((j) => span!.some((s) => within(j, s)))) return "is computed from a JSX component, which the checker does not follow";
+    for (const c of free(span)) { const w = why(c); if (w) return `is computed from ${c.name}, which ${w.startsWith("is ") ? w : `depends on state (${w})`}`; }
+    return null;
+  };
+  const out: Capture[] = [], seen = new Set<string>();
+  for (const r of ids) {
+    const b = F.bindingOf.get(r);
+    if (skip.has(r) || !b || !local(b) || b.node === r) continue;
+    const a = [...ch.actionBodies].find((a) => within(r, a) && !within(b.node, a));
+    const w = a && why(b);
+    if (!w || seen.has(`${a.start}:${b.id}`)) continue;
+    seen.add(`${a.start}:${b.id}`);
+    out.push(b.cellParam ? { node: r, name: b.name, why: w } : { node: r, name: b.name, why: w, opaque: true });
+  }
+  for (const j of comps) if ([...ch.actionBodies].some((a) => within(j, a))) out.push({ node: j, name: `<${j.name ?? "component"}>`, why: "is a JSX component, which the checker does not follow", opaque: true });
+  return out;
+}
+
+export const captureMessage = (c: Capture) => c.opaque
+  ? `${c.name} ${c.why}; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called`
+  : c.why.startsWith("capability ")
   ? `${c.name} is a capability, so an action using it would make the stored state depend on something the calls do not record; take the value as an argument of the action`
   : `${c.name} depends on state (${c.why}), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called`;

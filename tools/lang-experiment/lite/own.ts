@@ -7,10 +7,30 @@
 //  - state(...) and borrow(...) placement
 import { kids, isFn, type Node } from "./parse.ts";
 import type { Checker, Binding } from "./infer.ts";
-import { isNamed, unwrap, ERR, type Ty } from "./types.ts";
+import { isNamed, unwrap, show, ERR, type Ty } from "./types.ts";
+import type { Registry } from "./registry.ts";
 
 type Rule = { node: Node; rule: string; msg: string };
 export { kids };
+
+// What in t may be a one-shot iterator: Iterable (values(), keys() and entries() give one, and an array typed Iterable
+// may be one), Generator, or a type parameter. A function type holds none: a call makes its result anew.
+export function iterIn(t: Ty, reg: Registry, depth = 0): string | null {
+  if (depth > 12) return null;
+  const inner = (ts: Ty[]) => { for (const x of ts) { const w = iterIn(x, reg, depth + 1); if (w) return w; } return null; };
+  switch (t.k) {
+    case "tv": return `the type parameter ${show(t)}`;
+    case "arr": return inner([t.el]);
+    case "tup": return inner(t.els);
+    case "union": return inner(t.ts);
+    case "rec": return inner([...[...t.props.values()].map((p) => p.t), ...(t.index ? [t.index] : [])]);
+    case "named":
+      if (t.n === "Iterable" || t.n === "Generator") return show(t);
+      if (t.n === "Action" || t.n === "State" || t.n === "Events") return null;
+      return reg.isAlias(t.n) ? iterIn(reg.expand(t), reg, depth + 1) : inner(t.args ?? []);
+    default: return null;
+  }
+}
 
 export function ownership(cellFn: Node, ch: Checker): Rule[] {
   const F = ch.facts;
@@ -60,6 +80,8 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
       for (let f: Node | undefined = encl(r); f && f !== cellFn && fns.includes(f); f = parent.get(f) ? encl(f) : undefined) {
         if (inside(b, f)) break;
         if (isMutB(b) || isBorB(b)) capMut.get(f)!.add(b);
+        const it = b.kind !== "global" && b.kind !== "prelude" && iterIn(b.t, ch.reg);
+        if (it) err(r, "iterator-capture", `${b.name} may hold an iterator (${it}), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...${b.name}]) and capture the array`);
         const p = parent.get(r)!;
         const assigned = (p.type === "AssignmentExpression" && p.left === r) || (p.type === "UpdateExpression" && p.argument === r)
           || (p.type === "ArrayPattern" || p.type === "Property" && parent.get(p)?.type === "ObjectPattern" || p.type === "AssignmentPattern" && p.left === r);

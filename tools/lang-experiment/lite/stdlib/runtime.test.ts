@@ -733,6 +733,18 @@ await run("s6_a_nested_action_returns_its_value_inside_the_call", async () => {
   ok("s6_nested_returns_top_level_does_not", got === 6 && top === undefined && val(x) === 40, `${got} ${top} x ${val(x)}`);
 });
 
+// the checker module's rule tables (soundscript/checker-tests.ojs), run here on lite's checkSources
+await run("k1_checker_rule_tables", async () => {
+  const { readFileSync } = await import("node:fs");
+  const ojs = readFileSync(new URL("../soundscript/checker-tests.ojs", import.meta.url), "utf8");
+  for (const name of ["test_checker_action_capture_by_binding", "test_checker_iterator_rules"]) {
+    const cell = ojs.split(/^\/\/ %%$/m).map((x) => x.trim()).find((x) => x.startsWith(`${name} = {`));
+    let msg = "";
+    try { msg = new Function("soundscript", cell!.slice(cell!.indexOf("{")))({ checkSources }); } catch (e) { msg = `threw ${(e as Error).message}`; }
+    ok(`k1_${name}`, !!cell && !msg.startsWith("threw"), msg);
+  }
+});
+
 console.error = realError;
 if (uncaught.length) ok("no_uncaught_exceptions", false, String(uncaught[0]));
 console.log(`${pass} pass, ${fail} fail`);
