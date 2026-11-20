@@ -23,11 +23,14 @@ type Handle = { readonly [EVENTS]: true; readonly name: string };
 type Listener = { readonly [LISTENER]: true; readonly events: unknown; readonly action: (x: unknown) => void };
 type HState = {
   name: string; args: unknown[] | null; gen: Gen | null; no: number; done: boolean; dead: boolean;
-  listeners: Set<Listener>; queue: unknown[]; draining: boolean; busy: boolean; run: object | null;
-  order: Listener[] | null;
+  listeners: Set<Listener>; queue: unknown[]; draining: boolean; busy: boolean; order: Listener[] | null;
+  // pending: the events cell was invalidated and has not run again; run: its last run
+  pending: boolean; run: object | null;
 };
 const hs = new WeakMap<object, HState>();
-const ls = new WeakMap<object, { runs: number; cell: string }>();
+// a listener's cell, whether that cell has been invalidated since the listener was its value (parked), and the
+// run that last returned it
+const ls = new WeakMap<object, { cell: string; parked: boolean; run: object | null }>();
 const attached = new Set<Listener>();
 const generating = new Set<Handle>();
 // what pulls a sync generator's next value; tests replace it
@@ -54,12 +57,16 @@ function stopGen(s: HState) {
 // variable: a re-run with other inputs replaces the generator inside it, so a listener holding the handle does
 // not run again. The generator is pulled only while a listener is attached: a sync one once per animation frame,
 // an async one as soon as each next() resolves. Each value goes to every attached listener once, in order.
+// The generator lasts until a run with other inputs replaces it, it ends, or the handle is released (the
+// variable deleted, or its cell rejected) or swept. Invalidation does not stop it: a run waiting on an input is
+// still to come, and until it comes the handle and its generator are the variable's value. Invalidation marks
+// the events cell pending until its next run, which decides what a listener invalidated meanwhile gets (listen).
 // prev: the variable's last value (`this` of its definition); args: the cell's inputs; make: the generator
 // function, called with args; each step runs as a cell evaluation (guard)
 export function events(prev: unknown, name: string, args: unknown[], make: (...a: unknown[]) => Gen, invalidation: Promise<unknown> | null): Handle {
   const reuse = isEvents(prev) && !hs.get(prev)!.dead && hs.get(prev)!.name === name;
   const h: Handle = reuse ? prev : Object.freeze({ [EVENTS]: true, name }) as Handle;
-  if (!reuse) hs.set(h, { name, args: null, gen: null, no: 0, done: false, dead: false, listeners: new Set(), queue: [], draining: false, busy: false, run: null, order: null });
+  if (!reuse) hs.set(h, { name, args: null, gen: null, no: 0, done: false, dead: false, listeners: new Set(), queue: [], draining: false, busy: false, order: null, pending: false, run: null });
   const s = hs.get(h)!;
   handleOfState.set(s, h);
   if (!s.args || !same(s.args, args)) {
@@ -67,16 +74,22 @@ export function events(prev: unknown, name: string, args: unknown[], make: (...a
     s.gen = guard(make(...args) as Generator); s.args = args; s.done = false;
     generating.add(h);
     kick(s);
-  }
+  } else endParked(s);
   const run = {};
   s.run = run;
-  // invalidation resolves before the next run's definition is called, so the check waits a macrotask:
-  // a re-run with the same inputs keeps the generator, and one that never comes (an error upstream,
-  // the variable no longer reachable) stops it
-  invalidation?.then(() => setTimeout(() => { if (s.run === run) stopGen(s); }, 0));
+  s.pending = false;
+  invalidation?.then(() => { if (s.run === run) s.pending = true; });
   return h;
 }
 
+// A run with the same inputs keeps the generator, so a listener parked for it is not needed: it is detached,
+// and the generator waits for the listener cell's next run, which comes when that cell's inputs settle. When
+// one of them threw, nothing more is given to the listener of a cell in error. When the events cell's own input
+// threw, its next run never comes and a parked listener goes on getting the generator's values until the
+// listener cell runs again, is deleted or is swept (measured in delivery.test.ts, not prevented).
+function endParked(s: HState) {
+  for (const l of [...s.listeners]) if (ls.get(l)?.parked) detach(l);
+}
 function kick(s: HState) {
   if (s.busy || !s.gen || s.done || !s.listeners.size) return;
   s.busy = true;
@@ -148,42 +161,83 @@ function deliver(s: HState, v: unknown) {
   } finally { s.draining = false; }
 }
 
-// A listener cell's run attaches its value until that run's invalidation, which the runtime resolves
-// before the cell's next definition is called, so one listener variable is never attached twice.
-// A compiled listener cell is <name> = ss.listen(fn(...inputs), name, invalidation).
-export function listen(l: unknown, cell: string, invalidation: Promise<unknown> | null): Listener {
+// A listener ends when its cell runs again, is rejected, is deleted or is swept. When the cell is invalidated
+// while its events cell is waiting to run again (the listener cell runs again because the events cell does,
+// S8.4), the listener stays attached, parked, until the listener cell's next run takes it over, or the events
+// cell runs again with the same inputs (events). It gets what the events cell yields meanwhile, from this
+// generator and from those of the events cell's next runs with other inputs, since the runtime may skip the
+// listener cell's run for one of them (a run made stale before its inputs settled).
+// Otherwise invalidation detaches it, and the generator, which nothing else pulls, waits where it is for the
+// next listener. So what an events run yields reaches a listener once, whichever of the pull, the runtime's
+// frames and the commits comes first.
+// The cell's next run takes over the listener its last run returned (prev): on the same events with the same
+// action it stays attached as it is, and that run returns it; otherwise it is detached and the new one attached.
+// A compiled listener cell is <name> = ss_listen(fn(...inputs), name, invalidation, this).
+export function listen(l: unknown, cell: string, invalidation: Promise<unknown> | null, prev?: unknown): Listener {
   if (!isListener(l)) throw new Error(`${cell} must return on(events, action)`);
   const s = hs.get(l.events as object);
   if (!s) throw new Error(`${cell}: on(...) needs an events handle`);
   if (typeof l.action !== "function") throw new Error(`${cell}: on(...) needs an action`);
-  const rec = ls.get(l) ?? { runs: 0, cell };
-  ls.set(l, rec);
-  if (rec.runs++ === 0) { s.listeners.add(l); s.order = null; attached.add(l); kick(s); }
-  invalidation?.then(() => { if (rec.runs > 0 && --rec.runs === 0) detach(l); });
-  return l;
+  const old = predecessor(l, cell, s, prev);
+  let mine: Listener = l;
+  if (old && old.events === l.events && old.action === l.action) mine = old;
+  else if (old) detach(old);
+  const rec = ls.get(mine) ?? { cell, parked: false, run: null };
+  ls.set(mine, rec);
+  rec.parked = false;
+  if (!attached.has(mine)) { s.listeners.add(mine); s.order = null; attached.add(mine); kick(s); }
+  const run = {};
+  rec.run = run;
+  invalidation?.then(() => {
+    if (rec.run !== run || !attached.has(mine)) return;
+    if (s.pending) rec.parked = true;
+    else detach(mine);
+  });
+  return mine;
+}
+// The listener a run of cell takes over: the cell's last value. After a run that threw the runtime gives none
+// (prev is undefined), so a parked listener of a cell of that name is taken: on this handle, with this action
+// first; else on a handle of the same events cell name with this action (the events cell threw too, and was
+// made again). The action keeps a first run of a same-named cell in another module from taking one over.
+function predecessor(l: Listener, cell: string, s: HState, prev: unknown): Listener | null {
+  if (isListener(prev)) return prev !== l && attached.has(prev) ? prev : null;
+  let best: Listener | null = null;
+  for (const x of attached) {
+    const r = ls.get(x);
+    if (x === l || !r?.parked || r.cell !== cell) continue;
+    if (x.events === l.events) {
+      if (x.action === l.action) return x;
+      if (!best || best.events !== l.events) best = x;
+    } else if (!best && x.action === l.action && hs.get(x.events as object)?.name === s.name) best = x;
+  }
+  return best;
 }
 function detach(l: Listener) {
   const rec = ls.get(l);
-  if (rec) rec.runs = 0;
+  if (rec) { rec.parked = false; rec.run = null; }
   const s = hs.get(l.events as object);
   if (s) { s.listeners.delete(l); s.order = null; }
   attached.delete(l);
 }
 
 // The value of a deleted variable: the runtime does not resolve its invalidation, so the module calls this.
-// a deleted variable's value: its listener or events end
+// A rejected cell's body calls it with its last value (ss-toolchain rejectedCell). A listener ends; events end
+// with their listeners; an action ends the listeners that give values to it, whose cells its cell blocks.
 export function release(v: unknown) {
   if (isListener(v)) detach(v);
-  else if (isEvents(v)) { const s = hs.get(v)!; stopGen(s); s.dead = true; }
+  else if (isEvents(v)) { const s = hs.get(v)!; stopGen(s); s.dead = true; for (const l of [...s.listeners]) detach(l); }
+  else if (typeof v === "function" && isAction(v)) { for (const l of [...attached]) if (l.action === v) detach(l); }
 }
 let generation = 0;
 const bornAt = new Map<object, number>();
 // Detaches listeners and stops generators that no live variable holds. One made since the last
-// sweep is spared once: it may be a value the runtime has not assigned yet.
+// sweep is spared once: it may be a value the runtime has not assigned yet. A parked listener was a
+// variable's value, so one no variable holds now (its cell's run threw) ends at once.
 export function sweep(values: Set<unknown>) {
   generation++;
   for (const x of [...attached, ...generating]) {
     if (values.has(x)) { bornAt.delete(x); continue; }
+    if (isListener(x) && ls.get(x)?.parked) { bornAt.delete(x); release(x); continue; }
     if (!bornAt.has(x)) { bornAt.set(x, generation); continue; }
     if (bornAt.get(x)! < generation) { bornAt.delete(x); release(x); }
   }

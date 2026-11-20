@@ -83,7 +83,7 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   const m = by(await Bun.file(root + "lite/notebook/examples/06-model.tsx").text());
   const mutSrc = await Bun.file(root + "lite/notebook/examples/03-mut.ts").text();
   const mu = new Map(compileModule(mutSrc, false, accepted(mutSrc, false)).map((v) => [v.name, v]));
-  expect(["leak", "late"].every((n) => toolchain.compiledKind(mu.get(n)!.definition)?.callee === "rejected" && JSON.stringify(mu.get(n)!.inputs) === JSON.stringify(["ss_rejected"])), "cells the checker rejects (leak, late) compile to a body that only raises: ss_rejected(...)");
+  expect(["leak", "late"].every((n) => toolchain.compiledKind(mu.get(n)!.definition)?.callee === "rejected" && JSON.stringify(mu.get(n)!.inputs) === JSON.stringify(["ss_rejected", "ss_release"])), "cells the checker rejects (leak, late) compile to a body that only raises: ss_rejected(..., ss_release(this)), which first ends a listener or events the cell held");
 }
 console.log(`${pass} files pass, ${fail} fail; ${cells} cells, ${vars} variables; ${skipped} cells skipped (pool or compile); ${factsCompared} cells compiled the same from the check's facts`);
 if (fail) process.exit(1);

@@ -816,6 +816,77 @@ md`Fetch, then store. \`ask\` writes a request; \`loaded\` is an async cell that
 ${spec_s6_fetchThenStore}
 \`\`\``
 // %%
+spec_s6_latestWins = `type Answer = { readonly n: number; readonly text: string | null };
+const asked = (): StateCell<number> => state(0);
+const ask = (asked: State<number>) => action(() => asked.update((n) => n + 1));
+// the answer carries the request it answers
+const loaded = async (fetch: Fetch, asked: number): Promise<Answer> => {
+  const r = await fetch(\`https://example.invalid/greeting?n=\${asked}\`);
+  return { n: asked, text: r.ok ? await r.text() : null };
+};
+const arrived = function* (loaded: Answer) {
+  yield loaded;
+};
+const greeting = (): StateCell<string> => state("");
+// kept only if it answers the latest request
+const store = (greeting: State<string>, asked: State<number>) =>
+  action((a: Answer) => {
+    if (a.n === read(asked) && a.text !== null) greeting.set(a.text);
+  });
+const onArrived = (arrived: Events<Answer>, store: Action<[Answer]>) => on(arrived, store);`
+// %%
+md`Latest wins. An answer to an earlier request still reaches \`store\`, which compares the request it answers with \`read(asked)\` and drops it. On 2026-11-20 it was run over every forced ordering of the Runtime's frames, events pulls, timers and the answer (\`.scratch/pending/q4-programs.ts\`): 468 orderings before the delivery fix and 251 after it, where the stop-check timer no longer exists, plus 164 with the pending fetch failing. It held only "hello" or the last answer in each.
+
+\`\`\`ts
+${spec_s6_latestWins}
+\`\`\``
+// %%
+spec_s6_everyAnswer = `type Answer = { readonly n: number; readonly text: string | null };
+// the request in flight, and those asked for meanwhile
+const current = (): StateCell<number | null> => state<number | null>(0);
+const queue = (): StateCell<number[]> => state<number[]>([]);
+const issued = (): StateCell<number> => state(1);
+const ask = (current: State<number | null>, queue: State<number[]>, issued: State<number>) =>
+  action(() => {
+    const n = read(issued);
+    issued.set(n + 1);
+    if (read(current) === null) current.set(n);
+    else queue.update((q) => [...q, n]);
+  });
+// reads only current, so its input does not change while it waits
+const loaded = async (fetch: Fetch, current: number | null): Promise<Answer | null> => {
+  if (current === null) return null;
+  try {
+    const r = await fetch(\`https://example.invalid/greeting?n=\${current}\`);
+    return { n: current, text: r.ok ? await r.text() : null };
+  } catch (e) {
+    return { n: current, text: null };
+  }
+};
+const arrived = function* (loaded: Answer | null) {
+  if (loaded !== null) yield loaded;
+};
+const greeting = (): StateCell<string[]> => state<string[]>([]);
+// records the answer and starts the next request
+const store = (greeting: State<string[]>, current: State<number | null>, queue: State<number[]>) =>
+  action((a: Answer) => {
+    if (a.n !== read(current)) return;
+    greeting.update((g) => [...g, a.text ?? "(failed)"]);
+    const q = read(queue);
+    const head = q[0];
+    if (head !== undefined) {
+      current.set(head);
+      queue.set(q.slice(1));
+    } else current.set(null);
+  });
+const onArrived = (arrived: Events<Answer>, store: Action<[Answer]>) => on(arrived, store);`
+// %%
+md`Every answer, in order. One request is in flight at a time; an ask made meanwhile waits in \`queue\`, and \`store\` starts the next one. A failed fetch is recorded as "(failed)" and the queue goes on. On 2026-11-20 it was run over every forced ordering with one more ask at any point (\`.scratch/pending/q4-programs.ts\`): 12683 orderings before the delivery fix, 4726 after it, and 4726 more with the pending fetch failing. Each request was fetched once and each answer stored once, in order.
+
+\`\`\`ts
+${spec_s6_everyAnswer}
+\`\`\``
+// %%
 md`**S6.13** An action call made while no action's function is running, by an event handler, a listener delivering a value or JavaScript, is a top-level call. It runs to completion before its caller goes on. An action called while an action's function is running is part of that call.`
 // %%
 md`**S6.14** The writes of a top-level call, including those of the actions it calls, commit together once, after the call returns. Calls that return before that commit share it, so a reader runs once for them and sees none of the values between. A call that throws keeps none of them (S6.10). Inside the call, \`read(r)\` is the committed value with the call's own earlier writes (S6.8).`
@@ -1119,30 +1190,91 @@ test_spec_S6_12 = {
   const asks = [];
   const fetch = (url) => new Promise((resolve, reject) => asks.push({ url, answer: (text) => resolve({ ok: true, status: 200, text: () => Promise.resolve(text) }), fail: () => reject(new Error("offline")) }));
   const L = await spec_load(spec_s6_fetchThenStore, { ss_fetch: [[], () => fetch] });
+  const greeting = () => L.value("greeting");
+  const wait = async (what, f) => { if (!(await spec_frames(f))) throw new Error(`${what}: ${asks.length} fetches, greeting ${JSON.stringify(await greeting())}`); };
   try {
-    if (!(await spec_frames(() => asks.length === 1))) throw new Error(`fetched ${asks.length} times at start`);
+    await wait("the first fetch", () => asks.length === 1);
     asks[0].answer("hello");
-    if (!(await spec_frames(async () => (await L.value("greeting")) === "hello"))) throw new Error(`greeting is ${JSON.stringify(await L.value("greeting"))}`);
-    // two asks while a fetch is pending: loaded runs once more, after that fetch's answer. Whether that answer
-    // reaches the listener is not fixed: verify runs of 2026-11-20 saw it stored once and dropped once
-    // (a bun probe dropped it every time), so it is not asserted
+    await wait("hello stored", async () => (await greeting()) === "hello");
+    // two asks while a fetch is pending: the pending answer is delivered and stored, then one more fetch is made
     const ask = await L.value("ask");
     ask();
-    if (!(await spec_frames(() => asks.length === 2))) throw new Error("the first ask did not fetch");
+    await wait("the first ask's fetch", () => asks.length === 2);
     ask();
     asks[1].answer("second");
-    if (!(await spec_frames(() => asks.length === 3))) throw new Error(`after the answer: ${asks.length} fetches`);
-    const afterSecond = await L.value("greeting");
+    await wait("the pending answer stored", async () => (await greeting()) === "second");
+    await wait("the fetch after it", () => asks.length === 3);
     asks[2].answer("third");
-    if (!(await spec_frames(async () => (await L.value("greeting")) === "third"))) throw new Error(`greeting is ${JSON.stringify(await L.value("greeting"))}`);
-    const latest = await L.value("greeting");
-    // a failed fetch stores nothing
+    await wait("third stored", async () => (await greeting()) === "third");
+    const handle = await L.value("arrived");
+    // a failed fetch stores nothing; the next ask fetches and stores again, with one listener
     ask();
-    if (!(await spec_frames(() => asks.length === 4))) throw new Error("the third ask did not fetch");
+    await wait("the third ask's fetch", () => asks.length === 4);
     asks[3].fail();
     const failed = await L.value("loaded").then(() => false, () => true);
-    spec_is([["hello", "second"].includes(afterSecond), latest, failed, await L.value("greeting"), asks.length], [true, "third", true, "third", 4]);
-    return `fetch then store in dataflow: ask, then loaded waits, arrived yields, store writes (greeting "hello"); two asks made while a fetch was pending made one more fetch, after its answer, and that answer was ${afterSecond === "second" ? "stored" : "not stored"} (either may happen); a failed fetch stores nothing`;
+    const afterFail = await greeting();
+    ask();
+    await wait("the fourth ask's fetch", () => asks.length === 5);
+    asks[4].answer("fourth");
+    await wait("fourth stored", async () => (await greeting()) === "fourth");
+    const handle2 = await L.value("arrived");
+    spec_is([failed, afterFail, soundscript.running([handle, handle2])], [true, "third", 1]);
+    return `fetch then store in dataflow: ask, then loaded waits, arrived yields, store writes; two asks made while a fetch was pending: its answer "second" was stored, then one more fetch was made, and "third" stored; a failed fetch stored nothing, and the next ask stored "fourth" with one listener`;
+  } finally { asks.forEach((a) => a.answer("")); L.dispose(); }
+}
+// %%
+test_spec_S6_12_latestWins = {
+  spec_is(spec_okCells(spec_s6_latestWins), "asked:ok,ask:ok,loaded:ok,arrived:ok,greeting:ok,store:ok,onArrived:ok");
+  const asks = [];
+  const fetch = (url) => new Promise((resolve, reject) => asks.push({ url, answer: (text) => resolve({ ok: true, status: 200, text: () => Promise.resolve(text) }), fail: () => reject(new Error("offline")) }));
+  const L = await spec_load(spec_s6_latestWins, { ss_fetch: [[], () => fetch] });
+  const greeting = () => L.value("greeting");
+  const wait = async (what, f) => { if (!(await spec_frames(f))) throw new Error(`${what}: ${asks.length} fetches, greeting ${JSON.stringify(await greeting())}`); };
+  try {
+    await wait("the first fetch", () => asks.length === 1);
+    asks[0].answer("hello");
+    await wait("hello stored", async () => (await greeting()) === "hello");
+    const ask = await L.value("ask");
+    ask();
+    await wait("the first ask's fetch", () => asks.length === 2);
+    ask();
+    // the answer to request 1 arrives after request 2 was made: delivered, and dropped by store
+    asks[1].answer("second");
+    await wait("the fetch for request 2", () => asks.length === 3);
+    const kept = await greeting();
+    asks[2].answer("third");
+    await wait("third stored", async () => (await greeting()) === "third");
+    spec_is([kept, asks.map((a) => a.url.replace(/.*\?/, ""))], ["hello", ["n=0", "n=1", "n=2"]]);
+    return `the answer to request 1 arrived after request 2 was made; when request 2 was fetched greeting was still "hello", and the answer to request 2 was stored`;
+  } finally { asks.forEach((a) => a.answer("")); L.dispose(); }
+}
+// %%
+test_spec_S6_12_everyAnswer = {
+  spec_is(spec_okCells(spec_s6_everyAnswer), "current:ok,queue:ok,issued:ok,ask:ok,loaded:ok,arrived:ok,greeting:ok,store:ok,onArrived:ok");
+  const asks = [];
+  const fetch = (url) => new Promise((resolve, reject) => asks.push({ url, answer: (text) => resolve({ ok: true, status: 200, text: () => Promise.resolve(text) }), fail: () => reject(new Error("offline")) }));
+  const L = await spec_load(spec_s6_everyAnswer, { ss_fetch: [[], () => fetch] });
+  const greeting = () => L.value("greeting");
+  const has = (xs) => async () => JSON.stringify(await greeting()) === JSON.stringify(xs);
+  const wait = async (what, f) => { if (!(await spec_frames(f))) throw new Error(`${what}: ${asks.length} fetches, greeting ${JSON.stringify(await greeting())}`); };
+  try {
+    await wait("the first fetch", () => asks.length === 1);
+    asks[0].answer("hello");
+    await wait("hello stored", has(["hello"]));
+    // three asks: one fetch in flight, two queued; the first fails, the others answer
+    const ask = await L.value("ask");
+    ask();
+    await wait("request 1 fetched", () => asks.length === 2);
+    ask();
+    ask();
+    asks[1].fail();
+    await wait("request 2 fetched", () => asks.length === 3);
+    asks[2].answer("second");
+    await wait("request 3 fetched", () => asks.length === 4);
+    asks[3].answer("third");
+    await wait("every answer stored", has(["hello", "(failed)", "second", "third"]));
+    spec_is([asks.map((a) => a.url.replace(/.*\?/, "")), await L.value("current"), await L.value("queue")], [["n=0", "n=1", "n=2", "n=3"], null, []]);
+    return `three asks made while one fetch was pending were fetched one at a time, in order; the failed one was recorded as "(failed)"; every answer was stored once, in order`;
   } finally { asks.forEach((a) => a.answer("")); L.dispose(); }
 }
 // %%
@@ -1206,7 +1338,7 @@ md`**S7.2** \`on(t, a)\` has type \`Listener\`. \`a\` must be an \`Action\` that
 // %%
 md`**S7.3** A \`Listener\` is only the whole value of a sync, non-generator cell: what it returns, or a branch of a conditional it returns when every branch is one. In an array, a record or a state cell, as an argument, in a nested function, in a union with another type, in an async or generator cell, and as the input of another cell, it is \`[listener-placement]\`.`
 // %%
-md`**S7.4** While a listener is the value of its cell, its action runs once for each value the events cell yields, in order. The listener ends when its cell runs again, is deleted, or its module's variables are deleted. A listener cell that runs again, because it or its action was edited, leaves one listener, and no value is lost or delivered twice.`
+md`**S7.4** While a listener is the value of its cell, its action runs once for each value the events cell yields, in order. The listener ends when its cell is deleted or rejected, when its module's variables are deleted, or when its cell runs again with other events or another action; a run with the same events and the same action keeps it. A listener cell that runs again, for any reason, leaves one listener, and no value is lost or delivered twice, whichever of that run, a commit and the value comes first.`
 // %%
 md`**S7.5** Starting and stopping events is dataflow: the events cell takes inputs and yields nothing when it should not run. When an input changes (\`Object.is\`, as in S6.2), the events cell runs again from its start and keeps its handle; run again with the same inputs it keeps its generator. An events cell writes nothing (S6.5).`
 // %%
@@ -1955,7 +2087,9 @@ md`- A dependency cycle that passes through a cell in another language. The chec
 // %%
 md`- A DOM node from another language placed in JSX.`
 // %%
-md`- Which answers reach a listener when the input of an async cell changes while the cell is waiting (the fetch-then-store shape of S6.12). With two asks made during one pending fetch, the pending answer was stored on 6 of 10 loads in Chromium and on none under bun, on 2026-11-20, and the next fetch started only after the pending one answered. The cause is not established. The last answer is delivered; \`test_spec_S6_12\` asserts only that.`
+md`- A listener while an input of its events cell throws. The events cell does not run again, and a listener that was waiting for that run keeps receiving what the old generator yields until the listener cell runs again or is deleted (measured 2026-11-20: 30 values over 30 rounds).`
+// %%
+md`- Which requests an async cell makes when its input changes while it is waiting. The Runtime runs only the latest input after the pending one, so a request can be skipped, and a request whose input is a state cell can be made twice. \`spec_s6_latestWins\` and \`spec_s6_everyAnswer\` are the two ways to write a program that does not depend on this.`
 // %%
 md`- A handler that makes several top-level calls, such as \`onClick={() => { begin(); load(); }}\`. An event attribute takes one action, so this is not provided.`
 // %%

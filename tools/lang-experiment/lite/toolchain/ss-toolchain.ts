@@ -15,7 +15,7 @@ export { langOf, LANG };
 // the prelude functions, and h, the JSX element function lowered JSX calls
 const PRELUDE = [...PRELUDE_FNS, "h"];
 // the runtime module's cells a compiled cell can take: the built-ins its body uses and what its compiled form calls
-export const RUNTIME_CELLS = [...PRELUDE, "ref", "events", "listen", "cross", "viewRef", "compileFor", "rejected"];
+export const RUNTIME_CELLS = [...PRELUDE, "ref", "events", "listen", "cross", "viewRef", "compileFor", "rejected", "release"];
 // A capability parameter or a runtime cell -> the input that provides it: ss_<name>, except invalidation, the
 // runtime's own. ss_compile is defined in each module that compiles, because compile reads that module's cells; a
 // runtime cell is imported from the runtime module under that name, and the runtime module takes its own cell
@@ -223,9 +223,10 @@ function ojsCell(name: string, view: boolean, block: boolean, body: (r: (input: 
 }
 
 // A cell the checker does not accept: its typed source is kept whole in the header, and the definition
-// only raises the checker's messages. A state cell keeps its two variables, so its readers stay wired.
+// only raises the checker's messages, after releasing its last value (this): a listener or events it held ends.
+// A state cell keeps its two variables, so its readers stay wired.
 const rejectedCell = (text: string, key: string, why: string[], ref: boolean, IN: Record<string, string>): Built =>
-  ojsCell(variableName(key), ref, false, (r) => `${r(IN.rejected)}(${LANG}${header({ d: text, rejected: why })}${JSON.stringify(key)}, ${JSON.stringify(why)})`);
+  ojsCell(variableName(key), ref, false, (r) => `${r(IN.rejected)}(${LANG}${header({ d: text, rejected: why })}${JSON.stringify(key)}, ${JSON.stringify(why)}, ${r(IN.release)}(this))`);
 
 // A name declared again is stored as "<name> (2)", "<name> (3)", ... (core.ts reports it so).
 export const isDuplicateKey = (key: string | null): key is string => !!key && /^[\w$]+ \(\d+\)$/.test(key);
@@ -305,7 +306,8 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   const name = JSON.stringify(info.name);
   // the cell's expression, written in text order so the inputs are listed in order of first use. A state or
   // events cell passes this, the variable's last value (the handle), so the stdlib keeps the handle across runs;
-  // an events or listener cell takes invalidation: its generator stops, or its listener ends, when it runs again.
+  // an events or listener cell takes invalidation, and a listener cell passes this, its last listener, which its
+  // next run takes over (cells.ts listen).
   // Any other cell is its function applied to its inputs.
   const expr = (r: (i: string) => string) => {
     if (kind === "ref" || kind === "events") {
@@ -316,7 +318,7 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
     const listen = kind === "listener" ? `${r(IN.listen)}(` : "";
     globals.forEach(r);
     const applied = `(${inner})(${args(r)})`;
-    return listen ? `${listen}${applied}, ${name}, ${r("invalidation")})` : applied;
+    return listen ? `${listen}${applied}, ${name}, ${r("invalidation")}, this)` : applied;
   };
   const block = bound.length > 0;
   const out = ojsCell(variableName(info.name), kind === "ref", block, (r) => block ? `{ const ${bound.map((n) => `${n} = ${r(IN[n])}`).join(", ")}; return ${expr(r)}; }` : expr(r));
