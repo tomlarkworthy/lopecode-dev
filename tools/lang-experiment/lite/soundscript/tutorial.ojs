@@ -183,7 +183,7 @@ sourceListing(workers_module, invalidation)
 // %%
 moduleTable(workers_module, invalidation)
 // %%
-md`The cells are in [@tomlarkworthy/soundscript-workers](${linkTo("@tomlarkworthy/soundscript-workers")}).`
+md`The cells are in [@tomlarkworthy/soundscript-mandelbrot](${linkTo("@tomlarkworthy/soundscript-mandelbrot")}).`
 // %%
 md`## 8. Mistakes in a view
 
@@ -1169,7 +1169,7 @@ import { app as reducer_app, reducer_module } from "@tomlarkworthy/soundscript-r
 // %%
 import { app as model_app, model_module } from "@tomlarkworthy/soundscript-model"
 // %%
-import { app as workers_app, image as workers_image, width as workers_width, height as workers_height, maxIter as workers_maxIter, bands as workers_bands, inPool as workers_inPool, onMain as workers_onMain, poolSize as workers_poolSize, workers_module } from "@tomlarkworthy/soundscript-workers"
+import { app as workers_app, image as workers_image, width as workers_width, height as workers_height, maxIter as workers_maxIter, bands as workers_bands, inPool as workers_inPool, onMain as workers_onMain, poolSize as workers_poolSize, workers_module } from "@tomlarkworthy/soundscript-mandelbrot"
 // %%
 import { app as breakout_app, playing as breakout_playing, over as breakout_over, status as breakout_status, breakout_module } from "@tomlarkworthy/soundscript-breakout"
 // %%

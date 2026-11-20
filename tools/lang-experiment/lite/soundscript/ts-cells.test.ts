@@ -1,8 +1,8 @@
 // bun lite/soundscript/ts-cells.test.ts [notebook.html]
-// The generated @tomlarkworthy/soundscript-runtime and -checker modules (ts-cells.ts):
+// The generated @tomlarkworthy/soundscript-runtime, -checker and -workers modules (ts-cells.ts):
 //  1. every generated cell decompiles and recompiles to the same variables with the standard
 //     toolchain (@tomlarkworthy/observablejs-toolchain's compile and decompile);
-//  2. the two module blocks of the built notebook, loaded into one headless Runtime with the parser
+//  2. the runtime and checker module blocks of the built notebook, loaded into one headless Runtime with the parser
 //     injected, give a `soundscript` with entry.ts's keys, the same kind of value per key, and the same
 //     checker verdicts, compiled cells and decompiled sources as entry.ts on the example sources.
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -13,7 +13,7 @@ import { tsPlugin } from "@sveltejs/acorn-typescript";
 import { Runtime } from "@observablehq/runtime";
 import { blockContent } from "../../../lib/notebook-blocks.ts";
 import { loadNotebook } from "../../../lope-runtime.js";
-import { generate, ENTRY, RUNTIME, CHECKER } from "./ts-cells.ts";
+import { generate, ENTRY, RUNTIME, CHECKER, WORKERS } from "./ts-cells.ts";
 import { moduleJs } from "../toolchain/module-js.ts";
 
 process.on("unhandledRejection", () => {});
@@ -38,7 +38,7 @@ const keys = Object.keys(entry).filter((k) => k !== "default").sort();
   const bad: string[] = [];
   let n = 0;
   // the import cell is left out: the toolchain decompiles an import from live Variables (it resolves the module variable)
-  for (const src of [...g.runtime, ...g.checker].filter((s) => !s.startsWith("import "))) {
+  for (const src of [...g.runtime, ...g.checker, ...g.workers].filter((s) => !s.startsWith("import "))) {
     const vs = compile(src);
     const again = compile(await decompile(vs));
     n++;
@@ -84,6 +84,15 @@ await all(RUNTIME);
 const checker = load(CHECKER, { parser_lib: { acorn, tsPlugin } });
 await all(CHECKER);
 const ss = await checker.value("soundscript");
+// the add-on, on the checker module: its pool runs an island the checker's compile made
+load(WORKERS);
+await all(WORKERS);
+{
+  const pool = await mods.get(WORKERS).value("ss_pool");
+  const run = ss.compiler(() => "const x = () => 1;\nconst y = (x: number) => x * 2;\nconst go = (compile: Compile) => compile({ inputs: [\"x\"], refs: [], outputs: [\"y\"] });\n").for("go", {});
+  const out = await run({ inputs: ["x"], refs: [], outputs: ["y"], options: { runtime: pool } })({ x: 21 });
+  t(out?.y === 42 && pool.answered.reduce((a: number, n: number) => a + n, 0) === 1, `${WORKERS}: ss_pool runs an island on a worker (${JSON.stringify(out)}, answered ${JSON.stringify(pool.answered)})`);
+}
 const got = Object.keys(ss).sort();
 t(JSON.stringify(got) === JSON.stringify(keys), `soundscript has entry.ts's ${keys.length} keys${JSON.stringify(got) === JSON.stringify(keys) ? "" : ": " + JSON.stringify({ extra: got.filter((k) => !keys.includes(k)), missing: keys.filter((k) => !got.includes(k)) })}`);
 const kind = (v: unknown) => (typeof v === "function" ? (v.toString().startsWith("class") ? "class" : "function") : v === null ? "null" : Array.isArray(v) ? "array" : typeof v === "object" ? Object.prototype.toString.call(v) : typeof v);

@@ -11,7 +11,7 @@ import { on, events, listen, running, pulling, isEvents, release, sweep, cellsOf
 export { setListenerOrder, listenerOrderChanged, events, listen };
 export { cellsOf };
 import { island, type IslandSpec } from "../island.ts";
-import { pagePool, runHere, type Pool } from "../browser/workers.ts";
+import { runHere, type Pool } from "../browser/workers.ts";
 export { isDuplicateKey, compileCell, compileCellText, compileModule, contextOf, contextFromCheck, acceptedOf, cellStates, declaredName, decompileVariable, decompileModule, langOf, cellOfVariable, splitCells, handleName, variableName, keyOfVariable, STATE_VALUE } from "../toolchain/ss-toolchain.ts";
 import { declaredName } from "../toolchain/ss-toolchain.ts";
 import { parse } from "../parse.ts";
@@ -84,7 +84,7 @@ export function viewRef(el: unknown, shape: Shape, name: string): object {
     throw new TypeError(`viewof ${name}: expected a view (an element with a value), found ${e === null ? "null" : typeof e}`);
   return viewHandle(e as Parameters<typeof viewHandle>[0], name, (v) => checkShape(v, shape, name));
 }
-export { h, on, create, patch, pagePool, running, pulling, isEvents, release, sweep };
+export { h, on, create, patch, running, pulling, isEvents, release, sweep };
 
 // page-wide, so two modules' islands never share a key in one pool
 let made = 0;
@@ -156,9 +156,3 @@ export function mount(x: unknown, prev: any): Node {
   return create(document, x);
 }
 
-// The page's worker pool, made on first use, so a notebook that never compiles starts no workers.
-export function lazyPool(): Pool {
-  let p: Pool | null = null;
-  const get = () => (p ??= pagePool());
-  return { get size() { return get().size; }, get answered() { return p ? p.answered : []; }, run: (job, owner) => get().run(job, owner) };
-}

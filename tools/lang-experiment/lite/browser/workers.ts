@@ -37,6 +37,10 @@ export const EXEC = `(function () {
   };
 })()`;
 
+export const runHere: (job: Job) => Record<string, unknown> = new Function(`return ${EXEC}`)();
+
+// From here to the end, the pool: the add-on module @tomlarkworthy/soundscript-workers (ts-cells.ts WORKERS_ROOTS).
+
 const WORKER = `const run = ${EXEC};
 self.onmessage = (e) => {
   const { id, job } = e.data;
@@ -49,8 +53,6 @@ self.onmessage = (e) => {
     else self.postMessage({ id, error: String((err && err.message) || err) });
   }
 };`;
-
-export const runHere: (job: Job) => Record<string, unknown> = new Function(`return ${EXEC}`)();
 
 type Slot = { worker: Worker; busy: boolean; has: Set<string>; current: number; answered: number };
 type Queued = { job: Job; owner: { dead: boolean }; resolve: (v: Record<string, unknown>) => void; reject: (e: Error) => void; resent?: boolean };

@@ -5,7 +5,8 @@
 // elsewhere. Types are erased with ../browser/erase.ts. Names are unique across the files, and
 // imports between them are unaliased, so an import is dropped and the name is the cell. A declaration
 // that neither the `soundscript` object nor a test cell reaches is left out. Each module ends with the
-// test_* cells of runtime-tests.ojs or checker-tests.ojs.
+// test_* cells of runtime-tests.ojs or checker-tests.ojs. What WORKERS_ROOTS reach and neither module keeps is a
+// third module, the worker pool add-on, which a module imports only to run compile's islands on workers.
 // A SoundScript section (SS_FILES) is cells already: each of its cells is compiled by compileCellText, as the
 // notebook compiles a SoundScript cell, and kept whole, type declarations included, so the notebook can check
 // and edit it. The TypeScript files that link it for bun (BOOTSTRAP) give no cells.
@@ -24,6 +25,9 @@ const LITE = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const ENTRY = join(LITE, "soundscript/entry.ts");
 export const RUNTIME = "@tomlarkworthy/soundscript-runtime";
 export const CHECKER = "@tomlarkworthy/soundscript-checker";
+export const WORKERS = "@tomlarkworthy/soundscript-workers";
+// the add-on's roots: ss_pool = pagePool()
+const WORKERS_ROOTS = ["pagePool"];
 // the input compiled SoundScript cells take: the runtime module's ss
 const STDLIB = "ss";
 // in dependency order; where each declaration goes is decided in generate() ("module placement")
@@ -59,7 +63,7 @@ const PARSER_CELLS = [
 const GLOBALS = new Set(["globalThis", "structuredClone", "Event", "EventTarget", "Generators"]);
 // each section's heading and, per module it gives cells to, one sentence on what those cells do in the notebook
 // (keyed by source file; a file that gives a module cells and has no sentence for it stops the build)
-const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?: string; checker?: string }> = {
+const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?: string; checker?: string; workers?: string }> = {
   "../prelude.runtime.ts": { title: "State cells and actions", runtime: "The store behind each state cell and its handle, actions, the queue of top-level action calls, and the commit that applies their writes." },
   "runtime.ss.ts": { title: "Runtime cells in SoundScript", runtime: "Cells of the runtime written in SoundScript, compiled from lite/runtime.ss.ts: mismatch wording for the boundary, JSX children and event data, the order of listeners, and the bodies of a rejected cell and of compile." },
   "types.ss.ts": { title: "Types", checker: "How the checker represents a type, and union, substitution, widening and display over those types. These cells are SoundScript." },
@@ -67,8 +71,8 @@ const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?:
   "jsx/h.ts": { title: "Elements", runtime: "`h` makes the element values that compiled JSX evaluates to." },
   "jsx/render.ts": { title: "Rendering", runtime: "`create` and `patch` turn element values into DOM nodes, and patch a node in place when its tag is unchanged." },
   "browser/cells.ts": { title: "Events and listeners", runtime: "Events cells' handles and generators, the listeners `on` makes, delivery of each value to them, and `sweep`, which stops what no variable holds." },
-  "browser/workers.ts": { title: "Worker pool", checkerTitle: "Running an island on the page", runtime: "The pool of web workers that runs the islands `compile` makes.", checker: "`runHere` runs an island on the page when no pool is given." },
-  "stdlib/runtime.ts": { title: "Running a compiled cell", checkerTitle: "Checking a module for the editor and compile", runtime: "What compiled state, events and listener cells call (`ref`, `events`, `listen`), with `viewRef`, `mount` and the worker pool made on first use.", checker: "`check` and `checkCells` check a module's cells and keep recent results; `compiler` checks and builds the island of a `compile(...)` call." },
+  "browser/workers.ts": { title: "Worker pool", checkerTitle: "Running an island on the page", workers: "The pool of web workers that runs the islands `compile` makes.", checker: "`runHere` runs an island on the page when no pool is given." },
+  "stdlib/runtime.ts": { title: "Running a compiled cell", checkerTitle: "Checking a module for the editor and compile", runtime: "What compiled state, events and listener cells call (`ref`, `events`, `listen`), with `viewRef` and `mount`.", checker: "`check` and `checkCells` check a module's cells and keep recent results; `compiler` checks and builds the island of a `compile(...)` call." },
   "parse.ts": { title: "Parser", checker: "Parses TypeScript and TSX with acorn and acorn-typescript, and keeps the comments." },
   "intrinsics.ts": { title: "Prelude declarations", checker: "The declaration text the checker reads for the prelude, the capabilities, JSX and the allowed globals, and the lists of prelude functions and capability names." },
   "registry.ts": { title: "Declarations and subtyping", checker: "Declarations by name, conversion of type syntax, expansion of aliases, member lookup, subtyping and unification." },
@@ -231,7 +235,7 @@ function withComment(text: string, comment: string): string {
   return text.slice(0, body + 1) + "\n" + indent(comment) + text.slice(body + 1);
 }
 
-export type Generated = { runtime: string[]; checker: string[]; stats: Record<string, unknown> };
+export type Generated = { runtime: string[]; checker: string[]; workers: string[]; stats: Record<string, unknown> };
 
 export function generate(compile: Compile, ssKeys: string[]): Generated {
   const files = [...RUNTIME_FILES, SPLIT, ...CHECKER_FILES];
@@ -295,6 +299,7 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   // a SoundScript section is kept whole: the notebook checks its cells against its type declarations
   const kept = closure([...rootsOf(ssKeys), ...rootsOf(tests[CHECKER].inputs), ...inRuntime, ...groups.filter((g) => SS_FILES.has(g.file))]);
   for (const g of kept) g.module = inRuntime.has(g) || SS_HOME[g.file] === RUNTIME ? RUNTIME : CHECKER;
+  for (const g of closure(rootsOf(WORKERS_ROOTS))) if (!kept.has(g)) { g.module = WORKERS; kept.add(g); }
   const dropped = groups.filter((g) => !kept.has(g));
   for (const g of kept) if (g.module === RUNTIME) {
     if (CHECKER_FILES.includes(g.file)) throw new Error(`runtime cell ${g.stmts[0].names[0]} is declared in the checker's ${g.file}`);
@@ -302,7 +307,8 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   }
   for (const g of kept) if (g.module === RUNTIME) for (const d of g.deps) if (d.module !== RUNTIME) throw new Error(`runtime cell ${g.stmts[0].names[0]} takes checker cell ${d.stmts[0].names[0]}`);
   // names other cells take, plus every exported name
-  const cells = { [RUNTIME]: [] as string[], [CHECKER]: [] as string[] };
+  const cells = { [RUNTIME]: [] as string[], [CHECKER]: [] as string[], [WORKERS]: [] as string[] };
+  const lineKey = (m: string) => (m === RUNTIME ? "runtime" : m === CHECKER ? "checker" : "workers");
   const shapes = { single: 0, block: 0, ss: 0, groups: [] as string[][] };
   let lastFile = "";
   const emit = (g: Group, src: string) => {
@@ -314,10 +320,10 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
     if (!kept.has(g)) continue;
     if (g.file !== lastFile) {
       lastFile = g.file;
-      for (const m of [RUNTIME, CHECKER]) {
+      for (const m of [RUNTIME, CHECKER, WORKERS]) {
         if (!groups.some((x) => x.file === g.file && x.module === m && kept.has(x))) continue;
-        const sec = SECTIONS[g.file], line = sec?.[m === RUNTIME ? "runtime" : "checker"];
-        if (!sec || !line) throw new Error(`SECTIONS has no ${m === RUNTIME ? "runtime" : "checker"} sentence for ${g.file}, which gives that module cells`);
+        const sec = SECTIONS[g.file], line = sec?.[lineKey(m)];
+        if (!sec || !line) throw new Error(`SECTIONS has no ${lineKey(m)} sentence for ${g.file}, which gives that module cells`);
         cells[m].push(`md\`## ${m === CHECKER ? sec.checkerTitle ?? sec.title : sec.title}\n\n${mdText(line)}\``);
       }
     }
@@ -353,7 +359,7 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   // inputs that are neither cells nor the parser's: globals, listed
   const known = new Set([...owner.keys(), ...groups.map((g) => g.name).filter(Boolean), ...tests[RUNTIME].names, ...tests[CHECKER].names, "acorn", "tsPlugin", "parser_lib", "md", "FileAttachment", "soundscript", STDLIB]);
   const strays = new Set<string>();
-  for (const m of [RUNTIME, CHECKER]) for (const src of cells[m]) for (const v of compile(src)) for (const i of v._inputs ?? []) if (!known.has(i)) strays.add(i);
+  for (const m of [RUNTIME, CHECKER, WORKERS]) for (const src of cells[m]) for (const v of compile(src)) for (const i of v._inputs ?? []) if (!known.has(i)) strays.add(i);
   const unexpected = [...strays].filter((n) => !GLOBALS.has(n));
   if (unexpected.length) throw new Error(`generated cells take ${unexpected.join(", ")}, which no cell defines and GLOBALS does not list`);
   // cross-module imports: the checker module takes runtime cells
@@ -385,8 +391,21 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
     `ss = ({ ${runtimeKeys.join(", ")} })`,
     ...cells[RUNTIME],
   ];
+  // the add-on takes the cells it needs from the other two modules; nothing takes a cell of it but the module that imports ss_pool
+  const namesOf = (m: string) => new Set(cells[m].flatMap((src) => compile(src).map((v) => v._name).filter((n): n is string => !!n)));
+  const checkerNames = namesOf(CHECKER);
+  const workersTakes = [...new Set(cells[WORKERS].flatMap((src) => compile(src).flatMap((v) => v._inputs ?? [])))].sort();
+  const workersNames = namesOf(WORKERS);
+  for (const m of [RUNTIME, CHECKER]) for (const src of cells[m]) for (const v of compile(src)) for (const i of v._inputs ?? []) if (workersNames.has(i)) throw new Error(`${m} cell ${v._name} takes the add-on's ${i}`);
+  const fromModule = (names: Set<string>, m: string) => { const xs = workersTakes.filter((n) => names.has(n)); return xs.length ? [`import { ${xs.join(", ")} } from "${m}"`] : []; };
+  const workers = [
+    `md\`# SoundScript workers\n\nA worker pool for \\\`compile\\\`. A module whose cells take \\\`pool\\\` imports \\\`ss_pool\\\` from here; a notebook that does not import it starts no worker.\n\nThe build generates these cells from \\\`tools/lang-experiment/lite/browser/workers.ts\\\`, so an edit made here is lost at the next build.\``,
+    "ss_pool = pagePool()",
+    ...cells[WORKERS],
+    ...fromModule(runtimeNames, RUNTIME), ...fromModule(checkerNames, CHECKER),
+  ];
   return {
-    runtime, checker,
-    stats: { statements: stmts.length, dropped: dropped.flatMap((g) => g.stmts.flatMap((s) => s.names)), tests: { runtime: tests[RUNTIME].names, checker: tests[CHECKER].names }, singleCells: shapes.single, blockCells: shapes.block, soundScriptCells: shapes.ss, groups: shapes.groups, globals: [...strays].sort(), runtimeCells: runtime.length, checkerCells: checker.length, imported: takes.size },
+    runtime, checker, workers,
+    stats: { statements: stmts.length, dropped: dropped.flatMap((g) => g.stmts.flatMap((s) => s.names)), tests: { runtime: tests[RUNTIME].names, checker: tests[CHECKER].names }, singleCells: shapes.single, blockCells: shapes.block, soundScriptCells: shapes.ss, groups: shapes.groups, globals: [...strays].sort(), runtimeCells: runtime.length, checkerCells: checker.length, workersCells: workers.length, workersImports: workersTakes.filter((n) => runtimeNames.has(n) || checkerNames.has(n)), imported: takes.size },
   };
 }

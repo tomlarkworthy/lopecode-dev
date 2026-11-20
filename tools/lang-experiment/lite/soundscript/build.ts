@@ -3,6 +3,8 @@
 //  - @tomlarkworthy/soundscript (core.ojs): the language. Its `ss` is the checker module's `soundscript`.
 //  - @tomlarkworthy/soundscript-runtime and @tomlarkworthy/soundscript-checker: the TypeScript sources entry.ts
 //    reaches, as cells (ts-cells.ts). The checker module's one attachment is the parser, acorn-typescript.js.gz.
+//  - @tomlarkworthy/soundscript-workers: the worker pool add-on (ts-cells.ts), with the tutorial only: its
+//    Mandelbrot section imports ss_pool from it. A build without it starts no worker.
 //  - @tomlarkworthy/raw-cells (raw-cells.ojs): a second cell language, define(label, inputs, function).
 //    It does not import the core and the core does not name it. Left out of MAINS with --no-raw (a test
 //    artefact; needs --out), so its cells are those of a language that is not loaded.
@@ -31,7 +33,7 @@ import { checkSources } from "../core.ts";
 import { checkHtml } from "../../../lope-preflight.ts";
 import { importNotebookModule } from "../../../notebook-import.ts";
 import * as acorn from "acorn";
-import { generate, ENTRY, RUNTIME, CHECKER, PARSER_FILE, PARSER_ENTRY } from "./ts-cells.ts";
+import { generate, ENTRY, RUNTIME, CHECKER, WORKERS, PARSER_FILE, PARSER_ENTRY } from "./ts-cells.ts";
 
 process.on("unhandledRejection", () => {});
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -44,7 +46,7 @@ const SPEC = "@tomlarkworthy/soundscript-spec";
 const SECTIONS = [
   { name: "@tomlarkworthy/soundscript-reducer", ojs: "sections/reducer.ojs" },
   { name: "@tomlarkworthy/soundscript-model", ojs: "sections/model.ojs" },
-  { name: "@tomlarkworthy/soundscript-workers", ojs: "sections/workers.ojs" },
+  { name: "@tomlarkworthy/soundscript-mandelbrot", ojs: "sections/workers.ojs" },
   { name: "@tomlarkworthy/soundscript-breakout", ojs: "sections/breakout.ojs" },
   { name: "@tomlarkworthy/soundscript-polyglot", ojs: "sections/polyglot.ojs" },
 ];
@@ -237,7 +239,7 @@ function buildModule(name: string, ojs: string, files: File[], given?: string[])
   return { html, consts: consts.length, ssNames };
 }
 
-let core, tutorial, rawCells, spec, sections: ReturnType<typeof buildModule>[] = [], runtimeMod, checkerMod, generated;
+let core, tutorial, rawCells, spec, sections: ReturnType<typeof buildModule>[] = [], runtimeMod, checkerMod, workersMod, generated;
 // the keys of ss: what entry.ts exports
 const ssKeys = Object.keys(await import(ENTRY)).filter((k) => k !== "default").sort();
 try {
@@ -260,6 +262,7 @@ try {
       return { name: f, mime: "text/plain", base64: false, data };
     });
     tutorial = buildModule(TUTORIAL, "tutorial.ojs", files);
+    workersMod = buildModule(WORKERS, "(generated workers)", [], generated.workers);
     sections = SECTIONS.map((x) => buildModule(x.name, x.ojs, []));
   }
   if (withSpec) spec = buildModule(SPEC, "spec.ojs", []);
@@ -288,7 +291,7 @@ const forks = FORKS.map(({ id, file }) => {
 
 const host = findSpan(html, HOST);
 if (!host) throw new Error(`no ${HOST} block in ${BASE}`);
-html = html.slice(0, host.start) + rawCells.html + "\n" + runtimeMod.html + "\n" + checkerMod.html + "\n" + core.html + (tutorial ? "\n" + tutorial.html : "") + sections.map((x) => "\n" + x.html).join("") + (spec ? "\n" + spec.html : "") + html.slice(host.end);
+html = html.slice(0, host.start) + rawCells.html + "\n" + runtimeMod.html + "\n" + checkerMod.html + (workersMod ? "\n" + workersMod.html : "") + "\n" + core.html + (tutorial ? "\n" + tutorial.html : "") + sections.map((x) => "\n" + x.html).join("") + (spec ? "\n" + spec.html : "") + html.slice(host.end);
 
 const conf = JSON.parse(blockContent(html, "bootconf.json")!);
 conf.mains = MAINS;
@@ -345,7 +348,7 @@ if (own.length) throw new Error(`preflight: ${own.length} finding(s) in the Soun
 writeFileSync(OUT, html);
 if (guarded) writeFileSync(HASH_FILE, sha(html) + "\n");
 console.log(JSON.stringify({
-  out: OUT, bytes: Buffer.byteLength(html), bytesBeforeStrip: sizeBefore, removed, orphans, parser: js.length, parserGz: gz.length, generated: generated.stats, runtimeVariables: runtimeMod.consts, checkerVariables: checkerMod.consts,
+  out: OUT, bytes: Buffer.byteLength(html), bytesBeforeStrip: sizeBefore, removed, orphans, parser: js.length, parserGz: gz.length, generated: generated.stats, runtimeVariables: runtimeMod.consts, checkerVariables: checkerMod.consts, workersVariables: workersMod?.consts ?? 0,
   rawCellsVariables: rawCells.consts, coreVariables: core.consts, tutorialVariables: tutorial?.consts ?? 0, coreSoundScript: core.ssNames, tutorialSoundScript: tutorial?.ssNames ?? [], sectionVariables: sections.map((x) => x.consts), specVariables: spec?.consts ?? 0, mains: conf.mains, hash: conf.hash,
   forks: forks.map(({ fork, ...f }) => f),
 }, null, 2));

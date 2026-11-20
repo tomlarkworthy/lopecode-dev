@@ -193,8 +193,6 @@ ss_roundtrip = (module) => {
   return n;
 }
 // %%
-ss_pool = soundscript.lazyPool()
-// %%
 ss_instances = new WeakSet()
 // %%
 ss_deleted = {

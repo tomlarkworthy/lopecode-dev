@@ -19,6 +19,8 @@ ss_compile = soundscript.compiler(() => ss_source(workers_module))
 // %%
 viewof workers_module = thisModule()
 // %%
-import { ss, soundscript, ss_pool, ss_source } from "@tomlarkworthy/soundscript"
+import { ss, soundscript, ss_source } from "@tomlarkworthy/soundscript"
+// %%
+import { ss_pool } from "@tomlarkworthy/soundscript-workers"
 // %%
 import { thisModule } from "@tomlarkworthy/runtime-sdk"

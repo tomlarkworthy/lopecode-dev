@@ -35,7 +35,9 @@ const TUTORIAL = "@tomlarkworthy/soundscript-tutorial";
 const SPEC = "@tomlarkworthy/soundscript-spec";
 // the specification module's tests, by name (a test is named after the statements it checks)
 const SPEC_TESTS = [...readFileSync(join(dirname(fileURLToPath(import.meta.url)), "spec.ojs"), "utf8").matchAll(/^(test_spec_\w+) = /gm)].map((m) => m[1]);
-const SECTIONS = ["@tomlarkworthy/soundscript-reducer", "@tomlarkworthy/soundscript-model", "@tomlarkworthy/soundscript-workers", "@tomlarkworthy/soundscript-breakout", "@tomlarkworthy/soundscript-polyglot"];
+const SECTIONS = ["@tomlarkworthy/soundscript-reducer", "@tomlarkworthy/soundscript-model", "@tomlarkworthy/soundscript-mandelbrot", "@tomlarkworthy/soundscript-breakout", "@tomlarkworthy/soundscript-polyglot"];
+// the worker pool add-on; only the Mandelbrot section imports it
+const WORKERS = "@tomlarkworthy/soundscript-workers";
 const file = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : join(HERE, "../../../../lopebooks/notebooks/soundscript.html"));
 const shot = process.argv.includes("--shot") ? process.argv[process.argv.indexOf("--shot") + 1] : null;
 const SCRATCH = join(HERE, ".scratch");
@@ -122,6 +124,12 @@ let ftN = 0;
 const CPU = process.argv.includes("--cpu") ? Number(process.argv[process.argv.indexOf("--cpu") + 1]) : 1;
 const browser = await chromium.launch();
 try {
+// every Worker the page constructs is counted in __workersMade (the core-only build must construct none)
+const countWorkers = (page: Page) => page.addInitScript(() => {
+  const w = window as any;
+  w.__workersMade = 0;
+  if (w.Worker) w.Worker = new Proxy(w.Worker, { construct(t, a, nt) { w.__workersMade++; return Reflect.construct(t, a, nt); } });
+});
 // count: the boot check (testsOn) reads how many times each cell ran; only then is the profiler on
 async function open(path: string, saveTo?: string, specWait = true, count = false) {
   const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
@@ -136,6 +144,7 @@ async function open(path: string, saveTo?: string, specWait = true, count = fals
     page.on("load", () => appendFileSync(ftFile, `LOAD\n`));
     page.on("crash", () => appendFileSync(ftFile, `CRASH\n`));
   }
+  await countWorkers(page);
   if (CPU > 1) await (await page.context().newCDPSession(page)).send("Emulation.setCPUThrottlingRate", { rate: CPU });
   const blocked: string[] = [], errors: string[] = [];
   await page.route("**/*", (r) => (/^(file|blob|data):/.test(r.request().url()) ? r.continue() : (blocked.push(r.request().url()), r.abort())));
@@ -367,6 +376,7 @@ const playSays = (p: Play, n: number) => `${p.changes} of ${n} animation frames 
 
 async function speed() {
   const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
+  await countWorkers(page);
   await page.route("**/*", (r) => (/^(file|blob|data):/.test(r.request().url()) ? r.continue() : r.abort()));
   // first appearance of a rendered tutorial cell and of a checker verdict, timed from navigation start
   await page.addInitScript(() => {
@@ -442,10 +452,12 @@ async function speed() {
   // main thread give the same bytes, and every worker of the pool answered jobs; the times are measured
   await page.waitForFunction(() => (window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-tutorial")._scope.get("benchmark")?._value, null, { timeout: 60000 }).catch(() => {});
   const b = JSON.parse((await read(page, TUTORIAL))?.benchmark?.value ?? "null");
-  const answered: number[] = await page.evaluate(() => [...((window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript")._scope.get("ss_pool")._value.answered ?? [])]);
+  const answered: number[] = await page.evaluate(() => [...((window as any).__ojs_runtime.mains.get("@tomlarkworthy/soundscript-mandelbrot")._scope.get("ss_pool")._value.answered ?? [])]);
   const busy = answered.filter((n) => n > 0).length, jobs = answered.reduce((a, n) => a + n, 0);
-  report(!!b && b.same === true && answered.length === b.poolSize && busy === Math.min(b.poolSize, b.bands) && jobs >= b.bands,
-    `workers: Mandelbrot ${b ? `in ${b.bands} bands: the pool and the main thread give the same bytes (${b.same}); ${busy} of the pool's ${answered.length} workers answered jobs (${JSON.stringify(answered)}, ${jobs} in all)` : "no benchmark"}`);
+  // the Worker counter the core-only check reads, on a page that has the add-on: one per worker of the pool
+  const made: number = await page.evaluate(() => (window as any).__workersMade);
+  report(!!b && b.same === true && answered.length === b.poolSize && busy === Math.min(b.poolSize, b.bands) && jobs >= b.bands && made === answered.length,
+    `workers: Mandelbrot ${b ? `in ${b.bands} bands: the pool and the main thread give the same bytes (${b.same}); ${busy} of the pool's ${answered.length} workers answered jobs (${JSON.stringify(answered)}, ${jobs} in all); the page constructed ${made} Workers` : "no benchmark"}`);
   if (b) measure(`Mandelbrot: main thread ${b.mainMs.toFixed(1)} ms, pool of ${b.poolSize} ${b.poolMs.toFixed(1)} ms (medians of ${b.runs})`);
   // Breakout on the page after a real click on play, counted by frame
   const play = page.getByRole("button", { name: "play", exact: true }).first();
@@ -618,6 +630,24 @@ const ssSource = (page: Page, name: string) => page.evaluate((name) => {
 }, name);
 const ssLines = (html: string, name: string) => (blockContent(html, name) ?? "").split("\n").filter((l) => l.includes('/*{lang:"ss"}*/')).sort();
 const ids = (html: string) => new Set(blockSpans(html).map((s) => s.id));
+// a module block's variable names ($def and main.define) and its `new Worker(...)` expressions, from its parse
+function blockFacts(src: string) {
+  const names: string[] = [];
+  let newWorker = 0;
+  const go = (n: any): void => {
+    if (!n || typeof n !== "object") return;
+    if (Array.isArray(n)) return n.forEach(go);
+    const c = n.callee;
+    if (n.type === "CallExpression" && n.arguments[0]?.type === "Literal") {
+      if (c.type === "Identifier" && c.name === "$def" && n.arguments[1]?.type === "Literal") names.push(n.arguments[1].value);
+      if (c.type === "MemberExpression" && c.object.name === "main" && c.property.name === "define" && !String(n.arguments[0].value).startsWith("module ")) names.push(n.arguments[0].value);
+    }
+    if (n.type === "NewExpression" && c.type === "Identifier" && c.name === "Worker") newWorker++;
+    for (const k of Object.keys(n)) if (k !== "type") go(n[k]);
+  };
+  go(acorn.parse(src, { ecmaVersion: "latest", sourceType: "module" }));
+  return { names, newWorker };
+}
 // the tutorial's bundle-size row is a constant build.ts writes; it must be the parser bundle the file embeds
 {
   const html = readFileSync(file, "utf8");
@@ -634,7 +664,7 @@ function sameBlocks(label: string, a: string, b: string) {
 
 
 // --- real user paths: Playwright mouse and keyboard on the editor and the lopepage menu
-const SECTION_TESTS: Record<string, string[]> = { "@tomlarkworthy/soundscript-reducer": ["test_undo"], "@tomlarkworthy/soundscript-model": ["areaOf4"], "@tomlarkworthy/soundscript-workers": ["image"], "@tomlarkworthy/soundscript-breakout": ["test_replay"], "@tomlarkworthy/soundscript-polyglot": ["summary", "test_polyglot_listing", "test_polyglot_fromRaw"] };
+const SECTION_TESTS: Record<string, string[]> = { "@tomlarkworthy/soundscript-reducer": ["test_undo"], "@tomlarkworthy/soundscript-model": ["areaOf4"], "@tomlarkworthy/soundscript-mandelbrot": ["image"], "@tomlarkworthy/soundscript-breakout": ["test_replay"], "@tomlarkworthy/soundscript-polyglot": ["summary", "test_polyglot_listing", "test_polyglot_fromRaw"] };
 const MOD = process.platform === "darwin" ? "Meta" : "Control";
 let tagN = 0;
 // tags the editor host of a cell's variable so a locator can reach it; null when the cell has none in view
@@ -2249,6 +2279,15 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   await hookPass(C.page, "core-only");
   await coreCards(C.page, "core-only README");
   await editorOn(C.page, "core-only", CORE, "bump", "tally: State<number>", "tally: State<string>", "inject-state");
+  {
+    // without the add-on: no block of it, none of its variables in the runtime module, and no Worker made by the page
+    const addon = blockFacts(blockContent(readFileSync(file, "utf8"), WORKERS) ?? "");
+    const rt = blockFacts(blockContent(vhtml, "@tomlarkworthy/soundscript-runtime")!);
+    const shared = rt.names.filter((n) => n !== null && addon.names.includes(n));
+    const made = await C.page.evaluate(() => (window as any).__workersMade);
+    report(!ids(vhtml).has(WORKERS) && addon.names.includes("ss_pool") && !shared.length && rt.newWorker === 0 && made === 0,
+      `core-only: no ${WORKERS} block (the full notebook's defines ${addon.names.filter((n) => n !== null).length} named variables), the runtime module defines none of them (${JSON.stringify(shared)}) and has ${rt.newWorker} new Worker, and the page constructed ${made} Workers after the core tests and the editor`);
+  }
   // the editor commands on a SoundScript cell with the language registered; guard_probe is made for it, and deleted by it
   await addCell(C.page, CORE, "doubled", "const guard_probe = (tally: number) => tally * 2;", true);
   await commandGuard(C.page, "core-only (registered)", CORE, "guard_probe", "ss_keyOf", true);
