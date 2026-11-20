@@ -1882,7 +1882,7 @@ spec_load = async (source, outside) => {
   for (const [n, x] of Object.entries(outside)) if (Array.isArray(x)) m.define(n, x[0], x[1]); else m.import(n, x.from);
   const list = ss_outside(m);
   const texts = soundscript.splitCells(source, true);
-  const ctx = soundscript.contextFromCheck(soundscript.checkCells(texts, true, list).result);
+  const ctx = { ...soundscript.contextFromCheck(soundscript.checkCells(texts, true, list).result), module: ss_moduleName(m) };
   const defs = texts.flatMap((t) => soundscript.compileCell(t, true, ctx));
   const fns = await realize(defs.map((d) => d.definition), runtime);
   const vars = defs.map((d, i) => m.variable({}).define(d.name, d.inputs, fns[i]));
@@ -2140,7 +2140,7 @@ spec_coverageOf = (status, redraw) => {
 // %%
 viewof spec_module = thisModule()
 // %%
-import { soundscript, ss_instances, ss_language, ss_check, ss_outside } from "@tomlarkworthy/soundscript"
+import { soundscript, ss_instances, ss_language, ss_check, ss_outside, ss_moduleName } from "@tomlarkworthy/soundscript"
 // %%
 import { thisModule, runtime, realize, onCodeChange, observe } from "@tomlarkworthy/runtime-sdk"
 // %%

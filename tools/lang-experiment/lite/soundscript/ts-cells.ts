@@ -142,7 +142,7 @@ function ssStatements(file: string, compile: Compile): Stmt[] {
   const bad = [...r.module.map((e) => `[${e.rule}] ${e.msg}`), ...r.cells.filter((c) => !accepted.has(c.name)).map((c) => `${c.name}: ${c.status} ${c.errors.map((e) => `[${e.rule}] ${e.msg}`).join("; ")}`)];
   if (bad.length) throw new Error(`${file}: the checker does not accept every cell: ${bad.join(" | ")}`);
   // a section of the runtime module takes the runtime cells as its own cells
-  const ctx = { ...contextFromCheck(r), inputs: inputsIn(SS_HOME[file] === RUNTIME) };
+  const ctx = { ...contextFromCheck(r), inputs: inputsIn(SS_HOME[file] === RUNTIME), module: SS_HOME[file] };
   const shape = (vs: { name: string | null; inputs: string[]; definition: string }[]) => JSON.stringify(vs.map((v) => [v.name, v.inputs, v.definition]));
   return texts.map((t) => {
     const text = compileCellText(t, false, ctx);

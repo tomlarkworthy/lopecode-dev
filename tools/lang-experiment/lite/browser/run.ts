@@ -126,18 +126,17 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
       variables.push({ name: c.name, inputs, kind: `cell; ${refNames.join(", ")} read for compile` });
       continue;
     }
-    // A generator some cell takes as Events<T>: its value is a handle, kept across runs (`this` is the
-    // variable's last value); the generator in it is pulled only while a listener is attached.
+    // A generator some cell takes as Events<T>: its value is a handle, kept across runs (found by program and
+    // cell name); the generator in it is pulled only while a listener is attached.
     if (c.generator && cells.some((d) => d.params.some((p) => p.name === c.name && p.eventsTyped))) {
-      main.variable(observe(rec)).define(c.name, [...inputs, "invalidation"], function (this: unknown, ...a: unknown[]) {
-        return events(this, c.name, a.slice(0, -1), () => counted(...a.slice(0, -1)) as any, a[a.length - 1] as Promise<unknown>);
-      });
+      main.variable(observe(rec)).define(c.name, [...inputs, "invalidation"], (...a: unknown[]) =>
+        events(programId, c.name, a.slice(0, -1), () => counted(...a.slice(0, -1)) as any, a[a.length - 1] as Promise<unknown>));
       variables.push({ name: c.name, inputs, kind: "events: a handle; its generator runs while a listener is attached" });
       continue;
     }
     // A cell that calls on(...) is a listener: each run attaches its value until the run's invalidation.
     if (/\bon\s*\(/.test(ts.slice(...(c.span ?? [0, 0])))) {
-      main.variable(observe(rec)).define(c.name, [...inputs, "invalidation"], (...a: unknown[]) => listen(counted(...a.slice(0, -1)), c.name, a[a.length - 1] as Promise<unknown>));
+      main.variable(observe(rec)).define(c.name, [...inputs, "invalidation"], (...a: unknown[]) => listen(counted(...a.slice(0, -1)), c.name, a[a.length - 1] as Promise<unknown>, programId));
       variables.push({ name: c.name, inputs, kind: "listener" });
       continue;
     }

@@ -5,12 +5,12 @@ import * as toolchain from "./ss-toolchain.ts";
 import { compileCell, decompileVariable, contextFromCheck } from "./ss-toolchain.ts";
 import { checkSources } from "../core.ts";
 // an events cell's compiled definition, read on its parse: a function named _<name> that calls
-// ss.events(this, "<name>", [inputs], fn, invalidation)
-const passesThis = (def: string, name: string) => {
+// ss_events(<module name or null>, "<name>", [inputs], fn, invalidation)
+const passesModule = (def: string, name: string, module: string | null = null) => {
   const fn: any = acorn.parseExpressionAt(def, 0, { ecmaVersion: "latest" });
   const p = toolchain.parseCompiled(def), a = p?.call?.arguments ?? [];
   return fn.type === "FunctionExpression" && fn.id?.name === `_${name}` && toolchain.compiledKind(def)?.kind === "events" && p?.name === name &&
-    a[0]?.type === "ThisExpression" && a.at(-1)?.type === "Identifier" && a.at(-1).name === "invalidation";
+    a[0]?.type === "Literal" && a[0].value === module && a.at(-1)?.type === "Identifier" && a.at(-1).name === "invalidation";
 };
 
 
@@ -36,8 +36,8 @@ function roundTrips(src: string, tsx: boolean): string | null {
 }
 const def = (src: string, tsx = false) => compileCell(src, tsx).at(-1)!.definition;
 
-// Events and listeners: an events cell's handle survives its re-runs (a function definition that
-// passes `this`), and a listener cell takes invalidation, which ends its listener when it runs again.
+// Events and listeners: an events cell and a listener cell pass their module's name, which with the cell's name
+// finds the handle or listener the cell's last run made; a listener cell takes invalidation.
 {
   const src = [
     "const ticks = function* (now: Clock, fast: boolean) { while (true) yield now(); };",
@@ -53,10 +53,16 @@ const def = (src: string, tsx = false) => compileCell(src, tsx).at(-1)!.definiti
   const ctx = contextFromCheck(r);
   const by = new Map(src.split("\n\n").map((t) => { const v = compileCell(t, true, ctx).at(-1)!; return [v.name, v]; }));
   const ticks = by.get("ticks")!;
-  expect(passesThis(ticks.definition, "ticks"), "an events cell passes this and takes invalidation: " + ticks.definition.slice(-90));
+  expect(passesModule(ticks.definition, "ticks"), "an events cell passes its module name and takes invalidation: " + ticks.definition.slice(-90));
   expect(decompileVariable(ticks.definition) === src.split("\n\n")[0], "an events cell decompiles to its source");
   const onTick = by.get("onTick")!;
   expect(toolchain.compiledKind(onTick.definition)?.callee === "listen" && onTick.inputs.at(-1) === "invalidation", "a listener takes invalidation: " + JSON.stringify(onTick.inputs));
+  const inM = (t: string) => compileCell(t, true, { ...ctx, module: "@a/m" }).at(-1)!.definition;
+  const [ticksM, onTickM] = [0, 5].map((i) => inM(src.split("\n\n")[i]));
+  const callTo = (n: any, callee: string): any => !n || typeof n !== "object" ? null : n.type === "CallExpression" && n.callee.name === callee ? n : Object.values(n).reduce((f: any, x: any) => f ?? (Array.isArray(x) ? x.reduce((g: any, y: any) => g ?? callTo(y, callee), null) : callTo(x, callee)), null);
+  const lastArg = (d: string) => callTo(acorn.parseExpressionAt(d, 0, { ecmaVersion: "latest" }), "ss_listen")?.arguments.at(-1);
+  expect(passesModule(ticksM, "ticks", "@a/m") && lastArg(onTickM)?.value === "@a/m" && toolchain.parseCompiled(onTickM)?.name === "onTick", "in a module, events and listener cells pass its name: " + onTickM.slice(-60));
+  expect([ticksM, onTickM].map(decompileVariable).join() === [ticks.definition, onTick.definition].map(decompileVariable).join(), "the module name does not change what a cell decompiles to");
   const label = by.get("label")!;
   expect(toolchain.compiledKind(label.definition)?.callee === "plain" && !label.inputs.includes("invalidation"), "a cell that takes Events but does not call on is a plain cell: " + JSON.stringify(label.inputs));
   expect(!by.get("fast")!.inputs.includes("invalidation") && toolchain.compiledKind(by.get("pulses")!.definition)?.callee === "events", "fast has no invalidation; pulses is events");

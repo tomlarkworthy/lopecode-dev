@@ -25,12 +25,16 @@ export const show = (x: unknown): string => {
   if (x && typeof x === "object" && P.isRefHandle(x)) return "handle";
   try { return JSON.stringify(x); } catch { return String(x); }
 };
-// the Observable JavaScript side: what an Observable notebook would supply
+// the Observable JavaScript side: what an Observable notebook would supply. Each call is a module of its own name,
+// so the events and listener cells of two runs share no handle or listener.
+let modules = 0;
 export function outside(stdlib: any = ss) {
   const view = new EventTarget() as any;
   view.value = 3;
+  const mod = `run ${++modules}`;
   return {
-    ...Object.fromEntries(T.RUNTIME_CELLS.map((n: string) => [T.INPUTS[n], stdlib[n]])), Generators, ss_now: () => 0, ss_random: () => 0.5, ss_log: () => {},
+    ...Object.fromEntries(T.RUNTIME_CELLS.map((n: string) => [T.INPUTS[n], stdlib[n]])), Generators,
+    [T.INPUTS.events]: (_: unknown, ...a: unknown[]) => stdlib.events(mod, ...a), [T.INPUTS.listen]: (l: unknown, c: string, i: unknown) => stdlib.listen(l, c, i, mod), ss_now: () => 0, ss_random: () => 0.5, ss_log: () => {},
     ss_fetch: async () => ({ status: 200 }), ss_compile: () => "compiled",
     shop_basket: [{ item: "a", qty: 2 }, { item: "b", qty: 1 }],
     "viewof shop_price": view, shop_price: 3,

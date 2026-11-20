@@ -65,9 +65,9 @@ function fakeFetch() {
   return { asks, fetch };
 }
 
-// The module compiled by the toolchain into its own Runtime, every variable observed. Each on(...) action is wrapped,
+// The module compiled by the toolchain, as the module named module, into its own Runtime, every variable observed. Each on(...) action is wrapped,
 // one wrapper per action, so a delivery is logged at the listener and the same action stays the same function.
-async function load(src: string, fetch: unknown, tag = "") {
+async function load(src: string, fetch: unknown, tag = "", module = "A") {
   const checked = checkSources({ cells: src, tsx: true, outside: [] });
   const bad = checked.cells.filter((c: any) => c.status !== "ok");
   if (bad.length) throw new Error(`not ok: ${bad.map((c: any) => `${c.name} ${c.status} ${JSON.stringify(c.errors)}`).join("; ")}`);
@@ -77,15 +77,15 @@ async function load(src: string, fetch: unknown, tag = "") {
   const wrapped = new WeakMap<object, (x: unknown) => void>();
   const wrap = (act: (x: unknown) => void) => { let w = wrapped.get(act); if (!w) { w = (x: unknown) => { L(`${tag}deliver ${JSON.stringify(x)}`); act(x); }; wrapped.set(act, w); } return w; };
   m.redefine("ss_on", [], () => (ev: unknown, act: (x: unknown) => void) => ss.on(ev, wrap(act)));
-  m.redefine("ss_events", [], () => (prev: unknown, name: string, args: unknown[], make: any, inv: any) => { L(`${tag}events ${JSON.stringify(args)}`); return ss.events(prev, name, args, make, inv); });
-  if (process.env.TRACE_LISTEN) m.redefine("ss_listen", [], () => (l: any, cell: string, inv: any, prev: unknown) => { L(`listen prev=${prev === undefined ? "none" : prev === l ? "same" : "other"}`); inv?.then(() => L(`invalidated listener; pending ${JSON.stringify(C.running())}`)); const r = ss.listen(l, cell, inv, prev); L(`  attached ${C.running()} kept=${r !== l}`); return r; });
+  m.redefine("ss_events", [], () => (mod: string, name: string, args: unknown[], make: any, inv: any) => { L(`${tag}events ${JSON.stringify(args)}`); return ss.events(mod, name, args, make, inv); });
+  if (process.env.TRACE_LISTEN) m.redefine("ss_listen", [], () => (l: any, cell: string, inv: any, mod: string) => { L(`listen ${cell} in ${mod}`); inv?.then(() => L(`invalidated listener; pending ${JSON.stringify(C.running())}`)); const r = ss.listen(l, cell, inv, mod); L(`  attached ${C.running()} kept=${r !== l}`); return r; });
   m.define("Generators", [], () => ({ input }));
   m.define("ss_fetch", [], () => fetch);
   const other = m.variable({}).define("other", [], () => 0);
   const values = new Map<string, unknown>();
   const vars = new Map<string, any>();
   const texts = T.splitCells(src, true);
-  const ctx = T.contextFromCheck(ss.checkCells(texts, true, []).result);
+  const ctx = { ...T.contextFromCheck(ss.checkCells(texts, true, []).result), module };
   const compiled = new Map<string, { inputs: string[]; definition: string }>();
   for (const t of texts) for (const d of T.compileCell(t, true, ctx)) {
     compiled.set(d.name, d);
@@ -123,9 +123,9 @@ async function run(k: Case, prefix: Choice[]): Promise<Outcome> {
   log.length = 0; jobs.length = 0; P.reset();
   const F = fakeFetch();
   const W = await load(k.src, F.fetch);
-  // B: a second copy of the module, whose listener cell first runs when its first fetch is answered
+  // B: a second copy of the module, named B, whose listener cell first runs when its first fetch is answered
   const FB = fakeFetch();
-  const WB = k.extra.includes("B") ? await load(k.src, FB.fetch, "B:") : null;
+  const WB = k.extra.includes("B") ? await load(k.src, FB.fetch, "B:", "B") : null;
   try {
     await quiet();
     await F.asks[0].answer(k.first); await quiet();
@@ -247,6 +247,6 @@ const onTick = (ticks: Events<number>, add: Action<[number]>) => on(ticks, add);
   console.log(`measured: the events cell's input throws: n ${n1} -> ${W.value("n")} over 30 rounds while in error, listeners ${C.running([h])}`);
   W.dispose();
 }
-const left = C.running();
-console.log(`${failed || left ? "FAIL" : "pass"} delivery: ${total} orderings, ${failed} fail; ${left} listeners left attached`);
-process.exit(failed || left ? 1 : 0);
+const left = C.running(), leftEvents = C.liveEvents();
+console.log(`${failed || left || leftEvents ? "FAIL" : "pass"} delivery: ${total} orderings, ${failed} fail; ${left} listeners left attached, ${leftEvents} events handles left`);
+process.exit(failed || left || leftEvents ? 1 : 0);

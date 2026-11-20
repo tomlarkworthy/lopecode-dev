@@ -174,7 +174,7 @@ function buildModule(name: string, ojs: string, files: File[], given?: string[])
     }
   });
   const outside = [...outsideNames].sort(([a], [b]) => (a < b ? -1 : 1)).map(([n, view]) => (view ? { name: n, view } : { name: n }));
-  const ctx = allTexts.length ? contextFromCheck(checkSources({ cells: allSource, tsx: true, outside }), allSource, true) : contextOf(allTexts, true, null);
+  const ctx = { ...(allTexts.length ? contextFromCheck(checkSources({ cells: allSource, tsx: true, outside }), allSource, true) : contextOf(allTexts, true, null)), module: name };
   // the runtime cells the module's compiled cells take, and rejected, the mark of a module that hosts SoundScript
   const takes = new Set<string>(allTexts.length ? [INPUTS.rejected] : []);
   blocks.forEach((src, i) => {

@@ -94,7 +94,8 @@ export function splitCells(src: string, tsx: boolean): string[] {
 // why: for each cell the check did not accept, the checker's messages. With a module context (accepted
 // not null) such a cell compiles to a definition that only raises them; its body never runs.
 // inputs: the module's input table (inputsIn), INPUTS when not given.
-export type Context = { generators: ReadonlySet<string>; events: ReadonlySet<string>; accepted: ReadonlySet<string> | null; facts?: ReadonlyMap<string, CellInfo> | null; why?: ReadonlyMap<string, string[]> | null; inputs?: Record<string, string> };
+// module: the module's name, which an events or listener cell passes with its own (null when not given).
+export type Context = { generators: ReadonlySet<string>; events: ReadonlySet<string>; accepted: ReadonlySet<string> | null; facts?: ReadonlyMap<string, CellInfo> | null; why?: ReadonlyMap<string, string[]> | null; inputs?: Record<string, string>; module?: string | null };
 const NO_CONTEXT: Context = { generators: new Set(), events: new Set(), accepted: null };
 
 export function contextOf(texts: string[], tsx: boolean, accepted: ReadonlySet<string> | null = null): Context {
@@ -304,21 +305,21 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   };
   const args = (r: (i: string) => string) => info.params.map((p) => arg(p, r)).join(", ");
   const name = JSON.stringify(info.name);
-  // the cell's expression, written in text order so the inputs are listed in order of first use. A state or
-  // events cell passes this, the variable's last value (the handle), so the stdlib keeps the handle across runs;
-  // an events or listener cell takes invalidation, and a listener cell passes this, its last listener, which its
-  // next run replaces (cells.ts listen).
+  // the cell's expression, written in text order so the inputs are listed in order of first use. A state cell
+  // passes this, the variable's last value (the handle), so the stdlib keeps the handle across runs; an events or
+  // listener cell passes its module's name and takes invalidation (cells.ts events, listen).
   // Any other cell is its function applied to its inputs.
+  const mod = JSON.stringify(ctx.module ?? null);
   const expr = (r: (i: string) => string) => {
     if (kind === "ref" || kind === "events") {
-      const head = `${r(IN[kind])}(this, ${name}, [${args(r)}], `;
+      const head = `${r(IN[kind])}(${kind === "ref" ? "this" : mod}, ${name}, [${args(r)}], `;
       globals.forEach(r);
       return `${head}${inner}${kind === "events" ? `, ${r("invalidation")}` : ""})`;
     }
     const listen = kind === "listener" ? `${r(IN.listen)}(` : "";
     globals.forEach(r);
     const applied = `(${inner})(${args(r)})`;
-    return listen ? `${listen}${applied}, ${name}, ${r("invalidation")}, this)` : applied;
+    return listen ? `${listen}${applied}, ${name}, ${r("invalidation")}, ${mod})` : applied;
   };
   const block = bound.length > 0;
   const out = ojsCell(variableName(info.name), kind === "ref", block, (r) => block ? `{ const ${bound.map((n) => `${n} = ${r(IN[n])}`).join(", ")}; return ${expr(r)}; }` : expr(r));

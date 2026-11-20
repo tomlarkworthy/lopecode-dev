@@ -103,7 +103,7 @@ const toggle = (running: State<boolean>) => action(() => running.update((r) => !
 
 await run("e1_async_generator_every_value_once", async () => {
   let n = 0, made = 0;
-  const h = C.events(undefined, "fast", [], () => { made++; return (async function* () { for (let i = 1; i <= 1000; i++) { await null; yield i; } })() as any; }, null);
+  const h = C.events(null, "fast", [], () => { made++; return (async function* () { for (let i = 1; i <= 1000; i++) { await null; yield i; } })() as any; }, null);
   const got: number[] = [];
   const act = P.action((v: number) => void got.push(v));
   const l = C.listen(C.on(h, act), "onFast", null);
@@ -179,7 +179,7 @@ await run("e6_deleting_the_listener_or_the_module_stops_delivery", async () => {
 });
 
 await run("e7_sweep_ends_what_no_variable_holds", async () => {
-  const h = C.events(undefined, "swept", [], () => (function* () { for (;;) yield 1; })() as any, null);
+  const h = C.events(null, "swept", [], () => (function* () { for (;;) yield 1; })() as any, null);
   C.listen(C.on(h, P.action(() => {})), "onSwept", null);
   ok("e7_attached", ss.running() === 1);
   ss.sweep(new Set()); ss.sweep(new Set());
@@ -434,8 +434,8 @@ await run("o1_listener_order_is_source_order", async () => {
 // The checker takes only a sync generator as Events, so this is the runtime's own path (cells.ts).
 await run("o2_two_events_cells_interleave", async () => {
   const got: string[] = [];
-  const hs = C.events(undefined, "syncs", [], () => (function* () { for (let i = 0; i < 4; i++) yield i; })() as any, null);
-  const ha = C.events(undefined, "asyncs", [], () => (async function* () { for (let i = 0; i < 4; i++) yield i; })() as any, null);
+  const hs = C.events(null, "syncs", [], () => (function* () { for (let i = 0; i < 4; i++) yield i; })() as any, null);
+  const ha = C.events(null, "asyncs", [], () => (async function* () { for (let i = 0; i < 4; i++) yield i; })() as any, null);
   const ls = C.listen(C.on(hs, P.action((v: number) => void got.push(`s${v}`))), "onS", null);
   const la = C.listen(C.on(ha, P.action((v: number) => void got.push(`a${v}`))), "onA", null);
   for (let i = 0; i < 6; i++) { frame(); await tick(1); }
@@ -713,7 +713,7 @@ await run("s4_a_write_or_an_action_call_during_a_cell_evaluation_throws", async 
   ok("s4_nothing_kept", val(x) === 0);
 });
 await run("s5_a_listener_gets_every_value_once_in_order", async () => {
-  const h = C.events(undefined, "beats", [], () => (function* () { for (let i = 1; i <= 5; i++) yield i; })() as any, null);
+  const h = C.events(null, "beats", [], () => (function* () { for (let i = 1; i <= 5; i++) yield i; })() as any, null);
   const got: number[] = [];
   const act = named("add5", ((v: number) => { got.push(v); }) as unknown as () => void);
   const l = C.listen(C.on(h, act), "onBeat", null);

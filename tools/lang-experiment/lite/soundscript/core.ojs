@@ -112,6 +112,16 @@ ss_runtimeModule = ss_module.value("module @tomlarkworthy/soundscript-runtime")
 // %%
 ss_keyOf = (name) => soundscript.keyOfVariable(name)
 // %%
+ss_moduleName = {
+  // a module's name in runtime.mains; a module not there gets a name of its own, the same each time
+  const unnamed = new WeakMap();
+  return (module) => {
+    for (const [n, m] of runtime.mains ?? []) if (m === module) return n;
+    if (!unnamed.has(module)) unnamed.set(module, `~${Math.random().toString(36).slice(2, 10)}`);
+    return unnamed.get(module);
+  };
+}
+// %%
 ss_isSs = (v) => {
   // a SoundScript variable: its definition carries the language marker, or it is the value variable of a
   // SoundScript state cell (Observable's own Generators.input of the handle, which holds no source)
@@ -175,7 +185,7 @@ ss_context = (texts, module) => {
   // the compile context of a module's cells, from one (remembered) check of the whole module: which
   // cells are generators, which are taken as Events, which the checker accepts (only those run; any
   // other cell compiles to a definition that raises the checker's messages); the runtime module takes its own cells
-  return { ...soundscript.contextFromCheck(soundscript.checkCells(texts, true, module ? ss_outside(module) : null).result), inputs: soundscript.inputsIn(!!module && module === ss_runtimeModule) };
+  return { ...soundscript.contextFromCheck(soundscript.checkCells(texts, true, module ? ss_outside(module) : null).result), inputs: soundscript.inputsIn(!!module && module === ss_runtimeModule), module: ss_moduleName(module) };
 }
 // %%
 ss_source = (module) => soundscript.joinCells(ss_moduleCells(module).map((c) => c.text))
@@ -216,7 +226,10 @@ ss_instance = async (module, invalidation) => {
   const fns = await realize(vars.map((v) => String(v._definition)), runtime);
   const inst = runtime.module();
   ss_instances.add(inst);
-  for (const n of outside) inst.define(n, [], () => module.value(n));
+  // the copy's events and listener cells pass its own name, so they share no handle or listener with module's
+  const copy = ss_moduleName(inst);
+  const own = { [soundscript.INPUTS.events]: (_, ...a) => soundscript.events(copy, ...a), [soundscript.INPUTS.listen]: (l, cell, inv) => soundscript.listen(l, cell, inv, copy) };
+  for (const n of outside) inst.define(n, [], n in own ? () => own[n] : () => module.value(n));
   const made = vars.map((v, i) => inst.define(v._name, v._inputs.map((x) => x._name), fns[i]));
   const cancels = made.map((v) => observe(v, {}));
   invalidation.then(() => { cancels.forEach((c) => c()); for (const v of [...runtime._variables]) if (v._module === inst) { ss_deleted(v); v.delete(); } });
@@ -252,8 +265,6 @@ ss_lifecycle = {
   });
   // where a listener's cell is, for the order listeners of one events cell run in: its module's name
   // and its place among that module's variables, which is the order the module is saved in
-  const unnamed = new WeakMap();
-  const nameOf = (m) => { for (const [n, x] of runtime.mains ?? []) if (x === m) return n; if (!unnamed.has(m)) unnamed.set(m, `~${Math.random().toString(36).slice(2, 8)}`); return unnamed.get(m); };
   soundscript.setListenerOrder((values) => {
     const want = new Set(values), at = new Map(), seen = new Map();
     for (const v of runtime._variables) {
@@ -261,7 +272,7 @@ ss_lifecycle = {
       seen.set(v._module, n);
       if (want.has(v._value) && !at.has(v._value)) at.set(v._value, [v._module, n]);
     }
-    return values.map((x) => { const p = at.get(x); return p ? [nameOf(p[0]), p[1]] : null; });
+    return values.map((x) => { const p = at.get(x); return p ? [ss_moduleName(p[0]), p[1]] : null; });
   });
   // the name an error report gives an action: the SoundScript cell whose value it is
   soundscript.actionNamer.of = (a) => { for (const v of runtime._variables) if (v._value === a && isSs(v)) return ss_keyOf(v._name); return null; };
@@ -328,7 +339,7 @@ ss_language = {
     const outside = module ? ss_outside(module).filter((o) => !(takesOther && o.name === named)) : null;
     try { after = soundscript.checkCells(texts, true, outside).result; } catch (e) { checkError = e; }
     if (!after) return { ok: false, store: false, problems: [{ line: 1, rule: "check", msg: `${checkError.message}; a cell that does not parse is stored only when it starts with const, let or function <name>` }] };
-    let defs, ctx = { ...soundscript.contextFromCheck(after), inputs: soundscript.inputsIn(!!module && module === ss_runtimeModule) }, hint = oldKey;
+    let defs, ctx = { ...soundscript.contextFromCheck(after), inputs: soundscript.inputsIn(!!module && module === ss_runtimeModule), module: ss_moduleName(module) }, hint = oldKey;
     if (takesCell && soundscript.isDuplicateKey(after.cells.at(-1)?.name)) hint = after.cells.at(-1).name;
     if (takesOther) {
       let k = 2;
