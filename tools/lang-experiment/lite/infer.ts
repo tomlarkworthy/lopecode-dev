@@ -73,6 +73,8 @@ export class Checker {
   // type of where the function is passed): hides is left to the check against the final type
   quiet = 0;
   inActionUses: { fi: FnInfo; node: Node; rule: string; msg: string }[] = [];
+  // the properties of a destructuring pattern that take a State's set or update (own.ts actionEscapes)
+  stateProps = new Set<Node>();
 
   reg: Registry;
   cellNames: Set<string>;
@@ -326,7 +328,10 @@ export class Checker {
           if (prop.computed || (prop.key.type !== "Identifier" && prop.key.type !== "Literal")) { this.unsupported(prop, "computed destructuring key"); continue; }
           const k = prop.key.type === "Identifier" ? prop.key.name : String(prop.key.value);
           used.push(k);
-          if (this.um(t).some((m) => isNamed(unwrap(m), "State") && this.reg.member(m, k))) this.inActionOnly(env, prop, "state-write", `State.${k} outside action(...)`);
+          if (this.um(t).some((m) => isNamed(unwrap(m), "State") && this.reg.member(m, k))) {
+            this.inActionOnly(env, prop, "state-write", `State.${k} outside action(...)`);
+            this.stateProps.add(prop);
+          }
           this.bindPattern(prop.value, this.propOf(t, k, prop), env, kind, extra);
         }
         return;
@@ -491,6 +496,24 @@ export class Checker {
     for (let i = 0; i < t.ps.length && i < f.ps.length; i++) { const x = this.hidden(t.ps[i].t, f.ps[i].t, opaque, depth + 1); if (x) return x; }
     return null;
   }
+  // the first promise-like held anywhere in s: a Promise, a type with a then member, or object, which may be one
+  promiseIn(s: Ty, depth: number): string | null {
+    if (depth > 10) return null;
+    const A = (x: Ty) => this.promiseIn(x, depth + 1);
+    const first = (xs: Ty[]) => { for (const x of xs) { const w = A(x); if (w) return w; } return null; };
+    if (s.k === "object" || (s.k !== "union" && s.k !== "err" && this.reg.member(s, "then"))) return show(s);
+    switch (s.k) {
+      case "named":
+        if (s.n === "Promise") return show(s);
+        if (this.reg.isAlias(s.n)) return A(this.reg.expand(s));
+        return first(s.args);
+      case "arr": return A(s.el);
+      case "tup": return first(s.els);
+      case "union": return first(s.ts);
+      case "rec": return first([...[...s.props.values()].map((p) => p.t), ...(s.index ? [s.index] : [])]);
+      default: return null;
+    }
+  }
   // the first Action held anywhere in s: in an element, a property, a type argument or what a function returns
   actionIn(s: Ty, depth: number): string | null {
     if (depth > 10) return null;
@@ -562,6 +585,7 @@ export class Checker {
       case "AssignmentExpression": return this.assign(e, env);
       case "AwaitExpression": {
         if (!env.fi.isAsync) this.err(e, "type", "await outside an async function");
+        else if (env.fi.inAction) this.err(e, "action-async", "await in an action body: an action is synchronous; wait in an async cell and give the result to an action (S6.12)");
         return this.awaited(this.infer(e.argument, env));
       }
       case "YieldExpression": {
@@ -1286,7 +1310,11 @@ export class Checker {
         if (!a || (a.type !== "ArrowFunctionExpression" && a.type !== "FunctionExpression")) { this.unsupported(e, "action(...) of a non-literal function"); return ERR; }
         const ctx = expected && isNamed(expected, "Action") && expected.args[0].k === "tup" ? actionFn(expected.args[0]) : undefined;
         this.actionBodies.add(a);
+        // S6.12: the function is synchronous and returns no promise-like
+        if (a.async || a.generator) this.err(a, "action-async", `the function given to action(...) is ${a.async ? "async" : "a generator"}; an action is synchronous (S6.12)`);
         const f = this.fnExpr(a, { ...env, fi: { ...env.fi, inAction: true } }, ctx);
+        const p = a.async || a.generator ? null : this.promiseIn(f.ret, 0);
+        if (p) this.err(a, "action-async", `the function given to action(...) returns ${p}; an action is synchronous (S6.12)`);
         this.rec(a, f);
         return named("Action", { k: "tup", els: f.ps.map((p) => p.t) });
       }

@@ -97,17 +97,19 @@ test_async_click = {
   const gate = new Promise((r) => (open = r));
   copy._scope.get("measure").define("measure", [], () => (w) => gate.then(() => w.length));
   const view = soundscript.mount(await copy.value("measureView"), null);
+  // the listener is observed, so the events cell is pulled
+  for (const n of ["onSize", "wordSize"]) await copy.value(n);
   // waits are counted in animation frames until a condition holds; the cap only turns a hang into an error
   const frames = async (f, n = 600) => { for (let i = 0; i < n && !(await f()); i++) await new Promise((r) => requestAnimationFrame(r)); return f(); };
   try {
-    if (!(await frames(() => { const q = soundscript.actionQueue(); return !q.inFlight && q.waiting === 0; }))) throw new Error("another action call stayed in flight");
     view.querySelector("button").click();
-    const during = [soundscript.actionQueue().inFlight, await copy.value("wordSize")];
+    const asked = await frames(async () => (await copy.value("measureAsked")) === 1);
+    const during = await copy.value("wordSize");
     open();
     const done = await frames(async () => (await copy.value("wordSize")) === 11);
-    if (JSON.stringify(during) !== "[true,0]") throw new Error(`while waiting: in flight and wordSize ${JSON.stringify(during)}`);
+    if (!asked || during !== 0) throw new Error(`after the click: asked ${asked}, wordSize ${during}`);
     if (!done) throw new Error(`wordSize is ${await copy.value("wordSize")} after the answer`);
-    return "the click started measureWord; it waited for the answer with wordSize 0, then wrote 11";
+    return "the click asked; measured waited for the answer with wordSize 0; onSize gave 11 to storeSize";
   } finally { open(); }
 }
 // %%
@@ -459,6 +461,7 @@ md`### State: \`state\`, \`action\`
 | \`count\` or \`count: number\` as a parameter | the current value; the reader runs again after each committed write |
 | \`count: State<number>\` as a parameter | the handle: \`set(v)\`, \`update(f)\`, no read |
 | \`action((by: number) => count.update((c) => c + by))\` | an \`Action<[number]>\`; writes are legal only lexically inside \`action(...)\` (\`[state-write]\`) |
+| \`action(async () => …)\`, a generator, or a function that returns a promise | rejected: an action is synchronous (\`[action-async]\`); an async cell waits and a listener gives the result to an action |
 | \`read(count)\` inside an action, with \`count: State<number>\` | the value as of this point in the call order: the stored value plus the writes made earlier in the same commit; legal only inside an action body (\`[read-outside-action]\`) |
 | \`(other: State<number>, count: number) => action(() => other.set(count + 1))\` | rejected: an action body may not use a value that depends on state, that is a state cell's or an events cell's value, \`now\`, \`random\` or \`fetch\`, or a local computed from one (\`[action-capture]\`); \`log\` is allowed. A value from the clock or the random source reaches an action as an argument, from an events cell or a view, so it is recorded with the call: Breakout's \`ticks\` takes \`now\` and yields \`dt\`, and \`onTick\` passes it to \`tick\`. |
 
@@ -600,15 +603,6 @@ runsOf = {
   };
 }
 // %%
-quietThen = async (f) => {
-  // f run once no action call is in flight or waiting, so an action it calls is a call of its own;
-  // the frame cap only turns a hung call into an error
-  const quiet = () => { const q = soundscript.actionQueue(); return !q.inFlight && q.waiting === 0; };
-  for (let i = 0; i < 600 && !quiet(); i++) await new Promise((r) => requestAnimationFrame(r));
-  if (!quiet()) throw new Error("an action call stayed in flight for 600 frames");
-  return f();
-}
-// %%
 test_breakout_listener = {
   tests_on;
   // its own copy of section 9's cells: the game on the page is not played or reset
@@ -619,11 +613,11 @@ test_breakout_listener = {
   for (const n of ["reset", "toggle", "world", "bricks", "onTick"]) await game.value(n);
   // the clock of this copy only: other tests on the page pull generators of their own
   const w0 = get("world"), h0 = get("ticks");
-  await quietThen(() => get("toggle")());
+  get("toggle")();
   let changes = 0, last = w0;
   await frames(() => { const w = get("world"); if (w !== last) { changes++; last = w; } return changes >= 10; });
   const playing = soundscript.pulling([h0]), w1 = get("world");
-  await quietThen(() => get("toggle")());
+  get("toggle")();
   await frames(() => soundscript.pulling([h0]) === 0, 60);
   const w2 = get("world"), paused = soundscript.pulling([h0]);
   await frames(() => false, 10);
@@ -658,12 +652,12 @@ test_breakout_memo = {
   // not depend on the frame rate (step clamps a tick to at most 50 ms of game time)
   const TICKS = 90;
   let frames = 0, changes = 0, last = get("world");
-  await quietThen(() => get("toggle")());
+  get("toggle")();
   // the frame cap only turns a hung page into an error
   const CAP = 3000;
   await new Promise((res) => { const f = () => { frames++; const w = get("world"); if (w !== last) { changes++; last = w; } if ((changes < TICKS || get("bricks").length === b0) && frames < CAP) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
   const h0 = get("ticks");
-  await quietThen(() => get("toggle")());
+  get("toggle")();
   // the clock has stopped, and the mutations of the last tick have been delivered
   for (let i = 0; i < 60 && soundscript.pulling([h0]) > 0; i++) await new Promise((r) => requestAnimationFrame(r));
   await new Promise((r) => requestAnimationFrame(r));
@@ -1154,7 +1148,7 @@ test_ss_module_checks = {
   tests_on;
   const { result } = ss_check(tutorial_module);
   const got = Object.fromEntries(result.cells.map((c) => [c.name, c.status]));
-  const want = { width: "ok", height: "ok", area: "ok", aspect: "ok", scale: "ok", half: "ok", test_half: "ok", samples: "ok", histogram: "ok", leak: "rejected", late: "rejected", count: "ok", increment: "ok", clear: "ok", saved: "ok", save: "ok", app: "ok", measure: "ok", word: "ok", wordSize: "ok", measureWord: "ok", measureView: "ok", n: "ok", inc: "ok", setN: "ok", Badge: "ok", NotElem: "ok", bad_attr_type: "rejected", bad_unknown_attr: "rejected", bad_unknown_element: "rejected", bad_handler_not_action: "rejected", bad_handler_wrong_args: "rejected", bad_component_props: "rejected", bad_component_missing_prop: "rejected", bad_component_not_elem: "rejected", bad_mut_in_jsx: "rejected", bad_child_object: "rejected", ok_all: "ok", shopTotal: "ok", cheaper: "ok", shopView: "ok" };
+  const want = { width: "ok", height: "ok", area: "ok", aspect: "ok", scale: "ok", half: "ok", test_half: "ok", samples: "ok", histogram: "ok", leak: "rejected", late: "rejected", count: "ok", increment: "ok", clear: "ok", saved: "ok", save: "ok", app: "ok", measure: "ok", word: "ok", wordSize: "ok", measureAsked: "ok", measureWord: "ok", measured: "ok", wordSizes: "ok", storeSize: "ok", onSize: "ok", measureView: "ok", n: "ok", inc: "ok", setN: "ok", Badge: "ok", NotElem: "ok", bad_attr_type: "rejected", bad_unknown_attr: "rejected", bad_unknown_element: "rejected", bad_handler_not_action: "rejected", bad_handler_wrong_args: "rejected", bad_component_props: "rejected", bad_component_missing_prop: "rejected", bad_component_not_elem: "rejected", bad_mut_in_jsx: "rejected", bad_child_object: "rejected", ok_all: "ok", shopTotal: "ok", cheaper: "ok", shopView: "ok" };
   if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(`verdicts ${JSON.stringify(got)}`);
   if (result.module.length) throw new Error(`module errors ${JSON.stringify(result.module)}`);
   return `${result.cells.length} cells: leak, late and the ten bad_* rejected, the rest ok`;

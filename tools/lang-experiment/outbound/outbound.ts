@@ -8,7 +8,7 @@ const T = await import("../lite/toolchain/ss-toolchain.ts");
 const { Runtime } = await import("@observablehq/runtime");
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
-// settled: no action call in flight or waiting, runtime not computing; counted in turns, not milliseconds
+// settled: nothing left to commit, runtime not computing; counted in turns, not milliseconds
 async function settle(runtime: any) {
   let quiet = 0;
   for (let i = 0; i < 2000 && quiet < 5; i++) { await tick(); quiet = P.idle() && !runtime._computing ? quiet + 1 : 0; }
@@ -111,14 +111,14 @@ const shown = (count: number) => count;`);
   note("e1 inc() inside a JS variable's evaluation", `${during}; after settle count=${L.v("count")}, shown=${L.v("shown")}, r runs=${L.runs.get("r")}`);
   const inc = L.v("inc");
   const ret = inc();
-  const q = P.actionQueue();
+  const q = { running: P.rt.call !== null };
   const right = L.v("count");
   await settle(L.runtime);
   note("e2 inc() later, no call in flight", `returned ${show(ret)}; queue right after ${show(q)}; count right after=${right}; after settle count=${L.v("count")}, shown=${L.v("shown")}`);
   // and inside a SoundScript cell evaluation, for contrast: a JS function passed through a JS variable cannot be called by SS, so call inc from a JS variable that runs while an SS cell is mid-evaluation is not constructible; skip
   // two plain calls back to back
   inc(); inc();
-  const q2 = P.actionQueue();
+  const q2 = { running: P.rt.call !== null };
   await settle(L.runtime);
   note("e3 inc(); inc() back to back", `queue after second call ${show(q2)}; after settle count=${L.v("count")}`);
   // inc called inside an Observable generator step (a JS generator variable)

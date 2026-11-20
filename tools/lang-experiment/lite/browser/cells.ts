@@ -1,7 +1,7 @@
 // The parts of the cell runner that need no Observable Runtime: cell shapes read from source, events
 // handles and listeners, and the guard a generator runs under. run.ts (the private runner) and
 // stdlib/runtime.ts (the notebook bundle, which has no Runtime) both use them.
-import { rt, actionNames, isAction, entry, nameOf } from "../../prelude.runtime.ts";
+import { rt, actionNames, isAction, nameOf } from "../../prelude.runtime.ts";
 import { same, orderKeyed, type Place } from "../runtime-ss.ts";
 export { cellsOf, factsOf, type CellInfo } from "../facts.ts";
 
@@ -129,9 +129,9 @@ function orderOf(s: HState, h: unknown): Listener[] {
 }
 const handleOfState = new WeakMap<HState, Handle>();
 
-// A value that arrives while actions are running waits in the queue. Each delivery is a top-level
-// action call, so one whose action is still running (async) holds the next in the runtime's queue. An
-// action that throws or rejects is logged and the next listener, and the next value, still run.
+// Each delivery is a top-level action call, which runs to completion before the next. A value that arrives
+// while one is delivered (an action that makes its events cell yield) waits in the queue. An action that
+// throws is logged and the next listener, and the next value, still run.
 function deliver(s: HState, v: unknown) {
   s.queue.push(v);
   if (s.draining) return;
@@ -142,7 +142,7 @@ function deliver(s: HState, v: unknown) {
       for (const l of orderOf(s, handleOfState.get(s))) {
         if (!s.listeners.has(l)) continue;
         const report = (e: unknown) => console.error(`listener ${ls.get(l)?.cell ?? "?"}: action ${nameOf(l.action)} threw on a value of events ${s.name}:`, e);
-        try { entry(report, () => l.action(x)); } catch (e) { report(e); }
+        try { l.action(x); } catch (e) { report(e); }
       }
     }
   } finally { s.draining = false; }

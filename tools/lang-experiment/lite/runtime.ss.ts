@@ -18,8 +18,6 @@ export type NewStore = { name: string; value: unknown };
 
 // prelude.runtime.ts: a state cell's store, before its handle or view is added
 export const newStore = () => (name: string, value: unknown): NewStore => ({ name, value });
-// a promise-like: an object or function with a then method
-export const thenable = () => (r: unknown): boolean => (typeof r === "object" || typeof r === "function") && r !== null && "then" in r && typeof r.then === "function";
 // the ownership built-ins, which the checker gives their meaning: at run time each returns its argument
 export const mut = () => <T,>(v: T): T => v;
 export const freeze = () => <T,>(v: T): T => v;

@@ -7,6 +7,5 @@ export type { Shape, PointerLike, Ptr, Place, Compiler } from "./runtime.ss.ts";
 
 const L = link(cells);
 export const { newStore, mut, freeze, borrow, want, flat, ptr, DOM_EVENTS, PROPS, same, orderKeyed, rejected, compileFor } = L;
-// a SoundScript type has no type predicates; render.ts and prelude.runtime.ts narrow with these
-export const thenable = L.thenable as (r: unknown) => r is PromiseLike<unknown>;
+// a SoundScript type has no type predicates; render.ts narrows with this
 export const isElem = L.isElem as (x: unknown) => x is Elem;

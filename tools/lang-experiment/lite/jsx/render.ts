@@ -2,7 +2,6 @@
 // tag is unchanged, so a cell that describes the same <canvas> again keeps the same node (and any
 // context made from it). Event props hold Actions; the renderer decodes each DOM event into data.
 import { isElement, type Elem } from "./h.ts";
-import { entry } from "../../prelude.runtime.ts";
 // DOM_EVENTS (each event prop's DOM event and the data its action gets) and PROPS are SoundScript cells
 import { DOM_EVENTS, PROPS } from "../runtime-ss.ts";
 // an event's data is frozen here, as ptr did before it was SoundScript (which has no Object.freeze)
@@ -30,7 +29,7 @@ export function patch(node: any, x: Elem): void {
     const ev = DOM_EVENTS[k];
     if (ev) {
       // an event handler: each action it calls is a top-level call
-      if (!(k in node.__handlers)) node.addEventListener(ev[0], (e: Event) => { const f = node.__handlers[k]; if (f) entry(null, () => f(...ev[1](e, node).map(frozen))); });
+      if (!(k in node.__handlers)) node.addEventListener(ev[0], (e: Event) => { const f = node.__handlers[k]; if (f) f(...ev[1](e, node).map(frozen)); });
       node.__handlers[k] = v;
     } else if (PROPS.has(k)) { if (node[k] !== v) node[k] = v; }
     else if (v === false || v === null || v === undefined) node.removeAttribute(k);

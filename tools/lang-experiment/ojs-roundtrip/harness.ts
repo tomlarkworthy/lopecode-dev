@@ -87,7 +87,7 @@ export async function run(vars: Var[], stdlib: any = ss) {
   await tick(); // the invalidations dispose resolves run their callbacks
   return snaps;
 }
-export const ACTIONS: [string, unknown][] = [["increment", undefined], ["save", undefined], ["tick", 5], ["cheaper", undefined], ["measureCount", undefined]];
+export const ACTIONS: [string, unknown][] = [["increment", undefined], ["save", undefined], ["tick", 5], ["cheaper", undefined], ["measureCount", 4]];
 // rows where two runs differ at any snapshot: [name, a's values, b's values]
 export function diffRuns(a: Record<string, string>[], b: Record<string, string>[], rename: (n: string) => string = (n) => n) {
   const names = [...new Set([...Object.keys(a.at(-1)!), ...Object.keys(a[0])])].sort();

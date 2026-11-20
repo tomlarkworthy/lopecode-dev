@@ -184,11 +184,13 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
   }
   for (const n of all) {
     // on is only called: a listener made anywhere else could escape its cell
-    if (n.type === "Identifier" && n.name === "on" && (!F.bindingOf.has(n) || F.bindingOf.get(n)!.kind === "prelude")) {
+    // read is only called too: a read taken as a value could be called where no action runs (S6.8)
+    if (n.type === "Identifier" && (n.name === "on" || n.name === "read") && (!F.bindingOf.has(n) || F.bindingOf.get(n)!.kind === "prelude")) {
       const p = parent.get(n);
       const name = !p || (p.type === "CallExpression" && p.callee === n) || (p.type === "MemberExpression" && p.property === n && !p.computed)
         || ((p.type === "Property" || p.type === "ObjectProperty") && p.key === n && !p.computed && !p.shorthand) || /^TS/.test(p.type);
-      if (!name) err(n, "listener-placement", "on is only called, as the whole value of a cell; it is not a value");
+      if (!name && n.name === "on") err(n, "listener-placement", "on is only called, as the whole value of a cell; it is not a value");
+      else if (!name) err(n, "read-outside-action", "read is only called, in an action body; it is not a value");
     }
     if (n.type !== "CallExpression") continue;
     const pre = prelude(n);
@@ -392,41 +394,28 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
 }
 
 // A write, action call or read() in a function made inside an action body is allowed only when that function
-// runs while the action's call is in flight (S6.19): it is sync and is called where it is made, passed to a
-// built-in that calls it before returning (not @retains, not @later), or a local helper that is only called from
-// such places; or it is the function of a .then (@later) whose promise the action body awaits or returns, or
-// that such a function returns. Each function from the use out to the action body must pass.
+// runs before the action's function returns (S6.19): it is sync and is called where it is made, passed to a
+// built-in that calls it before returning (not @retains), or a local helper that is only called from such places.
+// Each function from the use out to the action body must pass. A State's set or update taken as a value is a
+// function that writes, and is held to the same rule.
 export function actionEscapes(cellFn: Node, ch: Checker): Rule[] {
-  if (!ch.inActionUses.length) return [];
+  if (!ch.actionBodies.size) return [];
   const F = ch.facts;
   const parent = new Map<Node, Node>();
   const callees = new Map<Binding, Node[]>(); // the references of each binding, for helpers
+  const members: Node[] = []; // member reads and destructured properties of a State
   (function walk(n: Node, p: Node | null) {
     if (p) parent.set(n, p);
     if (n.type === "Identifier") {
       const b = F.bindingOf.get(n);
       if (b && b.node !== n) { const l = callees.get(b) ?? []; l.push(n); callees.set(b, l); }
     }
+    if (n.type === "MemberExpression" || ch.stateProps.has(n)) members.push(n);
     for (const c of kids(n)) walk(c, n);
   })(cellFn, null);
   const enclFn = (n: Node): Node | null => { let p = parent.get(n); while (p && !isFn(p)) p = parent.get(p); return p ?? null; };
-  const sigFlags = (call: Node) => F.calls.get(call)?.sig?.flags;
+  const isState = (n: Node | undefined) => { const t = n && F.types.get(n); return !!t && ch.um(t).some((m) => isNamed(unwrap(m), "State")); };
   const memo = new Map<Node, string | null>(); // null: runs in the call; a string: why it may not
-  // the value of x is a promise the action's call waits for
-  const held = (x: Node): boolean => {
-    const p = parent.get(x);
-    if (!p) return false;
-    if (p.type === "AwaitExpression") return ch.actionBodies.has(enclFn(p) ?? cellFn);
-    if (p.type === "MemberExpression" && p.object === x && !p.computed && p.property.name === "then") {
-      const c = parent.get(p);
-      return !!c && c.type === "CallExpression" && c.callee === p && !!sigFlags(c)?.later && held(c);
-    }
-    const g = p.type === "ReturnStatement" ? enclFn(p) : isFn(p) && p.body === x ? p : null;
-    if (!g) return false;
-    if (ch.actionBodies.has(g)) return true;
-    const gp = parent.get(g);
-    return !!gp && gp.type === "CallExpression" && gp.arguments.includes(g) && !!sigFlags(gp)?.later && why(g) === null;
-  };
   // every function from f out to the function `to` (exclusive) runs in the call
   const chain = (f: Node | null, to: Node): string | null => {
     for (let g = f; g && g !== to; g = enclFn(g)) {
@@ -443,37 +432,59 @@ export function actionEscapes(cellFn: Node, ch: Checker): Rule[] {
     memo.set(f, r);
     return r;
   }
+  // a built-in calls at once a function given to a parameter of function type that it does not keep
+  const callsAtOnce = (p: Node, x: Node): boolean => {
+    const fl = F.calls.get(p)?.sig?.flags;
+    const sig = F.calls.get(p)?.sig, d = sig && (sig.decl ?? sig), i = p.arguments.indexOf(x);
+    const dp = d && (i < d.ps.length ? d.ps[i].t : d.rest);
+    if (fl?.intrinsic && !fl.retains && dp && ch.reg.callSigs(dp).length) return true;
+    // State.update calls its function at once, inside the write
+    const c = p.callee;
+    return p.type === "CallExpression" && c.type === "MemberExpression" && !c.computed && c.property.name === "update" && isState(c.object);
+  };
+  // each reference of b is a direct call from a function that runs while the one holding b's declaration does
+  const onlyCalled = (b: Binding, decl: Node): string | null => {
+    const home = enclFn(decl) ?? cellFn;
+    for (const r of callees.get(b) ?? []) {
+      const rp = parent.get(r);
+      if (!(rp && rp.type === "CallExpression" && rp.callee === r)) return `${b.name} is used other than by a direct call`;
+      const w = chain(enclFn(r), home);
+      if (w) return `${b.name} is called from a function that may run after the call (${w})`;
+    }
+    return null;
+  };
   function why1(f: Node): string | null {
     if (f.async || f.generator) return `it is ${f.async ? "async" : "a generator"}, so it may resume after the call has finished`;
     const p = parent.get(f);
     if (!p) return "it is not called where it is made";
     if (p.type === "CallExpression" && p.callee === f) return null;
-    if ((p.type === "CallExpression" || p.type === "NewExpression") && p.arguments.includes(f)) {
-      const fl = sigFlags(p);
-      if (fl?.later) return held(p) ? null : "it is given to .then, and the action body neither awaits nor returns that promise";
-      // a built-in calls a function given to a parameter of function type; one given where it is a T may be returned
-      const sig = F.calls.get(p)?.sig, d = sig && (sig.decl ?? sig), i = p.arguments.indexOf(f);
-      const dp = d && (i < d.ps.length ? d.ps[i].t : d.rest);
-      if (fl?.intrinsic && !fl.retains && dp && ch.reg.callSigs(dp).length) return null;
-      // State.update calls its function at once, inside the write
-      const c = p.callee;
-      if (p.type === "CallExpression" && c.type === "MemberExpression" && !c.computed && c.property.name === "update" && isNamed(unwrap(F.types.get(c.object) ?? ERR), "State")) return null;
-      return "it is passed to a function that may keep it";
-    }
+    if ((p.type === "CallExpression" || p.type === "NewExpression") && p.arguments.includes(f))
+      return callsAtOnce(p, f) ? null : "it is passed to a function that may keep it";
     const declared = p.type === "VariableDeclarator" && p.init === f && p.id.type === "Identifier" && parent.get(p)?.kind === "const" ? p.id
       : f.type === "FunctionDeclaration" ? f.id : null;
     const b = declared ? F.bindingOf.get(declared) : undefined;
-    if (b && b.fnNode === f) {
-      const home = enclFn(f) ?? cellFn;
-      for (const r of callees.get(b) ?? []) {
-        const rp = parent.get(r);
-        if (!(rp && rp.type === "CallExpression" && rp.callee === r)) return `${b.name} is used other than by a direct call`;
-        const w = chain(enclFn(r), home);
-        if (w) return `${b.name} is called from a function that may run after the call (${w})`;
-      }
-      return null;
-    }
+    if (b && b.fnNode === f) return onlyCalled(b, f);
     return "it is kept: returned, stored, or placed where it may be called later";
+  }
+  // a set or update read as a value (x, a member read or a destructured property): where it may be called
+  function methodValue(x: Node): string | null {
+    const p = parent.get(x)!;
+    if (x.type === "MemberExpression") {
+      if (p.type === "CallExpression" && p.callee === x) return null;
+      if ((p.type === "CallExpression" || p.type === "NewExpression") && p.arguments.includes(x)) return callsAtOnce(p, x) ? null : "it is passed to a function that may keep it";
+      if (p.type === "VariableDeclarator" && p.init === x && p.id.type === "Identifier" && parent.get(p)?.kind === "const") {
+        const b = F.bindingOf.get(p.id);
+        return b ? onlyCalled(b, p) : "it is bound to a name the checker does not follow";
+      }
+      return "it is kept: returned, stored, or placed where it may be called later";
+    }
+    // a property of `const { set } = handle`
+    const pat = p, d = parent.get(pat);
+    if (x.value?.type === "Identifier" && d?.type === "VariableDeclarator" && d.id === pat && parent.get(d)?.kind === "const") {
+      const b = F.bindingOf.get(x.value);
+      return b ? onlyCalled(b, d) : "it is bound to a name the checker does not follow";
+    }
+    return "it is kept: bound where the checker does not follow it";
   }
   const out: Rule[] = [];
   for (const u of ch.inActionUses) {
@@ -481,6 +492,17 @@ export function actionEscapes(cellFn: Node, ch: Checker): Rule[] {
     while (root && !ch.actionBodies.has(root)) root = enclFn(root);
     const w = chain(u.fi.node, root ?? cellFn);
     if (w) out.push({ node: u.node, rule: u.rule, msg: `${u.msg}: the function it is in was made in an action body and may run after the call, because ${w}` });
+  }
+  for (const x of members) {
+    const isMember = x.type === "MemberExpression";
+    const key = isMember ? x.property : x.key;
+    const name = !x.computed && key.type === "Identifier" ? key.name : key.type === "Literal" ? String(key.value) : null;
+    if (isMember ? name !== "set" && name !== "update" || !isState(x.object) : false) continue;
+    let root: Node | null = enclFn(x);
+    while (root && !ch.actionBodies.has(root)) root = enclFn(root);
+    if (!root) continue; // outside any action: [state-write] where it is read
+    const w = methodValue(x);
+    if (w) out.push({ node: x, rule: "state-write", msg: `State.${name ?? "member"} taken as a value in an action body may write after the call, because ${w}` });
   }
   return out;
 }

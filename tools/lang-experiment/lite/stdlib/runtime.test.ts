@@ -653,143 +653,84 @@ const seenB = (count: number) => count;`;
   ok("w4_an_import_with_no_viewof_is_boundary_state", plain.bumpB === "rejected", JSON.stringify(plain));
   runtime.dispose();
 });
-// Async actions: one top-level call at a time for the whole runtime; a call's writes commit together
-// when it finishes, after its awaits and the actions it called. Each promise here is resolved by the test.
-const click = (f: () => unknown) => P.entry(null, f);
-const asyncNamed = (name: string, f: (...a: any[]) => unknown) => { const a = P.action(f); P.actionNames.set(a, name); return a; };
-await run("q1_writes_after_an_await_commit_once_when_the_call_finishes", async () => {
+// Synchronous actions (S6.12, S6.13): a write, a read or a nested action call is legal only while an action's
+// function is on the stack. A call runs to completion when it is called. Each promise here is resolved by the test.
+await run("s1_a_call_runs_to_completion_when_it_is_called", async () => {
+  const n = refOf(0, "n");
+  const order: string[] = [];
+  const inner = named("inner1", () => { n.update((v: number) => v + 1); order.push("inner"); });
+  const outer = named("outer1", () => { order.push("outer"); inner(); order.push(`read ${P.read(n)}`); });
+  const commits = P.rt.commits;
+  outer();
+  order.push("after");
+  ok("s1_ran_before_its_caller_went_on", JSON.stringify(order) === '["outer","inner","read 1","after"]' && P.rt.call === null && P.rt.actionDepth === 0, JSON.stringify(order));
+  ok("s1_committed_later", P.rt.commits === commits && val(n) === 0);
+  await flushed();
+  ok("s1_one_commit", P.rt.commits === commits + 1 && val(n) === 1, `n ${val(n)}`);
+});
+await run("s2_an_unchecked_async_function_keeps_writes_before_its_first_await_only", async () => {
+  unhandled.length = 0;
   const n = refOf(0, "n"), m = refOf(0, "m");
   const d = deferred();
-  const load = asyncNamed("load", async () => { n.set(1); await d.p; m.set((P.read(n) as number) + 1); n.update((v: number) => v + 10); });
-  const commits = P.rt.commits;
+  // the checker rejects this ([action-async]); JavaScript can still give action an async function
+  const load = named("load2", (async () => { n.set(1); await d.p; m.set(2); }) as unknown as () => void);
   load();
-  ok("q1_in_flight_and_nothing_committed", P.actionQueue().inFlight === true && P.rt.commits === commits && val(n) === 0);
+  ok("s2_the_call_has_ended", P.rt.call === null && P.rt.actionDepth === 0);
   d.resolve();
-  await flushed();
-  ok("q1_all_writes_commit_and_read_sees_own_write", val(n) === 11 && val(m) === 2, `n ${val(n)} m ${val(m)}`);
-});
-await run("q2_a_call_from_an_entry_waits_for_the_one_in_flight", async () => {
-  const x = refOf(1, "x");
-  const d = deferred();
-  const order: string[] = [];
-  const slow = asyncNamed("slow", async () => { order.push("slow"); await d.p; x.set(5); order.push("slow done"); });
-  const times = asyncNamed("times", () => { order.push("times"); x.update((v: number) => v * 10); });
-  click(() => slow());
-  click(() => times());
-  ok("q2_second_call_waits", JSON.stringify(order) === '["slow"]' && P.actionQueue().waiting === 1, JSON.stringify([order, P.actionQueue()]));
-  d.resolve();
-  await flushed();
-  ok("q2_runs_in_call_order_after_the_first_finishes", JSON.stringify(order) === '["slow","slow done","times"]' && val(x) === 50, `${JSON.stringify(order)} x ${val(x)}`);
-});
-await run("q3_a_rejected_call_keeps_none_of_its_writes", async () => {
-  errors.length = 0;
-  const x = refOf(1, "x"), y = refOf(1, "y");
-  const d = deferred();
-  const breaks = asyncNamed("breaks", async () => { x.set(2); await d.p; y.set(3); throw new Error("after await"); });
-  breaks();
-  d.resolve();
-  await flushed();
-  ok("q3_none_kept", val(x) === 1 && val(y) === 1, `x ${val(x)} y ${val(y)}`);
-  ok("q3_reported_naming_the_action", errors.some((e) => e.includes("action breaks") && e.includes("after await")), JSON.stringify(errors));
-});
-await run("q4_a_queued_call_that_throws_is_reported", async () => {
-  errors.length = 0;
-  const x = refOf(1, "x");
-  const d = deferred();
-  const slow = asyncNamed("slow2", async () => { await d.p; x.set(2); });
-  const bad = asyncNamed("bad", () => { x.set(9); throw new Error("queued throw"); });
-  click(() => slow());
-  let thrown = "";
-  try { click(() => bad()); } catch (e) { thrown = String(e); }
-  d.resolve();
-  await flushed();
-  ok("q4_not_thrown_to_the_caller", thrown === "", thrown);
-  ok("q4_reported_naming_the_action", errors.some((e) => e.includes("action bad") && e.includes("queued throw")), JSON.stringify(errors));
-  ok("q4_kept_only_the_first_call", val(x) === 2, `x ${val(x)}`);
-  const msg = thrown;
-  ok("q4_a_sync_throw_from_a_call_started_at_once_still_throws", (() => { try { click(() => bad()); return false; } catch (e) { return String((e as Error).message) === "queued throw"; } })(), msg);
-});
-await run("q5_nested_async_actions", async () => {
-  unhandled.length = 0;
-  const x = refOf(0, "x");
-  const d1 = deferred(), d2 = deferred();
-  const inner = asyncNamed("inner", async () => { await d1.p; x.update((v: number) => v + 1); });
-  const detached = asyncNamed("detached", async () => { await d2.p; x.update((v: number) => v + 100); });
-  let outerDone = false;
-  const outer = asyncNamed("outer", async () => { detached(); await inner(); x.update((v: number) => v * 10); outerDone = true; });
-  outer();
-  d1.resolve();
-  await until(() => outerDone);
-  await flushed();
-  ok("q5_not_held_by_the_action_it_did_not_await", P.idle() && val(x) === 10, `${JSON.stringify(P.actionQueue())} x ${val(x)}`);
-  d2.resolve();
   await until(() => unhandled.length > 0);
   await flushed();
-  ok("q5_a_write_after_the_commit_throws_outside_an_action", val(x) === 10 && unhandled.length === 1 && /outside an action/.test(String((unhandled[0] as Error)?.message)), `x ${val(x)}, ${unhandled.map(String)}`);
+  ok("s2_the_write_after_the_await_threw", val(n) === 1 && val(m) === 0 && unhandled.length === 1 && /outside an action/.test(String((unhandled[0] as Error)?.message)), `n ${val(n)} m ${val(m)} ${unhandled.map(String)}`);
 });
-await run("q6_a_write_from_a_cell_evaluation_during_a_paused_call_throws", async () => {
+await run("s3_a_function_kept_from_a_call_cannot_write_read_or_call_inside_it_later", async () => {
+  const n = refOf(0, "n");
+  const kept: (() => unknown)[] = [];
+  const bump = named("bump3", () => n.update((v: number) => v + 1));
+  named("keep3", () => { kept.push(() => n.set(9), () => P.read(n)); })();
+  await flushed();
+  const [write, read] = kept;
+  ok("s3_write_throws", /outside an action/.test(thrown(() => write())), thrown(() => write()));
+  ok("s3_read_throws", /outside an action/.test(thrown(() => read())));
+  // from a promise callback, or a timer
+  const later = await Promise.resolve().then(() => thrown(() => n.set(7)));
+  const timed = await new Promise<string>((r) => setTimeout(() => r(thrown(() => n.set(8))), 0));
+  ok("s3_callbacks_throw", /outside an action/.test(later) && /outside an action/.test(timed), `${later} | ${timed}`);
+  // an Action called later is a top-level call of its own
+  const commits = P.rt.commits;
+  await Promise.resolve().then(() => bump());
+  await flushed();
+  ok("s3_an_action_called_later_is_its_own_call", val(n) === 1 && P.rt.commits === commits + 1, `n ${val(n)}`);
+});
+await run("s4_a_write_or_an_action_call_during_a_cell_evaluation_throws", async () => {
   const x = refOf(0, "x");
-  const d = deferred();
-  const slow = asyncNamed("slow3", async () => { await d.p; });
-  slow();
+  const a = named("a4", () => x.set(1));
   P.rt.evalDepth++;
   const msg = thrown(() => x.set(1));
-  const call = thrown(() => slow());
+  const call = thrown(() => a());
   P.rt.evalDepth--;
-  d.resolve();
   await flushed();
-  ok("q6_write_throws", /outside an action/.test(msg), msg);
-  ok("q6_action_call_throws", /during a cell evaluation/.test(call), call);
+  ok("s4_write_throws", /outside an action/.test(msg), msg);
+  ok("s4_action_call_throws", /during a cell evaluation/.test(call), call);
+  ok("s4_nothing_kept", val(x) === 0);
 });
-await run("q7_async_listener_gets_every_value_once_in_order", async () => {
+await run("s5_a_listener_gets_every_value_once_in_order", async () => {
   const h = C.events(undefined, "beats", [], () => (function* () { for (let i = 1; i <= 5; i++) yield i; })() as any, null);
-  const gates: (() => void)[] = [];
   const got: number[] = [];
-  const act = asyncNamed("slowAdd", async (v: number) => { await new Promise<void>((r) => gates.push(r)); got.push(v); });
+  const act = named("add5", ((v: number) => { got.push(v); }) as unknown as () => void);
   const l = C.listen(C.on(h, act), "onBeat", null);
   for (let i = 0; i < 10; i++) frame();
-  ok("q7_one_call_in_flight_the_rest_wait", gates.length === 1 && P.actionQueue().waiting === 4, `${gates.length} started, ${P.actionQueue().waiting} waiting`);
-  for (let k = 0; k < 5; k++) { await until(() => gates.length > k); gates[k](); }
   await flushed();
-  ok("q7_each_value_once_in_order", JSON.stringify(got) === "[1,2,3,4,5]", JSON.stringify(got));
+  ok("s5_each_value_once_in_order", JSON.stringify(got) === "[1,2,3,4,5]", JSON.stringify(got));
   C.release(l); C.release(h);
 });
-
-await run("q8_a_nested_rejection_fails_the_call_when_it_reaches_the_call", async () => {
-  // detached: the call commits when outer returns; the rejection reaches the host as unhandled
-  const cases: [string, string, number[], number, number][] = [["detached", "not awaited", [1, 0], 0, 1], ["awaited", "awaited, not caught", [0, 0], 1, 0], ["caught", "awaited and caught", [1, 1], 0, 0]];
-  for (const [mode, label, want, consoled, host] of cases) {
-    errors.length = 0; unhandled.length = 0;
-    const x = refOf(0, "x"), y = refOf(0, "y");
-    const d = deferred();
-    const inner = asyncNamed("inner8", async () => { await d.p; throw new Error("inner rejected"); });
-    const outer = asyncNamed("outer8_" + mode, async () => {
-      x.set(1);
-      if (mode === "detached") inner();
-      else if (mode === "awaited") await inner();
-      else { try { await inner(); } catch (e) { y.set(1); } }
-    });
-    outer();
-    await flushed();
-    d.resolve();
-    if (host) await until(() => unhandled.length >= host);
-    await flushed();
-    ok(`q8_${mode}_${label.replace(/[ ,]+/g, "_")}`, JSON.stringify([val(x), val(y)]) === JSON.stringify(want), `${label}: x ${val(x)} y ${val(y)}`);
-    const reported = errors.filter((e) => e.includes("inner rejected")).length;
-    ok(`q8_${mode}_reported_${consoled}_to_the_console_${host}_to_the_host`, reported === consoled && unhandled.length === host, `${JSON.stringify(errors)} unhandled ${unhandled.length}`);
-  }
-});
-await run("q9_an_action_that_awaits_then_awaits_another_runs_it_in_its_own_call", async () => {
+await run("s6_a_nested_action_returns_its_value_inside_the_call", async () => {
   const x = refOf(0, "x");
-  const d = deferred();
-  const inner = asyncNamed("inner9", async () => { x.update((v: number) => v + 1); return "inner done"; });
-  const twice = asyncNamed("twice9", (k: number) => { x.update((v: number) => v + k); return k * 2; });
-  let got: unknown[] = [];
-  const outer = asyncNamed("outer9", async () => { await d.p; got = [await inner(), twice(3)]; x.update((v: number) => v * 10); });
-  click(() => outer());
-  d.resolve();
+  const twice = P.action((k: unknown) => { x.update((v: number) => v + (k as number)); return (k as number) * 2; });
+  let got: unknown;
+  const outer = named("outer6", () => { got = twice(3); x.update((v: number) => v * 10); });
+  const top = twice(1);
+  outer();
   await flushed();
-  ok("q9_inner_ran_inside_the_call_and_returned", JSON.stringify(got) === '["inner done",6]' && val(x) === 40 && P.idle(), `${JSON.stringify(got)} x ${val(x)} ${JSON.stringify(P.actionQueue())}`);
+  ok("s6_nested_returns_top_level_does_not", got === 6 && top === undefined && val(x) === 40, `${got} ${top} x ${val(x)}`);
 });
 
 console.error = realError;

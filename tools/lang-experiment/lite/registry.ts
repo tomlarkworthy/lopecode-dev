@@ -13,7 +13,7 @@ type Decl = { kind: "alias" | "iface"; tps: string[]; nodes: Node[]; origin: Ori
 export type ValueDecl = { t: Ty; origin: Origin; node: Node; marker: "pure" | "effect" | null; flags?: Flags };
 export type TypeCtx = { tps: Set<string>; typeofLookup?: (name: string, node: Node) => Ty | undefined };
 
-const FLAG_NAMES = ["mutates", "fresh", "view", "retains", "banned", "later"] as const;
+const FLAG_NAMES = ["mutates", "fresh", "view", "retains", "banned"] as const;
 function flagsOf(p: Parsed, n: Node, origin: Origin): Flags | undefined {
   const f: Flags = {};
   for (const c of p.leading(n)) for (const k of FLAG_NAMES) if (c.text.includes("@" + k)) f[k] = true;

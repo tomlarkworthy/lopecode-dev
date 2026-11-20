@@ -952,8 +952,7 @@ test_ss_deleted_state_is_not_inherited = {
     await twin.value("deletedKept");
     const a = await mod([T, "const setKept = (deletedKept: State<number>) => action(() => deletedKept.set(7));"]);
     const set = await a.value("setKept");
-    if (!(await frames(() => soundscript.idle()))) throw new Error("an action call stayed in flight for 600 frames");
-    soundscript.entry(null, () => set());
+    set();
     if (!(await frames(async () => (await a.value("deletedKept")) === 7))) throw new Error("deletedKept did not become 7");
     const doomed = [...runtime._variables].filter((v) => v._module === a && v._name !== soundscript.INPUTS.rejected);
     let seen;

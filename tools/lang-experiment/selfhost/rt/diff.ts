@@ -42,10 +42,6 @@ const run = (fn: string, cases: number, gen: () => [() => unknown, () => unknown
 };
 
 run("newStore", N, () => { const n = str(), v = value(2); return [() => O.newStore(n, v), () => P.newStore(n, v), `${n} ${show(v)}`]; });
-run("thenable", N, () => {
-  const v = pick<() => unknown>([() => value(2), () => Promise.resolve(1), () => ({ then: 1 }), () => ({ then() {} }), () => Object.assign(() => 0, { then: () => 0 }), () => () => 0, () => Object.create({ then() {} })])();
-  return [() => O.thenable(v), () => P.thenable(v), typeof v];
-});
 for (const k of ["mut", "freeze", "borrow"] as const) run(k, N, () => { const v = value(3); return [() => O[k](v) === v, () => P[k](v) === v, show(v)]; });
 // render.ts freezes an event's data at the call site; through that, ptr's value is frozen as before
 const frozen = (x: unknown) => (x && typeof x === "object" ? Object.freeze(x) : x);

@@ -1,6 +1,6 @@
 // Runtime half of prelude.d.ts. Imported by the transpiled cells.ts/shell.ts and by run.ts.
-// newStore, thenable, mut, freeze and borrow are SoundScript cells (lite/runtime.ss.ts)
-import { newStore, thenable } from "./lite/runtime-ss.ts";
+// newStore, mut, freeze and borrow are SoundScript cells (lite/runtime.ss.ts)
+import { newStore } from "./lite/runtime-ss.ts";
 export { mut, freeze, borrow } from "./lite/runtime-ss.ts";
 
 const STATECELL = Symbol.for("lc.statecell");
@@ -11,7 +11,7 @@ const REFHANDLE = Symbol.for("lc.state");
 type ViewEl = { value: unknown; dispatchEvent(e: Event): boolean };
 // handle: the state cell's handle whose store this is, told of each commit
 type Store = { name: string; value: unknown; handle?: object; el?: ViewEl; check?: (v: unknown) => unknown };
-// One top-level action call, from when it starts until it finishes: its writes, applied in call order
+// One top-level action call, while its function runs: its writes, applied in call order
 type Call = Map<Store, unknown>;
 
 // the cell an action was defined by, when the runtime knows it; flush and listeners name actions by it
@@ -22,14 +22,9 @@ export const nameOf = (a: object) => actionNames.get(a) ?? actionNamer.of?.(a) ?
 
 export const rt = {
   evalDepth: 0, // >0 while a cell definition (or a generator step) runs synchronously
-  actionDepth: 0, // >0 while an action's function runs synchronously
-  // the top-level call in flight; one at a time for the whole runtime
+  actionDepth: 0, // >0 while an action's function runs; the only time a write, a read or a nested call is legal
+  // the top-level call whose function is running (S6.13)
   call: null as Call | null,
-  // top-level calls waiting for the one in flight, in call order
-  waiting: [] as (() => void)[],
-  // set while an event handler, or a listener delivery runs: an action it calls is a
-  // top-level call, even while another call is in flight
-  entry: null as ((e: unknown, action: object) => void) | null,
   // the writes of finished calls, in call order, until commit
   ready: new Map<Store, unknown>(),
   commits: 0,
@@ -39,14 +34,11 @@ export function reset() {
   rt.evalDepth = 0;
   rt.actionDepth = 0;
   rt.call = null;
-  rt.waiting = [];
-  rt.entry = null;
   rt.ready = new Map();
   rt.commits = 0;
 }
-// no call in flight or waiting, and nothing left to commit
-export const idle = () => !rt.call && !rt.waiting.length && !rt.ready.size;
-export const actionQueue = () => ({ inFlight: !!rt.call, waiting: rt.waiting.length });
+// no call running and nothing left to commit
+export const idle = () => !rt.call && !rt.ready.size;
 
 export function state<T>(initial: T) {
   return { [STATECELL]: true, initial };
@@ -60,9 +52,8 @@ const stores = new WeakMap<object, Store>();
 const over = new WeakMap<object, object>();
 const storeOf = (h: object): Store | undefined => stores.get(over.get(h) ?? h);
 
-// the call a write or read belongs to: the one running synchronously, or, outside any cell evaluation,
-// the one in flight (its code after an await)
-const owner = (): Call | null => (rt.actionDepth > 0 || rt.evalDepth === 0 ? rt.call : null);
+// the call a write or read belongs to: the one whose action's function is on the stack, else none (it throws)
+const owner = (): Call | null => (rt.actionDepth > 0 ? rt.call : null);
 // the value as of this point in the call order: committed, then finished calls', then this call's writes
 const current = (store: Store) => (rt.call?.has(store) ? rt.call.get(store) : rt.ready.has(store) ? rt.ready.get(store) : store.el ? store.check!(store.el.value) : store.value);
 function write(h: object, f: (v: unknown) => unknown) {
@@ -155,70 +146,36 @@ export function viewHandle(el: ViewEl, name: string, check: (v: unknown) => unkn
   return handle;
 }
 
-const reportTo = (a: object) => (e: unknown) => console.error(`action ${nameOf(a)} threw:`, e);
-
-// Runs f while an event handler, or a listener delivery is calling actions: each action
-// it calls is a top-level call. report(e, action) gets the error of a call that does not throw to f's
-// caller (it was queued, or its promise rejected); null reports it on the console naming the action.
-export function entry<T>(report: ((e: unknown, action: object) => void) | null, f: () => T): T {
-  const was = rt.entry;
-  rt.entry = report ?? ((e, a) => reportTo(a)(e));
-  try { return f(); } finally { rt.entry = was; }
-}
-
-// the call ends: its writes commit, unless it failed; the next waiting call starts
-function finish(c: Call, ok: boolean) {
-  rt.call = null;
-  if (ok && c.size) {
-    // one commit per macrotask: two in one task tear a reader of two state cells (runtime.test.ts g6)
-    if (!rt.ready.size) setTimeout(commit, 0);
-    for (const [st, v] of c) rt.ready.set(st, v);
-  }
-  pump();
-}
-let pumping = false;
-function pump() {
-  if (pumping) return;
-  pumping = true;
-  try { while (!rt.call && rt.waiting.length) rt.waiting.shift()!(); } finally { pumping = false; }
-}
-
-// A top-level call: it runs now (sync: a throw goes to the caller) or when the one before it finishes.
-// It finishes when f has returned and the promise-like it returned, if any, has settled.
-function run(f: () => unknown, report: (e: unknown) => void, sync: boolean) {
-  const c: Call = new Map();
-  rt.call = c;
-  let r: unknown;
-  try { r = inAction(f); } catch (e) {
-    finish(c, false);
-    if (sync) throw e;
-    return report(e);
-  }
-  if (!thenable(r)) return finish(c, true);
-  Promise.resolve(r).then(() => finish(c, true), (e) => { report(e); finish(c, false); });
+// The call ends: its writes commit, unless it threw. One commit per macrotask: two in one task tear a reader
+// of two state cells (runtime.test.ts g6), so the writes of calls that finish before the commit share it.
+function finish(c: Call) {
+  if (!c.size) return;
+  if (!rt.ready.size) setTimeout(commit, 0);
+  for (const [st, v] of c) rt.ready.set(st, v);
 }
 function inAction(f: () => unknown) {
   rt.actionDepth++;
   try { return f(); } finally { rt.actionDepth--; }
 }
 
+// An action (S6.12): called inside an action's function it is part of that call and returns what its function
+// returns; called anywhere else (an event handler, a listener, JavaScript) it is a top-level call, which runs to
+// completion now and keeps its writes only if it does not throw (S6.10, S6.13). What the function returns is not
+// waited for: a write it makes later, from a promise callback or a kept function, finds no action on the stack and
+// throws.
 export function action(f: (...args: unknown[]) => unknown) {
   const a = (...args: unknown[]): unknown => {
-    if (rt.evalDepth > 0 && rt.actionDepth === 0) throw new Error("action called during a cell evaluation");
-    // inside the call in flight (in its body, or after an await outside an entry): a plain function call
-    if (rt.call && (rt.actionDepth > 0 || !rt.entry)) return inAction(() => f(...args));
-    // named while it is still its cell's value: an edit before its error is reported does not lose the name
-    if (!actionNames.has(a)) { const n = actionNamer.of?.(a); if (n) actionNames.set(a, n); }
-    const via = rt.entry;
-    const report = via ? (e: unknown) => via(e, a) : reportTo(a);
-    if (!rt.call && !rt.waiting.length) run(() => f(...args), report, true);
-    else rt.waiting.push(() => run(() => f(...args), report, false));
+    if (rt.actionDepth > 0) return inAction(() => f(...args));
+    if (rt.evalDepth > 0) throw new Error("action called during a cell evaluation");
+    const c: Call = new Map();
+    rt.call = c;
+    try { inAction(() => f(...args)); } finally { rt.call = null; }
+    finish(c);
     return undefined;
   };
   Object.defineProperty(a, ACTION, { value: true });
   return a;
 }
-
 
 export function snapshot<T>(v: T): T {
   if (ArrayBuffer.isView(v) && !(v instanceof DataView)) return (v as unknown as { slice(): T }).slice();
