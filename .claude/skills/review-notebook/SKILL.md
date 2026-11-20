@@ -441,3 +441,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   taken (the deployer's upload-form check left out of a list of checks said to be all, a regex count stated as fact, 19
   approvals that included one by the owner, an "It" with the wrong subject, a row in the owner's table not yet his).
   100.6k subagent tokens, 2m58s.
+- 2026-11-20 `plan/retros/2026-11-20.md`, authored by the spawning session: FIX, 4 findings, all confirmed and taken (the
+  report's `deploy.ts` change printed an order that does not apply when two queued patches clash with each other, fixed in
+  cloud-brain-dev `c76b211` with a test; 17 commits the submodule pointer carries left unnamed; a secret's exposure put
+  down to the command that showed it, not `brain.ts:600` that causes it; two slips). 85.5k subagent tokens, 2m44s.

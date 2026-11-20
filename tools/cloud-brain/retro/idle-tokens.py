@@ -22,7 +22,10 @@ for b in range(0, len(ALIVE), 10):
                             "groupBys": [{"type": "string", "value": "delegation"}],
                             "filters": [{"kind": "group", "filterCombination": "or", "filters": [{"key": "delegation", "operation": "includes", "value": i, "type": "string"} for i in ids]}]}}
         open(S + "/idle-tokens-query.json", "w").write(json.dumps(q))
-        res = curl("/xrpc/com.lopecode.brain.logs.query", "-X", "POST", "-H", "content-type: application/json", "--data", "@" + S + "/idle-tokens-query.json")
+        for wait in (0, 15, 30, 60, 120):  # Cloudflare answers 429 "exceeded its query capacity" to a burst (2026-11-20)
+            time.sleep(wait)
+            res = curl("/xrpc/com.lopecode.brain.logs.query", "-X", "POST", "-H", "content-type: application/json", "--data", "@" + S + "/idle-tokens-query.json")
+            if "result" in res: break
         abr.append(res["result"]["run"]["statistics"].get("abr_level"))
         for c in res["result"]["calculations"]:
             for a in c["aggregates"]:
