@@ -50,7 +50,7 @@ installed with `npm install`. TypeScript is pinned to 6.x because `typescript@7.
 | `rules.ts` | rule ids. `fixtures.ts` fails if an id has neither a `fixtures/reject-<id>/` nor a reject case in the specification module |
 | `analyze.ts` | syntactic pass shared by all three commands: cells, kind, outer parameters, facet (`value`/`state`/`capability`/`foreign`), foreign declarations |
 | `prelude.d.ts` | `State StateCell state Action action Mut mut freeze Borrowed borrow snapshot equals Js Clock Random Fetch Log`. Brands are string-keyed properties (`__lc_mut`, `__lc_borrowed`, `__lc_state`, `__lc_statecell`, `__lc_action`) found with `checker.getPropertyOfType` |
-| `prelude.runtime.ts` | runtime half: state stores, the write queue, `action`, identity `mut/freeze/borrow`, copying `snapshot`, structural `equals`, capabilities |
+| `prelude.runtime.ts` | runtime half: state stores, the commit of a call's writes, `action`, identity `mut/freeze/borrow`, copying `snapshot`, structural `equals`, capabilities |
 | `check.ts`, `run.ts`, `report.ts`, `fixtures.ts` | the commands |
 
 ## check
@@ -97,17 +97,13 @@ ends (an animation loop) will always hit the cap.
 Write semantics of `run.ts`, exercised by `accept-state` in both orders:
 
 - `set`/`update` outside an action throws `State count: set/update called outside an action`.
-- An action call at depth 0 is a top-level call. Top-level calls run one at a time for the whole
-  runtime, in call order; one made by an event handler or a listener while another is in flight
-  waits. A call is in flight until its function has returned and the promise-like it returned has
-  settled. Its writes then commit together, in a `setTimeout(0)`. A call that throws or rejects keeps
-  none of them. An action called inside a call is a plain function call: a throw the caller catches
-  keeps the writes made before it, and an async one the caller does not await does not hold the call
-  (its later writes throw outside an action). The fixture asserts the label is still `count: 0`
+- An action is synchronous (since 2026-11-20). A call at depth 0 is a top-level call and runs to
+  completion when it is called. Its writes commit together, in a `setTimeout(0)`. A call that throws
+  keeps none of them. An action called inside a call is a plain function call: a throw the caller
+  catches keeps the writes made before it. A write, a `read` or a nested call made while no action's
+  function is running throws, whoever makes it. The fixture asserts the label is still `count: 0`
   immediately after the call and `count: 1` after settling, that `label` evaluated once more, and
   that `increment` (depends only on the State) and `count` did not re-evaluate.
-- An action called from outside an event handler or a listener while a call is in
-  flight is counted as part of that call. Not specified; see the specification module.
 - An action called while a cell is evaluating throws `action called during a cell evaluation`
   (`reject-action-call` asserts this at run time too). "Evaluating" means the synchronous part of a
   cell function or of one generator step; the continuation of an async cell after its first `await`

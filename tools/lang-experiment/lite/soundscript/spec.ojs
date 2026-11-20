@@ -1955,19 +1955,13 @@ md`- A dependency cycle that passes through a cell in another language. The chec
 // %%
 md`- A DOM node from another language placed in JSX.`
 // %%
-md`- A promise started in an action that is neither awaited nor returned, and writes to a state cell when it settles. Today the write throws if no call is in flight; otherwise it is counted as part of the call in flight, whichever action that call belongs to.`
-// %%
-md`- A call that never finishes. Today it holds every later top-level call, on the whole page, and nothing ends it.`
+md`- Which answers reach a listener when the input of an async cell changes while the cell is waiting (the fetch-then-store shape of S6.12). With two asks made during one pending fetch, the pending answer was stored on 6 of 10 loads in Chromium and on none under bun, on 2026-11-20, and the next fetch started only after the pending one answered. The cause is not established. The last answer is delivered; \`test_spec_S6_12\` asserts only that.`
 // %%
 md`- A handler that makes several top-level calls, such as \`onClick={() => { begin(); load(); }}\`. An event attribute takes one action, so this is not provided.`
 // %%
 md`- A change the user makes on a view's control while an action call that wrote the view is waiting to commit. Today the commit replaces the user's change.`
 // %%
 md`- An action taken before its state cell went into error, and called while the state cell is in error. Today it writes the state cell's last store, and the write is kept if the state cell is repaired with the same inputs.`
-// %%
-md`- \`set\`, \`update\` or \`read\` on a handle from outside an action, such as Observable JavaScript holding \`viewof c\`, while a call is in flight. Today it does not throw and is counted as part of the call in flight.`
-// %%
-md`- An action called directly from Observable JavaScript, outside an event handler or a listener, while a call is in flight. Today it is counted as part of the call in flight, not queued.`
 // %%
 spec_coverage = Generators.observe((notify) => {
   // drawn again when a test settles and when a cell of this module is added, edited or deleted; a test that

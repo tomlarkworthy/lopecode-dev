@@ -83,7 +83,7 @@ sourceListing(tutorial_module, invalidation, { from: "count", to: "app" })
 // %%
 md`**Try it.** Press **add one**. Then open \`app\` and change \`onClick={increment}\` to \`onClick={count}\`. \`app\` no longer checks, because a number is not an action, and the buttons are replaced by the message. Change it back: the buttons return and the count is what it was.`
 // %%
-md`An action may be async. It can \`await\` a promise, such as an answer from a worker or a server, and write after it. Its writes commit together when it finishes, so a cell never sees half of them. Clicks are handled one at a time: a click made while an action is still waiting runs after it finishes.`
+md`An action is synchronous: it runs from start to finish when it is called, and its writes commit together, so a cell never sees half of them. It cannot \`await\`. To use an answer from a worker or a server, an async cell waits for it, and a listener gives the answer to an action that stores it. A write made after the action has returned, from a callback it left behind, throws.`
 // %%
 sourceListing(tutorial_module, invalidation, { from: "measure", to: "measureView" })
 // %%
