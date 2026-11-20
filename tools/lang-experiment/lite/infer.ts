@@ -328,6 +328,7 @@ export class Checker {
           if (prop.computed || (prop.key.type !== "Identifier" && prop.key.type !== "Literal")) { this.unsupported(prop, "computed destructuring key"); continue; }
           const k = prop.key.type === "Identifier" ? prop.key.name : String(prop.key.value);
           used.push(k);
+          if (this.um(t).some((m) => m.k !== "err" && this.reg.member(m, k)?.flags?.banned)) this.err(prop, "banned-member", `${k} is banned`);
           if (this.um(t).some((m) => isNamed(unwrap(m), "State") && this.reg.member(m, k))) {
             this.inActionOnly(env, prop, "state-write", `State.${k} outside action(...)`);
             this.stateProps.add(prop);
@@ -1144,7 +1145,9 @@ export class Checker {
       sigs = x.k === "rec" ? (x.ctors ?? []) : [];
       if (!sigs.length) { this.unsupported(e, `new ${callee.name}`); return bail(); }
     } else {
-      if (callee.type === "MemberExpression" && callee.object.type === "Identifier" && callee.object.name === "Object" && !callee.computed && callee.property.name === "assign" && env.scope.get("Object")?.kind === "global") return this.objectAssign(e, env);
+      const objectMember = callee.type === "MemberExpression" && callee.object.type === "Identifier" && callee.object.name === "Object" && !callee.computed && env.scope.get("Object")?.kind === "global" ? callee.property.name : null;
+      if (objectMember === "assign") return this.objectAssign(e, env);
+      if (objectMember === "freeze") return this.objectFreeze(e, env, expected);
       calleeT = this.infer(callee, env);
       if (callee.type === "MemberExpression" || (callee.type === "ChainExpression" && callee.expression.type === "MemberExpression")) {
         const m = callee.type === "ChainExpression" ? callee.expression : callee;
@@ -1193,6 +1196,14 @@ export class Checker {
     if (!target || (target.type !== "ObjectExpression" && !isNamed(tt, "Mut"))) this.err(e, "object-assign", "Object.assign onto an existing value");
     src.forEach((s: Node) => this.infer(s, env));
     this.unsupported(e, "Object.assign");
+    return ERR;
+  }
+  // Object.freeze of a literal: the value is the cell's own, so freezing it changes nothing another cell holds
+  objectFreeze(e: Node, env: Env, expected: Ty | undefined): Ty {
+    const [a] = e.arguments;
+    if (e.arguments.length === 1 && (a.type === "ObjectExpression" || a.type === "ArrayExpression")) return this.check(a, env, expected);
+    this.err(e, "object-freeze", "Object.freeze takes one object or array literal");
+    e.arguments.forEach((x: Node) => this.infer(x.type === "SpreadElement" ? x.argument : x, env));
     return ERR;
   }
   // Apply one signature: rank-1 inference over arguments, callbacks after the arguments that fix their parameters.

@@ -15,6 +15,7 @@ export type Ptr = { readonly x: number; readonly y: number; readonly t: number; 
 export type Place = readonly [string, number] | null;
 export type Compiler = { for(caller: string, refs: { readonly [k: string]: unknown }): unknown };
 export type NewStore = { name: string; value: unknown };
+export type Data = null | undefined | boolean | number | string | bigint | symbol | readonly Data[] | { readonly [k: string]: Data };
 
 // prelude.runtime.ts: a state cell's store, before its handle or view is added
 export const newStore = () => (name: string, value: unknown): NewStore => ({ name, value });
@@ -36,6 +37,18 @@ export const want = () => {
   };
   return w;
 };
+// two copies the boundary made are equal: the same own keys, and equal values under each (boundary.ts cross)
+export const deepEqual = () => {
+  const eq = (a: Data, b: Data): boolean => {
+    if (Object.is(a, b)) return true;
+    if (a === null || b === null || typeof a !== "object" || typeof b !== "object") return false;
+    const ka = Object.keys(a), kb = new Set(Object.keys(b));
+    if (ka.length !== kb.size || !ka.every((k) => kb.has(k))) return false;
+    if (Array.isArray(a)) return Array.isArray(b) && ka.every((k) => eq(a[Number(k)], b[Number(k)]));
+    return !Array.isArray(b) && ka.every((k) => eq(a[k], b[k]));
+  };
+  return eq;
+};
 // JSX children flattened: nested arrays spread, null, undefined and booleans dropped (jsx/h.ts)
 export const flat = () => {
   const f = (xs: readonly unknown[]): unknown[] =>
@@ -43,7 +56,7 @@ export const flat = () => {
   return f;
 };
 // a pointer event as data (jsx/render.ts)
-export const ptr = () => (e: PointerLike): Ptr => ({ x: e.offsetX ?? e.clientX ?? 0, y: e.offsetY ?? e.clientY ?? 0, t: e.timeStamp ?? 0, id: e.pointerId ?? 0, buttons: e.buttons ?? 0 });
+export const ptr = () => (e: PointerLike): Ptr => Object.freeze({ x: e.offsetX ?? e.clientX ?? 0, y: e.offsetY ?? e.clientY ?? 0, t: e.timeStamp ?? 0, id: e.pointerId ?? 0, buttons: e.buttons ?? 0 });
 // each event prop: the DOM event and the arguments its action is called with
 export const DOM_EVENTS = (ptr: (e: PointerLike) => Ptr): { readonly [k: string]: readonly [string, (e: PointerLike, node: { readonly value?: unknown }) => readonly unknown[]] } => ({
   onClick: ["click", () => []],

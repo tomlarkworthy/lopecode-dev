@@ -23,6 +23,7 @@ export const RULES: RuleInfo[] = [
   { id: "no-delete", section: "Immutable by default", how: "exact", summary: "delete" },
   { id: "mutating-method", section: "Immutable by default", how: "approx", summary: "mutating method on a non-Mut Array/Map/Set/typed array" },
   { id: "object-assign", section: "Immutable by default", how: "approx", summary: "Object.assign onto an existing (non-literal, non-Mut) value" },
+  { id: "object-freeze", section: "Immutable by default", how: "exact", summary: "Object.freeze of anything but an object or array literal" },
   { id: "no-var", section: "Immutable by default", how: "exact", summary: "var" },
   { id: "no-class", section: "Immutable by default", how: "exact", summary: "class" },
   { id: "no-this", section: "Immutable by default", how: "exact", summary: "this" },

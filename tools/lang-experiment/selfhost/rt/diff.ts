@@ -43,13 +43,9 @@ const run = (fn: string, cases: number, gen: () => [() => unknown, () => unknown
 
 run("newStore", N, () => { const n = str(), v = value(2); return [() => O.newStore(n, v), () => P.newStore(n, v), `${n} ${show(v)}`]; });
 for (const k of ["mut", "freeze", "borrow"] as const) run(k, N, () => { const v = value(3); return [() => O[k](v) === v, () => P[k](v) === v, show(v)]; });
-// render.ts freezes an event's data at the call site; through that, ptr's value is frozen as before
-const frozen = (x: unknown) => (x && typeof x === "object" ? Object.freeze(x) : x);
-run("ptr through render's call site", N, () => { const e = ptrIn(); return [() => O.ptr(e), () => frozen(P.ptr(e)), show(e)]; });
 run("want", N, () => { const s = shape(4); return [() => O.want(s), () => P.want(s), show(s)]; });
 run("flat", N, () => { const xs = value(4); const a = Array.isArray(xs) ? xs : [xs]; return [() => O.flat(a), () => P.flat(a), show(a)]; });
-// ptr: the original Object.freezes its value, SoundScript has no Object.freeze (the field values are equal)
-run("ptr", N, () => { const e = ptrIn(); return [() => O.ptr(e), () => P.ptr(e), show(e)]; }, "the cell's value is not frozen");
+run("ptr", N, () => { const e = ptrIn(); return [() => O.ptr(e), () => P.ptr(e), show(e)]; });
 run("ptr (fields)", N, () => { const e = ptrIn(); return [() => ({ ...O.ptr(e) }), () => ({ ...P.ptr(e) }), show(e)]; });
 run("DOM_EVENTS", N, () => {
   const k = pick(Object.keys(O.DOM_EVENTS)), e = ptrIn(), node = { value: value(1) };
@@ -83,6 +79,27 @@ run("compileFor", N, () => {
   const c = pick([null, undefined, 0, {}, { for: 1 }, { for: (a: string, r: object) => [a, Object.keys(r)] }]);
   const refs = { a: 1 };
   return [() => O.compileFor(c, "cell", refs), () => P.compileFor(c as never, "cell", refs), show(c)];
+});
+
+// deepEqual: data as cross() holds it, and beyond it: sparse arrays, an own __proto__ key, key order, symbols
+const sym = Symbol.for("lc.diff");
+const data = (d: number): unknown => {
+  const leaf = [null, undefined, true, false, 0, -0, NaN, 1, "", "s", 1n, sym, pick(shared)];
+  if (d <= 0 || rnd() < 0.4) return pick(leaf);
+  const r = rnd();
+  if (r < 0.35) return Array.from({ length: int(4) }, () => data(d - 1));
+  if (r < 0.45) { const a: unknown[] = []; a.length = 1 + int(3); a[int(a.length)] = data(d - 1); return a; }
+  return Object.fromEntries(Array.from({ length: int(4) }, () => [pick(["a", "b", "0", "__proto__", "toString", "length"]), data(d - 1)]));
+};
+const reorder = (v: unknown): unknown => {
+  if (Array.isArray(v)) { const a = v.map(reorder); a.length = v.length; v.forEach((_, i) => { if (!(i in v)) delete a[i]; }); return a; }
+  if (v && typeof v === "object" && !shared.includes(v as never)) return Object.fromEntries(Object.entries(v).reverse().map(([k, x]) => [k, reorder(x)]));
+  return v;
+};
+run("deepEqual", N, () => {
+  const a = data(3), b = rnd() < 0.5 ? reorder(a) : data(3);
+  const txt = (v: unknown) => { try { return show(v); } catch { return String(typeof v); } };
+  return [() => O.deepEqual(a, b), () => P.deepEqual(a, b), `${txt(a)} ${txt(b)}`];
 });
 
 let bad = 0;

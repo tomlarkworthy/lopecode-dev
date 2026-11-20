@@ -65,7 +65,7 @@ const GLOBALS = new Set(["globalThis", "structuredClone", "Event", "EventTarget"
 // (keyed by source file; a file that gives a module cells and has no sentence for it stops the build)
 const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?: string; checker?: string; workers?: string }> = {
   "../prelude.runtime.ts": { title: "State cells and actions", runtime: "The store behind each state cell and its handle, actions, the queue of top-level action calls, and the commit that applies their writes." },
-  "runtime.ss.ts": { title: "Runtime cells in SoundScript", runtime: "Cells of the runtime written in SoundScript, compiled from lite/runtime.ss.ts: mismatch wording for the boundary, JSX children and event data, the order of listeners, and the bodies of a rejected cell and of compile." },
+  "runtime.ss.ts": { title: "Runtime cells in SoundScript", runtime: "Cells of the runtime written in SoundScript, compiled from lite/runtime.ss.ts: mismatch wording and the comparison of copies for the boundary, JSX children and event data, the order of listeners, and the bodies of a rejected cell and of compile." },
   "types.ss.ts": { title: "Types", checker: "How the checker represents a type, and union, substitution, widening and display over those types. These cells are SoundScript." },
   "boundary.ts": { title: "Values from other languages", checkerTitle: "Shapes for values from other languages", runtime: "`cross` and `checkShape` check a value from a cell in another language against a shape and return a deep-frozen copy.", checker: "`shapeOf` turns a parameter's type annotation into the shape the runtime checks." },
   "jsx/h.ts": { title: "Elements", runtime: "`h` makes the element values that compiled JSX evaluates to." },

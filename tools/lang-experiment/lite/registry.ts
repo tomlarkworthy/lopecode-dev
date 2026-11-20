@@ -367,12 +367,12 @@ export class Registry {
         for (const [k, p] of t.props) {
           const sp = this.member(se, k);
           if (!sp) { if (p.opt) continue; return false; }
-          if (!p.opt && sp.opt) return false;
+          if (sp.flags?.banned || (!p.opt && sp.opt)) return false;
           if (!S(propT(sp), propT(p))) return false;
         }
         if (t.index) {
           if (se.k !== "rec") return false;
-          for (const [, p] of se.props) if (!S(propT(p), t.index)) return false;
+          for (const [, p] of se.props) if (p.flags?.banned || !S(propT(p), t.index)) return false;
           if (se.index && !S(se.index, t.index)) return false;
         }
         for (const c of t.calls ?? []) if (!this.callSigs(se).some((f) => this.fnSub(f, c, seen))) return false;

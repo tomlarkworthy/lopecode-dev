@@ -273,7 +273,7 @@ md`**S2.5** The capabilities are the inputs \`now: Clock\`, \`random: Random\`, 
 // %%
 md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`state action mut freeze borrow snapshot equals on read\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`.`
 // %%
-md`**S2.7** Reading \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`, also through a local bound to the intrinsic and through a computed key such as \`Math["random"]\`. \`prototype\` on any other value is rejected by another rule, usually \`[no-member]\`.`
+md`**S2.7** Reading \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`, also through a local bound to the intrinsic, through destructuring such as \`const { random } = Math\`, and through a computed key such as \`Math["random"]\`. A value with a banned member is not assignable to a type that names it, so passing \`Math\` where \`{ random: () => number }\` is expected is \`[type]\`. \`prototype\` on any other value is rejected by another rule, usually \`[no-member]\`.`
 // %%
 md`**S2.8** A body that uses a cell by its name instead of taking it as a parameter is \`[cell-by-name]\`. That includes a cell calling itself. A local with a cell's name is a local.`
 // %%
@@ -314,6 +314,9 @@ spec_rejects_2 = [
   { statement: "S2.7", rule: "no-member", source: "const b = () => Number.prototype;" },
   { statement: "S2.7", rule: "banned-member", source: "const b = () => Object.defineProperties({}, {});" },
   { statement: "S2.7", rule: "banned-member", source: "const b = () => Object.setPrototypeOf({}, null);" },
+  { statement: "S2.7", rule: "banned-member", source: "const b = () => {\n  const { random } = Math;\n  return random();\n};" },
+  { statement: "S2.7", rule: "banned-member", source: "const b = () => (o: { readonly a: number }) => {\n  const { defineProperty } = Object;\n  return defineProperty(o, \"a\", { value: 2 });\n};" },
+  { statement: "S2.7", rule: "type", source: "const b = () => {\n  const r = (m: { random: () => number }) => m.random();\n  return r(Math);\n};" },
   { statement: "S2.8", rule: "cell-by-name", source: "const a = () => 1;\nconst b = () => a() + 1;" },
   { statement: "S2.8", rule: "cell-by-name", source: "function f(): number {\n  return f();\n}" },
   { statement: "S2.9", rule: "type", source: "const g = () => {\n  const n: number = \"s\";\n  return n;\n};" },
@@ -433,6 +436,8 @@ md`**S3.18** The rules of sections 3 to 7 apply in a case body as in the body of
 // %%
 md`**S3.19** A nested function that uses a binding of an enclosing function whose type may hold an iterator is \`[iterator-capture]\`, and a cell whose value, state cell content or events value may hold one is \`[iterator-cell]\`: reading an iterator uses it up. A type may hold one when it is or contains \`Iterable<T>\` (what \`values()\`, \`keys()\` and \`entries()\` return), \`Generator<T>\` or a type parameter; a function type, \`Action\`, \`State\` and \`Events\` hold none. An array, a string, a \`Map\` and a \`Set\` may be kept, and \`[...it]\` copies an iterator into an array.`
 // %%
+md`**S3.20** \`Object.freeze(e)\`, where \`e\` is an object or array literal, is accepted and has the type of \`e\`. With any other argument it is \`[object-freeze]\`: freezing a value that another cell holds would change it. \`Object.freeze\` read other than in such a call is \`[no-member]\`.`
+// %%
 md`The cells of this section. \`s3_parse\` is a recursive-descent parser whose helpers share the cursor \`let i\` (S3.11); \`s3_moved\` builds a new point with a spread; \`s3_area\` is a switch over the tag of a union with a case for each member and no \`default\`, and \`s3_kind\` groups empty cases and has a \`default\` with a block.`
 // %%
 //ss: ./spec-3.ts
@@ -514,7 +519,10 @@ spec_rejects_3 = [
   { statement: "S3.19", rule: "iterator-capture", source: "const keep = () => {\n  const hold = <T,>(x: T) => () => x;\n  const g = hold([1, 2].values());\n  return [...g()].length;\n};" },
   { statement: "S3.19", rule: "iterator-cell", source: "const it = () => [1, 2, 3].values();" },
   { statement: "S3.19", rule: "iterator-cell", source: "const s = () => state([1, 2, 3].values());" },
-  { statement: "S3.19", rule: "iterator-cell", source: "const e = function* () {\n  yield new Set([1]).keys();\n};" }
+  { statement: "S3.19", rule: "iterator-cell", source: "const e = function* () {\n  yield new Set([1]).keys();\n};" },
+  { statement: "S3.20", rule: "object-freeze", source: "const o = () => ({ a: 1 });\nconst f = (o) => Object.freeze(o);" },
+  { statement: "S3.20", rule: "object-freeze", source: "const f = () => Object.freeze(new Uint8Array(2));" },
+  { statement: "S3.20", rule: "no-member", source: "const f = () => {\n  const g = Object.freeze;\n  return g({ a: 1 });\n};" }
 ]
 // %%
 spec_rejects_3_view = spec_rejectsTable(spec_rejects_3)
@@ -610,6 +618,11 @@ test_spec_S3_18 = {
 test_spec_S3_19 = {
   spec_is(spec_okCells("const xs = () => [1, 2, 3];\nconst sum = () => (it: Iterable<number>) => {\n  let s = 0;\n  for (const x of it) s += x;\n  return s;\n};\nconst later = (xs: readonly number[], sum: (it: Iterable<number>) => number) => {\n  const m = new Map([[\"a\", 1]]);\n  const values = () => [...m.values()].length;\n  return () => sum(xs) + values() + [...\"ab\"].length;\n};"), "xs:ok,sum:ok,later:ok");
   return `${spec_rejectsFor("S3.19")}; a function that captures an array, a Map or a function taking an Iterable, and one that copies an iterator into an array, are accepted`;
+}
+// %%
+test_spec_S3_20 = {
+  spec_is(spec_okCells("const p = () => Object.freeze({ x: 1, ys: [2] });\nconst q = (p) => Object.freeze([p.x, ...p.ys]);"), "p:ok,q:ok");
+  return `${spec_rejectsFor("S3.20")}; Object.freeze of an object literal and of an array literal is accepted`;
 }
 // %%
 md`## 4. Mut locals

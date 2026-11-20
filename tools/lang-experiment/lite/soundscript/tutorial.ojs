@@ -423,6 +423,7 @@ Values are read-only. Rejected:
 | \`push pop shift unshift splice sort reverse fill copyWithin set add delete clear\` on an array, map, set or typed array | \`[mutating-method]\` |
 | \`delete a.b\` (allowed on a \`Mut\`) | \`[no-delete]\` |
 | \`Object.assign(existing, …)\`; \`Object.assign({}, …)\` is reported unsupported, use a spread | \`[object-assign]\` |
+| \`Object.freeze(x)\` where \`x\` is not an object or array literal | \`[object-freeze]\` |
 | \`===\`, \`!==\`, \`==\`, \`!=\` on two non-primitive values; use \`equals(a, b)\` | \`[strict-eq-object]\` |
 | reassigning a \`const\` | \`[const-assign]\` |
 | \`var\`, \`class\`, \`this\`, \`arguments\` | \`[no-var]\`, \`[no-class]\`, \`[no-this]\`, \`[no-arguments]\` |

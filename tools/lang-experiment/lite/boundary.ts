@@ -3,7 +3,7 @@
 // (shapeOf); the compiled cell passes the value through cross(), which checks it against the shape and
 // hands the cell a deep-frozen copy.
 import { type Ty, show } from "./types.ts";
-import { want, type Shape } from "./runtime-ss.ts";
+import { want, deepEqual, type Shape } from "./runtime-ss.ts";
 export type { Shape } from "./runtime-ss.ts";
 
 // The shape of an annotation, or why it cannot be checked at the boundary. expand resolves an alias or
@@ -118,12 +118,6 @@ function copy(v: unknown, s: Shape, path: string, seen: Set<object>): unknown {
   }
 }
 
-const deepEqual = (a: unknown, b: unknown): boolean => {
-  if (Object.is(a, b)) return true;
-  if (!a || !b || typeof a !== "object" || typeof b !== "object" || Array.isArray(a) !== Array.isArray(b)) return false;
-  const ka = Object.keys(a), kb = Object.keys(b);
-  return ka.length === kb.length && ka.every((k) => Object.hasOwn(b, k) && deepEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
-};
 // per reading cell and parameter, the last copy handed out: an equal copy is that one, so the reader's
 // memo (Object.is on inputs) still applies when the other language delivers equal data again
 const last = new Map<string, unknown>();
