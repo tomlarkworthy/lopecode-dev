@@ -3,18 +3,10 @@
 // context made from it). Event props hold Actions; the renderer decodes each DOM event into data.
 import type { Elem } from "./h.ts";
 import { entry } from "../../prelude.runtime.ts";
-
-const DOM_EVENTS: Record<string, [string, (e: any, node: any) => unknown[]]> = {
-  onClick: ["click", () => []],
-  onInput: ["input", (_e, node) => [String(node.value)]],
-  onPointerDown: ["pointerdown", (e) => [ptr(e)]],
-  onPointerMove: ["pointermove", (e) => [ptr(e)]],
-  onPointerUp: ["pointerup", (e) => [ptr(e)]],
-  onPointerCancel: ["pointercancel", (e) => [ptr(e)]],
-};
-const ptr = (e: any) => Object.freeze({ x: e.offsetX ?? e.clientX ?? 0, y: e.offsetY ?? e.clientY ?? 0, t: e.timeStamp ?? 0, id: e.pointerId ?? 0, buttons: e.buttons ?? 0 });
-const PROPS = new Set(["value", "checked", "disabled"]);
-const isElem = (x: unknown): x is Elem => !!x && typeof x === "object" && "tag" in (x as object);
+// DOM_EVENTS (each event prop's DOM event and the data its action gets), PROPS and isElem are SoundScript cells
+import { DOM_EVENTS, PROPS, isElem } from "../runtime-ss.ts";
+// an event's data is frozen here, as ptr did before it was SoundScript (which has no Object.freeze)
+const frozen = (x: unknown) => (x && typeof x === "object" ? Object.freeze(x) : x);
 
 export function create(doc: Document, x: unknown): Node {
   if (!isElem(x)) return doc.createTextNode(String(x));
@@ -34,7 +26,7 @@ export function patch(node: any, x: Elem): void {
     const ev = DOM_EVENTS[k];
     if (ev) {
       // an event handler: each action it calls is a top-level call
-      if (!(k in node.__handlers)) node.addEventListener(ev[0], (e: Event) => { const f = node.__handlers[k]; if (f) entry(null, () => f(...ev[1](e, node))); });
+      if (!(k in node.__handlers)) node.addEventListener(ev[0], (e: Event) => { const f = node.__handlers[k]; if (f) entry(null, () => f(...ev[1](e, node).map(frozen))); });
       node.__handlers[k] = v;
     } else if (PROPS.has(k)) { if (node[k] !== v) node[k] = v; }
     else if (v === false || v === null || v === undefined) node.removeAttribute(k);

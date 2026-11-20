@@ -2,6 +2,7 @@
 // handles and listeners, and the guard a generator runs under. run.ts (the private runner) and
 // stdlib/runtime.ts (the notebook bundle, which has no Runtime) both use them.
 import { rt, actionNames, isAction, entry, nameOf } from "../../prelude.runtime.ts";
+import { same, orderKeyed, type Place } from "../runtime-ss.ts";
 export { cellsOf, factsOf, type CellInfo } from "../facts.ts";
 
 export const generatorish = (v: any): v is Generator => !!v && typeof v.next === "function" && typeof v.return === "function";
@@ -42,7 +43,6 @@ export const running = (of?: Iterable<object>) => { if (!of) return attached.siz
 // of: count only these handles (other modules on the page, such as tests, pull generators of their own)
 export const pulling = (of?: Iterable<object>) => { const only = of ? new Set(of) : null; return [...generating].filter((h) => { const s = hs.get(h)!; return (!only || only.has(h)) && !!s.gen && !s.done && s.listeners.size > 0; }).length; };
 
-const same = (a: unknown[], b: unknown[]) => a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
 function stopGen(s: HState) {
   const g = s.gen;
   s.gen = null; s.args = null; s.no++; s.queue.length = 0;
@@ -114,7 +114,6 @@ function fail(s: HState, no: number, e: unknown) {
 // then the listeners) a [module name, place] or null. A listener it cannot place yet (its variable has
 // no value yet) runs after the placed ones, in attach order, and the order is worked out again for the
 // next value. Without a host the order is attach order.
-type Place = readonly [string, number] | null;
 let placeOf: ((values: unknown[]) => Place[]) | null = null;
 const ordered = new Set<HState>();
 export const setListenerOrder = (f: ((values: unknown[]) => Place[]) | null) => { placeOf = f; listenerOrderChanged(); };
@@ -124,15 +123,8 @@ function orderOf(s: HState, h: unknown): Listener[] {
   if (s.order) return s.order;
   const list = [...s.listeners];
   if (!placeOf || list.length < 2) return list;
-  const [own, ...at] = placeOf([h, ...list]);
-  const key = (p: Place) => (p ? [own && p[0] === own[0] ? 0 : 1, p[0], p[1]] as const : null);
-  const keyed = list.map((l, i) => ({ l, i, k: key(at[i]) }));
-  keyed.sort((a, b) => {
-    if (!a.k || !b.k) return a.k ? -1 : b.k ? 1 : a.i - b.i;
-    return a.k[0] - b.k[0] || (a.k[1] < b.k[1] ? -1 : a.k[1] > b.k[1] ? 1 : 0) || a.k[2] - b.k[2] || a.i - b.i;
-  });
-  const out = keyed.map((x) => x.l);
-  if (own && keyed.every((x) => x.k)) { s.order = out; ordered.add(s); }
+  const { out, complete } = orderKeyed(list, placeOf([h, ...list]));
+  if (complete) { s.order = out; ordered.add(s); }
   return out;
 }
 const handleOfState = new WeakMap<HState, Handle>();

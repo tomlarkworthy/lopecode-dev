@@ -4,9 +4,10 @@ import type { Ty, Named } from "./types.ss.ts";
 import type { Node } from "./parse.ts";
 import * as cells from "./types.ss.ts";
 import { link } from "./link.ts";
+import * as prelude from "../prelude.runtime.ts";
 export type { Flags, Param, Fn, Prop, Rec, Named, Ty, Subst } from "./types.ss.ts";
 
-const L = link(cells);
+const L = link(cells, prelude);
 export const {
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, SYMBOL, TRUE, FALSE, BOOL,
   lit, arr, named, rec, WRAPPERS, unwrap, propT, union, members, show, subst, hasTv, instantiate, widen, isPrimitive,

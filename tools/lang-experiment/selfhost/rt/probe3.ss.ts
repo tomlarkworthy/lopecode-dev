@@ -1,0 +1,16 @@
+export const prox = () => (o: object): object => new Proxy(o, {});
+export const selfRec = () => (n: number): number => (n <= 0 ? 0 : selfRec()(n - 1));
+export const mutualRec = () => (n: number): boolean => { function ev(k: number): boolean { return k === 0 ? true : od(k - 1); } function od(k: number): boolean { return k === 0 ? false : ev(k - 1); } return ev(n); };
+export const agen = () => async function* (): AsyncGenerator<number> { yield 1; };
+export const iterObj = () => (): Iterable<number> => ({ [Symbol.iterator]: function* () { yield 1; } });
+export const constrained = () => <T extends { n: number },>(x: T): number => x.n;
+export const newPromise = () => (): Promise<number> => new Promise<number>((res) => res(1));
+export const pcatch = () => (p: Promise<number>): Promise<number> => p.catch(() => 0);
+export const awaitLoop = () => async (xs: readonly Promise<number>[]): Promise<number> => { let s = 0; for (const x of xs) s += await x; return s; };
+export const unionFnObj = () => (o: { f: (x: number) => number } | { g: () => string }): string => ("f" in o ? String(o.f(1)) : o.g());
+export const keyofT = () => <T,>(o: T, k: keyof T): unknown => o[k];
+export const readonlyU = () => (x: Readonly<{ a: number }>): number => x.a;
+export const recordU = () => (x: Record<string, number>): number => Object.values(x).length;
+export const partialU = () => (x: Partial<{ a: number }>): number => x.a ?? 0;
+export const errName = () => (e: unknown): string => (typeof e === "object" && e !== null && "message" in e && typeof e.message === "string" ? e.message : String(e));
+export const labeled = () => (xs: readonly number[]): number => { let n = 0; outer: for (const x of xs) { if (x < 0) break outer; n++; } return n; };

@@ -27,12 +27,15 @@ export const CHECKER = "@tomlarkworthy/soundscript-checker";
 // the input compiled SoundScript cells take: the runtime module's ss
 const STDLIB = "ss";
 // in dependency order; where each declaration goes is decided in generate() ("module placement")
-const RUNTIME_FILES = ["../prelude.runtime.ts", "types.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "browser/workers.ts"];
+const RUNTIME_FILES = ["../prelude.runtime.ts", "runtime.ss.ts", "types.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "browser/workers.ts"];
 const SPLIT = "stdlib/runtime.ts";
-// SoundScript sections, and the files bun reaches that link them (types.ts imports types.ss.ts through link.ts)
-export const SS_SOURCES = ["types.ss.ts"];
+// SoundScript sections, in the order of their modules in the notebook, and the files bun reaches that link them
+// (types.ts imports types.ss.ts, runtime-ss.ts runtime.ss.ts, through link.ts)
+export const SS_SOURCES = ["runtime.ss.ts", "types.ss.ts"];
 const SS_FILES = new Set(SS_SOURCES);
-const BOOTSTRAP = ["types.ts", "link.ts"];
+// the module a section's cells go to when no cell of the other module reaches them (its type declarations)
+const SS_HOME: Record<string, string> = { "runtime.ss.ts": RUNTIME, "types.ss.ts": CHECKER };
+const BOOTSTRAP = ["types.ts", "runtime-ss.ts", "link.ts"];
 const CHECKER_FILES = ["parse.ts", "intrinsics.ts", "registry.ts", "infer.ts", "own.ts", "capture.ts", "island.ts", "facts.ts", "core.ts", "complete.ts", "jsx/lower.ts", "browser/erase.ts", "toolchain/comment-types.ts", "toolchain/ss-toolchain.ts"];
 // the third-party imports, and the cells of the checker module that provide them
 const THIRD_PARTY: Record<string, { namespace?: string; names?: string[] }> = { acorn: { namespace: "acorn" }, "@sveltejs/acorn-typescript": { names: ["tsPlugin"] } };
@@ -58,7 +61,7 @@ const GLOBALS = new Set(["globalThis", "structuredClone", "Event", "EventTarget"
 // (keyed by source file; a file that gives a module cells and has no sentence for it stops the build)
 const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?: string; checker?: string }> = {
   "../prelude.runtime.ts": { title: "State cells and actions", runtime: "The store behind each state cell and its handle, actions, the queue of top-level action calls, and the commit that applies their writes." },
-  // PROSE PENDING: the sentence should say these cells are SoundScript, compiled from lite/types.ss.ts
+  "runtime.ss.ts": { title: "Runtime cells in SoundScript", runtime: "Cells of the runtime written in SoundScript, compiled from lite/runtime.ss.ts: mismatch wording for the boundary, JSX children and event data, the order of listeners, and the bodies of a rejected cell and of compile." },
   "types.ss.ts": { title: "Types", checker: "How the checker represents a type, and union, substitution, widening and display over those types. These cells are SoundScript." },
   "boundary.ts": { title: "Values from other languages", checkerTitle: "Shapes for values from other languages", runtime: "`cross` and `checkShape` check a value from a cell in another language against a shape and return a deep-frozen copy.", checker: "`shapeOf` turns a parameter's type annotation into the shape the runtime checks." },
   "jsx/h.ts": { title: "Elements", runtime: "`h` makes the element values that compiled JSX evaluates to." },
@@ -291,9 +294,9 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   const inRuntime = closure([...rootsOf(ssKeys).filter(runtimeSide), ...rootsOf(tests[RUNTIME].inputs)]);
   // a SoundScript section is kept whole: the notebook checks its cells against its type declarations
   const kept = closure([...rootsOf(ssKeys), ...rootsOf(tests[CHECKER].inputs), ...inRuntime, ...groups.filter((g) => SS_FILES.has(g.file))]);
-  for (const g of kept) g.module = inRuntime.has(g) ? RUNTIME : CHECKER;
+  for (const g of kept) g.module = inRuntime.has(g) || SS_HOME[g.file] === RUNTIME ? RUNTIME : CHECKER;
   const dropped = groups.filter((g) => !kept.has(g));
-  for (const g of inRuntime) {
+  for (const g of kept) if (g.module === RUNTIME) {
     if (CHECKER_FILES.includes(g.file)) throw new Error(`runtime cell ${g.stmts[0].names[0]} is declared in the checker's ${g.file}`);
     if (reaches(g)) throw new Error(`runtime cell ${g.stmts[0].names[0]} reaches the parser`);
   }

@@ -410,12 +410,14 @@ async function speed() {
   // the checker module's SoundScript section (ts-cells.ts SS_FILES, lite/types.ss.ts): the core checks that module's
   // SoundScript cells, with its Observable JavaScript cells outside, and an edit of each cell to its own text, as
   // the editor makes it, is ok and has no problems
-  const sec = await page.evaluate(async () => {
+  // the same for the runtime module's section (lite/runtime.ss.ts), whose module defines ss rather than taking it
+  const section = (marker: string) => page.evaluate(async (marker: string) => {
     const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
     const lang = core._scope.get("ss_language")._value, check = core._scope.get("ss_check")._value;
-    // the checker module is the one that defines parser_lib
-    const mod = [...rt._variables].find((x: any) => x._name === "parser_lib")._module;
-    const ss = [...rt._variables].find((x: any) => x._module === mod && x._name === "soundscript")._value;
+    // the checker module is the one that defines parser_lib, the runtime module the one whose ss takes its cells
+    // (an importer's ss takes @variable, an ss_instance module's takes nothing)
+    const mod = [...rt._variables].find((x: any) => x._name === marker && (marker !== "ss" || x._inputs.some((i: any) => i._name === "rejected")))._module;
+    const ss = [...rt._variables].find((x: any) => x._name === "soundscript" && x._module._scope.has("parser_lib"))._value;
     const vars = [...rt._variables].filter((v: any) => v._module === mod && ss.langOf(String(v._definition)) === "ss");
     const states = check(mod).states;
     const notOk = vars.map((v: any) => ss.keyOfVariable(v._name)).filter((k: string) => !k.startsWith("type ") && states.get(k)?.state !== "ok");
@@ -429,8 +431,11 @@ async function speed() {
       if ((isType ? !e.store : e.state !== "ok") || e.problems.length) edits.push(`${v._name}: ${e.state} ${JSON.stringify(e.problems).slice(0, 120)}`);
     }
     return { cells: vars.length, values: vars.filter((v: any) => !ss.keyOfVariable(v._name).startsWith("type ")).length, notOk, edits };
-  });
-  report(sec.cells > 0 && sec.notOk.length === 0 && sec.edits.length === 0, `checker module: its ${sec.cells} SoundScript cells (${sec.values} with values) are ok by ss_check, and each, edited to its own text, checks ok (a type cell: is stored with no problems)${sec.notOk.length ? "; not ok: " + sec.notOk.join(", ") : ""}${sec.edits.length ? "; " + sec.edits.slice(0, 5).join("; ") : ""}`);
+  }, marker);
+  for (const [label, marker] of [["checker", "parser_lib"], ["runtime", "ss"]]) {
+    const sec = await section(marker);
+    report(sec.cells > 0 && sec.notOk.length === 0 && sec.edits.length === 0, `${label} module: its ${sec.cells} SoundScript cells (${sec.values} with values) are ok by ss_check, and each, edited to its own text, checks ok (a type cell: is stored with no problems)${sec.notOk.length ? "; not ok: " + sec.notOk.join(", ") : ""}${sec.edits.length ? "; " + sec.edits.slice(0, 5).join("; ") : ""}`);
+  }
   report(ks.checks === 30 && ks.evals === 0, `lint: 30 lints of width, each a different edit, against the ${ks.cells}-cell tutorial module ran ${ks.checks} module checks and ${ks.evals} cell bodies (want 30 and 0)`);
   measure(`one keystroke's lint of width against the ${ks.cells}-cell tutorial module: median ${ks.median.toFixed(1)} ms, max ${ks.max.toFixed(1)} ms of 30`);
   // the Mandelbrot timing the tutorial shows (its benchmark cell, measured during boot): the pool and the

@@ -1,0 +1,19 @@
+newStore: 3000 cases, 0 differences
+thenable: 3000 cases, 0 differences
+mut: 3000 cases, 0 differences
+freeze: 3000 cases, 0 differences
+borrow: 3000 cases, 0 differences
+ptr through render's call site: 3000 cases, 0 differences
+want: 3000 cases, 0 differences
+flat: 3000 cases, 0 differences
+ptr: 3000 cases, 3000 differences (known: the cell's value is not frozen)
+    first: {"offsetX":0,"clientX":2.5,"clientY":2.5}: orig ok {"<frozen>":true,"x":0,"y":2.5,"t":0,"id":0,"buttons":0} | port ok {"x":0,"y":2.5,"t":0,"id":0,"buttons":0}
+ptr (fields): 3000 cases, 0 differences
+DOM_EVENTS: 3000 cases, 0 differences
+DOM_EVENTS keys: 1 cases, 0 differences
+PROPS: 1 cases, 0 differences
+isElem: 3000 cases, 0 differences
+same: 3000 cases, 0 differences
+orderOf/orderKeyed: 3000 cases, 0 differences
+rejected: 3000 cases, 0 differences
+compileFor: 3000 cases, 0 differences

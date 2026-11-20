@@ -1,4 +1,7 @@
 // Runtime half of prelude.d.ts. Imported by the transpiled cells.ts/shell.ts and by run.ts.
+// newStore, thenable, mut, freeze and borrow are SoundScript cells (lite/runtime.ss.ts)
+import { newStore, thenable } from "./lite/runtime-ss.ts";
+export { mut, freeze, borrow } from "./lite/runtime-ss.ts";
 
 const STATECELL = Symbol.for("lc.statecell");
 const ACTION = Symbol.for("lc.action");
@@ -56,7 +59,6 @@ export const isRefHandle = (v: unknown) => !!v && typeof v === "object" && REFHA
 const stores = new WeakMap<object, Store>();
 const over = new WeakMap<object, object>();
 const storeOf = (h: object): Store | undefined => stores.get(over.get(h) ?? h);
-const newStore = (name: string, value: unknown): Store => ({ name, value });
 
 // the call a write or read belongs to: the one running synchronously, or, outside any cell evaluation,
 // the one in flight (its code after an await)
@@ -153,7 +155,6 @@ export function viewHandle(el: ViewEl, name: string, check: (v: unknown) => unkn
   return handle;
 }
 
-const thenable = (r: unknown): r is PromiseLike<unknown> => typeof (r as { then?: unknown } | null)?.then === "function";
 const reportTo = (a: object) => (e: unknown) => console.error(`action ${nameOf(a)} threw:`, e);
 
 // Runs f while an event handler, or a listener delivery is calling actions: each action
@@ -218,9 +219,6 @@ export function action(f: (...args: unknown[]) => unknown) {
   return a;
 }
 
-export const mut = <T>(v: T) => v;
-export const freeze = <T>(v: T) => v;
-export const borrow = <T>(v: T) => v;
 
 export function snapshot<T>(v: T): T {
   if (ArrayBuffer.isView(v) && !(v instanceof DataView)) return (v as unknown as { slice(): T }).slice();

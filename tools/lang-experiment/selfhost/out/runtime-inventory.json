@@ -1,0 +1,1339 @@
+[
+ {
+  "cell": "ss",
+  "inputs": [
+   "action",
+   "actionNamer",
+   "actionQueue",
+   "borrow",
+   "compileFor",
+   "create",
+   "cross",
+   "crossings",
+   "entry",
+   "equals",
+   "events",
+   "freeze",
+   "h",
+   "idle",
+   "isEvents",
+   "joinCells",
+   "lazyPool",
+   "listen",
+   "listenerOrderChanged",
+   "mount",
+   "mut",
+   "on",
+   "pagePool",
+   "patch",
+   "pulling",
+   "read",
+   "ref",
+   "rejected",
+   "release",
+   "running",
+   "setListenerOrder",
+   "snapshot",
+   "state",
+   "sweep",
+   "viewRef"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "STATECELL",
+  "inputs": [],
+  "decls": [
+   "STATECELL"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "ACTION",
+  "inputs": [],
+  "decls": [
+   "ACTION"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "REFHANDLE",
+  "inputs": [],
+  "decls": [
+   "REFHANDLE"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "actionNames",
+  "inputs": [],
+  "decls": [
+   "actionNames"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "actionNamer",
+  "inputs": [],
+  "decls": [
+   "actionNamer"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "nameOf",
+  "inputs": [
+   "actionNames",
+   "actionNamer"
+  ],
+  "decls": [
+   "nameOf"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "rt",
+  "inputs": [],
+  "decls": [
+   "rt"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 14,
+  "kind": "const"
+ },
+ {
+  "cell": "idle",
+  "inputs": [
+   "rt"
+  ],
+  "decls": [
+   "idle"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "actionQueue",
+  "inputs": [
+   "rt"
+  ],
+  "decls": [
+   "actionQueue"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "state",
+  "inputs": [
+   "STATECELL"
+  ],
+  "decls": [
+   "state"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 3,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "isStateCell",
+  "inputs": [
+   "STATECELL"
+  ],
+  "decls": [
+   "isStateCell"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "isRefHandle",
+  "inputs": [
+   "REFHANDLE"
+  ],
+  "decls": [
+   "isRefHandle"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "stores",
+  "inputs": [],
+  "decls": [
+   "stores"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "over",
+  "inputs": [],
+  "decls": [
+   "over"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "storeOf",
+  "inputs": [
+   "stores",
+   "over"
+  ],
+  "decls": [
+   "storeOf"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "newStore",
+  "inputs": [],
+  "decls": [
+   "newStore"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "owner",
+  "inputs": [
+   "rt"
+  ],
+  "decls": [
+   "owner"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "current",
+  "inputs": [
+   "rt"
+  ],
+  "decls": [
+   "current"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "write",
+  "inputs": [
+   "owner",
+   "REFHANDLE",
+   "storeOf",
+   "current"
+  ],
+  "decls": [
+   "write"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 6,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "handleOf",
+  "inputs": [
+   "EventTarget",
+   "REFHANDLE",
+   "write",
+   "storeOf"
+  ],
+  "decls": [
+   "handleOf"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 10,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "setStore",
+  "inputs": [
+   "stores",
+   "newStore",
+   "REFHANDLE"
+  ],
+  "decls": [
+   "setStore"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "read",
+  "inputs": [
+   "storeOf",
+   "owner",
+   "current"
+  ],
+  "decls": [
+   "read"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 6,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "runs",
+  "inputs": [],
+  "decls": [
+   "runs"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "ref",
+  "inputs": [
+   "runs",
+   "rt",
+   "isStateCell",
+   "handleOf",
+   "setStore"
+  ],
+  "decls": [
+   "ref"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 16,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "commit",
+  "inputs": [
+   "rt",
+   "Event",
+   "stores"
+  ],
+  "decls": [
+   "commit"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 13,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "views",
+  "inputs": [],
+  "decls": [
+   "views"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "viewHandle",
+  "inputs": [
+   "views",
+   "handleOf",
+   "isRefHandle",
+   "over",
+   "stores",
+   "newStore"
+  ],
+  "decls": [
+   "viewHandle"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 9,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "thenable",
+  "inputs": [],
+  "decls": [
+   "thenable"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "reportTo",
+  "inputs": [
+   "nameOf"
+  ],
+  "decls": [
+   "reportTo"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "entry",
+  "inputs": [
+   "rt",
+   "reportTo"
+  ],
+  "decls": [
+   "entry"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 5,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "finish",
+  "inputs": [
+   "rt",
+   "commit",
+   "pump"
+  ],
+  "decls": [
+   "finish"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 9,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "pump_cells",
+  "inputs": [
+   "rt"
+  ],
+  "decls": [
+   "pumping",
+   "pump"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 6,
+  "kind": "let,FunctionDeclaration"
+ },
+ {
+  "cell": "pump",
+  "inputs": [
+   "pump_cells"
+  ],
+  "decls": [],
+  "file": "../prelude.runtime.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "run",
+  "inputs": [
+   "rt",
+   "inAction",
+   "finish",
+   "thenable"
+  ],
+  "decls": [
+   "run"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 12,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "inAction",
+  "inputs": [
+   "rt"
+  ],
+  "decls": [
+   "inAction"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 4,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "action",
+  "inputs": [
+   "rt",
+   "inAction",
+   "actionNames",
+   "actionNamer",
+   "reportTo",
+   "run",
+   "ACTION"
+  ],
+  "decls": [
+   "action"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 16,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "mut",
+  "inputs": [],
+  "decls": [
+   "mut"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "freeze",
+  "inputs": [],
+  "decls": [
+   "freeze"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "borrow",
+  "inputs": [],
+  "decls": [
+   "borrow"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "snapshot",
+  "inputs": [
+   "structuredClone"
+  ],
+  "decls": [
+   "snapshot"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 4,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "equals",
+  "inputs": [],
+  "decls": [
+   "equals"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 27,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "describe",
+  "inputs": [],
+  "decls": [
+   "describe"
+  ],
+  "file": "boundary.ts",
+  "lines": 10,
+  "kind": "const"
+ },
+ {
+  "cell": "want",
+  "inputs": [],
+  "decls": [
+   "want"
+  ],
+  "file": "boundary.ts",
+  "lines": 10,
+  "kind": "const"
+ },
+ {
+  "cell": "plain",
+  "inputs": [],
+  "decls": [
+   "plain"
+  ],
+  "file": "boundary.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "Mismatch",
+  "inputs": [],
+  "decls": [
+   "Mismatch"
+  ],
+  "file": "boundary.ts",
+  "lines": 1,
+  "kind": "ClassDeclaration"
+ },
+ {
+  "cell": "copy",
+  "inputs": [
+   "Mismatch",
+   "want",
+   "describe",
+   "plain"
+  ],
+  "decls": [
+   "copy"
+  ],
+  "file": "boundary.ts",
+  "lines": 54,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "deepEqual",
+  "inputs": [],
+  "decls": [
+   "deepEqual"
+  ],
+  "file": "boundary.ts",
+  "lines": 6,
+  "kind": "const"
+ },
+ {
+  "cell": "last",
+  "inputs": [],
+  "decls": [
+   "last"
+  ],
+  "file": "boundary.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "crossings",
+  "inputs": [],
+  "decls": [
+   "crossings"
+  ],
+  "file": "boundary.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "cross",
+  "inputs": [
+   "copy",
+   "Mismatch",
+   "crossings",
+   "last",
+   "deepEqual"
+  ],
+  "decls": [
+   "cross"
+  ],
+  "file": "boundary.ts",
+  "lines": 12,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "checkShape",
+  "inputs": [
+   "copy",
+   "Mismatch"
+  ],
+  "decls": [
+   "checkShape"
+  ],
+  "file": "boundary.ts",
+  "lines": 6,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "flat",
+  "inputs": [],
+  "decls": [
+   "flat"
+  ],
+  "file": "jsx/h.ts",
+  "lines": 2,
+  "kind": "const"
+ },
+ {
+  "cell": "h",
+  "inputs": [
+   "flat"
+  ],
+  "decls": [
+   "h"
+  ],
+  "file": "jsx/h.ts",
+  "lines": 5,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "DOM_EVENTS",
+  "inputs": [
+   "ptr"
+  ],
+  "decls": [
+   "DOM_EVENTS"
+  ],
+  "file": "jsx/render.ts",
+  "lines": 8,
+  "kind": "const"
+ },
+ {
+  "cell": "ptr",
+  "inputs": [],
+  "decls": [
+   "ptr"
+  ],
+  "file": "jsx/render.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "PROPS",
+  "inputs": [],
+  "decls": [
+   "PROPS"
+  ],
+  "file": "jsx/render.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "isElem",
+  "inputs": [],
+  "decls": [
+   "isElem"
+  ],
+  "file": "jsx/render.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "create_cells",
+  "inputs": [
+   "isElem",
+   "DOM_EVENTS",
+   "entry",
+   "PROPS"
+  ],
+  "decls": [
+   "create",
+   "patch"
+  ],
+  "file": "jsx/render.ts",
+  "lines": 58,
+  "kind": "FunctionDeclaration,FunctionDeclaration"
+ },
+ {
+  "cell": "create",
+  "inputs": [
+   "create_cells"
+  ],
+  "decls": [],
+  "file": "jsx/render.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "patch",
+  "inputs": [
+   "create_cells"
+  ],
+  "decls": [],
+  "file": "jsx/render.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "guard",
+  "inputs": [
+   "rt"
+  ],
+  "decls": [
+   "guard"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 9,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "EVENTS",
+  "inputs": [],
+  "decls": [
+   "EVENTS"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "LISTENER",
+  "inputs": [],
+  "decls": [
+   "LISTENER"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "hs",
+  "inputs": [],
+  "decls": [
+   "hs"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "ls",
+  "inputs": [],
+  "decls": [
+   "ls"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "attached",
+  "inputs": [],
+  "decls": [
+   "attached"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "generating",
+  "inputs": [],
+  "decls": [
+   "generating"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "scheduler",
+  "inputs": [],
+  "decls": [
+   "scheduler"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "isEvents",
+  "inputs": [
+   "hs"
+  ],
+  "decls": [
+   "isEvents"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "isListener",
+  "inputs": [
+   "LISTENER"
+  ],
+  "decls": [
+   "isListener"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "on",
+  "inputs": [
+   "LISTENER"
+  ],
+  "decls": [
+   "on"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "running",
+  "inputs": [
+   "attached"
+  ],
+  "decls": [
+   "running"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "pulling",
+  "inputs": [
+   "generating",
+   "hs"
+  ],
+  "decls": [
+   "pulling"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "same",
+  "inputs": [],
+  "decls": [
+   "same"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "stopGen",
+  "inputs": [
+   "generating",
+   "hs"
+  ],
+  "decls": [
+   "stopGen"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 6,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "events",
+  "inputs": [
+   "isEvents",
+   "hs",
+   "EVENTS",
+   "handleOfState",
+   "same",
+   "stopGen",
+   "guard",
+   "generating",
+   "kick"
+  ],
+  "decls": [
+   "events"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 20,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "kick_cells",
+  "inputs": [
+   "scheduler",
+   "fail",
+   "deliver"
+  ],
+  "decls": [
+   "kick",
+   "pull"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 26,
+  "kind": "FunctionDeclaration,FunctionDeclaration"
+ },
+ {
+  "cell": "kick",
+  "inputs": [
+   "kick_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "fail",
+  "inputs": [],
+  "decls": [
+   "fail"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 5,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "setListenerOrder_cells",
+  "inputs": [
+   "listenerOrderChanged",
+   "ordered"
+  ],
+  "decls": [
+   "placeOf",
+   "setListenerOrder",
+   "orderOf"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 17,
+  "kind": "let,const,FunctionDeclaration"
+ },
+ {
+  "cell": "setListenerOrder",
+  "inputs": [
+   "setListenerOrder_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "orderOf",
+  "inputs": [
+   "setListenerOrder_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "ordered",
+  "inputs": [],
+  "decls": [
+   "ordered"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "listenerOrderChanged",
+  "inputs": [
+   "ordered"
+  ],
+  "decls": [
+   "listenerOrderChanged"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "handleOfState",
+  "inputs": [],
+  "decls": [
+   "handleOfState"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "deliver",
+  "inputs": [
+   "orderOf",
+   "handleOfState",
+   "ls",
+   "nameOf",
+   "entry"
+  ],
+  "decls": [
+   "deliver"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 15,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "listen",
+  "inputs": [
+   "isListener",
+   "hs",
+   "ls",
+   "attached",
+   "kick",
+   "detach"
+  ],
+  "decls": [
+   "listen"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 11,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "detach",
+  "inputs": [
+   "ls",
+   "hs",
+   "attached"
+  ],
+  "decls": [
+   "detach"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 7,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "release",
+  "inputs": [
+   "isListener",
+   "detach",
+   "isEvents",
+   "hs",
+   "stopGen"
+  ],
+  "decls": [
+   "release"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 4,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "sweep_cells",
+  "inputs": [
+   "attached",
+   "generating",
+   "bornAt",
+   "release"
+  ],
+  "decls": [
+   "generation",
+   "sweep"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 9,
+  "kind": "let,FunctionDeclaration"
+ },
+ {
+  "cell": "sweep",
+  "inputs": [
+   "sweep_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "bornAt",
+  "inputs": [],
+  "decls": [
+   "bornAt"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "EXEC",
+  "inputs": [],
+  "decls": [
+   "EXEC"
+  ],
+  "file": "browser/workers.ts",
+  "lines": 33,
+  "kind": "const"
+ },
+ {
+  "cell": "WORKER",
+  "inputs": [
+   "EXEC"
+  ],
+  "decls": [
+   "WORKER"
+  ],
+  "file": "browser/workers.ts",
+  "lines": 12,
+  "kind": "const"
+ },
+ {
+  "cell": "superseded",
+  "inputs": [],
+  "decls": [
+   "superseded"
+  ],
+  "file": "browser/workers.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "makePool",
+  "inputs": [
+   "superseded"
+  ],
+  "decls": [
+   "makePool"
+  ],
+  "file": "browser/workers.ts",
+  "lines": 65,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "pagePool_cells",
+  "inputs": [
+   "globalThis",
+   "WORKER",
+   "makePool"
+  ],
+  "decls": [
+   "shared",
+   "pagePool"
+  ],
+  "file": "browser/workers.ts",
+  "lines": 7,
+  "kind": "let,FunctionDeclaration"
+ },
+ {
+  "cell": "pagePool",
+  "inputs": [
+   "pagePool_cells"
+  ],
+  "decls": [],
+  "file": "browser/workers.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "rejected",
+  "inputs": [],
+  "decls": [
+   "rejected"
+  ],
+  "file": "stdlib/runtime.ts",
+  "lines": 3,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "viewRef",
+  "inputs": [
+   "isRefHandle",
+   "viewHandle",
+   "checkShape"
+  ],
+  "decls": [
+   "viewRef"
+  ],
+  "file": "stdlib/runtime.ts",
+  "lines": 7,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "joined",
+  "inputs": [],
+  "decls": [
+   "joined"
+  ],
+  "file": "stdlib/runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "joinCells",
+  "inputs": [
+   "joined"
+  ],
+  "decls": [
+   "joinCells"
+  ],
+  "file": "stdlib/runtime.ts",
+  "lines": 7,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "compileFor",
+  "inputs": [],
+  "decls": [
+   "compileFor"
+  ],
+  "file": "stdlib/runtime.ts",
+  "lines": 4,
+  "kind": "const"
+ },
+ {
+  "cell": "mount",
+  "inputs": [
+   "patch",
+   "create"
+  ],
+  "decls": [
+   "mount"
+  ],
+  "file": "stdlib/runtime.ts",
+  "lines": 7,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "lazyPool",
+  "inputs": [
+   "pagePool"
+  ],
+  "decls": [
+   "lazyPool"
+  ],
+  "file": "stdlib/runtime.ts",
+  "lines": 5,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "test_runtime_action_commits_a_write",
+  "inputs": [
+   "ref",
+   "state",
+   "Generators",
+   "action",
+   "entry"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "test_runtime_queued_call_runs_after_the_one_in_flight",
+  "inputs": [
+   "ref",
+   "state",
+   "Generators",
+   "action",
+   "entry"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "test_runtime_cross_rejects_wrong_shapes",
+  "inputs": [
+   "cross"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "test_runtime_crossed_value_is_a_deep_frozen_copy",
+  "inputs": [
+   "cross"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ }
+]

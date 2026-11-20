@@ -70,10 +70,8 @@ export function checkCells(texts: string[], tsx = true, outside: readonly Outsid
     return { result, source: checked };
   }
 }
-// The body of a cell the checker did not accept: it raises the checker's messages and runs nothing else.
-export function rejected(name: string, why: string[]): never {
-  throw new Error(`${name} does not check: ${why.join("; ")}`);
-}
+// rejected (the body of a cell the checker did not accept) and compileFor are SoundScript cells
+export { rejected, compileFor } from "../runtime-ss.ts";
 
 export { state, action, mut, freeze, borrow, snapshot, equals, read, entry, idle, actionQueue, ref, actionNamer } from "../../prelude.runtime.ts";
 // The value of a viewof variable as a State<T>: an Observable JavaScript view's element, whose value is
@@ -148,10 +146,6 @@ export function compiler(read: () => string) {
     },
   };
 }
-export const compileFor = (c: ReturnType<typeof compiler>, caller: string, refs: Record<string, unknown>) => {
-  if (!c || typeof c.for !== "function") throw new Error(`${caller} takes compile, and this module defines no ss_compile = ss.compiler(...)`);
-  return c.for(caller, refs);
-};
 
 // An element value as DOM: patches the node it made last time (pass `this` from an ojs cell).
 export function mount(x: unknown, prev: any): Node {

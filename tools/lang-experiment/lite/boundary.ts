@@ -3,14 +3,8 @@
 // (shapeOf); the compiled cell passes the value through cross(), which checks it against the shape and
 // hands the cell a deep-frozen copy.
 import { type Ty, show } from "./types.ts";
-
-export type Shape =
-  | { k: "num" } | { k: "str" } | { k: "bool" } | { k: "null" } | { k: "undef" } | { k: "unknown" }
-  | { k: "lit"; v: string | number | boolean }
-  | { k: "arr"; el: Shape }
-  | { k: "tup"; els: Shape[] }
-  | { k: "rec"; props: [string, Shape, boolean][] }
-  | { k: "union"; ts: Shape[] };
+import { want, type Shape } from "./runtime-ss.ts";
+export type { Shape } from "./runtime-ss.ts";
 
 // The shape of an annotation, or why it cannot be checked at the boundary. expand resolves an alias or
 // interface (Registry.expand); isAlias says whether a name is one.
@@ -64,16 +58,6 @@ const describe = (v: unknown): string => {
   if (v && typeof (v as { then?: unknown }).then === "function") return "a promise";
   if (typeof v === "object") return Object.getPrototypeOf(v) === Object.prototype || Object.getPrototypeOf(v) === null ? "an object" : `a ${(v as object).constructor?.name ?? "non-plain"} object`;
   return typeof v;
-};
-const want = (s: Shape): string => {
-  switch (s.k) {
-    case "num": return "number"; case "str": return "string"; case "bool": return "boolean";
-    case "null": return "null"; case "undef": return "undefined"; case "unknown": return "data";
-    case "lit": return JSON.stringify(s.v);
-    case "arr": return "an array"; case "tup": return `an array of ${s.els.length}`;
-    case "rec": return "an object";
-    case "union": return s.ts.map(want).join(" or ");
-  }
 };
 const plain = (v: object) => { const p = Object.getPrototypeOf(v); return p === Object.prototype || p === null; };
 

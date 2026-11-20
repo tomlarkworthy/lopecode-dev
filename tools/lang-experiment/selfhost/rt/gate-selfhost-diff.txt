@@ -1,0 +1,20 @@
+show: 3000
+show depth: 3000
+union: 3000
+members: 3000
+subst: 3000
+subst empty: 3000
+hasTv: 3000
+hasTv names: 3000
+widen: 3000
+isPrimitive: 3000
+unwrap: 2966
+isNamed: 3000
+propT: 3000
+instantiate: 3000
+unwrap argless (known: original undefined, port t): 34
+tpNames: 1
+tpNames none: 1
+rec: 1
+constants: 1
+no differences

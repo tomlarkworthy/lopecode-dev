@@ -1,0 +1,7 @@
+pass 336 generated cells (all but the import) decompile and recompile to the same variables
+pass @tomlarkworthy/soundscript-runtime: all 118 named cells evaluate
+pass @tomlarkworthy/soundscript-checker: all 188 named cells evaluate
+pass soundscript has entry.ts's 76 keys
+pass each key holds the same kind of value
+pass 10/10 example sources: the same check, compiled variables and decompiled sources
+6 pass, 0 fail
