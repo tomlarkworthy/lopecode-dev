@@ -7,7 +7,7 @@
 //  - state(...) and borrow(...) placement
 import { kids, isFn, type Node } from "./parse.ts";
 import type { Checker, Binding } from "./infer.ts";
-import { isNamed, type Ty } from "./types.ts";
+import { isNamed, unwrap, ERR, type Ty } from "./types.ts";
 
 type Rule = { node: Node; rule: string; msg: string };
 export { kids };
@@ -389,4 +389,98 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     else expr(f.body, new Set());
   }
   return errs;
+}
+
+// A write, action call or read() in a function made inside an action body is allowed only when that function
+// runs while the action's call is in flight (S6.19): it is sync and is called where it is made, passed to a
+// built-in that calls it before returning (not @retains, not @later), or a local helper that is only called from
+// such places; or it is the function of a .then (@later) whose promise the action body awaits or returns, or
+// that such a function returns. Each function from the use out to the action body must pass.
+export function actionEscapes(cellFn: Node, ch: Checker): Rule[] {
+  if (!ch.inActionUses.length) return [];
+  const F = ch.facts;
+  const parent = new Map<Node, Node>();
+  const callees = new Map<Binding, Node[]>(); // the references of each binding, for helpers
+  (function walk(n: Node, p: Node | null) {
+    if (p) parent.set(n, p);
+    if (n.type === "Identifier") {
+      const b = F.bindingOf.get(n);
+      if (b && b.node !== n) { const l = callees.get(b) ?? []; l.push(n); callees.set(b, l); }
+    }
+    for (const c of kids(n)) walk(c, n);
+  })(cellFn, null);
+  const enclFn = (n: Node): Node | null => { let p = parent.get(n); while (p && !isFn(p)) p = parent.get(p); return p ?? null; };
+  const sigFlags = (call: Node) => F.calls.get(call)?.sig?.flags;
+  const memo = new Map<Node, string | null>(); // null: runs in the call; a string: why it may not
+  // the value of x is a promise the action's call waits for
+  const held = (x: Node): boolean => {
+    const p = parent.get(x);
+    if (!p) return false;
+    if (p.type === "AwaitExpression") return ch.actionBodies.has(enclFn(p) ?? cellFn);
+    if (p.type === "MemberExpression" && p.object === x && !p.computed && p.property.name === "then") {
+      const c = parent.get(p);
+      return !!c && c.type === "CallExpression" && c.callee === p && !!sigFlags(c)?.later && held(c);
+    }
+    const g = p.type === "ReturnStatement" ? enclFn(p) : isFn(p) && p.body === x ? p : null;
+    if (!g) return false;
+    if (ch.actionBodies.has(g)) return true;
+    const gp = parent.get(g);
+    return !!gp && gp.type === "CallExpression" && gp.arguments.includes(g) && !!sigFlags(gp)?.later && why(g) === null;
+  };
+  // every function from f out to the function `to` (exclusive) runs in the call
+  const chain = (f: Node | null, to: Node): string | null => {
+    for (let g = f; g && g !== to; g = enclFn(g)) {
+      if (ch.actionBodies.has(g)) return "it is called from another action's body";
+      const w = why(g);
+      if (w) return w;
+    }
+    return null;
+  };
+  function why(f: Node): string | null {
+    if (memo.has(f)) return memo.get(f)!;
+    memo.set(f, null); // a helper that calls itself: decided by its other uses
+    const r = why1(f);
+    memo.set(f, r);
+    return r;
+  }
+  function why1(f: Node): string | null {
+    if (f.async || f.generator) return `it is ${f.async ? "async" : "a generator"}, so it may resume after the call has finished`;
+    const p = parent.get(f);
+    if (!p) return "it is not called where it is made";
+    if (p.type === "CallExpression" && p.callee === f) return null;
+    if ((p.type === "CallExpression" || p.type === "NewExpression") && p.arguments.includes(f)) {
+      const fl = sigFlags(p);
+      if (fl?.later) return held(p) ? null : "it is given to .then, and the action body neither awaits nor returns that promise";
+      // a built-in calls a function given to a parameter of function type; one given where it is a T may be returned
+      const sig = F.calls.get(p)?.sig, d = sig && (sig.decl ?? sig), i = p.arguments.indexOf(f);
+      const dp = d && (i < d.ps.length ? d.ps[i].t : d.rest);
+      if (fl?.intrinsic && !fl.retains && dp && ch.reg.callSigs(dp).length) return null;
+      // State.update calls its function at once, inside the write
+      const c = p.callee;
+      if (p.type === "CallExpression" && c.type === "MemberExpression" && !c.computed && c.property.name === "update" && isNamed(unwrap(F.types.get(c.object) ?? ERR), "State")) return null;
+      return "it is passed to a function that may keep it";
+    }
+    const declared = p.type === "VariableDeclarator" && p.init === f && p.id.type === "Identifier" && parent.get(p)?.kind === "const" ? p.id
+      : f.type === "FunctionDeclaration" ? f.id : null;
+    const b = declared ? F.bindingOf.get(declared) : undefined;
+    if (b && b.fnNode === f) {
+      const home = enclFn(f) ?? cellFn;
+      for (const r of callees.get(b) ?? []) {
+        const rp = parent.get(r);
+        if (!(rp && rp.type === "CallExpression" && rp.callee === r)) return `${b.name} is used other than by a direct call`;
+        const w = chain(enclFn(r), home);
+        if (w) return `${b.name} is called from a function that may run after the call (${w})`;
+      }
+      return null;
+    }
+    return "it is kept: returned, stored, or placed where it may be called later";
+  }
+  const out: Rule[] = [];
+  for (const u of ch.inActionUses) {
+    let root: Node | null = u.fi.node;
+    while (root && !ch.actionBodies.has(root)) root = enclFn(root);
+    const w = chain(u.fi.node, root ?? cellFn);
+    if (w) out.push({ node: u.node, rule: u.rule, msg: `${u.msg}: the function it is in was made in an action body and may run after the call, because ${w}` });
+  }
+  return out;
 }

@@ -18,6 +18,10 @@ export type Binding = {
 export type FnInfo = {
   node: Node; parent: FnInfo | null; isAsync: boolean; isGen: boolean; isCell: boolean; inAction: boolean;
   retCtx?: Ty; rets: Ty[]; yields: Ty[];
+  // retCtx came from where the function is passed, not from its annotation: the function's own type is checked there
+  retFromCtx?: boolean;
+  // a generator's annotated Generator<Y>: what each yield must give
+  yieldCtx?: Ty;
 };
 export class Scope {
   vars = new Map<string, Binding>();
@@ -48,6 +52,8 @@ const actionFn = (args: Ty): Fn => ({ k: "fn", tps: [], ps: (args.k === "tup" ? 
 // what typeof x === tag says of an unknown x: "function" proves an object, not a signature, so it is not callable
 const TYPEOF = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["undefined", UNDEF],
   ["symbol", SYMBOL], ["object", union([OBJECT, NULL])], ["function", OBJECT]]);
+// the runtime handles of these have none of the members their declarations give them to be nominal
+const memberless = (m: Ty) => isNamed(m, "Action") || isNamed(m, "StateCell") || isNamed(m, "Events") || isNamed(m, "Listener");
 const MUTATING_OPS = new Set(["=", "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", ">>>=", "&=", "|=", "^=", "&&=", "||=", "??="]);
 
 export class Checker {
@@ -59,6 +65,14 @@ export class Checker {
   compileHook: ((e: Node, env: Env) => Ty) | null = null;
   // called with every identifier read and its environment (completion reads the scope at a placeholder)
   identHook: ((e: Node, env: Env) => void) | null = null;
+  // the functions given to action(...), and each write, action call or read made in a function nested in one;
+  // own.ts actionEscapes reports those whose function may run after its action's call
+  actionBodies = new Set<Node>();
+  // 1 while the parts of a literal, a conditional or a logical expression are checked against a context that is
+  // not their final type (a generic argument before its type parameters are solved, a return against the return
+  // type of where the function is passed): hides is left to the check against the final type
+  quiet = 0;
+  inActionUses: { fi: FnInfo; node: Node; rule: string; msg: string }[] = [];
 
   reg: Registry;
   cellNames: Set<string>;
@@ -80,6 +94,11 @@ export class Checker {
   }
 
   err(node: Node, rule: string, msg: string) { this.diags.push({ node, rule, msg }); }
+  // a use that only an action body may make
+  inActionOnly(env: Env, node: Node, rule: string, msg: string) {
+    if (!env.fi.inAction) this.err(node, rule, msg);
+    else if (!this.actionBodies.has(env.fi.node)) this.inActionUses.push({ fi: env.fi, node, rule, msg });
+  }
   unsupported(node: Node, what: string) { this.unsup.push({ node, rule: "unsupported", msg: what }); }
   rec(n: Node, t: Ty): Ty { this.facts.types.set(n, t); return t; }
 
@@ -307,7 +326,7 @@ export class Checker {
           if (prop.computed || (prop.key.type !== "Identifier" && prop.key.type !== "Literal")) { this.unsupported(prop, "computed destructuring key"); continue; }
           const k = prop.key.type === "Identifier" ? prop.key.name : String(prop.key.value);
           used.push(k);
-          if (this.um(t).some((m) => isNamed(unwrap(m), "State") && this.reg.member(m, k)) && !env.fi.inAction) this.err(prop, "state-write", `State.${k} outside action(...)`);
+          if (this.um(t).some((m) => isNamed(unwrap(m), "State") && this.reg.member(m, k))) this.inActionOnly(env, prop, "state-write", `State.${k} outside action(...)`);
           this.bindPattern(prop.value, this.propOf(t, k, prop), env, kind, extra);
         }
         return;
@@ -334,6 +353,7 @@ export class Checker {
     const out: Ty[] = [];
     for (const m of this.um(t)) {
       if (m.k === "err") return ERR;
+      if (memberless(m)) { this.err(at, "type", `${show(m)} has no members`); return ERR; }
       const p = this.reg.member(m, k);
       if (!p) { this.memberMissing(m, k, at); return ERR; }
       out.push(propT(p));
@@ -372,8 +392,16 @@ export class Checker {
 
   // ---- expressions ----
   // soft: use `expected` as context only (inference in progress); the caller checks assignability later.
-  check(e: Node, env: Env, expected: Ty | undefined, soft = false): Ty {
-    if (!expected || expected.k === "unknown" && !this.ctxSensitive(e)) return this.infer(e, env);
+  // ctx: expected is a context, not the type the value finally has (soft implies it)
+  check(e: Node, env: Env, expected: Ty | undefined, soft = false, ctx = false): Ty {
+    const outer = this.quiet;
+    const q = soft || ctx || outer > 0;
+    this.quiet = q && /^(ObjectExpression|ArrayExpression|ConditionalExpression|LogicalExpression)$/.test(e.type) ? 1 : 0;
+    try { return this.check1(e, env, expected, soft, q); } finally { this.quiet = outer; }
+  }
+  check1(e: Node, env: Env, expected: Ty | undefined, soft: boolean, q: boolean): Ty {
+    if (!expected) return this.infer(e, env);
+    if (expected.k === "unknown" && !this.ctxSensitive(e)) { const t = this.infer(e, env); if (!q) this.hides(e, t, expected); return t; }
     let t: Ty;
     switch (e.type) {
       case "ObjectExpression": t = this.objLit(e, env, expected); break;
@@ -392,12 +420,12 @@ export class Checker {
       default: t = this.infer(e, env);
     }
     this.rec(e, t);
-    if (!soft) this.expect(e, t, expected);
+    if (!soft) this.expect(e, t, expected, q);
     return t;
   }
   ctxSensitive(e: Node) { return /^(ObjectExpression|ArrayExpression|ArrowFunctionExpression|FunctionExpression)$/.test(e.type); }
-  expect(at: Node, t: Ty, expected: Ty): boolean {
-    if (this.reg.sub(t, expected)) return true;
+  expect(at: Node, t: Ty, expected: Ty, ctx = false): boolean {
+    if (this.reg.sub(t, expected)) return ctx || this.hides(at, t, expected);
     let rule = "type";
     if (this.reg.sub(this.nonUndef(t), expected)) rule = "possibly-undefined";
     else if (members(t).some((m) => isNamed(m, "Action")) && !members(expected).some((m) => isNamed(m, "Action"))) rule = "action-pass";
@@ -405,7 +433,88 @@ export class Checker {
     return false;
   }
 
-  infer(e: Node, env: Env): Ty { return this.rec(e, this.infer1(e, env)); }
+  // An Action placed where its type becomes unknown, object or a type parameter of a function that is not a built-in
+  // (opaque) is [action-pass] (S6.6): there it is no longer told apart from other values. Returns true when it is not.
+  hides(at: Node, t: Ty, expected: Ty, opaque: Set<string> | null = null): boolean {
+    const w = t === expected ? null : this.reg.peek(() => this.hidden(t, expected, opaque));
+    if (w) this.err(at, "action-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${w}; an Action goes only where an Action is expected`);
+    return !w;
+  }
+  // the first Action in s that a position of t of type unknown, object or an opaque type parameter would take
+  hidden(s: Ty, t: Ty, opaque: Set<string> | null, depth = 0): string | null {
+    if (depth > 10 || s.k === "err" || t.k === "err" || s.k === "never") return null;
+    const H = (a: Ty, b: Ty) => this.hidden(a, b, opaque, depth + 1);
+    if (t.k === "unknown" || t.k === "object" || (t.k === "tv" && opaque?.has(t.n))) return this.actionIn(s, 0);
+    if (s.k === "named" && this.reg.isAlias(s.n)) return H(this.reg.expand(s), t);
+    if (t.k === "named" && this.reg.isAlias(t.n)) return H(s, this.reg.expand(t));
+    if (s.k === "union") { for (const m of s.ts) { const w = H(m, t); if (w) return w; } return null; }
+    if (s.k === "named" && (s.n === "Mut" || s.n === "Borrowed") && !isNamed(t, s.n)) return H(s.args[0], t);
+    if (t.k === "union") {
+      // s goes to a member it is assignable to; it is hidden only when every such member hides it
+      let w: string | null = null;
+      for (const m of t.ts.filter((x) => this.reg.sub(s, x))) { const x = H(s, m); if (!x) return null; w = x; }
+      return w;
+    }
+    const sx = this.reg.expand(s);
+    switch (t.k) {
+      case "arr": {
+        const els = sx.k === "arr" ? [sx.el] : sx.k === "tup" ? sx.els : [this.reg.iterElem(sx) ?? NEVER];
+        for (const x of els) { const w = H(x, t.el); if (w) return w; }
+        return null;
+      }
+      case "tup":
+        if (sx.k !== "tup") return null;
+        for (let i = 0; i < t.els.length && i < sx.els.length; i++) { const w = H(sx.els[i], t.els[i]); if (w) return w; }
+        return null;
+      case "rec": {
+        for (const [k, p] of t.props) { const sp = this.reg.member(sx, k); const w = sp && H(propT(sp), propT(p)); if (w) return w; }
+        if (t.index && sx.k === "rec") for (const p of sx.props.values()) { const w = H(propT(p), t.index); if (w) return w; }
+        for (const c of t.calls ?? []) { const w = this.hiddenFn(s, c, opaque, depth); if (w) return w; }
+        return null;
+      }
+      case "fn": return this.hiddenFn(s, t, opaque, depth);
+      case "named": {
+        if (t.n === "Iterable" || t.n === "ArrayLike") { const el = this.reg.iterElem(sx); return el ? H(el, t.args[0]) : null; }
+        if (sx.k !== "named" || sx.n !== t.n) return null;
+        for (let i = 0; i < t.args.length; i++) { const w = sx.args[i] && H(sx.args[i], t.args[i]); if (w) return w; }
+        return null;
+      }
+      default: return null;
+    }
+  }
+  // a function of type s used as t: what it returns goes to t's return type, and what t's caller passes goes to s's parameters
+  hiddenFn(s: Ty, t: Fn, opaque: Set<string> | null, depth: number): string | null {
+    const f = this.reg.callSigs(s)[0];
+    if (!f) return null;
+    const w = this.hidden(f.ret, t.ret, opaque, depth + 1);
+    if (w) return w;
+    for (let i = 0; i < t.ps.length && i < f.ps.length; i++) { const x = this.hidden(t.ps[i].t, f.ps[i].t, opaque, depth + 1); if (x) return x; }
+    return null;
+  }
+  // the first Action held anywhere in s: in an element, a property, a type argument or what a function returns
+  actionIn(s: Ty, depth: number): string | null {
+    if (depth > 10) return null;
+    const A = (x: Ty) => this.actionIn(x, depth + 1);
+    const first = (xs: Ty[]) => { for (const x of xs) { const w = A(x); if (w) return w; } return null; };
+    switch (s.k) {
+      case "named":
+        if (s.n === "Action") return show(s);
+        if (this.reg.isAlias(s.n)) return A(this.reg.expand(s));
+        return first(s.args);
+      case "arr": return A(s.el);
+      case "tup": return first(s.els);
+      case "union": return first(s.ts);
+      case "rec": return first([...[...s.props.values()].map((p) => p.t), ...(s.index ? [s.index] : []), ...(s.calls ?? []).map((c) => c.ret)]);
+      case "fn": return A(s.ret);
+      default: return null;
+    }
+  }
+
+  infer(e: Node, env: Env): Ty {
+    const q = this.quiet;
+    this.quiet = 0;
+    try { return this.rec(e, this.infer1(e, env)); } finally { this.quiet = q; }
+  }
   infer1(e: Node, env: Env): Ty {
     switch (e.type) {
       case "Literal":
@@ -458,7 +567,8 @@ export class Checker {
       case "YieldExpression": {
         if (!env.fi.isGen) this.err(e, "type", "yield outside a generator");
         if (e.delegate) { this.unsupported(e, "yield*"); return ERR; }
-        const t = e.argument ? this.infer(e.argument, env) : UNDEF;
+        const t = e.argument ? this.check(e.argument, env, env.fi.yieldCtx) : UNDEF;
+        if (!e.argument && env.fi.yieldCtx && !this.reg.sub(UNDEF, env.fi.yieldCtx)) this.err(e, "type", `yield without a value from a generator yielding ${show(env.fi.yieldCtx)}`);
         env.fi.yields.push(t);
         return UNKNOWN;
       }
@@ -588,11 +698,11 @@ export class Checker {
       let bad = false;
       for (const m of this.um(ot)) {
         if (m.k === "err") { bad = true; out.push(ERR); continue; }
-        if (isNamed(m, "Action") || isNamed(m, "StateCell")) { this.err(e, "type", `${show(m)} has no members`); bad = true; continue; }
+        if (memberless(m)) { this.err(e, "type", `${show(m)} has no members`); bad = true; continue; }
         if (this.reg.expand(m).k === "err") { bad = true; out.push(ERR); continue; } // unconverted alias: reported where it was converted
         const p = this.reg.member(m, name);
         if (!p) { this.memberMissing(m, name, e.property); bad = true; out.push(ERR); continue; }
-        if (isNamed(unwrap(m), "State") && !env.fi.inAction) this.err(e, "state-write", `State.${name} outside action(...)`);
+        if (isNamed(unwrap(m), "State")) this.inActionOnly(env, e, "state-write", `State.${name} outside action(...)`);
         if (p.flags?.banned) this.err(e, "banned-member", `${this.parsed.src.slice(e.object.start, e.object.end)}.${name} is banned`);
         flags = p.flags ?? flags;
         let pt = propT(p);
@@ -880,15 +990,26 @@ export class Checker {
       else this.bindPattern(p, t, inner, "param", { assigned: true });
     });
     let retAnn: Ty | undefined = e.returnType ? this.reg.convert(e.returnType.typeAnnotation, this.typeCtx(inner), this.parsed) : undefined;
+    // an async function returns a promise, and a generator function a generator, whatever its body returns
+    if (retAnn && fi.isAsync && !fi.isGen && retAnn.k !== "err" && !isNamed(this.reg.expand(retAnn), "Promise")) {
+      this.err(e.returnType, "type", `an async function returns a Promise; its return type ${show(retAnn)} is not Promise<…>`);
+      retAnn = named("Promise", retAnn);
+    }
+    if (retAnn && fi.isGen && retAnn.k !== "err") {
+      const g = this.reg.expand(retAnn);
+      if (isNamed(g, "Generator")) fi.yieldCtx = g.args[0];
+      else { this.err(e.returnType, "type", `a generator function returns a Generator; its return type ${show(retAnn)} is not Generator<…>`); retAnn = ERR; }
+    }
     const ctxRet = !retAnn && ctxSig && !hasTv(ctxSig.ret) ? ctxSig.ret : undefined;
     const declared = retAnn ?? ctxRet;
     if (declared && !fi.isGen) fi.retCtx = fi.isAsync ? this.awaited(declared, true) : declared.k === "void" ? undefined : declared;
+    fi.retFromCtx = !retAnn && ctxRet !== undefined;
     let reachable = true;
     if (e.body.type === "BlockStatement") {
       this.hoist(e.body.body, inner);
       reachable = this.stmts(e.body.body, inner);
     } else {
-      const t = this.check(e.body, inner, fi.retCtx);
+      const t = this.returned(e.body, inner);
       fi.rets.push(t);
       reachable = false;
     }
@@ -907,6 +1028,14 @@ export class Checker {
     for (const x of e.typeParameters?.params ?? []) if (x.constraint || x.default) this.unsupported(x, "type parameter constraint/default");
     return { k: "fn", tps, ps, rest, ret };
   }
+  // a returned value, checked against the return context
+  returned(e: Node, env: Env): Ty {
+    const t = this.check(e, env, env.fi.retCtx, false, !!env.fi.retFromCtx);
+    // an async function's promise resolves to what a returned promise resolves to, not to the promise
+    if (env.fi.isAsync && !env.fi.isGen && members(this.reg.expand(t)).some((m) => isNamed(this.reg.expand(m), "Promise")))
+      this.err(e, "type", `an async function returns ${show(t)}, a promise: await it, so the function's type says what it resolves to`);
+    return t;
+  }
   findBinding(s: Scope | null, id: number): Binding | undefined {
     for (; s; s = s.parent) for (const b of s.vars.values()) if (b.id === id) return b;
     return undefined;
@@ -923,7 +1052,7 @@ export class Checker {
     const save = this.diags.length, saveU = this.unsup.length;
     const f = this.reg.sig(e.params, e.returnType.typeAnnotation, undefined, this.typeCtx(env), this.parsed, "user");
     this.diags.length = save; this.unsup.length = saveU;
-    if (e.async) f.ret = named("Promise", f.ret);
+    if (e.async && !e.generator && !isNamed(this.reg.expand(f.ret), "Promise")) f.ret = named("Promise", f.ret);
     return f;
   }
   assignedNames(n: Node): Set<string> {
@@ -1003,7 +1132,7 @@ export class Checker {
       if (isShort) this.short.add(e);
       const ms = this.um(isShort ? this.nonNullish(calleeT) : calleeT);
       if (ms.some((m) => isNamed(m, "Action"))) {
-        if (!env.fi.inAction) this.err(e, "action-call", "an Action called outside action(...)");
+        this.inActionOnly(env, e, "action-call", "an Action called outside action(...)");
         sigs = [actionFn((ms.find((m) => isNamed(m, "Action")) as any).args[0])];
       } else {
         if (ms.length !== 1) { this.err(e, "type", `call of ${show(calleeT)}`); return bail(); }
@@ -1047,6 +1176,8 @@ export class Checker {
     const { f: sig, tvs } = instantiate(sig0, fresh);
     fresh += sig0.tps.length;
     const tvSet = new Set(tvs);
+    // a function that is not a built-in may narrow a value of its type parameter and read it (S9.2)
+    const opaque = sig0.flags?.intrinsic ? null : tvSet;
     const m: Subst = new Map();
     if (explicit) {
       if (explicit.length !== tvs.length) this.err(e, "type", `expected ${tvs.length} type arguments, got ${explicit.length}`);
@@ -1074,6 +1205,7 @@ export class Checker {
         if (!el) this.err(a, "type", `spread of non-iterable ${show(st)}`);
         else if (!sig.rest || i < sig.ps.length) this.unsupported(a, "spread argument to a non-rest parameter");
         else if (!this.reg.sub(el, cur(sig.rest))) this.err(a, "type", `spread element ${show(el)} is not assignable to ${show(cur(sig.rest))}`);
+        else this.hides(a, el, sig.rest, opaque);
         argT[i] = ERR;
         return;
       }
@@ -1112,7 +1244,7 @@ export class Checker {
       const t = argT[i];
       if (!p || !t || a.type === "SpreadElement") return;
       const pc = subst(p, m);
-      if (hasTv(p, tvSet) || deferred.includes(i)) this.expect(a, t, pc);
+      if ((hasTv(p, tvSet) || deferred.includes(i)) && this.expect(a, t, pc) && opaque && hasTv(p, tvSet)) this.hides(a, t, p, opaque);
     });
     return subst(sig.ret, m);
   }
@@ -1153,6 +1285,7 @@ export class Checker {
         const a = one();
         if (!a || (a.type !== "ArrowFunctionExpression" && a.type !== "FunctionExpression")) { this.unsupported(e, "action(...) of a non-literal function"); return ERR; }
         const ctx = expected && isNamed(expected, "Action") && expected.args[0].k === "tup" ? actionFn(expected.args[0]) : undefined;
+        this.actionBodies.add(a);
         const f = this.fnExpr(a, { ...env, fi: { ...env.fi, inAction: true } }, ctx);
         this.rec(a, f);
         return named("Action", { k: "tup", els: f.ps.map((p) => p.t) });
@@ -1160,7 +1293,7 @@ export class Checker {
       case "read": {
         // read(s): the value as of this point in the call order; only inside an action body
         const a = one();
-        if (!env.fi.inAction) this.err(e, "read-outside-action", "read(...) is only for an action body; a cell takes the value as a parameter");
+        this.inActionOnly(env, e, "read-outside-action", "read(...) is only for an action body; a cell takes the value as a parameter");
         const t = a ? this.infer(a, env) : ERR;
         if (t.k === "err") return ERR;
         if (!isNamed(t, "State")) { this.err(a!, "type", `read needs a State<T>, got ${show(t)}`); return ERR; }
@@ -1224,12 +1357,12 @@ export class Checker {
         return true;
       }
       case "ReturnStatement": {
-        const t = s.argument ? this.check(s.argument, env, env.fi.retCtx) : UNDEF;
+        const t = s.argument ? this.returned(s.argument, env) : UNDEF;
         if (!s.argument && env.fi.retCtx && !this.reg.sub(UNDEF, env.fi.retCtx)) this.err(s, "type", `return without a value from a function returning ${show(env.fi.retCtx)}`);
         env.fi.rets.push(t);
         return false;
       }
-      case "ThrowStatement": this.infer(s.argument, env); return false;
+      case "ThrowStatement": this.hides(s.argument, this.infer(s.argument, env), UNKNOWN); return false; // a catch takes it as unknown
       case "IfStatement": {
         const [T, F] = this.cond(s.test, env);
         const a: Env = { ...env, flow: T }, b: Env = { ...env, flow: F };

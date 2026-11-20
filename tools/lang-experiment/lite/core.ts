@@ -4,7 +4,7 @@
 import { parse, type Node, type Parsed } from "./parse.ts";
 import { Registry } from "./registry.ts";
 import { Checker } from "./infer.ts";
-import { ownership } from "./own.ts";
+import { ownership, actionEscapes } from "./own.ts";
 import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec } from "./types.ts";
 import { CAPABILITIES } from "./intrinsics.ts";
 import { island, specOf, compileCalls } from "./island.ts";
@@ -234,7 +234,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     if (t.k === "named" && reg.isAlias(t.n)) return uncloneable(reg.expand(t), depth + 1);
     switch (t.k) {
       case "fn": return "a function";
-      case "named": return ["Action", "State", "StateCell", "Mut", "Borrowed", "Promise", "Generator", "Pool", "Compile", "Events", "Listener"].includes(t.n) ? t.n : null;
+      case "named": return ["Action", "State", "StateCell", "Mut", "Borrowed", "Promise", "Generator", "Pool", "Compile", "Events", "Listener", "Elem"].includes(t.n) ? t.n : null;
       case "arr": return uncloneable(t.el, depth + 1);
       case "tup": for (const x of t.els) { const w = uncloneable(x, depth + 1); if (w) return w; } return null;
       case "union": for (const x of t.ts) { const w = uncloneable(x, depth + 1); if (w) return w; } return null;
@@ -337,6 +337,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
         const want = reg.convert(ann, { tps: new Set() }, P);
         const widenBorrow = isNamed(vt, "Borrowed") && !isNamed(want, "Borrowed");
         if (widenBorrow || !reg.sub(vt, want)) diag(p, "inject-type", `${name}: ${show(vt)} is not assignable to ${show(want)}`);
+        else ch.hides(p, vt, want);
         injected.push(want);
       } else injected.push(vt);
     }
@@ -368,6 +369,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     try {
       fnT = ch.fnExpr(c.fn, null, undefined, { injected });
       for (const e of ownership(c.fn, ch)) ch.err(e.node, e.rule, e.msg);
+      for (const e of actionEscapes(c.fn, ch)) ch.err(e.node, e.rule, e.msg);
     } catch (e) {
       ch.unsupported(c.fn, `checker crashed: ${(e as Error).message}`);
     }

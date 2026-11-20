@@ -13,7 +13,7 @@ type Decl = { kind: "alias" | "iface"; tps: string[]; nodes: Node[]; origin: Ori
 export type ValueDecl = { t: Ty; origin: Origin; node: Node; marker: "pure" | "effect" | null; flags?: Flags };
 export type TypeCtx = { tps: Set<string>; typeofLookup?: (name: string, node: Node) => Ty | undefined };
 
-const FLAG_NAMES = ["mutates", "fresh", "view", "retains", "banned"] as const;
+const FLAG_NAMES = ["mutates", "fresh", "view", "retains", "banned", "later"] as const;
 function flagsOf(p: Parsed, n: Node, origin: Origin): Flags | undefined {
   const f: Flags = {};
   for (const c of p.leading(n)) for (const k of FLAG_NAMES) if (c.text.includes("@" + k)) f[k] = true;
@@ -41,6 +41,8 @@ export class Registry {
   onErr: (n: Node, rule: string, msg: string) => void = () => {};
   expandMemo = new Map<string, Ty>();
   ifaceMemo = new Map<string, Rec>();
+  // while peek runs: the memo entries it added, removed when it ends
+  journal: [Map<string, unknown>, string][] | null = null;
 
   constructor() {
     // the declaration texts are constants and nothing writes to a parsed tree, so they are parsed once
@@ -89,9 +91,20 @@ export class Registry {
     return rest;
   }
 
+  // Elem is the one JSX type that is not structural: only JSX makes one (h at run time), so a record is not one
+  // f's result, with any problem it meets while expanding types left to be reported where the type is used
+  peek<T>(f: () => T): T {
+    const was = [this.onErr, this.onUnsup, this.journal] as const;
+    const journal: [Map<string, unknown>, string][] = [];
+    this.onErr = () => {}; this.onUnsup = () => {}; this.journal = journal;
+    try { return f(); } finally {
+      [this.onErr, this.onUnsup, this.journal] = was;
+      for (const [m, k] of journal) m.delete(k);
+    }
+  }
   isAlias(n: string) {
     const d = this.types.get(n);
-    return !!d && !WRAPPERS.has(n) && (d.kind === "alias" || d.origin === "user" || d.origin === "foreign" || d.origin === "jsx");
+    return !!d && !WRAPPERS.has(n) && (d.kind === "alias" || d.origin === "user" || d.origin === "foreign" || (d.origin === "jsx" && n !== "Elem"));
   }
 
   // ---- type syntax ----
@@ -220,6 +233,7 @@ export class Registry {
     const d = this.types.get(t.n)!;
     if (d.tps.length !== t.args.length && d.tps.length) { this.onUnsup(d.nodes[0], `generic type ${t.n} used with ${t.args.length} arguments`); return ERR; }
     this.expandMemo.set(key, ERR); // a directly self-referential alias expands to ERR (unsupported)
+    this.journal?.push([this.expandMemo, key]);
     const m: Subst = new Map(d.tps.map((n, i) => [n, t.args[i]]));
     let out: Ty;
     if (d.kind === "alias") out = subst(this.convert(d.nodes[0].typeAnnotation, { tps: new Set(d.tps) }, d.parsed, d.origin), m);
@@ -233,6 +247,7 @@ export class Registry {
     const d = this.types.get(name)!;
     const r: Rec = { k: "rec", props: new Map() };
     this.ifaceMemo.set(name, r);
+    this.journal?.push([this.ifaceMemo, name]);
     const ctx = { tps: new Set(d.tps) };
     for (const node of d.nodes) {
       for (const h of node.extends ?? []) {

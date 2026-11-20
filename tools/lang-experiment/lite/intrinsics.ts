@@ -226,7 +226,7 @@ declare const TypeError: { /** @fresh */ new (message?: string): Error };
 declare const RangeError: { /** @fresh */ new (message?: string): Error };
 declare const RegExp: { /** @fresh */ new (source: string, flags?: string): RegExp };
 interface Promise<T> {
-  then<U>(f: (v: T) => U): Promise<U>;
+  /** @later */ then<U>(f: (v: T) => U): Promise<U>;
 }
 declare const Promise: {
   resolve(): Promise<void>;

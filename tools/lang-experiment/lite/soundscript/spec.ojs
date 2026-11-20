@@ -302,6 +302,8 @@ md`**S2.9** A body is type-checked with \`null\` and \`undefined\` kept apart fr
 // %%
 md`**S2.10** \`viewof\`, \`mutable\` and \`$\` followed by digits (\`$0\`, \`$12\`) are reserved. Using one as the name of a cell, a parameter or a local is \`[reserved-name]\`, and so is \`$0\` as a property key or a member name. \`viewof\` and \`mutable\` may still be a property key or a member name, and a type may use any of them. A compiled cell is Observable JavaScript, which reads \`viewof\` and \`mutable\` as keywords and names a cell's \`viewof\` inputs \`$0\`, \`$1\` and so on.`
 // %%
+md`**S2.11** The return type of an async function is \`Promise<T>\`, and of a generator function, sync or async, \`Generator<Y>\`; any other annotation is \`[type]\`. Each \`yield\` of a generator annotated \`Generator<Y>\` gives a \`Y\`, and a value of another type is \`[type]\`. A value that an async function returns, annotated or not, may not be a promise: one that may be is \`[type]\`, so \`await\` it. A returned promise is unwrapped at run time, and its type would otherwise be \`Promise<Promise<T>>\`.`
+// %%
 md`The cells of this section. \`s2_answer\` takes \`s2_base\` and the function \`s2_double\` with no annotations; \`s2_read\` takes an async cell, a generator and a state cell by their value types.`
 // %%
 //ss: ./spec-2.ts
@@ -345,7 +347,13 @@ spec_rejects_2 = [
   { statement: "S2.10", rule: "reserved-name", source: "const mutable = () => 1;" },
   { statement: "S2.10", rule: "reserved-name", source: "const a = () => {\n  const $0 = 1;\n  return $0;\n};" },
   { statement: "S2.10", rule: "reserved-name", source: "const a = () => ({ $1: 2 });" },
-  { statement: "S2.9", rule: "const-assign", source: "const g = () => {\n  const x = 1;\n  x = 2;\n  return x;\n};" }
+  { statement: "S2.9", rule: "const-assign", source: "const g = () => {\n  const x = 1;\n  x = 2;\n  return x;\n};" },
+  { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = async (): number => 5;\n  return 1;\n};" },
+  { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): number {\n    yield 1;\n  };\n  return 1;\n};" },
+  { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): Generator<number> {\n    yield \"x\";\n  };\n  return g;\n};" },
+  { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = async function* (): number {\n    yield 1;\n  };\n  return 1;\n};" },
+  { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = async () => Promise.resolve(5);\n  return 1;\n};" },
+  { statement: "S2.11", rule: "type", source: "const f = () => {\n  async function g(): Promise<number> {\n    return Promise.resolve(5);\n  }\n  return 1;\n};" }
 ]
 // %%
 spec_rejects_2_view = spec_rejectsTable(spec_rejects_2)
@@ -390,6 +398,11 @@ test_spec_S2_8 = {
   spec_is(spec_okCells("const a = () => 1;\nconst b = () => { const a = 2; return a; };"), "a:ok,b:ok");
   spec_is(await spec_module.value("s2_shadow"), 2);
   return `${spec_rejectsFor("S2.8")}; a local named like a cell is the local (s2_shadow is 2)`;
+}
+// %%
+test_spec_S2_11 = {
+  spec_is(spec_okCells("const f = () => {\n  const g = async (): Promise<number> => 5;\n  return g();\n};\nconst h = () => {\n  async function k(n: number): Promise<number> {\n    return n > 0 ? await k(n - 1) : 1;\n  }\n  return k(2);\n};\nconst gen = () => {\n  const g = function* (): Generator<number> {\n    yield 1;\n  };\n  return g;\n};\nconst agen = () => {\n  const g = async function* (): Generator<number> {\n    yield 1;\n  };\n  return g;\n};"), "f:ok,h:ok,gen:ok,agen:ok");
+  return `${spec_rejectsFor("S2.11")}; Promise<T> on an async function and Generator<Y> on a generator, sync or async, are accepted`;
 }
 // %%
 test_spec_S2_9 = {
@@ -789,7 +802,7 @@ md`**S6.4** A \`State<T>\` has \`set(v: T)\` and \`update(f: (v: T) => T)\` and 
 // %%
 md`**S6.5** \`set\` and \`update\` outside the body of an \`action(...)\` are \`[state-write]\`, including in a function the cell returns and in a generator. At run time a write made while no call is in flight throws.`
 // %%
-md`**S6.6** \`action(f)\` has type \`Action<P>\`, where \`P\` is the parameter types of \`f\`. Calling an \`Action\` outside the body of an action is \`[action-call]\`. An \`Action\` may be returned, placed in a record or an array, or passed to a parameter typed \`Action\`; passing it to any other parameter is \`[action-pass]\`.`
+md`**S6.6** \`action(f)\` has type \`Action<P>\`, where \`P\` is the parameter types of \`f\`. Calling an \`Action\` outside the body of an action is \`[action-call]\`. An \`Action\` may be returned, placed in a record or an array, or passed to a parameter typed \`Action\`. Giving it a type that does not say it is an \`Action\` is \`[action-pass]\`: \`unknown\`, \`object\`, a type parameter of a function of the module, or a record, array, tuple, union or function type that has one of these where the \`Action\` is. That holds for an argument, a spread element, an input, a default value, an annotated local, an assignment, a returned value and a thrown one. A type parameter of an intrinsic, such as the \`U\` of \`map\` or the \`T\` of \`Promise.resolve\`, takes the \`Action\`'s own type and is accepted.`
 // %%
 md`**S6.7** The content type of a state cell may not contain \`State\` or \`StateCell\`: not directly, and not in a record, an array, a union, a type argument or a function signature. That is \`[state-in-state]\`.`
 // %%
@@ -815,6 +828,10 @@ md`**S6.17** A call that is waiting in the queue, or paused at an \`await\`, whe
 // %%
 md`**S6.18** The content type of a state cell may not admit \`undefined\`: it may not be \`undefined\`, \`void\` or \`unknown\`, or a union with one of them, directly or through a type alias. That is \`[state-undefined]\`. A property of the content may be optional. A state cell's value variable is Observable's \`Generators.input\` of its handle, which skips an \`undefined\` value, so the cell would have none; use \`null\`. \`State\`, \`StateCell\` and \`Events\` written without a type argument are \`[type]\`.`
 // %%
+md`**S6.19** A function made in the body of an action writes, reads and calls \`Action\`s only while it can run inside the call. It may be called in the body, directly or through a local function that is only called; passed to an array method that calls it before returning, such as \`forEach\` or \`map\`, or to \`update\`; or given to a \`.then(...)\` call that is itself the operand of an \`await\` or a \`return\` of the body; a promise from \`.then\` kept in a local or passed to \`Promise.all\` does not count. Returned, stored, placed in a record, an array or a state cell, given to a function of the module or to an intrinsic that keeps it, such as \`Map.set\`, or made async or a generator, it may run after the call, and its \`set\`, \`update\`, \`read\` and \`Action\` calls are \`[state-write]\`, \`[read-outside-action]\` and \`[action-call]\` as in S6.5, S6.8 and S6.6.`
+// %%
+md`**S6.20** An \`Elem\` is made only by JSX. A record with the fields of an element is not an \`Elem\`, and giving one where an \`Elem\` or a JSX child is expected, or returning one from a component, is \`[type]\`. The renderer draws only elements JSX made: any other value, a record of the same shape included, is drawn as text: a primitive as \`String\` gives it, an object as \`[object Object]\`, \`[object Array]\` or \`[object Function]\`. No function in it is called, its own \`toString\`, \`valueOf\` and event props included.`
+// %%
 md`The cells of this section. \`s6_copy\` reads \`s6_count\` when it is called; \`s6_bumpThenCopy\` writes \`s6_count\` and calls \`s6_copy\`, which sees that write (S6.8). \`s6_controls\` holds two actions in a record. \`s6_view\` has a button for each of \`s6_increment\` and \`s6_bumpThenCopy\` and shows both counts.`
 // %%
 //ss: ./spec-6.tsx
@@ -839,6 +856,19 @@ spec_rejects_6 = [
   { statement: "S6.5", rule: "state-write", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  [n][0]?.set(5);\n  return 1;\n};" },
   { statement: "S6.6", rule: "action-call", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a) => {\n  a();\n  return 1;\n};" },
   { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a) => [1].map(a);" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) => {\n  const keep = (x: unknown) => 1;\n  return keep(a);\n};" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) => {\n  const first = <T,>(xs: readonly T[]): T | undefined => xs[0];\n  return first([a]);\n};" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) => {\n  const x: unknown = a;\n  return 1;\n};" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) => {\n  const keep = (r: { readonly f: unknown }) => 1;\n  return keep({ f: a });\n};" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) => (): unknown => a;" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) => {\n  const keep = (...xs: readonly unknown[]) => xs.length;\n  return keep(...[a]);\n};" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) => {\n  const keep = (x: unknown = a) => 1;\n  return keep();\n};" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: unknown) => 1;" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: object) => 1;" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) => {\n  let x: unknown = 0;\n  x = a;\n  return 1;\n};" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) => {\n  throw a;\n};" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) => {\n  const keep = (t: readonly [number, unknown]) => t[0];\n  return keep([1, a]);\n};" },
+  { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) => {\n  const keep = (x: number | unknown) => 1;\n  return keep(a);\n};" },
   { statement: "S6.7", rule: "state-in-state", source: "const count = (): StateCell<number> => state(0);\nconst which = (count: State<number>): StateCell<State<number>> => state(count);" },
   { statement: "S6.7", rule: "state-in-state", source: "const count = (): StateCell<number> => state(0);\nconst inRecord = (count: State<number>): StateCell<{ readonly r: State<number> }> => state({ r: count });" },
   { statement: "S6.7", rule: "state-in-state", source: "const count = (): StateCell<number> => state(0);\nconst inArray = (count: State<number>): StateCell<readonly State<number>[]> => state([count]);" },
@@ -856,7 +886,14 @@ spec_rejects_6 = [
   { statement: "S6.18", rule: "state-undefined", source: "const c = (): StateCell<number | undefined> => state<number | undefined>(1);" },
   { statement: "S6.18", rule: "state-undefined", source: "const c = (): StateCell<unknown> => state(1);" },
   { statement: "S6.18", rule: "state-undefined", source: "type N = number | undefined;\nconst c = (): StateCell<N> => state(1);" },
-  { statement: "S6.18", rule: "type", source: "const c = (): StateCell => state(1);" }
+  { statement: "S6.18", rule: "type", source: "const c = (): StateCell => state(1);" },
+  { statement: "S6.19", rule: "state-write", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) =>\n  action(() => {\n    const later = () => c.set(2);\n    return later;\n  });" },
+  { statement: "S6.19", rule: "state-write", source: "const c = (): StateCell<number> => state(0);\nconst kept = (): StateCell<() => void> => state(() => {});\nconst a = (c: State<number>, kept: State<() => void>) =>\n  action(() => kept.set(() => c.set(2)));" },
+  { statement: "S6.19", rule: "read-outside-action", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) =>\n  action(() => {\n    const peek = () => read(c);\n    return { peek };\n  });" },
+  { statement: "S6.19", rule: "action-call", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) =>\n  action(() => {\n    Promise.resolve(1).then(() => a());\n  });" },
+  { statement: "S6.19", rule: "state-write", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) =>\n  action(() => {\n    const go = async () => c.set(2);\n    go();\n  });" },
+  { statement: "S6.20", rule: "type", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst v = (a: Action<[]>): Elem => {\n  const e = { tag: \"button\", children: [], props: { onClick: a } };\n  return e;\n};" },
+  { statement: "S6.20", rule: "type", source: "const v = () => {\n  const C = (p: { readonly k: number }) => ({ tag: \"b\", children: [] });\n  return <C k={1} />;\n};" }
 ]
 // %%
 spec_rejects_6_view = spec_rejectsTable(spec_rejects_6)
@@ -928,7 +965,25 @@ test_spec_S6_5 = {
 test_spec_S6_6 = {
   spec_is(spec_okCells("const c = (): StateCell<number> => state(0);\nconst t = (c: State<number>) => action((n: number) => c.set(n));\nconst u = (t: Action<[number]>) => action(() => t(1));\nconst rec = (t: Action<[number]>) => ({ go: t });\nconst lst = (t: Action<[number]>) => [t];\nconst pass = (u: Action<[]>, t: Action<[number]>) => ({ u, t });"), "c:ok,t:ok,u:ok,rec:ok,lst:ok,pass:ok");
   spec_is(spec_rulesOf({ source: "const c = (): StateCell<number> => state(0);\nconst t = (c: State<number>) => action((n: number) => c.set(n));\nconst u = (t: Action<[string]>) => 1;" }), ["inject-type"]);
-  return `${spec_rejectsFor("S6.6")}; an Action returned, in a record, in an array, or called in an action is accepted; Action<[number]> taken as Action<[string]> is [inject-type]`;
+  // an intrinsic's type parameter keeps the Action's type; a record parameter that says Action holds one
+  spec_is(spec_okCells("const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a: Action<[]>) => [1, 2].map(() => a);\nconst m = (a: Action<[]>) => new Map([[\"a\", a]]);\nconst p = (a: Action<[]>) => Promise.resolve({ go: a });\nconst k = (a: Action<[]>) => {\n  const keep = (r: { readonly go: Action<[]> }) => r.go;\n  return keep({ go: a });\n};"), "c:ok,a:ok,b:ok,m:ok,p:ok,k:ok");
+  return `${spec_rejectsFor("S6.6")}; an Action returned, in a record, in an array, through map, new Map and Promise.resolve, or called in an action is accepted; Action<[number]> taken as Action<[string]> is [inject-type]`;
+}
+// %%
+test_spec_S6_19 = {
+  spec_is(spec_okCells("const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (c: State<number>, a: Action<[]>) =>\n  action(async () => {\n    const twice = () => {\n      a();\n      a();\n    };\n    twice();\n    [1, 2].forEach((k) => c.update((v) => v + k));\n    await Promise.resolve(1).then(() => c.set(3));\n    (() => c.set(4))();\n  });"), "c:ok,a:ok,b:ok");
+  return `${spec_rejectsFor("S6.19")}; a function made in an action and called there, through a local, by forEach, by update, or by .then on an awaited promise is accepted`;
+}
+// %%
+test_spec_S6_20 = {
+  spec_is(spec_okCells("const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst v = (a: Action<[]>): Elem => <button onClick={a}>+</button>;\nconst w = (v: Elem) => <div>{v}</div>;"), "c:ok,a:ok,v:ok,w:ok");
+  // a record shaped like an element, from a cell the checker never saw, given to the renderer
+  let called = 0;
+  const forged = { tag: "button", children: [], props: { onClick: () => { called++; } }, toString: () => { called++; return "forged"; } };
+  const node = soundscript.mount(forged, null);
+  node.dispatchEvent(new Event("click"));
+  spec_is([node.nodeType, called], [Node.TEXT_NODE, 0]);
+  return `${spec_rejectsFor("S6.20")}; JSX elements are Elem; a forged record is mounted as a text node, and neither its toString nor a click calls anything`;
 }
 // %%
 test_spec_S6_7 = {
@@ -1238,6 +1293,8 @@ md`**S7.6** When a listener's action throws, that call keeps none of its writes 
 // %%
 md`**S7.7** Two listener cells on one events cell get each value in the order the cells appear in their module. An edit of the first does not change that.`
 // %%
+md`**S7.8** An \`Events<T>\` and a \`Listener\` have no members. Reading one, by a member, \`?.\`, an index or a destructuring pattern, is \`[type]\`. A \`Listener\` is only the whole value of a cell (S7.3), so a member read on one is also \`[listener-placement]\`.`
+// %%
 md`The cells of this section. \`s7_onBeat\` runs \`s7_add\` for each of the three values \`s7_beats\` yields, so \`s7_seen\` becomes \`[1, 2, 3]\`.`
 // %%
 //ss: ./spec-7.ts
@@ -1255,7 +1312,9 @@ spec_rejects_7 = [
   { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst flag = () => true;\nconst on1 = (ticks: Events<number>, tick: Action<[number]>, flag: boolean) => (flag ? on(ticks, tick) : null);" },
   { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst on1 = async (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick);" },
   { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst on1 = function* (ticks: Events<number>, tick: Action<[number]>) {\n  yield on(ticks, tick);\n};" },
-  { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst on1 = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick);\nconst x = (on1) => 1;" }
+  { statement: "S7.3", rule: "listener-placement", source: "const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst on1 = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick);\nconst x = (on1) => 1;" },
+  { statement: "S7.8", rule: "type", source: "const ticks = function* () {\n  yield 1;\n};\nconst n = (ticks: Events<number>) => ticks.events;" },
+  { statement: "S7.8", rule: "type", source: "const ticks = function* () {\n  yield 1;\n};\nconst n = (ticks: Events<number>) => {\n  const { events } = ticks;\n  return events;\n};" }
 ]
 // %%
 spec_rejects_7_view = spec_rejectsTable(spec_rejects_7)
@@ -1371,6 +1430,8 @@ test_spec_S7_6 = {
     return `6 of 60 calls threw and kept nothing; the rest were delivered (count 54, last 59); ${JSON.stringify(named[0].slice(0, 80))}`;
   } finally { console.error = was; E?.dispose(); }
 }
+// %%
+test_spec_S7_8 = spec_rejectsFor("S7.8")
 // %%
 test_spec_S7_7 = {
   const E = await spec_editor([
@@ -1581,7 +1642,7 @@ md`**S9.4** The narrowings of one value combine in any order: a test that exclud
 // %%
 md`**S9.5** The right operand of \`in\` must be an object. One of type \`unknown\`, or of a type parameter, is \`[type]\`, as is one that may be a primitive; one that may be \`null\` or \`undefined\` is \`[possibly-undefined]\`. \`"k" in v\` throws at run time when \`v\` is a primitive; test \`typeof v === "object" && v !== null\` first.`
 // %%
-md`**S9.6** \`typeof v === "function"\` narrows a \`v\` of type \`unknown\`, or of a type parameter, to \`object\`: the test shows that \`v\` is not a primitive, not which arguments it takes. \`object\` has no members and no call signature, so calling it, or passing it where a function or an \`Action\` is expected, is \`[type]\`, and a \`State\` or an \`Action\` that reached \`unknown\` is not written or called through it. \`typeof v === "symbol"\` narrows it to \`symbol\`. A type with a call signature, a function type or an interface or alias with one, has the tag \`"function"\`.`
+md`**S9.6** \`typeof v === "function"\` narrows a \`v\` of type \`unknown\`, or of a type parameter, to \`object\`: the test shows that \`v\` is not a primitive, not which arguments it takes. \`object\` has no members and no call signature, so calling it, or passing it where a function or an \`Action\` is expected, is \`[type]\`, and a \`State\` that reached \`unknown\` is not written through it. An \`Action\` does not reach \`unknown\` (S6.6). \`typeof v === "symbol"\` narrows it to \`symbol\`. A type with a call signature, a function type or an interface or alias with one, has the tag \`"function"\`.`
 // %%
 md`**S9.7** \`await v\`, where \`v\` may be an \`object\`, or a record or interface other than \`Promise\` that declares a \`then\` property, is \`unknown\`: \`await\` calls that \`then\` and gives what it passes on.`
 // %%
@@ -1616,7 +1677,6 @@ spec_rejects_9 = [
   { statement: "S9.6", rule: "type", source: "const f = () => (): number => {\n  try {\n    return 1;\n  } catch (e) {\n    if (typeof e === \"function\") e();\n    return 0;\n  }\n};" },
   { statement: "S9.6", rule: "type", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  const u: unknown = n;\n  if (typeof u === \"object\" && u !== null && \"set\" in u && typeof u.set === \"function\") u.set(5);\n  return 1;\n};" },
   { statement: "S9.6", rule: "type", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  const u: object = n;\n  if (\"set\" in u && typeof u.set === \"function\") u.set(5);\n  return 1;\n};" },
-  { statement: "S9.6", rule: "type", source: "const n = (): StateCell<number> => state(0);\nconst bump = (n: State<number>) => action(() => n.update((x) => x + 1));\nconst w = (bump: Action<[]>) => {\n  const go = (u: unknown) => (typeof u === \"function\" ? u() : 0);\n  go(bump);\n  return 1;\n};" },
   { statement: "S9.6", rule: "type", source: "type O = { readonly then?: unknown };\nconst f = () => (o: O): unknown => (typeof o.then === \"function\" ? o.then(1) : 0);" },
   { statement: "S9.6", rule: "no-member", source: "const f = () => (u: unknown): number => (typeof u === \"symbol\" ? u.description.length : 0);" },
   { statement: "S9.6", rule: "no-member", source: "interface G { (x: number): number }\nconst f = () => (g: G): number => (typeof g === \"function\" ? g.nope.deeper : 0);" },

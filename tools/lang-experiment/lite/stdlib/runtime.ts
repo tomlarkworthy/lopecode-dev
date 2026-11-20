@@ -3,7 +3,7 @@
 // A compiled cell is its typed function applied to its inputs; a state cell is ss_ref(...), an events cell
 // ss_events(...), a listener ss_listen(...), and a state cell's value variable is Observable's Generators.input(handle).
 import { isRefHandle, viewHandle } from "../../prelude.runtime.ts";
-import { h } from "../jsx/h.ts";
+import { h, isElement } from "../jsx/h.ts";
 import { create, patch } from "../jsx/render.ts";
 import { lowerJsx } from "../jsx/lower.ts";
 import { erase } from "../browser/erase.ts";
@@ -149,8 +149,8 @@ export function compiler(read: () => string) {
 
 // An element value as DOM: patches the node it made last time (pass `this` from an ojs cell).
 export function mount(x: unknown, prev: any): Node {
-  if (prev && prev.__elem && x && typeof x === "object" && prev.__elem.tag === (x as any).tag) {
-    patch(prev, x as any);
+  if (prev && prev.__elem && isElement(x) && prev.__elem.tag === x.tag) {
+    patch(prev, x);
     return prev;
   }
   return create(document, x);

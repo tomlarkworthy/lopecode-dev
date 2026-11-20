@@ -4,7 +4,7 @@
 // SoundScript cells: each cell's parameters are the cells it takes. Under bun, types.ts links them;
 // in the notebook they are compiled cells of @tomlarkworthy/soundscript-checker.
 
-export type Flags = { mutates?: boolean; fresh?: boolean; view?: boolean; retains?: boolean; banned?: boolean; intrinsic?: boolean };
+export type Flags = { mutates?: boolean; fresh?: boolean; view?: boolean; retains?: boolean; banned?: boolean; later?: boolean; intrinsic?: boolean };
 export type Param = { n: string; t: Ty; opt: boolean };
 export type Fn = { k: "fn"; tps: string[]; ps: Param[]; rest?: Ty | undefined; ret: Ty; flags?: Flags; decl?: Fn };
 export type Prop = { t: Ty; opt: boolean; flags?: Flags };

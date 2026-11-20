@@ -1,15 +1,18 @@
 // The renderer: an unchecked shell around the checked cells. It patches a DOM node in place when the
 // tag is unchanged, so a cell that describes the same <canvas> again keeps the same node (and any
 // context made from it). Event props hold Actions; the renderer decodes each DOM event into data.
-import type { Elem } from "./h.ts";
+import { isElement, type Elem } from "./h.ts";
 import { entry } from "../../prelude.runtime.ts";
-// DOM_EVENTS (each event prop's DOM event and the data its action gets), PROPS and isElem are SoundScript cells
-import { DOM_EVENTS, PROPS, isElem } from "../runtime-ss.ts";
+// DOM_EVENTS (each event prop's DOM event and the data its action gets) and PROPS are SoundScript cells
+import { DOM_EVENTS, PROPS } from "../runtime-ss.ts";
 // an event's data is frozen here, as ptr did before it was SoundScript (which has no Object.freeze)
 const frozen = (x: unknown) => (x && typeof x === "object" ? Object.freeze(x) : x);
+// a value that is not an element, as text; an object's own toString, valueOf or Symbol.toPrimitive is not called
+const asText = (x: unknown): string =>
+  typeof x === "function" ? "[object Function]" : typeof x === "object" && x !== null ? (Array.isArray(x) ? "[object Array]" : "[object Object]") : String(x);
 
 export function create(doc: Document, x: unknown): Node {
-  if (!isElem(x)) return doc.createTextNode(String(x));
+  if (!isElement(x)) return doc.createTextNode(asText(x));
   const node = doc.createElement(x.tag || "span") as any;
   if (!x.tag) node.setAttribute("style", "display: contents"); // a fragment
   node.__handlers = {};
@@ -19,6 +22,7 @@ export function create(doc: Document, x: unknown): Node {
 }
 
 export function patch(node: any, x: Elem): void {
+  if (!isElement(x)) throw new TypeError("patch: the value is not an element made by JSX");
   const old: Elem = node.__elem;
   if (old === x) return; // the same value as last time: nothing below it changed
   for (const [k, v] of Object.entries(x.props)) {
@@ -40,7 +44,7 @@ export function patch(node: any, x: Elem): void {
   const doc = node.ownerDocument;
   const n = x.children.length;
   // Keyed children: match by key and tag, move nodes into place, drop the rest.
-  if (n && x.children.every((c) => isElem(c) && c.props.key !== undefined)) {
+  if (n && x.children.every((c) => isElement(c) && c.props.key !== undefined)) {
     const byKey = new Map<unknown, any>();
     const want = new Set((x.children as Elem[]).map((c) => `${c.tag}:${c.props.key}`));
     for (const cur of [...node.childNodes] as any[]) {
@@ -59,8 +63,8 @@ export function patch(node: any, x: Elem): void {
   }
   for (let i = 0; i < n; i++) {
     const c = x.children[i], cur = node.childNodes[i];
-    if (cur && isElem(c) && cur.__elem && cur.__elem.tag === c.tag) patch(cur, c);
-    else if (cur && !isElem(c) && cur.nodeType === 3) { if (cur.data !== String(c)) cur.data = String(c); }
+    if (cur && isElement(c) && cur.__elem && cur.__elem.tag === c.tag) patch(cur, c);
+    else if (cur && !isElement(c) && cur.nodeType === 3) { if (cur.data !== asText(c)) cur.data = asText(c); }
     else if (cur) node.replaceChild(create(doc, c), cur);
     else node.appendChild(create(doc, c));
   }
