@@ -1,0 +1,40 @@
+// Further instances of the class of holes 1-3 (2026-11-20): what a value of type unknown, or narrowed from it,
+// can do. One construct per cell. bun selfhost/rt/check.ts selfhost/repro-unknown-class.ss.ts --tsx
+export const n = (): StateCell<number> => state(0);
+export const bump = (n: State<number>) => action(() => n.update((x) => x + 1));
+export const ticks = function* () { yield 1; };
+type O = { readonly then?: unknown };
+export const methodNoTypeof = () => (u: unknown): unknown => (typeof u === "object" && u !== null && "then" in u ? u.then() : 0);
+export const optionalCall = () => (u: unknown): unknown => (typeof u === "function" ? u?.() : 0);
+export const indexNarrowed = () => (u: unknown): unknown => (Array.isArray(u) && typeof u[0] === "function" ? u[0](1) : 0);
+export const indexUnknown = () => (u: unknown): unknown => u[0];
+export const spreadObj = () => (u: unknown): unknown => (typeof u === "object" && u !== null && "a" in u ? { ...u } : 0);
+export const spreadArr = () => (u: unknown): unknown => [...u];
+export const forOf = () => (u: unknown): number => { let k = 0; for (const x of u) k++; return k; };
+export const toState = () => (u: unknown): number => { const f = (s: State<number>) => 1; return typeof u === "object" && u !== null && "set" in u ? f(u) : 0; };
+export const toAction = () => (u: unknown): number => { const f = (a: Action<[]>) => 1; return typeof u === "function" ? f(u) : 0; };
+export const toMut = () => (u: unknown): number => { const f = (m: Mut<number[]>) => 1; return Array.isArray(u) ? f(u) : 0; };
+export const toEvents = () => (u: unknown): number => { const f = (e: Events<number>) => 1; return typeof u === "object" && u !== null && "events" in u ? f(u) : 0; };
+export const fnAsRecordProp = () => (u: unknown): number => { const f = (o: { readonly g: (x: number) => number }) => o.g(1); if (typeof u !== "function") return 0; const g = u; return f({ g }); };
+export const awaitIt = () => async (u: unknown): Promise<unknown> => await u;
+export const asyncReturn = () => async (u: unknown): Promise<unknown> => u;
+export const promiseResolve = () => (u: unknown): Promise<unknown> => Promise.resolve(u);
+export const template = () => (u: unknown): string => `${u}`;
+export const concat = () => (u: unknown): string => "x" + u;
+export const arith = () => (u: unknown): number => u + 1;
+export const stringOf = () => (u: unknown): string => String(u);
+export const jsonOf = () => (u: unknown): string => JSON.stringify(u);
+export const jsxChild = () => (u: unknown) => <div>{u}</div>;
+export const jsxHandler = () => (u: unknown) => (typeof u === "function" ? <button onClick={u}>x</button> : <div></div>);
+export const catchCall = () => (): number => { try { return 1; } catch (e) { if (typeof e === "function") e(); return 0; } };
+export const jsonParseCall = () => (s: string): unknown => { const v = JSON.parse(s); return typeof v === "function" ? v() : 0; };
+export const viaObjectType = (n: State<number>) => { const u: object = n; if ("set" in u && typeof u.set === "function") u.set(5); return 1; };
+export const conditional = () => (u: unknown, f: (x: number) => number): unknown => (typeof u === "function" ? u : f)(1);
+export const ternaryAlias = () => (u: unknown): unknown => { const g = typeof u === "function" ? u : null; return g ? g(1) : 0; };
+export const mutHidden = () => (): number => { const m = mut([1]); const u: unknown = m; const r = Array.isArray(u) ? u : []; m.push(2); return r.length; };
+export const optRecordThen = () => (o: O): unknown => (typeof o.then === "function" ? o.then(1) : 0);
+export const recordThenAwait = () => async (): Promise<unknown> => { const r = { then: (n: number) => n.toFixed() }; return await r; };
+export const symbolNever = () => (u: unknown): number => (typeof u === "symbol" ? u.nope.deeper : 0);
+export const awaitNarrowed = () => async (u: unknown): Promise<unknown> => { if (typeof u !== "object" || u === null || !("then" in u)) return 0; const r = await u; return r.then; };
+// open: a record that declares no then may still hold one; await keeps its type (r.a throws when u resolves to undefined)
+export const awaitOtherKey = () => async (u: unknown): Promise<unknown> => { if (typeof u !== "object" || u === null || !("a" in u)) return 0; const r = await u; return r.a; };

@@ -833,6 +833,10 @@ spec_rejects_6 = [
   { statement: "S6.5", rule: "state-write", source: "const c = (): StateCell<number> => state(0);\nconst w = (c: State<number>) => {\n  c.set(1);\n  return 1;\n};" },
   { statement: "S6.5", rule: "state-write", source: "const c = (): StateCell<number> => state(0);\nconst t = (c: State<number>) => () => c.set(1);" },
   { statement: "S6.5", rule: "state-write", source: "const c = (): StateCell<number> => state(0);\nconst g = function* (c: State<number>) {\n  c.set(1);\n  yield 1;\n};" },
+  { statement: "S6.5", rule: "state-write", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  const f = n.set;\n  f(5);\n  return 1;\n};" },
+  { statement: "S6.5", rule: "state-write", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  const { set } = n;\n  set(5);\n  return 1;\n};" },
+  { statement: "S6.5", rule: "state-write", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  [1, 2].forEach(n.set);\n  return 1;\n};" },
+  { statement: "S6.5", rule: "state-write", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  [n][0]?.set(5);\n  return 1;\n};" },
   { statement: "S6.6", rule: "action-call", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a) => {\n  a();\n  return 1;\n};" },
   { statement: "S6.6", rule: "action-pass", source: "const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\nconst b = (a) => [1].map(a);" },
   { statement: "S6.7", rule: "state-in-state", source: "const count = (): StateCell<number> => state(0);\nconst which = (count: State<number>): StateCell<State<number>> => state(count);" },
@@ -916,7 +920,8 @@ test_spec_S6_5 = {
     if (!/outside an action/.test(msg)) throw new Error(`set outside an action gave ${JSON.stringify(msg)}`);
     await spec_flush();
     spec_is(await L.value("count"), 0);
-    return `${spec_rejectsFor("S6.5")}; at run time: ${msg}`;
+    spec_is(spec_okCells("const n = (): StateCell<number> => state(0);\nconst a = (n: State<number>) => action(() => {\n  const f = n.set;\n  const { update } = n;\n  f(1);\n  update((x) => x + 1);\n});"), "n:ok,a:ok");
+    return `${spec_rejectsFor("S6.5")}; set and update read in an action, as a value or by destructuring, are accepted; at run time: ${msg}`;
   } finally { L.dispose(); }
 }
 // %%
@@ -1574,6 +1579,12 @@ md`**S9.3** A foreign declaration (\`declare const\` or \`declare function\`, gi
 // %%
 md`**S9.4** The narrowings of one value combine in any order: a test that excludes \`null\` or \`undefined\` (\`v !== null\`, \`v != null\`, \`!!v\`) and a later \`typeof v === "object"\` narrow \`v\` to \`object\`, as when \`typeof\` is tested first. An assignment to \`v\` ends the exclusion.`
 // %%
+md`**S9.5** The right operand of \`in\` must be an object. One of type \`unknown\`, or of a type parameter, is \`[type]\`, as is one that may be a primitive; one that may be \`null\` or \`undefined\` is \`[possibly-undefined]\`. \`"k" in v\` throws at run time when \`v\` is a primitive; test \`typeof v === "object" && v !== null\` first.`
+// %%
+md`**S9.6** \`typeof v === "function"\` narrows a \`v\` of type \`unknown\`, or of a type parameter, to \`object\`: the test shows that \`v\` is not a primitive, not which arguments it takes. \`object\` has no members and no call signature, so calling it, or passing it where a function or an \`Action\` is expected, is \`[type]\`, and a \`State\` or an \`Action\` that reached \`unknown\` is not written or called through it. \`typeof v === "symbol"\` narrows it to \`symbol\`. A type with a call signature, a function type or an interface or alias with one, has the tag \`"function"\`.`
+// %%
+md`**S9.7** \`await v\`, where \`v\` may be an \`object\`, or a record or interface other than \`Promise\` that declares a \`then\` property, is \`unknown\`: \`await\` calls that \`then\` and gives what it passes on.`
+// %%
 md`The cells of this section. \`s9_raw\` is Observable JavaScript; \`s9_size\` takes it as \`unknown\` and \`s9_decodeSize\` builds a typed \`{ w, h }\` from it.`
 // %%
 s9_raw = ({ w: 3, h: 1.5, extra: true })
@@ -1588,7 +1599,29 @@ spec_rejects_9 = [
   { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (v: unknown): boolean => v !== undefined && typeof v === \"object\" && \"then\" in v;" },
   { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (v: unknown, b: boolean): boolean => (b ? v !== null : true) && typeof v === \"object\" && \"then\" in v;" },
   { statement: "S9.4", rule: "possibly-undefined", source: "type V = { readonly a: { readonly x: number } | null | undefined; readonly \"a!null\": number | undefined };\nconst f = () => (v: V): number => v[\"a!null\"] !== undefined && v.a !== undefined ? v.a.x : 0;" },
-  { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (w: unknown): boolean => {\n  let v = w;\n  if (v === null) return false;\n  v = w;\n  return typeof v === \"object\" && \"then\" in v;\n};" }
+  { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (w: unknown): boolean => {\n  let v = w;\n  if (v === null) return false;\n  v = w;\n  return typeof v === \"object\" && \"then\" in v;\n};" },
+  { statement: "S9.5", rule: "type", source: "const f = () => (v: unknown): boolean => \"then\" in v;" },
+  { statement: "S9.5", rule: "type", source: "const f = () => <T,>(v: T): boolean => \"then\" in v;" },
+  { statement: "S9.5", rule: "type", source: "const f = () => (v: unknown): boolean => typeof v !== \"number\" && \"then\" in v;" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (u: unknown): unknown => (typeof u === \"function\" ? u(1) : 0);" },
+  { statement: "S9.6", rule: "type", source: "const f = () => <T,>(u: T): unknown => (typeof u === \"function\" ? u(1) : 0);" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (u: unknown): unknown => (typeof u === \"function\" ? u?.() : 0);" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (u: unknown): unknown => {\n  if (typeof u !== \"function\") return 0;\n  const w = u;\n  return w(1);\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (u: unknown): unknown => {\n  if (typeof u !== \"object\" || u === null || !(\"g\" in u)) return 0;\n  const { g } = u;\n  return typeof g === \"function\" ? g(2) : 0;\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (u: unknown): unknown => {\n  if (typeof u !== \"function\") return 0;\n  const later = () => u(\"x\");\n  return later();\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (u: unknown): unknown => {\n  const g = typeof u === \"function\" ? u : null;\n  return g ? g(1) : 0;\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (u: unknown): unknown => {\n  const run = (g: (x: number) => unknown) => g(1);\n  return typeof u === \"function\" ? run(u) : 0;\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (u: unknown): unknown => (Array.isArray(u) && typeof u[0] === \"function\" ? u[0](1) : 0);" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (s: string): unknown => {\n  const v = JSON.parse(s);\n  return typeof v === \"function\" ? v() : 0;\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (): number => {\n  try {\n    return 1;\n  } catch (e) {\n    if (typeof e === \"function\") e();\n    return 0;\n  }\n};" },
+  { statement: "S9.6", rule: "type", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  const u: unknown = n;\n  if (typeof u === \"object\" && u !== null && \"set\" in u && typeof u.set === \"function\") u.set(5);\n  return 1;\n};" },
+  { statement: "S9.6", rule: "type", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  const u: object = n;\n  if (\"set\" in u && typeof u.set === \"function\") u.set(5);\n  return 1;\n};" },
+  { statement: "S9.6", rule: "type", source: "const n = (): StateCell<number> => state(0);\nconst bump = (n: State<number>) => action(() => n.update((x) => x + 1));\nconst w = (bump: Action<[]>) => {\n  const go = (u: unknown) => (typeof u === \"function\" ? u() : 0);\n  go(bump);\n  return 1;\n};" },
+  { statement: "S9.6", rule: "type", source: "type O = { readonly then?: unknown };\nconst f = () => (o: O): unknown => (typeof o.then === \"function\" ? o.then(1) : 0);" },
+  { statement: "S9.6", rule: "no-member", source: "const f = () => (u: unknown): number => (typeof u === \"symbol\" ? u.description.length : 0);" },
+  { statement: "S9.6", rule: "no-member", source: "interface G { (x: number): number }\nconst f = () => (g: G): number => (typeof g === \"function\" ? g.nope.deeper : 0);" },
+  { statement: "S9.7", rule: "no-member", source: "const f = () => async (u: unknown): Promise<unknown> => {\n  if (typeof u !== \"object\" || u === null || !(\"then\" in u)) return 0;\n  const r = await u;\n  return r.then;\n};" },
+  { statement: "S9.7", rule: "no-member", source: "type T = { readonly then: (f: (v: number) => void) => void; readonly n: number };\nconst f = () => async (t: T): Promise<number> => (await t).n;" }
 ]
 // %%
 spec_rejects_9_view = spec_rejectsTable(spec_rejects_9)
@@ -1620,6 +1653,22 @@ test_spec_S9_3 = {
 test_spec_S9_4 = {
   spec_is(spec_okCells("const a = () => (v: unknown): boolean => typeof v === \"object\" && v !== null && \"then\" in v;\nconst b = () => (v: unknown): boolean => v !== null && typeof v === \"object\" && \"then\" in v;\nconst c = () => (v: unknown): boolean => !!v && typeof v === \"object\" && \"then\" in v;\nconst d = () => (v: unknown): boolean => v != null && typeof v === \"object\" && \"then\" in v;\nconst e = () => (v: unknown): boolean => {\n  if (v === null) return false;\n  return typeof v === \"object\" && \"then\" in v;\n};\nconst g = () => (v: unknown): boolean => v === null || (typeof v === \"object\" && \"then\" in v);"), "a:ok,b:ok,c:ok,d:ok,e:ok,g:ok");
   return `${spec_rejectsFor("S9.4")}; the null test before or after typeof, !!, != null, an early return and || are accepted`;
+}
+// %%
+test_spec_S9_5 = {
+  spec_is(spec_okCells("type R = { readonly a?: number };\nconst f = () => (r: R): boolean => \"a\" in r;\nconst g = () => (v: unknown): boolean => typeof v === \"object\" && v !== null && \"a\" in v;"), "f:ok,g:ok");
+  return `${spec_rejectsFor("S9.5")}; in on a record type, and on unknown after typeof "object" and !== null, is accepted`;
+}
+// %%
+test_spec_S9_6 = {
+  spec_is(spec_okCells("const thenable = () => (r: unknown): boolean => (typeof r === \"object\" || typeof r === \"function\") && r !== null && \"then\" in r && typeof r.then === \"function\";"), "thenable:ok");
+  spec_is(spec_okCells("interface G { (x: number): number }\nconst f = () => (g: G | number): number => (typeof g === \"function\" ? g(1) : g);\nconst h = () => (g: ((x: number) => number) | string): number => (typeof g === \"function\" ? g(2) : g.length);\nconst s = () => (u: unknown): string => (typeof u === \"symbol\" ? \"symbol\" : typeof u);"), "f:ok,h:ok,s:ok");
+  return `${spec_rejectsFor("S9.6")}; the runtime's thenable test is accepted; a member with a call signature is called after typeof "function"`;
+}
+// %%
+test_spec_S9_7 = {
+  spec_is(spec_okCells("const f = () => async (): Promise<number> => {\n  const r = { a: 1 };\n  return (await r).a + (await Promise.resolve(2));\n};"), "f:ok");
+  return `${spec_rejectsFor("S9.7")}; await of a record with no then, and of a Promise, keeps the type`;
 }
 // %%
 md`## 10. Tests

@@ -5,7 +5,7 @@ import { kids, isFn, type Node, type Parsed } from "./parse.ts";
 import type { Registry } from "./registry.ts";
 import {
   type Ty, type Fn, type Rec, type Param, type Subst, type Flags,
-  NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, BOOL,
+  NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, BOOL, SYMBOL,
   union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames,
 } from "./types.ts";
 import { ALLOWED_GLOBALS, PRELUDE_FNS } from "./intrinsics.ts";
@@ -45,9 +45,9 @@ let nextId = 0;
 let fresh = 0;
 // Action<[A, B]> called as (a0: A, a1: B) => void
 const actionFn = (args: Ty): Fn => ({ k: "fn", tps: [], ps: (args.k === "tup" ? args.els : []).map((t, i) => ({ n: "a" + i, t, opt: false })), ret: VOID });
-// what typeof x === tag says of an unknown x
+// what typeof x === tag says of an unknown x: "function" proves an object, not a signature, so it is not callable
 const TYPEOF = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["undefined", UNDEF],
-  ["object", union([OBJECT, NULL])], ["function", { k: "fn", tps: [], ps: [], rest: UNKNOWN, ret: UNKNOWN }]]);
+  ["symbol", SYMBOL], ["object", union([OBJECT, NULL])], ["function", OBJECT]]);
 const MUTATING_OPS = new Set(["=", "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", ">>>=", "&=", "|=", "^=", "&&=", "||=", "??="]);
 
 export class Checker {
@@ -124,7 +124,11 @@ export class Checker {
       case "lit": return typeof m.v;
       case "fn": return "function";
       case "rec": return m.calls?.length ? "function" : "object";
-      case "named": return m.n === "Action" ? "function" : "object";
+      case "named": {
+        if (m.n === "Action") return "function";
+        const x = this.reg.expand(unwrap(m));
+        return x === m ? "object" : this.typeTag(x);
+      }
       case "arr": case "tup": return "object";
       default: return null; // unknown, object, tv, err
     }
@@ -303,6 +307,7 @@ export class Checker {
           if (prop.computed || (prop.key.type !== "Identifier" && prop.key.type !== "Literal")) { this.unsupported(prop, "computed destructuring key"); continue; }
           const k = prop.key.type === "Identifier" ? prop.key.name : String(prop.key.value);
           used.push(k);
+          if (this.um(t).some((m) => isNamed(unwrap(m), "State") && this.reg.member(m, k)) && !env.fi.inAction) this.err(prop, "state-write", `State.${k} outside action(...)`);
           this.bindPattern(prop.value, this.propOf(t, k, prop), env, kind, extra);
         }
         return;
@@ -516,8 +521,10 @@ export class Checker {
     env.flow = this.join(T, F)!;
     return union([a, b]);
   }
-  awaited(t: Ty): Ty {
-    return union(this.um(t).map((m) => (isNamed(m, "Promise") ? m.args[0] : m)));
+  // await: a member that may be a thenable other than a Promise gives unknown. declared: an async function's
+  // return annotation, where the member is the type returned, not awaited
+  awaited(t: Ty, declared = false): Ty {
+    return union(this.um(t).map((m) => (isNamed(m, "Promise") ? m.args[0] : !declared && (m.k === "object" || this.reg.member(m, "then")) ? UNKNOWN : m)));
   }
   // As TypeScript: when the left operand decides the result on every value, the right one adds nothing.
   logicalType(e: Node, lt: Ty, rt: Ty): Ty {
@@ -585,6 +592,7 @@ export class Checker {
         if (this.reg.expand(m).k === "err") { bad = true; out.push(ERR); continue; } // unconverted alias: reported where it was converted
         const p = this.reg.member(m, name);
         if (!p) { this.memberMissing(m, name, e.property); bad = true; out.push(ERR); continue; }
+        if (isNamed(unwrap(m), "State") && !env.fi.inAction) this.err(e, "state-write", `State.${name} outside action(...)`);
         if (p.flags?.banned) this.err(e, "banned-member", `${this.parsed.src.slice(e.object.start, e.object.end)}.${name} is banned`);
         flags = p.flags ?? flags;
         let pt = propT(p);
@@ -695,7 +703,10 @@ export class Checker {
       }
       case "in":
         if (!this.reg.sub(a, STR)) this.err(e.left, "type", `in with a ${show(a)} key`);
-        for (const m of this.um(b)) if (isPrimitive(m) && m.k !== "err") { this.err(e.right, m.k === "null" || m.k === "undef" ? "possibly-undefined" : "type", `in on a value that may be ${show(m)}`); break; }
+        for (const m of this.um(b)) {
+          if (m.k === "unknown" || m.k === "tv") { this.err(e.right, "type", `in on ${show(m)}, which may be a primitive; narrow it with typeof first`); break; }
+          if (isPrimitive(m) && m.k !== "err") { this.err(e.right, m.k === "null" || m.k === "undef" ? "possibly-undefined" : "type", `in on a value that may be ${show(m)}`); break; }
+        }
         return BOOL;
       default:
         if (this.reg.sub(a, BIGINT) && this.reg.sub(b, BIGINT)) return BIGINT;
@@ -871,7 +882,7 @@ export class Checker {
     let retAnn: Ty | undefined = e.returnType ? this.reg.convert(e.returnType.typeAnnotation, this.typeCtx(inner), this.parsed) : undefined;
     const ctxRet = !retAnn && ctxSig && !hasTv(ctxSig.ret) ? ctxSig.ret : undefined;
     const declared = retAnn ?? ctxRet;
-    if (declared && !fi.isGen) fi.retCtx = fi.isAsync ? this.awaited(declared) : declared.k === "void" ? undefined : declared;
+    if (declared && !fi.isGen) fi.retCtx = fi.isAsync ? this.awaited(declared, true) : declared.k === "void" ? undefined : declared;
     let reachable = true;
     if (e.body.type === "BlockStatement") {
       this.hoist(e.body.body, inner);
@@ -986,8 +997,6 @@ export class Checker {
         const m = callee.type === "ChainExpression" ? callee.expression : callee;
         const fl = this.facts.memberFlags.get(m);
         if (fl?.mutates) this.writeRule(m.object, env, e, "mutating-method");
-        const rt = this.facts.types.get(m.object);
-        if (rt && isNamed(rt, "State") && !env.fi.inAction) this.err(e, "state-write", "State.set/update outside action(...)");
       }
       if (calleeT.k === "err") return bail(true);
       const isShort = e.optional || this.short.has(callee);
