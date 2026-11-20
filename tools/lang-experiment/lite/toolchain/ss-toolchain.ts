@@ -307,7 +307,7 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   // the cell's expression, written in text order so the inputs are listed in order of first use. A state or
   // events cell passes this, the variable's last value (the handle), so the stdlib keeps the handle across runs;
   // an events or listener cell takes invalidation, and a listener cell passes this, its last listener, which its
-  // next run takes over (cells.ts listen).
+  // next run replaces (cells.ts listen).
   // Any other cell is its function applied to its inputs.
   const expr = (r: (i: string) => string) => {
     if (kind === "ref" || kind === "events") {
