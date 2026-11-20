@@ -14,14 +14,14 @@ readme_example = md`\`tally\` is state. \`bump\` and \`reset\` are actions, the 
 // %%
 readme_use = ss_highlightCode(md`## Using it in a module
 
-To write SoundScript cells in another module of this notebook, import \`ss\` and each capability your cells name:
+To write SoundScript cells in another module of this notebook, import each capability your cells name:
 
 \`\`\`
-import { ss, ss_now, ss_random, ss_log, ss_fetch, ss_source } from "@tomlarkworthy/soundscript"
+import { ss_now, ss_random, ss_log, ss_fetch, ss_source } from "@tomlarkworthy/soundscript"
 import { ss_pool } from "@tomlarkworthy/soundscript-workers"   // only in a module with a cell that takes pool
 \`\`\`
 
-Every compiled cell takes \`ss\` as an input: the object \`ss\` of \`@tomlarkworthy/soundscript-runtime\`, which holds what compiled cells call. The checker and compiler are \`soundscript\` of \`@tomlarkworthy/soundscript-checker\`, which the tooling cells of this module use. Add a cell after a SoundScript cell and type a source such as \`const total = (a: number, b: number) => a + b;\`. The editor's header shows the language the cell is stored in. Picking another language there changes the view, not the cell: a SoundScript cell viewed as Observable JavaScript shows its compiled cell text, which cannot be saved from that view, and an Observable JavaScript cell viewed as SoundScript shows \`const <name> = (<inputs>) => <body>;\`, which Shift-Enter stores as SoundScript if it checks. A view that cannot be made (text that does not parse, a \`viewof\` or \`mutable\` cell, a cell with no name, an import, a cell that uses \`this\`) leaves the text as it was and shows the reason beside the picker. A SoundScript cell is checked against the module's other SoundScript cells and, if it is \`ok\`, compiled and defined. A module whose cells call \`compile\` also defines \`ss_compile\`:
+A compiled cell takes each cell of \`@tomlarkworthy/soundscript-runtime\` that it uses as an input of its own, named \`ss_<name>\`: \`ss_action\` for a cell that calls \`action\`, \`ss_ref\` for a state cell. The build and the editor add \`import {action as ss_action} from "@tomlarkworthy/soundscript-runtime"\` when a cell first needs it, and leave it when no cell does any more. A plain cell takes none. The checker and compiler are \`soundscript\` of \`@tomlarkworthy/soundscript-checker\`, which the tooling cells of this module use. Add a cell after a SoundScript cell and type a source such as \`const total = (a: number, b: number) => a + b;\`. The editor's header shows the language the cell is stored in. Picking another language there changes the view, not the cell: a SoundScript cell viewed as Observable JavaScript shows its compiled cell text, which cannot be saved from that view, and an Observable JavaScript cell viewed as SoundScript shows \`const <name> = (<inputs>) => <body>;\`, which Shift-Enter stores as SoundScript if it checks. A view that cannot be made (text that does not parse, a \`viewof\` or \`mutable\` cell, a cell with no name, an import, a cell that uses \`this\`) leaves the text as it was and shows the reason beside the picker. A SoundScript cell is checked against the module's other SoundScript cells and, if it is \`ok\`, compiled and defined. A module whose cells call \`compile\` also defines \`ss_compile\`:
 
 \`\`\`
 ss_compile = soundscript.compiler(() => ss_source(my_module))
@@ -50,7 +50,7 @@ A variable is SoundScript when the first comment in its definition is the marker
 // %%
 readme_memo = md`## When a cell runs
 
-A plain cell compiles to its function applied to its inputs, an ordinary Observable cell, and the Observable runtime decides when it runs: when it is first read, and again whenever one of its inputs was computed again. The runtime does not compare values, so a cell whose input was recomputed to the same value still runs. A cell that calls a built-in or reads a cell of another language has the same shape and also takes \`ss\`. A state cell is \`ss.ref(this, name, inputs, fn)\`, an events cell \`ss.events(this, name, inputs, fn, invalidation)\` and a listener cell \`ss.listen(value, name, invalidation)\`. Until 2026-11-19 every cell was a call of \`ss.cell\`, which kept a result per cell and skipped the body on equal inputs; both are gone.
+A plain cell compiles to its function applied to its inputs, an ordinary Observable cell, and the Observable runtime decides when it runs: when it is first read, and again whenever one of its inputs was computed again. The runtime does not compare values, so a cell whose input was recomputed to the same value still runs. A cell that calls a built-in or reads a cell of another language has the same shape and also takes the runtime cells it uses (\`ss_action\`, \`ss_cross\`). A state cell is \`ss_ref(this, name, inputs, fn)\`, an events cell \`ss_events(this, name, inputs, fn, invalidation)\` and a listener cell \`ss_listen(value, name, invalidation)\`. Until 2026-11-19 every cell was a call of \`ss.cell\`, which kept a result per cell and skipped the body on equal inputs, and until 2026-11-20 every cell took one object \`ss\` holding the whole runtime; all three are gone.
 
 A rejected cell does not run: its definition only raises the checker's messages.`
 // %%
@@ -69,7 +69,7 @@ readme_limits = md`## Limits
 - The editor and visualizer hooks need the \`cell_languages\` plugin point, which only this notebook's copies of \`@tomlarkworthy/cell-map\`, \`@tomlarkworthy/editor-5\` and \`@tomlarkworthy/visualizer\` have. Running these cells with other copies was not tried.
 - A cell that does not parse is stored only if its text starts with \`const <name>\`, \`let <name>\` or \`function <name>\` (after comments, and with or without \`export\`); otherwise there is no name to store it under.
 - A module holds one source file's worth of cells. Unchecked shell cells and trusted foreign declarations, which the checker can read, are not supported here.
-- The renderer's event decoding and \`ss.mount\` are outside the checked language.
+- The renderer's event decoding and \`mount\` of the runtime module are outside the checked language.
 - Publishing these modules to ObservableHQ was not tried.`
 // %%
 readme_api = ss_highlightCode(md`## API
