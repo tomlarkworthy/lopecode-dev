@@ -274,16 +274,27 @@ function copyOpen(v: object, s: Shape, path: string, run: Run, stack: Frame[], k
 // value of that kind, else -1
 const soles = new WeakMap<Shape, number[]>();
 const valueKind = (v: unknown): number => (v === null || (typeof v !== "object" && typeof v !== "function") ? 2 : Array.isArray(v) ? 1 : 0);
-function memberKinds(s: Shape, defs: Map<string, Shape> | null, met: Set<string>): number {
+// wide: a shape that throws other than a mismatch (a function, a ref with no definition) counts as taking every kind
+function memberKinds(s: Shape, defs: Map<string, Shape> | null, met: Set<string>, wide = false): number {
   switch (s.k) {
     case "rec": return 1;
     case "arr": case "tup": return 2;
     case "unknown": return 7;
-    case "union": return s.ts.reduce((a, m) => a | memberKinds(m, defs, met), 0);
-    case "defs": return memberKinds(s.body, defs, met);
-    case "ref": { const d = defs?.get(s.n); if (!d || met.has(s.n)) return 0; met.add(s.n); return memberKinds(d, defs, met); }
+    case "union": return s.ts.reduce((a, m) => a | memberKinds(m, defs, met, wide), 0);
+    case "defs": return memberKinds(s.body, defs, met, wide);
+    case "ref": { const d = defs?.get(s.n); if (!d) return wide ? 7 : 0; if (met.has(s.n)) return 0; met.add(s.n); return memberKinds(d, defs, met, wide); }
+    case "fn": return wide ? 7 : 4;
     default: return 4;
   }
+}
+// per union shape: per member, the kinds of value (bits as memberKinds) it could take. A member that cannot take a
+// primitive fails on one with a mismatch at the union's place, so it is not tried; an object or array is still tried,
+// as the mismatch reads it (describe) and a getter there may throw
+const takes = new WeakMap<Shape, number[]>();
+function takesOf(s: Shape & { k: "union" }, defs: Map<string, Shape> | null): number[] {
+  let hit = takes.get(s);
+  if (!hit) takes.set(s, (hit = s.ts.map((m) => memberKinds(m, defs, new Set(), true))));
+  return hit;
 }
 function soleOf(s: Shape & { k: "union" }, defs: Map<string, Shape> | null): number[] {
   let hit = soles.get(s);
@@ -304,9 +315,11 @@ function soleMiss(v: unknown, s: Shape & { k: "union" }, path: string, run: Run,
 function copyUnion(v: unknown, s: Shape & { k: "union" }, path: string, run: Run, stack: Frame[], i: number, cycle: Mismatch | null, sole: Mismatch | null): unknown {
   const d = dispatchOf(s, run.defs);
   const ts = d ? (i ? [] : !v || typeof v !== "object" || Array.isArray(v) || !plain(v) ? [] : [d.by.get((v as Record<string, unknown>)[d.key])]) : s.ts;
+  const ks = d || valueKind(v) !== 2 ? null : takesOf(s, run.defs);
   for (; i < ts.length; i++) {
     const m = ts[i];
     if (!m) break;
+    if (ks && !(ks[i]! & 4)) continue;
     const at = stack.length;
     try {
       const r = copyEnter(v, m, path, run, stack);

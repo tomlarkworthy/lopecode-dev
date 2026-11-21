@@ -7,8 +7,9 @@ export type Node = { type: string; start: number; end: number; loc: { start: { l
 export type Comment = { block: boolean; text: string; start: number; end: number };
 export type Parsed = { program: Node; comments: Comment[]; src: string; leading(n: Node): Comment[]; line(pos: number): number };
 
-const TS = acorn.Parser.extend(tsPlugin() as any);
-const TSX = acorn.Parser.extend(tsPlugin({ jsx: true }) as any);
+// acorn/acorn-shell.ts parses with these too: a second pair of parser classes makes every parse slower
+export const TS = acorn.Parser.extend(tsPlugin() as any);
+export const TSX = acorn.Parser.extend(tsPlugin({ jsx: true }) as any);
 
 const SKIP = new Set(["loc", "typeAnnotation", "returnType", "typeParameters", "typeArguments", "start", "end", "type"]);
 // Child nodes in source order, types excluded.

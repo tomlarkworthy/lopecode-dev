@@ -141,3 +141,21 @@ keyed by cell and parameter name in one module-wide map, so two modules with the
   is kept in `.scratch/acorn-ship/core.p3-switched.ts`.
 - verify 643 pass 0 fail (AC), completion median 2.4 ms. Notebook 3,687,199 -> 3,908,868 bytes.
 - The frozen-checker differential's `collect.ts` reads `lite/*.ss.ts` only, not `lite/acorn/*.ss.ts`.
+
+## 2026-11-22 night: why the switch to the typed tree is slow; `core.ts` stays unswitched
+Profiled in Chromium on the 47-cell tutorial module (1027 nodes), AC power. Three fixes shipped, no verdict
+changes: (A) a union member that cannot take a primitive value is no longer tried (527 thrown mismatches per
+crossing, mostly `null` in `AstNode | null` fields): switched completion 9.5-10.3 -> 5.6-5.7 ms; (B) one pair
+of parser classes, `acornParse` uses `parse.ts`'s `TS`/`TSX` (a second pair doubled `parse.ts`'s own parse,
+302 -> 591 us): completion 5.6 -> 5.0 ms; (C) no array and closure per node in `acornParse`.
+A wider version of (A), skipping members for objects too, changed verdicts (a value whose `then` getter throws
+went from refused to accepted; 22 of 60 control cases) and was narrowed.
+After the fixes, switched against unswitched: completion 5.0-5.3 vs 2.3 ms (2.17x), lint 4.3-4.6 vs 3.1 ms
+(1.42x), corpus 1472 vs 1050-1068 ms. What the remaining 1.4 ms per check is: acorn's second parse 0.6-0.7 (goes
+when nothing reads `parse.ts`), the rebuild as plain rows about 0.2, the boundary copy and validation 0.4-0.5
+(the cost of the design), the ban walk 0.1. Unexplained: the copy costs more inside completion than inside lint
+in V8. Ruled out: `preorder`/`parents` recomputation, re-linking, several checks per completion, a missing cache.
+So even with one parse, a checked tree costs about 0.8 ms on a 2.2 ms check. For Tom: whether that is acceptable
+(his ruling for the runtime was checked, then readable, then speed), or whether the tree should cross once per
+module text. Until then tree-walking ports ship unswitched, each with a differential test against the TypeScript.
+verify 643 pass 0 fail; completion 2.4 ms. `collect.ts` now includes `lite/acorn/*.ss.ts` (815 sources, 3395 records).

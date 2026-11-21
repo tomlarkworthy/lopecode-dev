@@ -99,7 +99,7 @@ const kind = (v: unknown) => (typeof v === "function" ? (v.toString().startsWith
 const kinds = keys.filter((k) => kind(ss[k]) !== kind(entry[k]));
 t(kinds.length === 0, `each key holds the same kind of value${kinds.length ? ": " + kinds.map((k) => `${k} ${kind(ss[k])} vs ${kind(entry[k])}`).join(", ") : ""}`);
 
-// the acorn cells as built: acornParse reads the one parser_lib, and parseTree (through the compiled boundary) gives
+// the acorn cells as built: acornParse reads the one parser_lib through parse.ts's parsers TS and TSX, and parseTree (through the compiled boundary) gives
 // what the bun-linked one gives, on a parse, a syntax error and a value that does not fit Parse
 {
   const vars = moduleJs(blockContent(html, CHECKER)!).variables;
@@ -116,8 +116,9 @@ t(kinds.length === 0, `each key holds the same kind of value${kinds.length ? ": 
   bad.define("acornParse", [], () => () => ({ ok: true, ast: { program: { type: "Program" }, comments: [], src: "", count: 1 } }));
   bad.define("parseTree", vs.inputs, realize(vs.definition));
   try { (await bad.value("parseTree"))("x", false); } catch (e) { refused = (e as Error).message; }
-  t(inputsOf("acornParse") === JSON.stringify(["acorn", "tsPlugin", "ACORN_ROWS"]) && inputsOf("acorn") === JSON.stringify(["parser_lib"]) && same && frozen && refused !== "",
-    `${CHECKER}: acornParse reads ${inputsOf("acornParse")}, acorn reads ${inputsOf("acorn")}; the built parseTree gives the bun one's value on ${cases.length} texts (${same}), frozen (${frozen}); a parse that does not fit Parse throws: ${refused.slice(0, 120)}`);
+  const viaParse = ["TS", "TSX"].every((n) => inputsOf(n) === JSON.stringify(["acorn", "tsPlugin"]));
+  t(inputsOf("acornParse") === JSON.stringify(["TS", "TSX", "ACORN_ROWS"]) && viaParse && inputsOf("acorn") === JSON.stringify(["parser_lib"]) && same && frozen && refused !== "",
+    `${CHECKER}: acornParse reads ${inputsOf("acornParse")}, TS ${inputsOf("TS")}, TSX ${inputsOf("TSX")}, acorn ${inputsOf("acorn")}; the built parseTree gives the bun one's value on ${cases.length} texts (${same}), frozen (${frozen}); a parse that does not fit Parse throws: ${refused.slice(0, 120)}`);
 }
 
 // the example sources: checked, compiled and decompiled by both, compared as JSON
