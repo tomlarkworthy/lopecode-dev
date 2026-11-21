@@ -1,0 +1,13 @@
+tree: ok
+SYNTAX: ok
+TYPE_POSITIONS: ok
+kindOf: ok
+typeRows: ok
+namedByParent: ok
+argumentsAsName: ok
+isAsConst: ok
+reservedAt: ok
+argumentsAt: ok
+bansAt: ok
+syntaxPass: ok
+visit-c.ss.ts: 12 cells, 0 not ok, 0 prefix cells not ok, 0 module errors; checkSources median 22.1 ms

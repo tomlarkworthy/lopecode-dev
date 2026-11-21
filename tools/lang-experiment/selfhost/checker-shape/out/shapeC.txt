@@ -1,0 +1,42 @@
+errC: ok : (C: Mut<Ctl>, node: Node, rule: string, msg: string) => void
+unsupC: ok : (C: Mut<Ctl>, node: Node, what: string) => void
+newScopeC: ok : (C: Mut<Ctl>, env: EnvC) => EnvC
+lookupC: ok : (V: Mut<Map<string, Binding>>, env: EnvC, n: string) => Binding | undefined
+declareC: ok : (B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, name: string, t: Ty, kind: BKind, nod
+pathKeyC: ok : (V: Mut<Map<string, Binding>>, env: EnvC, n: Node) => string | null
+memberMissingC: ok : (C: Mut<Ctl>, m: Ty, k: string, at: Node, all: Ty) => void
+expectC: ok : (C: Mut<Ctl>, at: Node, t: Ty, expected: Ty) => boolean
+numericC: ok : (C: Mut<Ctl>, at: Node, t: Ty) => boolean
+checkC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+check1C: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+inferC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+literalTC: ok : (e: Literal) => Ty
+infer1C: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+logicalC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+identC: ok : (B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: Identifier) => Ty
+memberC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+bailC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+callC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+applyArgC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, a: 
+solveC: ok : (m: Mut<Map<string, Ty>>, fromRet: Mut<Map<string, Ty>>, tvs: string[]) => void
+arityC: ok : (C: Mut<Ctl>, e: CallExpression, sig: Fn) => void
+applyC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+conditionalC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+narrowSidesC: ok : (TT: Mut<Flow>, FF: Mut<Flow>, k: string, nt: Ty, by: (t: Ty, branch: boolean) => Ty) => void
+narrowPathC: ok : (V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, TT: Mut<Flow>, FF: Mut<Flow>, n: Node, nt: Ty | undefined, by: (t
+discriminantC: ok : (T: Mut<Map<Node, Ty>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, TT: Mut<Flow>, FF: Mut<Flow>, m: Node, can
+narrowCompareC: ok : (T: Mut<Map<Node, Ty>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, TT: Mut<Flow>, FF: Mut<Flow>, e: BinaryExp
+narrowLeafC: ok : (T: Mut<Map<Node, Ty>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: Node, t: Ty) => Cond
+condC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+orderC: ok : (C: Mut<Ctl>, e: BinaryExpression, a: Ty, b: Ty) => void
+binaryC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+unaryC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+stmtsC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, lis
+blockC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, lis
+stmtC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, s: 
+varDeclC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, d: 
+knotC: ok : RecurC
+diagsOut: ok : (log: DLog | null) => Diag[]
+checkerC: ok : (input: Input) => Output
+checker: lite/core.ts@6e5c19a4d12d lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/own.ts@03c38600d97b
+41 cells (splitCells units: type declarations count), 0 not ok, 0 module errors, check 22328 ms

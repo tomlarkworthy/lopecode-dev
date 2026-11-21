@@ -1,0 +1,202 @@
+lite/boundary.ts	import ./types.ts	ImportDeclaration	1	i	
+lite/boundary.ts	import ./runtime-ss.ts	ImportDeclaration	1	i	
+lite/boundary.ts	export from ./runtime-ss.ts	ExportNamedDeclaration	1	i	
+lite/boundary.ts	shapeOf	FunctionDeclaration	40	a	shape.ss.ts shapeOf + 4 cells; checks after 2 rewrites (tagged error for `in`; one case per literal)
+lite/boundary.ts	shapeOf.sub	const	1	a	inner of shapeOf
+lite/boundary.ts	describe	const	10	m	describeData (primitives, arrays) checks; the object branch needs getPrototypeOf, .constructor, .then on object (attempts/copy.ss.ts)
+lite/boundary.ts	plain	const	1	b	foreign prototype test; also [no-member] getPrototypeOf, [banned-member] Object.prototype (repro/getPrototypeOf, object-prototype)
+lite/boundary.ts	Mismatch	ClassDeclaration	1	c	[no-class] ClassDeclaration (repro/class); a result value replaces it in attempts/copy.ss.ts
+lite/boundary.ts	copy	FunctionDeclaration	54	b	walks a foreign value; also [no-member] hasOwn, [type] cannot index object with string, [object-freeze] (repro/hasOwn, index-object, freeze-nonliteral)
+lite/boundary.ts	copy.fail	const	1	b	inner of copy
+lite/boundary.ts	last	const	1	b	module-level container
+lite/boundary.ts	crossings	const	1	b	module-level counter
+lite/boundary.ts	cross	FunctionDeclaration	12	b	writes last and crossings; translates Mismatch
+lite/boundary.ts	checkShape	FunctionDeclaration	6	b	translates Mismatch
+lite/jsx/h.ts	import ../runtime-ss.ts	ImportDeclaration	1	i	
+lite/jsx/h.ts	type Elem	TSTypeAliasDeclaration	1	t	
+lite/jsx/h.ts	elementsMade	const	1	b	WeakSet brand (repro/weakset)
+lite/jsx/h.ts	isElement	const	1	b	WeakSet brand
+lite/jsx/h.ts	madeByH	const	1	b	WeakSet brand
+lite/jsx/h.ts	h	FunctionDeclaration	5	m	elemRecord checks after a rewrite (entries copy for { ...props }; drops symbol keys); the component call, Object.freeze of a non-literal and the brand stay
+lite/browser/workers.ts	type Job	TSTypeAliasDeclaration	1	t	
+lite/browser/workers.ts	EXEC	const	33	b	JavaScript source text a worker runs with new Function
+lite/browser/workers.ts	runHere	const	1	b	new Function
+lite/browser/workers.ts	WORKER	const	12	b	JavaScript source text
+lite/browser/workers.ts	type Slot	TSTypeAliasDeclaration	1	t	
+lite/browser/workers.ts	type Queued	TSTypeAliasDeclaration	1	t	
+lite/browser/workers.ts	type Pool	TSTypeAliasDeclaration	1	t	
+lite/browser/workers.ts	superseded	const	1	b	constructs an Error with Object.assign
+lite/browser/workers.ts	makePool	FunctionDeclaration	65	m	pool.ss.ts: 15 cells decide queue, slot, superseded drop, resend once, failures; pool-shell.ts keeps workers, promises, posts
+lite/browser/workers.ts	makePool.slots	const	1	b	inner
+lite/browser/workers.ts	makePool.queue	const	1	b	inner
+lite/browser/workers.ts	makePool.waiting	const	1	b	inner
+lite/browser/workers.ts	makePool.next	let	1	b	inner
+lite/browser/workers.ts	makePool.send	const	4	b	inner: postMessage
+lite/browser/workers.ts	makePool.pump	const	20	a	inner: pool.ss.ts pump, takeLive
+lite/browser/workers.ts	shared	let	1	b	module-level container
+lite/browser/workers.ts	pagePool	FunctionDeclaration	6	m	poolSize checks; navigator, Blob, URL.createObjectURL, Worker stay
+lite/stdlib/runtime.ts	import ../../prelude.runtime.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	import ../jsx/h.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	import ../jsx/render.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	import ../runtime-ss.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	import ../jsx/lower.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	import ../browser/erase.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	import ../browser/cells.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	export from (local)	ExportNamedDeclaration	1	i	
+lite/stdlib/runtime.ts	export from (local)	ExportNamedDeclaration	1	i	
+lite/stdlib/runtime.ts	import ../island.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	import ../browser/workers.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	export from ../toolchain/ss-toolchain.ts	ExportNamedDeclaration	1	i	
+lite/stdlib/runtime.ts	import ../toolchain/ss-toolchain.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	import ../parse.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	import ../core.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	export from ../boundary.ts	ExportNamedDeclaration	1	i	
+lite/stdlib/runtime.ts	import ../boundary.ts	ImportDeclaration	1	i	
+lite/stdlib/runtime.ts	export from (local)	ExportNamedDeclaration	1	i	
+lite/stdlib/runtime.ts	export from ../complete.ts	ExportNamedDeclaration	1	i	
+lite/stdlib/runtime.ts	checks	const	1	b	module-level cache
+lite/stdlib/runtime.ts	checked	let	1	b	module-level counter
+lite/stdlib/runtime.ts	checksRun	const	1	b	reads a counter
+lite/stdlib/runtime.ts	check	FunctionDeclaration	10	m	checkKey, lruTouch check (lruTouch after a rewrite: keys().next() is unsupported); the checkSources call stays
+lite/stdlib/runtime.ts	checkCells	FunctionDeclaration	27	m	standIns checks; parse, declaredName, check and defineProperty stay
+lite/stdlib/runtime.ts	checkCells.source	const	1	b	inner
+lite/stdlib/runtime.ts	export from ../runtime-ss.ts	ExportNamedDeclaration	1	i	
+lite/stdlib/runtime.ts	export from ../../prelude.runtime.ts	ExportNamedDeclaration	1	i	
+lite/stdlib/runtime.ts	viewRef	FunctionDeclaration	7	b	tests a foreign element's shape, calls JavaScript functions
+lite/stdlib/runtime.ts	export from (local)	ExportNamedDeclaration	1	i	
+lite/stdlib/runtime.ts	made	let	1	b	page-wide counter
+lite/stdlib/runtime.ts	ISLANDS	const	1	a	a constant
+lite/stdlib/runtime.ts	joined	const	1	b	module-level cache
+lite/stdlib/runtime.ts	joinCells	FunctionDeclaration	7	m	lruTouch
+lite/stdlib/runtime.ts	compiler	FunctionDeclaration	45	m	refusedCells, islandKey, lruTouch; island(), erase, lowerJsx, runHere and the owner objects stay
+lite/stdlib/runtime.ts	compiler.owners	const	1	b	inner
+lite/stdlib/runtime.ts	compiler.keys	const	1	b	inner
+lite/stdlib/runtime.ts	compiler.keyFor	const	8	a	inner: islandKey + lruTouch
+lite/stdlib/runtime.ts	mount	FunctionDeclaration	7	b	DOM; its decision is keepsNode, already a cell
+lite/browser/cells.ts	import ../../prelude.runtime.ts	ImportDeclaration	1	i	
+lite/browser/cells.ts	import ../runtime-ss.ts	ImportDeclaration	1	i	
+lite/browser/cells.ts	export from ../facts.ts	ExportNamedDeclaration	1	i	
+lite/browser/cells.ts	generatorish	const	1	b	tests a foreign value; also [no-member] no property next on object (repro/unknown-member)
+lite/browser/cells.ts	guard	FunctionDeclaration	9	b	wraps a user generator, writes rt.evalDepth
+lite/browser/cells.ts	EVENTS	const	1	b	symbol brand; also [unsupported] intrinsic Symbol (repro/symbol-for)
+lite/browser/cells.ts	LISTENER	const	1	b	symbol brand
+lite/browser/cells.ts	type Gen	TSTypeAliasDeclaration	1	t	
+lite/browser/cells.ts	type Handle	TSTypeAliasDeclaration	1	t	
+lite/browser/cells.ts	type Listener	TSTypeAliasDeclaration	1	t	
+lite/browser/cells.ts	delivery	let	1	b	the one Delivery value
+lite/browser/cells.ts	lastId	let	1	b	id counter
+lite/browser/cells.ts	idOf	const	1	b	WeakMap identity
+lite/browser/cells.ts	idFor	const	1	b	WeakMap identity
+lite/browser/cells.ts	handleObjects	const	1	b	id -> object
+lite/browser/cells.ts	listenerObjects	const	0	b	id -> object
+lite/browser/cells.ts	generators	const	0	b	id -> object
+lite/browser/cells.ts	madeHandles	const	1	b	WeakSet brand
+lite/browser/cells.ts	making	let	1	b	the user function being fed
+lite/browser/cells.ts	scheduler	const	1	b	requestAnimationFrame
+lite/browser/cells.ts	feed	FunctionDeclaration	10	b	driver: step, then perform
+lite/browser/cells.ts	perform	FunctionDeclaration	31	b	runs generators, actions, placeOf; console.error (repro/console)
+lite/browser/cells.ts	handleIds	const	1	b	WeakSet brand
+lite/browser/cells.ts	isEvents	const	1	b	WeakSet brand
+lite/browser/cells.ts	isListener	const	1	b	symbol brand
+lite/browser/cells.ts	on	const	1	b	symbol brand; Object.freeze of a computed-key literal
+lite/browser/cells.ts	nameAction	const	1	b	WeakMap
+lite/browser/cells.ts	running	const	1	b	wrapper over runningCount
+lite/browser/cells.ts	liveEvents	const	1	b	wrapper over liveEventsCount
+lite/browser/cells.ts	pulling	const	1	b	wrapper over pullingCount
+lite/browser/cells.ts	events	FunctionDeclaration	8	b	identity, user generator function, invalidation promise
+lite/browser/cells.ts	openHandle	FunctionDeclaration	8	b	makes the brand object
+lite/browser/cells.ts	placeOf	let	1	b	host function
+lite/browser/cells.ts	setListenerOrder	const	1	b	host function
+lite/browser/cells.ts	listenerOrderChanged	const	1	b	feeds an event
+lite/browser/cells.ts	listen	FunctionDeclaration	10	b	tests a foreign value, identity
+lite/browser/cells.ts	release	FunctionDeclaration	5	b	identity
+lite/browser/cells.ts	sweep	FunctionDeclaration	4	b	identity: values.has(object)
+prelude.runtime.ts	import ./lite/runtime-ss.ts	ImportDeclaration	1	i	
+prelude.runtime.ts	export from ./lite/runtime-ss.ts	ExportNamedDeclaration	1	i	
+prelude.runtime.ts	STATECELL	const	1	b	symbol brand; also [unsupported] intrinsic Symbol (repro/symbol-for)
+prelude.runtime.ts	ACTION	const	1	b	symbol brand
+prelude.runtime.ts	REFHANDLE	const	1	b	symbol brand
+prelude.runtime.ts	type ViewEl	TSTypeAliasDeclaration	1	t	
+prelude.runtime.ts	actionNames	const	1	b	WeakMap
+prelude.runtime.ts	actionNamer	const	1	b	host function
+prelude.runtime.ts	nameOf	const	1	b	WeakMap
+prelude.runtime.ts	storeState	let	1	b	the one StoreState value
+prelude.runtime.ts	rt	const	7	b	counters and getters
+prelude.runtime.ts	records	const	1	b	WeakMap
+prelude.runtime.ts	over	const	1	b	WeakMap
+prelude.runtime.ts	viewEls	const	1	b	WeakMap
+prelude.runtime.ts	storeHandleOf	const	1	b	WeakMap
+prelude.runtime.ts	recordOf	const	1	b	WeakMap
+prelude.runtime.ts	nameOfHandle	const	1	b	symbol-keyed read
+prelude.runtime.ts	storeFeed	FunctionDeclaration	7	b	driver
+prelude.runtime.ts	performStore	FunctionDeclaration	10	b	setTimeout, DOM events, view elements
+prelude.runtime.ts	seenValue	const	6	b	reads a view element's value; its decision is the Seen value, already a cell
+prelude.runtime.ts	commit	FunctionDeclaration	6	b	reads WeakMap records
+prelude.runtime.ts	reset	FunctionDeclaration	5	b	writes counters
+prelude.runtime.ts	idle	const	1	b	wrapper over isIdle
+prelude.runtime.ts	state	FunctionDeclaration	3	b	symbol-keyed brand; also [unsupported] computed property (repro/computed-key)
+prelude.runtime.ts	isStateCell	const	1	b	own-symbol test; also [no-member] hasOwn (repro/hasOwn)
+prelude.runtime.ts	isAction	const	1	b	own-symbol test
+prelude.runtime.ts	isRefHandle	const	1	b	own-symbol test
+prelude.runtime.ts	write	FunctionDeclaration	5	b	runs the user update function
+prelude.runtime.ts	handleOf	FunctionDeclaration	10	b	EventTarget, defineProperties (repro/event-target, define-property)
+prelude.runtime.ts	madeStore	const	2	b	feeds an event
+prelude.runtime.ts	materialize	FunctionDeclaration	5	b	makes a handle
+prelude.runtime.ts	read	FunctionDeclaration	3	b	WeakMap
+prelude.runtime.ts	ref	FunctionDeclaration	14	b	runs the user function; its decision is refPlan, already a cell
+prelude.runtime.ts	views	const	1	b	WeakMap
+prelude.runtime.ts	viewHandle	FunctionDeclaration	9	b	WeakMaps
+prelude.runtime.ts	action	FunctionDeclaration	10	b	runs user code; defineProperty
+prelude.runtime.ts	snapshot	FunctionDeclaration	4	c	[type] structuredClone of T, which may be or hold a function; [no-member] no property isView; [unsupported] instanceof (repro/structuredClone-T, arraybuffer-isview, instanceof)
+prelude.runtime.ts	equals	FunctionDeclaration	27	c	[no-member] getPrototypeOf; [unsupported] instanceof; [no-member] size on object (attempts/copy.ss.ts equals)
+prelude.runtime.ts	equals.ka	const	1	c	inner
+prelude.runtime.ts	hash	FunctionDeclaration	5	a	small.ss.ts hash; checks after a rewrite: Math has no imul ([no-member], repro/math-imul), imul cell from 16-bit halves
+prelude.runtime.ts	makeRandom	FunctionDeclaration	9	m	randomStep checks (same imul rewrite); the closure over the state stays
+prelude.runtime.ts	makeClock	FunctionDeclaration	4	c	[let-capture] let t assigned from a function that escapes (repro/let-capture)
+prelude.runtime.ts	makeLog	FunctionDeclaration	3	b	closure pushing to a sink
+lite/jsx/render.ts	import ./h.ts	ImportDeclaration	1	i	
+lite/jsx/render.ts	import ../runtime-ss.ts	ImportDeclaration	1	i	
+lite/jsx/render.ts	asText	const	2	a	small.ss.ts asText checks as is
+lite/jsx/render.ts	keyOf	const	1	a	small.ss.ts keyOf checks as is
+lite/jsx/render.ts	kidOf	const	1	b	isElement brand
+lite/jsx/render.ts	drawnOf	const	2	b	reads DOM node fields
+lite/jsx/render.ts	create	FunctionDeclaration	12	b	DOM
+lite/jsx/render.ts	applyProp	FunctionDeclaration	18	b	DOM
+lite/jsx/render.ts	applyChildren	FunctionDeclaration	15	b	DOM
+lite/jsx/render.ts	patch	FunctionDeclaration	8	b	DOM
+
+totals (top-level units only; inner units are part of their function's lines)
+ALL a	5 units	49 lines
+ALL b	93 units	431 lines
+ALL c	4 units	36 lines
+ALL i	33 units	33 lines
+ALL m	9 units	184 lines
+ALL t	9 units	9 lines
+lite/boundary.ts a	1 units	40 lines
+lite/boundary.ts b	6 units	75 lines
+lite/boundary.ts c	1 units	1 lines
+lite/boundary.ts i	3 units	3 lines
+lite/boundary.ts m	1 units	10 lines
+lite/browser/cells.ts b	32 units	107 lines
+lite/browser/cells.ts i	3 units	3 lines
+lite/browser/cells.ts t	3 units	3 lines
+lite/browser/workers.ts b	5 units	48 lines
+lite/browser/workers.ts m	2 units	71 lines
+lite/browser/workers.ts t	4 units	4 lines
+lite/jsx/h.ts b	3 units	3 lines
+lite/jsx/h.ts i	1 units	1 lines
+lite/jsx/h.ts m	1 units	5 lines
+lite/jsx/h.ts t	1 units	1 lines
+lite/jsx/render.ts a	2 units	3 lines
+lite/jsx/render.ts b	6 units	56 lines
+lite/jsx/render.ts i	2 units	2 lines
+lite/stdlib/runtime.ts a	1 units	1 lines
+lite/stdlib/runtime.ts b	7 units	19 lines
+lite/stdlib/runtime.ts i	22 units	22 lines
+lite/stdlib/runtime.ts m	4 units	89 lines
+prelude.runtime.ts a	1 units	5 lines
+prelude.runtime.ts b	34 units	123 lines
+prelude.runtime.ts c	3 units	35 lines
+prelude.runtime.ts i	2 units	2 lines
+prelude.runtime.ts m	1 units	9 lines
+prelude.runtime.ts t	1 units	1 lines

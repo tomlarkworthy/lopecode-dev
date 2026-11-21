@@ -1,0 +1,7 @@
+module shape: original 32 code lines; port A 60
+syntax pass: original 24 code lines; port A 55; port B 68; port C 54 (with kindOf and tree)
+captures: original 78 code lines; port A 100
+line + leading: parse.ts inside parse(), see RESULTS; port A 20
+visit-a.ss.ts: 31 cells, 237 code lines; largest spreadTaint 16, statementCells 14, moduleShape 13
+visit-b.ss.ts: 13 cells, 68 code lines; largest bansAt 13, typeRows 9, namedByParent 6
+checker .ts files (16): 114 functions/methods take a Node parameter; 705 call sites call one by name; 398 .type reads; 3 for-in loops

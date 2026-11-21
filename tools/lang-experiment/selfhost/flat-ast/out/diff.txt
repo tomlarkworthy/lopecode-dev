@@ -1,0 +1,13 @@
+ports, corpus: 361 inputs, 0 skipped (do not parse, or checkSources throws); 1001 cells
+  module shape: 361 same, 0 differ; inputs with a module-shape error: 16
+  syntaxPass A: 1001 same, 0 differ; B: 1001 same, 0 differ; C: 1001 same, 0 differ; cells with a diagnostic: 14 (16 diagnostics)
+  captures: 1001 same, 0 differ; cells with a capture: 84 (113 captures)
+  lineOf: 33731 same, 0 differ; leading: 33731 same, 0 differ (203 nodes with a leading comment)
+ports, synthetic: 3 inputs, 0 skipped (do not parse, or checkSources throws); 20 cells
+  module shape: 3 same, 0 differ; inputs with a module-shape error: 3
+  syntaxPass A: 20 same, 0 differ; B: 20 same, 0 differ; C: 20 same, 0 differ; cells with a diagnostic: 4 (12 diagnostics)
+  captures: 20 same, 0 differ; cells with a capture: 4 (7 captures)
+  lineOf: 797 same, 0 differ; leading: 797 same, 0 differ (2 nodes with a leading comment)
+control (namedByParent ignores computed): shape differ 0, syntaxPass A differ 1, captures differ 0
+control (readsBinding counts labels): shape differ 0, syntaxPass A differ 0, captures differ 1
+control (moduleLevelRule drops no-var): shape differ 1, syntaxPass A differ 0, captures differ 0

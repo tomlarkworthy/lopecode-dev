@@ -1,0 +1,12 @@
+describe: rejected (10 lines)
+    [no-member] L117 no property then on object
+    [no-member] L118 no property getPrototypeOf on Object (the intrinsics record)
+    [no-member] L118 no property constructor on object
+copyRec: rejected (16 lines)
+    [no-member] L128 no property hasOwn on Object (the intrinsics record)
+    [type] L129 cannot index object with string
+equals: rejected (8 lines)
+    [no-member] L142 no property getPrototypeOf on Object (the intrinsics record)
+    [no-member] L143 no property size on object
+    [unsupported] L143 instanceof
+3 cells, 3 not accepted, 0 module errors

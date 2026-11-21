@@ -1,0 +1,62 @@
+== common.ss.ts
+regView: ok : RegView
+exclusion: ok : (x: string, path: string) => string
+pathOf: ok : (key: string) => string
+TYPEOF: ok : Map<string, Ty>
+memberless: ok : (m: Ty) => boolean
+um: ok : (t: Ty) => Ty[]
+filter: ok : (t: Ty, keep: (m: Ty) => Ty | boolean) => Ty
+truthy: ok : (t: Ty) => Ty
+falsy: ok : (t: Ty) => Ty
+nonNullish: ok : (t: Ty) => Ty
+nonUndef: ok : (t: Ty) => Ty
+typeTag: ok : (m: Ty) => string | null
+narrowTypeof: ok : (t: Ty, tag: string, pos: boolean) => Ty
+narrowEq: ok : (t: Ty, v: Ty, pos: boolean, loose: boolean) => Ty
+narrowByProp: ok : (t: Ty, k: string, test: (pt: Ty) => boolean) => Ty
+join: ok : (a: Flow | null, b: Flow | null) => Flow | null
+join2: ok : (a: Flow, b: Flow) => Flow
+logicalType: ok : (op: string, lt: Ty, rt: Ty) => Ty
+intrinsicName: ok : (m: Ty) => string | null
+noOverlap: ok : (a: Ty, b: Ty) => boolean
+promiseArg: ok : (m: Ty) => Ty | null
+awaited: ok : (t: Ty, declared: boolean) => Ty
+settled: ok : (t: Ty) => Ty
+ctxOnly: ok : (t: Ty, tvs: Set<string>) => Ty | undefined
+memberPath: ok : (n: MemberExpression) => string | null
+ctxSensitive: ok : (e: Node) => boolean
+collapseArrays: ok : (t: Ty) => Ty
+typeofTest: ok : (a: Node, b: Node) => { arg: Node; tag: string } | null
+checker: lite/core.ts@6e5c19a4d12d lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/own.ts@03c38600d97b
+29 cells (splitCells units: type declarations count), 0 not ok, 0 module errors, check 645 ms
+
+== h_knot.ss.ts
+evPure: ok : (R: Recur, st: Ctr, x: number) => { st: Ctr; v: number }
+knotA: rejected : Recur
+    [free-name] L16 free name R
+knotB: ok : Recur
+evW: ok : (R: RecurW, w: W, x: number) => number
+knotW: rejected : (x: number) => { types: Map<number, string>; diags: string[]; next: number }
+    [mut-escape] L43 Mut types placed in an object literal
+    [mut-escape] L43 Mut diags placed in an object literal
+    [mut-escape] L43 Mut ctr placed in an object literal
+evM: ok : (R: RecurM, types: Mut<Map<number, string>>, x: number) => number
+knotM: ok : (x: number) => Map<number, string>
+knotC: ok : Recur
+rollback: ok : (diags: Mut<string[]>, ctl: Mut<Ctl>) => number
+knotCapture: rejected : (x: number) => number
+    [mut-capture] L88 Mut types captured by a function that escapes (not a local helper that is only called)
+pairLoop: rejected : (m: Map<string, number>) => number
+    [mut-escape] L96 Mut T placed in an array literal
+    [mut-escape] L96 Mut F placed in an array literal
+checker: lite/core.ts@6e5c19a4d12d lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/own.ts@03c38600d97b
+12 cells (splitCells units: type declarations count), 4 not ok, 0 module errors, check 130 ms
+
+== h_borrow.ss.ts
+viaBorrow: rejected : (t: Ty) => Ty
+    [borrow-placement] L5 borrow(x) only as the operand of yield in a generator cell
+    [borrow-placement] L7 borrow(x) only as the operand of yield in a generator cell
+viaCopy: ok : (t: Ty) => Ty
+checker: lite/core.ts@6e5c19a4d12d lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/own.ts@03c38600d97b
+2 cells (splitCells units: type declarations count), 1 not ok, 0 module errors, check 134 ms
+

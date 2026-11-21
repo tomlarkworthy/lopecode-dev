@@ -1,0 +1,5 @@
+k=  8 records: per call 0.45 ms
+k= 16 records: per call 1.08 ms
+k= 32 records: per call 2.61 ms
+k= 64 records: per call 8.01 ms
+k=126 records: per call 31.36 ms

@@ -1,0 +1,2 @@
+alphabetical: shape members begin ArrayExpression, ArrayPattern, ArrowFunctionExpression, AssignmentExpression; cross over the corpus 1710 ms
+by frequency: shape members begin Identifier, Literal, TSTypeAnnotation, MemberExpression; cross over the corpus 337 ms

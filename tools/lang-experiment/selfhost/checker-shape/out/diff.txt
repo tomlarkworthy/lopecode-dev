@@ -1,0 +1,115 @@
+real checker: lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/types.ss.ts@75707e80a705
+64 programs, 0 outside the slice, 18 with a diagnostic from the real checker, 0 whose listed rules differ from the real ones
+differential A: 64 pass, 0 fail
+  (A met 3 callees with more than one signature)
+differential B: 64 pass, 0 fail
+  (B met 3 callees with more than one signature)
+differential B2: 64 pass, 0 fail
+  (B2 met 3 callees with more than one signature)
+differential C: 64 pass, 0 fail
+  (C met 3 callees with more than one signature)
+differential A-control (join2 returns its first flow): 62 pass, 2 fail
+  cond-flow-after: 2 differences, first: type Identifier@67-68: real number | undefined, shape number
+  expr-stmt-cond-flow: 2 differences, first: type Identifier@57-58: real number | undefined, shape number
+differential A-control (narrowByProp keeps every member): 60 pass, 4 fail
+  discriminant: 7 differences, first: type Identifier@87-88: real { k: "A"; a: number }, shape { k: "A"; a: number } | { k: "B"; b: string }
+  discriminant-neg: 7 differences, first: type Identifier@87-88: real { k: "B"; b: string }, shape { k: "A"; a: number } | { k: "B"; b: string }
+  discriminant-wrong: 2 differences, first: type Identifier@87-88: real { k: "A"; a: number }, shape { k: "A"; a: number } | { k: "B"; b: string }
+  path-narrow: 5 differences, first: type MemberExpression@85-88: real { k: "A"; a: number }, shape { k: "A"; a: number } | { k: "B" }
+differential B-control (join2 returns its first flow): 62 pass, 2 fail
+  cond-flow-after: 2 differences, first: type Identifier@67-68: real number | undefined, shape number
+  expr-stmt-cond-flow: 2 differences, first: type Identifier@57-58: real number | undefined, shape number
+differential B-control (narrowByProp keeps every member): 60 pass, 4 fail
+  discriminant: 7 differences, first: type Identifier@87-88: real { k: "A"; a: number }, shape { k: "A"; a: number } | { k: "B"; b: string }
+  discriminant-neg: 7 differences, first: type Identifier@87-88: real { k: "B"; b: string }, shape { k: "A"; a: number } | { k: "B"; b: string }
+  discriminant-wrong: 2 differences, first: type Identifier@87-88: real { k: "A"; a: number }, shape { k: "A"; a: number } | { k: "B"; b: string }
+  path-narrow: 5 differences, first: type MemberExpression@85-88: real { k: "A"; a: number }, shape { k: "A"; a: number } | { k: "B" }
+differential B2-control (join2 returns its first flow): 62 pass, 2 fail
+  cond-flow-after: 2 differences, first: type Identifier@67-68: real number | undefined, shape number
+  expr-stmt-cond-flow: 2 differences, first: type Identifier@57-58: real number | undefined, shape number
+differential B2-control (narrowByProp keeps every member): 60 pass, 4 fail
+  discriminant: 7 differences, first: type Identifier@87-88: real { k: "A"; a: number }, shape { k: "A"; a: number } | { k: "B"; b: string }
+  discriminant-neg: 7 differences, first: type Identifier@87-88: real { k: "B"; b: string }, shape { k: "A"; a: number } | { k: "B"; b: string }
+  discriminant-wrong: 2 differences, first: type Identifier@87-88: real { k: "A"; a: number }, shape { k: "A"; a: number } | { k: "B"; b: string }
+  path-narrow: 5 differences, first: type MemberExpression@85-88: real { k: "A"; a: number }, shape { k: "A"; a: number } | { k: "B" }
+differential C-control (join2 returns its first flow): 62 pass, 2 fail
+  cond-flow-after: 2 differences, first: type Identifier@67-68: real number | undefined, shape number
+  expr-stmt-cond-flow: 2 differences, first: type Identifier@57-58: real number | undefined, shape number
+differential C-control (narrowByProp keeps every member): 60 pass, 4 fail
+  discriminant: 7 differences, first: type Identifier@87-88: real { k: "A"; a: number }, shape { k: "A"; a: number } | { k: "B"; b: string }
+  discriminant-neg: 7 differences, first: type Identifier@87-88: real { k: "B"; b: string }, shape { k: "A"; a: number } | { k: "B"; b: string }
+  discriminant-wrong: 2 differences, first: type Identifier@87-88: real { k: "A"; a: number }, shape { k: "A"; a: number } | { k: "B"; b: string }
+  path-narrow: 5 differences, first: type MemberExpression@85-88: real { k: "A"; a: number }, shape { k: "A"; a: number } | { k: "B" }
+differential B-control (errB returns the state unchanged): 44 pass, 20 fail
+  free-name: 1 differences, first: diags: real ["[free-name] Identifier@25-26 free name y"], shape []
+  let-uninit: 1 differences, first: diags: real ["[unsupported] VariableDeclarator@22-23 let without a type or initializer"], shape []
+  member-missing: 1 differences, first: diags: real ["[no-member] Identifier@43-44 no property c on { a: number }"], shape []
+  member-union-missing: 1 differences, first: diags: real ["[no-member] Identifier@75-76 no property a on { k: \"B\"; b: string }"], shape []
+  member-undef: 1 differences, first: diags: real ["[possibly-undefined] Identifier@55-56 property a of a value that may be undefined"], shape []
+  discriminant-wrong: 1 differences, first: diags: real ["[no-member] Identifier@89-90 no property b on { k: \"A\"; a: number }","[no-member] Identifier@95-96 no property a on { k: \"B
+  call-few: 1 differences, first: diags: real ["[arity] CallExpression@49-52 expected at least 1 arguments, got 0"], shape []
+  call-many: 1 differences, first: diags: real ["[arity] CallExpression@49-56 expected at most 1 arguments, got 2"], shape []
+  call-arg-type: 1 differences, first: diags: real ["[type] Literal@51-54 \"s\" is not assignable to number"], shape []
+  call-not-callable: 1 differences, first: diags: real ["[type] CallExpression@34-38 number is not callable"], shape []
+  call-maybe-undef: 1 differences, first: diags: real ["[type] CallExpression@54-57 call of () => number | undefined"], shape []
+  call-undef-arg: 1 differences, first: diags: real ["[possibly-undefined] Identifier@74-75 number | undefined is not assignable to number"], shape []
+  overload-second: 2 differences, first: type CallExpression@72-78: real string, shape number
+  overload-none: 3 differences, first: type CallExpression@72-79: real string, shape number
+  overload-cond-arg: 1 differences, first: type CallExpression@110-126: real string, shape number
+  strict-eq-object: 1 differences, first: diags: real ["[strict-eq-object] BinaryExpression@59-66 === on two non-primitive operands; use equals(a, b)"], shape []
+  no-overlap: 1 differences, first: diags: real ["[type] BinaryExpression@34-43 === between number and \"s\", which have no value in common"], shape []
+  unary-minus: 1 differences, first: diags: real ["[type] Identifier@35-36 string used as a number"], shape []
+  plus-num: 1 differences, first: diags: real ["[possibly-undefined] Identifier@61-62 number | undefined used as a number"], shape []
+  dead-code: 1 differences, first: diags: real ["[free-name] Identifier@38-39 free name q"], shape []
+differential B2-control (errB returns the state unchanged): 44 pass, 20 fail
+  free-name: 1 differences, first: diags: real ["[free-name] Identifier@25-26 free name y"], shape []
+  let-uninit: 1 differences, first: diags: real ["[unsupported] VariableDeclarator@22-23 let without a type or initializer"], shape []
+  member-missing: 1 differences, first: diags: real ["[no-member] Identifier@43-44 no property c on { a: number }"], shape []
+  member-union-missing: 1 differences, first: diags: real ["[no-member] Identifier@75-76 no property a on { k: \"B\"; b: string }"], shape []
+  member-undef: 1 differences, first: diags: real ["[possibly-undefined] Identifier@55-56 property a of a value that may be undefined"], shape []
+  discriminant-wrong: 1 differences, first: diags: real ["[no-member] Identifier@89-90 no property b on { k: \"A\"; a: number }","[no-member] Identifier@95-96 no property a on { k: \"B
+  call-few: 1 differences, first: diags: real ["[arity] CallExpression@49-52 expected at least 1 arguments, got 0"], shape []
+  call-many: 1 differences, first: diags: real ["[arity] CallExpression@49-56 expected at most 1 arguments, got 2"], shape []
+  call-arg-type: 1 differences, first: diags: real ["[type] Literal@51-54 \"s\" is not assignable to number"], shape []
+  call-not-callable: 1 differences, first: diags: real ["[type] CallExpression@34-38 number is not callable"], shape []
+  call-maybe-undef: 1 differences, first: diags: real ["[type] CallExpression@54-57 call of () => number | undefined"], shape []
+  call-undef-arg: 1 differences, first: diags: real ["[possibly-undefined] Identifier@74-75 number | undefined is not assignable to number"], shape []
+  overload-second: 2 differences, first: type CallExpression@72-78: real string, shape number
+  overload-none: 3 differences, first: type CallExpression@72-79: real string, shape number
+  overload-cond-arg: 1 differences, first: type CallExpression@110-126: real string, shape number
+  strict-eq-object: 1 differences, first: diags: real ["[strict-eq-object] BinaryExpression@59-66 === on two non-primitive operands; use equals(a, b)"], shape []
+  no-overlap: 1 differences, first: diags: real ["[type] BinaryExpression@34-43 === between number and \"s\", which have no value in common"], shape []
+  unary-minus: 1 differences, first: diags: real ["[type] Identifier@35-36 string used as a number"], shape []
+  plus-num: 1 differences, first: diags: real ["[possibly-undefined] Identifier@61-62 number | undefined used as a number"], shape []
+  dead-code: 1 differences, first: diags: real ["[free-name] Identifier@38-39 free name q"], shape []
+differential C-control (errC writes nothing): 44 pass, 20 fail
+  free-name: 1 differences, first: diags: real ["[free-name] Identifier@25-26 free name y"], shape []
+  let-uninit: 1 differences, first: diags: real ["[unsupported] VariableDeclarator@22-23 let without a type or initializer"], shape []
+  member-missing: 1 differences, first: diags: real ["[no-member] Identifier@43-44 no property c on { a: number }"], shape []
+  member-union-missing: 1 differences, first: diags: real ["[no-member] Identifier@75-76 no property a on { k: \"B\"; b: string }"], shape []
+  member-undef: 1 differences, first: diags: real ["[possibly-undefined] Identifier@55-56 property a of a value that may be undefined"], shape []
+  discriminant-wrong: 1 differences, first: diags: real ["[no-member] Identifier@89-90 no property b on { k: \"A\"; a: number }","[no-member] Identifier@95-96 no property a on { k: \"B
+  call-few: 1 differences, first: diags: real ["[arity] CallExpression@49-52 expected at least 1 arguments, got 0"], shape []
+  call-many: 1 differences, first: diags: real ["[arity] CallExpression@49-56 expected at most 1 arguments, got 2"], shape []
+  call-arg-type: 1 differences, first: diags: real ["[type] Literal@51-54 \"s\" is not assignable to number"], shape []
+  call-not-callable: 1 differences, first: diags: real ["[type] CallExpression@34-38 number is not callable"], shape []
+  call-maybe-undef: 1 differences, first: diags: real ["[type] CallExpression@54-57 call of () => number | undefined"], shape []
+  call-undef-arg: 1 differences, first: diags: real ["[possibly-undefined] Identifier@74-75 number | undefined is not assignable to number"], shape []
+  overload-second: 2 differences, first: type CallExpression@72-78: real string, shape number
+  overload-none: 3 differences, first: type CallExpression@72-79: real string, shape number
+  overload-cond-arg: 1 differences, first: type CallExpression@110-126: real string, shape number
+  strict-eq-object: 1 differences, first: diags: real ["[strict-eq-object] BinaryExpression@59-66 === on two non-primitive operands; use equals(a, b)"], shape []
+  no-overlap: 1 differences, first: diags: real ["[type] BinaryExpression@34-43 === between number and \"s\", which have no value in common"], shape []
+  unary-minus: 1 differences, first: diags: real ["[type] Identifier@35-36 string used as a number"], shape []
+  plus-num: 1 differences, first: diags: real ["[possibly-undefined] Identifier@61-62 number | undefined used as a number"], shape []
+  dead-code: 1 differences, first: diags: real ["[free-name] Identifier@38-39 free name q"], shape []
+time per program (mean of per-program medians, 20 reps): real 5.1 µs, A 5.2 µs, B 13.3 µs, B2 13.1 µs, C 5.1 µs
+sweep chain n=10 (56 typed nodes, 0 diagnostics; A same, B same, B2 same, C same): real 47.3 µs, A 29.3 µs, B 54.6 µs, B2 52.8 µs, C 29.7 µs
+sweep chain n=100 (596 typed nodes, 0 diagnostics; A same, B same, B2 same, C same): real 456.7 µs, A 303.1 µs, B 3573.3 µs, B2 554.3 µs, C 368.1 µs
+sweep chain n=1000 (5996 typed nodes, 0 diagnostics; A same, B same, B2 same, C same): real 5307.0 µs, A 3871.6 µs, B 116597.0 µs, B2 6693.9 µs, C 3267.0 µs
+sweep diags n=10 (11 typed nodes, 10 diagnostics; A same, B same, B2 same, C same): real 6.8 µs, A 4.5 µs, B 19.0 µs, B2 17.1 µs, C 5.4 µs
+sweep diags n=100 (101 typed nodes, 100 diagnostics; A same, B same, B2 same, C same): real 48.7 µs, A 33.5 µs, B 263.4 µs, B2 135.1 µs, C 28.0 µs
+sweep diags n=1000 (1001 typed nodes, 1000 diagnostics; A same, B same, B2 same, C same): real 378.5 µs, A 183.2 µs, B 6126.3 µs, B2 3178.6 µs, C 173.8 µs
+sweep blocks n=10 (61 typed nodes, 0 diagnostics; A same, B same, B2 same, C same): real 31.8 µs, A 30.7 µs, B 57.6 µs, B2 41.3 µs, C 25.2 µs
+sweep blocks n=100 (601 typed nodes, 0 diagnostics; A same, B same, B2 same, C same): real 297.9 µs, A 219.1 µs, B 2212.0 µs, B2 379.7 µs, C 282.9 µs
+sweep blocks n=1000 (6001 typed nodes, 0 diagnostics; A same, B same, B2 same, C same): real 2868.2 µs, A 2394.2 µs, B 86390.2 µs, B2 8233.6 µs, C 2155.0 µs

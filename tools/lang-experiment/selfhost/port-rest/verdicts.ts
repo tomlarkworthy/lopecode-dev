@@ -1,0 +1,78 @@
+// Class of each unit units.ts finds (2026-11-21). a: decision over plain data, the whole unit could be a checked cell;
+// m: mixed, a decision part was written as cells (named) and the rest is shell; b: inherently shell; c: blocked by a
+// checker limit (the message, repro file in repro/); t: type declaration; i: import or re-export.
+// An inner unit (name.inner) is listed, not counted in the totals.
+type V = { cls: "a" | "m" | "b" | "c" | "t" | "i"; why: string };
+const b = (why: string): V => ({ cls: "b", why });
+const c = (why: string): V => ({ cls: "c", why });
+const t: V = { cls: "t", why: "" }, i: V = { cls: "i", why: "" };
+const B = "lite/boundary.ts", H = "lite/jsx/h.ts", W = "lite/browser/workers.ts", R = "lite/stdlib/runtime.ts", C = "lite/browser/cells.ts", P = "prelude.runtime.ts", D = "lite/jsx/render.ts";
+const V0: Record<string, V> = {
+  [`${B}:shapeOf`]: { cls: "a", why: "shape.ss.ts shapeOf + 4 cells; checks after 2 rewrites (tagged error for `in`; one case per literal)" },
+  [`${B}:shapeOf.sub`]: { cls: "a", why: "inner of shapeOf" },
+  [`${B}:describe`]: { cls: "m", why: "describeData (primitives, arrays) checks; the object branch needs getPrototypeOf, .constructor, .then on object (attempts/copy.ss.ts)" },
+  [`${B}:plain`]: b("foreign prototype test; also [no-member] getPrototypeOf, [banned-member] Object.prototype (repro/getPrototypeOf, object-prototype)"),
+  [`${B}:Mismatch`]: c("[no-class] ClassDeclaration (repro/class); a result value replaces it in attempts/copy.ss.ts"),
+  [`${B}:copy`]: b("walks a foreign value; also [no-member] hasOwn, [type] cannot index object with string, [object-freeze] (repro/hasOwn, index-object, freeze-nonliteral)"),
+  [`${B}:copy.fail`]: b("inner of copy"),
+  [`${B}:last`]: b("module-level container"), [`${B}:crossings`]: b("module-level counter"),
+  [`${B}:cross`]: b("writes last and crossings; translates Mismatch"), [`${B}:checkShape`]: b("translates Mismatch"),
+  [`${H}:elementsMade`]: b("WeakSet brand (repro/weakset)"), [`${H}:isElement`]: b("WeakSet brand"), [`${H}:madeByH`]: b("WeakSet brand"),
+  [`${H}:h`]: { cls: "m", why: "elemRecord checks after a rewrite (entries copy for { ...props }; drops symbol keys); the component call, Object.freeze of a non-literal and the brand stay" },
+  [`${W}:EXEC`]: b("JavaScript source text a worker runs with new Function"), [`${W}:runHere`]: b("new Function"), [`${W}:WORKER`]: b("JavaScript source text"),
+  [`${W}:superseded`]: b("constructs an Error with Object.assign"),
+  [`${W}:makePool`]: { cls: "m", why: "pool.ss.ts: 15 cells decide queue, slot, superseded drop, resend once, failures; pool-shell.ts keeps workers, promises, posts" },
+  [`${W}:makePool.slots`]: b("inner"), [`${W}:makePool.queue`]: b("inner"), [`${W}:makePool.waiting`]: b("inner"), [`${W}:makePool.next`]: b("inner"),
+  [`${W}:makePool.send`]: b("inner: postMessage"), [`${W}:makePool.pump`]: { cls: "a", why: "inner: pool.ss.ts pump, takeLive" },
+  [`${W}:shared`]: b("module-level container"),
+  [`${W}:pagePool`]: { cls: "m", why: "poolSize checks; navigator, Blob, URL.createObjectURL, Worker stay" },
+  [`${R}:checks`]: b("module-level cache"), [`${R}:checked`]: b("module-level counter"), [`${R}:checksRun`]: b("reads a counter"),
+  [`${R}:check`]: { cls: "m", why: "checkKey, lruTouch check (lruTouch after a rewrite: keys().next() is unsupported); the checkSources call stays" },
+  [`${R}:checkCells`]: { cls: "m", why: "standIns checks; parse, declaredName, check and defineProperty stay" },
+  [`${R}:checkCells.source`]: b("inner"),
+  [`${R}:viewRef`]: b("tests a foreign element's shape, calls JavaScript functions"),
+  [`${R}:made`]: b("page-wide counter"), [`${R}:ISLANDS`]: { cls: "a", why: "a constant" }, [`${R}:joined`]: b("module-level cache"),
+  [`${R}:joinCells`]: { cls: "m", why: "lruTouch" },
+  [`${R}:compiler`]: { cls: "m", why: "refusedCells, islandKey, lruTouch; island(), erase, lowerJsx, runHere and the owner objects stay" },
+  [`${R}:compiler.owners`]: b("inner"), [`${R}:compiler.keys`]: b("inner"), [`${R}:compiler.keyFor`]: { cls: "a", why: "inner: islandKey + lruTouch" },
+  [`${R}:mount`]: b("DOM; its decision is keepsNode, already a cell"),
+  [`${C}:generatorish`]: b("tests a foreign value; also [no-member] no property next on object (repro/unknown-member)"),
+  [`${C}:guard`]: b("wraps a user generator, writes rt.evalDepth"),
+  [`${C}:EVENTS`]: b("symbol brand; also [unsupported] intrinsic Symbol (repro/symbol-for)"), [`${C}:LISTENER`]: b("symbol brand"),
+  [`${C}:delivery`]: b("the one Delivery value"), [`${C}:lastId`]: b("id counter"), [`${C}:idOf`]: b("WeakMap identity"), [`${C}:idFor`]: b("WeakMap identity"),
+  [`${C}:handleObjects`]: b("id -> object"), [`${C}:listenerObjects`]: b("id -> object"), [`${C}:generators`]: b("id -> object"), [`${C}:madeHandles`]: b("WeakSet brand"),
+  [`${C}:making`]: b("the user function being fed"), [`${C}:scheduler`]: b("requestAnimationFrame"),
+  [`${C}:feed`]: b("driver: step, then perform"), [`${C}:perform`]: b("runs generators, actions, placeOf; console.error (repro/console)"),
+  [`${C}:handleIds`]: b("WeakSet brand"), [`${C}:isEvents`]: b("WeakSet brand"), [`${C}:isListener`]: b("symbol brand"), [`${C}:on`]: b("symbol brand; Object.freeze of a computed-key literal"),
+  [`${C}:nameAction`]: b("WeakMap"), [`${C}:running`]: b("wrapper over runningCount"), [`${C}:liveEvents`]: b("wrapper over liveEventsCount"), [`${C}:pulling`]: b("wrapper over pullingCount"),
+  [`${C}:events`]: b("identity, user generator function, invalidation promise"), [`${C}:openHandle`]: b("makes the brand object"),
+  [`${C}:placeOf`]: b("host function"), [`${C}:setListenerOrder`]: b("host function"), [`${C}:listenerOrderChanged`]: b("feeds an event"),
+  [`${C}:listen`]: b("tests a foreign value, identity"), [`${C}:release`]: b("identity"), [`${C}:sweep`]: b("identity: values.has(object)"),
+  [`${P}:STATECELL`]: b("symbol brand; also [unsupported] intrinsic Symbol (repro/symbol-for)"), [`${P}:ACTION`]: b("symbol brand"), [`${P}:REFHANDLE`]: b("symbol brand"),
+  [`${P}:actionNames`]: b("WeakMap"), [`${P}:actionNamer`]: b("host function"), [`${P}:nameOf`]: b("WeakMap"),
+  [`${P}:storeState`]: b("the one StoreState value"), [`${P}:rt`]: b("counters and getters"),
+  [`${P}:records`]: b("WeakMap"), [`${P}:over`]: b("WeakMap"), [`${P}:viewEls`]: b("WeakMap"),
+  [`${P}:storeHandleOf`]: b("WeakMap"), [`${P}:recordOf`]: b("WeakMap"), [`${P}:nameOfHandle`]: b("symbol-keyed read"),
+  [`${P}:storeFeed`]: b("driver"), [`${P}:performStore`]: b("setTimeout, DOM events, view elements"),
+  [`${P}:seenValue`]: b("reads a view element's value; its decision is the Seen value, already a cell"),
+  [`${P}:commit`]: b("reads WeakMap records"), [`${P}:reset`]: b("writes counters"), [`${P}:idle`]: b("wrapper over isIdle"),
+  [`${P}:state`]: b("symbol-keyed brand; also [unsupported] computed property (repro/computed-key)"),
+  [`${P}:isStateCell`]: b("own-symbol test; also [no-member] hasOwn (repro/hasOwn)"), [`${P}:isAction`]: b("own-symbol test"), [`${P}:isRefHandle`]: b("own-symbol test"),
+  [`${P}:write`]: b("runs the user update function"), [`${P}:handleOf`]: b("EventTarget, defineProperties (repro/event-target, define-property)"),
+  [`${P}:madeStore`]: b("feeds an event"), [`${P}:materialize`]: b("makes a handle"), [`${P}:read`]: b("WeakMap"),
+  [`${P}:ref`]: b("runs the user function; its decision is refPlan, already a cell"), [`${P}:views`]: b("WeakMap"), [`${P}:viewHandle`]: b("WeakMaps"),
+  [`${P}:action`]: b("runs user code; defineProperty"),
+  [`${P}:snapshot`]: c("[type] structuredClone of T, which may be or hold a function; [no-member] no property isView; [unsupported] instanceof (repro/structuredClone-T, arraybuffer-isview, instanceof)"),
+  [`${P}:equals`]: c("[no-member] getPrototypeOf; [unsupported] instanceof; [no-member] size on object (attempts/copy.ss.ts equals)"),
+  [`${P}:equals.ka`]: c("inner"),
+  [`${P}:hash`]: { cls: "a", why: "small.ss.ts hash; checks after a rewrite: Math has no imul ([no-member], repro/math-imul), imul cell from 16-bit halves" },
+  [`${P}:makeRandom`]: { cls: "m", why: "randomStep checks (same imul rewrite); the closure over the state stays" },
+  [`${P}:makeClock`]: c("[let-capture] let t assigned from a function that escapes (repro/let-capture)"),
+  [`${P}:makeLog`]: b("closure pushing to a sink"),
+  [`${D}:asText`]: { cls: "a", why: "small.ss.ts asText checks as is" }, [`${D}:keyOf`]: { cls: "a", why: "small.ss.ts keyOf checks as is" },
+  [`${D}:kidOf`]: b("isElement brand"), [`${D}:drawnOf`]: b("reads DOM node fields"),
+  [`${D}:create`]: b("DOM"), [`${D}:applyProp`]: b("DOM"), [`${D}:applyChildren`]: b("DOM"), [`${D}:patch`]: b("DOM"),
+};
+export const VERDICTS: Record<string, V> = V0;
+// type declarations, imports and re-exports, by kind (units.ts asks for these)
+export const kindVerdict = (kind: string): V | null => (kind.startsWith("TS") ? t : kind === "ImportDeclaration" || kind === "ExportNamedDeclaration" || kind === "ExportAllDeclaration" ? i : null);

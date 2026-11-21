@@ -1,0 +1,55 @@
+newPool: ok (3 lines)
+withSlot: ok (2 lines)
+addKey: ok (1 lines)
+takeLive: ok (5 lines)
+withoutJobs: ok (1 lines)
+pump: ok (14 lines)
+settle: ok (6 lines)
+andPump: ok (5 lines)
+onRun: ok (3 lines)
+onPosted: ok (6 lines)
+onPostFailed: ok (6 lines)
+onMessage: ok (14 lines)
+onWorkerError: ok (9 lines)
+poolStep: ok (9 lines)
+answeredOf: ok (1 lines)
+15 cells, 0 not accepted, 0 module errors
+boolUnion: ok (5 lines)
+shapesOf: ok (6 lines)
+recShape: ok (7 lines)
+namedShape: ok (7 lines)
+shapeOf: ok (23 lines)
+5 cells, 0 not accepted, 0 module errors
+checkKey: ok (3 lines)
+lruTouch: ok (10 lines)
+standIns: ok (17 lines)
+refusedCells: ok (5 lines)
+islandKey: ok (3 lines)
+poolSize: ok (2 lines)
+imul: ok (7 lines)
+hash: ok (6 lines)
+randomStep: ok (7 lines)
+asText: ok (3 lines)
+keyOf: ok (2 lines)
+elemRecord: ok (4 lines)
+describeData: ok (9 lines)
+13 cells, 0 not accepted, 0 module errors
+== attempts/shape.v1
+shapesOf: rejected (6 lines)
+    [type] L323 { k: "num"; error: unknown } | { k: "str"; error: unknown } | { k: "bool"; error: unknown } | { k: "null"; error: unknown } | { k: "undef"; error: unknown } | { k: "unknown"; error: unknown } | { k: "lit"; v: string | number | boolean; error: unknown } | { k: "arr"; el: Shape; error: unknown } | { k: "tup"; els: Shape[]; error: unknown } | { k: "rec"; props: [string, Shape, boolean][]; error: unknown } | { k: "union"; ts: Shape[]; error: unknown } | { error: string } is not assignable to Shape[] | { error: string }
+shapeOf: rejected (20 lines)
+    [type] L349 { k: "num" | "str" | "null" | "unknown" } is not assignable to ShapeOr
+    [type] L354 Shape[] | { error: string } is not assignable to ShapeOr
+    [type] L355 Shape[] | { error: string } is not assignable to ShapeOr
+5 cells, 2 not accepted, 0 module errors
+== attempts/small.v1
+lruTouch: unsupported (11 lines)
+    [unsupported] L127 intrinsic member Iterable.next
+hash: rejected (6 lines)
+    [no-member] L166 no property imul on Math (the intrinsics record)
+randomStep: rejected (7 lines)
+    [no-member] L173 no property imul on Math (the intrinsics record)
+    [no-member] L174 no property imul on Math (the intrinsics record)
+elemRecord: unsupported (3 lines)
+    [unsupported] L187 object spread of { [k: string]: unknown }
+12 cells, 4 not accepted, 0 module errors

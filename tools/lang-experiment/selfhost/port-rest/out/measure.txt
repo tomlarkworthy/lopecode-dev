@@ -1,0 +1,5 @@
+worker pool: original 66 unchecked lines; prototype shell 46 unchecked lines; 15 cells, 77 checked lines (largest 13)
+checkCells stand-ins: original 27 unchecked lines; prototype shell 18 unchecked lines; 1 cells, 15 checked lines (largest 15)
+check key + LRU: original 12 unchecked lines; prototype shell 9 unchecked lines; 2 cells, 10 checked lines (largest 8) (makeCheck folds checks/checked into a closure; checksRun not rewritten)
+shapeOf: original 40 unchecked lines; prototype shell 0 unchecked lines; 5 cells, 45 checked lines (largest 22) (shell adapter not written: the untag line of shape.test.ts, about 2 lines)
+hash + makeRandom: original 14 unchecked lines; prototype shell 0 unchecked lines; 3 cells, 16 checked lines (largest 6) (shell not written: makeRandom over hash/randomStep, about 4 lines)

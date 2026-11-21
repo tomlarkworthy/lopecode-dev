@@ -1,0 +1,79 @@
+=== repro/arraybuffer-isview.ss.ts
+isView: rejected (2 lines)
+    [no-member] L2 no property isView on {  }
+=== repro/class.ss.ts
+Mismatch: rejected (2 lines)
+    [no-class] L2 ClassDeclaration
+=== repro/computed-key.ss.ts
+state: unsupported (2 lines)
+    [unsupported] L2 computed property
+=== repro/console.ss.ts
+report: rejected (2 lines)
+    [free-name] L2 free name console
+=== repro/define-property.ss.ts
+mark: rejected (2 lines)
+    [banned-member] L2 Object.defineProperty is banned
+=== repro/event-target.ss.ts
+handle: rejected (2 lines)
+    [new-non-intrinsic] L2 new on something that is not an allowed intrinsic
+=== repro/freeze-nonliteral.ss.ts
+fr: rejected (2 lines)
+    [object-freeze] L2 Object.freeze takes one object or array literal
+=== repro/getPrototypeOf.ss.ts
+plain: rejected (2 lines)
+    [no-member] L2 no property getPrototypeOf on { entries: <T>(o: { [k: string]: T }) => [string, T][]; keys: (o: object) => string[]; values: <T>(o: { [k: string]: T }) => T[]; fromEntries: <T>(entries: Iterable<[string, T]>) => { [k: string]: T }; is: (a: unknown, b: unknown) => boolean; defineProperty: (o: unknown, k: unknown, d: unknown) => unknown; setPrototypeOf: (o: unknown, p: unknown) => unknown; defineProperties: (o: unknown, d: unknown) => unknown; prototype: unknown }
+=== repro/hasOwn.ss.ts
+has: rejected (2 lines)
+    [no-member] L2 no property hasOwn on { entries: <T>(o: { [k: string]: T }) => [string, T][]; keys: (o: object) => string[]; values: <T>(o: { [k: string]: T }) => T[]; fromEntries: <T>(entries: Iterable<[string, T]>) => { [k: string]: T }; is: (a: unknown, b: unknown) => boolean; defineProperty: (o: unknown, k: unknown, d: unknown) => unknown; setPrototypeOf: (o: unknown, p: unknown) => unknown; defineProperties: (o: unknown, d: unknown) => unknown; prototype: unknown }
+=== repro/in-narrow.ss.ts
+errOf: rejected (1 lines)
+    [type] L4 { k: "a"; error: unknown } | { error: string } is not assignable to { error: string } | null
+=== repro/index-object.ss.ts
+get: rejected (2 lines)
+    [type] L2 cannot index object with string
+=== repro/index-spread.ss.ts
+copy: unsupported (2 lines)
+    [unsupported] L2 object spread of { [k: string]: unknown }
+=== repro/instanceof.ss.ts
+isMap: unsupported (2 lines)
+    [unsupported] L2 instanceof
+=== repro/iterable-next.ss.ts
+oldest: unsupported (2 lines)
+    [unsupported] L2 intrinsic member Iterable.next
+=== repro/let-capture.ss.ts
+makeClock: rejected (2 lines)
+    [let-capture] L2 let t assigned from a function that escapes
+=== repro/listener-placement.ss.ts
+on: ok (2 lines)
+=== repro/literal-union-key.ss.ts
+same: rejected (1 lines)
+    [type] L4 { k: "num" | "str" } is not assignable to K
+=== repro/math-imul.ss.ts
+mul: rejected (2 lines)
+    [no-member] L2 no property imul on { PI: number; E: number; LN2: number; LN10: number; SQRT2: number; abs: (x: number) => number; floor: (x: number) => number; ceil: (x: number) => number; round: (x: number) => number; trunc: (x: number) => number; sign: (x: number) => number; sqrt: (x: number) => number; cbrt: (x: number) => number; exp: (x: number) => number; log: (x: number) => number; log2: (x: number) => number; log10: (x: number) => number; sin: (x: number) => number; cos: (x: number) => number; tan: (x: number) => number; asin: (x: number) => number; acos: (x: number) => number; atan: (x: number) => number; atan2: (y: number, x: number) => number; pow: (x: number, y: number) => number; min: (...r: number[]) => number; max: (...r: number[]) => number; hypot: (...r: number[]) => number; fround: (x: number) => number; random: () => number }
+=== repro/object-prototype.ss.ts
+isProto: rejected (2 lines)
+    [banned-member] L2 Object.prototype is banned
+    [strict-eq-object] L2 === on two non-primitive operands; use equals(a, b)
+=== repro/structuredClone-T.ss.ts
+snapshot: rejected (2 lines)
+    [type] L2 structuredClone of T, which may be or hold a function (its type is T): the clone would throw or lose it
+=== repro/symbol-for.ss.ts
+STATECELL: unsupported (2 lines)
+    [unsupported] L2 intrinsic Symbol has no signature in lite/intrinsics.ts
+=== repro/unknown-member.ss.ts
+generatorish: rejected (2 lines)
+    [no-member] L2 no property next on object
+=== repro/weakset.ss.ts
+elementsMade: rejected (2 lines)
+    [new-non-intrinsic] L2 new on something that is not an allowed intrinsic
+=== repro/weakmap.ss.ts
+records: rejected (2 lines)
+    [new-non-intrinsic] L2 new on something that is not an allowed intrinsic
+=== repro/let-capture-random.ss.ts
+makeRandom: rejected (2 lines)
+    [let-capture] L2 let a assigned from a function that escapes
+randomStep: ok (1 lines)
+=== repro/computed-key-on.ss.ts
+on: unsupported (2 lines)
+    [unsupported] L2 computed property

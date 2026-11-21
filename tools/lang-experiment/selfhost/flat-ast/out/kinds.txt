@@ -1,0 +1,28 @@
+checker files (lite/*.ts, no tests): 25
+named node types: 119; through a regex only: 15: TSConstructorType TSDeclareMethod TSEnumMember TSIndexedAccessType TSInterfaceBody TSIntersectionType TSModuleBlock TSNamedTupleMember TSOptionalType TSQualifiedName TSRestType TSTypeAnnotation TSTypeParameter TSTypeParameterDeclaration TSTypeParameterInstantiation
+  not in the census (acorn as parse.ts configures it never produced them): 2: ObjectProperty ParenthesizedExpression
+census node types: 133; never named: 16: ClassBody ExportAllDeclaration ExportDefaultDeclaration ExportSpecifier ImportSpecifier JSXClosingElement JSXClosingFragment JSXMemberExpression JSXNamespacedName JSXOpeningFragment JSXSpreadAttribute MetaProperty PrivateIdentifier Program Super TemplateElement
+survey file set (inventory.ts FILES, 20 files) names 122; not named by lite/*.ts: Block ClassBody ExportDefaultDeclaration
+  named by lite/*.ts, not by the survey files: 
+survey union (probes/ast.ss.ts): 104 type literals; not named by lite/*.ts: Program TemplateElement
+  of those, named by the survey files: 
+.type reads not covered by a pattern: 19
+  lite/capture.ts:26 x.type === "string") refs(
+  lite/capture.ts:27 v.type === "string") refs(
+  lite/core.ts:35 x.type !== "string") retur
+  lite/core.ts:39 x.type);
+  lite/core.ts:84 st.type} is not a declarati
+  lite/core.ts:127 d.type} at module level`);
+  lite/infer.ts:367 p.type}`);
+  lite/infer.ts:641 e.type); return ERR;
+  lite/infer.ts:661 c.type); return ERR; }
+  lite/infer.ts:932 t.type}`);
+  lite/infer.ts:1529 s.type); return true;
+  lite/own.ts:184 p.type;
+  lite/own.ts:409 s.type} in a function hold
+  lite/parse.ts:20 x.type === "string") out.p
+  lite/parse.ts:21 v.type === "string") out.p
+  lite/registry.ts:123 q.type}`);
+  lite/registry.ts:152 e.type); return ERR; }
+  lite/registry.ts:193 n.type.replace(/^TS/, "") 
+  lite/registry.ts:224 m.type);

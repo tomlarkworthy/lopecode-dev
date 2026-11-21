@@ -1,0 +1,14 @@
+     0.7 ms  bansAt
+     0.6 ms  syntaxPass
+     0.5 ms  typeRows
+     0.3 ms  namedByParent
+     0.3 ms  SYNTAX
+     0.3 ms  reservedAt
+     0.3 ms  isAsConst
+     0.2 ms  argumentsAt
+     0.2 ms  argumentsAsName
+     0.2 ms  kid
+     0.2 ms  text
+     0.1 ms  TYPE_POSITIONS
+     0.1 ms  flag
+4.1 ms in 13 cells

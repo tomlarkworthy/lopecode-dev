@@ -1,0 +1,135 @@
+== shapeA.ss.ts
+checkerA: ok : (input: Input) => Output
+checker: lite/core.ts@6e5c19a4d12d lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/own.ts@03c38600d97b
+1 cells (splitCells units: type declarations count), 0 not ok, 0 module errors, check 16932 ms
+
+== shapeB.ss.ts
+errB: ok : (st: St, node: Node, rule: string, msg: string) => St
+unsupB: ok : (st: St, node: Node, what: string) => St
+newScopeB: ok : (st: St, p: number) => { st: St; scope: number }
+lookupB: ok : (st: St, scope0: number, n: string) => Binding | undefined
+declareB: ok : (st: St, env: Env, name: string, t: Ty, kind: BKind, node: Node | null) => St
+pathKeyB: ok : (st: St, env: Env, n: Node) => string | null
+memberMissingB: ok : (st: St, m: Ty, k: string, at: Node, all: Ty) => St
+expectB: ok : (st: St, at: Node, t: Ty, expected: Ty) => St
+numericB: ok : (st: St, at: Node, t: Ty) => St
+checkB: ok : (R: RecurB, st: St, env: Env, e: Node, expected: Ty | undefined, soft: boolean, ctx: boolean) => Res
+check1B: ok : (R: RecurB, st: St, env: Env, e: Node, expected: Ty | undefined, soft: boolean) => Res
+inferB: ok : (R: RecurB, st: St, env: Env, e: Node) => Res
+literalT: ok : (e: Literal) => Ty
+infer1B: ok : (R: RecurB, st: St, env: Env, e: Node) => Res
+logicalB: ok : (R: RecurB, st: St, env: Env, e: LogicalExpression) => Res
+identB: ok : (st: St, env: Env, e: Identifier) => Res
+memberB: ok : (R: RecurB, st0: St, env: Env, e: MemberExpression) => Res
+bailB: ok : (R: RecurB, st0: St, env: Env, e: CallExpression) => Res
+callB: ok : (R: RecurB, st0: St, env: Env, e: CallExpression, expected: Ty | undefined) => Res
+applyArgB: ok : (R: RecurB, st: St, env: Env, a: Node, p: Ty | undefined, opt: boolean, tvSet: Set<string>, m: Mut<Map<string, Ty>>, fro
+solveB: ok : (m: Mut<Map<string, Ty>>, fromRet: Mut<Map<string, Ty>>, tvs: string[]) => void
+arityB: ok : (st: St, e: CallExpression, sig: Fn) => St
+applyB: ok : (R: RecurB, st0: St, env: Env, e: CallExpression, sig0: Fn, expected: Ty | undefined) => Res
+conditionalB: ok : (R: RecurB, st: St, env: Env, e: ConditionalExpression, expected: Ty | undefined) => Res
+narrowSides: ok : (T: Mut<Flow>, F: Mut<Flow>, k: string, nt: Ty, by: (t: Ty, branch: boolean) => Ty) => void
+narrowPathB: ok : (st: St, env: Env, T: Mut<Flow>, F: Mut<Flow>, n: Node, nt: Ty | undefined, by: (t: Ty, branch: boolean) => Ty) => void
+discriminantB: ok : (st: St, env: Env, T: Mut<Flow>, F: Mut<Flow>, m: Node, can: (pt: Ty, branch: boolean) => boolean) => void
+narrowCompareB: ok : (st: St, env: Env, T: Mut<Flow>, F: Mut<Flow>, e: BinaryExpression) => void
+narrowLeafB: ok : (st: St, env: Env, e: Node, t: Ty) => Cond
+condB: ok : (R: RecurB, st0: St, env: Env, e: Node) => CondRes
+orderB: ok : (st: St, e: BinaryExpression, a: Ty, b: Ty) => St
+binaryB: ok : (R: RecurB, st0: St, env: Env, e: BinaryExpression) => Res
+unaryB: ok : (R: RecurB, st0: St, env: Env, e: UnaryExpression) => Res
+stmtsB: ok : (R: RecurB, st0: St, env: Env, list: Node[]) => Live
+blockB: ok : (R: RecurB, st: St, env: Env, list: Node[]) => Live
+stmtB: ok : (R: RecurB, st: St, env: Env, s: Node) => Live
+varDeclB: ok : (R: RecurB, st: St, env: Env, d: VariableDeclarator, kind: string) => St
+knotB: ok : RecurB
+checkerB: ok : (input: Input) => Output
+checker: lite/core.ts@6e5c19a4d12d lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/own.ts@03c38600d97b
+40 cells (splitCells units: type declarations count), 0 not ok, 0 module errors, check 31202 ms
+
+== shapeC.ss.ts
+errC: ok : (C: Mut<Ctl>, node: Node, rule: string, msg: string) => void
+unsupC: ok : (C: Mut<Ctl>, node: Node, what: string) => void
+newScopeC: ok : (C: Mut<Ctl>, env: EnvC) => EnvC
+lookupC: ok : (V: Mut<Map<string, Binding>>, env: EnvC, n: string) => Binding | undefined
+declareC: ok : (B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, name: string, t: Ty, kind: BKind, nod
+pathKeyC: ok : (V: Mut<Map<string, Binding>>, env: EnvC, n: Node) => string | null
+memberMissingC: ok : (C: Mut<Ctl>, m: Ty, k: string, at: Node, all: Ty) => void
+expectC: ok : (C: Mut<Ctl>, at: Node, t: Ty, expected: Ty) => boolean
+numericC: ok : (C: Mut<Ctl>, at: Node, t: Ty) => boolean
+checkC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+check1C: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+inferC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+literalTC: ok : (e: Literal) => Ty
+infer1C: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+logicalC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+identC: ok : (B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: Identifier) => Ty
+memberC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+bailC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+callC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+applyArgC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, a: 
+solveC: ok : (m: Mut<Map<string, Ty>>, fromRet: Mut<Map<string, Ty>>, tvs: string[]) => void
+arityC: ok : (C: Mut<Ctl>, e: CallExpression, sig: Fn) => void
+applyC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+conditionalC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+narrowSidesC: ok : (TT: Mut<Flow>, FF: Mut<Flow>, k: string, nt: Ty, by: (t: Ty, branch: boolean) => Ty) => void
+narrowPathC: ok : (V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, TT: Mut<Flow>, FF: Mut<Flow>, n: Node, nt: Ty | undefined, by: (t
+discriminantC: ok : (T: Mut<Map<Node, Ty>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, TT: Mut<Flow>, FF: Mut<Flow>, m: Node, can
+narrowCompareC: ok : (T: Mut<Map<Node, Ty>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, TT: Mut<Flow>, FF: Mut<Flow>, e: BinaryExp
+narrowLeafC: ok : (T: Mut<Map<Node, Ty>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: Node, t: Ty) => Cond
+condC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+orderC: ok : (C: Mut<Ctl>, e: BinaryExpression, a: Ty, b: Ty) => void
+binaryC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+unaryC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, e: 
+stmtsC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, lis
+blockC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, lis
+stmtC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, s: 
+varDeclC: ok : (R: RecurC, T: Mut<Map<Node, Ty>>, B: Mut<Map<Node, Binding>>, V: Mut<Map<string, Binding>>, C: Mut<Ctl>, env: EnvC, d: 
+knotC: ok : RecurC
+diagsOut: ok : (log: DLog | null) => Diag[]
+checkerC: ok : (input: Input) => Output
+checker: lite/core.ts@6e5c19a4d12d lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/own.ts@03c38600d97b
+41 cells (splitCells units: type declarations count), 0 not ok, 0 module errors, check 22328 ms
+
+== shapeB.ss.ts
+errB: ok : (st: St, node: Node, rule: string, msg: string) => St
+unsupB: ok : (st: St, node: Node, what: string) => St
+newScopeB: ok : (st: St, p: number) => { st: St; scope: number }
+lookupB: ok : (st: St, scope0: number, n: string) => Binding | undefined
+declareB: ok : (st: St, env: Env, name: string, t: Ty, kind: BKind, node: Node | null) => St
+pathKeyB: ok : (st: St, env: Env, n: Node) => string | null
+memberMissingB: ok : (st: St, m: Ty, k: string, at: Node, all: Ty) => St
+expectB: ok : (st: St, at: Node, t: Ty, expected: Ty) => St
+numericB: ok : (st: St, at: Node, t: Ty) => St
+checkB: ok : (R: RecurB, st: St, env: Env, e: Node, expected: Ty | undefined, soft: boolean, ctx: boolean) => Res
+check1B: ok : (R: RecurB, st: St, env: Env, e: Node, expected: Ty | undefined, soft: boolean) => Res
+inferB: ok : (R: RecurB, st: St, env: Env, e: Node) => Res
+literalT: ok : (e: Literal) => Ty
+infer1B: ok : (R: RecurB, st: St, env: Env, e: Node) => Res
+logicalB: ok : (R: RecurB, st: St, env: Env, e: LogicalExpression) => Res
+identB: ok : (st: St, env: Env, e: Identifier) => Res
+memberB: ok : (R: RecurB, st0: St, env: Env, e: MemberExpression) => Res
+bailB: ok : (R: RecurB, st0: St, env: Env, e: CallExpression) => Res
+callB: ok : (R: RecurB, st0: St, env: Env, e: CallExpression, expected: Ty | undefined) => Res
+applyArgB: ok : (R: RecurB, st: St, env: Env, a: Node, p: Ty | undefined, opt: boolean, tvSet: Set<string>, m: Mut<Map<string, Ty>>, fro
+solveB: ok : (m: Mut<Map<string, Ty>>, fromRet: Mut<Map<string, Ty>>, tvs: string[]) => void
+arityB: ok : (st: St, e: CallExpression, sig: Fn) => St
+applyB: ok : (R: RecurB, st0: St, env: Env, e: CallExpression, sig0: Fn, expected: Ty | undefined) => Res
+conditionalB: ok : (R: RecurB, st: St, env: Env, e: ConditionalExpression, expected: Ty | undefined) => Res
+narrowSides: ok : (T: Mut<Flow>, F: Mut<Flow>, k: string, nt: Ty, by: (t: Ty, branch: boolean) => Ty) => void
+narrowPathB: ok : (st: St, env: Env, T: Mut<Flow>, F: Mut<Flow>, n: Node, nt: Ty | undefined, by: (t: Ty, branch: boolean) => Ty) => void
+discriminantB: ok : (st: St, env: Env, T: Mut<Flow>, F: Mut<Flow>, m: Node, can: (pt: Ty, branch: boolean) => boolean) => void
+narrowCompareB: ok : (st: St, env: Env, T: Mut<Flow>, F: Mut<Flow>, e: BinaryExpression) => void
+narrowLeafB: ok : (st: St, env: Env, e: Node, t: Ty) => Cond
+condB: ok : (R: RecurB, st0: St, env: Env, e: Node) => CondRes
+orderB: ok : (st: St, e: BinaryExpression, a: Ty, b: Ty) => St
+binaryB: ok : (R: RecurB, st0: St, env: Env, e: BinaryExpression) => Res
+unaryB: ok : (R: RecurB, st0: St, env: Env, e: UnaryExpression) => Res
+stmtsB: ok : (R: RecurB, st0: St, env: Env, list: Node[]) => Live
+blockB: ok : (R: RecurB, st: St, env: Env, list: Node[]) => Live
+stmtB: ok : (R: RecurB, st: St, env: Env, s: Node) => Live
+varDeclB: ok : (R: RecurB, st: St, env: Env, d: VariableDeclarator, kind: string) => St
+knotB: ok : RecurB
+checkerB: ok : (input: Input) => Output
+checker: lite/core.ts@6e5c19a4d12d lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/own.ts@03c38600d97b
+40 cells (splitCells units: type declarations count), 0 not ok, 0 module errors, check 20153 ms
+

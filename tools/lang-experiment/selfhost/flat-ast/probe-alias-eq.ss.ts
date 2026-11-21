@@ -1,0 +1,20 @@
+// Probe: === between values typed by an alias of a union of string literals, and of a union of primitives.
+export type Kind = "A" | "B";
+export type Row = { type: Kind; n: number };
+export type Prim = number | string;
+export type Id = number;
+export const sameKind = () => (a: Kind, b: Kind): boolean => a === b;
+export const isA = () => (r: Row): boolean => r.type === "A";
+export const rowsSameKind = () => (r: Row, s: Row): boolean => r.type === s.type;
+export const kindVsString = () => (a: Kind, b: string): boolean => a === b;
+export const samePrim = () => (a: Prim, b: Prim): boolean => a === b;
+export const sameId = () => (a: Id, b: Id): boolean => a === b;
+export const inlineUnion = () => (a: "A" | "B", b: "A" | "B"): boolean => a === b;
+export type MaybeKind = Kind | null;
+export type Rows = Row | { type: "C"; m: string };
+export const sameMaybe = () => (a: MaybeKind, b: MaybeKind): boolean => a === b;
+export const unionRowsSameKind = () => (r: Rows, s: Rows): boolean => r.type === s.type;
+export const fromMap = () => (m: Map<string, Kind>, k: Kind): boolean => m.get("x") === k;
+export const kindCell = (): Kind => "A";
+export const takesKindCell = (kindCell) => (k: Kind): boolean => kindCell === k;
+export const fromArray = () => (ks: Kind[], k: Kind): boolean => ks[0] === k;

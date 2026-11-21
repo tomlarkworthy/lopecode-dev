@@ -1,0 +1,17 @@
+sameKind: ok : (a: Kind, b: Kind) => boolean
+isA: ok : (r: Row) => boolean
+rowsSameKind: ok : (r: Row, s: Row) => boolean
+kindVsString: ok : (a: Kind, b: string) => boolean
+samePrim: ok : (a: Prim, b: Prim) => boolean
+sameId: ok : (a: Id, b: Id) => boolean
+inlineUnion: ok : (a: "A" | "B", b: "A" | "B") => boolean
+sameMaybe: ok : (a: MaybeKind, b: MaybeKind) => boolean
+unionRowsSameKind: ok : (r: Rows, s: Rows) => boolean
+fromMap: ok : (m: Map<string, Kind>, k: Kind) => boolean
+kindCell: ok : Kind
+takesKindCell: ok : (k: Kind) => boolean
+fromArray: ok : (ks: Kind[], k: Kind) => boolean
+sameRowKind: ok : (nodes: FNode[], a: number, b: number) => boolean
+rowIsKind: ok : (nodes: FNode[], a: number, k: string) => boolean
+outsideKind: ok : (n: FNode) => boolean
+sameIndex: ok : (x: MemberExpression, i: number) => boolean

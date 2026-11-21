@@ -1,0 +1,6 @@
+bad: rejected (2 lines)
+    [type] L131 PoolResult is not assignable to number
+bad2: rejected (1 lines)
+    [member-write] L133 write to a SlotRec | undefined, which is not Mut
+    [possibly-undefined] L133 property busy of a value that may be undefined
+17 cells, 2 not accepted, 0 module errors

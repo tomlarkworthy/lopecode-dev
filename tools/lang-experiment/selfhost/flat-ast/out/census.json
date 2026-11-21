@@ -1,0 +1,3170 @@
+{
+ "Program": {
+  "count": 363,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "body": [
+    "node[]"
+   ],
+   "sourceType": [
+    "string"
+   ]
+  }
+ },
+ "ForStatement": {
+  "count": 29,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "init": [
+    "null",
+    "node"
+   ],
+   "test": [
+    "null",
+    "node"
+   ],
+   "update": [
+    "null",
+    "node"
+   ],
+   "body": [
+    "node"
+   ]
+  }
+ },
+ "BlockStatement": {
+  "count": 571,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "body": [
+    "node[]"
+   ]
+  }
+ },
+ "VariableDeclaration": {
+  "count": 1574,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "declarations": [
+    "node[]"
+   ],
+   "kind": [
+    "string"
+   ],
+   "declare": [
+    "boolean",
+    "absent"
+   ]
+  }
+ },
+ "VariableDeclarator": {
+  "count": 1607,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "id": [
+    "node"
+   ],
+   "init": [
+    "node",
+    "null"
+   ]
+  }
+ },
+ "Identifier": {
+  "count": 11553,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "name": [
+    "string"
+   ],
+   "typeAnnotation": [
+    "node",
+    "absent"
+   ],
+   "optional": [
+    "boolean",
+    "absent"
+   ]
+  }
+ },
+ "ArrowFunctionExpression": {
+  "count": 1513,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "returnType": [
+    "undefined",
+    "node"
+   ],
+   "id": [
+    "null"
+   ],
+   "expression": [
+    "boolean"
+   ],
+   "generator": [
+    "boolean"
+   ],
+   "async": [
+    "boolean"
+   ],
+   "params": [
+    "node[]"
+   ],
+   "body": [
+    "node"
+   ],
+   "typeParameters": [
+    "node",
+    "absent"
+   ]
+  }
+ },
+ "Literal": {
+  "count": 2294,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "value": [
+    "number",
+    "string",
+    "boolean",
+    "null",
+    "regexp",
+    "bigint"
+   ],
+   "raw": [
+    "string"
+   ],
+   "regex": [
+    "record",
+    "absent"
+   ],
+   "bigint": [
+    "string",
+    "absent"
+   ]
+  }
+ },
+ "ExpressionStatement": {
+  "count": 376,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "expression": [
+    "node"
+   ]
+  }
+ },
+ "BinaryExpression": {
+  "count": 660,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "left": [
+    "node"
+   ],
+   "operator": [
+    "string"
+   ],
+   "right": [
+    "node"
+   ]
+  }
+ },
+ "ExportNamedDeclaration": {
+  "count": 237,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "exportKind": [
+    "string"
+   ],
+   "declaration": [
+    "node",
+    "null"
+   ],
+   "specifiers": [
+    "node[]"
+   ],
+   "source": [
+    "null"
+   ]
+  }
+ },
+ "ClassDeclaration": {
+  "count": 6,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "id": [
+    "node"
+   ],
+   "superClass": [
+    "null",
+    "node"
+   ],
+   "body": [
+    "node"
+   ],
+   "abstract": [
+    "boolean",
+    "absent"
+   ]
+  }
+ },
+ "ClassBody": {
+  "count": 7,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "body": [
+    "node[]"
+   ]
+  }
+ },
+ "TSEnumDeclaration": {
+  "count": 5,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "id": [
+    "node"
+   ],
+   "members": [
+    "node[]"
+   ],
+   "const": [
+    "boolean",
+    "absent"
+   ]
+  }
+ },
+ "TSEnumMember": {
+  "count": 6,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "id": [
+    "node"
+   ],
+   "initializer": [
+    "node",
+    "absent"
+   ]
+  }
+ },
+ "ObjectPattern": {
+  "count": 13,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "properties": [
+    "node[]"
+   ],
+   "typeAnnotation": [
+    "node",
+    "absent"
+   ]
+  }
+ },
+ "Property": {
+  "count": 681,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "method": [
+    "boolean"
+   ],
+   "shorthand": [
+    "boolean"
+   ],
+   "computed": [
+    "boolean"
+   ],
+   "key": [
+    "node"
+   ],
+   "value": [
+    "node"
+   ],
+   "kind": [
+    "string"
+   ]
+  }
+ },
+ "ObjectExpression": {
+  "count": 336,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "properties": [
+    "node[]"
+   ]
+  }
+ },
+ "TSTypeAnnotation": {
+  "count": 1805,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "TSNumberKeyword": {
+  "count": 619,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "TSTypeAliasDeclaration": {
+  "count": 100,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "id": [
+    "node"
+   ],
+   "typeParameters": [
+    "undefined"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "TSTypeLiteral": {
+  "count": 179,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "members": [
+    "node[]"
+   ]
+  }
+ },
+ "TSPropertySignature": {
+  "count": 418,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "readonly": [
+    "boolean",
+    "absent"
+   ],
+   "computed": [
+    "boolean"
+   ],
+   "key": [
+    "node"
+   ],
+   "typeAnnotation": [
+    "node"
+   ],
+   "optional": [
+    "boolean",
+    "absent"
+   ]
+  }
+ },
+ "TSInterfaceDeclaration": {
+  "count": 4,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "id": [
+    "node"
+   ],
+   "typeParameters": [
+    "node",
+    "undefined"
+   ],
+   "body": [
+    "node"
+   ]
+  }
+ },
+ "TSTypeParameterDeclaration": {
+  "count": 18,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "params": [
+    "node[]"
+   ],
+   "extra": [
+    "record",
+    "absent"
+   ]
+  }
+ },
+ "TSTypeParameter": {
+  "count": 20,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "name": [
+    "string"
+   ],
+   "constraint": [
+    "undefined",
+    "node"
+   ],
+   "default": [
+    "undefined",
+    "node"
+   ]
+  }
+ },
+ "TSInterfaceBody": {
+  "count": 4,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "body": [
+    "node[]"
+   ]
+  }
+ },
+ "TSMethodSignature": {
+  "count": 5,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "computed": [
+    "boolean"
+   ],
+   "key": [
+    "node"
+   ],
+   "typeParameters": [
+    "undefined"
+   ],
+   "parameters": [
+    "node[]"
+   ],
+   "typeAnnotation": [
+    "node"
+   ],
+   "kind": [
+    "string"
+   ]
+  }
+ },
+ "TSTypeReference": {
+  "count": 1011,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "typeName": [
+    "node"
+   ],
+   "typeArguments": [
+    "node",
+    "absent"
+   ]
+  }
+ },
+ "MemberExpression": {
+  "count": 1729,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "object": [
+    "node"
+   ],
+   "property": [
+    "node"
+   ],
+   "computed": [
+    "boolean"
+   ],
+   "optional": [
+    "boolean"
+   ]
+  }
+ },
+ "AssignmentPattern": {
+  "count": 13,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "left": [
+    "node"
+   ],
+   "right": [
+    "node"
+   ]
+  }
+ },
+ "RestElement": {
+  "count": 7,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "argument": [
+    "node"
+   ],
+   "typeAnnotation": [
+    "node",
+    "absent"
+   ]
+  }
+ },
+ "TSArrayType": {
+  "count": 174,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "elementType": [
+    "node"
+   ]
+  }
+ },
+ "TSTypeParameterInstantiation": {
+  "count": 436,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "params": [
+    "node[]"
+   ]
+  }
+ },
+ "CallExpression": {
+  "count": 1521,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "callee": [
+    "node"
+   ],
+   "arguments": [
+    "node[]"
+   ],
+   "optional": [
+    "boolean",
+    "absent"
+   ],
+   "typeArguments": [
+    "node",
+    "absent"
+   ]
+  }
+ },
+ "TSBooleanKeyword": {
+  "count": 112,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "FunctionExpression": {
+  "count": 53,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "id": [
+    "null",
+    "node"
+   ],
+   "expression": [
+    "boolean"
+   ],
+   "generator": [
+    "boolean"
+   ],
+   "async": [
+    "boolean"
+   ],
+   "params": [
+    "node[]"
+   ],
+   "body": [
+    "node"
+   ],
+   "returnType": [
+    "node",
+    "absent"
+   ]
+  }
+ },
+ "YieldExpression": {
+  "count": 46,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "delegate": [
+    "boolean"
+   ],
+   "argument": [
+    "node"
+   ]
+  }
+ },
+ "UnaryExpression": {
+  "count": 140,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "operator": [
+    "string"
+   ],
+   "prefix": [
+    "boolean"
+   ],
+   "argument": [
+    "node"
+   ]
+  }
+ },
+ "ReturnStatement": {
+  "count": 611,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "argument": [
+    "node",
+    "null"
+   ]
+  }
+ },
+ "TSAsExpression": {
+  "count": 4,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "expression": [
+    "node"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "TSFunctionType": {
+  "count": 48,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "typeParameters": [
+    "undefined",
+    "node"
+   ],
+   "parameters": [
+    "node[]"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "FunctionDeclaration": {
+  "count": 30,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "id": [
+    "node"
+   ],
+   "expression": [
+    "boolean"
+   ],
+   "generator": [
+    "boolean"
+   ],
+   "async": [
+    "boolean"
+   ],
+   "params": [
+    "node[]"
+   ],
+   "returnType": [
+    "node",
+    "absent"
+   ],
+   "body": [
+    "node"
+   ],
+   "typeParameters": [
+    "node",
+    "absent"
+   ]
+  }
+ },
+ "TSTypeOperator": {
+  "count": 89,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "operator": [
+    "string"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "ArrayExpression": {
+  "count": 371,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "elements": [
+    "node[]",
+    "node?[]"
+   ]
+  }
+ },
+ "AssignmentExpression": {
+  "count": 121,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "operator": [
+    "string"
+   ],
+   "left": [
+    "node"
+   ],
+   "right": [
+    "node"
+   ]
+  }
+ },
+ "UpdateExpression": {
+  "count": 41,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "operator": [
+    "string"
+   ],
+   "prefix": [
+    "boolean"
+   ],
+   "argument": [
+    "node"
+   ]
+  }
+ },
+ "ArrayPattern": {
+  "count": 24,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "elements": [
+    "node[]",
+    "node?[]"
+   ]
+  }
+ },
+ "NewExpression": {
+  "count": 120,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "callee": [
+    "node"
+   ],
+   "arguments": [
+    "node[]"
+   ],
+   "typeArguments": [
+    "node",
+    "absent"
+   ]
+  }
+ },
+ "TSStringKeyword": {
+  "count": 236,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "ClassExpression": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "id": [
+    "null"
+   ],
+   "superClass": [
+    "null"
+   ],
+   "body": [
+    "node"
+   ]
+  }
+ },
+ "ThisExpression": {
+  "count": 3,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "TSAnyKeyword": {
+  "count": 6,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "TSNonNullExpression": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "expression": [
+    "node"
+   ]
+  }
+ },
+ "AwaitExpression": {
+  "count": 18,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "argument": [
+    "node"
+   ]
+  }
+ },
+ "ImportExpression": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "source": [
+    "node"
+   ]
+  }
+ },
+ "TSModuleDeclaration": {
+  "count": 5,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "id": [
+    "node"
+   ],
+   "body": [
+    "node"
+   ],
+   "declare": [
+    "boolean",
+    "absent"
+   ]
+  }
+ },
+ "TSModuleBlock": {
+  "count": 5,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "body": [
+    "node[]"
+   ]
+  }
+ },
+ "LogicalExpression": {
+  "count": 272,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "left": [
+    "node"
+   ],
+   "operator": [
+    "string"
+   ],
+   "right": [
+    "node"
+   ]
+  }
+ },
+ "TSUnionType": {
+  "count": 122,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "types": [
+    "node[]"
+   ]
+  }
+ },
+ "SwitchStatement": {
+  "count": 34,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "discriminant": [
+    "node"
+   ],
+   "cases": [
+    "node[]"
+   ]
+  }
+ },
+ "SwitchCase": {
+  "count": 165,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "consequent": [
+    "node[]"
+   ],
+   "test": [
+    "node",
+    "null"
+   ]
+  }
+ },
+ "TSLiteralType": {
+  "count": 133,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "literal": [
+    "node"
+   ]
+  }
+ },
+ "TSUndefinedKeyword": {
+  "count": 38,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "BreakStatement": {
+  "count": 10,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "label": [
+    "null",
+    "node"
+   ]
+  }
+ },
+ "IfStatement": {
+  "count": 233,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "test": [
+    "node"
+   ],
+   "consequent": [
+    "node"
+   ],
+   "alternate": [
+    "null",
+    "node"
+   ]
+  }
+ },
+ "ForOfStatement": {
+  "count": 51,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "await": [
+    "boolean"
+   ],
+   "left": [
+    "node"
+   ],
+   "right": [
+    "node"
+   ],
+   "body": [
+    "node"
+   ]
+  }
+ },
+ "ContinueStatement": {
+  "count": 8,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "label": [
+    "null",
+    "node"
+   ]
+  }
+ },
+ "SpreadElement": {
+  "count": 122,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "argument": [
+    "node"
+   ]
+  }
+ },
+ "TSVoidKeyword": {
+  "count": 44,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "ConditionalExpression": {
+  "count": 129,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "test": [
+    "node"
+   ],
+   "consequent": [
+    "node"
+   ],
+   "alternate": [
+    "node"
+   ]
+  }
+ },
+ "ChainExpression": {
+  "count": 19,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "expression": [
+    "node"
+   ]
+  }
+ },
+ "TSTupleType": {
+  "count": 79,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "elementTypes": [
+    "node[]"
+   ]
+  }
+ },
+ "TSUnknownKeyword": {
+  "count": 92,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "TSObjectKeyword": {
+  "count": 6,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "ThrowStatement": {
+  "count": 32,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "argument": [
+    "node"
+   ]
+  }
+ },
+ "TSNullKeyword": {
+  "count": 40,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "JSXElement": {
+  "count": 64,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "openingElement": [
+    "node"
+   ],
+   "closingElement": [
+    "null",
+    "node"
+   ],
+   "children": [
+    "node[]"
+   ]
+  }
+ },
+ "JSXOpeningElement": {
+  "count": 64,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "name": [
+    "node"
+   ],
+   "attributes": [
+    "node[]"
+   ],
+   "selfClosing": [
+    "boolean"
+   ]
+  }
+ },
+ "JSXIdentifier": {
+  "count": 192,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "name": [
+    "string"
+   ]
+  }
+ },
+ "JSXAttribute": {
+  "count": 88,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "name": [
+    "node"
+   ],
+   "value": [
+    "node"
+   ]
+  }
+ },
+ "JSXExpressionContainer": {
+  "count": 102,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "expression": [
+    "node"
+   ]
+  }
+ },
+ "TryStatement": {
+  "count": 3,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "block": [
+    "node"
+   ],
+   "handler": [
+    "node",
+    "null"
+   ],
+   "finalizer": [
+    "null",
+    "node"
+   ]
+  }
+ },
+ "CatchClause": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "param": [
+    "node",
+    "null"
+   ],
+   "body": [
+    "node"
+   ]
+  }
+ },
+ "TSCallSignatureDeclaration": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "typeParameters": [
+    "undefined"
+   ],
+   "parameters": [
+    "node[]"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "TemplateLiteral": {
+  "count": 57,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "expressions": [
+    "node[]"
+   ],
+   "quasis": [
+    "node[]"
+   ]
+  }
+ },
+ "TemplateElement": {
+  "count": 143,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "value": [
+    "record"
+   ],
+   "tail": [
+    "boolean"
+   ]
+  }
+ },
+ "WhileStatement": {
+  "count": 10,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "test": [
+    "node"
+   ],
+   "body": [
+    "node"
+   ]
+  }
+ },
+ "JSXClosingElement": {
+  "count": 38,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "name": [
+    "node"
+   ]
+  }
+ },
+ "JSXText": {
+  "count": 68,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "value": [
+    "string"
+   ],
+   "raw": [
+    "string"
+   ]
+  }
+ },
+ "JSXFragment": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "openingFragment": [
+    "node"
+   ],
+   "closingFragment": [
+    "node"
+   ],
+   "children": [
+    "node[]"
+   ]
+  }
+ },
+ "JSXOpeningFragment": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "attributes": [
+    "node[]"
+   ],
+   "selfClosing": [
+    "boolean"
+   ]
+  }
+ },
+ "JSXClosingFragment": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "TSParenthesizedType": {
+  "count": 6,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "TSNeverKeyword": {
+  "count": 3,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "TSIndexSignature": {
+  "count": 6,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "readonly": [
+    "boolean",
+    "absent"
+   ],
+   "parameters": [
+    "node[]"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "TSBigIntKeyword": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "TSSymbolKeyword": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "ImportDeclaration": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "importKind": [
+    "string"
+   ],
+   "specifiers": [
+    "node[]"
+   ],
+   "source": [
+    "node"
+   ]
+  }
+ },
+ "ImportSpecifier": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "imported": [
+    "node"
+   ],
+   "local": [
+    "node"
+   ],
+   "importKind": [
+    "string"
+   ]
+  }
+ },
+ "TSDeclareFunction": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "declare": [
+    "boolean"
+   ],
+   "id": [
+    "node"
+   ],
+   "expression": [
+    "boolean"
+   ],
+   "generator": [
+    "boolean"
+   ],
+   "async": [
+    "boolean"
+   ],
+   "params": [
+    "node[]"
+   ],
+   "returnType": [
+    "node"
+   ]
+  }
+ },
+ "SequenceExpression": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "expressions": [
+    "node[]"
+   ]
+  }
+ },
+ "DoWhileStatement": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "body": [
+    "node"
+   ],
+   "test": [
+    "node"
+   ]
+  }
+ },
+ "EmptyStatement": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "ForInStatement": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "left": [
+    "node"
+   ],
+   "right": [
+    "node"
+   ],
+   "body": [
+    "node"
+   ]
+  }
+ },
+ "LabeledStatement": {
+  "count": 4,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "body": [
+    "node"
+   ],
+   "label": [
+    "node"
+   ]
+  }
+ },
+ "StaticBlock": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "body": [
+    "node[]"
+   ]
+  }
+ },
+ "PropertyDefinition": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "static": [
+    "boolean"
+   ],
+   "computed": [
+    "boolean"
+   ],
+   "key": [
+    "node"
+   ],
+   "value": [
+    "node"
+   ]
+  }
+ },
+ "MethodDefinition": {
+  "count": 4,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "static": [
+    "boolean"
+   ],
+   "computed": [
+    "boolean"
+   ],
+   "key": [
+    "node"
+   ],
+   "kind": [
+    "string"
+   ],
+   "value": [
+    "node"
+   ],
+   "abstract": [
+    "boolean",
+    "absent"
+   ]
+  }
+ },
+ "TSParameterProperty": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "accessibility": [
+    "string"
+   ],
+   "parameter": [
+    "node"
+   ]
+  }
+ },
+ "TSSatisfiesExpression": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "expression": [
+    "node"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "TSTypeQuery": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "exprName": [
+    "node"
+   ]
+  }
+ },
+ "TSConstructSignatureDeclaration": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "typeParameters": [
+    "undefined"
+   ],
+   "parameters": [
+    "node[]"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "TaggedTemplateExpression": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "tag": [
+    "node"
+   ],
+   "quasi": [
+    "node"
+   ]
+  }
+ },
+ "TSTypeAssertion": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "typeAnnotation": [
+    "node"
+   ],
+   "expression": [
+    "node"
+   ]
+  }
+ },
+ "TSNamedTupleMember": {
+  "count": 3,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "label": [
+    "node"
+   ],
+   "optional": [
+    "boolean"
+   ],
+   "elementType": [
+    "node"
+   ]
+  }
+ },
+ "TSRestType": {
+  "count": 2,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "TSOptionalType": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "TSQualifiedName": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "left": [
+    "node"
+   ],
+   "right": [
+    "node"
+   ]
+  }
+ },
+ "TSConstructorType": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "abstract": [
+    "boolean"
+   ],
+   "typeParameters": [
+    "undefined"
+   ],
+   "parameters": [
+    "node[]"
+   ],
+   "typeAnnotation": [
+    "node"
+   ]
+  }
+ },
+ "TSIndexedAccessType": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "objectType": [
+    "node"
+   ],
+   "indexType": [
+    "node"
+   ]
+  }
+ },
+ "TSIntersectionType": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "types": [
+    "node[]"
+   ]
+  }
+ },
+ "ExportDefaultDeclaration": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "exportKind": [
+    "string"
+   ],
+   "declaration": [
+    "node"
+   ]
+  }
+ },
+ "ExportAllDeclaration": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "exportKind": [
+    "string"
+   ],
+   "exported": [
+    "null"
+   ],
+   "source": [
+    "node"
+   ]
+  }
+ },
+ "ExportSpecifier": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "local": [
+    "node"
+   ],
+   "exported": [
+    "node"
+   ],
+   "exportKind": [
+    "string"
+   ]
+  }
+ },
+ "MetaProperty": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "meta": [
+    "node"
+   ],
+   "property": [
+    "node"
+   ]
+  }
+ },
+ "PrivateIdentifier": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "name": [
+    "string"
+   ]
+  }
+ },
+ "Super": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "TSDeclareMethod": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "id": [
+    "null"
+   ],
+   "expression": [
+    "boolean"
+   ],
+   "generator": [
+    "boolean"
+   ],
+   "async": [
+    "boolean"
+   ],
+   "params": [
+    "node[]"
+   ],
+   "returnType": [
+    "node"
+   ]
+  }
+ },
+ "JSXSpreadAttribute": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "argument": [
+    "node"
+   ]
+  }
+ },
+ "JSXEmptyExpression": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ]
+  }
+ },
+ "JSXMemberExpression": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "object": [
+    "node"
+   ],
+   "property": [
+    "node"
+   ]
+  }
+ },
+ "JSXNamespacedName": {
+  "count": 1,
+  "fields": {
+   "type": [
+    "string"
+   ],
+   "start": [
+    "number"
+   ],
+   "end": [
+    "number"
+   ],
+   "loc": [
+    "record"
+   ],
+   "namespace": [
+    "node"
+   ],
+   "name": [
+    "node"
+   ]
+  }
+ }
+}

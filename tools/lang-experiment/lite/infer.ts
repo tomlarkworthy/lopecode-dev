@@ -6,9 +6,9 @@ import type { Registry } from "./registry.ts";
 import {
   type Ty, type Fn, type Rec, type Param, type Subst, type Flags,
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, BOOL, SYMBOL,
-  union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames,
+  union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames, cloneProblemWith,
 } from "./types.ts";
-import { ALLOWED_GLOBALS, PRELUDE_FNS, TYPED_ARRAYS } from "./intrinsics.ts";
+import { ALLOWED_GLOBALS, PRELUDE_FNS } from "./intrinsics.ts";
 
 export type BKind = "const" | "let" | "param" | "fn" | "global" | "prelude";
 export type Binding = {
@@ -869,7 +869,7 @@ export class Checker {
     if ((a.k === "err" || b.k === "err") && !["===", "!==", "==", "!=", "<", ">", "<=", ">=", "in"].includes(op)) return ERR;
     switch (op) {
       case "===": case "!==": case "==": case "!=":
-        if (!isPrimitive(a) && !isPrimitive(b)) this.err(e, "strict-eq-object", `${op} on two non-primitive operands; use equals(a, b)`);
+        if (!this.um(a).every((m) => isPrimitive(m)) && !this.um(b).every((m) => isPrimitive(m))) this.err(e, "strict-eq-object", `${op} on two non-primitive operands; use equals(a, b)`);
         else if (this.noOverlap(a, b)) this.err(e, "type", `${op} between ${show(a)} and ${show(b)}, which have no value in common`);
         return BOOL;
       case "+": {
@@ -1244,27 +1244,9 @@ export class Checker {
     return t;
   }
   cloneCallees = new Set<Node>();
-  // what structuredClone cannot copy in a value of type t: it throws on a function, a symbol or a host object, and a
-  // value of an open type (unknown, object, a type parameter) may be one
+  // what structuredClone cannot copy in a value of type t (walks.ss.ts)
   cloneProblem(t: Ty, depth = 0): string | null {
-    if (depth > 10) return null;
-    const C = (x: Ty) => this.cloneProblem(x, depth + 1);
-    const first = (xs: Ty[]) => { for (const x of xs) { const w = C(x); if (w) return w; } return null; };
-    switch (t.k) {
-      case "fn": return "is or holds a function";
-      case "symbol": return "is or holds a symbol";
-      case "unknown": case "object": case "tv": return `may be or hold a function (its type is ${show(t)})`;
-      case "arr": return C(t.el);
-      case "tup": return first(t.els);
-      case "union": return first(t.ts);
-      case "rec": return t.calls?.length ? "is or holds a function" : first([...[...t.props.values()].map((p) => p.t), ...(t.index ? [t.index] : [])]);
-      case "named":
-        if (this.reg.isAlias(t.n)) return C(this.reg.expand(t));
-        if (["Mut", "Borrowed", "Map", "Set"].includes(t.n)) return first(t.args);
-        if (["Error", "RegExp", "RegExpMatchArray", "ArrayBuffer", "DataView", ...TYPED_ARRAYS].includes(t.n)) return null;
-        return `is or holds a ${t.n}`;
-      default: return null;
-    }
+    return cloneProblemWith(this.reg.ops)(t, depth);
   }
   typeArgs(e: Node, env: Env): Ty[] | undefined {
     return (e.typeArguments ?? e.typeParameters)?.params?.map((t: Node) => this.reg.convert(t, this.typeCtx(env), this.parsed));

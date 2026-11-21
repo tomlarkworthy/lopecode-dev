@@ -1,0 +1,4 @@
+checker: 5 cells of shape.ss.ts accepted; largest shapeOf, 23 lines
+prototype: 0 of 20000 types differ from the original (9830 of them are errors in the original; 416 threw in the original, each an error in the prototype unless counted as differing)
+mutant boolUnion (no merge): 22 of 20000 types differ from the original (9830 of them are errors in the original; 416 threw in the original, each an error in the prototype unless counted as differing)
+pass

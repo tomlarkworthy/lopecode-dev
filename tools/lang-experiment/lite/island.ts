@@ -1,38 +1,16 @@
 // The slice of the cell graph that compile({inputs, refs, outputs}) runs: every cell upstream of an
 // output, stopping at inputs (the call's arguments) and refs (values read from the graph when the
-// calling cell runs). Shared by the checker (core.ts) and the runner (browser/run.ts).
+// calling cell runs). Shared by the checker (core.ts) and the runner (browser/run.ts). The order is
+// island.ss.ts; this file reads the call's arguments.
 import { kids } from "./parse.ts";
 import { CAPABILITIES } from "./intrinsics.ts";
+import { islandWith, type IslandSpec } from "./types.ts";
 
-export type IslandCell = { name: string; params: string[]; refCell?: boolean };
-export type IslandSpec = { inputs: string[]; refs: string[]; outputs: string[] };
-export type Island = { order: string[]; problems: { name: string; msg: string }[] };
+export type { IslandCell, IslandSpec, Island } from "./island.ss.ts";
 
 export const ISLAND_CAPABILITIES = new Set(Object.keys(CAPABILITIES));
-
-export function island(cells: IslandCell[], spec: IslandSpec): Island {
-  const by = new Map(cells.map((c) => [c.name, c]));
-  const problems: Island["problems"] = [];
-  const cut = new Set([...spec.inputs, ...spec.refs]);
-  for (const n of [...spec.inputs, ...spec.refs, ...spec.outputs]) if (!by.has(n)) problems.push({ name: n, msg: `no cell ${n}` });
-  for (const n of spec.outputs) if (cut.has(n)) problems.push({ name: n, msg: `${n} is both an output and an input or ref` });
-  const order: string[] = [];
-  const seen = new Set<string>();
-  const visit = (n: string, from: string) => {
-    if (cut.has(n) || seen.has(n)) return;
-    seen.add(n);
-    const c = by.get(n);
-    if (!c) {
-      problems.push({ name: from, msg: ISLAND_CAPABILITIES.has(n) ? `island cell ${from} takes the capability ${n}` : `island cell ${from} takes ${n}, which is not a cell` });
-      return;
-    }
-    if (c.refCell) problems.push({ name: n, msg: `${n} is a state cell; list it in refs` });
-    for (const p of c.params) visit(p, n);
-    order.push(n);
-  };
-  for (const o of spec.outputs) if (by.has(o) && !cut.has(o)) visit(o, o);
-  return { order, problems };
-}
+// the order and problems of an island (island.ss.ts)
+export const island = islandWith(ISLAND_CAPABILITIES);
 
 // compile({...}) arguments as written: literal arrays of cell names, or null when they are not literal.
 export function specOf(call: any): (IslandSpec & { options: any | null }) | null {

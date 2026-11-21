@@ -1,0 +1,5 @@
+50 globals
+A: empty body 2.0 µs (median of 2000)
+B: empty body 7.3 µs (median of 2000)
+B2: empty body 7.6 µs (median of 2000)
+C: empty body 2.0 µs (median of 2000)

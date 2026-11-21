@@ -1,0 +1,2 @@
+type Table = { nodes: FNode[] }: 28.31 ms per call
+interface Table { nodes: FNode[] }: 28.96 ms per call

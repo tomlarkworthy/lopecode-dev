@@ -34,15 +34,15 @@ const RUNTIME_INPUTS = new Map(RUNTIME_CELLS.map((n) => [INPUTS[n], n]));
 const RUNTIME_FILES = ["../prelude.runtime.ts", "runtime.ss.ts", "events.ss.ts", "store.ss.ts", "render.ss.ts", "types.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "browser/workers.ts"];
 const SPLIT = "stdlib/runtime.ts";
 // SoundScript sections, in the order of their modules in the notebook, and the files bun reaches that link them
-// (types.ts imports types.ss.ts, runtime-ss.ts runtime.ss.ts, events.ss.ts, store.ss.ts and render.ss.ts, through link.ts)
-export const SS_SOURCES = ["runtime.ss.ts", "events.ss.ts", "store.ss.ts", "render.ss.ts", "types.ss.ts"];
+// (types.ts imports types.ss.ts, subtype.ss.ts, walks.ss.ts, island.ss.ts and messages.ss.ts, runtime-ss.ts runtime.ss.ts, events.ss.ts, store.ss.ts and render.ss.ts, through link.ts)
+export const SS_SOURCES = ["runtime.ss.ts", "events.ss.ts", "store.ss.ts", "render.ss.ts", "types.ss.ts", "subtype.ss.ts", "walks.ss.ts", "island.ss.ts", "messages.ss.ts"];
 const SS_FILES = new Set(SS_SOURCES);
 // the module a section's cells go to when no cell of the other module reaches them (its type declarations)
-const SS_HOME: Record<string, string> = { "runtime.ss.ts": RUNTIME, "events.ss.ts": RUNTIME, "store.ss.ts": RUNTIME, "render.ss.ts": RUNTIME, "types.ss.ts": CHECKER };
+const SS_HOME: Record<string, string> = { "runtime.ss.ts": RUNTIME, "events.ss.ts": RUNTIME, "store.ss.ts": RUNTIME, "render.ss.ts": RUNTIME, "types.ss.ts": CHECKER, "subtype.ss.ts": CHECKER, "walks.ss.ts": CHECKER, "island.ss.ts": CHECKER, "messages.ss.ts": CHECKER };
 // the sections whose cells a section takes, checked with it as in the notebook, where they are one module
-const SS_CHECKED_WITH: Record<string, string[]> = { "store.ss.ts": ["events.ss.ts"], "render.ss.ts": ["runtime.ss.ts"] };
+const SS_CHECKED_WITH: Record<string, string[]> = { "store.ss.ts": ["events.ss.ts"], "render.ss.ts": ["runtime.ss.ts"], "subtype.ss.ts": ["types.ss.ts"], "walks.ss.ts": ["types.ss.ts", "subtype.ss.ts"] };
 const BOOTSTRAP = ["types.ts", "runtime-ss.ts", "link.ts"];
-const CHECKER_FILES = ["parse.ts", "intrinsics.ts", "registry.ts", "infer.ts", "own.ts", "capture.ts", "island.ts", "facts.ts", "core.ts", "complete.ts", "jsx/lower.ts", "browser/erase.ts", "toolchain/comment-types.ts", "toolchain/ss-toolchain.ts"];
+const CHECKER_FILES = ["parse.ts", "intrinsics.ts", "subtype.ss.ts", "walks.ss.ts", "registry.ts", "infer.ts", "own.ts", "capture.ts", "island.ss.ts", "island.ts", "facts.ts", "messages.ss.ts", "core.ts", "complete.ts", "jsx/lower.ts", "browser/erase.ts", "toolchain/comment-types.ts", "toolchain/ss-toolchain.ts"];
 // the third-party imports, and the cells of the checker module that provide them
 const THIRD_PARTY: Record<string, { namespace?: string; names?: string[] }> = { acorn: { namespace: "acorn" }, "@sveltejs/acorn-typescript": { names: ["tsPlugin"] } };
 export const PARSER_FILE = "acorn-typescript.js.gz";
@@ -80,12 +80,16 @@ const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?:
   "stdlib/runtime.ts": { title: "Running a compiled cell", checkerTitle: "Checking a module for the editor and compile", runtime: "What compiled state, events and listener cells call (`ref`, `events`, `listen`), with `viewRef` and `mount`.", checker: "`check` and `checkCells` check a module's cells and keep recent results; `compiler` checks and builds the island of a `compile(...)` call." },
   "parse.ts": { title: "Parser", checker: "Parses TypeScript and TSX with acorn and acorn-typescript, and keeps the comments." },
   "intrinsics.ts": { title: "Prelude declarations", checker: "The declaration text the checker reads for the prelude, the capabilities, JSX and the allowed globals, and the lists of prelude functions and capability names." },
-  "registry.ts": { title: "Declarations and subtyping", checker: "Declarations by name, conversion of type syntax, expansion of aliases, member lookup, subtyping and unification." },
+  "subtype.ss.ts": { title: "Subtyping and unification", checker: "Which type names expand before a comparison, member lookup, subtyping, call signatures, the element type of an iterable, and the unification that infers type arguments, over the checker's types. The Registry passes in what needs its declarations: alias expansion and an interface's members. These cells are SoundScript." },
+  "walks.ss.ts": { title: "Walks over a type", checker: "What a structured clone cannot copy in a value of a type, whether undefined is one of its values, and which of some names it mentions, with aliases expanded. These cells are SoundScript." },
+  "registry.ts": { title: "Declarations", checker: "Declarations by name, conversion of type syntax and expansion of aliases. It hands these to the cells of the section \"Subtyping and unification\", which do member lookup, subtyping and unification." },
   "infer.ts": { title: "Type checking a cell", checker: "The type checker for one cell, and the facts it records for the ownership rules." },
   "own.ts": { title: "Ownership", checker: "The rules for `mut`, `freeze` and `borrow` over one checked cell." },
-  "capture.ts": { title: "State inside actions", checker: "Reports an action body that uses a value depending on state." },
-  "island.ts": { title: "Islands", checker: "The cells a `compile(...)` call runs: everything upstream of its outputs, stopping at its inputs and refs." },
+  "capture.ts": { title: "State inside actions", checker: "Finds an action body that uses a value depending on state; the wording of the report is the cell `captureMessage`." },
+  "island.ss.ts": { title: "The cells an island runs", checker: "`islandWith` orders the cells a `compile(...)` call runs, everything upstream of its outputs and stopping at its inputs and refs, and lists what is wrong with the call. These cells are SoundScript." },
+  "island.ts": { title: "Islands", checker: "Reads a `compile(...)` call from a cell and gives it to `islandWith`." },
   "facts.ts": { title: "Cell facts", checker: "What the compiler reads from a cell's function: its parameters, whether it returns `state(...)`, whether it is a generator, and its `compile(...)` calls." },
+  "messages.ss.ts": { title: "Reserved names and the action-capture message", checker: "Which names a cell may not use, and the wording of the message for an action that uses a value depending on state. These cells are SoundScript." },
   "core.ts": { title: "Checking a module", checker: "`checkSources` checks every cell of a module and gives each one ok, rejected, unsupported or blocked." },
   "complete.ts": { title: "Completion", checker: "Editor completions for one cell from the checker's types, and the annotation a value from another language suggests." },
   "jsx/lower.ts": { title: "Lowering JSX", checker: "Replaces each JSX element with `h(...)` calls and leaves the rest of the text unchanged." },

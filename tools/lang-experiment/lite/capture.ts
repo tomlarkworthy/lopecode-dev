@@ -155,9 +155,3 @@ export function opaqueCaptures(cellFn: Node, ch: Checker, tainted: Map<string, s
   for (const j of comps) if ([...ch.actionBodies].some((a) => within(j, a))) out.push({ node: j, name: `<${j.name ?? "component"}>`, why: "is a JSX component, which the checker does not follow", opaque: true });
   return out;
 }
-
-export const captureMessage = (c: Capture) => c.opaque
-  ? `${c.name} ${c.why}; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called`
-  : c.why.startsWith("capability ")
-  ? `${c.name} is a capability, so an action using it would make the stored state depend on something the calls do not record; take the value as an argument of the action`
-  : `${c.name} depends on state (${c.why}), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called`;

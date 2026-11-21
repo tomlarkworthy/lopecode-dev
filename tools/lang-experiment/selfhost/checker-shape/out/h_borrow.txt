@@ -1,0 +1,6 @@
+viaBorrow: rejected : (t: Ty) => Ty
+    [borrow-placement] L5 borrow(x) only as the operand of yield in a generator cell
+    [borrow-placement] L7 borrow(x) only as the operand of yield in a generator cell
+viaCopy: ok : (t: Ty) => Ty
+checker: lite/core.ts@6e5c19a4d12d lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/own.ts@03c38600d97b
+2 cells (splitCells units: type declarations count), 1 not ok, 0 module errors, check 134 ms

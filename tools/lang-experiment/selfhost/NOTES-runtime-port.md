@@ -16,6 +16,13 @@ Each shell holds object identity, runs user code and performs the effects the ce
 not attempted: `lite/boundary.ts`, `lite/jsx/h.ts`, `lite/browser/workers.ts`, the rest of `lite/stdlib/runtime.ts`.
 Results, measurements and what is left for Tom: `selfhost/NOTES-overnight-2026-11-21.md`.
 
+What is left, surveyed 2026-11-21 (`selfhost/port-rest/RESULTS.md`): of about 700 unchecked code lines in the
+seven files, 431 are shell by construction (identity, user code, DOM/Worker/timer effects, foreign values), 36
+are blocked by rules that are there on purpose (`equals`, `snapshot`), and 233 hold decisions. Prototype cells
+for those all check and match the originals (0 differences, mutants caught): the worker pool (66 -> 46 unchecked
+lines for 77 checked, 15 cells) and `shapeOf` (40 -> about 2) are the two worth integrating; neither is in the
+runtime module. Not integrated.
+
 Work record. PROSE PENDING throughout: facts and checker output, not yet prose for a reader.
 
 Question (Tom): "I want to explore generality of programs you can write at the moment. Can we convert the

@@ -1,0 +1,17 @@
+lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/types.ss.ts@75707e80a705
+common.ss.ts (shared by every shape; regView stand-in included): cells 28 units, total 151, largest 23 (typeTag), median 5; chars total 6743, median 201; widest line 201
+shape A (shapeA.ss.ts): cells 1 units, total 379, largest 379 (checkerA), median 379; chars total 14133, median 14133; widest line 241
+  local functions: 32 units, total 380, largest 55 (cond), median 6; chars total 13982, median 263; widest line 241
+  cells: checkerA 379
+shape B (tablesB.ss.ts + shapeB.ss.ts): cells 45 units, total 370, largest 26 (memberB), median 6; chars total 18600, median 371; widest line 271
+  local functions: 6 units, total 21, largest 12 (pathKey), median 1; chars total 979, median 75; widest line 156
+  cells: setIn 5, emptyB 1, recB 1, typeOfB 1, bindB 1, typesOutB 1, errB 1, unsupB 1, newScopeB 4, lookupB 7, declareB 6, pathKeyB 15, memberMissingB 6, expectB 6, numericB 5, checkB 6, check1B 14, inferB 4, literalT 1, infer1B 13, logicalB 8, identB 6, memberB 26, bailB 5, callB 16, applyArgB 11, solveB 7, arityB 5, applyB 20, conditionalB 6, narrowSides 9, narrowPathB 4, discriminantB 5, narrowCompareB 13, narrowLeafB 9, condB 14, orderB 9, binaryB 22, unaryB 16, stmtsB 10, blockB 4, stmtB 17, varDeclB 11, knotB 8, checkerB 10
+shape B2 (tablesB2.ss.ts + shapeB.ss.ts): cells 46 units, total 380, largest 26 (memberB), median 6; chars total 18949, median 360; widest line 271
+  local functions: 6 units, total 21, largest 12 (pathKey), median 1; chars total 979, median 75; widest line 156
+  cells: setIn 5, sameNode 1, emptyB 1, recB 1, typeOfB 4, bindB 1, typesOutB 7, errB 1, unsupB 1, newScopeB 4, lookupB 7, declareB 6, pathKeyB 15, memberMissingB 6, expectB 6, numericB 5, checkB 6, check1B 14, inferB 4, literalT 1, infer1B 13, logicalB 8, identB 6, memberB 26, bailB 5, callB 16, applyArgB 11, solveB 7, arityB 5, applyB 20, conditionalB 6, narrowSides 9, narrowPathB 4, discriminantB 5, narrowCompareB 13, narrowLeafB 9, condB 14, orderB 9, binaryB 22, unaryB 16, stmtsB 10, blockB 4, stmtB 17, varDeclB 11, knotB 8, checkerB 10
+shape C (shapeC.ss.ts): cells 40 units, total 389, largest 25 (memberC), median 9; chars total 18232, median 405; widest line 287
+  local functions: 6 units, total 21, largest 12 (pathKey), median 1; chars total 1091, median 108; widest line 194
+  cells: errC 1, unsupC 1, newScopeC 4, lookupC 9, declareC 7, pathKeyC 15, memberMissingC 7, expectC 8, numericC 6, checkC 6, check1C 19, inferC 9, literalTC 1, infer1C 13, logicalC 9, identC 9, memberC 25, bailC 4, callC 21, applyArgC 11, solveC 7, arityC 5, applyC 17, conditionalC 9, narrowSidesC 9, narrowPathC 4, discriminantC 5, narrowCompareC 13, narrowLeafC 9, condC 18, orderC 7, binaryC 23, unaryC 18, stmtsC 8, blockC 2, stmtC 14, varDeclC 13, knotC 8, diagsOut 5, checkerC 10
+original stateful members (whole bodies, before the cuts): 26 units, total 620, largest 90 (stmt), median 8; chars total 27004, median 397; widest line 309
+  err 1, unsupported 1, rec 1, declare 6, pathKey 15, memberMissing 6, expect 8, check 6, check1 24, infer 5, infer1 64, ident 19, member 43, call 70, apply 74, conditional 7, cond 63, numeric 6, binary 37, unary 23, stmts 8, block 7, stmt 90, varDecl 29, returned 6, Scope.get 1
+original pure members: 18 units, total 128, largest 20 (typeTag), median 7; chars total 4468, median 203; widest line 155

@@ -1,0 +1,20 @@
+evPure: ok : (R: Recur, st: Ctr, x: number) => { st: Ctr; v: number }
+knotA: rejected : Recur
+    [free-name] L16 free name R
+knotB: ok : Recur
+evW: ok : (R: RecurW, w: W, x: number) => number
+knotW: rejected : (x: number) => { types: Map<number, string>; diags: string[]; next: number }
+    [mut-escape] L43 Mut types placed in an object literal
+    [mut-escape] L43 Mut diags placed in an object literal
+    [mut-escape] L43 Mut ctr placed in an object literal
+evM: ok : (R: RecurM, types: Mut<Map<number, string>>, x: number) => number
+knotM: ok : (x: number) => Map<number, string>
+knotC: ok : Recur
+rollback: ok : (diags: Mut<string[]>, ctl: Mut<Ctl>) => number
+knotCapture: rejected : (x: number) => number
+    [mut-capture] L88 Mut types captured by a function that escapes (not a local helper that is only called)
+pairLoop: rejected : (m: Map<string, number>) => number
+    [mut-escape] L96 Mut T placed in an array literal
+    [mut-escape] L96 Mut F placed in an array literal
+checker: lite/core.ts@6e5c19a4d12d lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/own.ts@03c38600d97b
+12 cells (splitCells units: type declarations count), 4 not ok, 0 module errors, check 130 ms

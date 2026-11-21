@@ -1,0 +1,12 @@
+checker: 15 cells of pool.ss.ts accepted; largest pump, 14 lines
+prototype: 0 of 2000 scripts differ from the original (71143 trace lines in the original's runs)
+mutant takeLive (no drop): 927 of 2000 scripts differ from the original (71143 trace lines in the original's runs), first seed 3
+mutant settle (answered not counted): 1974 of 2000 scripts differ from the original (71143 trace lines in the original's runs), first seed 1
+  original, 200 scripts: 263 resends of a missing island
+  original, 200 scripts: 191 lines with SupersededError
+  original, 200 scripts: 212 lines with DataCloneError
+  original, 200 scripts: 176 lines with was not sent
+  original, 200 scripts: 290 lines with worker failed
+  original, 200 scripts: 463 lines with boom
+  original, 200 scripts: 1108 lines with resolve
+pass

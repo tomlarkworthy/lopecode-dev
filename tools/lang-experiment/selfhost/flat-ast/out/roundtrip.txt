@@ -1,0 +1,19 @@
+union a: 364 inputs, 1 do not parse, 363 round-trip equal, 0 differ ; 34517 nodes, 52 Other rows; parent/field wrong in 0
+union all: 364 inputs, 1 do not parse, 363 round-trip equal, 0 differ ; 34517 nodes, 0 Other rows; parent/field wrong in 0
+node objects: 34515; reached by a second path: 2 Identifier at ImportSpecifier.imported and ImportSpecifier.local ×2
+control (lite/events.ss.ts: MemberExpression #754 property := object): round-trip equal = false
+member reads of a field the census saw absent, compared with null (absent → null makes these true where acorn left the field out): 0
+"key" in x tests: 7
+  lite/boundary.ts:22 "error" in el
+  lite/boundary.ts:25 "error" in s
+  lite/boundary.ts:30 "error" in s
+  lite/boundary.ts:40 "error" in s
+  lite/boundary.ts:46 "error" in el
+  lite/core.ts:272 "error" in shape
+  lite/runtime.ss.ts:70 "tag" in x
+files scanned (lite/*.ts and the survey's FILES): 31; reads of .extra: 0; .loc.start reads: 2; other .loc reads: 2 lite/infer.ts:649 n.loc, ...extra }; lite/infer.ts:1613 c.test.loc } as Node;
+
+member reads compared with undefined (absent → null changes these): 3
+  lite/infer.ts:584 e.bigint !== undefined
+  lite/render.ss.ts:69 c.key === undefined
+  lite/render.ss.ts:74 d.key !== undefined

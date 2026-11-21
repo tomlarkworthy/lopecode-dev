@@ -1,0 +1,19 @@
+shapeOf	checker
+check	checker (in checksRun_cells), checker
+checkCells	checker
+compiler	checker (in compiler_cells), checker
+joinCells	runtime, checker
+hash	none	dropped
+makeRandom	none	dropped
+makeClock	none	dropped
+makeLog	none	dropped
+makePool	workers
+pagePool	workers (in pagePool_cells), workers
+describe	runtime
+copy	runtime
+equals	runtime, checker
+snapshot	runtime, checker
+asText	runtime
+keyOf	runtime
+h	runtime, checker
+viewRef	runtime, checker

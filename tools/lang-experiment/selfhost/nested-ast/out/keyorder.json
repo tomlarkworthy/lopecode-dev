@@ -1,0 +1,426 @@
+{
+ "Program": {
+  "type,start,end,body,sourceType": 363
+ },
+ "ForStatement": {
+  "type,start,end,init,test,update,body": 29
+ },
+ "BlockStatement": {
+  "type,start,end,body": 572
+ },
+ "VariableDeclaration": {
+  "type,start,end,declarations,kind": 1578,
+  "type,start,end,declare,declarations,kind": 2
+ },
+ "VariableDeclarator": {
+  "type,start,end,id,init": 1613
+ },
+ "Identifier": {
+  "type,start,end,name": 10663,
+  "type,start,end,name,typeAnnotation": 968,
+  "type,start,end,name,optional,typeAnnotation": 1
+ },
+ "ArrowFunctionExpression": {
+  "type,start,end,returnType,id,expression,generator,async,params,body": 1510,
+  "type,start,end,returnType,id,expression,generator,async,params,body,typeParameters": 14
+ },
+ "Literal": {
+  "type,start,end,value,raw": 2291,
+  "type,start,end,value,raw,regex": 3,
+  "type,start,end,value,raw,bigint": 1
+ },
+ "ExpressionStatement": {
+  "type,start,end,expression": 376
+ },
+ "BinaryExpression": {
+  "type,start,end,left,operator,right": 661
+ },
+ "ExportNamedDeclaration": {
+  "type,start,end,exportKind,declaration,specifiers,source": 240
+ },
+ "ClassDeclaration": {
+  "type,start,end,id,superClass,body": 5,
+  "type,start,end,abstract,id,superClass,body": 1
+ },
+ "ClassBody": {
+  "type,start,end,body": 7
+ },
+ "TSEnumDeclaration": {
+  "type,start,end,id,members": 4,
+  "type,start,end,const,id,members": 1
+ },
+ "TSEnumMember": {
+  "type,start,end,id": 5,
+  "type,start,end,id,initializer": 1
+ },
+ "ObjectPattern": {
+  "type,start,end,properties": 10,
+  "type,start,end,properties,typeAnnotation": 3
+ },
+ "Property": {
+  "type,start,end,method,shorthand,computed,key,value,kind": 679,
+  "type,start,end,method,shorthand,computed,key,kind,value": 2
+ },
+ "ObjectExpression": {
+  "type,start,end,properties": 336
+ },
+ "TSTypeAnnotation": {
+  "type,start,end,typeAnnotation": 1835
+ },
+ "TSNumberKeyword": {
+  "type,start,end": 622
+ },
+ "TSTypeAliasDeclaration": {
+  "type,start,end,id,typeParameters,typeAnnotation": 100
+ },
+ "TSTypeLiteral": {
+  "type,start,end,members": 179
+ },
+ "TSPropertySignature": {
+  "type,start,end,readonly,computed,key,typeAnnotation": 310,
+  "type,start,end,computed,key,typeAnnotation": 79,
+  "type,start,end,computed,key,optional,typeAnnotation": 15,
+  "type,start,end,readonly,computed,key,optional,typeAnnotation": 15
+ },
+ "TSInterfaceDeclaration": {
+  "type,start,end,id,typeParameters,body": 4
+ },
+ "TSTypeParameterDeclaration": {
+  "type,start,end,params": 7,
+  "type,start,end,params,extra": 11
+ },
+ "TSTypeParameter": {
+  "type,start,end,name,constraint,default": 20
+ },
+ "TSInterfaceBody": {
+  "type,start,end,body": 4
+ },
+ "TSMethodSignature": {
+  "type,start,end,computed,key,typeParameters,parameters,typeAnnotation,kind": 5
+ },
+ "TSTypeReference": {
+  "type,start,end,typeName": 621,
+  "type,start,end,typeName,typeArguments": 412
+ },
+ "MemberExpression": {
+  "type,start,end,object,property,computed,optional": 1731
+ },
+ "AssignmentPattern": {
+  "type,start,end,left,right": 13
+ },
+ "RestElement": {
+  "type,start,end,argument,typeAnnotation": 6,
+  "type,start,end,argument": 1
+ },
+ "TSArrayType": {
+  "type,start,end,elementType": 175
+ },
+ "TSTypeParameterInstantiation": {
+  "type,start,end,params": 440
+ },
+ "CallExpression": {
+  "type,start,end,callee,arguments,optional": 1517,
+  "type,start,end,callee,arguments,typeArguments": 11
+ },
+ "TSBooleanKeyword": {
+  "type,start,end": 112
+ },
+ "FunctionExpression": {
+  "type,start,end,id,expression,generator,async,params,body": 50,
+  "type,start,end,id,expression,generator,async,params,returnType,body": 3
+ },
+ "YieldExpression": {
+  "type,start,end,delegate,argument": 46
+ },
+ "UnaryExpression": {
+  "type,start,end,operator,prefix,argument": 139
+ },
+ "ReturnStatement": {
+  "type,start,end,argument": 610
+ },
+ "TSAsExpression": {
+  "type,start,end,expression,typeAnnotation": 4
+ },
+ "TSFunctionType": {
+  "type,start,end,typeParameters,parameters,typeAnnotation": 52
+ },
+ "FunctionDeclaration": {
+  "type,start,end,id,expression,generator,async,params,returnType,body": 22,
+  "type,start,end,id,expression,generator,async,params,body": 5,
+  "type,start,end,id,expression,generator,async,typeParameters,params,returnType,body": 1
+ },
+ "TSTypeOperator": {
+  "type,start,end,operator,typeAnnotation": 89
+ },
+ "ArrayExpression": {
+  "type,start,end,elements": 371
+ },
+ "AssignmentExpression": {
+  "type,start,end,operator,left,right": 121
+ },
+ "UpdateExpression": {
+  "type,start,end,operator,prefix,argument": 41
+ },
+ "ArrayPattern": {
+  "type,start,end,elements": 24
+ },
+ "NewExpression": {
+  "type,start,end,callee,arguments": 103,
+  "type,start,end,callee,typeArguments,arguments": 17
+ },
+ "TSStringKeyword": {
+  "type,start,end": 239
+ },
+ "ClassExpression": {
+  "type,start,end,id,superClass,body": 1
+ },
+ "ThisExpression": {
+  "type,start,end": 3
+ },
+ "TSAnyKeyword": {
+  "type,start,end": 6
+ },
+ "TSNonNullExpression": {
+  "type,start,end,expression": 2
+ },
+ "AwaitExpression": {
+  "type,start,end,argument": 18
+ },
+ "ImportExpression": {
+  "type,start,end,source": 2
+ },
+ "TSModuleDeclaration": {
+  "type,start,end,id,body": 4,
+  "type,start,end,id,body,declare": 1
+ },
+ "TSModuleBlock": {
+  "type,start,end,body": 5
+ },
+ "LogicalExpression": {
+  "type,start,end,left,operator,right": 272
+ },
+ "TSUnionType": {
+  "type,start,end,types": 124
+ },
+ "SwitchStatement": {
+  "type,start,end,discriminant,cases": 34
+ },
+ "SwitchCase": {
+  "type,start,end,consequent,test": 165
+ },
+ "TSLiteralType": {
+  "type,start,end,literal": 133
+ },
+ "TSUndefinedKeyword": {
+  "type,start,end": 40
+ },
+ "BreakStatement": {
+  "type,start,end,label": 10
+ },
+ "IfStatement": {
+  "type,start,end,test,consequent,alternate": 233
+ },
+ "ForOfStatement": {
+  "type,start,end,await,left,right,body": 51
+ },
+ "ContinueStatement": {
+  "type,start,end,label": 8
+ },
+ "SpreadElement": {
+  "type,start,end,argument": 122
+ },
+ "TSVoidKeyword": {
+  "type,start,end": 46
+ },
+ "ConditionalExpression": {
+  "type,start,end,test,consequent,alternate": 129
+ },
+ "ChainExpression": {
+  "type,start,end,expression": 19
+ },
+ "TSTupleType": {
+  "type,start,end,elementTypes": 79
+ },
+ "TSUnknownKeyword": {
+  "type,start,end": 92
+ },
+ "TSObjectKeyword": {
+  "type,start,end": 6
+ },
+ "ThrowStatement": {
+  "type,start,end,argument": 32
+ },
+ "TSNullKeyword": {
+  "type,start,end": 40
+ },
+ "JSXElement": {
+  "type,start,end,openingElement,closingElement,children": 64
+ },
+ "JSXOpeningElement": {
+  "type,start,end,name,attributes,selfClosing": 64
+ },
+ "JSXIdentifier": {
+  "type,start,end,name": 192
+ },
+ "JSXAttribute": {
+  "type,start,end,name,value": 88
+ },
+ "JSXExpressionContainer": {
+  "type,start,end,expression": 102
+ },
+ "TryStatement": {
+  "type,start,end,block,handler,finalizer": 3
+ },
+ "CatchClause": {
+  "type,start,end,param,body": 2
+ },
+ "TSCallSignatureDeclaration": {
+  "type,start,end,typeParameters,parameters,typeAnnotation": 2
+ },
+ "TemplateLiteral": {
+  "type,start,end,expressions,quasis": 56
+ },
+ "TemplateElement": {
+  "type,start,end,value,tail": 140
+ },
+ "WhileStatement": {
+  "type,start,end,test,body": 10
+ },
+ "JSXClosingElement": {
+  "type,start,end,name": 38
+ },
+ "JSXText": {
+  "type,start,end,value,raw": 68
+ },
+ "JSXFragment": {
+  "type,start,end,openingFragment,closingFragment,children": 2
+ },
+ "JSXOpeningFragment": {
+  "type,start,end,attributes,selfClosing": 2
+ },
+ "JSXClosingFragment": {
+  "type,start,end": 2
+ },
+ "TSParenthesizedType": {
+  "type,start,end,typeAnnotation": 6
+ },
+ "TSNeverKeyword": {
+  "type,start,end": 3
+ },
+ "TSIndexSignature": {
+  "type,start,end,readonly,parameters,typeAnnotation": 5,
+  "type,start,end,parameters,typeAnnotation": 1
+ },
+ "TSBigIntKeyword": {
+  "type,start,end": 2
+ },
+ "TSSymbolKeyword": {
+  "type,start,end": 2
+ },
+ "ImportDeclaration": {
+  "type,start,end,importKind,specifiers,source": 2
+ },
+ "ImportSpecifier": {
+  "type,start,end,imported,local,importKind": 2
+ },
+ "TSDeclareFunction": {
+  "type,start,end,declare,id,expression,generator,async,params,returnType": 1
+ },
+ "SequenceExpression": {
+  "type,start,end,expressions": 1
+ },
+ "DoWhileStatement": {
+  "type,start,end,body,test": 1
+ },
+ "EmptyStatement": {
+  "type,start,end": 1
+ },
+ "ForInStatement": {
+  "type,start,end,left,right,body": 1
+ },
+ "LabeledStatement": {
+  "type,start,end,body,label": 4
+ },
+ "StaticBlock": {
+  "type,start,end,body": 1
+ },
+ "PropertyDefinition": {
+  "type,start,end,static,computed,key,value": 2
+ },
+ "MethodDefinition": {
+  "type,start,end,static,computed,key,kind,value": 3,
+  "type,start,end,abstract,static,computed,key,kind,value": 1
+ },
+ "TSParameterProperty": {
+  "type,start,end,accessibility,parameter": 1
+ },
+ "TSSatisfiesExpression": {
+  "type,start,end,expression,typeAnnotation": 1
+ },
+ "TSTypeQuery": {
+  "type,start,end,exprName": 1
+ },
+ "TSConstructSignatureDeclaration": {
+  "type,start,end,typeParameters,parameters,typeAnnotation": 1
+ },
+ "TaggedTemplateExpression": {
+  "type,start,end,tag,quasi": 1
+ },
+ "TSTypeAssertion": {
+  "type,start,end,typeAnnotation,expression": 2
+ },
+ "TSNamedTupleMember": {
+  "type,start,end,label,optional,elementType": 3
+ },
+ "TSRestType": {
+  "type,start,end,typeAnnotation": 2
+ },
+ "TSOptionalType": {
+  "type,start,end,typeAnnotation": 1
+ },
+ "TSQualifiedName": {
+  "type,start,end,left,right": 1
+ },
+ "TSConstructorType": {
+  "type,start,end,abstract,typeParameters,parameters,typeAnnotation": 1
+ },
+ "TSIndexedAccessType": {
+  "type,start,end,objectType,indexType": 1
+ },
+ "TSIntersectionType": {
+  "type,start,end,types": 1
+ },
+ "ExportDefaultDeclaration": {
+  "type,start,end,exportKind,declaration": 1
+ },
+ "ExportAllDeclaration": {
+  "type,start,end,exportKind,exported,source": 1
+ },
+ "ExportSpecifier": {
+  "type,start,end,local,exported,exportKind": 1
+ },
+ "MetaProperty": {
+  "type,start,end,meta,property": 1
+ },
+ "PrivateIdentifier": {
+  "type,start,end,name": 1
+ },
+ "Super": {
+  "type,start,end": 1
+ },
+ "TSDeclareMethod": {
+  "type,start,end,id,expression,generator,async,params,returnType": 1
+ },
+ "JSXSpreadAttribute": {
+  "type,start,end,argument": 1
+ },
+ "JSXEmptyExpression": {
+  "type,start,end": 1
+ },
+ "JSXMemberExpression": {
+  "type,start,end,object,property": 1
+ },
+ "JSXNamespacedName": {
+  "type,start,end,namespace,name": 1
+ }
+}

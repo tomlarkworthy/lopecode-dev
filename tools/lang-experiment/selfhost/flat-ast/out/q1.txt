@@ -1,0 +1,15 @@
+baseline (2-member Parse, one cell): 0.6 ms  nodeCount: ok : number
+
+== union a (ast-a.ss.ts): checkSources median 8.5 ms (runs 8 9 8 8 5), ok=true
+nodeCount: ok : number
+calleeNames: ok : string[]
+boundary shape for nodeCount.flatParse: 41364 chars of JSON
+cross() over 361 corpus parses (33720 nodes): 0 rejected 
+  total flatParse 95.5 ms, total cross 334.9 ms; per node: flatParse 2.83 µs, cross 9.93 µs
+
+== union all (ast-a-all.ss.ts): checkSources median 7.8 ms (runs 7 9 9 7 8), ok=true
+nodeCount: ok : number
+calleeNames: ok : string[]
+boundary shape for nodeCount.flatParse: 44865 chars of JSON
+cross() over 361 corpus parses (33720 nodes): 0 rejected 
+  total flatParse 67.2 ms, total cross 339.3 ms; per node: flatParse 1.99 µs, cross 10.06 µs

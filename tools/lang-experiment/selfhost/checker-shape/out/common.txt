@@ -1,0 +1,30 @@
+regView: ok : RegView
+exclusion: ok : (x: string, path: string) => string
+pathOf: ok : (key: string) => string
+TYPEOF: ok : Map<string, Ty>
+memberless: ok : (m: Ty) => boolean
+um: ok : (t: Ty) => Ty[]
+filter: ok : (t: Ty, keep: (m: Ty) => Ty | boolean) => Ty
+truthy: ok : (t: Ty) => Ty
+falsy: ok : (t: Ty) => Ty
+nonNullish: ok : (t: Ty) => Ty
+nonUndef: ok : (t: Ty) => Ty
+typeTag: ok : (m: Ty) => string | null
+narrowTypeof: ok : (t: Ty, tag: string, pos: boolean) => Ty
+narrowEq: ok : (t: Ty, v: Ty, pos: boolean, loose: boolean) => Ty
+narrowByProp: ok : (t: Ty, k: string, test: (pt: Ty) => boolean) => Ty
+join: ok : (a: Flow | null, b: Flow | null) => Flow | null
+join2: ok : (a: Flow, b: Flow) => Flow
+logicalType: ok : (op: string, lt: Ty, rt: Ty) => Ty
+intrinsicName: ok : (m: Ty) => string | null
+noOverlap: ok : (a: Ty, b: Ty) => boolean
+promiseArg: ok : (m: Ty) => Ty | null
+awaited: ok : (t: Ty, declared: boolean) => Ty
+settled: ok : (t: Ty) => Ty
+ctxOnly: ok : (t: Ty, tvs: Set<string>) => Ty | undefined
+memberPath: ok : (n: MemberExpression) => string | null
+ctxSensitive: ok : (e: Node) => boolean
+collapseArrays: ok : (t: Ty) => Ty
+typeofTest: ok : (a: Node, b: Node) => { arg: Node; tag: string } | null
+checker: lite/core.ts@6e5c19a4d12d lite/infer.ts@88e4bfdd4ab7 lite/registry.ts@50dea0539436 lite/own.ts@03c38600d97b
+29 cells (splitCells units: type declarations count), 0 not ok, 0 module errors, check 645 ms

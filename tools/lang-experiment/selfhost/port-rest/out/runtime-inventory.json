@@ -1,0 +1,2276 @@
+[
+ {
+  "cell": "STATECELL",
+  "inputs": [],
+  "decls": [
+   "STATECELL"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "ACTION",
+  "inputs": [],
+  "decls": [
+   "ACTION"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "REFHANDLE",
+  "inputs": [],
+  "decls": [
+   "REFHANDLE"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "actionNames",
+  "inputs": [],
+  "decls": [
+   "actionNames"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "actionNamer",
+  "inputs": [],
+  "decls": [
+   "actionNamer"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "nameOf",
+  "inputs": [
+   "actionNames",
+   "actionNamer"
+  ],
+  "decls": [
+   "nameOf"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "rt_cells",
+  "inputs": [
+   "emptyStore",
+   "storeStep",
+   "records",
+   "viewEls",
+   "Event",
+   "isIdle",
+   "recordOf",
+   "seenValue",
+   "updateSees",
+   "nameOfHandle",
+   "storeHandleOf",
+   "readSees"
+  ],
+  "decls": [
+   "storeState",
+   "rt",
+   "storeFeed",
+   "performStore",
+   "commit",
+   "idle",
+   "write",
+   "read"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 40,
+  "kind": "let,const,FunctionDeclaration,FunctionDeclaration,FunctionDeclaration,const,FunctionDeclaration,FunctionDeclaration"
+ },
+ {
+  "cell": "rt",
+  "inputs": [
+   "rt_cells"
+  ],
+  "decls": [],
+  "file": "../prelude.runtime.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "storeFeed",
+  "inputs": [
+   "rt_cells"
+  ],
+  "decls": [],
+  "file": "../prelude.runtime.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "idle",
+  "inputs": [
+   "rt_cells"
+  ],
+  "decls": [],
+  "file": "../prelude.runtime.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "write",
+  "inputs": [
+   "rt_cells"
+  ],
+  "decls": [],
+  "file": "../prelude.runtime.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "read",
+  "inputs": [
+   "rt_cells"
+  ],
+  "decls": [],
+  "file": "../prelude.runtime.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "records",
+  "inputs": [],
+  "decls": [
+   "records"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "over",
+  "inputs": [],
+  "decls": [
+   "over"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "viewEls",
+  "inputs": [],
+  "decls": [
+   "viewEls"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "storeHandleOf",
+  "inputs": [
+   "over"
+  ],
+  "decls": [
+   "storeHandleOf"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "recordOf",
+  "inputs": [
+   "records",
+   "storeHandleOf"
+  ],
+  "decls": [
+   "recordOf"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "nameOfHandle",
+  "inputs": [
+   "REFHANDLE"
+  ],
+  "decls": [
+   "nameOfHandle"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "seenValue",
+  "inputs": [
+   "viewEls",
+   "storeHandleOf"
+  ],
+  "decls": [
+   "seenValue"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 6,
+  "kind": "const"
+ },
+ {
+  "cell": "state",
+  "inputs": [
+   "STATECELL"
+  ],
+  "decls": [
+   "state"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 3,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "isStateCell",
+  "inputs": [
+   "STATECELL"
+  ],
+  "decls": [
+   "isStateCell"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "isAction",
+  "inputs": [
+   "ACTION"
+  ],
+  "decls": [
+   "isAction"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "isRefHandle",
+  "inputs": [
+   "REFHANDLE"
+  ],
+  "decls": [
+   "isRefHandle"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "handleOf",
+  "inputs": [
+   "EventTarget",
+   "REFHANDLE",
+   "write",
+   "seenValue",
+   "committedOf",
+   "recordOf"
+  ],
+  "decls": [
+   "handleOf"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 10,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "madeStore",
+  "inputs": [
+   "storeFeed",
+   "nameOfHandle"
+  ],
+  "decls": [
+   "madeStore"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 2,
+  "kind": "const"
+ },
+ {
+  "cell": "ref",
+  "inputs": [
+   "records",
+   "refPlan",
+   "rt",
+   "isStateCell",
+   "handleOf",
+   "madeStore"
+  ],
+  "decls": [
+   "ref"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 14,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "views",
+  "inputs": [],
+  "decls": [
+   "views"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "viewHandle",
+  "inputs": [
+   "views",
+   "handleOf",
+   "isRefHandle",
+   "over",
+   "viewEls",
+   "madeStore"
+  ],
+  "decls": [
+   "viewHandle"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 9,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "action",
+  "inputs": [
+   "storeFeed",
+   "rt",
+   "ACTION"
+  ],
+  "decls": [
+   "action"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 10,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "snapshot",
+  "inputs": [
+   "structuredClone"
+  ],
+  "decls": [
+   "snapshot"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 4,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "equals",
+  "inputs": [],
+  "decls": [
+   "equals"
+  ],
+  "file": "../prelude.runtime.ts",
+  "lines": 27,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "$ss$type$Shape",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$PointerLike",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Ptr",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Place",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Compiler",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Data",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "mut",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "freeze",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "borrow",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "want",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "deepEqual",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "flat",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "ptr",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "DOM_EVENTS",
+  "inputs": [
+   "ptr"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "PROPS",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "isElem",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "orderKeyed",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "rejected",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "compileFor",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$EventsRecord",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$ListenerRecord",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Delivery",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$OpenEvent",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$RunEvent",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$ListenEvent",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$ListenerInvalidated",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Result",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Failure",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$PlacedEvent",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$SweepEvent",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$DeliveryEvent",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Effect",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$StepResult",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Verdict",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Handles",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Listeners",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Keys",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Effects",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Counters",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "emptyDelivery",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "newEventsRecord",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "same",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "wantsValues",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "isStaleResult",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "needsNewGenerator",
+  "inputs": [
+   "same"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "parksOnInvalidation",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "needsPlacing",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "nextListener",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "sweepVerdict",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "nextBorn",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "schedulePull",
+  "inputs": [
+   "wantsValues"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "stopGenerator",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "queueValue",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "failGenerator",
+  "inputs": [
+   "isStaleResult"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "detachListener",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "releaseHandle",
+  "inputs": [
+   "stopGenerator",
+   "detachListener"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "callNextListener",
+  "inputs": [
+   "nextListener"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "startNextValue",
+  "inputs": [
+   "needsPlacing"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "deliver",
+  "inputs": [
+   "callNextListener",
+   "startNextValue"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onOpen",
+  "inputs": [
+   "newEventsRecord"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onRun",
+  "inputs": [
+   "needsNewGenerator",
+   "stopGenerator",
+   "detachListener"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onMade",
+  "inputs": [
+   "schedulePull"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onEventsInvalidated",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onListen",
+  "inputs": [
+   "newEventsRecord",
+   "detachListener",
+   "schedulePull"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onListenerInvalidated",
+  "inputs": [
+   "parksOnInvalidation",
+   "detachListener"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onPull",
+  "inputs": [
+   "schedulePull",
+   "isStaleResult",
+   "wantsValues"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onGot",
+  "inputs": [
+   "queueValue"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onResolved",
+  "inputs": [
+   "schedulePull",
+   "isStaleResult",
+   "queueValue"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onAwaiting",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onRejected",
+  "inputs": [
+   "failGenerator"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onPlaced",
+  "inputs": [
+   "deliver"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onPlaceFailed",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onOrderChanged",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onReleaseAction",
+  "inputs": [
+   "detachListener"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "onSweep",
+  "inputs": [
+   "sweepVerdict",
+   "nextBorn",
+   "detachListener",
+   "releaseHandle"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "dispatch",
+  "inputs": [
+   "onOpen",
+   "onRun",
+   "onMade",
+   "onEventsInvalidated",
+   "onListen",
+   "onListenerInvalidated",
+   "onPull",
+   "onGot",
+   "onResolved",
+   "onAwaiting",
+   "failGenerator",
+   "onRejected",
+   "schedulePull",
+   "deliver",
+   "onPlaced",
+   "onPlaceFailed",
+   "onOrderChanged",
+   "detachListener",
+   "releaseHandle",
+   "onReleaseAction",
+   "onSweep"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "step",
+  "inputs": [
+   "mut",
+   "freeze",
+   "dispatch"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "handleAtKey",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "sweepCandidates",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "liveEventsCount",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "runningCount",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "pullingCount",
+  "inputs": [
+   "wantsValues"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$StoreRun",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$StoreRecord",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Pending",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Writes",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$StoreState",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$StoreEvent",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$StoreEffect",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$StoreStep",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Seen",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Owner",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$RefPlan",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "emptyStore",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "isIdle",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "ownerOf",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "writeTarget",
+  "inputs": [
+   "ownerOf"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "committedOf",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "currentOf",
+  "inputs": [
+   "committedOf"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "updateSees",
+  "inputs": [
+   "writeTarget",
+   "currentOf"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "readSees",
+  "inputs": [
+   "ownerOf",
+   "currentOf"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "refPlan",
+  "inputs": [
+   "same"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "enterCall",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "mergeWrites",
+  "inputs": [
+   "mut",
+   "freeze"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "exitCall",
+  "inputs": [
+   "mergeWrites"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "writeInCall",
+  "inputs": [
+   "mut",
+   "freeze",
+   "writeTarget"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "makeStore",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "commitReady",
+  "inputs": [
+   "mut"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "resetStore",
+  "inputs": [
+   "emptyStore"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "storeStep",
+  "inputs": [
+   "enterCall",
+   "exitCall",
+   "writeInCall",
+   "makeStore",
+   "commitReady",
+   "resetStore"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Key",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$PropValue",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Props",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Kid",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$Drawn",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$PropOp",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "$ss$type$ChildOp",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "drawnTag",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "eventOf",
+  "inputs": [
+   "DOM_EVENTS"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "removesAttribute",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "propGone",
+  "inputs": [
+   "eventOf",
+   "PROPS"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "sameAttribute",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "propSet",
+  "inputs": [
+   "eventOf",
+   "PROPS",
+   "removesAttribute",
+   "propGone",
+   "sameAttribute"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "propOps",
+  "inputs": [
+   "propSet",
+   "propGone"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "slotId",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "keyedIds",
+  "inputs": [
+   "mut",
+   "freeze",
+   "slotId"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "drawnId",
+  "inputs": [
+   "slotId"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "matchKeyed",
+  "inputs": [
+   "mut",
+   "freeze"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "keptByKey",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "mustPlace",
+  "inputs": [
+   "mut",
+   "freeze"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "keyedOps",
+  "inputs": [
+   "mut",
+   "freeze",
+   "drawnId",
+   "matchKeyed",
+   "keptByKey",
+   "mustPlace"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "keepsNode",
+  "inputs": [],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "childAt",
+  "inputs": [
+   "keepsNode"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "positionalOps",
+  "inputs": [
+   "childAt"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "childOps",
+  "inputs": [
+   "keyedIds",
+   "keyedOps",
+   "positionalOps"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "describe",
+  "inputs": [],
+  "decls": [
+   "describe"
+  ],
+  "file": "boundary.ts",
+  "lines": 10,
+  "kind": "const"
+ },
+ {
+  "cell": "plain",
+  "inputs": [],
+  "decls": [
+   "plain"
+  ],
+  "file": "boundary.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "Mismatch",
+  "inputs": [],
+  "decls": [
+   "Mismatch"
+  ],
+  "file": "boundary.ts",
+  "lines": 1,
+  "kind": "ClassDeclaration"
+ },
+ {
+  "cell": "copy",
+  "inputs": [
+   "Mismatch",
+   "want",
+   "describe",
+   "plain"
+  ],
+  "decls": [
+   "copy"
+  ],
+  "file": "boundary.ts",
+  "lines": 54,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "last",
+  "inputs": [],
+  "decls": [
+   "last"
+  ],
+  "file": "boundary.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "crossings",
+  "inputs": [],
+  "decls": [
+   "crossings"
+  ],
+  "file": "boundary.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "cross",
+  "inputs": [
+   "copy",
+   "Mismatch",
+   "crossings",
+   "last",
+   "deepEqual"
+  ],
+  "decls": [
+   "cross"
+  ],
+  "file": "boundary.ts",
+  "lines": 12,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "checkShape",
+  "inputs": [
+   "copy",
+   "Mismatch"
+  ],
+  "decls": [
+   "checkShape"
+  ],
+  "file": "boundary.ts",
+  "lines": 6,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "elementsMade",
+  "inputs": [],
+  "decls": [
+   "elementsMade"
+  ],
+  "file": "jsx/h.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "isElement",
+  "inputs": [
+   "elementsMade"
+  ],
+  "decls": [
+   "isElement"
+  ],
+  "file": "jsx/h.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "madeByH",
+  "inputs": [
+   "elementsMade"
+  ],
+  "decls": [
+   "madeByH"
+  ],
+  "file": "jsx/h.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "h",
+  "inputs": [
+   "madeByH",
+   "flat"
+  ],
+  "decls": [
+   "h"
+  ],
+  "file": "jsx/h.ts",
+  "lines": 5,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "asText",
+  "inputs": [],
+  "decls": [
+   "asText"
+  ],
+  "file": "jsx/render.ts",
+  "lines": 2,
+  "kind": "const"
+ },
+ {
+  "cell": "keyOf",
+  "inputs": [
+   "asText"
+  ],
+  "decls": [
+   "keyOf"
+  ],
+  "file": "jsx/render.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "kidOf",
+  "inputs": [
+   "isElement",
+   "keyOf",
+   "asText"
+  ],
+  "decls": [
+   "kidOf"
+  ],
+  "file": "jsx/render.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "drawnOf",
+  "inputs": [
+   "keyOf"
+  ],
+  "decls": [
+   "drawnOf"
+  ],
+  "file": "jsx/render.ts",
+  "lines": 2,
+  "kind": "const"
+ },
+ {
+  "cell": "create_cells",
+  "inputs": [
+   "isElement",
+   "asText",
+   "drawnTag",
+   "childOps",
+   "drawnOf",
+   "kidOf",
+   "propOps",
+   "applyProp"
+  ],
+  "decls": [
+   "create",
+   "applyChildren",
+   "patch"
+  ],
+  "file": "jsx/render.ts",
+  "lines": 35,
+  "kind": "FunctionDeclaration,FunctionDeclaration,FunctionDeclaration"
+ },
+ {
+  "cell": "create",
+  "inputs": [
+   "create_cells"
+  ],
+  "decls": [],
+  "file": "jsx/render.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "patch",
+  "inputs": [
+   "create_cells"
+  ],
+  "decls": [],
+  "file": "jsx/render.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "applyProp",
+  "inputs": [
+   "DOM_EVENTS"
+  ],
+  "decls": [
+   "applyProp"
+  ],
+  "file": "jsx/render.ts",
+  "lines": 18,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "guard",
+  "inputs": [
+   "rt"
+  ],
+  "decls": [
+   "guard"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 9,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "EVENTS",
+  "inputs": [],
+  "decls": [
+   "EVENTS"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "LISTENER",
+  "inputs": [],
+  "decls": [
+   "LISTENER"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "feed_cells",
+  "inputs": [
+   "emptyDelivery",
+   "step",
+   "scheduler",
+   "generators",
+   "guard",
+   "listenerObjects",
+   "nameOf",
+   "orderKeyed",
+   "handleObjects",
+   "runningCount",
+   "handleIds",
+   "liveEventsCount",
+   "pullingCount",
+   "handleAtKey",
+   "EVENTS",
+   "idFor",
+   "madeHandles",
+   "sweepCandidates"
+  ],
+  "decls": [
+   "delivery",
+   "making",
+   "feed",
+   "perform",
+   "running",
+   "liveEvents",
+   "pulling",
+   "events",
+   "openHandle",
+   "placeOf",
+   "setListenerOrder",
+   "listenerOrderChanged",
+   "sweep"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 69,
+  "kind": "let,let,FunctionDeclaration,FunctionDeclaration,const,const,const,FunctionDeclaration,FunctionDeclaration,let,const,const,FunctionDeclaration"
+ },
+ {
+  "cell": "feed",
+  "inputs": [
+   "feed_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "running",
+  "inputs": [
+   "feed_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "liveEvents",
+  "inputs": [
+   "feed_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "pulling",
+  "inputs": [
+   "feed_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "events",
+  "inputs": [
+   "feed_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "setListenerOrder",
+  "inputs": [
+   "feed_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "listenerOrderChanged",
+  "inputs": [
+   "feed_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "sweep",
+  "inputs": [
+   "feed_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "idFor_cells",
+  "inputs": [
+   "idOf"
+  ],
+  "decls": [
+   "lastId",
+   "idFor"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 2,
+  "kind": "let,const"
+ },
+ {
+  "cell": "idFor",
+  "inputs": [
+   "idFor_cells"
+  ],
+  "decls": [],
+  "file": "browser/cells.ts",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "idOf",
+  "inputs": [],
+  "decls": [
+   "idOf"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "handleObjects",
+  "inputs": [],
+  "decls": [
+   "handleObjects"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "listenerObjects",
+  "inputs": [],
+  "decls": [
+   "listenerObjects"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "generators",
+  "inputs": [],
+  "decls": [
+   "generators"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "madeHandles",
+  "inputs": [],
+  "decls": [
+   "madeHandles"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "scheduler",
+  "inputs": [],
+  "decls": [
+   "scheduler"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "handleIds",
+  "inputs": [
+   "madeHandles",
+   "idFor"
+  ],
+  "decls": [
+   "handleIds"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "isEvents",
+  "inputs": [
+   "madeHandles"
+  ],
+  "decls": [
+   "isEvents"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "isListener",
+  "inputs": [
+   "LISTENER"
+  ],
+  "decls": [
+   "isListener"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "on",
+  "inputs": [
+   "LISTENER"
+  ],
+  "decls": [
+   "on"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "listen",
+  "inputs": [
+   "isListener",
+   "isEvents",
+   "idFor",
+   "listenerObjects",
+   "handleObjects",
+   "feed"
+  ],
+  "decls": [
+   "listen"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 10,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "release",
+  "inputs": [
+   "isListener",
+   "feed",
+   "idFor",
+   "isEvents",
+   "isAction"
+  ],
+  "decls": [
+   "release"
+  ],
+  "file": "browser/cells.ts",
+  "lines": 5,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "viewRef",
+  "inputs": [
+   "isRefHandle",
+   "viewHandle",
+   "checkShape"
+  ],
+  "decls": [
+   "viewRef"
+  ],
+  "file": "stdlib/runtime.ts",
+  "lines": 7,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "joined",
+  "inputs": [],
+  "decls": [
+   "joined"
+  ],
+  "file": "stdlib/runtime.ts",
+  "lines": 1,
+  "kind": "const"
+ },
+ {
+  "cell": "joinCells",
+  "inputs": [
+   "joined"
+  ],
+  "decls": [
+   "joinCells"
+  ],
+  "file": "stdlib/runtime.ts",
+  "lines": 7,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "mount",
+  "inputs": [
+   "keepsNode",
+   "drawnOf",
+   "kidOf",
+   "patch",
+   "create"
+  ],
+  "decls": [
+   "mount"
+  ],
+  "file": "stdlib/runtime.ts",
+  "lines": 7,
+  "kind": "FunctionDeclaration"
+ },
+ {
+  "cell": "test_runtime_action_commits_a_write",
+  "inputs": [
+   "ref",
+   "state",
+   "Generators",
+   "action"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "test_runtime_a_write_after_the_call_throws",
+  "inputs": [
+   "ref",
+   "state",
+   "Generators",
+   "action"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "test_runtime_cross_rejects_wrong_shapes",
+  "inputs": [
+   "cross"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ },
+ {
+  "cell": "test_runtime_crossed_value_is_a_deep_frozen_copy",
+  "inputs": [
+   "cross"
+  ],
+  "decls": [],
+  "file": "(generated)",
+  "lines": 0,
+  "kind": ""
+ }
+]

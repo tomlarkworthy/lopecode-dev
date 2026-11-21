@@ -1,0 +1,13 @@
+     3.1 ms  namedByParent
+     2.5 ms  bansAt
+     2.4 ms  isAsConst
+     2.3 ms  typeRows
+     1.8 ms  reservedAt
+     1.6 ms  argumentsAsName
+     1.1 ms  kindOf
+     1.1 ms  tree
+     0.8 ms  argumentsAt
+     0.5 ms  syntaxPass
+     0.2 ms  SYNTAX
+     0.1 ms  TYPE_POSITIONS
+17.2 ms in 12 cells

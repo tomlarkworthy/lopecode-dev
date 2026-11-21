@@ -5,11 +5,11 @@ import { parse, type Node, type Parsed } from "./parse.ts";
 import { Registry } from "./registry.ts";
 import { Checker } from "./infer.ts";
 import { ownership, actionEscapes, iterIn } from "./own.ts";
-import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec } from "./types.ts";
+import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, reservedName, viewofInputName, RESERVED_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith } from "./types.ts";
 import { CAPABILITIES } from "./intrinsics.ts";
 import { island, specOf, compileCalls } from "./island.ts";
 import { factsOf, type CellInfo } from "./facts.ts";
-import { captures, opaqueCaptures, captureMessage } from "./capture.ts";
+import { captures, opaqueCaptures } from "./capture.ts";
 import { shapeOf, type Shape } from "./boundary.ts";
 
 export type LiteError = { rule: string; line: number; msg: string };
@@ -23,40 +23,18 @@ export type LiteResult = { port: string; file: string; ok: boolean; module: Lite
 
 type CellDef = { name: string; fn: Node; stmt: Node };
 
-let expandForErr: (t: Ty) => Ty = (t) => t;
-function hasErr(t: Ty, depth = 0): boolean {
-  if (depth > 8) return false;
-  switch (t.k) {
-    case "err": return true;
-    case "arr": return hasErr(t.el, depth + 1);
-    case "tup": return t.els.some((x) => hasErr(x, depth + 1));
-    case "union": return t.ts.some((x) => hasErr(x, depth + 1));
-    case "named": return t.args.some((x) => hasErr(x, depth + 1)) || expandForErr(t).k === "err"; // an alias lite could not convert
-    case "fn": return t.ps.some((p) => hasErr(p.t, depth + 1)) || hasErr(t.ret, depth + 1);
-    case "rec": return [...t.props.values()].some((p) => hasErr(p.t, depth + 1));
-    default: return false;
-  }
-}
-
 const SYNTAX: Record<string, string> = {
   ThisExpression: "no-this", ClassDeclaration: "no-class", ClassExpression: "no-class", TSAnyKeyword: "no-any",
   TSNonNullExpression: "no-non-null", ImportExpression: "no-dynamic-import", TSEnumDeclaration: "no-enum",
   TSModuleDeclaration: "no-namespace", TSTypeAssertion: "no-cast",
 };
-// A compiled cell is Observable JavaScript: it reads viewof and mutable as keywords, and names a cell's viewof
-// inputs $0, $1, …, so a name of the code (not of a type, which is kept in a comment) may not be one of these.
-// viewof and mutable stay usable as a property's key or a member's name; $<digits> is reserved there too.
-const RESERVED_MSG = (name: string) => /^\$\d+$/.test(name)
-  ? `${name} is reserved: Observable JavaScript names a cell's viewof inputs $0, $1, …`
-  : `${name} is reserved: Observable JavaScript reads it as a keyword`;
-export const reservedName = (name: string) => /^\$\d+$/.test(name) || name === "viewof" || name === "mutable";
 function syntaxPass(n: Node, report: (n: Node, rule: string, msg: string) => void, unsup: (n: Node, what: string) => void) {
   const walk = (x: any, parent: any, inType = false) => {
     if (!x || typeof x !== "object") return;
     if (Array.isArray(x)) { x.forEach((y) => walk(y, parent, inType)); return; }
     if (typeof x.type !== "string") return;
     const named = parent && !parent.computed && ((parent.type === "MemberExpression" && parent.property === x) || (parent.type === "Property" && parent.key === x && parent.value !== x));
-    if (x.type === "Identifier" && !inType && reservedName(x.name) && !(named && !/^\$\d+$/.test(x.name))) report(x, "reserved-name", RESERVED_MSG(x.name));
+    if (x.type === "Identifier" && !inType && reservedName(x.name) && !(named && !viewofInputName(x.name))) report(x, "reserved-name", RESERVED_MSG(x.name));
     const r = SYNTAX[x.type];
     if (r) report(x, r, x.type);
     if (x.type === "TSAsExpression" && !(x.typeAnnotation.type === "TSTypeReference" && x.typeAnnotation.typeName?.name === "const")) report(x, "no-cast", "as cast");
@@ -93,7 +71,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   const { P, dups } = distinctNames(cellsSrc, tsx);
   const mod = (p: Parsed, n: Node, rule: string, msg: string) => moduleErrs.push({ rule, line: p.line(n.start), msg });
   // conversion problems while loading foreign.d.ts are module-level (they would otherwise be silent)
-  expandForErr = (t) => reg.expand(t);
+  const hasErr = hasErrWith(reg.ops);
   reg.onUnsup = (n, what) => moduleErrs.push({ rule: "unsupported", line: n.loc?.start.line ?? 0, msg: `foreign.d.ts: ${what}` });
   reg.onErr = (n, rule, msg) => moduleErrs.push({ rule, line: n.loc?.start.line ?? 0, msg: `foreign.d.ts: ${msg}` });
 
@@ -228,38 +206,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     const res = side(sp.outputs);
     return bad ? ERR : { k: "fn", tps: [], ps: [{ n: "args", t: args, opt: false }], ret: named("Promise", res) };
   };
-  // structuredClone carries data, not functions, state handles, actions or borrowed views.
-  const uncloneable = (t: Ty, depth = 0): string | null => {
-    if (depth > 8) return null;
-    if (t.k === "named" && reg.isAlias(t.n)) return uncloneable(reg.expand(t), depth + 1);
-    switch (t.k) {
-      case "fn": return "a function";
-      case "named": return ["Action", "State", "StateCell", "Mut", "Borrowed", "Promise", "Generator", "Pool", "Compile", "Events", "Listener", "Elem"].includes(t.n) ? t.n : null;
-      case "arr": return uncloneable(t.el, depth + 1);
-      case "tup": for (const x of t.els) { const w = uncloneable(x, depth + 1); if (w) return w; } return null;
-      case "union": for (const x of t.ts) { const w = uncloneable(x, depth + 1); if (w) return w; } return null;
-      case "rec": if (t.calls?.length) return "a function"; for (const p of t.props.values()) { const w = uncloneable(p.t, depth + 1); if (w) return w; } return null;
-      default: return null;
-    }
-  };
-  // undefined is a value of t: t is undefined, void or unknown, or a union with one of them (aliases expanded)
-  const admitsUndefined = (t: Ty, depth = 0): boolean => depth <= 12 && (t.k === "undef" || t.k === "void" || t.k === "unknown" ||
-    (t.k === "named" && reg.isAlias(t.n) && admitsUndefined(reg.expand(t), depth + 1)) || (t.k === "union" && t.ts.some((x) => admitsUndefined(x, depth + 1))));
-  // the first of names that t mentions anywhere (aliases expanded), or null
-  const holds = (t: Ty, names: string[], depth = 0): string | null => {
-    if (depth > 12) return null;
-    if (t.k === "named") {
-      if (names.includes(t.n)) return t.n;
-      if (reg.isAlias(t.n)) return holds(reg.expand(t), names, depth + 1);
-      for (const a of t.args ?? []) { const w = holds(a, names, depth + 1); if (w) return w; }
-      return null;
-    }
-    const kids: Ty[] = t.k === "arr" ? [t.el] : t.k === "tup" ? t.els : t.k === "union" ? t.ts
-      : t.k === "rec" ? [...[...t.props.values()].map((p) => p.t), ...(t.calls ?? []).flatMap((f: any) => [...f.ps.map((p: any) => p.t), f.ret]), ...(t.index ? [t.index] : [])]
-      : t.k === "fn" ? [...t.ps.map((p) => p.t), t.ret] : [];
-    for (const k of kids) { const w = k && holds(k, names, depth + 1); if (w) return w; }
-    return null;
-  };
+  const uncloneable = uncloneableWith(reg.ops), admitsUndefined = admitsUndefinedWith(reg.ops), holds = holdsWith(reg.ops);
   // Generator cells some cell takes as Events<T>: the runner gives every reader the handle, so a plain reader is an error.
   const takenAsEvents = new Set<string>(cells.flatMap((c) => (c.fn.params as Node[]).filter((p) => p.typeAnnotation?.typeAnnotation?.type === "TSTypeReference" && p.typeAnnotation.typeAnnotation.typeName.name === "Events").map((p) => p.name as string)));
   // Listener cells: no other cell may take one, so a listener's lifetime is its own cell's value.

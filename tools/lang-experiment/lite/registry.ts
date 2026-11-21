@@ -1,10 +1,11 @@
-// Declarations (intrinsic, prelude, foreign, user), type-syntax conversion, expansion, member lookup,
-// subtyping and inference unification.
+// Declarations (intrinsic, prelude, foreign, user), type-syntax conversion and expansion. Member lookup,
+// subtyping and inference unification are SoundScript cells (subtype.ss.ts), bound here to this Registry.
 import { parse, type Node, type Parsed } from "./parse.ts";
 import {
   type Ty, type Fn, type Rec, type Prop, type Param, type Flags, type Subst,
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, SYMBOL, BOOL,
-  union, members, show, subst, named, arr, WRAPPERS, isNamed, propT, tpNames,
+  union, show, subst, named, arr, WRAPPERS, isNamed, tpNames,
+  type RegOps, type DeclOps, builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, unifyWith,
 } from "./types.ts";
 import { INTRINSIC_DECLS, PRELUDE_DECLS, TYPED_ARRAYS, JSX_DECLS } from "./intrinsics.ts";
 
@@ -32,8 +33,6 @@ let DECLS: [Parsed, Parsed, Parsed] | null = null;
 let alphaNames = 0;
 
 const ONE_ARG = new Set(["State", "StateCell", "Events", "Mut", "Borrowed"]);
-// names convert reads before any declaration
-const CONVERT_NAMES = ["Js", "Array", "ReadonlyArray", "Record", "Action", "ValueOf"];
 export class Registry {
   types = new Map<string, Decl>();
   values = new Map<string, ValueDecl>();
@@ -56,7 +55,7 @@ export class Registry {
   // The type names the checker gives a meaning of its own: declared by the intrinsics, the prelude or JSX,
   // the wrappers, and the names convert reads first. Read before the user's declarations are loaded.
   builtinTypeNames(): Set<string> {
-    return new Set([...[...this.types].filter(([, d]) => d.origin !== "user" && d.origin !== "foreign").map(([n]) => n), ...WRAPPERS, ...CONVERT_NAMES]);
+    return builtinNamesOf([...this.types]);
   }
 
   // Top-level type/interface/declare statements of a file. Returns non-declaration statements untouched.
@@ -92,7 +91,6 @@ export class Registry {
     return rest;
   }
 
-  // Elem is the one JSX type that is not structural: only JSX makes one (h at run time), so a record is not one
   // f's result, with any problem it meets while expanding types left to be reported where the type is used
   peek<T>(f: () => T): T {
     const was = [this.onErr, this.onUnsup, this.journal] as const;
@@ -103,10 +101,9 @@ export class Registry {
       for (const [m, k] of journal) m.delete(k);
     }
   }
-  isAlias(n: string) {
-    const d = this.types.get(n);
-    return !!d && !WRAPPERS.has(n) && (d.kind === "alias" || d.origin === "user" || d.origin === "foreign" || (d.origin === "jsx" && n !== "Elem"));
-  }
+  // what isAlias and member read: the declarations (subtype.ss.ts)
+  decls: DeclOps = { decl: (n) => this.types.get(n), expand: (t) => this.expand(t), ifaceRec: (n) => this.ifaceRec(n), strictIndex: () => this.strictIndex, at: (ts, i) => ts[i] };
+  isAlias = isAliasWith(this.decls);
 
   // ---- type syntax ----
   sig(params: Node[], ret: Node | undefined, tpNode: Node | undefined, ctx: TypeCtx, p: Parsed, origin: Origin, flags?: Flags): Fn {
@@ -276,202 +273,24 @@ export class Registry {
 
   // ---- members ----
   // The declared property (not yet with `undefined` added for optional/index access).
-  member(t0: Ty, name: string): Prop | undefined {
-    const t = this.expand(t0);
-    switch (t.k) {
-      case "named": {
-        if (t.n === "Mut" || t.n === "Borrowed") return this.member(t.args[0], name);
-        if (t.n === "Iterable" || t.n === "ArrayLike") return undefined;
-        const d = this.types.get(t.n);
-        if (!d) return undefined;
-        const r = this.ifaceRec(t.n);
-        const p = r.props.get(name);
-        if (!p) return undefined;
-        const m: Subst = new Map(d.tps.map((n, i) => [n, t.args[i] ?? UNKNOWN]));
-        return { ...p, t: subst(p.t, m) };
-      }
-      case "rec": {
-        const p = t.props.get(name);
-        if (p) return p;
-        if (t.index) return { t: this.strictIndex ? union([t.index, UNDEF]) : t.index, opt: false };
-        return undefined;
-      }
-      case "arr": return this.member(named("Array", t.el), name);
-      case "tup": return name === "length" ? { t: { k: "lit", v: t.els.length }, opt: false } : this.member(named("Array", union(t.els)), name);
-      case "str": return this.member(named("String"), name);
-      case "num": return this.member(named("Number"), name);
-      case "lit":
-        return this.member(typeof t.v === "string" ? STR : typeof t.v === "number" ? NUM : named("Boolean"), name);
-      case "union":
-        if (t.ts.every((x) => x.k === "lit" && typeof x.v === "boolean")) return this.member(named("Boolean"), name);
-        return undefined;
-      default: return undefined;
-    }
-  }
+  member = memberWith(this.decls);
 
   isTypedArray = (t: Ty) => t.k === "named" && TYPED_ARRAYS.includes(t.n);
 
+  // ---- subtyping, call signatures, iteration, unification (subtype.ss.ts) ----
+  // what the SoundScript cells take from the Registry: its declarations, and object identity
+  ops: RegOps = { expand: (t) => this.expand(t), isAlias: (n) => this.isAlias(n), member: (t, n) => this.member(t, n), isTypedArray: (t) => this.isTypedArray(t), same: (a, b) => a === b, at: (ts, i) => ts[i], fresh: () => ++alphaNames };
+  callSigs = callSigsWith(this.ops);
   // Element type of `for...of` / spread / Iterable<T>, or undefined if not iterable.
-  iterElem(t0: Ty): Ty | undefined {
-    const t = this.expand(t0);
-    switch (t.k) {
-      case "arr": return t.el;
-      case "tup": return union(t.els);
-      case "str": case "lit": return typeof (t as any).v === "number" || typeof (t as any).v === "boolean" ? undefined : STR;
-      case "err": return ERR;
-      case "named":
-        if (t.n === "Iterable" || t.n === "ArrayLike") return t.args[0];
-        if (t.n === "Mut" || t.n === "Borrowed") return this.iterElem(t.args[0]);
-        if (t.n === "Map") return { k: "tup", els: [t.args[0], t.args[1]] };
-        if (t.n === "Set") return t.args[0];
-        if (this.isTypedArray(t)) return NUM;
-        // a match is an array of the whole match and each group, undefined for a group that did not take part
-        if (t.n === "RegExpMatchArray") return union([STR, UNDEF]);
-        return undefined;
-      case "union": {
-        const es = t.ts.map((x) => this.iterElem(x));
-        return es.every((e) => e) ? union(es as Ty[]) : undefined;
-      }
-      default: return undefined;
-    }
-  }
-
-  callSigs(t0: Ty): Fn[] {
-    const t = this.expand(t0);
-    if (t.k === "fn") return [t];
-    if (t.k === "rec") return t.calls ?? [];
-    if (t.k === "named" && (t.n === "Mut" || t.n === "Borrowed")) return this.callSigs(t.args[0]);
-    return [];
-  }
-
-  // ---- subtyping (values are immutable: covariant everywhere except function parameters, Mut, State) ----
+  iterElem = iterElemWith(this.ops);
+  subOps = subWith(this.ops, this.iterElem, this.callSigs);
+  unifyOps = unifyWith(this.ops, this.subOps, this.iterElem, this.callSigs);
   sub(s: Ty, t: Ty, seen: Set<string> = new Set()): boolean {
-    if (s === t || t.k === "unknown" || s.k === "err" || t.k === "err" || s.k === "never") return true;
-    const S = (a: Ty, b: Ty) => this.sub(a, b, seen);
-    if ((s.k === "named" && this.isAlias(s.n)) || (t.k === "named" && this.isAlias(t.n))) {
-      const key = show(s) + " <: " + show(t);
-      if (seen.has(key)) return true;
-      seen.add(key);
-      return S(this.expand(s), this.expand(t));
-    }
-    if (s.k === "union") return s.ts.every((m) => S(m, t));
-    if (s.k === "named" && (s.n === "Mut" || s.n === "Borrowed") && !isNamed(t, s.n)) return S(s.args[0], t);
-    if (t.k === "union") return t.ts.some((m) => S(s, m));
-    if (s.k === "tv") return t.k === "tv" && t.n === s.n;
-    switch (t.k) {
-      case "num": return s.k === "num" || (s.k === "lit" && typeof s.v === "number");
-      case "str": return s.k === "str" || (s.k === "lit" && typeof s.v === "string");
-      case "lit": return s.k === "lit" && s.v === t.v;
-      case "void": return s.k === "void" || s.k === "undef";
-      case "null": case "undef": case "bigint": case "symbol": case "never": return s.k === t.k;
-      case "object": return ["rec", "arr", "tup", "fn", "named", "object"].includes(s.k);
-      case "arr": return (s.k === "arr" && S(s.el, t.el)) || (s.k === "tup" && s.els.every((e) => S(e, t.el)));
-      case "tup": return s.k === "tup" && s.els.length === t.els.length && s.els.every((e, i) => S(e, t.els[i]));
-      case "fn": return this.callSigs(s).some((f) => this.fnSub(f, t, seen));
-      case "rec": {
-        if (["null", "undef", "void"].includes(s.k)) return false;
-        if (s.k === "named" && ["State", "StateCell", "Action"].includes(s.n)) return false; // nominal
-        const se = this.expand(s);
-        for (const [k, p] of t.props) {
-          const sp = this.member(se, k);
-          if (!sp) { if (p.opt) continue; return false; }
-          if (sp.flags?.banned || (!p.opt && sp.opt)) return false;
-          // a spread, rest or clone copies only own enumerable properties; a member from a prototype is not one
-          if (!p.opt && !p.flags?.intrinsic && (se.k !== "rec" || sp.flags?.intrinsic)) return false;
-          if (!S(propT(sp), propT(p))) return false;
-        }
-        if (t.index) {
-          if (se.k !== "rec") return false;
-          for (const [, p] of se.props) if (p.flags?.banned || !S(propT(p), t.index)) return false;
-          if (se.index && !S(se.index, t.index)) return false;
-        }
-        for (const c of t.calls ?? []) if (!this.callSigs(se).some((f) => this.fnSub(f, c, seen))) return false;
-        return true;
-      }
-      case "named": {
-        if (t.n === "Iterable" || t.n === "ArrayLike") {
-          const e = this.iterElem(s);
-          return !!e && (t.n === "Iterable" || s.k !== "named" || !["Map", "Set"].includes((s as any).n)) && S(e, t.args[0]);
-        }
-        if (s.k !== "named" || s.n !== t.n) return false;
-        if (t.n === "Mut" || t.n === "State") return S(s.args[0], t.args[0]) && S(t.args[0], s.args[0]);
-        if (t.n === "Action") return S(t.args[0], s.args[0]);
-        return t.args.every((a, i) => S(s.args[i] ?? UNKNOWN, a));
-      }
-      default: return false;
-    }
+    return this.subOps(s, t, seen);
   }
-  fnSub(s: Fn, t: Fn, seen: Set<string>): boolean {
-    if (s.tps.length || t.tps.length) {
-      // generic on both sides with as many type parameters: compared with both renamed to the same fresh names
-      if (s.tps.length !== t.tps.length) return false;
-      const fresh = s.tps.map(() => ({ k: "tv", n: `$a${++alphaNames}` }) as Ty);
-      const open = (f: Fn) => subst({ ...f, tps: [] }, new Map(f.tps.map((n, i) => [n, fresh[i]]))) as Fn;
-      return this.fnSub(open(s), open(t), seen);
-    }
-    const required = s.ps.filter((p) => !p.opt).length;
-    if (required > t.ps.length + (t.rest ? Infinity : 0)) return false;
-    for (let i = 0; i < s.ps.length; i++) {
-      const tp = t.ps[i]?.t ?? t.rest;
-      if (!tp) break;
-      if (!this.sub(tp, s.ps[i].t, seen)) return false;
-    }
-    if (t.rest && s.rest && !this.sub(t.rest, s.rest, seen)) return false;
-    return t.ret.k === "void" || this.sub(s.ret, t.ret, seen);
-  }
-
-  // ---- inference: collect candidates for type variables in `tvs` by matching parameter p against argument a ----
+  // inference: collect candidates for type variables in `tvs` by matching parameter p against argument a
   unify(p: Ty, a: Ty, m: Subst, tvs: Set<string>, depth = 0): void {
-    if (depth > 12 || a.k === "err") return;
-    const U = (x: Ty, y: Ty) => this.unify(x, y, m, tvs, depth + 1);
-    if (p.k === "tv") {
-      if (tvs.has(p.n)) m.set(p.n, m.has(p.n) ? union([m.get(p.n)!, a]) : a);
-      return;
-    }
-    if (a.k === "named" && this.isAlias(a.n)) return U(p, this.expand(a));
-    if (p.k === "named" && this.isAlias(p.n)) return U(this.expand(p), a);
-    if (p.k === "union") {
-      const tvM = p.ts.filter((x) => x.k === "tv" && tvs.has(x.n));
-      const others = p.ts.filter((x) => !tvM.includes(x));
-      for (const x of members(a)) {
-        const shape = others.find((q) => q.k === x.k && (q.k !== "named" || (x as any).n === q.n) || (q.k === "arr" && x.k === "tup"));
-        if (shape && this.hasAnyTv(shape, tvs)) U(shape, x);
-        else if (others.some((q) => this.sub(x, q))) continue;
-        else if (tvM.length === 1) U(tvM[0], x);
-      }
-      return;
-    }
-    if (a.k === "union" && p.k !== "named") { for (const x of a.ts) U(p, x); return; }
-    if (a.k === "named" && (a.n === "Mut" || a.n === "Borrowed") && !isNamed(p, a.n)) return U(p, a.args[0]);
-    switch (p.k) {
-      case "arr":
-        if (a.k === "arr") U(p.el, a.el);
-        else if (a.k === "tup") a.els.forEach((e) => U(p.el, e));
-        else if (a.k === "named" && (a.n === "Iterable" || a.n === "ArrayLike")) U(p.el, a.args[0]);
-        return;
-      case "tup": if (a.k === "tup") p.els.forEach((e, i) => a.els[i] && U(e, a.els[i])); return;
-      case "fn": {
-        const f = this.callSigs(a)[0];
-        if (!f) return;
-        p.ps.forEach((q, i) => f.ps[i] && U(q.t, f.ps[i].t));
-        U(p.ret, f.ret);
-        return;
-      }
-      case "rec": {
-        const ae = this.expand(a);
-        for (const [k, q] of p.props) { const ap = this.member(ae, k); if (ap) U(q.t, ap.t); }
-        if (p.index && ae.k === "rec") { for (const [, ap] of ae.props) U(p.index, propT(ap)); if (ae.index) U(p.index, ae.index); }
-        return;
-      }
-      case "named": {
-        if (p.n === "Iterable" || p.n === "ArrayLike") { const e = this.iterElem(a); if (e) U(p.args[0], e); return; }
-        if (a.k === "named" && a.n === p.n) p.args.forEach((x, i) => a.args[i] && U(x, a.args[i]));
-        return;
-      }
-    }
-  }
-  hasAnyTv(t: Ty, tvs: Set<string>): boolean {
-    return show(t).split(/[^\w']+/).some((w) => tvs.has(w));
+    this.unifyOps(p, a, m, tvs, depth);
   }
 }
 

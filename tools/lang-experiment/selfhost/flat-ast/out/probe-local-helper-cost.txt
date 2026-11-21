@@ -1,0 +1,2 @@
+local helper over the closed-over table: 0.00 ms per call (base 4.4 ms)
+table as a cell input, helper cell called with an index: 0.03 ms per call (base 35.0 ms)

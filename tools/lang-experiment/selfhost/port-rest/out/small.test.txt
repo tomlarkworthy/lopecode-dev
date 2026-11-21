@@ -1,0 +1,24 @@
+checker: 13 cells of small.ss.ts accepted; largest standIns, 17 lines
+checkKey, prototype: 0 of 3000 differ
+checkKey, mutant: 1458 of 3000 differ
+lruTouch + islandKey (compiler keyFor), prototype: 0 of 3000 differ
+lruTouch + islandKey (compiler keyFor), mutant: 3000 of 3000 differ
+refusedCells, prototype: 0 of 3000 differ
+refusedCells, mutant: 2675 of 3000 differ
+poolSize, prototype: 0 of 3000 differ
+poolSize, mutant: 1453 of 3000 differ
+hash + randomStep (makeRandom), prototype: 0 of 3000 differ
+hash + randomStep (makeRandom), mutant: 3000 of 3000 differ
+imul (all int32 corners), prototype: 0 of 3000 differ
+imul (all int32 corners), mutant: 762 of 3000 differ
+asText (via kidOf), prototype: 0 of 3000 differ
+asText (via kidOf), mutant: 870 of 3000 differ
+keyOf (via kidOf of an h element), prototype: 0 of 3000 differ
+keyOf (via kidOf of an h element), mutant: 2451 of 3000 differ
+elemRecord (h, string keys), prototype: 0 of 3000 differ
+elemRecord (h, string keys), mutant: 2068 of 3000 differ
+describeData (via cross's message), prototype: 0 of 3000 differ
+describeData (via cross's message), mutant: 2463 of 3000 differ
+elemRecord, symbol key: h keeps it true, prototype keeps it false
+checkCells: prototype 0 of 150 module texts differ (116 with a cell that does not parse); mutant standIns 116 of 150
+pass

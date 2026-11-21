@@ -1,0 +1,1602 @@
+{
+ "files": [
+  "lite/boundary.ts",
+  "lite/capture.ts",
+  "lite/check.ts",
+  "lite/complete.ts",
+  "lite/core.ts",
+  "lite/events.ss.ts",
+  "lite/facts.ts",
+  "lite/infer.ts",
+  "lite/intrinsics.ts",
+  "lite/island.ss.ts",
+  "lite/island.ts",
+  "lite/link.ts",
+  "lite/messages.ss.ts",
+  "lite/oracle.ts",
+  "lite/own.ts",
+  "lite/parse.ts",
+  "lite/registry.ts",
+  "lite/render.ss.ts",
+  "lite/runtime-ss.ts",
+  "lite/runtime.ss.ts",
+  "lite/store.ss.ts",
+  "lite/subtype.ss.ts",
+  "lite/types.ss.ts",
+  "lite/types.ts",
+  "lite/walks.ss.ts"
+ ],
+ "named": {
+  "ArrayExpression": [
+   "lite/infer.ts",
+   "lite/island.ts",
+   "lite/own.ts"
+  ],
+  "ArrayPattern": [
+   "lite/capture.ts",
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/registry.ts"
+  ],
+  "ArrowFunctionExpression": [
+   "lite/core.ts",
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/facts.ts",
+   "lite/parse.ts"
+  ],
+  "AssignmentExpression": [
+   "lite/infer.ts",
+   "lite/oracle.ts",
+   "lite/own.ts"
+  ],
+  "AssignmentPattern": [
+   "lite/capture.ts",
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/registry.ts"
+  ],
+  "AwaitExpression": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "BinaryExpression": [
+   "lite/infer.ts",
+   "lite/oracle.ts",
+   "lite/own.ts"
+  ],
+  "BlockStatement": [
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "BreakStatement": [
+   "lite/capture.ts",
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/facts.ts",
+   "lite/oracle.ts"
+  ],
+  "CallExpression": [
+   "lite/capture.ts",
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/island.ts",
+   "lite/oracle.ts",
+   "lite/own.ts"
+  ],
+  "CatchClause": [
+   "lite/capture.ts",
+   "lite/facts.ts"
+  ],
+  "ChainExpression": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "ClassDeclaration": [
+   "lite/capture.ts",
+   "lite/core.ts",
+   "lite/infer.ts",
+   "lite/facts.ts"
+  ],
+  "ClassExpression": [
+   "lite/core.ts",
+   "lite/infer.ts"
+  ],
+  "ConditionalExpression": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "ContinueStatement": [
+   "lite/capture.ts",
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/facts.ts",
+   "lite/oracle.ts"
+  ],
+  "DoWhileStatement": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "EmptyStatement": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "ExportNamedDeclaration": [
+   "lite/core.ts",
+   "lite/facts.ts",
+   "lite/oracle.ts",
+   "lite/registry.ts"
+  ],
+  "ExpressionStatement": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "ForInStatement": [
+   "lite/infer.ts",
+   "lite/facts.ts"
+  ],
+  "ForOfStatement": [
+   "lite/capture.ts",
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/facts.ts"
+  ],
+  "ForStatement": [
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/facts.ts"
+  ],
+  "FunctionDeclaration": [
+   "lite/capture.ts",
+   "lite/core.ts",
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/parse.ts"
+  ],
+  "FunctionExpression": [
+   "lite/capture.ts",
+   "lite/core.ts",
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/parse.ts"
+  ],
+  "Identifier": [
+   "lite/capture.ts",
+   "lite/core.ts",
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/island.ts",
+   "lite/link.ts",
+   "lite/oracle.ts",
+   "lite/own.ts",
+   "lite/registry.ts"
+  ],
+  "IfStatement": [
+   "lite/infer.ts",
+   "lite/oracle.ts",
+   "lite/own.ts"
+  ],
+  "ImportDeclaration": [
+   "lite/core.ts"
+  ],
+  "ImportExpression": [
+   "lite/core.ts",
+   "lite/infer.ts"
+  ],
+  "JSXAttribute": [
+   "lite/infer.ts"
+  ],
+  "JSXElement": [
+   "lite/infer.ts"
+  ],
+  "JSXEmptyExpression": [
+   "lite/infer.ts"
+  ],
+  "JSXExpressionContainer": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "JSXFragment": [
+   "lite/infer.ts"
+  ],
+  "JSXIdentifier": [
+   "lite/capture.ts",
+   "lite/infer.ts"
+  ],
+  "JSXOpeningElement": [
+   "lite/capture.ts"
+  ],
+  "JSXText": [
+   "lite/infer.ts"
+  ],
+  "LabeledStatement": [
+   "lite/capture.ts",
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/facts.ts"
+  ],
+  "Literal": [
+   "lite/infer.ts",
+   "lite/island.ts",
+   "lite/oracle.ts",
+   "lite/own.ts",
+   "lite/registry.ts"
+  ],
+  "LogicalExpression": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "MemberExpression": [
+   "lite/capture.ts",
+   "lite/core.ts",
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/oracle.ts",
+   "lite/own.ts"
+  ],
+  "MethodDefinition": [
+   "lite/capture.ts",
+   "lite/facts.ts"
+  ],
+  "NewExpression": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "ObjectExpression": [
+   "lite/infer.ts",
+   "lite/island.ts",
+   "lite/own.ts"
+  ],
+  "ObjectPattern": [
+   "lite/capture.ts",
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/registry.ts"
+  ],
+  "ObjectProperty": [
+   "lite/own.ts"
+  ],
+  "ParenthesizedExpression": [
+   "lite/facts.ts",
+   "lite/own.ts"
+  ],
+  "Property": [
+   "lite/capture.ts",
+   "lite/core.ts",
+   "lite/infer.ts",
+   "lite/island.ts",
+   "lite/oracle.ts",
+   "lite/own.ts",
+   "lite/facts.ts"
+  ],
+  "PropertyDefinition": [
+   "lite/capture.ts",
+   "lite/facts.ts"
+  ],
+  "RestElement": [
+   "lite/capture.ts",
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/registry.ts"
+  ],
+  "ReturnStatement": [
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/oracle.ts"
+  ],
+  "SequenceExpression": [
+   "lite/infer.ts"
+  ],
+  "SpreadElement": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "StaticBlock": [
+   "lite/facts.ts"
+  ],
+  "SwitchCase": [
+   "lite/own.ts"
+  ],
+  "SwitchStatement": [
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "TSAnyKeyword": [
+   "lite/core.ts",
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSArrayType": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSAsExpression": [
+   "lite/core.ts",
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "TSBigIntKeyword": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSBooleanKeyword": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSCallSignatureDeclaration": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSConstructSignatureDeclaration": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSConstructorType": [
+   "lite/own.ts"
+  ],
+  "TSDeclareFunction": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSDeclareMethod": [
+   "lite/own.ts"
+  ],
+  "TSEnumDeclaration": [
+   "lite/core.ts",
+   "lite/own.ts"
+  ],
+  "TSEnumMember": [
+   "lite/own.ts"
+  ],
+  "TSFunctionType": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSIndexSignature": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSIndexedAccessType": [
+   "lite/own.ts"
+  ],
+  "TSInterfaceBody": [
+   "lite/own.ts"
+  ],
+  "TSInterfaceDeclaration": [
+   "lite/core.ts",
+   "lite/infer.ts",
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSIntersectionType": [
+   "lite/own.ts"
+  ],
+  "TSLiteralType": [
+   "lite/oracle.ts",
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSMethodSignature": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSModuleBlock": [
+   "lite/own.ts"
+  ],
+  "TSModuleDeclaration": [
+   "lite/core.ts",
+   "lite/own.ts"
+  ],
+  "TSNamedTupleMember": [
+   "lite/own.ts",
+   "lite/registry.ts"
+  ],
+  "TSNeverKeyword": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSNonNullExpression": [
+   "lite/core.ts",
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "TSNullKeyword": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSNumberKeyword": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSObjectKeyword": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSOptionalType": [
+   "lite/own.ts",
+   "lite/registry.ts"
+  ],
+  "TSParameterProperty": [
+   "lite/capture.ts",
+   "lite/own.ts"
+  ],
+  "TSParenthesizedType": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSPropertySignature": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSQualifiedName": [
+   "lite/own.ts"
+  ],
+  "TSRestType": [
+   "lite/own.ts",
+   "lite/registry.ts"
+  ],
+  "TSSatisfiesExpression": [
+   "lite/core.ts",
+   "lite/own.ts"
+  ],
+  "TSStringKeyword": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSSymbolKeyword": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSTupleType": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSTypeAliasDeclaration": [
+   "lite/core.ts",
+   "lite/infer.ts",
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSTypeAnnotation": [
+   "lite/own.ts"
+  ],
+  "TSTypeAssertion": [
+   "lite/core.ts",
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "TSTypeLiteral": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSTypeOperator": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSTypeParameter": [
+   "lite/own.ts"
+  ],
+  "TSTypeParameterDeclaration": [
+   "lite/own.ts"
+  ],
+  "TSTypeParameterInstantiation": [
+   "lite/own.ts"
+  ],
+  "TSTypeQuery": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSTypeReference": [
+   "lite/core.ts",
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSUndefinedKeyword": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSUnionType": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSUnknownKeyword": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TSVoidKeyword": [
+   "lite/registry.ts",
+   "lite/own.ts"
+  ],
+  "TaggedTemplateExpression": [
+   "lite/infer.ts"
+  ],
+  "TemplateLiteral": [
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/registry.ts"
+  ],
+  "ThisExpression": [
+   "lite/core.ts",
+   "lite/infer.ts"
+  ],
+  "ThrowStatement": [
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/oracle.ts"
+  ],
+  "TryStatement": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "UnaryExpression": [
+   "lite/infer.ts",
+   "lite/own.ts",
+   "lite/registry.ts"
+  ],
+  "UpdateExpression": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "VariableDeclaration": [
+   "lite/core.ts",
+   "lite/facts.ts",
+   "lite/infer.ts",
+   "lite/oracle.ts",
+   "lite/own.ts",
+   "lite/registry.ts"
+  ],
+  "VariableDeclarator": [
+   "lite/capture.ts",
+   "lite/own.ts"
+  ],
+  "WhileStatement": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ],
+  "YieldExpression": [
+   "lite/infer.ts",
+   "lite/own.ts"
+  ]
+ },
+ "viaRegex": {
+  "Property": [
+   "lite/facts.ts:18"
+  ],
+  "PropertyDefinition": [
+   "lite/facts.ts:18"
+  ],
+  "MethodDefinition": [
+   "lite/facts.ts:18"
+  ],
+  "BreakStatement": [
+   "lite/facts.ts:19",
+   "lite/oracle.ts:186"
+  ],
+  "ContinueStatement": [
+   "lite/facts.ts:19",
+   "lite/oracle.ts:186"
+  ],
+  "LabeledStatement": [
+   "lite/facts.ts:19"
+  ],
+  "ClassDeclaration": [
+   "lite/facts.ts:27"
+  ],
+  "FunctionDeclaration": [
+   "lite/facts.ts:27",
+   "lite/facts.ts:30",
+   "lite/parse.ts:25"
+  ],
+  "ArrowFunctionExpression": [
+   "lite/facts.ts:30",
+   "lite/facts.ts:70",
+   "lite/infer.ts:450",
+   "lite/parse.ts:25"
+  ],
+  "FunctionExpression": [
+   "lite/facts.ts:30",
+   "lite/facts.ts:70",
+   "lite/infer.ts:450",
+   "lite/parse.ts:25"
+  ],
+  "ForStatement": [
+   "lite/facts.ts:34",
+   "lite/infer.ts:1653"
+  ],
+  "ForOfStatement": [
+   "lite/facts.ts:34",
+   "lite/infer.ts:1653"
+  ],
+  "ForInStatement": [
+   "lite/facts.ts:34",
+   "lite/infer.ts:1653"
+  ],
+  "ObjectExpression": [
+   "lite/infer.ts:423",
+   "lite/infer.ts:450"
+  ],
+  "ArrayExpression": [
+   "lite/infer.ts:423",
+   "lite/infer.ts:450"
+  ],
+  "LogicalExpression": [
+   "lite/infer.ts:423"
+  ],
+  "ConditionalExpression": [
+   "lite/infer.ts:423"
+  ],
+  "SwitchStatement": [
+   "lite/infer.ts:1653"
+  ],
+  "WhileStatement": [
+   "lite/infer.ts:1653"
+  ],
+  "DoWhileStatement": [
+   "lite/infer.ts:1653"
+  ],
+  "ReturnStatement": [
+   "lite/oracle.ts:186"
+  ],
+  "ThrowStatement": [
+   "lite/oracle.ts:186"
+  ],
+  "TSEnumDeclaration": [
+   "lite/own.ts:213"
+  ],
+  "TSEnumMember": [
+   "lite/own.ts:213"
+  ],
+  "TSTypeAnnotation": [
+   "lite/own.ts:213"
+  ],
+  "TSNumberKeyword": [
+   "lite/own.ts:213"
+  ],
+  "TSTypeAliasDeclaration": [
+   "lite/own.ts:213",
+   "lite/registry.ts:66"
+  ],
+  "TSTypeLiteral": [
+   "lite/own.ts:213"
+  ],
+  "TSPropertySignature": [
+   "lite/own.ts:213"
+  ],
+  "TSInterfaceDeclaration": [
+   "lite/own.ts:213",
+   "lite/registry.ts:66"
+  ],
+  "TSTypeParameterDeclaration": [
+   "lite/own.ts:213"
+  ],
+  "TSTypeParameter": [
+   "lite/own.ts:213"
+  ],
+  "TSInterfaceBody": [
+   "lite/own.ts:213"
+  ],
+  "TSMethodSignature": [
+   "lite/own.ts:213"
+  ],
+  "TSTypeReference": [
+   "lite/own.ts:213"
+  ],
+  "TSArrayType": [
+   "lite/own.ts:213"
+  ],
+  "TSTypeParameterInstantiation": [
+   "lite/own.ts:213"
+  ],
+  "TSBooleanKeyword": [
+   "lite/own.ts:213"
+  ],
+  "TSAsExpression": [
+   "lite/own.ts:213"
+  ],
+  "TSFunctionType": [
+   "lite/own.ts:213"
+  ],
+  "TSTypeOperator": [
+   "lite/own.ts:213"
+  ],
+  "TSStringKeyword": [
+   "lite/own.ts:213"
+  ],
+  "TSAnyKeyword": [
+   "lite/own.ts:213"
+  ],
+  "TSNonNullExpression": [
+   "lite/own.ts:213"
+  ],
+  "TSModuleDeclaration": [
+   "lite/own.ts:213"
+  ],
+  "TSModuleBlock": [
+   "lite/own.ts:213"
+  ],
+  "TSUnionType": [
+   "lite/own.ts:213"
+  ],
+  "TSLiteralType": [
+   "lite/own.ts:213"
+  ],
+  "TSUndefinedKeyword": [
+   "lite/own.ts:213"
+  ],
+  "TSVoidKeyword": [
+   "lite/own.ts:213"
+  ],
+  "TSTupleType": [
+   "lite/own.ts:213"
+  ],
+  "TSUnknownKeyword": [
+   "lite/own.ts:213"
+  ],
+  "TSObjectKeyword": [
+   "lite/own.ts:213"
+  ],
+  "TSNullKeyword": [
+   "lite/own.ts:213"
+  ],
+  "TSCallSignatureDeclaration": [
+   "lite/own.ts:213"
+  ],
+  "TSParenthesizedType": [
+   "lite/own.ts:213"
+  ],
+  "TSNeverKeyword": [
+   "lite/own.ts:213"
+  ],
+  "TSIndexSignature": [
+   "lite/own.ts:213"
+  ],
+  "TSBigIntKeyword": [
+   "lite/own.ts:213"
+  ],
+  "TSSymbolKeyword": [
+   "lite/own.ts:213"
+  ],
+  "TSDeclareFunction": [
+   "lite/own.ts:213"
+  ],
+  "TSParameterProperty": [
+   "lite/own.ts:213"
+  ],
+  "TSSatisfiesExpression": [
+   "lite/own.ts:213"
+  ],
+  "TSTypeQuery": [
+   "lite/own.ts:213"
+  ],
+  "TSConstructSignatureDeclaration": [
+   "lite/own.ts:213"
+  ],
+  "TSTypeAssertion": [
+   "lite/own.ts:213"
+  ],
+  "TSNamedTupleMember": [
+   "lite/own.ts:213",
+   "lite/registry.ts:152"
+  ],
+  "TSRestType": [
+   "lite/own.ts:213",
+   "lite/registry.ts:152"
+  ],
+  "TSOptionalType": [
+   "lite/own.ts:213",
+   "lite/registry.ts:152"
+  ],
+  "TSQualifiedName": [
+   "lite/own.ts:213"
+  ],
+  "TSConstructorType": [
+   "lite/own.ts:213"
+  ],
+  "TSIndexedAccessType": [
+   "lite/own.ts:213"
+  ],
+  "TSIntersectionType": [
+   "lite/own.ts:213"
+  ],
+  "TSDeclareMethod": [
+   "lite/own.ts:213"
+  ]
+ },
+ "notInCensus": [
+  "ObjectProperty",
+  "ParenthesizedExpression"
+ ],
+ "censusNotNamed": [
+  "ClassBody",
+  "ExportAllDeclaration",
+  "ExportDefaultDeclaration",
+  "ExportSpecifier",
+  "ImportSpecifier",
+  "JSXClosingElement",
+  "JSXClosingFragment",
+  "JSXMemberExpression",
+  "JSXNamespacedName",
+  "JSXOpeningFragment",
+  "JSXSpreadAttribute",
+  "MetaProperty",
+  "PrivateIdentifier",
+  "Program",
+  "Super",
+  "TemplateElement"
+ ],
+ "uncovered": [
+  "lite/capture.ts:26 x.type === \"string\") refs(",
+  "lite/capture.ts:27 v.type === \"string\") refs(",
+  "lite/core.ts:35 x.type !== \"string\") retur",
+  "lite/core.ts:39 x.type);",
+  "lite/core.ts:84 st.type} is not a declarati",
+  "lite/core.ts:127 d.type} at module level`);",
+  "lite/infer.ts:367 p.type}`);",
+  "lite/infer.ts:641 e.type); return ERR;",
+  "lite/infer.ts:661 c.type); return ERR; }",
+  "lite/infer.ts:932 t.type}`);",
+  "lite/infer.ts:1529 s.type); return true;",
+  "lite/own.ts:184 p.type;",
+  "lite/own.ts:409 s.type} in a function hold",
+  "lite/parse.ts:20 x.type === \"string\") out.p",
+  "lite/parse.ts:21 v.type === \"string\") out.p",
+  "lite/registry.ts:123 q.type}`);",
+  "lite/registry.ts:152 e.type); return ERR; }",
+  "lite/registry.ts:193 n.type.replace(/^TS/, \"\") ",
+  "lite/registry.ts:224 m.type);"
+ ],
+ "fieldsRead": [
+  "BIGINT",
+  "BOOL",
+  "DOM_EVENTS",
+  "ERR",
+  "FALSE",
+  "LITE_SCRATCH",
+  "NEVER",
+  "NULL",
+  "NUM",
+  "OBJECT",
+  "P",
+  "PROPS",
+  "Parser",
+  "RESERVED_MSG",
+  "STR",
+  "SYMBOL",
+  "TRUE",
+  "UNDEF",
+  "UNKNOWN",
+  "VOID",
+  "WRAPPERS",
+  "actionBodies",
+  "actionIn",
+  "add",
+  "admitsUndefinedWith",
+  "aid",
+  "alternate",
+  "annotatedSig",
+  "apply",
+  "args",
+  "argument",
+  "arguments",
+  "argv",
+  "arr",
+  "arrLit",
+  "assign",
+  "assigned",
+  "assignedNames",
+  "async",
+  "at",
+  "attributes",
+  "await",
+  "awaited",
+  "banned",
+  "bigint",
+  "binary",
+  "bind",
+  "bindPattern",
+  "bindingOf",
+  "block",
+  "blockedBy",
+  "body",
+  "born",
+  "borrow",
+  "breaks",
+  "builtinNamesOf",
+  "builtinTypeNames",
+  "busy",
+  "buttons",
+  "call",
+  "callSigs",
+  "callSigsWith",
+  "callee",
+  "calls",
+  "captureMessage",
+  "cases",
+  "cell",
+  "cellNames",
+  "cellParam",
+  "cells",
+  "check",
+  "check1",
+  "checked",
+  "checks",
+  "childOps",
+  "children",
+  "clientX",
+  "clientY",
+  "cloneCallees",
+  "cloneProblem",
+  "cloneProblemWith",
+  "closers",
+  "collapseArrays",
+  "comments",
+  "committedOf",
+  "compileFor",
+  "compileHook",
+  "complete",
+  "compound",
+  "computed",
+  "concat",
+  "cond",
+  "conditional",
+  "consequent",
+  "constLit",
+  "constraint",
+  "constructor",
+  "conts",
+  "convert",
+  "cooked",
+  "copies",
+  "ctors",
+  "ctxOnly",
+  "ctxSensitive",
+  "current",
+  "dead",
+  "decl",
+  "declaration",
+  "declarations",
+  "declare",
+  "decls",
+  "deepEqual",
+  "default",
+  "defineProperty",
+  "delegate",
+  "delete",
+  "depth",
+  "desc",
+  "diags",
+  "dir",
+  "discriminant",
+  "done",
+  "draining",
+  "drawnTag",
+  "dropRoot",
+  "dups",
+  "edit",
+  "el",
+  "elementType",
+  "elementTypes",
+  "elements",
+  "els",
+  "emptyDelivery",
+  "emptyStore",
+  "end",
+  "endsWith",
+  "entries",
+  "env",
+  "epoch",
+  "err",
+  "error",
+  "errors",
+  "evaluating",
+  "every",
+  "exec",
+  "exit",
+  "expand",
+  "expandMemo",
+  "expect",
+  "exprName",
+  "expression",
+  "expressions",
+  "extend",
+  "extends",
+  "f",
+  "facts",
+  "falsy",
+  "fi",
+  "fid",
+  "file",
+  "filter",
+  "finalizer",
+  "find",
+  "findBinding",
+  "findLast",
+  "flags",
+  "flat",
+  "flatMap",
+  "floor",
+  "flow",
+  "fn",
+  "fnExpr",
+  "fnInfo",
+  "fnNode",
+  "for",
+  "forEach",
+  "foreign",
+  "freeze",
+  "fresh",
+  "from",
+  "fromCharCode",
+  "fromEntries",
+  "generation",
+  "generator",
+  "get",
+  "getPrototypeOf",
+  "globals",
+  "group",
+  "handle",
+  "handleAt",
+  "handleAtKey",
+  "handleIn",
+  "handler",
+  "handles",
+  "has",
+  "hasAnyTv",
+  "hasBreak",
+  "hasErrWith",
+  "hasGenerator",
+  "hasOwn",
+  "hasTv",
+  "heldHandles",
+  "heldListeners",
+  "helper",
+  "hid",
+  "hidden",
+  "hiddenFn",
+  "hides",
+  "hoist",
+  "holdsWith",
+  "i",
+  "id",
+  "ident",
+  "identHook",
+  "ifaceMemo",
+  "ifaceRec",
+  "importKind",
+  "inAction",
+  "inActionOnly",
+  "inActionUses",
+  "includes",
+  "index",
+  "indexOf",
+  "infer",
+  "infer1",
+  "init",
+  "injected",
+  "inners",
+  "inputs",
+  "instantiate",
+  "intrinsic",
+  "intrinsicName",
+  "invalidate",
+  "is",
+  "isAlias",
+  "isAliasWith",
+  "isArray",
+  "isAsync",
+  "isDirectory",
+  "isElem",
+  "isGen",
+  "isIdle",
+  "isNamed",
+  "isPrimitive",
+  "isSwitch",
+  "isTypedArray",
+  "islandWith",
+  "iterElem",
+  "iterElemWith",
+  "join",
+  "journal",
+  "jsx",
+  "k",
+  "keepsNode",
+  "key",
+  "keys",
+  "kind",
+  "l",
+  "label",
+  "lastIndexOf",
+  "lazy",
+  "leading",
+  "left",
+  "length",
+  "lid",
+  "line",
+  "list",
+  "listenerAt",
+  "listeners",
+  "lit",
+  "lite",
+  "liteU",
+  "literal",
+  "liveEventsCount",
+  "load",
+  "loc",
+  "localeCompare",
+  "log",
+  "logicalType",
+  "loop",
+  "lvalue",
+  "main",
+  "make",
+  "map",
+  "marker",
+  "matchAll",
+  "max",
+  "member",
+  "memberFlags",
+  "memberMissing",
+  "memberWith",
+  "members",
+  "message",
+  "method",
+  "min",
+  "module",
+  "ms",
+  "msg",
+  "mut",
+  "mutOwned",
+  "mutates",
+  "n",
+  "name",
+  "named",
+  "names",
+  "narrowArray",
+  "narrowByProp",
+  "narrowEq",
+  "narrowIn",
+  "narrowTypeof",
+  "nextSid",
+  "noOverlap",
+  "node",
+  "nodes",
+  "nonNullish",
+  "nonUndef",
+  "notOwn",
+  "now",
+  "numeric",
+  "objLit",
+  "object",
+  "objectAssign",
+  "objectFreeze",
+  "of",
+  "offsetX",
+  "offsetY",
+  "ok",
+  "onCell",
+  "onErr",
+  "onUnsup",
+  "op",
+  "opaque",
+  "openingElement",
+  "operator",
+  "ops",
+  "opt",
+  "optional",
+  "options",
+  "oracle",
+  "order",
+  "orderKeyed",
+  "origin",
+  "outputs",
+  "outside",
+  "param",
+  "parameter",
+  "parameters",
+  "params",
+  "parent",
+  "parked",
+  "parse",
+  "parseExpressionAt",
+  "parsed",
+  "pathKey",
+  "patternNames",
+  "peek",
+  "pending",
+  "placer",
+  "pointerId",
+  "pop",
+  "port",
+  "pos",
+  "prelude",
+  "preludeCall",
+  "problems",
+  "program",
+  "promiseIn",
+  "propOf",
+  "propOps",
+  "propT",
+  "properties",
+  "property",
+  "props",
+  "protoKey",
+  "prototype",
+  "ps",
+  "ptr",
+  "pullingCount",
+  "push",
+  "quasis",
+  "queue",
+  "quiet",
+  "quoted",
+  "raw",
+  "readSees",
+  "ready",
+  "rec",
+  "reduce",
+  "refCell",
+  "refPlan",
+  "refs",
+  "reg",
+  "regex",
+  "rejected",
+  "replace",
+  "reservedName",
+  "rest",
+  "ret",
+  "retCtx",
+  "retFromCtx",
+  "retains",
+  "rets",
+  "returnType",
+  "returned",
+  "reused",
+  "reverse",
+  "right",
+  "rule",
+  "rules",
+  "run",
+  "runningCount",
+  "same",
+  "schedule",
+  "scope",
+  "set",
+  "settled",
+  "shell",
+  "short",
+  "shorthand",
+  "show",
+  "sid",
+  "sig",
+  "sigOf",
+  "size",
+  "slice",
+  "some",
+  "sort",
+  "source",
+  "spawnSync",
+  "splice",
+  "split",
+  "src",
+  "start",
+  "startsWith",
+  "stateProps",
+  "statement",
+  "status",
+  "stdout",
+  "step",
+  "stmt",
+  "stmts",
+  "store",
+  "storeStep",
+  "stores",
+  "strictIndex",
+  "stringify",
+  "sub",
+  "sub1",
+  "subOps",
+  "subWith",
+  "subst",
+  "sweepCandidates",
+  "switchStmt",
+  "t",
+  "tag",
+  "target",
+  "test",
+  "text",
+  "then",
+  "threw",
+  "timeStamp",
+  "toCall",
+  "toFixed",
+  "toSorted",
+  "toString",
+  "tpNames",
+  "tps",
+  "trim",
+  "trimEnd",
+  "truthy",
+  "ts",
+  "tsx",
+  "tvs",
+  "ty",
+  "type",
+  "typeAnnotation",
+  "typeArgs",
+  "typeArguments",
+  "typeCtx",
+  "typeName",
+  "typeParameters",
+  "typeTag",
+  "typeofLookup",
+  "types",
+  "um",
+  "unary",
+  "uncloneableWith",
+  "unify",
+  "unifyOps",
+  "unifyWith",
+  "union",
+  "unshift",
+  "unsup",
+  "unsupported",
+  "unwrap",
+  "update",
+  "updateSees",
+  "url",
+  "v",
+  "value",
+  "values",
+  "varDecl",
+  "vars",
+  "view",
+  "viewofInputName",
+  "want",
+  "what",
+  "why",
+  "widen",
+  "writeRule",
+  "yieldCtx",
+  "yields"
+ ],
+ "surveyFilesNamed": [
+  "ArrayExpression",
+  "ArrayPattern",
+  "ArrowFunctionExpression",
+  "AssignmentExpression",
+  "AssignmentPattern",
+  "AwaitExpression",
+  "BinaryExpression",
+  "Block",
+  "BlockStatement",
+  "BreakStatement",
+  "CallExpression",
+  "CatchClause",
+  "ChainExpression",
+  "ClassBody",
+  "ClassDeclaration",
+  "ClassExpression",
+  "ConditionalExpression",
+  "ContinueStatement",
+  "DoWhileStatement",
+  "EmptyStatement",
+  "ExportDefaultDeclaration",
+  "ExportNamedDeclaration",
+  "ExpressionStatement",
+  "ForInStatement",
+  "ForOfStatement",
+  "ForStatement",
+  "FunctionDeclaration",
+  "FunctionExpression",
+  "Identifier",
+  "IfStatement",
+  "ImportDeclaration",
+  "ImportExpression",
+  "JSXAttribute",
+  "JSXElement",
+  "JSXEmptyExpression",
+  "JSXExpressionContainer",
+  "JSXFragment",
+  "JSXIdentifier",
+  "JSXOpeningElement",
+  "JSXText",
+  "LabeledStatement",
+  "Literal",
+  "LogicalExpression",
+  "MemberExpression",
+  "MethodDefinition",
+  "NewExpression",
+  "ObjectExpression",
+  "ObjectPattern",
+  "ObjectProperty",
+  "ParenthesizedExpression",
+  "Property",
+  "PropertyDefinition",
+  "RestElement",
+  "ReturnStatement",
+  "SequenceExpression",
+  "SpreadElement",
+  "StaticBlock",
+  "SwitchCase",
+  "SwitchStatement",
+  "TSAnyKeyword",
+  "TSArrayType",
+  "TSAsExpression",
+  "TSBigIntKeyword",
+  "TSBooleanKeyword",
+  "TSCallSignatureDeclaration",
+  "TSConstructSignatureDeclaration",
+  "TSConstructorType",
+  "TSDeclareFunction",
+  "TSDeclareMethod",
+  "TSEnumDeclaration",
+  "TSEnumMember",
+  "TSFunctionType",
+  "TSIndexSignature",
+  "TSIndexedAccessType",
+  "TSInterfaceBody",
+  "TSInterfaceDeclaration",
+  "TSIntersectionType",
+  "TSLiteralType",
+  "TSMethodSignature",
+  "TSModuleBlock",
+  "TSModuleDeclaration",
+  "TSNamedTupleMember",
+  "TSNeverKeyword",
+  "TSNonNullExpression",
+  "TSNullKeyword",
+  "TSNumberKeyword",
+  "TSObjectKeyword",
+  "TSOptionalType",
+  "TSParameterProperty",
+  "TSParenthesizedType",
+  "TSPropertySignature",
+  "TSQualifiedName",
+  "TSRestType",
+  "TSSatisfiesExpression",
+  "TSStringKeyword",
+  "TSSymbolKeyword",
+  "TSTupleType",
+  "TSTypeAliasDeclaration",
+  "TSTypeAnnotation",
+  "TSTypeAssertion",
+  "TSTypeLiteral",
+  "TSTypeOperator",
+  "TSTypeParameter",
+  "TSTypeParameterDeclaration",
+  "TSTypeParameterInstantiation",
+  "TSTypeQuery",
+  "TSTypeReference",
+  "TSUndefinedKeyword",
+  "TSUnionType",
+  "TSUnknownKeyword",
+  "TSVoidKeyword",
+  "TaggedTemplateExpression",
+  "TemplateLiteral",
+  "ThisExpression",
+  "ThrowStatement",
+  "TryStatement",
+  "UnaryExpression",
+  "UpdateExpression",
+  "VariableDeclaration",
+  "VariableDeclarator",
+  "WhileStatement",
+  "YieldExpression"
+ ],
+ "surveyUnion": [
+  "ArrayExpression",
+  "ArrayPattern",
+  "ArrowFunctionExpression",
+  "AssignmentExpression",
+  "AssignmentPattern",
+  "AwaitExpression",
+  "BinaryExpression",
+  "BlockStatement",
+  "BreakStatement",
+  "CallExpression",
+  "CatchClause",
+  "ChainExpression",
+  "ConditionalExpression",
+  "ContinueStatement",
+  "DoWhileStatement",
+  "ExportNamedDeclaration",
+  "ExpressionStatement",
+  "ForInStatement",
+  "ForOfStatement",
+  "ForStatement",
+  "FunctionDeclaration",
+  "FunctionExpression",
+  "Identifier",
+  "IfStatement",
+  "ImportDeclaration",
+  "JSXAttribute",
+  "JSXElement",
+  "JSXEmptyExpression",
+  "JSXExpressionContainer",
+  "JSXFragment",
+  "JSXIdentifier",
+  "JSXOpeningElement",
+  "JSXText",
+  "LabeledStatement",
+  "Literal",
+  "LogicalExpression",
+  "MemberExpression",
+  "NewExpression",
+  "ObjectExpression",
+  "ObjectPattern",
+  "Program",
+  "Property",
+  "RestElement",
+  "ReturnStatement",
+  "SequenceExpression",
+  "SpreadElement",
+  "SwitchCase",
+  "SwitchStatement",
+  "TSAnyKeyword",
+  "TSArrayType",
+  "TSAsExpression",
+  "TSBigIntKeyword",
+  "TSBooleanKeyword",
+  "TSCallSignatureDeclaration",
+  "TSConstructSignatureDeclaration",
+  "TSDeclareFunction",
+  "TSFunctionType",
+  "TSIndexSignature",
+  "TSIndexedAccessType",
+  "TSInterfaceBody",
+  "TSInterfaceDeclaration",
+  "TSIntersectionType",
+  "TSLiteralType",
+  "TSMethodSignature",
+  "TSNamedTupleMember",
+  "TSNeverKeyword",
+  "TSNonNullExpression",
+  "TSNullKeyword",
+  "TSNumberKeyword",
+  "TSObjectKeyword",
+  "TSOptionalType",
+  "TSParameterProperty",
+  "TSParenthesizedType",
+  "TSPropertySignature",
+  "TSQualifiedName",
+  "TSRestType",
+  "TSSatisfiesExpression",
+  "TSStringKeyword",
+  "TSSymbolKeyword",
+  "TSTupleType",
+  "TSTypeAliasDeclaration",
+  "TSTypeAnnotation",
+  "TSTypeLiteral",
+  "TSTypeOperator",
+  "TSTypeParameter",
+  "TSTypeParameterDeclaration",
+  "TSTypeParameterInstantiation",
+  "TSTypeQuery",
+  "TSTypeReference",
+  "TSUndefinedKeyword",
+  "TSUnionType",
+  "TSUnknownKeyword",
+  "TSVoidKeyword",
+  "TemplateElement",
+  "TemplateLiteral",
+  "ThisExpression",
+  "ThrowStatement",
+  "TryStatement",
+  "UnaryExpression",
+  "UpdateExpression",
+  "VariableDeclaration",
+  "VariableDeclarator",
+  "WhileStatement",
+  "YieldExpression"
+ ]
+}
