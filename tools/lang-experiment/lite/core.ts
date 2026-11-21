@@ -144,9 +144,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       continue;
     }
     if (st.type === "ImportDeclaration" && st.importKind === "type") continue;
-    const rule = st.type === "TSEnumDeclaration" ? "no-enum" : st.type === "TSModuleDeclaration" ? "no-namespace" : st.type === "ClassDeclaration" ? "no-class"
-      : (st.type === "VariableDeclaration" || st.declaration?.type === "VariableDeclaration") && (st.kind ?? st.declaration?.kind) === "var" ? "no-var" : "module-level";
-    mod(P, st, rule, `${st.type} at module level`);
+    const rule = d.type === "TSEnumDeclaration" ? "no-enum" : d.type === "TSModuleDeclaration" ? "no-namespace" : d.type === "ClassDeclaration" ? "no-class"
+      : d.type === "VariableDeclaration" && d.kind === "var" ? "no-var" : "module-level";
+    mod(P, st, rule, `${d.type} at module level`);
   }
   const cellNames = new Set(cells.map((c) => c.name));
   const seen = new Set<string>();

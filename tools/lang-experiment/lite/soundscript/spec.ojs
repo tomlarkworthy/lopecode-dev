@@ -45,6 +45,8 @@ md`Rejected sources. Each is checked when the page loads; the fourth column is w
 spec_rejects_1 = [
   { statement: "S1.4", rule: "module-level", source: "for (;;) {}\nlet a = () => 1;" },
   { statement: "S1.4", rule: "module-level", source: "1 + 1;" },
+  { statement: "S1.4", rule: "no-class", source: "export class A {}\nconst a = () => 1;" },
+  { statement: "S1.4", rule: "no-enum", source: "export enum E { a }\nconst a = () => 1;" },
   { statement: "S1.5", rule: "cell-not-function", source: "let a = () => 1;\nlet x = 42;" },
   { statement: "S1.5", rule: "cell-not-function", source: "let x;" },
   { statement: "S1.5", rule: "cell-not-function", source: "const { a } = { a: () => 1 };" },
@@ -271,9 +273,9 @@ md`**S2.4** The value type of a cell is its return type \`T\`, except that \`Pro
 // %%
 md`**S2.5** The capabilities are the inputs \`now: Clock\`, \`random: Random\`, \`fetch: Fetch\`, \`log: Log\`, \`invalidation: Invalidation\`, \`compile: Compile\` and \`pool: Pool\`. \`Clock\` and \`Random\` are \`() => number\`. Any other annotation on a capability, such as \`now: number\`, is \`[inject-type]\`. The value of \`pool\` is not part of the core: a module with a cell that takes \`pool\` imports \`ss_pool\` from the add-on \`@tomlarkworthy/soundscript-workers\`.`
 // %%
-md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`state action mut freeze borrow snapshot equals on read\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`.`
+md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`state action mut freeze borrow snapshot equals on read\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`. A call of \`structuredClone\` with an argument whose type is or may hold a function or a symbol, or is \`unknown\`, \`object\` or a type parameter, is \`[type]\`: the call would throw.`
 // %%
-md`**S2.7** Reading \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`, also through a local bound to the intrinsic, through destructuring such as \`const { random } = Math\`, and through a computed key such as \`Math["random"]\`. A value with a banned member is not assignable to a type that names it, so passing \`Math\` where \`{ random: () => number }\` is expected is \`[type]\`. \`prototype\` on any other value is rejected by another rule, usually \`[no-member]\`.`
+md`**S2.7** Reading \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`, also through a local bound to the intrinsic, through destructuring such as \`const { random } = Math\`, and through a computed key such as \`Math["random"]\`. A value with a banned member is not assignable to a type that names it, so passing \`Math\` where \`{ random: () => number }\` is expected is \`[type]\`. A \`__proto__\` key in an object literal, written as a name, a string or a computed literal, is \`[banned-member]\` too: it sets the prototype. \`prototype\` on any other value is rejected by another rule, usually \`[no-member]\`.`
 // %%
 md`**S2.8** A body that uses a cell by its name instead of taking it as a parameter is \`[cell-by-name]\`. That includes a cell calling itself. A local with a cell's name is a local.`
 // %%
@@ -281,7 +283,7 @@ md`**S2.9** A body is type-checked with \`null\` and \`undefined\` kept apart fr
 // %%
 md`**S2.10** \`viewof\`, \`mutable\` and \`$\` followed by digits (\`$0\`, \`$12\`) are reserved. Using one as the name of a cell, a parameter or a local is \`[reserved-name]\`, and so is \`$0\` as a property key or a member name. \`viewof\` and \`mutable\` may still be a property key or a member name, and a type may use any of them. A compiled cell is Observable JavaScript, which reads \`viewof\` and \`mutable\` as keywords and names a cell's \`viewof\` inputs \`$0\`, \`$1\` and so on.`
 // %%
-md`**S2.11** The return type of an async function is \`Promise<T>\`, and of a generator function, sync or async, \`Generator<Y>\`; any other annotation is \`[type]\`. Each \`yield\` of a generator annotated \`Generator<Y>\` gives a \`Y\`, and a value of another type is \`[type]\`. A value that an async function returns, annotated or not, may not be a promise: one that may be is \`[type]\`, so \`await\` it. A returned promise is unwrapped at run time, and its type would otherwise be \`Promise<Promise<T>>\`.`
+md`**S2.11** The return type of an async function is \`Promise<T>\`, and of a generator function, sync or async, \`Generator<Y>\`; any other annotation is \`[type]\`. Each \`yield\` of a generator annotated \`Generator<Y>\` gives a \`Y\`, and a value of another type is \`[type]\`. A value that an async function returns, annotated or not, may not be a promise: one that may be is \`[type]\`, so \`await\` it. A returned promise is unwrapped at run time, and its type would otherwise be \`Promise<Promise<T>>\`. The result of \`then\` and of \`Promise.resolve\` is typed the same way: a callback that returns a \`Promise<T>\` gives a \`Promise<T>\`.`
 // %%
 md`The cells of this section. \`s2_answer\` takes \`s2_base\` and the function \`s2_double\` with no annotations; \`s2_read\` takes an async cell, a generator and a state cell by their value types.`
 // %%
@@ -316,6 +318,9 @@ spec_rejects_2 = [
   { statement: "S2.7", rule: "banned-member", source: "const b = () => Object.setPrototypeOf({}, null);" },
   { statement: "S2.7", rule: "banned-member", source: "const b = () => {\n  const { random } = Math;\n  return random();\n};" },
   { statement: "S2.7", rule: "banned-member", source: "const b = () => (o: { readonly a: number }) => {\n  const { defineProperty } = Object;\n  return defineProperty(o, \"a\", { value: 2 });\n};" },
+  { statement: "S2.7", rule: "banned-member", source: "const b = () => ({ __proto__: { a: 1 } });" },
+  { statement: "S2.7", rule: "banned-member", source: "const b = () => ({ \"__proto__\": null, n: 1 } as const);" },
+  { statement: "S2.7", rule: "banned-member", source: "const b = () => {\n  const __proto__ = { a: 1 };\n  return { __proto__ };\n};" },
   { statement: "S2.7", rule: "type", source: "const b = () => {\n  const r = (m: { random: () => number }) => m.random();\n  return r(Math);\n};" },
   { statement: "S2.8", rule: "cell-by-name", source: "const a = () => 1;\nconst b = () => a() + 1;" },
   { statement: "S2.8", rule: "cell-by-name", source: "function f(): number {\n  return f();\n}" },
@@ -402,7 +407,7 @@ md`**S3.1** Writing a member of a value that is not \`Mut\` (section 4) is \`[me
 // %%
 md`**S3.2** Calling a mutating method on a receiver that is not \`Mut\` is \`[mutating-method]\`: \`push pop shift unshift splice sort reverse fill copyWithin\` on an array, those of them a typed array has and \`set\`, \`set delete clear\` on a \`Map\`, \`add delete clear\` on a \`Set\`. The copying methods (\`toSorted\`, \`toReversed\`, \`slice\`, \`map\`, \`filter\`) and spreads are accepted.`
 // %%
-md`**S3.3** \`Object.assign\` with an existing value as its first argument is \`[object-assign]\`. A spread, \`{ ...o, b: 2 }\`, builds the new value.`
+md`**S3.3** \`Object.assign\` with an existing value as its first argument is \`[object-assign]\`. A spread, \`{ ...o, b: 2 }\`, builds the new value. A spread or a rest copies the properties a value has itself, so a spread or rest of an intrinsic such as \`Math\` is \`[type]\`, and an intrinsic is not assignable to a record type that names one of its members.`
 // %%
 md`**S3.4** \`delete\` on a value that is not \`Mut\` is \`[no-delete]\`. On a \`Mut\` it is accepted (S4.1).`
 // %%
@@ -722,7 +727,7 @@ md`**S5.2** A cell that takes such a generator cell gets a \`Borrowed<T>\`, read
 // %%
 md`**S5.3** A \`Borrowed\` may be read during its reader's synchronous evaluation. Returning it, yielding it, binding it to a second name, placing it in a literal, passing it to \`state\`, or using it in a nested function is \`[borrowed-escape]\`.`
 // %%
-md`**S5.4** Using a \`Borrowed\` after an \`await\` in the same function is \`[borrowed-await]\`. A value read from it before the \`await\` may be kept.`
+md`**S5.4** Using a \`Borrowed\` after an \`await\` in the same function is \`[borrowed-await]\`. A value read from it before the \`await\` may be kept. The same holds in an async function for a \`Mut\` it did not make, a parameter or one a function it calls uses: the caller runs at the first \`await\` and may change or freeze it.`
 // %%
 md`**S5.5** \`snapshot(b)\` copies a \`Borrowed<T>\` to a plain \`T\`, which may be kept. \`snapshot\` of a value that is not \`Borrowed\` is \`[type]\`.`
 // %%
@@ -745,6 +750,8 @@ spec_rejects_5 = (() => {
     { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => {\n  let x = frames;\n  return 1;\n};" },
     { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = function* (frames) {\n  yield frames;\n};" },
     { statement: "S5.4", rule: "borrowed-await", source: frames + "const bad = async (frames) => {\n  await Promise.resolve();\n  return frames.length;\n};" },
+    { statement: "S5.4", rule: "borrowed-await", source: "const bad = () => async () => {\n  const bump = async (m: Mut<{ n: number }>): Promise<void> => {\n    await 0;\n    m.n = 2;\n  };\n  const m = mut({ n: 1 });\n  const p = bump(m);\n  const v = freeze(m);\n  await p;\n  return v.n;\n};" },
+    { statement: "S5.4", rule: "borrowed-await", source: "const bad = () => async () => {\n  const m = mut({ n: 1 });\n  const h = async (): Promise<void> => {\n    await 0;\n    m.n = 2;\n  };\n  const p = h();\n  const v = freeze(m);\n  await p;\n  return v.n;\n};" },
     { statement: "S5.5", rule: "type", source: "const f = () => snapshot([1]);" }
   ];
 })()
@@ -1718,7 +1725,7 @@ Values from code the checker does not check, for a tool that runs the checker ou
 // %%
 md`**S9.1** A shell cell is an unchecked cell the checker is given beside the checked ones; a notebook module has none (S1.7). To a checked cell its value is \`unknown\`: an input with no annotation, or annotated \`unknown\` or its alias \`Js\`, gets \`unknown\`; \`any\` is \`[no-any]\`, and any other annotation is \`[inject-type]\`.`
 // %%
-md`**S9.2** A checked function from \`unknown\` that narrows with \`typeof\`, \`Array.isArray\` and \`in\` and builds a new value is accepted. It turns a value from a shell cell, or from another language (section 11), into a typed one.`
+md`**S9.2** A checked function from \`unknown\` that narrows with \`typeof\`, \`Array.isArray\` and \`in\` and builds a new value is accepted. It turns a value from a shell cell, or from another language (section 11), into a typed one. On a union, \`"k" in v\` removes no member: a value of a member that does not declare \`k\` may still have it, so that member stays, with \`k\` of type \`unknown\`.`
 // %%
 md`**S9.3** A foreign declaration (\`declare const\` or \`declare function\`, given to the checker beside the cells) is the trusted signature of an imported cell or library. Each is marked \`/** pure */\` or \`/** effect */\`; an unmarked one is \`[foreign-unmarked]\`, and a checked cell that takes an \`effect\` one is \`[foreign-effect]\`. A foreign declaration's name is used before a global of the same name. A notebook module has none.`
 // %%
@@ -1726,7 +1733,7 @@ md`**S9.4** The narrowings of one value combine in any order: a test that exclud
 // %%
 md`**S9.5** The right operand of \`in\` must be an object. One of type \`unknown\`, or of a type parameter, is \`[type]\`, as is one that may be a primitive; one that may be \`null\` or \`undefined\` is \`[possibly-undefined]\`. \`"k" in v\` throws at run time when \`v\` is a primitive; test \`typeof v === "object" && v !== null\` first.`
 // %%
-md`**S9.6** \`typeof v === "function"\` narrows a \`v\` of type \`unknown\`, or of a type parameter, to \`object\`: the test shows that \`v\` is not a primitive, not which arguments it takes. \`object\` has no members and no call signature, so calling it, or passing it where a function or an \`Action\` is expected, is \`[type]\`, and a \`State\` that reached \`unknown\` is not written through it. An \`Action\` does not reach \`unknown\` (S6.6). \`typeof v === "symbol"\` narrows it to \`symbol\`. A type with a call signature, a function type or an interface or alias with one, has the tag \`"function"\`.`
+md`**S9.6** \`typeof v === "function"\` narrows a \`v\` of type \`unknown\`, or of a type parameter, to \`object\`: the test shows that \`v\` is not a primitive, not which arguments it takes. \`object\` has no members and no call signature, so calling it, or passing it where a function or an \`Action\` is expected, is \`[type]\`, An \`Action\` does not reach \`unknown\` (S6.6), and a \`State\` or \`Events\` handle given the type \`unknown\`, \`object\` or a type parameter of a function of the module is \`[handle-pass]\`. \`typeof v === "symbol"\` narrows it to \`symbol\`. A type with a call signature, a function type or an interface or alias with one, has the tag \`"function"\`.`
 // %%
 md`**S9.7** \`await v\`, where \`v\` may be an \`object\`, or a record or interface other than \`Promise\` that declares a \`then\` property, is \`unknown\`: \`await\` calls that \`then\` and gives what it passes on.`
 // %%
@@ -1759,8 +1766,8 @@ spec_rejects_9 = [
   { statement: "S9.6", rule: "type", source: "const f = () => (u: unknown): unknown => (Array.isArray(u) && typeof u[0] === \"function\" ? u[0](1) : 0);" },
   { statement: "S9.6", rule: "type", source: "const f = () => (s: string): unknown => {\n  const v = JSON.parse(s);\n  return typeof v === \"function\" ? v() : 0;\n};" },
   { statement: "S9.6", rule: "type", source: "const f = () => (): number => {\n  try {\n    return 1;\n  } catch (e) {\n    if (typeof e === \"function\") e();\n    return 0;\n  }\n};" },
-  { statement: "S9.6", rule: "type", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  const u: unknown = n;\n  if (typeof u === \"object\" && u !== null && \"set\" in u && typeof u.set === \"function\") u.set(5);\n  return 1;\n};" },
-  { statement: "S9.6", rule: "type", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  const u: object = n;\n  if (\"set\" in u && typeof u.set === \"function\") u.set(5);\n  return 1;\n};" },
+  { statement: "S9.6", rule: "handle-pass", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  const u: unknown = n;\n  return 1;\n};" },
+  { statement: "S9.6", rule: "handle-pass", source: "const n = (): StateCell<number> => state(0);\nconst w = (n: State<number>) => {\n  const u: object = n;\n  return 1;\n};" },
   { statement: "S9.6", rule: "type", source: "type O = { readonly then?: unknown };\nconst f = () => (o: O): unknown => (typeof o.then === \"function\" ? o.then(1) : 0);" },
   { statement: "S9.6", rule: "no-member", source: "const f = () => (u: unknown): number => (typeof u === \"symbol\" ? u.description.length : 0);" },
   { statement: "S9.6", rule: "no-member", source: "interface G { (x: number): number }\nconst f = () => (g: G): number => (typeof g === \"function\" ? g.nope.deeper : 0);" },

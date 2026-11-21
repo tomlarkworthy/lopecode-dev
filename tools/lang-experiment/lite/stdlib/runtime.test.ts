@@ -779,7 +779,21 @@ const flip = (pick: State<string | null>) => action(() => pick.update((p) => (p 
 await run("k1_checker_rule_tables", async () => {
   const { readFileSync } = await import("node:fs");
   const ojs = readFileSync(new URL("../soundscript/checker-tests.ojs", import.meta.url), "utf8");
-  for (const name of ["test_checker_action_capture_by_binding", "test_checker_iterator_rules"]) {
+  for (const name of [
+    "test_checker_action_capture_by_binding",
+    "test_checker_iterator_rules",
+    "test_checker_spread_copies_own_properties",
+    "test_checker_structured_clone",
+    "test_checker_mut_across_await",
+    "test_checker_promise_flattens",
+    "test_checker_in_keeps_members",
+    "test_checker_throw_only_body_is_never",
+    "test_checker_optional_chain_narrows",
+    "test_checker_one_report_per_read",
+    "test_checker_generic_function_types",
+    "test_checker_regexp_match_is_indexed",
+    "test_checker_handle_pass",
+  ]) {
     const cell = ojs.split(/^\/\/ %%$/m).map((x) => x.trim()).find((x) => x.startsWith(`${name} = {`));
     let msg = "";
     try { msg = new Function("soundscript", cell!.slice(cell!.indexOf("{")))({ checkSources }); } catch (e) { msg = `threw ${(e as Error).message}`; }

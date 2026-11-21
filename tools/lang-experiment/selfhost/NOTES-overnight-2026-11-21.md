@@ -109,3 +109,32 @@ Defects in `render.ts`, repros in `repro-defects.ts`: (1) a prop named like an O
 records the new tag, so a later `mount` reuses the wrong node; (3) `value={undefined}` sets the text
 "undefined"; (4) a symbol key throws. The checker rejects 1, 3 and 4 in checked code.
 To integrate after the store, last.
+
+### Store, commit and actions integrated (b03afed3)
+17 checked cells in `lite/store.ss.ts` decide S6.5, S6.8, S6.10, S6.12, S6.13, S6.14; `prelude.runtime.ts`
+124 -> 120 unchecked lines; checked runtime declarations 57 -> 73. Records live with their handles (WeakMaps
+in the shell), so nothing per store is in the long-lived state. `delivery.test.ts --full` 138344 orderings,
+0 fail; verify 629 pass 0 fail (builder's run and mine); Breakout alternated 50.3 55.4 57.1 vs 53.3 51.2 53.7.
+100 sets in one call cost 27-55 us against 3.4-4.8. `reset()` during a call differs (only tests call it).
+The two test fixes are in the same commit; `runtime.test` passes 70/0 under both `bun` and `bun test`.
+
+### Running: the checker fix batch (13 items; the State/Events-handle item is kept separable)
+Done. 12 of 13 fixed; `__proto__` is closed for literal keys only. Checker +135/-36 lines. Corpus 713 sources,
+2238 cells: previously accepted and now rejected are the 3 repros of the handle hole, `selfhost/rt/prelude.ss.ts
+snapshot` (`<T>(v: T) => structuredClone(v)`, unsafe, not shipped) and `selfhost/rt/probe3.ss.ts unionFnObj`
+(the unsound `in` idiom); fixture `ok_in` rewritten with `typeof`. Gates: runtime.test 81/0 (11 checker tests
+added), events 29, store 38, rt/diff 0, proof ok, verify 629 pass 0 fail (builder's run and mine, mine after the
+spec sentences); Breakout 53.1 after play, 59.8 in edit pane. Per-item patches, each reversible alone, in
+`lite/soundscript/.scratch/batch/` (ignored by the commit recipe; i7.patch + i7b.patch drop the handle rule).
+Open after the batch:
+- An index record reaches `Object.prototype`: `r["__proto__"]`, `r.constructor`, a dynamic key `"toString"` are
+  typed as the element type; `m[k] = w` with `k === "__proto__"` on a `Mut` index record sets the prototype, and
+  a record whose prototype is a ref handle passes the runtime's handle test. Closing it touches every
+  index-signature read (own-key guard or null-prototype records); not measured.
+- `structuredClone` of a function hidden by width subtyping still throws. `structuredClone(JSON.parse(s))` is
+  now rejected (precision lost).
+- `await`/`then` on a type parameter that is given a promise, inside a generic.
+- D4, not changed: `includes`, `indexOf`, `Object.is`, `Map`/`Set` keys compare identity, so `[strict-eq-object]`
+  is passed by a one-line rewrite. 33 uses in the corpus, 2 in the shipped runtime sources.
+For Tom: new rule id `[handle-pass]` (item 7, not ruled on); new spec sentences in S2.6, S2.7, S2.11, S3.3,
+S5.4, S9.2, S9.6 and one tutorial sentence.

@@ -8,7 +8,7 @@ import {
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, BOOL, SYMBOL,
   union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames,
 } from "./types.ts";
-import { ALLOWED_GLOBALS, PRELUDE_FNS } from "./intrinsics.ts";
+import { ALLOWED_GLOBALS, PRELUDE_FNS, TYPED_ARRAYS } from "./intrinsics.ts";
 
 export type BKind = "const" | "let" | "param" | "fn" | "global" | "prelude";
 export type Binding = {
@@ -178,19 +178,18 @@ export class Checker {
     });
   }
   narrowIn(t: Ty, k: string, pos: boolean): Ty {
-    const ms = this.um(t);
     const has = (m: Ty) => !!this.reg.member(m, k) && this.reg.expand(m).k !== "unknown";
-    const anyHas = ms.some(has);
     return this.filter(t, (m) => {
       if (pos) {
         if (has(m)) return true;
-        if (anyHas) return false;
-        if (m.k === "object" || m.k === "rec" || m.k === "unknown") {
-          const r: Rec = m.k === "rec" ? { ...m, props: new Map(m.props) } : { k: "rec", props: new Map() };
+        // a member that does not declare k is kept: a value of it may have k as an extra property (width) or an inherited one
+        const x = this.reg.expand(m);
+        if (x.k === "object" || x.k === "rec" || x.k === "unknown") {
+          const r: Rec = x.k === "rec" ? { ...x, props: new Map(x.props) } : { k: "rec", props: new Map() };
           r.props.set(k, { t: UNKNOWN, opt: false });
           return r;
         }
-        return false;
+        return true;
       }
       const p = this.reg.member(m, k);
       return !(p && !p.opt);
@@ -213,14 +212,15 @@ export class Checker {
   }
 
   // ---- paths (identifier or chain of non-computed members) used as narrowing keys ----
-  pathKey(n: Node, env: Env): string | null {
+  // links: a ?. member is a path too (callers that know no link short-circuited)
+  pathKey(n: Node, env: Env, links = false): string | null {
     if (n.type === "Identifier") {
       const b = env.scope.get(n.name);
       if (!b || b.kind === "global" || b.kind === "prelude" || isNamed(b.t, "Mut")) return null;
       return "#" + b.id;
     }
-    if (n.type === "MemberExpression" && !n.optional) {
-      const base = this.pathKey(n.object, env);
+    if (n.type === "MemberExpression" && (!n.optional || links)) {
+      const base = this.pathKey(n.object, env, links);
       if (!base) return null;
       if (!n.computed && n.property.type === "Identifier") return base + "." + n.property.name;
       if (n.computed && n.property.type === "Literal" && typeof n.property.value === "string") return base + (/^(0|[1-9]\d*)$/.test(n.property.value) ? `[${n.property.value}]` : "." + n.property.value);
@@ -261,6 +261,17 @@ export class Checker {
     // (or "undef"), so a later narrowing of k drops that member, whichever test came first. join keeps a key
     // only when both sides have it; dropRoot removes it with the narrowings of its root.
     const narrow = (n: Node, nt: Ty | undefined, by: (t: Ty, branch: boolean) => Ty) => {
+      // where an optional chain's value cannot be undefined, no ?. link short-circuited: each link's object is not nullish
+      if (n.type === "ChainExpression") for (const [M, br] of [[T, true], [F, false]] as const) {
+        if (by(UNDEF, br).k !== "never") continue;
+        for (let x = n.expression; x.type === "MemberExpression" || x.type === "CallExpression"; x = x.type === "MemberExpression" ? x.object : x.callee) {
+          const o = x.optional ? (x.type === "MemberExpression" ? x.object : x.callee) : null;
+          const ok = o && this.pathKey(o, env, true), ot = ok && (M.get(ok) ?? type(o));
+          if (!ok || !ot) continue;
+          M.set(exclusion("null", ok), NEVER); M.set(exclusion("undef", ok), NEVER);
+          M.set(ok, this.nonNullish(ot));
+        }
+      }
       const k = this.pathKey(n, env);
       if (!k || !nt) return;
       for (const [M, br] of [[T, true], [F, false]] as const) {
@@ -269,7 +280,8 @@ export class Checker {
       }
     };
     // P.f's test also narrows P to the members whose f can pass it
-    const discriminant = (m: Node, can: (pt: Ty, branch: boolean) => boolean) => {
+    const discriminant = (m0: Node, can: (pt: Ty, branch: boolean) => boolean) => {
+      const m = m0.type === "ChainExpression" ? m0.expression : m0;
       if (m.type === "MemberExpression" && !m.computed && m.property.type === "Identifier")
         narrow(m.object, type(m.object), (ot, branch) => this.narrowByProp(ot, m.property.name, (pt) => can(pt, branch)));
     };
@@ -322,6 +334,7 @@ export class Checker {
             const base = this.reg.expand(t);
             if (base.k !== "rec") { this.unsupported(prop, "object rest of a non-record"); this.bindPattern(prop.argument, ERR, env, kind, extra); continue; }
             const r: Rec = { k: "rec", props: new Map([...base.props].filter(([k]) => !used.includes(k))) };
+            this.notOwn(r, prop);
             this.bindPattern(prop.argument, r, env, kind, extra);
             continue;
           }
@@ -355,6 +368,11 @@ export class Checker {
     }
   }
   nonUndef = (t: Ty) => this.filter(t, (m) => m.k !== "undef" && m.k !== "void");
+  // a spread or rest copies own enumerable properties; an intrinsic object's members (Math.floor) are not
+  notOwn(r: Rec, at: Node) {
+    const k = [...r.props].find(([, p]) => p.flags?.intrinsic)?.[0];
+    if (k !== undefined) this.err(at, "type", `${at.type === "RestElement" ? "rest" : "spread"} of a built-in object: its member ${k} is not an own property, so the copy would not have it`);
+  }
   propOf(t: Ty, k: string, at: Node): Ty {
     const out: Ty[] = [];
     for (const m of this.um(t)) {
@@ -379,8 +397,8 @@ export class Checker {
     }
     return union(out);
   }
-  memberMissing(m: Ty, k: string, at: Node) {
-    if (m.k === "null" || m.k === "undef" || m.k === "void") this.err(at, "possibly-undefined", `property ${k} of a value that may be ${show(m)}`);
+  memberMissing(m: Ty, k: string, at: Node, all: Ty = m) {
+    if (m.k === "null" || m.k === "undef" || m.k === "void") this.err(at, "possibly-undefined", `property ${k} of a value that may be ${show(all)}`);
     else if (m.k === "unknown") this.err(at, "no-member", `property ${k} on Js/unknown; narrow it first`);
     else if (this.intrinsicName(m)) this.unsupported(at, `intrinsic member ${this.intrinsicName(m)}.${k}`);
     else this.err(at, "no-member", `no property ${k} on ${show(m)}`);
@@ -444,13 +462,33 @@ export class Checker {
   hides(at: Node, t: Ty, expected: Ty, opaque: Set<string> | null = null): boolean {
     const w = t === expected ? null : this.reg.peek(() => this.hidden(t, expected, opaque));
     if (w) this.err(at, "action-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${w}; an Action goes only where an Action is expected`);
-    return !w;
+    const h = w || t === expected ? null : this.reg.peek(() => this.hidden(t, expected, opaque, 0, (x) => this.handleIn(x, 0)));
+    if (h) this.err(at, "handle-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${h}; a State or Events handle goes only where its own type is expected`);
+    return !w && !h;
+  }
+  // the first State or Events handle held anywhere in s, as actionIn finds an Action
+  handleIn(s: Ty, depth: number): string | null {
+    if (depth > 10) return null;
+    const A = (x: Ty) => this.handleIn(x, depth + 1);
+    const first = (xs: Ty[]) => { for (const x of xs) { const w = A(x); if (w) return w; } return null; };
+    switch (s.k) {
+      case "named":
+        if (s.n === "State" || s.n === "Events") return show(s);
+        if (this.reg.isAlias(s.n)) return A(this.reg.expand(s));
+        return first(s.args);
+      case "arr": return A(s.el);
+      case "tup": return first(s.els);
+      case "union": return first(s.ts);
+      case "rec": return first([...[...s.props.values()].map((p) => p.t), ...(s.index ? [s.index] : []), ...(s.calls ?? []).map((c) => c.ret)]);
+      case "fn": return A(s.ret);
+      default: return null;
+    }
   }
   // the first Action in s that a position of t of type unknown, object or an opaque type parameter would take
-  hidden(s: Ty, t: Ty, opaque: Set<string> | null, depth = 0): string | null {
+  hidden(s: Ty, t: Ty, opaque: Set<string> | null, depth = 0, find: (x: Ty) => string | null = (x) => this.actionIn(x, 0)): string | null {
     if (depth > 10 || s.k === "err" || t.k === "err" || s.k === "never") return null;
-    const H = (a: Ty, b: Ty) => this.hidden(a, b, opaque, depth + 1);
-    if (t.k === "unknown" || t.k === "object" || (t.k === "tv" && opaque?.has(t.n))) return this.actionIn(s, 0);
+    const H = (a: Ty, b: Ty) => this.hidden(a, b, opaque, depth + 1, find);
+    if (t.k === "unknown" || t.k === "object" || (t.k === "tv" && opaque?.has(t.n))) return find(s);
     if (s.k === "named" && this.reg.isAlias(s.n)) return H(this.reg.expand(s), t);
     if (t.k === "named" && this.reg.isAlias(t.n)) return H(s, this.reg.expand(t));
     if (s.k === "union") { for (const m of s.ts) { const w = H(m, t); if (w) return w; } return null; }
@@ -475,10 +513,10 @@ export class Checker {
       case "rec": {
         for (const [k, p] of t.props) { const sp = this.reg.member(sx, k); const w = sp && H(propT(sp), propT(p)); if (w) return w; }
         if (t.index && sx.k === "rec") for (const p of sx.props.values()) { const w = H(propT(p), t.index); if (w) return w; }
-        for (const c of t.calls ?? []) { const w = this.hiddenFn(s, c, opaque, depth); if (w) return w; }
+        for (const c of t.calls ?? []) { const w = this.hiddenFn(s, c, opaque, depth, find); if (w) return w; }
         return null;
       }
-      case "fn": return this.hiddenFn(s, t, opaque, depth);
+      case "fn": return this.hiddenFn(s, t, opaque, depth, find);
       case "named": {
         if (t.n === "Iterable" || t.n === "ArrayLike") { const el = this.reg.iterElem(sx); return el ? H(el, t.args[0]) : null; }
         if (sx.k !== "named" || sx.n !== t.n) return null;
@@ -489,12 +527,12 @@ export class Checker {
     }
   }
   // a function of type s used as t: what it returns goes to t's return type, and what t's caller passes goes to s's parameters
-  hiddenFn(s: Ty, t: Fn, opaque: Set<string> | null, depth: number): string | null {
+  hiddenFn(s: Ty, t: Fn, opaque: Set<string> | null, depth: number, find?: (x: Ty) => string | null): string | null {
     const f = this.reg.callSigs(s)[0];
     if (!f) return null;
-    const w = this.hidden(f.ret, t.ret, opaque, depth + 1);
+    const w = this.hidden(f.ret, t.ret, opaque, depth + 1, find);
     if (w) return w;
-    for (let i = 0; i < t.ps.length && i < f.ps.length; i++) { const x = this.hidden(t.ps[i].t, f.ps[i].t, opaque, depth + 1); if (x) return x; }
+    for (let i = 0; i < t.ps.length && i < f.ps.length; i++) { const x = this.hidden(t.ps[i].t, f.ps[i].t, opaque, depth + 1, find); if (x) return x; }
     return null;
   }
   // the first promise-like held anywhere in s: a Promise, a type with a then member, or object, which may be one
@@ -667,12 +705,17 @@ export class Checker {
     if (e.operator === "||") return this.falsy(lt).k === "never" ? lt : union([this.truthy(lt), rt]);
     return this.um(lt).some((m) => ["null", "undef", "void", "unknown", "tv", "err"].includes(m.k)) ? union([this.nonNullish(lt), rt]) : lt;
   }
+  // { __proto__: v } sets the prototype, as the banned Object.setPrototypeOf does; every spelling of the key is refused
+  protoKey(p: Node) {
+    if ((p.key.type === "Identifier" ? p.key.name : p.key.value) === "__proto__") this.err(p, "banned-member", "__proto__ as an object literal key is banned: it sets the prototype (Object.setPrototypeOf), and the prototype's members are not own properties");
+  }
   constLit(e: Node, env: Env): Ty {
     if (e.type === "ArrayExpression") return this.rec(e, { k: "tup", els: e.elements.map((x: Node) => (x && x.type !== "SpreadElement" ? this.constLit(x, env) : (this.unsupported(e, "as const with spread"), ERR))) });
     if (e.type === "ObjectExpression") {
       const r: Rec = { k: "rec", props: new Map() };
       for (const p of e.properties) {
         if (p.type !== "Property" || p.computed || p.kind !== "init" || p.method) { this.unsupported(p, "as const object member"); continue; }
+        this.protoKey(p);
         r.props.set(p.key.name ?? String(p.key.value), { t: this.constLit(p.value, env), opt: false });
       }
       return this.rec(e, r);
@@ -692,6 +735,8 @@ export class Checker {
     }
     this.facts.bindingOf.set(e, b);
     if (b.kind === "prelude") return b.t;
+    // its argument is checked where it is called, so the value takes no argument (S2.6 lets a body name it)
+    if (b.kind === "global" && e.name === "structuredClone" && !this.cloneCallees.has(e)) return { k: "fn", tps: [], ps: [{ n: "v", t: NEVER, opt: false }], ret: UNKNOWN };
     const k = "#" + b.id;
     const nt = env.flow.get(k);
     if (nt) return nt;
@@ -721,12 +766,13 @@ export class Checker {
       const out: Ty[] = [];
       let flags: Flags | undefined;
       let bad = false;
+      const missing: Ty[] = [];
       for (const m of this.um(ot)) {
         if (m.k === "err") { bad = true; out.push(ERR); continue; }
         if (memberless(m)) { this.err(e, "type", `${show(m)} has no members`); bad = true; continue; }
         if (this.reg.expand(m).k === "err") { bad = true; out.push(ERR); continue; } // unconverted alias: reported where it was converted
         const p = this.reg.member(m, name);
-        if (!p) { this.memberMissing(m, name, e.property); bad = true; out.push(ERR); continue; }
+        if (!p) { missing.push(m); bad = true; out.push(ERR); continue; }
         if (isNamed(unwrap(m), "State")) this.inActionOnly(env, e, "state-write", `State.${name} outside action(...)`);
         if (p.flags?.banned) this.err(e, "banned-member", `${this.parsed.src.slice(e.object.start, e.object.end)}.${name} is banned`);
         flags = p.flags ?? flags;
@@ -734,6 +780,10 @@ export class Checker {
         if (isNamed(m, "Borrowed") && p.flags?.view && !this.reg.callSigs(pt).length) pt = named("Borrowed", pt);
         out.push(pt);
       }
+      // one report per kind of member lacking it, not one per member
+      const nullish = (m: Ty) => m.k === "null" || m.k === "undef" || m.k === "void";
+      const kinds = [missing.filter(nullish), missing.filter((m) => m.k === "unknown"), missing.filter((m) => !nullish(m) && m.k !== "unknown" && this.intrinsicName(m)), missing.filter((m) => !nullish(m) && m.k !== "unknown" && !this.intrinsicName(m))];
+      for (const g of kinds) if (g.length) this.memberMissing(g.length === 1 || nullish(g[0]) ? g[0] : union(g), name, e.property, union(g));
       this.facts.memberFlags.set(e, flags);
       t = bad && out.length === 0 ? ERR : union(out);
     }
@@ -760,7 +810,7 @@ export class Checker {
         else { this.err(e, "type", `tuple ${show(x)} has no element ${it.v}`); out.push(ERR); }
         continue;
       }
-      if (numeric && (x.k === "arr" || x.k === "tup" || x.k === "str" || (x.k === "lit" && typeof x.v === "string") || this.reg.isTypedArray(x))) {
+      if (numeric && (x.k === "arr" || x.k === "tup" || x.k === "str" || (x.k === "lit" && typeof x.v === "string") || this.reg.isTypedArray(x) || isNamed(x, "RegExpMatchArray"))) {
         out.push(this.reg.iterElem(x)!);
         if (this.reg.strictIndex) out.push(UNDEF);
         continue;
@@ -930,11 +980,13 @@ export class Checker {
         if (ms.length !== 1) { if (st.k !== "err") this.unsupported(p, `object spread of ${show(st)}`); continue; }
         const x = this.reg.expand(ms[0]);
         if (x.k !== "rec" || x.index) { if (x.k !== "err") this.unsupported(p, `object spread of ${show(x)}`); continue; }
+        this.notOwn(x, p);
         for (const [k, v] of x.props) r.props.set(k, v);
         continue;
       }
       if (p.kind !== "init") { this.unsupported(p, `${p.kind} accessor`); continue; }
       if (p.computed) { this.unsupported(p, "computed property"); continue; }
+      this.protoKey(p);
       const k = p.key.type === "Identifier" ? p.key.name : String(p.key.value);
       const cs = recs.map((x) => x.props.get(k)?.t ?? x.index).filter((c): c is Ty => !!c);
       const ctx = cs.length ? union(cs) : undefined;
@@ -1043,7 +1095,8 @@ export class Checker {
       const y = union(fi.yields);
       ret = retAnn ?? named("Generator", y.k === "never" ? UNDEF : ctxRet ? y : widen(y));
     } else {
-      let r = union(reachable && fi.rets.length ? [...fi.rets, UNDEF] : fi.rets.length ? fi.rets : [VOID]);
+      // a body that cannot complete (it only throws) returns never
+      let r = union(reachable && fi.rets.length ? [...fi.rets, UNDEF] : fi.rets.length ? fi.rets : [reachable ? VOID : NEVER]);
       if (!declared) r = widen(r);
       ret = fi.isAsync ? (retAnn ?? named("Promise", r)) : (retAnn ?? (ctxRet && ctxRet.k === "void" ? VOID : r));
       if (retAnn && !fi.isAsync && retAnn.k !== "void" && reachable && e.body.type === "BlockStatement" && retAnn.k !== "err" && !this.reg.sub(UNDEF, retAnn) && !(retAnn.k === "never"))
@@ -1148,7 +1201,10 @@ export class Checker {
       const objectMember = callee.type === "MemberExpression" && callee.object.type === "Identifier" && callee.object.name === "Object" && !callee.computed && env.scope.get("Object")?.kind === "global" ? callee.property.name : null;
       if (objectMember === "assign") return this.objectAssign(e, env);
       if (objectMember === "freeze") return this.objectFreeze(e, env, expected);
+      const clone = callee.type === "Identifier" && callee.name === "structuredClone" && env.scope.get(callee.name)?.kind === "global";
+      if (clone) this.cloneCallees.add(callee);
       calleeT = this.infer(callee, env);
+      if (clone) { const t = this.apply(e, this.reg.callSigs(calleeT)[0], env, expected); const a = e.arguments[0], at = a && this.facts.types.get(a); const w = at && this.cloneProblem(at); if (w) this.err(a, "type", `structuredClone of ${show(at)}, which ${w}: the clone would throw or lose it`); return t; }
       if (callee.type === "MemberExpression" || (callee.type === "ChainExpression" && callee.expression.type === "MemberExpression")) {
         const m = callee.type === "ChainExpression" ? callee.expression : callee;
         const fl = this.facts.memberFlags.get(m);
@@ -1186,6 +1242,29 @@ export class Checker {
     const cm = callee.type === "ChainExpression" ? callee.expression : callee;
     if (cm.type === "MemberExpression" && this.facts.memberFlags.get(cm)?.view && isNamed(this.facts.types.get(cm.object) ?? ERR, "Borrowed")) t = named("Borrowed", t);
     return t;
+  }
+  cloneCallees = new Set<Node>();
+  // what structuredClone cannot copy in a value of type t: it throws on a function, a symbol or a host object, and a
+  // value of an open type (unknown, object, a type parameter) may be one
+  cloneProblem(t: Ty, depth = 0): string | null {
+    if (depth > 10) return null;
+    const C = (x: Ty) => this.cloneProblem(x, depth + 1);
+    const first = (xs: Ty[]) => { for (const x of xs) { const w = C(x); if (w) return w; } return null; };
+    switch (t.k) {
+      case "fn": return "is or holds a function";
+      case "symbol": return "is or holds a symbol";
+      case "unknown": case "object": case "tv": return `may be or hold a function (its type is ${show(t)})`;
+      case "arr": return C(t.el);
+      case "tup": return first(t.els);
+      case "union": return first(t.ts);
+      case "rec": return t.calls?.length ? "is or holds a function" : first([...[...t.props.values()].map((p) => p.t), ...(t.index ? [t.index] : [])]);
+      case "named":
+        if (this.reg.isAlias(t.n)) return C(this.reg.expand(t));
+        if (["Mut", "Borrowed", "Map", "Set"].includes(t.n)) return first(t.args);
+        if (["Error", "RegExp", "RegExpMatchArray", "ArrayBuffer", "DataView", ...TYPED_ARRAYS].includes(t.n)) return null;
+        return `is or holds a ${t.n}`;
+      default: return null;
+    }
   }
   typeArgs(e: Node, env: Env): Ty[] | undefined {
     return (e.typeArguments ?? e.typeParameters)?.params?.map((t: Node) => this.reg.convert(t, this.typeCtx(env), this.parsed));
@@ -1281,7 +1360,12 @@ export class Checker {
       const pc = subst(p, m);
       if ((hasTv(p, tvSet) || deferred.includes(i)) && this.expect(a, t, pc) && opaque && hasTv(p, tvSet)) this.hides(a, t, p, opaque);
     });
-    return subst(sig.ret, m);
+    return this.settled(subst(sig.ret, m));
+  }
+  // a promise never fulfils with a promise-like: resolving with one adopts what it settles to (Promise<Promise<T>> is Promise<T>)
+  settled(t: Ty): Ty {
+    const deep = (x: Ty, d: number): Ty => (d > 10 ? x : union(this.um(x).map((m) => (isNamed(m, "Promise") ? deep(m.args[0], d + 1) : this.awaited(m)))));
+    return t.k === "union" || isNamed(t, "Promise") ? union(this.um(t).map((m) => (isNamed(m, "Promise") ? named("Promise", deep(m.args[0], 0)) : m))) : t;
   }
   // A contextual type with unresolved variables replaced by unknown (keeps tuple/record shape for literals).
   ctxOnly(t: Ty, tvs: Set<string>): Ty | undefined {

@@ -90,3 +90,202 @@ test_checker_iterator_rules = {
   if (bad.length) throw new Error(bad.join("; "));
   return `${cases.length} sources give the expected rules`;
 }
+// %%
+test_checker_spread_copies_own_properties = {
+  // a spread or rest copies own enumerable properties: of a built-in object, or of an array, string or built-in instance taken as a record, the copy would lack the members the type names
+  const cases = [["const c = () => (): number => { const { ...r } = Math; return r.floor(1.5); };",["type"]],
+    ["const c = () => (): number => { const { PI, ...r } = Math; return r.abs(-PI); };",["type"]],
+    ["const c = () => (): string => ({ ...JSON }).stringify(1);",["type"]],
+    ["const c = () => (b: boolean): number => { const m = b ? Math : null; return ({ ...m }).PI; };",["type"]],
+    ["const c = () => (): number => { const a: { readonly length: number } = [1, 2]; return ({ ...a }).length; };",["type"]],
+    ["const c = () => (): number => { const f = (o: { readonly length: number }) => ({ ...o }).length; return f(\"ab\"); };",["type"]],
+    ["const c = () => (): string => { const u: { readonly href: string } = new URL(\"http://a.b/\"); return ({ ...u }).href; };",["type"]],
+    ["const c = () => (): number => { const f = (o: { readonly floor: (x: number) => number }) => o.floor(1.5); return f(Math); };",["type"]],
+    ["const c = () => (): number => { const o: { readonly length?: number } = [1, 2]; return ({ ...o }).length ?? -1; };",[]],
+    ["const c = () => (): number => Array.from({ length: 3 }).length;",[]],
+    ["const c = () => (): number => { const o = { a: 1, b: 2 }; const { a, ...r } = o; return a + ({ ...r }).b; };",[]]];
+  const bad = [];
+  for (const [source, want] of cases) {
+    const r = soundscript.checkSources({ cells: source, tsx: true });
+    const got = [...new Set([...r.module, ...r.cells.flatMap((c) => c.errors)].map((e) => e.rule))].sort();
+    if (JSON.stringify(got) !== JSON.stringify(want)) bad.push(`${JSON.stringify(source)} gave ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
+  }
+  if (bad.length) throw new Error(bad.join("; "));
+  return `${cases.length} sources give the expected rules`;
+}
+// %%
+test_checker_structured_clone = {
+  // structuredClone throws on a function, a symbol or a host object: its argument may not be or hold one, nor a type that may be one; it is only called
+  const cases = [["const c = () => (): number => structuredClone(() => 1)();",["type"]],
+    ["const c = () => (): number => structuredClone({ f: (x: number) => x }).f(1);",["type"]],
+    ["const c = () => (): number => structuredClone(Math).floor(1.5);",["type"]],
+    ["const c = () => (): string => structuredClone(new URL(\"http://a.b/\")).href;",["type"]],
+    ["const c = () => (): number => structuredClone(new Map([[\"k\", () => 1]])).size;",["type"]],
+    ["const c = () => (): number => { const g = <T,>(x: T): T => structuredClone(x); return g(() => 1)(); };",["type"]],
+    ["const c = () => (): number => { const u: unknown = () => 1; structuredClone(u); return 1; };",["type"]],
+    ["const c = () => (): number => { const sc = structuredClone; return sc(() => 1)(); };",["type"]],
+    ["const c = () => (): number => structuredClone({ a: [1, 2], m: new Map([[\"k\", 1]]) }).a.length;",[]],
+    ["const c = () => (): string => structuredClone(new Error(\"e\")).message;",[]],
+    ["const c = () => (): number => structuredClone(new Float64Array(2)).length;",[]]];
+  const bad = [];
+  for (const [source, want] of cases) {
+    const r = soundscript.checkSources({ cells: source, tsx: true });
+    const got = [...new Set([...r.module, ...r.cells.flatMap((c) => c.errors)].map((e) => e.rule))].sort();
+    if (JSON.stringify(got) !== JSON.stringify(want)) bad.push(`${JSON.stringify(source)} gave ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
+  }
+  if (bad.length) throw new Error(bad.join("; "));
+  return `${cases.length} sources give the expected rules`;
+}
+// %%
+test_checker_mut_across_await = {
+  // an async function may use a Mut it did not make (a parameter, or a helper's capture) only before its first await: from there its caller runs and may change or freeze it
+  const cases = [["const c = () => async (): Promise<number> => { const r = async (m: Mut<{ n: number }>): Promise<number> => { await 0; return m.n; }; const m = mut({ n: 1 }); const p = r(m); m.n = 5; return await p; };",["borrowed-await"]],
+    ["const c = () => async (): Promise<number> => { const f = async (m: Mut<{ n: number }>): Promise<number> => { let t = 0; for (const x of [1, 2]) { t += m.n + x; await 0; } return t; }; const m = mut({ n: 1 }); return await f(m); };",["borrowed-await"]],
+    ["const c = () => async (): Promise<number> => { const f = async (m: Mut<{ n: number }>): Promise<void> => { const g = (): void => { m.n = 9; }; await 0; g(); }; const m = mut({ n: 1 }); const p = f(m); const v = freeze(m); await p; return v.n; };",["borrowed-await"]],
+    ["const c = () => async (): Promise<number> => { const m = mut({ n: 1 }); const g = (): void => { m.n = 9; }; const h = async (): Promise<void> => { await 0; g(); }; const p = h(); const v = freeze(m); await p; return v.n; };",["borrowed-await"]],
+    ["const c = () => async (): Promise<number> => { const f = async (m: Mut<{ n: number }>): Promise<number> => { m.n = 3; const a = m.n; await 0; return a; }; const m = mut({ n: 1 }); return await f(m); };",[]],
+    ["const c = async () => { const m = mut({ n: 1 }); await 0; m.n = 2; return freeze(m).n; };",[]]];
+  const bad = [];
+  for (const [source, want] of cases) {
+    const r = soundscript.checkSources({ cells: source, tsx: true });
+    const got = [...new Set([...r.module, ...r.cells.flatMap((c) => c.errors)].map((e) => e.rule))].sort();
+    if (JSON.stringify(got) !== JSON.stringify(want)) bad.push(`${JSON.stringify(source)} gave ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
+  }
+  if (bad.length) throw new Error(bad.join("; "));
+  return `${cases.length} sources give the expected rules`;
+}
+// %%
+test_checker_promise_flattens = {
+  // a promise never fulfils with a promise-like: then and Promise.resolve given one have the type of what it settles to, unknown for a thenable that is not a Promise
+  const source = ["type Th = { readonly then: (f: (v: number) => void) => void };",
+    "const a = () => () => Promise.resolve(1).then((x) => Promise.resolve(x + 1));",
+    "const b = () => () => Promise.resolve(Promise.resolve(Promise.resolve(9)));",
+    "const c = () => (t: Th) => Promise.resolve(1).then(() => t);",
+    "const d = () => (t: Th) => Promise.resolve(t);",
+    "const e = () => () => Promise.resolve(1).then((x) => (x > 0 ? Promise.resolve(\"s\") : 0));",
+    "const f = () => async (): Promise<number> => { const p: Promise<number> = Promise.resolve(1).then((x) => Promise.resolve(x + 1)); return (await p) + 1; };"].join("\n");
+  const want = { a: "() => Promise<number>", b: "() => Promise<number>", c: "(t: Th) => Promise<unknown>", d: "(t: Th) => Promise<unknown>", e: "() => Promise<string | number>", f: "() => Promise<number>" };
+  const r = soundscript.checkSources({ cells: source, tsx: true });
+  const bad = r.cells.filter((c) => c.status !== "ok" || c.value !== want[c.name]).map((c) => `${c.name}: ${c.status} ${c.value} ${JSON.stringify(c.errors)}`);
+  if (bad.length || r.cells.length !== 6) throw new Error(bad.join("; "));
+  return `${r.cells.length} cells have the settled type`;
+}
+// %%
+test_checker_in_keeps_members = {
+  // "k" in v keeps the members of v that do not declare k, with k of type unknown: a value of one may carry k as an extra property or an inherited one
+  const cases = [["const c = () => (v: { readonly k: string } | { readonly b: number }): string => (\"k\" in v ? v.k.toUpperCase() : \"B\");",["no-member"]],
+    ["const c = () => (v: { readonly toString: () => string; readonly c: number } | { readonly d: number }): number => (\"toString\" in v ? v.c : v.d);",["no-member"]],
+    ["const c = () => (v: { readonly a: number } | { readonly b: number }): number => (\"b\" in v ? v.b : v.a);",["type"]],
+    ["const c = () => (v: { readonly a: number } | { readonly b: number }): number => (!(\"b\" in v) ? v.a : 0);",[]],
+    ["const c = () => (v: { readonly a: number } | { readonly b: string }): number => (\"a\" in v && typeof v.a === \"number\" ? v.a : 0);",[]],
+    ["const c = () => (v: unknown): number => (typeof v === \"object\" && v !== null && \"n\" in v && typeof v.n === \"number\" ? v.n : 0);",[]]];
+  const bad = [];
+  for (const [source, want] of cases) {
+    const r = soundscript.checkSources({ cells: source, tsx: true });
+    const got = [...new Set([...r.module, ...r.cells.flatMap((c) => c.errors)].map((e) => e.rule))].sort();
+    if (JSON.stringify(got) !== JSON.stringify(want)) bad.push(`${JSON.stringify(source)} gave ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
+  }
+  if (bad.length) throw new Error(bad.join("; "));
+  return `${cases.length} sources give the expected rules`;
+}
+// %%
+test_checker_throw_only_body_is_never = {
+  // a function body that cannot complete returns never, so it fits any return type its context gives
+  const cases = [["type F = (x: number) => string;\nconst c = (): F => (x) => { throw new Error(\"stub\"); };",[]],
+    ["const c = () => (b: boolean): number => { const fail = () => { throw new Error(\"f\"); }; if (b) return 1; fail(); };",[]],
+    ["type F = (x: number) => string;\nconst c = (): F => (x) => { if (x > 0) throw new Error(\"stub\"); };",["type"]]];
+  const bad = [];
+  for (const [source, want] of cases) {
+    const r = soundscript.checkSources({ cells: source, tsx: true });
+    const got = [...new Set([...r.module, ...r.cells.flatMap((c) => c.errors)].map((e) => e.rule))].sort();
+    if (JSON.stringify(got) !== JSON.stringify(want)) bad.push(`${JSON.stringify(source)} gave ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
+  }
+  if (bad.length) throw new Error(bad.join("; "));
+  return `${cases.length} sources give the expected rules`;
+}
+// %%
+test_checker_optional_chain_narrows = {
+  // where a test shows an optional chain's value is not undefined, every object a ?. link read is not nullish, and P?.f's test narrows P as P.f's does
+  const T = "type U = { readonly type: \"A\"; readonly a: number } | { readonly type: \"B\" };\ntype S = { readonly flags?: { readonly fresh: boolean } };\n";
+  const cases = [[T + "const c = () => (d: U | null): number => (d?.type === \"A\" ? d.a : 0);",[]],
+    [T + "const c = () => (s: S): boolean => !!s.flags?.fresh && s.flags.fresh;",[]],
+    [T + "const c = () => (d: U | null): number => (d?.type !== \"A\" ? 0 : d.a);",[]],
+    ["const c = () => (x: { readonly y?: { readonly z?: { readonly w: number } } }): number => (x.y?.z?.w === 1 ? x.y.z.w : 0);",[]],
+    [T + "const c = () => (d: U | null): number => (d?.type === undefined ? d.a : 0);",["possibly-undefined"]],
+    [T + "const c = () => (d: U | null): number => (d?.type == null ? d.a : 0);",["possibly-undefined"]],
+    [T + "const c = () => (d: U | null): number => (d?.type !== \"A\" ? d.a : 0);",["no-member", "possibly-undefined"]],
+    [T + "const c = () => (s: S): boolean => (!s.flags?.fresh ? s.flags.fresh : true);",["possibly-undefined"]],
+    [T + "const c = () => (d: U | null): number => (d?.type === \"B\" ? d.a : 0);",["no-member"]]];
+  const bad = [];
+  for (const [source, want] of cases) {
+    const r = soundscript.checkSources({ cells: source, tsx: true });
+    const got = [...new Set([...r.module, ...r.cells.flatMap((c) => c.errors)].map((e) => e.rule))].sort();
+    if (JSON.stringify(got) !== JSON.stringify(want)) bad.push(`${JSON.stringify(source)} gave ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
+  }
+  if (bad.length) throw new Error(bad.join("; "));
+  return `${cases.length} sources give the expected rules`;
+}
+// %%
+test_checker_one_report_per_read = {
+  // a property read that fails on several members of a union is reported once for the members that lack it, and once for null and undefined
+  const source = "type U = { readonly type: \"A\"; readonly a: number } | { readonly type: \"B\" } | { readonly type: \"C\" } | { readonly type: \"D\" };\nconst c = () => (d: U | null | undefined): number => d.a;";
+  const r = soundscript.checkSources({ cells: source, tsx: true });
+  const got = r.cells.flatMap((c) => c.errors).map((e) => `${e.rule}: ${e.msg}`).sort();
+  const want = ["no-member: no property a on { type: \"B\" } | { type: \"C\" } | { type: \"D\" }", "possibly-undefined: property a of a value that may be null | undefined"];
+  if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(JSON.stringify(got));
+  return `${got.length} messages`;
+}
+// %%
+test_checker_generic_function_types = {
+  // a generic function type is assignable to one with as many type parameters when it is with both renamed alike; an outer type parameter stays itself
+  const cases = [["const ok = () => <L,>(xs: L[], n: number): L[] => xs.slice(0, n);\nconst use = (ok: <L>(xs: L[], n: number) => L[]) => ok([1, 2, 3], 2).length;",[]],
+    ["const c = () => (): number => { const f = <T,>(x: T): T => x; const g: <U>(x: U) => U = f; return g(3); };",[]],
+    ["const c = () => <T,>(y: T): number => { const f = <T,>(x: T): T => x; const g: <U>(x: U) => T = f; return 1; };",["type"]],
+    ["const c = () => (): number => { const f = <T, U>(x: T, y: U): U => y; const g: <A, B>(x: A, y: B) => A = f; return 1; };",["type"]]];
+  const bad = [];
+  for (const [source, want] of cases) {
+    const r = soundscript.checkSources({ cells: source, tsx: true });
+    const got = [...new Set([...r.module, ...r.cells.flatMap((c) => c.errors)].map((e) => e.rule))].sort();
+    if (JSON.stringify(got) !== JSON.stringify(want)) bad.push(`${JSON.stringify(source)} gave ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
+  }
+  if (bad.length) throw new Error(bad.join("; "));
+  return `${cases.length} sources give the expected rules`;
+}
+// %%
+test_checker_regexp_match_is_indexed = {
+  // a RegExpMatchArray is indexed, destructured and iterated as an array of string | undefined: a group that did not take part is undefined
+  const cases = [["const c = () => (): string => { const m = \"abc\".match(/(b)/); return m === null ? \"\" : m[1] ?? \"none\"; };",[]],
+    ["const c = () => (): string => { const m = \"abc\".match(/(b)/); if (!m) return \"\"; const [all, g] = m; return (all ?? \"\") + (g ?? \"\"); };",[]],
+    ["const c = () => (): number => { const m = \"abc\".match(/(b)/); return m ? [...m].length : 0; };",[]],
+    ["const c = () => (): number => { const m = \"a\".match(/(b)?a/); if (!m) return -1; const [, g] = m; return g.length; };",["possibly-undefined"]],
+    ["const c = () => (): number => { const m = \"a\".match(/(b)?a/); return m ? m[1].length : 0; };",["possibly-undefined"]]];
+  const bad = [];
+  for (const [source, want] of cases) {
+    const r = soundscript.checkSources({ cells: source, tsx: true });
+    const got = [...new Set([...r.module, ...r.cells.flatMap((c) => c.errors)].map((e) => e.rule))].sort();
+    if (JSON.stringify(got) !== JSON.stringify(want)) bad.push(`${JSON.stringify(source)} gave ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
+  }
+  if (bad.length) throw new Error(bad.join("; "));
+  return `${cases.length} sources give the expected rules`;
+}
+// %%
+test_checker_handle_pass = {
+  // a State or Events handle given unknown, object or a type parameter of a module function could be read or written where the checker cannot see it
+  const S = "const s = () => state(0);\nconst ev = function* () { yield 1; };\n";
+  const cases = [[S + "const c = (s: State<number>) => { const u: unknown = s; return 1; };",["handle-pass"]],
+    [S + "const c = (s: State<number>) => { const o: object = s; return 1; };",["handle-pass"]],
+    [S + "const c = (s: State<number>) => { const id = <T,>(x: T): T => x; id(s); return 1; };",["handle-pass"]],
+    [S + "const c = (s: State<number>): unknown => s;",["handle-pass"]],
+    [S + "const c = (s: State<number>) => { const xs: unknown[] = [s]; return xs.length; };",["handle-pass"]],
+    [S + "const c = (ev: Events<number>) => { const u: unknown = ev; return 1; };",["handle-pass"]],
+    [S + "const c = (s: State<number>) => [s].map((x) => x).length;",[]],
+    [S + "const c = (s: State<number>) => ({ h: s });",[]]];
+  const bad = [];
+  for (const [source, want] of cases) {
+    const r = soundscript.checkSources({ cells: source, tsx: true });
+    const got = [...new Set([...r.module, ...r.cells.flatMap((c) => c.errors)].map((e) => e.rule))].sort();
+    if (JSON.stringify(got) !== JSON.stringify(want)) bad.push(`${JSON.stringify(source)} gave ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
+  }
+  if (bad.length) throw new Error(bad.join("; "));
+  return `${cases.length} sources give the expected rules`;
+}

@@ -226,11 +226,11 @@ declare const TypeError: { /** @fresh */ new (message?: string): Error };
 declare const RangeError: { /** @fresh */ new (message?: string): Error };
 declare const RegExp: { /** @fresh */ new (source: string, flags?: string): RegExp };
 interface Promise<T> {
-  /** @retains */ then<U>(f: (v: T) => U): Promise<U>;
+  /** @retains */ then<U>(f: (v: T) => U | Promise<U>): Promise<U>;
 }
 declare const Promise: {
   resolve(): Promise<void>;
-  /** @retains */ resolve<T>(v: T): Promise<T>;
+  /** @retains */ resolve<T>(v: T | Promise<T>): Promise<T>;
   /** @fresh */ all<T>(ps: readonly Promise<T>[]): Promise<T[]>;
 };
 interface ArrayBuffer { readonly byteLength: number; /** @fresh */ slice(start?: number, end?: number): ArrayBuffer }

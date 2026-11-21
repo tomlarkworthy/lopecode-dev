@@ -258,8 +258,11 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
       if (b.fi?.node === f && isBorB(b) && b.kind === "param") tracked.add(b);
     }
     for (const b of F.bindingOf.values()) if (b.fi?.node === f && isMutB(b) && b.mutOwned) tracked.add(b);
+    // an async function's Mut that it did not make (a parameter, or a helper's capture) is its caller's again after an await
+    const loaned = new Set<Binding>();
+    if (f.async) for (const b of [...refs.keys(), ...capMut.get(f)!]) if (isMutB(b) && !(b.fi?.node === f && b.mutOwned) && (b.fi?.node === f || capMut.get(f)!.has(b))) { tracked.add(b); loaned.add(b); }
     if (!tracked.size) return;
-    const borrowed = [...tracked].filter(isBorB);
+    const borrowed = [...tracked].filter((b) => isBorB(b) || loaned.has(b));
     type St = Set<Binding>;
     // innermost first: a loop takes break and continue, a switch only break
     const loops: { breaks: St[]; conts: St[]; isSwitch?: boolean }[] = [];
@@ -274,6 +277,7 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     const use = (b: Binding, at: Node, st: St) => {
       if (!st.has(b)) return;
       if (isBorB(b)) err(at, "borrowed-await", `Borrowed ${b.name} used after an await/yield (it may be reused by its owner)`);
+      else if (loaned.has(b)) err(at, "borrowed-await", `Mut ${b.name} used after an await: this async function did not make it, and its caller runs at the first await and may change or freeze it`);
       else err(at, "mut-after-freeze", `Mut ${b.name} used after freeze(${b.name})`);
     };
     const expr = (n: Node, st: St): St => {

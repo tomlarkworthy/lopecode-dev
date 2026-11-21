@@ -29,6 +29,7 @@ const KEYWORDS = new Map<string, Ty>([
 const keyName = (k: Node): string | null => (k.type === "Identifier" ? k.name : k.type === "Literal" ? String(k.value) : null);
 
 let DECLS: [Parsed, Parsed, Parsed] | null = null;
+let alphaNames = 0;
 
 const ONE_ARG = new Set(["State", "StateCell", "Events", "Mut", "Borrowed"]);
 // names convert reads before any declaration
@@ -324,6 +325,8 @@ export class Registry {
         if (t.n === "Map") return { k: "tup", els: [t.args[0], t.args[1]] };
         if (t.n === "Set") return t.args[0];
         if (this.isTypedArray(t)) return NUM;
+        // a match is an array of the whole match and each group, undefined for a group that did not take part
+        if (t.n === "RegExpMatchArray") return union([STR, UNDEF]);
         return undefined;
       case "union": {
         const es = t.ts.map((x) => this.iterElem(x));
@@ -373,6 +376,8 @@ export class Registry {
           const sp = this.member(se, k);
           if (!sp) { if (p.opt) continue; return false; }
           if (sp.flags?.banned || (!p.opt && sp.opt)) return false;
+          // a spread, rest or clone copies only own enumerable properties; a member from a prototype is not one
+          if (!p.opt && !p.flags?.intrinsic && (se.k !== "rec" || sp.flags?.intrinsic)) return false;
           if (!S(propT(sp), propT(p))) return false;
         }
         if (t.index) {
@@ -397,7 +402,13 @@ export class Registry {
     }
   }
   fnSub(s: Fn, t: Fn, seen: Set<string>): boolean {
-    if (s.tps.length || t.tps.length) return false;
+    if (s.tps.length || t.tps.length) {
+      // generic on both sides with as many type parameters: compared with both renamed to the same fresh names
+      if (s.tps.length !== t.tps.length) return false;
+      const fresh = s.tps.map(() => ({ k: "tv", n: `$a${++alphaNames}` }) as Ty);
+      const open = (f: Fn) => subst({ ...f, tps: [] }, new Map(f.tps.map((n, i) => [n, fresh[i]]))) as Fn;
+      return this.fnSub(open(s), open(t), seen);
+    }
     const required = s.ps.filter((p) => !p.opt).length;
     if (required > t.ps.length + (t.rest ? Infinity : 0)) return false;
     for (let i = 0; i < s.ps.length; i++) {

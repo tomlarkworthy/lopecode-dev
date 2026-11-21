@@ -19,7 +19,7 @@ let ok_throw = () => (x: Opt): string => {
 };
 let ok_typeof = () => (x: string | number): number => (typeof x === "string" ? x.length : x);
 let ok_array = () => (x: string | readonly string[]): number => (Array.isArray(x) ? x.length : x.length);
-let ok_in = () => (x: { readonly a: number } | { readonly b: string }): number => ("a" in x ? x.a : x.b.length);
+let ok_in = () => (x: { readonly a: number } | { readonly b: string }): number => ("a" in x && typeof x.a === "number" ? x.a : "b" in x && typeof x.b === "string" ? x.b.length : 0);
 let ok_decoder = () => (x: Js): number => {
   if (typeof x !== "object" || x === null || !("n" in x) || typeof x.n !== "number") throw new Error("n");
   return x.n;
