@@ -1,0 +1,68 @@
+--- design A
+A equals(h1, h2) (two handles)                 -> false                                                                 ran: a1 getPrototypeOf, a2 getPrototypeOf, a1 ownKeys, a1 gOPD tag, a1 gOPD toString, a1 gOPD then, a1 gOPD toJSON, a2 ownKeys, a2 gOPD tag, a2 gOPD toString, a2 gOPD then, a2 gOPD toJSON, a1 get tag, a2 get tag
+A deepEqual(h1, h2)                            -> false                                                                 ran: a1 ownKeys, a1 gOPD tag, a1 gOPD toString, a1 gOPD then, a1 gOPD toJSON, a2 ownKeys, a2 gOPD tag, a2 gOPD toString, a2 gOPD then, a2 gOPD toJSON, a1 get tag, a2 get tag
+A `${h}`                                       -> "secret-a1"                                                           ran: a1 get Symbol(Symbol.toPrimitive), a1 get toString, a1.toString
+A String(h)                                    -> "secret-a1"                                                           ran: a1 get Symbol(Symbol.toPrimitive), a1 get toString, a1.toString
+A h + ""                                       -> "secret-a1"                                                           ran: a1 get Symbol(Symbol.toPrimitive), a1 get valueOf, a1 get toString, a1.toString
+A h == "x"                                     -> false                                                                 ran: a1 get Symbol(Symbol.toPrimitive), a1 get valueOf, a1 get toString, a1.toString
+A [h].join()                                   -> "secret-a1"                                                           ran: a1 get Symbol(Symbol.toPrimitive), a1 get toString, a1.toString
+A [h, h2].toSorted()                           -> 2                                                                     ran: a1 get Symbol(Symbol.toPrimitive), a1 get toString, a1.toString, a2 get Symbol(Symbol.toPrimitive), a2 get toString, a2.toString
+A JSON.stringify(h)                            -> "\"secret-a1\""                                                       ran: a1 get toJSON, a1.toJSON
+A messageOf(h)                                 -> "secret-a1"                                                           ran: a1 getPrototypeOf, a1 get Symbol(Symbol.toPrimitive), a1 get toString, a1.toString
+A await h                                      -> "secret-a1"                                                           ran: a1 get then, a1.then
+A Promise.resolve(h)                           -> "secret-a1"                                                           ran: a1 get then, a1.then
+A "k" in h                                     -> true                                                                  ran: a1 has tag
+A ({...h})                                     -> "secret-a1"                                                           ran: a1 ownKeys, a1 gOPD tag, a1 get tag, a1 gOPD toString, a1 get toString, a1 gOPD then, a1 get then, a1 gOPD toJSON, a1 get toJSON, a1.then
+A Object.keys(h)                               -> ["tag","toString","then","toJSON"]                                    ran: a1 ownKeys, a1 gOPD tag, a1 gOPD toString, a1 gOPD then, a1 gOPD toJSON
+A h.tag (a member read)                        -> "a1"                                                                  ran: a1 get tag
+A h.tag = 1 (a member write)                   -> 1                                                                     ran: a1 gOPD tag, a1 get tag
+A structuredClone(h)                           throws DataCloneError: The object can not be cloned.                     ran: nothing
+A typeof h                                     -> "object"                                                              ran: nothing
+A Object.is(h1, h1) / (h1, h2)                 -> [true,false]                                                          ran: nothing
+A [h1].includes(h1) / new Map([[h1,1]]).get(h2) -> [true,null]                                                           ran: nothing
+--- design C
+C equals(h1, h2) (two handles)                 -> false                                                                 ran: nothing
+C deepEqual(h1, h2)                            -> false                                                                 ran: nothing
+C `${h}`                                       throws TypeError: No default value                                       ran: nothing
+C String(h)                                    throws TypeError: No default value                                       ran: nothing
+C h + ""                                       throws TypeError: No default value                                       ran: nothing
+C h == "x"                                     throws TypeError: No default value                                       ran: nothing
+C [h].join()                                   throws TypeError: No default value                                       ran: nothing
+C [h, h2].toSorted()                           throws TypeError: No default value                                       ran: nothing
+C JSON.stringify(h)                            -> "{\"h\":1}"                                                           ran: nothing
+C messageOf(h)                                 -> "(a thrown value whose text cannot be read)"                          ran: nothing
+C await h                                      -> {"h":1}                                                               ran: nothing
+C Promise.resolve(h)                           -> {"h":1}                                                               ran: nothing
+C "k" in h                                     -> false                                                                 ran: nothing
+C ({...h})                                     -> {"h":1}                                                               ran: nothing
+C Object.keys(h)                               -> ["h"]                                                                 ran: nothing
+C h.tag (a member read)                        -> undefined                                                             ran: nothing
+C h.tag = 1 (a member write)                   throws TypeError: Attempting to define property on object that is not    ran: nothing
+C structuredClone(h)                           -> {"h":1}                                                               ran: nothing
+C typeof h                                     -> "object"                                                              ran: nothing
+C Object.is(h1, h1) / (h1, h2)                 -> [true,false]                                                          ran: nothing
+C [h1].includes(h1) / new Map([[h1,1]]).get(h2) -> [true,null]                                                           ran: nothing
+--- a token with no own field
+bare equals(t1, t2)                            -> true                                                                  ran: nothing
+bare deepEqual(t1, t2)                         -> true                                                                  ran: nothing
+--- the boundary today: a token arriving under unknown, and redelivery under unknown
+cross(token, unknown)                          -> {"h":1}                                                               ran: nothing
+cross({ x: tokenC1 }, unknown) then { x: tokenC2 } -> [false]                                                               ran: nothing
+cross({ x: bare1 }) then { x: bare2 } (no field) -> [true]                                                                ran: nothing
+cross(A raw object, unknown)                   throws TypeError: t: expected data, found a promise                      ran: a3 get then
+--- C: unwrap
+unwrap("node", C1) is the object               -> true                                                                  ran: nothing
+unwrap("gen", C1) (another brand)              throws TypeError: Opaque<"gen">: found a handle of Opaque<"node">        ran: nothing
+unwrap("node", structuredClone(C1))            throws TypeError: Opaque<"node">: expected a handle, found an object t   ran: nothing
+unwrap("node", { h: 1 }) (forged)              throws TypeError: Opaque<"node">: expected a handle, found an object t   ran: nothing
+mint("node", same object) is the same token    -> true                                                                  ran: nothing
+--- the patched boundary (proto/lite/boundary.ts), shape Opaque<"node">
+cross(proxy, opaque) gives a token             -> [false,["h"]]                                                         ran: nothing
+cross(same proxy) again is the same token      -> true                                                                  ran: nothing
+cross(1, opaque)                               throws TypeError: o4: expected an object or a function (Opaque<"node">   ran: nothing
+cross(token of brand gen, opaque node)         throws TypeError: o5: expected an object or a function (Opaque<"node">   ran: nothing
+cross({ el: proxy }, { el: opaque }) then { el: proxy2 } -> [false]                                                               ran: nothing
+measure(token): the foreign fn gets the object -> true                                                                  ran: nothing
+measure(structuredClone(token))                throws TypeError: measure argument 1: expected an object or a function   ran: nothing
+measure({ h: 1 }) (forged)                     throws TypeError: measure argument 1: expected an object or a function   ran: nothing
+make() returns a token for the object          -> true                                                                  ran: nothing

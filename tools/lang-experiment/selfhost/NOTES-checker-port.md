@@ -623,3 +623,15 @@ A performer cannot use function crossing as specified: S11.11 trusts a foreign f
 for equal arguments, to end, to write nothing", and a performer writes. A checked loop would need an explicitly
 effectful crossing, and handles crossing uncopied.
 What opaque handles would remove: about 20 of events' 113 lines and 8 of the pool's 105.
+
+## 2026-11-22 02:00: opaque handles (prototype, `selfhost/opaque-handles/`)
+Record: `selfhost/opaque-handles/RESULTS.md`. Recommended: a static type `Opaque<"name">` whose values are minted
+frozen tokens `{h: n}` with no prototype at the notebook boundary (the object in a WeakMap, 36 lines); with the
+object itself passed by reference, a missed route ran foreign code through `equals`, template literals, `+`,
+`==`, `join`, `JSON`, `await`, spread and `in`. 89 probes as expected (31 accepted, 58 rejected); no existing
+verdict changed on 351 cells. Rewriting the events shell on handles: `cells.ts` 145 -> 140 lines, the id-map
+lines 22 -> 0, delivery 50469 orderings 0 fail, +2 to 10% per value. Integration estimated at about 250 lines
+in 20 files, for a gain of 5 lines in `cells.ts`; the store and renderer tables stay in the shells because a
+handle in state keeps its object alive.
+Found on the way, in shipped code: `Events<T>` is assignable to `{}` and then `unknown`, and a narrowed `.name`
+read gets through; it also passes through template literals, `+`, `==`, `equals`, `messageOf`, `join`, `in`.
