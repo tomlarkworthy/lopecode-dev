@@ -81,9 +81,10 @@ export const idle = () => isIdle(storeState);
 export function state<T>(initial: T) {
   return { [STATECELL]: true, initial };
 }
-export const isStateCell = (v: unknown): v is { initial: unknown } => !!v && typeof v === "object" && STATECELL in v;
-export const isAction = (v: unknown) => typeof v === "function" && ACTION in v;
-export const isRefHandle = (v: unknown) => !!v && typeof v === "object" && REFHANDLE in v;
+export const isStateCell = (v: unknown): v is { initial: unknown } => !!v && typeof v === "object" && Object.hasOwn(v, STATECELL);
+export const isAction = (v: unknown) => typeof v === "function" && Object.hasOwn(v, ACTION);
+// own, not inherited: a record whose prototype is a handle is not one
+export const isRefHandle = (v: unknown) => !!v && typeof v === "object" && Object.hasOwn(v, REFHANDLE);
 
 // an update function that throws throws here, inside the call, before its write
 function write(h: object, f: (v: unknown) => unknown) {

@@ -81,7 +81,7 @@ function perform(e: Effect): DeliveryEvent | void {
 const handleIds = (of: Iterable<object>) => [...of].filter((h) => madeHandles.has(h)).map(idFor);
 
 export const isEvents = (v: unknown): v is Handle => !!v && typeof v === "object" && madeHandles.has(v);
-export const isListener = (v: unknown): v is Listener => !!v && typeof v === "object" && LISTENER in v;
+export const isListener = (v: unknown): v is Listener => !!v && typeof v === "object" && Object.hasOwn(v, LISTENER);
 export const on = (events: unknown, act: unknown) => Object.freeze({ [LISTENER]: true, events, action: act }) as Listener;
 export const nameAction = (a: unknown, cell: string) => { if (isAction(a) && !actionNames.has(a as object)) actionNames.set(a as object, cell); };
 // of: count only listeners on these handles

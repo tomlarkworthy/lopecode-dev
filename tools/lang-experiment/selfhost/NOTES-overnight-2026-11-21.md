@@ -166,3 +166,24 @@ latest wins 2318 orderings, 0 fail (control: `store` without its guard, 11128 of
 orderings, 0 fail (control: `ask` never queues, 2318 of 2318 fail). Default run now 50469 orderings, 0 fail.
 The programs are read from `spec.ojs`, not copied. Unexplained: a first run with extras X, L, S exited without
 a line for every answer; the cases use X, S.
+
+### Checks on the checker batch after it was committed (advisor's list), and one more hole closed
+- The batch replaced the two S9.6 `[type]` rows (writing through a handle that reached `unknown`/`object`) with
+  `[handle-pass]` rows. Two `[type]` rows added back, with the value arriving as an `unknown`/`object` parameter,
+  so the rule is still tested if `[handle-pass]` is dropped.
+- The spread fix is wider than the batch reported: with its `registry.ts` line, only a record is assignable to
+  a record type with a required member. `[1, 2]` or `"ab"` where `{ length: number }` is expected, and a `Map`
+  where `{ size: number }` is expected, were accepted before and are `[type]` now (probe:
+  `lite/soundscript/.scratch/final/probe.ts`; without the line all three check). Sound for the same reason
+  (a spread of the parameter would not have the member); 0 corpus cells rejected. S3.3 sentence corrected.
+  For Tom: keep it this wide, or narrow it to intrinsics.
+- Handle brand forgery closed in the shells: `isRefHandle`, `isStateCell`, `isAction`, `isListener` tested the
+  brand with `in`, so a record whose prototype is a handle passed. They use `Object.hasOwn` now; test
+  `b1_a_brand_is_an_own_property`. The typing half (index reads reaching `Object.prototype`, a computed
+  `__proto__` write into a `Mut` index record) is still open.
+- All gates run by the main session on the final tree: runtime.test 82/0, events 29, store 38, render 25,
+  ts-cells 8, workers 8, complete 58, erase 6, comment-types exit 0, raw-cells 18, fixtures 14/14, proof,
+  selfhost/diff, rt/diff 0, the four toolchain tests, q3-browser 10/10, delivery 50469 orderings 0 fail,
+  verify 629 pass 0 fail; Breakout 51.5 after play, 60 in the edit pane.
+Not done: `selfhost/runtime-inventory.ts` was not re-run against the fixed checker, so "not attempted" for
+`boundary.ts`, `h.ts`, `workers.ts` in NOTES-runtime-port.md is a statement of what was tried, not of what checks.

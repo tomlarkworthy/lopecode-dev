@@ -750,6 +750,12 @@ const flip = (sel: State<string | null>) => action(() => sel.update((s) => (s ==
   ok("n1_null_is_held_written_and_read_back", JSON.stringify([at0, at1, at2]) === '[[null,"none",null],["a","a"],[null,"none",null]]' && L.errs.length === 0, JSON.stringify([at0, at1, at2, L.errs]));
   L.runtime.dispose();
 });
+await run("b1_a_brand_is_an_own_property", async () => {
+  const h = refOf(0, "b1"), a = P.action(() => {});
+  const forged = Object.create(h), forgedCell = Object.create(P.state(0)), forgedAction = Object.setPrototypeOf(() => {}, a);
+  const C = await import("../browser/cells.ts");
+  ok("b1_a_value_whose_prototype_is_branded_is_not_branded", P.isRefHandle(h) && !P.isRefHandle(forged) && P.isStateCell(P.state(0)) && !P.isStateCell(forgedCell) && P.isAction(a) && !P.isAction(forgedAction) && !C.isListener(Object.create(C.on(h, a))) && C.isListener(C.on(h, a)), JSON.stringify([P.isRefHandle(forged), P.isStateCell(forgedCell), P.isAction(forgedAction)]));
+});
 await run("n2_null_inside_a_call", async () => {
   const n = refOf(null, "n");
   const inner = P.action(() => null);
