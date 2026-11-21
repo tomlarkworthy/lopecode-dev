@@ -60,26 +60,47 @@ if [ -n "$RT" ]; then
   $IA "$RT" hold "{\"key\":\"$ISSUE/hold\",\"id\":\"$ISSUE\",\"until\":$(( (START + 6*3600) * 1000 )),\"reason\":\"the daily retro runs; run.sh closes it with its cost\"}" >/dev/null 2>&1
 else say "no run token: $ISSUE not opened, no cost event"; fi
 PROMPT="Today is $DAY (UTC). You are the daily retro of the Cloud Brain. Read tools/cloud-brain/retro/brief.md whole and do what it says. Your report is plan/retros/$RUN.md; your run's tracker issue is $ISSUE.${SUF:+ A report of today is on main already (plan/retros/$DAY.md): this is a further run of the same date, so read that report as the last one.}"
+L="/data/retro-logs/$RUN.jsonl"
+# the agent's last tool call, cut to 140 characters, with anything long enough to be a secret blanked
+lasttool() { tail -n 400 "$L" 2>/dev/null | jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use")
+  | .name + (if .input.run_in_background then " (bg)" else "" end) + " " + ((.input.command // .input.file_path // .input.description // "") | tostring | gsub("\\s+"; " ") | .[0:140])' 2>/dev/null \
+  | tail -1 | sed -E 's/[A-Za-z0-9_+\/=.-]{32,}/…/g; s/(Bearer|token=|key=)[^ ]*/\1…/Ig'; }
+# a line in fly logs every 10 min: what the run is on, how long the stream has been quiet, and memory.
+# 2026-11-21 ran 11 h with nothing in fly logs after 02:57 until a bun of 3.5 GB was OOM-killed at 13:27.
+beat() { while sleep 600; do
+  say "beat $(( ($(date +%s) - START) / 60 )) min; stream $(wc -l < "$L" 2>/dev/null) lines, quiet $(( $(date +%s) - $(stat -c %Y "$L" 2>/dev/null || date +%s) )) s;" \
+    "avail $(free -m | awk '/^Mem/{print $7}') MB; top $(ps -eo rss=,etimes=,comm= --sort=-rss | head -1 | awk '{printf "%s %d MB %d s", $3, $1/1024, $2}'); last: $(lasttool)"
+done; }
+beat & BEAT=$!
 say "starting the agent (${MODEL:-claude-opus-5-5}, effort ${EFFORT:-high}, budget \$${BUDGET_USD:-60})"
-IS_SANDBOX=1 METADEV=1 BRAIN_BASE=cb4 CLAUDE_CONFIG_DIR=/data/claude timeout "${HOURS:-4}h" \
+# -k: on 2026-11-21 the agent outlived timeout's SIGTERM at 4 h by 7 h 21 min
+IS_SANDBOX=1 METADEV=1 BRAIN_BASE=cb4 CLAUDE_CONFIG_DIR=/data/claude timeout -k 5m "${HOURS:-4}h" \
   claude -p "$PROMPT" --model "${MODEL:-claude-opus-5-5}" --fallback-model sonnet --effort "${EFFORT:-high}" \
   --max-budget-usd "${BUDGET_USD:-60}" --permission-mode bypassPermissions --output-format stream-json --verbose \
-  < /dev/null > "/data/retro-logs/$RUN.jsonl" 2>&1
+  < /dev/null > "$L" 2>&1
 CODE=$?
-say "the agent ended with $CODE; $(tail -1 "/data/retro-logs/$RUN.jsonl" | jq -r '"usd " + (.total_cost_usd|tostring) + ", turns " + (.num_turns|tostring)' 2>/dev/null)"
+kill "$BEAT" 2>/dev/null
+say "the agent ended with $CODE; $(tail -1 "$L" | jq -r '"usd " + (.total_cost_usd|tostring) + ", turns " + (.num_turns|tostring)' 2>/dev/null); last: $(lasttool)"
+# children the agent left (a test run it waited on) would hold memory and the volume while the rest runs
+LEFT=$(ps -eo pid=,rss=,etimes=,args= --sort=-rss | awk -v me=$$ '$1!=me && $4 ~ /^(bun|node|claude)/ {printf "%s %d MB %d s %s; ", $1, $2/1024, $3, substr($4,1,40)}')
+[ -n "$LEFT" ] && { say "left running: $LEFT"; pkill -KILL -f '^(bun|node|claude)( |$)' 2>/dev/null; }
 # A report written and not pushed is pushed here; nothing else is committed for the agent.
 if [ -f "plan/retros/$RUN.md" ] && ! git ls-files --error-unmatch "plan/retros/$RUN.md" >/dev/null 2>&1; then
   git add "plan/retros/$RUN.md" && git commit -q -m "retro $RUN: report (committed by run.sh; the agent did not)"
 fi
-if ! { git pull -q --rebase origin main && git push -q origin HEAD:main; }; then
+# What the agent left uncommitted is named, and kept out of the way: on 2026-11-21 it made the pull refuse, and the report went to a branch.
+DIRTY=$(git status --porcelain --untracked-files=no | awk '{print $2}' | tr '\n' ' ')
+[ -n "$DIRTY" ] && say "left uncommitted by the agent, not pushed: $DIRTY"
+WHERE="main"
+if ! { git pull -q --rebase --autostash origin main && git push -q origin HEAD:main; }; then
   git rebase --abort 2>/dev/null
-  git push -q origin "HEAD:refs/heads/retro/$RUN" && say "main did not take the push; the work is on the branch retro/$RUN" || say "push failed"
+  if git push -q origin "HEAD:refs/heads/retro/$RUN"; then WHERE="retro/$RUN"; say "main did not take the push; the work is on the branch retro/$RUN"; else WHERE=""; say "push failed"; fi
 fi
 # the docs as main has them now, into the Brain's search (two were stale 10-23 to 10-28: no machine of the retro entered them)
 BRAIN_BASE=cb4 DOCS_TOKEN=retro-docs timeout 600 bun tools/cloud-brain/knowledge-docs.ts put --stale --limit=30 >/dev/null 2>&1 || say "knowledge docs: put --stale did not end with 0"
 if [ -n "$RT" ]; then
   L="/data/retro-logs/$RUN.jsonl"
-  OUTCOME=reported; [ "$CODE" = 124 ] && OUTCOME=timeout
+  OUTCOME=reported; { [ "$CODE" = 124 ] || [ "$CODE" = 137 ]; } && OUTCOME=timeout
   git cat-file -e "origin/main:plan/retros/$RUN.md" 2>/dev/null || OUTCOME="${OUTCOME/reported/no-report}"
   BODY=$(jq -s -c --arg id "$ISSUE" --arg tok "$RT" --arg out "$OUTCOME" --argjson secs $(( $(date +%s) - START )) '
     (map(select(.type=="result")) | last) as $r | (map(select(.type=="assistant")) | last | .message.usage // {}) as $a |
@@ -90,7 +111,11 @@ if [ -n "$RT" ]; then
                requests: ($r.num_turns // 0), advisor: { calls: 0, input: 0, output: 0 } },
       usd: ($r.total_cost_usd // 0) }' "$L" 2>/dev/null)
   [ -n "$BODY" ] && $IA "$RT" cost "$BODY" >/dev/null 2>&1 || say "the cost event was not written"
-  $IA "$RT" move "{\"key\":\"$ISSUE/close\",\"id\":\"$ISSUE\",\"to\":\"closed\",\"reason\":\"retro $RUN ended ($OUTCOME): https://github.com/tomlarkworthy/lopecode-dev/blob/main/plan/retros/$RUN.md\"}" >/dev/null 2>&1 || say "$ISSUE was not closed"
+  if [ "$OUTCOME" != reported ]; then
+    $IA "$RT" comment "$(jq -n -c --arg k "$ISSUE/ended" --arg id "$ISSUE" --arg b "run.sh: the agent ended with $CODE ($OUTCOME) after $(( ($(date +%s) - START) / 60 )) min. Its last tool call: $(lasttool). Left running at its end: ${LEFT:-none}. Left uncommitted: ${DIRTY:-none}. The stream is /data/retro-logs/$RUN.jsonl on the volume of cloudbrain-retro; the beat lines are in fly logs." '{key:$k,id:$id,body:$b}')" >/dev/null 2>&1 || say "the end comment was not written"
+  fi
+  URL="https://github.com/tomlarkworthy/lopecode-dev/blob/${WHERE:-main}/plan/retros/$RUN.md"; [ -z "$WHERE" ] && URL="no push: the report is only on the volume"
+  $IA "$RT" move "$(jq -n -c --arg k "$ISSUE/close" --arg id "$ISSUE" --arg r "retro $RUN ended ($OUTCOME): $URL" '{key:$k,id:$id,to:"closed",reason:$r}')" >/dev/null 2>&1 || say "$ISSUE was not closed"
   BRAIN_BASE=cb4 bun tools/cloud-brain/brain.ts agent-token --parent retro-agents revoke "$RT" >/dev/null 2>&1
 fi
 exit $CODE
