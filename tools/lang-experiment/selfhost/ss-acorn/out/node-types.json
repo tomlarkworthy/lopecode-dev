@@ -1,0 +1,739 @@
+{
+ "types": {
+  "ArrayExpression": [
+   "acorn:3139"
+  ],
+  "ArrayPattern": [
+   "acorn:2192",
+   "acorn:2276"
+  ],
+  "ArrowFunctionExpression": [
+   "acorn:3616",
+   "ts:4530"
+  ],
+  "AssignmentExpression": [
+   "acorn:2795",
+   "ts:4587"
+  ],
+  "AssignmentPattern": [
+   "acorn:2206",
+   "acorn:2326"
+  ],
+  "AwaitExpression": [
+   "acorn:3818"
+  ],
+  "BinaryExpression": [
+   "acorn:2867"
+  ],
+  "BlockStatement": [
+   "acorn:1424"
+  ],
+  "BreakStatement": [
+   "acorn:1127"
+  ],
+  "CallExpression": [
+   "acorn:3042",
+   "ts:317",
+   "ts:5001",
+   "ts:5077",
+   "ts:5168"
+  ],
+  "CatchClause": [
+   "acorn:1339"
+  ],
+  "ChainExpression": [
+   "acorn:2976"
+  ],
+  "ClassBody": [
+   "acorn:1591",
+   "ts:5320"
+  ],
+  "ClassDeclaration": [
+   "acorn:1593",
+   "ts:5322"
+  ],
+  "ClassExpression": [
+   "acorn:1593",
+   "ts:5322"
+  ],
+  "ConditionalExpression": [
+   "acorn:2816",
+   "ts:4192"
+  ],
+  "ContinueStatement": [
+   "acorn:1127"
+  ],
+  "DebuggerStatement": [
+   "acorn:1133"
+  ],
+  "Decorator": [
+   "ts:310"
+  ],
+  "DoWhileStatement": [
+   "acorn:1147"
+  ],
+  "EmptyStatement": [
+   "acorn:1373"
+  ],
+  "ExportAllDeclaration": [
+   "acorn:1845",
+   "ts:3891"
+  ],
+  "ExportDefaultDeclaration": [
+   "acorn:1857",
+   "ts:3959"
+  ],
+  "ExportNamedDeclaration": [
+   "acorn:1898",
+   "ts:3990"
+  ],
+  "ExportSpecifier": [
+   "acorn:1988",
+   "ts:5422"
+  ],
+  "ExpressionStatement": [
+   "acorn:1403"
+  ],
+  "ForInStatement": [
+   "acorn:1473"
+  ],
+  "ForOfStatement": [
+   "acorn:1473"
+  ],
+  "ForStatement": [
+   "acorn:1441"
+  ],
+  "FunctionDeclaration": [
+   "acorn:1550",
+   "ts:3714"
+  ],
+  "FunctionExpression": [
+   "acorn:1550",
+   "acorn:3594",
+   "ts:3714",
+   "ts:5365"
+  ],
+  "Identifier": [
+   "acorn:1648",
+   "acorn:3188",
+   "acorn:3360",
+   "acorn:3742",
+   "ts:2031",
+   "ts:4452"
+  ],
+  "IfStatement": [
+   "acorn:1243"
+  ],
+  "ImportAttribute": [
+   "acorn:2114",
+   "ts:938"
+  ],
+  "ImportDeclaration": [
+   "acorn:2023",
+   "ts:3857"
+  ],
+  "ImportDefaultSpecifier": [
+   "acorn:2048"
+  ],
+  "ImportExpression": [
+   "acorn:3230",
+   "ts:3908"
+  ],
+  "ImportNamespaceSpecifier": [
+   "acorn:2057"
+  ],
+  "ImportSpecifier": [
+   "acorn:2040",
+   "ts:5403"
+  ],
+  "JSXAttribute": [
+   "ts:811"
+  ],
+  "JSXClosingElement": [
+   "ts:831"
+  ],
+  "JSXClosingFragment": [
+   "ts:831"
+  ],
+  "JSXElement": [
+   "ts:877"
+  ],
+  "JSXEmptyExpression": [
+   "ts:785"
+  ],
+  "JSXExpressionContainer": [
+   "ts:798"
+  ],
+  "JSXFragment": [
+   "ts:877"
+  ],
+  "JSXIdentifier": [
+   "ts:736"
+  ],
+  "JSXMemberExpression": [
+   "ts:761"
+  ],
+  "JSXNamespacedName": [
+   "ts:746"
+  ],
+  "JSXOpeningElement": [
+   "ts:823",
+   "ts:5545"
+  ],
+  "JSXOpeningFragment": [
+   "ts:823",
+   "ts:5545"
+  ],
+  "JSXSpreadAttribute": [
+   "ts:807"
+  ],
+  "JSXSpreadChild": [
+   "ts:794"
+  ],
+  "JSXText": [
+   "ts:882"
+  ],
+  "LabeledStatement": [
+   "acorn:1397"
+  ],
+  "Literal": [
+   "acorn:3123",
+   "acorn:3256"
+  ],
+  "LogicalExpression": [
+   "acorn:2867"
+  ],
+  "MemberExpression": [
+   "acorn:3015",
+   "ts:305",
+   "ts:5131"
+  ],
+  "MetaProperty": [
+   "acorn:3246",
+   "acorn:3370",
+   "ts:3755"
+  ],
+  "MethodDefinition": [
+   "acorn:1712",
+   "ts:4349"
+  ],
+  "NewExpression": [
+   "acorn:3378",
+   "ts:3770"
+  ],
+  "ObjectExpression": [
+   "acorn:3448"
+  ],
+  "ObjectPattern": [
+   "acorn:2165",
+   "acorn:3448"
+  ],
+  "ParenthesizedExpression": [
+   "acorn:3331",
+   "ts:296",
+   "ts:4929"
+  ],
+  "PrivateIdentifier": [
+   "acorn:3781"
+  ],
+  "Program": [
+   "acorn:903"
+  ],
+  "Property": [
+   "acorn:3490"
+  ],
+  "PropertyDefinition": [
+   "acorn:1732"
+  ],
+  "RestElement": [
+   "acorn:2198",
+   "acorn:2264",
+   "acorn:3459"
+  ],
+  "ReturnStatement": [
+   "acorn:1257"
+  ],
+  "SequenceExpression": [
+   "acorn:2741",
+   "acorn:3320",
+   "ts:4919"
+  ],
+  "SpreadElement": [
+   "acorn:2251",
+   "acorn:3468"
+  ],
+  "StaticBlock": [
+   "acorn:1749"
+  ],
+  "Super": [
+   "acorn:3082"
+  ],
+  "SwitchCase": [
+   "acorn:1276",
+   "acorn:1294"
+  ],
+  "SwitchStatement": [
+   "acorn:1297"
+  ],
+  "TSAnyKeyword": [
+   "ts:2866"
+  ],
+  "TSArrayType": [
+   "ts:2881"
+  ],
+  "TSAsExpression": [
+   "ts:3790"
+  ],
+  "TSBigIntKeyword": [
+   "ts:2866"
+  ],
+  "TSBooleanKeyword": [
+   "ts:2866"
+  ],
+  "TSCallSignatureDeclaration": [
+   "ts:3280"
+  ],
+  "TSConditionalType": [
+   "ts:2941"
+  ],
+  "TSConstructSignatureDeclaration": [
+   "ts:3280"
+  ],
+  "TSConstructorType": [
+   "ts:2600",
+   "ts:2600"
+  ],
+  "TSDeclareFunction": [
+   "ts:3723",
+   "ts:3729"
+  ],
+  "TSDeclareMethod": [
+   "ts:3723",
+   "ts:3729"
+  ],
+  "TSEnumDeclaration": [
+   "ts:2201"
+  ],
+  "TSEnumMember": [
+   "ts:2189"
+  ],
+  "TSExportAssignment": [
+   "ts:3933"
+  ],
+  "TSExpressionWithTypeArguments": [
+   "ts:3255"
+  ],
+  "TSExternalModuleReference": [
+   "ts:2168"
+  ],
+  "TSFunctionType": [
+   "ts:2600"
+  ],
+  "TSImportEqualsDeclaration": [
+   "ts:3620"
+  ],
+  "TSImportType": [
+   "ts:2684"
+  ],
+  "TSIndexSignature": [
+   "ts:2978"
+  ],
+  "TSIndexedAccessType": [
+   "ts:2887"
+  ],
+  "TSInferType": [
+   "ts:2650"
+  ],
+  "TSInstantiationExpression": [
+   "ts:5007",
+   "ts:5092"
+  ],
+  "TSInterfaceBody": [
+   "ts:3409"
+  ],
+  "TSInterfaceDeclaration": [
+   "ts:3410"
+  ],
+  "TSIntersectionType": [
+   "ts:2613"
+  ],
+  "TSIntrinsicKeyword": [
+   "ts:3563"
+  ],
+  "TSLiteralType": [
+   "ts:2667",
+   "ts:2800",
+   "ts:2840"
+  ],
+  "TSMappedType": [
+   "ts:2729"
+  ],
+  "TSMethodSignature": [
+   "ts:3328"
+  ],
+  "TSModuleBlock": [
+   "ts:2214"
+  ],
+  "TSModuleDeclaration": [
+   "ts:2232",
+   "ts:3459",
+   "ts:3536"
+  ],
+  "TSNamedTupleMember": [
+   "ts:2754"
+  ],
+  "TSNamespaceExportDeclaration": [
+   "ts:3940"
+  ],
+  "TSNeverKeyword": [
+   "ts:2866"
+  ],
+  "TSNonNullExpression": [
+   "ts:5019"
+  ],
+  "TSNullKeyword": [
+   "ts:2866"
+  ],
+  "TSNumberKeyword": [
+   "ts:2866"
+  ],
+  "TSObjectKeyword": [
+   "ts:2866"
+  ],
+  "TSOptionalType": [
+   "ts:2764"
+  ],
+  "TSParameterProperty": [
+   "ts:4692"
+  ],
+  "TSParenthesizedType": [
+   "ts:2821"
+  ],
+  "TSPropertySignature": [
+   "ts:3335"
+  ],
+  "TSQualifiedName": [
+   "ts:2176"
+  ],
+  "TSRestType": [
+   "ts:2770"
+  ],
+  "TSSatisfiesExpression": [
+   "ts:3790"
+  ],
+  "TSStringKeyword": [
+   "ts:2866"
+  ],
+  "TSSymbolKeyword": [
+   "ts:2866"
+  ],
+  "TSThisType": [
+   "ts:2470"
+  ],
+  "TSTupleType": [
+   "ts:2795"
+  ],
+  "TSTypeAliasDeclaration": [
+   "ts:3568"
+  ],
+  "TSTypeAnnotation": [
+   "ts:2477",
+   "ts:2520",
+   "ts:2535",
+   "ts:2550",
+   "ts:2560"
+  ],
+  "TSTypeAssertion": [
+   "ts:3212"
+  ],
+  "TSTypeCastExpression": [
+   "ts:4226"
+  ],
+  "TSTypeLiteral": [
+   "ts:2734"
+  ],
+  "TSTypeOperator": [
+   "ts:2633"
+  ],
+  "TSTypeParameter": [
+   "ts:2649",
+   "ts:2703",
+   "ts:2995"
+  ],
+  "TSTypeParameterDeclaration": [
+   "ts:3020"
+  ],
+  "TSTypeParameterInstantiation": [
+   "ts:3245"
+  ],
+  "TSTypePredicate": [
+   "ts:2488",
+   "ts:2519",
+   "ts:2529",
+   "ts:2549",
+   "ts:2559"
+  ],
+  "TSTypeQuery": [
+   "ts:2697"
+  ],
+  "TSTypeReference": [
+   "ts:2808"
+  ],
+  "TSUndefinedKeyword": [
+   "ts:2866"
+  ],
+  "TSUnionType": [
+   "ts:2613"
+  ],
+  "TSUnknownKeyword": [
+   "ts:2866"
+  ],
+  "TSVoidKeyword": [
+   "ts:2866"
+  ],
+  "TaggedTemplateExpression": [
+   "acorn:3050",
+   "ts:4944",
+   "ts:5181"
+  ],
+  "TemplateElement": [
+   "acorn:3403"
+  ],
+  "TemplateLiteral": [
+   "acorn:3423",
+   "ts:3663"
+  ],
+  "ThisExpression": [
+   "acorn:3087"
+  ],
+  "ThrowStatement": [
+   "acorn:1306"
+  ],
+  "TryStatement": [
+   "acorn:1344"
+  ],
+  "UnaryExpression": [
+   "acorn:2890"
+  ],
+  "UpdateExpression": [
+   "acorn:2890",
+   "acorn:2906"
+  ],
+  "VariableDeclaration": [
+   "acorn:1096",
+   "acorn:1173",
+   "acorn:1189",
+   "acorn:1351",
+   "ts:4123"
+  ],
+  "VariableDeclarator": [
+   "acorn:1495"
+  ],
+  "WhileStatement": [
+   "acorn:1360"
+  ],
+  "WithStatement": [
+   "acorn:1368"
+  ],
+  "YieldExpression": [
+   "acorn:3809",
+   "ts:4541",
+   "ts:4545"
+  ]
+ },
+ "dropped": [],
+ "resolvedSites": [
+  {
+   "file": "acorn",
+   "line": 1127,
+   "text": "isBreak ? \"BreakStatement\" : \"ContinueStatement\"",
+   "values": [
+    "BreakStatement",
+    "ContinueStatement"
+   ]
+  },
+  {
+   "file": "acorn",
+   "line": 1473,
+   "text": "isForIn ? \"ForInStatement\" : \"ForOfStatement\"",
+   "values": [
+    "ForInStatement",
+    "ForOfStatement"
+   ]
+  },
+  {
+   "file": "acorn",
+   "line": 1550,
+   "text": "(statement & FUNC_STATEMENT) ? \"FunctionDeclaration\" : \"FunctionExpression\"",
+   "values": [
+    "FunctionDeclaration",
+    "FunctionExpression"
+   ]
+  },
+  {
+   "file": "acorn",
+   "line": 1593,
+   "text": "isStatement ? \"ClassDeclaration\" : \"ClassExpression\"",
+   "values": [
+    "ClassDeclaration",
+    "ClassExpression"
+   ]
+  },
+  {
+   "file": "acorn",
+   "line": 2867,
+   "text": "logical ? \"LogicalExpression\" : \"BinaryExpression\"",
+   "values": [
+    "LogicalExpression",
+    "BinaryExpression"
+   ]
+  },
+  {
+   "file": "acorn",
+   "line": 2890,
+   "text": "update ? \"UpdateExpression\" : \"UnaryExpression\"",
+   "values": [
+    "UpdateExpression",
+    "UnaryExpression"
+   ]
+  },
+  {
+   "file": "acorn",
+   "line": 3448,
+   "text": "isPattern ? \"ObjectPattern\" : \"ObjectExpression\"",
+   "values": [
+    "ObjectPattern",
+    "ObjectExpression"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 823,
+   "text": "nodeName ? \"JSXOpeningElement\" : \"JSXOpeningFragment\"",
+   "values": [
+    "JSXOpeningElement",
+    "JSXOpeningFragment"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 831,
+   "text": "nodeName ? \"JSXClosingElement\" : \"JSXClosingFragment\"",
+   "values": [
+    "JSXClosingElement",
+    "JSXClosingFragment"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 877,
+   "text": "\"JSX\" + fragmentOrElement",
+   "values": [
+    "JSXElement",
+    "JSXFragment"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 2600,
+   "text": "type",
+   "values": [
+    "TSFunctionType",
+    "TSConstructorType",
+    "TSConstructorType"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 2613,
+   "text": "kind",
+   "values": [
+    "TSIntersectionType",
+    "TSUnionType"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 2866,
+   "text": "nodeType",
+   "values": [
+    "TSVoidKeyword",
+    "TSNullKeyword",
+    "TSAnyKeyword",
+    "TSBooleanKeyword",
+    "TSBigIntKeyword",
+    "TSNeverKeyword",
+    "TSNumberKeyword",
+    "TSObjectKeyword",
+    "TSStringKeyword",
+    "TSSymbolKeyword",
+    "TSUndefinedKeyword",
+    "TSUnknownKeyword"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 3280,
+   "text": "kind",
+   "values": [
+    "TSCallSignatureDeclaration",
+    "TSConstructSignatureDeclaration"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 3714,
+   "text": "isDeclaration ? \"FunctionDeclaration\" : \"FunctionExpression\"",
+   "values": [
+    "FunctionDeclaration",
+    "FunctionExpression"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 3723,
+   "text": "bodilessType",
+   "values": [
+    "TSDeclareFunction",
+    "TSDeclareMethod"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 3729,
+   "text": "bodilessType",
+   "values": [
+    "TSDeclareFunction",
+    "TSDeclareMethod"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 3790,
+   "text": "nodeType",
+   "values": [
+    "TSAsExpression",
+    "TSSatisfiesExpression"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 5322,
+   "text": "isStatement ? \"ClassDeclaration\" : \"ClassExpression\"",
+   "values": [
+    "ClassDeclaration",
+    "ClassExpression"
+   ]
+  },
+  {
+   "file": "ts",
+   "line": 5545,
+   "text": "nodeName ? \"JSXOpeningElement\" : \"JSXOpeningFragment\"",
+   "values": [
+    "JSXOpeningElement",
+    "JSXOpeningFragment"
+   ]
+  }
+ ],
+ "unresolved": []
+}

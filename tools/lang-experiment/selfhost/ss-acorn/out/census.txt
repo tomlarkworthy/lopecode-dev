@@ -1,0 +1,4 @@
+census: 421 inputs parsed, 1 did not; 152802 nodes; 151 node types seen of 155 in the source
+seen but not in out/node-types.json: none
+never seen: ParenthesizedExpression, TSIntrinsicKeyword, TSTypeCastExpression, WithStatement
+fields added from acorn.d.ts (7): ExportAllDeclaration.attributes (node[]); ExportNamedDeclaration.attributes (node[]); ExpressionStatement.directive (string absent); ImportExpression.options (node null); ParenthesizedExpression.expression (node); WithStatement.object (node); WithStatement.body (node)

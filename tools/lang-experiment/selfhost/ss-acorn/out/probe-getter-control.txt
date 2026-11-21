@@ -1,0 +1,6 @@
+copy: ctl
+a getter that throws an object: sync THE FOREIGN OBJECT; a TypeError: false | async THE FOREIGN OBJECT; a TypeError: false
+a getter that throws a TypeError: sync TypeError: f(...) forged; a TypeError: true | async TypeError: f(...) forged; a TypeError: true
+a proxy whose get trap throws: sync THE FOREIGN OBJECT; a TypeError: false | async TypeError: g(...) threw: an object; a TypeError: true
+(async only) a real Promise whose constructor getter throws: sync TypeError: f(...): expected an object, found a promise; a TypeError: true | async THE FOREIGN OBJECT; a TypeError: false
+a proxy whose getPrototypeOf trap throws: sync THE FOREIGN OBJECT; a TypeError: false | async THE FOREIGN OBJECT; a TypeError: false

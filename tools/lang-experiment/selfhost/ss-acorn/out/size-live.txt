@@ -1,0 +1,1 @@
+lines the rule adds to live/lite/boundary.ts: boundaryShape block 15, crossFn block 39, cross() hook 1, copy case 1, total 56

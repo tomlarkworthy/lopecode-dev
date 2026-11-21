@@ -1,0 +1,8 @@
+13c13
+< import { shapeOf, type Shape } from "./boundary.ts";
+---
+> import { boundaryShape, type Shape } from "./boundary.ts";
+271c271
+<         const shape = shapeOf(inner, (t) => reg.expand(t), (n) => reg.isAlias(n));
+---
+>         const shape = boundaryShape(inner, (t) => reg.expand(t), (n) => reg.isAlias(n), wrapper !== "State"); // FN CROSSING (ss-acorn)

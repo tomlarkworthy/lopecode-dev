@@ -1,0 +1,4 @@
+12275: cells [["f","ok",null]]; module []
+12276: cells [["f","ok",null]]; module []
+13000: cells [["f","unsupported",null]]; module []
+21275: throws RangeError: Maximum call stack size exceeded.

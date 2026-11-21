@@ -2,7 +2,7 @@
 // language (Observable JavaScript, raw). The checker turns the parameter's annotation into a Shape
 // (shapeOf); the compiled cell passes the value through cross(), which checks it against the shape and
 // hands the cell a deep-frozen copy.
-import { type Ty, show } from "./types.ts";
+import { type Ty, show, subst } from "./types.ts";
 import { want, deepEqual, type Shape } from "./runtime-ss.ts";
 export type { Shape } from "./runtime-ss.ts";
 
@@ -11,11 +11,48 @@ export type { Shape } from "./runtime-ss.ts";
 // ref, and the shape of the whole annotation lists the definition of each such alias once (defs); an alias that is not
 // recursive is expanded in place.
 // limit: how deep the expansion may go. A type nested deeper than 16 is refused unless it is recursive; a recursive
-// one is expanded again up to 256, as a ring of aliases closes only after each is open
-type ShapeCtx = { open: string[]; rec: Set<string>; defs: Map<string, Shape>; limit: number };
+// one is expanded again up to 256, as a ring of aliases closes only after each is open. open and rec hold tyKey keys;
+// names: per key, the name of its ref (show's, unique)
+type TyKeys = { memo: WeakMap<Ty, string>; ids: Map<string, string> };
+type ShapeCtx = { open: string[]; rec: Set<string>; defs: Map<string, Shape>; limit: number; keys: TyKeys; names: Map<string, string>; taken: Set<string> };
+// an id for t that two types share only when they are the same type; show shortens a deep type with …
+function tyKey(t: Ty, K: TyKeys): string {
+  const hit = K.memo.get(t);
+  if (hit !== undefined) return hit;
+  const c = (x: Ty | undefined): string => (x ? tyKey(x, K) : "");
+  const cs = (xs: readonly Ty[] | undefined): string => (xs ?? []).map(c).join(",");
+  const q = (n: string): string => JSON.stringify(n);
+  let raw: string;
+  switch (t.k) {
+    case "lit": raw = `lit ${typeof t.v} ${typeof t.v === "string" ? q(t.v) : Object.is(t.v, -0) ? "-0" : String(t.v)}`; break;
+    case "arr": raw = `arr ${c(t.el)}`; break;
+    case "tup": raw = `tup ${cs(t.els)}`; break;
+    case "union": raw = `union ${cs(t.ts)}`; break;
+    case "named": raw = `named ${q(t.n)} ${cs(t.args)}`; break;
+    case "tv": raw = `tv ${q(t.n)}`; break;
+    case "fn": raw = `fn ${q(t.tps.join(","))} ${t.ps.map((p) => `${q(p.n)}${p.opt ? "?" : ""}:${c(p.t)}`).join(",")} ...${c(t.rest)} => ${c(t.ret)}`; break;
+    case "rec": raw = `rec ${[...t.props].map(([n, p]) => `${q(n)}${p.opt ? "?" : ""}:${c(p.t)}`).join(",")} [${c(t.index)}] (${cs(t.calls)}) new(${cs(t.ctors)})`; break;
+    default: raw = t.k;
+  }
+  let id = K.ids.get(raw);
+  if (id === undefined) K.ids.set(raw, (id = `#${K.ids.size}`));
+  K.memo.set(t, id);
+  return id;
+}
+function refName(t: Ty, key: string, ctx: ShapeCtx): string {
+  let n = ctx.names.get(key);
+  if (n !== undefined) return n;
+  const base = show(t);
+  n = base;
+  for (let i = 2; ctx.taken.has(n); i++) n = `${base} (${i})`;
+  ctx.names.set(key, n);
+  ctx.taken.add(n);
+  return n;
+}
 export function shapeOf(t: Ty, expand: (t: Ty) => Ty, isAlias: (n: string) => boolean, depth = 0, ctx?: ShapeCtx): Shape | { error: string } {
   if (!ctx) {
-    const at = (limit: number) => { const c: ShapeCtx = { open: [], rec: new Set(), defs: new Map(), limit }; return { c, body: shapeOf(t, expand, isAlias, depth, c) }; };
+    const keys: TyKeys = { memo: new WeakMap(), ids: new Map() };
+    const at = (limit: number) => { const c: ShapeCtx = { open: [], rec: new Set(), defs: new Map(), limit, keys, names: new Map(), taken: new Set() }; return { c, body: shapeOf(t, expand, isAlias, depth, c) }; };
     let { c, body } = at(16);
     if ("error" in body) { const again = at(256); if (!again.c.rec.size) return body; ({ c, body } = again); }
     if ("error" in body || !c.defs.size) return body;
@@ -58,20 +95,27 @@ export function shapeOf(t: Ty, expand: (t: Ty) => Ty, isAlias: (n: string) => bo
     case "named":
       if (t.n === "Promise") return { error: "a promise" };
       if (isAlias(t.n)) {
-        const key = show(t);
-        // show abbreviates a deep type with …, and two such names may be different types
-        if (!key.includes("…") && (ctx.open.includes(key) || ctx.defs.has(key))) { ctx.rec.add(key); return { k: "ref", n: key }; }
+        const key = tyKey(t, ctx.keys);
+        if (ctx.open.includes(key) || ctx.defs.has(ctx.names.get(key) ?? "")) { ctx.rec.add(key); return { k: "ref", n: refName(t, key, ctx) }; }
         ctx.open.push(key);
-        const s = sub(expand(t));
+        const s = sub(expandFull(t, expand));
         ctx.open.pop();
         if ("error" in s || !ctx.rec.has(key)) return s;
-        ctx.defs.set(key, s);
-        return { k: "ref", n: key };
+        const n = refName(t, key, ctx);
+        ctx.defs.set(n, s);
+        return { k: "ref", n };
       }
       if (t.n === "Array" || t.n === "ReadonlyArray") { const el = sub(t.args[0]); return "error" in el ? el : { k: "arr", el }; }
       return { error: `${show(t)}, which the boundary does not check` };
     default: return { error: `${show(t)}, which the boundary does not check` };
   }
+}
+// a generic alias expanded over placeholders, then given its arguments: expand keeps one expansion per name as show
+// prints it, and show shortens a deep argument, so two deep arguments would share one
+function expandFull(t: Ty & { k: "named" }, expand: (t: Ty) => Ty): Ty {
+  if (!t.args.length) return expand(t);
+  const ps = t.args.map((_, i) => ` ${i}`);
+  return subst(expand({ k: "named", n: t.n, args: ps.map((n) => ({ k: "tv", n })) }), new Map(ps.map((n, i) => [n, t.args[i]!])));
 }
 // the definition of n reaches n through unions and refs alone, so no finite value is checked against it
 function unproductive(n: string, defs: Map<string, Shape>): boolean {
@@ -92,6 +136,7 @@ function unproductive(n: string, defs: Map<string, Shape>): boolean {
 const describe = (v: unknown): string => {
   if (v === null) return "null";
   if (typeof v === "string") return `string ${JSON.stringify(v.length > 40 ? v.slice(0, 40) + "…" : v)}`;
+  if (Object.is(v, -0)) return "number -0";
   if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") return `${typeof v} ${String(v)}`;
   if (typeof v === "function") return "a function";
   if (Array.isArray(v)) return `an array of ${v.length}`;
@@ -146,10 +191,11 @@ const shapeKeys = new WeakMap<Shape, string>();
 const shapeKey = (s: Shape): string => { let k = shapeKeys.get(s); if (k === undefined) shapeKeys.set(s, (k = JSON.stringify(s))); return k; };
 // an object, array or union being copied: i is the next property, element or union member, wait says the copy of
 // property or element i is being made by the frame above; cycle is the first cycle a member of a union met
-type Frame = { v: any; s: Shape; path: string; i: number; wait: boolean; out: any; keys: string[] | null; cycle: Mismatch | null };
+// sole: the mismatch of the one member that could take the value, when it failed below the union's place
+type Frame = { v: any; s: Shape; path: string; i: number; wait: boolean; out: any; keys: string[] | null; cycle: Mismatch | null; sole: Mismatch | null };
 // what copyEnter and copyResume return when the copy is not made yet: a frame was pushed
 const WAIT = Symbol("wait");
-const copyFrame = (v: unknown, s: Shape, path: string, out: unknown, keys: string[] | null): Frame => ({ v, s, path, i: 0, wait: false, out, keys, cycle: null });
+const copyFrame = (v: unknown, s: Shape, path: string, out: unknown, keys: string[] | null): Frame => ({ v, s, path, i: 0, wait: false, out, keys, cycle: null, sole: null });
 
 // value checked against shape, as a deep-frozen copy; throws Mismatch naming the path. The walk keeps its own stack, so
 // the depth of a value is not bounded by the call stack
@@ -179,7 +225,7 @@ function copyEnter(v: unknown, s: Shape, path: string, run: Run, stack: Frame[])
       if (!d) throw new TypeError(`${path}: the shape has no definition of ${s.n}`);
       return copyEnter(v, d, path, run, stack);
     }
-    case "union": return copyUnion(v, s, path, run, stack, 0, null);
+    case "union": return copyUnion(v, s, path, run, stack, 0, null, null);
     case "arr": case "tup": {
       if (!Array.isArray(v)) throw mismatch(v, s, path);
       if (s.k === "tup" && v.length !== s.els.length) throw mismatch(v, s, path);
@@ -209,9 +255,38 @@ function copyOpen(v: object, s: Shape, path: string, run: Run, stack: Frame[], k
   if (stack.length > run.deep) run.deep = stack.length;
   return WAIT;
 }
+// per union shape: for a record, an array and a primitive (valueKind), the index of the one member that could take a
+// value of that kind, else -1
+const soles = new WeakMap<Shape, number[]>();
+const valueKind = (v: unknown): number => (v === null || (typeof v !== "object" && typeof v !== "function") ? 2 : Array.isArray(v) ? 1 : 0);
+function memberKinds(s: Shape, defs: Map<string, Shape> | null, met: Set<string>): number {
+  switch (s.k) {
+    case "rec": return 1;
+    case "arr": case "tup": return 2;
+    case "unknown": return 7;
+    case "union": return s.ts.reduce((a, m) => a | memberKinds(m, defs, met), 0);
+    case "defs": return memberKinds(s.body, defs, met);
+    case "ref": { const d = defs?.get(s.n); if (!d || met.has(s.n)) return 0; met.add(s.n); return memberKinds(d, defs, met); }
+    default: return 4;
+  }
+}
+function soleOf(s: Shape & { k: "union" }, defs: Map<string, Shape> | null): number[] {
+  let hit = soles.get(s);
+  if (hit) return hit;
+  const ks = s.ts.map((m) => memberKinds(m, defs, new Set()));
+  hit = [1, 2, 4].map((bit) => { const at = ks.flatMap((k, i) => (k & bit ? [i] : [])); return at.length === 1 ? at[0]! : -1; });
+  soles.set(s, hit);
+  return hit;
+}
+// member i (of those tried) failed with e: e itself when that member is the only one that could take v and e is below
+// the union's place, so the message names where the value goes wrong
+function soleMiss(v: unknown, s: Shape & { k: "union" }, path: string, run: Run, i: number, e: Mismatch): Mismatch | null {
+  if (e.path === path) return null;
+  return dispatchOf(s, run.defs) || soleOf(s, run.defs)[valueKind(v)] === i ? e : null;
+}
 // union s from member i on: the copy under the first member that fits, or WAIT with the union's frame under the
 // member's. A union of tagged records tries only the member its tag names, and fails when that one does
-function copyUnion(v: unknown, s: Shape & { k: "union" }, path: string, run: Run, stack: Frame[], i: number, cycle: Mismatch | null): unknown {
+function copyUnion(v: unknown, s: Shape & { k: "union" }, path: string, run: Run, stack: Frame[], i: number, cycle: Mismatch | null, sole: Mismatch | null): unknown {
   const d = dispatchOf(s, run.defs);
   const ts = d ? (i ? [] : !v || typeof v !== "object" || Array.isArray(v) || !plain(v) ? [] : [d.by.get((v as Record<string, unknown>)[d.key])]) : s.ts;
   for (; i < ts.length; i++) {
@@ -220,12 +295,12 @@ function copyUnion(v: unknown, s: Shape & { k: "union" }, path: string, run: Run
     const at = stack.length;
     try {
       const r = copyEnter(v, m, path, run, stack);
-      if (r === WAIT) { const f = copyFrame(v, s, path, null, null); f.i = d ? 1 : i + 1; f.cycle = cycle; stack.splice(at, 0, f); }
+      if (r === WAIT) { const f = copyFrame(v, s, path, null, null); f.i = d ? 1 : i + 1; f.cycle = cycle; f.sole = sole; stack.splice(at, 0, f); }
       return r;
-    } catch (e) { if (!(e instanceof Mismatch)) throw e; if (!cycle && e instanceof Cycle) cycle = e; }
+    } catch (e) { if (!(e instanceof Mismatch)) throw e; if (!cycle && e instanceof Cycle) cycle = e; sole ??= soleMiss(v, s, path, run, i, e); }
   }
   // under a recursive shape a cycle is reported as the cause, not as the union's mismatch
-  throw run.defs && cycle ? cycle : mismatch(v, s, path);
+  throw sole ?? (run.defs && cycle ? cycle : mismatch(v, s, path));
 }
 // the top frame, given the copy of its pending child: its own copy (the frame popped), or WAIT
 function copyResume(f: Frame, r: unknown, run: Run, stack: Frame[]): unknown {
@@ -255,9 +330,8 @@ function copyResume(f: Frame, r: unknown, run: Run, stack: Frame[]): unknown {
     }
   } else {
     if (f.wait) { f.out[i] = r; i++; }
-    // a hole stays a hole, as Array.prototype.map leaves it
+    // a hole is read as undefined, and checked and copied as an undefined there would be
     for (; i < f.out.length; i++) {
-      if (!(i in v)) continue;
       const x = v[i];
       const c = s.k === "unknown" && (x === null || (typeof x !== "object" && typeof x !== "function")) ? x : copyEnter(x, s.k === "arr" ? s.el : s.k === "tup" ? s.els[i]! : s, `${f.path}[${i}]`, run, stack);
       if (c === WAIT) { f.i = i; f.wait = true; return WAIT; }
@@ -276,7 +350,7 @@ function copyUnwind(e: Mismatch, run: Run, stack: Frame[]): unknown {
     const f = stack.pop();
     if (!f) throw e;
     if (f.s.k !== "union") { run.seen.delete(f.v); continue; }
-    try { return copyUnion(f.v, f.s, f.path, run, stack, f.i, f.cycle ?? (e instanceof Cycle ? e : null)); } catch (x) {
+    try { return copyUnion(f.v, f.s, f.path, run, stack, f.i, f.cycle ?? (e instanceof Cycle ? e : null), f.sole ?? soleMiss(f.v, f.s, f.path, run, f.i - 1, e)); } catch (x) {
       if (!(x instanceof Mismatch)) throw x;
       e = x;
     }

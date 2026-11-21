@@ -1,0 +1,2 @@
+first completionsAt call: TSDeclareFunction: key typeParameters (1); TSExpressionWithTypeArguments: lacks typeParameters (3)
+tools/*.ts: TSExpressionWithTypeArguments: lacks typeParameters (1)

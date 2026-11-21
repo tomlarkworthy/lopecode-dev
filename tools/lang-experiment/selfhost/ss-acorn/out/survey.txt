@@ -1,0 +1,30 @@
+imports from parse.ts:
+  oracle.ts: parse, type Node
+  infer.ts: kids, isFn, type Node, type Parsed
+  complete.ts: type Node
+  island.ts: kids
+  capture.ts: kids, isFn, type Node
+  own.ts: kids, isFn, type Node
+  types.ts: type Node
+  core.ts: parse, type Node, type Parsed
+  registry.ts: parse, type Node, type Parsed
+  facts.ts: parse, kids, type Node
+  toolchain/ss-toolchain.ts: parse, kids, type Node
+  toolchain/comment-types.ts: parse, type Node
+  stdlib/runtime.ts: parse
+  jsx/lower.ts: parse, type Node
+  browser/erase.ts: parse, type Node
+  browser/run.ts: type Node
+calls of each imported function:
+  parse: oracle.ts 1, core.ts 3, registry.ts 3, facts.ts 1, toolchain/ss-toolchain.ts 5, toolchain/comment-types.ts 1, stdlib/runtime.ts 1, jsx/lower.ts 1, browser/erase.ts 1
+  kids: infer.ts 2, island.ts 1, capture.ts 4, own.ts 7, facts.ts 1, toolchain/ss-toolchain.ts 2
+  isFn: infer.ts 1, capture.ts 2, own.ts 5
+members read on a Parsed value:
+  .program: oracle.ts 2, registry.ts 1, toolchain/ss-toolchain.ts 3, toolchain/comment-types.ts 1, jsx/lower.ts 1, browser/erase.ts 1
+  .line: core.ts 1
+  .type: core.ts 3
+  .name: core.ts 8
+  .msg: core.ts 1
+  .typeAnnotation: core.ts 4
+  .leading: registry.ts 2, toolchain/ss-toolchain.ts 1
+  .comments: toolchain/ss-toolchain.ts 1

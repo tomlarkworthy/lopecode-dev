@@ -1,0 +1,83 @@
+copy: rule
+
+## 1. a different value each call
+a: ok
+b: ok
+both: ok
+same: ok
+keep: ok
+a value {"n":4,"tag":"x"}
+b value {"n":3,"tag":"x"}
+both value [1,2]
+same value false
+keep value 4
+a again (no input changed, the runtime does not run it again): value {"n":4,"tag":"x"}
+
+## 2. mutates its argument
+box: ok
+r: ok
+after: ok
+r value "f(...) threw: Attempted to assign to readonly property." | after value 2
+argument frozen: true true | argument is the checked value: false
+
+## 3. throws
+an Error: checked catch sees value "f(...) threw: boom"; uncaught: error TypeError: f(...) threw: boom; is a TypeError the boundary made: true
+a string: checked catch sees value "f(...) threw: string \"plain string\""; uncaught: error TypeError: f(...) threw: string "plain string"; is a TypeError the boundary made: true
+a function: checked catch sees value "f(...) threw: a function"; uncaught: error TypeError: f(...) threw: a function; is a TypeError the boundary made: true
+a Proxy whose message getter throws: checked catch sees value "f(...) threw: a value that could not be read"; uncaught: error TypeError: f(...) threw: a value that could not be read; is a TypeError the boundary made: true
+a live object: checked catch sees value "f(...) threw: an object"; uncaught: error TypeError: f(...) threw: an object; is a TypeError the boundary made: true
+
+## 4. returns a function, a cyclic value, a wrong shape, a Promise
+a function: error TypeError: f(...): expected an object, found a function
+a cyclic value (cycle under an undeclared key): value {"n":1,"tag":"c"}
+a wrong shape: error TypeError: f(...).n: expected number, found string "1"
+a Promise: error TypeError: f(...): expected an object, found a promise
+a class instance: error TypeError: f(...): expected an object, found a P object
+extra keys: value {"n":1,"tag":"t"}
+a cyclic value of a recursive type: error TypeError: f(...).kids[0]: a cycle (this value contains itself)
+
+## 5. keeps its argument and changes it later
+arg: ok
+first: ok
+later: ok
+first value 1
+the kept argument changed later: TypeError: Attempted to assign to readonly property. | later value 1
+
+## 6. async
+resolves to R: r: ok -> value 7
+resolves to a wrong shape: r: ok -> error TypeError: f(...).n: expected number, found string "7"
+rejects: r: ok -> error TypeError: f(...) threw: later boom
+returns R without a promise: r: ok -> value 8
+a thenable whose then throws: r: ok -> error TypeError: f(...) threw: then threw
+base: r: rejected [boundary-type] f: (s: string) => Promise<R> cannot cross from another language: it is or holds a function
+
+## 7. re-entrancy
+dbl: ok
+exposed: ok
+r: ok
+exposed is the raw function: false | frozen: true
+r (calls dbl, a checked function) value 6
+the wrapper called from outside, recursing through itself twice: 10
+count: ok
+bump: ok
+use: ok
+use ran 20 times by its own call; use = value 19
+
+## 8. purity, action capture and the checker
+parse: ok
+box: ok
+act1: rejected [action-capture] f depends on state (the value of f, a cell in another language), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+act2: rejected [action-capture] parse depends on state (parse reads f), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+nested: rejected [boundary-type] g: { run: (s: string) => R } cannot cross from another language: it is or holds run: a function
+st: rejected [boundary-type] h: (s: string) => R cannot cross from another language: it is or holds a function
+gen: rejected [boundary-type] k: <T>(x: T) => T cannot cross from another language: it is or holds a function with type parameters or a rest parameter
+rest: rejected [boundary-type] k: (...r: string[]) => number cannot cross from another language: it is or holds a function with type parameters or a rest parameter
+fnArg: rejected [boundary-type] k: (cb: (s: string) => number) => number cannot cross from another language: it is or holds a function whose parameter cb is or holds a function
+fnRet: rejected [boundary-type] k: (s: string) => () => number cannot cross from another language: it is or holds a function whose result is or holds a function
+opt: ok
+opt value -1
+
+## 9. the same function delivered again, and a new one
+same raw function again: same wrapper true; a new raw function: same wrapper false; kept = value 99
+
+wrapper calls in all probes: 55

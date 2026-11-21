@@ -1,5 +1,6 @@
-// Questions the checker asks of a type by walking it, aliases expanded through RegOps (subtype.ss.ts): what a
-// structured clone cannot copy, whether undefined is a value of it, and which of some names it mentions. Under bun,
+// Questions the checker asks of a type by walking it, aliases expanded through RegOps (subtype.ss.ts): what may
+// not go to a worker, what structuredClone cannot copy, whether undefined is a value of it, which of some names it
+// mentions, and whether it holds a type the checker could not work out. Under bun,
 // types.ts links these cells with types.ss.ts and subtype.ss.ts; in the notebook they are compiled cells of
 // @tomlarkworthy/soundscript-checker.
 

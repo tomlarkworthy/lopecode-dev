@@ -1,0 +1,1 @@
+fields the census saw only null/undefined/absent: 9 ArrowFunctionExpression.id TSMethodSignature.typeParameters ClassExpression.id ClassExpression.superClass TSCallSignatureDeclaration.typeParameters TSConstructSignatureDeclaration.typeParameters TSConstructorType.typeParameters ExportAllDeclaration.exported TSDeclareMethod.id

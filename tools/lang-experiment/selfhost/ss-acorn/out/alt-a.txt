@@ -1,0 +1,2 @@
+rule: events.ss.ts, 3977 nodes; per new text: (a) through a cell round trip 12.35 ms; (c) the rule, a call 11.77 ms
+live: events.ss.ts, 3977 nodes; per new text: (a) through a cell round trip 7.98 ms; (c) the rule, a call 7.00 ms

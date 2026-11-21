@@ -1,0 +1,4 @@
+spec#301 S11.3 boundary-type
+  base: ["f rejected","  f [boundary-type] L1 g: () => number cannot cross from another language: it is or holds a function"]
+  rule: ["f ok"]
+361 inputs, 1614 verdict lines from base; 1 inputs differ

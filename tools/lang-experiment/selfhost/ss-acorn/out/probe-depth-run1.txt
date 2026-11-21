@@ -1,0 +1,60 @@
+a+a+…
+  acorn: takes 32768 (no failure up to 32768)
+  today's checker: largest 12288; at 12289: ok:false undefined
+  shell: largest 14502; at 14503: RangeError: Maximum call stack size exceeded.
+  copy, no limit: largest 6123; at 6124: RangeError: Maximum call stack size exceeded.
+  copy, 2000 records: largest 1991; at 1992: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … .left.left.left.left.left.left.left.left.left.left.left.left: nested deeper t
+  copy, 2000 levels incl. arrays (nested): largest 1988; at 1989: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … .left.left.left.left.left.left.left.left.left.left.left.left: nested deeper t
+  preorder: largest 6243; at 6244: RangeError: Maximum call stack size exceeded.
+  byNid: largest 6243; at 6244: RangeError: Maximum call stack size exceeded.
+  consumer syntaxCheck: largest 6243; at 6244: RangeError: Maximum call stack size exceeded.
+[[…]]
+  acorn: largest 2434; at 2435: SyntaxError: Not enough stack space to parse input (1:2458)
+  today's checker: largest 2496; at 2497: SyntaxError: Not enough stack space to parse input (1:2269)
+  shell: largest 2245; at 2246: ok:false Not enough stack space to parse input (1:2269)
+  copy, no limit: largest 2245; at 2246: ok:false Not enough stack space to parse input (1:2269)
+  copy, 2000 records: largest 1992; at 1993: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … .elements[0].elements[0].elements[0].elements[0].elements[0]: nested deeper t
+  copy, 2000 levels incl. arrays (nested): largest 995; at 996: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … [0].elements[0].elements[0].elements[0].elements[0].elements: nested deeper t
+  preorder: largest 2070; at 2071: TypeError: undefined is not an object (evaluating 'ast.count')
+  byNid: largest 2070; at 2071: TypeError: undefined is not an object (evaluating 'ast.count')
+  consumer syntaxCheck: largest 2070; at 2071: Error: Not enough stack space to parse input (1:2094)
+x => x => …
+  acorn: largest 1688; at 1689: SyntaxError: Not enough stack space to parse input (1:24414)
+  today's checker: largest 1684; at 1685: SyntaxError: Not enough stack space to parse input (1:24162)
+  shell: largest 1577; at 1578: ok:false Not enough stack space to parse input (1:23688)
+  copy, no limit: largest 1577; at 1578: ok:false Not enough stack space to parse input (1:23682)
+  copy, 2000 records: largest 1577; at 1578: ok:false Not enough stack space to parse input (1:23682)
+  copy, 2000 levels incl. arrays (nested): largest 1577; at 1578: ok:false Not enough stack space to parse input (1:23682)
+  preorder: largest 1577; at 1578: TypeError: undefined is not an object (evaluating 'ast.count')
+  byNid: largest 1577; at 1578: TypeError: undefined is not an object (evaluating 'ast.count')
+  consumer syntaxCheck: largest 1577; at 1578: Error: Not enough stack space to parse input (1:23682)
+g(g(…))
+  acorn: largest 2048; at 2049: SyntaxError: Not enough stack space to parse input (1:4109)
+  today's checker: fails at 1: ok:false undefined
+  shell: largest 2030; at 2031: ok:false Not enough stack space to parse input (1:4109)
+  copy, no limit: largest 2030; at 2031: ok:false Not enough stack space to parse input (1:4109)
+  copy, 2000 records: largest 1992; at 1993: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … ].arguments[0].arguments[0].arguments[0].arguments[0].callee: nested deeper t
+  copy, 2000 levels incl. arrays (nested): largest 995; at 996: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … ].arguments[0].arguments[0].arguments[0].arguments[0].callee: nested deeper t
+  preorder: largest 1821; at 1822: TypeError: undefined is not an object (evaluating 'ast.count')
+  byNid: largest 1821; at 1822: TypeError: undefined is not an object (evaluating 'ast.count')
+  consumer syntaxCheck: largest 1821; at 1822: Error: Not enough stack space to parse input (1:3691)
+a.b.b.…
+  acorn: takes 32768 (no failure up to 32768)
+  today's checker: largest 1; at 2: ok:false undefined
+  shell: largest 14501; at 14502: RangeError: Maximum call stack size exceeded.
+  copy, no limit: largest 6122; at 6123: RangeError: Maximum call stack size exceeded.
+  copy, 2000 records: largest 1990; at 1991: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … ject.object.object.object.object.object.object.object.object: nested deeper t
+  copy, 2000 levels incl. arrays (nested): largest 1987; at 1988: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … ject.object.object.object.object.object.object.object.object: nested deeper t
+  preorder: largest 6122; at 6123: RangeError: Maximum call stack size exceeded.
+  byNid: largest 6122; at 6123: RangeError: Maximum call stack size exceeded.
+  consumer syntaxCheck: largest 6121; at 6122: RangeError: Maximum call stack size exceeded.
+((…))
+  acorn: largest 2198; at 2199: SyntaxError: Not enough stack space to parse input (1:2222)
+  today's checker: largest 2198; at 2199: SyntaxError: Not enough stack space to parse input (1:2222)
+  shell: largest 2198; at 2199: ok:false Not enough stack space to parse input (1:2222)
+  copy, no limit: largest 2048; at 2049: ok:false Not enough stack space to parse input (1:2067)
+  copy, 2000 records: largest 2043; at 2044: ok:false Not enough stack space to parse input (1:2067)
+  copy, 2000 levels incl. arrays (nested): largest 2043; at 2044: ok:false Not enough stack space to parse input (1:2067)
+  preorder: largest 2043; at 2044: TypeError: undefined is not an object (evaluating 'ast.count')
+  byNid: largest 2043; at 2044: TypeError: undefined is not an object (evaluating 'ast.count')
+  consumer syntaxCheck: largest 2043; at 2044: Error: Not enough stack space to parse input (1:2067)

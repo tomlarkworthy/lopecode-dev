@@ -1,0 +1,10 @@
+ss/acorn-kids.ss.ts: 168 code lines; 10 cells (168 lines), 0 type declarations (0 lines)
+  cells by size: kidsGroup1 26, kidsGroup2 26, kidsGroup3 26, kidsGroup4 26, kidsGroup5 26, kidsGroup6 26, kidsGroup7 8, childrenOf 2, kidOne 1, kidMany 1
+ss/acorn-types.ss.ts: 319 code lines; 0 cells (0 lines), 163 type declarations (319 lines)
+  cells by size: 
+ss/acorn.ss.ts: 70 code lines; 12 cells (69 lines), 1 type declarations (1 lines)
+  cells by size: preorder 16, leading 12, byNid 9, lineIn 8, parents 8, lineStarts 5, lineAt 4, isFn 2, kids 2, parse 1, kindOf 1, TYPE_KEYS 1
+ss/consumer.ss.ts: 124 code lines; 18 cells (118 lines), 6 type declarations (6 lines)
+  cells by size: statementCells 13, moduleShape 12, bansAt 12, distinctParse 12, syntaxPass 9, syntaxCheck 8, typeClash 7, moduleLevelRule 7, declaratorCell 6, isAsConst 5, nameAt 5, standIn 5, isTypeStatement 4, namedByParent 4, argumentsAsName 4, SYNTAX 3, declOf 1, STAND 1
+shell/acorn-shell.ts: 44 code lines; 7 cells (41 lines), 3 type declarations (3 lines)
+  cells by size: acornParse 35, TS 1, TSX 1, ROWS 1, DROP 1, isNode 1, valueOf 1

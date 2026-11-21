@@ -1,0 +1,6 @@
+copy: rule
+a getter that throws an object: sync TypeError: f(...): reading the result threw: an object; a TypeError: true | async TypeError: g(...): reading the result threw: an object; a TypeError: true
+a getter that throws a TypeError: sync TypeError: f(...) forged; a TypeError: true | async TypeError: g(...): reading the result threw: f(...) forged; a TypeError: true
+a proxy whose get trap throws: sync TypeError: f(...): reading the result threw: an object; a TypeError: true | async TypeError: g(...) threw: an object; a TypeError: true
+(async only) a real Promise whose constructor getter throws: sync TypeError: f(...): expected an object, found a promise; a TypeError: true | async TypeError: g(...) threw: an object; a TypeError: true
+a proxy whose getPrototypeOf trap throws: sync TypeError: f(...): reading the result threw: an object; a TypeError: true | async TypeError: g(...): reading the result threw: an object; a TypeError: true

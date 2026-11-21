@@ -1,0 +1,9 @@
+base/lite/events.ss.ts: 63 cells, 22010 chars
+cell 62 member .includes: today median 12.7 ms, mode member, 24 options; 4 texts parsed (4 parse, 9508 nodes, 46993 chars); Other nodes: TSMethodSignature, TSConstructSignatureDeclaration, TSDeclareFunction, TSExpressionWithTypeArguments (30)
+  those texts: parse.ts 9.33 ms; through the module 27.37 ms; added per keystroke 18.03 ms (142% of today)
+cell 61 member .hid: today median 15.4 ms, mode member, 6 options; 1 texts parsed (1 parse, 3977 nodes, 19361 chars); Other nodes: none
+  those texts: parse.ts 3.07 ms; through the module 13.63 ms; added per keystroke 10.55 ms (69% of today)
+cell 60 member .handleAt: today median 15.5 ms, mode member, 6 options; 1 texts parsed (1 parse, 3977 nodes, 19356 chars); Other nodes: none
+  those texts: parse.ts 3.43 ms; through the module 12.96 ms; added per keystroke 9.53 ms (61% of today)
+cell 62 name prefix wa: today median 12.1 ms, mode name, 1 options; 1 texts parsed (1 parse, 3977 nodes, 19353 chars); Other nodes: none
+  those texts: parse.ts 2.60 ms; through the module 11.63 ms; added per keystroke 9.03 ms (75% of today)

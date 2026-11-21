@@ -1,0 +1,2 @@
+first run of diff-parse.ts, before the shell checked required fields (held-out tools/*.ts):
+TypeError: acornParse(...).ast.program.body[0].declare: expected boolean, found null

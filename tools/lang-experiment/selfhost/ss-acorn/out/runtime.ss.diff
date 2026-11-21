@@ -1,0 +1,8 @@
+17c17,19
+<   | { k: "defs"; defs: [string, Shape][]; body: Shape };
+---
+>   | { k: "defs"; defs: [string, Shape][]; body: Shape }
+>   // FN CROSSING (ss-acorn): a function from another language, taken at data parameters and a data result
+>   | { k: "fn"; ps: Shape[]; ret: Shape; async: boolean };
+39a42
+>       case "fn": return "a function";

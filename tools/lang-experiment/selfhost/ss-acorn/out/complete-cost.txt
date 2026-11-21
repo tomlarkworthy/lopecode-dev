@@ -1,0 +1,13 @@
+base/lite/events.ss.ts: 63 cells, 22010 chars
+cell 62 member .includes, first call: 4 texts parsed, 9508 nodes; Other nodes: none
+cell 62 member .includes: today median 12.4 ms, mode member, 24 options; 1 texts parsed (1 parse, 3977 nodes, 19356 chars); Other nodes: none
+  those texts: parse.ts 2.47 ms; through the module 10.42 ms; added per keystroke 7.95 ms (64% of today)
+cell 61 member .hid, first call: 1 texts parsed, 3977 nodes; Other nodes: none
+cell 61 member .hid: today median 10.1 ms, mode member, 6 options; 1 texts parsed (1 parse, 3977 nodes, 19361 chars); Other nodes: none
+  those texts: parse.ts 2.01 ms; through the module 9.39 ms; added per keystroke 7.38 ms (73% of today)
+cell 60 member .handleAt, first call: 1 texts parsed, 3977 nodes; Other nodes: none
+cell 60 member .handleAt: today median 9.0 ms, mode member, 6 options; 1 texts parsed (1 parse, 3977 nodes, 19356 chars); Other nodes: none
+  those texts: parse.ts 1.97 ms; through the module 9.16 ms; added per keystroke 7.19 ms (80% of today)
+cell 62 name prefix wa, first call: 1 texts parsed, 3977 nodes; Other nodes: none
+cell 62 name prefix wa: today median 8.8 ms, mode name, 1 options; 1 texts parsed (1 parse, 3977 nodes, 19353 chars); Other nodes: none
+  those texts: parse.ts 1.89 ms; through the module 8.54 ms; added per keystroke 6.65 ms (75% of today)

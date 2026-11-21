@@ -1,0 +1,15 @@
+consumer, corpus: 361 inputs, 0 skipped (checkSources throws, or no parse), 1 parsed more than once (distinct names); 1004 cells
+  module shape: 361 same, 0 differ; inputs with a module-shape error: 16
+  syntaxPass: 1004 same, 0 differ; cells with a diagnostic: 14 (16 diagnostics)
+  parse calls through the wrapper: 362
+consumer, synthetic: 3 inputs, 0 skipped (checkSources throws, or no parse), 0 parsed more than once (distinct names); 20 cells
+  module shape: 3 same, 0 differ; inputs with a module-shape error: 3
+  syntaxPass: 20 same, 0 differ; cells with a diagnostic: 4 (12 diagnostics)
+consumer, synthetic-n and -t: 2 inputs, 0 skipped (checkSources throws, or no parse), 0 parsed more than once (distinct names); 2 cells
+  module shape: 2 same, 0 differ; inputs with a module-shape error: 0
+  syntaxPass: 2 same, 0 differ; cells with a diagnostic: 1 (1 diagnostics)
+control (namedByParent ignores computed): shape differ 0, syntaxPass differ 1, skipped 0
+control (moduleLevelRule drops no-var): shape differ 1, syntaxPass differ 0, skipped 0
+control (namedByParent compares type, not nid): shape differ 0, syntaxPass differ 1, skipped 0
+control (TYPE_KEYS without returnType): shape differ 0, syntaxPass differ 0, skipped 0
+control (distinctParse gives up at once): shape differ 0, syntaxPass differ 0, skipped 1

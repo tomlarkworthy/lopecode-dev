@@ -1,0 +1,5 @@
+base: twice: rejected [boundary-type] len: (s: string) => R cannot cross from another language: it is or holds a function | out: ok
+base out = {"ok":false,"e":{"input":"twice"}}
+rule: twice: ok | out: ok
+compiled twice: function _twice(ss_cross,len) {return ((/*{lang:"ss"}*//*ss^…*/(len/*ss:: (s: string) => R*/) => (s/*ss:: string*/)/*ss:: number*/ => len(s).n * 2)(ss_cross(len, {"k":"fn","ps":[{"k":"str"}],"ret":{"k":"rec","props":[["n",{"k":"num"},false],["s",{"k":"str"},false]]},"async":false}, "twice.len")));}
+rule out = {"ok":true,"v":6}

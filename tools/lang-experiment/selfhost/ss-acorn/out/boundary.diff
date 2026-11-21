@@ -1,0 +1,78 @@
+75a76,90
+> // FN CROSSING (ss-acorn): the shape of a parameter's annotation. At the top only (fnOk: not under State), a function
+> // type with no type parameters and no rest, whose parameters and result (or the T of a Promise<T> result) are data
+> export function boundaryShape(t: Ty, expand: (t: Ty) => Ty, isAlias: (n: string) => boolean, fnOk: boolean): Shape | { error: string } {
+>   let f = t;
+>   for (let i = 0; i < 8 && f.k === "named" && isAlias(f.n); i++) f = expand(f);
+>   if (!fnOk || f.k !== "fn") return shapeOf(t, expand, isAlias);
+>   if (f.tps.length || f.rest) return { error: "a function with type parameters or a rest parameter" };
+>   const part = (x: Ty, what: string) => { const s = shapeOf(x, expand, isAlias); return "error" in s ? { error: `a function whose ${what} is or holds ${s.error}` } : s; };
+>   const ps: Shape[] = [];
+>   for (const [i, p] of f.ps.entries()) { const s = part(p.t, `parameter ${p.n || i + 1}`); if ("error" in s) return s; ps.push(p.opt ? { k: "union", ts: [s, { k: "undef" }] } : s); }
+>   const async = f.ret.k === "named" && f.ret.n === "Promise";
+>   const ret = part(async ? (f.ret as Ty & { k: "named" }).args[0] ?? { k: "unknown" } : f.ret, "result");
+>   return "error" in ret ? ret : { k: "fn", ps, ret, async };
+> }
+> 
+115c130,133
+< export const LIMITS = { depth: 2000, memo: true };
+---
+> // DEPTH (ss-acorn): depth counts objects checked against a record type, not arrays (countArrays: the nested
+> // prototype's count, for comparison); the message gives the path's two ends
+> export const LIMITS = { depth: 5000, memo: true, countArrays: false };
+> const clip = (m: string): string => { const i = m.indexOf(": "); return i > 160 ? `${m.slice(0, 60)} … ${m.slice(i - 60)}` : m; };
+131,132c149,151
+<     if (run.depth >= LIMITS.depth) throw new Refused(`${path}: nested deeper than ${LIMITS.depth}`);
+<     run.depth++;
+---
+>     const counts = s.k === "rec" || s.k === "unknown" || LIMITS.countArrays;
+>     if (counts && run.depth >= LIMITS.depth) throw new Refused(`${path}: nested deeper than ${LIMITS.depth} objects`);
+>     if (counts) run.depth++;
+137c156
+<     } finally { run.depth--; }
+---
+>     } finally { if (counts) run.depth--; }
+186a206
+>     case "fn": throw new Refused(`${path}: a function inside a value`);
+235a256
+>   if (shape.k === "fn") return crossFn(value, shape, at, path);
+238c259
+<     if (e instanceof Mismatch || e instanceof Refused) throw new TypeError(e.message);
+---
+>     if (e instanceof Mismatch || e instanceof Refused) throw new TypeError(clip(e.message));
+249c270
+<     if (e instanceof Mismatch || e instanceof Refused) throw new TypeError(e.message);
+---
+>     if (e instanceof Mismatch || e instanceof Refused) throw new TypeError(clip(e.message));
+252a274,304
+> 
+> // FN CROSSING (ss-acorn): a function from another language as the checked cell receives it: a frozen function of its
+> // own that copies each argument against its parameter's shape (a deep-frozen copy, so the other language never holds
+> // a checked value), calls the function with no this, and returns the result checked and copied as a value crossing is
+> // (checkShape: no reuse between calls). A throw from the function, or a result that does not match, is a fresh
+> // TypeError naming the function; nothing the function threw reaches the cell. The same function delivered again gives
+> // the same wrapper, as an equal value gives the same copy.
+> type FnShape = Shape & { k: "fn" };
+> const wrappers = new Map<string, { raw: unknown; w: unknown }>();
+> export const fnCalls = { calls: 0 };
+> const thrown = (name: string, e: unknown): TypeError => {
+>   let m: string;
+>   try { m = e instanceof Error ? String(e.message) : describe(e); } catch { m = "a value that could not be read"; }
+>   return new TypeError(`${name}(...) threw: ${m}`);
+> };
+> function crossFn(f: unknown, s: FnShape, name: string, path: string): unknown {
+>   if (typeof f !== "function") throw new TypeError(`${name}: expected a function, found ${describe(f)}`);
+>   const hit = wrappers.get(path);
+>   if (hit && hit.raw === f) return hit.w;
+>   const out = (v: unknown): unknown => checkShape(v, s.ret, `${name}(...)`);
+>   const w = Object.freeze((...args: unknown[]): unknown => {
+>     fnCalls.calls++;
+>     const xs = s.ps.map((p, i) => checkShape(args[i], p, `${name} argument ${i + 1}`));
+>     let r: unknown;
+>     try { r = Reflect.apply(f, undefined, xs); } catch (e) { throw thrown(name, e); }
+>     if (!s.async) return out(r);
+>     return new Promise((res, rej) => { Promise.resolve(r).then((v) => { try { res(out(v)); } catch (e) { rej(e); } }, (e) => rej(thrown(name, e))); });
+>   });
+>   wrappers.set(path, { raw: f, w });
+>   return w;
+> }

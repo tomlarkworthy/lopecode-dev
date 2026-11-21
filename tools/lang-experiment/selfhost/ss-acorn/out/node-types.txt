@@ -1,0 +1,25 @@
+155 node types (acorn 73, ts plugin 110); lowercase dropped: none
+non-literal sites resolved: 20
+  acorn:1127 isBreak ? "BreakStatement" : "ContinueStatement" -> BreakStatement, ContinueStatement
+  acorn:1473 isForIn ? "ForInStatement" : "ForOfStatement" -> ForInStatement, ForOfStatement
+  acorn:1550 (statement & FUNC_STATEMENT) ? "FunctionDeclaration" : "FunctionExpression" -> FunctionDeclaration, FunctionExpression
+  acorn:1593 isStatement ? "ClassDeclaration" : "ClassExpression" -> ClassDeclaration, ClassExpression
+  acorn:2867 logical ? "LogicalExpression" : "BinaryExpression" -> LogicalExpression, BinaryExpression
+  acorn:2890 update ? "UpdateExpression" : "UnaryExpression" -> UpdateExpression, UnaryExpression
+  acorn:3448 isPattern ? "ObjectPattern" : "ObjectExpression" -> ObjectPattern, ObjectExpression
+  ts:823 nodeName ? "JSXOpeningElement" : "JSXOpeningFragment" -> JSXOpeningElement, JSXOpeningFragment
+  ts:831 nodeName ? "JSXClosingElement" : "JSXClosingFragment" -> JSXClosingElement, JSXClosingFragment
+  ts:877 "JSX" + fragmentOrElement -> JSXElement, JSXFragment
+  ts:2600 type -> TSFunctionType, TSConstructorType, TSConstructorType
+  ts:2613 kind -> TSIntersectionType, TSUnionType
+  ts:2866 nodeType -> TSVoidKeyword, TSNullKeyword, TSAnyKeyword, TSBooleanKeyword, TSBigIntKeyword, TSNeverKeyword, TSNumberKeyword, TSObjectKeyword, TSStringKeyword, TSSymbolKeyword, TSUndefinedKeyword, TSUnknownKeyword
+  ts:3280 kind -> TSCallSignatureDeclaration, TSConstructSignatureDeclaration
+  ts:3714 isDeclaration ? "FunctionDeclaration" : "FunctionExpression" -> FunctionDeclaration, FunctionExpression
+  ts:3723 bodilessType -> TSDeclareFunction, TSDeclareMethod
+  ts:3729 bodilessType -> TSDeclareFunction, TSDeclareMethod
+  ts:3790 nodeType -> TSAsExpression, TSSatisfiesExpression
+  ts:5322 isStatement ? "ClassDeclaration" : "ClassExpression" -> ClassDeclaration, ClassExpression
+  ts:5545 nodeName ? "JSXOpeningElement" : "JSXOpeningFragment" -> JSXOpeningElement, JSXOpeningFragment
+unresolved: 0
+acorn/dist/acorn.mjs object-literal type: properties: 0 
+@sveltejs/acorn-typescript/index.js object-literal type: properties: 0 

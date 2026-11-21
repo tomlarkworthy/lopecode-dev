@@ -1,0 +1,12 @@
+corpus: 360 inputs that parse, 164284 chars, 33903 nodes; Parse shape 47253 chars of JSON; 9 rounds, median
+bare acorn + TS plugin                                             35.8 ms    1.06 µs/node
+base/lite/parse.ts                                                 33.2 ms    0.98 µs/node
+shell acornParse alone (parse + rebuild, no boundary)              59.5 ms    1.76 µs/node
+checkShape of the shell's value alone (copy + freeze)              21.6 ms    0.64 µs/node
+the wrapper (FN CROSSING: shell + result checked and copied)       80.3 ms    2.37 µs/node
+M.parse (the checked cell parse, calling the wrapper)              80.5 ms    2.37 µs/node
+a second crossing of the result (an importing module)              20.9 ms    0.62 µs/node
+M.preorder (the nid check)                                          2.9 ms    0.08 µs/node
+M.byNid                                                             2.2 ms    0.06 µs/node
+M.parents                                                           2.1 ms    0.06 µs/node
+M.kids at every node                                                6.0 ms    0.18 µs/node

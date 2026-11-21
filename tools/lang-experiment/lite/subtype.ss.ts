@@ -105,7 +105,7 @@ export const iterElemWith = (union, STR, ERR, namedElemWith) => (R: RegOps) => {
       case "arr": return t.el;
       case "tup": return union(t.els);
       case "str": return STR;
-      case "lit": return typeof t.v === "string" ? STR : undefined;
+      case "lit": return typeof t.v === "number" || typeof t.v === "boolean" ? undefined : STR;
       case "err": return ERR;
       case "named": return namedElem(t);
       case "union": {

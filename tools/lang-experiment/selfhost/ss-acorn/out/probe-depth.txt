@@ -1,0 +1,73 @@
+copy: rule
+a+a+…
+  acorn: takes 32768 (no failure up to 32768)
+  today's checker (returns): largest 21278; at 21279: RangeError: Maximum call stack size exceeded.
+  today's checker (cell ok): largest 12277; at 12278: TypeError: undefined is not an object (evaluating 'JSON.stringify(c?.errors?.[0]?.msg ?? r.module[0]?.msg).slice')
+  shell: largest 14504; at 14505: RangeError: Maximum call stack size exceeded.
+  copy, no limit: largest 6370; at 6371: RangeError: Maximum call stack size exceeded.
+  copy, 2000 records: largest 1991; at 1992: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … .left.left.left.left.left.left.left.left.left.left.left.left: nested deeper t
+  copy, 5000 records: largest 4991; at 4992: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … .left.left.left.left.left.left.left.left.left.left.left.left: nested deeper t
+  copy, 2000 levels incl. arrays (nested): largest 1988; at 1989: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … .left.left.left.left.left.left.left.left.left.left.left.left: nested deeper t
+  preorder: largest 6369; at 6370: RangeError: Maximum call stack size exceeded.
+  byNid: largest 6369; at 6370: RangeError: Maximum call stack size exceeded.
+  consumer syntaxCheck: largest 6369; at 6370: TypeError: acornParse(...): reading the result threw: Maximum call stack size exceeded.
+[[…]]
+  acorn: largest 2327; at 2328: SyntaxError: Not enough stack space to parse input (1:2352)
+  today's checker (returns): largest 2304; at 2305: SyntaxError: Not enough stack space to parse input (1:2178)
+  today's checker (cell ok): largest 2154; at 2155: SyntaxError: Not enough stack space to parse input (1:2178)
+  shell: largest 2154; at 2155: ok:false Not enough stack space to parse input (1:2179)
+  copy, no limit: largest 2112; at 2113: ok:false Not enough stack space to parse input (1:2017)
+  copy, 2000 records: largest 1992; at 1993: ok:false Not enough stack space to parse input (1:2017)
+  copy, 5000 records: largest 1992; at 1993: ok:false Not enough stack space to parse input (1:2017)
+  copy, 2000 levels incl. arrays (nested): largest 995; at 996: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … [0].elements[0].elements[0].elements[0].elements[0].elements: nested deeper t
+  preorder: largest 1992; at 1993: Error: no parse: Not enough stack space to parse input (1:2017)
+  byNid: largest 1992; at 1993: Error: no parse: Not enough stack space to parse input (1:2017)
+  consumer syntaxCheck: largest 1897; at 1898: Error: Not enough stack space to parse input (1:1921)
+x => x => …
+  acorn: largest 1570; at 1571: SyntaxError: Not enough stack space to parse input (1:23574)
+  today's checker (returns): largest 1535; at 1536: SyntaxError: Not enough stack space to parse input (1:22675)
+  today's checker (cell ok): largest 1562; at 1563: SyntaxError: Not enough stack space to parse input (1:23455)
+  shell: largest 1562; at 1563: ok:false Not enough stack space to parse input (1:23457)
+  copy, no limit: largest 1539; at 1540: ok:false Not enough stack space to parse input (1:23118)
+  copy, 2000 records: largest 1539; at 1540: ok:false Not enough stack space to parse input (1:23118)
+  copy, 5000 records: largest 1539; at 1540: ok:false Not enough stack space to parse input (1:23118)
+  copy, 2000 levels incl. arrays (nested): largest 1539; at 1540: ok:false Not enough stack space to parse input (1:23118)
+  preorder: largest 1539; at 1540: Error: no parse: Not enough stack space to parse input (1:23118)
+  byNid: largest 1539; at 1540: Error: no parse: Not enough stack space to parse input (1:23118)
+  consumer syntaxCheck: largest 1539; at 1540: Error: Not enough stack space to parse input (1:23112)
+g(g(…))
+  acorn: largest 1956; at 1957: SyntaxError: Not enough stack space to parse input (1:3960)
+  today's checker (returns): largest 1955; at 1956: SyntaxError: Not enough stack space to parse input (1:3960)
+  today's checker (cell ok): fails at 1: Error: rejected: "parameter g names no cell, foreign or capability"
+  shell: largest 1956; at 1957: ok:false Not enough stack space to parse input (1:3960)
+  copy, no limit: largest 1792; at 1793: ok:false Not enough stack space to parse input (1:3571)
+  copy, 2000 records: largest 1761; at 1762: ok:false Not enough stack space to parse input (1:3571)
+  copy, 5000 records: largest 1761; at 1762: ok:false Not enough stack space to parse input (1:3571)
+  copy, 2000 levels incl. arrays (nested): largest 995; at 996: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … ].arguments[0].arguments[0].arguments[0].arguments[0].callee: nested deeper t
+  preorder: largest 1761; at 1762: Error: no parse: Not enough stack space to parse input (1:3571)
+  byNid: largest 1761; at 1762: Error: no parse: Not enough stack space to parse input (1:3571)
+  consumer syntaxCheck: largest 1761; at 1762: Error: Not enough stack space to parse input (1:3571)
+a.b.b.…
+  acorn: takes 32768 (no failure up to 32768)
+  today's checker (returns): largest 15168; at 15169: RangeError: Maximum call stack size exceeded.
+  today's checker (cell ok): largest 1; at 2: Error: rejected: "property b of a value that may be null"
+  shell: largest 14503; at 14504: RangeError: Maximum call stack size exceeded.
+  copy, no limit: largest 6368; at 6369: RangeError: Maximum call stack size exceeded.
+  copy, 2000 records: largest 1990; at 1991: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … ject.object.object.object.object.object.object.object.object: nested deeper t
+  copy, 5000 records: largest 4990; at 4991: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … ject.object.object.object.object.object.object.object.object: nested deeper t
+  copy, 2000 levels incl. arrays (nested): largest 1987; at 1988: TypeError: x.ast.program.body[0].declaration.declarations[0].init.body. … ject.object.object.object.object.object.object.object.object: nested deeper t
+  preorder: largest 6368; at 6369: RangeError: Maximum call stack size exceeded.
+  byNid: largest 6368; at 6369: RangeError: Maximum call stack size exceeded.
+  consumer syntaxCheck: largest 6368; at 6369: TypeError: acornParse(...): reading the result threw: Maximum call stack size exceeded.
+((…))
+  acorn: largest 2048; at 2049: SyntaxError: Not enough stack space to parse input (1:2029)
+  today's checker (returns): largest 2004; at 2005: SyntaxError: Not enough stack space to parse input (1:2029)
+  today's checker (cell ok): largest 2004; at 2005: SyntaxError: Not enough stack space to parse input (1:2029)
+  shell: largest 2000; at 2001: ok:false Not enough stack space to parse input (1:1899)
+  copy, no limit: largest 1875; at 1876: ok:false Not enough stack space to parse input (1:1899)
+  copy, 2000 records: largest 1875; at 1876: ok:false Not enough stack space to parse input (1:1899)
+  copy, 5000 records: largest 1875; at 1876: ok:false Not enough stack space to parse input (1:1899)
+  copy, 2000 levels incl. arrays (nested): largest 1875; at 1876: ok:false Not enough stack space to parse input (1:1899)
+  preorder: largest 1875; at 1876: Error: no parse: Not enough stack space to parse input (1:1899)
+  byNid: largest 1875; at 1876: Error: no parse: Not enough stack space to parse input (1:1899)
+  consumer syntaxCheck: largest 1875; at 1876: Error: Not enough stack space to parse input (1:1899)

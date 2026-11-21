@@ -1,0 +1,11 @@
+census inputs: 422 inputs, 421 parse (0 where parse.ts and the module disagree on ok, 0 where the module's parse threw); 152802 nodes, 0 differ; comments differ on 0; Other nodes 0
+  truncations: 1266, 1060 throw in parse.ts; error value equal (message, pos, line, column) 1060, differ 0
+held out (365 files of tools/): 365 inputs, 365 parse (0 where parse.ts and the module disagree on ok, 0 where the module's parse threw); 260675 nodes, 0 differ; comments differ on 0; Other nodes 0
+  truncations: 1095, 963 throw in parse.ts; error value equal (message, pos, line, column) 963, differ 0
+control (first Identifier renamed in the copy): 20 inputs, 20 parse (0 where parse.ts and the module disagree on ok, 0 where the module's parse threw); 2041 nodes, 20 differ; comments differ on 0; Other nodes 0
+  truncations: 60, 44 throw in parse.ts; error value equal (message, pos, line, column) 44, differ 0
+  spec#300 S11.2 boundary-unannotated nid 3 Identifier: name: "f" vs "f_"
+  spec#301 S11.3 boundary-type nid 3 Identifier: name: "f" vs "f_"
+  spec#302 S11.3 boundary-type nid 3 Identifier: name: "f" vs "f_"
+  spec#303 S11.3 boundary-type nid 3 Identifier: name: "f" vs "f_"
+  spec#304 S11.3 boundary-type nid 3 Identifier: name: "f" vs "f_"

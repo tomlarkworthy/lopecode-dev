@@ -1,5 +1,6 @@
 // Unit tests for cross() on unions (boundary.ts): a union of records tagged by a literal property takes the member its
-// tag names; the result and the message are those of trying the members in order. Then recursive types: the shape
+// tag names; the result is that of trying the members in order, and a member alone able to take the value gives the
+// message when it fails below the union. Holes. Then recursive types: the shape
 // shapeOf gives through the checker, and what cross() does with trees, cycles, shared objects and deep values.
 // Run: bun lite/boundary.test.ts
 import { cross, checkShape } from "./boundary.ts";
@@ -29,7 +30,8 @@ const cases: [string, unknown, string][] = [
   ["the member the tag names", { type: "b", y: "s", z: 1 }, 'ok {"type":"b","y":"s"}'],
   ["an unknown tag: the union's message", { type: "c" }, `${failed} an object`],
   ["a missing tag", { x: 1 }, `${failed} an object`],
-  ["the right tag and a wrong field: the union's message, not the member's", { type: "b", y: 1 }, `${failed} an object`],
+  ["the right tag and a wrong field: the member's message, at the field", { type: "b", y: 1 }, "TypeError: p.y: expected string, found number 1"],
+  ["the right tag and a missing field: the member's message", { type: "a" }, "TypeError: p.x: expected number, found nothing"],
   ["a tag inherited from a prototype", Object.create({ type: "a", x: 1 }), `${failed} a Object object`],
   ["a number", 3, `${failed} number 3`],
   ["an array", ["a"], `${failed} an array of 1`],
@@ -38,19 +40,45 @@ const cases: [string, unknown, string][] = [
 for (const [label, v, want] of cases) { const r = res(v, two); ok(label, r === want, r); }
 {
   const zeros: Shape = { k: "union", ts: [rec(["t", lit(0)]), rec(["t", lit(1)], ["y", { k: "str" }])] };
-  ok("a tag -0 is not the literal 0", res({ t: -0 }, zeros).startsWith("TypeError: p: expected"), res({ t: -0 }, zeros));
+  ok("a tag -0 is not the literal 0", res({ t: -0 }, zeros) === "TypeError: p.t: expected 0, found number -0", res({ t: -0 }, zeros));
   const shared: Shape = { k: "union", ts: [rec(["type", lit("a")], ["x", { k: "num" }]), rec(["type", lit("a")], ["y", { k: "str" }])] };
   ok("two members with one tag: tried in order", res({ type: "a", x: 1 }, shared) === 'ok {"type":"a","x":1}' && res({ type: "a", y: "s" }, shared) === 'ok {"type":"a","y":"s"}');
   const mixed: Shape = { k: "union", ts: [...(two as { ts: Shape[] }).ts, { k: "null" }, { k: "num" }, { k: "arr", el: { k: "str" } }] };
   ok("a union with null, a number and an array: tried in order", [null, 3, ["s"], { type: "b", y: "s" }].map((v) => res(v, mixed)).join(" | ") === 'ok null | ok 3 | ok ["s"] | ok {"type":"b","y":"s"}');
+  // a mismatch is reported where it is when one member alone could take the value; else, and at the union's own place, the union's
+  const sole: [string, unknown, Shape, string][] = [
+    ["the only array member, an element wrong", ["s", 1], mixed, "TypeError: p[1]: expected string, found number 1"],
+    ["the only record member, untagged", { a: "x" }, { k: "union", ts: [rec(["a", { k: "num" }]), { k: "null" }] }, 'TypeError: p.a: expected number, found string "x"'],
+    ["two record members, untagged", { a: true }, { k: "union", ts: [rec(["a", { k: "num" }]), rec(["a", { k: "str" }])] }, "TypeError: p: expected an object or an object, found an object"],
+    ["a record member and unknown", { a: () => 1 }, { k: "union", ts: [rec(["a", { k: "num" }]), { k: "unknown" }] }, "TypeError: p: expected an object or data, found an object"],
+    ["a primitive at the union's place", "s", { k: "union", ts: [{ k: "num" }, rec(["a", { k: "num" }])] }, 'TypeError: p: expected number or an object, found string "s"'],
+    ["a tuple of the wrong length at the union's place", [1], { k: "union", ts: [{ k: "tup", els: [{ k: "num" }, { k: "num" }] }, { k: "null" }] }, "TypeError: p: expected an array of 2 or null, found an array of 1"],
+    ["a union inside a union", { a: { b: 1 } }, { k: "union", ts: [{ k: "union", ts: [rec(["a", { k: "union", ts: [rec(["b", { k: "str" }]), { k: "null" }] }]), { k: "num" }] }, { k: "null" }] }, "TypeError: p.a.b: expected string, found number 1"],
+  ];
+  for (const [label, v, s, want] of sole) { const r = res(v, s); ok(label, r === want, r); }
 }
 {
   // the tag is read to choose the member and again by its check, so a tag that changes is refused, never copied as another member
   let n = 0;
   const v = { get type() { return n++ ? "b" : "a"; }, x: 1 };
-  ok("a tag that changes between reads is refused", res(v, two) === `${failed} an object`, res(v, two));
+  const r = res(v, two);
+  ok("a tag that changes between reads is refused", r === 'TypeError: p.type: expected "a", found string "b"', r);
 }
-
+{
+  // a hole is checked and copied as an undefined at that index would be
+  const N: Shape = { k: "num" }, NU: Shape = { k: "union", ts: [N, { k: "undef" }] };
+  const holes: [string, unknown, Shape, string][] = [
+    ["a hole under number[]", [1, , 3], { k: "arr", el: N }, "TypeError: p[1]: expected number, found undefined"],
+    ["a hole under a tuple of numbers", [1, , 3], { k: "tup", els: [N, N, N] }, "TypeError: p[1]: expected number, found undefined"],
+    ["a trailing hole under a tuple of numbers", [1, ,], { k: "tup", els: [N, N] }, "TypeError: p[1]: expected number, found undefined"],
+  ];
+  for (const [label, v, sh, want] of holes) { const r = res(v, sh); ok(label, r === want, r); }
+  const filled = (c: unknown) => Array.isArray(c) && c.length === 3 && 1 in c && c[1] === undefined && Object.isFrozen(c);
+  for (const sh of [{ k: "arr", el: NU }, { k: "tup", els: [N, { k: "undef" }, N] }, { k: "unknown" }] as Shape[])
+    ok(`a hole under ${sh.k === "arr" ? "(number | undefined)[]" : sh.k === "tup" ? "[number, undefined, number]" : "unknown"} crosses as an undefined, not a hole`, filled(cross([1, , 3], sh, `h${k++}.p`)));
+  const a = cross([1], { k: "arr", el: NU }, "h.p"), b = cross([1, ,], { k: "arr", el: NU }, "h.p") as unknown[];
+  ok("[1] and then [1, <hole>] on one path: the second is a copy of its own, of length 2", a !== b && b.length === 2 && 1 in b);
+}
 
 // recursive types
 const shapeOf = (types: string, ann: string): Shape | string => {
@@ -76,6 +104,23 @@ const refusedAt = [
   ok("a recursive alias first met 16 objects down crosses", typeof deep !== "string" && deep.k === "defs", deep);
   const plain17 = shapeOf("", "{ x: ".repeat(17) + "number" + " }".repeat(17));
   ok("a type nested 17 deep with no recursion is refused as before", typeof plain17 === "string" && plain17.endsWith("a recursive type"), plain17);
+}
+{
+  const deep = (leaf: string, n: number) => "{ a: ".repeat(n) + leaf + " }".repeat(n);
+  const dv = (leaf: unknown, n: number) => { let o: unknown = leaf; for (let i = 0; i < n; i++) o = { a: o }; return o; };
+  const L = "type L<T> = { v: T; next: L<T> | null };";
+  const l7 = shapeOf(L, `L<${deep("number", 7)}>`);
+  ok("a recursive generic alias with an argument 7 deep crosses", typeof l7 !== "string" && res({ v: dv(1, 7), next: { v: dv(2, 7), next: null } }, l7) === "ok " + JSON.stringify({ v: dv(1, 7), next: { v: dv(2, 7), next: null } }), l7);
+  const two = shapeOf(L, `{ x: L<${deep("number", 7)}>; y: L<${deep("string", 7)}> }`);
+  const names = typeof two === "string" || two.k !== "defs" ? two : two.defs.map((d) => d[0]).join(" | ");
+  ok("two deep arguments show prints alike: two definitions", names === "L<{ a: { a: { a: { a: { a: { a: … } } } } } }> | L<{ a: { a: { a: { a: { a: { a: … } } } } } }> (2)", names);
+  ok("two deep arguments show prints alike: each checked as its own", typeof two !== "string" && res({ x: { v: dv(1, 7), next: null }, y: { v: dv(1, 7), next: null } }, two) === "TypeError: p.y.v.a.a.a.a.a.a.a: expected string, found number 1");
+  const w = shapeOf("type W<T> = { w: T };", `{ x: W<${deep("number", 6)}>; y: W<${deep("string", 6)}> }`);
+  ok("an alias that is not recursive, two deep arguments: each checked as its own", typeof w !== "string" && res({ x: { w: dv(1, 6) }, y: { w: dv("s", 6) } }, w).startsWith("ok") && res({ x: { w: dv(1, 6) }, y: { w: dv(1, 6) } }, w) === "TypeError: p.y.w.a.a.a.a.a.a: expected string, found number 1");
+  const grows = shapeOf("type N<T> = { v: T; next: N<T[]> | null };", "N<number>");
+  ok("a generic alias whose argument grows, the argument used: refused", typeof grows === "string" && grows.endsWith("a recursive type"), grows);
+  const loop = shapeOf("type A<T> = A<T> | number;", `A<${deep("number", 7)}>`);
+  ok("A<T> = A<T> | number with a deep argument: no object or array between", typeof loop === "string" && loop.endsWith("a recursive type with no object or array between it and itself"), loop);
 }
 for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(`refused at check time: ${types}`, r === want, r); }
 {
@@ -125,6 +170,12 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
   let bad: unknown = [() => 1];
   for (let i = 0; i < 5000; i++) bad = [bad];
   const m = res(bad, nest);
+  let lv: unknown = { v: "bad", next: null };
+  for (let i = 0; i < 50; i++) lv = { v: i, next: lv };
+  ok("a List with a wrong v 51 nodes down: the place of v", res(lv, list) === `TypeError: p${".next".repeat(50)}.v: expected number, found string "bad"`, res(lv, list));
+  for (let i = 0; i < 100; i++) lv = { v: i, next: lv };
+  const lm = res(lv, list);
+  ok(`a List with a wrong v 151 nodes down: the path keeps its two ends (${lm.length} chars)`, lm === `TypeError: p${".next".repeat(150)}.v`.slice(0, 91) + "…" + `${".next".repeat(150)}.v`.slice(-160) + ': expected number, found string "bad"', lm);
   ok(`a mismatch 5001 levels down: the path keeps its two ends (${m.length} chars)`, m.startsWith("TypeError: p[0][0]") && m.includes("…") && m.endsWith("[0][0]: expected an array, found a function") && m.length < 320, m);
 }
 {
@@ -133,6 +184,12 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
   const leaf = () => new Proxy({ type: "num", v: 1 }, { get: (o, p, r) => { reads++; return Reflect.get(o, p, r); } });
   const r = res({ type: "bin", l: leaf(), r: { type: "bin", l: leaf(), r: leaf() } }, bin);
   ok(`a union whose member is a ref takes the member its tag names: ${reads} reads on 3 leaves (at most 9)`, r.startsWith("ok") && reads <= 9, { r, reads });
+  const expr = shapeOf('type Expr = Bin | Num; type Bin = { type: "bin"; l: Expr; r: Expr }; type Num = { type: "num"; v: number };', "Expr") as Shape;
+  const er = res({ type: "bin", l: { type: "num", v: 1 }, r: { type: "bin", l: { type: "num", v: "x" }, r: { type: "num", v: 2 } } }, expr);
+  ok("an Expr tree with a wrong leaf: the place of the leaf", er === 'TypeError: p.r.l.v: expected number, found string "x"', er);
+  const bt = shapeOf("type T = { v: number; left: T | null; right: T | null };", "T") as Shape;
+  const br = res({ v: 1, left: null, right: { v: 2, left: { v: "x", left: null, right: null }, right: null } }, bt);
+  ok("a binary tree with a wrong v: the place of v", br === 'TypeError: p.right.left.v: expected number, found string "x"', br);
   ok("a ref the shape does not define is a TypeError", res({}, { k: "ref", n: "Nope" }) === "TypeError: p: the shape has no definition of Nope");
   ok("a write through State<Tree> is checked as a crossing", (() => { try { checkShape({ v: 1, kids: [{ v: 2, kids: [] }] }, tree, "s"); return true; } catch { return false; } })());
 }

@@ -1,0 +1,2 @@
+first run of complete-cost.ts, before the shell checked value fields:
+TypeError: acornParse(...).ast.program.body[0].body.body[1].typeParameters: expected null, found an object

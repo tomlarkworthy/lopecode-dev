@@ -81,3 +81,24 @@ leading arguments on every call. Not started on the real class.
 - Open: a cycle under a union that is not recursive keeps today's generic message; `type A = { a: A }` is
   accepted though no finite value fits; the alias reference name comes from `show()`.
 - Spec sentences added to S11.3, S11.4, S11.5 (for Tom's wording review).
+
+## 2026-11-21: fresh review of the day's changes (since af1f1048): FIX, 5 findings, all taken
+1. A mismatch under a union was reported at the union: a `List` with a bad `v` 51 nodes down gave
+   `p.next: expected List or null, found an object`. Now the member the value could only be (by tag, or by kind)
+   reports: `p.next…(x50).v: expected number, found string "bad"`. Applied to non-recursive unions too; verdicts
+   unchanged, messages changed (833 of 20000 random cases now name a place below the union).
+2. A recursive generic alias with an argument nested more than 6 deep was refused (keyed on a shortened name).
+   Fixed with a structural key. The same cause accepted wrong values for a non-recursive
+   `{ x: W<deep number>; y: W<deep string> }`; fixed too. `Registry.expand` has the same show-keyed memo for the
+   checker's own subtyping; left as it is (the port is verdict-identical), open.
+3. A hole in an array or tuple crossed as a hole (`[1, <hole>]` as `[number, number]`). A hole is read as
+   `undefined` now. S11.5 gains a sentence.
+4. S11.3 said a generic alias recurring with other arguments is refused; only growing arguments are. Reworded.
+5. The walks section sentence named three of five walks. Reworded.
+Also restored: `iterElem` on a literal that is neither string, number nor boolean returns string again (no
+program reaches it). boundary.test 61 pass; verify 635 pass 0 fail (AC); frozen against live differs on the 4
+intended S11.3 records only; boundary cost 0.65-0.67 us per node flat, 0.61-0.62 nested.
+
+## Rulings, Tom 2026-11-21 (continued)
+- Functions may cross: "the general rule as built, with the trust written into the spec" (prototype
+  `selfhost/ss-acorn/RESULTS.md`). Not yet shipped.
