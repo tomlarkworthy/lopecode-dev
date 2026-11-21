@@ -94,7 +94,7 @@ for (const file of FILES) {
       const regM = x.type === "MemberExpression" && !x.computed && ((x.object.type === "MemberExpression" && x.object.object.type === "ThisExpression" && x.object.property.name === "reg") || (x.object.type === "Identifier" && x.object.name === "reg"));
       if (regM) { const t = keyOf("lite/registry.ts", `Registry.${x.property.name}`); if (unitAt.has(t)) out.add(t); }
       const ch = x.type === "MemberExpression" && !x.computed && x.object.type === "Identifier" && (x.object.name === "ch" || x.object.name === "C");
-      if (ch) { const t = keyOf("lite/infer.ts", `Checker.${x.property.name}`); if (unitAt.has(t)) out.add(t); }
+      if (ch) { const t = keyOf("lite/infer/frozen/infer.ts", `Checker.${x.property.name}`); if (unitAt.has(t)) out.add(t); }
       const isCbArg = (y: Node) => parent && (parent.type === "CallExpression" || parent.type === "NewExpression") && parent.arguments.includes(y);
       const nextCb = cls && /^(ArrowFunctionExpression|FunctionExpression)$/.test(x.type) && isCbArg(x) ? x : inCb;
       for (const k in x) if (k !== "loc") walk(x[k], x, nextCb);

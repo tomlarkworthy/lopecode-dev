@@ -1,6 +1,6 @@
 // time of each shape on an empty body with the real globals: the set-up part of the per-program time
 import { Registry } from "../../../lite/registry.ts";
-import { Checker } from "../../../lite/infer.ts";
+import { Checker } from "../../../lite/infer/frozen/infer.ts";
 import { parse } from "../../../lite/parse.ts";
 import * as typeCells from "../../../lite/types.ss.ts";
 import * as prelude from "../../../prelude.runtime.ts";

@@ -37,7 +37,7 @@ export function checkFile(file: string): { text: string; bad: number; ms: number
     if (c.status !== "ok" || errs.length) bad++;
     out.push(`${mine ? "" : "(prefix) "}${c.name}: ${c.status}${c.value ? ` : ${c.value.slice(0, 120)}` : ""}${c.blockedBy?.length ? ` (blocked by ${c.blockedBy.join(", ")})` : ""}${errs.length ? "\n    " + errs.join("\n    ") : ""}`);
   }
-  out.push(`checker: lite/core.ts@${sha("lite/core.ts")} lite/infer.ts@${sha("lite/infer.ts")} lite/registry.ts@${sha("lite/registry.ts")} lite/own.ts@${sha("lite/own.ts")}`);
+  out.push(`checker: lite/core.ts@${sha("lite/infer/frozen/core.ts")} lite/infer.ts@${sha("lite/infer/frozen/infer.ts")} lite/registry.ts@${sha("lite/registry.ts")} lite/own.ts@${sha("lite/infer/frozen/own.ts")}`);
   out.push(`${ownNames.size} cells (splitCells units: type declarations count), ${bad} not ok, ${result.module.length} module errors, check ${ms.toFixed(0)} ms`);
   const text = out.join("\n") + "\n";
   writeFileSync(join(HERE, "out", basename(file).replace(/\.ss\.ts$/, "") + [...SWAP.values()].map((v) => `+${v}`).join("") + ".txt"), text);

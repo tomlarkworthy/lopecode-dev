@@ -9,8 +9,8 @@ import { parse, type Node } from "../../lite/parse.ts";
 const ROOT = join(import.meta.dir, "../..");
 export const FILES = [
   // checker
-  "lite/parse.ts", "lite/core.ts", "lite/infer.ts", "lite/own.ts", "lite/capture.ts", "lite/registry.ts", "lite/intrinsics.ts",
-  "lite/types.ts", "lite/types.ss.ts", "lite/facts.ts", "lite/island.ts", "lite/complete.ts", "rules.ts",
+  "lite/parse.ts", "lite/infer/frozen/core.ts", "lite/infer/frozen/infer.ts", "lite/infer/frozen/own.ts", "lite/infer/frozen/capture.ts", "lite/registry.ts", "lite/intrinsics.ts",
+  "lite/types.ts", "lite/types.ss.ts", "lite/facts.ts", "lite/island.ts", "lite/infer/frozen/complete.ts", "rules.ts",
   // linker
   "lite/link.ts",
   // compiler / toolchain

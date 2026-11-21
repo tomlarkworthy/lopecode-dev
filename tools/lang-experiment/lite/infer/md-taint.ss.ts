@@ -6,7 +6,7 @@ export const mdTaintOf = (mdAnn, mdRefName, isNamed) => (X: MdCtx, M: MdMod, p: 
   if (p.type !== "Identifier") return null;
   const wrapper = mdRefName(mdAnn(p));
   if (wrapper === "State" || wrapper === "Events") return null;
-  const name = p.name, caps = X.R.capabilities.has(name) || X.R.inherited.has(name);
+  const name = p.name, caps = X.R.capabilities.has(name);
   if (X.cellNames.has(name)) {
     const t = M.value.get(name);
     if (t !== null && t !== undefined && t.k === "named" && isNamed(t, "Action")) return null;

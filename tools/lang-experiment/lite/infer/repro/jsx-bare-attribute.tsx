@@ -1,2 +1,2 @@
-// <input disabled />: a bare attribute; the typed tree's JSXAttribute.value is declared AstNode and holds null.
+// Fixed 2026-11-21: <input disabled />, a bare attribute, came through as Other (JSXAttribute.value was declared AstNode).
 export const box = () => <input disabled />;

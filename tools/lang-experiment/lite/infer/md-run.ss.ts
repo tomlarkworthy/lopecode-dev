@@ -35,7 +35,7 @@ export const mdRunChecks = (mdInferFn, mdAfterInfer, ixDrain, ixUnsup, ERR) => (
     gap = mdAfterInfer(K, C, r.facts, d.fn, tainted, skip);
   } catch (e) {
     ixDrain(K, C);
-    const msg = X.R.thrown(e);
+    const msg = messageOf(e);
     ixUnsup(K, C, d.fn, `checker crashed: ${msg}`);
     return { fnT, facts, crash: msg, gap: C.gap };
   }

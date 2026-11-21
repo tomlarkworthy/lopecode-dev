@@ -1,5 +1,5 @@
 // bun lite/infer/diff.ts [--rounds R] [--control] [--hits] [--only <key part>] [--file f]... [--show N] [--out file]: the real Checker
-// and the port on the same cell, over the corpus of lite/soundscript/.scratch/checker-port/collect.ts. The port
+// (the frozen TypeScript checker of lite/infer/frozen) and the cells on the same cell, over the corpus of lite/soundscript/.scratch/checker-port/collect.ts. The port
 // runs inside the real checker's top-level fnExpr call (the cell's), on the same registry, injected types and
 // parse; the registry's memos are put back before the real call. Per cell: SAME, DIFFERENT, NOT COVERED (the port
 // met something it does not implement) or REAL CRASH (both threw the same message; a different throw is DIFFERENT).
@@ -11,8 +11,8 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSy
 import { join, resolve, dirname } from "node:path";
 import { Glob } from "bun";
 import * as acorn from "acorn";
-import { checkSources, type Sources } from "../core.ts";
-import { Checker } from "../infer.ts";
+import { checkSources, type Sources } from "./frozen/core.ts";
+import { Checker } from "./frozen/infer.ts";
 import { parse, type Parsed } from "../parse.ts";
 import { splitCells } from "../toolchain/ss-toolchain.ts";
 import { specRejects } from "../soundscript/spec-cases.ts";
@@ -20,12 +20,12 @@ import { show, type Ty } from "../types.ts";
 import { ALLOWED_GLOBALS } from "../intrinsics.ts";
 import { linkAcorn } from "../acorn/index.ts";
 import { linkIx, runIx, regCore, IX_FILES, OW_FILES, IX_CELLS, MD_FILES, linkMd, runMd, type IxLinked, type CompileHook, type MdLinked } from "./index.ts";
-import { ownership, actionEscapes } from "../own.ts";
-import { captures, opaqueCaptures } from "../capture.ts";
+import { ownership, actionEscapes } from "./frozen/own.ts";
+import { captures, opaqueCaptures } from "./frozen/capture.ts";
 import type { AstNode, Ast } from "../acorn/acorn-types.ss.ts";
 import { MODULE_PROBES } from "./probes/module.ts";
 import type { IxOutput, IxFacts, IxBinding } from "./ix-types.ss.ts";
-import type { Checker as RealChecker, Binding } from "../infer.ts";
+import type { Checker as RealChecker, Binding } from "./frozen/infer.ts";
 import type { Fn, Flags } from "../types.ts";
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? null : process.argv[i + 1] ?? ""; };
@@ -510,7 +510,7 @@ if (process.argv.includes("--module") || process.argv.includes("--module-only"))
 
 const files = [...IX_FILES, ...OW_FILES].map((f) => `${f}:${Bun.hash(readFileSync(join(import.meta.dir, f), "utf8")).toString(36)}`);
 console.log(`ix files ${files.join(" ")}`);
-console.log(`infer.ts ${Bun.hash(readFileSync(join(ROOT, "lite/infer.ts"), "utf8")).toString(36)} core.ts ${Bun.hash(readFileSync(join(ROOT, "lite/core.ts"), "utf8")).toString(36)}`);
+console.log(`frozen infer.ts ${Bun.hash(readFileSync(join(import.meta.dir, "frozen/infer.ts"), "utf8")).toString(36)} core.ts ${Bun.hash(readFileSync(join(import.meta.dir, "frozen/core.ts"), "utf8")).toString(36)}`);
 const JOBS = jobs();
 // the real checker alone first: what core.ts gives with no port run, to hold the wrapped pass's results against
 active = false;

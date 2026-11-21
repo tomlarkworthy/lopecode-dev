@@ -18,9 +18,9 @@ import { linkAcorn } from "./acorn/index.ts";
 const HERE = import.meta.dir;
 let pass = 0, fail = 0;
 const ok = (c: boolean, what: string) => { console.log(`${c ? "pass" : "FAIL"} ${what}`); c ? pass++ : fail++; };
-// core.ts's own distinctNames, with the declaration it reads, by their AST spans
+// the TypeScript checker's distinctNames (infer/frozen/core.ts), with the declaration it reads, by their AST spans
 function fromCore(): { distinctNames: (src: string, jsx: boolean) => { P: any; dups: Map<string, { name: string }> } } {
-  const src = readFileSync(join(HERE, "core.ts"), "utf8");
+  const src = readFileSync(join(HERE, "infer/frozen/core.ts"), "utf8");
   const want = new Set(["distinctNames", "STAND"]);
   const parts: string[] = [];
   for (const st of parse(src).program.body as Node[]) {
@@ -28,7 +28,7 @@ function fromCore(): { distinctNames: (src: string, jsx: boolean) => { P: any; d
     const names = d?.type === "FunctionDeclaration" ? [d.id.name] : d?.type === "VariableDeclaration" ? d.declarations.map((x: Node) => x.id.name) : [];
     if (names.some((n: string) => want.has(n))) { parts.push(src.slice(d.start, d.end)); names.forEach((n: string) => want.delete(n)); }
   }
-  if (want.size) throw new Error(`not found in core.ts: ${[...want].join(", ")}`);
+  if (want.size) throw new Error(`not found in infer/frozen/core.ts: ${[...want].join(", ")}`);
   const js = new Bun.Transpiler({ loader: "ts" }).transformSync(parts.join("\n"));
   return new Function("parse", `${js}\nreturn { distinctNames };`)(parse);
 }

@@ -297,7 +297,7 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   // (boundary.ts): its value as a frozen copy; as a State, the value of its viewof (a view, or an imported
   // state cell's handle), with each written value checked.
   const arg = (p: CellInfo["params"][number], r: (i: string) => string) => {
-    const input = p.refTyped ? `viewof ${p.name}` : p.name in CAPABILITIES ? IN[p.name] : p.name;
+    const input = p.refTyped ? `viewof ${p.name}` : Object.hasOwn(CAPABILITIES, p.name) ? IN[p.name] : p.name;
     if (p.name === "compile") return `${r(IN.compileFor)}(${r(input)}, ${JSON.stringify(info.name)}, {${refs.map((x) => `${JSON.stringify(x)}: ${r(x)}`).join(", ")}})`;
     if (!p.boundary) return r(input);
     const shape = JSON.stringify(p.boundary.shape);
@@ -463,7 +463,7 @@ export function fromObservableVariables(vars: { name: string | null; inputs: str
   if (bad) return { reason: `the cell takes ${bad}, which a SoundScript parameter cannot name` };
   const rt = inputs.find((i) => RUNTIME_INPUTS.has(i));
   if (rt) return { reason: `the cell takes ${rt}, the input compiled SoundScript cells take for the runtime's ${RUNTIME_INPUTS.get(rt)}` };
-  const cap = inputs.find((i) => i in CAPABILITIES && INPUTS[i] !== i);
+  const cap = inputs.find((i) => Object.hasOwn(CAPABILITIES, i) && INPUTS[i] !== i);
   if (cap) return { reason: `the cell takes ${cap}, which as a SoundScript parameter is the ${cap} capability` };
   let fn: any;
   try { fn = acorn.parseExpressionAt(definition, 0, { ecmaVersion: "latest", preserveParens: true }); } catch (e) { return { reason: `the definition does not parse: ${(e as Error).message}` }; }

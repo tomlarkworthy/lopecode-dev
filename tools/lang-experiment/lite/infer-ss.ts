@@ -1,0 +1,75 @@
+// The cells of lite/infer (ix: the type check of one cell, ow: ownership and captures, md: the module check), linked
+// for bun (link.ts) with the cells of other sections they take; in the notebook they are compiled cells of
+// @tomlarkworthy/soundscript-checker.
+import "./infer/ix-types.ss.ts";
+import * as core from "./infer/ix-core.ss.ts";
+import * as hides from "./infer/ix-hides.ss.ts";
+import * as expr from "./infer/ix-expr.ss.ts";
+import * as ops from "./infer/ix-ops.ss.ts";
+import * as cond from "./infer/ix-cond.ss.ts";
+import * as fn from "./infer/ix-fn.ss.ts";
+import * as stmt from "./infer/ix-stmt.ss.ts";
+import * as flow from "./infer/ix-flow.ss.ts";
+import * as lit from "./infer/ix-lit.ss.ts";
+import * as call from "./infer/ix-call.ss.ts";
+import * as apply from "./infer/ix-apply.ss.ts";
+import * as preludeCells from "./infer/ix-prelude.ss.ts";
+import * as jsx from "./infer/ix-jsx.ss.ts";
+import * as entry from "./infer/ix-entry.ss.ts";
+import * as facts from "./infer/ix-facts.ss.ts";
+import "./infer/ow-types.ss.ts";
+import * as owTree from "./infer/ow-tree.ss.ts";
+import * as owCapture from "./infer/ow-capture.ss.ts";
+import * as owPos from "./infer/ow-pos.ss.ts";
+import * as owPlace from "./infer/ow-place.ss.ts";
+import * as owFlow from "./infer/ow-flow.ss.ts";
+import * as owStmt from "./infer/ow-stmt.ss.ts";
+import * as owLoop from "./infer/ow-loop.ss.ts";
+import * as owAction from "./infer/ow-action.ss.ts";
+import * as owTaint from "./infer/ow-taint.ss.ts";
+import * as owOpaque from "./infer/ow-opaque.ss.ts";
+import * as owEntry from "./infer/ow-entry.ss.ts";
+import "./infer/md-types.ss.ts";
+import * as mdShape from "./infer/md-shape.ss.ts";
+import * as mdGraph from "./infer/md-graph.ss.ts";
+import * as mdInject from "./infer/md-inject.ss.ts";
+import * as mdTaint from "./infer/md-taint.ss.ts";
+import * as mdCompile from "./infer/md-compile.ss.ts";
+import * as mdValue from "./infer/md-value.ss.ts";
+import * as mdRun from "./infer/md-run.ss.ts";
+import * as mdCell from "./infer/md-cell.ss.ts";
+import * as mdFacts from "./infer/md-facts.ss.ts";
+import * as mdEntry from "./infer/md-entry.ss.ts";
+import { linkShape } from "./shape-ss.ts";
+import { link } from "./link.ts";
+import * as T from "./types.ts";
+import { linkAcorn } from "./acorn/index.ts";
+import * as prelude from "../prelude.runtime.ts";
+export type * from "./infer/ix-types.ss.ts";
+export type * from "./infer/md-types.ss.ts";
+
+// file names in lite/infer
+export const IX_FILES = ["types", "core", "hides", "expr", "ops", "cond", "fn", "stmt", "flow", "lit", "call", "apply", "prelude", "jsx", "entry", "facts"].map((x) => `ix-${x}.ss.ts`);
+export const OW_FILES = ["types", "tree", "capture", "pos", "place", "flow", "stmt", "loop", "action", "taint", "opaque", "entry"].map((x) => `ow-${x}.ss.ts`);
+export const MD_FILES = ["types", "shape", "graph", "inject", "taint", "compile", "value", "run", "cell", "facts", "entry"].map((x) => `md-${x}.ss.ts`);
+export const OW_CELLS = { ...owTree, ...owCapture, ...owPos, ...owPlace, ...owFlow, ...owStmt, ...owLoop, ...owAction, ...owTaint, ...owOpaque, ...owEntry };
+export const IX_CELLS = { ...core, ...hides, ...expr, ...ops, ...cond, ...fn, ...stmt, ...flow, ...lit, ...call, ...apply, ...preludeCells, ...jsx, ...entry, ...facts, ...OW_CELLS };
+export const MD_CELLS = { ...mdShape, ...mdGraph, ...mdInject, ...mdTaint, ...mdCompile, ...mdValue, ...mdRun, ...mdCell, ...mdFacts, ...mdEntry };
+const A = linkAcorn();
+const GIVEN = {
+  NUM: T.NUM, STR: T.STR, BIGINT: T.BIGINT, NULL: T.NULL, UNDEF: T.UNDEF, VOID: T.VOID, NEVER: T.NEVER, UNKNOWN: T.UNKNOWN,
+  OBJECT: T.OBJECT, ERR: T.ERR, SYMBOL: T.SYMBOL, BOOL: T.BOOL, lit: T.lit, arr: T.arr, named: T.named, unwrap: T.unwrap,
+  propT: T.propT, union: T.union, members: T.members, show: T.show, subst: T.subst, hasTv: T.hasTv, instantiate: T.instantiate,
+  widen: T.widen, isPrimitive: T.isPrimitive, isNamed: T.isNamed, kidsOf: A.kidsOf, nodeKind: A.nodeKind, isFnNode: A.isFnNode, childrenOf: A.childrenOf, TYPE_FIELDS: A.TYPE_FIELDS,
+};
+// the cells of other sections the md cells take
+export const MD_GIVEN = {
+  ...GIVEN, parseTree: A.parseTree, nameAt: A.nameAt, standIn: A.standIn, moduleShape: A.moduleShape, syntaxBans: A.syntaxBans, lineAt: A.lineAt,
+  hasErrWith: T.hasErrWith, uncloneableWith: T.uncloneableWith, admitsUndefinedWith: T.admitsUndefinedWith, holdsWith: T.holdsWith, islandWith: T.islandWith,
+  reservedName: T.reservedName, RESERVED_MSG: T.RESERVED_MSG, captureMessage: T.captureMessage, boundaryShapeAt: linkShape().boundaryShapeAt,
+};
+// over: cells in place of the port's (lite/infer/diff.ts's controls); given: values in place of other sections' cells
+export const linkIx = (over: Record<string, (...inputs: never[]) => unknown> = {}) => link({ ...IX_CELLS, ...over } as typeof IX_CELLS, prelude, GIVEN);
+export const linkMd = (over: Record<string, (...inputs: never[]) => unknown> = {}, given: Record<string, unknown> = {}) =>
+  link({ ...IX_CELLS, ...MD_CELLS, ...over } as typeof IX_CELLS & typeof MD_CELLS, prelude, { ...MD_GIVEN, ...given });
+export const { mdCheckSources, ixHidden, ixActionIn, owIter } = linkMd();

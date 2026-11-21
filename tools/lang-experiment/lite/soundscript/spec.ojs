@@ -273,7 +273,7 @@ md`**S2.4** The value type of a cell is its return type \`T\`, except that \`Pro
 // %%
 md`**S2.5** The capabilities are the inputs \`now: Clock\`, \`random: Random\`, \`fetch: Fetch\`, \`log: Log\`, \`invalidation: Invalidation\`, \`compile: Compile\` and \`pool: Pool\`. \`Clock\` and \`Random\` are \`() => number\`. Any other annotation on a capability, such as \`now: number\`, is \`[inject-type]\`. The value of \`pool\` is not part of the core: a module with a cell that takes \`pool\` imports \`ss_pool\` from the add-on \`@tomlarkworthy/soundscript-workers\`.`
 // %%
-md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`state action mut freeze borrow snapshot equals on read\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`. A call of \`structuredClone\` with an argument whose type is or may hold a function or a symbol, or is \`unknown\`, \`object\` or a type parameter, is \`[type]\`: the call would throw.`
+md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`state action mut freeze borrow snapshot equals on read messageOf\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`. A call of \`structuredClone\` with an argument whose type is or may hold a function or a symbol, or is \`unknown\`, \`object\` or a type parameter, is \`[type]\`: the call would throw.`
 // %%
 md`**S2.7** Reading \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`, also through a local bound to the intrinsic, through destructuring such as \`const { random } = Math\`, and through a computed key such as \`Math["random"]\`. A value with a banned member is not assignable to a type that names it, so passing \`Math\` where \`{ random: () => number }\` is expected is \`[type]\`. A \`__proto__\` key in an object literal, written as a name, a string or a computed literal, is \`[banned-member]\` too: it sets the prototype. \`prototype\` on any other value is rejected by another rule, usually \`[no-member]\`.`
 // %%
@@ -285,12 +285,17 @@ md`**S2.10** \`viewof\`, \`mutable\` and \`$\` followed by digits (\`$0\`, \`$12
 // %%
 md`**S2.11** The return type of an async function is \`Promise<T>\`, and of a generator function, sync or async, \`Generator<Y>\`; any other annotation is \`[type]\`. Each \`yield\` of a generator annotated \`Generator<Y>\` gives a \`Y\`, and a value of another type is \`[type]\`. A value that an async function returns, annotated or not, may not be a promise: one that may be is \`[type]\`, so \`await\` it. A returned promise is unwrapped at run time, and its type would otherwise be \`Promise<Promise<T>>\`. The result of \`then\` and of \`Promise.resolve\` is typed the same way: a callback that returns a \`Promise<T>\` gives a \`Promise<T>\`.`
 // %%
+md`**S2.12** \`messageOf(e)\` is the text of a caught value \`e\`: the \`message\` of an \`Error\` when it is a string, otherwise \`String(e)\`. It does not throw: when reading the message or making the string throws, it is \`(a thrown value whose text cannot be read)\`. A call with other than one argument is \`[arity]\`.`
+// %%
 md`The cells of this section. \`s2_answer\` takes \`s2_base\` and the function \`s2_double\` with no annotations; \`s2_read\` takes an async cell, a generator and a state cell by their value types.`
 // %%
 //ss: ./spec-2.ts
 // %%
 spec_rejects_2 = [
   { statement: "S2.1", rule: "inject-unknown", source: "const double = (n: number) => n * 2;" },
+  { statement: "S2.1", rule: "inject-unknown", source: "const a = (valueOf) => 1;" },
+  { statement: "S2.1", rule: "inject-unknown", source: "const a = (constructor) => 1;" },
+  { statement: "S2.1", rule: "inject-unknown", source: "const a = (toString) => 1;" },
   { statement: "S2.2", rule: "inject-pattern", source: "const a = () => ({ x: 1 });\nconst b = ({ x }: { x: number }) => x;" },
   { statement: "S2.2", rule: "inject-pattern", source: "const a = () => 1;\nconst c = (a = 1) => a;" },
   { statement: "S2.2", rule: "inject-pattern", source: "const d = (...xs: number[]) => xs.length;" },
@@ -340,15 +345,19 @@ spec_rejects_2 = [
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): Generator<number> {\n    yield \"x\";\n  };\n  return g;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = async function* (): number {\n    yield 1;\n  };\n  return 1;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = async () => Promise.resolve(5);\n  return 1;\n};" },
-  { statement: "S2.11", rule: "type", source: "const f = () => {\n  async function g(): Promise<number> {\n    return Promise.resolve(5);\n  }\n  return 1;\n};" }
+  { statement: "S2.11", rule: "type", source: "const f = () => {\n  async function g(): Promise<number> {\n    return Promise.resolve(5);\n  }\n  return 1;\n};" },
+  { statement: "S2.12", rule: "arity", source: "const f = () => messageOf();" },
+  { statement: "S2.12", rule: "arity", source: "const f = () => messageOf(1, 2);" },
+  { statement: "S2.12", rule: "type", source: "const f = (): number => messageOf(1);" }
 ]
 // %%
 spec_rejects_2_view = spec_rejectsTable(spec_rejects_2)
 // %%
 test_spec_S2_1 = {
   spec_is(spec_okCells("const double = () => (n: number) => n * 2;\nconst four = (double) => double(2);"), "double:ok,four:ok");
+  spec_is(spec_okCells("const valueOf = () => 1;\nconst toString = (valueOf) => valueOf + 1;"), "valueOf:ok,toString:ok");
   spec_is(await spec_module.value("s2_answer"), 42);
-  return `${spec_rejectsFor("S2.1")}; a function-valued cell is two arrows; s2_answer is 42`;
+  return `${spec_rejectsFor("S2.1")}; a function-valued cell is two arrows; cells named valueOf and toString are taken by name; s2_answer is 42`;
 }
 // %%
 test_spec_S2_2 = spec_rejectsFor("S2.2")
@@ -390,6 +399,16 @@ test_spec_S2_8 = {
 test_spec_S2_11 = {
   spec_is(spec_okCells("const f = () => {\n  const g = async (): Promise<number> => 5;\n  return g();\n};\nconst h = () => {\n  async function k(n: number): Promise<number> {\n    return n > 0 ? await k(n - 1) : 1;\n  }\n  return k(2);\n};\nconst gen = () => {\n  const g = function* (): Generator<number> {\n    yield 1;\n  };\n  return g;\n};\nconst agen = () => {\n  const g = async function* (): Generator<number> {\n    yield 1;\n  };\n  return g;\n};"), "f:ok,h:ok,gen:ok,agen:ok");
   return `${spec_rejectsFor("S2.11")}; Promise<T> on an async function and Generator<Y> on a generator, sync or async, are accepted`;
+}
+// %%
+test_spec_S2_12 = {
+  spec_is(await spec_module.value("s2_caught"), ["boom", "plain", "7"]);
+  const fixed = "(a thrown value whose text cannot be read)";
+  const m = soundscript.messageOf;
+  const getter = Object.defineProperty(new Error("x"), "message", { get() { throw new Error("getter"); } });
+  const toText = { toString() { throw new Error("toString"); } };
+  spec_is([m(new TypeError("t")), m("s"), m(42), m(null), m(getter), m(toText), m(Object.create(null))], ["t", "s", "42", "null", fixed, fixed, fixed]);
+  return `${spec_rejectsFor("S2.12")}; s2_caught is ${JSON.stringify(await spec_module.value("s2_caught"))}: an Error's message, a thrown string, a thrown number; a throwing message getter, a throwing toString and an object with no prototype give the fixed text`;
 }
 // %%
 test_spec_S2_9 = {
@@ -1930,6 +1949,7 @@ spec_rejects_11 = [
   { statement: "S11.7", rule: "boundary-state", source: "const f = (level: State<number>) => 1;\nconst g = (level: State<string>) => 1;", outside: [{ name: "level", view: true }] },
   { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, level: number) => action(() => n.set(level));", outside: [{ name: "level", view: true }] },
   { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, rows: number) => action(() => n.set(rows));", outside: [{ name: "rows" }] },
+  { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, constructor: number) => action(() => n.set(constructor));", outside: [{ name: "constructor" }] },
   { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst set = (n: State<number>, g: () => number) => action(() => n.set(g()));", outside: [{ name: "g" }] },
   { statement: "S11.9", rule: "action-capture", source: "const p = (g: () => number) => () => g();\nconst n = () => state(0);\nconst set = (n: State<number>, p: () => number) => action(() => n.set(p()));", outside: [{ name: "g" }] },
   { statement: "S11.9", rule: "action-capture", source: "const box = (g: () => number) => state({ f: g });", outside: [{ name: "g" }] },

@@ -67,7 +67,7 @@ export function checkCells(texts: string[], tsx = true, outside: readonly Outsid
 // rejected (the body of a cell the checker did not accept) and compileFor are SoundScript cells
 export { rejected, compileFor } from "../runtime-ss.ts";
 
-export { state, action, mut, freeze, borrow, snapshot, equals, read, idle, ref, actionNamer } from "../../prelude.runtime.ts";
+export { state, action, mut, freeze, borrow, snapshot, equals, messageOf, read, idle, ref, actionNamer } from "../../prelude.runtime.ts";
 // The value of a viewof variable as a State<T>: an Observable JavaScript view's element, whose value is
 // checked against shape on the way in, or an imported SoundScript state cell's handle; every write is
 // checked against shape (boundary.ts)

@@ -32,7 +32,7 @@ export const ixYield = (ixErr, ixUnsup, show, UNDEF, UNKNOWN, ERR) => (K: IxK, T
   C.yields = [...C.yields, t];
   return UNKNOWN;
 };
-export const ixPreludeCall = (ixTypeArgs, ixErr, ixMutCall, ixUnwrapCall, ixStateCall, ixActionCall, ixReadCall, ixOnCall, ixFact, BOOL, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, name: string, expected: Ty | null): Ty => {
+export const ixPreludeCall = (ixTypeArgs, ixErr, ixMutCall, ixUnwrapCall, ixStateCall, ixActionCall, ixReadCall, ixOnCall, ixFact, BOOL, STR, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, name: string, expected: Ty | null): Ty => {
   ixFact(C, { k: "prelude", at: e.nid, name });
   const args = e.arguments, explicit = ixTypeArgs(K, V, env, e.typeArguments);
   if (name === "on") return ixOnCall(K, T, V, W, C, env, e);
@@ -40,6 +40,11 @@ export const ixPreludeCall = (ixTypeArgs, ixErr, ixMutCall, ixUnwrapCall, ixStat
     if (args.length !== 2) ixErr(K, C, e, "arity", "equals takes two arguments");
     for (const a of args) K.infer(K, T, V, W, C, env, a);
     return BOOL;
+  }
+  if (name === "messageOf") {
+    if (args.length !== 1) ixErr(K, C, e, "arity", "messageOf takes one argument");
+    for (const a of args) K.infer(K, T, V, W, C, env, a);
+    return STR;
   }
   if (!["mut", "freeze", "borrow", "snapshot", "state", "action", "read"].includes(name)) return ERR;
   if (args.length !== 1) ixErr(K, C, e, "arity", `${name} takes one argument`);

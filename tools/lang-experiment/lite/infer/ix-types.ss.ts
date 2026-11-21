@@ -31,8 +31,13 @@ export type IxCtl = {
   cur: number; nextFlow: number; diags: IxLog | null; unsup: IxLog | null; rets: Ty[]; yields: Ty[];
   quiet: number; nextId: number; nextScope: number; nextNid: number; fresh: number;
   short: Set<number>; clones: Set<number>; breaks: IxBreaks | null; flagsAt: number; flags: Flags | undefined;
-  gap: string | null; facts: IxFactLog | null;
+  gap: string | null; facts: IxFactLog | null; probe: IxProbe | null;
 };
+// completion's question (lite/complete.ts): the placeholder name, and whether it is asked for as a member
+export type IxProbeAsk = { readonly name: string; readonly member: boolean };
+export type IxScopeName = { readonly name: string; readonly kind: IxKind; readonly t: Ty };
+// at the first read of the placeholder: the names in scope there, innermost first; or the object's type at its first read as a member
+export type IxProbe = { readonly k: "name"; readonly names: IxScopeName[]; readonly inAction: boolean } | { readonly k: "member"; readonly t: Ty };
 // a write the TypeScript Checker makes to facts, actionBodies, inActionUses or stateProps, which the passes after it read
 export type IxFact =
   | { readonly k: "binding"; readonly b: IxBinding }
@@ -107,7 +112,7 @@ export type IxOutput = { fn: Ty; diags: IxDiag[]; unsup: IxDiag[]; gap: string |
 
 // the recursive entry points and the per-check constants every method reads
 export type IxK = {
-  readonly reg: IxReg; readonly src: string; readonly cellNames: Set<string>; readonly allowed: Set<string>;
+  readonly reg: IxReg; readonly src: string; readonly cellNames: Set<string>; readonly allowed: Set<string>; readonly probe: IxProbeAsk | null;
   readonly infer: (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode) => Ty;
   readonly check: (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null, soft: boolean, ctx: boolean) => Ty;
   readonly cond: (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode) => IxCond;

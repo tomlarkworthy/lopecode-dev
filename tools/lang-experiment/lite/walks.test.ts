@@ -1,10 +1,9 @@
-// Unit tests for the checker's walks over a recursive alias (holdsWith, iterIn, Checker.hidden, Registry.sub): what
+// Unit tests for the checker's walks over a recursive alias (holdsWith, owIter, ixHidden, Registry.sub): what
 // each finds, and the work it does, counted as Registry.expand calls. Run: bun lite/walks.test.ts
-import { checkSources } from "./core.ts";
+import { checkSources, mdRegistry, regCore } from "./core.ts";
 import { Registry } from "./registry.ts";
 import { holdsWith, named, UNKNOWN, type Ty } from "./types.ts";
-import { iterIn } from "./own.ts";
-import type { Checker } from "./infer.ts";
+import { ixHidden, ixActionIn, owIter } from "./infer-ss.ts";
 
 let pass = 0, fail = 0;
 const ok = (name: string, cond: boolean, detail: unknown = "") => {
@@ -29,13 +28,13 @@ const TYPES = [
   `type Deep13 = Listener[][][][][][][][][][][][][];`,
   `type MS = Mut<number[]> | number;`,
 ].join("\n");
-const checkerOf = (): Checker => {
-  let ch: Checker | null = null;
-  checkSources({ cells: TYPES + "\nconst z = (): number => 1;", tsx: false }, { onCell: (_n, c) => (ch = c) });
-  return ch!;
-};
-const ch = checkerOf();
-const holds = holdsWith(ch.reg.ops);
+// the registry a check of these declarations uses, and the record of its methods the cells take
+const G = mdRegistry();
+G.loadUser(TYPES + "\nconst z = (): number => 1;", false, []);
+const reg = G.reg;
+const R = regCore(reg);
+const hidden = (s: Ty, t: Ty) => ixHidden({ R, opaque: null, find: (x: Ty) => ixActionIn(R, x) }, s, t, 0);
+const holds = holdsWith(reg.ops);
 const T = (n: string) => named(n);
 
 {
@@ -47,27 +46,27 @@ const T = (n: string) => named(n);
   ok("holds stops at its depth limit: a Listener 13 arrays deep is not found", w3 === null, w3);
 }
 {
-  const [w, n] = counted(() => iterIn(T("Node"), ch.reg));
-  ok(`iterIn(Node): null, ${n} expansions (at most 1000)`, w === null && n <= 1000, { w, n });
-  const [w2] = counted(() => iterIn(T("T10"), ch.reg));
-  ok("iterIn finds an alias walked shallow after it was cut off deep", w2 === "Iterable<number>", w2);
+  const [w, n] = counted(() => owIter(R, T("Node")));
+  ok(`owIter(Node): null, ${n} expansions (at most 1000)`, w === null && n <= 1000, { w, n });
+  const [w2] = counted(() => owIter(R, T("T10")));
+  ok("owIter finds an alias walked shallow after it was cut off deep", w2 === "Iterable<number>", w2);
 }
 {
-  const [w, n] = counted(() => ch.hidden(T("Node"), T("Node"), null));
+  const [w, n] = counted(() => hidden(T("Node"), T("Node")));
   ok(`hidden(Node, Node): null, ${n} expansions (at most 1000)`, w === null && n <= 1000, { w, n });
-  const [w2] = counted(() => ch.hidden(T("HA"), T("HU"), null));
+  const [w2] = counted(() => hidden(T("HA"), T("HU")));
   ok("hidden finds an Action under a recursive type's unknown", w2 === "Action<[]>", w2);
-  const [w3] = counted(() => ch.hidden(T("HA"), UNKNOWN, null));
+  const [w3] = counted(() => hidden(T("HA"), UNKNOWN));
   ok("hidden finds an Action given unknown", w3 === "Action<[]>", w3);
 }
 {
   const orNull = (t: Ty): Ty => ({ k: "union", ts: [t, { k: "null" }] });
-  const [w, n] = counted(() => ch.reg.sub(T("Node"), orNull(T("Node"))));
+  const [w, n] = counted(() => reg.sub(T("Node"), orNull(T("Node"))));
   ok(`sub(Node, Node | null): true, ${n} expansions (at most 500)`, w && n <= 500, { w, n });
-  const [w2, n2] = counted(() => ch.reg.sub(T("R7"), T("Node")));
+  const [w2, n2] = counted(() => reg.sub(T("R7"), T("Node")));
   ok(`sub(R7, Node): true, ${n2} expansions (at most 10)`, w2 && n2 <= 10, { w2, n2 });
   // sub unwraps a Mut member before it scans the union, so this is false, as before the fast path
-  ok("sub(MS, MS | null) with MS = Mut<number[]> | number: false", !ch.reg.sub(T("MS"), orNull(T("MS"))));
+  ok("sub(MS, MS | null) with MS = Mut<number[]> | number: false", !reg.sub(T("MS"), orNull(T("MS"))));
 }
 {
   // a cell that captures a Node in a callback, and one that passes a narrowed Node | null on; before the walks were

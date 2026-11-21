@@ -1,7 +1,7 @@
 // Source-to-source: replace each JSX node in a .tsx with h(...) calls, keeping everything else
 // (types included) byte for byte, so the result is a cells.ts the existing harness can load.
 import { parse, type Node } from "../parse.ts";
-import { kids } from "../own.ts";
+import { kids } from "../parse.ts";
 
 // keep: wrap each lowered top-level element as /*ss<ORIGINAL*/h(...)/*ss>*/ so ss-toolchain can restore it.
 export function lowerJsx(src: string, opts: { keep?: boolean } = {}): string {

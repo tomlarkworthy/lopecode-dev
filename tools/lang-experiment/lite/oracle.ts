@@ -6,7 +6,7 @@ import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkPort, type LiteResult } from "./check.ts";
 import { parse, type Node } from "./parse.ts";
-import { kids } from "./own.ts";
+import { kids } from "./parse.ts";
 import { specRejects } from "./soundscript/spec-cases.ts";
 import { checkSources } from "./core.ts";
 
@@ -270,7 +270,7 @@ for (const [mode, pick] of [["strict index", (p: Pair) => p.lite], ["--unchecked
 say("### Size and speed\n");
 say("| file | lines |");
 say("|---|---|");
-for (const f of ["parse.ts", "types.ts", "registry.ts", "infer.ts", "own.ts", "check.ts", "intrinsics.ts", "oracle.ts"]) {
+for (const f of ["parse.ts", "types.ts", "registry.ts", "core.ts", "infer-ss.ts", "check.ts", "intrinsics.ts", "oracle.ts"]) {
   const n = readFileSync(join(LITE, f), "utf8").split("\n").length;
   say(`| lite/${f} | ${n} |`);
 }

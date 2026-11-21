@@ -40,7 +40,7 @@ export const mdCell = (ixKnot, ixFreshCtl, ixDrain, mdSyntax, mdInject, mdTainte
   const rec = M.out.get(d.name);
   if (M.value.has(d.name) || rec === undefined) return null;
   const R = X.R.cell();
-  const K: IxK = ixKnot(R.ix, X.src, X.cellNames, X.R.allowed);
+  const K: IxK = ixKnot(R.ix, X.src, X.cellNames, X.R.allowed, X.probe);
   const C: IxCtls = mut({ ...ixFreshCtl(X.count) });
   C.nextFlow = 1;
   const L: MdL = mut({ errors: rec.errors, ch: [], chUnsup: [], blockedBy: [] });
@@ -52,12 +52,13 @@ export const mdCell = (ixKnot, ixFreshCtl, ixDrain, mdSyntax, mdInject, mdTainte
   for (const cap of byName) mdDiag(X, L, cap.at, "action-capture", captureMessage(cap));
   ixDrain(K, C);
   const hook = mdHookOf(R.ix, X, M.value, M.refInner, M.out, { ...rec, errors: L.errors });
-  const K2: IxK = ixKnot(R.withHook(hook), X.src, X.cellNames, X.R.allowed);
+  const K2: IxK = ixKnot(R.withHook(hook), X.src, X.cellNames, X.R.allowed, X.probe);
   const run = mdRunChecks(K2, C, X, d, injected, tainted, new Set(byName.map((c) => c.at.nid)));
   const r1 = mdRecord(X, L, rec, ixOut(C.diags), ixOut(C.unsup));
   const v = mdValueRules(K2.reg, X, d, run.fnT, fedBy);
   // what the registry reports from here on reaches the Checker but not the record (core.ts copies the lists above)
   ixDrain(K2, C);
+  if (M.probe === null) M.probe = C.probe;
   M.out = new Map([...M.out, [d.name, { ...mdKeep(X, M, d, r1, v), ch: ixOut(C.diags), chUnsup: ixOut(C.unsup) }]]);
   return run.gap ?? v.gap;
 };

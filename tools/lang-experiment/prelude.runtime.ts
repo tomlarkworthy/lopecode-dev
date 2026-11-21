@@ -175,6 +175,16 @@ export function snapshot<T>(v: T): T {
   return structuredClone(v);
 }
 
+// the text of a caught value: an Error's message when it is a string, otherwise String(e); never throws
+export function messageOf(e: unknown): string {
+  try {
+    if (e instanceof Error && typeof e.message === "string") return e.message;
+    return String(e);
+  } catch {
+    return "(a thrown value whose text cannot be read)";
+  }
+}
+
 export function equals(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
   if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;

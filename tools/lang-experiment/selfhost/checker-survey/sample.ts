@@ -11,7 +11,7 @@ const rand = () => ((seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 2 ** 
 const units = inventory().filter((d) => d.kind !== "import" && (stratum(d) === "core" || stratum(d) === "borderline"));
 const GIANTS = new Set(["lite/own.ts:ownership", "lite/own.ts:actionEscapes", "lite/core.ts:checkSources"]);
 const QUOTA: Record<string, number> = {
-  "lite/infer.ts": 14, "lite/registry.ts": 6, "lite/core.ts": 3, "lite/own.ts": 1, "lite/capture.ts": 3, "lite/complete.ts": 3,
+  "lite/infer/frozen/infer.ts": 14, "lite/registry.ts": 6, "lite/infer/frozen/core.ts": 3, "lite/infer/frozen/own.ts": 1, "lite/infer/frozen/capture.ts": 3, "lite/infer/frozen/complete.ts": 3,
   "lite/intrinsics.ts": 1, "lite/parse.ts": 3, "lite/facts.ts": 2, "lite/island.ts": 2, "lite/link.ts": 1,
   "lite/toolchain/ss-toolchain.ts": 7, "lite/toolchain/comment-types.ts": 2, "lite/jsx/lower.ts": 1,
   "lite/browser/erase.ts": 1, "lite/toolchain/module-js.ts": 1, "lite/boundary.ts": 1,
@@ -37,9 +37,9 @@ for (let k = 0; k < 6; k++) { const u = types.splice(Math.floor(rand() * types.l
 // giants, certain: named inner units chosen to cover each one's styles (a predicate helper, a walker, the flow loop's
 // helper, a recursive explainer, a topological sort, a type-to-shape translator)
 for (const [file, name] of [
-  ["lite/own.ts", "ownership>position"], ["lite/own.ts", "ownership>fresh"], ["lite/own.ts", "ownership>helper"],
-  ["lite/own.ts", "actionEscapes>methodValue"], ["lite/own.ts", "actionEscapes>chain"],
-  ["lite/core.ts", "checkSources>visit"], ["lite/core.ts", "checkSources>uncloneable"], ["lite/core.ts", "checkSources>compileType"],
+  ["lite/infer/frozen/own.ts", "ownership>position"], ["lite/infer/frozen/own.ts", "ownership>fresh"], ["lite/infer/frozen/own.ts", "ownership>helper"],
+  ["lite/infer/frozen/own.ts", "actionEscapes>methodValue"], ["lite/infer/frozen/own.ts", "actionEscapes>chain"],
+  ["lite/infer/frozen/core.ts", "checkSources>visit"], ["lite/infer/frozen/core.ts", "checkSources>uncloneable"], ["lite/infer/frozen/core.ts", "checkSources>compileType"],
 ]) picked.push({ file: file!, name: name!, why: "giant, inner unit" });
 writeFileSync(join(import.meta.dir, "out/sample.json"), JSON.stringify(picked, null, 1));
 for (const p of picked) console.log(`${p.file}\t${p.name}\t${p.why}`);

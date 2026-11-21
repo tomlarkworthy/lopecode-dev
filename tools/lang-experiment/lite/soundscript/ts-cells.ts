@@ -19,6 +19,7 @@ import { parse, type Node } from "../parse.ts";
 import { erase } from "../browser/erase.ts";
 import { splitCells, compileCell, compileCellText, contextFromCheck, acceptedOf, inputsIn, INPUTS, RUNTIME_CELLS } from "../toolchain/ss-toolchain.ts";
 import { checkSources } from "../core.ts";
+import { IX_FILES, OW_FILES, MD_FILES } from "../infer-ss.ts";
 
 type Compile = (src: string) => { _name?: string | null; _inputs?: string[]; _definition: unknown }[];
 const LITE = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -34,19 +35,23 @@ const RUNTIME_INPUTS = new Map(RUNTIME_CELLS.map((n) => [INPUTS[n], n]));
 const RUNTIME_FILES = ["../prelude.runtime.ts", "runtime.ss.ts", "events.ss.ts", "store.ss.ts", "render.ss.ts", "cross.ss.ts", "types.ss.ts", "shape.ss.ts", "checks.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "pool.ss.ts", "browser/workers.ts"];
 const SPLIT = "stdlib/runtime.ts";
 // SoundScript sections, in the order of their modules in the notebook, and the files bun reaches that link them
-// (types.ts imports types.ss.ts, subtype.ss.ts, walks.ss.ts, island.ss.ts and messages.ss.ts, shape-ss.ts shape.ss.ts, checks-ss.ts checks.ss.ts, runtime-ss.ts runtime.ss.ts, events.ss.ts, store.ss.ts, render.ss.ts and cross.ss.ts, acorn/index.ts the acorn sections, through link.ts)
-export const SS_SOURCES = ["runtime.ss.ts", "events.ss.ts", "store.ss.ts", "render.ss.ts", "cross.ss.ts", "types.ss.ts", "shape.ss.ts", "checks.ss.ts", "subtype.ss.ts", "walks.ss.ts", "island.ss.ts", "messages.ss.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "acorn/syntax.ss.ts"];
+// (types.ts imports types.ss.ts, subtype.ss.ts, walks.ss.ts, island.ss.ts and messages.ss.ts, shape-ss.ts shape.ss.ts, checks-ss.ts checks.ss.ts, runtime-ss.ts runtime.ss.ts, events.ss.ts, store.ss.ts, render.ss.ts and cross.ss.ts, acorn/index.ts the acorn sections, infer-ss.ts the sections of lite/infer, through link.ts)
+const INFER = [...IX_FILES, ...OW_FILES, ...MD_FILES].map((f) => `infer/${f}`);
+export const SS_SOURCES = ["runtime.ss.ts", "events.ss.ts", "store.ss.ts", "render.ss.ts", "cross.ss.ts", "types.ss.ts", "shape.ss.ts", "checks.ss.ts", "subtype.ss.ts", "walks.ss.ts", "island.ss.ts", "messages.ss.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "acorn/syntax.ss.ts", ...INFER];
 // the add-on's SoundScript sections (runtime-ss.ts links pool.ss.ts)
 const SS_ADDON_SOURCES = ["pool.ss.ts"];
 const SS_FILES = new Set([...SS_SOURCES, ...SS_ADDON_SOURCES]);
 // the module a section's cells go to when no cell of the other module reaches them (its type declarations)
-const SS_HOME: Record<string, string> = { "runtime.ss.ts": RUNTIME, "events.ss.ts": RUNTIME, "store.ss.ts": RUNTIME, "render.ss.ts": RUNTIME, "cross.ss.ts": RUNTIME, "types.ss.ts": CHECKER, "shape.ss.ts": CHECKER, "checks.ss.ts": CHECKER, "subtype.ss.ts": CHECKER, "walks.ss.ts": CHECKER, "island.ss.ts": CHECKER, "messages.ss.ts": CHECKER, "acorn/acorn-types.ss.ts": CHECKER, "acorn/acorn-kids.ss.ts": CHECKER, "acorn/acorn.ss.ts": CHECKER, "acorn/syntax.ss.ts": CHECKER, "pool.ss.ts": WORKERS };
+const SS_HOME: Record<string, string> = { "runtime.ss.ts": RUNTIME, "events.ss.ts": RUNTIME, "store.ss.ts": RUNTIME, "render.ss.ts": RUNTIME, "cross.ss.ts": RUNTIME, "types.ss.ts": CHECKER, "shape.ss.ts": CHECKER, "checks.ss.ts": CHECKER, "subtype.ss.ts": CHECKER, "walks.ss.ts": CHECKER, "island.ss.ts": CHECKER, "messages.ss.ts": CHECKER, "acorn/acorn-types.ss.ts": CHECKER, "acorn/acorn-kids.ss.ts": CHECKER, "acorn/acorn.ss.ts": CHECKER, "acorn/syntax.ss.ts": CHECKER, "pool.ss.ts": WORKERS, ...Object.fromEntries(INFER.map((f) => [f, CHECKER])) };
 // the sections whose cells a section takes, checked with it as in the notebook, where they are one module
-const SS_CHECKED_WITH: Record<string, string[]> = { "shape.ss.ts": ["types.ss.ts"], "store.ss.ts": ["events.ss.ts"], "render.ss.ts": ["runtime.ss.ts"], "cross.ss.ts": ["runtime.ss.ts"], "subtype.ss.ts": ["types.ss.ts"], "walks.ss.ts": ["types.ss.ts", "subtype.ss.ts"], "acorn/acorn-kids.ss.ts": ["acorn/acorn-types.ss.ts"], "acorn/acorn.ss.ts": ["acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts"], "acorn/syntax.ss.ts": ["acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "messages.ss.ts"] };
+const SS_CHECKED_WITH: Record<string, string[]> = { "shape.ss.ts": ["types.ss.ts"], "store.ss.ts": ["events.ss.ts"], "render.ss.ts": ["runtime.ss.ts"], "cross.ss.ts": ["runtime.ss.ts"], "subtype.ss.ts": ["types.ss.ts"], "walks.ss.ts": ["types.ss.ts", "subtype.ss.ts"], "acorn/acorn-kids.ss.ts": ["acorn/acorn-types.ss.ts"], "acorn/acorn.ss.ts": ["acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts"], "acorn/syntax.ss.ts": ["acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "messages.ss.ts"],
+  ...Object.fromEntries(INFER.map((f) => [f, ["types.ss.ts", "subtype.ss.ts", "walks.ss.ts", "island.ss.ts", "shape.ss.ts", "messages.ss.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "acorn/syntax.ss.ts"]])) };
+// sections checked as one module, once, each with the sections every one of them is checked with: a cell of one takes cells of the others
+const SS_GROUPS = [INFER];
 // a section whose cells take a cell of a TypeScript file of the module, checked with that file as its shell (S9.1)
-const SS_SHELL: Record<string, string> = { "acorn/acorn.ss.ts": "acorn/acorn-shell.ts", "acorn/syntax.ss.ts": "acorn/acorn-shell.ts" };
-const BOOTSTRAP = ["types.ts", "runtime-ss.ts", "shape-ss.ts", "checks-ss.ts", "link.ts", "acorn/index.ts"];
-const CHECKER_FILES = ["parse.ts", "intrinsics.ts", "subtype.ss.ts", "walks.ss.ts", "registry.ts", "infer.ts", "own.ts", "capture.ts", "island.ss.ts", "island.ts", "facts.ts", "messages.ss.ts", "acorn/acorn-rows.ts", "acorn/acorn-shell.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "acorn/syntax.ss.ts", "core.ts", "complete.ts", "jsx/lower.ts", "browser/erase.ts", "toolchain/comment-types.ts", "toolchain/ss-toolchain.ts"];
+const SS_SHELL: Record<string, string> = { "acorn/acorn.ss.ts": "acorn/acorn-shell.ts", "acorn/syntax.ss.ts": "acorn/acorn-shell.ts", ...Object.fromEntries(INFER.map((f) => [f, "acorn/acorn-shell.ts"])) };
+const BOOTSTRAP = ["types.ts", "runtime-ss.ts", "shape-ss.ts", "checks-ss.ts", "link.ts", "acorn/index.ts", "infer-ss.ts"];
+const CHECKER_FILES = ["parse.ts", "intrinsics.ts", "subtype.ss.ts", "walks.ss.ts", "registry.ts", "island.ss.ts", "island.ts", "facts.ts", "messages.ss.ts", "acorn/acorn-rows.ts", "acorn/acorn-shell.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "acorn/syntax.ss.ts", ...INFER, "core.ts", "complete.ts", "jsx/lower.ts", "browser/erase.ts", "toolchain/comment-types.ts", "toolchain/ss-toolchain.ts"];
 // the third-party imports, and the cells of the checker module that provide them
 const THIRD_PARTY: Record<string, { namespace?: string; names?: string[] }> = { acorn: { namespace: "acorn" }, "@sveltejs/acorn-typescript": { names: ["tsPlugin"] } };
 export const PARSER_FILE = "acorn-typescript.js.gz";
@@ -97,20 +102,21 @@ const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?:
   "subtype.ss.ts": { title: "Subtyping and unification", checker: "Which type names expand before a comparison, member lookup, subtyping, call signatures, the element type of an iterable, and the unification that infers type arguments, over the checker's types. The Registry passes in what needs its declarations: alias expansion and an interface's members. These cells are SoundScript." },
   "walks.ss.ts": { title: "Walks over a type", checker: "Questions asked of a type by walking it, with aliases expanded: what may not be sent to a worker (`uncloneableWith`), what a `structuredClone` call cannot copy (`cloneProblemWith`), whether undefined is one of its values, which of some names it mentions, and whether it holds a type the checker could not work out (`hasErrWith`). These cells are SoundScript." },
   "registry.ts": { title: "Declarations", checker: "Declarations by name, conversion of type syntax and expansion of aliases. It hands these to the cells of the section \"Subtyping and unification\", which do member lookup, subtyping and unification." },
-  "infer.ts": { title: "Type checking a cell", checker: "The type checker for one cell, and the facts it records for the ownership rules." },
-  "own.ts": { title: "Ownership", checker: "The rules for `mut`, `freeze` and `borrow` over one checked cell." },
-  "capture.ts": { title: "State inside actions", checker: "Finds an action body that uses a value depending on state; the wording of the report is the cell `captureMessage`." },
+  "infer/ix": { title: "Type checking a cell", checker: "The type checker for one cell, and the facts it records for the ownership rules. These cells are SoundScript." },
+  "infer/ow": { title: "Ownership", checker: "The rules for `mut`, `freeze` and `borrow` over one checked cell, and the action bodies that use a value depending on state; the wording of that report is the cell `captureMessage`. These cells are SoundScript." },
   "island.ss.ts": { title: "The cells an island runs", checker: "`islandWith` orders the cells a `compile(...)` call runs, everything upstream of its outputs and stopping at its inputs and refs, and lists what is wrong with the call. These cells are SoundScript." },
   "island.ts": { title: "Islands", checker: "Reads a `compile(...)` call from a cell and gives it to `islandWith`." },
   "facts.ts": { title: "Cell facts", checker: "What the compiler reads from a cell's function: its parameters, whether it returns `state(...)`, whether it is a generator, and its `compile(...)` calls." },
   "messages.ss.ts": { title: "Reserved names and the action-capture message", checker: "Which names a cell may not use, and the wording of the message for an action that uses a value depending on state. These cells are SoundScript." },
-  "core.ts": { title: "Checking a module", checker: "`checkSources` checks every cell of a module and gives each one ok, rejected, unsupported or blocked." },
+  "core.ts": { title: "Checking a module", checker: "`checkSources` checks every cell of a module and gives each one ok, rejected, unsupported or blocked. The cells before `checkSources` are SoundScript; it hands them the Registry of the section \"Declarations\" as a record of functions." },
   "complete.ts": { title: "Completion", checker: "Editor completions for one cell from the checker's types, and the annotation a value from another language suggests." },
   "jsx/lower.ts": { title: "Lowering JSX", checker: "Replaces each JSX element with `h(...)` calls and leaves the rest of the text unchanged." },
   "browser/erase.ts": { title: "Erasing types", checker: "Removes type syntax from a cell's text, giving JavaScript." },
   "toolchain/comment-types.ts": { title: "Types as comments", checker: "Moves types into `/*ss:...*/` comments, so a compiled definition is runnable JavaScript that keeps its source, and moves them back." },
   "toolchain/ss-toolchain.ts": { title: "Compiling and decompiling a cell", checker: "`compileCell` turns one cell into runtime variables; `decompileVariable` recovers the cell's text from a variable's definition." },
 };
+// the section a file's cells are under, when it is not the file's own
+const SECTION_OF: Record<string, string> = Object.fromEntries([...IX_FILES.map((f) => [`infer/${f}`, "infer/ix"]), ...OW_FILES.map((f) => [`infer/${f}`, "infer/ow"]), ...MD_FILES.map((f) => [`infer/${f}`, "core.ts"])]);
 const TESTS_LINE: Record<string, string> = {
   "@tomlarkworthy/soundscript-runtime": "These run the module's own functions: a write committed by an action, the order of queued action calls, and `cross` against wrong shapes and on a nested value.",
   "@tomlarkworthy/soundscript-checker": "These check, compile, run and decompile fixed sources through `soundscript`.",
@@ -158,10 +164,20 @@ export function ssCellTexts(file: string): string[] {
   const src = readFileSync(join(LITE, file), "utf8");
   return splitCells(src.slice(headerEnd(src)).trimStart(), false);
 }
+const groupChecks = new Map<string[], ReturnType<typeof checkSources>>();
+// the check a section's cells are compiled from: of the section with those it is checked with, or once for its group
+function sectionCheck(file: string): ReturnType<typeof checkSources> {
+  const group = SS_GROUPS.find((g) => g.includes(file));
+  const hit = group && groupChecks.get(group);
+  if (hit) return hit;
+  const withTexts = (SS_CHECKED_WITH[file] ?? []).flatMap(ssCellTexts);
+  const r = checkSources({ cells: [...withTexts, ...(group ?? [file]).flatMap(ssCellTexts)].join("\n\n"), tsx: true, shell: SS_SHELL[file] ? readFileSync(join(LITE, SS_SHELL[file]), "utf8") : null });
+  if (group) groupChecks.set(group, r);
+  return r;
+}
 function ssStatements(file: string, compile: Compile): Stmt[] {
   const texts = ssCellTexts(file);
-  const withTexts = (SS_CHECKED_WITH[file] ?? []).flatMap(ssCellTexts);
-  const r = checkSources({ cells: [...withTexts, ...texts].join("\n\n"), tsx: true, shell: SS_SHELL[file] ? readFileSync(join(LITE, SS_SHELL[file]), "utf8") : null });
+  const r = sectionCheck(file);
   const accepted = acceptedOf(r);
   const bad = [...r.module.map((e) => `[${e.rule}] ${e.msg}`), ...r.cells.filter((c) => !accepted.has(c.name)).map((c) => `${c.name}: ${c.status} ${c.errors.map((e) => `[${e.rule}] ${e.msg}`).join("; ")}`)];
   if (bad.length) throw new Error(`${file}: the checker does not accept every cell: ${bad.join(" | ")}`);
@@ -344,12 +360,13 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   };
   for (const g of groups) {
     if (!kept.has(g)) continue;
-    if (g.file !== lastFile) {
-      lastFile = g.file;
+    const key = SECTION_OF[g.file] ?? g.file;
+    if (key !== lastFile) {
+      lastFile = key;
       for (const m of [RUNTIME, CHECKER, WORKERS]) {
-        if (!groups.some((x) => x.file === g.file && x.module === m && kept.has(x))) continue;
-        const sec = SECTIONS[g.file], line = sec?.[lineKey(m)];
-        if (!sec || !line) throw new Error(`SECTIONS has no ${lineKey(m)} sentence for ${g.file}, which gives that module cells`);
+        if (!groups.some((x) => (SECTION_OF[x.file] ?? x.file) === key && x.module === m && kept.has(x))) continue;
+        const sec = SECTIONS[key], line = sec?.[lineKey(m)];
+        if (!sec || !line) throw new Error(`SECTIONS has no ${lineKey(m)} sentence for ${key}, which gives that module cells`);
         cells[m].push(`md\`## ${m === CHECKER ? sec.checkerTitle ?? sec.title : sec.title}\n\n${mdText(line)}\``);
       }
     }

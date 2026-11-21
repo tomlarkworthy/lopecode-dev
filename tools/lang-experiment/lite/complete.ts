@@ -2,12 +2,11 @@
 // while typing, so a copy is checked with a placeholder identifier at the cursor; if the copy does not
 // parse, the cell is cut at the cursor and its open brackets closed. When neither copy can be checked
 // the answer is an empty list, never a guess from runtime values.
-import { checkSources, type Outside } from "./core.ts";
-import type { Checker, Env, Scope } from "./infer.ts";
+import { checkSources, type Outside, type LiteResult } from "./core.ts";
+import type { IxScopeName } from "./infer-ss.ts";
 import { Registry } from "./registry.ts";
-import { type Ty, show, named, isNamed, propT, members, UNKNOWN } from "./types.ts";
+import { type Ty, show, named, isNamed, propT, members } from "./types.ts";
 import { CAPABILITIES, PRELUDE_FNS, PRELUDE_DECLS, JSX_DECLS } from "./intrinsics.ts";
-import type { Node } from "./parse.ts";
 
 export type Completion = { label: string; type: string; detail?: string; apply?: string };
 export type Completions = { from: number; to: number; options: Completion[]; mode: "member" | "name" | "param" | "type" | "jsx" | "none" };
@@ -139,19 +138,17 @@ function memberNames(reg: Registry, x: Ty): string[] {
 }
 
 // Names in scope at the placeholder: locals, parameters, the prelude and the allowed intrinsics.
-function scopeNames(ch: Checker, env: Env): Completion[] {
-  const out = new Map<string, Completion>();
-  for (let s: Scope | null = env.scope; s; s = s.parent) {
-    for (const [name, b] of s.vars) {
-      if (out.has(name) || name === PH) continue;
-      // read is offered only inside an action body, the one place it is legal
-      if (b.kind === "prelude") { if (name !== "read" || env.fi?.inAction) out.set(name, { label: name, type: "function", detail: name === "read" ? "prelude: a state cell's value inside an action" : "prelude" }); continue; }
-      const t = env.flow.get("#" + b.id) ?? b.t;
-      const type = b.kind === "global" ? (ch.reg.callSigs(t).length ? "function" : "namespace") : b.kind === "fn" || ch.reg.callSigs(t).length ? "function" : "variable";
-      out.set(name, { label: name, type, detail: b.kind === "global" ? "intrinsic" : show(t) });
-    }
+// names: the bindings in scope at the placeholder, each name once, innermost first (the cell ixScopeNames)
+function scopeNames(reg: Registry, names: readonly IxScopeName[], inAction: boolean): Completion[] {
+  const out: Completion[] = [];
+  for (const { name, kind, t } of names) {
+    if (name === PH) continue;
+    // read is offered only inside an action body, the one place it is legal
+    if (kind === "prelude") { if (name !== "read" || inAction) out.push({ label: name, type: "function", detail: name === "read" ? "prelude: a state cell's value inside an action" : "prelude" }); continue; }
+    const type = kind === "global" ? (reg.callSigs(t).length ? "function" : "namespace") : kind === "fn" || reg.callSigs(t).length ? "function" : "variable";
+    out.push({ label: name, type, detail: kind === "global" ? "intrinsic" : show(t) });
   }
-  return [...out.values()];
+  return out;
 }
 
 const HEAD = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/;
@@ -268,7 +265,7 @@ export function completionsAt(cells: readonly string[], at: number, offset: numb
     // a cell in another language must be annotated (S11.2), so it is inserted with its colon
     for (const o of outside ?? []) {
       const n = o.name;
-      if (n === self || params.includes(n) || types.has(n) || n in CAPABILITIES || !n.startsWith(prefix)) continue;
+      if (n === self || params.includes(n) || types.has(n) || Object.hasOwn(CAPABILITIES, n) || !n.startsWith(prefix)) continue;
       let ann: string | null = null;
       try { ann = annotate?.(n) ?? null; } catch {}
       opts.push({ label: n, type: "variable", detail: ann ? `other language: ${ann}` : "other language: annotate its type", apply: `${n}: ${ann ?? ""}` });
@@ -286,32 +283,14 @@ export function completionsAt(cells: readonly string[], at: number, offset: numb
   const variants = [before + PH + after, before + PH + cl + ";", before + PH + ";" + cl, before + PH + cl.replace(")", ") {}")];
   for (const v of variants) {
     const texts = cells.map((c, i) => (i === at ? v : c));
-    let got: { kind: "member"; t: Ty; reg: Registry } | { kind: "name"; list: Completion[] } | null = null;
-    const cellDone = counted();
-    try {
-      checkSources({ cells: texts.join("\n\n"), tsx, outside }, {
-        onCell: (_name, ch) => {
-          cellDone();
-          ch.identHook = (e, env) => {
-            if (e.name !== PH || got) return;
-            if (!member) got = { kind: "name", list: scopeNames(ch, env) };
-          };
-          if (member) {
-            const orig = ch.member.bind(ch);
-            ch.member = (e: Node, env: Env) => {
-              const t = orig(e, env);
-              if (!got && !e.computed && e.property?.name === PH) got = { kind: "member", t: ch.facts.types.get(e.object) ?? UNKNOWN, reg: ch.reg };
-              return t;
-            };
-          }
-        },
-      });
-    } catch { continue; }
-    if (!got) continue;
-    const g = got as any;
-    if (g.kind === "member") return pick("member", membersOf(g.reg, g.t) ?? []);
+    let probe: LiteResult["probe"];
+    try { probe = checkSources({ cells: texts.join("\n\n"), tsx, outside }, { onCell: counted(), probe: { name: PH, member } }).probe; } catch { continue; }
+    const got = probe?.found;
+    if (!probe || !got) continue;
+    if (got.k === "member") return pick("member", membersOf(probe.reg, got.t) ?? []);
+    const list = scopeNames(probe.reg, got.names, got.inAction);
     const kw = KEYWORD_NAMES.map((k) => ({ label: k, type: "keyword" }));
-    return pick("name", [...g.list, ...kw.filter((k) => !g.list.some((x: Completion) => x.label === k.label))].sort((a, b) => a.label.localeCompare(b.label)));
+    return pick("name", [...list, ...kw.filter((k) => !list.some((x) => x.label === k.label))].sort((a, b) => a.label.localeCompare(b.label)));
   }
   return { ...none(), mode: member ? "member" : "name" };
 }

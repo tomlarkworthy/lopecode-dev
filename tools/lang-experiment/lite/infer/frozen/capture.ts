@@ -1,9 +1,12 @@
+// FROZEN FIXTURE (2026-11-21, switch3): the TypeScript checker as it was before checkSources ran the cells. Read by
+// lite/infer/diff.ts, lite/infer/complete-diff.ts, lite/syntax.test.ts and selfhost/checker-shape, checker-survey;
+// nothing shipped imports it, and the build does not reach it.
 // action-capture: the body of an action(...) may not use a value that depends on state. A cell's
 // value parameters that are state-dependent (the caller says which, and why) taint the cell; a const,
 // let or function in the cell whose initialiser or body uses a tainted name is tainted too. Any use of
 // a tainted name inside an action body is reported. Names the action declares itself (its parameters
 // and locals) are not the cell's, whatever they are called.
-import { kids, isFn, type Node } from "./parse.ts";
+import { kids, isFn, type Node } from "../../parse.ts";
 import type { Checker, Binding } from "./infer.ts";
 
 export type Capture = { node: Node; name: string; why: string; opaque?: boolean };

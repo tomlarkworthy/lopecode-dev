@@ -64,7 +64,7 @@ const counts = (out: string, has: string) => {
   return { same: n("SAME"), different: n("DIFFERENT"), notCovered: n("NOT COVERED") };
 };
 test("the port and the Checker agree on the corpus and the probes; the control differs", () => {
-  const out = diff("--control", "--file", join(import.meta.dir, "probes/wide.ts"), "--file", join(import.meta.dir, "probes/wide-state.ts"));
+  const out = diff("--control", "--file", join(import.meta.dir, "probes/wide.ts"), "--file", join(import.meta.dir, "probes/wide-state.ts"), "--file", join(import.meta.dir, "probes/jsx.tsx"));
   const main = counts(out, " sources, ");
   expect(main.different).toBe(0);
   expect(main.same).toBeGreaterThan(3000);

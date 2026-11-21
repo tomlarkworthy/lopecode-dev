@@ -1,14 +1,17 @@
+// FROZEN FIXTURE (2026-11-21, switch3): the TypeScript checker as it was before checkSources ran the cells. Read by
+// lite/infer/diff.ts, lite/infer/complete-diff.ts, lite/syntax.test.ts and selfhost/checker-shape, checker-survey;
+// nothing shipped imports it, and the build does not reach it.
 // Bidirectional type checker for one cell: expressions, statements, flow narrowing, generic calls.
 // Records facts (expression types, identifier bindings, resolved call signatures, member flags) that
 // own.ts reads for the ownership rules.
-import { kids, isFn, type Node, type Parsed } from "./parse.ts";
-import type { Registry } from "./registry.ts";
+import { kids, isFn, type Node, type Parsed } from "../../parse.ts";
+import type { Registry } from "../../registry.ts";
 import {
   type Ty, type Fn, type Rec, type Param, type Subst, type Flags,
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, BOOL, SYMBOL,
   union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames, cloneProblemWith,
-} from "./types.ts";
-import { ALLOWED_GLOBALS, PRELUDE_FNS } from "./intrinsics.ts";
+} from "../../types.ts";
+import { ALLOWED_GLOBALS, PRELUDE_FNS } from "../../intrinsics.ts";
 
 export type BKind = "const" | "let" | "param" | "fn" | "global" | "prelude";
 export type Binding = {
@@ -91,8 +94,10 @@ export class Checker {
       if (name === "undefined") this.globals.vars.set(name, { id: ++nextId, name, t: UNDEF, kind: "global", node: null as any, fi: null });
       else if (v && v.origin === "intrinsic") this.globals.vars.set(name, { id: ++nextId, name, t: v.t, kind: "global", node: v.node, fi: null });
     }
-    const eq = reg.values.get("equals");
-    if (eq) this.globals.vars.get("equals")!.t = eq.t;
+    for (const name of ["equals", "messageOf"]) {
+      const v = reg.values.get(name);
+      if (v) this.globals.vars.get(name)!.t = v.t;
+    }
   }
 
   err(node: Node, rule: string, msg: string) { this.diags.push({ node, rule, msg }); }
@@ -1444,6 +1449,10 @@ export class Checker {
         if (args.length !== 2) this.err(e, "arity", "equals takes two arguments");
         args.forEach((a) => this.infer(a, env));
         return BOOL;
+      case "messageOf":
+        if (args.length !== 1) this.err(e, "arity", "messageOf takes one argument");
+        args.forEach((a) => this.infer(a, env));
+        return STR;
     }
     return ERR;
   }

@@ -14,7 +14,7 @@ export type IxFnParts = { params: AstNode[]; body: AstNode; returnType: AstNode 
 // the fields fnExpr reads, for the three function node types
 export const ixFnParts = () => (e: AstNode): IxFnParts | null => {
   if (e.type === "ArrowFunctionExpression") return { params: e.params, body: e.body, returnType: e.returnType, typeParameters: e.typeParameters, id: null, async: e.async, generator: e.generator, decl: false };
-  if (e.type === "FunctionExpression") return { params: e.params, body: e.body, returnType: e.returnType, typeParameters: null, id: e.id, async: e.async, generator: e.generator, decl: false };
+  if (e.type === "FunctionExpression") return { params: e.params, body: e.body, returnType: e.returnType, typeParameters: e.typeParameters, id: e.id, async: e.async, generator: e.generator, decl: false };
   if (e.type === "FunctionDeclaration") return { params: e.params, body: e.body, returnType: e.returnType, typeParameters: e.typeParameters, id: e.id, async: e.async, generator: e.generator, decl: true };
   return null;
 };

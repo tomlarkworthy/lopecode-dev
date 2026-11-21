@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join, dirname, resolve, relative } from "node:path";
 import { parse, type Node } from "../../lite/parse.ts";
 const ROOT = resolve(import.meta.dir, "../..");
-const ENTRIES = ["lite/core.ts", "lite/complete.ts", "lite/toolchain/ss-toolchain.ts", "lite/link.ts"];
+const ENTRIES = ["lite/infer/frozen/core.ts", "lite/infer/frozen/complete.ts", "lite/toolchain/ss-toolchain.ts", "lite/link.ts"];
 const seen = new Map<string, string[]>();
 const go = (f: string) => {
   if (seen.has(f)) return;

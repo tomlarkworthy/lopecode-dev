@@ -94,7 +94,9 @@ export const MORE: { id: string; src: string; tsx: boolean }[] = [
     `declare function g2<T>(x: T): T;`, `class K2 implements B {}`, `interface A2 extends B {}`, `function as1(v: unknown): asserts v is string {}`, `function as2(v: unknown): asserts v {}`,
     // added when the census of the live corpus no longer met these (lite/acorn/census.ts)
     `class O extends D { override m() {} override x = 1; }`, `type IT2 = import("a").B; type IT3 = import("a");`,
+    // the two typed-tree gaps of lite/infer/repro: a function expression with type parameters
+    `const fe = function <T>(x: T): T { return x; };`,
   ].join("\n") },
   { id: "more-ns.d.ts", tsx: false, src: `export as namespace Foo;` },
-  { id: "more.tsx", tsx: true, src: `const e = <a>{...xs}</a>;` },
+  { id: "more.tsx", tsx: true, src: `const e = <a>{...xs}</a>;\nconst bare = <input disabled />;` },
 ];

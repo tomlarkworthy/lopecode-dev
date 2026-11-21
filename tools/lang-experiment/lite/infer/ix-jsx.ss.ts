@@ -25,15 +25,16 @@ export const ixJsxChildren = (ixJsxText, ixUnsup, ixGap) => (K: IxK, C: IxCtls, 
   }
   return freeze(out);
 };
-// a bare attribute (<a b/>) is an Other node in the typed tree, so the port does not cover it
-export const ixJsxProps = (ixJsxProp, ixUnsup, ixGap) => (K: IxK, C: IxCtls, op: JSXOpeningElement): AstNode[] | null => {
+// a bare attribute (<a b/>) is true
+export const ixJsxProps = (ixJsxProp, ixAt, ixUnsup, ixGap) => (K: IxK, C: IxCtls, op: JSXOpeningElement): AstNode[] | null => {
   const out: Mut<AstNode[]> = mut([]);
   for (const a of op.attributes) {
     if (a.type === "Other") { ixGap(C, `jsx attribute ${a.kind} (Other)`); return null; }
     if (a.type !== "JSXAttribute" || a.name.type !== "JSXIdentifier") { ixUnsup(K, C, a, a.type === "JSXAttribute" ? "namespaced attribute" : "spread attribute"); return null; }
     const raw = a.value;
     let v: AstNode;
-    if (raw.type === "Literal") v = raw;
+    if (raw === null) v = { type: "Literal", ...ixAt(C, a), value: true, raw: "true", regex: null, bigint: null };
+    else if (raw.type === "Literal") v = raw;
     else if (raw.type === "JSXExpressionContainer" && raw.expression.type !== "JSXEmptyExpression") v = raw.expression;
     else { ixUnsup(K, C, a, "attribute value"); return null; }
     out.push(ixJsxProp(C, a, a.name, a.name.name, v));

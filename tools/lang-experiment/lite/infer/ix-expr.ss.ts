@@ -86,7 +86,8 @@ export const ixLazyRead = (ixUnsup, ixUpdate, ixNewFlow, ERR) => (K: IxK, T: IxT
   ixUpdate(V, C, { ...b, t: f, checked: true, lazy: { k: "none" } });
   return f;
 };
-export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixFact, NEVER, UNKNOWN, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: Identifier): Ty => {
+export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixFact, ixScopeNames, NEVER, UNKNOWN, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: Identifier): Ty => {
+  if (K.probe !== null && !K.probe.member && C.probe === null && e.name === K.probe.name) C.probe = { k: "name", names: ixScopeNames(V, W, C, env), inAction: env.fi.inAction };
   const b = ixLookup(V, env, e.name);
   if (!b) {
     if (e.name === "arguments") return ERR;
@@ -102,6 +103,18 @@ export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixFact, 
   const nt = ixFlowOf(W, C.cur).get("#" + b.id);
   if (nt) return nt;
   return b.checked ? b.t : ixLazyRead(K, T, V, W, C, b);
+};
+// the bindings in scope at env, innermost scope first, each name once, with its type in the current flow
+export const ixScopeNames = (ixFlowOf) => (V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv): IxScopeName[] => {
+  const ids: Mut<number[]> = mut([env.scope]);
+  for (let c = env.up; c !== null; c = c.up) ids.push(c.id);
+  const flow = ixFlowOf(W, C.cur), seen: Mut<Set<string>> = mut(new Set()), out: Mut<IxScopeName[]> = mut([]);
+  for (const id of ids) for (const b of V.values()) {
+    if (b.scope !== id || seen.has(b.name)) continue;
+    seen.add(b.name);
+    out.push({ name: b.name, kind: b.kind, t: flow.get("#" + b.id) ?? b.t });
+  }
+  return freeze(out);
 };
 // a path (identifier or chain of non-computed members) as a narrowing key; links: a ?. member is one too
 export const ixPathKey = (ixLookup, isNamed) => {
@@ -154,7 +167,7 @@ export const ixNumStr = (ixUm, unwrap) => (R: IxReg, e: MemberExpression, ot: Ty
   const v = p.value;
   return ixUm(R, ot).some((m) => { const x = R.expand(unwrap(m)); return x.k === "arr" || x.k === "tup" || (R.member(x, "length") !== undefined && !R.member(x, v)); }) ? v : null;
 };
-export const ixMember = (ixPathKey, ixFlowOf, ixCollapseArrays, ixNonNullish, ixNumStr, ixIndex, ixNamedMember, ixGap, nodeKind, lit) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: MemberExpression): Ty => {
+export const ixMember = (ixPathKey, ixFlowOf, ixCollapseArrays, ixNonNullish, ixNumStr, ixIndex, ixNamedMember, ixGap, nodeKind, lit, UNKNOWN) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: MemberExpression): Ty => {
   const ot0 = K.infer(K, T, V, W, C, env, e.object);
   const k = ixPathKey(V, env, e, false);
   const nt = k ? ixFlowOf(W, C.cur).get(k) : undefined;
@@ -169,6 +182,7 @@ export const ixMember = (ixPathKey, ixFlowOf, ixCollapseArrays, ixNonNullish, ix
   else if (p.type === "Literal") t = ixNamedMember(K, C, env, e, ot, String(p.value));
   else if (p.type === "Identifier" || p.type === "PrivateIdentifier") t = ixNamedMember(K, C, env, e, ot, p.name);
   else t = ixGap(C, `member property ${nodeKind(p)}`);
+  if (K.probe !== null && K.probe.member && C.probe === null && !e.computed && (p.type === "Identifier" || p.type === "PrivateIdentifier") && p.name === K.probe.name) C.probe = { k: "member", t: T.get(e.object.nid) ?? UNKNOWN };
   return nt ?? t;
 };
 // a member read by name: each member of the object's type, one report per kind of member lacking it

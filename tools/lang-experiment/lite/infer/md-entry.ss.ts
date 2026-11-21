@@ -50,8 +50,8 @@ export const mdRenamed = (mdShownNames, mdUnPh, mdDupErrs) => (X: MdCtx, dups: M
   return { module: errs.module, out: renamed, shown };
 };
 // the module's context for its cells' checks
-export const mdContext = (mdAnn, mdRefName) => (R: MdReg, src: string, count: number, line: (pos: number) => number, defs: MdDef[], shellNames: Set<string>, F: MdForeign | null, outside: MdOutside[]): MdCtx => ({
-  R, src, count, line, defs, shellNames,
+export const mdContext = (mdAnn, mdRefName) => (R: MdReg, src: string, count: number, line: (pos: number) => number, defs: MdDef[], shellNames: Set<string>, F: MdForeign | null, outside: MdOutside[], probe: IxProbeAsk | null): MdCtx => ({
+  R, src, count, line, defs, shellNames, probe,
   byName: new Map(defs.map((d): [string, MdDef] => [d.name, d])), cellNames: new Set(defs.map((d) => d.name)),
   foreign: new Map((F?.values ?? []).map((v): [string, MdForeignValue] => [v.name, v])),
   outside: new Map(outside.map((o): [string, MdOutside] => [o.name, o])),
@@ -66,11 +66,11 @@ export const mdCheckSources = (mdDistinct, mdShellNames, lineAt, mdModuleLevel, 
   const shellNames = S.shell !== null && S.shell !== "" ? mdShellNames(S.shell) : new Set<string>();
   const line = lineAt(dist.text);
   const ml = mdModuleLevel(R, p.ast, dist.text, S.tsx, F, shellNames, line);
-  const X = mdContext(R, dist.text, p.ast.count, line, ml.defs, shellNames, F, S.outside);
+  const X = mdContext(R, dist.text, p.ast.count, line, ml.defs, shellNames, F, S.outside, S.probe);
   const lines = new Map(ml.defs.map((d): [string, number] => [d.name, line(d.stmt.start)]));
   const { order, cycles } = mdOrder(ml.defs, X.byName, X.cellNames, lines);
   const fresh = ml.defs.map((d): [string, MdCellRec] => [d.name, mdFreshRec(d, lines.get(d.name) ?? 0, [...(ml.ignores.get(d.name) ?? []), ...(cycles.get(d.name) ?? [])])]);
-  const M: MdMod = mut({ value: new Map(), refInner: new Map(), eventsInner: new Map(), listeners: new Set(), stateful: new Map(), fnFed: new Map(), boundaries: new Map(), viewTypes: new Map(), out: new Map(fresh) });
+  const M: MdMod = mut({ value: new Map(), refInner: new Map(), eventsInner: new Map(), listeners: new Set(), stateful: new Map(), fnFed: new Map(), boundaries: new Map(), viewTypes: new Map(), out: new Map(fresh), probe: null });
   let gap: string | null = null;
   for (const d of order) {
     const g = mdCell(X, M, d);
@@ -81,5 +81,5 @@ export const mdCheckSources = (mdDistinct, mdShellNames, lineAt, mdModuleLevel, 
   const module = [...ml.module, ...rn.module];
   const bounds = M.boundaries;
   const facts = ml.defs.map((d) => mdFactsOf(rn.shown.get(d.name) ?? d.name, d, bounds.get(d.name) ?? null));
-  return { port: S.name ?? "cells", file: S.tsx ? "cells.tsx" : "cells.ts", ok: module.length === 0 && cells.every((c) => c.status === "ok"), module, cells, facts, gap };
+  return { port: S.name ?? "cells", file: S.tsx ? "cells.tsx" : "cells.ts", ok: module.length === 0 && cells.every((c) => c.status === "ok"), module, cells, facts, gap, probe: M.probe };
 };

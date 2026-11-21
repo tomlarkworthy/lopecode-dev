@@ -21,14 +21,17 @@ export const EXEC = `(function () {
     for (const k of ka) if (!Object.prototype.hasOwnProperty.call(b, k) || !equals(a[k], b[k])) return false;
     return true;
   };
+  const messageOf = (e) => {
+    try { return e instanceof Error && typeof e.message === "string" ? e.message : String(e); } catch (x) { return "(a thrown value whose text cannot be read)"; }
+  };
   const modules = new Map();
   return function run(job) {
     if (!modules.has(job.key)) {
       if (modules.size > 16) modules.clear();
       if (!job.js) throw Object.assign(new Error("island " + job.key + " was not sent"), { missing: true });
-      const f = new Function("state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "h",
+      const f = new Function("state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "messageOf", "h",
         '"use strict";\\n' + job.js + "\\nreturn {" + job.names.join(", ") + "};");
-      modules.set(job.key, f(refuse("state"), refuse("action"), id, id, id, snapshot, equals, refuse("h")));
+      modules.set(job.key, f(refuse("state"), refuse("action"), id, id, id, snapshot, equals, messageOf, refuse("h")));
     }
     const fns = modules.get(job.key);
     const vals = Object.assign({}, job.values);

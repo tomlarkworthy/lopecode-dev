@@ -84,6 +84,19 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   const mutSrc = await Bun.file(root + "lite/notebook/examples/03-mut.ts").text();
   const mu = new Map(compileModule(mutSrc, false, accepted(mutSrc, false)).map((v) => [v.name, v]));
   expect(["leak", "late"].every((n) => toolchain.compiledKind(mu.get(n)!.definition)?.callee === "rejected" && JSON.stringify(mu.get(n)!.inputs) === JSON.stringify(["ss_rejected", "ss_release"])), "cells the checker rejects (leak, late) compile to a body that only raises: ss_rejected(..., ss_release(this)), which first ends a listener or events the cell held");
+  // a parameter named for an Object.prototype member is no capability: a cell of that name, or inject-unknown
+  for (const n of ["valueOf", "constructor", "toString", "hasOwnProperty", "__proto__"]) {
+    const alone = checkSources({ cells: `const a = (${n}) => 1;`, tsx: false }).cells[0];
+    expect(alone?.status === "rejected" && alone.errors.map((e) => e.rule).join() === "inject-unknown", `a parameter ${n} that names no cell is inject-unknown: ${JSON.stringify(alone)}`);
+    const src = `const ${n} = () => 2;\nconst b = (${n}) => ${n} + 1;`;
+    const both = checkSources({ cells: src, tsx: false }).cells.map((c) => `${c.name}:${c.status}:${c.value}`).join();
+    expect(both === `${n}:ok:number,b:ok:number`, `a parameter ${n} takes the cell ${n}: ${both}`);
+    const b = new Map(compileModule(src, false, accepted(src, false)).map((v) => [v.name, v])).get("b");
+    expect(JSON.stringify(b?.inputs) === JSON.stringify([n]), `the compiled b takes the variable ${n}: ${JSON.stringify(b?.inputs)}`);
+  }
+  const cap = checkSources({ cells: "const n = () => state(0);\nconst copy = (n: State<number>, constructor: number) => action(() => n.set(constructor));", tsx: false, outside: [{ name: "constructor" }] }).cells[1];
+  const capMsg = cap?.errors.map((e) => `${e.rule}: ${e.msg}`).join(" | ") ?? "";
+  expect(cap?.status === "rejected" && capMsg.startsWith("action-capture: ") && capMsg.includes("(the value of constructor, a cell in another language)") && cap.errors.length === 1, `an outside cell named constructor is that cell's value in an action: ${capMsg}`);
 }
 console.log(`${pass} files pass, ${fail} fail; ${cells} cells, ${vars} variables; ${skipped} cells skipped (pool or compile); ${factsCompared} cells compiled the same from the check's facts`);
 if (fail) process.exit(1);

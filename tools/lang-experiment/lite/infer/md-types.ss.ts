@@ -23,16 +23,13 @@ export type MdReg = {
   readonly ops: RegOps;
   readonly globals: { name: string; t: Ty; kind: IxKind }[];
   readonly allowed: Set<string>;
-  // CAPABILITIES' own names and types; inherited: the names `in` also finds on Object.prototype
+  // CAPABILITIES' names and types
   readonly capabilities: Map<string, string>;
-  readonly inherited: Set<string>;
-  // core.ts's (e as Error).message, as text: a cell cannot read a thrown value (instanceof is unsupported)
-  readonly thrown: (e: unknown) => string;
 };
 export type MdOutside = { readonly name: string; readonly view: boolean };
 export type MdSources = {
   readonly cells: string; readonly tsx: boolean; readonly foreign: string | null; readonly shell: string | null;
-  readonly name: string | null; readonly outside: MdOutside[];
+  readonly name: string | null; readonly outside: MdOutside[]; readonly probe: IxProbeAsk | null;
 };
 export type MdBoundary = { readonly shape: TypeShape; readonly ref: boolean };
 export type MdCellRec = {
@@ -50,7 +47,7 @@ export type MdInfo = {
   readonly generator: boolean; readonly compiles: IslandSpec[];
 };
 // gap: what the port does not implement that this module met (its result is NOT COVERED)
-export type MdResult = { readonly port: string; readonly file: string; readonly ok: boolean; readonly module: MdErr[]; readonly cells: MdCellRec[]; readonly facts: MdInfo[]; readonly gap: string | null };
+export type MdResult = { readonly port: string; readonly file: string; readonly ok: boolean; readonly module: MdErr[]; readonly cells: MdCellRec[]; readonly facts: MdInfo[]; readonly gap: string | null; readonly probe: IxProbe | null };
 
 // a cell of the module: its name (a stand-in for a name declared again), function and statement
 export type MdDef = { readonly name: string; readonly fn: FnNode; readonly stmt: AstNode };
@@ -60,13 +57,13 @@ export type MdDup = { readonly ph: string; readonly name: string; readonly pos: 
 export type MdCtx = {
   readonly R: MdReg; readonly src: string; readonly count: number; readonly line: (pos: number) => number;
   readonly defs: MdDef[]; readonly byName: Map<string, MdDef>; readonly cellNames: Set<string>; readonly shellNames: Set<string>;
-  readonly foreign: Map<string, MdForeignValue>; readonly outside: Map<string, MdOutside>; readonly takenAsEvents: Set<string>;
+  readonly foreign: Map<string, MdForeignValue>; readonly outside: Map<string, MdOutside>; readonly takenAsEvents: Set<string>; readonly probe: IxProbeAsk | null;
 };
 // the tables core.ts's cell loop writes and later cells read
 export type MdTables = {
   value: Map<string, Ty | null>; refInner: Map<string, Ty>; eventsInner: Map<string, Ty>; listeners: Set<string>;
   stateful: Map<string, string>; fnFed: Map<string, string>; boundaries: Map<string, Map<string, MdBoundary>>;
-  viewTypes: Map<string, { readonly ty: Ty; readonly cell: string }>; out: Map<string, MdCellRec>;
+  viewTypes: Map<string, { readonly ty: Ty; readonly cell: string }>; out: Map<string, MdCellRec>; probe: IxProbe | null;
 };
 export type MdMod = Mut<MdTables>;
 // one cell's problems as they are collected: errors written straight to the record, and the Checker's two lists

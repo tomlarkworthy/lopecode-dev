@@ -38,7 +38,7 @@ export const kidsGroup2 = (kidOne, kidMany) => (n: AstNode): AstKid[] | null => 
     case "ForOfStatement": return [{ key: "left", node: n.left }, { key: "right", node: n.right }, { key: "body", node: n.body }];
     case "ForStatement": return [...kidOne("init", n.init), ...kidOne("test", n.test), ...kidOne("update", n.update), { key: "body", node: n.body }];
     case "FunctionDeclaration": return [{ key: "id", node: n.id }, ...kidOne("typeParameters", n.typeParameters), ...kidMany("params", n.params), ...kidOne("returnType", n.returnType), { key: "body", node: n.body }];
-    case "FunctionExpression": return [...kidOne("id", n.id), ...kidMany("params", n.params), ...kidOne("returnType", n.returnType), { key: "body", node: n.body }];
+    case "FunctionExpression": return [...kidOne("id", n.id), ...kidOne("typeParameters", n.typeParameters), ...kidMany("params", n.params), ...kidOne("returnType", n.returnType), { key: "body", node: n.body }];
     case "Identifier": return [...kidOne("typeAnnotation", n.typeAnnotation)];
     case "IfStatement": return [{ key: "test", node: n.test }, { key: "consequent", node: n.consequent }, ...kidOne("alternate", n.alternate)];
     case "ImportAttribute": return [{ key: "key", node: n.key }, { key: "value", node: n.value }];
@@ -47,7 +47,7 @@ export const kidsGroup2 = (kidOne, kidMany) => (n: AstNode): AstKid[] | null => 
     case "ImportExpression": return [{ key: "source", node: n.source }, ...kidOne("options", n.options)];
     case "ImportNamespaceSpecifier": return [{ key: "local", node: n.local }];
     case "ImportSpecifier": return [{ key: "imported", node: n.imported }, { key: "local", node: n.local }];
-    case "JSXAttribute": return [{ key: "name", node: n.name }, { key: "value", node: n.value }];
+    case "JSXAttribute": return [{ key: "name", node: n.name }, ...kidOne("value", n.value)];
     case "JSXClosingElement": return [{ key: "name", node: n.name }];
     case "JSXElement": return [{ key: "openingElement", node: n.openingElement }, ...kidOne("closingElement", n.closingElement), ...kidMany("children", n.children)];
     case "JSXExpressionContainer": return [{ key: "expression", node: n.expression }];

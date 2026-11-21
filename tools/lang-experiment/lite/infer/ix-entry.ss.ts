@@ -1,14 +1,14 @@
 // The knot and the entry: one cell's check (core.ts's ch.fnExpr(c.fn, null, undefined, { injected })) over fresh
 // tables, with the globals bound in scope 0.
 
-export const ixKnot = (ixInfer, ixCheck, ixCond, ixStmt, ixFnExpr, ixCall, ixBind) => (reg: IxReg, src: string, cellNames: Set<string>, allowed: Set<string>): IxK =>
-  ({ reg, src, cellNames, allowed, infer: ixInfer, check: ixCheck, cond: ixCond, stmt: ixStmt, fnExpr: ixFnExpr, call: ixCall, bind: ixBind });
+export const ixKnot = (ixInfer, ixCheck, ixCond, ixStmt, ixFnExpr, ixCall, ixBind) => (reg: IxReg, src: string, cellNames: Set<string>, allowed: Set<string>, probe: IxProbeAsk | null): IxK =>
+  ({ reg, src, cellNames, allowed, probe, infer: ixInfer, check: ixCheck, cond: ixCond, stmt: ixStmt, fnExpr: ixFnExpr, call: ixCall, bind: ixBind });
 export const ixFreshCtl = () => (count: number): IxCtl => ({
   cur: 0, nextFlow: 0, diags: null, unsup: null, rets: [], yields: [], quiet: 0, nextId: 0, nextScope: 0, nextNid: count,
-  fresh: 1000000, short: new Set(), clones: new Set(), breaks: null, flagsAt: -1, flags: undefined, gap: null, facts: null,
+  fresh: 1000000, short: new Set(), clones: new Set(), breaks: null, flagsAt: -1, flags: undefined, gap: null, facts: null, probe: null,
 });
 export const ixCheckFn = (ixKnot, ixFreshCtl, ixDrain, ixOut, ixFoldFacts) => (reg: IxReg, input: IxInput): IxOutput => {
-  const K: IxK = ixKnot(reg, input.src, input.cellNames, input.allowed);
+  const K: IxK = ixKnot(reg, input.src, input.cellNames, input.allowed, null);
   const T: IxTypes = mut(new Map()), V: IxVars = mut(new Map()), W: IxFlows = mut(new Map([[0, new Map()]]));
   const C: IxCtls = mut({ ...ixFreshCtl(input.count) });
   C.nextFlow = 1;

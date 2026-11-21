@@ -1,3 +1,6 @@
+// FROZEN FIXTURE (2026-11-21, switch3): the TypeScript checker as it was before checkSources ran the cells. Read by
+// lite/infer/diff.ts, lite/infer/complete-diff.ts, lite/syntax.test.ts and selfhost/checker-shape, checker-survey;
+// nothing shipped imports it, and the build does not reach it.
 // Ownership rules over one checked cell, using the facts infer.ts recorded:
 //  - mut(e): e fresh, bound to a local const; Mut/Borrowed/view expressions only in whitelisted positions
 //  - captures: a nested function may use a Mut (or assign a let) only if it is a non-escaping local helper,
@@ -5,10 +8,10 @@
 //  - flow: no use of a Mut after freeze, no use of a Borrowed after await/yield (loops to a fixpoint;
 //    a call of a helper is a use of every Mut it captures)
 //  - state(...) and borrow(...) placement
-import { kids, isFn, type Node } from "./parse.ts";
+import { kids, isFn, type Node } from "../../parse.ts";
 import type { Checker, Binding } from "./infer.ts";
-import { isNamed, unwrap, show, ERR, type Ty } from "./types.ts";
-import type { Registry } from "./registry.ts";
+import { isNamed, unwrap, show, ERR, type Ty } from "../../types.ts";
+import type { Registry } from "../../registry.ts";
 
 type Rule = { node: Node; rule: string; msg: string };
 export { kids };
@@ -161,7 +164,7 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
         }
         if (pre === "borrow") return kind === "mut" ? null : "borrow of a non-Mut";
         if (pre === "snapshot") return kind === "mut" ? "snapshot of a Mut" : null;
-        if (pre === "equals") return null;
+        if (pre === "equals" || pre === "messageOf") return null;
         if (pre) return `argument of ${pre}()`;
         if (kind === "mut" && mutParamArg(p, i)) return null;
         if (nonRetainingArg(p, i)) return null;

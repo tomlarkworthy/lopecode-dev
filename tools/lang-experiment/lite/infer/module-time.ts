@@ -32,7 +32,7 @@ const LP = linkMd();
 function portRun(L: typeof LP, src: Sources, opts: { strictIndex?: boolean }, time: boolean) {
   const R = mdRegistry(opts.strictIndex ?? true);
   const R2 = time ? { ...R, loadUser: timed("loadUser", R.loadUser), loadForeign: timed("loadForeign", R.loadForeign) } : R;
-  try { return L.mdCheckSources(R2, { cells: src.cells, tsx: !!src.tsx, foreign: src.foreign ?? null, shell: src.shell ?? null, name: src.name ?? null, outside: (src.outside ?? []).map((o) => ({ name: o.name, view: !!o.view })) }); } finally { R.finish(); }
+  try { return L.mdCheckSources(R2, { cells: src.cells, tsx: !!src.tsx, foreign: src.foreign ?? null, shell: src.shell ?? null, name: src.name ?? null, outside: (src.outside ?? []).map((o) => ({ name: o.name, view: !!o.view })), probe: null }); } finally { R.finish(); }
 }
 // the corpus: diff.ts's module jobs as its last full --module run wrote them
 const corpus: { key: string; src: Sources; opts: { strictIndex?: boolean } }[] = JSON.parse(readFileSync(join(ROOT, "lite/soundscript/.scratch/infer-port/module-sources.json"), "utf8"));

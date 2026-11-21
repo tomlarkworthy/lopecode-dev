@@ -35,7 +35,7 @@ const stats = (us: Unit[]) => {
   const cs = us.map((u) => u.chars ?? 0).sort((a, b) => a - b), w = Math.max(...us.map((u) => u.widest ?? 0));
   return `${us.length} units, total ${xs.reduce((a, b) => a + b, 0)}, largest ${max.code} (${max.name}), median ${xs[Math.floor((xs.length - 1) / 2)]}; chars total ${cs.reduce((a, b) => a + b, 0)}, median ${cs[Math.floor((cs.length - 1) / 2)]}; widest line ${w}`;
 };
-const out: string[] = [`lite/infer.ts@${sha("lite/infer.ts")} lite/registry.ts@${sha("lite/registry.ts")} lite/types.ss.ts@${sha("lite/types.ss.ts")}`];
+const out: string[] = [`lite/infer.ts@${sha("lite/infer/frozen/infer.ts")} lite/registry.ts@${sha("lite/registry.ts")} lite/types.ss.ts@${sha("lite/types.ss.ts")}`];
 const common = units("common.ss.ts");
 out.push(`common.ss.ts (shared by every shape; regView stand-in included): cells ${stats(common.cells)}`);
 for (const [shape, files] of [["A", ["shapeA.ss.ts"]], ["B", ["tablesB.ss.ts", "shapeB.ss.ts"]], ["B2", ["tablesB2.ss.ts", "shapeB.ss.ts"]], ["C", ["shapeC.ss.ts"]]] as const) {
@@ -48,8 +48,8 @@ for (const [shape, files] of [["A", ["shapeA.ss.ts"]], ["B", ["tablesB.ss.ts", "
 // the original members of the slice: stateful (the cycle) and the pure ones common.ss.ts holds
 const STATEFUL = ["err", "unsupported", "rec", "declare", "pathKey", "memberMissing", "expect", "check", "check1", "infer", "infer1", "ident", "member", "call", "apply", "conditional", "cond", "numeric", "binary", "unary", "stmts", "block", "stmt", "varDecl", "returned"];
 const PURE = ["um", "filter", "truthy", "falsy", "nonNullish", "nonUndef", "typeTag", "narrowTypeof", "narrowEq", "narrowByProp", "join", "logicalType", "intrinsicName", "noOverlap", "awaited", "settled", "ctxOnly", "collapseArrays"];
-const inv = inventory().filter((d) => d.file === "lite/infer.ts");
-const orig = units("lite/infer.ts", join(HERE, "../.."));
+const inv = inventory().filter((d) => d.file === "lite/infer/frozen/infer.ts");
+const orig = units("lite/infer/frozen/infer.ts", join(HERE, "../.."));
 const at = (full: string, name: string): Unit => { const d = inv.find((x) => x.name === full); return d ? { ...orig.span(name, d.start, d.end), code: d.code } : { name, code: NaN, chars: NaN, widest: NaN }; };
 const pick = (names: string[]) => names.map((n) => at(`Checker.${n}`, n));
 const stateful = [...pick(STATEFUL), at("Scope.get", "Scope.get")];

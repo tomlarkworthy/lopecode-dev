@@ -89,11 +89,9 @@ export const mdInjectAnn = (mdDiag, ixHides, isNamed, show) => (K: IxK, C: IxCtl
 };
 // one parameter's injected type, by what it names: a cell, a foreign value, a shell cell, a capability, a cell in
 // another language; a handle (State, Events) only of a cell
-export const mdInjectParam = (mdAnn, mdRefName, mdDiag, mdInjectCell, mdInjectForeign, mdShellFn, mdInjectBoundary, mdInjectAnn, ixGap, named, UNKNOWN, ERR) => (K: IxK, C: IxCtls, X: MdCtx, M: MdMod, L: MdL, cell: string, p: AstNode): Ty => {
+export const mdInjectParam = (mdAnn, mdRefName, mdDiag, mdInjectCell, mdInjectForeign, mdShellFn, mdInjectBoundary, mdInjectAnn, named, UNKNOWN, ERR) => (K: IxK, C: IxCtls, X: MdCtx, M: MdMod, L: MdL, cell: string, p: AstNode): Ty => {
   if (p.type !== "Identifier") { mdDiag(X, L, p, "inject-pattern", "an injected parameter must be a plain identifier"); return ERR; }
   const name = p.name, ann = mdAnn(p), ref = mdRefName(ann);
-  // `name in CAPABILITIES` also finds Object.prototype's names, which core.ts then takes as capabilities
-  if (X.R.inherited.has(name)) return ixGap(C, `parameter ${name}, a name of Object.prototype`);
   if (ref === "Source" || ref === "Sub") {
     mdDiag(X, L, p, "inject-events", ref === "Source" ? "Source was renamed Events: type this parameter Events<...>" : "Sub was renamed Listener, and no cell may take a listener");
     return ERR;

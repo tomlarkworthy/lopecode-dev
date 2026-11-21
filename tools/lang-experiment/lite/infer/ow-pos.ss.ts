@@ -21,7 +21,7 @@ export const owPosCall = (owPrelude, owPosFreeze, owArgIndex, owMutParamArg, owN
   if (pre === "freeze") return owPosFreeze(O, W, p, x, kind, b);
   if (pre === "borrow") return kind === "mut" ? null : "borrow of a non-Mut";
   if (pre === "snapshot") return kind === "mut" ? "snapshot of a Mut" : null;
-  if (pre === "equals") return null;
+  if (pre === "equals" || pre === "messageOf") return null;
   if (pre) return `argument of ${pre}()`;
   if (kind === "mut" && owMutParamArg(O, p, i)) return null;
   if (owNonRetainingArg(O, p, i)) return null;

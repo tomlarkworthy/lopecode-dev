@@ -23,7 +23,7 @@ import { parse, type Node } from "../../lite/parse.ts";
 type V = "a" | "b" | "b*" | "c" | "d";
 type Row = { file: string; name: string; v: V; how: "full" | "reduced"; probe: string; why: string; groups: string[] };
 const R = (file: string, name: string, v: V, how: Row["how"], probe: string, why: string, groups: string[] = []): Row => ({ file, name, v, how, probe, why, groups });
-const I = "lite/infer.ts", G = "lite/registry.ts", C = "lite/core.ts", O = "lite/own.ts", K = "lite/capture.ts", M = "lite/complete.ts",
+const I = "lite/infer/frozen/infer.ts", G = "lite/registry.ts", C = "lite/infer/frozen/core.ts", O = "lite/infer/frozen/own.ts", K = "lite/infer/frozen/capture.ts", M = "lite/infer/frozen/complete.ts",
   T = "lite/toolchain/ss-toolchain.ts", CT = "lite/toolchain/comment-types.ts";
 export const ROWS: Row[] = [
   // infer.ts (P2 applies to every member)
@@ -139,7 +139,7 @@ const BORDER = new Set(inventory().filter((d) => stratum(d) === "borderline").ma
 const groupOf = (file: string, name: string, kind: string): string =>
   kind === "type" ? "types" : BORDER.has(`${file}:${name}`) ? "borderline" : name.includes(".") ? "class members" :
   ["lite/toolchain/ss-toolchain.ts", "lite/toolchain/comment-types.ts", "lite/jsx/lower.ts", "lite/link.ts"].includes(file) ? "toolchain + linker" :
-  file === "lite/complete.ts" ? "completion" :
+  file === "lite/infer/frozen/complete.ts" ? "completion" :
   GIANT.has(`${file}:${name}`) ? "giant functions" : "checker functions";
 const rowGroup = (r: Row) => r.name.includes(">") ? "giant functions" : groupOf(r.file, r.name, inv.find((d) => d.file === r.file && d.name === r.name)?.kind ?? "");
 const pop = inv.filter((d) => stratum(d) === "core" || stratum(d) === "borderline");

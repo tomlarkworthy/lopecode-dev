@@ -75,3 +75,8 @@ export const throwIt = () => (n: number): number => { if (n < 0) throw new Error
 export const neverRet = () => (): never => { throw new Error("x"); };
 export const voidRet = () => (xs: number[]): void => { xs.forEach((x) => x + 1); };
 export const missRet = () => (n: number): number => { if (n > 0) return 1; };
+// function expressions with type parameters (typed tree gap fixed 2026-11-21)
+export const genFe = () => function <T>(x: T): T { return x; };
+export const genFeUse = () => { const f = function <T>(xs: T[], d: T): T { return xs[0] ?? d; }; return f([1, 2], 0) + 1; };
+export const genFeBad = () => { const f = function <T>(x: T): T { return x; }; const s: string = f(1); return s; };
+export const genFeNamed = () => function first<A, B>(a: A, b: B): [A, B] { return [a, b]; };

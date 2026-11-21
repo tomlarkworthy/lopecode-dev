@@ -7,7 +7,7 @@
 // Run: bun selfhost/checker-shape/diff.ts [--reps N] [--shapes A,B,B2,C] [--no-sweep] > selfhost/checker-shape/out/diff.txt
 import { parse, kids, type Node } from "../../lite/parse.ts";
 import { Registry } from "../../lite/registry.ts";
-import { Checker } from "../../lite/infer.ts";
+import { Checker } from "../../lite/infer/frozen/infer.ts";
 import { show } from "../../lite/types.ts";
 import * as typeCells from "../../lite/types.ss.ts";
 import * as prelude from "../../prelude.runtime.ts";
@@ -15,7 +15,7 @@ import * as common from "./common.ss.ts";
 import { link } from "./mylink.ts";
 import { PROGRAMS, type Program } from "./programs.ts";
 import { sha } from "../checker-survey/inventory.ts";
-console.log(`real checker: lite/infer.ts@${sha("lite/infer.ts")} lite/registry.ts@${sha("lite/registry.ts")} lite/types.ss.ts@${sha("lite/types.ss.ts")}`);
+console.log(`real checker: lite/infer.ts@${sha("lite/infer/frozen/infer.ts")} lite/registry.ts@${sha("lite/registry.ts")} lite/types.ss.ts@${sha("lite/types.ss.ts")}`);
 
 const argv = process.argv.slice(2);
 const opt = (k: string, d: string) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] ?? d : d; };
