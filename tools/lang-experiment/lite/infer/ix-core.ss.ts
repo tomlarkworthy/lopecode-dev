@@ -153,15 +153,25 @@ export const ixFilter = (ixUm, union) => (R: IxRegCore, t: Ty, keep: (m: Ty) => 
   }
   return union(freeze(out));
 };
+// m, a record with no call signature, may hold a value of one of kinds although its typeof tag is "object": any such
+// record a function (a callable type with m's members is assignable to it), {} and { a?: number } a string or an array
+export const ixAdmits = (STR, NUM, BOOL, BIGINT, SYMBOL, UNDEF, NEVER, arr) => {
+  const W = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["symbol", SYMBOL], ["undefined", UNDEF], ["array", arr(NEVER)]]);
+  return (R: IxRegCore, m: Ty, kinds: string[]): boolean => {
+    const x = m.k === "named" ? R.expand(m) : m;
+    if (x.k !== "rec" || !!x.calls?.length || !!x.ctors?.length) return false;
+    return kinds.some((k) => { const w = W.get(k); return k === "function" || (w !== undefined && R.sub(w, m)); });
+  };
+};
 export const ixTruthy = (ixFilter) => (R: IxRegCore, t: Ty): Ty => ixFilter(R, t, (m) => {
   if (m.k === "null" || m.k === "undef" || m.k === "void") return false;
   if (m.k === "lit") return !!m.v;
   return true;
 });
-export const ixFalsy = (ixFilter) => (R: IxRegCore, t: Ty): Ty => ixFilter(R, t, (m) => {
+export const ixFalsy = (ixFilter, ixAdmits) => (R: IxRegCore, t: Ty): Ty => ixFilter(R, t, (m) => {
   if (["null", "undef", "void", "num", "str", "bigint", "unknown", "tv"].includes(m.k)) return true;
   if (m.k === "lit") return !m.v;
-  return false;
+  return ixAdmits(R, m, ["number", "string", "boolean", "bigint"]);
 });
 export const ixNonNullish = (ixFilter) => (R: IxRegCore, t: Ty): Ty => ixFilter(R, t, (m) => m.k !== "null" && m.k !== "undef" && m.k !== "void");
 export const ixNonUndef = (ixFilter) => (R: IxRegCore, t: Ty): Ty => ixFilter(R, t, (m) => m.k !== "undef" && m.k !== "void");
@@ -191,8 +201,10 @@ export const ixTypeTag = (unwrap) => {
 };
 export const IX_TYPEOF = (STR, NUM, BOOL, BIGINT, UNDEF, SYMBOL, OBJECT, NULL, union) => new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["undefined", UNDEF],
   ["symbol", SYMBOL], ["object", union([OBJECT, NULL])], ["function", OBJECT]]);
-export const ixNarrowTypeof = (ixFilter, ixTypeTag, IX_TYPEOF) => (R: IxReg, t: Ty, tag: string, pos: boolean): Ty => ixFilter(R, t, (m) => {
+// a record whose tag is "object" stays, as itself, on a side where a value of it may be of another kind
+export const ixNarrowTypeof = (ixFilter, ixTypeTag, ixAdmits, IX_TYPEOF) => (R: IxReg, t: Ty, tag: string, pos: boolean): Ty => ixFilter(R, t, (m) => {
   const mt = ixTypeTag(R, m);
+  if (mt === "object" && pos !== (tag === "object") && ixAdmits(R, m, pos ? [tag] : ["function", "string", "number", "boolean", "bigint", "symbol", "undefined"])) return true;
   if (mt !== null) return (mt === tag) === pos;
   if (!pos) return true;
   if (m.k === "unknown" || m.k === "tv") return IX_TYPEOF.get(tag) ?? false;
@@ -224,10 +236,10 @@ export const ixNarrowIn = (ixFilter, UNKNOWN) => (R: IxRegCore, t: Ty, k: string
   const p = R.member(m, k);
   return !(p && !p.opt);
 });
-export const ixNarrowArray = (ixFilter, arr, UNKNOWN) => (R: IxRegCore, t: Ty, pos: boolean): Ty => ixFilter(R, t, (m) => {
+export const ixNarrowArray = (ixFilter, ixAdmits, arr, UNKNOWN) => (R: IxRegCore, t: Ty, pos: boolean): Ty => ixFilter(R, t, (m) => {
   if (m.k === "arr" || m.k === "tup") return pos;
-  if (m.k === "unknown" || m.k === "object") return pos ? arr(UNKNOWN) : true;
-  return !pos;
+  if (m.k === "unknown" || m.k === "object" || m.k === "tv") return pos ? arr(UNKNOWN) : true;
+  return !pos || ixAdmits(R, m, ["array"]);
 });
 // discriminant: keep the members of t whose property k passes test
 export const ixNarrowByProp = (ixFilter, propT) => (R: IxRegCore, t: Ty, k: string, test: (pt: Ty) => boolean): Ty => ixFilter(R, t, (m) => {

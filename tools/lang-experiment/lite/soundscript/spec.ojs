@@ -1775,11 +1775,14 @@ spec_rejects_9 = [
   { statement: "S9.1", rule: "inject-type", source: "const b = (raw: string[]) => raw.length;", shell: "export let raw = () => JSON.parse(\"1\");" },
   { statement: "S9.1", rule: "no-any", source: "const b = (raw: any) => 1;", shell: "export let raw = () => JSON.parse(\"1\");" },
   { statement: "S9.1", rule: "inject-type", source: "const b = (raw: { run: () => number }) => 1;", shell: "export let raw = (s) => s.length;" },
+  { statement: "S9.2", rule: "type", source: "const f = () => (): number => {\n  const x: {} = [\"s\"];\n  const y: {} | number[] = x;\n  return Array.isArray(y) ? (y[0] ?? 0) + 1 : 0;\n};" },
+  { statement: "S9.2", rule: "type", source: "const k = () => <T,>(x: T): number => {\n  const y: T | number[] = x;\n  return Array.isArray(y) ? (y[0] ?? 0) + 1 : 0;\n};" },
   { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (v: unknown): boolean => typeof v === \"object\" && \"then\" in v;" },
   { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (v: unknown): boolean => v !== undefined && typeof v === \"object\" && \"then\" in v;" },
   { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (v: unknown, b: boolean): boolean => (b ? v !== null : true) && typeof v === \"object\" && \"then\" in v;" },
   { statement: "S9.4", rule: "possibly-undefined", source: "type V = { readonly a: { readonly x: number } | null | undefined; readonly \"a!null\": number | undefined };\nconst f = () => (v: V): number => v[\"a!null\"] !== undefined && v.a !== undefined ? v.a.x : 0;" },
   { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (w: unknown): boolean => {\n  let v = w;\n  if (v === null) return false;\n  v = w;\n  return typeof v === \"object\" && \"then\" in v;\n};" },
+  { statement: "S9.4", rule: "type", source: "const f = () => (): null => {\n  const x: {} = 0;\n  const y: {} | null = x;\n  if (y) return null;\n  const z: null = y;\n  return z;\n};" },
   { statement: "S9.5", rule: "type", source: "const f = () => (v: unknown): boolean => \"then\" in v;" },
   { statement: "S9.5", rule: "type", source: "const f = () => <T,>(v: T): boolean => \"then\" in v;" },
   { statement: "S9.5", rule: "type", source: "const f = () => (v: unknown): boolean => typeof v !== \"number\" && \"then\" in v;" },
@@ -1801,6 +1804,12 @@ spec_rejects_9 = [
   { statement: "S9.6", rule: "type", source: "type O = { readonly then?: unknown };\nconst f = () => (o: O): unknown => (typeof o.then === \"function\" ? o.then(1) : 0);" },
   { statement: "S9.6", rule: "no-member", source: "const f = () => (u: unknown): number => (typeof u === \"symbol\" ? u.description.length : 0);" },
   { statement: "S9.6", rule: "no-member", source: "interface G { (x: number): number }\nconst f = () => (g: G): number => (typeof g === \"function\" ? g.nope.deeper : 0);" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (g: (s: string) => number): string => {\n  const x: {} = g;\n  const y: {} | ((n: number) => string) = x;\n  return typeof y === \"function\" ? y(3) : \"\";\n};" },
+  { statement: "S9.6", rule: "type", source: "interface G {\n  (s: string): number;\n  readonly a: number;\n}\nconst f = () => (g: G): string => {\n  const x: { readonly a: number } = g;\n  const y: { readonly a: number } | ((n: number) => string) = x;\n  return typeof y === \"function\" ? y(3) : \"\";\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (g: (s: string) => number): string => {\n  const x: { readonly a?: number } = g;\n  const y: { readonly a?: number } | ((n: number) => string) = x;\n  return typeof y === \"object\" ? \"\" : y(3);\n};" },
+  { statement: "S9.6", rule: "type", source: "interface E {}\nconst f = () => (g: (s: string) => number): string => {\n  const x: E = g;\n  const y: E | ((n: number) => string) = x;\n  switch (typeof y) {\n    case \"function\":\n      return y(3);\n    default:\n      return \"\";\n  }\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (g: (s: string) => number): string => {\n  const b: ({} | ((n: number) => string))[] = [g];\n  return typeof b[0] === \"function\" ? b[0](3) : \"\";\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (): string => {\n  const x: {} = \"b\";\n  const y: {} | \"a\" = x;\n  if (typeof y !== \"string\") return \"\";\n  const z: \"a\" = y;\n  return z;\n};" },
   { statement: "S9.7", rule: "no-member", source: "const f = () => async (u: unknown): Promise<unknown> => {\n  if (typeof u !== \"object\" || u === null || !(\"then\" in u)) return 0;\n  const r = await u;\n  return r.then;\n};" },
   { statement: "S9.7", rule: "no-member", source: "type T = { readonly then: (f: (v: number) => void) => void; readonly n: number };\nconst f = () => async (t: T): Promise<number> => (await t).n;" }
 ]
@@ -1823,7 +1832,7 @@ test_spec_S9_1 = {
 test_spec_S9_2 = {
   spec_is(spec_okCellsWith("type S = { readonly w: number; readonly h: number };\nconst decode = () => (x: unknown): S => {\n  if (typeof x !== \"object\" || x === null) throw new Error(\"not an object\");\n  if (!(\"w\" in x) || typeof x.w !== \"number\") throw new Error(\"w\");\n  if (!(\"h\" in x) || typeof x.h !== \"number\") throw new Error(\"h\");\n  return { w: x.w, h: x.h };\n};\nconst n = () => (x: unknown) => (Array.isArray(x) ? x.length : 0);", []), "decode:ok,n:ok");
   spec_is(await spec_module.value("s9_size"), { w: 3, h: 1.5 });
-  return "a decoder narrowing with typeof, in and Array.isArray is accepted; s9_size is {w:3,h:1.5}, without extra";
+  return `${spec_rejectsFor("S9.2")}; a decoder narrowing with typeof, in and Array.isArray is accepted; s9_size is {w:3,h:1.5}, without extra`;
 }
 // %%
 test_spec_S9_3 = {
@@ -1848,7 +1857,8 @@ test_spec_S9_5 = {
 test_spec_S9_6 = {
   spec_is(spec_okCells("const thenable = () => (r: unknown): boolean => (typeof r === \"object\" || typeof r === \"function\") && r !== null && \"then\" in r && typeof r.then === \"function\";"), "thenable:ok");
   spec_is(spec_okCells("interface G { (x: number): number }\nconst f = () => (g: G | number): number => (typeof g === \"function\" ? g(1) : g);\nconst h = () => (g: ((x: number) => number) | string): number => (typeof g === \"function\" ? g(2) : g.length);\nconst s = () => (u: unknown): string => (typeof u === \"symbol\" ? \"symbol\" : typeof u);"), "f:ok,h:ok,s:ok");
-  return `${spec_rejectsFor("S9.6")}; the runtime's thenable test is accepted; a member with a call signature is called after typeof "function"`;
+  spec_is(spec_okCells("type N = { readonly n: number };\nconst s = () => (v: N | string): number => (typeof v === \"string\" ? v.length : v.n);\nconst a = () => (v: N | number[]): number => (Array.isArray(v) ? v.length : v.n);\nconst z = () => (v: N | null): number => (v ? v.n : 0);\nconst e = () => (g: (s: string) => number): number => {\n  const x: {} = g;\n  const y: {} | ((n: number) => string) = x;\n  return typeof y !== \"function\" ? 0 : 1;\n};"), "s:ok,a:ok,z:ok,e:ok");
+  return `${spec_rejectsFor("S9.6")}; the runtime's thenable test is accepted; a member with a call signature is called after typeof "function"; a record that takes no string, array or falsy value is narrowed away by typeof "string", Array.isArray and a truth test`;
 }
 // %%
 test_spec_S9_7 = {

@@ -457,3 +457,101 @@ Scratch `lite/soundscript/.scratch/review4/` (probes `p1.ts` to `p4e.ts`, `harne
   fail; measurements 8`, load 3.29 -> 3.20, 4 min; lint median 5.8 ms, completion median 5.8 ms; Breakout 60 and
   49.2 world changes/s.
 - `/review-notebook` was not run on the spec or these notes.
+
+## 2026-11-21 21:44: a kind test drops a record that may hold the tested kind (typeof-hole)
+Scratch `lite/soundscript/.scratch/typeof-hole/` (probes `probes.ts`, `probes2.ts`, `probes3.ts`, `probes5.ts`; run
+demos `rt.ts`, `rt-tv.ts`, `rt-foreign.ts`, `rt-foreign2.ts`; `*-before.txt` and `*-final.txt` outputs; gate logs in
+`gates/`).
+- Repro (the review4 "not closed" item). Accepted before:
+  ```
+  const f = () => (s: string): number => s.length;
+  const k = (f: (s: string) => number) => { const x: {} = f; const y: {} | ((n: number) => string) = x; return typeof y === "function" ? y(3) : ""; };
+  ```
+  Run (`rt.ts`): `k` is `undefined` where its type says `string`; with `y(3).toUpperCase()`, `RuntimeError: undefined
+  is not an object (evaluating 'y(3).toUpperCase')`. After: `[type] call of {  } | (n: number) => string`.
+- What the checker lets into a record (`probes2.ts`, `const x: H = v`):
+  ```
+  {}, { a?: number }, interface E {}   string number boolean bigint string[] function: yes; null undefined: no
+  object                               string[] function { m: 1 }: yes; primitives: no
+  { readonly length: number }          none of them (string, string[] and a function are all [type])
+  ```
+  (`{ m: 1 }` into `{}` is `[excess-property]` as a literal and accepted through a variable; `[number]` was tried
+  with `as`, which is not a test of assignability.)
+- Probe table, `y: H | ((n: number) => string)` holding `f`, accepted before / after (A accepted, r rejected):
+  ```
+  holder                  === fn  else !== fn  !== object  else === object  switch  if  && | truthy in instanceof ?.() === g
+  {}, { a?: number },       A/r      A/r          A/r          A/r          A/r    A/r A/r |   r/r for every holder
+  { a?; b? }, interface E {}, type E = {}, {} | null: the same
+  {} | number               A/r      A/r          r/r          r/r          A/r    A/r A/r |   r/r
+  object, unknown, Js, T, T extends {} / object / { a?: number }: r/r in every column (narrowed to object)
+  { readonly length / name }: r/r, the assignment itself is [type]
+  ```
+  Also A/r: an element of `({} | fn)[]` (index, `const e = b[0]`, `for of`), `[{} | fn]`, a property `{ p: {} | fn }`;
+  `{ readonly a: number } | fn` holding a parameter of `interface G { (s: string): number; readonly a: number }`;
+  `{} | "a"`, `{} | 1`, `{} | true` under typeof string/number/boolean (then `const z: "a" = y`); `{} | number[]`
+  and `{ a?: number } | number[]` under `Array.isArray`; `T | number[]` under `Array.isArray` (`rt-tv.ts`: `k(["s"])`
+  gave `"s1"` typed `number`); `{} | null` and `{} | 0` on the false side of a truth test (`rt.ts`: `0` typed `null`).
+  Run demos before: `{} | "a"` gave `"b"` typed `number`, `{} | number[]` gave `"s1"`.
+  The mirrored direction, the false side of `=== "function"` or the true side of `=== "object"`, gives `{}`, which is
+  correct there and has no members: harmless. `instanceof`, `?.()`, `"call" in y` and `=== g` reject before and after.
+  `Mut<{}>`, `Borrowed<{}>` and `Mut<string[]>` cannot be put in such a union (`[type]`, `[mut-escape]`).
+- Rule. New cell `ixAdmits` (ix-core, 10 lines): a record with no call signature may hold a function, always (a
+  callable type with its members is assignable to it: the `G` row); a string, number, boolean, bigint, symbol,
+  undefined or array when `R.sub` of that kind (`never[]` for arrays) to the record holds. Callers keep the member as
+  itself: `ixNarrowTypeof` on the side that would drop a member tagged `"object"` (the true side of a non-object tag,
+  the false side of `"object"`); `ixNarrowArray` on the true side, which also now narrows a type parameter to
+  `unknown[]` as it does `unknown`; `ixFalsy` for number, string, boolean, bigint. `switch (typeof y)` goes through
+  `ixNarrowTypeof`. The frozen fixture got the same as `Checker.admits` in `falsy`, `narrowTypeof`, `narrowArray`
+  (header-marked). The three edited cells grew by at most one line; no cell over 26 lines was made.
+- Dead end and alternatives, measured with collect and `checker-port/diff.ts`:
+  - First version: the function kind by the witness `R.sub(() => never, record)`, as `ixMayHoldFn`. It misses a
+    callable with a required member (`G` above, accepted by it). Replaced by "any call-less record".
+  - Replace-by-kind (the member becomes `string`, `object`, `unknown[]` on the true side, as `unknown` already does):
+    sound, 0 corpus verdict changes against base, against the 1 source below for keep-as-itself. Not shipped: the task
+    asked for the member kept as itself. It keeps `string | NavIntent` under `typeof === "string"` accepted.
+  - Cost of the shipped rule beyond the corpus (`probes5.ts`): the value-or-thunk idiom
+    `N | (() => N)` with `typeof v === "function" ? v() : v` is rejected, and `N | string` with
+    `typeof v === "object" ? v.n : v.length` is rejected. Both come from "any call-less record may hold a function".
+    The owner's alternative: forbid a type with a call signature flowing to a record without one; that restores both.
+- Verdicts, collect `out/base-typeof.json` -> `out/after-typeof.json` (`switch3/ndiff.ts`): 853 -> 871 sources, 19
+  differ. 18 are the 9 new rows and their inline copies; one existing source changed:
+  ```
+  port:ports/lopepage-urls navHref     ok -> rejected  [no-member] L259 no property startsWith on NavIntent; [type] L259 string | NavIntent is not assignable to string
+  port:ports/lopepage-urls linkToWith  ok -> rejected  the same at L302 and L320
+  ```
+  `NavIntent` has only optional members, so it may hold a string. Not rewritten: `ports/` is not a shipped cell. No
+  tutorial, core, spec example, `lite/*.ss.ts`, `lite/acorn/*.ss.ts`, `lite/infer/*.ss.ts` or fixture verdict changed
+  (`ts-cells.test.ts` 9 pass checks the `.ss.ts` sections).
+- `diff.ts`: with the cells changed and the fixture not, 2 DIFFERENT (the lopepage-urls cells); with the rows added and
+  the fixture at the witness rule, 2 DIFFERENT (the `G` row and its inline copy), so the rows tell the two rules apart;
+  after: 871 sources SAME 3494 DIFFERENT 0 NOT COVERED 0, fed rule 3494 SAME, `--module-only` 961 SAME 0 DIFFERENT 0 NOT
+  COVERED 0.
+- A scratch guard check (log whenever `ixAdmits`'s record guard said false but `R.sub` of a kind to the member held,
+  member a named type, record, null, tuple or array) logged nothing over the collect and the probes.
+- Time, collect min of 3, interleaved before/after on the same tree, AC Power, load 2.7-4.1: 2100 -> 2137 ms.
+- Spec rows: S9.6 `[type]` x6 (`{} | fn`; `{ readonly a: number } | fn` from `G`; the else of `typeof === "object"`
+  on `{ readonly a?: number }`; `switch (typeof y)` on `interface E {}`; an element of `({} | fn)[]`; `{} | "a"`
+  under typeof string); S9.2 `[type]` x2 (`{} | number[]` and `T | number[]` under `Array.isArray`); S9.4 `[type]`
+  x1 (`{} | null`, falsy side). `test_spec_S9_2` now asks `spec_rejectsFor("S9.2")` (it had no reject case before);
+  `test_spec_S9_6` has an accepted control (`N | string`, `N | number[]`, `N | null`, the else of `=== "function"` on
+  `{} | fn`). Unit probes: `lite/infer/narrow-kinds.test.ts`, 45 pass (6 pass 39 fail on the old cell).
+- PROSE PENDING (S9.6, S9.2, S9.4 sentences unchanged). Proposed for S9.6: "A record without a call signature may hold
+  a function, and `{}` or a record whose members are all optional may hold a string, a number, a boolean or an array:
+  after a `typeof`, `Array.isArray` or truth test, such a record stays on each side where its value may be, as itself,
+  so `typeof v === "function"` on `{} | ((n: number) => string)` leaves a value that cannot be called." S9.2's "A
+  checked function from `unknown` that narrows with ... `Array.isArray`" is still exact; it does not say what a type
+  parameter narrows to (now `unknown[]`).
+- Not closed, other cause: a foreign declaration whose record type the checker's relation does not admit a primitive
+  into, holding one at run time (`rt-foreign2.ts`): `declare const s: { readonly length: number }` given `"abc"`,
+  narrowed by `typeof !== "string"` on `{ readonly length: number } | "a"`: `"abc"` typed `number`; the same with
+  `["s"]` and `Array.isArray`; `{ readonly toFixed: ... }` given `0`, falsy side typed `null`. S9.3 makes a foreign
+  declaration "the trusted signature"; TypeScript admits these values for these types, this checker does not. Owner's
+  decision. A foreign function declared `{}` is now rejected at the call (closed by the rule).
+- Other hole seen, not this family (`rt.ts`): an optional member added through width subtyping,
+  `const q = { b: 1, a: "x" }; const p: { b: number } = q; const r: { b: number; a?: number } = p;` accepted;
+  `(r.a ?? 0) + 1` gave `"x1"` typed `number`.
+- Gates (AC Power): infer.test 5, complete 58, boundary 130, runtime 82, syntax 14, acorn 6, walks 13, ts-cells 9,
+  narrow-kinds 45 pass; rt diff 16 checks 0 differences; complete-diff 6385 SAME; fixtures 14/14. Build 0 "dependancy
+  map" lines, notebook 4,184,021 bytes. verify --quick 220 pass 0 fail (the new rows sit in existing test cells). One
+  full verify: `power AC Power; functional 649 pass 0 fail; measurements 8`; completion median 6.3 ms, Breakout 48.6.
+- `/review-notebook` was not run on the spec or these notes.

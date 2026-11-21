@@ -2,6 +2,8 @@
 // lite/infer/diff.ts, lite/infer/complete-diff.ts, lite/syntax.test.ts and selfhost/checker-shape, checker-survey;
 // nothing shipped imports it, and the build does not reach it.
 // Changed since: mayHoldFn, for core.ts's fed rule (S11.9 fix, 2026-11-21 review4), as the cells' ixMayHoldFn.
+// Changed since: admits, in falsy, narrowTypeof and narrowArray, and a type parameter in narrowArray (typeof-hole fix,
+// 2026-11-21), as the cells' ixAdmits, ixFalsy, ixNarrowTypeof and ixNarrowArray.
 // Bidirectional type checker for one cell: expressions, statements, flow narrowing, generic calls.
 // Records facts (expression types, identifier bindings, resolved call signatures, member flags) that
 // own.ts reads for the ownership rules.
@@ -57,6 +59,7 @@ const actionFn = (args: Ty): Fn => ({ k: "fn", tps: [], ps: (args.k === "tup" ? 
 // what typeof x === tag says of an unknown x: "function" proves an object, not a signature, so it is not callable
 const TYPEOF = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["undefined", UNDEF],
   ["symbol", SYMBOL], ["object", union([OBJECT, NULL])], ["function", OBJECT]]);
+const ADMITS = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["symbol", SYMBOL], ["undefined", UNDEF], ["array", arr(NEVER)]]);
 // the runtime handles of these have none of the members their declarations give them to be nominal
 const memberless = (m: Ty) => isNamed(m, "Action") || isNamed(m, "StateCell") || isNamed(m, "Events") || isNamed(m, "Listener");
 const MUTATING_OPS = new Set(["=", "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", ">>>=", "&=", "|=", "^=", "&&=", "||=", "??="]);
@@ -138,8 +141,15 @@ export class Checker {
   falsy = (t: Ty) => this.filter(t, (m) => {
     if (["null", "undef", "void", "num", "str", "bigint", "unknown", "tv"].includes(m.k)) return true;
     if (m.k === "lit") return !m.v;
-    return false;
+    return this.admits(m, ["number", "string", "boolean", "bigint"]);
   });
+  // m, a record with no call signature, may hold a value of one of kinds although its typeof tag is "object": any
+  // such record a function, {} and { a?: number } a string or an array
+  admits(m: Ty, kinds: string[]): boolean {
+    const x = m.k === "named" ? this.reg.expand(m) : m;
+    if (x.k !== "rec" || !!x.calls?.length || !!x.ctors?.length) return false;
+    return kinds.some((k) => { const w = ADMITS.get(k); return k === "function" || (w !== undefined && this.reg.sub(w, m)); });
+  }
   nonNullish = (t: Ty) => this.filter(t, (m) => m.k !== "null" && m.k !== "undef" && m.k !== "void");
   typeTag(m: Ty): string | null {
     switch (m.k) {
@@ -164,6 +174,7 @@ export class Checker {
   narrowTypeof(t: Ty, tag: string, pos: boolean): Ty {
     return this.filter(t, (m) => {
       const mt = this.typeTag(m);
+      if (mt === "object" && pos !== (tag === "object") && this.admits(m, pos ? [tag] : ["function", "string", "number", "boolean", "bigint", "symbol", "undefined"])) return true;
       if (mt !== null) return (mt === tag) === pos;
       if (!pos) return true;
       if (m.k === "unknown" || m.k === "tv") return TYPEOF.get(tag) ?? false;
@@ -205,8 +216,8 @@ export class Checker {
   narrowArray(t: Ty, pos: boolean): Ty {
     return this.filter(t, (m) => {
       if (m.k === "arr" || m.k === "tup") return pos;
-      if (m.k === "unknown" || m.k === "object") return pos ? arr(UNKNOWN) : true;
-      return !pos;
+      if (m.k === "unknown" || m.k === "object" || m.k === "tv") return pos ? arr(UNKNOWN) : true;
+      return !pos || this.admits(m, ["array"]);
     });
   }
   // Discriminant: keep members of `t` whose property `k` passes `test`.
