@@ -1,16 +1,16 @@
 // bun lite/syntax.test.ts: acorn/syntax.ss.ts (syntaxCheck: distinct names, module shape, syntax pass over typed trees,
-// reaching the tree only through parseTree) against core.ts, on the census inputs (acorn/census.ts), the spec's reject
-// cases with their shell and outside cells, and two synthetic inputs. Module shape: checkSources(...).module filtered to
-// the rules of the module-level loop, and the cells' names and lines. Syntax pass: per cell, core.ts syntaxPass, taken
-// out of core.ts by its AST span, on the function with the cell's span in the tree of the text core.ts checks (its own
-// distinctNames, taken out the same way). Compared as ordered lists of `rule Lline message`. Controls: each cell of the
-// two passes mutated must differ somewhere.
+// reaching the tree only through parseTree) against the TypeScript it replaced in core.ts, kept frozen in
+// syntax.frozen.ts, on the census inputs (acorn/census.ts), the spec's reject cases with their shell and outside cells,
+// and two synthetic inputs. Module shape: the frozen loop on the tree of the text core.ts checks (core.ts distinctNames,
+// taken out of core.ts by its AST span), and checkSources(...).module filtered to the loop's rules, and the cells'
+// names and lines. Syntax pass: per cell, the frozen syntaxPass on the function with the cell's span in that tree.
+// Compared as ordered lists of `rule Lline message`. Controls: each cell of the two passes mutated must differ somewhere.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse, type Node } from "./parse.ts";
 import { checkSources } from "./core.ts";
 import { builtinTypeNames } from "./registry.ts";
-import { reservedName, viewofInputName, RESERVED_MSG } from "./types.ts";
+import { syntaxPass, moduleShape } from "./syntax.frozen.ts";
 import { specRejects } from "./soundscript/spec-cases.ts";
 import { inputs, type Input } from "./acorn/census.ts";
 import { linkAcorn } from "./acorn/index.ts";
@@ -18,10 +18,10 @@ import { linkAcorn } from "./acorn/index.ts";
 const HERE = import.meta.dir;
 let pass = 0, fail = 0;
 const ok = (c: boolean, what: string) => { console.log(`${c ? "pass" : "FAIL"} ${what}`); c ? pass++ : fail++; };
-// core.ts's own syntaxPass and distinctNames, with the declarations they read, by their AST spans
-function fromCore(): { syntaxPass: (n: Node, report: Function, unsup: Function) => void; distinctNames: (src: string, jsx: boolean) => { P: any } } {
+// core.ts's own distinctNames, with the declaration it reads, by their AST spans
+function fromCore(): { distinctNames: (src: string, jsx: boolean) => { P: any; dups: Map<string, { name: string }> } } {
   const src = readFileSync(join(HERE, "core.ts"), "utf8");
-  const want = new Set(["syntaxPass", "distinctNames", "SYNTAX", "TYPE_POSITIONS", "STAND"]);
+  const want = new Set(["distinctNames", "STAND"]);
   const parts: string[] = [];
   for (const st of parse(src).program.body as Node[]) {
     const d = st.type === "ExportNamedDeclaration" ? st.declaration : st;
@@ -30,7 +30,7 @@ function fromCore(): { syntaxPass: (n: Node, report: Function, unsup: Function) 
   }
   if (want.size) throw new Error(`not found in core.ts: ${[...want].join(", ")}`);
   const js = new Bun.Transpiler({ loader: "ts" }).transformSync(parts.join("\n"));
-  return new Function("reservedName", "viewofInputName", "RESERVED_MSG", "parse", `${js}\nreturn { syntaxPass, distinctNames };`)(reservedName, viewofInputName, RESERVED_MSG, parse);
+  return new Function("parse", `${js}\nreturn { distinctNames };`)(parse);
 }
 const core = fromCore();
 const SHAPE_RULES = new Set(["builtin-type-name", "cell-not-function", "module-level", "no-enum", "no-namespace", "no-class", "no-var", "duplicate-cell"]);
@@ -62,21 +62,25 @@ function run(L: any, label: string, cases: Case[], quiet = false) {
     if (!got.ok) { t.skipped++; continue; }
     if (got.parses > 1) t.reparsed++;
     const line = L.lineAt(c.src);
-    const want = res.module.filter((e) => SHAPE_RULES.has(e.rule) && !(e.rule === "duplicate-cell" && !e.msg.startsWith("cell "))).map((e) => `${e.rule} L${e.line} ${e.msg}`);
+    let D: { P: any; dups: Map<string, { name: string }> } | null = null;
+    try { D = core.distinctNames(c.src, c.tsx); } catch {}
+    const P = D?.P ?? null;
+    const frozen = D ? moduleShape(D.P, shellNamesOf(c.shell)) : { cells: [], errors: [{ rule: "(no parse)", line: 0, msg: "" }] };
+    const want = frozen.errors.filter((e) => SHAPE_RULES.has(e.rule)).map((e) => `${e.rule} L${e.line} ${e.msg}`);
+    const live = res.module.filter((e) => SHAPE_RULES.has(e.rule) && !(e.rule === "duplicate-cell" && !e.msg.startsWith("cell "))).map((e) => `${e.rule} L${e.line} ${e.msg}`);
     const gotE = [...got.shape.clashes, ...got.shape.errors].map((e: any) => `${e.rule} L${line(e.at.start)} ${e.msg}`);
-    const wantCells = res.cells.map((x) => `${x.name.replace(/ \(\d+\)$/, "")} L${x.line}`);
+    const wantCells = frozen.cells.map((x) => `${D!.dups.get(x.name)?.name ?? x.name} L${P.line(x.stmt.start)}`);
+    const liveCells = res.cells.map((x) => `${x.name.replace(/ \(\d+\)$/, "")} L${x.line}`);
     const gotCells = got.shape.cells.map((x: any, i: number) => `${got.names[i]} L${line(x.stmt.start)}`);
-    const okShape = same(want, gotE) && same(wantCells, gotCells);
+    const okShape = same(want, gotE) && same(wantCells, gotCells) && same(live, gotE) && same(liveCells, gotCells);
     t.shape[okShape ? 0 : 1]++;
     if (want.length) t.shapeErrs++;
-    if (!okShape && shown.length < 6) shown.push(`shape ${c.id}: want ${JSON.stringify([want, wantCells])} got ${JSON.stringify([gotE, gotCells])}`);
-    let P: any = null;
-    try { P = core.distinctNames(c.src, c.tsx).P; } catch {}
+    if (!okShape && shown.length < 6) shown.push(`shape ${c.id}: want ${JSON.stringify([want, wantCells])} live ${JSON.stringify([live, liveCells])} got ${JSON.stringify([gotE, gotCells])}`);
     got.shape.cells.forEach((cell: any, i: number) => {
       t.cells++;
       const fn = P ? fnAt(P.program, cell.fn.start, cell.fn.end) : null;
       const orig: string[] = [];
-      if (fn) core.syntaxPass(fn, (n: Node, rule: string, msg: string) => orig.push(`${rule} L${P.line(n.start)} ${msg}`), (n: Node, w: string) => orig.push(`unsupported L${P.line(n.start)} ${w} (unsup)`));
+      if (fn) syntaxPass(fn, (n: Node, rule: string, msg: string) => orig.push(`${rule} L${P.line(n.start)} ${msg}`), (n: Node, w: string) => orig.push(`unsupported L${P.line(n.start)} ${w} (unsup)`));
       else orig.push("(no node at the cell's span)");
       const port = got.diags[i].map((d: any) => `${d.rule} L${line(d.at.start)} ${d.msg}${d.unsup ? " (unsup)" : ""}`);
       t.diags += orig.length;
@@ -103,7 +107,7 @@ const cases: Case[] = [
 ];
 const L = linkAcorn();
 const r = run(L, "corpus", cases);
-ok(r.shape[1] === 0 && r.syn[1] === 0 && r.shape[0] > 0 && r.shapeErrs > 0 && r.diags > 0 && r.reparsed > 0, `syntaxCheck against core.ts: module shape ${r.shape[0]} same, syntax pass ${r.syn[0]} cells same, 0 differ`);
+ok(r.shape[1] === 0 && r.syn[1] === 0 && r.shape[0] > 0 && r.shapeErrs > 0 && r.diags > 0 && r.reparsed > 0, `syntaxCheck against syntax.frozen.ts and checkSources: module shape ${r.shape[0]} same, syntax pass ${r.syn[0]} cells same, 0 differ`);
 // controls: one mutation per cell of the two passes
 const controls: [string, Record<string, any>][] = [
   ["typeClash reports nothing", { typeClash: () => () => [] }],

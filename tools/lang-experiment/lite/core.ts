@@ -5,12 +5,13 @@ import { parse, type Node, type Parsed } from "./parse.ts";
 import { Registry } from "./registry.ts";
 import { Checker } from "./infer.ts";
 import { ownership, actionEscapes, iterIn } from "./own.ts";
-import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, reservedName, viewofInputName, RESERVED_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith } from "./types.ts";
+import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, reservedName, RESERVED_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith } from "./types.ts";
 import { CAPABILITIES } from "./intrinsics.ts";
 import { island, specOf, compileCalls } from "./island.ts";
 import { factsOf, type CellInfo } from "./facts.ts";
 import { captures, opaqueCaptures } from "./capture.ts";
 import { boundaryShape, type Shape } from "./boundary.ts";
+import { syntaxCheck, type SyntaxDiag } from "./acorn/index.ts";
 
 export type LiteError = { rule: string; line: number; msg: string };
 export type LiteCell = {
@@ -21,32 +22,7 @@ export type LiteCell = {
 // result prints and compares as before.
 export type LiteResult = { port: string; file: string; ok: boolean; module: LiteError[]; cells: LiteCell[]; ms: number; readonly facts?: ReadonlyMap<string, CellInfo> };
 
-type CellDef = { name: string; fn: Node; stmt: Node };
-
-const SYNTAX: Record<string, string> = {
-  ThisExpression: "no-this", ClassDeclaration: "no-class", ClassExpression: "no-class", TSAnyKeyword: "no-any",
-  TSNonNullExpression: "no-non-null", ImportExpression: "no-dynamic-import", TSEnumDeclaration: "no-enum",
-  TSModuleDeclaration: "no-namespace", TSTypeAssertion: "no-cast",
-};
-function syntaxPass(n: Node, report: (n: Node, rule: string, msg: string) => void, unsup: (n: Node, what: string) => void) {
-  const walk = (x: any, parent: any, inType = false) => {
-    if (!x || typeof x !== "object") return;
-    if (Array.isArray(x)) { x.forEach((y) => walk(y, parent, inType)); return; }
-    if (typeof x.type !== "string") return;
-    const named = parent && !parent.computed && ((parent.type === "MemberExpression" && parent.property === x) || (parent.type === "Property" && parent.key === x && parent.value !== x));
-    if (x.type === "Identifier" && !inType && reservedName(x.name) && !(named && !viewofInputName(x.name))) report(x, "reserved-name", RESERVED_MSG(x.name));
-    const r = SYNTAX[x.type];
-    if (r) report(x, r, x.type);
-    if (x.type === "TSAsExpression" && !(x.typeAnnotation.type === "TSTypeReference" && x.typeAnnotation.typeName?.name === "const")) report(x, "no-cast", "as cast");
-    if (x.type === "TSSatisfiesExpression") unsup(x, "satisfies");
-    if (x.type === "VariableDeclaration" && x.kind === "var") report(x, "no-var", "var");
-    if (x.type === "Identifier" && x.name === "arguments" && !(parent?.type === "MemberExpression" && parent.property === x && !parent.computed) && !(parent?.type === "Property" && parent.key === x))
-      report(x, "no-arguments", "arguments");
-    for (const k in x) if (k !== "loc") walk(x[k], x, inType || TYPE_POSITIONS.has(k));
-  };
-  walk(n, null);
-}
-const TYPE_POSITIONS = new Set(["typeAnnotation", "returnType", "typeParameters", "typeArguments"]);
+type CellDef = { name: string; fn: Node; stmt: Node; bans: readonly SyntaxDiag[] };
 
 // outside: the module's cells in other languages (Observable JavaScript, raw), by name; view when the
 // module also has `viewof <name>` (an Observable JavaScript view, or a SoundScript state cell imported with its
@@ -97,41 +73,26 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       else if (d?.type === "FunctionDeclaration") shellNames.add(d.id.name);
     }
   }
-  // cells.ts module level
-  const cells: CellDef[] = [];
+  // cells.ts module level: the cells and module-level errors from syntaxCheck (acorn/syntax.ss.ts), which parses the
+  // text again as a typed tree; its nodes are matched to P's by position
+  const S = syntaxCheck(cellsSrc, tsx, reg.builtinTypeNames(), shellNames);
+  if (!S.ok) throw new Error(`parseTree did not parse what parse.ts did: ${S.message}`);
+  const stmtAt = new Map((P.program.body as Node[]).map((st) => [st.start, st] as const));
+  const top = (at: { start: number }) => (P.program.body as Node[]).find((st) => st.start <= at.start && at.start < st.end)!;
   // a type or interface with a built-in type's name is not loaded: the cells read the built-in
-  const builtin = reg.builtinTypeNames();
   const clash = new Set<Node>();
-  for (const st of P.program.body as Node[]) {
-    const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st;
-    if ((d.type === "TSTypeAliasDeclaration" || d.type === "TSInterfaceDeclaration") && builtin.has(d.id.name)) {
-      clash.add(d);
-      mod(P, d, "builtin-type-name", `${d.id.name} is a built-in type; give this ${d.type === "TSInterfaceDeclaration" ? "interface" : "type"} another name`);
-    }
+  for (const e of S.shape.clashes) {
+    const st = top(e.at);
+    clash.add(st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st);
+    moduleErrs.push({ rule: e.rule, line: P.line(e.at.start), msg: e.msg });
   }
-  const rest = reg.load(P, "user", true, clash);
-  for (const st of rest) {
-    // a cell is a top-level function or const/let, with or without `export` (2026-11-15: without is the form)
-    const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st;
-    if (d.type === "FunctionDeclaration") { cells.push({ name: d.id.name, fn: d, stmt: st }); continue; }
-    if (d.type === "VariableDeclaration" && d.kind !== "var" && !d.declare) {
-      for (const x of d.declarations) {
-        if (x.id.type === "Identifier" && x.init && (x.init.type === "ArrowFunctionExpression" || x.init.type === "FunctionExpression")) cells.push({ name: x.id.name, fn: x.init, stmt: st });
-        else mod(P, x, "cell-not-function", `${x.id.name ?? "?"} is not a function`);
-      }
-      continue;
-    }
-    if (st.type === "ImportDeclaration" && st.importKind === "type") continue;
-    const rule = d.type === "TSEnumDeclaration" ? "no-enum" : d.type === "TSModuleDeclaration" ? "no-namespace" : d.type === "ClassDeclaration" ? "no-class"
-      : d.type === "VariableDeclaration" && d.kind === "var" ? "no-var" : "module-level";
-    mod(P, st, rule, `${d.type} at module level`);
-  }
+  reg.load(P, "user", true, clash);
+  for (const e of S.shape.errors) moduleErrs.push({ rule: e.rule, line: P.line(e.at.start), msg: e.msg });
+  const cells: CellDef[] = S.shape.cells.map((c, i) => {
+    const stmt = stmtAt.get(c.stmt.start)!;
+    return { name: c.name, fn: nodeAt(stmt, c.fn.start, c.fn.end, c.fn.type)!, stmt, bans: S.diags[i]! };
+  });
   const cellNames = new Set(cells.map((c) => c.name));
-  const seen = new Set<string>();
-  for (const c of cells) {
-    if (seen.has(c.name) || shellNames.has(c.name)) mod(P, c.stmt, "duplicate-cell", `cell ${c.name} defined twice`);
-    seen.add(c.name);
-  }
 
   const outside = new Map((src.outside ?? []).map((o) => [o.name, o] as const));
   // a shell cell's value is unknown to a checked cell, unless the parameter is typed as a function: that crosses as a
@@ -230,7 +191,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     ch.compileHook = (e, env) => compileType(e, env, ch);
     opts.onCell?.(c.name, ch, c.fn);
     const diag = (n: Node, rule: string, msg: string) => r.errors.push({ rule, line: P.line(n.start), msg });
-    syntaxPass(c.fn, diag, (n, w) => ch.unsupported(n, w));
+    for (const d of c.bans) if (d.unsup) ch.unsupported(nodeAt(c.fn, d.at.start, d.at.end, d.at.type)!, d.msg); else r.errors.push({ rule: d.rule, line: P.line(d.at.start), msg: d.msg });
     if (reservedName(c.name)) diag(c.fn, "reserved-name", RESERVED_MSG(c.name));
     // injection
     const injected: Ty[] = [];
@@ -424,3 +385,13 @@ function dedupe(es: LiteError[]): LiteError[] {
   return es.filter((e) => { const k = `${e.line}:${e.rule}:${e.msg}`; if (s.has(k)) return false; s.add(k); return true; });
 }
 
+// the node under root with this span and type (a typed tree's node in P)
+function nodeAt(root: Node, start: number, end: number, type: string): Node | null {
+  const todo: Node[] = [root];
+  for (let n = todo.pop(); n; n = todo.pop()) {
+    if (n.start === start && n.end === end && n.type === type) return n;
+    if (n.start > start || n.end < end) continue;
+    for (const k in n) { const v = n[k]; if (Array.isArray(v)) { for (const x of v) if (x && typeof x.type === "string") todo.push(x); } else if (k !== "loc" && v && typeof v.type === "string") todo.push(v); }
+  }
+  return null;
+}
