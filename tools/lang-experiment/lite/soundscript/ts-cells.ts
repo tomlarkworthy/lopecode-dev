@@ -31,14 +31,14 @@ const WORKERS_ROOTS = ["pagePool"];
 // the inputs compiled SoundScript cells take for runtime cells (ss_freeze ...), each to the runtime cell it imports
 const RUNTIME_INPUTS = new Map(RUNTIME_CELLS.map((n) => [INPUTS[n], n]));
 // in dependency order; where each declaration goes is decided in generate() ("module placement")
-const RUNTIME_FILES = ["../prelude.runtime.ts", "runtime.ss.ts", "types.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "browser/workers.ts"];
+const RUNTIME_FILES = ["../prelude.runtime.ts", "runtime.ss.ts", "events.ss.ts", "types.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "browser/workers.ts"];
 const SPLIT = "stdlib/runtime.ts";
 // SoundScript sections, in the order of their modules in the notebook, and the files bun reaches that link them
-// (types.ts imports types.ss.ts, runtime-ss.ts runtime.ss.ts, through link.ts)
-export const SS_SOURCES = ["runtime.ss.ts", "types.ss.ts"];
+// (types.ts imports types.ss.ts, runtime-ss.ts runtime.ss.ts and events.ss.ts, through link.ts)
+export const SS_SOURCES = ["runtime.ss.ts", "events.ss.ts", "types.ss.ts"];
 const SS_FILES = new Set(SS_SOURCES);
 // the module a section's cells go to when no cell of the other module reaches them (its type declarations)
-const SS_HOME: Record<string, string> = { "runtime.ss.ts": RUNTIME, "types.ss.ts": CHECKER };
+const SS_HOME: Record<string, string> = { "runtime.ss.ts": RUNTIME, "events.ss.ts": RUNTIME, "types.ss.ts": CHECKER };
 const BOOTSTRAP = ["types.ts", "runtime-ss.ts", "link.ts"];
 const CHECKER_FILES = ["parse.ts", "intrinsics.ts", "registry.ts", "infer.ts", "own.ts", "capture.ts", "island.ts", "facts.ts", "core.ts", "complete.ts", "jsx/lower.ts", "browser/erase.ts", "toolchain/comment-types.ts", "toolchain/ss-toolchain.ts"];
 // the third-party imports, and the cells of the checker module that provide them
@@ -66,6 +66,7 @@ const GLOBALS = new Set(["globalThis", "structuredClone", "Event", "EventTarget"
 const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?: string; checker?: string; workers?: string }> = {
   "../prelude.runtime.ts": { title: "State cells and actions", runtime: "The store behind each state cell and its handle, actions, the queue of top-level action calls, and the commit that applies their writes." },
   "runtime.ss.ts": { title: "Runtime cells in SoundScript", runtime: "Cells of the runtime written in SoundScript, compiled from lite/runtime.ss.ts: mismatch wording and the comparison of copies for the boundary, JSX children and event data, the order of listeners, and the bodies of a rejected cell and of compile." },
+  "events.ss.ts": { title: "Delivering events", runtime: "How each value an events cell yields reaches its listeners: `step` takes the delivery state and one event, and returns the next state and the effects that `events`, `listen`, `release` and `sweep` perform. These cells are SoundScript." },
   "types.ss.ts": { title: "Types", checker: "How the checker represents a type, and union, substitution, widening and display over those types. These cells are SoundScript." },
   "boundary.ts": { title: "Values from other languages", checkerTitle: "Shapes for values from other languages", runtime: "`cross` and `checkShape` check a value from a cell in another language against a shape and return a deep-frozen copy.", checker: "`shapeOf` turns a parameter's type annotation into the shape the runtime checks." },
   "jsx/h.ts": { title: "Elements", runtime: "`h` makes the element values that compiled JSX evaluates to." },

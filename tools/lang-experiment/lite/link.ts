@@ -4,8 +4,8 @@
 // again in a scope holding the prelude, as a compiled cell takes each built-in as an input. Parameter names are read from
 // that text's parse. Only cells of the same file can be taken.
 // The caller passes the prelude: prelude.runtime.ts imports runtime-ss.ts, so this file importing it would be a
-// cycle in which runtime-ss.ts links before the prelude's exports exist. runtime-ss.ts passes none: its cells
-// use no built-in (in the notebook such a cell would take the runtime module's own cell of that name).
+// cycle in which runtime-ss.ts links before the prelude's exports exist. runtime-ss.ts passes the runtime module's
+// own mut and freeze cells, which events.ss.ts uses, as a compiled cell of that module takes them.
 import * as acorn from "acorn";
 import { PRELUDE_FNS } from "./intrinsics.ts";
 

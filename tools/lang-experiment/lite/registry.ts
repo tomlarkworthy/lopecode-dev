@@ -182,7 +182,12 @@ export class Registry {
         if (name === "Action") return named("Action", args[0] ?? { k: "tup", els: [] });
         // the prelude's own generics, whatever a module declares under their names
         if (ONE_ARG.has(name) && args.length !== 1) { this.onErr(n, "type", `${name} takes one type argument, as ${name}<T>`); return ERR; }
-        if (WRAPPERS.has(name) || this.types.has(name)) return named(name, ...args);
+        if (WRAPPERS.has(name) || this.types.has(name)) {
+          const t = named(name, ...args), d = this.types.get(name);
+          // an alias of Mut<T> or Borrowed<T> is that type, so the ownership rules see it
+          const e = !WRAPPERS.has(name) && d?.kind === "alias" && d.nodes[0].typeAnnotation?.type === "TSTypeReference" ? this.expand(t) : t;
+          return isNamed(e, "Mut") || isNamed(e, "Borrowed") ? e : t;
+        }
         if (name === "ValueOf") { this.onUnsup(n, "ValueOf in checked cells"); return ERR; }
         this.onErr(n, "unknown-type", `unknown type ${name}`);
         return ERR;

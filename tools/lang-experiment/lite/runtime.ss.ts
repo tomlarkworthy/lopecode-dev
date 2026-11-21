@@ -1,7 +1,8 @@
-// Runtime cells written in SoundScript: the declarations of the runtime module that check as SoundScript. A cell
-// that uses a built-in takes the runtime module's own cell of that name (ss-toolchain inputsIn(true)); none does
-// yet. Under bun, runtime-ss.ts links them; in the notebook they are compiled cells of
-// @tomlarkworthy/soundscript-runtime, which its JavaScript cells take as inputs. selfhost/NOTES-runtime-port.md
+// Runtime cells written in SoundScript: the declarations of the runtime module that check as SoundScript, with
+// events.ss.ts. A cell that uses a built-in takes the runtime module's own cell of that name (ss-toolchain
+// inputsIn(true)); none here does, events.ss.ts's step takes mut and freeze. Under bun, runtime-ss.ts links
+// them; in the notebook they are compiled cells of @tomlarkworthy/soundscript-runtime, which its JavaScript cells
+// take as inputs. selfhost/NOTES-runtime-port.md
 
 export type Shape =
   | { k: "num" } | { k: "str" } | { k: "bool" } | { k: "null" } | { k: "undef" } | { k: "unknown" }
@@ -70,9 +71,7 @@ export const DOM_EVENTS = (ptr: (e: PointerLike) => Ptr): { readonly [k: string]
 export const PROPS = () => new Set(["value", "checked", "disabled"]);
 // runtime-ss.ts gives this its TypeScript type, the predicate x is Elem; a SoundScript type has no predicates
 export const isElem = () => (x: unknown): boolean => typeof x === "object" && x !== null && "tag" in x;
-// two input lists of an events cell are the same run (browser/cells.ts)
-export const same = () => (a: readonly unknown[], b: readonly unknown[]): boolean => a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
-// The listeners of one events cell in the order they run (browser/cells.ts orderOf), from the places the host
+// The listeners of one events cell in the order they run, from the places the host
 // gives: places[0] is the events cell's, places[i + 1] list[i]'s. complete: every listener is placed, so the
 // order may be kept until the cells change.
 export const orderKeyed = () => <L,>(list: readonly L[], places: readonly Place[]): { out: L[]; complete: boolean } => {
