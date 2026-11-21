@@ -31,14 +31,16 @@ const WORKERS_ROOTS = ["pagePool"];
 // the inputs compiled SoundScript cells take for runtime cells (ss_freeze ...), each to the runtime cell it imports
 const RUNTIME_INPUTS = new Map(RUNTIME_CELLS.map((n) => [INPUTS[n], n]));
 // in dependency order; where each declaration goes is decided in generate() ("module placement")
-const RUNTIME_FILES = ["../prelude.runtime.ts", "runtime.ss.ts", "events.ss.ts", "types.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "browser/workers.ts"];
+const RUNTIME_FILES = ["../prelude.runtime.ts", "runtime.ss.ts", "events.ss.ts", "store.ss.ts", "types.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "browser/workers.ts"];
 const SPLIT = "stdlib/runtime.ts";
 // SoundScript sections, in the order of their modules in the notebook, and the files bun reaches that link them
-// (types.ts imports types.ss.ts, runtime-ss.ts runtime.ss.ts and events.ss.ts, through link.ts)
-export const SS_SOURCES = ["runtime.ss.ts", "events.ss.ts", "types.ss.ts"];
+// (types.ts imports types.ss.ts, runtime-ss.ts runtime.ss.ts, events.ss.ts and store.ss.ts, through link.ts)
+export const SS_SOURCES = ["runtime.ss.ts", "events.ss.ts", "store.ss.ts", "types.ss.ts"];
 const SS_FILES = new Set(SS_SOURCES);
 // the module a section's cells go to when no cell of the other module reaches them (its type declarations)
-const SS_HOME: Record<string, string> = { "runtime.ss.ts": RUNTIME, "events.ss.ts": RUNTIME, "types.ss.ts": CHECKER };
+const SS_HOME: Record<string, string> = { "runtime.ss.ts": RUNTIME, "events.ss.ts": RUNTIME, "store.ss.ts": RUNTIME, "types.ss.ts": CHECKER };
+// the sections whose cells a section takes, checked with it as in the notebook, where they are one module
+const SS_CHECKED_WITH: Record<string, string[]> = { "store.ss.ts": ["events.ss.ts"] };
 const BOOTSTRAP = ["types.ts", "runtime-ss.ts", "link.ts"];
 const CHECKER_FILES = ["parse.ts", "intrinsics.ts", "registry.ts", "infer.ts", "own.ts", "capture.ts", "island.ts", "facts.ts", "core.ts", "complete.ts", "jsx/lower.ts", "browser/erase.ts", "toolchain/comment-types.ts", "toolchain/ss-toolchain.ts"];
 // the third-party imports, and the cells of the checker module that provide them
@@ -64,9 +66,10 @@ const GLOBALS = new Set(["globalThis", "structuredClone", "Event", "EventTarget"
 // each section's heading and, per module it gives cells to, one sentence on what those cells do in the notebook
 // (keyed by source file; a file that gives a module cells and has no sentence for it stops the build)
 const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?: string; checker?: string; workers?: string }> = {
-  "../prelude.runtime.ts": { title: "State cells and actions", runtime: "The store behind each state cell and its handle, actions, the queue of top-level action calls, and the commit that applies their writes." },
+  "../prelude.runtime.ts": { title: "State cells and actions", runtime: "Each state cell's handle and the record behind it, `action`, and the commit timer. It runs action bodies and does what the cells of Writes, reads and commits decide." },
   "runtime.ss.ts": { title: "Runtime cells in SoundScript", runtime: "Cells of the runtime written in SoundScript, compiled from lite/runtime.ss.ts: mismatch wording and the comparison of copies for the boundary, JSX children and event data, the order of listeners, and the bodies of a rejected cell and of compile." },
   "events.ss.ts": { title: "Delivering events", runtime: "How each value an events cell yields reaches its listeners: `step` takes the delivery state and one event, and returns the next state and the effects that `events`, `listen`, `release` and `sweep` perform. These cells are SoundScript." },
+  "store.ss.ts": { title: "Writes, reads and commits", runtime: "What a write, a read and an action call may do, and what a commit applies: `storeStep` takes the store state and one event, and returns the next state and the effects that `action`, `set`, `update` and `commit` perform. These cells are SoundScript." },
   "types.ss.ts": { title: "Types", checker: "How the checker represents a type, and union, substitution, widening and display over those types. These cells are SoundScript." },
   "boundary.ts": { title: "Values from other languages", checkerTitle: "Shapes for values from other languages", runtime: "`cross` and `checkShape` check a value from a cell in another language against a shape and return a deep-frozen copy.", checker: "`shapeOf` turns a parameter's type annotation into the shape the runtime checks." },
   "jsx/h.ts": { title: "Elements", runtime: "`h` makes the element values that compiled JSX evaluates to." },
@@ -138,7 +141,8 @@ export function ssCellTexts(file: string): string[] {
 }
 function ssStatements(file: string, compile: Compile): Stmt[] {
   const texts = ssCellTexts(file);
-  const r = checkSources({ cells: texts.join("\n\n"), tsx: true });
+  const withTexts = (SS_CHECKED_WITH[file] ?? []).flatMap(ssCellTexts);
+  const r = checkSources({ cells: [...withTexts, ...texts].join("\n\n"), tsx: true });
   const accepted = acceptedOf(r);
   const bad = [...r.module.map((e) => `[${e.rule}] ${e.msg}`), ...r.cells.filter((c) => !accepted.has(c.name)).map((c) => `${c.name}: ${c.status} ${c.errors.map((e) => `[${e.rule}] ${e.msg}`).join("; ")}`)];
   if (bad.length) throw new Error(`${file}: the checker does not accept every cell: ${bad.join(" | ")}`);

@@ -1,0 +1,6 @@
+parseVia: rejected : (src: string) => Program
+    [boundary-type] L6 acornParse: AcornParse cannot cross from another language: it is or holds a function
+TS: rejected : ParserClass
+    [boundary-type] L11 acornParser: ParserClass cannot cross from another language: it is or holds extend: a function
+    [boundary-type] L11 tsPlugin: () => unknown cannot cross from another language: it is or holds a function
+3 probe cells, 2 not ok, 0 module errors

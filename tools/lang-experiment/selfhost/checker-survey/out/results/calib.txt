@@ -1,0 +1,29 @@
+kidsOf: ok : (n: Expr) => Expr[]
+switchKids: ok : (n: Expr) => Expr[]
+freeNames: ok : (root: Expr) => Set<string>
+forEachPush: rejected : (root: Expr) => string[]
+    [mut-capture] L38 Mut out captured by a function that escapes (not a local helper that is only called)
+regexUse: ok : (s: string) => boolean
+mapGroup: ok : (xs: string[]) => Map<string, number>
+throwsErr: ok : (x: number) => number
+catcher: ok : (x: number) => number
+dynKey: ok : (o: { [k: string]: unknown }, k: string) => unknown
+forIn: unsupported : (o: { [k: string]: unknown }) => string[]
+    [unsupported] L56 for...in
+objKeys: ok : (o: object) => string[]
+localType: rejected : (x: number) => number
+    [unknown-type] L60 unknown type P
+    [unsupported] L60 local type declaration
+optChain: ok : (x: { a?: { b?: number } }) => number
+recordOfClosures: ok : (base: number) => { add: (y: number) => number; twice: () => number }
+letCounter: ok : (xs: string[]) => number
+nestedLetAssign: ok : (xs: string[]) => number
+mutRecordField: ok : () => { n: number }
+genericFn: ok : <T>(xs: T[], f: (x: T) => boolean) => T[]
+tupleRet: ok : (x: number) => [number, string]
+destructure: ok : (p: { a: number; b: string }) => string
+arrayIndex: ok : (xs: string[]) => string
+sliceStr: ok : (s: string, a: number, b: number) => string
+whileLoop: ok : (n: number) => number
+unknownNarrow: ok : (v: unknown) => string
+25 probe cells, 3 not ok, 0 module errors

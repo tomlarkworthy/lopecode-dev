@@ -1,0 +1,6 @@
+parse: ok : (src: string) => Parsed
+factsOf: ok : (name: string, fn: Node, stmt?: Node | undefined) => CellInfo
+cellsOf: ok : (src: string) => CellInfo[]
+typeAt: ok : (before: string) => boolean
+useContext: ok : (k: Context) => number
+6 probe cells, 0 not ok, 0 module errors

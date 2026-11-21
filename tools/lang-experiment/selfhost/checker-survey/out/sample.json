@@ -1,0 +1,332 @@
+[
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.conditional",
+  "why": "random, bin s"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Scope.vars",
+  "why": "random, bin s"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.filter",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.narrowIn",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.varDecl",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.typeTag",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.fnExpr",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.binary",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.switchStmt",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.apply",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.lvalue",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.member",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.hidden",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.infer1",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "builtinTypeNames",
+  "why": "random, bin s"
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.ifaceRec",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.iterElem",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.sub",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.convert",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.unify",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "reservedName",
+  "why": "random, bin s"
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "syntaxPass",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "distinctNames",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/own.ts",
+  "name": "iterIn",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/capture.ts",
+  "name": "captureMessage",
+  "why": "random, bin s"
+ },
+ {
+  "file": "lite/capture.ts",
+  "name": "bound",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/capture.ts",
+  "name": "captures",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "PH",
+  "why": "random, bin s"
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "typeAt",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "completionsAt",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/intrinsics.ts",
+  "name": "PRELUDE_FNS",
+  "why": "random, bin s"
+ },
+ {
+  "file": "lite/parse.ts",
+  "name": "TS",
+  "why": "random, bin s"
+ },
+ {
+  "file": "lite/parse.ts",
+  "name": "parse",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/parse.ts",
+  "name": "kids",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/facts.ts",
+  "name": "preludeCalls",
+  "why": "random, bin s"
+ },
+ {
+  "file": "lite/facts.ts",
+  "name": "cellsOf",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/island.ts",
+  "name": "ISLAND_CAPABILITIES",
+  "why": "random, bin s"
+ },
+ {
+  "file": "lite/island.ts",
+  "name": "island",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/link.ts",
+  "name": "link",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "keyOfVariable",
+  "why": "random, bin s"
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "contextOf",
+  "why": "random, bin s"
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "tokensOf",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "keepJsx",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "parseCompiled",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "fromObservableVariables",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "compileChecked",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "name": "commentTypes",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "name": "cutsOf",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/jsx/lower.ts",
+  "name": "lowerJsx",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/browser/erase.ts",
+  "name": "erase",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/toolchain/module-js.ts",
+  "name": "syntaxStub",
+  "why": "random, bin m"
+ },
+ {
+  "file": "lite/boundary.ts",
+  "name": "shapeOf",
+  "why": "random, bin l"
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "Variable",
+  "why": "random, type"
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "Completions",
+  "why": "random, type"
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Origin",
+  "why": "random, type"
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "Outside",
+  "why": "random, type"
+ },
+ {
+  "file": "lite/own.ts",
+  "name": "Rule",
+  "why": "random, type"
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "Context",
+  "why": "random, type"
+ },
+ {
+  "file": "lite/own.ts",
+  "name": "ownership>position",
+  "why": "giant, inner unit"
+ },
+ {
+  "file": "lite/own.ts",
+  "name": "ownership>fresh",
+  "why": "giant, inner unit"
+ },
+ {
+  "file": "lite/own.ts",
+  "name": "ownership>helper",
+  "why": "giant, inner unit"
+ },
+ {
+  "file": "lite/own.ts",
+  "name": "actionEscapes>methodValue",
+  "why": "giant, inner unit"
+ },
+ {
+  "file": "lite/own.ts",
+  "name": "actionEscapes>chain",
+  "why": "giant, inner unit"
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "checkSources>visit",
+  "why": "giant, inner unit"
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "checkSources>uncloneable",
+  "why": "giant, inner unit"
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "checkSources>compileType",
+  "why": "giant, inner unit"
+ }
+]

@@ -1,0 +1,181 @@
+node-type vocabulary: 102 distinct strings compared with .type
+Identifier=62 CallExpression=26 MemberExpression=23 Literal=17 AssignmentPattern=14 FunctionExpression=13 VariableDeclaration=13 RestElement=13 BlockStatement=12 ExportNamedDeclaration=11 ArrowFunctionExpression=10 FunctionDeclaration=10 ArrayExpression=10 SpreadElement=10 Property=9 ObjectExpression=9 DoWhileStatement=9 TSInterfaceDeclaration=8 ArrayPattern=8 NewExpression=8 ForStatement=8 ForOfStatement=8 TSTypeAliasDeclaration=7 ConditionalExpression=7 JSXFragment=7 VariableDeclarator=7 LogicalExpression=6 ObjectPattern=6 ChainExpression=6 TSAsExpression=5 UnaryExpression=5 JSXElement=5 ReturnStatement=5 BreakStatement=5 SwitchStatement=5 ClassDeclaration=4 BinaryExpression=4 AssignmentExpression=4 JSXExpressionContainer=4 JSXIdentifier=4 ThrowStatement=4 WhileStatement=4 TSTypeReference=3 TSSatisfiesExpression=3 ImportDeclaration=3 TemplateLiteral=3 TSNonNullExpression=3 UpdateExpression=3 AwaitExpression=3 YieldExpression=3 JSXEmptyExpression=3 ExpressionStatement=3 IfStatement=3 TS=3 TSDeclareFunction=3 Block=3 TSEnumDeclaration=2 ThisExpression=2 TSTypeAssertion=2 JSXText=2 JSXAttribute=2 EmptyStatement=2 ForInStatement=2 ContinueStatement=2 TryStatement=2 LabeledStatement=2 ParenthesizedExpression=2 TSParameterProperty=2 CatchClause=2 TSCallSignatureDeclaration=2 TSModuleDeclaration=1 ClassExpression=1 ImportExpression=1 SequenceExpression=1 TaggedTemplateExpression=1 SwitchCase=1 ObjectProperty=1 TSParenthesizedType=1 TSLiteralType=1 TSUnionType=1 TSArrayType=1 TSTupleType=1 TSTypeOperator=1 TSFunctionType=1 TSTypeLiteral=1 TSTypeQuery=1 TSNamedTupleMember=1 TSOptionalType=1 TSRestType=1 TSPropertySignature=1 TSMethodSignature=1 TSIndexSignature=1 TSConstructSignatureDeclaration=1 MethodDefinition=1 PropertyDefinition=1 Labeled=1 Break=1 Function=1 Declaration=1 StaticBlock=1 ClassBody=1 ExportDefaultDeclaration=1
+AST-dependent units (read .type or call kids/isFn), core+borderline: 78 of 319 units, 2666 of 4043 code lines
+class members that write instance state, directly or through a call: 86 of 127
+callbacks in class members that call a state-writing member (each one [mut-capture] in a closure port): 27
+  lite/infer.ts:Checker.um L109
+  lite/infer.ts:Checker.narrowTypeof L158
+  lite/infer.ts:Checker.cond L274
+  lite/infer.ts:Checker.cond L281
+  lite/infer.ts:Checker.cond L285
+  lite/infer.ts:Checker.cond L286
+  lite/infer.ts:Checker.cond L290
+  lite/infer.ts:Checker.cond L293
+  lite/infer.ts:Checker.cond L295
+  lite/infer.ts:Checker.cond L296
+  lite/infer.ts:Checker.bindPattern L341
+  lite/infer.ts:Checker.hides L445
+  lite/infer.ts:Checker.jsx L625
+  lite/infer.ts:Checker.constLit L671
+  lite/infer.ts:Checker.arrLit L952
+  lite/infer.ts:Checker.fnExpr L995
+  lite/infer.ts:Checker.call L1137
+  lite/infer.ts:Checker.objectAssign L1197
+  lite/infer.ts:Checker.objectFreeze L1206
+  lite/infer.ts:Checker.apply L1235
+  lite/infer.ts:Checker.apply L1277
+  lite/infer.ts:Checker.preludeCall L1351
+  lite/registry.ts:Registry.load L88
+  lite/registry.ts:Registry.iterElem L329
+  lite/registry.ts:Registry.sub L367
+  lite/registry.ts:Registry.sub L383
+  lite/registry.ts:Registry.unify L428
+  of which with the registry pure (memos dropped): 11
+    lite/infer.ts:Checker.bindPattern L341
+    lite/infer.ts:Checker.jsx L625
+    lite/infer.ts:Checker.constLit L671
+    lite/infer.ts:Checker.arrLit L952
+    lite/infer.ts:Checker.fnExpr L995
+    lite/infer.ts:Checker.call L1137
+    lite/infer.ts:Checker.objectAssign L1197
+    lite/infer.ts:Checker.objectFreeze L1206
+    lite/infer.ts:Checker.apply L1235
+    lite/infer.ts:Checker.apply L1277
+    lite/infer.ts:Checker.preludeCall L1351
+callbacks in class members that use this.* at all: 46
+units that call the parser directly (parse(…), acorn.*, TS/TSX), core+borderline: 25 units, 845 code lines: TS TSX parse checkSources distinctNames Registry.constructor cellsOf link keepJsx erasesToJs splitCells declaredNameAt tokensOf compileChecked parseCompiled isIdentifier fromObservableVariables cutsOf tokens langOf uncommentTypes moduleJs syntaxStub lowerJsx erase
+class members (Scope, Checker, Registry): 127 units, 1841 code lines
+  lite/infer.ts:Checker.um L109
+  lite/infer.ts:Checker.narrowTypeof L158
+  lite/infer.ts:Checker.narrowEq L168
+  lite/infer.ts:Checker.narrowIn L184
+  lite/infer.ts:Checker.narrowByProp L208
+  lite/infer.ts:Checker.cond L274
+  lite/infer.ts:Checker.cond L281
+  lite/infer.ts:Checker.cond L285
+  lite/infer.ts:Checker.cond L286
+  lite/infer.ts:Checker.cond L290
+  lite/infer.ts:Checker.cond L293
+  lite/infer.ts:Checker.cond L295
+  lite/infer.ts:Checker.cond L296
+  lite/infer.ts:Checker.bindPattern L331
+  lite/infer.ts:Checker.bindPattern L332
+  lite/infer.ts:Checker.bindPattern L341
+  lite/infer.ts:Checker.hides L445
+  lite/infer.ts:Checker.hidden L461
+  lite/infer.ts:Checker.jsx L625
+  lite/infer.ts:Checker.awaited L662
+  lite/infer.ts:Checker.constLit L671
+  lite/infer.ts:Checker.member L714
+  lite/infer.ts:Checker.noOverlap L809
+  lite/infer.ts:Checker.noOverlap L813
+  lite/infer.ts:Checker.binary L834
+  lite/infer.ts:Checker.objLit L924
+  lite/infer.ts:Checker.arrLit L949
+  lite/infer.ts:Checker.arrLit L952
+  lite/infer.ts:Checker.fnExpr L995
+  lite/infer.ts:Checker.returned L1060
+  lite/infer.ts:Checker.patternNames L1096
+  lite/infer.ts:Checker.patternNames L1097
+  lite/infer.ts:Checker.call L1137
+  lite/infer.ts:Checker.typeArgs L1191
+  lite/infer.ts:Checker.objectAssign L1197
+  lite/infer.ts:Checker.objectFreeze L1206
+  lite/infer.ts:Checker.apply L1235
+  lite/infer.ts:Checker.apply L1277
+  lite/infer.ts:Checker.preludeCall L1351
+  lite/infer.ts:Checker.switchStmt L1581
+  lite/infer.ts:Checker.hasBreak L1588
+  lite/registry.ts:Registry.load L88
+  lite/registry.ts:Registry.iterElem L329
+  lite/registry.ts:Registry.sub L367
+  lite/registry.ts:Registry.sub L383
+  lite/registry.ts:Registry.unify L428
+=== / !== with no primitive-looking operand (upper bound on identity compares): 81
+  lite/core.ts:syntaxPass L58 parent.property === x
+  lite/core.ts:syntaxPass L58 parent.key === x
+  lite/core.ts:syntaxPass L65 parent.property === x
+  lite/core.ts:syntaxPass L65 parent.key === x
+  lite/infer.ts:Checker.typeTag L151 x === m
+  lite/infer.ts:Checker.narrowTypeof L160 mt === tag
+  lite/infer.ts:Checker.dropRoot L233 p === k
+  lite/infer.ts:Checker.cond L281 br === pos
+  lite/infer.ts:Checker.cond L285 br === pos
+  lite/infer.ts:Checker.cond L286 br === pos
+  lite/infer.ts:Checker.hides L445 t === expected
+  lite/infer.ts:Checker.findBinding L1065 b.id === id
+  lite/own.ts:ownership L53 b.node !== n
+  lite/own.ts:ownership L65 p.callee === r
+  lite/own.ts:ownership L80 f !== cellFn
+  lite/own.ts:ownership L86 p.left === r
+  lite/own.ts:ownership L86 p.argument === r
+  lite/own.ts:ownership L87 p.left === r
+  lite/own.ts:ownership L102 f === cellFn
+  lite/own.ts:ownership L118 p.callee === n
+  lite/own.ts:ownership L138 p.object !== x
+  lite/own.ts:ownership L141 pp.callee === p
+  lite/own.ts:ownership L145 p.callee === x
+  lite/own.ts:ownership L169 p.right === x
+  lite/own.ts:ownership L171 p.test === x
+  lite/own.ts:ownership L172 p.discriminant === x
+  lite/own.ts:ownership L173 p.test === x
+  lite/own.ts:ownership L176 p.right === x
+  lite/own.ts:ownership L212 p.callee === n
+  lite/own.ts:ownership L212 p.property === n
+  lite/own.ts:ownership L213 p.key === n
+  lite/own.ts:ownership L222 p.init === n
+  lite/own.ts:ownership L230 cellFn.body === n
+  lite/own.ts:ownership L236 p.test !== cur
+  lite/own.ts:ownership L237 cellFn.body === cur
+  lite/own.ts:ownership L258 b.fi?.node === f
+  lite/own.ts:ownership L260 b.fi?.node === f
+  lite/own.ts:ownership L285 b.node !== n
+  lite/own.ts:actionEscapes L433 b.node !== n
+  lite/own.ts:actionEscapes L443 g !== to
+  lite/own.ts:actionEscapes L472 rp.callee === r
+  lite/own.ts:actionEscapes L482 p.callee === f
+  lite/own.ts:actionEscapes L485 p.init === f
+  lite/own.ts:actionEscapes L488 b.fnNode === f
+  lite/own.ts:actionEscapes L495 p.callee === x
+  lite/own.ts:actionEscapes L497 p.init === x
+  lite/own.ts:actionEscapes L505 d.id === pat
+  lite/capture.ts:opaqueCaptures L115 b.node !== r
+  lite/capture.ts:opaqueCaptures L138 loop.left === decl
+  lite/capture.ts:opaqueCaptures L148 b.node === r
+  lite/registry.ts:Registry.sub L346 s === t
+  lite/registry.ts:Registry.sub L361 s.v === t.v
+  lite/facts.ts:globalRefs L18 p.property === n
+  lite/facts.ts:globalRefs L18 p.key === n
+  lite/facts.ts:freeUses L27 st.id?.name === name
+  lite/facts.ts:freeUses L30 n.id?.name === name
+  lite/complete.ts:scan L31 text[j] !== c
+  lite/complete.ts:scopeNames L146 name === PH
+  lite/complete.ts:annotationOf L173 proto !== Object.prototype
+  lite/complete.ts:addParameter L198 source[j] !== c
+  lite/complete.ts:addParameter L211 /^\s*(?:\.\.\.)?\s*([\w$]+)/.exec(p)?.[1] === name
+  lite/complete.ts:completionsAt L254 i === at
+  lite/complete.ts:completionsAt L262 i !== at
+  lite/complete.ts:completionsAt L266 n !== self
+  lite/complete.ts:completionsAt L271 n === self
+  lite/complete.ts:completionsAt L288 i === at
+  lite/complete.ts:completionsAt L303 e.property?.name === PH
+  lite/complete.ts:completionsAt L314 x.label === k.label
+  lite/toolchain/ss-toolchain.ts:compileChecked L271 fn === d
+  lite/toolchain/ss-toolchain.ts:compileChecked L287 IN[n] !== n
+  lite/toolchain/ss-toolchain.ts:compileChecked L289 IN[n] === n
+  lite/toolchain/ss-toolchain.ts:parseCompiled L360 head.start !== comments[at].end
+  lite/toolchain/ss-toolchain.ts:parseCompiled L366 n.callee.start === head.end
+  lite/toolchain/ss-toolchain.ts:parseCompiled L366 x.start === head.end
+  lite/toolchain/ss-toolchain.ts:parseCompiled L376 n === fn
+  lite/toolchain/ss-toolchain.ts:parseCompiled L384 fn === call.callee
+  lite/toolchain/ss-toolchain.ts:parseCompiled L384 up.arguments[0] === call
+  lite/toolchain/ss-toolchain.ts:parseCompiled L385 fn === call.callee
+  lite/toolchain/ss-toolchain.ts:decompileVariable L411 c.start === end
+  lite/toolchain/ss-toolchain.ts:fromObservableVariables L466 INPUTS[i] !== i
+  lite/toolchain/ss-toolchain.ts:fromObservableVariables L495 init?.type === want
+call-graph SCCs of more than one unit (self-recursion is local in a cell and not counted): 5
+  size 32, 999 code lines: lite/infer.ts:Checker.jsx lite/infer.ts:Checker.assign lite/infer.ts:Checker.binary lite/infer.ts:Checker.lvalue lite/infer.ts:Checker.unary lite/infer.ts:Checker.member lite/infer.ts:Checker.apply lite/infer.ts:Checker.writeRule lite/infer.ts:Checker.objectFreeze lite/infer.ts:Checker.objectAssign lite/infer.ts:Checker.preludeCall lite/infer.ts:Checker.call …
+  size 6, 16 code lines: lite/types.ss.ts:Named lite/types.ss.ts:Param lite/types.ss.ts:Fn lite/types.ss.ts:Prop lite/types.ss.ts:Rec lite/types.ss.ts:Ty
+  size 6, 156 code lines: lite/registry.ts:Registry.ifaceRec lite/registry.ts:Registry.literal lite/registry.ts:Registry.sig lite/registry.ts:Registry.sigOf lite/registry.ts:Registry.convert lite/registry.ts:Registry.expand
+  size 2, 66 code lines: lite/registry.ts:Registry.fnSub lite/registry.ts:Registry.sub
+  size 2, 48 code lines: lite/infer.ts:Checker.hiddenFn lite/infer.ts:Checker.hidden

@@ -1,0 +1,23 @@
+KEYWORDS: ok : Map<string, Ty>
+ONE_ARG: ok : Set<string>
+convertCell: ok : (types: Map<string, Decl>) => (n0: Node, ctx: TypeCtx, p: Parsed) => { t: Ty; diags: Diag[] }
+shapeOf: ok : (t: Ty, expand: (t: Ty) => Ty, isAlias: (n: string) => boolean, p3?: number) => Shape | ShapeErr
+OPEN: ok : string
+CLOSE: ok : string
+LANG: ok : string
+esc: ok : (s: string) => string
+cutsOf: ok : (src: string) => [number, number][]
+commentTypes: ok : (src: string) => string
+tokens: ok : (js: string, onComment: (block: boolean, text: string, start: number, end: number) => void) => { end: number; label: string }[]
+cutsOfReduced: rejected : (gap: string, at: number) => number
+    [let-capture] L172 let from assigned from a function that escapes
+mergeReduced: rejected : (cuts: [number, number][]) => [number, number][]
+    [member-write] L181 write to a [number, number], which is not Mut
+completionHookReduced: rejected : (ch: Hooked) => string | null
+    [member-write] L192 write to a Hooked, which is not Mut
+    [let-capture] L192 let got assigned from a function that escapes
+completionPatchReduced: rejected : (ch: WithMember) => void
+    [member-write] L201 write to a WithMember, which is not Mut
+linkReduced: rejected : (text: string) => unknown
+    [new-non-intrinsic] L205 new on something that is not an allowed intrinsic
+17 probe cells, 5 not ok, 0 module errors

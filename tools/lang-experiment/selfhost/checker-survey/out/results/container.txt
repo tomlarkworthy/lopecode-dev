@@ -1,0 +1,27 @@
+q1_captured: ok : (root: Expr) => Diag[]
+q1b_callback: rejected : (root: Expr) => Diag[]
+    [mut-capture] L41 Mut diags captured by a function that escapes (not a local helper that is only called)
+q2_param: rejected : (root: Expr) => St
+    [mut-deep-write] L53 write below the first level of a Mut (Diag[] is not Mut)
+q2b_param_cb: rejected : (root: Expr) => St
+    [mut-deep-write] L68 write below the first level of a Mut (Diag[] is not Mut)
+    [mut-capture] L67 Mut st captured by a function that escapes (not a local helper that is only called)
+q3_scope: rejected : (names: string[][]) => number
+    [mut-deep-write] L83 write below the first level of a Mut (Map<string, Binding> is not Mut)
+q3b_scope_live: rejected : () => number
+    [mut-deep-write] L95 write below the first level of a Mut (Map<string, Binding> is not Mut)
+    [mut-deep-write] L96 write below the first level of a Mut (Map<string, Binding> is not Mut)
+    [mut-escape] L94 Mut outer placed in an object literal
+q3c_get: ok : (s: Scope, n: string) => Binding | undefined
+q4_identity: rejected : (root: Expr) => boolean
+    [strict-eq-object] L113 === on two non-primitive operands; use equals(a, b)
+q5_finally: ok : (e: Expr) => number
+q5b_finally_mut: ok : (e: Expr) => number
+q5c_catch_mut: ok : (e: Expr) => number
+q6_env_holds_mut: rejected : (root: Expr) => number
+    [mut-deep-write] L153 write below the first level of a Mut (Map<string, Ty> is not Mut)
+q7_hook: ok : (hook: (e: Expr) => Ty | null, e: Expr) => Ty
+q8_instance: rejected : (decls: string[]) => { expand: (n: string) => number; size: () => number }
+    [mut-capture] L169 Mut memo captured by a function that escapes (not a local helper that is only called)
+    [mut-capture] L170 Mut memo captured by a function that escapes (not a local helper that is only called)
+15 probe cells, 8 not ok, 0 module errors

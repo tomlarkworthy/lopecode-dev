@@ -1,0 +1,5 @@
+eq: rejected : (a: R, b: R) => boolean
+    [strict-eq-object] L4 === on two non-primitive operands; use equals(a, b)
+viaIncludes: ok : (a: R, b: R) => boolean
+viaIndexOf: ok : (a: R, b: R) => boolean
+4 probe cells, 1 not ok, 0 module errors

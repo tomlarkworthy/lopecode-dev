@@ -1,6 +1,9 @@
 // Runtime half of prelude.d.ts. Imported by the transpiled cells.ts/shell.ts and by run.ts.
-// newStore, mut, freeze and borrow are SoundScript cells (lite/runtime.ss.ts)
-import { newStore } from "./lite/runtime-ss.ts";
+// mut, freeze and borrow are SoundScript cells (lite/runtime.ss.ts). What a write, a read and an action call may do,
+// and what a commit applies, is decided by storeStep and the cells of lite/store.ss.ts (checked SoundScript). This
+// file holds the one StoreState value and each handle's store record, runs the actions' functions between steps,
+// and performs the effects.
+import { emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
 export { mut, freeze, borrow } from "./lite/runtime-ss.ts";
 
 const STATECELL = Symbol.for("lc.statecell");
@@ -9,10 +12,6 @@ const REFHANDLE = Symbol.for("lc.state");
 
 // el: an Observable JavaScript view (viewHandle), which holds the committed value itself
 type ViewEl = { value: unknown; dispatchEvent(e: Event): boolean };
-// handle: the state cell's handle whose store this is, told of each commit
-type Store = { name: string; value: unknown; handle?: object; el?: ViewEl; check?: (v: unknown) => unknown };
-// One top-level action call, while its function runs: its writes, applied in call order
-type Call = Map<Store, unknown>;
 
 // the cell an action was defined by, when the runtime knows it; flush and listeners name actions by it
 export const actionNames = new WeakMap<object, string>();
@@ -20,25 +19,64 @@ export const actionNames = new WeakMap<object, string>();
 export const actionNamer = { of: null as ((a: object) => string | null) | null };
 export const nameOf = (a: object) => actionNames.get(a) ?? actionNamer.of?.(a) ?? "(anonymous)";
 
+let storeState: StoreState = emptyStore;
+// evalDepth: >0 while a cell definition (or a generator step) runs synchronously; other modules step it.
+// commits counts commits; the rest is read from the state
 export const rt = {
-  evalDepth: 0, // >0 while a cell definition (or a generator step) runs synchronously
-  actionDepth: 0, // >0 while an action's function runs; the only time a write, a read or a nested call is legal
-  // the top-level call whose function is running (S6.13)
-  call: null as Call | null,
-  // the writes of finished calls, in call order, until commit
-  ready: new Map<Store, unknown>(),
+  evalDepth: 0,
   commits: 0,
+  get actionDepth() { return storeState.depth; },
+  get call() { return storeState.call; },
+  get ready() { return storeState.ready; },
 };
+// handle -> its store, made only by storeStep, so a store lasts as long as its handle; a handle over another
+// handle (an imported state cell's, viewHandle) -> that handle; a view's handle -> its element
+const records = new WeakMap<object, StoreRecord>();
+const over = new WeakMap<object, object>();
+const viewEls = new WeakMap<object, { el: ViewEl; check: (v: unknown) => unknown }>();
+const storeHandleOf = (h: object): object => over.get(h) ?? h;
+const recordOf = (h: object) => records.get(storeHandleOf(h)) ?? null;
+const nameOfHandle = (h: object) => (h as Record<symbol, string>)[REFHANDLE];
+
+// the new state is kept before the effects run; a throw from the step leaves the old one
+function storeFeed(ev: StoreEvent): unknown {
+  const r = storeStep(storeState, ev);
+  storeState = r.state;
+  let returned: unknown;
+  for (const e of r.effects) if (e.fx === "return") returned = e.value; else performStore(e);
+  return returned;
+}
+function performStore(e: StoreEffect) {
+  switch (e.fx) {
+    case "throw": throw new Error(e.msg);
+    case "schedule": return void setTimeout(commit, 0);
+    case "keep": return void records.set(e.handle as object, e.store);
+    case "setView": return void (viewEls.get(e.handle as object)!.el.value = e.value);
+    case "tellView": return void viewEls.get(e.handle as object)!.el.dispatchEvent(new Event("input", { bubbles: true }));
+    case "tell": return void (e.handle as EventTarget).dispatchEvent(new Event("input"));
+  }
+}
+const seenValue = (h: object, s: Seen): unknown => {
+  if (s.k === "refused") throw new Error(s.msg);
+  if (s.k === "value") return s.value;
+  const v = viewEls.get(storeHandleOf(h))!;
+  return v.check(v.el.value);
+};
+// Commits the writes of the calls that finished since the last commit. delivery.test.ts tells this timer by its name.
+function commit() {
+  const now = new Map<number, StoreRecord>();
+  for (const p of storeState.ready.values()) { const s = records.get(p.handle as object); if (s) now.set(s.sid, s); }
+  storeFeed({ t: "commit", stores: now });
+  rt.commits++;
+}
 
 export function reset() {
   rt.evalDepth = 0;
-  rt.actionDepth = 0;
-  rt.call = null;
-  rt.ready = new Map();
   rt.commits = 0;
+  storeFeed({ t: "reset" });
 }
 // no call running and nothing left to commit
-export const idle = () => !rt.call && !rt.ready.size;
+export const idle = () => isIdle(storeState);
 
 export function state<T>(initial: T) {
   return { [STATECELL]: true, initial };
@@ -47,20 +85,11 @@ export const isStateCell = (v: unknown): v is { initial: unknown } => !!v && typ
 export const isAction = (v: unknown) => typeof v === "function" && ACTION in v;
 export const isRefHandle = (v: unknown) => !!v && typeof v === "object" && REFHANDLE in v;
 
-// handle -> its store; a handle over another handle (an imported state cell's, viewHandle) -> that handle
-const stores = new WeakMap<object, Store>();
-const over = new WeakMap<object, object>();
-const storeOf = (h: object): Store | undefined => stores.get(over.get(h) ?? h);
-
-// the call a write or read belongs to: the one whose action's function is on the stack, else none (it throws)
-const owner = (): Call | null => (rt.actionDepth > 0 ? rt.call : null);
-// the value as of this point in the call order: committed, then finished calls', then this call's writes
-const current = (store: Store) => (rt.call?.has(store) ? rt.call.get(store) : rt.ready.has(store) ? rt.ready.get(store) : store.el ? store.check!(store.el.value) : store.value);
+// an update function that throws throws here, inside the call, before its write
 function write(h: object, f: (v: unknown) => unknown) {
-  const c = owner();
-  if (!c) throw new Error(`State ${(h as Record<symbol, string>)[REFHANDLE]}: set/update called outside an action`);
-  const store = storeOf(h)!;
-  c.set(store, f(current(store))); // an update function that throws throws here, inside the call
+  const s = recordOf(h)!;
+  const v = f(seenValue(h, updateSees(storeState, nameOfHandle(h), s)));
+  storeFeed({ t: "write", handle: storeHandleOf(h), name: nameOfHandle(h), store: s, value: v });
 }
 // A handle is an Observable view: an EventTarget whose value is the committed state, which dispatches
 // input on each commit, so Observable's Generators.input(handle) is the state cell's value.
@@ -71,65 +100,43 @@ function handleOf(name: string, check: (v: unknown) => unknown = (v) => v): obje
     [REFHANDLE]: { value: name },
     set: { value: (v: unknown) => write(h, () => check(v)) },
     update: { value: (f: (v: unknown) => unknown) => write(h, (x) => check(f(x))) },
-    value: { get: () => { const st = storeOf(h)!; return st.el ? st.check!(st.el.value) : st.value; } },
+    value: { get: () => seenValue(h, committedOf(recordOf(h)!)) },
   });
   return h;
 }
-const setStore = (h: object, value: unknown) => stores.set(h, { ...newStore((h as Record<symbol, string>)[REFHANDLE], value), handle: h });
+const madeStore = (h: object, value: unknown, view: boolean, run: { fid: string; args: unknown[] } | null) =>
+  storeFeed({ t: "made", handle: h, name: nameOfHandle(h), value, view, run });
 
 // Turn the StateCell a cell returned into a handle on a store of its own (the port harness, run.ts).
 export function materialize(cell: { initial: unknown }, name: string) {
   const h = handleOf(name);
-  setStore(h, cell.initial);
+  madeStore(h, cell.initial, false, null);
   return h;
 }
 
 // read(s) inside an action: the committed value plus every write made earlier in call order
 export function read(handle: object): unknown {
-  const store = storeOf(handle);
-  if (!store) throw new Error("read(...) needs a State");
-  if (!owner()) throw new Error(`read(${store.name}) called outside an action`);
-  return current(store);
+  return seenValue(handle, readSees(storeState, handle && typeof handle === "object" ? recordOf(handle) : null));
 }
 
-// each handle's function text and the inputs of its last run
-const runs = new WeakMap<object, { id: string; args: unknown[] }>();
 // A state cell's handle variable: viewof <name> = ss_ref(this, name, [inputs], fn). prev is the variable's last
 // value, as the Runtime gives it: its handle, when the same function text made it, is kept, so a cell taking
 // State<T> keeps it across runs; a new store from fn(...args) unless every input is the same (Object.is) as on
 // the last run, which keeps the store and so the state. A variable with no last value (its first run, or after
 // an error) starts again.
 export function ref(prev: unknown, name: string, args: unknown[], fn: (...a: unknown[]) => unknown): object {
-  const id = String(fn);
+  const fid = String(fn);
   // prev is any other value (globalThis, in a sloppy-mode definition) when the variable has no last value
-  const last = prev && typeof prev === "object" ? runs.get(prev) : undefined;
-  let h = last?.id === id ? (prev as object) : undefined;
-  if (!h || !last || last.args.length !== args.length || !args.every((x, i) => Object.is(x, last.args[i]))) {
-    rt.evalDepth++;
-    let r: unknown;
-    try { r = fn(...args); } finally { rt.evalDepth--; }
-    if (!isStateCell(r)) throw new Error(`${name} did not return state(...)`);
-    h ??= handleOf(name);
-    setStore(h, r.initial);
-    runs.set(h, { id, args });
-  }
+  const last = prev && typeof prev === "object" ? records.get(prev) ?? null : null;
+  const plan = refPlan(last, fid, args);
+  if (!plan.remake) return prev as object;
+  rt.evalDepth++;
+  let r: unknown;
+  try { r = fn(...args); } finally { rt.evalDepth--; }
+  if (!isStateCell(r)) throw new Error(`${name} did not return state(...)`);
+  const h = plan.keep ? (prev as object) : handleOf(name);
+  madeStore(h, r.initial, false, { fid, args });
   return h;
-}
-
-// Commits the writes of the calls that finished since the last commit: every store takes its value, then
-// each view is told with an input event, as a user's change would tell it.
-function commit() {
-  const layer = rt.ready;
-  rt.ready = new Map();
-  for (const [st, v] of layer) {
-    st.value = v;
-    if (st.el) st.el.value = v;
-  }
-  for (const st of layer.keys()) {
-    if (st.el) st.el.dispatchEvent(new Event("input", { bubbles: true }));
-    else if (st.handle && stores.get(st.handle) === st) (st.handle as EventTarget).dispatchEvent(new Event("input"));
-  }
-  rt.commits++;
 }
 
 const views = new WeakMap<object, object>();
@@ -142,20 +149,8 @@ export function viewHandle(el: ViewEl, name: string, check: (v: unknown) => unkn
   const handle = handleOf(name, check);
   views.set(el, handle);
   if (isRefHandle(el)) over.set(handle, el);
-  else stores.set(handle, { ...newStore(name, check(el.value)), el, check });
+  else { viewEls.set(handle, { el, check }); madeStore(handle, check(el.value), true, null); }
   return handle;
-}
-
-// The call ends: its writes commit, unless it threw. One commit per macrotask: two in one task tear a reader
-// of two state cells (runtime.test.ts g6), so the writes of calls that finish before the commit share it.
-function finish(c: Call) {
-  if (!c.size) return;
-  if (!rt.ready.size) setTimeout(commit, 0);
-  for (const [st, v] of c) rt.ready.set(st, v);
-}
-function inAction(f: () => unknown) {
-  rt.actionDepth++;
-  try { return f(); } finally { rt.actionDepth--; }
 }
 
 // An action (S6.12): called inside an action's function it is part of that call and returns what its function
@@ -165,13 +160,10 @@ function inAction(f: () => unknown) {
 // throws.
 export function action(f: (...args: unknown[]) => unknown) {
   const a = (...args: unknown[]): unknown => {
-    if (rt.actionDepth > 0) return inAction(() => f(...args));
-    if (rt.evalDepth > 0) throw new Error("action called during a cell evaluation");
-    const c: Call = new Map();
-    rt.call = c;
-    try { inAction(() => f(...args)); } finally { rt.call = null; }
-    finish(c);
-    return undefined;
+    storeFeed({ t: "enter", evaluating: rt.evalDepth > 0 });
+    let v: unknown;
+    try { v = f(...args); } catch (err) { storeFeed({ t: "exit", threw: true, value: undefined }); throw err; }
+    return storeFeed({ t: "exit", threw: false, value: v });
   };
   Object.defineProperty(a, ACTION, { value: true });
   return a;

@@ -1,8 +1,8 @@
 // Runtime cells written in SoundScript: the declarations of the runtime module that check as SoundScript, with
-// events.ss.ts. A cell that uses a built-in takes the runtime module's own cell of that name (ss-toolchain
-// inputsIn(true)); none here does, events.ss.ts's step takes mut and freeze. Under bun, runtime-ss.ts links
-// them; in the notebook they are compiled cells of @tomlarkworthy/soundscript-runtime, which its JavaScript cells
-// take as inputs. selfhost/NOTES-runtime-port.md
+// events.ss.ts and store.ss.ts. A cell that uses a built-in takes the runtime module's own cell of that name
+// (ss-toolchain inputsIn(true)); none here does, the cells of events.ss.ts and store.ss.ts take mut and freeze.
+// Under bun, runtime-ss.ts links them; in the notebook they are compiled cells of
+// @tomlarkworthy/soundscript-runtime, which its JavaScript cells take as inputs. selfhost/NOTES-runtime-port.md
 
 export type Shape =
   | { k: "num" } | { k: "str" } | { k: "bool" } | { k: "null" } | { k: "undef" } | { k: "unknown" }
@@ -15,11 +15,8 @@ export type PointerLike = { readonly offsetX?: number; readonly clientX?: number
 export type Ptr = { readonly x: number; readonly y: number; readonly t: number; readonly id: number; readonly buttons: number };
 export type Place = readonly [string, number] | null;
 export type Compiler = { for(caller: string, refs: { readonly [k: string]: unknown }): unknown };
-export type NewStore = { name: string; value: unknown };
 export type Data = null | undefined | boolean | number | string | bigint | symbol | readonly Data[] | { readonly [k: string]: Data };
 
-// prelude.runtime.ts: a state cell's store, before its handle or view is added
-export const newStore = () => (name: string, value: unknown): NewStore => ({ name, value });
 // the ownership built-ins, which the checker gives their meaning: at run time each returns its argument
 export const mut = () => <T,>(v: T): T => v;
 export const freeze = () => <T,>(v: T): T => v;

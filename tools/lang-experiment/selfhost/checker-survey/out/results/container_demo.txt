@@ -1,0 +1,3 @@
+regView: ok : RegView
+checker: ok : (root: Node[]) => Out
+3 probe cells, 0 not ok, 0 module errors

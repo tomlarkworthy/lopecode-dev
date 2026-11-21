@@ -1,0 +1,21 @@
+SYNTAX: ok : Map<string, string>
+TYPE_POSITIONS: ok : Set<string>
+reservedName: ok : (name: string) => boolean
+RESERVED_MSG: ok : (name: string) => string
+syntaxPass: ok : (n: Node) => Diag[]
+parse: ok : (src: string, p1?: { jsx?: boolean }) => Parsed
+STAND: rejected : unknown[]
+    [no-member] L40 no property fromCharCode on (v?: unknown) => string
+distinctNames: rejected : (src: string, jsx: boolean) => ParseResult
+    [no-cast] L47 as cast
+    [no-member] L48 property message on Js/unknown; narrow it first
+    [type] L49 cannot index RegExpMatchArray with 0
+    [unsupported] L48 instanceof
+parse2: ok : (src: string, p1?: { jsx?: boolean }) => Parse2
+distinctNames_rw: ok : (src: string, jsx: boolean) => ParseResult
+visitSlice: ok : (names: string[], deps: Map<string, string[]>, lineOf: Map<string, number>) => { order: string[]; cycleErrors: Map<string, LiteError[]> }
+uncloneable: ok : (reg: RegView) => (t: Ty, p1?: number) => string | null
+compileHookReduced: ok : (e: Node, ch: Ch) => Ty
+sideReduced: rejected : (names: string[], value: Map<string, Ty>) => Rec
+    [member-write] L135 write to a { [k: string]: Ty }, which is not Mut
+15 probe cells, 3 not ok, 0 module errors

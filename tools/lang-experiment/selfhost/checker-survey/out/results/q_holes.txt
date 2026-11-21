@@ -1,0 +1,13 @@
+includesIdentity: ok : (a: R, b: R) => boolean
+indexOfIdentity: ok : (a: R, b: R) => number
+aliasHelper: rejected : (xs: number[]) => number
+    [mut-capture] L11 Mut out captured by a function that escapes (not a local helper that is only called)
+returnHelper: rejected : () => (x: number) => void
+    [mut-capture] L20 Mut out captured by a function that escapes (not a local helper that is only called)
+recordHelper: rejected : () => { add: (x: number) => void }
+    [mut-capture] L27 Mut out captured by a function that escapes (not a local helper that is only called)
+twoLevel: rejected : (xs: number[]) => number
+    [mut-capture] L35 Mut out captured by a function that escapes (not a local helper that is only called)
+letViaCallback: rejected : (xs: number[]) => number
+    [let-capture] L43 let n assigned from a function that escapes
+8 probe cells, 5 not ok, 0 module errors

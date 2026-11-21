@@ -1,0 +1,4 @@
+kids: ok : (n: Node) => Node[]
+isFn: ok : (n: Node | null | undefined) => boolean
+fields: ok : (n: Node) => Field[]
+4 probe cells, 0 not ok, 0 module errors

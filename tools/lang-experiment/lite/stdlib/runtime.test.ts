@@ -669,17 +669,20 @@ await run("s1_a_call_runs_to_completion_when_it_is_called", async () => {
   ok("s1_one_commit", P.rt.commits === commits + 1 && val(n) === 1, `n ${val(n)}`);
 });
 await run("s2_an_unchecked_async_function_keeps_writes_before_its_first_await_only", async () => {
-  unhandled.length = 0;
   const n = refOf(0, "n"), m = refOf(0, "m");
   const d = deferred();
-  // the checker rejects this ([action-async]); JavaScript can still give action an async function
-  const load = named("load2", (async () => { n.set(1); await d.p; m.set(2); }) as unknown as () => void);
+  // the checker rejects this ([action-async]); JavaScript can still give action an async function.
+  // Its promise is kept here so the test awaits the rejection itself: bun test takes unhandled
+  // rejections for its own report and never emits process "unhandledRejection".
+  let p!: Promise<void>;
+  const body = async () => { n.set(1); await d.p; m.set(2); };
+  const load = named("load2", () => { p = body(); });
   load();
   ok("s2_the_call_has_ended", P.rt.call === null && P.rt.actionDepth === 0);
   d.resolve();
-  await until(() => unhandled.length > 0);
+  const err = await p.then(() => null, (e: unknown) => e);
   await flushed();
-  ok("s2_the_write_after_the_await_threw", val(n) === 1 && val(m) === 0 && unhandled.length === 1 && /outside an action/.test(String((unhandled[0] as Error)?.message)), `n ${val(n)} m ${val(m)} ${unhandled.map(String)}`);
+  ok("s2_the_write_after_the_await_threw", val(n) === 1 && val(m) === 0 && /outside an action/.test(String((err as Error)?.message)), `n ${val(n)} m ${val(m)} ${String(err)}`);
 });
 await run("s3_a_function_kept_from_a_call_cannot_write_read_or_call_inside_it_later", async () => {
   const n = refOf(0, "n");
@@ -731,6 +734,45 @@ await run("s6_a_nested_action_returns_its_value_inside_the_call", async () => {
   outer();
   await flushed();
   ok("s6_nested_returns_top_level_does_not", got === 6 && top === undefined && val(x) === 40, `${got} ${top} x ${val(x)}`);
+});
+
+// null is a value of state (S6.18): held, written, read, given to update, returned by a nested action, held by a view
+await run("n1_a_state_cell_holding_null", async () => {
+  const L = await load(`const sel = (): StateCell<string | null> => state<string | null>(null);
+const shown = (sel: string | null) => (sel === null ? "none" : sel);
+const pick = (sel: State<string | null>) => action((s: string | null) => sel.set(s));
+const flip = (sel: State<string | null>) => action(() => sel.update((s) => (s === null ? "x" : null)));`);
+  const at0 = [L.value("sel"), L.value("shown"), L.value("viewof sel").value];
+  L.value("pick")("a"); await L.settle();
+  const at1 = [L.value("sel"), L.value("shown")];
+  L.value("flip")(); await L.settle();
+  const at2 = [L.value("sel"), L.value("shown"), L.value("viewof sel").value];
+  ok("n1_null_is_held_written_and_read_back", JSON.stringify([at0, at1, at2]) === '[[null,"none",null],["a","a"],[null,"none",null]]' && L.errs.length === 0, JSON.stringify([at0, at1, at2, L.errs]));
+  L.runtime.dispose();
+});
+await run("n2_null_inside_a_call", async () => {
+  const n = refOf(null, "n");
+  const inner = P.action(() => null);
+  const seen: unknown[] = [];
+  named("n2", () => { seen.push(P.read(n)); n.update((x: unknown) => (seen.push(x), x)); seen.push(inner()); n.set(null); seen.push(P.read(n)); })();
+  await flushed();
+  ok("n2_read_update_and_a_nested_return_give_null", JSON.stringify(seen) === "[null,null,null,null]" && seen.every((x) => x === null) && val(n) === null, JSON.stringify(seen.map((x) => (x === undefined ? "undefined" : x))));
+});
+await run("n3_a_view_holding_null", async () => {
+  const el = Object.assign(new EventTarget(), { value: null as unknown });
+  const L = await load(`const label = (pick: string | null) => (pick === null ? "none" : pick);
+const choose = (pick: State<string | null>) => action((s: string | null) => pick.set(s));
+const flip = (pick: State<string | null>) => action(() => pick.update((p) => (p === null ? "y" : null)));`, { outside: { "viewof pick": [[], () => el], pick: [["viewof pick"], (v: unknown) => input(v)] } });
+  const at0 = L.value("label");
+  L.value("choose")("a"); await L.settle();
+  const at1 = [el.value, L.value("label")];
+  L.value("flip")(); await L.settle();
+  const at2 = [el.value, L.value("label")];
+  const h = P.viewHandle(el as any, "pick", (v) => v) as any;
+  let read: unknown = "unset";
+  P.action(() => { read = P.read(h); })();
+  ok("n3_null_is_held_by_the_element_written_and_read_back", JSON.stringify([at0, at1, at2, read, h.value]) === '["none",["a","a"],[null,"none"],null,null]' && read === null && h.value === null && el.value === null && L.errs.length === 0, JSON.stringify([at0, at1, at2, String(read), String(h.value), L.errs]));
+  L.runtime.dispose();
 });
 
 // the checker module's rule tables (soundscript/checker-tests.ojs), run here on lite's checkSources

@@ -1,0 +1,9 @@
+parse: ok : (src: string, p1?: { jsx?: boolean }) => Parsed
+lowerJsx: ok : (src: string, p1?: { keep?: boolean }) => string
+TYPE_KEYS: ok : Set<string>
+erase: ok : (src: string) => string
+eraseEachReduced: rejected : (vs: Node[]) => number
+    [mut-capture] L104 Mut cuts captured by a function that escapes (not a local helper that is only called)
+parseExpr: ok : (src: string) => Node
+syntaxStub: ok : (definition: string) => string | null
+7 probe cells, 1 not ok, 0 module errors

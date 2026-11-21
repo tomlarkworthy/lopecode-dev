@@ -56,3 +56,56 @@ integration has landed (it edits the same files):
 3. `test_spec_S6_12_latestWins` does not assert that the stale answer reached `store` and was dropped. Plausible.
 4. `ss_moduleName` gives a random name to a module not in `runtime.mains`, so a live edit there keys a new
    handle and listener instead of taking over the built ones. Plausible, minor; not reached in this notebook.
+
+### Event delivery integrated (ca223594)
+43 checked cells in `lite/events.ss.ts`; `lite/browser/cells.ts` 144 -> 113 unchecked lines; checked runtime
+declarations 15 -> 57. `delivery.test.ts --full` 138344 orderings, 0 fail; verify 629 pass 0 fail (builder's run
+and mine); Breakout interleaved old/new 47.1, 47.9 vs 48.3, 47.7 world changes/s. The `Mut` alias defect is fixed.
+
+### Review fixes (614b7c43)
+Findings 1 to 3 of the fresh review fixed. Finding 2: the probe script behind the S6.12 ordering counts no
+longer runs against the current compiled shapes, so the counts were removed from the spec; the two programs are
+guarded by their spec tests only. Owed: add them as cases of `lite/browser/delivery.test.ts`.
+Finding 4 (`ss_moduleName` random name outside `runtime.mains`) is open.
+
+### Store, commit and actions as step cells: prototype done (`selfhost/sched-store/`), integration running
+25 checked cells, 149 lines; shell 111 lines against 124. S6.5, S6.8, S6.10, S6.12, S6.13, S6.14 decided in
+checked cells. Blocker handed to the integration: the state never drops a store.
+
+### Checker survey (`selfhost/checker-survey/RESULTS.md`), read-only
+367 units, 4575 code lines in the checker, linker and toolchain; 43 units already ported. Of 66 sampled units
+converted and run through the checker: 19 check as is, 29 after a small local rewrite, 11 have a named rewrite
+not fully ported, 3 are blocked at the parser boundary, 4 by something forbidden on purpose. Estimate: 2139 to
+3557 of 4043 lines could check, given three preconditions: a typed AST (an 84-node union was built and checks;
+a flat node table can cross into SoundScript, a recursive type cannot), the classes rewritten as single cells,
+and a parse result SoundScript can take in. For Tom: whether to start this, and the parse route.
+Defects found, not fixed, repros in `selfhost/checker-survey/defects/`:
+D1 an arrow whose body only throws is inferred as returning void; D2 one failed property read reported once
+per union member; D3 `?.` comparisons do not narrow; D4 `[a].includes(b)` and `indexOf` accept the identity
+test that `===` rejects; D5 `export class` reported as an export, not as a class. Also `RegExpMatchArray`
+cannot be indexed.
+
+### The two one-off test failures: both are test defects, causes found (copy in `tools/lang-experiment-flake/flake/`)
+1. `runtime.test` `s2_the_write_after_the_await_threw`: fails 8 of 8 under `bun test`, 0 of 200 under
+   `bun <file>` at any load. `bun test` takes unhandled rejections for its own report and never calls the
+   file's `unhandledRejection` handler. Fix: the test awaits the rejection itself (`flake/runtime.test.fix.diff`).
+2. `test_spec_S7_4` (63 vs 62): after `variable.delete()` the listener is detached only when `onCodeChange`
+   reports it at a later runtime compute; a pull in the frame before that delivers one more value. Forced:
+   3 of 3 fail with exactly +1. Never seen unforced (0 of 188). Fix: wait, per frame, for
+   `soundscript.running([handle]) === 0` before reading (`flake/spec.ojs.fix.diff`); forced 10 of 10 pass.
+   Behind it: up to one value can be delivered after a listener cell is deleted. Whether S7.4's "the listener
+   ends when its cell is deleted" allows that lag is Tom's call.
+Both fixes to be applied after the store integration, which is editing the same files.
+
+### Renderer decisions as checked cells: prototype done (`selfhost/render-cells/RESULTS.md`)
+`lite/jsx/render.ts` 61 unchecked lines -> 17 checked cells (87 lines, largest 12) and a 68-line shell.
+`proof.ts` 20 of 20 through the redirect; 20000 random old/new trees drawn by both renderers, 0 differ;
+control with move placement off, 2822 of 3000 differ. Patch of 100 keyed children in happy-dom, one moved:
+85.6-103.7 us -> 139.3-154.2 us. Keyed matching, prop diff and position matching moved; "made by h", text of
+non-elements and the DOM-property check stayed in the shell. Open: the prop diff uses `equals` on unknown
+values, which is a deep walk; a typed `props` on `Elem` would let it be `===` on primitives.
+Defects in `render.ts`, repros in `repro-defects.ts`: (1) a prop named like an Object member such as
+`constructor` is treated as an event; (2) `patch` called directly with a different tag keeps the old node but
+records the new tag, so a later `mount` reuses the wrong node; (3) `value={undefined}` sets the text
+"undefined"; (4) a symbol key throws. The checker rejects 1, 3 and 4 in checked code.
+To integrate after the store, last.

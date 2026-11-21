@@ -1,0 +1,6 @@
+same: ok : (a: Node | null | undefined, b: Node | null | undefined) => boolean
+ownershipSlice: ok : (cellFn: Node, F: Facts) => Rule[]
+actionEscapesSlice: ok : (cellFn: Node, F: Facts, actionBodies: Set<Node>) => string[]
+red_optChainTruthy: rejected : (s: { flags?: Flags }) => boolean
+    [possibly-undefined] L181 property fresh of a value that may be undefined
+5 probe cells, 1 not ok, 0 module errors

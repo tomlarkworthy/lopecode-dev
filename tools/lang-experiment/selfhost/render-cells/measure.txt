@@ -1,0 +1,8 @@
+../../lite/jsx/render.ts: 61 code lines (import 2, type 0, const 2, function 57, other 0)
+  asText 2, create 9, patch 48
+../../lite/jsx/h.ts: 10 code lines (import 1, type 1, const 3, function 5, other 0)
+./render.ss.ts: 102 code lines (import 0, type 15, const 87, function 0, other 0)
+  17 cells, max 12, median 4, over 20: none
+  drawnTag 2, eventOf 4, removesAttribute 1, propSet 8, propGone 2, propOps 7, slotId 1, keyedIds 8, drawnId 1, matchKeyed 11, keptByKey 4, mustPlace 11, keyedOps 12, keepsNode 1, childAt 6, positionalOps 4, childOps 4
+./shell.ts: 68 code lines (import 7, type 0, const 11, function 50, other 0)
+  cells 1, relinked 1, S 1, useCells 1, cellsNow 1, asText 2, keyOf 1, kidOf 1, drawnOf 2, create 11, applyProp 16, applyChildren 15, patch 8

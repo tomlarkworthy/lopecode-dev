@@ -1,0 +1,108 @@
+parse: ok : (src: string, p1?: { jsx?: boolean }) => Parsed
+keyOfVariable: rejected : (name: string) => string
+    [type] L16 cannot index RegExpMatchArray with 1
+    [type] L16 cannot index RegExpMatchArray with 2
+keyOfVariable_rw: ok : (name: string) => string
+cellsOf: ok : (src: string) => CellInfo[]
+lowerJsx: ok : (src: string, p1?: { keep?: boolean }) => string
+contextOfFacts: ok : (infos: CellInfo[], accepted: Set<string> | null) => Context
+contextOf: ok : (texts: string[], tsx: boolean, p2?: Set<string> | null) => Context
+keep: ok : (s: string) => string
+keepJsx: rejected : (fnSrc: string) => string
+    [type] L52 () => string is not assignable to string
+    [let-capture] L52 let i assigned from a function that escapes
+keepJsx_rw: ok : (fnSrc: string) => string
+tokenizer: ok : (text: string) => Tokenizer
+tokensOf: ok : (text: string, p1?: number) => Token[]
+ojsCell: rejected : (name: string, body: (r: (input: string) => string) => string) => Built
+    [mut-capture] L99 Mut order captured by a function that escapes (not a local helper that is only called)
+typeCellName: rejected : (d: Node) => string | null
+    [no-member] L104 no property id on Identifier
+    [no-member] L104 no property id on Literal
+    [no-member] L104 no property id on TemplateLiteral
+    [no-member] L104 no property id on TemplateElement
+    [no-member] L104 no property id on ThisExpression
+    [no-member] L104 no property id on ArrayExpression
+    [no-member] L104 no property id on Property
+    [no-member] L104 no property id on ObjectExpression
+    [no-member] L104 no property id on UnaryExpression
+    [no-member] L104 no property id on UpdateExpression
+    [no-member] L104 no property id on BinaryExpression
+    [no-member] L104 no property id on LogicalExpression
+    [no-member] L104 no property id on AssignmentExpression
+    [no-member] L104 no property id on ConditionalExpression
+    [no-member] L104 no property id on CallExpression
+    [no-member] L104 no property id on NewExpression
+    [no-member] L104 no property id on MemberExpression
+    [no-member] L104 no property id on ChainExpression
+    [no-member] L104 no property id on SequenceExpression
+    [no-member] L104 no property id on SpreadElement
+    [no-member] L104 no property id on AwaitExpression
+    [no-member] L104 no property id on YieldExpression
+    [no-member] L104 no property id on TSAsExpression
+    [no-member] L104 no property id on TSNonNullExpression
+    [no-member] L104 no property id on ObjectPattern
+    [no-member] L104 no property id on ArrayPattern
+    [no-member] L104 no property id on RestElement
+    [no-member] L104 no property id on AssignmentPattern
+    [no-member] L104 no property id on TSParameterProperty
+    [no-member] L104 no property id on VariableDeclaration
+    [no-member] L104 no property id on ExpressionStatement
+    [no-member] L104 no property id on BlockStatement
+    [no-member] L104 no property id on ReturnStatement
+    [no-member] L104 no property id on IfStatement
+    [no-member] L104 no property id on SwitchCase
+    [no-member] L104 no property id on SwitchStatement
+    [no-member] L104 no property id on ForStatement
+    [no-member] L104 no property id on ForOfStatement
+    [no-member] L104 no property id on WhileStatement
+    [no-member] L104 no property id on BreakStatement
+    [no-member] L104 no property id on ThrowStatement
+    [no-member] L104 no property id on CatchClause
+    [no-member] L104 no property id on TryStatement
+    [no-member] L104 no property id on LabeledStatement
+    [no-member] L104 no property id on ExportNamedDeclaration
+    [no-member] L104 no property id on ImportDeclaration
+    [no-member] L104 no property id on Program
+    [no-member] L104 no property id on JSXIdentifier
+    [no-member] L104 no property id on JSXAttribute
+    [no-member] L104 no property id on JSXOpeningElement
+    [no-member] L104 no property id on JSXElement
+    [no-member] L104 no property id on JSXFragment
+    [no-member] L104 no property id on JSXExpressionContainer
+    [no-member] L104 no property id on JSXText
+    [no-member] L104 no property id on JSXEmptyExpression
+    [no-member] L104 no property id on TSSatisfiesExpression
+    [no-member] L104 no property id on TSTypeAnnotation
+    [no-member] L104 no property id on TSTypeParameter
+    [no-member] L104 no property id on TSTypeParameterDeclaration
+    [no-member] L104 no property id on TSTypeParameterInstantiation
+    [no-member] L104 no property id on TSKeyword
+    [no-member] L104 no property id on TSTypeReference
+    [no-member] L104 no property id on TSQualifiedName
+    [no-member] L104 no property id on TSArrayType
+    [no-member] L104 no property id on TSTupleType
+    [no-member] L104 no property id on TSUnionType
+    [no-member] L104 no property id on TSParenthesizedType
+    [no-member] L104 no property id on TSTypeOperator
+    [no-member] L104 no property id on TSLiteralType
+    [no-member] L104 no property id on TSFunctionType
+    [no-member] L104 no property id on TSTypeLiteral
+    [no-member] L104 no property id on TSPropertySignature
+    [no-member] L104 no property id on TSIndexSignature
+    [no-member] L104 no property id on TSMethodSignature
+    [no-member] L104 no property id on TSCallSignature
+    [no-member] L104 no property id on TSTypeQuery
+    [no-member] L104 no property id on TSIndexedAccessType
+    [no-member] L104 no property id on TSOptionalType
+    [no-member] L104 no property id on TSNamedTupleMember
+parsedCompiled: ok : Map<string, string | null>
+memoWrite: rejected : (definition: string) => void
+    [mutating-method] L109 write to a Map<string, string | null>, which is not Mut
+identityTest: rejected : (n: Node, fn: Node) => boolean
+    [strict-eq-object] L111 === on two non-primitive operands; use equals(a, b)
+header: rejected : (value: string) => { [k: string]: string }
+    [type] L115 unknown is not assignable to { [k: string]: string }
+reasonOf: rejected : (definition: string) => string
+    [no-member] L120 property message on Js/unknown; narrow it first
+20 probe cells, 8 not ok, 0 module errors

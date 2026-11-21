@@ -1,0 +1,413 @@
+sha lite/parse.ts 714c3a2b9ea9
+sha lite/core.ts b104d69702c1
+sha lite/infer.ts 0e3049d9804b
+sha lite/own.ts 98a2ac926d03
+sha lite/capture.ts 5b9748458a6b
+sha lite/registry.ts eb48b819ee1f
+sha lite/intrinsics.ts a3a7f27e98f0
+sha lite/types.ts 64004450cc72
+sha lite/types.ss.ts 75707e80a705
+sha lite/facts.ts 6e00424d529c
+sha lite/island.ts 8ea3a168040c
+sha lite/complete.ts 5704eb1f7d0a
+sha rules.ts 48fb22ffc8bb
+sha lite/link.ts 7c81ef0e7ef3
+sha lite/toolchain/ss-toolchain.ts 557070fb1dca
+sha lite/toolchain/comment-types.ts d419996f39f0
+sha lite/toolchain/module-js.ts c73e30d5b804
+sha lite/jsx/lower.ts 0e0237136613
+sha lite/browser/erase.ts 14a5e55e7604
+sha lite/boundary.ts 1f0148b52882
+file	decls	lines	code	function	const-fn	const-value	let	type	method	field	ctor	statement
+lite/parse.ts	9	47	46	2	1	3	0	3	0	0	0	0
+lite/core.ts	18	428	397	5	2	3	1	7	0	0	0	0
+lite/infer.ts	115	1496	1476	0	4	2	2	7	77	21	2	0
+lite/own.ts	4	507	487	3	0	0	0	1	0	0	0	0
+lite/capture.ts	8	142	140	5	2	0	0	1	0	0	0	0
+lite/registry.ts	40	430	427	3	1	4	1	4	17	9	1	0
+lite/intrinsics.ts	9	321	321	0	1	8	0	0	0	0	0	0
+lite/types.ts	4	7	7	0	0	4	0	0	0	0	0	0
+lite/types.ss.ts	39	157	156	0	31	0	0	8	0	0	0	0
+lite/facts.ts	6	58	58	3	2	0	0	1	0	0	0	0
+lite/island.ts	7	54	54	3	0	1	0	3	0	0	0	0
+lite/complete.ts	21	276	267	10	3	6	0	2	0	0	0	0
+rules.ts	3	67	59	0	0	2	0	1	0	0	0	0
+lite/link.ts	3	26	26	1	0	0	0	2	0	0	0	0
+lite/toolchain/ss-toolchain.ts	57	396	367	21	18	8	0	10	0	0	0	0
+lite/toolchain/comment-types.ts	14	107	103	5	4	5	0	0	0	0	0	0
+lite/toolchain/module-js.ts	6	43	43	2	2	0	0	2	0	0	0	0
+lite/jsx/lower.ts	1	53	52	1	0	0	0	0	0	0	0	0
+lite/browser/erase.ts	2	51	50	1	0	1	0	0	0	0	0	0
+lite/boundary.ts	1	40	39	1	0	0	0	0	0	0	0	0
+TOTAL	367	4706	4575	66	71	47	4	52	94	30	3	0
+stratum core	decls 308	code 3909
+stratum text	decls 5	code 369
+stratum ported	decls 43	code 163
+stratum borderline	decls 11	code 134
+core	lite/parse.ts	Node	type	1	any=1
+core	lite/parse.ts	Comment	type	1	
+core	lite/parse.ts	Parsed	type	1	NodeType=2
+core	lite/parse.ts	TS	const-value	1	cast=1 any=1
+core	lite/parse.ts	TSX	const-value	1	cast=1 any=1
+core	lite/parse.ts	SKIP	const-value	1	new:Set=1
+core	lite/parse.ts	kids	function	10	NodeType=3 computedMember=1 mutCall=3
+core	lite/parse.ts	isFn	const-fn	1	NodeType=1 regex=1
+core	lite/parse.ts	parse	function	29	cast=3 mutCall=3 any=1 NodeType=2 localAssign=5 computedMember=3
+core	lite/core.ts	LiteError	type	1	
+core	lite/core.ts	LiteCell	type	4	
+core	lite/core.ts	LiteResult	type	1	
+core	lite/core.ts	CellDef	type	1	NodeType=2
+core	lite/core.ts	expandForErr	let	1	moduleLetRef=1
+core	lite/core.ts	hasErr	function	13	switch=1 moduleLetRef=1
+core	lite/core.ts	SYNTAX	const-value	5	
+core	lite/core.ts	RESERVED_MSG	const-fn	3	regex=1
+core	lite/core.ts	reservedName	const-fn	1	regex=1
+core	lite/core.ts	syntaxPass	function	18	NodeType=3 any=2 regex=1 computedMember=2
+core	lite/core.ts	TYPE_POSITIONS	const-value	1	new:Set=1
+core	lite/core.ts	Outside	type	1	
+core	lite/core.ts	Sources	type	1	
+core	lite/core.ts	Boundary	type	1	
+core	lite/core.ts	checkSources	function	323	NodeType=13 new:Registry=1 memberWrite=15 mutCall=63 moduleLetWrite=1 moduleLetRef=1 new:Set=11 cast=10 new:Map=15 regex=1 nonnull=15 any=3 localAssign=16 computedMember=19 switch=1 new:Checker=1 catch=1
+core	lite/core.ts	STAND	const-value	1	
+core	lite/core.ts	distinctNames	function	17	new:Map=1 catch=1 cast=1 instanceof=1 regex=2 throw=3 computedMember=2 localAssign=4 mutCall=1
+core	lite/core.ts	dedupe	function	4	new:Set=1 mutCall=1
+core	lite/infer.ts	BKind	type	1	
+core	lite/infer.ts	Binding	type	4	NodeType=2
+core	lite/infer.ts	FnInfo	type	6	NodeType=1
+core	lite/infer.ts	Scope.vars	field	1	new:Map=1
+core	lite/infer.ts	Scope.parent	field	1	
+core	lite/infer.ts	Scope.constructor	ctor	1	thisWrite=1 this=1
+core	lite/infer.ts	Scope.get	method	1	this=2
+core	lite/infer.ts	exclusion	const-fn	1	
+core	lite/infer.ts	pathOf	const-fn	1	
+core	lite/infer.ts	Env	type	1	
+core	lite/infer.ts	CallFact	type	1	
+core	lite/infer.ts	Facts	type	7	NodeType=5
+core	lite/infer.ts	Diag	type	1	NodeType=1
+core	lite/infer.ts	nextId	let	1	moduleLetRef=1
+core	lite/infer.ts	fresh	let	1	moduleLetRef=1
+core	lite/infer.ts	actionFn	const-fn	1	
+core	lite/infer.ts	TYPEOF	const-value	2	new:Map=1
+core	lite/infer.ts	memberless	const-fn	1	
+core	lite/infer.ts	MUTATING_OPS	const-value	1	new:Set=1
+core	lite/infer.ts	Checker.facts	field	1	new:Map=5
+core	lite/infer.ts	Checker.diags	field	1	
+core	lite/infer.ts	Checker.unsup	field	1	
+core	lite/infer.ts	Checker.globals	field	1	new:Scope=1
+core	lite/infer.ts	Checker.compileHook	field	1	NodeType=1
+core	lite/infer.ts	Checker.identHook	field	1	NodeType=1
+core	lite/infer.ts	Checker.actionBodies	field	1	new:Set=1 NodeType=1
+core	lite/infer.ts	Checker.quiet	field	1	
+core	lite/infer.ts	Checker.inActionUses	field	1	NodeType=1
+core	lite/infer.ts	Checker.stateProps	field	1	new:Set=1 NodeType=1
+core	lite/infer.ts	Checker.reg	field	1	
+core	lite/infer.ts	Checker.cellNames	field	1	
+core	lite/infer.ts	Checker.parsed	field	1	
+core	lite/infer.ts	Checker.constructor	ctor	15	thisWrite=3 this=9 memberWrite=3 mutCall=3 moduleLetWrite=3 moduleLetRef=3 cast=2 any=2 nonnull=1
+core	lite/infer.ts	Checker.err	method	1	NodeType=1 mutCall=1 this=1
+core	lite/infer.ts	Checker.inActionOnly	method	4	NodeType=1 this=3 mutCall=1
+core	lite/infer.ts	Checker.unsupported	method	1	NodeType=1 mutCall=1 this=1
+core	lite/infer.ts	Checker.rec	method	1	NodeType=1 mutCall=1 this=1
+core	lite/infer.ts	Checker.um	method	8	this=4
+core	lite/infer.ts	Checker.filter	method	10	this=1 mutCall=2
+core	lite/infer.ts	Checker.truthy	field	5	this=1
+core	lite/infer.ts	Checker.falsy	field	5	this=1
+core	lite/infer.ts	Checker.nonNullish	field	1	this=1
+core	lite/infer.ts	Checker.typeTag	method	20	switch=1 this=2
+core	lite/infer.ts	Checker.narrowTypeof	method	9	this=2
+core	lite/infer.ts	Checker.narrowEq	method	14	this=5
+core	lite/infer.ts	Checker.narrowIn	method	19	this=5 new:Map=2 mutCall=1
+core	lite/infer.ts	Checker.narrowArray	method	7	this=1
+core	lite/infer.ts	Checker.narrowByProp	method	7	this=2
+core	lite/infer.ts	Checker.pathKey	method	15	NodeType=1 this=1 regex=1
+core	lite/infer.ts	Checker.dropRoot	method	4	mutCall=1
+core	lite/infer.ts	Checker.join	method	7	new:Map=1 mutCall=1
+core	lite/infer.ts	Checker.cond	method	52	NodeType=6 this=24 nonnull=4 new:Map=2 cast=1 mutCall=2 computedMember=5
+core	lite/infer.ts	Checker.declare	method	6	NodeType=1 moduleLetWrite=1 moduleLetRef=1 mutCall=2 this=1
+core	lite/infer.ts	Checker.bindPattern	method	48	NodeType=2 switch=1 this=25 new:Map=1 mutCall=2 cast=1
+core	lite/infer.ts	Checker.nonUndef	field	1	this=1
+core	lite/infer.ts	Checker.propOf	method	11	NodeType=1 this=4 mutCall=1
+core	lite/infer.ts	Checker.indexOf	method	13	NodeType=1 this=6 mutCall=3 computedMember=1
+core	lite/infer.ts	Checker.memberMissing	method	6	NodeType=1 this=6
+core	lite/infer.ts	Checker.intrinsicName	method	9	this=2
+core	lite/infer.ts	Checker.check	method	6	NodeType=1 this=4 thisWrite=2 regex=1 finally=1
+core	lite/infer.ts	Checker.check1	method	24	NodeType=1 this=20 switch=1 localAssign=6 nonnull=2 new:Map=1 memberWrite=1
+core	lite/infer.ts	Checker.ctxSensitive	method	1	NodeType=1 regex=1
+core	lite/infer.ts	Checker.expect	method	8	NodeType=1 this=5 localAssign=2
+core	lite/infer.ts	Checker.hides	method	5	NodeType=1 this=3
+core	lite/infer.ts	Checker.hidden	method	40	this=13 computedMember=7 localAssign=3 switch=1
+core	lite/infer.ts	Checker.hiddenFn	method	8	computedMember=3 this=3 localAssign=1
+core	lite/infer.ts	Checker.promiseIn	method	17	this=4 switch=1
+core	lite/infer.ts	Checker.actionIn	method	17	this=3 switch=1
+core	lite/infer.ts	Checker.infer	method	5	NodeType=1 this=5 thisWrite=2 finally=1
+core	lite/infer.ts	Checker.infer1	method	64	NodeType=1 switch=1 this=40 computedMember=1 nonnull=4 new:Map=1 memberWrite=1 mutCall=1
+core	lite/infer.ts	Checker.jsx	method	43	NodeType=9 cast=1 regex=3 mutCall=5 this=12 localAssign=3
+core	lite/infer.ts	Checker.conditional	method	7	NodeType=1 this=4 memberWrite=1 nonnull=1
+core	lite/infer.ts	Checker.awaited	method	3	this=2 computedMember=1
+core	lite/infer.ts	Checker.logicalType	method	5	NodeType=1 this=6
+core	lite/infer.ts	Checker.constLit	method	12	NodeType=2 this=7 new:Map=1 mutCall=1
+core	lite/infer.ts	Checker.ident	method	18	NodeType=1 this=6 mutCall=1
+core	lite/infer.ts	Checker.short	field	1	new:Set=1 NodeType=1
+core	lite/infer.ts	Checker.member	method	39	NodeType=1 this=24 mutCall=6 regex=1 localAssign=10
+core	lite/infer.ts	Checker.collapseArrays	method	7	this=1 cast=1 any=1
+core	lite/infer.ts	Checker.index	method	24	NodeType=1 this=11 mutCall=9 computedMember=1 nonnull=1
+core	lite/infer.ts	Checker.unary	method	23	NodeType=1 this=9 switch=1
+core	lite/infer.ts	Checker.numeric	method	6	NodeType=1 this=6
+core	lite/infer.ts	Checker.noOverlap	method	8	this=6
+core	lite/infer.ts	Checker.binary	method	37	NodeType=1 this=28 switch=1 cast=1
+core	lite/infer.ts	Checker.lvalue	method	31	NodeType=3 this=16 mutCall=1 nonnull=1 memberWrite=2
+core	lite/infer.ts	Checker.writeRule	method	9	NodeType=2 this=4 localAssign=1
+core	lite/infer.ts	Checker.assign	method	18	NodeType=1 this=9 localAssign=2 mutCall=1
+core	lite/infer.ts	Checker.compound	method	7	NodeType=1 this=5
+core	lite/infer.ts	Checker.objLit	method	26	NodeType=1 new:Map=1 cast=1 this=12 computedMember=2 mutCall=2 predicate=1 nonnull=1 localAssign=1
+core	lite/infer.ts	Checker.arrLit	method	22	NodeType=3 this=8 cast=1 computedMember=2 mutCall=2
+core	lite/infer.ts	Checker.fnExpr	method	82	NodeType=2 computedMember=6 this=32 new:Scope=1 mutCall=4 new:Map=1 localAssign=12 memberWrite=3
+core	lite/infer.ts	Checker.returned	method	6	NodeType=1 this=4
+core	lite/infer.ts	Checker.findBinding	method	4	localAssign=1
+core	lite/infer.ts	Checker.typeCtx	method	5	new:Set=1 localAssign=1 mutCall=1
+core	lite/infer.ts	Checker.annotatedSig	method	9	NodeType=2 this=8 memberWrite=3
+core	lite/infer.ts	Checker.assignedNames	method	10	NodeType=2 new:Set=1 this=1 mutCall=1
+core	lite/infer.ts	Checker.patternNames	method	8	NodeType=3 mutCall=1 this=4
+core	lite/infer.ts	Checker.hoist	method	17	NodeType=1 this=4 memberWrite=4 localAssign=1 new:Map=1
+core	lite/infer.ts	Checker.call	method	67	NodeType=2 this=35 mutCall=2 localAssign=10 computedMember=8 cast=1 any=1 new:Map=1 memberWrite=3
+core	lite/infer.ts	Checker.typeArgs	method	3	NodeType=2 this=3
+core	lite/infer.ts	Checker.objectAssign	method	8	NodeType=2 this=4
+core	lite/infer.ts	Checker.objectFreeze	method	7	NodeType=2 this=3
+core	lite/infer.ts	Checker.apply	method	74	NodeType=3 moduleLetRef=2 moduleLetWrite=1 new:Set=2 new:Map=3 this=25 computedMember=14 mutCall=6 memberWrite=5 nonnull=1
+core	lite/infer.ts	Checker.ctxOnly	method	5	new:Map=1
+core	lite/infer.ts	Checker.preludeCall	method	61	NodeType=2 mutCall=2 this=24 computedMember=15 switch=1 nonnull=1
+core	lite/infer.ts	Checker.stmts	method	8	NodeType=1 new:Map=1 this=2 localAssign=1
+core	lite/infer.ts	Checker.block	method	7	NodeType=1 new:Scope=1 this=2 memberWrite=1
+core	lite/infer.ts	Checker.sub1	method	3	NodeType=1 this=2
+core	lite/infer.ts	Checker.stmt	method	90	NodeType=1 switch=1 this=39 memberWrite=6 new:Map=8 mutCall=4 nonnull=2 new:Scope=2 computedMember=1 localAssign=2
+core	lite/infer.ts	Checker.varDecl	method	29	NodeType=2 this=15 memberWrite=4 mutCall=1
+core	lite/infer.ts	Checker.invalidate	method	6	NodeType=1 this=2
+core	lite/infer.ts	Checker.loop	method	31	NodeType=1 new:Scope=1 this=13 new:Map=3 mutCall=2 localAssign=5 memberWrite=1
+core	lite/infer.ts	Checker.breaks	field	1	
+core	lite/infer.ts	Checker.switchStmt	method	43	NodeType=4 this=25 new:Map=2 mutCall=8 cast=2 localAssign=6 computedMember=3 nonnull=2 new:Scope=1 memberWrite=1
+core	lite/infer.ts	Checker.hasBreak	method	5	NodeType=1 regex=1 this=1
+core	lite/own.ts	Rule	type	1	NodeType=1
+core	lite/own.ts	iterIn	function	16	switch=1
+core	lite/own.ts	ownership	function	368	NodeType=32 new:Set=27 mutCall=32 new:Map=6 localAssign=32 nonnull=19 computedMember=6 switch=4 regex=1 predicate=1 cast=4
+core	lite/own.ts	actionEscapes	function	102	NodeType=21 new:Map=3 mutCall=8 localAssign=4 nonnull=2 computedMember=1
+core	lite/capture.ts	Capture	type	1	NodeType=1
+core	lite/capture.ts	isActionCall	const-fn	1	NodeType=1
+core	lite/capture.ts	refs	function	17	NodeType=4 mutCall=1 computedMember=1
+core	lite/capture.ts	bound	function	12	NodeType=1 switch=1 mutCall=1
+core	lite/capture.ts	declaredIn	function	13	NodeType=2 new:Set=1 mutCall=2
+core	lite/capture.ts	captures	function	35	NodeType=4 new:Map=1 mutCall=6 new:Set=3 localAssign=2 computedMember=1 nonnull=2
+core	lite/capture.ts	opaqueCaptures	function	56	NodeType=12 new:Map=2 mutCall=9 regex=1 new:Set=2 nonnull=2 localAssign=2
+core	lite/capture.ts	captureMessage	const-fn	5	
+core	lite/registry.ts	Origin	type	1	
+core	lite/registry.ts	Decl	type	1	NodeType=1
+core	lite/registry.ts	ValueDecl	type	1	NodeType=1
+core	lite/registry.ts	TypeCtx	type	1	NodeType=1
+core	lite/registry.ts	FLAG_NAMES	const-value	1	cast=1
+core	lite/registry.ts	flagsOf	function	6	NodeType=1 memberWrite=2 computedMember=1
+core	lite/registry.ts	KEYWORDS	const-value	6	new:Map=1
+core	lite/registry.ts	keyName	const-fn	1	NodeType=1
+core	lite/registry.ts	DECLS	let	1	moduleLetRef=1
+core	lite/registry.ts	ONE_ARG	const-value	1	new:Set=1
+core	lite/registry.ts	CONVERT_NAMES	const-value	1	
+core	lite/registry.ts	Registry.types	field	1	new:Map=1
+core	lite/registry.ts	Registry.values	field	1	new:Map=1
+core	lite/registry.ts	Registry.strictIndex	field	1	
+core	lite/registry.ts	Registry.onUnsup	field	1	NodeType=1
+core	lite/registry.ts	Registry.onErr	field	1	NodeType=1
+core	lite/registry.ts	Registry.expandMemo	field	1	new:Map=1
+core	lite/registry.ts	Registry.ifaceMemo	field	1	new:Map=1
+core	lite/registry.ts	Registry.journal	field	1	
+core	lite/registry.ts	Registry.constructor	ctor	6	moduleLetWrite=1 moduleLetRef=4 this=3 computedMember=3
+core	lite/registry.ts	Registry.builtinTypeNames	method	3	new:Set=1 this=1
+core	lite/registry.ts	Registry.load	method	30	NodeType=5 new:Set=3 new:Map=2 cast=1 regex=1 mutCall=8 this=6 computedMember=3
+core	lite/registry.ts	Registry.peek	method	9	cast=1 this=9 thisWrite=3 finally=1 localAssign=1 mutCall=1
+core	lite/registry.ts	Registry.isAlias	method	4	this=1
+core	lite/registry.ts	Registry.sig	method	19	NodeType=3 this=7 new:Set=1 localAssign=1 mutCall=1
+core	lite/registry.ts	Registry.sigOf	method	3	NodeType=1 this=1
+core	lite/registry.ts	Registry.convert	method	62	NodeType=2 this=15 switch=1 computedMember=6 regex=2 mutCall=1 new:Map=1
+core	lite/registry.ts	Registry.literal	method	30	NodeType=1 new:Map=3 this=8 mutCall=6 computedMember=1 memberWrite=3
+core	lite/registry.ts	Registry.expand	method	16	this=10 nonnull=1 computedMember=3 mutCall=3 new:Map=1 localAssign=2 new:Set=1
+core	lite/registry.ts	Registry.ifaceRec	method	26	this=8 nonnull=1 new:Map=1 mutCall=4 new:Set=1 memberWrite=5
+core	lite/registry.ts	Registry.member	method	32	this=11 switch=1 computedMember=2 new:Map=1
+core	lite/registry.ts	Registry.isTypedArray	field	1	
+core	lite/registry.ts	Registry.iterElem	method	21	this=4 switch=1 cast=3 any=2 computedMember=5
+core	lite/registry.ts	Registry.callSigs	method	7	this=2 computedMember=1
+core	lite/registry.ts	Registry.sub	method	54	new:Set=1 this=12 mutCall=1 computedMember=10 switch=1 cast=1 any=1
+core	lite/registry.ts	Registry.fnSub	method	12	localAssign=1 computedMember=2 this=3
+core	lite/registry.ts	Registry.unify	method	49	this=11 mutCall=1 nonnull=1 cast=1 any=1 computedMember=11 switch=1
+core	lite/registry.ts	Registry.hasAnyTv	method	3	regex=1
+core	lite/registry.ts	marker	function	8	NodeType=1 regex=2
+core	lite/registry.ts	builtinTypeNames	function	3	mutCall=1 new:Registry=1
+core	lite/intrinsics.ts	TYPED_ARRAYS	const-value	1	
+core	lite/intrinsics.ts	ALLOWED_GLOBALS	const-value	5	new:Set=1
+core	lite/intrinsics.ts	OJS_INPUT_GLOBALS	const-value	1	
+text	lite/intrinsics.ts	typedArray	const-fn	35	
+text	lite/intrinsics.ts	INTRINSIC_DECLS	const-value	212	
+text	lite/intrinsics.ts	PRELUDE_DECLS	const-value	26	
+core	lite/intrinsics.ts	CAPABILITIES	const-value	1	
+core	lite/intrinsics.ts	PRELUDE_FNS	const-value	1	new:Set=1
+text	lite/intrinsics.ts	JSX_DECLS	const-value	39	
+ported	lite/types.ts	L	const-value	1	
+ported	lite/types.ts	(pattern)	const-value	4	
+ported	lite/types.ts	isNamed	const-value	1	cast=1 predicate=1
+ported	lite/types.ts	tpNames	const-value	1	cast=2 NodeType=1
+ported	lite/types.ss.ts	Flags	type	1	
+ported	lite/types.ss.ts	Param	type	1	
+ported	lite/types.ss.ts	Fn	type	1	
+ported	lite/types.ss.ts	Prop	type	1	
+ported	lite/types.ss.ts	Rec	type	1	
+ported	lite/types.ss.ts	Named	type	1	
+ported	lite/types.ss.ts	Ty	type	11	
+ported	lite/types.ss.ts	NUM	const-fn	1	
+ported	lite/types.ss.ts	STR	const-fn	1	
+ported	lite/types.ss.ts	BIGINT	const-fn	1	
+ported	lite/types.ss.ts	NULL	const-fn	1	
+ported	lite/types.ss.ts	UNDEF	const-fn	1	
+ported	lite/types.ss.ts	VOID	const-fn	1	
+ported	lite/types.ss.ts	NEVER	const-fn	1	
+ported	lite/types.ss.ts	UNKNOWN	const-fn	1	
+ported	lite/types.ss.ts	OBJECT	const-fn	1	
+ported	lite/types.ss.ts	ERR	const-fn	1	
+ported	lite/types.ss.ts	SYMBOL	const-fn	1	
+ported	lite/types.ss.ts	TRUE	const-fn	1	
+ported	lite/types.ss.ts	FALSE	const-fn	1	
+ported	lite/types.ss.ts	BOOL	const-fn	1	
+ported	lite/types.ss.ts	lit	const-fn	1	
+ported	lite/types.ss.ts	arr	const-fn	1	
+ported	lite/types.ss.ts	named	const-fn	1	
+ported	lite/types.ss.ts	rec	const-fn	4	new:Map=1
+ported	lite/types.ss.ts	WRAPPERS	const-fn	1	new:Set=1
+ported	lite/types.ss.ts	isNamed	const-fn	1	
+ported	lite/types.ss.ts	unwrap	const-fn	1	computedMember=1
+ported	lite/types.ss.ts	propT	const-fn	1	
+ported	lite/types.ss.ts	tpNames	const-fn	2	
+ported	lite/types.ss.ts	union	const-fn	21	new:Set=1 mutCall=2 computedMember=1
+ported	lite/types.ss.ts	members	const-fn	1	
+ported	lite/types.ss.ts	show	const-fn	32	switch=1
+ported	lite/types.ss.ts	Subst	type	1	
+ported	lite/types.ss.ts	subst	const-fn	24	new:Map=2 switch=1 mutCall=1
+ported	lite/types.ss.ts	hasTv	const-fn	15	switch=1
+ported	lite/types.ss.ts	instantiate	const-fn	8	new:Map=1 computedMember=1 throw=1 new:Error=1
+ported	lite/types.ss.ts	widen	const-fn	8	
+ported	lite/types.ss.ts	isPrimitive	const-fn	2	
+core	lite/facts.ts	CellInfo	type	1	
+core	lite/facts.ts	preludeCalls	const-fn	2	NodeType=2
+core	lite/facts.ts	globalRefs	const-fn	4	NodeType=2 regex=2
+core	lite/facts.ts	freeUses	function	20	NodeType=12 regex=3 new:Set=1 mutCall=1
+core	lite/facts.ts	factsOf	function	19	NodeType=5 localAssign=1 cast=1 predicate=1
+core	lite/facts.ts	cellsOf	function	12	NodeType=1 mutCall=1 regex=1
+core	lite/island.ts	IslandCell	type	1	
+core	lite/island.ts	IslandSpec	type	1	
+core	lite/island.ts	Island	type	1	
+core	lite/island.ts	ISLAND_CAPABILITIES	const-value	1	new:Set=1
+core	lite/island.ts	island	function	23	new:Map=1 new:Set=2 mutCall=6
+core	lite/island.ts	specOf	function	17	any=3 computedMember=2 memberWrite=1 mutCall=1 cast=1
+core	lite/island.ts	compileCalls	function	10	any=5 mutCall=1
+core	lite/complete.ts	Completion	type	1	
+core	lite/complete.ts	Completions	type	1	
+core	lite/complete.ts	PH	const-value	1	
+core	lite/complete.ts	KEYWORD_NAMES	const-value	1	
+core	lite/complete.ts	NO_MEMBERS	const-value	1	new:Set=1
+core	lite/complete.ts	scan	function	28	computedMember=6 localAssign=10 mutCall=6 cast=1 any=1
+core	lite/complete.ts	tagAt	function	14	regex=2 localAssign=3 computedMember=2
+core	lite/complete.ts	paramListAt	function	11	regex=2 computedMember=2 localAssign=2 nonnull=1
+core	lite/complete.ts	typeAt	function	17	regex=3 computedMember=3 localAssign=5
+core	lite/complete.ts	declared	const-fn	1	regex=1 computedMember=1
+core	lite/complete.ts	TYPE_NAMES	const-value	2	new:Set=1
+core	lite/complete.ts	kindOf	const-fn	1	
+core	lite/complete.ts	membersOf	function	21	new:Map=2 computedMember=1 mutCall=3 localAssign=1
+core	lite/complete.ts	memberNames	function	13	switch=1
+core	lite/complete.ts	scopeNames	function	13	new:Map=1 localAssign=1 mutCall=2
+core	lite/complete.ts	HEAD	const-value	1	regex=1
+core	lite/complete.ts	annotationOf	function	23	computedMember=3 localAssign=1 regex=1 cast=1 mutCall=1
+core	lite/complete.ts	addParameter	function	30	computedMember=6 localAssign=9 mutCall=2 regex=1
+core	lite/complete.ts	completionWork	const-value	1	
+core	lite/complete.ts	counted	const-fn	1	memberWrite=2
+core	lite/complete.ts	completionsAt	function	85	computedMember=4 nonnull=2 regex=7 new:Registry=1 new:Set=2 mutCall=7 new:Map=2 catch=3 localAssign=4 memberWrite=2 NodeType=1 cast=1 any=1
+borderline	rules.ts	RuleInfo	type	1	
+text	rules.ts	RULES	const-value	57	
+borderline	rules.ts	RULE_IDS	const-value	1	new:Set=1
+core	lite/link.ts	Cell	type	1	
+core	lite/link.ts	Linked	type	1	
+core	lite/link.ts	link	function	24	computedMember=2 new:Map=1 new:Set=1 throw=3 new:Error=3 mutCall=3 any=2 new:Function=1 cast=1
+core	lite/toolchain/ss-toolchain.ts	Variable	type	1	
+core	lite/toolchain/ss-toolchain.ts	PRELUDE	const-value	1	
+core	lite/toolchain/ss-toolchain.ts	RUNTIME_CELLS	const-value	1	
+core	lite/toolchain/ss-toolchain.ts	inputsIn	const-fn	2	
+core	lite/toolchain/ss-toolchain.ts	INPUTS	const-value	1	
+core	lite/toolchain/ss-toolchain.ts	header	const-fn	1	
+core	lite/toolchain/ss-toolchain.ts	reserved	function	3	throw=1 new:Error=1
+core	lite/toolchain/ss-toolchain.ts	keep	const-fn	1	regex=2
+core	lite/toolchain/ss-toolchain.ts	unkeep	const-fn	1	
+core	lite/toolchain/ss-toolchain.ts	keepJsx	function	13	NodeType=1 mutCall=1 regex=1 computedMember=1 localAssign=1 throw=1 new:Error=1
+core	lite/toolchain/ss-toolchain.ts	erasesToJs	function	15	NodeType=2 catch=1 localAssign=4 regex=1 throw=1 new:Error=1 cast=1
+core	lite/toolchain/ss-toolchain.ts	splitCells	function	16	cast=1 NodeType=2 computedMember=2 mutCall=2 localAssign=1 throw=1 new:Error=1
+core	lite/toolchain/ss-toolchain.ts	Context	type	1	
+core	lite/toolchain/ss-toolchain.ts	NO_CONTEXT	const-value	1	new:Set=2
+core	lite/toolchain/ss-toolchain.ts	contextOf	function	4	catch=1
+core	lite/toolchain/ss-toolchain.ts	contextOfFacts	function	6	new:Set=2
+core	lite/toolchain/ss-toolchain.ts	CheckCell	type	1	
+core	lite/toolchain/ss-toolchain.ts	CheckLike	type	1	
+core	lite/toolchain/ss-toolchain.ts	acceptedOf	const-fn	1	new:Set=1
+core	lite/toolchain/ss-toolchain.ts	whyOf	function	8	mutCall=2
+core	lite/toolchain/ss-toolchain.ts	contextFromCheck	function	6	throw=1 new:Error=1 new:Map=1 cast=1
+core	lite/toolchain/ss-toolchain.ts	CellState	type	1	
+core	lite/toolchain/ss-toolchain.ts	cellStates	function	19	new:Map=2 new:Set=2 mutCall=2 cast=1 localAssign=2 nonnull=1
+core	lite/toolchain/ss-toolchain.ts	declaredNameAt	function	15	catch=1 localAssign=5
+core	lite/toolchain/ss-toolchain.ts	declaredName	const-fn	1	
+core	lite/toolchain/ss-toolchain.ts	Token	type	1	
+core	lite/toolchain/ss-toolchain.ts	tokensOf	function	9	catch=1 localAssign=1 mutCall=1
+core	lite/toolchain/ss-toolchain.ts	paramsOf	function	3	catch=1 computedMember=1
+core	lite/toolchain/ss-toolchain.ts	variableName	const-fn	4	regex=1 computedMember=2
+core	lite/toolchain/ss-toolchain.ts	keyOfVariable	const-fn	5	regex=2 computedMember=4
+core	lite/toolchain/ss-toolchain.ts	STATE_VALUE	const-value	1	
+core	lite/toolchain/ss-toolchain.ts	handleName	const-fn	1	
+core	lite/toolchain/ss-toolchain.ts	Built	type	1	
+core	lite/toolchain/ss-toolchain.ts	ojsCell	function	9	mutCall=1 new:Map=1
+core	lite/toolchain/ss-toolchain.ts	rejectedCell	const-fn	2	
+core	lite/toolchain/ss-toolchain.ts	isDuplicateKey	const-fn	1	predicate=1 regex=1
+core	lite/toolchain/ss-toolchain.ts	compileCell	const-fn	1	
+core	lite/toolchain/ss-toolchain.ts	compileCellText	const-fn	1	
+core	lite/toolchain/ss-toolchain.ts	build	function	13	nonnull=1 catch=1 localAssign=1 throw=1 cast=1
+core	lite/toolchain/ss-toolchain.ts	compileChecked	function	57	throw=4 new:Error=4 NodeType=4 computedMember=12 regex=2 localAssign=2 mutCall=1 cast=1 new:Set=1
+core	lite/toolchain/ss-toolchain.ts	compileModule	function	5	
+core	lite/toolchain/ss-toolchain.ts	Shape	type	1	
+core	lite/toolchain/ss-toolchain.ts	Compiled	type	1	any=2
+core	lite/toolchain/ss-toolchain.ts	rtCall	const-fn	2	any=1 computedMember=1
+core	lite/toolchain/ss-toolchain.ts	RUNTIME_INPUTS	const-value	1	new:Map=1 computedMember=1
+core	lite/toolchain/ss-toolchain.ts	children	const-fn	1	any=1 computedMember=1
+core	lite/toolchain/ss-toolchain.ts	parsedCompiled	const-value	1	new:Map=1
+core	lite/toolchain/ss-toolchain.ts	parseCompiled	function	39	computedMember=6 throw=1 new:Error=1 any=7 localAssign=5 mutCall=3 cast=1 nonnull=1
+core	lite/toolchain/ss-toolchain.ts	KINDS	const-value	1	
+core	lite/toolchain/ss-toolchain.ts	compiledKind	const-fn	4	computedMember=1
+core	lite/toolchain/ss-toolchain.ts	decompileVariable	function	16	throw=1 new:Error=1 localAssign=7
+core	lite/toolchain/ss-toolchain.ts	cellOfVariable	const-fn	1	regex=1
+core	lite/toolchain/ss-toolchain.ts	decompileModule	function	3	predicate=1
+core	lite/toolchain/ss-toolchain.ts	Translated	type	1	
+core	lite/toolchain/ss-toolchain.ts	isIdentifier	const-fn	1	nonnull=2
+core	lite/toolchain/ss-toolchain.ts	ownThis	function	13	any=2 computedMember=1
+core	lite/toolchain/ss-toolchain.ts	fromObservableVariables	function	46	computedMember=10 any=2 catch=2 localAssign=3 cast=2 regex=1 mutCall=4
+core	lite/toolchain/comment-types.ts	OPEN	const-value	1	
+core	lite/toolchain/comment-types.ts	CLOSE	const-value	1	
+core	lite/toolchain/comment-types.ts	COMMENT_TYPE_KEYS	const-value	1	new:Set=1
+core	lite/toolchain/comment-types.ts	cutsOf	function	59	NodeType=1 regex=1 mutCall=9 localAssign=2 throw=1 new:Error=1 computedMember=9 any=1 memberWrite=1
+core	lite/toolchain/comment-types.ts	esc	const-fn	1	regex=1
+core	lite/toolchain/comment-types.ts	unesc	const-fn	1	regex=1
+core	lite/toolchain/comment-types.ts	tokens	const-fn	1	
+core	lite/toolchain/comment-types.ts	LANG	const-value	1	
+core	lite/toolchain/comment-types.ts	langs	const-value	1	new:Map=1
+core	lite/toolchain/comment-types.ts	langOf	function	14	catch=1 localAssign=2 regex=1 computedMember=1 mutCall=2 nonnull=1
+core	lite/toolchain/comment-types.ts	commentTypes	function	9	throw=1 new:Error=1 localAssign=2
+core	lite/toolchain/comment-types.ts	uncommentTypes	function	7	mutCall=1 localAssign=2
+core	lite/toolchain/comment-types.ts	compile	const-fn	1	
+core	lite/toolchain/comment-types.ts	decompile	function	5	throw=1 new:Error=1
+borderline	lite/toolchain/module-js.ts	ModuleVar	type	1	
+borderline	lite/toolchain/module-js.ts	ModuleImport	type	1	
+borderline	lite/toolchain/module-js.ts	lit	const-fn	1	any=1
+borderline	lite/toolchain/module-js.ts	strings	const-fn	1	any=2
+borderline	lite/toolchain/module-js.ts	moduleJs	function	24	any=2 new:Map=1 mutCall=3 nonnull=3 computedMember=6
+borderline	lite/toolchain/module-js.ts	syntaxStub	function	15	any=2 computedMember=6 localAssign=1
+core	lite/jsx/lower.ts	lowerJsx	function	52	NodeType=5 mutCall=7 localAssign=2 regex=3 cast=1
+borderline	lite/browser/erase.ts	TYPE_KEYS	const-value	1	new:Set=1
+borderline	lite/browser/erase.ts	erase	function	49	NodeType=1 regex=2 mutCall=7 computedMember=4 nonnull=1 any=1 localAssign=3
+borderline	lite/boundary.ts	shapeOf	function	39	switch=1 mutCall=3 computedMember=1

@@ -1,0 +1,6 @@
+nonExhaustive: rejected : (n: AB) => number
+    [type] L4 function lacks an ending return statement and its return type number does not include undefined
+throwCtx: rejected : F
+    [type] L13 (x: number) => void is not assignable to F
+throwAnnot: ok : (x: number) => string
+4 probe cells, 2 not ok, 0 module errors

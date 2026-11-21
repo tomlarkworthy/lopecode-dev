@@ -1,0 +1,15 @@
+export const tagOf = () => (e: Elem): string => e.tag;
+export const kidsOf = () => (e: Elem): number => e.children.length;
+export const propsOf = () => (e: Elem): unknown => e.props;
+export const keyOf = () => (e: Elem): unknown => e.props.key;
+export const childIsElem = () => (c: Child): boolean => typeof c === "object" && c !== null && !Array.isArray(c);
+export const forge = (): Elem => ({ tag: "div", children: [] });
+export const rec = () => (p: { readonly [k: string]: unknown }, k: string): unknown => p[k];
+export const keysOf = () => (p: { readonly [k: string]: unknown }): readonly string[] => Object.keys(p);
+export const hasKey = () => (p: { readonly [k: string]: unknown }, k: string): boolean => k in p;
+export const strOf = () => (v: unknown): string => String(v);
+export const isOff = () => (v: unknown): boolean => v === false || v === null || v === undefined;
+export const sameValue = () => (a: Elem, b: Elem): boolean => a === b;
+export const sameDeep = () => (a: Elem, b: Elem): boolean => equals(a, b);
+export const samePrim = () => (a: string | number | boolean | null | undefined, b: string | number | boolean | null | undefined): boolean => a === b;
+export const sameUnknown = () => (a: unknown, b: unknown): boolean => a === b;

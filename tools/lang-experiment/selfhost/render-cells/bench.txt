@@ -1,0 +1,7 @@
+first moved to the end   render.ts  85.6-103.7 µs per patch
+first moved to the end   shell.ts   139.3-154.2 µs per patch
+no move (control)        render.ts  43.5-51.8 µs per patch
+no move (control)        shell.ts   86.0-101.4 µs per patch
+cells alone: childOps, 100 keyed        20.1-24.5 µs
+cells alone: propOps x100               19.0-21.6 µs
+cells alone: childOps of one text x100  6.5-9.0 µs

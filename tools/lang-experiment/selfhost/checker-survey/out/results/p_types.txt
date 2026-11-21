@@ -1,0 +1,2 @@
+useTypes5: ok : (v: Variable, c: Completions, o: Origin, x: Outside, r: Rule) => string
+2 probe cells, 0 not ok, 0 module errors

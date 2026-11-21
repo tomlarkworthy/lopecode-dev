@@ -1,0 +1,22 @@
+lite/core.ts -> lite/parse.ts, lite/registry.ts, lite/infer.ts, lite/own.ts, lite/types.ts, lite/intrinsics.ts, lite/island.ts, lite/facts.ts, lite/capture.ts, lite/boundary.ts
+lite/parse.ts -> 
+lite/registry.ts -> lite/parse.ts, lite/types.ts, lite/intrinsics.ts
+lite/types.ts -> lite/types.ss.ts (type), lite/parse.ts (type), lite/types.ss.ts, lite/link.ts, prelude.runtime.ts, lite/types.ss.ts
+lite/types.ss.ts -> 
+lite/link.ts -> lite/intrinsics.ts
+lite/intrinsics.ts -> 
+prelude.runtime.ts -> lite/runtime-ss.ts, lite/runtime-ss.ts
+lite/runtime-ss.ts -> lite/jsx/h.ts (type), lite/runtime.ss.ts, lite/events.ss.ts, lite/link.ts, lite/runtime.ss.ts, lite/events.ss.ts
+lite/jsx/h.ts -> lite/runtime-ss.ts
+lite/runtime.ss.ts -> 
+lite/events.ss.ts -> 
+lite/infer.ts -> lite/parse.ts, lite/registry.ts (type), lite/types.ts, lite/intrinsics.ts
+lite/own.ts -> lite/parse.ts, lite/infer.ts (type), lite/types.ts, lite/registry.ts (type)
+lite/island.ts -> lite/parse.ts, lite/intrinsics.ts
+lite/facts.ts -> lite/parse.ts, lite/island.ts
+lite/capture.ts -> lite/parse.ts, lite/infer.ts (type)
+lite/boundary.ts -> lite/types.ts, lite/runtime-ss.ts, lite/runtime-ss.ts
+lite/complete.ts -> lite/core.ts, lite/infer.ts (type), lite/registry.ts, lite/types.ts, lite/intrinsics.ts, lite/parse.ts (type)
+lite/toolchain/ss-toolchain.ts -> lite/parse.ts, lite/jsx/lower.ts, lite/facts.ts, lite/toolchain/comment-types.ts, lite/intrinsics.ts
+lite/jsx/lower.ts -> lite/parse.ts, lite/own.ts
+lite/toolchain/comment-types.ts -> lite/parse.ts

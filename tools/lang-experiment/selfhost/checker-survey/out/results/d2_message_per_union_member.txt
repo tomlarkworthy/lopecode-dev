@@ -1,0 +1,6 @@
+read: rejected : (d: U | null) => number
+    [no-member] L5 no property a on { type: "B" }
+    [no-member] L5 no property a on { type: "C" }
+    [no-member] L5 no property a on { type: "D" }
+    [possibly-undefined] L5 property a of a value that may be null
+2 probe cells, 1 not ok, 0 module errors

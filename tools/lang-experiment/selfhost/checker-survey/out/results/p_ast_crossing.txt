@@ -1,0 +1,4 @@
+firstType: rejected : () => string
+    [boundary-type] L4 programAst: Program cannot cross from another language: it is or holds body: typeAnnotation: typeAnnotation: typeAnnotation: type: a recursive type
+commentCount: ok : () => number
+2 probe cells, 1 not ok, 0 module errors

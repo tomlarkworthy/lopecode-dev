@@ -1,0 +1,8 @@
+1. h("div", { constructor: "x", title: "t" }) draws <div title="t"></div>; constructor attribute set: false
+   checker: a: rejected [excess-property] property constructor is not in CommonProps
+2. create(<div>) then patch(node, <span>) leaves <div title="b">y</div>; node.__elem.tag is "span"
+   then mount(<span>, node) returns the same node: <div>z</div>
+3. <input value="5"> then <input value={undefined}>: node.value is "undefined" (removing the prop gives "")
+   checker: on: ok; a: rejected [possibly-undefined] undefined is not assignable to string | number
+4. a child with key Symbol("k"): TypeError: Cannot convert a symbol to a string
+   checker: a: unsupported [unsupported] intrinsic Symbol has no signature in lite/intrinsics.ts

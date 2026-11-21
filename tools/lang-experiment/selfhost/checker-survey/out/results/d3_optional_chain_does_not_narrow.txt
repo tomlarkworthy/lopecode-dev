@@ -1,0 +1,8 @@
+eqChain: rejected : (d: U | null) => number
+    [no-member] L6 no property a on { type: "B" }
+    [possibly-undefined] L6 property a of a value that may be null
+eqAnd: ok : (d: U | null) => number
+truthyChain: rejected : (s: S) => boolean
+    [possibly-undefined] L10 property fresh of a value that may be undefined
+truthyAnd: ok : (s: S) => boolean
+5 probe cells, 2 not ok, 0 module errors

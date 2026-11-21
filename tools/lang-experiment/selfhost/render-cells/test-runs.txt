@@ -1,0 +1,24 @@
+# proof.ts via redirect
+20
+all checks pass
+render: 1 import(s) of render.ts redirected
+# RENDER_BREAK=1
+lite: 43 cells: ok 43, rejected 0, unsupported 0, blocked 0
+runner: run.ts loadPort
+FAIL  the canvas is the same DOM node after the handler changed  (got undefined)
+FAIL  the canvas takes the new height and is still the same node  (got "800")
+evaluations: canvas_view 2, pointerDown 1, step 1, app 4; canvas DOM nodes created: 4
+2 failure(s)
+render: 1 import(s) of render.ts redirected, keepsNode BROKEN
+# cells.test.ts
+ 17 pass
+ 0 fail
+ 37 expect() calls
+Ran 17 tests across 1 file. [22.00ms]
+# diff.ts
+20000 pairs (12353 with a keyed child at the top), 0 pair(s) differ
+3000 pairs (1851 with a keyed child at the top), 2822 pair(s) differ, mustPlace BROKEN
+3000 pairs (1841 with a keyed child at the top), 1428 pair(s) differ, with the constructor prop
+# check.ts
+30 cells, 0 not ok, 0 module errors
+30 cells, 0 not ok, 0 module errors

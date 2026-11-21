@@ -1,0 +1,4 @@
+module [module-level] L1 ExportNamedDeclaration at module level
+module [cell-not-function] L3 nextId is not a function
+sideRecMut: ok : (names: string[]) => number
+3 probe cells, 0 not ok, 2 module errors

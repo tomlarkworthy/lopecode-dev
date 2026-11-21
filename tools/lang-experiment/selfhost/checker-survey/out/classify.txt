@@ -1,0 +1,113 @@
+sample: 66 units, 1576 code lines; ported in full 49, reduced 17
+
+| class | units | code lines |
+|---|---|---|
+| a | 19 | 119 |
+| b | 29 | 670 |
+| b* | 11 | 554 |
+| c | 3 | 84 |
+| d | 4 | 149 |
+
+| stratum | population units / code lines | sample units / lines | a | b | b* | c | d | ported (a+b), units | ported (a+b), lines | with b*, lines |
+|---|---|---|---|---|---|---|---|---|---|---|
+| checker functions | 55 / 416 | 16 / 186 | 8 | 6 | 0 | 1 | 1 | 48–48 of 55 | 349 of 416 | 349 of 416 |
+| giant functions | 3 / 793 | 8 / 153 | 0 | 7 | 1 | 0 | 0 | 3–3 of 3 | 627 of 793 | 793 of 793 |
+| class members | 127 / 1841 | 19 / 708 | 2 | 9 | 8 | 0 | 0 | 74–127 of 127 | 785 of 1841 | 1841 of 1841 |
+| completion | 19 / 265 | 3 / 103 | 1 | 1 | 0 | 0 | 1 | 13–13 of 19 | 46 of 265 | 46 of 265 |
+| toolchain + linker | 63 / 536 | 11 / 317 | 2 | 3 | 2 | 2 | 2 | 29–40 of 63 | 140 of 536 | 336 of 536 |
+| borderline | 8 / 131 | 3 / 103 | 0 | 3 | 0 | 0 | 0 | 8–8 of 8 | 131 of 131 | 131 of 131 |
+| types | 44 / 61 | 6 / 6 | 6 | 0 | 0 | 0 | 0 | 44–44 of 44 | 61 of 61 | 61 of 61 |
+| total | 319 / 4043 | 66 / 1576 | 19 | 29 | 11 | 3 | 4 | 219–283 of 319 | 2139 of 4043 | 3557 of 4043 |
+
+| blocker group | sampled units naming it | their code lines | units |
+|---|---|---|---|
+| mut-capture-callback | 14 | 628 | Checker.varDecl, Checker.fnExpr, Checker.apply, Registry.sub, Registry.convert, Registry.unify, syntaxPass, captures, keepJsx, compileChecked, cutsOf, erase, syntaxStub, checkSources>compileType |
+| shared-record-write | 8 | 288 | Checker.varDecl, Checker.fnExpr, Checker.lvalue, Checker.infer1, Registry.ifaceRec, bound, checkSources>visit, checkSources>compileType |
+| identity | 8 | 216 | Checker.typeTag, Registry.sub, syntaxPass, ownership>position, ownership>helper, actionEscapes>methodValue, actionEscapes>chain, parseCompiled |
+| non-null | 7 | 252 | Checker.conditional, Checker.switchStmt, Checker.apply, Registry.unify, actionEscapes>methodValue, erase, checkSources>visit |
+| ast-narrowing | 7 | 309 | Checker.lvalue, Checker.member, Checker.infer1, Registry.convert, fromObservableVariables, lowerJsx, syntaxStub |
+| strict-index | 5 | 216 | Checker.hidden, Registry.iterElem, Registry.sub, Registry.convert, shapeOf |
+| generic-walk | 5 | 151 | syntaxPass, kids, cutsOf, erase, syntaxStub |
+| parser | 5 | 144 | TS, parse, tokensOf, fromObservableVariables, cutsOf |
+| regexp-index | 4 | 88 | distinctNames, typeAt, keyOfVariable, erase |
+| optchain-narrowing | 4 | 95 | ownership>position, ownership>fresh, actionEscapes>methodValue, cellsOf |
+| env-field-write | 3 | 114 | Checker.conditional, Checker.switchStmt, Checker.infer1 |
+| mut-shallow | 3 | 63 | Scope.vars, Checker.narrowIn, Checker.switchStmt |
+| cast | 3 | 92 | Registry.iterElem, Registry.sub, distinctNames |
+| intrinsic-signature | 2 | 56 | Checker.switchStmt, keepJsx |
+| module-state | 2 | 113 | Checker.apply, parseCompiled |
+| memo | 2 | 65 | Registry.ifaceRec, parseCompiled |
+| caught-error | 2 | 63 | distinctNames, fromObservableVariables |
+| monkey-patch | 1 | 85 | completionsAt |
+| eval | 1 | 24 | link |
+| unknown-json | 1 | 39 | parseCompiled |
+| regex-narrowing | 1 | 57 | compileChecked |
+
+| file | unit | code | class | how | probe | what |
+|---|---|---|---|---|---|---|
+| infer.ts | Checker.conditional | 7 | b | full | container_demo.checker | env.flow = join(T, F)! -> the flow returned; ! dropped |
+| infer.ts | Scope.vars | 1 | b | reduced | p_infer.red_scopeField, container_demo | a Map inside a Mut record: [mut-deep-write]; as the flat table scopeVars keyed scope:name |
+| infer.ts | Checker.filter | 10 | a | full | container_demo.checker | unchanged given P2 (keep is pure once the registry is) |
+| infer.ts | Checker.narrowIn | 19 | b | full | p_infer.narrowIn | the copied record's props.set -> a mut Map frozen into a new record |
+| infer.ts | Checker.varDecl | 29 | b* | reduced | p_infer.red_bindingUpdate, red_lazyThunk | b.t = …, b.lazy = … on a stored Binding: [member-write]; a thunk that reports: [mut-capture]; -> bindingT table by id, the lazy case a table entry the ident lookup acts on |
+| infer.ts | Checker.typeTag | 20 | b | full | container_demo.checker | x === m on Ty: [strict-eq-object] -> equals(x, m) |
+| infer.ts | Checker.fnExpr | 82 | b* | reduced | p_infer.red_fnInfoPush, red_forEachReport | FnInfo shared through env.fi, appended to by return/yield: [mutating-method]; params.forEach with reports: [mut-capture]; -> FnInfo by id with rets/yields tables, a for loop |
+| infer.ts | Checker.binary | 37 | a | full | p_infer.binaryCell | unchanged given P1, P2 (the dispatcher passes a BinaryExpression) |
+| infer.ts | Checker.switchStmt | 43 | b* | reduced | p_infer.red_breaksStack, red_reduceNoInit, red_synthNode | this.breaks (Mut of arrays break statements append to): [mutating-method]; reduce without an initial value: [arity], !: [no-non-null]; synthesized node and diags.splice ok |
+| infer.ts | Checker.apply | 74 | b* | reduced | p_infer.fresh, red_forEachReport | module-level let fresh: [cell-not-function] -> a counter local to the checker cell (types.ss.ts instantiate already takes it); args.forEach with reports: [mut-capture] -> for loops; paramAt(i)! |
+| infer.ts | Checker.lvalue | 31 | b | full | p_infer.lvalueCell | reg.strictIndex = false around index(…) -> an argument; property name read after narrowing the property node |
+| infer.ts | Checker.member | 39 | b* | reduced | p_infer.red_shortSet | this.short Set and facts writes are flat tables (ok); e.property.value/name read without narrowing (P1 narrowing, as lvalue) |
+| infer.ts | Checker.hidden | 40 | b | full | p_infer.hiddenCell | with hiddenFn as one cell (mutual recursion); strict index s.args[0], sx.els[i], t.args[i] guarded |
+| infer.ts | Checker.infer1 | 64 | b* | reduced | p_infer.red_caseGroupField, red_literalBigint, red_fnInfoPush | a case group reading e.expression that not every member has (split the group); Literal.bigint (add the field to the AST type); env.fi.yields.push (FnInfo table); env.flow writes |
+| registry.ts | builtinTypeNames | 3 | a | full | p_registry.builtinTypeNames | unchanged |
+| registry.ts | Registry.ifaceRec | 26 | b* | reduced | p_registry.ifaceRecReduced | the memo entry is stored before it is filled in place: [mutating-method]; -> a visiting set against extends cycles and no memo |
+| registry.ts | Registry.iterElem | 21 | b | full | p_registry.iterElem, iterElem_rw | (t as any).v: [no-cast] [no-any] -> case split; es as Ty[] -> loop; strict index |
+| registry.ts | Registry.sub | 54 | b | full | p_registry.sub | s === t -> equals; every/some callbacks that call sub (writes seen) -> loops: [mut-capture]; (s as any).n by narrowing; strict index |
+| registry.ts | Registry.convert | 62 | b | full | p_rest.convertCell | onUnsup/onErr hooks -> local writers; .map(c) -> loop; literal/argument reads narrowed; strict index |
+| registry.ts | Registry.unify | 49 | b* | reduced | p_registry.unifyReduced | U closes over the Mut map m and is passed to forEach: [mut-capture] -> loops; ! -> guards |
+| core.ts | reservedName | 1 | a | full | p_small.reservedName / p_core.reservedName | unchanged |
+| core.ts | syntaxPass | 18 | b | full | p_core.syntaxPass | for…in over keys -> fields(n); parent.property === x -> the field the child came through; report/unsup callbacks -> a returned list |
+| core.ts | distinctNames | 17 | b | full | p_core.distinctNames, distinctNames_rw | catch (e): (e as {pos}).pos [no-cast], e instanceof SyntaxError [unsupported], e.message [no-member]; /re/.exec(…)?.[0] cannot index; checks (distinctNames_rw) against a parser that returns its error as a value: a P3 requirement, not a local rewrite |
+| own.ts | iterIn | 16 | a | full | p_small.iterIn | unchanged but for `depth = 0` on the recursive function (a wrapper) |
+| own.ts | ownership>position | 54 | b | full | p_own.ownershipSlice | 10 node-identity tests (p.object !== x, …) -> same(a, b) (span + type); pp?.type narrowing -> pp && |
+| own.ts | ownership>fresh | 11 | b | full | p_own.ownershipSlice, red_optChainTruthy | !!s.flags?.intrinsic does not narrow s.flags: [possibly-undefined] -> !!s.flags && … |
+| own.ts | ownership>helper | 5 | b | full | p_own.ownershipSlice | p.callee === r -> same() |
+| own.ts | actionEscapes>methodValue | 18 | b | full | p_own.actionEscapesSlice | identity -> same(); parent.get(x)! -> a guard; parent.get(p)?.kind narrowed |
+| own.ts | actionEscapes>chain | 8 | b | full | p_own.actionEscapesSlice | g !== to -> same() |
+| capture.ts | captureMessage | 5 | a | full | p_small.captureMessage | unchanged |
+| capture.ts | bound | 12 | b | full | p_small.bound | writes the caller's Set and returns it -> a Mut parameter and a wrapper that returns a fresh Set |
+| capture.ts | captures | 35 | b | full | p_small.captures | every/find callbacks over the Mut taint map -> loops |
+| complete.ts | PH | 1 | a | full | p_small.PH | unchanged |
+| complete.ts | typeAt | 17 | b | full | p_small.typeAt, p_small_rw.typeAt | head[0] on a RegExpMatchArray: [type] cannot index -> replace with the anchored pattern |
+| complete.ts | completionsAt | 85 | d | reduced | p_rest.completionHookReduced, completionPatchReduced | replaces ch.member on the checker object and sets ch.identHook to a function that assigns its let got: [member-write] [let-capture]; a port needs the checker to return the scope at the placeholder |
+| intrinsics.ts | PRELUDE_FNS | 1 | a | full | p_small.PRELUDE_FNS | unchanged |
+| parse.ts | TS | 1 | d | reduced | p_parse_outside.TS | acorn.Parser.extend(tsPlugin()): a parser class and a plugin function; a function cannot cross into SoundScript |
+| parse.ts | parse | 29 | c | full | p_parse.parse, p_parse_outside.parseVia, p_ast_crossing | the body checks given an acornParse cell; acorn cannot be that cell (a function cannot cross), and its Program cannot cross as data (a recursive type) |
+| parse.ts | kids | 10 | b | full | astlib.kids | for…in over keys -> one case per node type (10 lines -> 66) |
+| facts.ts | preludeCalls | 2 | a | full | p_small.preludeCalls | unchanged |
+| facts.ts | cellsOf | 12 | b | full | p_small.cellsOf, p_small_rw.cellsOf | d?.type === … does not narrow d (two cascades of one [no-member] per union member) -> d && d.type === … |
+| island.ts | ISLAND_CAPABILITIES | 1 | a | full | p_small.ISLAND_CAPABILITIES | unchanged |
+| island.ts | island | 23 | a | full | p_small.island | mut/freeze around its own lists |
+| link.ts | link | 24 | d | reduced | p_rest.linkReduced | new Function over each cell's text: [new-non-intrinsic]; a linker that evaluates source is outside the language |
+| toolchain/ss-toolchain.ts | keyOfVariable | 5 | b | full | p_toolchain.keyOfVariable, keyOfVariable_rw | m[1], m[2] on a RegExpMatchArray -> replace with $1/$2 |
+| toolchain/ss-toolchain.ts | contextOf | 4 | a | full | p_toolchain.contextOf | ReadonlySet -> Set |
+| toolchain/ss-toolchain.ts | tokensOf | 9 | c | full | p_toolchain.tokensOf | the body checks given a tokenizer cell; acorn's tokenizer is an object of functions, which cannot cross |
+| toolchain/ss-toolchain.ts | keepJsx | 13 | b | full | p_toolchain.keepJsx, keepJsx_rw | replace with a callback: [type] () => string is not string (no callback overload), and the callback advances a let: [let-capture] -> split and rejoin |
+| toolchain/ss-toolchain.ts | parseCompiled | 39 | d | reduced | p_toolchain.memoWrite, identityTest, header | module-level memo parsedCompiled: [mutating-method]; n === fn: [strict-eq-object]; JSON.parse of the header is unknown; drop the memo, same(), and a typed header reader |
+| toolchain/ss-toolchain.ts | fromObservableVariables | 46 | c | reduced | p_toolchain.reasonOf | the parse error's message: [no-member] property message on Js/unknown; acorn.parseExpressionAt (P3); the rest is P1 narrowing |
+| toolchain/ss-toolchain.ts | compileChecked | 57 | b* | reduced | p_toolchain.ojsCell, typeCellName | ojsCell's recorder r writes a Mut and is passed into the body builder: [mut-capture] -> a two-pass text with markers; a regex test on d.type does not narrow d (80 [no-member] lines) -> === tests |
+| toolchain/comment-types.ts | commentTypes | 9 | a | full | p_rest.commentTypes | unchanged |
+| toolchain/comment-types.ts | cutsOf | 59 | b* | reduced | p_rest.cutsOfReduced, mergeReduced, p_jsx_erase.eraseEachReduced | tokenizer onComment callback assigns a let: [let-capture]; the merge writes into the last pair: [member-write]; v.forEach(each) writing cuts: [mut-capture]; for…in -> fields; erase, its twin, ported |
+| jsx/lower.ts | lowerJsx | 52 | b | full | p_jsx_erase.lowerJsx | op.name.name, a.value.expression read after narrowing |
+| browser/erase.ts | erase | 49 | b | full | p_jsx_erase.erase | for…in -> fields; v.forEach(each) writing cuts -> loop; /re/.exec(gap)![0].length -> what replace removes |
+| toolchain/module-js.ts | syntaxStub | 15 | b | full | p_jsx_erase.syntaxStub | for…in -> fields; the let msg assigned in a walk passed to forEach -> returned; deep any reads narrowed |
+| boundary.ts | shapeOf | 39 | b | full | p_rest.shapeOf | t.args[0] strict index guarded; `depth = 0` wrapper |
+| toolchain/ss-toolchain.ts | Variable | 1 | a | full | p_types.useTypes5 | unchanged |
+| complete.ts | Completions | 1 | a | full | p_types.useTypes5 | unchanged |
+| registry.ts | Origin | 1 | a | full | p_types.useTypes5 | unchanged |
+| core.ts | Outside | 1 | a | full | p_types.useTypes5 | unchanged |
+| own.ts | Rule | 1 | a | full | p_types.useTypes5 | unchanged (Node is the typed AST) |
+| toolchain/ss-toolchain.ts | Context | 1 | a | full | p_small_rw.useContext | ReadonlySet/ReadonlyMap -> Set/Map ([unknown-type] as written) |
+| core.ts | checkSources>visit | 12 | b | full | p_core.visitSlice | out.get(x)!.errors.push(…) writes the result records -> a cycleErrors table |
+| core.ts | checkSources>uncloneable | 13 | b | full | p_core.uncloneable | `depth = 0` on the recursive function -> a wrapper |
+| core.ts | checkSources>compileType | 32 | b* | reduced | p_core.compileHookReduced, sideReduced, container.q8_instance | it is the Checker's compileHook and reports through ch.err: a hook capturing the checker's Mut cannot be made ([mut-capture], q8) -> a local function of the checker cell taking core's tables; props[n] = t on a Record -> a Mut record (q_class.sideRecMut ok) |

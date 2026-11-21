@@ -1,0 +1,28 @@
+module [cell-not-function] L247 fresh is not a function
+regView: ok : RegView
+narrowIn: ok : (t: Ty, k: string, pos: boolean) => Ty
+binaryCell: ok : (e0: Node, env: Env) => Ty
+hiddenCell: ok : (s: Ty, t: Ty, opaque: Set<string> | null, p3?: number) => string | null
+lvalueCell: ok : (t0: Node, env0: Env, at0: Node) => Ty
+red_bindingUpdate: rejected : (b: Binding0, t: Ty) => Binding0
+    [member-write] L204 write to a Binding0, which is not Mut
+red_lazyThunk: rejected : (n: Node) => Binding0
+    [mut-capture] L209 Mut diags captured by a function that escapes (not a local helper that is only called)
+red_fnInfoPush: rejected : (fi: FnInfo, t: Ty) => void
+    [mutating-method] L215 write to a Ty[], which is not Mut
+red_forEachReport: rejected : (ps: Node[]) => number
+    [mut-capture] L220 Mut diags captured by a function that escapes (not a local helper that is only called)
+red_synthNode: ok : (d: Node, test: Node) => number
+red_breaksStack: rejected : (flow: Map<string, Ty>) => number
+    [mutating-method] L238 write to a Map<string, Ty>[], which is not Mut
+red_reduceNoInit: rejected : (exits: Map<string, Ty>[], join: (a: Map<string, Ty> | null, b: Map<string, Ty> | null) => Map<string, Ty> | null) => Map<string, Ty> | null
+    [no-non-null] L244 TSNonNullExpression
+    [arity] L244 expected at least 2 arguments, got 1
+red_caseGroupField: rejected : (e: Node) => boolean
+    [no-member] L252 no property expression on ThisExpression
+red_literalBigint: rejected : (e: Node) => boolean
+    [no-member] L258 no property bigint on Literal
+red_shortSet: ok : (e: MemberExpression) => boolean
+red_scopeField: rejected : () => number
+    [mut-deep-write] L264 write below the first level of a Mut (Map<string, number> is not Mut)
+18 probe cells, 9 not ok, 1 module errors

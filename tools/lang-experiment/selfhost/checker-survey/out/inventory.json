@@ -1,0 +1,5284 @@
+[
+ {
+  "file": "lite/parse.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 201,
+  "end": 232,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/parse.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 233,
+  "end": 287,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/parse.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 289,
+  "end": 421,
+  "name": "Node",
+  "kind": "type",
+  "f": {
+   "any": 1
+  }
+ },
+ {
+  "file": "lite/parse.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 422,
+  "end": 505,
+  "name": "Comment",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/parse.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 506,
+  "end": 635,
+  "name": "Parsed",
+  "kind": "type",
+  "f": {
+   "NodeType": 2
+  }
+ },
+ {
+  "file": "lite/parse.ts",
+  "name": "TS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 643,
+  "end": 686,
+  "f": {
+   "cast": 1,
+   "any": 1
+  }
+ },
+ {
+  "file": "lite/parse.ts",
+  "name": "TSX",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 694,
+  "end": 751,
+  "f": {
+   "cast": 1,
+   "any": 1
+  }
+ },
+ {
+  "file": "lite/parse.ts",
+  "name": "SKIP",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 760,
+  "end": 874,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/parse.ts",
+  "lines": 10,
+  "code": 10,
+  "start": 924,
+  "end": 1300,
+  "name": "kids",
+  "kind": "function",
+  "f": {
+   "NodeType": 3,
+   "computedMember": 1,
+   "mutCall": 3
+  }
+ },
+ {
+  "file": "lite/parse.ts",
+  "name": "isFn",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1314,
+  "end": 1450,
+  "f": {
+   "NodeType": 1,
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/parse.ts",
+  "lines": 30,
+  "code": 29,
+  "start": 1544,
+  "end": 2698,
+  "name": "parse",
+  "kind": "function",
+  "f": {
+   "cast": 3,
+   "mutCall": 3,
+   "any": 1,
+   "NodeType": 2,
+   "localAssign": 5,
+   "computedMember": 3
+  }
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 273,
+  "end": 332,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 333,
+  "end": 374,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 375,
+  "end": 412,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 413,
+  "end": 473,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 474,
+  "end": 552,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 553,
+  "end": 600,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 601,
+  "end": 660,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 661,
+  "end": 713,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 714,
+  "end": 786,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 787,
+  "end": 839,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 841,
+  "end": 909,
+  "name": "LiteError",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 4,
+  "code": 4,
+  "start": 910,
+  "end": 1108,
+  "name": "LiteCell",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 1252,
+  "end": 1421,
+  "name": "LiteResult",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 1423,
+  "end": 1477,
+  "name": "CellDef",
+  "kind": "type",
+  "f": {
+   "NodeType": 2
+  }
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "expandForErr",
+  "kind": "let",
+  "lines": 1,
+  "code": 1,
+  "start": 1483,
+  "end": 1521,
+  "f": {
+   "moduleLetRef": 1
+  }
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 13,
+  "code": 13,
+  "start": 1523,
+  "end": 2161,
+  "name": "hasErr",
+  "kind": "function",
+  "f": {
+   "switch": 1,
+   "moduleLetRef": 1
+  }
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "SYNTAX",
+  "kind": "const-value",
+  "lines": 5,
+  "code": 5,
+  "start": 2169,
+  "end": 2491,
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "RESERVED_MSG",
+  "kind": "const-fn",
+  "lines": 3,
+  "code": 3,
+  "start": 2830,
+  "end": 3042,
+  "f": {
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "reservedName",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 3057,
+  "end": 3153,
+  "f": {
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 18,
+  "code": 18,
+  "start": 3155,
+  "end": 4596,
+  "name": "syntaxPass",
+  "kind": "function",
+  "f": {
+   "NodeType": 3,
+   "any": 2,
+   "regex": 1,
+   "computedMember": 2
+  }
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "TYPE_POSITIONS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 4603,
+  "end": 4696,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 5002,
+  "end": 5057,
+  "name": "Outside",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 5058,
+  "end": 5213,
+  "name": "Sources",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 5324,
+  "end": 5378,
+  "name": "Boundary",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 354,
+  "code": 323,
+  "start": 5563,
+  "end": 29566,
+  "name": "checkSources",
+  "kind": "function",
+  "f": {
+   "NodeType": 13,
+   "new:Registry": 1,
+   "memberWrite": 15,
+   "mutCall": 63,
+   "moduleLetWrite": 1,
+   "moduleLetRef": 1,
+   "new:Set": 11,
+   "cast": 10,
+   "new:Map": 15,
+   "regex": 1,
+   "nonnull": 15,
+   "any": 3,
+   "localAssign": 16,
+   "computedMember": 19,
+   "switch": 1,
+   "new:Checker": 1,
+   "catch": 1
+  }
+ },
+ {
+  "file": "lite/core.ts",
+  "name": "STAND",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 29834,
+  "end": 29911,
+  "f": {}
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 17,
+  "code": 17,
+  "start": 29913,
+  "end": 30769,
+  "name": "distinctNames",
+  "kind": "function",
+  "f": {
+   "new:Map": 1,
+   "catch": 1,
+   "cast": 1,
+   "instanceof": 1,
+   "regex": 2,
+   "throw": 3,
+   "computedMember": 2,
+   "localAssign": 4,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/core.ts",
+  "lines": 4,
+  "code": 4,
+  "start": 30771,
+  "end": 30976,
+  "name": "dedupe",
+  "kind": "function",
+  "f": {
+   "new:Set": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 243,
+  "end": 307,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 308,
+  "end": 354,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "lines": 5,
+  "code": 5,
+  "start": 355,
+  "end": 653,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 654,
+  "end": 717,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 719,
+  "end": 795,
+  "name": "BKind",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "lines": 4,
+  "code": 4,
+  "start": 796,
+  "end": 1015,
+  "name": "Binding",
+  "kind": "type",
+  "f": {
+   "NodeType": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "lines": 8,
+  "code": 6,
+  "start": 1016,
+  "end": 1417,
+  "name": "FnInfo",
+  "kind": "type",
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Scope.vars",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 1441,
+  "end": 1475,
+  "f": {
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Scope.parent",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 1478,
+  "end": 1499,
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Scope.constructor",
+  "kind": "ctor",
+  "lines": 1,
+  "code": 1,
+  "start": 1502,
+  "end": 1561,
+  "f": {
+   "thisWrite": 1,
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Scope.get",
+  "kind": "method",
+  "lines": 1,
+  "code": 1,
+  "start": 1564,
+  "end": 1651,
+  "f": {
+   "this": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "exclusion",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1863,
+  "end": 1919,
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "pathOf",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1927,
+  "end": 2014,
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 2016,
+  "end": 2102,
+  "name": "Env",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 2103,
+  "end": 2175,
+  "name": "CallFact",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "lines": 7,
+  "code": 7,
+  "start": 2176,
+  "end": 2361,
+  "name": "Facts",
+  "kind": "type",
+  "f": {
+   "NodeType": 5
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 2362,
+  "end": 2423,
+  "name": "Diag",
+  "kind": "type",
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "nextId",
+  "kind": "let",
+  "lines": 1,
+  "code": 1,
+  "start": 2429,
+  "end": 2439,
+  "f": {
+   "moduleLetRef": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "fresh",
+  "kind": "let",
+  "lines": 1,
+  "code": 1,
+  "start": 2543,
+  "end": 2552,
+  "f": {
+   "moduleLetRef": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "actionFn",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 2611,
+  "end": 2760,
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "TYPEOF",
+  "kind": "const-value",
+  "lines": 2,
+  "code": 2,
+  "start": 2883,
+  "end": 3087,
+  "f": {
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "memberless",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 3195,
+  "end": 3316,
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "MUTATING_OPS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 3324,
+  "end": 3451,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.facts",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 3479,
+  "end": 3598,
+  "f": {
+   "new:Map": 5
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.diags",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 3601,
+  "end": 3620,
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.unsup",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 3623,
+  "end": 3642,
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.globals",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 3645,
+  "end": 3671,
+  "f": {
+   "new:Scope": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.compileHook",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 3767,
+  "end": 3822,
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.identHook",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 3930,
+  "end": 3985,
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.actionBodies",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 4186,
+  "end": 4217,
+  "f": {
+   "new:Set": 1,
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.quiet",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 4540,
+  "end": 4550,
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.inActionUses",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 4553,
+  "end": 4628,
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.stateProps",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 4735,
+  "end": 4764,
+  "f": {
+   "new:Set": 1,
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.reg",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 4768,
+  "end": 4782,
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.cellNames",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 4785,
+  "end": 4808,
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.parsed",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 4811,
+  "end": 4826,
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.constructor",
+  "kind": "ctor",
+  "lines": 15,
+  "code": 15,
+  "start": 4829,
+  "end": 5707,
+  "f": {
+   "thisWrite": 3,
+   "this": 9,
+   "memberWrite": 3,
+   "mutCall": 3,
+   "moduleLetWrite": 3,
+   "moduleLetRef": 3,
+   "cast": 2,
+   "any": 2,
+   "nonnull": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.err",
+  "kind": "method",
+  "lines": 1,
+  "code": 1,
+  "start": 5711,
+  "end": 5795,
+  "f": {
+   "NodeType": 1,
+   "mutCall": 1,
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.inActionOnly",
+  "kind": "method",
+  "lines": 4,
+  "code": 4,
+  "start": 5843,
+  "end": 6070,
+  "f": {
+   "NodeType": 1,
+   "this": 3,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.unsupported",
+  "kind": "method",
+  "lines": 1,
+  "code": 1,
+  "start": 6073,
+  "end": 6173,
+  "f": {
+   "NodeType": 1,
+   "mutCall": 1,
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.rec",
+  "kind": "method",
+  "lines": 1,
+  "code": 1,
+  "start": 6176,
+  "end": 6241,
+  "f": {
+   "NodeType": 1,
+   "mutCall": 1,
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.um",
+  "kind": "method",
+  "lines": 8,
+  "code": 8,
+  "start": 6299,
+  "end": 6600,
+  "f": {
+   "this": 4
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.filter",
+  "kind": "method",
+  "lines": 10,
+  "code": 10,
+  "start": 6603,
+  "end": 6880,
+  "f": {
+   "this": 1,
+   "mutCall": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.truthy",
+  "kind": "field",
+  "lines": 5,
+  "code": 5,
+  "start": 6883,
+  "end": 7061,
+  "f": {
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.falsy",
+  "kind": "field",
+  "lines": 5,
+  "code": 5,
+  "start": 7064,
+  "end": 7269,
+  "f": {
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.nonNullish",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 7272,
+  "end": 7371,
+  "f": {
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.typeTag",
+  "kind": "method",
+  "lines": 20,
+  "code": 20,
+  "start": 7374,
+  "end": 8089,
+  "f": {
+   "switch": 1,
+   "this": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.narrowTypeof",
+  "kind": "method",
+  "lines": 9,
+  "code": 9,
+  "start": 8092,
+  "end": 8463,
+  "f": {
+   "this": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.narrowEq",
+  "kind": "method",
+  "lines": 14,
+  "code": 14,
+  "start": 8466,
+  "end": 9153,
+  "f": {
+   "this": 5
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.narrowIn",
+  "kind": "method",
+  "lines": 19,
+  "code": 19,
+  "start": 9156,
+  "end": 9844,
+  "f": {
+   "this": 5,
+   "new:Map": 2,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.narrowArray",
+  "kind": "method",
+  "lines": 7,
+  "code": 7,
+  "start": 9847,
+  "end": 10088,
+  "f": {
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.narrowByProp",
+  "kind": "method",
+  "lines": 7,
+  "code": 7,
+  "start": 10164,
+  "end": 10369,
+  "f": {
+   "this": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.pathKey",
+  "kind": "method",
+  "lines": 15,
+  "code": 15,
+  "start": 10463,
+  "end": 11307,
+  "f": {
+   "NodeType": 1,
+   "this": 1,
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.dropRoot",
+  "kind": "method",
+  "lines": 4,
+  "code": 4,
+  "start": 11310,
+  "end": 11508,
+  "f": {
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.join",
+  "kind": "method",
+  "lines": 7,
+  "code": 7,
+  "start": 11511,
+  "end": 11784,
+  "f": {
+   "new:Map": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.cond",
+  "kind": "method",
+  "lines": 56,
+  "code": 52,
+  "start": 11865,
+  "end": 15601,
+  "f": {
+   "NodeType": 6,
+   "this": 24,
+   "nonnull": 4,
+   "new:Map": 2,
+   "cast": 1,
+   "mutCall": 2,
+   "computedMember": 5
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.declare",
+  "kind": "method",
+  "lines": 6,
+  "code": 6,
+  "start": 15629,
+  "end": 15907,
+  "f": {
+   "NodeType": 1,
+   "moduleLetWrite": 1,
+   "moduleLetRef": 1,
+   "mutCall": 2,
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.bindPattern",
+  "kind": "method",
+  "lines": 48,
+  "code": 48,
+  "start": 15991,
+  "end": 18416,
+  "f": {
+   "NodeType": 2,
+   "switch": 1,
+   "this": 25,
+   "new:Map": 1,
+   "mutCall": 2,
+   "cast": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.nonUndef",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 18419,
+  "end": 18498,
+  "f": {
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.propOf",
+  "kind": "method",
+  "lines": 11,
+  "code": 11,
+  "start": 18501,
+  "end": 18888,
+  "f": {
+   "NodeType": 1,
+   "this": 4,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.indexOf",
+  "kind": "method",
+  "lines": 13,
+  "code": 13,
+  "start": 18891,
+  "end": 19446,
+  "f": {
+   "NodeType": 1,
+   "this": 6,
+   "mutCall": 3,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.memberMissing",
+  "kind": "method",
+  "lines": 6,
+  "code": 6,
+  "start": 19449,
+  "end": 19929,
+  "f": {
+   "NodeType": 1,
+   "this": 6
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.intrinsicName",
+  "kind": "method",
+  "lines": 9,
+  "code": 9,
+  "start": 20003,
+  "end": 20515,
+  "f": {
+   "this": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.check",
+  "kind": "method",
+  "lines": 6,
+  "code": 6,
+  "start": 20738,
+  "end": 21109,
+  "f": {
+   "NodeType": 1,
+   "this": 4,
+   "thisWrite": 2,
+   "regex": 1,
+   "finally": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.check1",
+  "kind": "method",
+  "lines": 24,
+  "code": 24,
+  "start": 21112,
+  "end": 22395,
+  "f": {
+   "NodeType": 1,
+   "this": 20,
+   "switch": 1,
+   "localAssign": 6,
+   "nonnull": 2,
+   "new:Map": 1,
+   "memberWrite": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.ctxSensitive",
+  "kind": "method",
+  "lines": 1,
+  "code": 1,
+  "start": 22398,
+  "end": 22526,
+  "f": {
+   "NodeType": 1,
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.expect",
+  "kind": "method",
+  "lines": 8,
+  "code": 8,
+  "start": 22529,
+  "end": 23006,
+  "f": {
+   "NodeType": 1,
+   "this": 5,
+   "localAssign": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.hides",
+  "kind": "method",
+  "lines": 5,
+  "code": 5,
+  "start": 23248,
+  "end": 23603,
+  "f": {
+   "NodeType": 1,
+   "this": 3
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.hidden",
+  "kind": "method",
+  "lines": 41,
+  "code": 40,
+  "start": 23717,
+  "end": 26096,
+  "f": {
+   "this": 13,
+   "computedMember": 7,
+   "localAssign": 3,
+   "switch": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.hiddenFn",
+  "kind": "method",
+  "lines": 8,
+  "code": 8,
+  "start": 26227,
+  "end": 26621,
+  "f": {
+   "computedMember": 3,
+   "this": 3,
+   "localAssign": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.promiseIn",
+  "kind": "method",
+  "lines": 17,
+  "code": 17,
+  "start": 26738,
+  "end": 27530,
+  "f": {
+   "this": 4,
+   "switch": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.actionIn",
+  "kind": "method",
+  "lines": 17,
+  "code": 17,
+  "start": 27645,
+  "end": 28396,
+  "f": {
+   "this": 3,
+   "switch": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.infer",
+  "kind": "method",
+  "lines": 5,
+  "code": 5,
+  "start": 28400,
+  "end": 28561,
+  "f": {
+   "NodeType": 1,
+   "this": 5,
+   "thisWrite": 2,
+   "finally": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.infer1",
+  "kind": "method",
+  "lines": 64,
+  "code": 64,
+  "start": 28564,
+  "end": 32318,
+  "f": {
+   "NodeType": 1,
+   "switch": 1,
+   "this": 40,
+   "computedMember": 1,
+   "nonnull": 4,
+   "new:Map": 1,
+   "memberWrite": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.jsx",
+  "kind": "method",
+  "lines": 43,
+  "code": 43,
+  "start": 32613,
+  "end": 35363,
+  "f": {
+   "NodeType": 9,
+   "cast": 1,
+   "regex": 3,
+   "mutCall": 5,
+   "this": 12,
+   "localAssign": 3
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.conditional",
+  "kind": "method",
+  "lines": 7,
+  "code": 7,
+  "start": 35366,
+  "end": 35675,
+  "f": {
+   "NodeType": 1,
+   "this": 4,
+   "memberWrite": 1,
+   "nonnull": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.awaited",
+  "kind": "method",
+  "lines": 3,
+  "code": 3,
+  "start": 35863,
+  "end": 36061,
+  "f": {
+   "this": 2,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.logicalType",
+  "kind": "method",
+  "lines": 5,
+  "code": 5,
+  "start": 36169,
+  "end": 36560,
+  "f": {
+   "NodeType": 1,
+   "this": 6
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.constLit",
+  "kind": "method",
+  "lines": 12,
+  "code": 12,
+  "start": 36563,
+  "end": 37271,
+  "f": {
+   "NodeType": 2,
+   "this": 7,
+   "new:Map": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.ident",
+  "kind": "method",
+  "lines": 18,
+  "code": 18,
+  "start": 37275,
+  "end": 38012,
+  "f": {
+   "NodeType": 1,
+   "this": 6,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.short",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 38016,
+  "end": 38040,
+  "f": {
+   "new:Set": 1,
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.member",
+  "kind": "method",
+  "lines": 40,
+  "code": 39,
+  "start": 38129,
+  "end": 40488,
+  "f": {
+   "NodeType": 1,
+   "this": 24,
+   "mutCall": 6,
+   "regex": 1,
+   "localAssign": 10
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.collapseArrays",
+  "kind": "method",
+  "lines": 7,
+  "code": 7,
+  "start": 40576,
+  "end": 40894,
+  "f": {
+   "this": 1,
+   "cast": 1,
+   "any": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.index",
+  "kind": "method",
+  "lines": 24,
+  "code": 24,
+  "start": 40897,
+  "end": 42115,
+  "f": {
+   "NodeType": 1,
+   "this": 11,
+   "mutCall": 9,
+   "computedMember": 1,
+   "nonnull": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.unary",
+  "kind": "method",
+  "lines": 24,
+  "code": 23,
+  "start": 42119,
+  "end": 43278,
+  "f": {
+   "NodeType": 1,
+   "this": 9,
+   "switch": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.numeric",
+  "kind": "method",
+  "lines": 6,
+  "code": 6,
+  "start": 43281,
+  "end": 43621,
+  "f": {
+   "NodeType": 1,
+   "this": 6
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.noOverlap",
+  "kind": "method",
+  "lines": 8,
+  "code": 8,
+  "start": 43722,
+  "end": 44302,
+  "f": {
+   "this": 6
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.binary",
+  "kind": "method",
+  "lines": 37,
+  "code": 37,
+  "start": 44305,
+  "end": 46462,
+  "f": {
+   "NodeType": 1,
+   "this": 28,
+   "switch": 1,
+   "cast": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.lvalue",
+  "kind": "method",
+  "lines": 31,
+  "code": 31,
+  "start": 46556,
+  "end": 48001,
+  "f": {
+   "NodeType": 3,
+   "this": 16,
+   "mutCall": 1,
+   "nonnull": 1,
+   "memberWrite": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.writeRule",
+  "kind": "method",
+  "lines": 9,
+  "code": 9,
+  "start": 48078,
+  "end": 48561,
+  "f": {
+   "NodeType": 2,
+   "this": 4,
+   "localAssign": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.assign",
+  "kind": "method",
+  "lines": 18,
+  "code": 18,
+  "start": 48564,
+  "end": 49300,
+  "f": {
+   "NodeType": 1,
+   "this": 9,
+   "localAssign": 2,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.compound",
+  "kind": "method",
+  "lines": 7,
+  "code": 7,
+  "start": 49303,
+  "end": 49667,
+  "f": {
+   "NodeType": 1,
+   "this": 5
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.objLit",
+  "kind": "method",
+  "lines": 26,
+  "code": 26,
+  "start": 49695,
+  "end": 51368,
+  "f": {
+   "NodeType": 1,
+   "new:Map": 1,
+   "cast": 1,
+   "this": 12,
+   "computedMember": 2,
+   "mutCall": 2,
+   "predicate": 1,
+   "nonnull": 1,
+   "localAssign": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.arrLit",
+  "kind": "method",
+  "lines": 22,
+  "code": 22,
+  "start": 51371,
+  "end": 52586,
+  "f": {
+   "NodeType": 3,
+   "this": 8,
+   "cast": 1,
+   "computedMember": 2,
+   "mutCall": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.fnExpr",
+  "kind": "method",
+  "lines": 84,
+  "code": 82,
+  "start": 52615,
+  "end": 57858,
+  "f": {
+   "NodeType": 2,
+   "computedMember": 6,
+   "this": 32,
+   "new:Scope": 1,
+   "mutCall": 4,
+   "new:Map": 1,
+   "localAssign": 12,
+   "memberWrite": 3
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.returned",
+  "kind": "method",
+  "lines": 7,
+  "code": 6,
+  "start": 57919,
+  "end": 58411,
+  "f": {
+   "NodeType": 1,
+   "this": 4
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.findBinding",
+  "kind": "method",
+  "lines": 4,
+  "code": 4,
+  "start": 58414,
+  "end": 58591,
+  "f": {
+   "localAssign": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.typeCtx",
+  "kind": "method",
+  "lines": 5,
+  "code": 5,
+  "start": 58594,
+  "end": 58914,
+  "f": {
+   "new:Set": 1,
+   "localAssign": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.annotatedSig",
+  "kind": "method",
+  "lines": 9,
+  "code": 9,
+  "start": 59028,
+  "end": 59624,
+  "f": {
+   "NodeType": 2,
+   "this": 8,
+   "memberWrite": 3
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.assignedNames",
+  "kind": "method",
+  "lines": 10,
+  "code": 10,
+  "start": 59627,
+  "end": 59980,
+  "f": {
+   "NodeType": 2,
+   "new:Set": 1,
+   "this": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.patternNames",
+  "kind": "method",
+  "lines": 8,
+  "code": 8,
+  "start": 59983,
+  "end": 60506,
+  "f": {
+   "NodeType": 3,
+   "mutCall": 1,
+   "this": 4
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.hoist",
+  "kind": "method",
+  "lines": 17,
+  "code": 17,
+  "start": 60596,
+  "end": 61214,
+  "f": {
+   "NodeType": 1,
+   "this": 4,
+   "memberWrite": 4,
+   "localAssign": 1,
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.call",
+  "kind": "method",
+  "lines": 68,
+  "code": 67,
+  "start": 61239,
+  "end": 65138,
+  "f": {
+   "NodeType": 2,
+   "this": 35,
+   "mutCall": 2,
+   "localAssign": 10,
+   "computedMember": 8,
+   "cast": 1,
+   "any": 1,
+   "new:Map": 1,
+   "memberWrite": 3
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.typeArgs",
+  "kind": "method",
+  "lines": 3,
+  "code": 3,
+  "start": 65141,
+  "end": 65321,
+  "f": {
+   "NodeType": 2,
+   "this": 3
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.objectAssign",
+  "kind": "method",
+  "lines": 8,
+  "code": 8,
+  "start": 65324,
+  "end": 65720,
+  "f": {
+   "NodeType": 2,
+   "this": 4
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.objectFreeze",
+  "kind": "method",
+  "lines": 7,
+  "code": 7,
+  "start": 65835,
+  "end": 66270,
+  "f": {
+   "NodeType": 2,
+   "this": 3
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.apply",
+  "kind": "method",
+  "lines": 76,
+  "code": 74,
+  "start": 66389,
+  "end": 70662,
+  "f": {
+   "NodeType": 3,
+   "moduleLetRef": 2,
+   "moduleLetWrite": 1,
+   "new:Set": 2,
+   "new:Map": 3,
+   "this": 25,
+   "computedMember": 14,
+   "mutCall": 6,
+   "memberWrite": 5,
+   "nonnull": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.ctxOnly",
+  "kind": "method",
+  "lines": 5,
+  "code": 5,
+  "start": 70775,
+  "end": 70967,
+  "f": {
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.preludeCall",
+  "kind": "method",
+  "lines": 63,
+  "code": 61,
+  "start": 70971,
+  "end": 74576,
+  "f": {
+   "NodeType": 2,
+   "mutCall": 2,
+   "this": 24,
+   "computedMember": 15,
+   "switch": 1,
+   "nonnull": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.stmts",
+  "kind": "method",
+  "lines": 8,
+  "code": 8,
+  "start": 74648,
+  "end": 74909,
+  "f": {
+   "NodeType": 1,
+   "new:Map": 1,
+   "this": 2,
+   "localAssign": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.block",
+  "kind": "method",
+  "lines": 7,
+  "code": 7,
+  "start": 74912,
+  "end": 75129,
+  "f": {
+   "NodeType": 1,
+   "new:Scope": 1,
+   "this": 2,
+   "memberWrite": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.sub1",
+  "kind": "method",
+  "lines": 3,
+  "code": 3,
+  "start": 75132,
+  "end": 75256,
+  "f": {
+   "NodeType": 1,
+   "this": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.stmt",
+  "kind": "method",
+  "lines": 90,
+  "code": 90,
+  "start": 75259,
+  "end": 79525,
+  "f": {
+   "NodeType": 1,
+   "switch": 1,
+   "this": 39,
+   "memberWrite": 6,
+   "new:Map": 8,
+   "mutCall": 4,
+   "nonnull": 2,
+   "new:Scope": 2,
+   "computedMember": 1,
+   "localAssign": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.varDecl",
+  "kind": "method",
+  "lines": 30,
+  "code": 29,
+  "start": 79528,
+  "end": 81290,
+  "f": {
+   "NodeType": 2,
+   "this": 15,
+   "memberWrite": 4,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.invalidate",
+  "kind": "method",
+  "lines": 6,
+  "code": 6,
+  "start": 81293,
+  "end": 81460,
+  "f": {
+   "NodeType": 1,
+   "this": 2
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.loop",
+  "kind": "method",
+  "lines": 31,
+  "code": 31,
+  "start": 81463,
+  "end": 82782,
+  "f": {
+   "NodeType": 1,
+   "new:Scope": 1,
+   "this": 13,
+   "new:Map": 3,
+   "mutCall": 2,
+   "localAssign": 5,
+   "memberWrite": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.breaks",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 82930,
+  "end": 82972,
+  "f": {}
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.switchStmt",
+  "kind": "method",
+  "lines": 45,
+  "code": 43,
+  "start": 83283,
+  "end": 86089,
+  "f": {
+   "NodeType": 4,
+   "this": 25,
+   "new:Map": 2,
+   "mutCall": 8,
+   "cast": 2,
+   "localAssign": 6,
+   "computedMember": 3,
+   "nonnull": 2,
+   "new:Scope": 1,
+   "memberWrite": 1
+  }
+ },
+ {
+  "file": "lite/infer.ts",
+  "name": "Checker.hasBreak",
+  "kind": "method",
+  "lines": 5,
+  "code": 5,
+  "start": 86163,
+  "end": 86451,
+  "f": {
+   "NodeType": 1,
+   "regex": 1,
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/own.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 577,
+  "end": 628,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/own.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 629,
+  "end": 680,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/own.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 681,
+  "end": 746,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/own.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 747,
+  "end": 793,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/own.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 795,
+  "end": 849,
+  "name": "Rule",
+  "kind": "type",
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/own.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 850,
+  "end": 866,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/own.ts",
+  "lines": 16,
+  "code": 16,
+  "start": 1094,
+  "end": 1905,
+  "name": "iterIn",
+  "kind": "function",
+  "f": {
+   "switch": 1
+  }
+ },
+ {
+  "file": "lite/own.ts",
+  "lines": 382,
+  "code": 368,
+  "start": 1907,
+  "end": 22218,
+  "name": "ownership",
+  "kind": "function",
+  "f": {
+   "NodeType": 32,
+   "new:Set": 27,
+   "mutCall": 32,
+   "new:Map": 6,
+   "localAssign": 32,
+   "nonnull": 19,
+   "computedMember": 6,
+   "switch": 4,
+   "regex": 1,
+   "predicate": 1,
+   "cast": 4
+  }
+ },
+ {
+  "file": "lite/own.ts",
+  "lines": 108,
+  "code": 102,
+  "start": 22719,
+  "end": 28956,
+  "name": "actionEscapes",
+  "kind": "function",
+  "f": {
+   "NodeType": 21,
+   "new:Map": 3,
+   "mutCall": 8,
+   "localAssign": 4,
+   "nonnull": 2,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/capture.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 468,
+  "end": 519,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/capture.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 520,
+  "end": 571,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/capture.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 573,
+  "end": 655,
+  "name": "Capture",
+  "kind": "type",
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/capture.ts",
+  "name": "isActionCall",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 663,
+  "end": 783,
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/capture.ts",
+  "lines": 17,
+  "code": 17,
+  "start": 884,
+  "end": 1879,
+  "name": "refs",
+  "kind": "function",
+  "f": {
+   "NodeType": 4,
+   "mutCall": 1,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/capture.ts",
+  "lines": 12,
+  "code": 12,
+  "start": 1909,
+  "end": 2455,
+  "name": "bound",
+  "kind": "function",
+  "f": {
+   "NodeType": 1,
+   "switch": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/capture.ts",
+  "lines": 13,
+  "code": 13,
+  "start": 2564,
+  "end": 3140,
+  "name": "declaredIn",
+  "kind": "function",
+  "f": {
+   "NodeType": 2,
+   "new:Set": 1,
+   "mutCall": 2
+  }
+ },
+ {
+  "file": "lite/capture.ts",
+  "lines": 36,
+  "code": 35,
+  "start": 3142,
+  "end": 4822,
+  "name": "captures",
+  "kind": "function",
+  "f": {
+   "NodeType": 4,
+   "new:Map": 1,
+   "mutCall": 6,
+   "new:Set": 3,
+   "localAssign": 2,
+   "computedMember": 1,
+   "nonnull": 2
+  }
+ },
+ {
+  "file": "lite/capture.ts",
+  "lines": 57,
+  "code": 56,
+  "start": 5164,
+  "end": 8543,
+  "name": "opaqueCaptures",
+  "kind": "function",
+  "f": {
+   "NodeType": 12,
+   "new:Map": 2,
+   "mutCall": 9,
+   "regex": 1,
+   "new:Set": 2,
+   "nonnull": 2,
+   "localAssign": 2
+  }
+ },
+ {
+  "file": "lite/capture.ts",
+  "name": "captureMessage",
+  "kind": "const-fn",
+  "lines": 5,
+  "code": 5,
+  "start": 8558,
+  "end": 9211,
+  "f": {}
+ },
+ {
+  "file": "lite/registry.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 143,
+  "end": 202,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/registry.ts",
+  "lines": 5,
+  "code": 5,
+  "start": 203,
+  "end": 469,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/registry.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 470,
+  "end": 560,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/registry.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 562,
+  "end": 636,
+  "name": "Origin",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/registry.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 637,
+  "end": 739,
+  "name": "Decl",
+  "kind": "type",
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 740,
+  "end": 851,
+  "name": "ValueDecl",
+  "kind": "type",
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 852,
+  "end": 956,
+  "name": "TypeCtx",
+  "kind": "type",
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "FLAG_NAMES",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 964,
+  "end": 1035,
+  "f": {
+   "cast": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "lines": 6,
+  "code": 6,
+  "start": 1037,
+  "end": 1336,
+  "name": "flagsOf",
+  "kind": "function",
+  "f": {
+   "NodeType": 1,
+   "memberWrite": 2,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "KEYWORDS",
+  "kind": "const-value",
+  "lines": 6,
+  "code": 6,
+  "start": 1343,
+  "end": 1756,
+  "f": {
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "keyName",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1764,
+  "end": 1884,
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "DECLS",
+  "kind": "let",
+  "lines": 1,
+  "code": 1,
+  "start": 1891,
+  "end": 1936,
+  "f": {
+   "moduleLetRef": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "ONE_ARG",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 1945,
+  "end": 2015,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "CONVERT_NAMES",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 2069,
+  "end": 2148,
+  "f": {}
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.types",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 2176,
+  "end": 2208,
+  "f": {
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.values",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 2211,
+  "end": 2249,
+  "f": {
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.strictIndex",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 2252,
+  "end": 2271,
+  "f": {}
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.onUnsup",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 2274,
+  "end": 2326,
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.onErr",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 2329,
+  "end": 2392,
+  "f": {
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.expandMemo",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 2395,
+  "end": 2430,
+  "f": {
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.ifaceMemo",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 2433,
+  "end": 2468,
+  "f": {
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.journal",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 2541,
+  "end": 2597,
+  "f": {}
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.constructor",
+  "kind": "ctor",
+  "lines": 7,
+  "code": 6,
+  "start": 2601,
+  "end": 2964,
+  "f": {
+   "moduleLetWrite": 1,
+   "moduleLetRef": 4,
+   "this": 3,
+   "computedMember": 3
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.builtinTypeNames",
+  "kind": "method",
+  "lines": 3,
+  "code": 3,
+  "start": 3178,
+  "end": 3369,
+  "f": {
+   "new:Set": 1,
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.load",
+  "kind": "method",
+  "lines": 30,
+  "code": 30,
+  "start": 3560,
+  "end": 5515,
+  "f": {
+   "NodeType": 5,
+   "new:Set": 3,
+   "new:Map": 2,
+   "cast": 1,
+   "regex": 1,
+   "mutCall": 8,
+   "this": 6,
+   "computedMember": 3
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.peek",
+  "kind": "method",
+  "lines": 9,
+  "code": 9,
+  "start": 5740,
+  "end": 6112,
+  "f": {
+   "cast": 1,
+   "this": 9,
+   "thisWrite": 3,
+   "finally": 1,
+   "localAssign": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.isAlias",
+  "kind": "method",
+  "lines": 4,
+  "code": 4,
+  "start": 6115,
+  "end": 6321,
+  "f": {
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.sig",
+  "kind": "method",
+  "lines": 19,
+  "code": 19,
+  "start": 6352,
+  "end": 7708,
+  "f": {
+   "NodeType": 3,
+   "this": 7,
+   "new:Set": 1,
+   "localAssign": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.sigOf",
+  "kind": "method",
+  "lines": 3,
+  "code": 3,
+  "start": 7797,
+  "end": 8031,
+  "f": {
+   "NodeType": 1,
+   "this": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.convert",
+  "kind": "method",
+  "lines": 64,
+  "code": 62,
+  "start": 8035,
+  "end": 11463,
+  "f": {
+   "NodeType": 2,
+   "this": 15,
+   "switch": 1,
+   "computedMember": 6,
+   "regex": 2,
+   "mutCall": 1,
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.literal",
+  "kind": "method",
+  "lines": 30,
+  "code": 30,
+  "start": 11467,
+  "end": 13214,
+  "f": {
+   "NodeType": 1,
+   "new:Map": 3,
+   "this": 8,
+   "mutCall": 6,
+   "computedMember": 1,
+   "memberWrite": 3
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.expand",
+  "kind": "method",
+  "lines": 16,
+  "code": 16,
+  "start": 13243,
+  "end": 14068,
+  "f": {
+   "this": 10,
+   "nonnull": 1,
+   "computedMember": 3,
+   "mutCall": 3,
+   "new:Map": 1,
+   "localAssign": 2,
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.ifaceRec",
+  "kind": "method",
+  "lines": 26,
+  "code": 26,
+  "start": 14071,
+  "end": 15212,
+  "f": {
+   "this": 8,
+   "nonnull": 1,
+   "new:Map": 1,
+   "mutCall": 4,
+   "new:Set": 1,
+   "memberWrite": 5
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.member",
+  "kind": "method",
+  "lines": 32,
+  "code": 32,
+  "start": 15326,
+  "end": 16811,
+  "f": {
+   "this": 11,
+   "switch": 1,
+   "computedMember": 2,
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.isTypedArray",
+  "kind": "field",
+  "lines": 1,
+  "code": 1,
+  "start": 16815,
+  "end": 16887,
+  "f": {}
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.iterElem",
+  "kind": "method",
+  "lines": 21,
+  "code": 21,
+  "start": 16977,
+  "end": 17850,
+  "f": {
+   "this": 4,
+   "switch": 1,
+   "cast": 3,
+   "any": 2,
+   "computedMember": 5
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.callSigs",
+  "kind": "method",
+  "lines": 7,
+  "code": 7,
+  "start": 17854,
+  "end": 18106,
+  "f": {
+   "this": 2,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.sub",
+  "kind": "method",
+  "lines": 54,
+  "code": 54,
+  "start": 18219,
+  "end": 21242,
+  "f": {
+   "new:Set": 1,
+   "this": 12,
+   "mutCall": 1,
+   "computedMember": 10,
+   "switch": 1,
+   "cast": 1,
+   "any": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.fnSub",
+  "kind": "method",
+  "lines": 12,
+  "code": 12,
+  "start": 21245,
+  "end": 21783,
+  "f": {
+   "localAssign": 1,
+   "computedMember": 2,
+   "this": 3
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.unify",
+  "kind": "method",
+  "lines": 49,
+  "code": 49,
+  "start": 21903,
+  "end": 24214,
+  "f": {
+   "this": 11,
+   "mutCall": 1,
+   "nonnull": 1,
+   "cast": 1,
+   "any": 1,
+   "computedMember": 11,
+   "switch": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "name": "Registry.hasAnyTv",
+  "kind": "method",
+  "lines": 3,
+  "code": 3,
+  "start": 24217,
+  "end": 24326,
+  "f": {
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "lines": 8,
+  "code": 8,
+  "start": 24330,
+  "end": 24602,
+  "name": "marker",
+  "kind": "function",
+  "f": {
+   "NodeType": 1,
+   "regex": 2
+  }
+ },
+ {
+  "file": "lite/registry.ts",
+  "lines": 3,
+  "code": 3,
+  "start": 24672,
+  "end": 24776,
+  "name": "builtinTypeNames",
+  "kind": "function",
+  "f": {
+   "mutCall": 1,
+   "new:Registry": 1
+  }
+ },
+ {
+  "file": "lite/intrinsics.ts",
+  "name": "TYPED_ARRAYS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 776,
+  "end": 914,
+  "f": {}
+ },
+ {
+  "file": "lite/intrinsics.ts",
+  "name": "ALLOWED_GLOBALS",
+  "kind": "const-value",
+  "lines": 5,
+  "code": 5,
+  "start": 929,
+  "end": 1330,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/intrinsics.ts",
+  "name": "OJS_INPUT_GLOBALS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 1559,
+  "end": 1617,
+  "f": {}
+ },
+ {
+  "file": "lite/intrinsics.ts",
+  "name": "typedArray",
+  "kind": "const-fn",
+  "lines": 35,
+  "code": 35,
+  "start": 1626,
+  "end": 3323,
+  "f": {}
+ },
+ {
+  "file": "lite/intrinsics.ts",
+  "name": "INTRINSIC_DECLS",
+  "kind": "const-value",
+  "lines": 212,
+  "code": 212,
+  "start": 3339,
+  "end": 12305,
+  "f": {}
+ },
+ {
+  "file": "lite/intrinsics.ts",
+  "name": "PRELUDE_DECLS",
+  "kind": "const-value",
+  "lines": 26,
+  "code": 26,
+  "start": 12512,
+  "end": 13601,
+  "f": {}
+ },
+ {
+  "file": "lite/intrinsics.ts",
+  "name": "CAPABILITIES",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 13616,
+  "end": 13781,
+  "f": {}
+ },
+ {
+  "file": "lite/intrinsics.ts",
+  "name": "PRELUDE_FNS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 13796,
+  "end": 13901,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/intrinsics.ts",
+  "name": "JSX_DECLS",
+  "kind": "const-value",
+  "lines": 39,
+  "code": 39,
+  "start": 14080,
+  "end": 15597,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 213,
+  "end": 260,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 261,
+  "end": 300,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 301,
+  "end": 340,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 341,
+  "end": 374,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 375,
+  "end": 424,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 425,
+  "end": 508,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ts",
+  "name": "L",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 516,
+  "end": 540,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ts",
+  "name": "(pattern)",
+  "kind": "const-value",
+  "lines": 4,
+  "code": 4,
+  "start": 555,
+  "end": 775,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ts",
+  "name": "isNamed",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 907,
+  "end": 962,
+  "f": {
+   "cast": 1,
+   "predicate": 1
+  }
+ },
+ {
+  "file": "lite/types.ts",
+  "name": "tpNames",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 1087,
+  "end": 1155,
+  "f": {
+   "cast": 2,
+   "NodeType": 1
+  }
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 438,
+  "end": 571,
+  "name": "Flags",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 572,
+  "end": 627,
+  "name": "Param",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 628,
+  "end": 743,
+  "name": "Fn",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 744,
+  "end": 802,
+  "name": "Prop",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 803,
+  "end": 936,
+  "name": "Rec",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 937,
+  "end": 995,
+  "name": "Named",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "lines": 11,
+  "code": 11,
+  "start": 996,
+  "end": 1382,
+  "name": "Ty",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "NUM",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1397,
+  "end": 1427,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "STR",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1442,
+  "end": 1472,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "BIGINT",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1487,
+  "end": 1523,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "NULL",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1538,
+  "end": 1570,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "UNDEF",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1585,
+  "end": 1619,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "VOID",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1634,
+  "end": 1666,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "NEVER",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1681,
+  "end": 1715,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "UNKNOWN",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1730,
+  "end": 1768,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "OBJECT",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1783,
+  "end": 1819,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "ERR",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1834,
+  "end": 1864,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "SYMBOL",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1879,
+  "end": 1915,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "TRUE",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1930,
+  "end": 1970,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "FALSE",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1985,
+  "end": 2027,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "BOOL",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 2042,
+  "end": 2113,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "lit",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 2128,
+  "end": 2195,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "arr",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 2210,
+  "end": 2256,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "named",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 2271,
+  "end": 2344,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "rec",
+  "kind": "const-fn",
+  "lines": 4,
+  "code": 4,
+  "start": 2359,
+  "end": 2535,
+  "f": {
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "WRAPPERS",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 2661,
+  "end": 2787,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "isNamed",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 2909,
+  "end": 2984,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "unwrap",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 2999,
+  "end": 3108,
+  "f": {
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "propT",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 3189,
+  "end": 3267,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "tpNames",
+  "kind": "const-fn",
+  "lines": 2,
+  "code": 2,
+  "start": 3389,
+  "end": 3614,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "union",
+  "kind": "const-fn",
+  "lines": 21,
+  "code": 21,
+  "start": 3630,
+  "end": 4477,
+  "f": {
+   "new:Set": 1,
+   "mutCall": 2,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "members",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 4492,
+  "end": 4578,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "show",
+  "kind": "const-fn",
+  "lines": 32,
+  "code": 32,
+  "start": 4594,
+  "end": 6152,
+  "f": {
+   "switch": 1
+  }
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 6181,
+  "end": 6217,
+  "name": "Subst",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "subst",
+  "kind": "const-fn",
+  "lines": 24,
+  "code": 24,
+  "start": 6231,
+  "end": 7411,
+  "f": {
+   "new:Map": 2,
+   "switch": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "hasTv",
+  "kind": "const-fn",
+  "lines": 15,
+  "code": 15,
+  "start": 7426,
+  "end": 8096,
+  "f": {
+   "switch": 1
+  }
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "instantiate",
+  "kind": "const-fn",
+  "lines": 9,
+  "code": 8,
+  "start": 8310,
+  "end": 8782,
+  "f": {
+   "new:Map": 1,
+   "computedMember": 1,
+   "throw": 1,
+   "new:Error": 1
+  }
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "widen",
+  "kind": "const-fn",
+  "lines": 8,
+  "code": 8,
+  "start": 8885,
+  "end": 9143,
+  "f": {}
+ },
+ {
+  "file": "lite/types.ss.ts",
+  "name": "isPrimitive",
+  "kind": "const-fn",
+  "lines": 2,
+  "code": 2,
+  "start": 9159,
+  "end": 9329,
+  "f": {}
+ },
+ {
+  "file": "lite/facts.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 416,
+  "end": 468,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/facts.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 469,
+  "end": 537,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/facts.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 613,
+  "end": 857,
+  "name": "CellInfo",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/facts.ts",
+  "name": "preludeCalls",
+  "kind": "const-fn",
+  "lines": 2,
+  "code": 2,
+  "start": 1093,
+  "end": 1263,
+  "f": {
+   "NodeType": 2
+  }
+ },
+ {
+  "file": "lite/facts.ts",
+  "name": "globalRefs",
+  "kind": "const-fn",
+  "lines": 4,
+  "code": 4,
+  "start": 1362,
+  "end": 1739,
+  "f": {
+   "NodeType": 2,
+   "regex": 2
+  }
+ },
+ {
+  "file": "lite/facts.ts",
+  "lines": 20,
+  "code": 20,
+  "start": 1824,
+  "end": 3273,
+  "name": "freeUses",
+  "kind": "function",
+  "f": {
+   "NodeType": 12,
+   "regex": 3,
+   "new:Set": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/facts.ts",
+  "lines": 19,
+  "code": 19,
+  "start": 3275,
+  "end": 4504,
+  "name": "factsOf",
+  "kind": "function",
+  "f": {
+   "NodeType": 5,
+   "localAssign": 1,
+   "cast": 1,
+   "predicate": 1
+  }
+ },
+ {
+  "file": "lite/facts.ts",
+  "lines": 12,
+  "code": 12,
+  "start": 4506,
+  "end": 5077,
+  "name": "cellsOf",
+  "kind": "function",
+  "f": {
+   "NodeType": 1,
+   "mutCall": 1,
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/island.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 288,
+  "end": 322,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/island.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 323,
+  "end": 370,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/island.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 372,
+  "end": 451,
+  "name": "IslandCell",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/island.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 452,
+  "end": 533,
+  "name": "IslandSpec",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/island.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 534,
+  "end": 618,
+  "name": "Island",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/island.ts",
+  "name": "ISLAND_CAPABILITIES",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 633,
+  "end": 689,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/island.ts",
+  "lines": 23,
+  "code": 23,
+  "start": 692,
+  "end": 1846,
+  "name": "island",
+  "kind": "function",
+  "f": {
+   "new:Map": 1,
+   "new:Set": 2,
+   "mutCall": 6
+  }
+ },
+ {
+  "file": "lite/island.ts",
+  "lines": 17,
+  "code": 17,
+  "start": 1953,
+  "end": 2844,
+  "name": "specOf",
+  "kind": "function",
+  "f": {
+   "any": 3,
+   "computedMember": 2,
+   "memberWrite": 1,
+   "mutCall": 1,
+   "cast": 1
+  }
+ },
+ {
+  "file": "lite/island.ts",
+  "lines": 10,
+  "code": 10,
+  "start": 2922,
+  "end": 3298,
+  "name": "compileCalls",
+  "kind": "function",
+  "f": {
+   "any": 5,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 376,
+  "end": 431,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 432,
+  "end": 486,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 487,
+  "end": 528,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 529,
+  "end": 613,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 614,
+  "end": 700,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 701,
+  "end": 740,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 742,
+  "end": 832,
+  "name": "Completion",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 833,
+  "end": 972,
+  "name": "Completions",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "PH",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 980,
+  "end": 1002,
+  "f": {}
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "KEYWORD_NAMES",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 1010,
+  "end": 1201,
+  "f": {}
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "NO_MEMBERS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 1288,
+  "end": 1366,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 28,
+  "code": 28,
+  "start": 1465,
+  "end": 2895,
+  "name": "scan",
+  "kind": "function",
+  "f": {
+   "computedMember": 6,
+   "localAssign": 10,
+   "mutCall": 6,
+   "cast": 1,
+   "any": 1
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 14,
+  "code": 14,
+  "start": 2968,
+  "end": 3413,
+  "name": "tagAt",
+  "kind": "function",
+  "f": {
+   "regex": 2,
+   "localAssign": 3,
+   "computedMember": 2
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 11,
+  "code": 11,
+  "start": 3510,
+  "end": 4212,
+  "name": "paramListAt",
+  "kind": "function",
+  "f": {
+   "regex": 2,
+   "computedMember": 2,
+   "localAssign": 2,
+   "nonnull": 1
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 17,
+  "code": 17,
+  "start": 4345,
+  "end": 5101,
+  "name": "typeAt",
+  "kind": "function",
+  "f": {
+   "regex": 3,
+   "computedMember": 3,
+   "localAssign": 5
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "declared",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 5108,
+  "end": 5229,
+  "f": {
+   "regex": 1,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "TYPE_NAMES",
+  "kind": "const-value",
+  "lines": 2,
+  "code": 2,
+  "start": 5346,
+  "end": 5692,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "kindOf",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 5701,
+  "end": 5784,
+  "f": {}
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 21,
+  "code": 21,
+  "start": 5884,
+  "end": 6950,
+  "name": "membersOf",
+  "kind": "function",
+  "f": {
+   "new:Map": 2,
+   "computedMember": 1,
+   "mutCall": 3,
+   "localAssign": 1
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 13,
+  "code": 13,
+  "start": 6951,
+  "end": 7740,
+  "name": "memberNames",
+  "kind": "function",
+  "f": {
+   "switch": 1
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 14,
+  "code": 13,
+  "start": 7840,
+  "end": 8750,
+  "name": "scopeNames",
+  "kind": "function",
+  "f": {
+   "new:Map": 1,
+   "localAssign": 1,
+   "mutCall": 2
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "HEAD",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 8758,
+  "end": 8939,
+  "f": {
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 23,
+  "code": 23,
+  "start": 9241,
+  "end": 10270,
+  "name": "annotationOf",
+  "kind": "function",
+  "f": {
+   "computedMember": 3,
+   "localAssign": 1,
+   "regex": 1,
+   "cast": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 30,
+  "code": 30,
+  "start": 10448,
+  "end": 11797,
+  "name": "addParameter",
+  "kind": "function",
+  "f": {
+   "computedMember": 6,
+   "localAssign": 9,
+   "mutCall": 2,
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "completionWork",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 11899,
+  "end": 11939,
+  "f": {}
+ },
+ {
+  "file": "lite/complete.ts",
+  "name": "counted",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 11947,
+  "end": 12033,
+  "f": {
+   "memberWrite": 2
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 93,
+  "code": 85,
+  "start": 12277,
+  "end": 17386,
+  "name": "completionsAt",
+  "kind": "function",
+  "f": {
+   "computedMember": 4,
+   "nonnull": 2,
+   "regex": 7,
+   "new:Registry": 1,
+   "new:Set": 2,
+   "mutCall": 7,
+   "new:Map": 2,
+   "catch": 3,
+   "localAssign": 4,
+   "memberWrite": 2,
+   "NodeType": 1,
+   "cast": 1,
+   "any": 1
+  }
+ },
+ {
+  "file": "lite/complete.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 17388,
+  "end": 17411,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "rules.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 292,
+  "end": 389,
+  "name": "RuleInfo",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "rules.ts",
+  "name": "RULES",
+  "kind": "const-value",
+  "lines": 65,
+  "code": 57,
+  "start": 404,
+  "end": 8566,
+  "f": {}
+ },
+ {
+  "file": "rules.ts",
+  "name": "RULE_IDS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 8582,
+  "end": 8624,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/link.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 841,
+  "end": 872,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/link.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 873,
+  "end": 919,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/link.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 921,
+  "end": 965,
+  "name": "Cell",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/link.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 966,
+  "end": 1067,
+  "name": "Linked",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/link.ts",
+  "lines": 24,
+  "code": 24,
+  "start": 1069,
+  "end": 2270,
+  "name": "link",
+  "kind": "function",
+  "f": {
+   "computedMember": 2,
+   "new:Map": 1,
+   "new:Set": 1,
+   "throw": 3,
+   "new:Error": 3,
+   "mutCall": 3,
+   "any": 2,
+   "new:Function": 1,
+   "cast": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 360,
+  "end": 391,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 392,
+  "end": 445,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 446,
+  "end": 489,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 490,
+  "end": 569,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 570,
+  "end": 646,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 647,
+  "end": 727,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 729,
+  "end": 807,
+  "name": "Variable",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 808,
+  "end": 832,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "PRELUDE",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 916,
+  "end": 947,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "RUNTIME_CELLS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 1079,
+  "end": 1191,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "inputsIn",
+  "kind": "const-fn",
+  "lines": 2,
+  "code": 2,
+  "start": 1630,
+  "end": 1865,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "INPUTS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 1880,
+  "end": 1904,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "header",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 1913,
+  "end": 1991,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 3,
+  "code": 3,
+  "start": 1994,
+  "end": 2149,
+  "name": "reserved",
+  "kind": "function",
+  "f": {
+   "throw": 1,
+   "new:Error": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "keep",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 2467,
+  "end": 2571,
+  "f": {
+   "regex": 2
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "unkeep",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 2686,
+  "end": 2763,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 13,
+  "code": 13,
+  "start": 2765,
+  "end": 3349,
+  "name": "keepJsx",
+  "kind": "function",
+  "f": {
+   "NodeType": 1,
+   "mutCall": 1,
+   "regex": 1,
+   "computedMember": 1,
+   "localAssign": 1,
+   "throw": 1,
+   "new:Error": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 15,
+  "code": 15,
+  "start": 3456,
+  "end": 4273,
+  "name": "erasesToJs",
+  "kind": "function",
+  "f": {
+   "NodeType": 2,
+   "catch": 1,
+   "localAssign": 4,
+   "regex": 1,
+   "throw": 1,
+   "new:Error": 1,
+   "cast": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 17,
+  "code": 16,
+  "start": 4358,
+  "end": 5323,
+  "name": "splitCells",
+  "kind": "function",
+  "f": {
+   "cast": 1,
+   "NodeType": 2,
+   "computedMember": 2,
+   "mutCall": 2,
+   "localAssign": 1,
+   "throw": 1,
+   "new:Error": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 6095,
+  "end": 6367,
+  "name": "Context",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "NO_CONTEXT",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 6374,
+  "end": 6456,
+  "f": {
+   "new:Set": 2
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 4,
+  "code": 4,
+  "start": 6459,
+  "end": 6726,
+  "name": "contextOf",
+  "kind": "function",
+  "f": {
+   "catch": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 6,
+  "code": 6,
+  "start": 6727,
+  "end": 7225,
+  "name": "contextOfFacts",
+  "kind": "function",
+  "f": {
+   "new:Set": 2
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 7299,
+  "end": 7461,
+  "name": "CheckCell",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 7462,
+  "end": 7581,
+  "name": "CheckLike",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "acceptedOf",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 7595,
+  "end": 7757,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 8,
+  "code": 8,
+  "start": 7870,
+  "end": 8374,
+  "name": "whyOf",
+  "kind": "function",
+  "f": {
+   "mutCall": 2
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 6,
+  "code": 6,
+  "start": 8468,
+  "end": 8882,
+  "name": "contextFromCheck",
+  "kind": "function",
+  "f": {
+   "throw": 1,
+   "new:Error": 1,
+   "new:Map": 1,
+   "cast": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 9096,
+  "end": 9197,
+  "name": "CellState",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 20,
+  "code": 19,
+  "start": 9198,
+  "end": 10571,
+  "name": "cellStates",
+  "kind": "function",
+  "f": {
+   "new:Map": 2,
+   "new:Set": 2,
+   "mutCall": 2,
+   "cast": 1,
+   "localAssign": 2,
+   "nonnull": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 15,
+  "code": 15,
+  "start": 10768,
+  "end": 11472,
+  "name": "declaredNameAt",
+  "kind": "function",
+  "f": {
+   "catch": 1,
+   "localAssign": 5
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "declaredName",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 11486,
+  "end": 11568,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 11767,
+  "end": 11849,
+  "name": "Token",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 9,
+  "code": 9,
+  "start": 11850,
+  "end": 12249,
+  "name": "tokensOf",
+  "kind": "function",
+  "f": {
+   "catch": 1,
+   "localAssign": 1,
+   "mutCall": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 3,
+  "code": 3,
+  "start": 12354,
+  "end": 12531,
+  "name": "paramsOf",
+  "kind": "function",
+  "f": {
+   "catch": 1,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "variableName",
+  "kind": "const-fn",
+  "lines": 4,
+  "code": 4,
+  "start": 12840,
+  "end": 13034,
+  "f": {
+   "regex": 1,
+   "computedMember": 2
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "keyOfVariable",
+  "kind": "const-fn",
+  "lines": 5,
+  "code": 5,
+  "start": 13130,
+  "end": 13343,
+  "f": {
+   "regex": 2,
+   "computedMember": 4
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "STATE_VALUE",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 13729,
+  "end": 13765,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "handleName",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 13780,
+  "end": 13839,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 14248,
+  "end": 14296,
+  "name": "Built",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 9,
+  "code": 9,
+  "start": 14297,
+  "end": 15028,
+  "name": "ojsCell",
+  "kind": "function",
+  "f": {
+   "mutCall": 1,
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "rejectedCell",
+  "kind": "const-fn",
+  "lines": 2,
+  "code": 2,
+  "start": 15321,
+  "end": 15615,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "isDuplicateKey",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 15726,
+  "end": 15819,
+  "f": {
+   "predicate": 1,
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "compileCell",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 16149,
+  "end": 16302,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "compileCellText",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 16417,
+  "end": 16570,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 13,
+  "code": 13,
+  "start": 16572,
+  "end": 17401,
+  "name": "build",
+  "kind": "function",
+  "f": {
+   "nonnull": 1,
+   "catch": 1,
+   "localAssign": 1,
+   "throw": 1,
+   "cast": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 74,
+  "code": 57,
+  "start": 17403,
+  "end": 22968,
+  "name": "compileChecked",
+  "kind": "function",
+  "f": {
+   "throw": 4,
+   "new:Error": 4,
+   "NodeType": 4,
+   "computedMember": 12,
+   "regex": 2,
+   "localAssign": 2,
+   "mutCall": 1,
+   "cast": 1,
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 5,
+  "code": 5,
+  "start": 22970,
+  "end": 23229,
+  "name": "compileModule",
+  "kind": "function",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 23902,
+  "end": 23983,
+  "name": "Shape",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 23984,
+  "end": 24167,
+  "name": "Compiled",
+  "kind": "type",
+  "f": {
+   "any": 2
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "rtCall",
+  "kind": "const-fn",
+  "lines": 2,
+  "code": 2,
+  "start": 24259,
+  "end": 24472,
+  "f": {
+   "any": 1,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "RUNTIME_INPUTS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 24518,
+  "end": 24584,
+  "f": {
+   "new:Map": 1,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "children",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 24592,
+  "end": 24747,
+  "f": {
+   "any": 1,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "parsedCompiled",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 24755,
+  "end": 24806,
+  "f": {
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 42,
+  "code": 39,
+  "start": 24808,
+  "end": 27440,
+  "name": "parseCompiled",
+  "kind": "function",
+  "f": {
+   "computedMember": 6,
+   "throw": 1,
+   "new:Error": 1,
+   "any": 7,
+   "localAssign": 5,
+   "mutCall": 3,
+   "cast": 1,
+   "nonnull": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "KINDS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 27662,
+  "end": 27798,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "compiledKind",
+  "kind": "const-fn",
+  "lines": 4,
+  "code": 4,
+  "start": 27813,
+  "end": 28044,
+  "f": {
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 20,
+  "code": 16,
+  "start": 28339,
+  "end": 29632,
+  "name": "decompileVariable",
+  "kind": "function",
+  "f": {
+   "throw": 1,
+   "new:Error": 1,
+   "localAssign": 7
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "cellOfVariable",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 29736,
+  "end": 29820,
+  "f": {
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 3,
+  "code": 3,
+  "start": 29823,
+  "end": 29993,
+  "name": "decompileModule",
+  "kind": "function",
+  "f": {
+   "predicate": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 30463,
+  "end": 30519,
+  "name": "Translated",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "name": "isIdentifier",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 30526,
+  "end": 30701,
+  "f": {
+   "nonnull": 2
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 13,
+  "code": 13,
+  "start": 30807,
+  "end": 31406,
+  "name": "ownThis",
+  "kind": "function",
+  "f": {
+   "any": 2,
+   "computedMember": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/ss-toolchain.ts",
+  "lines": 49,
+  "code": 46,
+  "start": 31407,
+  "end": 35606,
+  "name": "fromObservableVariables",
+  "kind": "function",
+  "f": {
+   "computedMember": 10,
+   "any": 2,
+   "catch": 2,
+   "localAssign": 3,
+   "cast": 2,
+   "regex": 1,
+   "mutCall": 4
+  }
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 108,
+  "end": 155,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 156,
+  "end": 187,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "name": "OPEN",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 195,
+  "end": 209,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "name": "CLOSE",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 211,
+  "end": 223,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "name": "COMMENT_TYPE_KEYS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 231,
+  "end": 327,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "lines": 62,
+  "code": 59,
+  "start": 330,
+  "end": 3034,
+  "name": "cutsOf",
+  "kind": "function",
+  "f": {
+   "NodeType": 1,
+   "regex": 1,
+   "mutCall": 9,
+   "localAssign": 2,
+   "throw": 1,
+   "new:Error": 1,
+   "computedMember": 9,
+   "any": 1,
+   "memberWrite": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "name": "esc",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 3248,
+  "end": 3302,
+  "f": {
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "name": "unesc",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 3317,
+  "end": 3373,
+  "f": {
+   "regex": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "name": "tokens",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 3381,
+  "end": 3548,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "name": "LANG",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 3564,
+  "end": 3588,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "name": "langs",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 3815,
+  "end": 3855,
+  "f": {
+   "new:Map": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "lines": 14,
+  "code": 14,
+  "start": 3857,
+  "end": 4512,
+  "name": "langOf",
+  "kind": "function",
+  "f": {
+   "catch": 1,
+   "localAssign": 2,
+   "regex": 1,
+   "computedMember": 1,
+   "mutCall": 2,
+   "nonnull": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "lines": 9,
+  "code": 9,
+  "start": 4571,
+  "end": 4901,
+  "name": "commentTypes",
+  "kind": "function",
+  "f": {
+   "throw": 1,
+   "new:Error": 1,
+   "localAssign": 2
+  }
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "lines": 8,
+  "code": 7,
+  "start": 4903,
+  "end": 5513,
+  "name": "uncommentTypes",
+  "kind": "function",
+  "f": {
+   "mutCall": 1,
+   "localAssign": 2
+  }
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "name": "compile",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 5528,
+  "end": 5587,
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/comment-types.ts",
+  "lines": 5,
+  "code": 5,
+  "start": 5590,
+  "end": 5845,
+  "name": "decompile",
+  "kind": "function",
+  "f": {
+   "throw": 1,
+   "new:Error": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/module-js.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 307,
+  "end": 338,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/module-js.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 340,
+  "end": 439,
+  "name": "ModuleVar",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/module-js.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 440,
+  "end": 515,
+  "name": "ModuleImport",
+  "kind": "type",
+  "f": {}
+ },
+ {
+  "file": "lite/toolchain/module-js.ts",
+  "name": "lit",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 523,
+  "end": 586,
+  "f": {
+   "any": 1
+  }
+ },
+ {
+  "file": "lite/toolchain/module-js.ts",
+  "name": "strings",
+  "kind": "const-fn",
+  "lines": 1,
+  "code": 1,
+  "start": 594,
+  "end": 763,
+  "f": {
+   "any": 2
+  }
+ },
+ {
+  "file": "lite/toolchain/module-js.ts",
+  "lines": 24,
+  "code": 24,
+  "start": 766,
+  "end": 2434,
+  "name": "moduleJs",
+  "kind": "function",
+  "f": {
+   "any": 2,
+   "new:Map": 1,
+   "mutCall": 3,
+   "nonnull": 3,
+   "computedMember": 6
+  }
+ },
+ {
+  "file": "lite/toolchain/module-js.ts",
+  "lines": 15,
+  "code": 15,
+  "start": 2648,
+  "end": 3546,
+  "name": "syntaxStub",
+  "kind": "function",
+  "f": {
+   "any": 2,
+   "computedMember": 6,
+   "localAssign": 1
+  }
+ },
+ {
+  "file": "lite/jsx/lower.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 190,
+  "end": 237,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/jsx/lower.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 238,
+  "end": 271,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/jsx/lower.ts",
+  "lines": 53,
+  "code": 52,
+  "start": 382,
+  "end": 2457,
+  "name": "lowerJsx",
+  "kind": "function",
+  "f": {
+   "NodeType": 5,
+   "mutCall": 7,
+   "localAssign": 2,
+   "regex": 3,
+   "cast": 1
+  }
+ },
+ {
+  "file": "lite/browser/erase.ts",
+  "lines": 1,
+  "code": 1,
+  "start": 321,
+  "end": 368,
+  "name": "(import/export)",
+  "kind": "import",
+  "f": {}
+ },
+ {
+  "file": "lite/browser/erase.ts",
+  "name": "TYPE_KEYS",
+  "kind": "const-value",
+  "lines": 1,
+  "code": 1,
+  "start": 376,
+  "end": 464,
+  "f": {
+   "new:Set": 1
+  }
+ },
+ {
+  "file": "lite/browser/erase.ts",
+  "lines": 50,
+  "code": 49,
+  "start": 467,
+  "end": 2367,
+  "name": "erase",
+  "kind": "function",
+  "f": {
+   "NodeType": 1,
+   "regex": 2,
+   "mutCall": 7,
+   "computedMember": 4,
+   "nonnull": 1,
+   "any": 1,
+   "localAssign": 3
+  }
+ },
+ {
+  "file": "lite/boundary.ts",
+  "lines": 40,
+  "code": 39,
+  "start": 663,
+  "end": 2735,
+  "name": "shapeOf",
+  "kind": "function",
+  "f": {
+   "switch": 1,
+   "mutCall": 3,
+   "computedMember": 1
+  }
+ }
+]

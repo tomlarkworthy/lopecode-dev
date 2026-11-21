@@ -1,0 +1,10 @@
+optChainNarrow: rejected : (d: U | null) => number
+    [no-member] L9 no property a on B
+    [no-member] L9 no property a on C
+    [possibly-undefined] L9 property a of a value that may be null
+andNarrow: ok : (d: U | null) => number
+multiLitNarrow: ok : (d: U) => boolean
+condNarrow: ok : (st: U, inner: U | null) => number
+regexIndex: rejected : (s: string) => string
+    [type] L17 cannot index RegExpMatchArray with 1
+6 probe cells, 2 not ok, 0 module errors

@@ -1,0 +1,3 @@
+acornParse: ok : AcornParse
+parse: ok : (src: string, p1?: { jsx?: boolean }) => Parsed
+3 probe cells, 0 not ok, 0 module errors

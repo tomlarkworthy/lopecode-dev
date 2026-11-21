@@ -1,0 +1,189 @@
+reservedName: ok : (name: string) => boolean
+iterIn: ok : (t: Ty, reg: Reg, p2?: number) => string | null
+captureMessage: ok : (c: Capture) => string
+bound: ok : (p: Node | null | undefined) => Set<string>
+isActionCall: ok : (n: Node) => boolean
+refs: ok : (n: Node) => Identifier[]
+declaredIn: ok : (fn: Node) => Set<string>
+captures: ok : (cellFn: Node, tainted: Map<string, string>) => Capture[]
+freeUses: ok : (fn: Node, name: string, pick: (n: Node, parent: Node | null) => boolean) => Set<Node>
+preludeCalls: ok : (fn: Node, name: string) => Set<Node>
+parse: ok : (src: string) => Parsed
+factsOf: ok : (name: string, fn: Node, stmt?: Node | undefined) => CellInfo
+cellsOf: rejected : (src: string) => CellInfo[]
+    [no-member] L130 no property id on Identifier
+    [no-member] L130 no property id on Literal
+    [no-member] L130 no property id on TemplateLiteral
+    [no-member] L130 no property id on TemplateElement
+    [no-member] L130 no property id on ThisExpression
+    [no-member] L130 no property id on ArrayExpression
+    [no-member] L130 no property id on Property
+    [no-member] L130 no property id on ObjectExpression
+    [no-member] L130 no property id on UnaryExpression
+    [no-member] L130 no property id on UpdateExpression
+    [no-member] L130 no property id on BinaryExpression
+    [no-member] L130 no property id on LogicalExpression
+    [no-member] L130 no property id on AssignmentExpression
+    [no-member] L130 no property id on ConditionalExpression
+    [no-member] L130 no property id on CallExpression
+    [no-member] L130 no property id on NewExpression
+    [no-member] L130 no property id on MemberExpression
+    [no-member] L130 no property id on ChainExpression
+    [no-member] L130 no property id on SequenceExpression
+    [no-member] L130 no property id on SpreadElement
+    [no-member] L130 no property id on AwaitExpression
+    [no-member] L130 no property id on YieldExpression
+    [no-member] L130 no property id on TSAsExpression
+    [no-member] L130 no property id on TSNonNullExpression
+    [no-member] L130 no property id on ObjectPattern
+    [no-member] L130 no property id on ArrayPattern
+    [no-member] L130 no property id on RestElement
+    [no-member] L130 no property id on AssignmentPattern
+    [no-member] L130 no property id on TSParameterProperty
+    [no-member] L130 no property id on VariableDeclaration
+    [no-member] L130 no property id on ExpressionStatement
+    [no-member] L130 no property id on BlockStatement
+    [no-member] L130 no property id on ReturnStatement
+    [no-member] L130 no property id on IfStatement
+    [no-member] L130 no property id on SwitchCase
+    [no-member] L130 no property id on SwitchStatement
+    [no-member] L130 no property id on ForStatement
+    [no-member] L130 no property id on ForOfStatement
+    [no-member] L130 no property id on WhileStatement
+    [no-member] L130 no property id on BreakStatement
+    [no-member] L130 no property id on ThrowStatement
+    [no-member] L130 no property id on CatchClause
+    [no-member] L130 no property id on TryStatement
+    [no-member] L130 no property id on LabeledStatement
+    [no-member] L130 no property id on ExportNamedDeclaration
+    [no-member] L130 no property id on ImportDeclaration
+    [no-member] L130 no property id on Program
+    [no-member] L130 no property id on JSXIdentifier
+    [no-member] L130 no property id on JSXAttribute
+    [no-member] L130 no property id on JSXOpeningElement
+    [no-member] L130 no property id on JSXElement
+    [no-member] L130 no property id on JSXFragment
+    [no-member] L130 no property id on JSXExpressionContainer
+    [no-member] L130 no property id on JSXText
+    [no-member] L130 no property id on JSXEmptyExpression
+    [no-member] L130 no property id on TSSatisfiesExpression
+    [no-member] L130 no property id on TSTypeAnnotation
+    [no-member] L130 no property id on TSTypeParameter
+    [no-member] L130 no property id on TSTypeParameterDeclaration
+    [no-member] L130 no property id on TSTypeParameterInstantiation
+    [no-member] L130 no property id on TSKeyword
+    [no-member] L130 no property id on TSTypeReference
+    [no-member] L130 no property id on TSQualifiedName
+    [no-member] L130 no property id on TSArrayType
+    [no-member] L130 no property id on TSTupleType
+    [no-member] L130 no property id on TSUnionType
+    [no-member] L130 no property id on TSParenthesizedType
+    [no-member] L130 no property id on TSTypeOperator
+    [no-member] L130 no property id on TSLiteralType
+    [no-member] L130 no property id on TSFunctionType
+    [no-member] L130 no property id on TSTypeLiteral
+    [no-member] L130 no property id on TSPropertySignature
+    [no-member] L130 no property id on TSIndexSignature
+    [no-member] L130 no property id on TSMethodSignature
+    [no-member] L130 no property id on TSCallSignature
+    [no-member] L130 no property id on TSTypeQuery
+    [no-member] L130 no property id on TSIndexedAccessType
+    [no-member] L130 no property id on TSOptionalType
+    [no-member] L130 no property id on TSNamedTupleMember
+    [possibly-undefined] L130 property id of a value that may be null
+    [type] L130 Identifier | Literal | TemplateLiteral | TemplateElement | ThisExpression | ArrayExpression | Property | ObjectExpression | FunctionNode | UnaryExpression | UpdateExpression | BinaryExpression | LogicalExpression | AssignmentExpression | ConditionalExpression | CallExpression | NewExpression | MemberExpression | ChainExpression | SequenceExpression | SpreadElement | AwaitExpression | YieldExpression | TSAsExpression | TSNonNullExpression | ObjectPattern | ArrayPattern | RestElement | AssignmentPattern | TSParameterProperty | VariableDeclarator | VariableDeclaration | ExpressionStatement | BlockStatement | ReturnStatement | IfStatement | SwitchCase | SwitchStatement | ForStatement | ForOfStatement | WhileStatement | BreakStatement | ThrowStatement | CatchClause | TryStatement | LabeledStatement | ExportNamedDeclaration | ImportDeclaration | Program | JSXIdentifier | JSXAttribute | JSXOpeningElement | JSXElement | JSXFragment | JSXExpressionContainer | JSXText | JSXEmptyExpression | TSSatisfiesExpression | TSDeclareFunction | TSTypeAnnotation | TSTypeParameter | TSTypeParameterDeclaration | TSTypeParameterInstantiation | TSKeyword | TSTypeReference | TSQualifiedName | TSArrayType | TSTupleType | TSUnionType | TSParenthesizedType | TSTypeOperator | TSLiteralType | TSFunctionType | TSTypeLiteral | TSPropertySignature | TSIndexSignature | TSMethodSignature | TSCallSignature | TSTypeAliasDeclaration | TSInterfaceDeclaration | TSTypeQuery | TSIndexedAccessType | TSOptionalType | TSNamedTupleMember | null is not assignable to Node
+    [no-member] L132 no property declarations on Identifier
+    [no-member] L132 no property declarations on Literal
+    [no-member] L132 no property declarations on TemplateLiteral
+    [no-member] L132 no property declarations on TemplateElement
+    [no-member] L132 no property declarations on ThisExpression
+    [no-member] L132 no property declarations on ArrayExpression
+    [no-member] L132 no property declarations on Property
+    [no-member] L132 no property declarations on ObjectExpression
+    [no-member] L132 no property declarations on FunctionNode
+    [no-member] L132 no property declarations on UnaryExpression
+    [no-member] L132 no property declarations on UpdateExpression
+    [no-member] L132 no property declarations on BinaryExpression
+    [no-member] L132 no property declarations on LogicalExpression
+    [no-member] L132 no property declarations on AssignmentExpression
+    [no-member] L132 no property declarations on ConditionalExpression
+    [no-member] L132 no property declarations on CallExpression
+    [no-member] L132 no property declarations on NewExpression
+    [no-member] L132 no property declarations on MemberExpression
+    [no-member] L132 no property declarations on ChainExpression
+    [no-member] L132 no property declarations on SequenceExpression
+    [no-member] L132 no property declarations on SpreadElement
+    [no-member] L132 no property declarations on AwaitExpression
+    [no-member] L132 no property declarations on YieldExpression
+    [no-member] L132 no property declarations on TSAsExpression
+    [no-member] L132 no property declarations on TSNonNullExpression
+    [no-member] L132 no property declarations on ObjectPattern
+    [no-member] L132 no property declarations on ArrayPattern
+    [no-member] L132 no property declarations on RestElement
+    [no-member] L132 no property declarations on AssignmentPattern
+    [no-member] L132 no property declarations on TSParameterProperty
+    [no-member] L132 no property declarations on VariableDeclarator
+    [no-member] L132 no property declarations on ExpressionStatement
+    [no-member] L132 no property declarations on BlockStatement
+    [no-member] L132 no property declarations on ReturnStatement
+    [no-member] L132 no property declarations on IfStatement
+    [no-member] L132 no property declarations on SwitchCase
+    [no-member] L132 no property declarations on SwitchStatement
+    [no-member] L132 no property declarations on ForStatement
+    [no-member] L132 no property declarations on ForOfStatement
+    [no-member] L132 no property declarations on WhileStatement
+    [no-member] L132 no property declarations on BreakStatement
+    [no-member] L132 no property declarations on ThrowStatement
+    [no-member] L132 no property declarations on CatchClause
+    [no-member] L132 no property declarations on TryStatement
+    [no-member] L132 no property declarations on LabeledStatement
+    [no-member] L132 no property declarations on ExportNamedDeclaration
+    [no-member] L132 no property declarations on ImportDeclaration
+    [no-member] L132 no property declarations on Program
+    [no-member] L132 no property declarations on JSXIdentifier
+    [no-member] L132 no property declarations on JSXAttribute
+    [no-member] L132 no property declarations on JSXOpeningElement
+    [no-member] L132 no property declarations on JSXElement
+    [no-member] L132 no property declarations on JSXFragment
+    [no-member] L132 no property declarations on JSXExpressionContainer
+    [no-member] L132 no property declarations on JSXText
+    [no-member] L132 no property declarations on JSXEmptyExpression
+    [no-member] L132 no property declarations on TSSatisfiesExpression
+    [no-member] L132 no property declarations on TSDeclareFunction
+    [no-member] L132 no property declarations on TSTypeAnnotation
+    [no-member] L132 no property declarations on TSTypeParameter
+    [no-member] L132 no property declarations on TSTypeParameterDeclaration
+    [no-member] L132 no property declarations on TSTypeParameterInstantiation
+    [no-member] L132 no property declarations on TSKeyword
+    [no-member] L132 no property declarations on TSTypeReference
+    [no-member] L132 no property declarations on TSQualifiedName
+    [no-member] L132 no property declarations on TSArrayType
+    [no-member] L132 no property declarations on TSTupleType
+    [no-member] L132 no property declarations on TSUnionType
+    [no-member] L132 no property declarations on TSParenthesizedType
+    [no-member] L132 no property declarations on TSTypeOperator
+    [no-member] L132 no property declarations on TSLiteralType
+    [no-member] L132 no property declarations on TSFunctionType
+    [no-member] L132 no property declarations on TSTypeLiteral
+    [no-member] L132 no property declarations on TSPropertySignature
+    [no-member] L132 no property declarations on TSIndexSignature
+    [no-member] L132 no property declarations on TSMethodSignature
+    [no-member] L132 no property declarations on TSCallSignature
+    [no-member] L132 no property declarations on TSTypeAliasDeclaration
+    [no-member] L132 no property declarations on TSInterfaceDeclaration
+    [no-member] L132 no property declarations on TSTypeQuery
+    [no-member] L132 no property declarations on TSIndexedAccessType
+    [no-member] L132 no property declarations on TSOptionalType
+    [no-member] L132 no property declarations on TSNamedTupleMember
+    [possibly-undefined] L132 property declarations of a value that may be null
+PRELUDE_FNS: ok : Set<string>
+CAPABILITIES: ok : { [k: string]: string }
+ISLAND_CAPABILITIES: ok : Set<string>
+island: ok : (cells: IslandCell[], spec: IslandSpec) => Island
+PH: ok : string
+typeAt: rejected : (before: string) => boolean
+    [type] L179 cannot index RegExpMatchArray with 0
+useTypes: rejected : (v: Variable, c: Completions, o: Origin, x: Outside, r: Rule, k: Context) => string
+    [unknown-type] L209 unknown type ReadonlySet
+    [unknown-type] L209 unknown type ReadonlyMap
+21 probe cells, 3 not ok, 0 module errors

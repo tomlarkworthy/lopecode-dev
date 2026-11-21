@@ -1,0 +1,36 @@
+checker files: lite/parse.ts@714c3a2b9ea9 lite/core.ts@b104d69702c1 lite/infer.ts@0e3049d9804b lite/own.ts@98a2ac926d03 lite/capture.ts@5b9748458a6b lite/registry.ts@eb48b819ee1f lite/intrinsics.ts@a3a7f27e98f0 lite/types.ts@64004450cc72 lite/types.ss.ts@75707e80a705 lite/facts.ts@6e00424d529c lite/island.ts@8ea3a168040c lite/complete.ts@5704eb1f7d0a rules.ts@48fb22ffc8bb lite/link.ts@7c81ef0e7ef3 lite/toolchain/ss-toolchain.ts@557070fb1dca lite/toolchain/comment-types.ts@d419996f39f0 lite/toolchain/module-js.ts@c73e30d5b804 lite/jsx/lower.ts@0e0237136613 lite/browser/erase.ts@14a5e55e7604 lite/boundary.ts@1f0148b52882
+== d1_throw_only_contextual_arrow.ss.ts
+contextual: rejected : F
+    [type] L4 (x: number) => void is not assignable to F
+annotated: ok : (x: number) => string
+3 probe cells, 1 not ok, 0 module errors
+== d2_message_per_union_member.ss.ts
+read: rejected : (d: U | null) => number
+    [no-member] L5 no property a on { type: "B" }
+    [no-member] L5 no property a on { type: "C" }
+    [no-member] L5 no property a on { type: "D" }
+    [possibly-undefined] L5 property a of a value that may be null
+2 probe cells, 1 not ok, 0 module errors
+== d3_optional_chain_does_not_narrow.ss.ts
+eqChain: rejected : (d: U | null) => number
+    [no-member] L6 no property a on { type: "B" }
+    [possibly-undefined] L6 property a of a value that may be null
+eqAnd: ok : (d: U | null) => number
+truthyChain: rejected : (s: S) => boolean
+    [possibly-undefined] L10 property fresh of a value that may be undefined
+truthyAnd: ok : (s: S) => boolean
+5 probe cells, 2 not ok, 0 module errors
+== d4_identity_through_includes.ss.ts
+eq: rejected : (a: R, b: R) => boolean
+    [strict-eq-object] L4 === on two non-primitive operands; use equals(a, b)
+viaIncludes: ok : (a: R, b: R) => boolean
+viaIndexOf: ok : (a: R, b: R) => boolean
+4 probe cells, 1 not ok, 0 module errors
+== d5_class_message_names_the_wrapper.ss.ts
+module [module-level] L2 ExportNamedDeclaration at module level
+ok1: ok : number
+2 probe cells, 0 not ok, 1 module errors
+== d5b_unexported_class.ss.ts
+module [no-class] L1 ClassDeclaration at module level
+ok1: ok : number
+2 probe cells, 0 not ok, 1 module errors

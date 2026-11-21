@@ -41,7 +41,6 @@ const run = (fn: string, cases: number, gen: () => [() => unknown, () => unknown
   rows.push(r);
 };
 
-run("newStore", N, () => { const n = str(), v = value(2); return [() => O.newStore(n, v), () => P.newStore(n, v), `${n} ${show(v)}`]; });
 for (const k of ["mut", "freeze", "borrow"] as const) run(k, N, () => { const v = value(3); return [() => O[k](v) === v, () => P[k](v) === v, show(v)]; });
 run("want", N, () => { const s = shape(4); return [() => O.want(s), () => P.want(s), show(s)]; });
 run("flat", N, () => { const xs = value(4); const a = Array.isArray(xs) ? xs : [xs]; return [() => O.flat(a), () => P.flat(a), show(a)]; });

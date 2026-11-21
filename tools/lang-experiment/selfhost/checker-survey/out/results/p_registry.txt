@@ -1,0 +1,15 @@
+CONVERT_NAMES: ok : string[]
+ONE_ARG: ok : Set<string>
+KEYWORDS: ok : Map<string, Ty>
+builtinTypeNames: ok : (reg: RegState) => Set<string>
+regFns: ok : RegFns
+iterElem: rejected : (R: RegFns) => (t0: Ty) => Ty | undefined
+    [no-cast] L43 as cast
+    [no-any] L43 TSAnyKeyword
+iterElem_rw: ok : (R: RegFns) => (t0: Ty) => Ty | undefined
+sub: ok : (R: RegFns, iterElem: (t: Ty) => Ty | undefined) => (s: Ty, t: Ty) => boolean
+unifyReduced: rejected : (p: Ty, a: Ty, m: Mut<Map<string, Ty>>) => void
+    [mut-capture] L173 Mut m captured by a function that escapes (not a local helper that is only called)
+ifaceRecReduced: rejected : (name: string, memo: Mut<Map<string, Rec>>) => Rec
+    [mutating-method] L180 write to a Map<string, Prop>, which is not Mut
+11 probe cells, 3 not ok, 0 module errors

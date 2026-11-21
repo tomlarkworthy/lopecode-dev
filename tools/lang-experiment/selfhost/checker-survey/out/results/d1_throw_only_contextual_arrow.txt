@@ -1,0 +1,4 @@
+contextual: rejected : F
+    [type] L4 (x: number) => void is not assignable to F
+annotated: ok : (x: number) => string
+3 probe cells, 1 not ok, 0 module errors

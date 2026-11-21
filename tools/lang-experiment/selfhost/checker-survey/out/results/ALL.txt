@@ -1,0 +1,542 @@
+checker files: lite/parse.ts@714c3a2b9ea9 lite/core.ts@b104d69702c1 lite/infer.ts@0e3049d9804b lite/own.ts@98a2ac926d03 lite/capture.ts@5b9748458a6b lite/registry.ts@eb48b819ee1f lite/intrinsics.ts@a3a7f27e98f0 lite/types.ts@64004450cc72 lite/types.ss.ts@75707e80a705 lite/facts.ts@6e00424d529c lite/island.ts@8ea3a168040c lite/complete.ts@5704eb1f7d0a rules.ts@48fb22ffc8bb lite/link.ts@7c81ef0e7ef3 lite/toolchain/ss-toolchain.ts@557070fb1dca lite/toolchain/comment-types.ts@d419996f39f0 lite/toolchain/module-js.ts@c73e30d5b804 lite/jsx/lower.ts@0e0237136613 lite/browser/erase.ts@14a5e55e7604 lite/boundary.ts@1f0148b52882
+== astlib.ss.ts
+kids: ok : (n: Node) => Node[]
+isFn: ok : (n: Node | null | undefined) => boolean
+fields: ok : (n: Node) => Field[]
+4 probe cells, 0 not ok, 0 module errors
+== calib.ss.ts
+kidsOf: ok : (n: Expr) => Expr[]
+switchKids: ok : (n: Expr) => Expr[]
+freeNames: ok : (root: Expr) => Set<string>
+forEachPush: rejected : (root: Expr) => string[]
+    [mut-capture] L38 Mut out captured by a function that escapes (not a local helper that is only called)
+regexUse: ok : (s: string) => boolean
+mapGroup: ok : (xs: string[]) => Map<string, number>
+throwsErr: ok : (x: number) => number
+catcher: ok : (x: number) => number
+dynKey: ok : (o: { [k: string]: unknown }, k: string) => unknown
+forIn: unsupported : (o: { [k: string]: unknown }) => string[]
+    [unsupported] L56 for...in
+objKeys: ok : (o: object) => string[]
+localType: rejected : (x: number) => number
+    [unknown-type] L60 unknown type P
+    [unsupported] L60 local type declaration
+optChain: ok : (x: { a?: { b?: number } }) => number
+recordOfClosures: ok : (base: number) => { add: (y: number) => number; twice: () => number }
+letCounter: ok : (xs: string[]) => number
+nestedLetAssign: ok : (xs: string[]) => number
+mutRecordField: ok : () => { n: number }
+genericFn: ok : <T>(xs: T[], f: (x: T) => boolean) => T[]
+tupleRet: ok : (x: number) => [number, string]
+destructure: ok : (p: { a: number; b: string }) => string
+arrayIndex: ok : (xs: string[]) => string
+sliceStr: ok : (s: string, a: number, b: number) => string
+whileLoop: ok : (n: number) => number
+unknownNarrow: ok : (v: unknown) => string
+25 probe cells, 3 not ok, 0 module errors
+== container.ss.ts
+q1_captured: ok : (root: Expr) => Diag[]
+q1b_callback: rejected : (root: Expr) => Diag[]
+    [mut-capture] L41 Mut diags captured by a function that escapes (not a local helper that is only called)
+q2_param: rejected : (root: Expr) => St
+    [mut-deep-write] L53 write below the first level of a Mut (Diag[] is not Mut)
+q2b_param_cb: rejected : (root: Expr) => St
+    [mut-deep-write] L68 write below the first level of a Mut (Diag[] is not Mut)
+    [mut-capture] L67 Mut st captured by a function that escapes (not a local helper that is only called)
+q3_scope: rejected : (names: string[][]) => number
+    [mut-deep-write] L83 write below the first level of a Mut (Map<string, Binding> is not Mut)
+q3b_scope_live: rejected : () => number
+    [mut-deep-write] L95 write below the first level of a Mut (Map<string, Binding> is not Mut)
+    [mut-deep-write] L96 write below the first level of a Mut (Map<string, Binding> is not Mut)
+    [mut-escape] L94 Mut outer placed in an object literal
+q3c_get: ok : (s: Scope, n: string) => Binding | undefined
+q4_identity: rejected : (root: Expr) => boolean
+    [strict-eq-object] L113 === on two non-primitive operands; use equals(a, b)
+q5_finally: ok : (e: Expr) => number
+q5b_finally_mut: ok : (e: Expr) => number
+q5c_catch_mut: ok : (e: Expr) => number
+q6_env_holds_mut: rejected : (root: Expr) => number
+    [mut-deep-write] L153 write below the first level of a Mut (Map<string, Ty> is not Mut)
+q7_hook: ok : (hook: (e: Expr) => Ty | null, e: Expr) => Ty
+q8_instance: rejected : (decls: string[]) => { expand: (n: string) => number; size: () => number }
+    [mut-capture] L169 Mut memo captured by a function that escapes (not a local helper that is only called)
+    [mut-capture] L170 Mut memo captured by a function that escapes (not a local helper that is only called)
+15 probe cells, 8 not ok, 0 module errors
+== container_demo.ss.ts
+regView: ok : RegView
+checker: ok : (root: Node[]) => Out
+3 probe cells, 0 not ok, 0 module errors
+== p_ast_crossing.ss.ts
+firstType: rejected : () => string
+    [boundary-type] L4 programAst: Program cannot cross from another language: it is or holds body: typeAnnotation: typeAnnotation: typeAnnotation: type: a recursive type
+commentCount: ok : () => number
+2 probe cells, 1 not ok, 0 module errors
+== p_core.ss.ts
+SYNTAX: ok : Map<string, string>
+TYPE_POSITIONS: ok : Set<string>
+reservedName: ok : (name: string) => boolean
+RESERVED_MSG: ok : (name: string) => string
+syntaxPass: ok : (n: Node) => Diag[]
+parse: ok : (src: string, p1?: { jsx?: boolean }) => Parsed
+STAND: rejected : unknown[]
+    [no-member] L40 no property fromCharCode on (v?: unknown) => string
+distinctNames: rejected : (src: string, jsx: boolean) => ParseResult
+    [no-cast] L47 as cast
+    [no-member] L48 property message on Js/unknown; narrow it first
+    [type] L49 cannot index RegExpMatchArray with 0
+    [unsupported] L48 instanceof
+parse2: ok : (src: string, p1?: { jsx?: boolean }) => Parse2
+distinctNames_rw: ok : (src: string, jsx: boolean) => ParseResult
+visitSlice: ok : (names: string[], deps: Map<string, string[]>, lineOf: Map<string, number>) => { order: string[]; cycleErrors: Map<string, LiteError[]> }
+uncloneable: ok : (reg: RegView) => (t: Ty, p1?: number) => string | null
+compileHookReduced: ok : (e: Node, ch: Ch) => Ty
+sideReduced: rejected : (names: string[], value: Map<string, Ty>) => Rec
+    [member-write] L135 write to a { [k: string]: Ty }, which is not Mut
+15 probe cells, 3 not ok, 0 module errors
+== p_flat_crossing.ss.ts
+countIds: ok : number
+calleeName: ok : (i: number) => string
+3 probe cells, 0 not ok, 0 module errors
+== p_infer.ss.ts
+module [cell-not-function] L247 fresh is not a function
+regView: ok : RegView
+narrowIn: ok : (t: Ty, k: string, pos: boolean) => Ty
+binaryCell: ok : (e0: Node, env: Env) => Ty
+hiddenCell: ok : (s: Ty, t: Ty, opaque: Set<string> | null, p3?: number) => string | null
+lvalueCell: ok : (t0: Node, env0: Env, at0: Node) => Ty
+red_bindingUpdate: rejected : (b: Binding0, t: Ty) => Binding0
+    [member-write] L204 write to a Binding0, which is not Mut
+red_lazyThunk: rejected : (n: Node) => Binding0
+    [mut-capture] L209 Mut diags captured by a function that escapes (not a local helper that is only called)
+red_fnInfoPush: rejected : (fi: FnInfo, t: Ty) => void
+    [mutating-method] L215 write to a Ty[], which is not Mut
+red_forEachReport: rejected : (ps: Node[]) => number
+    [mut-capture] L220 Mut diags captured by a function that escapes (not a local helper that is only called)
+red_synthNode: ok : (d: Node, test: Node) => number
+red_breaksStack: rejected : (flow: Map<string, Ty>) => number
+    [mutating-method] L238 write to a Map<string, Ty>[], which is not Mut
+red_reduceNoInit: rejected : (exits: Map<string, Ty>[], join: (a: Map<string, Ty> | null, b: Map<string, Ty> | null) => Map<string, Ty> | null) => Map<string, Ty> | null
+    [no-non-null] L244 TSNonNullExpression
+    [arity] L244 expected at least 2 arguments, got 1
+red_caseGroupField: rejected : (e: Node) => boolean
+    [no-member] L252 no property expression on ThisExpression
+red_literalBigint: rejected : (e: Node) => boolean
+    [no-member] L258 no property bigint on Literal
+red_shortSet: ok : (e: MemberExpression) => boolean
+red_scopeField: rejected : () => number
+    [mut-deep-write] L264 write below the first level of a Mut (Map<string, number> is not Mut)
+18 probe cells, 9 not ok, 1 module errors
+== p_jsx_erase.ss.ts
+parse: ok : (src: string, p1?: { jsx?: boolean }) => Parsed
+lowerJsx: ok : (src: string, p1?: { keep?: boolean }) => string
+TYPE_KEYS: ok : Set<string>
+erase: ok : (src: string) => string
+eraseEachReduced: rejected : (vs: Node[]) => number
+    [mut-capture] L104 Mut cuts captured by a function that escapes (not a local helper that is only called)
+parseExpr: ok : (src: string) => Node
+syntaxStub: ok : (definition: string) => string | null
+7 probe cells, 1 not ok, 0 module errors
+== p_own.ss.ts
+same: ok : (a: Node | null | undefined, b: Node | null | undefined) => boolean
+ownershipSlice: ok : (cellFn: Node, F: Facts) => Rule[]
+actionEscapesSlice: ok : (cellFn: Node, F: Facts, actionBodies: Set<Node>) => string[]
+red_optChainTruthy: rejected : (s: { flags?: Flags }) => boolean
+    [possibly-undefined] L181 property fresh of a value that may be undefined
+5 probe cells, 1 not ok, 0 module errors
+== p_parse.ss.ts
+acornParse: ok : AcornParse
+parse: ok : (src: string, p1?: { jsx?: boolean }) => Parsed
+3 probe cells, 0 not ok, 0 module errors
+== p_parse_outside.ss.ts
+parseVia: rejected : (src: string) => Program
+    [boundary-type] L6 acornParse: AcornParse cannot cross from another language: it is or holds a function
+TS: rejected : ParserClass
+    [boundary-type] L11 acornParser: ParserClass cannot cross from another language: it is or holds extend: a function
+    [boundary-type] L11 tsPlugin: () => unknown cannot cross from another language: it is or holds a function
+3 probe cells, 2 not ok, 0 module errors
+== p_registry.ss.ts
+CONVERT_NAMES: ok : string[]
+ONE_ARG: ok : Set<string>
+KEYWORDS: ok : Map<string, Ty>
+builtinTypeNames: ok : (reg: RegState) => Set<string>
+regFns: ok : RegFns
+iterElem: rejected : (R: RegFns) => (t0: Ty) => Ty | undefined
+    [no-cast] L43 as cast
+    [no-any] L43 TSAnyKeyword
+iterElem_rw: ok : (R: RegFns) => (t0: Ty) => Ty | undefined
+sub: ok : (R: RegFns, iterElem: (t: Ty) => Ty | undefined) => (s: Ty, t: Ty) => boolean
+unifyReduced: rejected : (p: Ty, a: Ty, m: Mut<Map<string, Ty>>) => void
+    [mut-capture] L173 Mut m captured by a function that escapes (not a local helper that is only called)
+ifaceRecReduced: rejected : (name: string, memo: Mut<Map<string, Rec>>) => Rec
+    [mutating-method] L180 write to a Map<string, Prop>, which is not Mut
+11 probe cells, 3 not ok, 0 module errors
+== p_rest.ss.ts
+KEYWORDS: ok : Map<string, Ty>
+ONE_ARG: ok : Set<string>
+convertCell: ok : (types: Map<string, Decl>) => (n0: Node, ctx: TypeCtx, p: Parsed) => { t: Ty; diags: Diag[] }
+shapeOf: ok : (t: Ty, expand: (t: Ty) => Ty, isAlias: (n: string) => boolean, p3?: number) => Shape | ShapeErr
+OPEN: ok : string
+CLOSE: ok : string
+LANG: ok : string
+esc: ok : (s: string) => string
+cutsOf: ok : (src: string) => [number, number][]
+commentTypes: ok : (src: string) => string
+tokens: ok : (js: string, onComment: (block: boolean, text: string, start: number, end: number) => void) => { end: number; label: string }[]
+cutsOfReduced: rejected : (gap: string, at: number) => number
+    [let-capture] L172 let from assigned from a function that escapes
+mergeReduced: rejected : (cuts: [number, number][]) => [number, number][]
+    [member-write] L181 write to a [number, number], which is not Mut
+completionHookReduced: rejected : (ch: Hooked) => string | null
+    [member-write] L192 write to a Hooked, which is not Mut
+    [let-capture] L192 let got assigned from a function that escapes
+completionPatchReduced: rejected : (ch: WithMember) => void
+    [member-write] L201 write to a WithMember, which is not Mut
+linkReduced: rejected : (text: string) => unknown
+    [new-non-intrinsic] L205 new on something that is not an allowed intrinsic
+17 probe cells, 5 not ok, 0 module errors
+== p_small.ss.ts
+reservedName: ok : (name: string) => boolean
+iterIn: ok : (t: Ty, reg: Reg, p2?: number) => string | null
+captureMessage: ok : (c: Capture) => string
+bound: ok : (p: Node | null | undefined) => Set<string>
+isActionCall: ok : (n: Node) => boolean
+refs: ok : (n: Node) => Identifier[]
+declaredIn: ok : (fn: Node) => Set<string>
+captures: ok : (cellFn: Node, tainted: Map<string, string>) => Capture[]
+freeUses: ok : (fn: Node, name: string, pick: (n: Node, parent: Node | null) => boolean) => Set<Node>
+preludeCalls: ok : (fn: Node, name: string) => Set<Node>
+parse: ok : (src: string) => Parsed
+factsOf: ok : (name: string, fn: Node, stmt?: Node | undefined) => CellInfo
+cellsOf: rejected : (src: string) => CellInfo[]
+    [no-member] L130 no property id on Identifier
+    [no-member] L130 no property id on Literal
+    [no-member] L130 no property id on TemplateLiteral
+    [no-member] L130 no property id on TemplateElement
+    [no-member] L130 no property id on ThisExpression
+    [no-member] L130 no property id on ArrayExpression
+    [no-member] L130 no property id on Property
+    [no-member] L130 no property id on ObjectExpression
+    [no-member] L130 no property id on UnaryExpression
+    [no-member] L130 no property id on UpdateExpression
+    [no-member] L130 no property id on BinaryExpression
+    [no-member] L130 no property id on LogicalExpression
+    [no-member] L130 no property id on AssignmentExpression
+    [no-member] L130 no property id on ConditionalExpression
+    [no-member] L130 no property id on CallExpression
+    [no-member] L130 no property id on NewExpression
+    [no-member] L130 no property id on MemberExpression
+    [no-member] L130 no property id on ChainExpression
+    [no-member] L130 no property id on SequenceExpression
+    [no-member] L130 no property id on SpreadElement
+    [no-member] L130 no property id on AwaitExpression
+    [no-member] L130 no property id on YieldExpression
+    [no-member] L130 no property id on TSAsExpression
+    [no-member] L130 no property id on TSNonNullExpression
+    [no-member] L130 no property id on ObjectPattern
+    [no-member] L130 no property id on ArrayPattern
+    [no-member] L130 no property id on RestElement
+    [no-member] L130 no property id on AssignmentPattern
+    [no-member] L130 no property id on TSParameterProperty
+    [no-member] L130 no property id on VariableDeclaration
+    [no-member] L130 no property id on ExpressionStatement
+    [no-member] L130 no property id on BlockStatement
+    [no-member] L130 no property id on ReturnStatement
+    [no-member] L130 no property id on IfStatement
+    [no-member] L130 no property id on SwitchCase
+    [no-member] L130 no property id on SwitchStatement
+    [no-member] L130 no property id on ForStatement
+    [no-member] L130 no property id on ForOfStatement
+    [no-member] L130 no property id on WhileStatement
+    [no-member] L130 no property id on BreakStatement
+    [no-member] L130 no property id on ThrowStatement
+    [no-member] L130 no property id on CatchClause
+    [no-member] L130 no property id on TryStatement
+    [no-member] L130 no property id on LabeledStatement
+    [no-member] L130 no property id on ExportNamedDeclaration
+    [no-member] L130 no property id on ImportDeclaration
+    [no-member] L130 no property id on Program
+    [no-member] L130 no property id on JSXIdentifier
+    [no-member] L130 no property id on JSXAttribute
+    [no-member] L130 no property id on JSXOpeningElement
+    [no-member] L130 no property id on JSXElement
+    [no-member] L130 no property id on JSXFragment
+    [no-member] L130 no property id on JSXExpressionContainer
+    [no-member] L130 no property id on JSXText
+    [no-member] L130 no property id on JSXEmptyExpression
+    [no-member] L130 no property id on TSSatisfiesExpression
+    [no-member] L130 no property id on TSTypeAnnotation
+    [no-member] L130 no property id on TSTypeParameter
+    [no-member] L130 no property id on TSTypeParameterDeclaration
+    [no-member] L130 no property id on TSTypeParameterInstantiation
+    [no-member] L130 no property id on TSKeyword
+    [no-member] L130 no property id on TSTypeReference
+    [no-member] L130 no property id on TSQualifiedName
+    [no-member] L130 no property id on TSArrayType
+    [no-member] L130 no property id on TSTupleType
+    [no-member] L130 no property id on TSUnionType
+    [no-member] L130 no property id on TSParenthesizedType
+    [no-member] L130 no property id on TSTypeOperator
+    [no-member] L130 no property id on TSLiteralType
+    [no-member] L130 no property id on TSFunctionType
+    [no-member] L130 no property id on TSTypeLiteral
+    [no-member] L130 no property id on TSPropertySignature
+    [no-member] L130 no property id on TSIndexSignature
+    [no-member] L130 no property id on TSMethodSignature
+    [no-member] L130 no property id on TSCallSignature
+    [no-member] L130 no property id on TSTypeQuery
+    [no-member] L130 no property id on TSIndexedAccessType
+    [no-member] L130 no property id on TSOptionalType
+    [no-member] L130 no property id on TSNamedTupleMember
+    [possibly-undefined] L130 property id of a value that may be null
+    [type] L130 Identifier | Literal | TemplateLiteral | TemplateElement | ThisExpression | ArrayExpression | Property | ObjectExpression | FunctionNode | UnaryExpression | UpdateExpression | BinaryExpression | LogicalExpression | AssignmentExpression | ConditionalExpression | CallExpression | NewExpression | MemberExpression | ChainExpression | SequenceExpression | SpreadElement | AwaitExpression | YieldExpression | TSAsExpression | TSNonNullExpression | ObjectPattern | ArrayPattern | RestElement | AssignmentPattern | TSParameterProperty | VariableDeclarator | VariableDeclaration | ExpressionStatement | BlockStatement | ReturnStatement | IfStatement | SwitchCase | SwitchStatement | ForStatement | ForOfStatement | WhileStatement | BreakStatement | ThrowStatement | CatchClause | TryStatement | LabeledStatement | ExportNamedDeclaration | ImportDeclaration | Program | JSXIdentifier | JSXAttribute | JSXOpeningElement | JSXElement | JSXFragment | JSXExpressionContainer | JSXText | JSXEmptyExpression | TSSatisfiesExpression | TSDeclareFunction | TSTypeAnnotation | TSTypeParameter | TSTypeParameterDeclaration | TSTypeParameterInstantiation | TSKeyword | TSTypeReference | TSQualifiedName | TSArrayType | TSTupleType | TSUnionType | TSParenthesizedType | TSTypeOperator | TSLiteralType | TSFunctionType | TSTypeLiteral | TSPropertySignature | TSIndexSignature | TSMethodSignature | TSCallSignature | TSTypeAliasDeclaration | TSInterfaceDeclaration | TSTypeQuery | TSIndexedAccessType | TSOptionalType | TSNamedTupleMember | null is not assignable to Node
+    [no-member] L132 no property declarations on Identifier
+    [no-member] L132 no property declarations on Literal
+    [no-member] L132 no property declarations on TemplateLiteral
+    [no-member] L132 no property declarations on TemplateElement
+    [no-member] L132 no property declarations on ThisExpression
+    [no-member] L132 no property declarations on ArrayExpression
+    [no-member] L132 no property declarations on Property
+    [no-member] L132 no property declarations on ObjectExpression
+    [no-member] L132 no property declarations on FunctionNode
+    [no-member] L132 no property declarations on UnaryExpression
+    [no-member] L132 no property declarations on UpdateExpression
+    [no-member] L132 no property declarations on BinaryExpression
+    [no-member] L132 no property declarations on LogicalExpression
+    [no-member] L132 no property declarations on AssignmentExpression
+    [no-member] L132 no property declarations on ConditionalExpression
+    [no-member] L132 no property declarations on CallExpression
+    [no-member] L132 no property declarations on NewExpression
+    [no-member] L132 no property declarations on MemberExpression
+    [no-member] L132 no property declarations on ChainExpression
+    [no-member] L132 no property declarations on SequenceExpression
+    [no-member] L132 no property declarations on SpreadElement
+    [no-member] L132 no property declarations on AwaitExpression
+    [no-member] L132 no property declarations on YieldExpression
+    [no-member] L132 no property declarations on TSAsExpression
+    [no-member] L132 no property declarations on TSNonNullExpression
+    [no-member] L132 no property declarations on ObjectPattern
+    [no-member] L132 no property declarations on ArrayPattern
+    [no-member] L132 no property declarations on RestElement
+    [no-member] L132 no property declarations on AssignmentPattern
+    [no-member] L132 no property declarations on TSParameterProperty
+    [no-member] L132 no property declarations on VariableDeclarator
+    [no-member] L132 no property declarations on ExpressionStatement
+    [no-member] L132 no property declarations on BlockStatement
+    [no-member] L132 no property declarations on ReturnStatement
+    [no-member] L132 no property declarations on IfStatement
+    [no-member] L132 no property declarations on SwitchCase
+    [no-member] L132 no property declarations on SwitchStatement
+    [no-member] L132 no property declarations on ForStatement
+    [no-member] L132 no property declarations on ForOfStatement
+    [no-member] L132 no property declarations on WhileStatement
+    [no-member] L132 no property declarations on BreakStatement
+    [no-member] L132 no property declarations on ThrowStatement
+    [no-member] L132 no property declarations on CatchClause
+    [no-member] L132 no property declarations on TryStatement
+    [no-member] L132 no property declarations on LabeledStatement
+    [no-member] L132 no property declarations on ExportNamedDeclaration
+    [no-member] L132 no property declarations on ImportDeclaration
+    [no-member] L132 no property declarations on Program
+    [no-member] L132 no property declarations on JSXIdentifier
+    [no-member] L132 no property declarations on JSXAttribute
+    [no-member] L132 no property declarations on JSXOpeningElement
+    [no-member] L132 no property declarations on JSXElement
+    [no-member] L132 no property declarations on JSXFragment
+    [no-member] L132 no property declarations on JSXExpressionContainer
+    [no-member] L132 no property declarations on JSXText
+    [no-member] L132 no property declarations on JSXEmptyExpression
+    [no-member] L132 no property declarations on TSSatisfiesExpression
+    [no-member] L132 no property declarations on TSDeclareFunction
+    [no-member] L132 no property declarations on TSTypeAnnotation
+    [no-member] L132 no property declarations on TSTypeParameter
+    [no-member] L132 no property declarations on TSTypeParameterDeclaration
+    [no-member] L132 no property declarations on TSTypeParameterInstantiation
+    [no-member] L132 no property declarations on TSKeyword
+    [no-member] L132 no property declarations on TSTypeReference
+    [no-member] L132 no property declarations on TSQualifiedName
+    [no-member] L132 no property declarations on TSArrayType
+    [no-member] L132 no property declarations on TSTupleType
+    [no-member] L132 no property declarations on TSUnionType
+    [no-member] L132 no property declarations on TSParenthesizedType
+    [no-member] L132 no property declarations on TSTypeOperator
+    [no-member] L132 no property declarations on TSLiteralType
+    [no-member] L132 no property declarations on TSFunctionType
+    [no-member] L132 no property declarations on TSTypeLiteral
+    [no-member] L132 no property declarations on TSPropertySignature
+    [no-member] L132 no property declarations on TSIndexSignature
+    [no-member] L132 no property declarations on TSMethodSignature
+    [no-member] L132 no property declarations on TSCallSignature
+    [no-member] L132 no property declarations on TSTypeAliasDeclaration
+    [no-member] L132 no property declarations on TSInterfaceDeclaration
+    [no-member] L132 no property declarations on TSTypeQuery
+    [no-member] L132 no property declarations on TSIndexedAccessType
+    [no-member] L132 no property declarations on TSOptionalType
+    [no-member] L132 no property declarations on TSNamedTupleMember
+    [possibly-undefined] L132 property declarations of a value that may be null
+PRELUDE_FNS: ok : Set<string>
+CAPABILITIES: ok : { [k: string]: string }
+ISLAND_CAPABILITIES: ok : Set<string>
+island: ok : (cells: IslandCell[], spec: IslandSpec) => Island
+PH: ok : string
+typeAt: rejected : (before: string) => boolean
+    [type] L179 cannot index RegExpMatchArray with 0
+useTypes: rejected : (v: Variable, c: Completions, o: Origin, x: Outside, r: Rule, k: Context) => string
+    [unknown-type] L209 unknown type ReadonlySet
+    [unknown-type] L209 unknown type ReadonlyMap
+21 probe cells, 3 not ok, 0 module errors
+== p_small_rw.ss.ts
+parse: ok : (src: string) => Parsed
+factsOf: ok : (name: string, fn: Node, stmt?: Node | undefined) => CellInfo
+cellsOf: ok : (src: string) => CellInfo[]
+typeAt: ok : (before: string) => boolean
+useContext: ok : (k: Context) => number
+6 probe cells, 0 not ok, 0 module errors
+== p_toolchain.ss.ts
+parse: ok : (src: string, p1?: { jsx?: boolean }) => Parsed
+keyOfVariable: rejected : (name: string) => string
+    [type] L16 cannot index RegExpMatchArray with 1
+    [type] L16 cannot index RegExpMatchArray with 2
+keyOfVariable_rw: ok : (name: string) => string
+cellsOf: ok : (src: string) => CellInfo[]
+lowerJsx: ok : (src: string, p1?: { keep?: boolean }) => string
+contextOfFacts: ok : (infos: CellInfo[], accepted: Set<string> | null) => Context
+contextOf: ok : (texts: string[], tsx: boolean, p2?: Set<string> | null) => Context
+keep: ok : (s: string) => string
+keepJsx: rejected : (fnSrc: string) => string
+    [type] L52 () => string is not assignable to string
+    [let-capture] L52 let i assigned from a function that escapes
+keepJsx_rw: ok : (fnSrc: string) => string
+tokenizer: ok : (text: string) => Tokenizer
+tokensOf: ok : (text: string, p1?: number) => Token[]
+ojsCell: rejected : (name: string, body: (r: (input: string) => string) => string) => Built
+    [mut-capture] L99 Mut order captured by a function that escapes (not a local helper that is only called)
+typeCellName: rejected : (d: Node) => string | null
+    [no-member] L104 no property id on Identifier
+    [no-member] L104 no property id on Literal
+    [no-member] L104 no property id on TemplateLiteral
+    [no-member] L104 no property id on TemplateElement
+    [no-member] L104 no property id on ThisExpression
+    [no-member] L104 no property id on ArrayExpression
+    [no-member] L104 no property id on Property
+    [no-member] L104 no property id on ObjectExpression
+    [no-member] L104 no property id on UnaryExpression
+    [no-member] L104 no property id on UpdateExpression
+    [no-member] L104 no property id on BinaryExpression
+    [no-member] L104 no property id on LogicalExpression
+    [no-member] L104 no property id on AssignmentExpression
+    [no-member] L104 no property id on ConditionalExpression
+    [no-member] L104 no property id on CallExpression
+    [no-member] L104 no property id on NewExpression
+    [no-member] L104 no property id on MemberExpression
+    [no-member] L104 no property id on ChainExpression
+    [no-member] L104 no property id on SequenceExpression
+    [no-member] L104 no property id on SpreadElement
+    [no-member] L104 no property id on AwaitExpression
+    [no-member] L104 no property id on YieldExpression
+    [no-member] L104 no property id on TSAsExpression
+    [no-member] L104 no property id on TSNonNullExpression
+    [no-member] L104 no property id on ObjectPattern
+    [no-member] L104 no property id on ArrayPattern
+    [no-member] L104 no property id on RestElement
+    [no-member] L104 no property id on AssignmentPattern
+    [no-member] L104 no property id on TSParameterProperty
+    [no-member] L104 no property id on VariableDeclaration
+    [no-member] L104 no property id on ExpressionStatement
+    [no-member] L104 no property id on BlockStatement
+    [no-member] L104 no property id on ReturnStatement
+    [no-member] L104 no property id on IfStatement
+    [no-member] L104 no property id on SwitchCase
+    [no-member] L104 no property id on SwitchStatement
+    [no-member] L104 no property id on ForStatement
+    [no-member] L104 no property id on ForOfStatement
+    [no-member] L104 no property id on WhileStatement
+    [no-member] L104 no property id on BreakStatement
+    [no-member] L104 no property id on ThrowStatement
+    [no-member] L104 no property id on CatchClause
+    [no-member] L104 no property id on TryStatement
+    [no-member] L104 no property id on LabeledStatement
+    [no-member] L104 no property id on ExportNamedDeclaration
+    [no-member] L104 no property id on ImportDeclaration
+    [no-member] L104 no property id on Program
+    [no-member] L104 no property id on JSXIdentifier
+    [no-member] L104 no property id on JSXAttribute
+    [no-member] L104 no property id on JSXOpeningElement
+    [no-member] L104 no property id on JSXElement
+    [no-member] L104 no property id on JSXFragment
+    [no-member] L104 no property id on JSXExpressionContainer
+    [no-member] L104 no property id on JSXText
+    [no-member] L104 no property id on JSXEmptyExpression
+    [no-member] L104 no property id on TSSatisfiesExpression
+    [no-member] L104 no property id on TSTypeAnnotation
+    [no-member] L104 no property id on TSTypeParameter
+    [no-member] L104 no property id on TSTypeParameterDeclaration
+    [no-member] L104 no property id on TSTypeParameterInstantiation
+    [no-member] L104 no property id on TSKeyword
+    [no-member] L104 no property id on TSTypeReference
+    [no-member] L104 no property id on TSQualifiedName
+    [no-member] L104 no property id on TSArrayType
+    [no-member] L104 no property id on TSTupleType
+    [no-member] L104 no property id on TSUnionType
+    [no-member] L104 no property id on TSParenthesizedType
+    [no-member] L104 no property id on TSTypeOperator
+    [no-member] L104 no property id on TSLiteralType
+    [no-member] L104 no property id on TSFunctionType
+    [no-member] L104 no property id on TSTypeLiteral
+    [no-member] L104 no property id on TSPropertySignature
+    [no-member] L104 no property id on TSIndexSignature
+    [no-member] L104 no property id on TSMethodSignature
+    [no-member] L104 no property id on TSCallSignature
+    [no-member] L104 no property id on TSTypeQuery
+    [no-member] L104 no property id on TSIndexedAccessType
+    [no-member] L104 no property id on TSOptionalType
+    [no-member] L104 no property id on TSNamedTupleMember
+parsedCompiled: ok : Map<string, string | null>
+memoWrite: rejected : (definition: string) => void
+    [mutating-method] L109 write to a Map<string, string | null>, which is not Mut
+identityTest: rejected : (n: Node, fn: Node) => boolean
+    [strict-eq-object] L111 === on two non-primitive operands; use equals(a, b)
+header: rejected : (value: string) => { [k: string]: string }
+    [type] L115 unknown is not assignable to { [k: string]: string }
+reasonOf: rejected : (definition: string) => string
+    [no-member] L120 property message on Js/unknown; narrow it first
+20 probe cells, 8 not ok, 0 module errors
+== p_types.ss.ts
+useTypes5: ok : (v: Variable, c: Completions, o: Origin, x: Outside, r: Rule) => string
+2 probe cells, 0 not ok, 0 module errors
+== q_class.ss.ts
+module [module-level] L1 ExportNamedDeclaration at module level
+module [cell-not-function] L3 nextId is not a function
+sideRecMut: ok : (names: string[]) => number
+3 probe cells, 0 not ok, 2 module errors
+== q_holes.ss.ts
+includesIdentity: ok : (a: R, b: R) => boolean
+indexOfIdentity: ok : (a: R, b: R) => number
+aliasHelper: rejected : (xs: number[]) => number
+    [mut-capture] L11 Mut out captured by a function that escapes (not a local helper that is only called)
+returnHelper: rejected : () => (x: number) => void
+    [mut-capture] L20 Mut out captured by a function that escapes (not a local helper that is only called)
+recordHelper: rejected : () => { add: (x: number) => void }
+    [mut-capture] L27 Mut out captured by a function that escapes (not a local helper that is only called)
+twoLevel: rejected : (xs: number[]) => number
+    [mut-capture] L35 Mut out captured by a function that escapes (not a local helper that is only called)
+letViaCallback: rejected : (xs: number[]) => number
+    [let-capture] L43 let n assigned from a function that escapes
+8 probe cells, 5 not ok, 0 module errors
+== q_misc.ss.ts
+nonExhaustive: rejected : (n: AB) => number
+    [type] L4 function lacks an ending return statement and its return type number does not include undefined
+throwCtx: rejected : F
+    [type] L13 (x: number) => void is not assignable to F
+throwAnnot: ok : (x: number) => string
+4 probe cells, 2 not ok, 0 module errors
+== q_narrow.ss.ts
+optChainNarrow: rejected : (d: U | null) => number
+    [no-member] L9 no property a on B
+    [no-member] L9 no property a on C
+    [possibly-undefined] L9 property a of a value that may be null
+andNarrow: ok : (d: U | null) => number
+multiLitNarrow: ok : (d: U) => boolean
+condNarrow: ok : (st: U, inner: U | null) => number
+regexIndex: rejected : (s: string) => string
+    [type] L17 cannot index RegExpMatchArray with 1
+6 probe cells, 2 not ok, 0 module errors
