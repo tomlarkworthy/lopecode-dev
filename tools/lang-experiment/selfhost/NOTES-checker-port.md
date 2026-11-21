@@ -597,3 +597,16 @@ a lazy block-comment pattern running past a later `*/`.
 For Tom: the cells keep `complete.ts`'s regular expressions over source text (14 uses in `cp-text` and `cp-param`),
 because completion runs on text that does not parse. That is against "inspect code on the AST". The three bugs
 above are all in that text scanning.
+
+## 2026-11-22 01:30: the toolchain's decisions as cells (`lite/toolchain/tc-*.ss.ts`), not switched on
+Record: `lite/toolchain/NOTES.md` (survey table first). 521 of the 550 code lines of `ss-toolchain.ts`,
+`comment-types.ts`, `module-js.ts` and `browser/erase.ts` are 103 value cells and 20 types in 8 files (median 5
+lines, largest 25). 29 lines stay shell: reading a name from text that may not parse (`declaredNameAt`,
+`tokensOf`), and `isIdentifier` (the checker has no `String.codePointAt`).
+`bun lite/toolchain/tc-diff.ts`, my run: every function row DIFFERENT 0, NOT COVERED 0; the builder's totals are
+SAME 327516, same throw 3800 over 1712 sources. The one DIFFERENT is a repro file: `(x /* ? */ ?: number)`,
+where `erase.ts` finds the `?` with `indexOf` and emits code that does not parse; the cells cut the right one.
+Copied, not fixed: `<number>x` erases to `<>x`. One broken cell per file differs on 46 to 4650.
+`cd lite && bun test toolchain/tc.test.ts`: 11 pass.
+Cost under load 13-15, ratios only: compile 1.8-1.9x (246-285 -> 459-537 us per cell), decompile 4.5-5.5x.
+Integration: the four files become re-exports of the cells (66 importers); `ts-cells.ts` registers the 8 files.
