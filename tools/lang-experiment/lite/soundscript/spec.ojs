@@ -1874,11 +1874,11 @@ md`**S11.1** A parameter that names no SoundScript cell, foreign declaration, sh
 // %%
 md`**S11.2** Such a parameter must have a type annotation; without one it is \`[boundary-unannotated]\`.`
 // %%
-md`**S11.3** The annotation may use \`number\`, \`string\`, \`boolean\`, \`null\`, \`undefined\`, literal types, \`unknown\`, arrays, tuples, object types and interfaces with no methods or index signature, unions, and aliases of these. Any other annotation is \`[boundary-type]\`: a function type, \`Promise\`, \`Map\`, \`Set\` or another class, \`Events<T>\`.`
+md`**S11.3** The annotation may use \`number\`, \`string\`, \`boolean\`, \`null\`, \`undefined\`, literal types, \`unknown\`, arrays, tuples, object types and interfaces with no methods or index signature, unions, and aliases of these. Any other annotation is \`[boundary-type]\`: a function type, \`Promise\`, \`Map\`, \`Set\` or another class, \`Events<T>\`. An alias may refer to itself, directly or through other aliases, when an object type, array or tuple lies on every path from the alias back to itself, as in \`type Tree = { v: number; kids: Tree[] }\`; \`type A = A | number\` is \`[boundary-type]\`, and so is a generic alias that refers to itself with other type arguments.`
 // %%
-md`**S11.4** Each value that arrives is checked against the annotation. A value that does not match makes the reading cell throw a \`TypeError\` that names the place, such as \`rows[1].price: expected number, found string "12"\`. Cells that do not depend on the reading cell are not affected, and the reading cell runs again on the next value.`
+md`**S11.4** Each value that arrives is checked against the annotation. A value that does not match makes the reading cell throw a \`TypeError\` that names the place, such as \`rows[1].price: expected number, found string "12"\`. A value that reaches itself again at a place the annotation checks does not match, such as \`tree.kids[0]: a cycle\`; a value is checked however deeply it is nested. Cells that do not depend on the reading cell are not affected, and the reading cell runs again on the next value.`
 // %%
-md`**S11.5** The cell is given a deep-frozen copy. An object keeps only the properties its type declares. \`unknown\` accepts primitives, arrays and plain objects, and copies them whole; a function, a promise or an instance of a class is a mismatch (S11.4).`
+md`**S11.5** The cell is given a deep-frozen copy. An object keeps only the properties its type declares. Under a recursive alias, an object that the value reaches by two paths and that both read as the same type is copied once, and the copy is reached by both paths. \`unknown\` accepts primitives, arrays and plain objects, and copies them whole; a function, a promise or an instance of a class is a mismatch (S11.4).`
 // %%
 md`**S11.6** A copy is made for each value that arrives, so a value changed in place by the other language and delivered again is seen. The reading cell runs for each value that arrives, as the runtime runs any cell whose input was computed again; an equal copy does not stop it.`
 // %%
@@ -1912,6 +1912,8 @@ spec_rejects_11 = [
   { statement: "S11.3", rule: "boundary-type", source: "const f = (m: Map<string, number>) => 1;", outside: [{ name: "m" }] },
   { statement: "S11.3", rule: "boundary-type", source: "const f = (o: { at: number; get(): number }) => 1;", outside: [{ name: "o" }] },
   { statement: "S11.3", rule: "boundary-type", source: "const f = (e: Events<number>) => 1;", outside: [{ name: "e" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "type A = A | number;\nconst f = (a: A) => 1;", outside: [{ name: "a" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "type T = { next: T | null; f: () => number };\nconst f = (t: T) => 1;", outside: [{ name: "t" }] },
   { statement: "S11.7", rule: "boundary-state", source: "const f = (rows: State<number[]>) => 1;", outside: [{ name: "rows" }] },
   { statement: "S11.7", rule: "boundary-state", source: "const f = (level: State<number>) => 1;\nconst g = (level: State<string>) => 1;", outside: [{ name: "level", view: true }] },
   { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, level: number) => action(() => n.set(level));", outside: [{ name: "level", view: true }] },
@@ -1958,6 +1960,12 @@ test_spec_S11_3 = {
   return `${spec_rejectsFor("S11.3")}; primitives, literals, unknown, tuples, optional properties and unions are accepted`;
 }
 // %%
+test_spec_S11_3_recursive = {
+  const ok = spec_okCellsWith("type Tree = { v: number; kids: Tree[] };\ntype Expr = Bin | Num;\ntype Bin = { type: \"bin\"; l: Expr; r: Expr };\ntype Num = { type: \"num\"; v: number };\nconst f = (x: Tree, y: Expr, z: Tree[] | null) => 1;", ["x", "y", "z"].map((name) => ({ name })));
+  if (ok !== "f:ok") throw new Error(ok);
+  return "a recursive alias, a mutually recursive union and an array of one are accepted";
+}
+// %%
 test_spec_S11_4 = {
   let rows = [{ price: 1 }, { price: 2 }];
   const L = await spec_load("const total = (rows: { price: number }[]) => rows.reduce((a, r) => a + r.price, 0);\nconst other = (rows: unknown) => 7;", { rows: [[], () => rows] });
@@ -1975,6 +1983,18 @@ test_spec_S11_4 = {
   } finally { L.dispose(); }
 }
 // %%
+test_spec_S11_4_cycle = {
+  const loop = { v: 1, kids: [] };
+  loop.kids.push({ v: 2, kids: [loop] });
+  const L = await spec_load("type Tree = { v: number; kids: Tree[] };\nconst size = (tree: Tree) => tree.kids.length;", { tree: [[], () => loop] });
+  try {
+    let msg = null;
+    try { await L.value("size"); } catch (e) { msg = e.message; if (!(e instanceof TypeError)) throw e; }
+    if (msg !== "tree.kids[0].kids[0]: a cycle") throw new Error(`gave ${msg}`);
+    return msg;
+  } finally { L.dispose(); }
+}
+// %%
 test_spec_S11_5 = {
   const L = await spec_load("const keep = (o: { xs: number[] }) => o;\nconst whole = (u: unknown) => u;\nconst fn = (f: unknown) => 1;\nconst either = (e: { a: number } | { a: string }, q: number[] | string[]) => [e.a, q.length];", { o: [[], () => ({ xs: [1], extra: 2 })], u: [[], () => ({ a: [1, { b: 2 }] })], f: [[], () => () => 1], e: [[], () => ({ a: "x" })], q: [[], () => ["y"]] });
   try {
@@ -1987,6 +2007,23 @@ test_spec_S11_5 = {
     const ev = await L.value("either");
     if (JSON.stringify(ev) !== '["x",1]') throw new Error(`a union of objects or of arrays gave ${JSON.stringify(ev)}`);
     return `a frozen copy with the declared properties; unknown copied whole; ${msg}`;
+  } finally { L.dispose(); }
+}
+// %%
+test_spec_S11_5_recursive = {
+  let shared = { v: 0, kids: [] };
+  for (let i = 1; i <= 30; i++) shared = { v: i, kids: [shared, shared] };
+  let deep = { v: 0, kids: [] };
+  for (let i = 1; i <= 10000; i++) deep = { v: i, kids: [deep] };
+  const L = await spec_load("type Tree = { v: number; kids: Tree[] };\nconst keep = (t: Tree) => t;\nconst depth = (d: Tree) => d;", { t: [[], () => shared], d: [[], () => deep] });
+  try {
+    const t = await L.value("keep");
+    if (t === shared || !Object.isFrozen(t) || !Object.isFrozen(t.kids) || !Object.isFrozen(t.kids[0].kids[1])) throw new Error("not a frozen copy");
+    if (t.kids[0] !== t.kids[1] || t.kids[0].kids[0] !== t.kids[0].kids[1]) throw new Error("a shared object was copied twice");
+    let n = 0;
+    for (let at = await L.value("depth"); at.kids.length; at = at.kids[0]) { if (!Object.isFrozen(at)) throw new Error(`not frozen at depth ${n}`); n++; }
+    if (n !== 10000) throw new Error(`the copy is ${n} deep`);
+    return "a tree of 2^30 paths over 31 objects is copied once per object, frozen, with its sharing; a tree 10000 deep crosses";
   } finally { L.dispose(); }
 }
 // %%

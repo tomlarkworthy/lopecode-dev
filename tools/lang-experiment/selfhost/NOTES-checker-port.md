@@ -64,3 +64,20 @@ leading arguments on every call. Not started on the real class.
 - A module `soundscript-acorn`, written in SoundScript except for the unsound parser cell, bundling the
   dependency and the types, giving a checked function entrance to typed acorn ASTs. Prototype running in
   `selfhost/ss-acorn/`; it needs a checked cell to call a shell cell's function with the result validated per call.
+
+## 2026-11-21: recursive types cross the boundary (shipped)
+- Check time: a recursive alias may cross when an object, array or tuple lies on every path from it back to
+  itself; `type A = A | number` is `[boundary-type]`, and so is a generic alias that recurs with growing
+  arguments. Functions, handles, actions, promises, maps inside one are refused as before.
+- Run time: the walk keeps its own stack (no depth limit; a 100000-node list and arrays nested 100000 deep
+  cross); a cycle is a mismatch (`x.kids[0].kids[0]: a cycle`); an object reached by two paths under the same
+  type is copied once; the copy is frozen at every depth.
+- Cost: `lite/boundary.ts` 180 -> 340 lines (+228 -68), unchecked. Per node 0.99 -> 0.75 us on the flat corpus
+  (the internal mismatch is no longer an `Error`), 0.66 us for a nested AST as a recursive type.
+- Against a frozen copy of the boundary: 360 of 360 corpus inputs equal, 13 bad values same text, 20000 random
+  shape/value pairs 0 differ; 16 of 272 annotations differ, all recursive types. Two deliberate changes for
+  non-recursive types: values deep enough to throw RangeError now cross; an Array subclass is copied as an Array.
+- verify 635 pass 0 fail (3 new spec tests, each on the page and on the reopened export); AC; completion 2.4 ms.
+- Open: a cycle under a union that is not recursive keeps today's generic message; `type A = { a: A }` is
+  accepted though no finite value fits; the alias reference name comes from `show()`.
+- Spec sentences added to S11.3, S11.4, S11.5 (for Tom's wording review).

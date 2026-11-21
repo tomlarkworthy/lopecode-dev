@@ -10,7 +10,10 @@ export type Shape =
   | { k: "arr"; el: Shape }
   | { k: "tup"; els: Shape[] }
   | { k: "rec"; props: [string, Shape, boolean][] }
-  | { k: "union"; ts: Shape[] };
+  | { k: "union"; ts: Shape[] }
+  // a recursive alias: a ref names its definition, and defs, at the top of a shape, lists each definition once
+  | { k: "ref"; n: string }
+  | { k: "defs"; defs: [string, Shape][]; body: Shape };
 export type PointerLike = { readonly offsetX?: number; readonly clientX?: number; readonly offsetY?: number; readonly clientY?: number; readonly timeStamp?: number; readonly pointerId?: number; readonly buttons?: number };
 export type Ptr = { readonly x: number; readonly y: number; readonly t: number; readonly id: number; readonly buttons: number };
 export type Place = readonly [string, number] | null;
@@ -31,6 +34,8 @@ export const want = () => {
       case "arr": return "an array"; case "tup": return `an array of ${s.els.length}`;
       case "rec": return "an object";
       case "union": return s.ts.map(w).join(" or ");
+      case "ref": return s.n;
+      case "defs": return w(s.body);
     }
   };
   return w;
