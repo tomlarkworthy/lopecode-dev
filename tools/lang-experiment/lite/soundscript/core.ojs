@@ -114,10 +114,12 @@ ss_runtimeModule = ss_module.value("module @tomlarkworthy/soundscript-runtime")
 ss_keyOf = (name) => soundscript.keyOfVariable(name)
 // %%
 ss_moduleName = {
-  // a module's name in runtime.mains; a module not there gets a name of its own, the same each time
+  // a module's name in runtime.mains, else the name it is imported under (the build compiles its cells with that
+  // name); a module that is neither gets a name of its own, the same each time
   const unnamed = new WeakMap();
   return (module) => {
     for (const [n, m] of runtime.mains ?? []) if (m === module) return n;
+    for (const v of runtime._variables) if (v._value === module && typeof v._name === "string" && v._name.startsWith("module ")) return v._name.slice(7);
     if (!unnamed.has(module)) unnamed.set(module, `~${Math.random().toString(36).slice(2, 10)}`);
     return unnamed.get(module);
   };
@@ -227,9 +229,10 @@ ss_instance = async (module, invalidation) => {
   const fns = await realize(vars.map((v) => String(v._definition)), runtime);
   const inst = runtime.module();
   ss_instances.add(inst);
-  // the copy's events and listener cells pass its own name, so they share no handle or listener with module's
+  // the copy's events, listener and crossing cells pass its own name, so they share no handle, listener or
+  // crossing with module's
   const copy = ss_moduleName(inst);
-  const own = { [soundscript.INPUTS.events]: (_, ...a) => soundscript.events(copy, ...a), [soundscript.INPUTS.listen]: (l, cell, inv) => soundscript.listen(l, cell, inv, copy) };
+  const own = { [soundscript.INPUTS.events]: (_, ...a) => soundscript.events(copy, ...a), [soundscript.INPUTS.listen]: (l, cell, inv) => soundscript.listen(l, cell, inv, copy), [soundscript.INPUTS.cross]: (v, s, p) => soundscript.cross(v, s, p, copy) };
   for (const n of outside) inst.define(n, [], n in own ? () => own[n] : () => module.value(n));
   const made = vars.map((v, i) => inst.define(v._name, v._inputs.map((x) => x._name), fns[i]));
   const cancels = made.map((v) => observe(v, {}));

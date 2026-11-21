@@ -212,7 +212,7 @@ The tests, 4 pass on 2026-11-21:
 
 `--out` defaults to `lite/soundscript/.scratch/infer-port/diff.json`, and the directory is created if missing.
 
-# 2026-11-22: the facts, the ownership pass, the captures
+# 2026-11-21: the facts, the ownership pass, the captures
 
 ## Stage 1: the facts (2026-11-21 evening, measured on that tree)
 
@@ -463,7 +463,7 @@ lines 888, median 8, largest owMethodValue 20, owEscapes 21, owStmt 22, owIterIn
 value-type lines before them (`core.ts:343-348`). Plus 7 cells in `ix-facts.ss.ts` for stage 1.
 `bun test infer/infer.test.ts`: 4 pass, 0 fail, 50.4 s (16:41).
 
-## Stage 4: the module check, md cells (2026-11-22; runs on the clock 2026-11-21 17:29-17:49)
+## Stage 4: the module check, md cells (runs on the clock 2026-11-21 17:29-17:49)
 
 `md-*.ss.ts` (11 files, 790 lines, 62 value cells; median 9 lines; largest mdInjectParam 26, mdCell 25,
 mdCheckSources 25, mdInjectBoundary 19, mdValueRules 19; `soundscript/.scratch/module-port/sizes.ts`) port

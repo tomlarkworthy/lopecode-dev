@@ -153,11 +153,11 @@ function capDiff(ch: RealChecker, e: any, fn: AstNode, port: IxOutput): NonNulla
   return { bucket: JSON.stringify(real) === JSON.stringify(pl) ? "SAME" : "DIFFERENT", real, port: pl, realUs, portUs };
 }
 // the fed rule: core.ts's lines (value type, then fnKept) are its glue and are restated here as the oracle; the
-// Checker's part is ch.mayHide. Every cell is checked as if fed, with one fedBy text
+// Checker's part is ch.mayHoldFn. Every cell is checked as if fed, with one fedBy text
 const FED_BY = "takes f, a function from another language";
 function fedDiff(ch: RealChecker, e: any, fnT: Ty, fn: AstNode, port: IxOutput): NonNullable<Rec["fed"]> {
   const real: string[] = [];
-  const kept = (what: string, t: Ty, then: string) => { if (ch.mayHide(t)) real.push(`${what} ${show(t)}, which may be or hold a function from another language (c ${FED_BY}); ${then}`); };
+  const kept = (what: string, t: Ty, then: string) => { if (ch.mayHoldFn(t)) real.push(`${what} ${show(t)}, which may be or hold a function from another language (c ${FED_BY}); ${then}`); };
   let ret: Ty = fnT.k === "fn" ? fnT.ret : ({ k: "err" } as Ty);
   if (e.async && ret.k === "named" && ret.n === "Promise") ret = ret.args[0];
   if (e.generator && ret.k === "named" && ret.n === "Generator") ret = ret.args[0];

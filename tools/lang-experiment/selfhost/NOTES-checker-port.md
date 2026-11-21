@@ -142,7 +142,7 @@ keyed by cell and parameter name in one module-wide map, so two modules with the
 - verify 643 pass 0 fail (AC), completion median 2.4 ms. Notebook 3,687,199 -> 3,908,868 bytes.
 - The frozen-checker differential's `collect.ts` reads `lite/*.ss.ts` only, not `lite/acorn/*.ss.ts`.
 
-## 2026-11-22 night: why the switch to the typed tree is slow; `core.ts` stays unswitched
+## 2026-11-21 14:50: why the switch to the typed tree is slow; `core.ts` stays unswitched
 Profiled in Chromium on the 47-cell tutorial module (1027 nodes), AC power. Three fixes shipped, no verdict
 changes: (A) a union member that cannot take a primitive value is no longer tried (527 thrown mismatches per
 crossing, mostly `null` in `AstNode | null` fields): switched completion 9.5-10.3 -> 5.6-5.7 ms; (B) one pair
@@ -160,7 +160,7 @@ So even with one parse, a checked tree costs about 0.8 ms on a 2.2 ms check. For
 module text. Until then tree-walking ports ship unswitched, each with a differential test against the TypeScript.
 verify 643 pass 0 fail; completion 2.4 ms. `collect.ts` now includes `lite/acorn/*.ss.ts` (815 sources, 3395 records).
 
-## 2026-11-22: the `Checker` class as cells (`lite/infer/`), not switched on
+## 2026-11-21 16:01: the `Checker` class as cells (`lite/infer/`), not switched on
 Record of the work: `lite/infer/NOTES.md`. 82 of the 83 methods of `infer.ts`'s `Checker` are SoundScript cells
 over the typed tree: 198 value cells and 34 types in 15 files, median 8 lines, largest 26, 1858 lines; one cell
 per method, the working tables as `Mut` parameters `(K, T, V, W, C, env)`, the recursion tied by `ixKnot`. The
@@ -177,7 +177,7 @@ the registry taking typed nodes. Two gaps of the typed tree found, each with a r
 function expression with type parameters, and a JSX attribute with no value (`<input disabled />`) come through
 as `Other`. Branch coverage of the cells by the corpus was not measured.
 
-## 2026-11-22: worker pool, `shapeOf`, the boundary's decisions and five small units are cells (shipped, switched on)
+## 2026-11-21 16:50: worker pool, `shapeOf`, the boundary's decisions and five small units are cells (shipped, switched on)
 - `lite/pool.ss.ts` (15 cells, largest 13 lines): `poolStep` takes the pool's state and one event and returns the
   next state and the effects. `makePool` 65 -> 44 unchecked lines. 2000 scripted runs against the frozen pool, 0
   differ, including 25 resends whose post throws; two mutants differ on 896 and 1973. Cost per job 0.19 -> 1.34 us
@@ -203,7 +203,7 @@ as `Other`. Branch coverage of the cells by the corpus was not measured.
   editor-5, module-selection, claude-code-pairing, three each); 0 in the build of 15:28. Exit 0, same output
   hash on rebuild, verify passes. Cause not found.
 
-## 2026-11-22: facts, the ownership pass and captures as cells (`lite/infer/`), not switched on
+## 2026-11-21 17:05: facts, the ownership pass and captures as cells (`lite/infer/`), not switched on
 Record: `lite/infer/NOTES.md`. `own.ts` (3 functions, 516 of 542 lines), `capture.ts` (5 functions, 135 of 158)
 and the "fed" rule of `core.ts` are 126 `ow-*` cells in 12 files (median 8 lines, largest 25); the inference
 cells now leave the facts those passes read. 383 cells in `lite/infer/`, all accepted by the live checker.
@@ -219,7 +219,7 @@ Left before the per-cell check can be switched: injected parameter types and the
 "fed by" text from the module's cell graph; the cell-level rules on the value type (state-undefined,
 state-in-state, iterator-cell, listener-placement); crash path, dedupe, line mapping, value bookkeeping.
 
-## 2026-11-22: `checkSources` as cells (`lite/infer/md-*.ss.ts`), not switched on
+## 2026-11-21 17:53: `checkSources` as cells (`lite/infer/md-*.ss.ts`), not switched on
 Record: `lite/infer/NOTES.md`, "Stage 4". `core.ts`'s `checkSources` (lines 37-359 of 397) and `distinctNames` are
 62 `md*` cells in 11 files (median 9 lines, largest 26): injected parameter types, the cell graph and taint, the
 value rules, the bookkeeping. With the ix and ow cells: 493 cells, all accepted by the live checker.
@@ -251,10 +251,10 @@ Scratch: `lite/soundscript/.scratch/switch2/`. All timings on battery at load 5-
   afterwards. `mm-race.ts`: pollInterval 500 gives 0 lines, 50/100/250 give 12; every default boot I ran gave 12 (one 0 was a
   boot with http fetches refused).
 - Not this tree: `toolchain-boot.ts` imports no file of it and prints 12; the after-p2 snapshot built now prints 12.
-  No file on the build's path changed 15:28-15:45 (two under `tools/scratch/cloud-brain-experiments` did). The step is in machine speed: the frozen `checkShape` bench read 0.64-0.71
-  us/node up to 15:35:58 and 2.914 at 15:45:35; verify logs say AC Power to 15:30, Battery Power from 16:15. A
-  0-line and a 12-line build of the same tree are byte-identical (15563bed..., the shipped hash then). Left as is
-  (outside this folder).
+  No file on the build's path changed 15:28-15:45 (two under `tools/scratch/cloud-brain-experiments` did).
+- The step is in machine speed: the frozen `checkShape` bench read 0.64-0.71 us/node up to 15:35:58 and 2.914 at
+  15:45:35; verify logs say AC Power to 15:30, Battery Power from 16:15. A 0-line and a 12-line build of the same
+  tree are byte-identical (15563bed..., the shipped hash then). Left as is (outside this folder).
 - `core.ts` calls `syntaxCheck` (acorn/syntax.ss.ts); its syntax pass and module-level loop are gone, frozen in
   `lite/syntax.frozen.ts` for `syntax.test.ts` (889 inputs, 888 shapes and 3280 cells same, 13 controls). Differential
   `collect.ts`: 0 of 3499 records differ; control (no-this dropped from SYNTAX_BANS): 14 differ. Corpus (collect, min
@@ -394,7 +394,7 @@ files and exports `mdCheckSources`, `ixHidden`, `ixActionIn`, `owIter`. Deleted:
 - Gates: all 28 pass (syntax.test needed its frozen path); build 32.9 s with 12 "error building module dependancy
   map" lines; notebook 4,171,958 bytes (3,948,835 before).
 
-## 2026-11-21 21:00: my run of the switched checker
+## 2026-11-21 20:10: my run of the switched checker
 `power AC Power; functional 645 pass 0 fail` with nothing else running (log `.scratch/switch3/verify-mine.log`):
 checker module 796 SoundScript cells (499 with values); one keystroke's lint median 6.0 ms (max 8.9), one
 completion median 5.9 ms (max 6.9); Breakout 60 in the edit pane, 48.9 after play. Before the whole port, on
@@ -405,3 +405,55 @@ acorn.test 6, syntax 14, boundary 123, complete 58, runtime 82, ts-cells 9, pool
 checks 14, infer.test 5 pass; fixtures 14/14.
 Not verdict-identical in one respect, kept: a fresh type variable's printed number (`T'1000001` where the old
 checker printed a number from a counter carried across checks). 4 corpus records.
+
+## 2026-11-21 20:43: review of spec sections 9 and 11 (review4)
+Scratch `lite/soundscript/.scratch/review4/` (probes `p1.ts` to `p4e.ts`, `harness.ts`, logs).
+- Function wrappers per module. `boundary.ts` kept `fnWrappers` and `last` per `"cell.param"` for the whole page, so
+  two modules with a cell and parameter of the same names evicted each other's wrapper (`p1.ts`: identity false for
+  both modules on alternating deliveries, direct and compiled). `cross(value, shape, path, module = null)` keys both
+  maps by `"<path> in <module>"`, as `events` keys its handles; the compiler passes `ctx.module` as the fourth
+  argument; `core.ojs` `ss_instance` overrides `ss_cross` with the copy's name, as it does `events` and `listen`.
+  A definition compiled before this calls `cross` with three arguments and is keyed under `null`.
+  Tests: `boundary.test.ts` (two modules `@t/one`, `@t/two`), `test_spec_S11_6_function` (a second `spec_load`).
+- S11.9 hole, closed. A function from another language held as `{}` crossed the fed rule: `ixMayHide` returned
+  false for a record with no required property, which a function is assignable to. Runtime proof (`p4run.ts`): with
+  `state<{}>(g)` and an action that widens `read(box)` to `{} | (() => number)` and tests `typeof y === "function"`,
+  the action called `g` (calls 1, the state cell became 42); with `Generator<{}>` and a listener's action, `g` was
+  called once. New cell `ixMayHoldFn` (ix-hides, 26 lines): `ixMayHide`, or, on the same walk, a record with no
+  index and no required property that `R.sub(() => never, rec)` accepts. `mdKept` and `owFedKept` ask it;
+  `ixMayHide` and `ixHidden` are unchanged. The frozen fixture got the same as `Checker.mayHoldFn`, used by its
+  `core.ts` fnKept and by `diff.ts` fedDiff (both header-marked). A first version put the clause in `ixMayHide`:
+  collect min 6679/6748 ms against 1922/1861 ms without it (`ab/on`, `ab/off`, battery, load 2.2-3.1), with no
+  verdict change; a cheap property test in front of `R.sub` gave 6372/6389. `ixHidden` loses its early-out on those
+  records. With its own cell: 1905/1933 against 1991/1939 ms. Rejected now: `{}`, `{ a?: number }`,
+  `{ length?: number }`, `{ f: {} }`, `{}[]`, `[{}]`, `{} | null`, `interface I {}`, a `type E = {}`, `Generator<{}>`.
+  `{ n: number }` data stays accepted.
+- The fed rule reaches any depth: `mdMarkStateful` records each fed cell in `fnFed`, and the cells are checked in
+  dependency order, so 1, 2 and 3 cells away (and 3 out of source order) all reject (`p4.ts`).
+- `ss_moduleName` (core.ojs) now names a module that is not in `runtime.mains` by its `module <name>` variable. The
+  build compiles a checker-module cell with the literal `@tomlarkworthy/soundscript-checker`; with `cross` taking
+  the module, the page's `~random` name made `parseTree` fail verify's "recompiles to itself" check (one full run:
+  648 pass 1 fail). Events and listener keys of an imported module now use the same name the build does.
+- Also probed: an async generator yielding the function is accepted, but a listener on it is `[inject-events]`;
+  handing the function back to another language's `(v: unknown) => number` or `(v: {}) => number` is accepted
+  and throws at run time (`back argument 1: expected data, found a function`), the other function never called.
+- Not closed, outside S11.9: `typeof y === "function"` drops a `{}` member of a union, so a checked function
+  assigned to `{}` and widened to `{} | ((n: number) => string)` is called at the wrong signature, accepted
+  (`p4c.ts` "non-fed"). An `Action` cannot take this route (`{}` is `[action-pass]`).
+- Spec rows: S9.1 `[inject-type]` (a function inside an object on a shell input); S11.9 `[action-capture]` x7 (3
+  cells away; `{}`, `{ a?: number }`, `{ f: {} }`, `{}[]`, `interface I {}` in a state cell; `Generator<{}>`).
+  Tests: `test_spec_S9_1` (a shell function taken as a function type and through an alias; the message of the object
+  case), new `test_spec_S11_4_function_reject` (rejection; a synchronous throw at the call) and
+  `test_spec_S11_5_function_this` (strict: `this` undefined; a sloppy `new Function`: globalThis).
+- Verdicts, collect `out/base-review.json` -> `out/after-review.json` (`switch3/ndiff.ts`): 837 -> 853 sources, 16
+  differ, all new rows and their inline copies; 0 existing records changed. `diff.ts`: before the frozen fixture
+  was patched, 6 sources DIFFERENT (the 6 new `{}` rows) and fed rule 12 DIFFERENT; after, `--module-only` 943 SAME,
+  0 DIFFERENT, 0 NOT COVERED; fed rule 3476 SAME.
+- Gates (Battery Power, load 2.2-3.9): boundary 130 (was 123), runtime 82, cross 24, shape 21, complete 58, syntax
+  14, acorn 6, ts-cells 9, walks 13, infer.test 5 pass; rt diff 16 checks 0 differences; fixtures 14/14. Build 0
+  "dependancy map" lines, notebook 4,179,625 bytes. verify --quick 220 pass 0 fail (218 at switch3 step 2, + the 2
+  new spec test cells). Full verifies: 648 pass 1 fail (the `parseTree` recompile above); 649 pass 0 fail after the
+  `ss_moduleName` change; 649 pass 0 fail after `ixMayHoldFn`, the last: `power Battery Power; functional 649 pass 0
+  fail; measurements 8`, load 3.29 -> 3.20, 4 min; lint median 5.8 ms, completion median 5.8 ms; Breakout 60 and
+  49.2 world changes/s.
+- `/review-notebook` was not run on the spec or these notes.

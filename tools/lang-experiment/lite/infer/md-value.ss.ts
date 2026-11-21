@@ -11,8 +11,8 @@ export const mdValueType = (isNamed, ERR) => (fn: FnNode, fnT: Ty): { ret: Ty; g
   return y === undefined ? { ret, gen: false, gap: "Generator with no type argument" } : { ret: y, gen: true, gap: null };
 };
 // core.ts fnKept: a cell fed a function from another language may not keep a value that may hold one
-export const mdKept = (ixMayHide, show) => (R: IxRegCore, name: string, fedBy: string | null, line: number, what: string, t: Ty, then: string): MdErr[] =>
-  fedBy !== null && ixMayHide(R, t) ? [{ rule: "action-capture", line, msg: `${what} ${show(t)}, which may be or hold a function from another language (${name} ${fedBy}); ${then}` }] : [];
+export const mdKept = (ixMayHoldFn, show) => (R: IxRegCore, name: string, fedBy: string | null, line: number, what: string, t: Ty, then: string): MdErr[] =>
+  fedBy !== null && ixMayHoldFn(R, t) ? [{ rule: "action-capture", line, msg: `${what} ${show(t)}, which may be or hold a function from another language (${name} ${fedBy}); ${then}` }] : [];
 // a state cell's content: not undefined, no State or StateCell in it, no function from another language
 export const mdStateRules = (mdKept, admitsUndefinedWith, holdsWith, show) => (R: IxReg, X: MdCtx, name: string, fedBy: string | null, line: number, inner: Ty): MdErr[] => {
   const nested = holdsWith(X.R.ops)(inner, ["State", "StateCell"]);

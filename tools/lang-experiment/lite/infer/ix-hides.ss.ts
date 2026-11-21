@@ -76,6 +76,34 @@ export const ixMayHide = () => {
     return r;
   };
 };
+// t may be or hold a function, for the fed rule (S11.9): what ixMayHide says, or a record a function is assignable to
+// (one with no required property, as {}) where the same walk reaches
+export const ixMayHoldFn = (ixMayHide) => {
+  function anyFnLike(R: IxRegCore, seen: Mut<Set<string>>, xs: Ty[], d: number): boolean {
+    for (const x of xs) if (go(R, seen, x, d)) return true;
+    return false;
+  }
+  function go(R: IxRegCore, seen: Mut<Set<string>>, x: Ty, d: number): boolean {
+    switch (x.k) {
+      case "named":
+        if (!R.isAlias(x.n)) return anyFnLike(R, seen, x.args, d);
+        if (x.args.length) return d <= 10 && go(R, seen, R.expand(x), d + 1);
+        if (seen.has(x.n)) return false;
+        seen.add(x.n);
+        return go(R, seen, R.expand(x), d);
+      case "arr": return go(R, seen, x.el, d);
+      case "tup": return anyFnLike(R, seen, x.els, d);
+      case "union": return anyFnLike(R, seen, x.ts, d);
+      case "rec": return (!x.index && [...x.props.values()].every((p) => p.opt) && R.sub({ k: "fn", tps: [], ps: [], ret: { k: "never" } }, x)) || (!!x.index && go(R, seen, x.index, d)) || anyFnLike(R, seen, [...x.props.values()].map((p) => p.t), d);
+      default: return false;
+    }
+  }
+  return (R: IxRegCore, t: Ty): boolean => {
+    if (ixMayHide(R, t)) return true;
+    const seen: Mut<Set<string>> = mut(new Set());
+    return go(R, seen, t, 0);
+  };
+};
 export type IxHide = { R: IxRegCore; opaque: Set<string> | null; find: (x: Ty) => string | null };
 // the first Action (or handle, by find) in s that a position of t of type unknown, object or an opaque type
 // parameter would take

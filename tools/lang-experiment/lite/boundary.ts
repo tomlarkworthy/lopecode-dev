@@ -236,16 +236,17 @@ function sameCopy(a: unknown, b: unknown): boolean {
   return true;
 }
 
-// per reading cell and parameter, the last copy handed out: an equal copy is that one, so the reader's
+// per module, reading cell and parameter, the last copy handed out: an equal copy is that one, so the reader's
 // memo (Object.is on inputs) still applies when the other language delivers equal data again
 const last = new Map<string, unknown>();
 export const crossings = { copies: 0, reused: 0 };
 
 // The value of a cell in another language as the SoundScript parameter `path` (a cell and parameter
-// name, "reader.param") receives it: checked against shape, deep-frozen, copied once per delivery.
-export function cross(value: unknown, shape: Shape, path: string): unknown {
+// name, "reader.param") of module receives it: checked against shape, deep-frozen, copied once per delivery.
+export function cross(value: unknown, shape: Shape, path: string, module: string | null = null): unknown {
   const at = path.slice(path.indexOf(".") + 1);
-  if (shape.k === "fn") return crossFn(value, shape, at, path);
+  const key = `${path} in ${module}`;
+  if (shape.k === "fn") return crossFn(value, shape, at, key);
   const run = newRun();
   let out: unknown;
   try { out = copy(value, shape, at, run); } catch (e) {
@@ -254,8 +255,8 @@ export function cross(value: unknown, shape: Shape, path: string): unknown {
   }
   crossings.copies++;
   // deepEqual recurses once per level
-  if (last.has(path) && (run.defs || run.deep > 1000 ? sameCopy : deepEqual)(last.get(path), out)) { crossings.reused++; return last.get(path); }
-  last.set(path, out);
+  if (last.has(key) && (run.defs || run.deep > 1000 ? sameCopy : deepEqual)(last.get(key), out)) { crossings.reused++; return last.get(key); }
+  last.set(key, out);
   return out;
 }
 // checked and copied as cross() does, without its per-parameter reuse, for a write through a view's Ref
@@ -270,8 +271,8 @@ export function checkShape(value: unknown, shape: Shape, path: string): unknown 
 // A function from another language as the checked cell receives it: a frozen function of the boundary's own. Each call
 // hands the function deep-frozen copies of the arguments, calls it with no this, and checks and copies the result with
 // no reuse between calls. A throw, a mismatch or a throw while the result is read is a fresh TypeError naming the
-// function, so nothing the other language made reaches the cell. Per reading cell and parameter, the same function
-// under the same shape gives the same wrapper.
+// function, so nothing the other language made reaches the cell. Per module, reading cell and parameter, the same
+// function under the same shape gives the same wrapper.
 const fnWrappers = new Map<string, { raw: unknown; key: string; w: unknown }>();
 function fnThrown(name: string, what: string, e: unknown): TypeError {
   let m: string;
@@ -289,11 +290,11 @@ function fnResult(v: unknown, s: Shape, name: string, path: string): unknown {
   }
   throw bad;
 }
-function crossFn(f: unknown, s: Shape & { k: "fn" }, name: string, path: string): unknown {
+function crossFn(f: unknown, s: Shape & { k: "fn" }, name: string, key: string): unknown {
   if (typeof f !== "function") throw new TypeError(mismatchText(name, s, describe(f)));
-  const key = JSON.stringify(s);
-  const hit = fnWrappers.get(path);
-  if (hit && hit.raw === f && hit.key === key) return hit.w;
+  const shapeJson = JSON.stringify(s);
+  const hit = fnWrappers.get(key);
+  if (hit && hit.raw === f && hit.key === shapeJson) return hit.w;
   const plan = fnPlan(name, s);
   const w = Object.freeze((...args: unknown[]): unknown => {
     const xs = plan.args.map((a, i) => checkShape(args[i], a.shape, a.path));
@@ -305,6 +306,6 @@ function crossFn(f: unknown, s: Shape & { k: "fn" }, name: string, path: string)
       try { Promise.resolve(r).then((v) => { try { res(fnResult(v, s.ret, name, plan.result)); } catch (e) { rej(e); } }, (e) => rej(fnThrown(name, " threw", e))); } catch (e) { rej(fnThrown(name, " threw", e)); }
     });
   });
-  fnWrappers.set(path, { raw: f, key, w });
+  fnWrappers.set(key, { raw: f, key: shapeJson, w });
   return w;
 }

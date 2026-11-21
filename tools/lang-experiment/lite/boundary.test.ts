@@ -203,13 +203,13 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
   const ss = await import("./stdlib/runtime.ts");
   const { input } = await import(new URL("../../../vendor/observable-stdlib/src/generators/input.js", import.meta.url).pathname as any);
   // shell: names of outside that the checker is given as shell cells instead
-  const load = (src: string, outside: Record<string, [string[], (...a: any[]) => unknown]>, shell: string[] = []) => {
+  const load = (src: string, outside: Record<string, [string[], (...a: any[]) => unknown]>, shell: string[] = [], module: string | null = null) => {
     const checked = checkSources({ cells: src, tsx: false, shell: shell.map((n) => `export const ${n} = 0;`).join("\n") || null, outside: Object.keys(outside).filter((n) => !n.startsWith("viewof ") && !shell.includes(n)).map((n) => ({ name: n, view: !!outside[`viewof ${n}`] })) });
     const m = new Runtime().module();
     m.define("Generators", [], () => ({ input }));
     for (const n of T.RUNTIME_CELLS) m.define(T.INPUTS[n], [], () => (ss as any)[n]);
     for (const [n, [ins, f]] of Object.entries(outside)) m.define(n, ins, f);
-    const ctx = T.contextFromCheck(checked);
+    const ctx = { ...T.contextFromCheck(checked), module };
     for (const text of T.splitCells(src, false)) for (const d of T.compileCell(text, false, ctx)) m.variable(true).define(d.name, d.inputs, (0, eval)(`(${d.definition})`));
     const verdicts = checked.cells.map((c) => `${c.name}: ${c.status}${c.errors.map((e) => ` [${e.rule}] ${e.msg}`).join("")}`);
     const value = async (n: string): Promise<{ ok: true; v: any } | { ok: false; e: any }> => { try { return { ok: true, v: await m.value(n) }; } catch (e) { return { ok: false, e }; } };
@@ -333,7 +333,16 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
     const raw = (s: string) => ({ n: s.length, tag: s });
     const A = load(R + 'export const w = (f: (s: string) => R) => f("ab").n;', { f: [[], () => raw] });
     const B = load('type R = { n: string };\nexport const w = (f: (s: string) => R) => f("ab").n;', { f: [[], () => raw] });
-    ok("fn: the same raw function to the same reader and parameter under another annotation: checked against the new one", (await A.seen("w")) === "value 2" && (await B.seen("w")) === "TypeError: f(...).n: expected string, found number 2", await B.seen("w"));
+    ok("fn: the same raw function to the same reader and parameter under another annotation: checked against the new one", (await A.seen("w")) === "value 2" && (await B.seen("w")) === "TypeError: f(...).n: expected string, found number 2", await B.seen("w"));    // two modules, a cell and parameter of the same names, each delivering its own function in turn
+    const src = 'export const w = (f: () => number) => f;';
+    const fa = () => 1, fb = () => 2;
+    const M1 = load(src, { tick: [[], () => 0], f: [["tick"], () => fa] }, [], "@t/one"), M2 = load(src, { tick: [[], () => 0], f: [["tick"], () => fb] }, [], "@t/two");
+    const a1 = (await M1.value("w") as any).v, b1 = (await M2.value("w") as any).v;
+    M1.m.redefine("tick", [], () => 1);
+    const a2 = (await M1.value("w") as any).v;
+    M2.m.redefine("tick", [], () => 1);
+    const b2 = (await M2.value("w") as any).v;
+    ok("fn: two modules with a reader and parameter of the same names keep their own wrappers across alternating deliveries", a1 === a2 && b1 === b2 && a1 !== b1, [a1 === a2, b1 === b2]);
   }
   {
     const L = load('type T = { v: number; kids: T[] };\ntype F = (s: string) => number;\ntype G<X> = (x: X) => X;\nexport const r = (f: (t: number, x?: T) => number, h: F, g: G<number>) => [f(1), f(2, { v: 3, kids: [{ v: 4, kids: [] }] }), h("abc"), g(4)];', { f: [[], () => (t: number, x?: any) => (x ? t + x.v + x.kids[0].v : t)], h: [[], () => (s: string) => s.length], g: [[], () => (x: number) => x * 10] });
@@ -375,6 +384,12 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
     ["yielded by an events cell", "function* ev(g: () => number) { yield { f: g }; }", "ev: rejected [action-capture]"],
     ["its result in state (data)", "const d = (g: () => number) => g();\nconst box = (d: number) => state(d);\nconst box2 = (g: () => number) => state(g());", "d: ok,box: ok,box2: ok"],
     ["its result yielded (data)", "function* ev(g: () => number) { yield g(); }", "ev: ok"],
+    ["three cells away", "const h = (g: () => number) => () => g();\nconst h2 = (h: () => number) => () => h();\nconst h3 = (h2: () => number) => () => h2();\nconst box = (h3: () => number) => state(h3);", "h: ok,h2: ok,h3: ok,box: rejected [action-capture]"],
+    ["as {}, which a function is assignable to", "const box = (g: () => number) => state<{}>(g);", "box: rejected [action-capture]"],
+    ["as a record of optional properties", "const box = (g: () => number): StateCell<{ a?: number }> => state(g);", "box: rejected [action-capture]"],
+    ["as an empty interface", "interface I {}\nconst box = (g: () => number) => state<I>(g);", "box: rejected [action-capture]"],
+    ["yielded as {}", "function* ev(g: () => number): Generator<{}> { yield g; }", "ev: rejected [action-capture]"],
+    ["its result in a record with a required property (data)", "const box = (g: () => number) => state<{ n: number }>({ n: g() });", "box: ok"],
   ];
   for (const [what, src, want] of routes) { const got = verdictsOf(src, [{ name: "g" }]).map((v) => v.replace(/ \[action-capture\] .*/, " [action-capture]")).join(); ok(`fn: state or events, ${what}: ${want}`, got === want, got); }
   // a shell cell typed as a function crosses as one from another language; any other annotation is as before (S9.1)

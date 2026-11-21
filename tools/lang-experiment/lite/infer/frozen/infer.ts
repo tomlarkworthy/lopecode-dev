@@ -1,6 +1,7 @@
 // FROZEN FIXTURE (2026-11-21, switch3): the TypeScript checker as it was before checkSources ran the cells. Read by
 // lite/infer/diff.ts, lite/infer/complete-diff.ts, lite/syntax.test.ts and selfhost/checker-shape, checker-survey;
 // nothing shipped imports it, and the build does not reach it.
+// Changed since: mayHoldFn, for core.ts's fed rule (S11.9 fix, 2026-11-21 review4), as the cells' ixMayHoldFn.
 // Bidirectional type checker for one cell: expressions, statements, flow narrowing, generic calls.
 // Records facts (expression types, identifier bindings, resolved call signatures, member flags) that
 // own.ts reads for the ownership rules.
@@ -51,6 +52,7 @@ let nextId = 0;
 // type variables made by instantiate so far, page-wide, so two instantiations never share a name
 let fresh = 0;
 // Action<[A, B]> called as (a0: A, a1: B) => void
+const ANY_FN: Fn = { k: "fn", tps: [], ps: [], ret: NEVER };
 const actionFn = (args: Ty): Fn => ({ k: "fn", tps: [], ps: (args.k === "tup" ? args.els : []).map((t, i) => ({ n: "a" + i, t, opt: false })), ret: VOID });
 // what typeof x === tag says of an unknown x: "function" proves an object, not a signature, so it is not callable
 const TYPEOF = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["undefined", UNDEF],
@@ -534,6 +536,26 @@ export class Checker {
   }
   // t has, somewhere hidden walks (aliases expanded once each), unknown, object, a type parameter or a function: what
   // makes hidden call find or hiddenFn; also true past a depth of generic aliases, where hidden stops looking
+  // mayHide, or a record a function is assignable to (one with no required property) where the same walk reaches
+  mayHoldFn(t: Ty): boolean {
+    const seen = new Set<string>();
+    const go = (x: Ty, d: number): boolean => {
+      switch (x.k) {
+        case "named":
+          if (!this.reg.isAlias(x.n)) return x.args.some((a) => go(a, d));
+          if (x.args.length) return d <= 10 && go(this.reg.expand(x), d + 1);
+          if (seen.has(x.n)) return false;
+          seen.add(x.n);
+          return go(this.reg.expand(x), d);
+        case "arr": return go(x.el, d);
+        case "tup": return x.els.some((e) => go(e, d));
+        case "union": return x.ts.some((m) => go(m, d));
+        case "rec": return (!x.index && [...x.props.values()].every((p) => p.opt) && this.reg.sub(ANY_FN, x)) || (!!x.index && go(x.index, d)) || [...x.props.values()].some((p) => go(p.t, d));
+        default: return false;
+      }
+    };
+    return this.mayHide(t) || go(t, 0);
+  }
   mayHideMemo = new WeakMap<Ty, boolean>();
   mayHide(t: Ty): boolean {
     const hit = this.mayHideMemo.get(t);

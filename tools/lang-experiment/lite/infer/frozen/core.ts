@@ -1,6 +1,7 @@
 // FROZEN FIXTURE (2026-11-21, switch3): the TypeScript checker as it was before checkSources ran the cells. Read by
 // lite/infer/diff.ts, lite/infer/complete-diff.ts, lite/syntax.test.ts and selfhost/checker-shape, checker-survey;
 // nothing shipped imports it, and the build does not reach it.
+// Changed since: fnKept asks ch.mayHoldFn (S11.9 fix, 2026-11-21 review4), as md-value's mdKept asks ixMayHoldFn.
 // The lite checker without file access: module shape, syntax bans, injection, a per-cell type
 // check (infer.ts) and the ownership rules (own.ts). Each cell ends ok, rejected, unsupported (a
 // construct lite does not model) or blocked (a dependency has no usable type).
@@ -309,7 +310,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     let ret = fnT.k === "fn" ? fnT.ret : ERR;
     if (c.fn.async && isNamed(ret, "Promise")) ret = ret.args[0];
     if (c.fn.generator && isNamed(ret, "Generator")) { ret = ret.args[0]; if (!c.fn.async) eventsInner.set(c.name, ret); }
-    const fnKept = (what: string, t: Ty, then: string) => { if (fedBy && ch.mayHide(t)) r.errors.push({ rule: "action-capture", line: P.line(c.fn.start), msg: `${what} ${show(t)}, which may be or hold a function from another language (${c.name} ${fedBy}); ${then}` }); };
+    const fnKept = (what: string, t: Ty, then: string) => { if (fedBy && ch.mayHoldFn(t)) r.errors.push({ rule: "action-capture", line: P.line(c.fn.start), msg: `${what} ${show(t)}, which may be or hold a function from another language (${c.name} ${fedBy}); ${then}` }); };
     if (c.fn.generator && !c.fn.async) fnKept("an events cell yields", ret, "a listener's action would receive it");
     if (isNamed(ret, "StateCell")) {
       // Observable's Generators.input, which reads a state cell's value, skips an undefined value

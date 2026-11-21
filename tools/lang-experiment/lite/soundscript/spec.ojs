@@ -1774,6 +1774,7 @@ spec_rejects_9 = [
   { statement: "S9.1", rule: "inject-type", source: "const b = (raw: number) => raw + 1;", shell: "export let raw = () => JSON.parse(\"1\");" },
   { statement: "S9.1", rule: "inject-type", source: "const b = (raw: string[]) => raw.length;", shell: "export let raw = () => JSON.parse(\"1\");" },
   { statement: "S9.1", rule: "no-any", source: "const b = (raw: any) => 1;", shell: "export let raw = () => JSON.parse(\"1\");" },
+  { statement: "S9.1", rule: "inject-type", source: "const b = (raw: { run: () => number }) => 1;", shell: "export let raw = (s) => s.length;" },
   { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (v: unknown): boolean => typeof v === \"object\" && \"then\" in v;" },
   { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (v: unknown): boolean => v !== undefined && typeof v === \"object\" && \"then\" in v;" },
   { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (v: unknown, b: boolean): boolean => (b ? v !== null : true) && typeof v === \"object\" && \"then\" in v;" },
@@ -1812,7 +1813,11 @@ test_spec_S9_1 = {
     spec_is(r.cells.map((c) => `${c.name}:${c.status}:${c.errors.length}`), ["b:ok:0"]);
   }
   spec_is(spec_rulesOf({ source: "const b = (raw) => raw + 1;", shell: "export let raw = () => 1;" }), ["type"]);
-  return `${spec_rejectsFor("S9.1")}; no annotation, unknown and Js are accepted, and an unannotated input is unknown (raw + 1 is [type])`;
+  const fn = soundscript.checkSources({ cells: "type F = (s: string) => number;\nconst b = (raw: (s: string) => number) => raw(\"ab\");\nconst c = (raw: F) => raw(\"a\");", shell: "export let raw = (s) => s.length;", tsx: true });
+  spec_is(fn.cells.map((c) => `${c.name}:${c.status}:${c.errors.length}`), ["b:ok:0", "c:ok:0"]);
+  const inRec = soundscript.checkSources({ cells: "const b = (raw: { run: () => number }) => 1;", shell: "export let raw = (s) => s.length;", tsx: true });
+  spec_is(inRec.cells[0].errors.map((e) => e.msg), ["raw: unknown is not assignable to { run: () => number }"]);
+  return `${spec_rejectsFor("S9.1")}; no annotation, unknown and Js are accepted, and an unannotated input is unknown (raw + 1 is [type]); a function type, written out or as an alias, is accepted; a function inside an object is [inject-type]`;
 }
 // %%
 test_spec_S9_2 = {
@@ -1953,7 +1958,14 @@ spec_rejects_11 = [
   { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst set = (n: State<number>, g: () => number) => action(() => n.set(g()));", outside: [{ name: "g" }] },
   { statement: "S11.9", rule: "action-capture", source: "const p = (g: () => number) => () => g();\nconst n = () => state(0);\nconst set = (n: State<number>, p: () => number) => action(() => n.set(p()));", outside: [{ name: "g" }] },
   { statement: "S11.9", rule: "action-capture", source: "const box = (g: () => number) => state({ f: g });", outside: [{ name: "g" }] },
-  { statement: "S11.9", rule: "action-capture", source: "const h = (g: () => number) => () => g();\nfunction* ev(h: () => number) { yield h; }", outside: [{ name: "g" }] }
+  { statement: "S11.9", rule: "action-capture", source: "const h = (g: () => number) => () => g();\nfunction* ev(h: () => number) { yield h; }", outside: [{ name: "g" }] },
+  { statement: "S11.9", rule: "action-capture", source: "const h = (g: () => number) => () => g();\nconst h2 = (h: () => number) => () => h();\nconst h3 = (h2: () => number) => () => h2();\nconst box = (h3: () => number) => state(h3);", outside: [{ name: "g" }] },
+  { statement: "S11.9", rule: "action-capture", source: "const box = (g: () => number) => state<{}>(g);", outside: [{ name: "g" }] },
+  { statement: "S11.9", rule: "action-capture", source: "const box = (g: () => number): StateCell<{ a?: number }> => state(g);", outside: [{ name: "g" }] },
+  { statement: "S11.9", rule: "action-capture", source: "const box = (g: () => number) => state<{ f: {} }>({ f: g });", outside: [{ name: "g" }] },
+  { statement: "S11.9", rule: "action-capture", source: "const box = (g: () => number) => state<{}[]>([g]);", outside: [{ name: "g" }] },
+  { statement: "S11.9", rule: "action-capture", source: "interface I {}\nconst box = (g: () => number) => state<I>(g);", outside: [{ name: "g" }] },
+  { statement: "S11.9", rule: "action-capture", source: "function* ev(g: () => number): Generator<{}> { yield g; }", outside: [{ name: "g" }] }
 ]
 // %%
 spec_rejects_11_view = spec_rejectsTable(spec_rejects_11)
@@ -2057,6 +2069,35 @@ test_spec_S11_4_function = {
   } finally { L.dispose(); }
 }
 // %%
+test_spec_S11_4_function_reject = {
+  // the rest of S11.4's function sentences; test_spec_S11_4_function is at the cell size limit
+  const boom = new Error("no");
+  const M = "type M = { n: number };\n";
+  const A = await spec_load(M + "const later = async (fetchM: (s: string) => Promise<M>) => (await fetchM(\"abc\")).n;", { fetchM: [[], () => async () => { throw boom; }] });
+  const S = await spec_load(M + "const atCall = (fetchM: (s: string) => Promise<M>) => { try { fetchM(\"a\"); return \"no throw\"; } catch (e) { return messageOf(e); } };\nconst uncaught = (fetchM: (s: string) => Promise<M>) => { fetchM(\"a\"); return 1; };", { fetchM: [[], () => () => { throw boom; }] });
+  try {
+    let caught = null;
+    try { await A.value("later"); } catch (e) { caught = e; }
+    if (!(caught instanceof TypeError) || caught === boom) throw new Error(`the rejection is ${caught}`);
+    spec_is(caught.message, "fetchM(...) threw: no");
+    spec_is(await S.value("atCall"), "fetchM(...) threw: no");
+    caught = null;
+    try { await S.value("uncaught"); } catch (e) { caught = e; }
+    if (!(caught instanceof TypeError) || caught === boom) throw new Error(`the synchronous throw is ${caught}`);
+    return "a rejected promise rejects the cell's promise with a TypeError naming the function; a synchronous throw from a function typed as returning a promise is thrown at the call as a TypeError";
+  } finally { A.dispose(); S.dispose(); }
+}
+// %%
+test_spec_S11_5_function_this = {
+  // strict: the function sees this as undefined; sloppy (new Function): JavaScript gives it globalThis instead
+  const L = await spec_load("const strict = (probe: () => boolean) => probe();\nconst sloppy = (loose: () => boolean) => loose();", { probe: [[], () => function () { "use strict"; return this === undefined; }], loose: [[], () => new Function("return this === undefined")] });
+  try {
+    spec_is(await L.value("strict"), true);
+    spec_is(await L.value("sloppy"), false);
+    return "the function is called with this undefined: a strict function sees undefined, a sloppy one globalThis";
+  } finally { L.dispose(); }
+}
+// %%
 test_spec_S11_5 = {
   const L = await spec_load("const keep = (o: { xs: number[] }) => o;\nconst whole = (u: unknown) => u;\nconst fn = (f: unknown) => 1;\nconst either = (e: { a: number } | { a: string }, q: number[] | string[]) => [e.a, q.length];", { o: [[], () => ({ xs: [1], extra: 2 })], u: [[], () => ({ a: [1, { b: 2 }] })], f: [[], () => () => 1], e: [[], () => ({ a: "x" })], q: [[], () => ["y"]] });
   try {
@@ -2114,7 +2155,17 @@ test_spec_S11_6_function = {
     L.module.redefine("f", ["tick"], () => raw);
     const d = await L.value("w");
     if (a !== b || a === c || a === raw || d === a || d === c) throw new Error(`same ${a === b}, new ${a !== c}, raw ${a === raw}, back ${d !== a}`);
-    return "the same function delivered again is the same function to the cell; another function is a new one, and so is the first one delivered after it; none is the raw function";
+    // a second module with a cell and parameter of the same names, delivering its own function in turn with L's
+    const other = (s) => ({ n: 1 });
+    const M = await spec_load("type M = { n: number };\nconst w = (f: (s: string) => M) => f;", { tick: [[], () => 0], f: [["tick"], () => other] });
+    try {
+      const m1 = await M.value("w");
+      L.module.redefine("tick", [], () => 2);
+      const d2 = await L.value("w");
+      M.module.redefine("tick", [], () => 1);
+      if (d2 !== d || (await M.value("w")) !== m1 || m1 === d) throw new Error(`per module: L ${d2 === d}, M ${(await M.value("w")) === m1}`);
+    } finally { M.dispose(); }
+    return "the same function delivered again is the same function to the cell, also when another module's cell and parameter of the same names is delivered one in between; another function is a new one, and so is the first one delivered after it; none is the raw function";
   } finally { L.dispose(); }
 }
 // %%

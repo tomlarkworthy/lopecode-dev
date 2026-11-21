@@ -33,7 +33,7 @@ export const owCaptureCheck = (owIndex, owTaintCaptures, owOpaqueCaptures) => (R
 };
 // core.ts's fed rule (S11.9): a cell fed a function from another language may not yield from an events cell, nor hold in
 // a state cell, a value whose type may be or hold a function; the cell's value type as core.ts takes it from fnT
-export const owFedKept = (ixMayHide, ixFnParts, isNamed, show, ERR) => (R: IxRegCore, fn: AstNode, fnT: Ty, name: string, fedBy: string): string[] => {
+export const owFedKept = (ixMayHoldFn, ixFnParts, isNamed, show, ERR) => (R: IxRegCore, fn: AstNode, fnT: Ty, name: string, fedBy: string): string[] => {
   const parts = ixFnParts(fn);
   if (parts === null) return [];
   let ret: Ty = fnT.k === "fn" ? fnT.ret : ERR;
@@ -41,8 +41,8 @@ export const owFedKept = (ixMayHide, ixFnParts, isNamed, show, ERR) => (R: IxReg
   if (parts.generator && ret.k === "named" && isNamed(ret, "Generator")) ret = ret.args[0] ?? ERR;
   const msg = (what: string, t: Ty, then: string) => `${what} ${show(t)}, which may be or hold a function from another language (${name} ${fedBy}); ${then}`;
   const out: Mut<string[]> = mut([]);
-  if (parts.generator && !parts.async && ixMayHide(R, ret)) out.push(msg("an events cell yields", ret, "a listener's action would receive it"));
+  if (parts.generator && !parts.async && ixMayHoldFn(R, ret)) out.push(msg("an events cell yields", ret, "a listener's action would receive it"));
   const held = ret.k === "named" && isNamed(ret, "StateCell") ? ret.args[0] ?? ERR : null;
-  if (held !== null && ixMayHide(R, held)) out.push(msg("a state cell holds", held, "an action that reads the state cell could call it"));
+  if (held !== null && ixMayHoldFn(R, held)) out.push(msg("a state cell holds", held, "an action that reads the state cell could call it"));
   return freeze(out);
 };

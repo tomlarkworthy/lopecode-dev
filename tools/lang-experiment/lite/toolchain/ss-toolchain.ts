@@ -294,14 +294,15 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   // a parameter's argument, r spelling each input. A State<T> parameter takes the handle variable; a
   // capability the variable that provides it; compile, compileFor over ss_compile with the refs of its calls
   // (it re-runs, and returns new functions, when one changes). A cell in another language crosses checked
-  // (boundary.ts): its value as a frozen copy; as a State, the value of its viewof (a view, or an imported
-  // state cell's handle), with each written value checked.
+  // (boundary.ts): its value as a frozen copy, reused per module, cell and parameter; as a State, the value
+  // of its viewof (a view, or an imported state cell's handle), with each written value checked.
+  const mod = JSON.stringify(ctx.module ?? null);
   const arg = (p: CellInfo["params"][number], r: (i: string) => string) => {
     const input = p.refTyped ? `viewof ${p.name}` : Object.hasOwn(CAPABILITIES, p.name) ? IN[p.name] : p.name;
     if (p.name === "compile") return `${r(IN.compileFor)}(${r(input)}, ${JSON.stringify(info.name)}, {${refs.map((x) => `${JSON.stringify(x)}: ${r(x)}`).join(", ")}})`;
     if (!p.boundary) return r(input);
     const shape = JSON.stringify(p.boundary.shape);
-    return p.boundary.ref ? `${r(IN.viewRef)}(${r(input)}, ${shape}, ${JSON.stringify(p.name)})` : `${r(IN.cross)}(${r(input)}, ${shape}, ${JSON.stringify(`${info.name}.${p.name}`)})`;
+    return p.boundary.ref ? `${r(IN.viewRef)}(${r(input)}, ${shape}, ${JSON.stringify(p.name)})` : `${r(IN.cross)}(${r(input)}, ${shape}, ${JSON.stringify(`${info.name}.${p.name}`)}, ${mod})`;
   };
   const args = (r: (i: string) => string) => info.params.map((p) => arg(p, r)).join(", ");
   const name = JSON.stringify(info.name);
@@ -309,7 +310,6 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   // passes this, the variable's last value (the handle), so the stdlib keeps the handle across runs; an events or
   // listener cell passes its module's name and takes invalidation (cells.ts events, listen).
   // Any other cell is its function applied to its inputs.
-  const mod = JSON.stringify(ctx.module ?? null);
   const expr = (r: (i: string) => string) => {
     if (kind === "ref" || kind === "events") {
       const head = `${r(IN[kind])}(${kind === "ref" ? "this" : mod}, ${name}, [${args(r)}], `;
