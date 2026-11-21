@@ -159,3 +159,20 @@ So even with one parse, a checked tree costs about 0.8 ms on a 2.2 ms check. For
 (his ruling for the runtime was checked, then readable, then speed), or whether the tree should cross once per
 module text. Until then tree-walking ports ship unswitched, each with a differential test against the TypeScript.
 verify 643 pass 0 fail; completion 2.4 ms. `collect.ts` now includes `lite/acorn/*.ss.ts` (815 sources, 3395 records).
+
+## 2026-11-22: the `Checker` class as cells (`lite/infer/`), not switched on
+Record of the work: `lite/infer/NOTES.md`. 82 of the 83 methods of `infer.ts`'s `Checker` are SoundScript cells
+over the typed tree: 198 value cells and 34 types in 15 files, median 8 lines, largest 26, 1858 lines; one cell
+per method, the working tables as `Mut` parameters `(K, T, V, W, C, env)`, the recursion tied by `ixKnot`. The
+registry stays TypeScript and is handed in as a record of functions. Every cell is accepted by the live checker.
+`bun lite/infer/diff.ts`, my run: `823 sources, 3451 cells: SAME 3437 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14`
+(the 14 crash in the registry code both share, `Map` with no type argument). Compared per cell: each diagnostic
+by rule, line, span and message, and the function type. Control: `ixArity` without its "at most" check gives 75
+DIFFERENT. Tests `cd lite && bun test infer/infer.test.ts`: 4 pass; the self-check test had no time limit of its
+own and failed at bun's 5 s under load, so it now has the 120 s its neighbour has.
+Cost: 1.57-1.60x the TypeScript `Checker` per cell under load (480-496 against 247-255 us on a quiet machine).
+Checking `lite/infer` with the live checker takes about 640 ms.
+Not done: the facts that ownership, completion and `facts.ts` read after `fnExpr`; completion's identifier hook;
+the registry taking typed nodes. Two gaps of the typed tree found, each with a repro in `lite/infer/repro/`: a
+function expression with type parameters, and a JSX attribute with no value (`<input disabled />`) come through
+as `Other`. Branch coverage of the cells by the corpus was not measured.
