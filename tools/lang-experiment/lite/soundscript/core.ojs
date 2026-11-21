@@ -70,6 +70,7 @@ readme_limits = md`## Limits
 - A cell that does not parse is stored only if its text starts with \`const <name>\`, \`let <name>\` or \`function <name>\` (after comments, and with or without \`export\`); otherwise there is no name to store it under.
 - A module holds one source file's worth of cells. Unchecked shell cells and trusted foreign declarations, which the checker can read, are not supported here.
 - The renderer's event decoding, its reads and writes of the DOM, and \`mount\` of the runtime module are outside the checked language.
+- So is a function a SoundScript cell takes from a cell in another language: equal results for equal arguments, ending and writing nothing are trusted to it; its results are checked against their type.
 - Publishing these modules to ObservableHQ was not tried.`
 // %%
 readme_api = ss_highlightCode(md`## API

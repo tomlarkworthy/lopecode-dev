@@ -259,7 +259,7 @@ sourceListing(tutorial_module, invalidation, { from: "type Line", to: "shopView"
 // %%
 //ss: ./tutorial-ordinary.tsx
 // %%
-md`A parameter that reads an Observable JavaScript or raw cell and has no type is \`[boundary-unannotated]\`. A type the check cannot apply to a value, such as a function or a \`Promise\`, is \`[boundary-type]\`. \`State\` on a cell with no \`viewof\` is \`[boundary-state]\`, unless the cell is a SoundScript state cell imported from another module.`
+md`A parameter that reads an Observable JavaScript or raw cell and has no type is \`[boundary-unannotated]\`. A type the check cannot apply to a value, such as a \`Promise\` or a function inside an object, is \`[boundary-type]\`. A function type as the whole annotation, such as \`measure: (s: string) => { n: number }\`, is accepted: the cell is given a function that checks each result and copies each argument, and an action may not capture it. \`State\` on a cell with no \`viewof\` is \`[boundary-state]\`, unless the cell is a SoundScript state cell imported from another module.`
 // %%
 test_shop_total = {
   const el = await tutorial_module.value("viewof shop_price");
@@ -381,7 +381,7 @@ Each parameter of a cell names what it reads. What it receives depends on the na
 | \`count: State<T>\`, naming a state cell | the handle, with \`set\` and \`update\` and no read (\`[inject-state]\` if not a state cell of \`T\`) | no |
 | \`ticks: Events<T>\`, naming a sync generator cell (*lite*) | a handle for \`on(...)\` (\`[inject-events]\` if not a generator yielding \`T\`) | no |
 | a capability name (next entry) | the host's object for that effect | no |
-| \`x: T\`, naming a cell in another language (section 10) | a frozen copy of its value, checked against \`T\` when it arrives (\`[boundary-unannotated]\` with no \`T\`, \`[boundary-type]\` if \`T\` cannot be checked) | yes |
+| \`x: T\`, naming a cell in another language (section 10) | a frozen copy of its value, checked against \`T\` when it arrives; for a function type, a function that checks and copies each result (\`[boundary-unannotated]\` with no \`T\`, \`[boundary-type]\` if \`T\` cannot be checked) | yes |
 | \`x: State<T>\`, naming an Observable JavaScript \`viewof x\` | the view as a handle: \`set\` and \`update\` write the control. A state cell of another module is taken the same way, imported as \`viewof x\`. (\`[boundary-state]\` if there is no \`viewof x\`) | no |
 | \`x: State<T>\`, naming a SoundScript state cell imported from another module | the state cell in the module it is imported from | no |
 
@@ -529,6 +529,7 @@ md`Limits that apply to everything on this page:
 - No \`keyof\`, indexed access types, tuple rest or variadic inference. A cell that needs one is \`unsupported\`, never \`ok\`.
 - A module here holds one source file's worth of cells. The ports also have unchecked cells and trusted foreign signatures, which the checker reads when given them; this page does not pass them.
 - The renderer's event decoders (\`PointerData\` from a \`PointerEvent\`, a string from an \`input\`) and its reads and writes of the DOM are trusted code.
+- A function a SoundScript cell takes from a cell in another language is trusted to give equal results for equal arguments, to end and to write nothing; its results are checked against their type, not these.
 - A \`.tsx\` source has no TypeScript cross-check: the reference checker does not read JSX, so the JSX and \`compile\` rules are checked by this checker alone.`
 // %%
 md`## Not built

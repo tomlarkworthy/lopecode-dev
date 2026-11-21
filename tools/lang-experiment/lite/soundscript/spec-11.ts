@@ -11,3 +11,7 @@ const s11_bump = (s11_level: State<number>) => action(() => s11_level.set(read(s
 const s11_big = (s11_level: State<number>) => action(() => s11_level.set(99));
 
 const s11_late_twice = (s11_late: number) => s11_late * 2;
+
+type S11Measure = { n: number; s: string };
+
+const s11_measured = (s11_measure: (s: string) => S11Measure) => s11_measure("tea");

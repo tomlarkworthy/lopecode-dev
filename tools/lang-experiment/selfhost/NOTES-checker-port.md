@@ -102,3 +102,20 @@ intended S11.3 records only; boundary cost 0.65-0.67 us per node flat, 0.61-0.62
 ## Rulings, Tom 2026-11-21 (continued)
 - Functions may cross: "the general rule as built, with the trust written into the spec" (prototype
   `selfhost/ss-acorn/RESULTS.md`). Not yet shipped.
+
+## 2026-11-21 night: functions cross the boundary (shipped)
+A function type, or an alias of one, as the whole annotation of a parameter fed from another language: the cell
+gets a frozen wrapper that copies arguments, checks and copies each result, and turns any throw into a fresh
+TypeError. `boundary.ts` +57 lines; `core.ts` +2 -2; `runtime.ss.ts` +4 -1. boundary.test 106 pass; data
+crossings unchanged (360/360, 20000 random 0 differ; 0.65 us per node before and after). verify 643 pass 0 fail
+(AC). New statement S11.11 states the trust; S11.3 to S11.6 and S11.9 gain sentences; three tutorial/core lines.
+Two leaks beyond the prototype were found and closed by the builder (a changed annotation kept the old result
+check; a real Promise with an own throwing `then`).
+Open after this commit, both taken up next:
+1. An action can still call the function through a state cell: `box = (g) => state(g)`, then
+   `action(() => n.set(read(box)()))` is accepted and calls it. S11.9 states this as it is.
+2. A shell cell handed to the checker as `shell:` goes through another branch of `core.ts` and arrives as
+   `unknown`, so the rule does not cover it. The acorn parser cell is such a cell.
+For Tom (reviewer's findings outside this change): `viewHandle` caches the first `State` shape per view, so a
+later different `T` is ignored (S11.7, reproduced); S11.7 does not state the check made on reads; wrappers are
+keyed by cell and parameter name in one module-wide map, so two modules with the same names replace each other's.

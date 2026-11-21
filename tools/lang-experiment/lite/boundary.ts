@@ -110,6 +110,20 @@ export function shapeOf(t: Ty, expand: (t: Ty) => Ty, isAlias: (n: string) => bo
     default: return { error: `${show(t)}, which the boundary does not check` };
   }
 }
+// The shape of a parameter's annotation. fnOk (not under State): a function type may be the whole annotation, with no
+// type parameters and no rest parameter, when its parameters and its result, or the T of a Promise<T> result, cross
+export function boundaryShape(t: Ty, expand: (t: Ty) => Ty, isAlias: (n: string) => boolean, fnOk: boolean): Shape | { error: string } {
+  let f = t;
+  for (let i = 0; i < 16 && f.k === "named" && isAlias(f.n); i++) f = expand(f);
+  if (!fnOk || f.k !== "fn") return shapeOf(t, expand, isAlias);
+  if (f.tps.length || f.rest) return { error: "a function with type parameters or a rest parameter" };
+  const part = (x: Ty, what: string) => { const s = shapeOf(x, expand, isAlias); return "error" in s ? { error: `a function whose ${what} is or holds ${s.error}` } : s; };
+  const ps: Shape[] = [];
+  for (const [i, p] of f.ps.entries()) { const s = part(p.t, `parameter ${p.n || i + 1}`); if ("error" in s) return s; ps.push(p.opt ? { k: "union", ts: [s, { k: "undef" }] } : s); }
+  const ret = f.ret.k === "named" && f.ret.n === "Promise" ? f.ret.args[0] : undefined;
+  const r = part(ret ?? f.ret, "result");
+  return "error" in r ? r : { k: "fn", ps, ret: r, async: ret !== undefined };
+}
 // a generic alias expanded over placeholders, then given its arguments: expand keeps one expansion per name as show
 // prints it, and show shortens a deep argument, so two deep arguments would share one
 function expandFull(t: Ty & { k: "named" }, expand: (t: Ty) => Ty): Ty {
@@ -219,6 +233,7 @@ function copyEnter(v: unknown, s: Shape, path: string, run: Run, stack: Frame[])
     case "null": if (v === null) return v; throw mismatch(v, s, path);
     case "undef": if (v === undefined) return v; throw mismatch(v, s, path);
     case "lit": if (Object.is(v, s.v)) return v; throw mismatch(v, s, path);
+    case "fn": throw new TypeError(`${path}: a function shape inside a value`);
     case "defs": run.defs = new Map(s.defs); run.done = new Map(); return copyEnter(v, s.body, path, run, stack);
     case "ref": {
       const d = run.defs?.get(s.n);
@@ -392,6 +407,7 @@ export const crossings = { copies: 0, reused: 0 };
 // name, "reader.param") receives it: checked against shape, deep-frozen, copied once per delivery.
 export function cross(value: unknown, shape: Shape, path: string): unknown {
   const at = path.slice(path.indexOf(".") + 1);
+  if (shape.k === "fn") return crossFn(value, shape, at, path);
   const run = newRun();
   let out: unknown;
   try { out = copy(value, shape, at, run); } catch (e) {
@@ -411,4 +427,45 @@ export function checkShape(value: unknown, shape: Shape, path: string): unknown 
     if (e instanceof Mismatch) throw refusal(e, run);
     throw e;
   }
+}
+
+// A function from another language as the checked cell receives it: a frozen function of the boundary's own. Each call
+// hands the function deep-frozen copies of the arguments, calls it with no this, and checks and copies the result with
+// no reuse between calls. A throw, a mismatch or a throw while the result is read is a fresh TypeError naming the
+// function, so nothing the other language made reaches the cell. Per reading cell and parameter, the same function
+// under the same shape gives the same wrapper.
+const fnWrappers = new Map<string, { raw: unknown; key: string; w: unknown }>();
+function fnThrown(name: string, what: string, e: unknown): TypeError {
+  let m: string;
+  try { m = e instanceof Error ? String(e.message) : describe(e); } catch { m = "a value that could not be read"; }
+  return new TypeError(`${name}(...)${what}: ${m}`);
+}
+function fnResult(v: unknown, s: Shape, name: string): unknown {
+  const run = newRun();
+  let bad: TypeError;
+  try { return copy(v, s, `${name}(...)`, run); } catch (e) {
+    // instanceof on a proxy runs its getPrototypeOf trap
+    let ours = false;
+    try { ours = e instanceof Mismatch; } catch { /* the other language's */ }
+    bad = ours ? refusal(e as Mismatch, run) : fnThrown(name, ": reading the result threw", e);
+  }
+  throw bad;
+}
+function crossFn(f: unknown, s: Shape & { k: "fn" }, name: string, path: string): unknown {
+  if (typeof f !== "function") throw new TypeError(`${name}: expected a function, found ${describe(f)}`);
+  const key = JSON.stringify(s);
+  const hit = fnWrappers.get(path);
+  if (hit && hit.raw === f && hit.key === key) return hit.w;
+  const w = Object.freeze((...args: unknown[]): unknown => {
+    const xs = s.ps.map((p, i) => checkShape(args[i], p, `${name} argument ${i + 1}`));
+    let r: unknown;
+    try { r = Reflect.apply(f, undefined, xs); } catch (e) { throw fnThrown(name, " threw", e); }
+    if (!s.async) return fnResult(r, s.ret, name);
+    // Promise.resolve reads a promise's constructor, and then may be an own property: either can throw
+    return new Promise((res, rej) => {
+      try { Promise.resolve(r).then((v) => { try { res(fnResult(v, s.ret, name)); } catch (e) { rej(e); } }, (e) => rej(fnThrown(name, " threw", e))); } catch (e) { rej(fnThrown(name, " threw", e)); }
+    });
+  });
+  fnWrappers.set(path, { raw: f, key, w });
+  return w;
 }

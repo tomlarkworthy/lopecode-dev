@@ -10,7 +10,7 @@ import { CAPABILITIES } from "./intrinsics.ts";
 import { island, specOf, compileCalls } from "./island.ts";
 import { factsOf, type CellInfo } from "./facts.ts";
 import { captures, opaqueCaptures } from "./capture.ts";
-import { shapeOf, type Shape } from "./boundary.ts";
+import { boundaryShape, type Shape } from "./boundary.ts";
 
 export type LiteError = { rule: string; line: number; msg: string };
 export type LiteCell = {
@@ -268,7 +268,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
         const want = reg.convert(ann, { tps: new Set() }, P);
         const inner = wrapper === "State" && isNamed(want, "State") ? want.args[0] : want;
         if (hasErr(inner)) { injected.push(ERR); continue; } // a type lite does not know is reported where it is written
-        const shape = shapeOf(inner, (t) => reg.expand(t), (n) => reg.isAlias(n));
+        const shape = boundaryShape(inner, (t) => reg.expand(t), (n) => reg.isAlias(n), wrapper !== "State");
         if ("error" in shape) { diag(p, "boundary-type", `${name}: ${show(inner)} cannot cross from another language: it is or holds ${shape.error}`); injected.push(ERR); continue; }
         if (wrapper === "State") {
           const first = viewTypes.get(name);

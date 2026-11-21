@@ -1874,29 +1874,33 @@ md`**S11.1** A parameter that names no SoundScript cell, foreign declaration, sh
 // %%
 md`**S11.2** Such a parameter must have a type annotation; without one it is \`[boundary-unannotated]\`.`
 // %%
-md`**S11.3** The annotation may use \`number\`, \`string\`, \`boolean\`, \`null\`, \`undefined\`, literal types, \`unknown\`, arrays, tuples, object types and interfaces with no methods or index signature, unions, and aliases of these. Any other annotation is \`[boundary-type]\`: a function type, \`Promise\`, \`Map\`, \`Set\` or another class, \`Events<T>\`. An alias may refer to itself, directly or through other aliases, when an object type, array or tuple lies on every path from the alias back to itself, as in \`type Tree = { v: number; kids: Tree[] }\`; \`type A = A | number\` is \`[boundary-type]\`, and so is a generic alias whose type arguments differ at every level, such as \`type N<T> = { next: N<T[]> | null }\`.`
+md`**S11.3** The annotation may use \`number\`, \`string\`, \`boolean\`, \`null\`, \`undefined\`, literal types, \`unknown\`, arrays, tuples, object types and interfaces with no methods or index signature, unions, and aliases of these. A function type, or an alias of one, may be the whole annotation when it has no type parameters and no rest parameter, and its parameters and its result, or the \`T\` of a \`Promise<T>\` result, are annotations this statement accepts, or \`void\`, read as \`undefined\`; a parameter of it may be optional. Any other annotation is \`[boundary-type]\`: a function type inside an object, array or union, under \`State\`, or as a parameter or result of a function; \`Promise\`, \`Map\`, \`Set\` or another class; \`Events<T>\`. An alias may refer to itself, directly or through other aliases, when an object type, array or tuple lies on every path from the alias back to itself, as in \`type Tree = { v: number; kids: Tree[] }\`; \`type A = A | number\` is \`[boundary-type]\`, and so is a generic alias whose type arguments differ at every level, such as \`type N<T> = { next: N<T[]> | null }\`.`
 // %%
-md`**S11.4** Each value that arrives is checked against the annotation. A value that does not match makes the reading cell throw a \`TypeError\` that names the place, such as \`rows[1].price: expected number, found string "12"\`. A value that reaches itself again at a place the annotation checks does not match, such as \`tree.kids[0]: a cycle\`; a value is checked however deeply it is nested. Cells that do not depend on the reading cell are not affected, and the reading cell runs again on the next value.`
+md`**S11.4** Each value that arrives is checked against the annotation. A value that does not match makes the reading cell throw a \`TypeError\` that names the place, such as \`rows[1].price: expected number, found string "12"\`. A value that reaches itself again at a place the annotation checks does not match, such as \`tree.kids[0]: a cycle\`; a value is checked however deeply it is nested. Cells that do not depend on the reading cell are not affected, and the reading cell runs again on the next value. A function is checked at each call: a result that does not match, a throw from the function, or a throw while its result is read makes the call throw a new \`TypeError\` that names the function, such as \`measure(...).n: expected number, found string "3"\` or \`measure(...) threw: boom\`. With a \`Promise<T>\` result, a mismatch, a rejection or a throw while the result is read rejects the promise the cell receives with that \`TypeError\`; a throw from the call itself is thrown at the call.`
 // %%
-md`**S11.5** The cell is given a deep-frozen copy. An object keeps only the properties its type declares. Under a recursive alias, an object that the value reaches by two paths and that both read as the same type is copied once, and the copy is reached by both paths. \`unknown\` accepts primitives, arrays and plain objects, and copies them whole; a function, a promise or an instance of a class is a mismatch (S11.4). A hole in an array is read as \`undefined\`: it is a mismatch where the element type has no \`undefined\`, and the copy has an \`undefined\` there otherwise.`
+md`**S11.5** The cell is given a deep-frozen copy. An object keeps only the properties its type declares. Under a recursive alias, an object that the value reaches by two paths and that both read as the same type is copied once, and the copy is reached by both paths. \`unknown\` accepts primitives, arrays and plain objects, and copies them whole; a function, a promise or an instance of a class is a mismatch (S11.4). A hole in an array is read as \`undefined\`: it is a mismatch where the element type has no \`undefined\`, and the copy has an \`undefined\` there otherwise. A function is given as a frozen function of the boundary's own. At each call it gives the other language's function a deep-frozen copy of each argument, so the other language never holds a value the cell holds, calls it with no \`this\`, and gives the cell a deep-frozen copy of the result.`
 // %%
-md`**S11.6** A copy is made for each value that arrives, so a value changed in place by the other language and delivered again is seen. The reading cell runs for each value that arrives, as the runtime runs any cell whose input was computed again; an equal copy does not stop it.`
+md`**S11.6** A copy is made for each value that arrives, so a value changed in place by the other language and delivered again is seen. The reading cell runs for each value that arrives, as the runtime runs any cell whose input was computed again; an equal copy does not stop it. The same function delivered again with the same annotation is the same function to the cell; a function delivered after another one is a new function to the cell, even if it was delivered before.`
 // %%
 md`**S11.7** \`x: State<T>\` takes the view of an Observable JavaScript \`viewof x\`, or the handle of a SoundScript state cell imported from another module with \`import {viewof x} from …\`. Each write is checked against \`T\`. On any other cell in another language, and when two parameters in one module take the same view or state cell as \`State\` of different types, it is \`[boundary-state]\`.`
 // %%
 md`**S11.8** The view holds the value. A write through the \`State\` commits with its action: it sets the view's \`value\` and dispatches an \`input\` event. \`read\` inside an action gives what the control holds at that moment, which the control may have rounded or clamped, with the call's own earlier writes. A change the user makes on the control is not an action call.`
 // %%
-md`**S11.9** The value of a cell in another language is state: an action may not use it (\`[action-capture]\`, section 6). Take the view as \`State\` and \`read\` it inside the action; when the cell has no view, pass the value to the action as an argument.`
+md`**S11.9** The value of a cell in another language is state: an action may not use it (\`[action-capture]\`, section 6). Take the view as \`State\` and \`read\` it inside the action; when the cell has no view, pass the value to the action as an argument. A function from another language is such a value: an action may not capture it, nor capture a cell that reads it. A state cell whose value is the function is not refused, and an action that reads that state cell can call the function.`
 // %%
 md`**S11.10** Adding, deleting or renaming a cell in another language checks the module's SoundScript cells again.`
 // %%
-md`The cells of this section: \`s11_rows\` and \`viewof s11_level\` are Observable JavaScript, \`s11_raw_area\` is raw, and the \`s11_\` cells after them are SoundScript.`
+md`**S11.11** A function from another language is trusted, and not checked, to give equal results for equal arguments, to end, to write nothing (by calling an action or in any other way), and to give values that mean what the cell takes them to mean. What is checked is S11.4 to S11.9: each result has the declared type and is a frozen copy, the function receives copies, nothing it throws reaches the cell as its own object, and no action captures it. A checked cell that calls such a function is only as pure as the function: two calls with equal arguments may give different results, and an action the function calls may run the calling cell again.`
+// %%
+md`The cells of this section: \`s11_rows\`, \`viewof s11_level\` and \`s11_measure\` are Observable JavaScript, \`s11_raw_area\` is raw, and the \`s11_\` cells after them are SoundScript. \`s11_measured\` calls the function \`s11_measure\`.`
 // %%
 md`\`s11_late_twice\` takes \`s11_late\`, which no cell of this module defines, so it shows an error: it is rejected until \`test_spec_S11_10\` defines \`s11_late\` for a while (S11.10).`
 // %%
 s11_rows = [{ price: 1, name: "tea" }, { price: 2.5, name: "cake" }]
 // %%
 viewof s11_level = Inputs.range([0, 10], { step: 1, value: 5, label: "s11_level" })
+// %%
+s11_measure = (s) => ({ n: s.length, s })
 // %%
 define("s11_raw_area", [], function () {
   return 12;
@@ -1907,17 +1911,27 @@ define("s11_raw_area", [], function () {
 spec_rejects_11 = [
   { statement: "S11.1", rule: "inject-unknown", source: "const f = (nothing: number) => nothing;", outside: [] },
   { statement: "S11.2", rule: "boundary-unannotated", source: "const f = (rows) => 1;", outside: [{ name: "rows" }] },
-  { statement: "S11.3", rule: "boundary-type", source: "const f = (g: () => number) => 1;", outside: [{ name: "g" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (g: { run: () => number }) => 1;", outside: [{ name: "g" }] },
   { statement: "S11.3", rule: "boundary-type", source: "const f = (p: Promise<number>) => 1;", outside: [{ name: "p" }] },
   { statement: "S11.3", rule: "boundary-type", source: "const f = (m: Map<string, number>) => 1;", outside: [{ name: "m" }] },
   { statement: "S11.3", rule: "boundary-type", source: "const f = (o: { at: number; get(): number }) => 1;", outside: [{ name: "o" }] },
   { statement: "S11.3", rule: "boundary-type", source: "const f = (e: Events<number>) => 1;", outside: [{ name: "e" }] },
   { statement: "S11.3", rule: "boundary-type", source: "type A = A | number;\nconst f = (a: A) => 1;", outside: [{ name: "a" }] },
   { statement: "S11.3", rule: "boundary-type", source: "type T = { next: T | null; f: () => number };\nconst f = (t: T) => 1;", outside: [{ name: "t" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (g: (() => number)[]) => 1;", outside: [{ name: "g" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (g: (() => number) | null) => 1;", outside: [{ name: "g" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (g: State<() => number>) => 1;", outside: [{ name: "g", view: true }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (g: <T>(x: T) => T) => 1;", outside: [{ name: "g" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (g: (...xs: string[]) => number) => 1;", outside: [{ name: "g" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (g: (cb: () => number) => number) => 1;", outside: [{ name: "g" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (g: (s: string) => () => number) => 1;", outside: [{ name: "g" }] },
+  { statement: "S11.3", rule: "boundary-type", source: "const f = (g: () => Map<string, number>) => 1;", outside: [{ name: "g" }] },
   { statement: "S11.7", rule: "boundary-state", source: "const f = (rows: State<number[]>) => 1;", outside: [{ name: "rows" }] },
   { statement: "S11.7", rule: "boundary-state", source: "const f = (level: State<number>) => 1;\nconst g = (level: State<string>) => 1;", outside: [{ name: "level", view: true }] },
   { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, level: number) => action(() => n.set(level));", outside: [{ name: "level", view: true }] },
-  { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, rows: number) => action(() => n.set(rows));", outside: [{ name: "rows" }] }
+  { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, rows: number) => action(() => n.set(rows));", outside: [{ name: "rows" }] },
+  { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst set = (n: State<number>, g: () => number) => action(() => n.set(g()));", outside: [{ name: "g" }] },
+  { statement: "S11.9", rule: "action-capture", source: "const p = (g: () => number) => () => g();\nconst n = () => state(0);\nconst set = (n: State<number>, p: () => number) => action(() => n.set(p()));", outside: [{ name: "g" }] }
 ]
 // %%
 spec_rejects_11_view = spec_rejectsTable(spec_rejects_11)
@@ -1957,7 +1971,9 @@ test_spec_S11_2 = spec_rejectsFor("S11.2")
 test_spec_S11_3 = {
   const ok = spec_okCellsWith('type R = { a: number; b?: string[] };\nconst f = (x: R | null, y: unknown, z: [number, "a" | "b"], w: boolean, u: undefined) => 1;', ["x", "y", "z", "w", "u"].map((name) => ({ name })));
   if (ok !== "f:ok") throw new Error(ok);
-  return `${spec_rejectsFor("S11.3")}; primitives, literals, unknown, tuples, optional properties and unions are accepted`;
+  const fns = spec_okCellsWith("type R = { n: number };\ntype F = (s: string) => R;\nconst f = (a: () => number, b: (s: string, n?: number) => R, c: (x: R[]) => Promise<R | null>, d: F, e: () => void) => 1;", ["a", "b", "c", "d", "e"].map((name) => ({ name })));
+  if (fns !== "f:ok") throw new Error(fns);
+  return `${spec_rejectsFor("S11.3")}; primitives, literals, unknown, tuples, optional properties and unions are accepted; a function type as the whole annotation, with an optional parameter, a Promise result, through an alias, and returning void, is accepted`;
 }
 // %%
 test_spec_S11_3_recursive = {
@@ -1995,6 +2011,30 @@ test_spec_S11_4_cycle = {
   } finally { L.dispose(); }
 }
 // %%
+test_spec_S11_4_function = {
+  const L = await spec_load("type M = { n: number };\nconst sized = (measure: (s: string) => M) => { try { return measure(\"abc\").n; } catch (e) { return typeof e === \"object\" && e !== null && \"message\" in e ? String(e.message) : \"no message\"; } };\nconst later = async (fetchM: (s: string) => Promise<M>) => (await fetchM(\"abc\")).n;", { measure: [[], () => () => ({ n: "3" })], fetchM: [[], () => async () => ({ n: 3 })] });
+  try {
+    spec_is(await L.value("sized"), 'measure(...).n: expected number, found string "3"');
+    spec_is(await L.value("later"), 3);
+    const boom = new Error("boom");
+    L.module.redefine("measure", [], () => () => { throw boom; });
+    spec_is(await L.value("sized"), "measure(...) threw: boom");
+    const R = await spec_load("const raw = (measure: (s: string) => { n: number }) => measure(\"abc\").n;", { measure: [[], () => () => { throw boom; }] });
+    try {
+      let caught = null;
+      try { await R.value("raw"); } catch (e) { caught = e; }
+      if (!(caught instanceof TypeError) || caught === boom) throw new Error(`the uncaught throw is ${caught}`);
+    } finally { R.dispose(); }
+    L.module.redefine("fetchM", [], () => async () => ({ n: "3" }));
+    let msg = null;
+    try { await L.value("later"); } catch (e) { msg = e.message; if (!(e instanceof TypeError) || e === boom) throw e; }
+    spec_is(msg, 'fetchM(...).n: expected number, found string "3"');
+    L.module.redefine("measure", [], () => () => ({ get n() { throw boom; } }));
+    spec_is(await L.value("sized"), "measure(...): reading the result threw: boom");
+    return `a wrong result and a throw reach the cell as a TypeError: ${msg}; the async result resolves to 3 and rejects on a wrong one`;
+  } finally { L.dispose(); }
+}
+// %%
 test_spec_S11_5 = {
   const L = await spec_load("const keep = (o: { xs: number[] }) => o;\nconst whole = (u: unknown) => u;\nconst fn = (f: unknown) => 1;\nconst either = (e: { a: number } | { a: string }, q: number[] | string[]) => [e.a, q.length];", { o: [[], () => ({ xs: [1], extra: 2 })], u: [[], () => ({ a: [1, { b: 2 }] })], f: [[], () => () => 1], e: [[], () => ({ a: "x" })], q: [[], () => ["y"]] });
   try {
@@ -2024,6 +2064,35 @@ test_spec_S11_5_recursive = {
     for (let at = await L.value("depth"); at.kids.length; at = at.kids[0]) { if (!Object.isFrozen(at)) throw new Error(`not frozen at depth ${n}`); n++; }
     if (n !== 10000) throw new Error(`the copy is ${n} deep`);
     return "a tree of 2^30 paths over 31 objects is copied once per object, frozen, with its sharing; a tree 10000 deep crosses";
+  } finally { L.dispose(); }
+}
+// %%
+test_spec_S11_5_function = {
+  let got = null;
+  const L = await spec_load("type Box = { xs: number[] };\nconst box = (): Box => ({ xs: [1, 2] });\nconst kept = (store: (b: Box) => number, box: Box) => [store(box), box.xs.length];", { store: [[], () => (b) => { got = b; return b.xs.length; }] });
+  try {
+    spec_is(await L.value("kept"), [2, 2]);
+    if (got === (await L.value("box")) || !Object.isFrozen(got) || !Object.isFrozen(got.xs)) throw new Error("the argument is not a frozen copy");
+    const m = await spec_module.value("s11_measured");
+    spec_is(m, { n: 3, s: "tea" });
+    if (!Object.isFrozen(m)) throw new Error("s11_measured is not frozen");
+    return "the function gets a frozen copy of the argument, not the cell's value; s11_measured, calling the Observable JavaScript s11_measure, is a frozen {n: 3, s: \"tea\"}";
+  } finally { L.dispose(); }
+}
+// %%
+test_spec_S11_6_function = {
+  const raw = (s) => ({ n: s.length });
+  const L = await spec_load("type M = { n: number };\nconst w = (f: (s: string) => M) => f;", { tick: [[], () => 0], f: [["tick"], () => raw] });
+  try {
+    const a = await L.value("w");
+    L.module.redefine("tick", [], () => 1);
+    const b = await L.value("w");
+    L.module.redefine("f", [], () => (s) => ({ n: 0 }));
+    const c = await L.value("w");
+    L.module.redefine("f", ["tick"], () => raw);
+    const d = await L.value("w");
+    if (a !== b || a === c || a === raw || d === a || d === c) throw new Error(`same ${a === b}, new ${a !== c}, raw ${a === raw}, back ${d !== a}`);
+    return "the same function delivered again is the same function to the cell; another function is a new one, and so is the first one delivered after it; none is the raw function";
   } finally { L.dispose(); }
 }
 // %%
@@ -2111,7 +2180,12 @@ test_spec_S11_8_object = {
   } finally { L.dispose(); }
 }
 // %%
-test_spec_S11_9 = spec_rejectsFor("S11.9")
+test_spec_S11_9 = {
+  // a state cell made from the function is not refused, and an action reads it and calls the function
+  const ok = spec_okCellsWith("const box = (g: () => number) => state(g);\nconst n = () => state(0);\nconst run = (box: State<() => number>, n: State<number>) => action(() => n.set(read(box)()));", [{ name: "g" }]);
+  if (ok !== "box:ok,n:ok,run:ok") throw new Error(ok);
+  return `${spec_rejectsFor("S11.9")}; a state cell made from a function of another language, read and called inside an action, is accepted`;
+}
 // %%
 test_spec_S11_10 = {
   const name = (n) => [...runtime._variables].find((v) => v._module === spec_module && v._name === n);
@@ -2132,6 +2206,15 @@ test_spec_S11_10 = {
   } finally { late.delete(); }
   if (!(await until(rejected))) throw new Error("s11_late_twice was not checked again when s11_late was deleted");
   return "rejected; 42 once s11_late was added; rejected once it was renamed; 42 when renamed back; rejected once it was deleted";
+}
+// %%
+test_spec_S11_11 = {
+  let k = 0;
+  const L = await spec_load("type M = { n: number };\nconst twice = (count: (s: string) => M) => [count(\"a\").n, count(\"a\").n];", { count: [[], () => () => ({ n: ++k })] });
+  try {
+    spec_is(await L.value("twice"), [1, 2]);
+    return "two calls with equal arguments gave [1, 2]: equal results are trusted, not checked";
+  } finally { L.dispose(); }
 }
 // %%
 md`## Not specified

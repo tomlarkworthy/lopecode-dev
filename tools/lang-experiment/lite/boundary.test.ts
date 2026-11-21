@@ -1,7 +1,8 @@
 // Unit tests for cross() on unions (boundary.ts): a union of records tagged by a literal property takes the member its
 // tag names; the result is that of trying the members in order, and a member alone able to take the value gives the
 // message when it fails below the union. Holes. Then recursive types: the shape
-// shapeOf gives through the checker, and what cross() does with trees, cycles, shared objects and deep values.
+// shapeOf gives through the checker, and what cross() does with trees, cycles, shared objects and deep values. Then a
+// function from another language: the checker's verdicts and the wrapper the cell is given.
 // Run: bun lite/boundary.test.ts
 import { cross, checkShape } from "./boundary.ts";
 import { checkSources } from "./core.ts";
@@ -192,6 +193,171 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
   ok("a binary tree with a wrong v: the place of v", br === 'TypeError: p.right.left.v: expected number, found string "x"', br);
   ok("a ref the shape does not define is a TypeError", res({}, { k: "ref", n: "Nope" }) === "TypeError: p: the shape has no definition of Nope");
   ok("a write through State<Tree> is checked as a crossing", (() => { try { checkShape({ v: 1, kids: [{ v: 2, kids: [] }] }, tree, "s"); return true; } catch { return false; } })());
+}
+
+// A function from another language: the checker's verdicts, and the wrapper the cell is given, on a module compiled by
+// the toolchain and run in a real Observable Runtime. Values are awaited with module.value; no timers
+{
+  const { Runtime } = await import("@observablehq/runtime");
+  const T = await import("./toolchain/ss-toolchain.ts");
+  const ss = await import("./stdlib/runtime.ts");
+  const { input } = await import(new URL("../../../vendor/observable-stdlib/src/generators/input.js", import.meta.url).pathname as any);
+  const load = (src: string, outside: Record<string, [string[], (...a: any[]) => unknown]>) => {
+    const checked = checkSources({ cells: src, tsx: false, outside: Object.keys(outside).filter((n) => !n.startsWith("viewof ")).map((n) => ({ name: n, view: !!outside[`viewof ${n}`] })) });
+    const m = new Runtime().module();
+    m.define("Generators", [], () => ({ input }));
+    for (const n of T.RUNTIME_CELLS) m.define(T.INPUTS[n], [], () => (ss as any)[n]);
+    for (const [n, [ins, f]] of Object.entries(outside)) m.define(n, ins, f);
+    const ctx = T.contextFromCheck(checked);
+    for (const text of T.splitCells(src, false)) for (const d of T.compileCell(text, false, ctx)) m.variable(true).define(d.name, d.inputs, (0, eval)(`(${d.definition})`));
+    const verdicts = checked.cells.map((c) => `${c.name}: ${c.status}${c.errors.map((e) => ` [${e.rule}] ${e.msg}`).join("")}`);
+    const value = async (n: string): Promise<{ ok: true; v: any } | { ok: false; e: any }> => { try { return { ok: true, v: await m.value(n) }; } catch (e) { return { ok: false, e }; } };
+    return { m, verdicts, value, seen: async (n: string) => { const r = await value(n); return r.ok ? `value ${JSON.stringify(r.v)}` : `${r.e?.constructor?.name}: ${r.e?.message}`; } };
+  };
+  const R = "type R = { n: number; tag: string };\n";
+  const foreign = { foreign: true };
+  const leaked = (r: { ok: boolean; e?: unknown }) => !r.ok && r.e === foreign;
+  {
+    let k = 0;
+    const L = load(R + 'export const a = (f: (s: string) => R) => f("x");\nexport const both = (f: (s: string) => R) => [f("x").n, f("x").n];', { f: [[], () => (s: string) => ({ n: ++k, tag: s })] });
+    ok("fn: a function that gives a different value each call: each call's result is its own copy", L.verdicts.join() === "a: ok,both: ok" && (await L.seen("both")) === "value [1,2]" && (await L.seen("a")) === 'value {"n":3,"tag":"x"}', [L.verdicts, await L.seen("both")]);
+  }
+  {
+    let seen: any;
+    const L = load('type Box = { xs: number[] };\nexport const box = (): Box => ({ xs: [1, 2] });\nexport const r = (f: (b: Box) => number, box: Box) => { let m = "none"; try { f(box); } catch (e) { m = typeof e === "object" && e !== null && "message" in e ? String(e.message) : "?"; } return m; };\nexport const after = (box: Box, r: string) => box.xs.length;', { f: [[], () => (b: any) => { seen = b; b.xs.push(9); return 1; }] });
+    const r = await L.seen("r"), after = await L.seen("after");
+    ok("fn: a function that mutates its argument: the argument is a frozen copy, the cell's value unchanged", r === 'value "f(...) threw: Attempted to assign to readonly property."' && after === "value 2" && Object.isFrozen(seen) && Object.isFrozen(seen.xs) && seen !== (await L.value("box") as any).v, [r, after]);
+    let kept: any;
+    const K = load("type Q = { q: number[] };\nexport const arg = (): Q => ({ q: [1] });\nexport const first = (f: (x: Q) => number, arg: Q) => f(arg);", { f: [[], () => (x: any) => { kept = x; return x.q.length; }] });
+    await K.value("first");
+    let m = "no error"; try { kept.q.push(2); } catch (e) { m = (e as Error).constructor.name; }
+    ok("fn: a function that keeps its argument cannot change it later", m === "TypeError" && kept !== (await K.value("arg") as any).v, m);
+  }
+  {
+    const throwers: [string, () => never, string][] = [
+      ["an Error", () => { throw new Error("boom"); }, "f(...) threw: boom"],
+      ["a string", () => { throw "plain"; }, 'f(...) threw: string "plain"'],
+      ["a function", () => { throw () => 1; }, "f(...) threw: a function"],
+      ["a Proxy whose getter throws", () => { throw new Proxy(new Error("x"), { get: () => { throw foreign; } }); }, "f(...) threw: a value that could not be read"],
+      ["a live object", () => { throw foreign; }, "f(...) threw: an object"],
+    ];
+    for (const [what, t, want] of throwers) {
+      const L = load('export const r = (f: (s: string) => number) => { try { return String(f("x")); } catch (e) { return typeof e === "object" && e !== null && "message" in e ? String(e.message) : typeof e; } };\nexport const raw = (f: (s: string) => number) => f("x");', { f: [[], () => () => t()] });
+      const raw = await L.value("raw");
+      ok(`fn: a throw of ${what} reaches the cell as a fresh TypeError`, (await L.seen("r")) === `value ${JSON.stringify(want)}` && !raw.ok && raw.e instanceof TypeError && raw.e.message === want, await L.seen("raw"));
+    }
+  }
+  {
+    const cyc: any = { n: 1, tag: "c" }; cyc.self = cyc;
+    const results: [string, unknown, string][] = [
+      ["a function", () => 1, "TypeError: f(...): expected an object, found a function"],
+      ["a Promise, declared sync", Promise.resolve({ n: 1, tag: "p" }), "TypeError: f(...): expected an object, found a promise"],
+      ["a class instance", new (class P { n = 1; tag = "k"; })(), "TypeError: f(...): expected an object, found a P object"],
+      ["a wrong shape", { n: "1", tag: "t" }, 'TypeError: f(...).n: expected number, found string "1"'],
+      ["extra keys", { n: 1, tag: "t", extra: [1] }, 'value {"n":1,"tag":"t"}'],
+      ["a cycle under an undeclared key", cyc, 'value {"n":1,"tag":"c"}'],
+    ];
+    for (const [what, v, want] of results) {
+      const L = load(R + 'export const r = (f: (s: string) => R) => f("x");', { f: [[], () => () => v] });
+      const got = await L.seen("r");
+      ok(`fn: a result that is ${what}: ${want}`, got === want, got);
+    }
+    const c2: any = { n: 1, kids: [] }; c2.kids.push(c2);
+    const L = load('type T = { n: number; kids: T[] };\nexport const r = (f: (s: string) => T) => f("x").kids.length;', { f: [[], () => () => c2] });
+    ok("fn: a result with a cycle of a recursive type is refused", (await L.seen("r")) === "TypeError: f(...).kids[0]: a cycle", await L.seen("r"));
+    const N = load('export const r = (f: (s: string) => number) => f("a");', { f: [[], () => 3] });
+    ok("fn: a value that is not a function is refused", (await N.seen("r")) === "TypeError: f: expected a function, found number 3", await N.seen("r"));
+  }
+  {
+    const src = R + 'export const r = async (f: (s: string) => Promise<R>) => { const x = await f("x"); return x.n; };';
+    const cases: [string, () => unknown, string][] = [
+      ["resolves", async () => ({ n: 7, tag: "a" }), "value 7"],
+      ["resolves to a wrong shape", async () => ({ n: "7" }), 'TypeError: f(...).n: expected number, found string "7"'],
+      ["rejects", async () => { throw new Error("later"); }, "TypeError: f(...) threw: later"],
+      ["returns R with no promise", () => ({ n: 8, tag: "s" }), "value 8"],
+      ["returns a thenable whose then throws", () => ({ then() { throw foreign; } }), "TypeError: f(...) threw: an object"],
+      ["returns a real promise whose own then throws", () => { const q = Promise.resolve({ n: 1, tag: "t" }); Object.defineProperty(q, "then", { value: () => { throw foreign; } }); return q; }, "TypeError: f(...) threw: an object"],
+      ["returns a real promise whose constructor getter throws", () => { const q = Promise.resolve({ n: 1, tag: "t" }); Object.defineProperty(q, "constructor", { get() { throw foreign; } }); return q; }, "TypeError: f(...) threw: an object"],
+    ];
+    for (const [what, f, want] of cases) {
+      const L = load(src, { f: [[], () => f] });
+      const got = await L.seen("r");
+      ok(`fn: async, ${what}: ${want}`, L.verdicts.join() === "r: ok" && got === want, [L.verdicts, got]);
+    }
+  }
+  {
+    // a result whose read throws: the check is under a try, so the cell gets the boundary's TypeError, never the object
+    const src = 'type R = { n: number };\nexport const r = (f: (s: string) => R) => f("x").n;\nexport const a = async (g: (s: string) => Promise<R>) => (await g("x")).n;';
+    const reads: [string, () => unknown, string, string][] = [
+      ["a getter that throws", () => ({ get n() { throw foreign; } }), "f(...): reading the result threw: an object", "g(...): reading the result threw: an object"],
+      ["a getter that throws a TypeError naming the function", () => ({ get n() { throw new TypeError("f(...) forged"); } }), "f(...): reading the result threw: f(...) forged", "g(...): reading the result threw: f(...) forged"],
+      ["a proxy whose get trap throws", () => new Proxy({}, { get() { throw foreign; } }), "f(...): reading the result threw: an object", "g(...) threw: an object"],
+      ["a proxy whose getPrototypeOf trap throws", () => new Proxy({ n: 1 }, { getPrototypeOf() { throw foreign; } }), "f(...): reading the result threw: an object", "g(...): reading the result threw: an object"],
+    ];
+    for (const [what, mk, wantS, wantA] of reads) {
+      const L = load(src, { f: [[], () => () => mk()], g: [[], () => async () => mk()] });
+      const r = await L.value("r"), a = await L.value("a");
+      ok(`fn: a result whose read throws, ${what}: a fresh TypeError, sync and async`, !leaked(r) && !leaked(a) && !r.ok && !a.ok && r.e instanceof TypeError && a.e instanceof TypeError && r.e.message === wantS && a.e.message === wantA, [String((r as any).e), String((a as any).e)]);
+    }
+  }
+  {
+    let wrapper: any = null, depth = 0;
+    const L = load("export const dbl = () => (n: number): number => n * 2;\nexport const exposed = (f: (n: number) => number) => f;\nexport const r = (f: (n: number) => number) => f(3);", {
+      dbl2: [["dbl"], (dbl: any) => dbl],
+      f: [["dbl2"], (dbl: any) => (n: number) => { depth++; const x = depth < 3 && wrapper ? wrapper(n) : dbl(n); depth--; return x; }],
+    });
+    const e = await L.value("exposed");
+    wrapper = e.ok ? e.v : null;
+    ok("fn: re-entrancy: the cell gets a frozen wrapper, not the raw function; it calls a checked function and itself", e.ok && e.v !== (await L.m.value("f")) && Object.isFrozen(wrapper) && (await L.seen("r")) === "value 6" && wrapper(5) === 10);
+    let calls = 0, done: () => void = () => {};
+    const stop = new Promise<void>((r) => (done = r));
+    const A = load("export const count = () => state(0);\nexport const bump = (count: State<number>) => action(() => count.update((c) => c + 1));\nexport const use = (f: (s: string) => number, count: number) => f(\"a\") + count;", {
+      f: [["bump"], (bump: any) => () => { calls++; if (calls < 20) bump(); else done(); return 0; }],
+    });
+    const u = await A.value("use");
+    if (u.ok) await stop;
+    // what the checker cannot see: an action called from inside the function runs the calling cell again
+    ok("fn: re-entrancy: an action called from inside the function runs the calling cell again (trusted, not checked)", A.verdicts.join() === "count: ok,bump: ok,use: ok" && calls === 20 && (await A.seen("use")) === "value 19", [A.verdicts, calls]);
+  }
+  {
+    const fixed = (s: string) => ({ n: s.length, tag: s });
+    let fresh = false;
+    const L = load(R + 'export const w = (f: (s: string) => R) => f;\nexport const kept = (w: (s: string) => R) => state(w("ab").n);', { tick: [[], () => 0], f: [["tick"], () => (fresh ? (s: string) => ({ n: 99, tag: s }) : fixed)] });
+    const w1 = (await L.value("w") as any).v;
+    L.m.redefine("tick", [], () => 1);
+    const w2 = (await L.value("w") as any).v;
+    fresh = true; L.m.redefine("tick", [], () => 2);
+    const w3 = (await L.value("w") as any).v;
+    ok("fn: the same raw function delivered again is the same wrapper; a new one is a new wrapper", w1 === w2 && w1 !== w3 && (await L.seen("kept")) === "value 99");
+    const raw = (s: string) => ({ n: s.length, tag: s });
+    const A = load(R + 'export const w = (f: (s: string) => R) => f("ab").n;', { f: [[], () => raw] });
+    const B = load('type R = { n: string };\nexport const w = (f: (s: string) => R) => f("ab").n;', { f: [[], () => raw] });
+    ok("fn: the same raw function to the same reader and parameter under another annotation: checked against the new one", (await A.seen("w")) === "value 2" && (await B.seen("w")) === "TypeError: f(...).n: expected string, found number 2", await B.seen("w"));
+  }
+  {
+    const L = load('type T = { v: number; kids: T[] };\ntype F = (s: string) => number;\ntype G<X> = (x: X) => X;\nexport const r = (f: (t: number, x?: T) => number, h: F, g: G<number>) => [f(1), f(2, { v: 3, kids: [{ v: 4, kids: [] }] }), h("abc"), g(4)];', { f: [[], () => (t: number, x?: any) => (x ? t + x.v + x.kids[0].v : t)], h: [[], () => (s: string) => s.length], g: [[], () => (x: number) => x * 10] });
+    ok("fn: an optional parameter of a recursive alias, an alias of a function type and a generic one", L.verdicts.join() === "r: ok" && (await L.seen("r")) === "value [1,9,3,40]", [L.verdicts, await L.seen("r")]);
+  }
+  // the checker: what is refused, with which message, and that an action may not use the function
+  const verdictsOf = (src: string, outside: { name: string; view?: boolean }[]) => checkSources({ cells: src, tsx: false, outside }).cells.map((c) => `${c.name}: ${c.status}${c.errors.map((e) => ` [${e.rule}] ${e.msg}`).join("")}`);
+  const refused: [string, string, { name: string; view?: boolean }[], string][] = [
+    ["inside an object", "const c = (g: { run: (s: string) => number }) => 1;", [{ name: "g" }], "c: rejected [boundary-type] g: { run: (s: string) => number } cannot cross from another language: it is or holds run: a function"],
+    ["inside an array", "const c = (g: (() => number)[]) => 1;", [{ name: "g" }], "c: rejected [boundary-type] g: (() => number)[] cannot cross from another language: it is or holds a function"],
+    ["inside a union", "const c = (g: (() => number) | null) => 1;", [{ name: "g" }], "c: rejected [boundary-type] g: () => number | null cannot cross from another language: it is or holds a function"],
+    ["under State", "const c = (h: State<(s: string) => number>) => 1;", [{ name: "h", view: true }], "c: rejected [boundary-type] h: (s: string) => number cannot cross from another language: it is or holds a function"],
+    ["with type parameters", "const c = (k: <T>(x: T) => T) => 1;", [{ name: "k" }], "c: rejected [boundary-type] k: <T>(x: T) => T cannot cross from another language: it is or holds a function with type parameters or a rest parameter"],
+    ["with a rest parameter", "const c = (k: (...xs: string[]) => number) => 1;", [{ name: "k" }], "c: rejected [boundary-type] k: (...r: string[]) => number cannot cross from another language: it is or holds a function with type parameters or a rest parameter"],
+    ["taking a function", "const c = (k: (cb: (s: string) => number) => number) => 1;", [{ name: "k" }], "c: rejected [boundary-type] k: (cb: (s: string) => number) => number cannot cross from another language: it is or holds a function whose parameter cb is or holds a function"],
+    ["giving a function", "const c = (k: (s: string) => () => number) => 1;", [{ name: "k" }], "c: rejected [boundary-type] k: (s: string) => () => number cannot cross from another language: it is or holds a function whose result is or holds a function"],
+    ["giving a Promise inside an object", "const c = (k: () => { p: Promise<number> }) => 1;", [{ name: "k" }], "c: rejected [boundary-type] k: () => { p: Promise<number> } cannot cross from another language: it is or holds a function whose result is or holds p: a promise"],
+    ["taking a Map", "const c = (k: (m: Map<string, number>) => number) => 1;", [{ name: "k" }], "c: rejected [boundary-type] k: (m: Map<string, number>) => number cannot cross from another language: it is or holds a function whose parameter m is or holds Map<string, number>, which the boundary does not check"],
+  ];
+  for (const [what, src, outside, want] of refused) { const got = verdictsOf(src, outside).join(" | "); ok(`fn: refused at check time, a function ${what}`, got === want, got); }
+  const acts = verdictsOf('type R = { n: number };\nconst parse = (f: (s: string) => R) => (s: string): R => f(s);\nconst box = () => state(0);\nconst act1 = (f: (s: string) => R, box: State<number>) => action(() => box.set(f("x").n));\nconst act2 = (parse: (s: string) => R, box: State<number>) => action(() => box.set(parse("x").n));', [{ name: "f" }]);
+  ok("fn: an action may not use the function, nor a checked cell that reads it ([action-capture])", acts.slice(0, 2).join() === "parse: ok,box: ok" && acts[2]!.startsWith("act1: rejected [action-capture] f depends on state (the value of f, a cell in another language)") && acts[3]!.startsWith("act2: rejected [action-capture] parse depends on state (parse reads f)"), acts);
+  // not refused: a state cell made from the function, read and called inside an action (S11.9)
+  ok("fn: a state cell made from the function, read and called inside an action, is accepted", verdictsOf("const box = (g: () => number) => state(g);\nconst n = () => state(0);\nconst run = (box: State<() => number>, n: State<number>) => action(() => n.set(read(box)()));", [{ name: "g" }]).join() === "box: ok,n: ok,run: ok");
+  ok("fn: accepted: an optional parameter, an async result, no parameters", verdictsOf("const c = (k: (s: string, n?: number) => number, a: (s: string) => Promise<{ n: number }>, z: () => void) => 1;", ["k", "a", "z"].map((name) => ({ name }))).join() === "c: ok");
 }
 
 console.log(`${pass} pass, ${fail} fail`);
