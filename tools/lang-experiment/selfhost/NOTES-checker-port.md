@@ -555,3 +555,14 @@ demos `rt.ts`, `rt-tv.ts`, `rt-foreign.ts`, `rt-foreign2.ts`; `*-before.txt` and
   map" lines, notebook 4,184,021 bytes. verify --quick 220 pass 0 fail (the new rows sit in existing test cells). One
   full verify: `power AC Power; functional 649 pass 0 fail; measurements 8`; completion median 6.3 ms, Breakout 48.6.
 - `/review-notebook` was not run on the spec or these notes.
+
+## 2026-11-21 22:00: the notebook's tests run in bun (`bun-verify/`)
+Record: `bun-verify/README.md`. `bun tools/lang-experiment/bun-verify/run.ts [--filter s] [--all] [--mains …]`
+boots `soundscript.html` with no browser and runs its `test_*` cells. My run, AC: `bun-verify: 168 pass, 0 fail,
+0 timed out, 0 skipped; 5.2 s` (boot 4.1 s, tests 1.1 s); `--filter test_spec_S6_`: 19 pass, 4.4 s. The browser
+verify takes 4 to 15 minutes. Before, `tools/lope-tests.ts` gave 348 pass, 14 fail, 62 timed out in 63.6 s; 33 of
+the 76 were one cause (inline `module-shim` scripts never ran), the rest the test toggle, `script.innerHTML`
+parsed as HTML, `Worker`, animation frames, and a happy-dom symbol-key bug. The wrapper supplies these; nothing
+in `tools/` was changed. Of verify's 649 pass lines: 162 are these cells, 106 could be ported, 381 need a
+browser (248 of them export and reopen). Not settled: `test_spec_S7_7` and `S7_5` pass only with the extra
+compute `lope-runtime.js`'s settle loop makes on each poll, which a browser never makes.
