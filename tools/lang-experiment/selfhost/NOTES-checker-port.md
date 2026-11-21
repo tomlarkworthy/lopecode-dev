@@ -650,3 +650,14 @@ at run time; JavaScript holding the reference can write it, and by reference an 
 An `Elem` whose `onClick` is another module's action crosses as plain data; keep `Elem` on today's path.
 Cost: about 420 lines; types only (`import type`, no gate, copy kept) is about 60.
 Measured (AC, load 5-9): delivery of a 913-node tree 0.44-0.87 ms copied -> ~0 by reference.
+
+## 2026-11-22 02:50: `bun-live/`: the notebook kept booted in bun, each save applied as redefinitions
+Record: `bun-live/README.md`. Builder's numbers, not rerun by me (the build owner has the machine).
+A body-only edit is compiled by the notebook's own `compileCell` and only differing variables are redefined;
+anything else builds into scratch and the output is diffed against the booted state.
+Equivalence against a fresh boot: 21 scripted edits (body, add, delete, rename, type-only, checker error and
+fix, parse error and repair), all SAME over 168 tests, about 789 cell states and 2107 definitions; four
+divergences found in the first two runs and fixed (tests that read a cell by name kept stale results).
+Latency, median of 10, AC, load 4-5: runtime cell 4.9 s, spec test 3.4 s, checker cell 12.7 s, against build +
+bun-verify 14.5 s. Compiling is under 0.2 s; the rest is tests rerunning. A checker edit gains 1.14x only.
+Needs a restart for a new module or an edit to the toolchain files it imports.
