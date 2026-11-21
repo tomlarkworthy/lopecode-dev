@@ -635,3 +635,18 @@ in 20 files, for a gain of 5 lines in `cells.ts`; the store and renderer tables 
 handle in state keeps its object alive.
 Found on the way, in shipped code: `Events<T>` is assignable to `{}` and then `unknown`, and a narrowed `.name`
 read gets through; it also passes through template literals, `+`, `==`, `equals`, `messageOf`, `join`, `in`.
+
+## 2026-11-22 02:20: typed imports between checked modules (prototype, `selfhost/typed-imports/`)
+Record: `selfhost/typed-imports/RESULTS.md`. Built to the design agreed with Tom (one checker per runtime, every
+`export const`, by reference, a module is SoundScript only if it decompiles, checks and recompiles to itself).
+25 cells; 77 probes as expected; 603 shipped sources and 454 one-module programs check as today.
+Not sound yet as built: the gate compares text, and three forgeries pass it: a definition with its own
+`toString` (read by `String(def)`, as today's `ss_isSs` does); compiled text evaluated inside a closure that
+shadows `Math` (`@a.m` becomes NaN, no error; today's boundary copy would catch the value); a redefined runtime
+input `ss_h`. Fix offered: the gate redefines each variable from the text it checked (about 20 lines).
+Found on the way, present today inside one module: `RegExp.test` on a `g` regexp writes `lastIndex`, so two
+checked cells calling `re.test("a")` on one value got `false` and `true`. No value a checked cell makes is frozen
+at run time; JavaScript holding the reference can write it, and by reference an importer shares that.
+An `Elem` whose `onClick` is another module's action crosses as plain data; keep `Elem` on today's path.
+Cost: about 420 lines; types only (`import type`, no gate, copy kept) is about 60.
+Measured (AC, load 5-9): delivery of a 913-node tree 0.44-0.87 ms copied -> ~0 by reference.

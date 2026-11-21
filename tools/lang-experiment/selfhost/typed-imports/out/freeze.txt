@@ -1,0 +1,25 @@
+| producer | status in @b | deeply frozen at run time | JavaScript can | a checked importer's write |
+|---|---|---|---|---|
+| obj | ok | false | set a property | rejected member-write |
+| arr | ok | false | set a property | rejected mutating-method |
+| map | ok | false | set a property | rejected mutating-method |
+| set | ok | false | set a property | rejected mutating-method |
+| typed | ok | false | set a property | rejected member-write |
+| regexp | ok | false | set a property | ok |
+| fn | ok | false | set a property | rejected member-write,no-member |
+| frozenMut | ok | false | set a property | rejected mutating-method |
+| cloned | ok | false | set a property | rejected member-write |
+| parsed | ok | false | set a property | ok |
+| spread | ok | false | set a property | rejected mutating-method |
+| elem | ok | true | none | ok |
+| crossed | ok | true | none | ok |
+| stateValue | ok | false | set a property | ok |
+
+| refused producer | verdict |
+|---|---|
+| a Mut returned | rejected [mut-escape] Mut m returned |
+| a function closing over a Mut | rejected [mut-capture] Mut m captured by a function that escapes (not a local helper that is only called) |
+| a Mut-typed result | rejected [mut-bind] mut(...) must be the initializer of a local const |
+
+regexp shared by reference: t1 = false, t2 = true (the same call on the same value, run one after the other)
+errors: []

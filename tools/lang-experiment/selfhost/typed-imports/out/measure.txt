@@ -1,0 +1,26 @@
+three modules: program ok = true,true,true, today ok = true,true,true
+[Now drawing from 'AC Power'; load 5.03 7.89 10.49]
+  today, three checks: min 1.737 median 2.353 max 6.323 (n=15) ms
+[Now drawing from 'AC Power'; load 5.03 7.89 10.49]
+  one program (ti): min 1.851 median 2.116 max 4.601 (n=15) ms
+acorn: program ok = true,true; today ok = true
+[Now drawing from 'AC Power'; load 5.03 7.89 10.49]
+  today, the importer alone (the Parse types declared again): min 8.835 median 12.333 max 15.737 (n=7) ms
+[Now drawing from 'AC Power'; load 5.03 7.89 10.49]
+  the producer alone: min 9.845 median 11.208 max 13.954 (n=7) ms
+[Now drawing from 'AC Power'; load 5.03 7.89 10.49]
+  one program, producer and importer (ti): min 18.234 median 20.650 max 25.116 (n=7) ms
+tree: 913 nodes (lite/infer/md-cell.ss.ts, 4346 characters)
+cross gives a copy: true, deeply frozen: true, count 913
+[Now drawing from 'AC Power'; load 5.03 7.89 10.49]
+  today, ss_cross per delivery, one reading parameter (a new tree each time, equal to the last): min 0.735 median 0.868 max 3.645 (n=200) ms
+[Now drawing from 'AC Power'; load 5.03 7.89 10.49]
+  today, ss_cross per delivery, a fresh parameter key each time (no comparison with the last copy): min 0.400 median 0.435 max 2.004 (n=200) ms
+[Now drawing from 'AC Power'; load 5.03 7.89 10.49]
+  a deep freeze of a fresh tree (the remedy weighed in RESULTS.md): min 0.109 median 0.130 max 0.566 (n=200) ms
+[Now drawing from 'AC Power'; load 5.03 7.89 10.49]
+  by reference: the reference itself (an identity call): min 0.000 median 0.000 max 0.057 (n=200) ms
+[Now drawing from 'AC Power'; load 5.03 7.89 10.49]
+  Runtime, raw redefined and @user.count awaited (typed): min 0.871 median 1.049 max 5.478 (n=60) ms; count right: true; errors 0
+[Now drawing from 'AC Power'; load 5.03 7.89 10.49]
+  Runtime, raw redefined and @user.count awaited (today): min 1.923 median 2.079 max 3.418 (n=60) ms; count right: true; errors 0

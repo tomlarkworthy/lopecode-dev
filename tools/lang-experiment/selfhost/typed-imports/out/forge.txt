@@ -1,0 +1,55 @@
+== clean: the program as compiled
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"SoundScript","@a":"SoundScript"}
+== comment-type-lie: n's code returns "s"; its comments make the decompiled source `(): number => 1 + 0 * ("s").length`
+   decompiles to "export const n = (): number => 1 + 0 * (\"s\").length;"; runs to "s"; @a.use = "s1"
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"another language (n: the definition does not recompile to itself)","@a":"another language (m: the definition does not recompile to itself)"}
+== js-lookalike: n's definition: the marker, header and function, inside a block that also writes globalThis
+   decompiles to "export const n = (): number => 1;"
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"another language (n: the definition does not recompile to itself)","@a":"another language (m: the definition does not recompile to itself)"}
+== one-char-in-body: n's `=> 1` changed to `=> 7` (the source it decompiles to is what runs)
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"SoundScript","@a":"SoundScript"}
+== one-char-in-type: n's `/*ss:: number*/` changed to `/*ss:: string*/`
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"another language (n: the definition does not recompile to itself)","@a":"another language (m: the definition does not recompile to itself)"}
+== one-char-outside: @a.m's argument `(x)` changed to `(-x)`
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"SoundScript","@a":"another language (m: the definition does not recompile to itself)"}
+== one-char-header: n's header `export const n = ` changed to `export const N = `
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"another language (n: the definition does not recompile to itself)","@a":"another language (m: the definition does not recompile to itself)"}
+== type-cell-code: the type cell P runs `globalThis.__forged = 1` in place of `0`
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"another language ($ss$type$P: the definition does not recompile to itself)","@a":"another language (m: the definition does not recompile to itself)"}
+== jsx-lowered: el's lowered h("div", {}, "ok") changed to "evil"; the kept original still says ok
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"another language (el: the definition does not recompile to itself)","@a":"another language (m: the definition does not recompile to itself)"}
+== state-value-lookalike: the value variable of state cell s defined as `(G, _) => 5` in place of Observable's G.input
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"another language (s: the source compiles to a variable the module does not have)","@a":"another language (m: the definition does not recompile to itself)"}
+== state-value-inputs: the value variable of s keeps its text but takes viewof n
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"another language (s: inputs Generators,viewof n recompile as Generators,viewof s)","@a":"another language (m: the definition does not recompile to itself)"}
+== tostring-own-property (read with String): n's function has its own toString returning the compiled text; the gate reads String(definition)
+   String(definition) gives the compiled text; Function.prototype.toString gives the forged code
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"SoundScript","@a":"SoundScript"}
+== tostring-own-property (read with Function.prototype.toString): the same forge; the gate reads Function.prototype.toString.call(definition)
+   String(definition) gives the compiled text; Function.prototype.toString gives the forged code
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"SoundScript","@a":"another language (use: the definition does not recompile to itself)"}
+== import-rewired (rejects): @a's import variable x rewired from @b.good (number) to @b.evil (string); @a.m is x * 2
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"SoundScript","@a":"another language (m: the definition does not recompile to itself)"}
+== import-rewired (still checks): the same rewiring, with @a holding only `same = (x) => x`
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"SoundScript","@a":"SoundScript"}
+== tightened-rule: @b's r = (): number => [1][0]! compiled when the checker did not ban `!` (syntaxBans given as none), so r compiled as a running cell; gated by the present checker, which rejects it [no-non-null]
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"another language (r: the definition does not recompile to itself)","@a":"another language (m: the definition does not recompile to itself)"}
+== cascade: the comment-type lie on n: @b is another language, so @a's import k of n must cross as today, and @a was compiled without ss_cross
+   control (decompile + check): {"@b":"SoundScript","@a":"SoundScript"}
+   gate (decompile + check + recompile): {"@b":"another language (n: the definition does not recompile to itself)","@a":"another language (m: the definition does not recompile to itself)"}

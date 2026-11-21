@@ -1,0 +1,2 @@
+probes 77: as expected 77, surprises 0; 109 ms
+data 7/7, annotation 5/5, function 8/8, type 9/9, chain 5/5, clash 6/6, rejected 4/4, language 5/5, cycle 5/5, prelude 3/3, taint 7/7, fed 5/5, handle 5/5, edit 3/3

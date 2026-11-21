@@ -1,0 +1,6 @@
+(1) typed: @a.held === @b.tree: true; kids === : true; sum 3; boundary copies made: 0; errors 0
+(1) today: @a.held === @b.tree: false; kids === : false; sum 3; boundary copies made: 2; errors 0
+(2) @b.tree redefined: @a.held now {"kind":"root","kids":[{"kind":"leaf","v":10}]} (sum 10); the value @a held before: unchanged {"kind":"root","kids":[{"kind":"leaf","v":1},{"kind":"leaf","v":2}]}; same object as now: false
+(3) first check: @a twice ok; runs {"graph":1,"check_b":1,"check_a":1}
+    @b redefined (n: string): @a twice rejected [type] string used as a number; @a's exports: [["twice",null]]; runs {"graph":2,"check_b":2,"check_a":2}
+    @a redefined (k + k): @a twice ok; runs {"graph":3,"check_b":3,"check_a":3}

@@ -1,0 +1,4 @@
+"const m = (btn) => btn.props;" [["m","rejected",["no-member no property props on Elem"]]]
+"const m = (btn) => btn.onClick;" [["m","rejected",["no-member no property onClick on Elem"]]]
+"const m = (btn) => <div>{btn}</div>;" [["m","ok",[]]]
+"const n = () => state(0);\nconst m = (n: State<number>, btn) => action(() => n.set(btn ? 1 : 0));" [["n","ok",[]],["m","ok",[]]]

@@ -1,0 +1,9 @@
+closure shadowing Math: text equal true; @b.n = "s"; @a.m = NaN; gate {"@b":"SoundScript","@a":"SoundScript"}
+ss_h redefined: @b.el = "forged"; gate {"@b":"SoundScript"}
+Function.prototype.toString of a Proxy: "function ProxyObject() { [native code] }"; of a bound function: "function _n() {\n    [native code]\n}"
+alias: @b.go ok; export kind handle type set; @a.m rejected [boundary-unannotated] go is a cell in another language; annotate the parameter with the type it must have, e.g. go: number
+record of an alias: @b.box ok; export kind handle type set; @a.m rejected [boundary-unannotated] box is a cell in another language; annotate the parameter with the type it must have, e.g. box: number
+interface: @b.box ok; export kind handle type set; @a.m rejected [boundary-unannotated] box is a cell in another language; annotate the parameter with the type it must have, e.g. box: number
+inferred record: @b.box ok; export kind handle type set; @a.m rejected [boundary-unannotated] box is a cell in another language; annotate the parameter with the type it must have, e.g. box: number
+Elem with an action: @b.btn ok; export kind value type set; @a.m ok
+import type: @a.f = 2; variables $ss$import$P,f; gate {"@c":"SoundScript","@a":"SoundScript"}; errors []
