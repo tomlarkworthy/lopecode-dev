@@ -1,0 +1,18 @@
+corpus: 360 inputs that parse, 164284 chars, 33903 nodes (flat rows 33903); nested shape 36836 chars of JSON, flat 41364
+bare acorn + TS plugin                                  25.5 ms    0.75 µs/node
+parse.ts                                                27.2 ms    0.80 µs/node
+adapter: nestParse (parse + nest)                       33.1 ms    0.98 µs/node
+flat adapter: flatParse layout A                        34.9 ms    1.03 µs/node
+nested, rec: checkShape (copy+freeze, memo on)        2950.3 ms   87.02 µs/node
+nested, rec: memo off                                 3007.4 ms   88.71 µs/node
+nested, rec: memo on, no freeze                       3036.8 ms   89.57 µs/node
+nested, rec: cross() first delivery                   2984.9 ms   88.04 µs/node
+nested, rec: cross() re-delivery of an equal value    2948.8 ms   86.98 µs/node
+nested, recdisp (tag dispatch): checkShape            2232.3 ms   65.85 µs/node
+nested, recdisp: cross() first delivery               2260.3 ms   66.67 µs/node
+nested, recdisp: cross() re-delivery                  2269.4 ms   66.94 µs/node
+flat, orig: cross() first delivery                     308.6 ms    9.10 µs/node
+flat, recdisp: cross() first delivery                   44.7 ms    1.32 µs/node
+rec and recdisp copies equal on 360 of 360 inputs
+
+[exited with code 0]

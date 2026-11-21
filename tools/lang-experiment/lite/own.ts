@@ -15,19 +15,26 @@ export { kids };
 
 // What in t may be a one-shot iterator: Iterable (values(), keys() and entries() give one, and an array typed Iterable
 // may be one), Generator, or a type parameter. A function type holds none: a call makes its result anew.
-export function iterIn(t: Ty, reg: Registry, depth = 0): string | null {
+// none: per alias without type arguments, the least depth its walk found nothing from; from as deep it finds nothing again
+export function iterIn(t: Ty, reg: Registry, depth = 0, none = new Map<string, number>()): string | null {
   if (depth > 12) return null;
-  const inner = (ts: Ty[]) => { for (const x of ts) { const w = iterIn(x, reg, depth + 1); if (w) return w; } return null; };
+  const inner = (ts: Ty[]) => { for (const x of ts) { const w = iterIn(x, reg, depth + 1, none); if (w) return w; } return null; };
   switch (t.k) {
     case "tv": return `the type parameter ${show(t)}`;
     case "arr": return inner([t.el]);
     case "tup": return inner(t.els);
     case "union": return inner(t.ts);
     case "rec": return inner([...[...t.props.values()].map((p) => p.t), ...(t.index ? [t.index] : [])]);
-    case "named":
+    case "named": {
       if (t.n === "Iterable" || t.n === "Generator") return show(t);
       if (t.n === "Action" || t.n === "State" || t.n === "Events") return null;
-      return reg.isAlias(t.n) ? iterIn(reg.expand(t), reg, depth + 1) : inner(t.args ?? []);
+      if (!reg.isAlias(t.n)) return inner(t.args ?? []);
+      const plain = !t.args?.length, at = none.get(t.n);
+      if (plain && at !== undefined && at <= depth) return null;
+      const w = iterIn(reg.expand(t), reg, depth + 1, none);
+      if (!w && plain) none.set(t.n, depth);
+      return w;
+    }
     default: return null;
   }
 }

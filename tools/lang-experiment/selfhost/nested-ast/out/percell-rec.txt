@@ -1,0 +1,27 @@
+rec kids-n.ss.ts: total 17069 ms
+  childrenOf           17062.9 ms
+  own cells total 17063 ms, prefix cells 0 ms
+rec visit-n.ss.ts: total 66744 ms
+  statementCells       8399.1 ms
+  declOf               7992.5 ms
+  localsOf             7619.1 ms
+  bansAt               4213.7 ms
+  refs                 4108.4 ms
+  declaredIn           3600.5 ms
+  captures             3356.0 ms
+  declaratorCell       1110.9 ms
+  moduleShape          879.5 ms
+  moduleLevelRule      848.9 ms
+  syntaxPass           798.0 ms
+  kids                 701.4 ms
+  own cells total 47885 ms, prefix cells 18845 ms
+rec visit-own.ss.ts: total 105387 ms
+  valueSpan            13340.9 ms
+  treeOf               8742.0 ms
+  opaqueCaptures       5093.8 ms
+  usesInActions        4974.4 ms
+  whyOf                2490.8 ms
+  within               0.7 ms
+  ownFactsIn           0.3 ms
+  isLocal              0.2 ms
+  own cells total 34643 ms, prefix cells 70732 ms

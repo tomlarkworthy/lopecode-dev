@@ -487,6 +487,7 @@ export class Checker {
   // the first Action in s that a position of t of type unknown, object or an opaque type parameter would take
   hidden(s: Ty, t: Ty, opaque: Set<string> | null, depth = 0, find: (x: Ty) => string | null = (x) => this.actionIn(x, 0)): string | null {
     if (depth > 10 || s.k === "err" || t.k === "err" || s.k === "never") return null;
+    if (!this.mayHide(t)) return null;
     const H = (a: Ty, b: Ty) => this.hidden(a, b, opaque, depth + 1, find);
     if (t.k === "unknown" || t.k === "object" || (t.k === "tv" && opaque?.has(t.n))) return find(s);
     if (s.k === "named" && this.reg.isAlias(s.n)) return H(this.reg.expand(s), t);
@@ -525,6 +526,33 @@ export class Checker {
       }
       default: return null;
     }
+  }
+  // t has, somewhere hidden walks (aliases expanded once each), unknown, object, a type parameter or a function: what
+  // makes hidden call find or hiddenFn; also true past a depth of generic aliases, where hidden stops looking
+  mayHideMemo = new WeakMap<Ty, boolean>();
+  mayHide(t: Ty): boolean {
+    const hit = this.mayHideMemo.get(t);
+    if (hit !== undefined) return hit;
+    const seen = new Set<string>();
+    const go = (x: Ty, d: number): boolean => {
+      switch (x.k) {
+        case "unknown": case "object": case "tv": case "fn": return true;
+        case "named":
+          if (!this.reg.isAlias(x.n)) return x.args.some((a) => go(a, d));
+          if (x.args.length) return d > 10 || go(this.reg.expand(x), d + 1);
+          if (seen.has(x.n)) return false;
+          seen.add(x.n);
+          return go(this.reg.expand(x), d);
+        case "arr": return go(x.el, d);
+        case "tup": return x.els.some((e) => go(e, d));
+        case "union": return x.ts.some((m) => go(m, d));
+        case "rec": return !!x.calls?.length || !!x.ctors?.length || (!!x.index && go(x.index, d)) || [...x.props.values()].some((p) => go(p.t, d));
+        default: return false;
+      }
+    };
+    const r = go(t, 0);
+    this.mayHideMemo.set(t, r);
+    return r;
   }
   // a function of type s used as t: what it returns goes to t's return type, and what t's caller passes goes to s's parameters
   hiddenFn(s: Ty, t: Fn, opaque: Set<string> | null, depth: number, find?: (x: Ty) => string | null): string | null {

@@ -70,15 +70,23 @@ export const partsOf = () => (t: Ty): Ty[] => {
   }
 };
 // the first of names that t mentions anywhere (aliases expanded), or null
-export const holdsWith = (partsOf) => (R: RegOps) => {
-  function holds(t: Ty, names: string[], depth: number = 0): string | null {
+export const holdsWith = (partsOf) => (R: RegOps) => (t: Ty, names: string[]): string | null => {
+  // per alias without type arguments, the least depth its walk found nothing from; from as deep it finds nothing again
+  const none: Mut<Map<string, number>> = mut(new Map());
+  function holds(x: Ty, depth: number): string | null {
     if (depth > 12) return null;
-    if (t.k === "named" && names.includes(t.n)) return t.n;
-    if (t.k === "named" && R.isAlias(t.n)) return holds(R.expand(t), names, depth + 1);
-    for (const k of t.k === "named" ? t.args : partsOf(t)) { const w = holds(k, names, depth + 1); if (w) return w; }
+    if (x.k === "named" && names.includes(x.n)) return x.n;
+    if (x.k === "named" && R.isAlias(x.n)) {
+      const plain = x.args.length === 0, at = none.get(x.n);
+      if (plain && at !== undefined && at <= depth) return null;
+      const w = holds(R.expand(x), depth + 1);
+      if (!w && plain) none.set(x.n, depth);
+      return w;
+    }
+    for (const k of x.k === "named" ? x.args : partsOf(x)) { const w = holds(k, depth + 1); if (w) return w; }
     return null;
   }
-  return holds;
+  return holds(t, 0);
 };
 
 // t holds err, or an alias the checker could not convert: such a parameter type was reported where it is written

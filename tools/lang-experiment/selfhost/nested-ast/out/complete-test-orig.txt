@@ -1,0 +1,2 @@
+  completion on a 12-cell module: median 0.6 ms, max 1.8 ms
+58 pass, 0 fail

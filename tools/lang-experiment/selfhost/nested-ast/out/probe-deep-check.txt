@@ -1,0 +1,7 @@
+n=500: orig checkSources rejected ["inject-unknown"]; cross (no depth limit) ok; port 0 diags; captures 0
+n=1000: orig checkSources rejected ["inject-unknown"]; cross (no depth limit) ok; port 0 diags; captures 0
+n=1990: orig checkSources rejected ["inject-unknown"]; cross (no depth limit) ok; port 0 diags; captures 0
+n=2500: orig checkSources rejected ["inject-unknown"]; cross (no depth limit) ok; port 0 diags; captures 0
+n=3000: orig checkSources rejected ["inject-unknown"]; cross (no depth limit) ok; port 0 diags; captures 0
+n=5000: orig checkSources rejected ["inject-unknown"]; cross (no depth limit) ok; port 0 diags; captures 0
+n=15000: orig checkSources rejected ["inject-unknown"]; cross (no depth limit) RangeError: Maximum call stack size exceeded.; port not crossed

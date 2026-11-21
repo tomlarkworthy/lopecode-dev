@@ -1,0 +1,7 @@
+corpus: 1004 cells, 99 with an action body; same 99, differ 0; cells with an opaque capture 7 (7 captures); bindings with a fnNode outside the cell 0, with a node outside the parse 8
+synthetic: 20 cells, 5 with an action body; same 5, differ 0; cells with an opaque capture 1 (1 captures); bindings with a fnNode outside the cell 0, with a node outside the parse 0
+synthetic-own: 5 cells, 4 with an action body; same 4, differ 0; cells with an opaque capture 3 (6 captures); bindings with a fnNode outside the cell 0, with a node outside the parse 0
+control (treeOf takes every child of a JSX opening element as a component name (drops p.name.nid === n.nid)): differ 1 of 108
+control (valueSpan ignores fnNode): differ 1 of 108
+control (usesInActions ignores b.node === r (nid identity)): differ 0 of 108
+control (valueSpan ignores the for...of left === decl test): differ 2 of 108

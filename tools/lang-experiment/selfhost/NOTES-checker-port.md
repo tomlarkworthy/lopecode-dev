@@ -42,3 +42,25 @@ leading arguments on every call. Not started on the real class.
 - Flat table (`selfhost/flat-ast/RESULTS.md`): works, 0 differences on two visitors, 1.6x lines, about 10 us per
   node at the boundary. Rejected by Tom, 2026-11-21.
 - Nested tree crossing the boundary with node ids: prototype running in `selfhost/nested-ast/`.
+
+## 2026-11-21: two performance defects fixed (found by `selfhost/nested-ast/`)
+- Four type walks re-expanded a recursive alias at every level (`holdsWith`, `iterIn`, `Checker.hidden`, `sub`).
+  Depth memos, a memoised `mayHide`, and a fast path at `Registry.sub` that runs only when no report would be
+  lost. One cell over a 122-record recursive union: 93375 ms -> 273 ms to check; corpus 692 -> 371 ms (min of 7).
+  Frozen against live, my run: 775 sources, 3202 records, 0 differences. `lite/walks.test.ts` bounds expansion
+  counts (18071772 before, bound 100000).
+- `cross()` tried union members in order; it now picks by a shared literal tag when every member is a record:
+  8.02 -> 0.95 us per node. One verdict changed of 8219 cases: a value whose tag getter returns a different
+  value on each read was crossed and is refused now. `lite/boundary.test.ts`.
+- verify 629 pass 0 fail on AC; completion median 2.4 ms; Breakout 54.5 after play (the 46 seen earlier was on
+  battery).
+- Subtype defects seen and kept as they are (repros in `lite/soundscript/.scratch/perf-fixes/probes/`): a pair
+  that failed earlier in one comparison stays in `seen` and counts as true later in it; `S <: S | null` is
+  rejected for `S = Mut<number[]> | number`; `Mut<number[]>` against `MN | Promise<MN>` is rejected.
+
+## Rulings, Tom 2026-11-21
+- Recursive types may cross the boundary ("recursive types are very useful and we will probably do lots more
+  acorn stuff in the future"). Not yet in the shipped code.
+- A module `soundscript-acorn`, written in SoundScript except for the unsound parser cell, bundling the
+  dependency and the types, giving a checked function entrance to typed acorn ASTs. Prototype running in
+  `selfhost/ss-acorn/`; it needs a checked cell to call a shell cell's function with the result validated per call.

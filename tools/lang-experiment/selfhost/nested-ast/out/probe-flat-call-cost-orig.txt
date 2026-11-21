@@ -1,0 +1,24 @@
+checker copy: orig
+121-member FNode: types + one cell f: 4.0 ms
+  g calls f(nodes, j) 0 times: 0.4 ms over the base, ok=true
+  g calls f(nodes, j) 1 times: 25.6 ms over the base, ok=true
+  g calls f(nodes, j) 2 times: 46.7 ms over the base, ok=true
+  g calls f(nodes, j) 4 times: 87.7 ms over the base, ok=true
+  g calls f(nodes, j) 8 times: 191.0 ms over the base, ok=true
+  g calls h(row) 1 times: 33.4 ms over its base, ok=true
+  g calls h(row) 4 times: 124.6 ms over its base, ok=true
+  g takes f, never calls it: -2.5 ms over the base
+2-member FNode: types + one cell f: 0.2 ms
+  g calls f(nodes, j) 0 times: 0.0 ms over the base, ok=true
+  g calls f(nodes, j) 1 times: 0.0 ms over the base, ok=true
+  g calls f(nodes, j) 2 times: 0.1 ms over the base, ok=true
+  g calls f(nodes, j) 4 times: 0.1 ms over the base, ok=true
+  g calls f(nodes, j) 8 times: 0.2 ms over the base, ok=true
+  g calls h(row) 1 times: 0.1 ms over its base, ok=true
+  g calls h(row) 4 times: 0.1 ms over its base, ok=true
+  g takes f, never calls it: 0.0 ms over the base
+121-member FNode, 4 calls each:
+  h(row), row: FNode                    30.38 ms per call
+  h(row), row narrowed to Identifier    0.45 ms per call
+  hi(row), row narrowed to Identifier   0.19 ms per call
+  no call: n.start read 4 times         0.10 ms per read

@@ -1,0 +1,17 @@
+module shape: original 32 code lines; nested port 55
+syntax pass: original 24 code lines; nested port 39
+captures: original 78 code lines; nested port 105
+total: original 134; nested port 199 (×1.49); flat port A 215 against 134 (../flat-ast/out/lines.txt)
+line + leading: nested port 20; parsed (the outside cell) 1
+visit-n.ss.ts: 28 cells, 220 code lines; largest declaredIn 16, actionUses 16, bound 15, spreadTaint 15, statementCells 13
+kids-n.ss.ts: 111 code lines
+ast-n.ss.ts: 250 code lines
+adapter.ts: 89 code lines
+gen.ts: 65 code lines
+visit-own.ss.ts: 8 cells, 102 code lines; largest whyOf 39, opaqueCaptures 17, treeOf 16, usesInActions 11
+  module shape: 8 cells (6 multi-line), type declarations 4, cell header+closer 12, bodies 39
+  syntax pass: 7 cells (6 multi-line), type declarations 1, cell header+closer 12, bodies 26
+  captures: 10 cells (9 multi-line), type declarations 2, cell header+closer 18, bodies 85
+  original syntax pass: function header+closer 2, bodies 22; original captures: function header+closer 8, bodies 70
+identity visitor: capture.ts opaqueCaptures 56 code lines; port (visit-own.ss.ts, all 14 declarations) 102; 8 cells, largest whyOf 39, opaqueCaptures 17, treeOf 16
+  own.ts actionEscapes 102 code lines, ownership 371 (not ported)

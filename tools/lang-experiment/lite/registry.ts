@@ -5,7 +5,7 @@ import {
   type Ty, type Fn, type Rec, type Prop, type Param, type Flags, type Subst,
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, SYMBOL, BOOL,
   union, show, subst, named, arr, WRAPPERS, isNamed, tpNames,
-  type RegOps, type DeclOps, builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, unifyWith,
+  type RegOps, type DeclOps, builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, memberOfWith, unifyWith,
 } from "./types.ts";
 import { INTRINSIC_DECLS, PRELUDE_DECLS, TYPED_ARRAYS, JSX_DECLS } from "./intrinsics.ts";
 
@@ -285,8 +285,45 @@ export class Registry {
   iterElem = iterElemWith(this.ops);
   subOps = subWith(this.ops, this.iterElem, this.callSigs);
   unifyOps = unifyWith(this.ops, this.subOps, this.iterElem, this.callSigs);
-  sub(s: Ty, t: Ty, seen: Set<string> = new Set()): boolean {
-    return this.subOps(s, t, seen);
+  memberOf = memberOfWith(this.ops);
+  sub(s: Ty, t: Ty, seen?: Set<string>): boolean {
+    // the scan memberOf skips would record pairs in a seen of the caller's, and convert aliases, which may report
+    if (!seen && this.quiet(s) && this.quiet(t) && this.memberOf(s, t)) return true;
+    return this.subOps(s, t, seen ?? new Set());
+  }
+  // alias keys whose expansion, and that of every alias it reaches, reports nothing (conversion is deterministic)
+  quietKeys = new Set<string>();
+  // expanding t, or any alias it reaches, reports no problem
+  quiet(t: Ty): boolean {
+    const seen = new Set<string>();
+    const go = (x: Ty): boolean => {
+      switch (x.k) {
+        case "named": {
+          if (!this.isAlias(x.n)) return x.args.every(go);
+          const key = show(x);
+          if (this.quietKeys.has(key) || seen.has(key)) return true;
+          if (seen.size > 1000) return false;
+          seen.add(key);
+          const e = this.expandMemo.get(key) ?? this.trial(x);
+          return !!e && e.k !== "err" && go(e);
+        }
+        case "arr": return go(x.el);
+        case "tup": return x.els.every(go);
+        case "union": return x.ts.every(go);
+        case "rec": return [...x.props.values()].every((p) => go(p.t)) && (!x.index || go(x.index)) && [...(x.calls ?? []), ...(x.ctors ?? [])].every(go);
+        case "fn": return x.ps.every((p) => go(p.t)) && go(x.ret);
+        default: return true;
+      }
+    };
+    const ok = go(t);
+    if (ok) for (const k of seen) this.quietKeys.add(k);
+    return ok;
+  }
+  // t expanded with nothing kept: its expansion, or null when expanding it reports a problem
+  trial(t: Ty): Ty | null {
+    let loud = false;
+    const e = this.peek(() => { this.onUnsup = () => void (loud = true); this.onErr = () => void (loud = true); return this.expand(t); });
+    return loud ? null : e;
   }
   // inference: collect candidates for type variables in `tvs` by matching parameter p against argument a
   unify(p: Ty, a: Ty, m: Subst, tvs: Set<string>, depth = 0): void {

@@ -1,0 +1,14 @@
+rec-0 ["  mk inject-unknown L6 parameter ev names no cell, foreign or capability","  mk inject-unknown L6 parameter s names no cell, foreign or capability","  mk untyped-parameter L6 parameter has no type and no contextual type","  mk state-write L6 State.set outside action(...)","  mk type L6 (x: err) =>
+rec-1 ["  ret inject-unknown L6 parameter ev names no cell, foreign or capability","  ret inject-unknown L6 parameter s names no cell, foreign or capability","  ret untyped-parameter L6 parameter has no type and no contextual type","  ret state-write L6 State.set outside action(...)","  ret type L6 (x: er
+rec-2 ["  iter inject-unknown L6 parameter x names no cell, foreign or capability","  iter unknown-type L2 unknown type Iterator"]
+rec-3 ["  hide inject-unknown L6 parameter x names no cell, foreign or capability"]
+rec-4 ["cell hideU rejected","  hideU inject-unknown L6 parameter x names no cell, foreign or capability"]
+rec-5 ["  gen inject-unknown L6 parameter g names no cell, foreign or capability"]
+rec-6 ["cell genBad rejected","  genBad inject-unknown L6 parameter g names no cell, foreign or capability","  genBad type L6 string is not assignable to number"]
+rec-7 ["  subU inject-unknown L6 parameter x names no cell, foreign or capability"]
+rec-8 ["cell subBad rejected","  subBad inject-unknown L6 parameter x names no cell, foreign or capability","  subBad type L6 U2 is not assignable to U1"]
+rec-9 ["cell keepFn rejected","  keepFn inject-unknown L6 parameter x names no cell, foreign or capability","  keepFn inject-unknown L6 parameter s names no cell, foreign or capability"]
+375 inputs, 1758 verdict lines from orig
+recfix: 0 inputs differ
+fix: 0 inputs differ
+recdisp: 0 inputs differ

@@ -1,0 +1,15 @@
+recfix kids-n.ss.ts: total 40 ms
+recfix visit-n.ss.ts: total 125 ms
+recfix visit-own.ss.ts: total 194 ms
+abl-walks kids-n.ss.ts: total 485 ms
+abl-walks visit-n.ss.ts: total 9439 ms
+abl-walks visit-own.ss.ts: total 10314 ms
+abl-infer kids-n.ss.ts: total 18112 ms
+abl-infer visit-n.ss.ts: total 63881 ms
+abl-infer visit-own.ss.ts: total 88296 ms
+abl-subtype kids-n.ss.ts: total 562 ms
+abl-subtype visit-n.ss.ts: total 910 ms
+abl-subtype visit-own.ss.ts: total 1035 ms
+abl-own kids-n.ss.ts: total 34 ms
+abl-own visit-n.ss.ts: total 1095 ms
+abl-own visit-own.ss.ts: total 5314 ms

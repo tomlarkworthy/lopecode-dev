@@ -1,0 +1,11 @@
+orig/lite/events.ss.ts: 63 cells, 22010 chars
+checkSources of the whole module (one variant's check): 12.7 ms
+completionsAt cell 62 member .includes: median 10.3 ms, mode member, 24 options (about 0.8 checks)
+completionsAt cell 61 member .hid: median 9.6 ms, mode member, 6 options (about 0.8 checks)
+completionsAt cell 60 member .handleAt: median 8.7 ms, mode member, 6 options (about 0.7 checks)
+completionsAt cell 62 name prefix wa: median 8.5 ms, mode name, 1 options (about 0.7 checks)
+per variant, 3977 nodes: parse.ts (paid today) 1.70 ms; nestParse 2.52 ms; cross recdisp 6.26 ms (same name, equal value), 4.94 ms (fresh name); cross rec 366.9 ms
+added per variant over today (nestParse - parse.ts + cross recdisp, fresh name): 5.75 ms
+4 variants: trusted 10.1 ms; recdisp 29.8 ms; rec 1477.8 ms; flat A 164.6 ms, flat B 75.8 ms (../flat-ast/out/q2.txt)
+distinctNames over 361 inputs: more than one parse: spec#7 S1.6 duplicate-cell (2)
+flat on the same text: flatParse 3.47 ms; cross orig 27.47 ms, recdisp 4.26 ms; 4 variants: orig 123.8 ms, recdisp 30.9 ms

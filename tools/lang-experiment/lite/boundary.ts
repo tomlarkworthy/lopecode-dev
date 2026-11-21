@@ -62,6 +62,32 @@ const describe = (v: unknown): string => {
 const plain = (v: object) => { const p = Object.getPrototypeOf(v); return p === Object.prototype || p === null; };
 
 class Mismatch extends Error {}
+
+type Dispatch = { key: string; by: Map<unknown, Shape> };
+// per union shape: when every member is a record giving one property a literal of its own (a tag), that property and
+// the member for each literal; else null
+const dispatches = new WeakMap<Shape, Dispatch | null>();
+function dispatchOf(s: Shape & { k: "union" }): Dispatch | null {
+  const hit = dispatches.get(s);
+  if (hit !== undefined) return hit;
+  let out: Dispatch | null = null;
+  const first = s.ts[0];
+  if (first?.k === "rec" && s.ts.every((m) => m.k === "rec")) {
+    for (const [key, ks, opt] of first.props) {
+      if (opt || ks.k !== "lit") continue;
+      const by = new Map<unknown, Shape>();
+      const tagged = s.ts.every((m) => {
+        const p = m.k === "rec" ? m.props.find((q) => q[0] === key) : undefined;
+        if (!p || p[2] || p[1].k !== "lit" || by.has(p[1].v)) return false;
+        by.set(p[1].v, m);
+        return true;
+      });
+      if (tagged) { out = { key, by }; break; }
+    }
+  }
+  dispatches.set(s, out);
+  return out;
+}
 // value checked against shape, as a deep-frozen copy; throws Mismatch naming the path
 function copy(v: unknown, s: Shape, path: string, seen: Set<object>): unknown {
   const fail = (): never => { throw new Mismatch(`${path}: expected ${want(s)}, found ${describe(v)}`); };
@@ -73,6 +99,14 @@ function copy(v: unknown, s: Shape, path: string, seen: Set<object>): unknown {
     case "undef": return v === undefined ? v : fail();
     case "lit": return Object.is(v, s.v) ? v : fail();
     case "union": {
+      const d = dispatchOf(s);
+      if (d) {
+        // every member but the one the tag names fails on its tag, so the union fails when that one does
+        if (!v || typeof v !== "object" || Array.isArray(v) || !plain(v)) return fail();
+        const m = d.by.get((v as Record<string, unknown>)[d.key]);
+        if (!m) return fail();
+        try { return copy(v, m, path, seen); } catch (e) { if (!(e instanceof Mismatch)) throw e; return fail(); }
+      }
       for (const t of s.ts) { try { return copy(v, t, path, seen); } catch (e) { if (!(e instanceof Mismatch)) throw e; } }
       return fail();
     }

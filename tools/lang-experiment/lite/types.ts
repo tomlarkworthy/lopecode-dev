@@ -18,7 +18,7 @@ export const {
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, SYMBOL, TRUE, FALSE, BOOL,
   lit, arr, named, rec, WRAPPERS, unwrap, propT, union, members, show, subst, hasTv, instantiate, widen, isPrimitive,
 } = L;
-export const { builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, unifyWith, hasAnyTv } = L;
+export const { builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, memberOfWith, unifyWith, hasAnyTv } = L;
 export const { uncloneableWith, cloneProblemWith, admitsUndefinedWith, holdsWith, hasErrWith } = L;
 export const { islandWith } = L;
 export const { viewofInputName, reservedName, RESERVED_MSG, captureMessage } = L;

@@ -1,0 +1,36 @@
+(1) flat corpus, 360 inputs: rec equal to orig 360, recdisp equal to orig 360; differ 0 
+(2) non-recursive type P, the result from each copy (same: all three agree)
+  well-formed: same: ok {"name":"s","n":1,"tags":["t"],"kind":"a","pair":[1,"s"],"any":{"z":[1]},"u":{"k":"x","x":1}}
+  missing field: same: TypeError: p.n: expected number, found nothing
+  wrong primitive: same: TypeError: p.n: expected number, found string "1"
+  function: same: TypeError: p.any: expected data, found a function
+  class instance: same: TypeError: p.any: expected data, found a K object
+  extra property: same: ok {"name":"s","n":1,"tags":["t"],"kind":"a","pair":[1,"s"],"any":{"z":[1]},"u":{"k":"x","x":1}}
+  bad literal: same: TypeError: p.kind: expected "a" or "b", found string "c"
+  tuple too short: same: TypeError: p.pair: expected an array of 2, found an array of 1
+  union member wrong: same: TypeError: p.u: expected an object or an object or null, found an object
+  union unknown tag: same: TypeError: p.u: expected an object or an object or null, found an object
+  array element: same: TypeError: p.tags[1]: expected string, found number 2
+  optional wrong: same: TypeError: p.opt: expected number, found string "1"
+  not an object: same: TypeError: p: expected an object, found number 5
+(3) deep source shapes, recdisp with LIMITS.depth = 2000
+  parens n=500: crosses
+  parens n=1000: crosses
+  parens n=2000: crosses
+  parens n=2200: crosses
+  parens n=5000: does not parse (Not enough stack space to parse input (1:2885))
+  arrays n=500: crosses
+  arrays n=1000: TypeError: nestedParse.ast.program.body[ … nested deeper than 2000
+  arrays n=2000: TypeError: nestedParse.ast.program.body[ … nested deeper than 2000
+  arrays n=2200: TypeError: nestedParse.ast.program.body[ … nested deeper than 2000
+  arrays n=5000: does not parse (Not enough stack space to parse input (1:2860))
+  a+a+… n=500: crosses
+  a+a+… n=1000: crosses
+  a+a+… n=2000: TypeError: nestedParse.ast.program.body[ … nested deeper than 2000
+  a+a+… n=2200: TypeError: nestedParse.ast.program.body[ … nested deeper than 2000
+  a+a+… n=5000: TypeError: nestedParse.ast.program.body[ … nested deeper than 2000
+  nested arrows n=500: crosses
+  nested arrows n=1000: crosses
+  nested arrows n=2000: TypeError: nestedParse.ast.program.body[ … nested deeper than 2000
+  nested arrows n=2200: does not parse (Not enough stack space to parse input (1:12862))
+  nested arrows n=5000: does not parse (Not enough stack space to parse input (1:12862))

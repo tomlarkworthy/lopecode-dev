@@ -218,6 +218,40 @@ export const namedSubWith = (UNKNOWN) => (R: RegOps, sub: Sub, iterElem: (t: Ty)
   return true;
 };
 
+// s is or has as a member (aliases expanded) a Mut or Borrowed, which sub unwraps before it scans a union; a generic
+// alias is not walked and counts as one that may
+export const unwrapsWith = () => (R: RegOps) => (s: Ty): boolean => {
+  const aliases: Mut<Set<string>> = mut(new Set());
+  function unwraps(x: Ty): boolean {
+    if (x.k === "union") { for (const m of x.ts) if (unwraps(m)) return true; return false; }
+    if (x.k !== "named") return false;
+    if (!R.isAlias(x.n)) return x.n === "Mut" || x.n === "Borrowed";
+    if (x.args.length) return true;
+    if (aliases.has(x.n)) return false;
+    aliases.add(x.n);
+    return unwraps(R.expand(x));
+  }
+  return unwraps(s);
+};
+
+// s <: t found without the scan sub makes of a union: s is t, s is a member of t (t's alias expanded) by object or by
+// alias without type arguments, or arrays or a union of s made of such; a member that unwraps is left to sub, and so
+// is a type sub takes without expanding. Only for a whole comparison (Registry.sub): within one, a pair the scan
+// tried stays in seen and is taken as true when it is met again
+export const memberOfWith = (unwrapsWith) => (R: RegOps) => (s: Ty, t: Ty): boolean => {
+  const unwraps = unwrapsWith(R);
+  const sameAlias = (a: Ty, b: Ty): boolean => a.k === "named" && b.k === "named" && a.n === b.n && !a.args.length && !b.args.length && R.isAlias(a.n);
+  function sure(x: Ty, y: Ty): boolean {
+    if (R.same(x, y)) return true;
+    if (y.k === "unknown" || x.k === "err" || y.k === "err" || x.k === "never") return false;
+    if (x.k === "arr" && y.k === "arr") return sure(x.el, y.el);
+    if (x.k === "union") { for (const m of x.ts) if (!sure(m, y)) return false; return true; }
+    const ye = y.k === "named" && R.isAlias(y.n) ? R.expand(y) : y;
+    return ye.k === "union" && ye.ts.some((m) => R.same(x, m) || sameAlias(x, m)) && !unwraps(x);
+  }
+  return sure(s, t);
+};
+
 // Subtyping. Values are immutable: covariant everywhere except function parameters, Mut and State
 export const subWith = (show, isNamed, primSub, seqSubWith, fnSubWith, someFnSub, recSubWith, namedSubWith) => (R: RegOps, iterElem: (t: Ty) => Ty | undefined, callSigs: (t: Ty) => Fn[]) => {
   const seqSub = seqSubWith(R, sub), fnSub = fnSubWith(R, sub), some = someFnSub(fnSub);

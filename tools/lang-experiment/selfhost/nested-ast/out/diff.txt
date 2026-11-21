@@ -1,0 +1,19 @@
+ports, corpus: 361 inputs, 0 skipped (do not parse, or checkSources throws), 0 with nid order unlike acorn's; 1004 cells
+  module shape: 361 same, 0 differ; inputs with a module-shape error: 16
+  syntaxPass: 1004 same, 0 differ; cells with a diagnostic: 14 (16 diagnostics)
+  captures: 1004 same, 0 differ; cells with a capture: 84 (113 captures)
+  lineOf: 33914 same, 0 differ; leading: 33914 same, 0 differ (206 nodes with a leading comment)
+ports, synthetic: 3 inputs, 0 skipped (do not parse, or checkSources throws), 0 with nid order unlike acorn's; 20 cells
+  module shape: 3 same, 0 differ; inputs with a module-shape error: 3
+  syntaxPass: 20 same, 0 differ; cells with a diagnostic: 4 (12 diagnostics)
+  captures: 20 same, 0 differ; cells with a capture: 4 (7 captures)
+  lineOf: 797 same, 0 differ; leading: 797 same, 0 differ (2 nodes with a leading comment)
+ports, synthetic-n: 1 inputs, 0 skipped (do not parse, or checkSources throws), 0 with nid order unlike acorn's; 1 cells
+  module shape: 1 same, 0 differ; inputs with a module-shape error: 0
+  syntaxPass: 1 same, 0 differ; cells with a diagnostic: 1 (1 diagnostics)
+  captures: 1 same, 0 differ; cells with a capture: 0 (0 captures)
+  lineOf: 21 same, 0 differ; leading: 21 same, 0 differ (0 nodes with a leading comment)
+control (namedByParent ignores computed): shape differ 0, syntaxPass differ 1, captures differ 0
+control (readsBinding counts labels): shape differ 0, syntaxPass differ 0, captures differ 1
+control (moduleLevelRule drops no-var): shape differ 1, syntaxPass differ 0, captures differ 0
+control (namedByParent compares type, not nid): shape differ 0, syntaxPass differ 1, captures differ 0

@@ -1,0 +1,49 @@
+tag a, well-formed
+  rec:     crosses {"type":"a","x":1}
+  recdisp: crosses {"type":"a","x":1}
+tag getter: 'a' on the first read, 'b' after
+  rec:     crosses {"type":"a","x":1}
+  recdisp: throws TypeError: x.type: expected "a", found string "b"
+  (recdisp read the getter 2 time(s))
+tag getter: 'b' on the first read, 'a' after (a value of both)
+  rec:     throws TypeError: x: expected an object or an object, found an object
+  recdisp: throws TypeError: x.type: expected "b", found string "a"
+Proxy whose type alternates
+  rec:     throws TypeError: x: expected an object or an object, found an object
+  recdisp: throws TypeError: x.type: expected "b", found nothing
+type inherited from the prototype
+  rec:     throws TypeError: x: expected an object or an object, found a Object object
+  recdisp: throws TypeError: x: expected an object, found a Object object
+type missing
+  rec:     throws TypeError: x: expected an object or an object, found an object
+  recdisp: throws TypeError: x: expected an object or an object, found an object with type undefined
+type a number
+  rec:     throws TypeError: x: expected an object or an object, found an object
+  recdisp: throws TypeError: x: expected an object or an object, found an object with type number 1
+unknown tag
+  rec:     throws TypeError: x: expected an object or an object, found an object
+  recdisp: throws TypeError: x: expected an object or an object, found an object with type string "c"
+union with null, number, array: null
+  rec:     crosses null
+  recdisp: crosses null
+union with null, number, array: 3
+  rec:     crosses 3
+  recdisp: crosses 3
+union with null, number, array: ['s']
+  rec:     crosses ["s"]
+  recdisp: crosses ["s"]
+union with null, number, array: B
+  rec:     crosses {"type":"b","y":"s"}
+  recdisp: crosses {"type":"b","y":"s"}
+two members share tag a: a value of the second
+  rec:     crosses {"type":"a","y":"s"}
+  recdisp: crosses {"type":"a","y":"s"}
+optional tag on one member: {x: 1}
+  rec:     crosses {"x":1}
+  recdisp: crosses {"x":1}
+AST with a node of type Bogus at program.body[0].declarations[0].init.body.property
+  rec:     throws TypeError: x: expected an object or an object, found an object
+  recdisp: throws TypeError: x.ast.program.body[0].declarations[0].init: expected a AstNode or null, found an object
+AST with an Identifier missing its name, same place
+  rec:     throws TypeError: x: expected an object or an object, found an object
+  recdisp: throws TypeError: x.ast.program.body[0].declarations[0].init: expected a AstNode or null, found an object

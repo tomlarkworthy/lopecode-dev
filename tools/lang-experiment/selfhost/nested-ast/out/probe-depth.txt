@@ -1,0 +1,4 @@
+parens         acorn 2799, adapter 2822, cross 2822, deepEqual 2822; AST depth at n=1399: 4
+arrays         acorn 2905, adapter 2679, cross 1667, deepEqual 2679; AST depth at n=833: 837
+a+a+…          acorn 200000, adapter 15961, cross 3353, deepEqual 15961; AST depth at n=1676: 1679
+nested arrows  acorn 2246, adapter 2172, cross 2172, deepEqual 2172; AST depth at n=1086: 1090

@@ -1,0 +1,13 @@
+orig, ast-n.ss.ts: types + helpers 549.3 ms
+  h(n), n: AstNode parameter passed on                 125.30 ms per call
+  h(n.object), a field read of a narrowed node         37.31 ms per call
+  h(x), x: AstNode | null after x !== null             2830.82 ms per call
+  hn(n.init), AstNode | null to AstNode | null         68.91 ms per call
+  h(n) after n.type !== "Identifier" (exclusion)       3025.53 ms per call
+  hi(n) after n.type === "Identifier"                  160.32 ms per call
+  h(n) after n.type === "Identifier" (member to union) 154.15 ms per call
+  hl(n.params), AstNode[] to AstNode[]                 51.63 ms per call
+  annotated return : AstNode of n.object (x4 cells)    540.34 ms per call
+  no call: n.start read 4 times                        151.95 ms per call
+
+[exited with code 0]

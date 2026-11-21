@@ -8,11 +8,11 @@ import { join } from "node:path";
 const HERE = import.meta.dir;
 export const PREFIX: Record<string, string[]> = {
   "visit-n.ss.ts": ["ast-n.ss.ts", "kids-n.ss.ts", "orig/lite/messages.ss.ts"],
-  "visit-own.ss.ts": ["ast-n.ss.ts", "kids-n.ss.ts"],
+  "visit-own.ss.ts": ["ast-n.ss.ts", "kids-n.ss.ts", "orig/lite/messages.ss.ts", "visit-n.ss.ts"],
   "kids-n.ss.ts": ["ast-n.ss.ts"],
   "ast-n.ss.ts": [],
 };
-export const OUTSIDE: Record<string, { name: string }[]> = { "visit-n.ss.ts": [{ name: "nestedParse" }], "visit-own.ss.ts": [{ name: "ownFacts" }] };
+export const OUTSIDE: Record<string, { name: string }[]> = { "visit-n.ss.ts": [{ name: "nestedParse" }], "visit-own.ss.ts": [{ name: "nestedParse" }, { name: "ownFacts" }] };
 const { splitCells, declaredName } = await import("./orig/lite/toolchain/ss-toolchain.ts");
 export function sourceOf(file: string): { src: string; own: Set<string> } {
   const pre = (PREFIX[file] ?? []).map((p) => readFileSync(join(HERE, p), "utf8"));
