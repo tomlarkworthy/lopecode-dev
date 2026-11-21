@@ -1,0 +1,17 @@
+round -1: prototype store made 12.905 us with 102 stores held
+round 0: prototype store made 30.940 us with 1205 stores held
+round 1: prototype store made 29.111 us with 2308 stores held
+round 2: prototype store made 54.541 us with 3411 stores held
+round 3: prototype store made 73.945 us with 4514 stores held
+round 4: prototype store made 75.635 us with 5617 stores held
+original   call of one update            0.050-0.090 us
+original   read                          0.005-0.006 us
+original   set, 100 stores               0.044-0.094 us
+original   set, one store                0.012-0.064 us
+original   store made                    0.276-0.340 us
+prototype  call of one update            0.177-0.225 us
+prototype  read                          0.035-0.060 us
+prototype  set, 100 stores               0.407-0.578 us
+prototype  set, one store                0.065-0.122 us
+prototype  store made                    29.111-75.635 us
+prototype: 847890 steps; 6618 stores held in its state at the end

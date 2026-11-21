@@ -862,11 +862,7 @@ const store = (greeting: State<string>, asked: State<number>) =>
   });
 const onArrived = (arrived: Events<Answer>, store: Action<[Answer]>) => on(arrived, store);`
 // %%
-md`Latest wins. An answer to an earlier request still reaches \`store\`, which compares the request it answers with \`read(asked)\` and drops it. On 2026-11-20 it was run over every forced ordering of the Runtime's frames, events pulls, timers and the answer (\`.scratch/pending/q4-programs.ts\`): 468 orderings before the delivery fix and 251 after it, where the stop-check timer no longer exists, plus 164 with the pending fetch failing. It held only "hello" or the last answer in each.
-
-\`\`\`ts
-${spec_s6_latestWins}
-\`\`\``
+md`Latest wins. An answer to an earlier request still reaches \`store\`, which compares the request it answers with \`read(asked)\` and drops it.`
 // %%
 spec_s6_everyAnswer = `type Answer = { readonly n: number; readonly text: string | null };
 // the request in flight, and those asked for meanwhile
@@ -908,11 +904,7 @@ const store = (greeting: State<string[]>, current: State<number | null>, queue: 
   });
 const onArrived = (arrived: Events<Answer>, store: Action<[Answer]>) => on(arrived, store);`
 // %%
-md`Every answer, in order. One request is in flight at a time; an ask made meanwhile waits in \`queue\`, and \`store\` starts the next one. A failed fetch is recorded as "(failed)" and the queue goes on. On 2026-11-20 it was run over every forced ordering with one more ask at any point (\`.scratch/pending/q4-programs.ts\`): 12683 orderings before the delivery fix, 4726 after it, and 4726 more with the pending fetch failing. Each request was fetched once and each answer stored once, in order.
-
-\`\`\`ts
-${spec_s6_everyAnswer}
-\`\`\``
+md`Every answer, in order. One request is in flight at a time; an ask made meanwhile waits in \`queue\`, and \`store\` starts the next one. A failed fetch is recorded as "(failed)" and the queue goes on.`
 // %%
 md`**S6.13** An action call made while no action's function is running, by an event handler, a listener delivering a value or JavaScript, is a top-level call. It runs to completion before its caller goes on. An action called while an action's function is running is part of that call.`
 // %%
@@ -1263,7 +1255,9 @@ test_spec_S6_12_latestWins = {
   const asks = [];
   const fetch = (url) => new Promise((resolve, reject) => asks.push({ url, answer: (text) => resolve({ ok: true, status: 200, text: () => Promise.resolve(text) }), fail: () => reject(new Error("offline")) }));
   const L = await spec_load(spec_s6_latestWins, { ss_fetch: [[], () => fetch] });
-  const greeting = () => L.value("greeting");
+  // every value greeting is read with, once per frame waited: a stored "second" would stay until "third" replaced it
+  const seen = new Set();
+  const greeting = async () => { const g = await L.value("greeting"); seen.add(g); return g; };
   const wait = async (what, f) => { if (!(await spec_frames(f))) throw new Error(`${what}: ${asks.length} fetches, greeting ${JSON.stringify(await greeting())}`); };
   try {
     await wait("the first fetch", () => asks.length === 1);
@@ -1279,7 +1273,7 @@ test_spec_S6_12_latestWins = {
     const kept = await greeting();
     asks[2].answer("third");
     await wait("third stored", async () => (await greeting()) === "third");
-    spec_is([kept, asks.map((a) => a.url.replace(/.*\?/, ""))], ["hello", ["n=0", "n=1", "n=2"]]);
+    spec_is([kept, [...seen].includes("second"), asks.map((a) => a.url.replace(/.*\?/, ""))], ["hello", false, ["n=0", "n=1", "n=2"]]);
     return `the answer to request 1 arrived after request 2 was made; when request 2 was fetched greeting was still "hello", and the answer to request 2 was stored`;
   } finally { asks.forEach((a) => a.answer("")); L.dispose(); }
 }
