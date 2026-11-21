@@ -117,7 +117,54 @@ const ONE = fetchThenStore("    yield loaded;");
 const TWO = fetchThenStore("    yield loaded;\n    yield loaded + \"!\";");
 const valuesOf = (two: boolean) => (x: string) => (two ? [x, x + "!"] : [x]);
 
-type Case = { title: string; src: string; two?: boolean; first: string; second: string; later: string[]; extra: Choice[]; thin?: boolean };
+// The example programs of S6.12, read from spec.ojs: the cell's template literal, evaluated as JavaScript
+const specProgram = async (name: string): Promise<string> => {
+  const ojs = await Bun.file(new URL("../soundscript/spec.ojs", import.meta.url).pathname).text();
+  const cell = ojs.split(/^\/\/ %%$/m).map((b) => b.trim()).find((b) => b.startsWith(`${name} = `));
+  if (!cell) throw new Error(`spec.ojs has no cell ${name}`);
+  return new Function(`return (${cell.slice(cell.indexOf("=") + 1)});`)();
+};
+const LATEST_WINS = await specProgram("spec_s6_latestWins");
+const EVERY_ANSWER = await specProgram("spec_s6_everyAnswer");
+// what the log says each fetch asked for and was answered with, how many asks came before the answer, and every
+// value greeting was computed with
+function fetches(log: string[]) {
+  const asked = new Map<number, number>(), text = new Map<number, string>(), asksBefore = new Map<number, number>();
+  let asks = 0;
+  for (const s of log) {
+    const f = /^fetch#(\d+) \?n=(\d+)$/.exec(s), a = /^answer#(\d+) (.*)$/.exec(s);
+    if (s === "ask") asks++;
+    if (f) asked.set(Number(f[1]), Number(f[2]));
+    if (a) { text.set(Number(a[1]), JSON.parse(a[2])); asksBefore.set(Number(a[1]), asks); }
+  }
+  const greetings = log.filter((s) => s.startsWith("greeting = ")).map((s) => JSON.parse(s.slice(11)));
+  return { list: [...asked].map(([i, n]) => ({ i, n, text: text.get(i), asksBefore: asksBefore.get(i) ?? 0 })), greetings };
+}
+// latest wins: an answer to request n that comes after request n + 1 was asked is stale, and is never greeting's
+// value; the last request's answer is greeting's final value
+function latestWins(log: string[]): string | null {
+  const { list, greetings } = fetches(log);
+  const last = Math.max(...list.map((f) => f.n));
+  const stale = list.filter((f) => f.asksBefore > f.n).map((f) => f.text);
+  const read = greetings.filter((g) => stale.includes(g));
+  const want = list.filter((f) => f.n === last).at(-1)?.text;
+  return read.length ? `greeting was ${JSON.stringify(read)}, the answer to an earlier request`
+    : greetings.at(-1) !== want ? `greeting ended ${JSON.stringify(greetings.at(-1))}, the answer to request ${last} was ${JSON.stringify(want)}` : null;
+}
+// every answer: each request is fetched once, each answer delivered once, and greeting ends with every answer in order
+function everyAnswer(log: string[]): string | null {
+  const { list, greetings } = fetches(log);
+  const ns = list.map((f) => f.n);
+  const delivered = log.filter((s) => s.startsWith("deliver ")).map((s) => JSON.parse(s.slice(8)));
+  const once = list.filter((f) => delivered.filter((d) => d.n === f.n && d.text === f.text).length !== 1);
+  const want = list.map((f) => f.text);
+  return JSON.stringify(ns) !== JSON.stringify(ns.map((_, i) => i)) ? `requests fetched ${JSON.stringify(ns)}`
+    : once.length ? `answers not delivered exactly once: ${JSON.stringify(once)}; delivered ${JSON.stringify(delivered)}`
+    : JSON.stringify(greetings.at(-1)) !== JSON.stringify(want) ? `greeting ended ${JSON.stringify(greetings.at(-1))}, the answers were ${JSON.stringify(want)}` : null;
+}
+
+// check: what the program must guarantee, beyond the delivery every case checks
+type Case = { title: string; src: string; two?: boolean; first: string; second: string; later: string[]; extra: Choice[]; thin?: boolean; check?: (log: string[]) => string | null };
 type Outcome = { invalid: true } | { next: Choice[] } | { problem: string | null; trace: string[] };
 async function run(k: Case, prefix: Choice[]): Promise<Outcome> {
   log.length = 0; jobs.length = 0; P.reset();
@@ -129,10 +176,10 @@ async function run(k: Case, prefix: Choice[]): Promise<Outcome> {
   try {
     await quiet();
     await F.asks[0].answer(k.first); await quiet();
-    W.value("ask")(); await quiet();
+    L("ask"); W.value("ask")(); await quiet();
     if (F.asks.length !== 2) throw new Error(`setup: ${F.asks.length} fetches`);
     const mark = log.length;
-    W.value("ask")();
+    L("ask"); W.value("ask")();
     let answered = false;
     const once = new Set<Choice>();
     const enabled = (): Choice[] => [...(answered ? [] : ["answer" as Choice]), ...k.extra.filter((c) => !once.has(c)), ...enabledQueues()];
@@ -156,7 +203,7 @@ async function run(k: Case, prefix: Choice[]): Promise<Outcome> {
     const got = log.filter((s) => s.startsWith("deliver ")).map((s) => JSON.parse(s.slice(8)));
     const attached = C.running([W.handle()]);
     const problem = JSON.stringify(got) !== JSON.stringify(want) ? `delivered ${JSON.stringify(got)}, the events runs gave ${JSON.stringify(want)}`
-      : attached !== 1 ? `${attached} listeners attached at the end` : null;
+      : attached !== 1 ? `${attached} listeners attached at the end` : k.check?.(log) ?? null;
     return { problem, trace: log.slice(mark) };
   } finally { W.dispose(); WB?.dispose(); }
 }
@@ -192,7 +239,9 @@ const cases: Case[] = [
   { title: "one value per answer, the action is made again", src: ONE, first: "hello", second: "second", later: ["third"], extra: ["X", "S"] },
   { title: "one value per answer, a second copy of the module starts its listener", src: ONE, first: "hello", second: "second", later: ["third"], extra: ["X", "B"], thin: true },
   { title: "two values per answer", src: TWO, two: true, first: "hello", second: "second", later: ["third"], extra: ["X"] },
-  { title: "an answer equal to the one before it", src: ONE, first: "same", second: "same", later: ["same"], extra: ["X"] }
+  { title: "an answer equal to the one before it", src: ONE, first: "same", second: "same", later: ["same"], extra: ["X"] },
+  { title: "latest wins (spec_s6_latestWins)", src: LATEST_WINS, first: "hello", second: "second", later: ["third"], extra: ["X", "S"], check: latestWins },
+  { title: "every answer (spec_s6_everyAnswer)", src: EVERY_ANSWER, first: "hello", second: "second", later: ["third"], extra: ["X", "S"], check: everyAnswer }
 ];
 // --one <case index> "<choices>": run one ordering and print its trace
 const oneAt = process.argv.indexOf("--one");

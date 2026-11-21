@@ -154,3 +154,15 @@ shipped renderer and no longer reproduce their RESULTS.md numbers (records).
 Checker quirk found, not changed: `===` on an alias of a primitive union is `[strict-eq-object]`, the same
 union written inline is accepted.
 Prose changed: tutorial (two sentences on what is outside the checked language), core (one), two section sentences.
+
+### Fresh review of the night's changes (since ca223594): FIX, 3 findings, all taken
+1. Confirmed, mine: 614b7c43 removed the code blocks of the two S6.12 examples along with the ordering counts.
+   Restored. 2. S9.6 run-on sentence from the batch's prose. Fixed. 3. Two section sentences named a section
+   title as plain words. Quoted. No code defect found in the store, renderer or `mount`; the reviewer's own fuzz
+   of 20000 child lists matched a fresh `create` each time. verify after the fixes: 629 pass 0 fail.
+
+### `spec_s6_latestWins` and `spec_s6_everyAnswer` are cases of `delivery.test.ts`
+latest wins 2318 orderings, 0 fail (control: `store` without its guard, 11128 of 11238 fail); every answer 15314
+orderings, 0 fail (control: `ask` never queues, 2318 of 2318 fail). Default run now 50469 orderings, 0 fail.
+The programs are read from `spec.ojs`, not copied. Unexplained: a first run with extras X, L, S exited without
+a line for every answer; the cases use X, S.

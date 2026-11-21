@@ -1,5 +1,21 @@
 # Porting the runtime module to SoundScript (2026-11-20)
 
+## State on 2026-11-21 (the sections after this one are the record of 2026-11-20 and are not updated)
+
+The runtime module's decisions are in four checked SoundScript sources; verify prints "its 135 SoundScript cells
+(91 with values)", against 15 with values on 2026-11-20.
+
+| source | value cells | decides | unchecked shell |
+|---|---|---|---|
+| `lite/runtime.ss.ts` | 13 | value helpers (`deepEqual`, `orderKeyed`, `DOM_EVENTS`, ...) | |
+| `lite/events.ss.ts` | 43 | which listener gets which value, and when a generator is pulled (S7) | `lite/browser/cells.ts`, 113 code lines |
+| `lite/store.ss.ts` | 17 | writes, reads, action calls, commits (S6.5, S6.8, S6.10, S6.12 to S6.14) | `prelude.runtime.ts`, 120 code lines |
+| `lite/render.ss.ts` | 18 | what a patch changes: props, keyed and positional children | `lite/jsx/render.ts`, 59 code lines |
+
+Each shell holds object identity, runs user code and performs the effects the cells return. Still unchecked and
+not attempted: `lite/boundary.ts`, `lite/jsx/h.ts`, `lite/browser/workers.ts`, the rest of `lite/stdlib/runtime.ts`.
+Results, measurements and what is left for Tom: `selfhost/NOTES-overnight-2026-11-21.md`.
+
 Work record. PROSE PENDING throughout: facts and checker output, not yet prose for a reader.
 
 Question (Tom): "I want to explore generality of programs you can write at the moment. Can we convert the
