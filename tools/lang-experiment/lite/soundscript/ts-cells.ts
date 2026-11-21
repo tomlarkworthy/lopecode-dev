@@ -31,16 +31,16 @@ const WORKERS_ROOTS = ["pagePool"];
 // the inputs compiled SoundScript cells take for runtime cells (ss_freeze ...), each to the runtime cell it imports
 const RUNTIME_INPUTS = new Map(RUNTIME_CELLS.map((n) => [INPUTS[n], n]));
 // in dependency order; where each declaration goes is decided in generate() ("module placement")
-const RUNTIME_FILES = ["../prelude.runtime.ts", "runtime.ss.ts", "events.ss.ts", "store.ss.ts", "types.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "browser/workers.ts"];
+const RUNTIME_FILES = ["../prelude.runtime.ts", "runtime.ss.ts", "events.ss.ts", "store.ss.ts", "render.ss.ts", "types.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "browser/workers.ts"];
 const SPLIT = "stdlib/runtime.ts";
 // SoundScript sections, in the order of their modules in the notebook, and the files bun reaches that link them
-// (types.ts imports types.ss.ts, runtime-ss.ts runtime.ss.ts, events.ss.ts and store.ss.ts, through link.ts)
-export const SS_SOURCES = ["runtime.ss.ts", "events.ss.ts", "store.ss.ts", "types.ss.ts"];
+// (types.ts imports types.ss.ts, runtime-ss.ts runtime.ss.ts, events.ss.ts, store.ss.ts and render.ss.ts, through link.ts)
+export const SS_SOURCES = ["runtime.ss.ts", "events.ss.ts", "store.ss.ts", "render.ss.ts", "types.ss.ts"];
 const SS_FILES = new Set(SS_SOURCES);
 // the module a section's cells go to when no cell of the other module reaches them (its type declarations)
-const SS_HOME: Record<string, string> = { "runtime.ss.ts": RUNTIME, "events.ss.ts": RUNTIME, "store.ss.ts": RUNTIME, "types.ss.ts": CHECKER };
+const SS_HOME: Record<string, string> = { "runtime.ss.ts": RUNTIME, "events.ss.ts": RUNTIME, "store.ss.ts": RUNTIME, "render.ss.ts": RUNTIME, "types.ss.ts": CHECKER };
 // the sections whose cells a section takes, checked with it as in the notebook, where they are one module
-const SS_CHECKED_WITH: Record<string, string[]> = { "store.ss.ts": ["events.ss.ts"] };
+const SS_CHECKED_WITH: Record<string, string[]> = { "store.ss.ts": ["events.ss.ts"], "render.ss.ts": ["runtime.ss.ts"] };
 const BOOTSTRAP = ["types.ts", "runtime-ss.ts", "link.ts"];
 const CHECKER_FILES = ["parse.ts", "intrinsics.ts", "registry.ts", "infer.ts", "own.ts", "capture.ts", "island.ts", "facts.ts", "core.ts", "complete.ts", "jsx/lower.ts", "browser/erase.ts", "toolchain/comment-types.ts", "toolchain/ss-toolchain.ts"];
 // the third-party imports, and the cells of the checker module that provide them
@@ -70,10 +70,11 @@ const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?:
   "runtime.ss.ts": { title: "Runtime cells in SoundScript", runtime: "Cells of the runtime written in SoundScript, compiled from lite/runtime.ss.ts: mismatch wording and the comparison of copies for the boundary, JSX children and event data, the order of listeners, and the bodies of a rejected cell and of compile." },
   "events.ss.ts": { title: "Delivering events", runtime: "How each value an events cell yields reaches its listeners: `step` takes the delivery state and one event, and returns the next state and the effects that `events`, `listen`, `release` and `sweep` perform. These cells are SoundScript." },
   "store.ss.ts": { title: "Writes, reads and commits", runtime: "What a write, a read and an action call may do, and what a commit applies: `storeStep` takes the store state and one event, and returns the next state and the effects that `action`, `set`, `update` and `commit` perform. These cells are SoundScript." },
+  "render.ss.ts": { title: "What a patch changes", runtime: "What `patch` changes on one element: `propOps` gives its prop changes and `childOps` the operations on its children, from plain descriptions of the new element and of the DOM children drawn last time. These cells are SoundScript." },
   "types.ss.ts": { title: "Types", checker: "How the checker represents a type, and union, substitution, widening and display over those types. These cells are SoundScript." },
   "boundary.ts": { title: "Values from other languages", checkerTitle: "Shapes for values from other languages", runtime: "`cross` and `checkShape` check a value from a cell in another language against a shape and return a deep-frozen copy.", checker: "`shapeOf` turns a parameter's type annotation into the shape the runtime checks." },
   "jsx/h.ts": { title: "Elements", runtime: "`h` makes the element values that compiled JSX evaluates to." },
-  "jsx/render.ts": { title: "Rendering", runtime: "`create` and `patch` turn element values into DOM nodes, and patch a node in place when its tag is unchanged." },
+  "jsx/render.ts": { title: "Rendering", runtime: "`create` and `patch` turn element values into DOM nodes, and patch a node in place when its tag is unchanged. They describe the new element and the DOM children as data, and apply the operations that `propOps` and `childOps` return." },
   "browser/cells.ts": { title: "Events and listeners", runtime: "Events cells' handles and generators and the listeners `on` makes. It runs the generators and the actions, and does what the cells of Delivering events decide; `sweep` stops what no variable holds." },
   "browser/workers.ts": { title: "Worker pool", checkerTitle: "Running an island on the page", workers: "The pool of web workers that runs the islands `compile` makes.", checker: "`runHere` runs an island on the page when no pool is given." },
   "stdlib/runtime.ts": { title: "Running a compiled cell", checkerTitle: "Checking a module for the editor and compile", runtime: "What compiled state, events and listener cells call (`ref`, `events`, `listen`), with `viewRef` and `mount`.", checker: "`check` and `checkCells` check a module's cells and keep recent results; `compiler` checks and builds the island of a `compile(...)` call." },

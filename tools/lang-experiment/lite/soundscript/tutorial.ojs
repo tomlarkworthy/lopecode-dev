@@ -323,7 +323,7 @@ A listener cell returns \`on(events, action)\`. While that value is the cell's v
 // %%
 md`### The renderer
 
-Each JSX node becomes an \`h(tag, props, ...children)\` call, and \`h\` returns a frozen \`{tag, props, children}\` value. The page shows a cell whose type is \`Elem\` by handing that value to the renderer (\`mount\` of the runtime module, called from the core's \`ss_language.inspect\`), 75 lines outside the checked language. The renderer creates the DOM once, then patches it in place each time \`app\` produces a new value: the same tag at the same position reuses the node, an element that is the same object as last time is skipped, and children that all carry \`key\` are matched by key. It calls the actions when DOM events arrive, decoding each event into data (\`PointerData\` from a \`PointerEvent\`, a string from an \`input\`); that decoding is trusted code.
+Each JSX node becomes an \`h(tag, props, ...children)\` call, and \`h\` returns a frozen \`{tag, props, children}\` value. The page shows a cell whose type is \`Elem\` by handing that value to the renderer (\`mount\` of the runtime module, called from the core's \`ss_language.inspect\`). What a patch changes (which nodes are reused, moved, created or removed, and which props are written) is decided by checked cells of the runtime module, \`propOps\` and \`childOps\`; the code that reads and writes the DOM is outside the checked language. The renderer creates the DOM once, then patches it in place each time \`app\` produces a new value: the same tag at the same position reuses the node, an element that is the same object as last time is skipped, and children that all carry \`key\` are matched by key. It calls the actions when DOM events arrive, decoding each event into data (\`PointerData\` from a \`PointerEvent\`, a string from an \`input\`); that decoding is trusted code.
 
 Section 9 is built on this. \`bricks\`, \`ball\` and \`paddle\` each select one part of the world, and \`bricksView\`, \`paddleView\` and \`ballView\` draw one part each. Every one of them runs on every frame, because the runtime runs a cell whenever its input was computed again. What keeps the page cheap is \`mount\`, which changes only the DOM nodes whose description changed: a moving ball is one \`style\` write, and a broken brick removes one node. \`test_breakout_memo\` plays a copy of the game for 90 ticks and bounds the DOM writes.
 
@@ -528,7 +528,7 @@ md`Limits that apply to everything on this page:
 
 - No \`keyof\`, indexed access types, tuple rest or variadic inference. A cell that needs one is \`unsupported\`, never \`ok\`.
 - A module here holds one source file's worth of cells. The ports also have unchecked cells and trusted foreign signatures, which the checker reads when given them; this page does not pass them.
-- The renderer's event decoders (\`PointerData\` from a \`PointerEvent\`, a string from an \`input\`) are trusted code.
+- The renderer's event decoders (\`PointerData\` from a \`PointerEvent\`, a string from an \`input\`) and its reads and writes of the DOM are trusted code.
 - A \`.tsx\` source has no TypeScript cross-check: the reference checker does not read JSX, so the JSX and \`compile\` rules are checked by this checker alone.`
 // %%
 md`## Not built

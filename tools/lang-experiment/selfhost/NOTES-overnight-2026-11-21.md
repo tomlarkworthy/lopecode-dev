@@ -138,3 +138,19 @@ Open after the batch:
   is passed by a one-line rewrite. 33 uses in the corpus, 2 in the shipped runtime sources.
 For Tom: new rule id `[handle-pass]` (item 7, not ruled on); new spec sentences in S2.6, S2.7, S2.11, S3.3,
 S5.4, S9.2, S9.6 and one tutorial sentence.
+
+### Renderer decisions integrated
+18 checked cells in `lite/render.ss.ts` (104 code lines, largest 12) decide what a patch changes; the shell
+`lite/jsx/render.ts` is 59 code lines (61 before) and keeps the DOM reads and writes, "made by h", `asText`,
+`keyOf` and the same-value shortcut (`===` on two `Elem`s is `[strict-eq-object]`). Checked runtime value
+declarations 73 -> 91. 20000 random old/new/next trees against the renderer as it was: 0 differ; control with
+placement off: 2822 of 3000 differ. Patch of 100 keyed children, one moved, happy-dom: 70-93 us -> 110-127 us;
+no move 42-50 -> 86-97 us. verify 629 pass 0 fail (builder's and mine); Breakout 53.4 after play, 59.9 in the
+edit pane. The four renderer defects are fixed, each with a test in `lite/render.test.ts` (25 pass):
+a prop named like an Object member is no longer an event; `mount` makes a new node when the tag differs from
+the one the node was created for; `value={undefined}` resets once; a symbol key is keyed by its text.
+`render.ts` now also exports `kidOf` and `drawnOf` (for `mount`). `selfhost/render-cells/` scripts import the
+shipped renderer and no longer reproduce their RESULTS.md numbers (records).
+Checker quirk found, not changed: `===` on an alias of a primitive union is `[strict-eq-object]`, the same
+union written inline is accepted.
+Prose changed: tutorial (two sentences on what is outside the checked language), core (one), two section sentences.

@@ -69,7 +69,7 @@ readme_limits = md`## Limits
 - The editor and visualizer hooks need the \`cell_languages\` plugin point, which only this notebook's copies of \`@tomlarkworthy/cell-map\`, \`@tomlarkworthy/editor-5\` and \`@tomlarkworthy/visualizer\` have. Running these cells with other copies was not tried.
 - A cell that does not parse is stored only if its text starts with \`const <name>\`, \`let <name>\` or \`function <name>\` (after comments, and with or without \`export\`); otherwise there is no name to store it under.
 - A module holds one source file's worth of cells. Unchecked shell cells and trusted foreign declarations, which the checker can read, are not supported here.
-- The renderer's event decoding and \`mount\` of the runtime module are outside the checked language.
+- The renderer's event decoding, its reads and writes of the DOM, and \`mount\` of the runtime module are outside the checked language.
 - Publishing these modules to ObservableHQ was not tried.`
 // %%
 readme_api = ss_highlightCode(md`## API
