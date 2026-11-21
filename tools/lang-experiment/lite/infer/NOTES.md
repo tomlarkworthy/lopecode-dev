@@ -599,3 +599,300 @@ checkSources was not broken down by pass.
 - `CAPABILITIES` lookup: decide whether to fix the `in` bug first (it changes verdicts for `valueOf`,
   `constructor`, `toString` parameters) or to port it.
 - `infer.ts`'s `instanceof` support, or keep `thrown` as glue.
+
+# 2026-11-22 00:05: completion's option building and facts.ts as cells (`cp-*.ss.ts`), not switched on
+
+`lite/complete.ts` (299 lines, 256 in top-level statements) and `lite/facts.ts` (75, 58) as 6 files `cp-*.ss.ts`
+(43 value cells, 11 type declarations; value-cell lines 335, median 6, largest cpParamSegments 21, cpAnnotationOf
+21, cpScan 20, cpCompletionsAt 17; `.scratch/cp-port/stats.ts`). Linked for bun by `cp-index.ts` (76 code lines),
+which exports complete.ts's and facts.ts's names with their signatures. Nothing shipped imports it.
+
+```
+cp-types    data: CpOption, CpResult, CpReg (the Registry as completion reads it), CpHost (the module checks)
+cp-text     the text before the cursor: word, scan, tagAt, HEAD, paramListAt, typeAt, declared, given attributes
+cp-members  membersOf, memberNames, kindOf, scopeNames
+cp-modes    completionsAt by position kind: jsx, type, param, the placeholder variants, names; pick, by-label sort
+cp-param    addParameter, annotationOf (with two reads passed in)
+cp-facts    cellsOf (statement selection), globalRefs; factsOf and preludeCalls are md-facts.ss.ts's cells, taken as inputs
+```
+
+The text decisions keep complete.ts's regular expressions verbatim (wrapped in named groups, since
+`RegExpMatchArray` has no indexed read; `matchAll` is replaced by `exec` on the rest of the text, the `^` branch only
+at position 0). Hand-written scanners were the alternative; rejected because HEAD's lazy block comment backtracks
+(bug 3 below) and a scanner would have to reproduce that by search, with no corpus case to catch a slip.
+
+## Glue left in TypeScript (`cp-index.ts`)
+
+- running the module check: `checkSources` and the throw complete.ts catches (`hostOf`, 10 lines). The cells get
+  `CpHost.probe`/`cellTypes`, each null where complete.ts `continue`s or falls back to an empty map;
+- the Registry as `CpReg` (`regOf`, 4 lines): `reg.types.has` and `ifaceRec(n).props` are not in `IxRegCore`;
+  `new Registry()` for the JSX branch is `CpHost.fresh`;
+- `completionWork` and `counted` (2): module state;
+- annotationOf's prototype test and property read (2): a cell cannot make either, `repro/cp-unknown-value-reads.ts`;
+- the capabilities as a `Map` and the type names computed once from `PRELUDE_DECLS`/`JSX_DECLS` (`constOf`, 6):
+  a cell parameter naming a TypeScript constant is `[inject-unknown]`;
+- facts as facts.ts's `CellInfo` (key order, no `boundary` key, `span` only with a statement) and the parse error
+  as a thrown `Error` (`infoOf`, `cellsOfWith`, 12); link and exports, the rest.
+
+## Proof (`bun lite/infer/cp-diff.ts --controls`, 2026-11-21 23:55-23:59, AC Power, load 5.36 -> 9.54)
+
+Positions: complete-diff.ts's walk, asserted to give 6385; the same cells cut at the cursor; offset 0 and the end of
+every cell; identifiers in type annotations, JSX attributes and children, parameter starts (parse.ts tree with type
+fields); 640 probes in `cp-probes.ts` (32 modules of 20, one cell each beside 5 base cells). Every position whose
+complete.ts answer is `param` runs again with 7 cells in another language and an `annotate` (one throws); every JSX
+position of a .tsx file runs again with tsx off. Compared: the JSON of the result and the module checks and cells
+counted (`completionWork` on each side).
+
+```
+completion: 16157 positions (and their reruns with outside cells / tsx off): SAME 18343 DIFFERENT 0; 155.7 s
+addParameter / annotationOf: SAME 69282 DIFFERENT 0
+facts: 3435 sources: cellsOf SAME 3399 DIFFERENT 0 (both threw 36); 5650 cells, preludeCalls/globalRefs sets SAME 246420 DIFFERENT 0 (246420 sets, 7600 entries)
+control cp-text (cpNoOffer never stops): DIFFERENT 3 on 1469 positions
+control cp-members (cpKindOf always property): DIFFERENT 106 on 1469 positions
+control cp-modes (cpByLabel does not sort): DIFFERENT 367 on 1469 positions
+control cp-param (cpAddParameter without the already-there check): DIFFERENT 1548 on 1469 positions
+control cp-facts (cpStatementDefs without function declarations): DIFFERENT 8 on 687 sources
+```
+
+By kind (a position counts under each kind it has; last column: positions with at least one option). Kinds under
+20 before the probes were member on lit, num, str, union, unknown, tv, Borrowed, Events, Action, Map, and name:fn.
+
+```
+member:arr 299/288  rec 1342/1316  str 68/59  num 34/11  union 160/113  interface 60/60  lit 6/6  tv 20/0
+       unknown 26/0  State 302/286  Mut 279/271  Borrowed 32/25  Map 18/18  Events 20/0  Action 20/0
+       Listener 20/0  StateCell 20/0     (optional chain: probes member-optional-chain, 20)
+name:const 1131  let 560  param 2040  fn 24  global 1458  prelude 2017  in-action 550/488
+mode:type 802/780  jsx 224/192  param 2808/2808  none 90  type-ann 636/379  jsx-attr 254/186  jsx-child 528/0
+param:cell 2682  capability 1240  other language 469; rerun:param+outside 1404  rerun:tsx-off 782/0
+cut (cell cut at the cursor) 6385/4150  offset-0 406/0  end 406/0
+variant that answered: 1 9044, 2 726, 3 105, none of 4 988, no check 3556
+```
+
+Thin: lit 6 and Map 18 (no probes written for them); tv, unknown, Events, Action, Listener, StateCell, offset 0,
+the end, JSX children and tsx off reach only empty lists, so a wrong non-empty list there would show but a wrong
+choice among options cannot. The cp-text control differs on 3 positions only. Branch coverage was not measured.
+
+`bun test infer/cp.test.ts` (lite/), 5 pass, 77.2 s: CP_FILES is every cp file; every cp cell is ok in the module of
+WITH + ix + ow + md + cp (`r.module` []); every name in a cp file starts with cp and is declared in no other
+`.ss.ts`; complete.test.ts through `cp-redirect.ts` (a bun preload resolving its `./complete.ts` to cp-index.ts,
+announced on stderr) gives `58 pass, 0 fail`; `cp-diff.ts --quick --controls` DIFFERENT 0, each control > 0.
+`bun lite/infer/complete-diff.ts` after: `37 files, 6385 positions: SAME 6385 (1733 with no options) DIFFERENT 0`.
+
+## Timing (`bun lite/infer/cp-time.ts --rounds 5 --every 2`, 2026-11-21 23:54, AC Power, load 5.99 -> 5.83)
+
+127 of the 254 identifier-end and member positions of the 47-cell tutorial module, 209 checks. Option building is
+timed with every check answered from a table filled by a first run; for complete.ts its import of `./core.ts` is
+resolved to `cp-time-core.ts`, whose `checkSources` is swapped for the table. Both sides made the table's number of
+checks at every position (asserted).
+
+```
+µs per completion   option building: complete.ts   cells    whole call: complete.ts   cells    checks alone
+round 1                              42.8          48.3                 7516.2         7708.1   7466.4
+round 2                              28.7          37.5                 6390.1         6456.2   6289.8
+round 3                              28.5          38.6                 6826.0         6822.7   6627.8
+round 4                              25.7          33.4                 5906.6         5677.6   5587.6
+round 5                              25.8          33.0                 5969.4         5842.4   5746.3
+```
+
+The first attempt took option building as the whole call less the checks alone; the checks are 97-99% of the call
+and the differences came out between -401 and +577 µs, so that method was dropped. A check that throws must be in
+the table too (the first table missed them and the replay ran off its end).
+
+## Checker messages met, and the rewrite
+
+```
+cpOwnMembers, cpMembersOf  [reserved-name] mutable is reserved: Observable JavaScript reads it as a keyword
+                           parameter and local `mutable` -> `onMut`
+CP_TYPE_NAMES              [inject-unknown] parameter PRELUDE_DECLS names no cell, foreign or capability (and JSX_DECLS)
+                           a value cell of the two texts -> cpTypeNames(preludeDecls, jsxDecls), called once by the glue
+```
+
+Accepted on the first try, though unexpected: `Array.isArray(v)` narrows an `unknown` so `v.length` and `v[i]` check
+(cpAnnotationOfArray); regex literals; `m.groups?.n`. Not possible in a cell (`repro/cp-unknown-value-reads.ts`):
+`Object.getPrototypeOf` (`[no-member]`), `v[k]` on `object` (`[type] cannot index object with string`),
+`Object.values(v)` on `object`.
+
+## complete.ts behaviour reproduced, not fixed (`bun lite/infer/repro/cp-complete-bugs.ts`, both sides print alike)
+
+1. scan reads `//`, `/*`, `"`, `'` as comment or string starts inside a template literal's text: in
+   `` `http://h/${x.‸}` `` and `` `don't ${x.‸}` `` nothing is offered (`none []`; without them, `member ["a"]`).
+2. paramListAt counts the `>` of `=>` as a closer: `const f = (cb = () => 1, co‸` gives `name []`, while
+   `(cb = 1, co‸` gives `param ["compile","count"]`. typeAt skips `=>`; paramListAt does not.
+3. HEAD's lazy block comment backtracks past a later `*/`: `/* a */ x /* b */ const f = (co‸` is a parameter list.
+4. Not a difference seen: the cells read `args[0] ?? m` where membersOf reads `m.args[0]` of a Mut/Borrowed; no
+   input found where they differ. Also kept: the JSX branch's `reg.member(p.t, n)!` is a `=== undefined ? ""` in
+   the cell; never reached on the corpus.
+
+## Dead ends
+
+- Probe modules with all 20 cursor cells in one module: every cell but the cursor's was incomplete, the module never
+  parsed, and every probe answered an empty list. Each probe cell is now its own module beside the base cells.
+- `|` as the probe cursor mark: the base cells hold union types. The mark is `‸`.
+- Name and parameter probes with fixed suffixes (`h` + `to`) matched no binding; they now type the first letters of
+  the target name.
+
+## What the integration step must change in shipped files
+
+- `lite/infer-ss.ts`: link the 6 cp files with the ix and md cells (cp cells take `mdFactsOf`, `mdPreludeCalls`,
+  `mdRebinds`, `kidsOf`, `parseTree`, `named`, `show`, `members`, `isNamed`, `propT`); move `cp-index.ts`'s glue
+  next to it or keep it as the facade.
+- `lite/complete.ts`: its body replaced by `cp-index.ts`'s exports (`completionsAt`, `membersOf`, `annotationOf`,
+  `addParameter`, `completionWork`); `Completion`/`Completions` stay (cp-index imports them as types). Deletable: scan,
+  tagAt, paramListAt, typeAt, declared, TYPE_NAMES, kindOf, membersOf, memberNames, scopeNames, HEAD, annotationOf
+  but its two reads, addParameter, completionsAt (about 247 of 256 statement lines, counted by hand: the 9 left are the check calls, their catches, `new Registry()`, the counter and the two value reads). `lite/infer/frozen/complete.ts` stays
+  for complete-diff.ts.
+- `lite/facts.ts`: cp-index's `cellsOf(src)` keeps the signature. `factsOf` takes typed-tree nodes (`FnNode`,
+  `AstNode`), and `preludeCalls`/`globalRefs` return `Set<number>` of nids, not parse.ts nodes. Callers:
+  `toolchain/ss-toolchain.ts` 102, 188, 272 (cellsOf, fine), 286, 289 (`globalRefs(...).size`, `n.start`: needs the
+  typed tree and `byNid`), 291 (`preludeCalls(fn, "on").size`); `browser/cells.ts` 9 re-exports `cellsOf, factsOf`;
+  `selfhost/sched-cells/shell.ts` 8. Until those move to the typed tree facts.ts's freeUses/globalRefs/factsOf stay.
+- `lite/stdlib/runtime.ts` 24 (`completionWork`) and `lite/soundscript/entry.ts` 9 (`completionsAt, annotationOf,
+  addParameter`): re-point.
+- `lite/soundscript/ts-cells.ts`: the 6 cp files in SS_SOURCES, CHECKER_FILES and the checker's group, a SECTION_OF
+  entry; complete.ts and facts.ts stay as glue sections. Not touched here.
+- `lite/infer/infer.test.ts` test 1 fails now: it requires `lite/infer/*.ss.ts` to equal IX+OW+MD files, and the cp
+  files (and the other agents' rg files) are there (`bun test infer/infer.test.ts -t IX_FILES`, 2026-11-22: 1 fail,
+  13 extra names). Add CP_FILES there.
+
+Unsure: the notebook's compiled cells take `CpHost` functions made by glue each call; whether the in-page runtime
+can hand a cell such a record across its boundary was not tried (bun only).
+
+## The Registry as cells over the typed tree (rg-*, 2026-11-21 23:40 to 2026-11-22 00:12)
+
+`registry.ts` (346 lines) ported to 7 files `rg-{types,ctl,convert,sig,expand,load,view}.ss.ts` that read the acorn
+typed tree, plus glue `rg-index.ts` (Maps, the knot record `RgK`, `RegOps`/`DeclOps` for the subtype cells, `IxReg` per
+cell view, `MdReg` for the module check, `rgRunCheck`). Nothing is switched on; no shipped file was edited.
+
+Sizes (`.scratch/rg-port/stats.ts`, which reads registry.ts's parse): 70 value cells and 21 type cells, 509 lines;
+median cell 6 lines, largest `rgExpand` 24, `rgTypeRef` 21, `rgConvertTs` 19, `rgQuietGo` 19. registry.ts has 18
+functions and methods: `flagsOf`, `keyName`, `marker`, `builtinTypeNames` (top level) and `constructor`,
+`builtinTypeNames`, `load`, `peek`, `sig`, `sigOf`, `convert`, `literal`, `expand`, `ifaceRec`, `sub`, `quiet`, `trial`,
+`unify`. 16 are cells. `constructor` and `unify` (a passthrough) are glue; `peek`'s journal is cells
+(`rgPeekOpen`/`rgPeekClose`) and only its `try/finally` is glue. Those 16 plus the constants `FLAG_NAMES`, `KEYWORDS`,
+`DECLS`, `ONE_ARG` and the `isTypedArray` field span 263 of the 346 lines (peek's 9 counted). The rest are imports,
+type declarations, the fields, `alphaNames`, `constructor`, `unify` and the one-line bindings of the subtype cells (`member`, `callSigs`, `iterElem`, `subOps`, `unifyOps`, `memberOf`,
+`isAlias`, `decls`), which become `RegOps`/`DeclOps` built in `rg-index.ts`.
+
+Shape: tables are `Mut` parameters `(G, Y, E, I, Q)` (knot, types, expand memo, iface memo, controls). Reports go to
+`Q.log` and the glue moves them to whichever sink registry.ts's handler swapping would have used. Peek is an undo
+journal over both memos; it nests. `IxReg` and `MdReg` keep their shapes; `MdReg.loadUser(text)` still takes text and
+`rgLinkMd` gives the md cells a memoising `parseTree` so the tree is parsed once.
+
+### Coverage (`bun lite/infer/rg-diff.ts`, full corpus, 2026-11-22 00:09, AC power, load 11.93)
+
+```
+registry level: 81546 units in 970 sources: SAME 81505 DIFFERENT 0 NOT COVERED 33 BOTH THREW 8
+end to end: 973 sources: SAME 971 DIFFERENT 0 NOT COVERED 2 BOTH THREW 0
+  1 NOT COVERED: member TSMethodSignature held as Other
+  1 NOT COVERED: declaration TSDeclareFunction held as Other
+  parser runs: checkSources 2003, rg 1030 (973 sources)
+```
+
+Units: constructor tables and globals, builtin names, load (reports with line, in order), quiet on each declared
+name before anything expands it, convert of every root type node, sig of every function with a return type, sub/quiet
+pairs, expand with and without tps, peeked expand, ifaceRec, memos at the end. `$aN` names are renumbered per unit.
+The corpus is `diff.ts`'s plus `rgprobe:` (11 modules in `probes/registry.ts`) and `module:rg`. The probe cells are
+`() => (x: T) => ...`; written first as `(x: T) => ...`, their parameters were injected deps that name no cell, the
+checker rejected them with `inject-unknown` and never converted the types, so end to end compared nothing there.
+
+BOTH THREW 8: `sub` on a `Map` with no type argument, `undefined is not an object (evaluating 't.k')` on both sides.
+Every NOT COVERED is a probe whose typed tree holds an Other node where registry.ts reads fields; the corpus has 0
+of each. `other-forms` (30 registry units, 1 module): `m?(): void`, a property signature with no type, and
+`set x(v: number)` are Other members. `no-return-type` (3 units, 1 module): `declare function nr(x: number);` in
+foreign.d.ts. The typed tree's `TSDeclareFunction.returnType` is non-null, so acornParse makes the statement Other;
+registry.ts gives it `void`. Repro: `lite/infer/repro/declare-no-return.ts`. The fix belongs to `lite/acorn` (a
+synthetic input, then census and gen). A gap stays set for the rest of a registry, so every unit after the first
+Other read in that source counts NOT COVERED. `rg.test.ts` pins 33 and 2.
+
+Census of corpus uses per form (`rg-diff.ts --census --skip-big`): 0 for tuple rest/optional/named, construct
+signature, interface declared twice, cyclic extends, type parameter default, unary or template literal types,
+get/set signatures, qualified names, ValueOf, `@flag` comments, type parameter shadowing; under 5 for typeof (2),
+overloaded declare function (2), generic alias (4), generic interface (3), computed property signature (4). Each of
+these is in `probes/registry.ts`, with `export type`/`export interface` and a template literal type with a hole.
+
+### Controls (`--controls`, one cell broken per rg file)
+
+On the corpus (`--skip-big`) three of the first six went undetected (`rgTuple` rest element, `rgDeclType` no merge,
+`rgGlobals` without the equals/messageOf types). On the probes, after adding the probes and a globals unit (2026-11-22 00:07):
+
+```
+control                                         registry DIFFERENT  end to end DIFFERENT
+rg-ctl: rgPeekClose keeps the peek's entries     68                  0
+rg-convert: rgTuple reads a rest element         54                  3
+rg-sig: rgSigParam, no parameter optional        23                  0
+rg-expand: rgIfaceExtends ignores extends        17                  2
+rg-load: rgDeclType never merges an interface    14                  1
+rg-view: rgGlobals without equals/messageOf       1                  0
+rg-expand: rgLiveSet does nothing                27                  1
+rg-ctl: rgTrial never loud                       25                  0
+```
+
+`rgTrial never loud` was 0 until `quiet` was asked of each declared name before the convert units. Asked after, the
+expand memo already holds the name and the trial's loud flag is never reached. `rg.test.ts` requires all 8 > 0.
+
+### Timings
+
+2026-11-22 00:02, AC power, load 10.46 at start and 9.89 at end (other agents running), 3 rounds over 970 modules:
+
+```
+                       checkSources   rgRunCheck
+end to end, ms         4177 3916 4025  3777 3832 3809
+µs per module          registry.ts    rg
+  parse                184 170 169    652 532 537   (parse.ts against acorn parseTree)
+  construct            117 110 108    406 368 363
+  load (types only)    1.6 1.7 1.4    2.4 2.3 2.2
+```
+
+`construct` includes loading the prelude, intrinsics and foreign declarations (the rg side holds the three trees
+parsed once per process). Load and convert units only (parse excluded), 2026-11-22 00:09, AC power, load 12.08: 88.3
+µs per source registry.ts, 77.9 rg; again at 00:09 with `module:lite/infer`, load 11.93: 102.8 and 81.9. Not tuned:
+speed is third.
+
+Live checker on WITH (`types`, `subtype`, `walks`, the three acorn sections) plus the rg files
+(`.scratch/rg-port/selfcheck.ts`), 2026-11-22 00:01, AC power, load 10.88: 911, 912, 894 ms. 70 of 70 value cells ok.
+
+### Checker messages met, and the rewrite
+
+- `rgBuilt`: `[possibly-undefined]` on `Q.building.name` and `.next` after a ternary on the Mut field. Rewritten to
+  `const b = Q.building; if (b !== null) ...`.
+- `rgGlobals`, `rgIsTypedArray`: `[inject-unknown] parameter PRELUDE_FNS / ALLOWED_GLOBALS / TYPED_ARRAYS names no
+  cell`. These became ordinary arguments; the glue passes the intrinsics constants.
+
+No unit was left NOT COVERED for a cell that would not check. `lite/infer/repro/declare-no-return.ts` is the typed-tree
+gap above, not a checker limit.
+
+### Dead ends
+
+- A per-tree Other check (any Other node in a loaded tree = gap) marked whole modules NOT COVERED for a `class`
+  statement registry.ts never reads. Replaced with `rgOther` at each field registry.ts reads (annotation, literal,
+  type name, typeof name, member key, index parameter, extends clause, export wrapper, alias body).
+
+### registry.ts behaviour reproduced, not fixed
+
+- The alias memo is keyed on `show(t)`, which shortens names.
+- `RegOps.at` may return undefined; an empty-argument `Subst` keeps the identity through `at`.
+- `RegOps.same` is identity.
+- `Map` with no type argument crashes in `sub` (BOTH THREW 8).
+- Fresh type variables number from the cell's own start (`T'1000001`, from ix `C.fresh`).
+- The constructor's reports are dropped, `got` is cleared at each load, and reports between `loadUser` and the first
+  cell are lost.
+
+Differs by design: `RegOps.fresh` (`$aN`) is a counter per registry (`Q.fresh`); registry.ts's `alphaNames` is
+module-global. The registry-level units renumber `$a` names, so they cannot see this. The end-to-end comparison does
+not renumber and is 0 DIFFERENT, so no corpus report differs by it.
+
+### What integration must change (not done)
+
+- `lite/core.ts`: `checkSources`/`runCheck` build the `MdReg` with `rgMdRegistry` and link the md cells through
+  `rgLinkMd` (or change `MdReg.loadUser` to take the Ast); add `rgGap` handling.
+- `lite/soundscript/ts-cells.ts`: register the 7 rg files.
+- `lite/infer/infer.test.ts` test 1 fails while rg files sit in `lite/infer/` (it globs `*.ss.ts`): add `RG_FILES`.
+- `lite/complete.ts` uses `new Registry()`, `probe.reg`; it needs `callSigs`/`expand`/`member`/`types`/`ifaceRec`
+  from `RgRegistry`.
+- Still on `registry.ts`/`parse.ts`: `acorn/index.ts` `parseTreeShape`, `soundscript/entry.ts` and
+  `syntax.test.ts` (`builtinTypeNames`), `walks.test.ts`, and `acorn-shell` (parse.ts's TS/TSX classes). Until those
+  move, registry.ts is not deletable.
+- Deletable at integration: the copies made here, `regAround` and `rgRunCheck` in `rg-index.ts` (from core.ts) and
+  the corpus gathering in `rg-diff.ts` (from diff.ts); core.ts's second parse of each module.
+- A copy of the rg files sits at `selfhost/opaque-handles/proto/lite/infer/` (another agent's copy of the lite tree,
+  made 2026-11-21 23:57); `rg.test.ts`'s name-uniqueness test exempts files at the same relative path.

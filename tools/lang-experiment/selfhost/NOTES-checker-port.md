@@ -566,3 +566,20 @@ parsed as HTML, `Worker`, animation frames, and a happy-dom symbol-key bug. The 
 in `tools/` was changed. Of verify's 649 pass lines: 162 are these cells, 106 could be ported, 381 need a
 browser (248 of them export and reopen). Not settled: `test_spec_S7_7` and `S7_5` pass only with the extra
 compute `lope-runtime.js`'s settle loop makes on each poll, which a browser never makes.
+
+## 2026-11-22 00:30: the Registry as cells over the typed tree (`lite/infer/rg-*.ss.ts`), not switched on
+Record: `lite/infer/NOTES.md`, last section. 16 of `registry.ts`'s 18 functions are 70 value cells and 21 type
+cells in 7 files (median 6 lines, largest 24), reading the typed tree, so a check parses once.
+`bun lite/infer/rg-diff.ts`, my run (AC, load 17):
+`registry level: 81546 units in 970 sources: SAME 81505 DIFFERENT 0 NOT COVERED 33 BOTH THREW 8`
+`end to end: 973 sources: SAME 971 DIFFERENT 0 NOT COVERED 2`; parser runs 2003 against 1030.
+The 8 that throw are `Map` with no type argument, the same crash on both sides. The not covered come from two
+probe files: an optional method `m?()`, a property signature with no type, a setter, and `declare function
+nr(x: number);` arrive from the typed tree as `Other` (`lite/infer/repro/declare-no-return.ts`); the corpus has
+none of them. 8 controls, one per file, each differ; 3 were caught only after probes were added.
+`cd lite && bun test infer/rg.test.ts`: 5 pass.
+Known consequence: `infer.test.ts`'s first test lists the `.ss.ts` files of `lite/infer` and now fails until the
+integration adds the rg files to its list.
+Integration: `core.ts` builds the registry from the rg cells; `ts-cells.ts` registers the 7 files;
+`complete.ts` takes `callSigs`/`expand`/`member` from them. `registry.ts` and `parse.ts` go only after
+`acorn/index.ts`, `soundscript/entry.ts`, two tests and the parser cell stop using them.
