@@ -1,0 +1,47 @@
+redirect: events-shell.ts, store-shell.ts, trace/runtime-ss.traced.ts
+runner: mutant late
+FAIL one value per answer: 9 orderings, 9 fail
+  e.g. answer C T:commit R R: delivered [], the events runs gave ["hello","second","third"]
+  e.g. answer T:commit R R C: delivered [], the events runs gave ["hello","second","third"]
+  e.g. answer T:commit R C R: delivered [], the events runs gave ["hello","second","third"]
+FAIL one value per answer, a Runtime frame already requested: 75 orderings, 75 fail
+  e.g. answer X R C T:commit R R: delivered [], the events runs gave ["hello","second","third"]
+  e.g. answer X R T:commit R R C: delivered [], the events runs gave ["hello","second","third"]
+  e.g. answer X R T:commit R C R: delivered [], the events runs gave ["hello","second","third"]
+FAIL one value per answer, the listener cell runs again: 766 orderings, 766 fail
+  e.g. answer X L R C T:commit R R: delivered [], the events runs gave ["hello","second","third"]
+  e.g. answer X L R T:commit R R C: delivered [], the events runs gave ["hello","second","third"]
+  e.g. answer X L R T:commit R C R: delivered [], the events runs gave ["hello","second","third"]
+FAIL one value per answer, the action is made again: 766 orderings, 766 fail
+  e.g. answer X S R C T:commit R R: delivered [], the events runs gave ["hello","second","third"]
+  e.g. answer X S R T:commit R R C: delivered [], the events runs gave ["hello","second","third"]
+  e.g. answer X S R T:commit R C R: delivered [], the events runs gave ["hello","second","third"]
+FAIL one value per answer, a second copy of the module starts its listener: 309 orderings, 309 fail
+  e.g. answer X B R C T:commit R R: delivered [], the events runs gave ["hello","second","third"]
+  e.g. answer X B R T:commit C R R: delivered [], the events runs gave ["hello","second","third"]
+  e.g. answer X B C R T:commit R R: delivered [], the events runs gave ["hello","second","third"]
+FAIL two values per answer: 75 orderings, 75 fail
+  e.g. answer X R C T:commit R R: delivered [], the events runs gave ["hello","hello!","second","second!","third","third!"]
+  e.g. answer X R T:commit R R C: delivered [], the events runs gave ["hello","hello!","second","second!","third","third!"]
+  e.g. answer X R T:commit R C R: delivered [], the events runs gave ["hello","hello!","second","second!","third","third!"]
+FAIL an answer equal to the one before it: 75 orderings, 75 fail
+  e.g. answer X R C T:commit R R: delivered [], the events runs gave ["same"]
+  e.g. answer X R T:commit R R C: delivered [], the events runs gave ["same"]
+  e.g. answer X R T:commit R C R: delivered [], the events runs gave ["same"]
+FAIL latest wins (spec_s6_latestWins): 766 orderings, 766 fail
+  e.g. answer X S R C T:commit R R: delivered [], the events runs gave [{"n":0,"text":"hello"},{"n":1,"text":"second"},{"n":2,"text":"third"}]
+  e.g. answer X S R T:commit R R C: delivered [], the events runs gave [{"n":0,"text":"hello"},{"n":1,"text":"second"},{"n":2,"text":"third"}]
+  e.g. answer X S R T:commit R C R: delivered [], the events runs gave [{"n":0,"text":"hello"},{"n":1,"text":"second"},{"n":2,"text":"third"}]
+175 |   const WB = k.extra.includes("B") ? await load(k.src, FB.fetch, "B:", "B") : null;
+176 |   try {
+177 |     await quiet();
+178 |     await F.asks[0].answer(k.first); await quiet();
+179 |     L("ask"); W.value("ask")(); await quiet();
+180 |     if (F.asks.length !== 2) throw new Error(`setup: ${F.asks.length} fetches`);
+                                             ^
+error: setup: 1 fetches
+      at run (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/delivery.test.ts:180:40)
+      at async <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/delivery.test.ts:223:21)
+      at async explore (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/delivery.test.ts:229:9)
+
+Bun v1.4.0 (macOS arm64)

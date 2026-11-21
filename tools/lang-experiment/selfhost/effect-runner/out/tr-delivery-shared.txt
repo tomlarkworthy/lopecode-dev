@@ -1,0 +1,14 @@
+redirect: events-shell.ts, store-shell.ts, trace/runtime-ss.traced.ts
+runner: mutant shared
+pass one value per answer: 62 orderings, 0 fail
+pass one value per answer, a Runtime frame already requested: 780 orderings, 0 fail
+pass one value per answer, the listener cell runs again: 11238 orderings, 0 fail
+pass one value per answer, the action is made again: 11238 orderings, 0 fail
+pass one value per answer, a second copy of the module starts its listener: 1688 orderings, 0 fail
+pass two values per answer: 7804 orderings, 0 fail
+pass an answer equal to the one before it: 27 orderings, 0 fail
+pass latest wins (spec_s6_latestWins): 2318 orderings, 0 fail
+pass every answer (spec_s6_everyAnswer): 15314 orderings, 0 fail
+pass an input of the action throws: n 28 before, 29 -> 29 over 30 rounds while in error (listeners 0), 57 after the repair (listeners 1)
+measured: the events cell's input throws: n 34 -> 64 over 30 rounds while in error, listeners 1
+pass delivery: 50469 orderings, 0 fail; 0 listeners left attached, 0 events handles left

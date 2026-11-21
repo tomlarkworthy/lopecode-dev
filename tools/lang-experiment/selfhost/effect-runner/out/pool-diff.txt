@@ -1,0 +1,15 @@
+checker: 15 cells of pool.ss.ts accepted; largest pumpPool, 14 lines
+shipped: 0 of 2000 scripts differ from the original (74935 trace lines in the original's runs)
+runner: 0 of 2000 scripts differ from the original (74935 trace lines in the original's runs)
+mutant takeLive (no drop): 896 of 2000 scripts differ from the original (74935 trace lines in the original's runs), first seed 7
+mutant settle (answered not counted): 1973 of 2000 scripts differ from the original (74935 trace lines in the original's runs), first seed 1
+  original, 200 scripts: 399 resends of a missing island
+  original, 200 scripts: 25 resends whose post threw
+  original, 200 scripts: 343 lines with post failed
+  original, 200 scripts: 191 lines with SupersededError
+  original, 200 scripts: 198 lines with DataCloneError
+  original, 200 scripts: 155 lines with was not sent
+  original, 200 scripts: 281 lines with worker failed
+  original, 200 scripts: 361 lines with boom
+  original, 200 scripts: 954 lines with resolve
+pass

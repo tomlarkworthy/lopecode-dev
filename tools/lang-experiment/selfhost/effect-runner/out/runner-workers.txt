@@ -1,0 +1,4 @@
+redirect: pool-shell.ts
+TypeError: onLoad() expects an object returned
+
+Bun v1.4.0 (macOS arm64)

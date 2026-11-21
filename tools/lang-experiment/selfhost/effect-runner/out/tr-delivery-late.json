@@ -1,0 +1,31 @@
+{
+ "lines": 269022,
+ "sha256": "75ee5f0ed15895316bb7878da39f7de22545ce4c3047ee0716d1fc8e2e06d7d3",
+ "counts": {
+  "events effect forgetHandle": 10609,
+  "events effect forgetListener": 22594,
+  "events effect frame": 11027,
+  "events effect make": 21636,
+  "events event eventsInvalidated": 15921,
+  "events event listen": 22594,
+  "events event listenerInvalidated": 16936,
+  "events event made": 21636,
+  "events event open": 10609,
+  "events event pull": 9387,
+  "events event releaseAction": 21586,
+  "events event releaseEvents": 10609,
+  "events event releaseListener": 10609,
+  "events event run": 21636,
+  "step events": 161523,
+  "step store": 107499,
+  "store effect keep": 40197,
+  "store effect schedule": 19229,
+  "store effect tell": 18609,
+  "store event commit": 18608,
+  "store event enter": 19229,
+  "store event exit": 19229,
+  "store event made": 21588,
+  "store event reset": 9615,
+  "store event write": 19230
+ }
+}

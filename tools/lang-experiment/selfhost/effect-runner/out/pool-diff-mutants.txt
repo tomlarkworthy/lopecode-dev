@@ -1,0 +1,12 @@
+runner: mutant fifo
+runner mutant fifo: 0 of 2000 scripts differ from the original (74935 trace lines in the original's runs)
+FAIL 1
+runner: mutant shared
+runner mutant shared: 0 of 2000 scripts differ from the original (74935 trace lines in the original's runs)
+FAIL 1
+runner: mutant swallow
+runner mutant swallow: 0 of 2000 scripts differ from the original (74935 trace lines in the original's runs)
+FAIL 1
+runner: mutant late
+runner mutant late: 1984 of 2000 scripts differ from the original (74935 trace lines in the original's runs), first seed 1
+pass

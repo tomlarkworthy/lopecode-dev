@@ -1,0 +1,11 @@
+| file | loop | identity | side | perform | entry | other | total | code lines in file |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| events, shipped lite/browser/cells.ts | 11 | 8 | 1 | 33 | 44 | 16 | 113 | 113 |
+| events, events-shell.ts | 2 | 8 | 1 | 30 | 44 | 18 | 103 | 103 |
+| pool, shipped lite/browser/workers.ts | 6 | 2 | 0 | 15 | 28 | 54 | 105 | 105 |
+| pool, pool-shell.ts | 2 | 2 | 1 | 17 | 28 | 56 | 106 | 106 |
+| store, shipped prelude.runtime.ts | 8 | 9 | 0 | 10 | 89 | 66 | 182 | 182 |
+| store, store-shell.ts | 2 | 9 | 0 | 9 | 89 | 68 | 177 | 177 |
+| render, shipped lite/jsx/render.ts | 0 | 0 | 0 | 31 | 20 | 8 | 59 | 59 |
+| runtime, shipped lite/stdlib/runtime.ts | 0 | 0 | 0 | 0 | 7 | 105 | 112 | 112 |
+| runner.ts (once for all) | 27 | 0 | 0 | 0 | 0 | 6 | 33 | 33 |

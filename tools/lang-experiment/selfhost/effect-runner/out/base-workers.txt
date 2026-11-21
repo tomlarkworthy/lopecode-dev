@@ -1,0 +1,9 @@
+pass D1 an early island runs again after 18 others
+pass D1 EXEC marks a dropped island as missing
+pass D2 an uncloneable job rejects
+pass D2 normal jobs after it resolve on every slot
+pass D3 in-flight jobs of a superseded owner resolve
+pass D3 a queued job of a superseded owner rejects with SupersededError
+pass D3 the current owner's job behind it resolves
+pass D1 a job without code for an unknown island rejects
+8 pass, 0 fail

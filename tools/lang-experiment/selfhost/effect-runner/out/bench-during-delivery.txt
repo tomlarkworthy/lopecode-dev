@@ -1,0 +1,36 @@
+Sun 22 Nov 2026 00:19:25 CET
+Now drawing from 'AC Power'
+ 0:19  up 6 days,  3:15, 0 users, load averages: 16.95 17.35 13.37
+A loop alone, 1000 steps per feed: shipped 25.142 ns/step (1.00x), runner 25.378 ns/step (1.01x)
+A loop alone, 1 step per feed: shipped 49.248 ns/feed (1.00x), runner 13.770 ns/feed (0.28x)
+B events, 20 events cells x 2 listeners, sync generators: shipped 5.077 µs/delivered value (1.00x), runner 5.292 µs/delivered value (1.04x)
+C pool, size 2, queue depth 1: shipped 2.435 µs/job (1.00x), runner 2.352 µs/job (0.97x)
+C pool, size 2, queue depth 10: shipped 3.620 µs/job (1.00x), runner 3.536 µs/job (0.98x)
+C pool, size 2, queue depth 100: shipped 11.999 µs/job (1.00x), runner 12.297 µs/job (1.02x)
+C pool with a stub step, queue depth 1: shipped 0.411 µs/job (1.00x), runner 0.451 µs/job (1.10x)
+D store, one write per action call, a commit per 10 calls: shipped 0.279 µs/call (1.00x), runner 0.223 µs/call (0.80x)
+ 0:19  up 6 days,  3:15, 0 users, load averages: 16.95 17.34 13.39
+Sun 22 Nov 2026 00:19:33 CET
+Now drawing from 'AC Power'
+ 0:19  up 6 days,  3:15, 0 users, load averages: 16.95 17.34 13.39
+A loop alone, 1000 steps per feed: shipped 23.705 ns/step (1.00x), runner 25.107 ns/step (1.06x)
+A loop alone, 1 step per feed: shipped 46.346 ns/feed (1.00x), runner 13.201 ns/feed (0.28x)
+B events, 20 events cells x 2 listeners, sync generators: shipped 5.406 µs/delivered value (1.00x), runner 5.540 µs/delivered value (1.02x)
+C pool, size 2, queue depth 1: shipped 2.373 µs/job (1.00x), runner 2.792 µs/job (1.18x)
+C pool, size 2, queue depth 10: shipped 3.483 µs/job (1.00x), runner 3.513 µs/job (1.01x)
+C pool, size 2, queue depth 100: shipped 13.485 µs/job (1.00x), runner 13.294 µs/job (0.99x)
+C pool with a stub step, queue depth 1: shipped 0.442 µs/job (1.00x), runner 0.544 µs/job (1.23x)
+D store, one write per action call, a commit per 10 calls: shipped 0.260 µs/call (1.00x), runner 0.259 µs/call (1.00x)
+ 0:19  up 6 days,  3:15, 0 users, load averages: 18.76 17.71 13.57
+Sun 22 Nov 2026 00:19:42 CET
+Now drawing from 'AC Power'
+ 0:19  up 6 days,  3:15, 0 users, load averages: 18.76 17.71 13.57
+A loop alone, 1000 steps per feed: shipped 23.759 ns/step (1.00x), runner 25.127 ns/step (1.06x)
+A loop alone, 1 step per feed: shipped 48.083 ns/feed (1.00x), runner 12.718 ns/feed (0.26x)
+B events, 20 events cells x 2 listeners, sync generators: shipped 5.022 µs/delivered value (1.00x), runner 5.180 µs/delivered value (1.03x)
+C pool, size 2, queue depth 1: shipped 2.706 µs/job (1.00x), runner 2.437 µs/job (0.90x)
+C pool, size 2, queue depth 10: shipped 3.518 µs/job (1.00x), runner 3.458 µs/job (0.98x)
+C pool, size 2, queue depth 100: shipped 12.052 µs/job (1.00x), runner 12.269 µs/job (1.02x)
+C pool with a stub step, queue depth 1: shipped 0.541 µs/job (1.00x), runner 0.891 µs/job (1.65x)
+D store, one write per action call, a commit per 10 calls: shipped 0.220 µs/call (1.00x), runner 0.231 µs/call (1.05x)
+ 0:19  up 6 days,  3:15, 0 users, load averages: 18.62 17.70 13.59

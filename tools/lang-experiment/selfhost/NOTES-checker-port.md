@@ -610,3 +610,16 @@ Copied, not fixed: `<number>x` erases to `<>x`. One broken cell per file differs
 `cd lite && bun test toolchain/tc.test.ts`: 11 pass.
 Cost under load 13-15, ratios only: compile 1.8-1.9x (246-285 -> 459-537 us per cell), decompile 4.5-5.5x.
 Integration: the four files become re-exports of the cells (66 importers); `ts-cells.ts` registers the 8 files.
+
+## 2026-11-22 01:45: a generic effect runner (prototype, `selfhost/effect-runner/`): not worth integrating as it is
+Record: `selfhost/effect-runner/RESULTS.md`. My estimate that one runner would shrink the five shells toward one
+was wrong. Measured: the loops are 25 of the 400 unchecked lines of the three shells that have one (events 11 of
+113, pool 6 of 105, store 8 of 182); render and stdlib/runtime have no loop. With a 33-line runner the total
+goes 400 -> 419. The rest of each shell is entry points called by user code, performers and identity bookkeeping.
+The prototype runner matches the shipped shells step for step: 50469 delivery orderings, 82 runtime tests, 500
+scripted event runs, 500 store runs, 2000 pool scripts, 0 differ; four broken runners are each caught, two of
+them only by the new scripts. Overhead within noise (events 1.00-1.05x).
+A performer cannot use function crossing as specified: S11.11 trusts a foreign function "to give equal results
+for equal arguments, to end, to write nothing", and a performer writes. A checked loop would need an explicitly
+effectful crossing, and handles crossing uncopied.
+What opaque handles would remove: about 20 of events' 113 lines and 8 of the pool's 105.

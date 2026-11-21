@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "noEmit": true, "strict": true, "target": "esnext", "module": "esnext", "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true, "skipLibCheck": true, "lib": ["esnext", "dom"], "types": []
+  },
+  "files": ["runner.ts", "events-shell.ts", "pool-shell.ts", "store-shell.ts", "../../lite/browser/cells.ts", "../../lite/browser/workers.ts", "../../prelude.runtime.ts"]
+}

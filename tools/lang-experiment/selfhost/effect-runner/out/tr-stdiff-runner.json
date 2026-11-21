@@ -1,0 +1,20 @@
+{
+ "lines": 73416,
+ "sha256": "b1e3106cc7d946d3df3d5d06bc02026f7438407a7770a3bcc615c81638809ceb",
+ "counts": {
+  "step store": 73416,
+  "store effect keep": 8961,
+  "store effect return": 6978,
+  "store effect schedule": 4444,
+  "store effect setView": 2385,
+  "store effect tell": 7461,
+  "store effect tellView": 2385,
+  "store effect throw": 1248,
+  "store event commit": 4444,
+  "store event enter": 23156,
+  "store event exit": 21908,
+  "store event made": 1500,
+  "store event reset": 500,
+  "store event write": 21908
+ }
+}
