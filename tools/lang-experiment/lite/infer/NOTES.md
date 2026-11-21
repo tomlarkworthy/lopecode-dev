@@ -308,7 +308,8 @@ order, unsupported items included. NOT COVERED when the inference port had a gap
 ```
 bun lite/infer/diff.ts --control-own --control-cap --control-fed --rounds 5 --file lite/infer/probes/wide.ts \
   --file lite/infer/probes/wide-state.ts --file lite/infer/repro/map-no-type-args.ts --file lite/infer/probes/own.ts \
-  --file lite/infer/probes/capture.ts --file lite/infer/repro/named-fn-expr-helper.ts       (16:37, load 6.15)
+  --file lite/infer/probes/capture.ts --file lite/infer/repro/named-fn-expr-helper.ts       (runD, 16:43-16:47, load 5.3-6.0)
+corpus results digest 3iepfhfqe3fpy (the same as runC at 16:37)
 829 sources, 3596 cells: SAME 3581 DIFFERENT 0 NOT COVERED 0 REAL CRASH 15; sources that threw 1
 facts: 3581 cells compared (inference SAME or DIFFERENT): SAME 3581 DIFFERENT 0; comparison threw 0
 ownership: 3581 cells: SAME 3581 DIFFERENT 0 NOT COVERED 0
@@ -349,10 +350,10 @@ returns without walking its body (`own.ts:415-417`, `owStmt`), so a labelled jum
 Controls, each a linked copy with one cell overridden (`--control-own`):
 
 ```
-owLoop, one iteration instead of the fixpoint      (filled below)
-owErr without the first-report-wins dedupe
-owHelper, no function is a helper
-owPosSpread, every spread allowed
+control own (owLoop, one iteration instead of the fixpoint): 3581 cells: SAME 3573 DIFFERENT 8 NOT COVERED 0
+control own (owErr without the first-report-wins dedupe): 3581 cells: SAME 3578 DIFFERENT 3 NOT COVERED 0
+control own (owHelper, no function is a helper): 3581 cells: SAME 3533 DIFFERENT 48 NOT COVERED 0
+control own (owPosSpread, every spread allowed): 3581 cells: SAME 3580 DIFFERENT 1 NOT COVERED 0
 ```
 
 On run B (16:35, 3437 cells, no probes: zsh does not split `$F`, so the `--file` list arrived as one argument) the
@@ -407,14 +408,17 @@ later const (`cn7`, the case a single taint pass misses), shadowing, a property 
 enclosing parameters, let, catch, Mut, for...of, self- and mutual recursion; events and state cells holding
 functions, `unknown`, `object`.
 
-Controls (`--control-cap`, `--control-fed`), run B corpus / probes alone:
+Controls (`--control-cap`, `--control-fed`), runD:
 
 ```
-owTaintPass, one pass instead of the fixpoint        corpus DIFFERENT 0; probes DIFFERENT 2 (cn7, cn8)
-owOpaqueWhy1 without following free references      corpus DIFFERENT 6
-owNotARef, property names read as references        corpus DIFFERENT 1 (accept-suminagashi-controls)
-owFedKept without taking Generator<T> to T          probes DIFFERENT 1 (fe1)
+control cap (owTaintPass, one pass instead of the fixpoint): SAME 3579 DIFFERENT 2     (cn7, cn8; corpus alone 0)
+control cap (owOpaqueWhy1 without following free references): SAME 3573 DIFFERENT 8
+control cap (owNotARef, property names read as references): SAME 3579 DIFFERENT 2
+control fed (owFedKept without taking Generator<T> to T): SAME 3578 DIFFERENT 3
 ```
+
+The message: both sides' reports are compared as `name | why | opaque`; `[action-capture]`'s text is
+`captureMessage` (`messages.ss.ts:15`), a function of those three fields only, so it was not compared separately.
 
 No checker message met in stage 3.
 
@@ -431,3 +435,30 @@ facts, `ownership`, `actionEscapes`, `captures`, `opaqueCaptures`, the two `fnKe
   `iterator-cell` (`iterIn` is ported as `owIter`, not wired to this rule), `listener-placement` on the value;
 - the crash path (`checker crashed:` as unsupported), `dedupe`, line numbers from offsets, and the `value`/`usable`
   bookkeeping the next cells read.
+
+## Timing and size (2026-11-21, runD and after; load 5.3-6.0 during the differential, 5.8-12.5 during check-time,
+other agents' processes running; nothing else of mine running)
+
+```
+µs per SAME cell over 5 rounds: port with typed parse 2113.7–2248.0, port (runIx) 1689.2–1828.1, real 1056.2–1123.4
+ownership µs per SAME cell over 5 rounds: port (owCheck) 91.9–102.2, real (ownership + actionEscapes) 65.5–79.5
+captures µs per SAME cell (both taint maps) over 5 rounds: port 157.1–198.4, real 44.0–50.5
+```
+
+The captures port is 3.1-4.5x the TypeScript: `owCaptureCheck` builds its own `owIndex` per call (twice per cell,
+one per taint map) and `owDeclaredIn` walks each action body again; the TypeScript reuses the parse tree's parents.
+Not optimised.
+
+Live checker on `lite/infer/` (`check-time.ts`, 4 rounds, 16:47-16:51):
+
+```
+with-only    630-1027 ms   75 cells
+with+ix     3423-4307 ms  281 cells      (before stage 1, 2026-11-21 16:09: 3705-4149 ms, 273 cells)
+with+ix+ow  5501-6093 ms  383 cells
+```
+
+Size (`bun lite/infer/stats.ts ow`): 126 cells in 12 `ow-*.ss.ts` files, 102 value cells, 24 type cells; value cell
+lines 888, median 8, largest owMethodValue 20, owEscapes 21, owStmt 22, owIterIn 25, owExpr 25. Covered: own.ts's
+3 functions (516 of 542 lines), capture.ts's 5 functions (135 of 158 lines), core.ts's two `fnKept` calls and the
+value-type lines before them (`core.ts:343-348`). Plus 7 cells in `ix-facts.ss.ts` for stage 1.
+`bun test infer/infer.test.ts`: 4 pass, 0 fail, 50.4 s (16:41).

@@ -202,3 +202,19 @@ as `Other`. Branch coverage of the cells by the corpus was not measured.
 - OPEN: since the build of 15:44 the build log has 12 lines "error building module dependancy map" (cell-map,
   editor-5, module-selection, claude-code-pairing, three each); 0 in the build of 15:28. Exit 0, same output
   hash on rebuild, verify passes. Cause not found.
+
+## 2026-11-22: facts, the ownership pass and captures as cells (`lite/infer/`), not switched on
+Record: `lite/infer/NOTES.md`. `own.ts` (3 functions, 516 of 542 lines), `capture.ts` (5 functions, 135 of 158)
+and the "fed" rule of `core.ts` are 126 `ow-*` cells in 12 files (median 8 lines, largest 25); the inference
+cells now leave the facts those passes read. 383 cells in `lite/infer/`, all accepted by the live checker.
+`bun lite/infer/diff.ts`, my run: inference, facts, ownership, captures and the fed rule each SAME 3437,
+DIFFERENT 0, NOT COVERED 0 (14 crash the same). With the probes the builder's run compared 3581. 8 controls of
+the ow cells and 10 of the facts each differ; two are caught by probes only (`sp2`; `cn7`, `cn8`).
+Cost per cell under load: ownership 92-102 against 66-80 us; captures 157-198 against 44-51 us (rebuilds its
+tree index per call; not optimised). The live checker takes 5.5-6.1 s to check `lite/infer/` (383 cells).
+Captures were compared under two made-up taint maps (none, all), since the real one needs the module graph.
+TypeScript bug reproduced, not fixed: `const f = function g(){ m.push(1) }; return f;` is accepted where the
+arrow form is `[mut-capture]` (`lite/infer/repro/named-fn-expr-helper.ts`).
+Left before the per-cell check can be switched: injected parameter types and their rules; the taint map and
+"fed by" text from the module's cell graph; the cell-level rules on the value type (state-undefined,
+state-in-state, iterator-cell, listener-placement); crash path, dedupe, line mapping, value bookkeeping.
