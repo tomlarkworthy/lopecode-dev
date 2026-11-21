@@ -16,6 +16,19 @@ import * as apply from "./ix-apply.ss.ts";
 import * as prelude from "./ix-prelude.ss.ts";
 import * as jsx from "./ix-jsx.ss.ts";
 import * as entry from "./ix-entry.ss.ts";
+import * as facts from "./ix-facts.ss.ts";
+import "./ow-types.ss.ts";
+import * as owTree from "./ow-tree.ss.ts";
+import * as owCapture from "./ow-capture.ss.ts";
+import * as owPos from "./ow-pos.ss.ts";
+import * as owPlace from "./ow-place.ss.ts";
+import * as owFlow from "./ow-flow.ss.ts";
+import * as owStmt from "./ow-stmt.ss.ts";
+import * as owLoop from "./ow-loop.ss.ts";
+import * as owAction from "./ow-action.ss.ts";
+import * as owTaint from "./ow-taint.ss.ts";
+import * as owOpaque from "./ow-opaque.ss.ts";
+import * as owEntry from "./ow-entry.ss.ts";
 import * as runtimePrelude from "../../prelude.runtime.ts";
 import { link } from "../link.ts";
 import * as T from "../types.ts";
@@ -27,14 +40,17 @@ import type { AstNode } from "../acorn/acorn-types.ss.ts";
 import type { IxReg, IxRegCore, IxDiag, IxInput, IxOutput, IxKind } from "./ix-types.ss.ts";
 import type { Ty } from "../types.ss.ts";
 
-export const IX_FILES = ["types", "core", "hides", "expr", "ops", "cond", "fn", "stmt", "flow", "lit", "call", "apply", "prelude", "jsx", "entry"].map((x) => `ix-${x}.ss.ts`);
-export const IX_CELLS = { ...core, ...hides, ...expr, ...ops, ...cond, ...fn, ...stmt, ...flow, ...lit, ...call, ...apply, ...prelude, ...jsx, ...entry };
+export const IX_FILES = ["types", "core", "hides", "expr", "ops", "cond", "fn", "stmt", "flow", "lit", "call", "apply", "prelude", "jsx", "entry", "facts"].map((x) => `ix-${x}.ss.ts`);
+// the ownership port (lite/own.ts), linked with the ix cells it reads
+export const OW_FILES = ["types", "tree", "capture", "pos", "place", "flow", "stmt", "loop", "action", "taint", "opaque", "entry"].map((x) => `ow-${x}.ss.ts`);
+export const OW_CELLS = { ...owTree, ...owCapture, ...owPos, ...owPlace, ...owFlow, ...owStmt, ...owLoop, ...owAction, ...owTaint, ...owOpaque, ...owEntry };
+export const IX_CELLS = { ...core, ...hides, ...expr, ...ops, ...cond, ...fn, ...stmt, ...flow, ...lit, ...call, ...apply, ...prelude, ...jsx, ...entry, ...facts, ...OW_CELLS };
 const A = linkAcorn();
 const GIVEN = {
   NUM: T.NUM, STR: T.STR, BIGINT: T.BIGINT, NULL: T.NULL, UNDEF: T.UNDEF, VOID: T.VOID, NEVER: T.NEVER, UNKNOWN: T.UNKNOWN,
   OBJECT: T.OBJECT, ERR: T.ERR, SYMBOL: T.SYMBOL, BOOL: T.BOOL, lit: T.lit, arr: T.arr, named: T.named, unwrap: T.unwrap,
   propT: T.propT, union: T.union, members: T.members, show: T.show, subst: T.subst, hasTv: T.hasTv, instantiate: T.instantiate,
-  widen: T.widen, isPrimitive: T.isPrimitive, isNamed: T.isNamed, kidsOf: A.kidsOf, nodeKind: A.nodeKind, isFnNode: A.isFnNode,
+  widen: T.widen, isPrimitive: T.isPrimitive, isNamed: T.isNamed, kidsOf: A.kidsOf, nodeKind: A.nodeKind, isFnNode: A.isFnNode, childrenOf: A.childrenOf, TYPE_FIELDS: A.TYPE_FIELDS,
 };
 // over: cells to put in place of the port's (diff.ts's control)
 export const linkIx = (over: Record<string, (...inputs: never[]) => unknown> = {}) => link({ ...IX_CELLS, ...over } as typeof IX_CELLS, runtimePrelude, GIVEN);
@@ -137,5 +153,10 @@ export type IxLinked = ReturnType<typeof linkIx>;
 export function runIx(L: IxLinked, reg: Registry, P: Parsed, input: Omit<IxInput, "globals">, hook: CompileHook | null = null): IxOutput {
   const R = makeReg(reg, P, hook);
   try { return L.ixCheckFn(R, { ...input, globals: globalsOf(reg) }); } finally { R.restore(); }
+}
+// the registry's methods as the ownership port calls them, outside any check (own.ts runs after fnExpr)
+export function regCore(reg: Registry): IxRegCore {
+  return { isAlias: (n) => reg.isAlias(n), expand: (t) => reg.expand(t), member: (t, k) => reg.member(t, k), sub: (a, b) => reg.sub(a, b),
+    callSigs: (t) => reg.callSigs(t), iterElem: (t) => reg.iterElem(t), unify: (p, a, m, tvs) => reg.unify(p, a, m, tvs), isTypedArray: (t) => reg.isTypedArray(t) };
 }
 export { kids };

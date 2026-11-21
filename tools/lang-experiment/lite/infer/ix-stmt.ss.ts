@@ -37,7 +37,7 @@ export const ixStmtSimple = (ixBlock, ixVarDecl, ixFnDeclStmt, ixReturn, ixBreak
     // a catch takes it as unknown
     case "ThrowStatement": ixHides(K, C, s.argument, K.infer(K, T, V, W, C, env, s.argument), UNKNOWN, null); return false;
     case "BreakStatement": case "ContinueStatement": return ixBreak(K, W, C, env, s);
-    case "ClassDeclaration": if (s.id.type === "Identifier") ixDeclare(V, C, env, s.id.name, ERR, "const", s.id, ixNoExtra, { k: "none" }, false); return true;
+    case "ClassDeclaration": if (s.id.type === "Identifier") ixDeclare(V, C, env, s.id.name, ERR, "const", s.id, ixNoExtra, { k: "none" }, false, -1); return true;
     case "ForInStatement": ixUnsup(K, C, s, "for...in"); return true;
     case "LabeledStatement": ixUnsup(K, C, s, "label"); return true;
     case "TSTypeAliasDeclaration": case "TSInterfaceDeclaration": ixUnsup(K, C, s, "local type declaration"); return true;
@@ -73,12 +73,12 @@ export const ixBreak = (ixUnsup, ixCopyFlow) => (K: IxK, W: IxFlows, C: IxCtls, 
 export const ixFnDeclStmt = (ixLookup, ixUpdate, ixCopyFlow) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: FunctionDeclaration): void => {
   const b = s.id.type === "Identifier" ? ixLookup(V, env, s.id.name) : undefined;
   if (!b || b.checked) return;
-  ixUpdate(V, { ...b, checked: true });
+  ixUpdate(V, C, { ...b, checked: true });
   const own = C.cur;
   C.cur = ixCopyFlow(W, C, own);
   const f = K.fnExpr(K, T, V, W, C, env, s, null, null);
   C.cur = own;
-  ixUpdate(V, { ...b, checked: true, t: b.t.k === "err" ? f : b.t, lazy: { k: "none" } });
+  ixUpdate(V, C, { ...b, checked: true, t: b.t.k === "err" ? f : b.t, lazy: { k: "none" } });
 };
 export const ixVarDecl = (ixAnnOf, ixConvert, ixVarFn, ixDeclare, ixNoExtra, ixLookup, ixFlowSet, ixErr, ixUnsup, widen, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, d: AstNode, kind: string): void => {
   if (d.type !== "VariableDeclarator") { ixUnsup(K, C, d, `declarator ${d.type}`); return; }
@@ -95,15 +95,15 @@ export const ixVarDecl = (ixAnnOf, ixConvert, ixVarFn, ixDeclare, ixNoExtra, ixL
   const t = K.check(K, T, V, W, C, env, init, declared, false, false);
   const isMut = init.type === "CallExpression" && init.callee.type === "Identifier" && init.callee.name === "mut" && ixLookup(V, env, "mut")?.kind === "prelude";
   if (id.type !== "Identifier") return K.bind(K, T, V, W, C, env, id, declared ?? t, k, ixNoExtra);
-  const b = ixDeclare(V, C, env, id.name, declared ?? (k === "let" ? widen(t) : t), k, id, ixNoExtra, { k: "none" }, isMut);
+  const b = ixDeclare(V, C, env, id.name, declared ?? (k === "let" ? widen(t) : t), k, id, ixNoExtra, { k: "none" }, isMut, fnInit ? init.nid : -1);
   if (k === "let" && declared !== null) ixFlowSet(W, C.cur, "#" + b.id, K.reg.sub(t, declared) ? t : declared);
 };
 // const f = (…) => …: bound before its body is checked, so it can call itself (with annotations)
 export const ixVarFn = (ixAnnotatedSig, ixDeclare, ixNoExtra, ixUpdate, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, id: Identifier, init: AstNode, declared: Ty | null): void => {
   const pre = declared ?? ixAnnotatedSig(K, V, C, env, init);
-  const b = ixDeclare(V, C, env, id.name, pre ?? ERR, "const", id, ixNoExtra, pre ? { k: "none" } : { k: "unsup", at: init }, false);
+  const b = ixDeclare(V, C, env, id.name, pre ?? ERR, "const", id, ixNoExtra, pre ? { k: "none" } : { k: "unsup", at: init }, false, init.nid);
   const t = K.check(K, T, V, W, C, env, init, declared, false, false);
-  ixUpdate(V, { ...b, t: declared ?? t, lazy: { k: "none" } });
+  ixUpdate(V, C, { ...b, t: declared ?? t, lazy: { k: "none" } });
 };
 export const ixIf = (ixSub1, ixJoin2) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: IfStatement): boolean => {
   const c = K.cond(K, T, V, W, C, env, s.test);

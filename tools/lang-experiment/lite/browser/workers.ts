@@ -1,6 +1,8 @@
 // Runs a compiled island: the erased module source, the island's cells in order, the inputs and refs
 // as starting values. EXEC is plain JavaScript source so the same code runs on the main thread and,
 // stringified into a classic blob worker, in the pool (a module worker fails to start on file://).
+import { newPool, poolStep, answeredOf, type PoolState, type PoolEvent, type PoolEffect } from "../runtime-ss.ts";
+
 export type Job = { key: string; js?: string; names: string[]; order: { name: string; params: string[] }[]; values: Record<string, unknown>; outputs: string[] };
 
 export const EXEC = `(function () {
@@ -54,8 +56,7 @@ self.onmessage = (e) => {
   }
 };`;
 
-type Slot = { worker: Worker; busy: boolean; has: Set<string>; current: number; answered: number };
-type Queued = { job: Job; owner: { dead: boolean }; resolve: (v: Record<string, unknown>) => void; reject: (e: Error) => void; resent?: boolean };
+type Queued = { job: Job; owner: { dead: boolean }; resolve: (v: Record<string, unknown>) => void; reject: (e: Error) => void };
 
 // answered: per worker, the jobs it has resolved
 export type Pool = { readonly size: number; readonly answered: readonly number[]; run(job: Job, owner: { dead: boolean }): Promise<Record<string, unknown>> };
@@ -66,70 +67,50 @@ const superseded = () => Object.assign(new Error("superseded"), { name: "Superse
 // SupersededError, so a slider drag does not leave stale work ahead of the current value; a job
 // already sent to a worker runs to the end and resolves. Each slot remembers which islands it sent
 // code for; a worker that has dropped one answers `missing` and the job is sent again with its code.
-// makeWorker is the injection point for tests; pagePool uses the browser's Worker on a blob URL.
-export function makePool(size: number, makeWorker: () => Worker): Pool {
-  const slots: Slot[] = [];
-  const queue: Queued[] = [];
-  const waiting = new Map<number, Queued>();
-  let next = 0;
-  const send = (s: Slot, id: number, q: Queued, withCode: boolean) => {
-    s.worker.postMessage({ id, job: withCode ? q.job : { ...q.job, js: undefined } });
-    s.has.add(q.job.key);
+// Those decisions are poolStep's (pool.ss.ts); this holds the workers and the promises, posts and settles.
+// makeWorker and step are the injection points for tests; pagePool uses the browser's Worker on a blob URL.
+export function makePool(size: number, makeWorker: () => Worker, step = poolStep): Pool {
+  const workers: Worker[] = [];
+  const jobs = new Map<number, Queued>();
+  let st: PoolState = newPool(size), qids = 0, out: unknown, thrown: unknown;
+  const dead = () => [...jobs].filter(([, q]) => q.owner.dead).map(([qid]) => qid);
+  const feed = (ev: PoolEvent) => {
+    const r = step(st, ev);
+    st = r.state;
+    for (const e of r.effects) perform(e);
   };
-  const pump = () => {
-    for (const s of slots) {
-      while (!s.busy) {
-        let q: Queued | undefined;
-        while ((q = queue.shift()) && q.owner.dead) q.reject(superseded());
-        if (!q) return;
-        const id = next++;
-        s.busy = true;
-        s.current = id;
-        waiting.set(id, q);
-        try {
-          send(s, id, q, !s.has.has(q.job.key));
-        } catch (err) {
-          waiting.delete(id);
-          s.busy = false;
-          q.reject(err instanceof Error ? err : new Error(String(err)));
-        }
+  const perform = (e: PoolEffect) => {
+    const q = jobs.get(e.qid)!;
+    if (e.fx === "post") {
+      try { workers[e.slot]!.postMessage({ id: e.id, job: e.withCode ? q.job : { ...q.job, js: undefined } }); } catch (err) {
+        thrown = err;
+        return feed({ t: "postFailed", slot: e.slot, id: e.id, resend: e.resend, dead: dead() });
       }
+      return feed({ t: "posted", slot: e.slot, id: e.id, resend: e.resend, dead: dead() });
     }
+    jobs.delete(e.qid);
+    if (e.fx === "resolve") return q.resolve(out as Record<string, unknown>);
+    const w = e.why;
+    q.reject(w.k === "superseded" ? superseded() : w.k === "message" ? new Error(w.msg) : thrown instanceof Error ? thrown : new Error(String(thrown)));
   };
   for (let i = 0; i < size; i++) {
-    const slot: Slot = { worker: makeWorker(), busy: false, has: new Set(), current: -1, answered: 0 };
-    slot.worker.onerror = (e: ErrorEvent) => {
-      const q = waiting.get(slot.current);
-      waiting.delete(slot.current);
-      slot.busy = false;
-      q?.reject(new Error(`worker failed: ${e.message ?? "no message"}`));
-      pump();
+    const worker = makeWorker();
+    worker.onerror = (e: ErrorEvent) => feed({ t: "workerError", slot: i, message: e.message ?? null, dead: dead() });
+    worker.onmessage = (e: MessageEvent) => {
+      const { id, error, missing } = e.data;
+      out = e.data.out;
+      feed({ t: "message", slot: i, id, error: error ? String(error) : null, missing: !!missing, dead: dead() });
     };
-    slot.worker.onmessage = (e: MessageEvent) => {
-      const { id, out, error, missing } = e.data;
-      const q = waiting.get(id);
-      if (!q) return;
-      let failure: Error | null = error ? new Error(error) : null;
-      if (missing) {
-        slot.has.delete(q.job.key);
-        failure = new Error(`island ${q.job.key} was not sent`);
-        if (q.job.js && !q.resent) {
-          q.resent = true;
-          try { send(slot, id, q, true); return; } catch (err) { failure = err instanceof Error ? err : new Error(String(err)); }
-        }
-      }
-      waiting.delete(id);
-      slot.busy = false;
-      if (failure) q.reject(failure);
-      else { slot.answered++; q.resolve(out); }
-      pump();
-    };
-    slots.push(slot);
+    workers.push(worker);
   }
   return {
     size,
-    get answered() { return slots.map((s) => s.answered); },
-    run: (job, owner) => new Promise((resolve, reject) => { queue.push({ job, owner, resolve, reject }); pump(); }),
+    get answered() { return [...answeredOf(st)]; },
+    run: (job, owner) => new Promise((resolve, reject) => {
+      const qid = ++qids;
+      jobs.set(qid, { job, owner, resolve, reject });
+      feed({ t: "run", qid, key: job.key, hasCode: !!job.js, dead: dead() });
+    }),
   };
 }
 

@@ -1,0 +1,25 @@
+// action-capture (capture.ts captures and opaqueCaptures) and core.ts's fed rule, for diff.ts --file.
+export const count = () => state(0);
+export const cn1 = (count: State<number>) => { const d = count.value * 2; return action(() => { console.log(d); }); };
+export const cn2 = (count: State<number>) => { const a = count.value, b = a + 1, c = [b]; return action(() => c.length); };
+export const cn3 = (count: State<number>) => { const { v } = { v: count.value }; return action((x: number = v) => x); };
+export const cn4 = (count: State<number>) => { function f() { return count.value; } return action(() => f()); };
+export const cn5 = (count: State<number>) => action(() => { const count2 = 1; return count2; });
+export const cn6 = (count: State<number>) => { const o = { count: 1 }; return action(() => o.count); };
+export const ob1 = () => (p: number) => action(() => p);
+export const ob2 = () => { let n = 0; n++; return action(() => n); };
+export const ob3 = () => { const m = mut<number[]>([]); return action(() => m.length); };
+export const ob4 = () => { const xs = [1, 2]; const out: Action<[]>[] = []; for (const x of xs) out.push(action(() => { console.log(x); })); return out.length; };
+export const ob5 = () => (p: number) => { const q = p + 1; return action(() => q); };
+export const ob6 = () => { const g = (n: number): number => n ? g(n - 1) : 0; return action(() => g(2)); };
+export const ob7 = () => (p: number) => { const g = (): number => h(); const h = (): number => p; return action(() => g()); };
+export const ob8 = () => { try { throw 1; } catch (e) { return action(() => e); } };
+export const ob9 = () => (p: number) => { for (const x of [p]) return action(() => x); return null; };
+export const fe1 = function* () { yield (x: number) => x; };
+export const fe2 = () => state<unknown>(null);
+export const fe3 = () => state<{ f: () => number } | null>(null);
+export const fe4 = function* () { yield [1]; };
+export const fe5 = () => state<object | null>(null);
+export const fe6 = async function* () { yield () => 1; };
+export const cn7 = (count: State<number>) => { function f() { return d; } const d = count.value; return action(() => f()); };
+export const cn8 = (count: State<number>) => { const g = () => e; const e = count.value + 1; return action(() => g()); };

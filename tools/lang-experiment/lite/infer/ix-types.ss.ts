@@ -10,8 +10,9 @@ export type IxChain = { readonly id: number; readonly up: IxChain | null };
 export type IxKind = "const" | "let" | "param" | "fn" | "global" | "prelude";
 // what a read of a binding with no type yet does (Binding.lazy): report, or check its hoisted declaration
 export type IxLazy = { k: "none" } | { k: "unsup"; at: AstNode } | { k: "hoist"; fn: AstNode; env: IxEnv; busy: boolean };
+// fi: the nid of the function declaring it (Binding.fi.node); fnNode: the nid of the function it names; -1 for none
 export type IxBinding = {
-  id: number; scope: number; name: string; t: Ty; kind: IxKind; nid: number;
+  id: number; scope: number; name: string; t: Ty; kind: IxKind; nid: number; fi: number; fnNode: number;
   mutOwned: boolean; assigned: boolean; cellParam: boolean; checked: boolean; lazy: IxLazy;
 };
 // FnInfo without its lists (rets and yields live in IxCtl while the function is checked)
@@ -30,7 +31,28 @@ export type IxCtl = {
   cur: number; nextFlow: number; diags: IxLog | null; unsup: IxLog | null; rets: Ty[]; yields: Ty[];
   quiet: number; nextId: number; nextScope: number; nextNid: number; fresh: number;
   short: Set<number>; clones: Set<number>; breaks: IxBreaks | null; flagsAt: number; flags: Flags | undefined;
-  gap: string | null;
+  gap: string | null; facts: IxFactLog | null;
+};
+// a write the TypeScript Checker makes to facts, actionBodies, inActionUses or stateProps, which the passes after it read
+export type IxFact =
+  | { readonly k: "binding"; readonly b: IxBinding }
+  | { readonly k: "bind"; readonly at: number; readonly id: number }
+  | { readonly k: "helper"; readonly at: number; readonly id: number }
+  | { readonly k: "sig"; readonly at: number; readonly sig: Fn }
+  | { readonly k: "prelude"; readonly at: number; readonly name: string }
+  | { readonly k: "flags"; readonly at: number; readonly flags: Flags | null }
+  | { readonly k: "action"; readonly at: number }
+  | { readonly k: "use"; readonly fi: number; readonly at: number; readonly rule: string; readonly msg: string }
+  | { readonly k: "stateProp"; readonly at: number };
+export type IxFactLog = { readonly f: IxFact; readonly next: IxFactLog | null };
+// CallFact: each field null when the TypeScript leaves it unset
+export type IxCallFact = { readonly sig: Fn | null; readonly prelude: string | null; readonly helper: number | null };
+export type IxUse = { readonly fi: number; readonly at: number; readonly rule: string; readonly msg: string };
+// the facts as plain data, keyed by nid, bindings by id (Checker.facts without fnInfo, which nothing reads)
+export type IxFacts = {
+  readonly types: Map<number, Ty>; readonly bindingOf: Map<number, number>; readonly bindings: Map<number, IxBinding>;
+  readonly calls: Map<number, IxCallFact>; readonly memberFlags: Map<number, Flags | null>;
+  readonly actionBodies: Set<number>; readonly inActionUses: IxUse[]; readonly stateProps: Set<number>;
 };
 // the expression types by nid, the bindings by "<scope>:<name>", the flows by id, the rest
 export type IxTypes = Mut<Map<number, Ty>>;
@@ -78,7 +100,7 @@ export type IxInput = {
   fn: AstNode; injected: Ty[]; src: string; count: number; cellNames: Set<string>; allowed: Set<string>;
   globals: { name: string; t: Ty; kind: IxKind }[];
 };
-export type IxOutput = { fn: Ty; diags: IxDiag[]; unsup: IxDiag[]; gap: string | null };
+export type IxOutput = { fn: Ty; diags: IxDiag[]; unsup: IxDiag[]; gap: string | null; facts: IxFacts };
 
 // the recursive entry points and the per-check constants every method reads
 export type IxK = {

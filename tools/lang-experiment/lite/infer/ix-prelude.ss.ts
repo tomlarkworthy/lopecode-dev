@@ -32,7 +32,8 @@ export const ixYield = (ixErr, ixUnsup, show, UNDEF, UNKNOWN, ERR) => (K: IxK, T
   C.yields = [...C.yields, t];
   return UNKNOWN;
 };
-export const ixPreludeCall = (ixTypeArgs, ixErr, ixMutCall, ixUnwrapCall, ixStateCall, ixActionCall, ixReadCall, ixOnCall, BOOL, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, name: string, expected: Ty | null): Ty => {
+export const ixPreludeCall = (ixTypeArgs, ixErr, ixMutCall, ixUnwrapCall, ixStateCall, ixActionCall, ixReadCall, ixOnCall, ixFact, BOOL, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, name: string, expected: Ty | null): Ty => {
+  ixFact(C, { k: "prelude", at: e.nid, name });
   const args = e.arguments, explicit = ixTypeArgs(K, V, env, e.typeArguments);
   if (name === "on") return ixOnCall(K, T, V, W, C, env, e);
   if (name === "equals") {
@@ -74,10 +75,11 @@ export const ixStateCall = (named, isNamed, widen, ERR) => (K: IxK, T: IxTypes, 
   const t = a !== null ? K.check(K, T, V, W, C, env, a, inner, false, false) : ERR;
   return named("StateCell", inner ?? widen(t));
 };
-export const ixActionCall = (ixErr, ixUnsup, ixPromiseIn, ixActionFn, named, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, a: AstNode | null, expected: Ty | null): Ty => {
+export const ixActionCall = (ixErr, ixUnsup, ixPromiseIn, ixActionFn, ixFact, named, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, a: AstNode | null, expected: Ty | null): Ty => {
   if (a === null || (a.type !== "ArrowFunctionExpression" && a.type !== "FunctionExpression")) { ixUnsup(K, C, e, "action(...) of a non-literal function"); return ERR; }
   const args = expected !== null && expected.k === "named" && expected.n === "Action" ? expected.args[0] : undefined;
   const ctx = args !== undefined && args.k === "tup" ? ixActionFn(args) : null;
+  ixFact(C, { k: "action", at: a.nid });
   if (a.async || a.generator) ixErr(K, C, a, "action-async", `the function given to action(...) is ${a.async ? "async" : "a generator"}; an action is synchronous (S6.12)`);
   const f = K.fnExpr(K, T, V, W, C, { ...env, fi: { ...env.fi, inAction: true } }, a, ctx, null);
   if (f.k !== "fn") return ERR;

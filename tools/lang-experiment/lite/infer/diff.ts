@@ -19,9 +19,13 @@ import { specRejects } from "../soundscript/spec-cases.ts";
 import { show, type Ty } from "../types.ts";
 import { ALLOWED_GLOBALS } from "../intrinsics.ts";
 import { linkAcorn } from "../acorn/index.ts";
-import { linkIx, runIx, IX_FILES, IX_CELLS, type IxLinked, type CompileHook } from "./index.ts";
+import { linkIx, runIx, regCore, IX_FILES, OW_FILES, IX_CELLS, type IxLinked, type CompileHook } from "./index.ts";
+import { ownership, actionEscapes } from "../own.ts";
+import { captures, opaqueCaptures } from "../capture.ts";
 import type { AstNode, Ast } from "../acorn/acorn-types.ss.ts";
-import type { IxOutput } from "./ix-types.ss.ts";
+import type { IxOutput, IxFacts, IxBinding } from "./ix-types.ss.ts";
+import type { Checker as RealChecker, Binding } from "../infer.ts";
+import type { Fn, Flags } from "../types.ts";
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? null : process.argv[i + 1] ?? ""; };
 const ROUNDS = Number(arg("--rounds") ?? 1), ONLY = arg("--only"), SHOW = Number(arg("--show") ?? 10);
@@ -100,9 +104,181 @@ function jobs(): Job[] {
   return ONLY ? out.filter((j) => j.key.includes(ONLY)) : out;
 }
 
+// ---- the ownership pass (stage 2): own.ts on the real Checker, run again here, against the ow cells on the port's
+// facts; what own.ts reports through ch.unsupported is taken back, so core.ts's own call is the only one that counts ----
+function ownDiff(ch: RealChecker, e: any, fn: AstNode, port: IxOutput, P: Parsed): NonNullable<Rec["own"]> {
+  const fmt = (rule: string, start: number, end: number, msg: string) => `${rule} L${P.line(start)} @${start}-${end} ${msg}`;
+  const u0 = ch.unsup.length, d0 = ch.diags.length;
+  const t0 = performance.now();
+  const rs = [...ownership(e, ch), ...actionEscapes(e, ch)];
+  const realUs = (performance.now() - t0) * 1000;
+  const real = [...rs.map((r) => fmt(r.rule, r.node.start, r.node.end, r.msg)), ...ch.unsup.slice(u0).map((u) => fmt("unsupported", u.node.start, u.node.end, u.msg))];
+  ch.unsup.length = u0;
+  if (ch.diags.length !== d0) throw new Error("own.ts wrote a diagnostic");
+  const rules = rs.map((r) => r.rule);
+  let out: ReturnType<typeof L.owCheck>;
+  const t1 = performance.now();
+  try { out = L.owCheck(regCore(ch.reg), port.facts, fn); } catch (x) { return { bucket: "DIFFERENT", why: `port crashed: ${(x as Error).stack?.split("\n").slice(0, 3).join(" | ")}`, real, port: [], rules, realUs, portUs: 0 }; }
+  const portUs = (performance.now() - t1) * 1000;
+  const pl = [...out.diags, ...out.actions].map((d) => fmt(d.rule, d.start, d.end, d.msg)).concat(out.unsup.map((u) => fmt("unsupported", u.start, u.end, u.msg)));
+  if (port.gap !== null || out.gap !== null) return { bucket: "NOT COVERED", why: port.gap ?? out.gap ?? "", real, port: pl, rules, realUs, portUs };
+  return { bucket: JSON.stringify(real) === JSON.stringify(pl) ? "SAME" : "DIFFERENT", real, port: pl, rules, realUs, portUs };
+}
+// ---- captures (stage 3): capture.ts's captures and opaqueCaptures against the ow cells, under two taint maps made
+// here, since core.ts's (from the module's cell graph) is not reachable from the seam: none, and every parameter ----
+function capDiff(ch: RealChecker, e: any, fn: AstNode, port: IxOutput): NonNullable<Rec["cap"]> {
+  const all = new Map<string, string>((e.params as any[]).filter((p) => p.type === "Identifier").map((p) => [p.name, `the value of the state cell ${p.name}`]));
+  const fmt = (k: string, c: { name: string; why: string; opaque?: boolean }, s: number, en: number) => `${k} @${s}-${en} ${c.name} | ${c.why} | ${c.opaque ? "opaque" : "named"}`;
+  const real: string[] = [], pl: string[] = [];
+  let realUs = 0, portUs = 0, gap: string | null = port.gap;
+  for (const [k, tainted] of [["none", new Map<string, string>()], ["params", all]] as const) {
+    const t0 = performance.now();
+    const via = captures(e, tainted);
+    const op = opaqueCaptures(e, ch, tainted, new Set(via.map((x) => x.node)));
+    realUs += (performance.now() - t0) * 1000;
+    real.push(...via.map((c) => fmt(`${k} name`, c, c.node.start, c.node.end)), ...op.map((c) => fmt(`${k} binding`, c, c.node.start, c.node.end)));
+    let out: ReturnType<typeof L.owCaptureCheck>;
+    const t1 = performance.now();
+    try { out = L.owCaptureCheck(regCore(ch.reg), port.facts, fn, tainted); } catch (x) { return { bucket: "DIFFERENT", why: `port crashed: ${(x as Error).message}`, real, port: pl, realUs, portUs }; }
+    portUs += (performance.now() - t1) * 1000;
+    gap = gap ?? out.gap;
+    pl.push(...out.byName.map((c) => fmt(`${k} name`, c, c.at.start, c.at.end)), ...out.opaque.map((c) => fmt(`${k} binding`, c, c.at.start, c.at.end)));
+  }
+  if (gap !== null) return { bucket: "NOT COVERED", why: gap, real, port: pl, realUs, portUs };
+  return { bucket: JSON.stringify(real) === JSON.stringify(pl) ? "SAME" : "DIFFERENT", real, port: pl, realUs, portUs };
+}
+// the fed rule: core.ts's lines (value type, then fnKept) are its glue and are restated here as the oracle; the
+// Checker's part is ch.mayHide. Every cell is checked as if fed, with one fedBy text
+const FED_BY = "takes f, a function from another language";
+function fedDiff(ch: RealChecker, e: any, fnT: Ty, fn: AstNode, port: IxOutput): NonNullable<Rec["fed"]> {
+  const real: string[] = [];
+  const kept = (what: string, t: Ty, then: string) => { if (ch.mayHide(t)) real.push(`${what} ${show(t)}, which may be or hold a function from another language (c ${FED_BY}); ${then}`); };
+  let ret: Ty = fnT.k === "fn" ? fnT.ret : ({ k: "err" } as Ty);
+  if (e.async && ret.k === "named" && ret.n === "Promise") ret = ret.args[0];
+  if (e.generator && ret.k === "named" && ret.n === "Generator") ret = ret.args[0];
+  if (e.generator && !e.async) kept("an events cell yields", ret, "a listener's action would receive it");
+  if (ret.k === "named" && ret.n === "StateCell") kept("a state cell holds", ret.args[0], "an action that reads the state cell could call it");
+  const pl = L.owFedKept(regCore(ch.reg), fn, port.fn, "c", FED_BY);
+  return { same: JSON.stringify(renumberList(real)) === JSON.stringify(renumberList(pl)), real, port: pl };
+}
+const renumberList = (xs: string[]) => renumber({ diags: xs, unsup: [], fn: null }).diags;
+function fedReport(rs: Rec[], label = "fed rule") {
+  const fs = rs.filter((r) => r.fed), d = fs.filter((r) => !r.fed!.same);
+  console.log(`${label}: ${fs.length} cells: SAME ${fs.length - d.length} DIFFERENT ${d.length}; cells reported (as if fed) ${fs.filter((r) => r.fed!.real.length).length}, reports ${fs.reduce((s, r) => s + r.fed!.real.length, 0)}`);
+  for (const r of d.slice(0, 3)) console.log(`FED DIFFERENT ${r.job} @${r.at}\n  real ${JSON.stringify(r.fed!.real)}\n  port ${JSON.stringify(r.fed!.port)}`);
+}
+function capReport(rs: Rec[], show: number, label = "captures") {
+  const cs = rs.filter((r) => r.cap);
+  const c = { SAME: 0, DIFFERENT: 0, "NOT COVERED": 0 } as Record<string, number>;
+  for (const r of cs) c[r.cap!.bucket]++;
+  const kinds = tally(cs.flatMap((r) => r.cap!.real.map((x) => x.split(" @")[0] + (x.endsWith("opaque") ? " opaque" : ""))));
+  console.log(`${label}: ${cs.length} cells: SAME ${c.SAME} DIFFERENT ${c.DIFFERENT} NOT COVERED ${c["NOT COVERED"]}; reports ${kinds.map(([k, n]) => `${k} ${n}`).join(", ")}; cells with any ${cs.filter((r) => r.cap!.real.length).length}`);
+  for (const r of cs.filter((r) => r.cap!.bucket === "DIFFERENT").slice(0, show)) {
+    const o = r.cap!;
+    console.log(`CAP DIFFERENT ${r.job} @${r.at}${o.why ? " " + o.why : ""}\n  real-only ${JSON.stringify(o.real.filter((x) => !o.port.includes(x)).slice(0, 3))}\n  port-only ${JSON.stringify(o.port.filter((x) => !o.real.includes(x)).slice(0, 3))}`);
+  }
+  return c;
+}
+function ownReport(rs: Rec[], show: number, label = "ownership", brief = false) {
+  const os = rs.filter((r) => r.own);
+  const c = { SAME: 0, DIFFERENT: 0, "NOT COVERED": 0 } as Record<string, number>;
+  for (const r of os) c[r.own!.bucket]++;
+  console.log(`${label}: ${os.length} cells: SAME ${c.SAME} DIFFERENT ${c.DIFFERENT} NOT COVERED ${c["NOT COVERED"]}`);
+  const byRule = new Map<string, { cells: number; reports: number }>();
+  for (const r of os) {
+    const rules = r.own!.real.map((x) => x.split(" ")[0]);
+    for (const k of new Set(rules)) { const e = byRule.get(k) ?? { cells: 0, reports: 0 }; e.cells++; byRule.set(k, e); }
+    for (const k of rules) byRule.get(k)!.reports++;
+  }
+  if (!brief) for (const [k, v] of [...byRule].sort()) console.log(`  ${k.padEnd(22)} cells ${String(v.cells).padStart(4)} reports ${v.reports}`);
+  for (const [k, n] of tally(os.filter((r) => r.own!.bucket === "NOT COVERED").map((r) => r.own!.why ?? ""))) console.log(`  not covered ${n}: ${k}`);
+  for (const r of os.filter((r) => r.own!.bucket === "DIFFERENT").slice(0, show)) {
+    const o = r.own!;
+    console.log(`OWN DIFFERENT ${r.job} @${r.at}${o.why ? " " + o.why : ""}\n  real-only ${JSON.stringify(o.real.filter((x) => !o.port.includes(x)))}\n  port-only ${JSON.stringify(o.port.filter((x) => !o.real.includes(x)))}`);
+  }
+  return c;
+}
 // ---- the seam ----
 type Side = { diags: string[]; unsup: string[]; fn: string | null };
-type Rec = { job: string; at: number; bucket: "SAME" | "DIFFERENT" | "NOT COVERED" | "REAL CRASH"; why?: string; real?: Side; port?: Side; portUs: number; runUs: number; realUs: number };
+type Rec = { job: string; at: number; bucket: "SAME" | "DIFFERENT" | "NOT COVERED" | "REAL CRASH"; why?: string; real?: Side; port?: Side; portUs: number; runUs: number; realUs: number;
+  facts?: { same: boolean; real: FactSide; port: FactSide }; factsThrew?: string;
+  fed?: { same: boolean; real: string[]; port: string[] };
+  cap?: { bucket: "SAME" | "DIFFERENT" | "NOT COVERED"; why?: string; real: string[]; port: string[]; realUs: number; portUs: number };
+  own?: { bucket: "SAME" | "DIFFERENT" | "NOT COVERED"; why?: string; real: string[]; port: string[]; rules: string[]; realUs: number; portUs: number } };
+
+// ---- the facts (stage 1): what own.ts, capture.ts and core.ts read from the Checker after fnExpr, per table, keyed
+// by span and type; only nodes of the cell's own tree (synthetic JSX nodes are counted as excluded) ----
+const FACT_TABLES = ["types", "bindingOf", "calls", "memberFlags", "actionBodies", "inActionUses", "stateProps"] as const;
+type FactSide = { tables: Record<string, string[]>; excluded: Record<string, number>; dupKeys: number };
+// show() throws on a Map with no type argument (repro/map-no-type-args.ts); such a type is printed as its structure
+const showT = (t: Ty): string => { try { return show(t); } catch { return "struct " + JSON.stringify(t, (_k, v) => (v instanceof Map ? [...v] : v)); } };
+const flagsJson = (f: Flags | undefined | null) => (f ? JSON.stringify(Object.fromEntries(Object.entries(f).filter(([, v]) => v !== undefined).sort())) : "none");
+const sigOf = (s: Fn) => `${showT(s)} decl ${showT(s.decl ?? s)} flags ${flagsJson(s.flags)}`;
+// type variables renumbered over the tables in order, as renumber does for the diagnostics
+function renumberFacts(f: FactSide): FactSide {
+  const ids = new Map<string, number>();
+  const one = (x: string) => x.replace(/'\d+/g, (m) => { if (!ids.has(m)) ids.set(m, ids.size + 1); return `'${ids.get(m)}`; });
+  return { ...f, tables: Object.fromEntries(FACT_TABLES.map((t) => [t, f.tables[t].map(one)])) };
+}
+function realFacts(ch: RealChecker, cellFn: any): FactSide {
+  const key = new Map<any, string>(), seen = new Set<string>();
+  let dupKeys = 0;
+  (function walk(n: any, field: string) {
+    const k = `${n.start}:${n.end}:${n.type}${field}`;
+    if (seen.has(k)) dupKeys++; else seen.add(k);
+    key.set(n, k);
+    for (const f in n) {
+      if (f === "loc") continue;
+      const v = n[f];
+      if (Array.isArray(v)) { for (const x of v) if (x && typeof x.type === "string") walk(x, "." + f); }
+      else if (v && typeof v === "object" && typeof v.type === "string") walk(v, "." + f);
+    }
+  })(cellFn, "");
+  const excluded: Record<string, number> = Object.fromEntries(FACT_TABLES.map((t) => [t, 0]));
+  const K = (n: any) => (n ? key.get(n) ?? "outside" : "-");
+  const desc = (b: Binding) => b.kind === "global" || b.kind === "prelude" ? `${b.kind} ${b.name} : ${showT(b.t)}`
+    : `${b.kind} ${b.name} @${K(b.node)} fi ${K(b.fi?.node)} fn ${K(b.fnNode)} mut ${!!b.mutOwned} cp ${!!b.cellParam} as ${!!b.assigned} : ${showT(b.t)}`;
+  const F = ch.facts, tables: Record<string, string[]> = Object.fromEntries(FACT_TABLES.map((t) => [t, []]));
+  const put = (t: string, n: any, v: string) => { const k = key.get(n); if (k === undefined) excluded[t]++; else tables[t].push(`${k} ${v}`); };
+  for (const [n, t] of F.types) put("types", n, showT(t));
+  for (const [n, b] of F.bindingOf) put("bindingOf", n, desc(b));
+  for (const [n, c] of F.calls) put("calls", n, `helper ${c.helper ? desc(c.helper) : "-"} prelude ${c.prelude ?? "-"} sig ${c.sig ? sigOf(c.sig) : "-"}`);
+  for (const [n, f] of F.memberFlags) put("memberFlags", n, flagsJson(f));
+  for (const n of ch.actionBodies) put("actionBodies", n, "");
+  for (const u of ch.inActionUses) put("inActionUses", u.node, `fi ${K(u.fi.node)} [${u.rule}] ${u.msg}`);
+  for (const n of ch.stateProps) put("stateProps", n, "");
+  for (const t of ["types", "calls", "memberFlags", "actionBodies", "stateProps"]) tables[t].sort();
+  return renumberFacts({ tables, excluded, dupKeys });
+}
+function portFacts(fn: AstNode, F: IxFacts): FactSide {
+  const key = new Map<number, string>(), seen = new Set<string>();
+  let dupKeys = 0;
+  (function walk(n: AstNode, field: string) {
+    const k = `${n.start}:${n.end}:${n.type === "Other" ? n.kind : n.type}${field}`;
+    if (seen.has(k)) dupKeys++; else seen.add(k);
+    key.set(n.nid, k);
+    for (const c of A.childrenOf(n)) walk(c.node, "." + c.key);
+  })(fn, "");
+  const excluded: Record<string, number> = Object.fromEntries(FACT_TABLES.map((t) => [t, 0]));
+  const K = (nid: number) => (nid < 0 ? "-" : key.get(nid) ?? "outside");
+  const desc = (id: number) => {
+    const b: IxBinding | undefined = F.bindings.get(id);
+    if (!b) return `binding ${id} not kept`;
+    return b.kind === "global" || b.kind === "prelude" ? `${b.kind} ${b.name} : ${showT(b.t)}`
+      : `${b.kind} ${b.name} @${K(b.nid)} fi ${K(b.fi)} fn ${K(b.fnNode)} mut ${b.mutOwned} cp ${b.cellParam} as ${b.assigned} : ${showT(b.t)}`;
+  };
+  const tables: Record<string, string[]> = Object.fromEntries(FACT_TABLES.map((t) => [t, []]));
+  const put = (t: string, nid: number, v: string) => { const k = key.get(nid); if (k === undefined) excluded[t]++; else tables[t].push(`${k} ${v}`); };
+  for (const [n, t] of F.types) put("types", n, showT(t));
+  for (const [n, id] of F.bindingOf) put("bindingOf", n, desc(id));
+  for (const [n, c] of F.calls) put("calls", n, `helper ${c.helper !== null ? desc(c.helper) : "-"} prelude ${c.prelude ?? "-"} sig ${c.sig ? sigOf(c.sig) : "-"}`);
+  for (const [n, f] of F.memberFlags) put("memberFlags", n, flagsJson(f));
+  for (const n of F.actionBodies) put("actionBodies", n, "");
+  for (const u of F.inActionUses) put("inActionUses", u.at, `fi ${K(u.fi)} [${u.rule}] ${u.msg}`);
+  for (const n of F.stateProps) put("stateProps", n, "");
+  for (const t of ["types", "calls", "memberFlags", "actionBodies", "stateProps"]) tables[t].sort();
+  return renumberFacts({ tables, excluded, dupKeys });
+}
 // type variables renumbered by first appearance on each side, so two distinct ones stay distinct
 function renumber(s: Side): Side {
   const ids = new Map<string, number>();
@@ -140,13 +316,14 @@ Checker.prototype.fnExpr = function (this: Checker, e: any, env: any, expected: 
   if (!active || !cell || env !== null) return orig.call(this, e, env, expected, cell);
   const reg = this.reg, P = this.parsed;
   const memo = [new Map(reg.expandMemo), new Map(reg.ifaceMemo), new Set(reg.quietKeys)] as const;
-  let port: IxOutput | null = null, portCrash: string | null = null, portMsg: string | null = null;
+  let port: IxOutput | null = null, portCrash: string | null = null, portMsg: string | null = null, portFn: AstNode | null = null;
   const t0 = performance.now();
   let runUs = 0;
   try {
     const { ast, fns } = treeOf(P, curTsx);
     const fn = fns.get(`${e.start}:${e.end}:${e.type}`);
     if (!fn) throw new Error("no typed node for the cell's function");
+    portFn = fn;
     const tr = performance.now();
     port = runIx(L, reg, P, { fn, injected: cell.injected, src: P.src, count: ast.count, cellNames: this.cellNames, allowed: ALLOWED_GLOBALS }, lend(this));
     runUs = (performance.now() - tr) * 1000;
@@ -177,6 +354,14 @@ Checker.prototype.fnExpr = function (this: Checker, e: any, env: any, expected: 
       const ps: Side = { diags: port.diags.map((d) => fmt(d, d.start, d.end)), unsup: port.unsup.map((d) => fmt(d, d.start, d.end)), fn: show(port.fn) };
       rec.port = renumber(ps);
       if (JSON.stringify(rec.port) !== JSON.stringify(rec.real)) rec.bucket = "DIFFERENT";
+      // a fact show() cannot print (Map with no type argument) is counted, and must not reach the checked source
+      try {
+        const rf = realFacts(this, e), pf = portFacts(portFn!, port.facts);
+        rec.facts = { same: JSON.stringify(rf.tables) === JSON.stringify(pf.tables), real: rf, port: pf };
+      } catch (x) { rec.factsThrew = (x as Error).message; }
+      rec.own = ownDiff(this, e, portFn!, port, P);
+      rec.cap = capDiff(this, e, portFn!, port);
+      rec.fed = fedDiff(this, e, res!, portFn!, port);
     }
   }
   records.push(rec);
@@ -203,7 +388,7 @@ function pass(js: Job[]): { recs: Rec[]; jobCrash: string[]; ms: number; results
 const count = (rs: Rec[]) => { const c: Record<string, number> = { SAME: 0, DIFFERENT: 0, "NOT COVERED": 0, "REAL CRASH": 0 }; for (const r of rs) c[r.bucket] = (c[r.bucket] ?? 0) + 1; return c; };
 const tally = (xs: string[]) => [...xs.reduce((m, x) => m.set(x, (m.get(x) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
 
-const files = IX_FILES.map((f) => `${f}:${Bun.hash(readFileSync(join(import.meta.dir, f), "utf8")).toString(36)}`);
+const files = [...IX_FILES, ...OW_FILES].map((f) => `${f}:${Bun.hash(readFileSync(join(import.meta.dir, f), "utf8")).toString(36)}`);
 console.log(`ix files ${files.join(" ")}`);
 console.log(`infer.ts ${Bun.hash(readFileSync(join(ROOT, "lite/infer.ts"), "utf8")).toString(36)} core.ts ${Bun.hash(readFileSync(join(ROOT, "lite/core.ts"), "utf8")).toString(36)}`);
 const JOBS = jobs();
@@ -238,19 +423,50 @@ for (const r of diffs.slice(0, SHOW)) {
   }
   if (rr.fn !== rp.fn) console.log(`  fn real ${rr.fn}\n     port ${rp.fn}`);
 }
+function factReport(rs: Rec[], show: number): { same: number; different: number } {
+  const fr = rs.filter((r) => r.facts);
+  const fd = fr.filter((r) => !r.facts!.same);
+  const sum = (side: "real" | "port", f: (x: FactSide) => number) => fr.reduce((s, r) => s + f(r.facts![side]), 0);
+  const threw = rs.filter((r) => r.factsThrew !== undefined);
+  console.log(`facts: ${fr.length} cells compared (inference SAME or DIFFERENT): SAME ${fr.length - fd.length} DIFFERENT ${fd.length}; comparison threw ${threw.length}${threw.length ? ": " + threw[0].factsThrew : ""}`);
+  for (const t of FACT_TABLES) console.log(`  ${t.padEnd(13)} entries real ${sum("real", (x) => x.tables[t].length)} port ${sum("port", (x) => x.tables[t].length)}; excluded (not in the cell's tree) real ${sum("real", (x) => x.excluded[t])} port ${sum("port", (x) => x.excluded[t])}`);
+  console.log(`  node keys met twice in one cell's tree: real ${sum("real", (x) => x.dupKeys)} port ${sum("port", (x) => x.dupKeys)}`);
+  for (const r of fd.slice(0, show)) {
+    console.log(`FACTS DIFFERENT ${r.job} @${r.at}`);
+    for (const t of FACT_TABLES) {
+      const a = r.facts!.real.tables[t], b = r.facts!.port.tables[t];
+      if (a.join("\n") === b.join("\n")) continue;
+      const ra = a.filter((x) => !b.includes(x)), pb = b.filter((x) => !a.includes(x));
+      console.log(`  ${t} real-only ${JSON.stringify(ra.slice(0, 4))} port-only ${JSON.stringify(pb.slice(0, 4))}${!ra.length && !pb.length ? " (order)" : ""}`);
+    }
+  }
+  return { same: fr.length - fd.length, different: fd.length + threw.length };
+}
+factReport(first.recs, SHOW);
+ownReport(first.recs, SHOW);
+capReport(first.recs, SHOW);
+fedReport(first.recs);
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, JSON.stringify(first.recs, null, 1));
 
 if (ROUNDS > 1) {
-  const port: number[] = [], run: number[] = [], real: number[] = [];
+  const port: number[] = [], run: number[] = [], real: number[] = [], ownPort: number[] = [], ownReal: number[] = [], capPort: number[] = [], capReal: number[] = [];
   for (let i = 0; i < ROUNDS; i++) {
     const p = pass(JOBS).recs.filter((r) => r.bucket === "SAME");
     port.push(p.reduce((s, r) => s + r.portUs, 0) / p.length);
     run.push(p.reduce((s, r) => s + r.runUs, 0) / p.length);
     real.push(p.reduce((s, r) => s + r.realUs, 0) / p.length);
+    const cp = p.filter((r) => r.cap?.bucket === "SAME");
+    capPort.push(cp.reduce((s, r) => s + r.cap!.portUs, 0) / cp.length);
+    capReal.push(cp.reduce((s, r) => s + r.cap!.realUs, 0) / cp.length);
+    const o = p.filter((r) => r.own?.bucket === "SAME");
+    ownPort.push(o.reduce((s, r) => s + r.own!.portUs, 0) / o.length);
+    ownReal.push(o.reduce((s, r) => s + r.own!.realUs, 0) / o.length);
   }
   const mm = (xs: number[]) => `${Math.min(...xs).toFixed(1)}–${Math.max(...xs).toFixed(1)}`;
   console.log(`µs per SAME cell over ${ROUNDS} rounds: port with typed parse ${mm(port)}, port (runIx) ${mm(run)}, real ${mm(real)}; the port runs first`);
+  console.log(`captures µs per SAME cell (both taint maps) over ${ROUNDS} rounds: port ${mm(capPort)}, real ${mm(capReal)}`);
+  console.log(`ownership µs per SAME cell over ${ROUNDS} rounds: port (owCheck) ${mm(ownPort)}, real (ownership + actionEscapes) ${mm(ownReal)}; the real runs first`);
 }
 if (process.argv.includes("--control")) {
   // the control: ixArity without its "at most" check, in a linked copy; the shipped cell is not touched
@@ -263,6 +479,54 @@ if (process.argv.includes("--control")) {
   const m = pass(JOBS), mc = count(m.recs);
   console.log(`control (ixArity without the at-most check): SAME ${mc.SAME} DIFFERENT ${mc.DIFFERENT} NOT COVERED ${mc["NOT COVERED"]}`);
   for (const r of m.recs.filter((r) => r.bucket === "DIFFERENT").slice(0, 3)) console.log(`  ${r.job} @${r.at} real ${JSON.stringify(r.real?.diags.filter((x) => !r.port?.diags.includes(x)))}`);
+}
+if (process.argv.includes("--control-facts")) {
+  // one control per table: the port with one kind of fact write dropped (ixFact filtered), or the type write of ixInfer
+  const kinds = ["binding", "bind", "helper", "sig", "prelude", "flags", "action", "use", "stateProp"];
+  // link.ts evaluates a cell's text again, so the kind is written into the text, not closed over
+  const overs: [string, Record<string, (...a: never[]) => unknown>][] = kinds.map((k) => [`ixFact without "${k}"`, {
+    ixFact: new Function(`return () => (C, f) => { if (f.k !== ${JSON.stringify(k)}) C.facts = { f, next: C.facts }; };`)(),
+  }]);
+  overs.push(["ixInfer without its type write", {
+    ixInfer: ((ixInfer1: any) => (K: any, T: any, V: any, W: any, C: any, env: any, e: any) => { const q = C.quiet; C.quiet = 0; try { return ixInfer1(K, T, V, W, C, env, e); } finally { C.quiet = q; } }) as never,
+  }]);
+  for (const [what, over] of overs) {
+    L = linkIx(over);
+    const m = pass(JOBS), fr = m.recs.filter((r) => r.facts), fd = fr.filter((r) => !r.facts!.same);
+    const tables = FACT_TABLES.filter((t) => fd.some((r) => r.facts!.real.tables[t].join("\n") !== r.facts!.port.tables[t].join("\n")));
+    console.log(`control facts (${what}): facts SAME ${fr.length - fd.length} DIFFERENT ${fd.length}; tables that differ: ${tables.join(" ") || "none"}`);
+  }
+}
+if (process.argv.includes("--control-own")) {
+  // ownership controls: each a linked copy with one rule of own.ts broken; the shipped cells are not touched
+  const overs: [string, string, string][] = [
+    ["owLoop, one iteration instead of the fixpoint", "owLoop", "(owLoopParts, owLoopEntry, owLoopOnce) => (K, O, W, X, P, s, st) => { const L = owLoopParts(s); if (L === null) return st; const entry = owLoopEntry(K, O, W, X, P, s, st); return owLoopOnce(K, O, W, X, P, s, L, entry, entry).exit; }"],
+    ["owErr without the first-report-wins dedupe", "owErr", "(ixPush) => (W, at, rule, msg) => { W.errs = ixPush(W.errs, { start: at.start, end: at.end, rule, msg }); }"],
+    ["owHelper, no function is a helper", "owHelper", "() => () => undefined"],
+    ["owPosSpread, every spread allowed", "owPosSpread", "() => () => null"],
+  ];
+  for (const [what, name, text] of overs) {
+    L = linkIx({ [name]: new Function(`return (${text});`)() });
+    const m = pass(JOBS);
+    ownReport(m.recs, 2, `control own (${what})`, true);
+  }
+}
+if (process.argv.includes("--control-cap")) {
+  const overs: [string, string, string][] = [
+    ["owTaintPass, one pass instead of the fixpoint", "owTaintPass", "(owFirstTainted) => (taint, locals) => { for (const l of locals) { let all = true; for (const x of l.names) if (!taint.has(x)) all = false; const hit = all ? null : owFirstTainted(taint, l.from); if (hit === null) continue; for (const x of l.names) if (!taint.has(x)) taint.set(x, `computed from ${hit}`); } return false; }"],
+    ["owOpaqueWhy1 without following free references", "owOpaqueWhy1", "(owSpanOf) => (K, O, Q, B, b) => { if (b.kind === 'param') return 'is a parameter of an enclosing function, so a caller may pass it a value that depends on state'; if (b.kind === 'let') return 'is a let or a catch binding, so its value is not fixed where it is declared'; if (b.mutOwned) return 'is a Mut, which the cell may change after the action is made'; return owSpanOf(O, b) === null ? 'is bound where the checker does not follow its value' : null; }"],
+    ["owNotARef, property names read as references", "owNotARef", "() => () => false"],
+  ];
+  for (const [what, name, text] of overs) {
+    L = linkIx({ [name]: new Function(`return (${text});`)() });
+    capReport(pass(JOBS).recs, 2, `control cap (${what})`);
+  }
+}
+if (process.argv.includes("--control-fed")) {
+  const text = "(ixMayHide, ixFnParts, isNamed, show, ERR) => (R, fn, fnT, name, fedBy) => { const parts = ixFnParts(fn); if (parts === null) return []; const ret = fnT.k === 'fn' ? fnT.ret : ERR; const msg = (what, t, then) => `${what} ${show(t)}, which may be or hold a function from another language (${name} ${fedBy}); ${then}`; const out = []; if (parts.generator && !parts.async && ixMayHide(R, ret)) out.push(msg('an events cell yields', ret, \"a listener's action would receive it\")); const held = ret.k === 'named' && isNamed(ret, 'StateCell') ? ret.args[0] ?? ERR : null; if (held !== null && ixMayHide(R, held)) out.push(msg('a state cell holds', held, 'an action that reads the state cell could call it')); return out; }";
+  L = linkIx({ owFedKept: new Function(`return (${text});`)() });
+  const m = pass(JOBS);
+  fedReport(m.recs, "control fed (owFedKept without taking Generator<T> to T)");
 }
 if (process.argv.includes("--hits")) {
   // which ix cells the corpus calls: each cell's value, when a function, wrapped to mark a call

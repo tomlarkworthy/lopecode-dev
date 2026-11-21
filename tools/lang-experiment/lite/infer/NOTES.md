@@ -211,3 +211,223 @@ The tests, 4 pass on 2026-11-21:
 - On the corpus and probes: DIFFERENT 0, residue 0, control DIFFERENT > 0.
 
 `--out` defaults to `lite/soundscript/.scratch/infer-port/diff.json`, and the directory is created if missing.
+
+# 2026-11-22: the facts, the ownership pass, the captures
+
+## Stage 1: the facts (2026-11-21 evening, measured on that tree)
+
+What the passes after `ch.fnExpr` read from the `Checker`, from every use of the instance in `own.ts`, `capture.ts`,
+`core.ts`, `facts.ts` and `complete.ts`:
+
+```
+facts.types        own.ts (typeOf, Borrowed views), actionEscapes (isState), complete.ts (member completion)
+facts.bindingOf    own.ts, actionEscapes, opaqueCaptures; of each Binding: id, name, kind, node, t (final), fi.node,
+                   fnNode, mutOwned, cellParam
+facts.calls        prelude, helper, sig (only sig.decl ?? sig and sig.flags are read)
+facts.memberFlags  view, mutates
+actionBodies, inActionUses (fi.node, node, rule, msg), stateProps     own.ts actionEscapes, opaqueCaptures
+```
+
+Not facts: `ch.um`, `ch.reg.callSigs` (actionEscapes), `ch.mayHide` (core.ts, the fed rule), `ch.unsupported`
+(own.ts writes to it), `ch.hides` (core.ts, before fnExpr). `facts.fnInfo` has no reader outside `infer.ts`
+(searched `lite/` and `tools/`), so it is not ported. `facts.ts` does not use the Checker.
+
+How: one log in `C` (`C.facts`, a cons list as `C.diags` is), written by `ixFact` at the TypeScript's write sites
+(`ixDeclare`, `ixIdent`, `ixLvalue`, `ixNamedMember`, `ixCall` (helper, added: the port had no helper branch),
+`ixApply` (sig, after the arity check), `ixPreludeCall`, `ixActionCall`, `ixInActionOnly`, `ixBindObject`), and
+folded once at the end (`ix-facts.ss.ts`, 7 cells) into `IxFacts`: plain maps keyed by nid, bindings by id. A
+log needs no new parameter in the 198 cells and no copy per write. Why a fold and not tables: the TypeScript mutates
+one `Binding` object and the passes read its final state, while the port's bindings are records copied on change
+and `V` loses one when its `scope:name` is declared again; so every `ixDeclare` and `ixUpdate` logs the record,
+and the fold keeps the last per id. `IxBinding` gained `fi` (the declaring function's nid) and `fnNode` (four sites:
+hoist, self-name, `ixVarFn`, a `let` with a function initializer); `ixUpdate` takes `C`. `calls` replays as the
+TypeScript writes it: helper and prelude replace the entry, sig merges. An in-action use is dropped in the fold
+when its function was an action body when the use was logged, as `inActionOnly` tests at the time.
+
+The overload retry rolls back diagnostics only (`infer.ts:1264-1267`), not facts; the port's `ixApplyAll`
+restores `C.diags`/`C.unsup` only, so the facts of a failed overload stay in both.
+
+The comparison (`diff.ts`, per cell whose inference was compared): each table as lines `start:end:type.field
+value`, the node keys taken from the cell function's own tree on each side (the parse.ts tree for the
+TypeScript, the typed tree for the port; the parent field in the key separates a shorthand property's key and
+value, which share a span). `types`, `calls`, `memberFlags`, `actionBodies`, `stateProps` sorted; `bindingOf`
+and `inActionUses` in insertion order (own.ts builds `bindingOfFn` by iterating `bindingOf`, last wins). A
+binding is printed by its declaration's key (globals by name), never by id. Type variables renumbered over the
+tables in order. Facts on nodes outside the cell's tree (JSX's synthetic nodes, `switch`'s synthetic `===`) are
+counted as excluded on each side, not compared. `show()` throws on a `Map` with no type argument; such a type is
+printed as its structure (first run: the throw escaped the wrapper into core.ts and moved the residue check to
+2; now 0).
+
+```
+bun lite/infer/diff.ts --control-facts --file lite/infer/probes/wide.ts --file lite/infer/probes/wide-state.ts --file lite/infer/repro/map-no-type-args.ts
+826 sources, 3531 cells: SAME 3516 DIFFERENT 0 NOT COVERED 0 REAL CRASH 15; sources that threw 1
+facts: 3516 cells compared (inference SAME or DIFFERENT): SAME 3516 DIFFERENT 0; comparison threw 0
+  types         entries real 71912 port 71912; excluded (not in the cell's tree) real 1820 port 1820
+  bindingOf     entries real 34008 port 34008; excluded (not in the cell's tree) real 16 port 16
+  calls         entries real 7151 port 7151; excluded (not in the cell's tree) real 16 port 16
+  memberFlags   entries real 10171 port 10171; excluded (not in the cell's tree) real 0 port 0
+  actionBodies  entries real 233 port 233; excluded (not in the cell's tree) real 0 port 0
+  inActionUses  entries real 17 port 17; excluded (not in the cell's tree) real 0 port 0
+  stateProps    entries real 6 port 6; excluded (not in the cell's tree) real 0 port 0
+  node keys met twice in one cell's tree: real 0 port 0
+control facts (ixFact without "binding"): facts SAME 840 DIFFERENT 2676; tables that differ: bindingOf calls
+control facts (ixFact without "bind"): facts SAME 741 DIFFERENT 2775; tables that differ: bindingOf
+control facts (ixFact without "helper"): facts SAME 3247 DIFFERENT 269; tables that differ: calls
+control facts (ixFact without "sig"): facts SAME 1893 DIFFERENT 1623; tables that differ: calls
+control facts (ixFact without "prelude"): facts SAME 2675 DIFFERENT 841; tables that differ: calls
+control facts (ixFact without "flags"): facts SAME 1965 DIFFERENT 1551; tables that differ: memberFlags
+control facts (ixFact without "action"): facts SAME 3289 DIFFERENT 227; tables that differ: actionBodies inActionUses
+control facts (ixFact without "use"): facts SAME 3499 DIFFERENT 17; tables that differ: inActionUses
+control facts (ixFact without "stateProp"): facts SAME 3510 DIFFERENT 6; tables that differ: stateProps
+control facts (ixInfer without its type write): facts SAME 409 DIFFERENT 3107; tables that differ: types bindingOf calls memberFlags
+```
+
+The corpus moved between runs today (3451, 3528, 3531 cells; the digest changed each time), from sources other
+agents edit. Thin tables: `inActionUses` has 17 entries and `stateProps` 6 over the corpus and probes.
+
+Dead end: the first control run dropped each kind by an override that closed over the kind; `link.ts` evaluates a
+cell's text again, so the closure was lost, the override threw, and the controls reported "DIFFERENT 0" over 478
+cells. The control text now carries the kind.
+
+Checker message met: `[type] Flags | undefined is not assignable to Flags` (ixApply, `flags: sig0.flags` into
+`Fn.flags?: Flags`) → `fl ? { ...inst.f, decl, flags: fl } : { ...inst.f, decl }`.
+
+## Stage 2: the ownership pass (2026-11-21, 16:00 to 16:40)
+
+`own.ts` (542 lines; `iterIn` 22, `ownership` 386, `actionEscapes` 108) as 10 files `ow-*.ss.ts`, linked with the
+ix cells by `index.ts` (`OW_FILES`), so one link, one self-check, one uniqueness test and one harness serve both.
+The cells read only the stage-1 `IxFacts`, the typed tree and `IxRegCore`; no `Checker`. Entry: `owCheck(R, F, fn)`
+returns `{ diags, actions, unsup, gap }`. `owIndex` walks the cell's tree once (preorder, a stack) into `OwTree`:
+parents, nodes by nid, references per binding id, the nested functions, and the first `Other` node met (`gap`).
+
+The comparison (`diff.ts ownDiff`, per cell whose inference was SAME): the TypeScript's `ownership(e, ch)` then
+`actionEscapes(e, ch)` on the checker that just ran `fnExpr`, its `ch.unsup` truncated back after (and the run
+throws if `ch.diags` changed), against `owCheck` on the port's facts. Each report as `rule L@start-end msg`, in
+order, unsupported items included. NOT COVERED when the inference port had a gap or `owIndex` met an `Other` node.
+
+```
+bun lite/infer/diff.ts --control-own --control-cap --control-fed --rounds 5 --file lite/infer/probes/wide.ts \
+  --file lite/infer/probes/wide-state.ts --file lite/infer/repro/map-no-type-args.ts --file lite/infer/probes/own.ts \
+  --file lite/infer/probes/capture.ts --file lite/infer/repro/named-fn-expr-helper.ts       (16:37, load 6.15)
+829 sources, 3596 cells: SAME 3581 DIFFERENT 0 NOT COVERED 0 REAL CRASH 15; sources that threw 1
+facts: 3581 cells compared (inference SAME or DIFFERENT): SAME 3581 DIFFERENT 0; comparison threw 0
+ownership: 3581 cells: SAME 3581 DIFFERENT 0 NOT COVERED 0
+```
+
+Reports per rule, cells / reports. The first column is the corpus with the stage-1 probes only (stage2-run1,
+3516 cells); the second adds `probes/own.ts` (39 cells) and the repro.
+
+```
+rule                   corpus      + probes
+action-call             2 / 2       7 / 7
+borrow-placement        4 / 4       9 / 9
+borrowed-await          7 / 7      12 / 12
+borrowed-escape         9 / 9       9 / 9
+iterator-capture       13 / 13     13 / 13
+let-capture            24 / 26     24 / 26
+listener-placement     21 / 21     21 / 21
+mut-after-freeze       16 / 21     16 / 21
+mut-bind                6 / 6       6 / 6
+mut-capture            13 / 15     15 / 17
+mut-escape             46 / 65     47 / 66
+mut-freeze-param        3 / 3       8 / 9
+mut-not-fresh          15 / 15     15 / 15
+mut-view               12 / 12     12 / 12
+read-outside-action     4 / 4       9 / 9
+state-placement         9 / 11      9 / 11
+state-write            18 / 18     18 / 18
+unsupported             5 / 9      10 / 14
+```
+
+The 15 rule ids in `own.ts`'s calls (read from its parse) all appear; `action-call` is a rule `infer.ts` puts in
+`inActionUses` and `actionEscapes` reports. Under 5 cells in the corpus: action-call, borrow-placement,
+mut-freeze-param, read-outside-action, unsupported (try/finally only; the LabeledStatement item never). The
+labelled break/continue item (`own.ts:354`, `owJump`) is produced by neither side on any cell: `LabeledStatement`
+returns without walking its body (`own.ts:415-417`, `owStmt`), so a labelled jump is never reached with a label. `probes/own.ts` has 5 cells for each, 6 for borrowed-await's Mut-parameter message, and 5 spread cells.
+`la5` (an await inside try, a Mut read in catch) is accepted by both.
+
+Controls, each a linked copy with one cell overridden (`--control-own`):
+
+```
+owLoop, one iteration instead of the fixpoint      (filled below)
+owErr without the first-report-wins dedupe
+owHelper, no function is a helper
+owPosSpread, every spread allowed
+```
+
+On run B (16:35, 3437 cells, no probes: zsh does not split `$F`, so the `--file` list arrived as one argument) the
+four gave DIFFERENT 7, 3, 46 and 0; the corpus has no cell that spreads a Mut into a call that may keep it, so the
+fourth was no control until `sp2` in the probes (alone: DIFFERENT 1, `mut-escape ... spread into a call that may
+keep it`).
+
+TS bug reproduced (`repro/named-fn-expr-helper.ts`): `const f = function g() { m.push(1); }; return f;` is
+accepted, `const f = () => { m.push(1); }; return f;` is rejected `[mut-capture]`. `bindingOfFn` keeps the last
+binding naming the function, which is the expression's own name `g` (declared inside `fnExpr` after `f`); `g` has no
+references, so `helper(fn)` holds. The port does the same (the fact fold keeps `bindingOf` in insertion order, and
+`owBindingOfFn` is last-wins); ownership SAME on both cells.
+
+Checker messages met, and the rewrite:
+
+```
+owCapPass  [type] { mut: number[]; let: number[] } is not assignable to OwCap
+           [unsupported] object spread of OwCap | { mut: never[]; let: never[]; calls: never[] }
+           caps.set(f.nid, { ...fc, mut, let })  ->  { mut: mutT, let: letT, calls: fc.calls }
+owCaptures [mut-escape] Mut caps argument to a parameter not typed Mut<...>
+           no change to owCaptures; gone after the owCapPass rewrite (why not checked: probably a rejected cell's
+           parameter types are not available to its callers)
+owTracked  [mut-capture] Mut loaned captured by a function that escapes
+           .filter((id) => ... loaned.has(id)) over the Mut  ->  frozen copies before the filter
+```
+
+`owIterIn` was 28 lines; the member types moved to `owTyKids` (25). `isUpper` renamed `owIsUpper` for the prefix.
+
+## Stage 3: the captures and the fed rule (2026-11-21, 16:15 to 16:40)
+
+`capture.ts` (158 lines; `refs` 17, `bound` 12, `declaredIn` 13, `captures` 36, `opaqueCaptures` 57) as
+`ow-taint.ss.ts` (by name) and `ow-opaque.ss.ts` (by binding), entry `owCaptureCheck(R, F, fn, tainted)` in
+`ow-entry.ss.ts`, run as core.ts runs them: by name, then by binding skipping the nodes the first reported.
+core.ts's fed rule (`fnKept`, the events-cell and state-cell lines) is `owFedKept`.
+
+The comparison cannot use core.ts's taint map: it is built from the module's cell graph (`refInner`, `stateful`,
+`byName`, shell and foreign names), which the `fnExpr` seam does not see. So each cell runs twice, with no taint and
+with every identifier parameter tainted as `the value of the state cell <name>`, on both sides; each report as
+`<map> <name|binding> @start-end name | why | opaque|named`. The fed rule is likewise checked on every cell as if it
+were fed, with one `fedBy` text; its oracle in `diff.ts` restates core.ts's four lines (value type from `fnT`, the
+two `fnKept` calls) around the Checker's `mayHide`, so the fed comparison tests `ixMayHide` and the value-type
+unwrapping, not core.ts's own text.
+
+```
+captures: 3581 cells: SAME 3581 DIFFERENT 0 NOT COVERED 0; reports params name 278, params binding opaque 19,
+          none binding opaque 15, params binding 11; cells with any 217
+fed rule: 3581 cells: SAME 3581 DIFFERENT 0; cells reported (as if fed) 16, reports 16
+```
+
+`probes/capture.ts` (24 cells): computed locals, destructuring, a parameter default, a hoisted function reading a
+later const (`cn7`, the case a single taint pass misses), shadowing, a property name equal to a tainted name;
+enclosing parameters, let, catch, Mut, for...of, self- and mutual recursion; events and state cells holding
+functions, `unknown`, `object`.
+
+Controls (`--control-cap`, `--control-fed`), run B corpus / probes alone:
+
+```
+owTaintPass, one pass instead of the fixpoint        corpus DIFFERENT 0; probes DIFFERENT 2 (cn7, cn8)
+owOpaqueWhy1 without following free references      corpus DIFFERENT 6
+owNotARef, property names read as references        corpus DIFFERENT 1 (accept-suminagashi-controls)
+owFedKept without taking Generator<T> to T          probes DIFFERENT 1 (fe1)
+```
+
+No checker message met in stage 3.
+
+## What switching the per-cell check over would still need (2026-11-21)
+
+Read from `core.ts:280-365`, the per-cell part around `ch.fnExpr`. Ported and compared: `fnExpr` (inference), the
+facts, `ownership`, `actionEscapes`, `captures`, `opaqueCaptures`, the two `fnKept` lines. Not ported:
+
+- the injected parameter types (`inject-unknown`, `inject-type`, handle rules, `blockedBy`) and `ch.hides` on each
+  annotated input (`ixHides` exists, stage 0, but is not called from an entry here);
+- the taint map and `fedBy`: both are built from the module's cell graph (`value`, `refInner`, `stateful`, `byName`,
+  `boundaries`, `fnFed`, shell and foreign names, `CAPABILITIES`), so they need the module loop, not a cell;
+- the cell-level rules on the value type: `state-undefined` (`admitsUndefined`), `state-in-state` (`holds`),
+  `iterator-cell` (`iterIn` is ported as `owIter`, not wired to this rule), `listener-placement` on the value;
+- the crash path (`checker crashed:` as unsupported), `dedupe`, line numbers from offsets, and the `value`/`usable`
+  bookkeeping the next cells read.

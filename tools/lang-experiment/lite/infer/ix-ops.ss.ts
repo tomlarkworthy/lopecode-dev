@@ -148,11 +148,12 @@ export const ixPropOf = (ixUm, ixMemberless, ixMemberMissing, ixErr, propT, unio
   return union(freeze(out));
 };
 // an assignment target: its declared type, with the write rules applied
-export const ixLvalue = (ixLookup, ixIdent, ixErr, ixUnsup, ixLvalueMember, nodeKind, ERR) => {
+export const ixLvalue = (ixLookup, ixIdent, ixErr, ixUnsup, ixLvalueMember, ixFact, nodeKind, ERR) => {
   function lvalue(K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, t: AstNode, at: AstNode): Ty {
     if (t.type === "Identifier") {
       const b = ixLookup(V, env, t.name);
       if (!b) { ixIdent(K, T, V, W, C, env, t); return ERR; }
+      ixFact(C, { k: "bind", at: t.nid, id: b.id });
       if (b.kind !== "let" && b.kind !== "param") { ixErr(K, C, at, "const-assign", `assignment to ${b.kind} ${t.name}`); return ERR; }
       return b.t;
     }

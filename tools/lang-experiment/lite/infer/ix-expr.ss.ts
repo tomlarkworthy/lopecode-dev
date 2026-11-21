@@ -78,15 +78,15 @@ export const ixLazyRead = (ixUnsup, ixUpdate, ixNewFlow, ERR) => (K: IxK, T: IxT
   if (z.k === "none") return b.t;
   if (z.k === "unsup") { ixUnsup(K, C, z.at, "recursive function without a return type"); return ERR; }
   if (z.busy) { ixUnsup(K, C, z.fn, "recursive function without a return type"); return ERR; }
-  ixUpdate(V, { ...b, lazy: { ...z, busy: true } });
+  ixUpdate(V, C, { ...b, lazy: { ...z, busy: true } });
   const own = C.cur;
   C.cur = ixNewFlow(W, C, new Map());
   const f = K.fnExpr(K, T, V, W, C, z.env, z.fn, null, null);
   C.cur = own;
-  ixUpdate(V, { ...b, t: f, checked: true, lazy: { k: "none" } });
+  ixUpdate(V, C, { ...b, t: f, checked: true, lazy: { k: "none" } });
   return f;
 };
-export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixGap, NEVER, UNKNOWN, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: Identifier): Ty => {
+export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixFact, NEVER, UNKNOWN, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: Identifier): Ty => {
   const b = ixLookup(V, env, e.name);
   if (!b) {
     if (e.name === "arguments") return ERR;
@@ -95,6 +95,7 @@ export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixGap, N
     else ixErr(K, C, e, "free-name", `free name ${e.name}`);
     return ERR;
   }
+  ixFact(C, { k: "bind", at: e.nid, id: b.id });
   if (b.kind === "prelude") return b.t;
   // its argument is checked where it is called, so the value takes no argument (S2.6 lets a body name it)
   if (b.kind === "global" && e.name === "structuredClone" && !C.clones.has(e.nid)) return { k: "fn", tps: [], ps: [{ n: "v", t: NEVER, opt: false }], ret: UNKNOWN };
@@ -171,7 +172,7 @@ export const ixMember = (ixPathKey, ixFlowOf, ixCollapseArrays, ixNonNullish, ix
   return nt ?? t;
 };
 // a member read by name: each member of the object's type, one report per kind of member lacking it
-export const ixNamedMember = (ixUm, ixMemberless, ixInActionOnly, ixReportMissing, ixErr, propT, isNamed, unwrap, named, union, show, ERR) => (K: IxK, C: IxCtls, env: IxEnv, e: MemberExpression, ot: Ty, name: string): Ty => {
+export const ixNamedMember = (ixUm, ixMemberless, ixInActionOnly, ixReportMissing, ixErr, ixFact, propT, isNamed, unwrap, named, union, show, ERR) => (K: IxK, C: IxCtls, env: IxEnv, e: MemberExpression, ot: Ty, name: string): Ty => {
   const out: Mut<Ty[]> = mut([]), missing: Mut<Ty[]> = mut([]);
   let flags: Flags | undefined;
   let bad = false;
@@ -190,6 +191,7 @@ export const ixNamedMember = (ixUm, ixMemberless, ixInActionOnly, ixReportMissin
   ixReportMissing(K, C, freeze(missing), name, e.property);
   C.flagsAt = e.nid;
   C.flags = flags;
+  ixFact(C, { k: "flags", at: e.nid, flags: flags ?? null });
   return bad && out.length === 0 ? ERR : union(freeze(out));
 };
 export const ixReportMissing = (ixIntrinsicName, ixMemberMissing, union) => (K: IxK, C: IxCtls, missing: Ty[], name: string, at: AstNode): void => {
@@ -201,9 +203,11 @@ export const ixReportMissing = (ixIntrinsicName, ixMemberMissing, union) => (K: 
     if (g0 !== undefined) ixMemberMissing(K, C, g.length === 1 || nullish(g0) ? g0 : union(g), name, at, union(g));
   }
 };
-// a use that only an action body may make (the in-action uses own.ts reads are not kept)
-export const ixInActionOnly = (ixErr) => (K: IxK, C: IxCtls, env: IxEnv, at: AstNode, rule: string, msg: string): void => {
+// a use that only an action body may make; in a function nested in an action body it is kept for own.ts (the fold
+// drops it when the function is an action body by then)
+export const ixInActionOnly = (ixErr, ixFact) => (K: IxK, C: IxCtls, env: IxEnv, at: AstNode, rule: string, msg: string): void => {
   if (!env.fi.inAction) ixErr(K, C, at, rule, msg);
+  else ixFact(C, { k: "use", fi: env.fi.fid, at: at.nid, rule, msg });
 };
 // an index read; strict: Registry.strictIndex, which an assignment target turns off
 export const ixIndex = (ixUm, ixErr, unwrap, isNamed, show, NUM, STR, UNDEF, ERR, union) => (K: IxK, C: IxCtls, ot: Ty, it: Ty, e: AstNode, strict: boolean): Ty => {

@@ -79,13 +79,15 @@ export const ixExplicit = (ixErr) => (K: IxK, C: IxCtls, e: AstNode, tvs: string
   if (explicit.length !== tvs.length) ixErr(K, C, e, "type", `expected ${tvs.length} type arguments, got ${explicit.length}`);
   for (const [i, n] of tvs.entries()) { const x = explicit[i]; if (x) m.set(n, x); }
 };
-export const ixApply = (ixArity, ixExplicit, ixFirstArg, ixDeferredArg, ixWidenFree, ixSolve, ixFinalArgs, ixSettled, instantiate, subst, hasTv) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression | NewExpression, sig0: Fn, expected: Ty | null, explicit: Ty[] | null): Ty => {
+export const ixApply = (ixArity, ixExplicit, ixFirstArg, ixDeferredArg, ixWidenFree, ixSolve, ixFinalArgs, ixSettled, ixFact, instantiate, subst, hasTv) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression | NewExpression, sig0: Fn, expected: Ty | null, explicit: Ty[] | null): Ty => {
   const inst = instantiate(sig0, C.fresh);
   C.fresh += sig0.tps.length;
   const tvSet = new Set(inst.tvs), m: Mut<Map<string, Ty>> = mut(new Map()), fromRet: Mut<Map<string, Ty>> = mut(new Map());
   ixExplicit(K, C, e, inst.tvs, explicit, m);
   const A: IxApp = { sig: inst.f, tvs: inst.tvs, tvSet, opaque: sig0.flags?.intrinsic ? null : tvSet, fixed: new Set(m.keys()) };
   ixArity(K, C, e, e.arguments, A.sig);
+  const decl = sig0.decl ?? sig0, fl = sig0.flags;
+  ixFact(C, { k: "sig", at: e.nid, sig: fl ? { ...inst.f, decl, flags: fl } : { ...inst.f, decl } });
   if (expected !== null && hasTv(A.sig.ret, tvSet)) K.reg.unify(A.sig.ret, expected, fromRet, tvSet);
   const ret = new Map(fromRet), argT: Mut<(Ty | null)[]> = mut([]), deferred: Mut<number[]> = mut([]);
   for (const [i, a] of e.arguments.entries()) {

@@ -11,13 +11,14 @@ export const ixTypeArgs = (ixConvert) => (K: IxK, V: IxVars, env: IxEnv, n: AstN
   for (const t of n.params) out.push(ixConvert(K, V, env, t));
   return freeze(out);
 };
-export const ixCall = (ixLookup, ixPreludeCall, ixCompileCall, ixNewSigs, ixCallSigs, ixApplyAll, ixGap) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null): Ty => {
+export const ixCall = (ixLookup, ixPreludeCall, ixCompileCall, ixNewSigs, ixCallSigs, ixApplyAll, ixFact, ixGap) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null): Ty => {
   if (e.type !== "CallExpression" && e.type !== "NewExpression") return ixGap(C, `call node ${e.type}`);
   const callee = e.callee;
   if (e.type === "CallExpression" && callee.type === "Identifier") {
     const b = ixLookup(V, env, callee.name);
     if (b?.kind === "prelude") return ixPreludeCall(K, T, V, W, C, env, e, callee.name, expected);
     if (b?.kind === "param" && b.t.k === "named" && b.t.n === "Compile") return ixCompileCall(K, T, V, W, C, env, e);
+    if (b && (b.kind === "fn" || b.kind === "const") && b.fnNode >= 0) ixFact(C, { k: "helper", at: e.nid, id: b.id });
   }
   const found = e.type === "NewExpression" ? ixNewSigs(K, T, V, W, C, env, e) : ixCallSigs(K, T, V, W, C, env, e, expected);
   if (found.k === "done") return found.t;

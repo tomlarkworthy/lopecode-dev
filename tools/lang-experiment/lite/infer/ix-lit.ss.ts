@@ -101,7 +101,7 @@ export const ixConstLit = (ixUnsup, ixProtoKey, ERR) => {
 // ---- patterns ----
 export const ixBind = (ixDeclare, ixBindObject, ixBindArray, ixNonUndef, ixUnsup, ixGap, widen, union) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: AstNode, t: Ty, kind: IxKind, extra: IxExtra): void => {
   switch (p.type) {
-    case "Identifier": ixDeclare(V, C, env, p.name, kind === "let" ? widen(t) : t, kind, p, extra, { k: "none" }, false); return;
+    case "Identifier": ixDeclare(V, C, env, p.name, kind === "let" ? widen(t) : t, kind, p, extra, { k: "none" }, false, -1); return;
     case "AssignmentPattern": {
       const nt = ixNonUndef(K.reg, t);
       const dt = K.check(K, T, V, W, C, env, p.right, nt, false, false);
@@ -114,7 +114,7 @@ export const ixBind = (ixDeclare, ixBindObject, ixBindArray, ixNonUndef, ixUnsup
     default: ixUnsup(K, C, p, `pattern ${p.type}`);
   }
 };
-export const ixBindObject = (ixBindRest, ixUm, ixErr, ixUnsup, ixInActionOnly, ixPropOf, ixGap, isNamed, unwrap) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: ObjectPattern, t: Ty, kind: IxKind, extra: IxExtra): void => {
+export const ixBindObject = (ixBindRest, ixUm, ixErr, ixUnsup, ixInActionOnly, ixPropOf, ixFact, ixGap, isNamed, unwrap) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: ObjectPattern, t: Ty, kind: IxKind, extra: IxExtra): void => {
   const used: Mut<string[]> = mut([]);
   for (const prop of p.properties) {
     if (prop.type === "RestElement") { ixBindRest(K, T, V, W, C, env, prop, t, [...used], kind, extra); continue; }
@@ -124,7 +124,10 @@ export const ixBindObject = (ixBindRest, ixUm, ixErr, ixUnsup, ixInActionOnly, i
     const k = key.type === "Identifier" ? key.name : String(key.value);
     used.push(k);
     if (ixUm(K.reg, t).some((m) => m.k !== "err" && K.reg.member(m, k)?.flags?.banned)) ixErr(K, C, prop, "banned-member", `${k} is banned`);
-    if (ixUm(K.reg, t).some((m) => isNamed(unwrap(m), "State") && K.reg.member(m, k))) ixInActionOnly(K, C, env, prop, "state-write", `State.${k} outside action(...)`);
+    if (ixUm(K.reg, t).some((m) => isNamed(unwrap(m), "State") && K.reg.member(m, k))) {
+      ixInActionOnly(K, C, env, prop, "state-write", `State.${k} outside action(...)`);
+      ixFact(C, { k: "stateProp", at: prop.nid });
+    }
     K.bind(K, T, V, W, C, env, prop.value, ixPropOf(K, C, t, k, prop), kind, extra);
   }
 };

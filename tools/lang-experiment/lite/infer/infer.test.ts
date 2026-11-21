@@ -7,7 +7,7 @@ import { Glob } from "bun";
 import { checkSources } from "../core.ts";
 import { parse, type Node } from "../parse.ts";
 import { splitCells } from "../toolchain/ss-toolchain.ts";
-import { IX_FILES } from "./index.ts";
+import { IX_FILES, OW_FILES } from "./index.ts";
 
 const LITE = join(import.meta.dir, "..");
 function headerEnd(src: string): number {
@@ -18,11 +18,11 @@ function headerEnd(src: string): number {
 const texts = (f: string) => { const s = readFileSync(join(LITE, f), "utf8"); return splitCells(s.slice(headerEnd(s)).trimStart(), false); };
 const WITH = ["types.ss.ts", "subtype.ss.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts"];
 
-test("IX_FILES is every .ss.ts file of lite/infer", () => {
-  expect([...new Glob("*.ss.ts").scanSync(import.meta.dir)].sort()).toEqual([...IX_FILES].sort());
+test("IX_FILES and OW_FILES are every .ss.ts file of lite/infer", () => {
+  expect([...new Glob("*.ss.ts").scanSync(import.meta.dir)].sort()).toEqual([...IX_FILES, ...OW_FILES].sort());
 });
-test("every ix cell is accepted by the checker", () => {
-  const ix = IX_FILES.map((f) => `infer/${f}`);
+test("every ix and ow cell is accepted by the checker", () => {
+  const ix = [...IX_FILES, ...OW_FILES].map((f) => `infer/${f}`);
   const r = checkSources({ cells: [...WITH, ...ix].flatMap(texts).join("\n\n"), tsx: true, shell: readFileSync(join(LITE, "acorn/acorn-shell.ts"), "utf8") });
   // a type declaration is no cell of the result; a problem with one is a module error
   const own = new Set(ix.flatMap(texts).map((t) => parse(t).program.body[0]).filter((st) => (st.type === "ExportNamedDeclaration" ? st.declaration : st).type === "VariableDeclaration").map(declared));

@@ -17,26 +17,24 @@ export { isDuplicateKey, compileCell, compileCellText, compileModule, contextOf,
 import { declaredName } from "../toolchain/ss-toolchain.ts";
 import { parse } from "../parse.ts";
 import { checkSources, type Outside } from "../core.ts";
+import { checkKey, lruTouch, standIns, refusedCells, islandKey } from "../checks-ss.ts";
 export { cross, crossings } from "../boundary.ts";
 import { checkShape, type Shape } from "../boundary.ts";
 export { checkSources };
 export { completionWork } from "../complete.ts";
 // checkSources for SoundScript cells, remembered for the last 16 sources. The editor asks about the
 // same module source several times per keystroke (lint, the cells an edit would break, the compile
-// context); a result is never written to, so one is shared.
-const checks = new Map<string, ReturnType<typeof checkSources>>();
+// context); a result is never written to, so one is shared. The key and the recency rule are checks.ss.ts's.
+let checks = new Map<string, ReturnType<typeof checkSources>>();
 // how many module checks have run (a remembered result, or a source that does not parse, is not one)
 let checked = 0;
 export const checksRun = () => checked;
 // outside: the module's cells in other languages (core.ts Outside), part of the key
 export function check(source: string, tsx = true, outside: readonly Outside[] | null = null): ReturnType<typeof checkSources> {
-  const key = (tsx ? "x" : "s") + (outside?.length ? JSON.stringify(outside) : "") + "\u0000" + source;
+  const key = checkKey(source, tsx, outside);
   let r = checks.get(key);
-  if (r) { checks.delete(key); checks.set(key, r); return r; }
-  r = checkSources({ cells: source, tsx, outside });
-  checked++;
-  checks.set(key, r);
-  if (checks.size > 16) checks.delete(checks.keys().next().value!);
+  if (!r) { r = checkSources({ cells: source, tsx, outside }); checked++; }
+  checks = lruTouch(checks, key, r, 16);
   return r;
 }
 
@@ -44,25 +42,20 @@ export function check(source: string, tsx = true, outside: readonly Outside[] | 
 // stand-in of the same name and line count whose value has no type, so a cell that takes it is blocked,
 // and the stand-in text does not depend on what was typed, so a keystroke there reuses the check.
 // result.unparsed maps each such cell's name to the parser's message; source is the text checked.
+// The stand-ins and their names are standIns's (checks.ss.ts).
 export function checkCells(texts: string[], tsx = true, outside: readonly Outside[] | null = null): { result: ReturnType<typeof checkSources> & { unparsed?: Map<string, string> }; source: string } {
   const source = texts.join("\n\n");
   try { return { result: check(source, tsx, outside), source }; } catch (whole) {
-    const unparsed = new Map<string, string>();
-    // the k-th declaration of a name is the checker's "<name> (k)" (core.ts distinctNames)
-    const seen = new Map<string, number>();
-    const stood = texts.map((t) => {
-      const declared = declaredName(t);
-      const n = declared ? (seen.get(declared) ?? 0) + 1 : 0;
-      if (declared) seen.set(declared, n);
-      try { parse(t, { jsx: tsx }); return t; } catch (e) {
-        const name = declared;
-        if (!name) return "";
-        unparsed.set(n > 1 ? `${name} (${n})` : name, String((e as Error).message));
-        return `const ${name} = () => $ss$unparsed;` + "\n".repeat(t.split("\n").length - 1);
-      }
-    }).filter((t) => t !== "");
-    if (!unparsed.size) throw whole;
-    const checked = stood.join("\n\n");
+    const rows = texts.map((t) => {
+      let parseError: string | null = null;
+      try { parse(t, { jsx: tsx }); } catch (e) { parseError = String((e as Error).message); }
+      return { declared: declaredName(t) || null, lines: t.split("\n").length, parseError };
+    });
+    const stood = standIns(rows);
+    if (!stood.unparsed.length) throw whole;
+    const unparsed = new Map(stood.unparsed);
+    // an empty cell text is dropped as the stand-ins' dropped cells are
+    const checked = stood.texts.map((x) => (typeof x === "number" ? texts[x]! : x)).filter((t) => t !== "").join("\n\n");
     // the remembered result is shared, so the parse messages go on a copy
     const base = check(checked, tsx, outside);
     const result = { ...base, ok: false };
@@ -92,12 +85,10 @@ let made = 0;
 const ISLANDS = 64;
 // A module's source joined from its cells, remembering the cells: compile then checks them one by one
 // (checkCells), so a cell elsewhere in the module that does not parse does not stop an island.
-const joined = new Map<string, readonly string[]>();
+let joined = new Map<string, readonly string[]>();
 export function joinCells(texts: readonly string[]): string {
   const source = texts.join("\n\n");
-  joined.delete(source);
-  joined.set(source, [...texts]);
-  if (joined.size > 16) joined.delete(joined.keys().next().value!);
+  joined = lruTouch(joined, source, [...texts], 16);
   return source;
 }
 // compile for one module. read() returns that module's SoundScript source; an island runs only when
@@ -106,14 +97,12 @@ export function compiler(read: () => string) {
   const owners = new Map<string, { dead: boolean }>();
   // island text -> key, least recently used first, at most ISLANDS entries. A key is never reused for
   // other text (workers cache compiled islands by key), so an evicted island gets a fresh key.
-  const keys = new Map<string, string>();
+  let keys = new Map<string, string>();
   const keyFor = (js: string, caller: string) => {
-    let key = keys.get(js);
-    if (key) keys.delete(js);
-    else key = `island${++made}:${caller}`;
-    keys.set(js, key);
-    if (keys.size > ISLANDS) keys.delete(keys.keys().next().value!);
-    return key;
+    const k = islandKey(keys.get(js), made, caller);
+    made = k.made;
+    keys = lruTouch(keys, js, k.key, ISLANDS);
+    return k.key;
   };
   return {
     islands: () => keys.size,
@@ -130,8 +119,7 @@ export function compiler(read: () => string) {
         const byName = new Map([...result.facts!.values()].map((info) => [info.name, { info, text: source.slice(info.span![0], info.span![1]) }] as const));
         const isl = island([...byName.values()].map(({ info }) => ({ name: info.name, params: info.params.map((p) => p.name), refCell: info.returnsRef })), spec);
         if (isl.problems.length) throw new Error(isl.problems.map((p) => p.msg).join("; "));
-        const verdict = new Map(result.cells.map((c) => [c.name, c.status === "ok" && !c.errors.length]));
-        const notOk = [caller, ...isl.order].filter((n) => !verdict.get(n));
+        const notOk = refusedCells(result.cells.map((c) => ({ name: c.name, ok: c.status === "ok" && !c.errors.length })), caller, isl.order);
         if (notOk.length) throw new Error(`compile refused: ${notOk.join(", ")} not ok by the checker`);
         const js = erase(lowerJsx(isl.order.map((n) => byName.get(n)!.text).join("\n\n")));
         const key = keyFor(js, caller);

@@ -9,6 +9,9 @@ export const ixOut = () => (log: IxLog | null): IxDiag[] => {
   for (let x = log; x !== null; x = x.next) out.unshift(x.d);
   return freeze(out);
 };
+export const ixFact = () => (C: IxCtls, f: IxFact): void => {
+  C.facts = { f, next: C.facts };
+};
 // the registry's reports go into the logs before anything the port writes or measures
 export const ixDrain = (ixPush) => (K: IxK, C: IxCtls): void => {
   for (const d of K.reg.drain()) {
@@ -87,17 +90,21 @@ export const ixLookup = () => (V: IxVars, env: IxEnv, n: string): IxBinding | un
   return undefined;
 };
 export const ixNoExtra = (): IxExtra => ({ assigned: false, cellParam: false });
-export const ixDeclare = () => (V: IxVars, C: IxCtls, env: IxEnv, name: string, t: Ty, kind: IxKind, at: AstNode, extra: IxExtra, lazy: IxLazy, mutOwned: boolean): IxBinding => {
+export const ixDeclare = (ixFact) => (V: IxVars, C: IxCtls, env: IxEnv, name: string, t: Ty, kind: IxKind, at: AstNode, extra: IxExtra, lazy: IxLazy, mutOwned: boolean, fnNode: number): IxBinding => {
   C.nextId += 1;
-  const b: IxBinding = { id: C.nextId, scope: env.scope, name, t, kind, nid: at.nid, mutOwned, assigned: extra.assigned, cellParam: extra.cellParam, checked: false, lazy };
+  const b: IxBinding = { id: C.nextId, scope: env.scope, name, t, kind, nid: at.nid, fi: env.fi.fid, fnNode, mutOwned, assigned: extra.assigned, cellParam: extra.cellParam, checked: false, lazy };
   V.set(`${env.scope}:${name}`, b);
+  ixFact(C, { k: "binding", b });
+  ixFact(C, { k: "bind", at: at.nid, id: b.id });
   return b;
 };
-// a binding changed: the one the scope holds under its name, as the original writes the Binding object
-export const ixUpdate = () => (V: IxVars, b: IxBinding): void => {
+// a binding changed: the one the scope holds under its name, as the original writes the Binding object; the facts
+// keep it whether or not the scope still holds it
+export const ixUpdate = (ixFact) => (V: IxVars, C: IxCtls, b: IxBinding): void => {
   const key = `${b.scope}:${b.name}`;
   const now = V.get(key);
   if (now && now.id === b.id) V.set(key, b);
+  ixFact(C, { k: "binding", b });
 };
 // findBinding: a binding by id among those the scope chain holds
 export const ixFindBinding = () => (V: IxVars, env: IxEnv, id: number): IxBinding | undefined => {

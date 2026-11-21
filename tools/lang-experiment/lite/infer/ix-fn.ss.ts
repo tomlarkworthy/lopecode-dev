@@ -72,7 +72,7 @@ export const ixHoist = (ixAnnotatedSig, ixDeclare, ixNoExtra, ERR) => (K: IxK, V
   for (const s of body) {
     if (s.type !== "FunctionDeclaration" || s.id.type !== "Identifier") continue;
     const sig = ixAnnotatedSig(K, V, C, env, s);
-    ixDeclare(V, C, env, s.id.name, sig ?? ERR, "fn", s.id, ixNoExtra, sig ? { k: "none" } : { k: "hoist", fn: s, env, busy: false }, false);
+    ixDeclare(V, C, env, s.id.name, sig ?? ERR, "fn", s.id, ixNoExtra, sig ? { k: "none" } : { k: "hoist", fn: s, env, busy: false }, false, s.nid);
   }
 };
 // a named function expression is bound in its own scope, so its body can call it (with annotations)
@@ -80,7 +80,7 @@ export const ixSelfName = (ixAnnotatedSig, ixDeclare, ixNoExtra, ERR) => (K: IxK
   const fid = f.id;
   if (f.decl || fid === null || fid.type !== "Identifier") return;
   const pre = ixAnnotatedSig(K, V, C, inner, e);
-  ixDeclare(V, C, inner, fid.name, pre ?? ERR, "fn", fid, ixNoExtra, pre ? { k: "none" } : { k: "unsup", at: e }, false);
+  ixDeclare(V, C, inner, fid.name, pre ?? ERR, "fn", fid, ixNoExtra, pre ? { k: "none" } : { k: "unsup", at: e }, false, e.nid);
 };
 export const ixTpBounds = (ixUnsup) => (K: IxK, C: IxCtls, f: IxFnParts): void => {
   const tp = f.typeParameters;

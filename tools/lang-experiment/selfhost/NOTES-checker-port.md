@@ -176,3 +176,29 @@ Not done: the facts that ownership, completion and `facts.ts` read after `fnExpr
 the registry taking typed nodes. Two gaps of the typed tree found, each with a repro in `lite/infer/repro/`: a
 function expression with type parameters, and a JSX attribute with no value (`<input disabled />`) come through
 as `Other`. Branch coverage of the cells by the corpus was not measured.
+
+## 2026-11-22: worker pool, `shapeOf`, the boundary's decisions and five small units are cells (shipped, switched on)
+- `lite/pool.ss.ts` (15 cells, largest 13 lines): `poolStep` takes the pool's state and one event and returns the
+  next state and the effects. `makePool` 65 -> 44 unchecked lines. 2000 scripted runs against the frozen pool, 0
+  differ, including 25 resends whose post throws; two mutants differ on 896 and 1973. Cost per job 0.19 -> 1.34 us
+  at queue depth 1, 0.20 -> 57 us at depth 1000: every step copies the slots and both Maps. Not fixed.
+- `lite/shape.ss.ts` (15 cells, largest 23): type to shape, with the error as a tagged value. 272 annotations and
+  20000 random types, 0 differ; 0.76-1.00x the time. On `Array` with no argument the frozen copy throws and the
+  cells refuse; the registry never produces that type.
+- `lite/cross.ss.ts` (17 cells, largest 16): mismatch messages, path trimming, the per-union tables (tag, member
+  kinds, sole member), which mismatch a union reports, the function wrapper's paths, and three per-node decisions.
+  The walk itself stays in the shell (reads foreign values, keeps identity, freezes). 360 corpus inputs, 20000
+  random pairs, 3047 trees, 60 getter cases: 0 differ. 0.48-0.64 us per node, as before. The three corpora do not
+  catch a mutant of `primFits` or `propStep`; only `cross.test.ts` covers them, `propStep` without a mutant.
+- `lite/checks.ss.ts` (5 cells): the check key, the two LRUs, stand-ins, refused cells, island keys. A cached
+  `check()` 0.77 -> 3.1 us (the LRU copies its Map per touch; measured on battery).
+- `boundary.ts` 410 -> 256 code lines, `workers.ts` 119 -> 98, `stdlib/runtime.ts` 109 -> 94.
+- My run: pool 25, shape 21, cross 24, checks 14, boundary 123, workers 8, runtime 82, complete 58, syntax 14,
+  ts-cells 9 pass; fixtures 14/14; verify `power Battery Power; functional 643 pass 0 fail` (runtime module 157
+  cells, 108 with values; checker module 327, 127 with values). Timings were on battery under load and are not
+  comparable (completion 11.9 ms, lint 16.2 ms); to be rerun on AC.
+- RED at this commit: `lite/acorn.test.ts` 5 pass 1 fail, `Other 3`. The census now reads `lite/infer/repro/`,
+  whose files are the repros of the two typed-tree gaps. The gaps are to be fixed in `lite/acorn/`.
+- OPEN: since the build of 15:44 the build log has 12 lines "error building module dependancy map" (cell-map,
+  editor-5, module-selection, claude-code-pairing, three each); 0 in the build of 15:28. Exit 0, same output
+  hash on rebuild, verify passes. Cause not found.

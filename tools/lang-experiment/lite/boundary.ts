@@ -2,162 +2,36 @@
 // language (Observable JavaScript, raw). The checker turns the parameter's annotation into a Shape
 // (shapeOf); the compiled cell passes the value through cross(), which checks it against the shape and
 // hands the cell a deep-frozen copy.
-import { type Ty, show, subst } from "./types.ts";
-import { want, deepEqual, type Shape } from "./runtime-ss.ts";
+import type { Ty } from "./types.ts";
+import { shapeAt, boundaryShapeAt, type ShapeOr } from "./shape-ss.ts";
+import { deepEqual, describeSeen, mismatchText, trimPath, tagDispatch, memberTakes, soleMembers, isSoleMiss, fnPlan, thrownText, primFits, propStep, elemShape, triesMember, unionMiss, type Shape, type ValueSeen, type Dispatch } from "./runtime-ss.ts";
 export type { Shape } from "./runtime-ss.ts";
 
-// The shape of an annotation, or why it cannot be checked at the boundary. expand resolves an alias or
-// interface (Registry.expand); isAlias says whether a name is one. An alias met again while it is being expanded is a
-// ref, and the shape of the whole annotation lists the definition of each such alias once (defs); an alias that is not
-// recursive is expanded in place.
-// limit: how deep the expansion may go. A type nested deeper than 16 is refused unless it is recursive; a recursive
-// one is expanded again up to 256, as a ring of aliases closes only after each is open. open and rec hold tyKey keys;
-// names: per key, the name of its ref (show's, unique)
-type TyKeys = { memo: WeakMap<Ty, string>; ids: Map<string, string> };
-type ShapeCtx = { open: string[]; rec: Set<string>; defs: Map<string, Shape>; limit: number; keys: TyKeys; names: Map<string, string>; taken: Set<string> };
-// an id for t that two types share only when they are the same type; show shortens a deep type with …
-function tyKey(t: Ty, K: TyKeys): string {
-  const hit = K.memo.get(t);
-  if (hit !== undefined) return hit;
-  const c = (x: Ty | undefined): string => (x ? tyKey(x, K) : "");
-  const cs = (xs: readonly Ty[] | undefined): string => (xs ?? []).map(c).join(",");
-  const q = (n: string): string => JSON.stringify(n);
-  let raw: string;
-  switch (t.k) {
-    case "lit": raw = `lit ${typeof t.v} ${typeof t.v === "string" ? q(t.v) : Object.is(t.v, -0) ? "-0" : String(t.v)}`; break;
-    case "arr": raw = `arr ${c(t.el)}`; break;
-    case "tup": raw = `tup ${cs(t.els)}`; break;
-    case "union": raw = `union ${cs(t.ts)}`; break;
-    case "named": raw = `named ${q(t.n)} ${cs(t.args)}`; break;
-    case "tv": raw = `tv ${q(t.n)}`; break;
-    case "fn": raw = `fn ${q(t.tps.join(","))} ${t.ps.map((p) => `${q(p.n)}${p.opt ? "?" : ""}:${c(p.t)}`).join(",")} ...${c(t.rest)} => ${c(t.ret)}`; break;
-    case "rec": raw = `rec ${[...t.props].map(([n, p]) => `${q(n)}${p.opt ? "?" : ""}:${c(p.t)}`).join(",")} [${c(t.index)}] (${cs(t.calls)}) new(${cs(t.ctors)})`; break;
-    default: raw = t.k;
-  }
-  let id = K.ids.get(raw);
-  if (id === undefined) K.ids.set(raw, (id = `#${K.ids.size}`));
-  K.memo.set(t, id);
-  return id;
+// The shape of an annotation, or why it cannot be checked at the boundary, and the shape of a parameter's annotation
+// (fnOk: a function type may be the whole annotation): shape.ss.ts's, with the error as { error }, which core.ts reads
+const untag = (s: ShapeOr): Shape | { error: string } => (s.k === "error" ? { error: s.error } : (s as Shape));
+export function shapeOf(t: Ty, expand: (t: Ty) => Ty, isAlias: (n: string) => boolean): Shape | { error: string } {
+  return untag(shapeAt(t, { expand, isAlias }));
 }
-function refName(t: Ty, key: string, ctx: ShapeCtx): string {
-  let n = ctx.names.get(key);
-  if (n !== undefined) return n;
-  const base = show(t);
-  n = base;
-  for (let i = 2; ctx.taken.has(n); i++) n = `${base} (${i})`;
-  ctx.names.set(key, n);
-  ctx.taken.add(n);
-  return n;
-}
-export function shapeOf(t: Ty, expand: (t: Ty) => Ty, isAlias: (n: string) => boolean, depth = 0, ctx?: ShapeCtx): Shape | { error: string } {
-  if (!ctx) {
-    const keys: TyKeys = { memo: new WeakMap(), ids: new Map() };
-    const at = (limit: number) => { const c: ShapeCtx = { open: [], rec: new Set(), defs: new Map(), limit, keys, names: new Map(), taken: new Set() }; return { c, body: shapeOf(t, expand, isAlias, depth, c) }; };
-    let { c, body } = at(16);
-    if ("error" in body) { const again = at(256); if (!again.c.rec.size) return body; ({ c, body } = again); }
-    if ("error" in body || !c.defs.size) return body;
-    const bad = [...c.defs.keys()].find((n) => unproductive(n, c.defs));
-    if (bad !== undefined) return { error: `${bad}, a recursive type with no object or array between it and itself` };
-    return { k: "defs", defs: [...c.defs], body };
-  }
-  // a generic alias whose arguments grow at each level never repeats
-  if (depth > ctx.limit) return { error: "a recursive type" };
-  const sub = (x: Ty) => shapeOf(x, expand, isAlias, depth + 1, ctx);
-  switch (t.k) {
-    case "num": return { k: "num" };
-    case "str": return { k: "str" };
-    case "null": return { k: "null" };
-    case "undef": case "void": return { k: "undef" };
-    case "unknown": return { k: "unknown" };
-    case "lit": return { k: "lit", v: t.v };
-    case "fn": return { error: "a function" };
-    case "arr": { const el = sub(t.el); return "error" in el ? el : { k: "arr", el }; }
-    case "tup": {
-      const els: Shape[] = [];
-      for (const x of t.els) { const s = sub(x); if ("error" in s) return s; els.push(s); }
-      return { k: "tup", els };
-    }
-    case "union": {
-      const ts: Shape[] = [];
-      for (const x of t.ts) { const s = sub(x); if ("error" in s) return s; ts.push(s); }
-      // true | false is boolean
-      const lits = ts.filter((s) => s.k === "lit" && typeof s.v === "boolean");
-      if (lits.length === 2) return { k: "union", ts: [...ts.filter((s) => !(s.k === "lit" && typeof s.v === "boolean")), { k: "bool" }] };
-      return { k: "union", ts };
-    }
-    case "rec": {
-      if (t.calls?.length || t.ctors?.length) return { error: "a function" };
-      if (t.index) return { error: "an index signature" };
-      const props: [string, Shape, boolean][] = [];
-      for (const [n, p] of t.props) { const s = sub(p.t); if ("error" in s) return { error: `${n}: ${s.error}` }; props.push([n, s, p.opt]); }
-      return { k: "rec", props };
-    }
-    case "named":
-      if (t.n === "Promise") return { error: "a promise" };
-      if (isAlias(t.n)) {
-        const key = tyKey(t, ctx.keys);
-        if (ctx.open.includes(key) || ctx.defs.has(ctx.names.get(key) ?? "")) { ctx.rec.add(key); return { k: "ref", n: refName(t, key, ctx) }; }
-        ctx.open.push(key);
-        const s = sub(expandFull(t, expand));
-        ctx.open.pop();
-        if ("error" in s || !ctx.rec.has(key)) return s;
-        const n = refName(t, key, ctx);
-        ctx.defs.set(n, s);
-        return { k: "ref", n };
-      }
-      if (t.n === "Array" || t.n === "ReadonlyArray") { const el = sub(t.args[0]); return "error" in el ? el : { k: "arr", el }; }
-      return { error: `${show(t)}, which the boundary does not check` };
-    default: return { error: `${show(t)}, which the boundary does not check` };
-  }
-}
-// The shape of a parameter's annotation. fnOk (not under State): a function type may be the whole annotation, with no
-// type parameters and no rest parameter, when its parameters and its result, or the T of a Promise<T> result, cross
 export function boundaryShape(t: Ty, expand: (t: Ty) => Ty, isAlias: (n: string) => boolean, fnOk: boolean): Shape | { error: string } {
-  let f = t;
-  for (let i = 0; i < 16 && f.k === "named" && isAlias(f.n); i++) f = expand(f);
-  if (!fnOk || f.k !== "fn") return shapeOf(t, expand, isAlias);
-  if (f.tps.length || f.rest) return { error: "a function with type parameters or a rest parameter" };
-  const part = (x: Ty, what: string) => { const s = shapeOf(x, expand, isAlias); return "error" in s ? { error: `a function whose ${what} is or holds ${s.error}` } : s; };
-  const ps: Shape[] = [];
-  for (const [i, p] of f.ps.entries()) { const s = part(p.t, `parameter ${p.n || i + 1}`); if ("error" in s) return s; ps.push(p.opt ? { k: "union", ts: [s, { k: "undef" }] } : s); }
-  const ret = f.ret.k === "named" && f.ret.n === "Promise" ? f.ret.args[0] : undefined;
-  const r = part(ret ?? f.ret, "result");
-  return "error" in r ? r : { k: "fn", ps, ret: r, async: ret !== undefined };
-}
-// a generic alias expanded over placeholders, then given its arguments: expand keeps one expansion per name as show
-// prints it, and show shortens a deep argument, so two deep arguments would share one
-function expandFull(t: Ty & { k: "named" }, expand: (t: Ty) => Ty): Ty {
-  if (!t.args.length) return expand(t);
-  const ps = t.args.map((_, i) => ` ${i}`);
-  return subst(expand({ k: "named", n: t.n, args: ps.map((n) => ({ k: "tv", n })) }), new Map(ps.map((n, i) => [n, t.args[i]!])));
-}
-// the definition of n reaches n through unions and refs alone, so no finite value is checked against it
-function unproductive(n: string, defs: Map<string, Shape>): boolean {
-  const met = new Set<string>();
-  const go = (s: Shape): boolean => {
-    if (s.k === "union") return s.ts.some(go);
-    if (s.k !== "ref") return false;
-    if (s.n === n) return true;
-    if (met.has(s.n)) return false;
-    met.add(s.n);
-    const d = defs.get(s.n);
-    return d !== undefined && go(d);
-  };
-  const d = defs.get(n);
-  return d !== undefined && go(d);
+  return untag(boundaryShapeAt(t, { expand, isAlias }, fnOk));
 }
 
-const describe = (v: unknown): string => {
-  if (v === null) return "null";
-  if (typeof v === "string") return `string ${JSON.stringify(v.length > 40 ? v.slice(0, 40) + "…" : v)}`;
-  if (Object.is(v, -0)) return "number -0";
-  if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") return `${typeof v} ${String(v)}`;
-  if (typeof v === "function") return "a function";
-  if (Array.isArray(v)) return `an array of ${v.length}`;
-  if (v && typeof (v as { then?: unknown }).then === "function") return "a promise";
-  if (typeof v === "object") return Object.getPrototypeOf(v) === Object.prototype || Object.getPrototypeOf(v) === null ? "an object" : `a ${(v as object).constructor?.name ?? "non-plain"} object`;
-  return typeof v;
+// what describeSeen needs of v, read in the order and number of reads a getter or a proxy's trap may see
+const seen = (v: unknown): ValueSeen => {
+  if (v === null) return { t: "null" };
+  if (typeof v === "string") return { t: "string", s: v };
+  if (Object.is(v, -0)) return { t: "-0" };
+  if (typeof v === "number" || typeof v === "boolean" || typeof v === "bigint") return { t: typeof v, text: String(v) };
+  if (typeof v === "function") return { t: "function" };
+  if (Array.isArray(v)) return { t: "array", length: v.length };
+  if (v && typeof (v as { then?: unknown }).then === "function") return { t: "promise" };
+  if (typeof v !== "object") return { t: "other", type: typeof v };
+  if (Object.getPrototypeOf(v) === Object.prototype || Object.getPrototypeOf(v) === null) return { t: "object", plain: true, ctor: null };
+  const n = (v as object).constructor?.name;
+  return { t: "object", plain: false, ctor: n === undefined || n === null ? null : `${n}` };
 };
+const describe = (v: unknown): string => describeSeen(seen(v));
 const plain = (v: object) => { const p = Object.getPrototypeOf(v); return p === Object.prototype || p === null; };
 
 // a value that does not fit a shape at path (a Cycle: a value met again inside itself); the message is made only for
@@ -165,36 +39,17 @@ const plain = (v: object) => { const p = Object.getPrototypeOf(v); return p === 
 class Mismatch {
   path: string; s: Shape | null; found: string;
   constructor(path: string, s: Shape | null, found: string) { this.path = path; this.s = s; this.found = found; }
-  text(): string { return this.s ? `${this.path}: expected ${want(this.s)}, found ${this.found}` : `${this.path}: ${this.found}`; }
+  text(): string { return mismatchText(this.path, this.s, this.found); }
 }
 class Cycle extends Mismatch {}
 const mismatch = (v: unknown, s: Shape, path: string): Mismatch => new Mismatch(path, s, describe(v));
 
-type Dispatch = { key: string; by: Map<unknown, Shape> };
-// per union shape: when every member is a record giving one property a literal of its own (a tag), that property and
-// the member for each literal; else null. A member that is a ref is looked up in defs
+// per union shape, tagDispatch's table (a union of tagged records), takes and soles as their cells give them
 const dispatches = new WeakMap<Shape, Dispatch | null>();
 function dispatchOf(s: Shape & { k: "union" }, defs: Map<string, Shape> | null): Dispatch | null {
-  const hit = dispatches.get(s);
-  if (hit !== undefined) return hit;
-  let out: Dispatch | null = null;
-  const ms = s.ts.map((m) => { for (let i = 0; m.k === "ref" && defs && i < 64; i++) m = defs.get(m.n) ?? m; return m; });
-  const first = ms[0];
-  if (first?.k === "rec" && ms.every((m) => m.k === "rec")) {
-    for (const [key, ks, opt] of first.props) {
-      if (opt || ks.k !== "lit") continue;
-      const by = new Map<unknown, Shape>();
-      const tagged = ms.every((m) => {
-        const p = m.k === "rec" ? m.props.find((q) => q[0] === key) : undefined;
-        if (!p || p[2] || p[1].k !== "lit" || by.has(p[1].v)) return false;
-        by.set(p[1].v, m);
-        return true;
-      });
-      if (tagged) { out = { key, by }; break; }
-    }
-  }
-  dispatches.set(s, out);
-  return out;
+  let hit = dispatches.get(s);
+  if (hit === undefined) dispatches.set(s, (hit = tagDispatch(s, defs)));
+  return hit;
 }
 
 // One crossing. defs: the definitions of the shape's refs, or null when the shape has none (not recursive); done: per
@@ -227,12 +82,7 @@ function copy(v: unknown, s: Shape, path: string, run: Run): unknown {
 // a primitive's copy, or a frame pushed for an object or an array (WAIT)
 function copyEnter(v: unknown, s: Shape, path: string, run: Run, stack: Frame[]): unknown {
   switch (s.k) {
-    case "num": if (typeof v === "number") return v; throw mismatch(v, s, path);
-    case "str": if (typeof v === "string") return v; throw mismatch(v, s, path);
-    case "bool": if (typeof v === "boolean") return v; throw mismatch(v, s, path);
-    case "null": if (v === null) return v; throw mismatch(v, s, path);
-    case "undef": if (v === undefined) return v; throw mismatch(v, s, path);
-    case "lit": if (Object.is(v, s.v)) return v; throw mismatch(v, s, path);
+    case "num": case "str": case "bool": case "null": case "undef": case "lit": if (primFits(s, v)) return v; throw mismatch(v, s, path);
     case "fn": throw new TypeError(`${path}: a function shape inside a value`);
     case "defs": run.defs = new Map(s.defs); run.done = new Map(); return copyEnter(v, s.body, path, run, stack);
     case "ref": {
@@ -270,46 +120,22 @@ function copyOpen(v: object, s: Shape, path: string, run: Run, stack: Frame[], k
   if (stack.length > run.deep) run.deep = stack.length;
   return WAIT;
 }
-// per union shape: for a record, an array and a primitive (valueKind), the index of the one member that could take a
-// value of that kind, else -1
-const soles = new WeakMap<Shape, number[]>();
 const valueKind = (v: unknown): number => (v === null || (typeof v !== "object" && typeof v !== "function") ? 2 : Array.isArray(v) ? 1 : 0);
-// wide: a shape that throws other than a mismatch (a function, a ref with no definition) counts as taking every kind
-function memberKinds(s: Shape, defs: Map<string, Shape> | null, met: Set<string>, wide = false): number {
-  switch (s.k) {
-    case "rec": return 1;
-    case "arr": case "tup": return 2;
-    case "unknown": return 7;
-    case "union": return s.ts.reduce((a, m) => a | memberKinds(m, defs, met, wide), 0);
-    case "defs": return memberKinds(s.body, defs, met, wide);
-    case "ref": { const d = defs?.get(s.n); if (!d) return wide ? 7 : 0; if (met.has(s.n)) return 0; met.add(s.n); return memberKinds(d, defs, met, wide); }
-    case "fn": return wide ? 7 : 4;
-    default: return 4;
-  }
-}
-// per union shape: per member, the kinds of value (bits as memberKinds) it could take. A member that cannot take a
-// primitive fails on one with a mismatch at the union's place, so it is not tried; an object or array is still tried,
-// as the mismatch reads it (describe) and a getter there may throw
-const takes = new WeakMap<Shape, number[]>();
-function takesOf(s: Shape & { k: "union" }, defs: Map<string, Shape> | null): number[] {
+const takes = new WeakMap<Shape, readonly number[]>();
+function takesOf(s: Shape & { k: "union" }, defs: Map<string, Shape> | null): readonly number[] {
   let hit = takes.get(s);
-  if (!hit) takes.set(s, (hit = s.ts.map((m) => memberKinds(m, defs, new Set(), true))));
+  if (!hit) takes.set(s, (hit = memberTakes(s, defs)));
   return hit;
 }
-function soleOf(s: Shape & { k: "union" }, defs: Map<string, Shape> | null): number[] {
+const soles = new WeakMap<Shape, readonly number[]>();
+function soleOf(s: Shape & { k: "union" }, defs: Map<string, Shape> | null): readonly number[] {
   let hit = soles.get(s);
-  if (hit) return hit;
-  const ks = s.ts.map((m) => memberKinds(m, defs, new Set()));
-  hit = [1, 2, 4].map((bit) => { const at = ks.flatMap((k, i) => (k & bit ? [i] : [])); return at.length === 1 ? at[0]! : -1; });
-  soles.set(s, hit);
+  if (!hit) soles.set(s, (hit = soleMembers(s, defs)));
   return hit;
 }
-// member i (of those tried) failed with e: e itself when that member is the only one that could take v and e is below
-// the union's place, so the message names where the value goes wrong
-function soleMiss(v: unknown, s: Shape & { k: "union" }, path: string, run: Run, i: number, e: Mismatch): Mismatch | null {
-  if (e.path === path) return null;
-  return dispatchOf(s, run.defs) || soleOf(s, run.defs)[valueKind(v)] === i ? e : null;
-}
+// member i (of those tried) failed with e: e itself when isSoleMiss says it is the union's
+const soleMiss = (v: unknown, s: Shape & { k: "union" }, path: string, run: Run, i: number, e: Mismatch): Mismatch | null =>
+  isSoleMiss(e.path, path, dispatchOf(s, run.defs) !== null, soleOf(s, run.defs)[valueKind(v)]!, i) ? e : null;
 // union s from member i on: the copy under the first member that fits, or WAIT with the union's frame under the
 // member's. A union of tagged records tries only the member its tag names, and fails when that one does
 function copyUnion(v: unknown, s: Shape & { k: "union" }, path: string, run: Run, stack: Frame[], i: number, cycle: Mismatch | null, sole: Mismatch | null): unknown {
@@ -319,7 +145,7 @@ function copyUnion(v: unknown, s: Shape & { k: "union" }, path: string, run: Run
   for (; i < ts.length; i++) {
     const m = ts[i];
     if (!m) break;
-    if (ks && !(ks[i]! & 4)) continue;
+    if (!triesMember(ks, i)) continue;
     const at = stack.length;
     try {
       const r = copyEnter(v, m, path, run, stack);
@@ -327,8 +153,8 @@ function copyUnion(v: unknown, s: Shape & { k: "union" }, path: string, run: Run
       return r;
     } catch (e) { if (!(e instanceof Mismatch)) throw e; if (!cycle && e instanceof Cycle) cycle = e; sole ??= soleMiss(v, s, path, run, i, e); }
   }
-  // under a recursive shape a cycle is reported as the cause, not as the union's mismatch
-  throw sole ?? (run.defs && cycle ? cycle : mismatch(v, s, path));
+  const miss = unionMiss(sole !== null, run.defs !== null, cycle !== null);
+  throw miss === "sole" ? sole! : miss === "cycle" ? cycle! : mismatch(v, s, path);
 }
 // the top frame, given the copy of its pending child: its own copy (the frame popped), or WAIT
 function copyResume(f: Frame, r: unknown, run: Run, stack: Frame[]): unknown {
@@ -342,7 +168,9 @@ function copyResume(f: Frame, r: unknown, run: Run, stack: Frame[]): unknown {
       const [n, t, opt] = s.props[i]!;
       const has = Object.hasOwn(v, n);
       const x = v[n];
-      if (!has || x === undefined) { if (opt) continue; if (!has) throw new Mismatch(`${f.path}.${n}`, t, "nothing"); }
+      const step = propStep(has, x === undefined, opt);
+      if (step === "skip") continue;
+      if (step === "missing") throw new Mismatch(`${f.path}.${n}`, t, "nothing");
       const c = copyEnter(x, t, `${f.path}.${n}`, run, stack);
       if (c === WAIT) { f.i = i; f.wait = true; return WAIT; }
       f.out[n] = c;
@@ -361,7 +189,7 @@ function copyResume(f: Frame, r: unknown, run: Run, stack: Frame[]): unknown {
     // a hole is read as undefined, and checked and copied as an undefined there would be
     for (; i < f.out.length; i++) {
       const x = v[i];
-      const c = s.k === "unknown" && (x === null || (typeof x !== "object" && typeof x !== "function")) ? x : copyEnter(x, s.k === "arr" ? s.el : s.k === "tup" ? s.els[i]! : s, `${f.path}[${i}]`, run, stack);
+      const c = s.k === "unknown" && (x === null || (typeof x !== "object" && typeof x !== "function")) ? x : copyEnter(x, elemShape(s, i), `${f.path}[${i}]`, run, stack);
       if (c === WAIT) { f.i = i; f.wait = true; return WAIT; }
       f.out[i] = c;
     }
@@ -384,11 +212,8 @@ function copyUnwind(e: Mismatch, run: Run, stack: Frame[]): unknown {
     }
   }
 }
-// the TypeError for a mismatch; under a recursive shape a path longer than 300 characters keeps its two ends
-function refusal(e: Mismatch, run: Run): TypeError {
-  if (run.defs && e.path.length > 300) return new TypeError(new Mismatch(`${e.path.slice(0, 80)}…${e.path.slice(-160)}`, e.s, e.found).text());
-  return new TypeError(e.text());
-}
+// the TypeError for a mismatch, its path cut as trimPath says
+const refusal = (e: Mismatch, run: Run): TypeError => new TypeError(mismatchText(trimPath(e.path, run.defs !== null), e.s, e.found));
 const newRun = (): Run => ({ defs: null, seen: new Set(), done: null, deep: 0 });
 
 // two copies equal as deepEqual says, without recursion, and each pair of objects compared once (copies of a
@@ -451,12 +276,12 @@ const fnWrappers = new Map<string, { raw: unknown; key: string; w: unknown }>();
 function fnThrown(name: string, what: string, e: unknown): TypeError {
   let m: string;
   try { m = e instanceof Error ? String(e.message) : describe(e); } catch { m = "a value that could not be read"; }
-  return new TypeError(`${name}(...)${what}: ${m}`);
+  return new TypeError(thrownText(name, what, m));
 }
-function fnResult(v: unknown, s: Shape, name: string): unknown {
+function fnResult(v: unknown, s: Shape, name: string, path: string): unknown {
   const run = newRun();
   let bad: TypeError;
-  try { return copy(v, s, `${name}(...)`, run); } catch (e) {
+  try { return copy(v, s, path, run); } catch (e) {
     // instanceof on a proxy runs its getPrototypeOf trap
     let ours = false;
     try { ours = e instanceof Mismatch; } catch { /* the other language's */ }
@@ -465,18 +290,19 @@ function fnResult(v: unknown, s: Shape, name: string): unknown {
   throw bad;
 }
 function crossFn(f: unknown, s: Shape & { k: "fn" }, name: string, path: string): unknown {
-  if (typeof f !== "function") throw new TypeError(`${name}: expected a function, found ${describe(f)}`);
+  if (typeof f !== "function") throw new TypeError(mismatchText(name, s, describe(f)));
   const key = JSON.stringify(s);
   const hit = fnWrappers.get(path);
   if (hit && hit.raw === f && hit.key === key) return hit.w;
+  const plan = fnPlan(name, s);
   const w = Object.freeze((...args: unknown[]): unknown => {
-    const xs = s.ps.map((p, i) => checkShape(args[i], p, `${name} argument ${i + 1}`));
+    const xs = plan.args.map((a, i) => checkShape(args[i], a.shape, a.path));
     let r: unknown;
     try { r = Reflect.apply(f, undefined, xs); } catch (e) { throw fnThrown(name, " threw", e); }
-    if (!s.async) return fnResult(r, s.ret, name);
+    if (!s.async) return fnResult(r, s.ret, name, plan.result);
     // Promise.resolve reads a promise's constructor, and then may be an own property: either can throw
     return new Promise((res, rej) => {
-      try { Promise.resolve(r).then((v) => { try { res(fnResult(v, s.ret, name)); } catch (e) { rej(e); } }, (e) => rej(fnThrown(name, " threw", e))); } catch (e) { rej(fnThrown(name, " threw", e)); }
+      try { Promise.resolve(r).then((v) => { try { res(fnResult(v, s.ret, name, plan.result)); } catch (e) { rej(e); } }, (e) => rej(fnThrown(name, " threw", e))); } catch (e) { rej(fnThrown(name, " threw", e)); }
     });
   });
   fnWrappers.set(path, { raw: f, key, w });
