@@ -583,3 +583,17 @@ integration adds the rg files to its list.
 Integration: `core.ts` builds the registry from the rg cells; `ts-cells.ts` registers the 7 files;
 `complete.ts` takes `callSigs`/`expand`/`member` from them. `registry.ts` and `parse.ts` go only after
 `acorn/index.ts`, `soundscript/entry.ts`, two tests and the parser cell stop using them.
+
+## 2026-11-22 01:00: completion's option building and `facts.ts` as cells (`lite/infer/cp-*.ss.ts`), not switched on
+Record: `lite/infer/NOTES.md`, last section. About 247 of `complete.ts`'s 256 statement lines and all 58 of
+`facts.ts` are 43 value cells and 11 types in 6 files (median 6 lines, largest 21); 76 lines of glue in `cp-index.ts`.
+`bun lite/infer/cp-diff.ts`, my run: completion 16237 positions and reruns SAME 18423 DIFFERENT 0;
+addParameter/annotationOf SAME 70450; `cellsOf` on 3435 sources SAME 3399 (36 throw the same); prelude and
+global sets SAME 246420. One broken cell per file differs on 4 to 1568. `cd lite && bun test infer/cp.test.ts`: 5 pass.
+Thin: optional chains have only probe positions (20); several kinds only ever give empty lists.
+Three bugs of `complete.ts` copied, not fixed (`lite/infer/repro/cp-complete-bugs.ts`): a quote or comment marker
+inside a template literal's text hides a later `${…}`; `=>` counted as a closing bracket in a parameter list;
+a lazy block-comment pattern running past a later `*/`.
+For Tom: the cells keep `complete.ts`'s regular expressions over source text (14 uses in `cp-text` and `cp-param`),
+because completion runs on text that does not parse. That is against "inspect code on the AST". The three bugs
+above are all in that text scanning.

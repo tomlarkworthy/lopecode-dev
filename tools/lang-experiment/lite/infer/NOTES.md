@@ -896,3 +896,64 @@ not renumber and is 0 DIFFERENT, so no corpus report differs by it.
   the corpus gathering in `rg-diff.ts` (from diff.ts); core.ts's second parse of each module.
 - A copy of the rg files sits at `selfhost/opaque-handles/proto/lite/infer/` (another agent's copy of the lite tree,
   made 2026-11-21 23:57); `rg.test.ts`'s name-uniqueness test exempts files at the same relative path.
+
+## 2026-11-22 00:15: corrections to the cp section above (its heading time was 00:01, not 00:05)
+
+A review of the section found four claims the runs did not support. Fixed in `cp-diff.ts`, `cp-probes.ts`,
+`cp-time.ts`, `cp.test.ts`, then everything rerun (`.scratch/cp-port/final2.log`, 2026-11-22 00:06-00:13, AC Power,
+load 9.34 -> 18.59, other agents' processes running).
+
+- The `variant:N` row counted the copies that checked without throwing, not the copy that answered. The wrapper now
+  counts each probe check before it runs and records the one whose probe was found. Replace that row with:
+  ```
+  copy:1 answered 4755 (4449 with options)   copy:2 answered 3358 (2909)   copy:3 answered 0   copy:4 answered 329 (310)
+  none of the 4 answered 3872                no copy checked (no word typed, or not a member/name position) 2185
+  ```
+  Copy 3 (`before + PH + ";" + closers`) answers no position of the corpus or the probes; no input reaching it was
+  found. Added probes `copy-unclosed-test` (20, `{ if (x.`) and `copy-unclosed-call` (20).
+- "Kinds under 20 before the probes" was not measured on a clean run. The table now has a column of positions not
+  from cp-probes.ts. Without the probes: lit 6, num 6, unknown 6, Borrowed 12, Map 18, Set 0, tv 0, Events 0,
+  Action 0, Listener 0, StateCell 0, name:fn 4, optional chain 0 (the corpus has no `?.` member read at a walked
+  position; the 20 probes are its only coverage). Added probes `member-literal` (20) and `member-map-set` (20):
+  lit 21, Map 28, Set 10.
+- NOT COVERED is 0: the differential has no case the port declines. Not reached before, now compared: the exported
+  `factsOf` without a statement (no span) on every cell, `factsOf without a statement SAME 5650 DIFFERENT 0`;
+  `annotate` returning `""` and `undefined` (two more names in the outside list). Still not reached: copy 3; a
+  receiver of kinds outside the table above (e.g. a function type, a tuple alone).
+- The glue figures, per declaration of `cp-index.ts` from its parse (`.scratch/cp-port/stats.ts`): hostOf 12,
+  regOf 4, completionWork + counted 2, plain + field 2, consts + constOf 6, infoOf + cellsOfWith 10; 76 lines in
+  top-level statements, imports included. The "code lines" figures above came from a line-prefix test and are
+  withdrawn; complete.ts has 299 lines (256 in top-level statements), facts.ts 75 (58).
+- The facts corpus is a copy of diff.ts's job list (diff.ts runs on import) plus each port's foreign.d.ts and
+  shell.ts, `lite/acorn/*.ss.ts` and `lite/infer/*.ss.ts` whole and cell by cell, the tutorial's 47 cells and the
+  lowered JSX of every .tsx source: 3435 sources.
+
+Rerun numbers:
+
+```
+completion: 16237 positions (and their reruns with outside cells / tsx off): SAME 18423 DIFFERENT 0; 175.9 s
+addParameter / annotationOf: SAME 70450 DIFFERENT 0
+facts: 3435 sources: cellsOf SAME 3399 DIFFERENT 0 (both threw 36); 5650 cells, preludeCalls/globalRefs sets SAME 246420 DIFFERENT 0
+control cp-text 4 / cp-members 107 / cp-modes 368 / cp-param 1568 (of 1477 positions); cp-facts 8 of 687 sources
+complete-diff.ts: 37 files, 6385 positions: SAME 6385 (1733 with no options) DIFFERENT 0
+```
+
+Timing again, the side that runs first alternating by round (load 18.6-19.1 during it):
+
+```
+round (first)        option building µs: complete.ts  cells     checks alone µs
+1 (cells)                                54.0         61.9      10762.7
+2 (complete.ts)                          48.1         38.8       9745.3
+3 (cells)                                30.5         44.4       8405.3
+4 (complete.ts)                          47.8         36.7      10641.1
+5 (cells)                                34.0         53.1       8834.3
+6 (complete.ts)                          44.1         34.0       8472.2
+```
+
+The side that runs second is faster in every round, by 9-19 µs; the first run (above, 23:54, cells always first)
+is biased the same way. Averaged over the order: complete.ts 43.1, cells 44.8 µs per completion, under load 19.
+
+`cp.test.ts`'s uniqueness test now skips `selfhost/**/lite/**` (another agent's copies of the lite tree, made
+2026-11-22, `selfhost/opaque-handles/{base,proto}/lite/infer/cp-*.ss.ts`, held every cp name twice more).
+`infer.test.ts`'s uniqueness test globs the same tree and was not rerun. `bun test infer/cp.test.ts`: 5 pass.
+`bun test soundscript/ts-cells.test.ts`: 9 pass (its globs do not list lite/infer).
