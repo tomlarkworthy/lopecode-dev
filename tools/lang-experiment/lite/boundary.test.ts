@@ -202,8 +202,9 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
   const T = await import("./toolchain/ss-toolchain.ts");
   const ss = await import("./stdlib/runtime.ts");
   const { input } = await import(new URL("../../../vendor/observable-stdlib/src/generators/input.js", import.meta.url).pathname as any);
-  const load = (src: string, outside: Record<string, [string[], (...a: any[]) => unknown]>) => {
-    const checked = checkSources({ cells: src, tsx: false, outside: Object.keys(outside).filter((n) => !n.startsWith("viewof ")).map((n) => ({ name: n, view: !!outside[`viewof ${n}`] })) });
+  // shell: names of outside that the checker is given as shell cells instead
+  const load = (src: string, outside: Record<string, [string[], (...a: any[]) => unknown]>, shell: string[] = []) => {
+    const checked = checkSources({ cells: src, tsx: false, shell: shell.map((n) => `export const ${n} = 0;`).join("\n") || null, outside: Object.keys(outside).filter((n) => !n.startsWith("viewof ") && !shell.includes(n)).map((n) => ({ name: n, view: !!outside[`viewof ${n}`] })) });
     const m = new Runtime().module();
     m.define("Generators", [], () => ({ input }));
     for (const n of T.RUNTIME_CELLS) m.define(T.INPUTS[n], [], () => (ss as any)[n]);
@@ -338,6 +339,13 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
     const L = load('type T = { v: number; kids: T[] };\ntype F = (s: string) => number;\ntype G<X> = (x: X) => X;\nexport const r = (f: (t: number, x?: T) => number, h: F, g: G<number>) => [f(1), f(2, { v: 3, kids: [{ v: 4, kids: [] }] }), h("abc"), g(4)];', { f: [[], () => (t: number, x?: any) => (x ? t + x.v + x.kids[0].v : t)], h: [[], () => (s: string) => s.length], g: [[], () => (x: number) => x * 10] });
     ok("fn: an optional parameter of a recursive alias, an alias of a function type and a generic one", L.verdicts.join() === "r: ok" && (await L.seen("r")) === "value [1,9,3,40]", [L.verdicts, await L.seen("r")]);
   }
+  {
+    // a shell cell typed as a function gets the same wrapper: each result checked and copied
+    const raw = (s: string) => ({ n: s.length, tag: s, extra: 1 });
+    const L = load(R + 'export const a = (sh: (s: string) => R) => sh("abc");\nexport const b = (bad: (s: string) => R) => bad("x").n;\nexport const c = (sh: (s: string) => R) => sh;', { sh: [[], () => raw], bad: [[], () => () => ({ n: "1", tag: "t" })] }, ["sh", "bad"]);
+    const w = (await L.value("c") as any).v, a = (await L.value("a") as any).v;
+    ok("fn: a shell cell typed as a function is called through the wrapper: a frozen copy, a wrong shape is a TypeError", L.verdicts.join() === "a: ok,b: ok,c: ok" && (await L.seen("a")) === 'value {"n":3,"tag":"abc"}' && Object.isFrozen(a) && (await L.seen("b")) === 'TypeError: bad(...).n: expected number, found string "1"' && w !== raw && Object.isFrozen(w), [L.verdicts, await L.seen("a"), await L.seen("b")]);
+  }
   // the checker: what is refused, with which message, and that an action may not use the function
   const verdictsOf = (src: string, outside: { name: string; view?: boolean }[]) => checkSources({ cells: src, tsx: false, outside }).cells.map((c) => `${c.name}: ${c.status}${c.errors.map((e) => ` [${e.rule}] ${e.msg}`).join("")}`);
   const refused: [string, string, { name: string; view?: boolean }[], string][] = [
@@ -355,8 +363,33 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
   for (const [what, src, outside, want] of refused) { const got = verdictsOf(src, outside).join(" | "); ok(`fn: refused at check time, a function ${what}`, got === want, got); }
   const acts = verdictsOf('type R = { n: number };\nconst parse = (f: (s: string) => R) => (s: string): R => f(s);\nconst box = () => state(0);\nconst act1 = (f: (s: string) => R, box: State<number>) => action(() => box.set(f("x").n));\nconst act2 = (parse: (s: string) => R, box: State<number>) => action(() => box.set(parse("x").n));', [{ name: "f" }]);
   ok("fn: an action may not use the function, nor a checked cell that reads it ([action-capture])", acts.slice(0, 2).join() === "parse: ok,box: ok" && acts[2]!.startsWith("act1: rejected [action-capture] f depends on state (the value of f, a cell in another language)") && acts[3]!.startsWith("act2: rejected [action-capture] parse depends on state (parse reads f)"), acts);
-  // not refused: a state cell made from the function, read and called inside an action (S11.9)
-  ok("fn: a state cell made from the function, read and called inside an action, is accepted", verdictsOf("const box = (g: () => number) => state(g);\nconst n = () => state(0);\nconst run = (box: State<() => number>, n: State<number>) => action(() => n.set(read(box)()));", [{ name: "g" }]).join() === "box: ok,n: ok,run: ok");
+  // a state cell or an events cell may not keep the function, or anything that may hold it, for an action (S11.9)
+  const kept = verdictsOf("const box = (g: () => number) => state(g);\nconst n = () => state(0);\nconst run = (box: State<() => number>, n: State<number>) => action(() => n.set(read(box)()));", [{ name: "g" }]);
+  ok("fn: a state cell made from the function is refused ([action-capture]); the action that reads it is not", kept.join(" | ") === "box: rejected [action-capture] a state cell holds () => number, which may be or hold a function from another language (box takes g, a function from another language); an action that reads the state cell could call it | n: ok | run: ok", kept);
+  const routes: [string, string, string][] = [
+    ["in a record", "const box = (g: () => number) => state({ f: g });", "box: rejected [action-capture]"],
+    ["a closure over it", "const box = (g: () => number) => state(() => g());", "box: rejected [action-capture]"],
+    ["through a checked cell that returns it", "const h = (g: () => number) => ({ run: g });\nconst box = (h: { run: () => number }) => state([h]);", "h: ok,box: rejected [action-capture]"],
+    ["a checked function's result, the function made in another cell", "const mk = (g: () => number) => (k: number) => () => g() + k;\nconst box = (mk: (k: number) => () => number) => state(mk(1));", "mk: ok,box: rejected [action-capture]"],
+    ["as object", "const box = (g: () => number): StateCell<object> => state(g);", "box: rejected [action-capture]"],
+    ["yielded by an events cell", "function* ev(g: () => number) { yield { f: g }; }", "ev: rejected [action-capture]"],
+    ["its result in state (data)", "const d = (g: () => number) => g();\nconst box = (d: number) => state(d);\nconst box2 = (g: () => number) => state(g());", "d: ok,box: ok,box2: ok"],
+    ["its result yielded (data)", "function* ev(g: () => number) { yield g(); }", "ev: ok"],
+  ];
+  for (const [what, src, want] of routes) { const got = verdictsOf(src, [{ name: "g" }]).map((v) => v.replace(/ \[action-capture\] .*/, " [action-capture]")).join(); ok(`fn: state or events, ${what}: ${want}`, got === want, got); }
+  // a shell cell typed as a function crosses as one from another language; any other annotation is as before (S9.1)
+  const shellOf = (src: string) => checkSources({ cells: src, tsx: false, shell: "export const sh = (s) => s.length;" }).cells.map((c) => `${c.name}: ${c.status}${c.errors.map((e) => ` [${e.rule}] ${e.msg}`).join("")}`).join(" | ");
+  const shells: [string, string, string][] = [
+    ["a function", "const f = (sh: (s: string) => number) => sh(\"a\");", "f: ok"],
+    ["an alias of a function type", "type F = (s: string) => number;\nconst f = (sh: F) => sh(\"a\");", "f: ok"],
+    ["a function that cannot cross", "const f = (sh: <T>(x: T) => T) => 1;", "f: rejected [boundary-type] sh: <T>(x: T) => T cannot cross from another language: it is or holds a function with type parameters or a rest parameter"],
+    ["unknown, as before", "const f = (sh: unknown) => 1;", "f: ok"],
+    ["number, as before", "const f = (sh: number) => sh;", "f: rejected [inject-type] sh: unknown is not assignable to number"],
+    ["a function in a record, as before", "const f = (sh: { run: () => number }) => 1;", "f: rejected [inject-type] sh: unknown is not assignable to { run: () => number }"],
+    ["in a state cell", "const box = (sh: () => number) => state(sh);", "box: rejected [action-capture] a state cell holds () => number, which may be or hold a function from another language (box takes sh, a function from another language); an action that reads the state cell could call it"],
+    ["captured by an action", "const n = () => state(0);\nconst set = (n: State<number>, sh: () => number) => action(() => n.set(sh()));", "n: ok | set: rejected [action-capture] sh depends on state (a shell cell's value), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called"],
+  ];
+  for (const [what, src, want] of shells) { const got = shellOf(src); ok(`fn: a shell cell typed as ${what}: ${want.slice(0, 60)}`, got === want, got); }
   ok("fn: accepted: an optional parameter, an async result, no parameters", verdictsOf("const c = (k: (s: string, n?: number) => number, a: (s: string) => Promise<{ n: number }>, z: () => void) => 1;", ["k", "a", "z"].map((name) => ({ name }))).join() === "c: ok");
 }
 

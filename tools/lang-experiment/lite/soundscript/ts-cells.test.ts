@@ -99,6 +99,27 @@ const kind = (v: unknown) => (typeof v === "function" ? (v.toString().startsWith
 const kinds = keys.filter((k) => kind(ss[k]) !== kind(entry[k]));
 t(kinds.length === 0, `each key holds the same kind of value${kinds.length ? ": " + kinds.map((k) => `${k} ${kind(ss[k])} vs ${kind(entry[k])}`).join(", ") : ""}`);
 
+// the acorn cells as built: acornParse reads the one parser_lib, and parseTree (through the compiled boundary) gives
+// what the bun-linked one gives, on a parse, a syntax error and a value that does not fit Parse
+{
+  const vars = moduleJs(blockContent(html, CHECKER)!).variables;
+  const inputsOf = (n: string) => JSON.stringify(vars.find((v) => v.name === n)?.inputs);
+  const bunTree = (await import("../acorn/index.ts")).parseTree;
+  const built = await checker.value("parseTree");
+  const cases: [string, boolean][] = [["const f = (a: number) => <b>{a}</b>;\n// c\nexport type T = { x: 1n };", true], ["const = ;", false]];
+  const same = cases.every(([s, jsx]) => JSON.stringify(built(s, jsx)) === JSON.stringify(bunTree(s, jsx)));
+  const frozen = Object.isFrozen((built(cases[0][0], true) as any).ast.program);
+  let refused = "";
+  const bad = runtime.module();
+  const vs = moduleJs(blockContent(html, CHECKER)!).variables.find((v) => v.name === "parseTree")!;
+  bad.define("ss_cross", [], () => checker.value("ss_cross"));
+  bad.define("acornParse", [], () => () => ({ ok: true, ast: { program: { type: "Program" }, comments: [], src: "", count: 1 } }));
+  bad.define("parseTree", vs.inputs, realize(vs.definition));
+  try { (await bad.value("parseTree"))("x", false); } catch (e) { refused = (e as Error).message; }
+  t(inputsOf("acornParse") === JSON.stringify(["acorn", "tsPlugin", "ACORN_ROWS"]) && inputsOf("acorn") === JSON.stringify(["parser_lib"]) && same && frozen && refused !== "",
+    `${CHECKER}: acornParse reads ${inputsOf("acornParse")}, acorn reads ${inputsOf("acorn")}; the built parseTree gives the bun one's value on ${cases.length} texts (${same}), frozen (${frozen}); a parse that does not fit Parse throws: ${refused.slice(0, 120)}`);
+}
+
 // the example sources: checked, compiled and decompiled by both, compared as JSON
 const EXAMPLES = join(HERE, "../notebook/examples");
 const json = (v: unknown) => JSON.stringify(v, (_, x) => (x instanceof Map ? [...x] : x instanceof Set ? [...x] : typeof x === "function" ? "fn" : x));

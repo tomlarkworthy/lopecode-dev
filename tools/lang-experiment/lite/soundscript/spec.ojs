@@ -1731,7 +1731,7 @@ md`## 9. Foreign values and the shell
 
 Values from code the checker does not check, for a tool that runs the checker outside a notebook. A notebook module has no shell cells; its boundary to other code is section 11.`
 // %%
-md`**S9.1** A shell cell is an unchecked cell the checker is given beside the checked ones; a notebook module has none (S1.7). To a checked cell its value is \`unknown\`: an input with no annotation, or annotated \`unknown\` or its alias \`Js\`, gets \`unknown\`; \`any\` is \`[no-any]\`, and any other annotation is \`[inject-type]\`.`
+md`**S9.1** A shell cell is an unchecked cell the checker is given beside the checked ones; a notebook module has none (S1.7). To a checked cell its value is \`unknown\`: an input with no annotation, or annotated \`unknown\` or its alias \`Js\`, gets \`unknown\`; \`any\` is \`[no-any]\`, and any other annotation is \`[inject-type]\`, except a function type: the function crosses as a function from another language does (S11.3 to S11.11).`
 // %%
 md`**S9.2** A checked function from \`unknown\` that narrows with \`typeof\`, \`Array.isArray\` and \`in\` and builds a new value is accepted. It turns a value from a shell cell, or from another language (section 11), into a typed one. On a union, \`"k" in v\` removes no member: a value of a member that does not declare \`k\` may still have it, so that member stays, with \`k\` of type \`unknown\`.`
 // %%
@@ -1886,7 +1886,7 @@ md`**S11.7** \`x: State<T>\` takes the view of an Observable JavaScript \`viewof
 // %%
 md`**S11.8** The view holds the value. A write through the \`State\` commits with its action: it sets the view's \`value\` and dispatches an \`input\` event. \`read\` inside an action gives what the control holds at that moment, which the control may have rounded or clamped, with the call's own earlier writes. A change the user makes on the control is not an action call.`
 // %%
-md`**S11.9** The value of a cell in another language is state: an action may not use it (\`[action-capture]\`, section 6). Take the view as \`State\` and \`read\` it inside the action; when the cell has no view, pass the value to the action as an argument. A function from another language is such a value: an action may not capture it, nor capture a cell that reads it. A state cell whose value is the function is not refused, and an action that reads that state cell can call the function.`
+md`**S11.9** The value of a cell in another language is state: an action may not use it (\`[action-capture]\`, section 6). Take the view as \`State\` and \`read\` it inside the action; when the cell has no view, pass the value to the action as an argument. A function from another language is such a value: an action may not capture it, nor capture a cell that reads it. A cell that takes the function, or a cell that reads it, may not hold a value whose type may be or hold a function in a state cell, nor yield one from an events cell (\`[action-capture]\`).`
 // %%
 md`**S11.10** Adding, deleting or renaming a cell in another language checks the module's SoundScript cells again.`
 // %%
@@ -1931,7 +1931,9 @@ spec_rejects_11 = [
   { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, level: number) => action(() => n.set(level));", outside: [{ name: "level", view: true }] },
   { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst copy = (n: State<number>, rows: number) => action(() => n.set(rows));", outside: [{ name: "rows" }] },
   { statement: "S11.9", rule: "action-capture", source: "const n = () => state(0);\nconst set = (n: State<number>, g: () => number) => action(() => n.set(g()));", outside: [{ name: "g" }] },
-  { statement: "S11.9", rule: "action-capture", source: "const p = (g: () => number) => () => g();\nconst n = () => state(0);\nconst set = (n: State<number>, p: () => number) => action(() => n.set(p()));", outside: [{ name: "g" }] }
+  { statement: "S11.9", rule: "action-capture", source: "const p = (g: () => number) => () => g();\nconst n = () => state(0);\nconst set = (n: State<number>, p: () => number) => action(() => n.set(p()));", outside: [{ name: "g" }] },
+  { statement: "S11.9", rule: "action-capture", source: "const box = (g: () => number) => state({ f: g });", outside: [{ name: "g" }] },
+  { statement: "S11.9", rule: "action-capture", source: "const h = (g: () => number) => () => g();\nfunction* ev(h: () => number) { yield h; }", outside: [{ name: "g" }] }
 ]
 // %%
 spec_rejects_11_view = spec_rejectsTable(spec_rejects_11)
@@ -2181,10 +2183,13 @@ test_spec_S11_8_object = {
 }
 // %%
 test_spec_S11_9 = {
-  // a state cell made from the function is not refused, and an action reads it and calls the function
-  const ok = spec_okCellsWith("const box = (g: () => number) => state(g);\nconst n = () => state(0);\nconst run = (box: State<() => number>, n: State<number>) => action(() => n.set(read(box)()));", [{ name: "g" }]);
+  // a state cell made from the function is refused; one made from its result is read inside an action
+  const r = soundscript.checkSources({ cells: "const box = (g: () => number) => state(g);\nconst n = () => state(0);\nconst run = (box: State<() => number>, n: State<number>) => action(() => n.set(read(box)()));", tsx: true, outside: [{ name: "g" }] });
+  const got = r.cells.map((c) => `${c.name}:${c.status}${c.errors.map((e) => ` [${e.rule}]`).join("")}`).join(",");
+  if (got !== "box:rejected [action-capture],n:ok,run:ok") throw new Error(got);
+  const ok = spec_okCellsWith("const box = (g: () => number) => state(g());\nconst n = () => state(0);\nconst run = (box: State<number>, n: State<number>) => action(() => n.set(read(box)));", [{ name: "g" }]);
   if (ok !== "box:ok,n:ok,run:ok") throw new Error(ok);
-  return `${spec_rejectsFor("S11.9")}; a state cell made from a function of another language, read and called inside an action, is accepted`;
+  return `${spec_rejectsFor("S11.9")}; a state cell made from a function of another language is [action-capture]; one made from its result, read inside an action, is accepted`;
 }
 // %%
 test_spec_S11_10 = {

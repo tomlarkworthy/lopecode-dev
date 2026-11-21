@@ -119,3 +119,25 @@ Open after this commit, both taken up next:
 For Tom (reviewer's findings outside this change): `viewHandle` caches the first `State` shape per view, so a
 later different `T` is ignored (S11.7, reproduced); S11.7 does not state the check made on reads; wrappers are
 keyed by cell and parameter name in one module-wide map, so two modules with the same names replace each other's.
+
+## 2026-11-21 night: the acorn cells (shipped), and the two gaps of function crossing closed
+- Gap 1 closed: a cell that takes a function from another language, or a cell that reads one, may not hold a
+  value whose type may be or hold a function in a state cell, nor yield one from an events cell
+  (`[action-capture]`). No previously accepted corpus cell is rejected. Over-approximates: whole cells are
+  marked. Open: `StateCell<{}>` holding the function is accepted (calling it is `call of never`).
+- Gap 2 closed: a shell cell's function crosses to a checked cell of the same module the same way (S9.1).
+  The port runner `run.ts` applies no wrapper.
+- `lite/acorn/`: one unchecked cell `acornParse` (41 lines) and a generated field table; checked `parseTree`,
+  `kidsOf`, `isFnNode`, `preorder`, `parents`, lines and leading comments (12 cells, largest 16 lines); 155
+  generated node types plus `Other`; `gen.ts --check` is the regeneration test. In the checker module for now.
+  `lite/acorn.test.ts`: 253865 corpus nodes and 260675 held-out nodes, 0 differ from `parse.ts`; errors equal on
+  2237 failing truncations; controls differ.
+- `lite/acorn/syntax.ss.ts`: module shape and the syntax bans over the typed tree, 18 cells, largest 13 lines.
+  `lite/syntax.test.ts`: 833 inputs and 2696 cells same as `core.ts`, 13 controls each change the result.
+- NOT switched over: with `core.ts` calling `syntaxCheck`, verdicts were identical (0 of 3239 records) but one
+  completion went 2.3 -> 10.7 ms, one keystroke's lint 3.1 -> 5.4 ms, the corpus 575 -> 1020 ms. `parseTree` is
+  1.4-1.9 us per node against 0.44-0.87 for `parse.ts`, and the text is parsed twice while the rest of the
+  checker still uses `parse.ts`. Why completion slows more than lint was not measured. The switched `core.ts`
+  is kept in `.scratch/acorn-ship/core.p3-switched.ts`.
+- verify 643 pass 0 fail (AC), completion median 2.4 ms. Notebook 3,687,199 -> 3,908,868 bytes.
+- The frozen-checker differential's `collect.ts` reads `lite/*.ss.ts` only, not `lite/acorn/*.ss.ts`.

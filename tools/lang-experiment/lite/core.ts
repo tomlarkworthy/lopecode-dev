@@ -134,6 +134,12 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   }
 
   const outside = new Map((src.outside ?? []).map((o) => [o.name, o] as const));
+  // a shell cell's value is unknown to a checked cell, unless the parameter is typed as a function: that crosses as a
+  // function from another language does
+  const shellFn = (ann: Node | undefined, wrapper: string | null) => !!ann && !wrapper && reg.peek(() => {
+    const t = reg.convert(ann, { tps: new Set() }, P);
+    return (t.k === "named" && reg.isAlias(t.n) ? reg.expand(t) : t).k === "fn";
+  });
   const boundaries = new Map<string, Map<string, Boundary>>();
   const viewTypes = new Map<string, { ty: Ty; cell: string }>();
   const out = new Map<string, LiteCell>();
@@ -214,6 +220,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   // State-dependent cells, with the reason: a state cell (its value is state), a generator (its values),
   // a cell taking a capability other than invalidation or log, and any cell taking one of these by value.
   const stateful = new Map<string, string>();
+  // Cells that take a function from another language, or a cell that does, with how. Such a cell may not keep a value
+  // that may be or hold a function in a state cell or yield one, which an action could then call (S11.9).
+  const fnFed = new Map<string, string>();
   for (const c of order) {
     if (value.has(c.name)) continue;
     const r = out.get(c.name)!;
@@ -257,14 +266,13 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
         vt = fv.t;
         const fit = iterIn(vt, reg);
         if (fit) diag(p, "iterator-cell", `foreign ${name}: ${show(vt)} may hold an iterator (${fit}); every cell that takes it would use up the same one`);
-      } else if (shellNames.has(name)) vt = UNKNOWN;
-      else if (name in CAPABILITIES) vt = named(CAPABILITIES[name]);
-      else if (outside.has(name)) {
+      } else if (shellNames.has(name) && !shellFn(ann, wrapper)) vt = UNKNOWN;
+      else if (name in CAPABILITIES && !shellNames.has(name)) vt = named(CAPABILITIES[name]);
+      else if (outside.has(name) || shellNames.has(name)) {
         // a cell in another language: the annotation is the type, checked when a value crosses
         if (!ann) { diag(p, "boundary-unannotated", `${name} is a cell in another language; annotate the parameter with the type it must have, e.g. ${name}: number`); injected.push(ERR); continue; }
         if (wrapper === "Events") { diag(p, "boundary-type", `${name} is a cell in another language; it cannot be taken as Events`); injected.push(ERR); continue; }
-        const o = outside.get(name)!;
-        if (wrapper === "State" && !o.view) { diag(p, "boundary-state", `${name} has no viewof; only an Observable JavaScript view, or a SoundScript state cell imported with its viewof, can be taken as State`); injected.push(ERR); continue; }
+        if (wrapper === "State" && !outside.get(name)?.view) { diag(p, "boundary-state", `${name} has no viewof; only an Observable JavaScript view, or a SoundScript state cell imported with its viewof, can be taken as State`); injected.push(ERR); continue; }
         const want = reg.convert(ann, { tps: new Set() }, P);
         const inner = wrapper === "State" && isNamed(want, "State") ? want.args[0] : want;
         if (hasErr(inner)) { injected.push(ERR); continue; } // a type lite does not know is reported where it is written
@@ -310,6 +318,10 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       // log writes nothing the program reads back; invalidation is the cell's own lifetime
       else if (name in CAPABILITIES && name !== "invalidation" && name !== "log") tainted.set(name, `capability ${name}`);
     }
+    const fedBy = (c.fn.params as Node[]).flatMap((p) => p.type !== "Identifier" ? []
+      : boundaries.get(c.name)?.get(p.name)?.shape.k === "fn" ? [`takes ${p.name}, a function from another language`]
+      : fnFed.has(p.name) ? [`takes ${p.name}, which ${fnFed.get(p.name)}`] : [])[0];
+    if (fedBy) fnFed.set(c.name, fedBy);
     const firstTaint = [...tainted.entries()][0];
     if (firstTaint) stateful.set(c.name, firstTaint[1].startsWith("capability ") ? `takes the ${firstTaint[1]}` : `reads ${firstTaint[0]}`);
     if (c.fn.generator) stateful.set(c.name, `is a generator`);
@@ -332,11 +344,14 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     let ret = fnT.k === "fn" ? fnT.ret : ERR;
     if (c.fn.async && isNamed(ret, "Promise")) ret = ret.args[0];
     if (c.fn.generator && isNamed(ret, "Generator")) { ret = ret.args[0]; if (!c.fn.async) eventsInner.set(c.name, ret); }
+    const fnKept = (what: string, t: Ty, then: string) => { if (fedBy && ch.mayHide(t)) r.errors.push({ rule: "action-capture", line: P.line(c.fn.start), msg: `${what} ${show(t)}, which may be or hold a function from another language (${c.name} ${fedBy}); ${then}` }); };
+    if (c.fn.generator && !c.fn.async) fnKept("an events cell yields", ret, "a listener's action would receive it");
     if (isNamed(ret, "StateCell")) {
       // Observable's Generators.input, which reads a state cell's value, skips an undefined value
       if (admitsUndefined(ret.args[0])) r.errors.push({ rule: "state-undefined", line: P.line(c.fn.start), msg: `a state cell's value may not be undefined (its type is ${show(ret.args[0])}): Observable skips an undefined value, so the cell would never have one. Use null` });
       const nested = holds(ret.args[0], ["State", "StateCell"]);
       if (nested) r.errors.push({ rule: "state-in-state", line: P.line(c.fn.start), msg: `a state cell holds ${show(ret.args[0])}, which contains ${nested}; a state cell's content may not contain a State or StateCell` });
+      fnKept("a state cell holds", ret.args[0], "an action that reads the state cell could call it");
       refInner.set(c.name, ret.args[0]); ret = ret.args[0];
       stateful.set(c.name, "is a state cell");
     }
