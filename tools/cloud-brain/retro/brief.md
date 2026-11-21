@@ -111,3 +111,9 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
   tokens. Do not delete stored data (D1 rows, R2 objects, the tracker's record). Everything else is yours to change.
 - Do not edit `cloud-brain-dev/philosophy.md`: it is the owner's words.
 - The owner reads the report. Write what you did and what you saw, with evidence; do not argue or reassure.
+- Give every long command a time limit, and do not wait on one with none: `timeout 900 bun test.ts …`,
+  `timeout 900 bun test tests/`. On 2026-11-21 the run waited about 10 h on a `bun` that grew to 3.5 GB until the
+  OOM killer ended it, and wrote no cost and no close of its own. A test run that hits the limit is a finding:
+  write its name and the limit in the report and go on. `run.sh` kills the whole agent 5 minutes after its 4 h.
+- Commit your edits as you make them. What is left uncommitted at the end is not pushed: `run.sh` names it in
+  `fly logs` and on the run's issue, and the next boot resets the checkout.
