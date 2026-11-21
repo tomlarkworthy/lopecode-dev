@@ -462,3 +462,140 @@ lines 888, median 8, largest owMethodValue 20, owEscapes 21, owStmt 22, owIterIn
 3 functions (516 of 542 lines), capture.ts's 5 functions (135 of 158 lines), core.ts's two `fnKept` calls and the
 value-type lines before them (`core.ts:343-348`). Plus 7 cells in `ix-facts.ss.ts` for stage 1.
 `bun test infer/infer.test.ts`: 4 pass, 0 fail, 50.4 s (16:41).
+
+## Stage 4: the module check, md cells (2026-11-22; runs on the clock 2026-11-21 17:29-17:49)
+
+`md-*.ss.ts` (11 files, 790 lines, 62 value cells; median 9 lines; largest mdInjectParam 26, mdCell 25,
+mdCheckSources 25, mdInjectBoundary 19, mdValueRules 19; `soundscript/.scratch/module-port/sizes.ts`) port
+`core.ts` `checkSources` (lines 37-359 of 397, core.ts hash 3ic3bvivb77u, after the switch to `syntaxCheck`) and
+`distinctNames` (365-381). Entry: `mdCheckSources(R, sources)`; `runMd` in `index.ts` turns its result into a
+`LiteResult` with the non-enumerable `facts` map. Not ported: `opts.onCell` (line 192, completion's hook on a
+`Checker`; `runMd` throws "md: onCell is not ported").
+
+TypeScript glue (`index.ts` 201-270, 70 lines, plus `MD_FILES`/`MD_CELLS`/`MD_GIVEN`/`linkMd`): the `Registry`
+and its parse.ts parse (`convert`, `sig`, `load` take parse.ts nodes); the load reports with `n.loc` lines; one
+`makeReg` per cell, restoring the previous one's handlers; the compile hook's reports put back into that
+`IxReg`'s buffer (`requeue`); `in` on `CAPABILITIES` as a `Map` and a set of the Object.prototype names; the
+message of a thrown value (`thrown`, see below); `LiteResult` assembly.
+
+`ow-entry.ss.ts`: `owCheck` split into `owIndex` + `owCheckIn(R, F, T)`, so `mdAfterInfer` builds one `owIndex`
+per cell and hands it to ownership and to `owOpaqueCaptures`. The per-cell `owCaptureCheck` (diff.ts's path)
+still builds its own; not changed.
+
+### Whole-module differential (`bun lite/infer/diff.ts --module-only --control-module`, 17:39)
+
+```
+whole module: 913 sources: SAME 911 DIFFERENT 0 NOT COVERED 2 BOTH THREW 0
+  not covered 2: parameter valueOf, a name of Object.prototype
+```
+
+Sources: port 50, file 21, ss 50, ssx 51, sswith 10, reject 324, inline 322, module 2 (`module:lite/infer`, the
+self-check's 493 cells with acorn-shell; `module:tutorial`, 47 cells from `switch-cost/tutorial.json`), lax 71
+(strictIndex off copies of file:/port:), probe 12 (`probes/module.ts`). Compared per source: head, module errors,
+cells (status, line, errors, unsupported, blockedBy, value, key order), facts, and spans (each cell's Checker
+diag/unsup lists as positions, so a report after core.ts copies the lists still counts). Rules met on SAME
+sources include module-level, foreign-effect 7, foreign-unmarked 5, boundary-unannotated 5, boundary-state 5,
+compile-options 5, compile-boundary 6, duplicate-cell 6, cycle 6, iterator-cell 4, state-undefined 3,
+state-in-state 2, reserved-name 3, no-ts-ignore 3; the probes were written for the rules with fewer than 5 hits.
+Rule ids written by core.ts read from its AST (`.scratch/module-port/rules.ts`): 24.
+
+Controls (one cell replaced per md file, `module:lite/infer` left out, 912 sources):
+
+```
+md-shape   mdTsIgnore never matches            DIFFERENT   7
+md-graph   mdVisit reports no cycle            DIFFERENT   7
+md-inject  mdInjectAnn without inject-type     DIFFERENT  24
+md-taint   mdTaintOf without capabilities      DIFFERENT  19
+md-compile mdIslandSide without compile-bound. DIFFERENT   5
+md-value   mdStateRules without state-undef.   DIFFERENT  11
+md-run     mdDedupe keeps every copy           DIFFERENT  47
+md-cell    mdKeep, every value usable          DIFFERENT  29
+md-facts   mdReturnsRef always false           DIFFERENT 242
+md-entry   mdShownNames counts from 3          DIFFERENT   3
+```
+
+On the 12 probes alone every control differs (1-4 sources); `infer.test.ts` now asserts that (4.6 s). The
+per-cell differential after the changes (17:4x): 823 sources, 3451 cells, SAME 3437 DIFFERENT 0 NOT COVERED 0,
+REAL CRASH 14 (port crashed the same); facts, ownership, captures, fed rule all 3437 SAME.
+`bun test infer/infer.test.ts`: 5 pass 0 fail, 61.3 s (after the fifth test was added).
+
+### Checker messages met, and the rewrite
+
+- `mut-capture: Mut M captured by a function that escapes` (mdCheckSources, `M.boundaries` read in a `map`
+  callback): read into a const first.
+- `type: Map<unknown, unknown> is not assignable to Map<string, MdBoundary>` (mdInjectBoundary, `?? new Map()`):
+  annotated the const.
+- `mut-escape: Mut M argument to a parameter not typed Mut<…>` and the like, and `unknown type IxK` etc.: the
+  first self-check run left out the ix/ow files; with them in the module these went away.
+- `no-member: property message on Js/unknown; narrow it first` (mdRunChecks, `e instanceof Error ? e.message`):
+  `instanceof` is unsupported (`infer.ts:895`), so a cell cannot read a caught value at all. Moved to glue as
+  `X.R.thrown(e)`. Probe: `.scratch/module-port/probe3.ts`; `String(e)` is accepted, but core.ts uses
+  `(e as Error).message`, which differs for a non-Error throw.
+- Captured Mut in `map`/`forEach` callbacks in mdInject: rewritten as `for` loops.
+
+After that the self-check (`.scratch/module-port/big.ts all`): 493 cells, 0 not ok, module errors [].
+
+### The slow large module, and the fix
+
+First timing of `module:lite/infer`: real 9856 ms, port 73970 ms. CPU profile (`bun --cpu-prof`, 17:29):
+
+```
+  72819 ms hidden      69417 ms anyHides     27482 ms peek
+```
+
+`Checker.mayHide` memoises per Checker (`infer.ts:532`, `mayHideMemo = new WeakMap`); `ixMayHide` did not, and
+the self-check module's types (the AstNode union) are large. Added `mayHideMemo: Mut<Map<Ty, boolean>>` to
+`IxRegCore`/`IxReg`, made per `makeReg` (one per cell, as one per Checker) and shared with `quiet`/`lax`.
+
+```
+module:lite/infer  before  real  9440 ms  port 73248 ms
+                   after   real  9179 ms  port 10230 ms     (17:38, battery, load 5.39)
+```
+
+Not the per-cell Map copies in mdKeep, which were the first suspect; they do not show in the profile.
+
+### End to end (`bun lite/infer/module-time.ts --rounds 5 --reps 20`, 17:45-17:49, battery power,
+load 7.12 -> 7.94; other agents' processes running)
+
+Corpus: the 912 module sources other than `module:lite/infer`, one pass per round. Tutorial: 20 checks per round.
+Both sides now parse twice (parse.ts and the typed tree for `syntaxCheck`); the port's parse.ts parse is glue.
+
+```
+                                     corpus pass (ms)       tutorial check (ms)
+checkSources                         8715.0-10152.5         19.1-37.2
+port                                 10100.5-11620.1        27.6-37.2
+ratio                                1.1-1.2                1.0-1.4
+parse.ts parse alone                 743.7-1154.9           3.0-4.1
+port by pass (timed run):
+  parse+crossing (typed tree)        2211.7-2595.1          6.9-8.2
+  registry glue (parse.ts + load)    727.0-1006.7           2.6-3.9
+  syntax                             198.6-246.2            0.9-1.4
+  inference                          5130.5-5691.5          6.2-7.6
+  ownership                          182.2-229.0            0.6-1.0
+  captures                           185.4-204.1            0.8-1.0
+  module rules and the rest          1704.9-1884.2          5.5-6.4
+  total                              10340.4-11697.5        24.4-27.1
+```
+
+The by-pass rows come from wrappers (`linkMd(over, given)`), so the timed total is above the plain port run.
+checkSources was not broken down by pass.
+
+### core.ts behaviour reproduced, not fixed
+
+- Registry reports made after core.ts copies `ch.diags` into the record reach the Checker only (e.g. "unknown type
+  Event"); the port drains them into the span lists at the end of the cell. Six spans DIFFERENT until it did.
+- `reg.onErr`/`onUnsup` set for foreign.d.ts (`core.ts:51-52`) are still set at the user load (`core.ts:89`), so a
+  user-load report would carry "foreign.d.ts: ". Reproduced in `mdLoadErr`; no source found that reaches it
+  (`.scratch/module-port/probe5.ts`: eight type declarations, none reports at load). Unverified in a run.
+- Value rules run after dedupe and are not deduplicated; duplicate-cell is unshifted last.
+- NOT COVERED: `name in CAPABILITIES` is true for Object.prototype names; `repro/object-prototype-param.ts`.
+
+### What switching `checkSources` to the md cells would change in shipped files
+
+- `lite/core.ts`: `checkSources` body replaced by `runMd(linkMd(), src, opts)` or its shipped equivalent; keep
+  `onCell` on the TypeScript path or port it (completion needs a `Checker`).
+- `lite/soundscript/ts-cells.ts` and the build (`build.ts`/`verify.ts`): register the ix, ow and md files and the
+  `MD_GIVEN` sections; owned by another agent, not touched.
+- `CAPABILITIES` lookup: decide whether to fix the `in` bug first (it changes verdicts for `valueOf`,
+  `constructor`, `toString` parameters) or to port it.
+- `infer.ts`'s `instanceof` support, or keep `thrown` as glue.

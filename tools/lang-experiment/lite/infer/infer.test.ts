@@ -7,7 +7,7 @@ import { Glob } from "bun";
 import { checkSources } from "../core.ts";
 import { parse, type Node } from "../parse.ts";
 import { splitCells } from "../toolchain/ss-toolchain.ts";
-import { IX_FILES, OW_FILES } from "./index.ts";
+import { IX_FILES, OW_FILES, MD_FILES } from "./index.ts";
 
 const LITE = join(import.meta.dir, "..");
 function headerEnd(src: string): number {
@@ -16,13 +16,14 @@ function headerEnd(src: string): number {
   return at;
 }
 const texts = (f: string) => { const s = readFileSync(join(LITE, f), "utf8"); return splitCells(s.slice(headerEnd(s)).trimStart(), false); };
-const WITH = ["types.ss.ts", "subtype.ss.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts"];
+// the sections the ix, ow and md cells take cells of
+const WITH = ["types.ss.ts", "subtype.ss.ts", "walks.ss.ts", "island.ss.ts", "shape.ss.ts", "messages.ss.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "acorn/syntax.ss.ts"];
 
-test("IX_FILES and OW_FILES are every .ss.ts file of lite/infer", () => {
-  expect([...new Glob("*.ss.ts").scanSync(import.meta.dir)].sort()).toEqual([...IX_FILES, ...OW_FILES].sort());
+test("IX_FILES, OW_FILES and MD_FILES are every .ss.ts file of lite/infer", () => {
+  expect([...new Glob("*.ss.ts").scanSync(import.meta.dir)].sort()).toEqual([...IX_FILES, ...OW_FILES, ...MD_FILES].sort());
 });
-test("every ix and ow cell is accepted by the checker", () => {
-  const ix = [...IX_FILES, ...OW_FILES].map((f) => `infer/${f}`);
+test("every ix, ow and md cell is accepted by the checker", () => {
+  const ix = [...IX_FILES, ...OW_FILES, ...MD_FILES].map((f) => `infer/${f}`);
   const r = checkSources({ cells: [...WITH, ...ix].flatMap(texts).join("\n\n"), tsx: true, shell: readFileSync(join(LITE, "acorn/acorn-shell.ts"), "utf8") });
   // a type declaration is no cell of the result; a problem with one is a module error
   const own = new Set(ix.flatMap(texts).map((t) => parse(t).program.body[0]).filter((st) => (st.type === "ExportNamedDeclaration" ? st.declaration : st).type === "VariableDeclaration").map(declared));
@@ -30,7 +31,7 @@ test("every ix and ow cell is accepted by the checker", () => {
   expect(r.module).toEqual([]);
   expect(mine.length).toBe(own.size);
   expect(mine.filter((c: { status: string }) => c.status !== "ok").map((c: { name: string; status: string; errors: { msg: string }[] }) => `${c.name}: ${c.status} ${c.errors.map((e) => e.msg).join("; ")}`)).toEqual([]);
-}, 120000);
+}, 300000);
 
 function declared(st: Node): string {
   const d = st.type === "ExportNamedDeclaration" ? st.declaration : st;
@@ -70,3 +71,12 @@ test("the port and the Checker agree on the corpus and the probes; the control d
   expect(counts(out, "control (").different).toBeGreaterThan(0);
   expect(out).toContain("sources whose result the port's run changed: 0");
 }, 120000);
+
+test("checkSources and the md cells agree on the module probes; each md control differs", () => {
+  const out = diff("--module-only", "--only", "probe:", "--control-module");
+  const main = counts(out, "whole module: ");
+  expect(main).toEqual({ same: 12, different: 0, notCovered: 0 });
+  const controls = out.split("\n").filter((l) => l.startsWith("control module ("));
+  expect(controls.length).toBe(10);
+  for (const l of controls) expect(counts(l, "control module (").different).toBeGreaterThan(0);
+}, 600000);

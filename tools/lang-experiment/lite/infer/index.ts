@@ -29,6 +29,24 @@ import * as owAction from "./ow-action.ss.ts";
 import * as owTaint from "./ow-taint.ss.ts";
 import * as owOpaque from "./ow-opaque.ss.ts";
 import * as owEntry from "./ow-entry.ss.ts";
+import "./md-types.ss.ts";
+import * as mdShape from "./md-shape.ss.ts";
+import * as mdGraph from "./md-graph.ss.ts";
+import * as mdInject from "./md-inject.ss.ts";
+import * as mdTaint from "./md-taint.ss.ts";
+import * as mdCompile from "./md-compile.ss.ts";
+import * as mdValue from "./md-value.ss.ts";
+import * as mdRun from "./md-run.ss.ts";
+import * as mdCell from "./md-cell.ss.ts";
+import * as mdFacts from "./md-facts.ss.ts";
+import * as mdEntry from "./md-entry.ss.ts";
+import { linkShape } from "../shape-ss.ts";
+import { Registry as RegistryClass } from "../registry.ts";
+import { parse } from "../parse.ts";
+import { CAPABILITIES } from "../intrinsics.ts";
+import type { Sources, LiteResult, LiteCell } from "../core.ts";
+import type { CellInfo } from "../facts.ts";
+import type { MdReg, MdResult, MdReport, MdCompiled } from "./md-types.ss.ts";
 import * as runtimePrelude from "../../prelude.runtime.ts";
 import { link } from "../link.ts";
 import * as T from "../types.ts";
@@ -44,6 +62,9 @@ export const IX_FILES = ["types", "core", "hides", "expr", "ops", "cond", "fn", 
 // the ownership port (lite/own.ts), linked with the ix cells it reads
 export const OW_FILES = ["types", "tree", "capture", "pos", "place", "flow", "stmt", "loop", "action", "taint", "opaque", "entry"].map((x) => `ow-${x}.ss.ts`);
 export const OW_CELLS = { ...owTree, ...owCapture, ...owPos, ...owPlace, ...owFlow, ...owStmt, ...owLoop, ...owAction, ...owTaint, ...owOpaque, ...owEntry };
+// the module check port (lite/core.ts checkSources)
+export const MD_FILES = ["types", "shape", "graph", "inject", "taint", "compile", "value", "run", "cell", "facts", "entry"].map((x) => `md-${x}.ss.ts`);
+export const MD_CELLS = { ...mdShape, ...mdGraph, ...mdInject, ...mdTaint, ...mdCompile, ...mdValue, ...mdRun, ...mdCell, ...mdFacts, ...mdEntry };
 export const IX_CELLS = { ...core, ...hides, ...expr, ...ops, ...cond, ...fn, ...stmt, ...flow, ...lit, ...call, ...apply, ...prelude, ...jsx, ...entry, ...facts, ...OW_CELLS };
 const A = linkAcorn();
 const GIVEN = {
@@ -54,6 +75,17 @@ const GIVEN = {
 };
 // over: cells to put in place of the port's (diff.ts's control)
 export const linkIx = (over: Record<string, (...inputs: never[]) => unknown> = {}) => link({ ...IX_CELLS, ...over } as typeof IX_CELLS, runtimePrelude, GIVEN);
+const SHAPE = linkShape();
+// the cells of other sections the md cells take
+const MD_GIVEN = {
+  ...GIVEN, parseTree: A.parseTree, nameAt: A.nameAt, standIn: A.standIn, moduleShape: A.moduleShape, syntaxBans: A.syntaxBans, lineAt: A.lineAt,
+  hasErrWith: T.hasErrWith, uncloneableWith: T.uncloneableWith, admitsUndefinedWith: T.admitsUndefinedWith, holdsWith: T.holdsWith, islandWith: T.islandWith,
+  reservedName: T.reservedName, RESERVED_MSG: T.RESERVED_MSG, captureMessage: T.captureMessage, boundaryShapeAt: SHAPE.boundaryShapeAt,
+};
+// over: cells in place of the port's; given: values in place of other sections' cells (the timing's wrappers)
+export const linkMd = (over: Record<string, (...inputs: never[]) => unknown> = {}, given: Record<string, unknown> = {}) =>
+  link({ ...IX_CELLS, ...MD_CELLS, ...over } as typeof IX_CELLS & typeof MD_CELLS, runtimePrelude, { ...MD_GIVEN, ...given });
+export { MD_GIVEN };
 
 const keyOf = (n: { start: number; end: number; type: string }) => `${n.start}:${n.end}:${n.type}`;
 // every parse.ts node of P, by span and type (type positions included)
@@ -83,7 +115,7 @@ function findIn(n: AstNode, key: string): AstNode | null {
   for (const k of A.childrenOf(n)) { const x = findIn(k.node, key); if (x) return x; }
   return null;
 }
-export function makeReg(reg: Registry, P: Parsed, hook: CompileHook | null = null): IxReg & { restore: () => void } {
+export function makeReg(reg: Registry, P: Parsed, hook: CompileHook | null = null): IxReg & { restore: () => void; requeue: (ds: IxDiag[]) => void } {
   let idx = pIndex.get(P);
   if (!idx) pIndex.set(P, (idx = nodeIndex(P)));
   const index = idx;
@@ -93,15 +125,19 @@ export function makeReg(reg: Registry, P: Parsed, hook: CompileHook | null = nul
     return x;
   };
   const buf: IxDiag[] = [];
+  const requeue = (ds: IxDiag[]) => void buf.push(...ds);
   const was = [reg.onErr, reg.onUnsup] as const;
   reg.onErr = (n, rule, msg) => void buf.push({ start: n.start, end: n.end, rule, msg });
   reg.onUnsup = (n, what) => void buf.push({ start: n.start, end: n.end, rule: "unsupported", msg: what });
   const core: IxRegCore = {
     isAlias: (n) => reg.isAlias(n), expand: (t) => reg.expand(t), member: (t, k) => reg.member(t, k), sub: (a, b) => reg.sub(a, b),
     callSigs: (t) => reg.callSigs(t), iterElem: (t) => reg.iterElem(t), unify: (p, a, m, tvs) => reg.unify(p, a, m, tvs), isTypedArray: (t) => reg.isTypedArray(t),
+    mayHideMemo: new Map(),
   };
-  const wrap = (around: <X>(f: () => X) => X): IxRegCore =>
-    Object.fromEntries(Object.entries(core).map(([k, f]) => [k, (...a: unknown[]) => around(() => (f as (...a: unknown[]) => unknown)(...a))])) as IxRegCore;
+  const wrap = (around: <X>(f: () => X) => X): IxRegCore => ({
+    ...(Object.fromEntries(Object.entries(core).flatMap(([k, f]) => typeof f === "function" ? [[k, (...a: unknown[]) => around(() => (f as (...a: unknown[]) => unknown)(...a))]] : [])) as IxRegCore),
+    mayHideMemo: core.mayHideMemo,
+  });
   const lax = <X>(f: () => X): X => { const s = reg.strictIndex; reg.strictIndex = false; try { return f(); } finally { reg.strictIndex = s; } };
   const ctx = (tps: string[], look: Map<string, Ty> | null) => ({ tps: new Set(tps), typeofLookup: (name: string) => look?.get(name) });
   const tq = new Map<number, boolean>();
@@ -134,6 +170,7 @@ export function makeReg(reg: Registry, P: Parsed, hook: CompileHook | null = nul
       return { k: "options" as const, at };
     }),
     restore: () => { [reg.onErr, reg.onUnsup] = was; },
+    requeue,
   };
 }
 // the globals the Checker constructor binds
@@ -157,6 +194,77 @@ export function runIx(L: IxLinked, reg: Registry, P: Parsed, input: Omit<IxInput
 // the registry's methods as the ownership port calls them, outside any check (own.ts runs after fnExpr)
 export function regCore(reg: Registry): IxRegCore {
   return { isAlias: (n) => reg.isAlias(n), expand: (t) => reg.expand(t), member: (t, k) => reg.member(t, k), sub: (a, b) => reg.sub(a, b),
-    callSigs: (t) => reg.callSigs(t), iterElem: (t) => reg.iterElem(t), unify: (p, a, m, tvs) => reg.unify(p, a, m, tvs), isTypedArray: (t) => reg.isTypedArray(t) };
+    callSigs: (t) => reg.callSigs(t), iterElem: (t) => reg.iterElem(t), unify: (p, a, m, tvs) => reg.unify(p, a, m, tvs), isTypedArray: (t) => reg.isTypedArray(t), mayHideMemo: new Map() };
 }
 export { kids };
+
+// ---- the module check (md cells): the Registry as the record they are handed, and checkSources's result made of theirs ----
+// Glue: the Registry and its parse.ts parse (convert, sig and load take parse.ts nodes), the loads' reports with their
+// lines, one IxReg per cell, the compile hook's reports put back in that IxReg's buffer, `in` on CAPABILITIES.
+export type MdRegGlue = MdReg & { finish: () => void; reg: Registry };
+export function mdRegistry(strictIndex = true): MdRegGlue {
+  const reg = new RegistryClass();
+  reg.strictIndex = strictIndex;
+  let P: Parsed | null = null, cur: ReturnType<typeof makeReg> | null = null;
+  const got: MdReport[] = [];
+  reg.onUnsup = (n, what) => void got.push({ rule: "unsupported", line: n.loc?.start.line ?? 0, msg: what });
+  reg.onErr = (n, rule, msg) => void got.push({ rule, line: n.loc?.start.line ?? 0, msg });
+  const parsed = (): Parsed => { if (!P) throw new Error("md: the user's declarations are not loaded"); return P; };
+  const toP = (n: AstNode): Node => {
+    const p = parsed();
+    let idx = pIndex.get(p);
+    if (!idx) pIndex.set(p, (idx = nodeIndex(p)));
+    const x = idx.get(keyOf(n));
+    if (!x) throw new Error(`md: no parse.ts node at ${keyOf(n)}`);
+    return x;
+  };
+  return {
+    reg, builtin: reg.builtinTypeNames(), ops: reg.ops, globals: globalsOf(reg), allowed: ALLOWED_GLOBALS,
+    capabilities: new Map(Object.entries(CAPABILITIES)),
+    inherited: new Set(Object.getOwnPropertyNames(Object.prototype).filter((n) => !Object.hasOwn(CAPABILITIES, n))),
+    thrown: (e) => String((e as Error).message),
+    loadForeign: (text) => {
+      const FP = parse(text);
+      got.length = 0;
+      const rest = reg.load(FP, "foreign");
+      const values = [...reg.values].filter(([, v]) => v.origin === "foreign").map(([name, v]) => ({ name, marker: v.marker || null, line: FP.line(v.node.start), t: v.t }));
+      return { reports: got.splice(0), rest: rest.map((st) => ({ kind: st.type as string, line: FP.line(st.start) })), values };
+    },
+    loadUser: (text, jsx, clash) => {
+      P = parse(text, { jsx });
+      const at = new Set(clash), skip = new Set<Node>();
+      for (const st of P.program.body as Node[]) { const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st; if (at.has(d.start)) skip.add(d); }
+      got.length = 0;
+      reg.load(P, "user", true, skip);
+      return got.splice(0);
+    },
+    cell: () => {
+      cur?.restore();
+      const ix = (cur = makeReg(reg, parsed(), null));
+      return { ix, withHook: (hook: (e: AstNode, options: Ty | null) => MdCompiled) => ({ ...ix, compile: (e: AstNode, options: Ty | null) => { const r = hook(e, options); ix.requeue(r.out); return r.res; } }) };
+    },
+    peekType: (n) => reg.peek(() => { const t = reg.convert(toP(n), { tps: new Set() }, parsed()); return t.k === "named" && reg.isAlias(t.n) ? reg.expand(t) : t; }),
+    finish: () => { cur?.restore(); cur = null; },
+  };
+}
+export type MdLinked = ReturnType<typeof linkMd>;
+export type MdRun = { result: LiteResult; gap: string | null; spans: { at: number; ch: string[]; chUnsup: string[] }[] };
+// checkSources by the md cells; onCell (completion's hook on each Checker) has no port
+export function runMd(L: MdLinked, src: Sources, opts: { strictIndex?: boolean; onCell?: unknown } = {}): MdRun {
+  if (opts.onCell) throw new Error("md: onCell is not ported");
+  const t0 = performance.now();
+  const R = mdRegistry(opts.strictIndex ?? true);
+  let r: MdResult;
+  try {
+    r = L.mdCheckSources(R, { cells: src.cells, tsx: !!src.tsx, foreign: src.foreign ?? null, shell: src.shell ?? null, name: src.name ?? null, outside: (src.outside ?? []).map((o) => ({ name: o.name, view: !!o.view })) });
+  } finally { R.finish(); }
+  const cells: LiteCell[] = r.cells.map((c) => ({ name: c.name, status: c.status, line: c.line, errors: c.errors.map((e) => ({ ...e })), unsupported: c.unsupported.map((e) => ({ ...e })), blockedBy: [...c.blockedBy], ...(c.value === null ? {} : { value: c.value }) }));
+  const result: LiteResult = { port: r.port, file: r.file, ok: r.ok, module: r.module.map((e) => ({ ...e })), cells, ms: performance.now() - t0 };
+  const facts = new Map<string, CellInfo>(r.facts.map((f) => [f.name, {
+    name: f.name, span: [f.span[0] ?? 0, f.span[1] ?? 0], returnsRef: f.returnsRef, generator: f.generator, compiles: f.compiles.map((c) => ({ ...c })),
+    params: f.params.map((p) => ({ name: p.name, refTyped: p.refTyped, eventsTyped: p.eventsTyped, ...(p.boundary ? { boundary: p.boundary } : {}) })),
+  }]));
+  Object.defineProperty(result, "facts", { value: facts, enumerable: false });
+  const fmt = (d: IxDiag) => `${d.rule} @${d.start}-${d.end} ${d.msg}`;
+  return { result, gap: r.gap, spans: r.cells.map((c) => ({ at: c.at, ch: c.ch.map(fmt), chUnsup: c.chUnsup.map(fmt) })) };
+}

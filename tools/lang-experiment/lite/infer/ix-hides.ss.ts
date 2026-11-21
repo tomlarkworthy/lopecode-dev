@@ -68,8 +68,12 @@ export const ixMayHide = () => {
     }
   }
   return (R: IxRegCore, t: Ty): boolean => {
+    const hit = R.mayHideMemo.get(t);
+    if (hit !== undefined) return hit;
     const seen: Mut<Set<string>> = mut(new Set());
-    return go(R, seen, t, 0);
+    const r = go(R, seen, t, 0);
+    R.mayHideMemo.set(t, r);
+    return r;
   };
 };
 export type IxHide = { R: IxRegCore; opaque: Set<string> | null; find: (x: Ty) => string | null };

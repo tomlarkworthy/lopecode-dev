@@ -11,8 +11,9 @@ export const owFlowCheck = (owTracked, OW_K, ixFnParts) => (O: OwCtx, W: OwW, ca
   else OW_K.expr(OW_K, O, W, X, P, parts.body, none);
 };
 // gap: an Other node in the cell's tree, where own.ts reads a node type the typed tree does not give
-export const owCheck = (owIndex, owBindingOfFn, owCaptures, owCaptureErrs, owEscapes, owPlacement, owFlowCheck, owActionEscapes, ixOut) => (R: IxRegCore, F: IxFacts, fn: AstNode): OwOutput => {
-  const T = owIndex(F, fn);
+export const owCheck = (owIndex, owCheckIn) => (R: IxRegCore, F: IxFacts, fn: AstNode): OwOutput => owCheckIn(R, F, owIndex(F, fn));
+// owCheck over a tree index already made (the module check makes one per cell)
+export const owCheckIn = (owBindingOfFn, owCaptures, owCaptureErrs, owEscapes, owPlacement, owFlowCheck, owActionEscapes, ixOut) => (R: IxRegCore, F: IxFacts, T: OwTree): OwOutput => {
   const O: OwCtx = { T, F, R };
   const W: OwW = mut({ errs: null, seen: new Set(), unsup: null });
   const caps = owCaptures(O, W);

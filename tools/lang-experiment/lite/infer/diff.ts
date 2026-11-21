@@ -11,7 +11,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSy
 import { join, resolve, dirname } from "node:path";
 import { Glob } from "bun";
 import * as acorn from "acorn";
-import { checkSources } from "../core.ts";
+import { checkSources, type Sources } from "../core.ts";
 import { Checker } from "../infer.ts";
 import { parse, type Parsed } from "../parse.ts";
 import { splitCells } from "../toolchain/ss-toolchain.ts";
@@ -19,10 +19,11 @@ import { specRejects } from "../soundscript/spec-cases.ts";
 import { show, type Ty } from "../types.ts";
 import { ALLOWED_GLOBALS } from "../intrinsics.ts";
 import { linkAcorn } from "../acorn/index.ts";
-import { linkIx, runIx, regCore, IX_FILES, OW_FILES, IX_CELLS, type IxLinked, type CompileHook } from "./index.ts";
+import { linkIx, runIx, regCore, IX_FILES, OW_FILES, IX_CELLS, MD_FILES, linkMd, runMd, type IxLinked, type CompileHook, type MdLinked } from "./index.ts";
 import { ownership, actionEscapes } from "../own.ts";
 import { captures, opaqueCaptures } from "../capture.ts";
 import type { AstNode, Ast } from "../acorn/acorn-types.ss.ts";
+import { MODULE_PROBES } from "./probes/module.ts";
 import type { IxOutput, IxFacts, IxBinding } from "./ix-types.ss.ts";
 import type { Checker as RealChecker, Binding } from "../infer.ts";
 import type { Fn, Flags } from "../types.ts";
@@ -34,7 +35,8 @@ const ROOT = resolve(import.meta.dir, "../..");
 const A = linkAcorn();
 
 // ---- the corpus (collect.ts's jobs; ss sections split as ts-cells.ts ssCellTexts does) ----
-type Job = { key: string; run: () => unknown };
+type Job = { key: string; run: () => unknown; src: Sources | null; opts: { strictIndex?: boolean } };
+const mkJob = (key: string, src: Sources, opts: { strictIndex?: boolean } = {}): Job => ({ key, src, opts, run: run(!!src.tsx, () => checkSources(src, opts)) });
 function headerEnd(src: string): number {
   let at = 0;
   for (const c of parse(src).comments) { if (src.slice(at, c.start).trim()) break; at = c.end; }
@@ -42,6 +44,10 @@ function headerEnd(src: string): number {
 }
 const ssTexts = (rel: string) => { const s = readFileSync(join(ROOT, "lite", rel), "utf8"); return splitCells(s.slice(headerEnd(s)).trimStart(), false); };
 let curTsx = true;
+// a section split into cells; a text that does not split throws when its job runs, as it did before jobs were data
+const ssJob = (key: string, text: string, tsx: boolean): Job => {
+  try { return mkJob(key, { cells: splitCells(text, tsx).join("\n\n"), tsx }); } catch (x) { return { key, src: null, opts: {}, run: () => { throw x; } }; }
+};
 const run = (tsx: boolean, f: () => unknown) => () => { curTsx = tsx; return f(); };
 function jobs(): Job[] {
   const out: Job[] = [];
@@ -52,30 +58,29 @@ function jobs(): Job[] {
   for (const d of [...dirs].sort()) {
     const tsx = !existsSync(join(d, "cells.ts")) && existsSync(join(d, "cells.tsx"));
     const src = { cells: read(d, tsx ? "cells.tsx" : "cells.ts") ?? "", tsx, foreign: read(d, "foreign.d.ts"), shell: read(d, "shell.ts"), name: d };
-    out.push({ key: `port:${d.slice(ROOT.length + 1)}`, run: run(tsx, () => checkSources(src, {})) });
+    out.push(mkJob(`port:${d.slice(ROOT.length + 1)}`, src));
   }
   for (const g of ["lite/notebook/examples/*.ts*", "lite/soundscript/spec-[0-9]*.ts*", "lite/soundscript/core-example.ts", "lite/soundscript/tutorial-*.tsx"])
     for (const f of [...new Glob(g).scanSync(ROOT)].sort()) {
       const cells = readFileSync(join(ROOT, f), "utf8"), tsx = f.endsWith(".tsx");
-      out.push({ key: `file:${f}`, run: run(tsx, () => checkSources({ cells, tsx, name: f })) });
+      out.push(mkJob(`file:${f}`, { cells, tsx, name: f }));
     }
   // checkCells (stdlib/runtime.ts) without its fallback for a text that does not parse: such a source is skipped
-  const cellsJob = (texts: string[], tsx: boolean) => run(tsx, () => checkSources({ cells: texts.join("\n\n"), tsx }));
   for (const g of ["lite/*.ss.ts", "selfhost/*.ss.ts", "selfhost/rt/*.ss.ts", "lite/soundscript/.scratch/checker-port/probes/*.ss.ts"]) for (const f of [...new Glob(g).scanSync(ROOT)].sort()) {
     const text = readFileSync(join(ROOT, f), "utf8");
-    for (const tsx of [false, true]) out.push({ key: `ss${tsx ? "x" : ""}:${f}`, run: () => cellsJob(splitCells(text, tsx), tsx)() });
+    for (const tsx of [false, true]) out.push(ssJob(`ss${tsx ? "x" : ""}:${f}`, text, tsx));
   }
   const ACORN_WITH: Record<string, string[]> = { "acorn/acorn-kids.ss.ts": ["acorn/acorn-types.ss.ts"], "acorn/acorn.ss.ts": ["acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts"], "acorn/syntax.ss.ts": ["acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "messages.ss.ts"] };
   const ACORN_SHELL: Record<string, string> = { "acorn/acorn.ss.ts": "acorn/acorn-shell.ts", "acorn/syntax.ss.ts": "acorn/acorn-shell.ts" };
   for (const f of [...new Glob("lite/acorn/*.ss.ts").scanSync(ROOT)].sort()) {
     const text = readFileSync(join(ROOT, f), "utf8");
-    for (const tsx of [false, true]) out.push({ key: `ss${tsx ? "x" : ""}:${f}`, run: () => cellsJob(splitCells(text, tsx), tsx)() });
+    for (const tsx of [false, true]) out.push(ssJob(`ss${tsx ? "x" : ""}:${f}`, text, tsx));
     const rel = f.slice("lite/".length);
     const shell = ACORN_SHELL[rel] ? readFileSync(join(ROOT, "lite", ACORN_SHELL[rel]), "utf8") : null;
-    out.push({ key: `sswith:${f}`, run: run(true, () => checkSources({ cells: [...(ACORN_WITH[rel] ?? []), rel].flatMap(ssTexts).join("\n\n"), tsx: true, shell, name: rel })) });
+    out.push(mkJob(`sswith:${f}`, { cells: [...(ACORN_WITH[rel] ?? []), rel].flatMap(ssTexts).join("\n\n"), tsx: true, shell, name: rel }));
   }
   for (const [i, c] of specRejects().entries())
-    out.push({ key: `reject:${c.statement}#${i}`, run: run(true, () => checkSources({ cells: c.source, tsx: true, shell: c.shell ?? null, outside: c.outside ?? null, name: "r" })) });
+    out.push(mkJob(`reject:${c.statement}#${i}`, { cells: c.source, tsx: true, shell: c.shell ?? null, outside: c.outside ?? null, name: "r" }));
   // collect.ts's inline jobs: code held in string literals of the .ojs files, chosen as collect.ts chooses them
   for (const f of ["spec.ojs", "tutorial.ojs", "checker-tests.ojs", "runtime-tests.ojs", "core.ojs", ...readdirSync(join(ROOT, "lite/soundscript/sections")).map((x) => "sections/" + x)]) {
     const p = join(ROOT, "lite/soundscript", f);
@@ -90,7 +95,7 @@ function jobs(): Job[] {
         if (n.type === "Literal" && typeof n.value === "string") s = n.value;
         if (s && /=>/.test(s) && /^\s*(const|type|interface|\/\/|function)/.test(s)) {
           const text = s;
-          out.push({ key: `inline:${f}#${Bun.hash(text).toString(36)}`, run: run(true, () => checkSources({ cells: text, tsx: true, name: "i" })) });
+          out.push(mkJob(`inline:${f}#${Bun.hash(text).toString(36)}`, { cells: text, tsx: true, name: "i" }));
         }
         for (const key in n) { if (key === "loc") continue; const v = n[key]; if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === "object") walk(v); }
       })(ast);
@@ -99,7 +104,7 @@ function jobs(): Job[] {
   // --file f: one more source, checked as a cells file (the repros under repro/)
   for (const f of process.argv.flatMap((a, i) => (process.argv[i - 1] === "--file" ? [a] : []))) {
     const cells = readFileSync(f, "utf8"), tsx = f.endsWith(".tsx");
-    out.push({ key: `extra:${f}`, run: run(tsx, () => checkSources({ cells, tsx, name: f })) });
+    out.push(mkJob(`extra:${f}`, { cells, tsx, name: f }));
   }
   return ONLY ? out.filter((j) => j.key.includes(ONLY)) : out;
 }
@@ -387,6 +392,121 @@ function pass(js: Job[]): { recs: Rec[]; jobCrash: string[]; ms: number; results
 }
 const count = (rs: Rec[]) => { const c: Record<string, number> = { SAME: 0, DIFFERENT: 0, "NOT COVERED": 0, "REAL CRASH": 0 }; for (const r of rs) c[r.bucket] = (c[r.bucket] ?? 0) + 1; return c; };
 const tally = (xs: string[]) => [...xs.reduce((m, x) => m.set(x, (m.get(x) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
+
+// ---- the whole module (--module, --module-only): checkSources against the md cells' entry (runMd), per source: every
+// module error, every cell record field in order, the facts, and the Checker's two lists with their spans ----
+// ts-cells.ts SS_CHECKED_WITH, copied (that file is another agent's): a section is checked with these in front
+const SS_WITH: Record<string, string[]> = { "shape.ss.ts": ["types.ss.ts"], "store.ss.ts": ["events.ss.ts"], "render.ss.ts": ["runtime.ss.ts"], "cross.ss.ts": ["runtime.ss.ts"], "subtype.ss.ts": ["types.ss.ts"], "walks.ss.ts": ["types.ss.ts", "subtype.ss.ts"] };
+export const INFER_WITH = ["types.ss.ts", "subtype.ss.ts", "walks.ss.ts", "island.ss.ts", "shape.ss.ts", "messages.ss.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "acorn/syntax.ss.ts"];
+function moduleJobs(base: Job[]): Job[] {
+  const out = [...base];
+  for (const [f, w] of Object.entries(SS_WITH)) out.push(mkJob(`sswith:lite/${f}`, { cells: [...w, f].flatMap(ssTexts).join("\n\n"), tsx: true, name: f }));
+  const infer = [...INFER_WITH, ...[...IX_FILES, ...OW_FILES, ...MD_FILES].map((f) => `infer/${f}`)];
+  out.push(mkJob("module:lite/infer", { cells: infer.flatMap(ssTexts).join("\n\n"), tsx: true, shell: readFileSync(join(ROOT, "lite/acorn/acorn-shell.ts"), "utf8"), name: "infer" }));
+  // the 47-cell tutorial module as the built notebook held it (a dump of 2026-11-21 14:17)
+  const tut = join(ROOT, "lite/soundscript/.scratch/switch-cost/tutorial.json");
+  if (existsSync(tut)) { const j = JSON.parse(readFileSync(tut, "utf8")); out.push(mkJob("module:tutorial", { cells: j.texts.join("\n\n"), tsx: true, outside: j.outside })); }
+  for (const j of base.filter((x) => x.key.startsWith("file:") || x.key.startsWith("port:"))) if (j.src) out.push(mkJob(`lax:${j.key}`, j.src, { strictIndex: false }));
+  for (const p of MODULE_PROBES) out.push(mkJob(`probe:${p.key}`, p.src, p.opts ?? {}));
+  return ONLY ? out.filter((j) => j.key.includes(ONLY)) : out;
+}
+type ModRec = { key: string; bucket: "SAME" | "DIFFERENT" | "NOT COVERED" | "BOTH THREW"; why?: string; real: string[]; port: string[]; realMs: number; portMs: number; parts?: Record<string, boolean> };
+const tvAll = (xs: string[]) => { const ids = new Map<string, number>(); return xs.map((x) => x.replace(/'\d+/g, (m) => { if (!ids.has(m)) ids.set(m, ids.size + 1); return `'${ids.get(m)}`; })); };
+// a result as lines, by part; spans: per result cell, the Checker's lists
+function modLines(r: any, spans: { ch: string[]; chUnsup: string[] }[] | null): Record<string, string[]> {
+  const e = (x: any) => `[${x.rule}] L${x.line} ${x.msg}`;
+  return {
+    head: [`${r.port} ${r.file} ok ${r.ok}`],
+    module: r.module.map(e),
+    cells: r.cells.flatMap((c: any) => [`${c.name}: ${c.status} L${c.line} : ${"value" in c ? c.value : "(no value)"} by ${JSON.stringify(c.blockedBy)} keys ${Object.keys(c).join(",")}`,
+      ...c.errors.map((x: any) => "  " + e(x)), ...c.unsupported.map((x: any) => "  u " + e(x))]),
+    facts: [...(r.facts ?? new Map()).entries()].map(([k, f]: [string, unknown]) => `${k} ${JSON.stringify(f)}`),
+    spans: (spans ?? []).flatMap((s, i) => [`#${i}`, ...s.ch.map((x) => "  d " + x), ...s.chUnsup.map((x) => "  u " + x)]),
+  };
+}
+let LM: MdLinked = linkMd();
+function modulePass(js: Job[]): ModRec[] {
+  const recs: ModRec[] = [];
+  active = false;
+  for (const j of js) {
+    if (j.src === null) continue;
+    curTsx = !!j.src.tsx;
+    const chs = new Map<number, Checker>();
+    let real: Record<string, string[]> | null = null, realErr: string | null = null, port: Record<string, string[]> | null = null, portErr: string | null = null, gap: string | null = null;
+    let realR: any = null;
+    const t0 = performance.now();
+    try { realR = checkSources(j.src, { ...j.opts, onCell: (_n, ch, fn) => void chs.set(fn.start, ch) }); } catch (x) { realErr = (x as Error).message; }
+    const realMs = performance.now() - t0;
+    const t1 = performance.now();
+    let pr: ReturnType<typeof runMd> | null = null;
+    try { pr = runMd(LM, j.src, j.opts); } catch (x) { portErr = (x as Error).message ?? String(x); if (process.argv.includes("--stacks")) console.log((x as Error).stack); }
+    const portMs = performance.now() - t1;
+    if (pr) { port = modLines(pr.result, pr.spans); gap = pr.gap; }
+    if (realR) {
+      const fmt = (d: { rule: string; msg: string; node: { start: number; end: number } }) => `${d.rule} @${d.node.start}-${d.node.end} ${d.msg}`;
+      real = modLines(realR, (pr?.spans ?? []).map((s) => { const ch = chs.get(s.at); return { ch: ch ? ch.diags.map(fmt) : ["(no Checker)"], chUnsup: ch ? ch.unsup.map(fmt) : [] }; }));
+    }
+    const flat = (x: Record<string, string[]> | null) => (x ? tvAll(Object.entries(x).flatMap(([k, v]) => v.map((l) => `${k} ${l}`))) : []);
+    const rl = flat(real), pl = flat(port);
+    let bucket: ModRec["bucket"];
+    let why: string | undefined;
+    if (realErr !== null || portErr !== null) { bucket = realErr === portErr ? "BOTH THREW" : "DIFFERENT"; why = `real ${realErr ?? "no throw"}; port ${portErr ?? "no throw"}`; }
+    else if (gap !== null) { bucket = "NOT COVERED"; why = gap; }
+    else bucket = JSON.stringify(rl) === JSON.stringify(pl) ? "SAME" : "DIFFERENT";
+    const parts = real && port ? Object.fromEntries(Object.keys(real).map((k) => [k, JSON.stringify(tvAll(real![k])) === JSON.stringify(tvAll(port![k]))])) : undefined;
+    recs.push({ key: j.key, bucket, why, real: rl, port: pl, realMs, portMs, parts });
+  }
+  active = true;
+  return recs;
+}
+function moduleReport(recs: ModRec[], label = "whole module", show = SHOW) {
+  const c: Record<string, number> = { SAME: 0, DIFFERENT: 0, "NOT COVERED": 0, "BOTH THREW": 0 };
+  for (const r of recs) c[r.bucket]++;
+  const partDiff = tally(recs.filter((r) => r.bucket === "DIFFERENT" && r.parts).flatMap((r) => Object.entries(r.parts!).filter(([, v]) => !v).map(([k]) => k)));
+  console.log(`${label}: ${recs.length} sources: SAME ${c.SAME} DIFFERENT ${c.DIFFERENT} NOT COVERED ${c["NOT COVERED"]} BOTH THREW ${c["BOTH THREW"]}${partDiff.length ? `; parts that differ: ${partDiff.map(([k, n]) => `${k} ${n}`).join(", ")}` : ""}`);
+  for (const [k, n] of tally(recs.filter((r) => r.bucket === "NOT COVERED").map((r) => r.why ?? ""))) console.log(`  not covered ${n}: ${k}`);
+  for (const [k, n] of tally(recs.filter((r) => r.bucket === "BOTH THREW").map((r) => r.why ?? "")).slice(0, 5)) console.log(`  both threw ${n}: ${k}`);
+  for (const r of recs.filter((r) => r.bucket === "DIFFERENT").slice(0, show)) {
+    console.log(`MODULE DIFFERENT ${r.key}${r.why ? " " + r.why : ""}`);
+    console.log(`  real-only ${JSON.stringify(r.real.filter((x) => !r.port.includes(x)).slice(0, 4))}\n  port-only ${JSON.stringify(r.port.filter((x) => !r.real.includes(x)).slice(0, 4))}`);
+  }
+  return c;
+}
+if (process.argv.includes("--module") || process.argv.includes("--module-only")) {
+  const MJ = moduleJobs(jobs());
+  console.log(`md files ${MD_FILES.map((f) => `${f}:${Bun.hash(readFileSync(join(import.meta.dir, f), "utf8")).toString(36)}`).join(" ")}`);
+  console.log(`core.ts ${Bun.hash(readFileSync(join(ROOT, "lite/core.ts"), "utf8")).toString(36)}`);
+  const mr = modulePass(MJ);
+  moduleReport(mr);
+  const rules = tally(mr.filter((r) => r.bucket === "SAME").flatMap((r) => r.real.filter((l) => /^(module|cells) +\[/.test(l)).map((l) => l.split("[")[1].split("]")[0])));
+  console.log(`rules met on SAME sources (lines): ${rules.map(([k, n]) => `${k} ${n}`).join(", ")}`);
+  mkdirSync(dirname(OUT), { recursive: true });
+  writeFileSync(OUT.replace(/\.json$/, "-module.json"), JSON.stringify(mr, null, 1));
+  // the sources, for module-time.ts
+  if (!ONLY) writeFileSync(join(dirname(OUT), "module-sources.json"), JSON.stringify(MJ.filter((j) => j.src !== null && j.key !== "module:lite/infer").map((j) => ({ key: j.key, src: j.src, opts: j.opts }))));
+  if (process.argv.includes("--control-module")) {
+    // one cell broken per md file, each in a linked copy; the module of lite/infer is left out (its check takes a minute)
+    const overs: [string, string, string][] = [
+      ["md-shape: mdTsIgnore never matches", "mdTsIgnore", "() => () => false"],
+      ["md-graph: mdVisit reports no cycle", "mdVisit", "() => { function visit(S, deps, byName, lines, n, stack) { const st = S.state.get(n); if (st === 2 || st === 1) return; S.state = new Map([...S.state, [n, 1]]); for (const d of deps.get(n) ?? []) visit(S, deps, byName, lines, d, [...stack, n]); S.state = new Map([...S.state, [n, 2]]); const def = byName.get(n); if (def !== undefined) S.order = [...S.order, def]; } return visit; }"],
+      ["md-inject: mdInjectAnn without inject-type", "mdInjectAnn", "(mdDiag, ixHides) => (K, C, X, L, p, ann, vt) => ann === null ? vt : K.reg.convert(ann, [], null)"],
+      ["md-taint: mdTaintOf without capabilities", "mdTaintOf", "(mdAnn, mdRefName, isNamed) => (X, M, p) => { if (p.type !== 'Identifier') return null; const w = mdRefName(mdAnn(p)); if (w === 'State' || w === 'Events') return null; const name = p.name; if (X.cellNames.has(name)) { const t = M.value.get(name); if (t && t.k === 'named' && isNamed(t, 'Action')) return null; if (M.refInner.has(name)) return `the value of the state cell ${name}`; if (X.byName.get(name)?.fn.generator === true) return `the latest value of the events cell ${name}`; const why = M.stateful.get(name); return why === undefined ? null : `${name} ${why}`; } if (X.shellNames.has(name)) return `a shell cell's value`; return null; }"],
+      ["md-compile: mdIslandSide without compile-boundary", "mdIslandSide", "(mdHookErr) => (S, R, H, e, names) => { const props = new Map(); let bad = false; for (const n of names) { const t = S.value.get(n); if (t === null || t === undefined) { if (S.X.cellNames.has(n)) mdHookErr(R, H, e, 'compile-island', `${n} has no usable type`); bad = true; continue; } props.set(n, { t, opt: false }); } return { t: { k: 'rec', props }, bad }; }"],
+      ["md-value: mdStateRules without state-undefined", "mdStateRules", "(mdKept, admitsUndefinedWith, holdsWith, show) => (R, X, name, fedBy, line, inner) => { const nested = holdsWith(X.R.ops)(inner, ['State', 'StateCell']); return [...(nested ? [{ rule: 'state-in-state', line, msg: `a state cell holds ${show(inner)}, which contains ${nested}; a state cell's content may not contain a State or StateCell` }] : []), ...mdKept(R, name, fedBy, line, 'a state cell holds', inner, 'an action that reads the state cell could call it')]; }"],
+      ["md-run: mdDedupe keeps every copy", "mdDedupe", "() => (es) => es"],
+      ["md-cell: mdKeep, every value usable", "mdKeep", "(hasErrWith, show) => (X, M, d, rec, v) => { const errors = [...rec.errors, ...v.errors]; M.value = new Map([...M.value, [d.name, v.value]]); if (v.events !== null) M.eventsInner = new Map([...M.eventsInner, [d.name, v.events]]); if (v.ref !== null) { M.refInner = new Map([...M.refInner, [d.name, v.ref]]); M.stateful = new Map([...M.stateful, [d.name, 'is a state cell']]); } if (v.listener) M.listeners = new Set([...M.listeners, d.name]); const status = errors.length ? 'rejected' : rec.unsupported.length ? 'unsupported' : rec.blockedBy.length ? 'blocked' : 'ok'; return { ...rec, errors, value: show(v.value), status }; }"],
+      ["md-facts: mdReturnsRef always false", "mdReturnsRef", "() => () => false"],
+      ["md-entry: mdShownNames counts from 3", "mdShownNames", "() => (dups, out, cellNames) => { const shown = new Map(); for (const d of dups) { if (!out.has(d.ph)) continue; let k = 3; while (cellNames.has(`${d.name} (${k})`) || [...shown.values()].includes(`${d.name} (${k})`)) k++; shown.set(d.ph, `${d.name} (${k})`); } return shown; }"],
+    ];
+    const CJ = MJ.filter((j) => j.key !== "module:lite/infer");
+    for (const [what, name, text] of overs) {
+      LM = linkMd({ [name]: new Function(`return (${text});`)() });
+      moduleReport(modulePass(CJ), `control module (${what})`, 1);
+    }
+    LM = linkMd();
+  }
+  if (process.argv.includes("--module-only")) process.exit(0);
+}
 
 const files = [...IX_FILES, ...OW_FILES].map((f) => `${f}:${Bun.hash(readFileSync(join(import.meta.dir, f), "utf8")).toString(36)}`);
 console.log(`ix files ${files.join(" ")}`);

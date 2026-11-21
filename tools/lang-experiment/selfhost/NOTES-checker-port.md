@@ -218,3 +218,24 @@ arrow form is `[mut-capture]` (`lite/infer/repro/named-fn-expr-helper.ts`).
 Left before the per-cell check can be switched: injected parameter types and their rules; the taint map and
 "fed by" text from the module's cell graph; the cell-level rules on the value type (state-undefined,
 state-in-state, iterator-cell, listener-placement); crash path, dedupe, line mapping, value bookkeeping.
+
+## 2026-11-22: `checkSources` as cells (`lite/infer/md-*.ss.ts`), not switched on
+Record: `lite/infer/NOTES.md`, "Stage 4". `core.ts`'s `checkSources` (lines 37-359 of 397) and `distinctNames` are
+62 `md*` cells in 11 files (median 9 lines, largest 26): injected parameter types, the cell graph and taint, the
+value rules, the bookkeeping. With the ix and ow cells: 493 cells, all accepted by the live checker.
+`bun lite/infer/diff.ts --module-only`, my run: `whole module: 913 sources: SAME 911 DIFFERENT 0 NOT COVERED 2`.
+Compared per source: header, module errors, every cell record with its key order, facts, spans. 10 controls, one
+broken cell per file, give 3 to 242 DIFFERENT. `bun test infer/infer.test.ts`: 5 pass.
+The 2 not covered are one fixture and its strictIndex-off copy: a parameter named `valueOf`. `core.ts` tests
+`name in CAPABILITIES`, which is true for every name of `Object.prototype`; the port does not copy that and says
+NOT COVERED (`lite/infer/repro/object-prototype-param.ts`). For Tom: fixing it changes verdicts for parameters
+named `valueOf`, `constructor`, `toString`.
+TypeScript glue left: 70 lines of `index.ts` (the Registry and its `parse.ts` parse; `thrown(e)`, since a cell
+cannot read a caught value without `instanceof`; building the result). Not ported: `opts.onCell`, completion's hook.
+A missing memo made the port take 73 s on the 493-cell module against 9.4 s (`mayHide` is memoised per Checker in
+`infer.ts:532`); with the memo 10.2 against 9.2 s.
+End to end, on battery at load 7-8, so ratios only: corpus pass 1.1-1.2x `checkSources`, the tutorial module
+1.0-1.4x. Of the port's corpus pass: inference about half, parse and crossing a fifth, module rules a sixth.
+A switch-over would change: `core.ts` (`checkSources` calls the md entry; `onCell` kept or ported); `ts-cells.ts`
+(register the ix, ow, md files); a decision on the `in CAPABILITIES` bug; `instanceof` in the language or `thrown`
+kept as glue.
