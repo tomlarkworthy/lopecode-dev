@@ -117,3 +117,8 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
   write its name and the limit in the report and go on. `run.sh` kills the whole agent 5 minutes after its 4 h.
 - Commit your edits as you make them. What is left uncommitted at the end is not pushed: `run.sh` names it in
   `fly logs` and on the run's issue, and the next boot resets the checkout.
+- Do not deploy a shared module (`apply.ts --shared-embedded`) or a patch of the kernel, `brain-core`, `brain-db` or
+  the deployer. Leave each for the owner's session, and list it in section 4 with its commands. The owner,
+  2026-11-21, asked whether the retro should send a reviewed shared module itself until `unattended-deployer-and-shared`
+  is switched on: "b" (leave every one to him). The run of 2026-11-21 had sent `brain-shell` on its own judgment,
+  without the embedders' tests first, the cap or the DM. No Cloudflare token is given to this machine.
