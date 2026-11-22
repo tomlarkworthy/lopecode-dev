@@ -1,0 +1,318 @@
+[
+ {
+  "name": "kc-alias-write-by-cell",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "kc-flow-helper-by-cell",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,d,c",
+   "show d = {v:[0]}",
+   "error c: Attempted to assign to readonly property."
+  ],
+  "silent": false,
+  "threw": true
+ },
+ {
+  "name": "kc-flow-alias-typed",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "st-error-async-writer",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED w (value #1 of 1): Error(Error:x) -> Error(Error:y)",
+   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "st-typed-initial-async",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED s (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]",
+   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "st-array-initial-async",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "st-array-initial-then",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "st-set-typed-action",
+  "verdict": "REJECT w:rejected[action-async]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "st-set-array-action-then",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: w,b",
+   "show b = {v:[0]}"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "st-action-arg-typed-kept",
+  "verdict": "REJECT c:rejected[action-call]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ev-error-yield",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: ",
+   "error l: requestAnimationFrame is not defined"
+  ],
+  "silent": false,
+  "threw": true
+ },
+ {
+  "name": "pr-in-record-then",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "pr-in-record-async-helper",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "pr-in-array",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "pr-returned-direct",
+  "verdict": "REJECT a:rejected[type] c:rejected[inject-type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "pr-async-cell-record",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "pr-in-record-all",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "dk-record-next",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "dk-record-next-mut",
+  "verdict": "REJECT b:rejected[inject-type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "gl-dataview",
+  "verdict": "REJECT a:rejected[new-non-intrinsic]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "gl-textdecoder",
+  "verdict": "REJECT a:rejected[new-non-intrinsic]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "gl-textencoder",
+  "verdict": "REJECT a:rejected[new-non-intrinsic]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "gl-weakmap",
+  "verdict": "REJECT a:rejected[new-non-intrinsic]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "gl-date",
+  "verdict": "REJECT a:rejected[new-non-intrinsic]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "gl-symbol",
+  "verdict": "REJECT a:unsupported{intrinsic Symbol has no signature in lite/intrinsics.ts}",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "gl-object-assign",
+  "verdict": "REJECT a:rejected[object-assign]{Object.assign}",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "gl-object-freeze",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "gl-error-cause",
+  "verdict": "REJECT a:rejected[arity]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "gl-intl",
+  "verdict": "REJECT a:rejected[new-non-intrinsic]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "gl-json-parse-write",
+  "verdict": "REJECT a:rejected[no-cast]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "er-input-cast",
+  "verdict": "REJECT a:rejected[no-cast]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "er-input-member-write",
+  "verdict": "REJECT a:rejected[member-write]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "er-in-yield-record-gen",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED g (value #1 of 2): {list:[Error(Error:x)]} -> {list:[Error(Error:y)]}",
+   "CHANGED b (value #1 of 2): {v:{list:[Error(Error:x)]}} -> {v:{list:[Error(Error:y)]}}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "er-captured-gen",
+  "verdict": "REJECT g:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "er-kept-fn-name",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 2): Error(TypeError:x) -> Error(TypeError:y)",
+   "CHANGED b (value #1 of 2): {v:Error(TypeError:x)} -> {v:Error(TypeError:y)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "er-range",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: ",
+   "CHANGED a (value #1 of 2): {e:Error(RangeError:x)} -> {e:Error(RangeError:q)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "er-name-write",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 2): Error(Error:x) -> Error(Boom:x,name=\"Boom\")",
+   "CHANGED b (value #1 of 2): {v:Error(Error:x)} -> {v:Error(Boom:x,name=\"Boom\")}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "er-url-searchparams-gen",
+  "verdict": "REJECT a:rejected[mut-yield]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "er-async-cell-promise",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)",
+   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+  ],
+  "silent": true,
+  "threw": false
+ }
+]

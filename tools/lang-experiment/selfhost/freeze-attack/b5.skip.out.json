@@ -1,0 +1,357 @@
+[
+ {
+  "name": "tm-generic-ret",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-generic-param-mut",
+  "verdict": "REJECT a:rejected[type]{intrinsic member Mut.push}",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-union-null",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-default-param",
+  "verdict": "REJECT a:rejected[type][mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-destructure-default",
+  "verdict": "REJECT a:rejected[type][mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-optional-chain",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-record-field-mut",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-array-of-mut",
+  "verdict": "REJECT a:rejected[type][type][mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-map-of-mut",
+  "verdict": "REJECT a:rejected[type][mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-map-ctor-mut",
+  "verdict": "REJECT a:rejected[type][type][type][mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-set-of-mut",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-array-from-typed",
+  "verdict": "REJECT a:rejected[type][mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-map-cb-ret-mut",
+  "verdict": "REJECT a:rejected[type][mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-reduce-mut-init",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-ternary-fresh",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-let-reassign",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-let-reassign-typed",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-let-in-loop",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-let-cond",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-let-forof-binding",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-let-catch",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-let-compound",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-let-logical-assign",
+  "verdict": "REJECT a:unsupported{logical assignment ??=}",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-fn-ret-param",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-fn-ret-captured-input",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-fn-ret-local-alias",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-swap-destructure",
+  "verdict": "REJECT a:unsupported{destructuring assignment}",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-obj-destructure-let",
+  "verdict": "REJECT a:unsupported{destructuring assignment}",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-closure-assign-let",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-closure-assign-before-decl",
+  "verdict": "REJECT a:rejected[free-name]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-var",
+  "verdict": "REJECT a:rejected[no-var][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-label-loop",
+  "verdict": "REJECT a:unsupported{label}",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-for-update",
+  "verdict": "REJECT a:unsupported{comma expression}",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-while-assign",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-finally",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-switch-assign",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-comma",
+  "verdict": "REJECT a:unsupported{comma expression}",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-param-reassign",
+  "verdict": "REJECT a:rejected[untyped-parameter]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-shadow",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "tm-assign-expr-value",
+  "verdict": "REJECT a:rejected[type][mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "kp-alias-param-keeper",
+  "verdict": "REJECT H:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "kp-alias-param-error",
+  "verdict": "REJECT H:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "kp-local-keeper-alias",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "kp-local-keeper-direct",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "kp-kept-alias-of-captured",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c,b",
+   "CHANGED a (value #1 of 1): {xs:[0],k:fn(0)} -> {xs:[0,1,1],k:fn(0)}",
+   "CHANGED b (value #1 of 1): {v:[0,1,1]} -> {v:[0,1,1,1]}",
+   "show b = {v:[0,1,1,1]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "kp-kept-helper-of-captured",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c,b",
+   "CHANGED a (value #1 of 1): {xs:[0],k:fn(0)} -> {xs:[0,1,1],k:fn(0)}",
+   "CHANGED b (value #1 of 1): {v:[0,1,1]} -> {v:[0,1,1,1]}",
+   "show b = {v:[0,1,1,1]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "kp-kept-let-of-captured",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c,b",
+   "CHANGED a (value #1 of 1): {xs:[0],k:fn(0)} -> {xs:[0,1,1],k:fn(0)}",
+   "CHANGED b (value #1 of 1): {v:[0,1,1]} -> {v:[0,1,1,1]}",
+   "show b = {v:[0,1,1,1]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "kp-kept-error-alias",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c,b",
+   "CHANGED a (value #1 of 1): {e:Error(Error:x),k:fn(0)} -> {e:Error(Error:y),k:fn(0)}",
+   "show b = {v:Error(Error:y)}"
+  ],
+  "silent": true,
+  "threw": false
+ }
+]

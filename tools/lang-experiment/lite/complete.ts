@@ -4,12 +4,13 @@
 // the answer is an empty list, never a guess from runtime values. The decisions are the cells of the section
 // "Completion and cell facts over typed trees" (lite/infer/cp-*.ss.ts); this file runs the module check they ask
 // for, hands them the registry as a record, reads a value's prototype and own properties for annotationOf, and counts
-// the work (completionWork).
+// the work (completionWork). The Lezer tree the cells read the cursor's position on is cpLezerAt's (infer/cp-lezer.ts).
 import { checkSources, rgRegistry, type Outside, type Sources, type CheckOpts, type LiteResult, type RgRegistry } from "./core.ts";
 import { cpCompletionsAt, cpMembersOf, cpAnnotationOf, cpAddParameter, cpTypeNames, cpPH } from "./infer-ss.ts";
 import type { CpReg, CpHost, CpConst } from "./infer-ss.ts";
 import type { Ty } from "./types.ts";
 import { CAPABILITIES, PRELUDE_FNS, PRELUDE_DECLS, JSX_DECLS } from "./intrinsics.ts";
+import { cpLezerAt } from "./infer/cp-lezer.ts";
 
 export type Completion = { label: string; type: string; detail?: string; apply?: string };
 export type Completions = { from: number; to: number; options: Completion[]; mode: "member" | "name" | "param" | "type" | "jsx" | "none" };
@@ -35,6 +36,7 @@ export function hostOf(C: CpCalls, tsx: boolean, outside: readonly Outside[] | n
     cellTypes: (cells) => { try { return check({ cells, tsx, outside }, { onCell: counted() }).cells.map((c): [string, string] => [c.name, c.value ?? ""]); } catch { return null; } },
     annotate: (n) => { try { return annotate?.(n) ?? null; } catch { return null; } },
     fresh: () => regOf(rgRegistry()),
+    treeAt: (text, pos) => cpLezerAt(text, pos, tsx),
   };
 }
 const consts = new WeakMap<CpCalls, CpConst>();
@@ -55,6 +57,6 @@ export const membersOf = (reg: RgRegistry, t: Ty, C: CpCalls = CP): Completion[]
 const isPlainValue = (v: unknown) => { const p = Object.getPrototypeOf(v); return p === Object.prototype || p === null; };
 const ownField = (v: unknown, k: string) => (v as Record<string, unknown>)[k];
 export const annotationOf = (v: unknown, C: CpCalls = CP): string | null => C.cpAnnotationOf(isPlainValue, ownField, v);
-export const addParameter = (source: string, name: string, annotation: string | null = null, C: CpCalls = CP): { from: number; to: number; insert: string } | null => C.cpAddParameter(source, name, annotation);
+export const addParameter = (source: string, name: string, annotation: string | null = null, C: CpCalls = CP): { from: number; to: number; insert: string } | null => C.cpAddParameter((text: string, pos: number) => cpLezerAt(text, pos, true), source, name, annotation);
 
 export { PRELUDE_FNS };

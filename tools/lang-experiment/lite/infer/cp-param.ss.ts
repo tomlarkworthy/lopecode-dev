@@ -1,40 +1,16 @@
 // complete.ts addParameter (the add-as-parameter fix) and annotationOf (the annotation a value in another
 // language suggests).
 
-// the end of the parameter list opening at open (its ")"), and its segments as written; close -1 when it has none
-export const cpParamSegments = () => (source: string, open: number): { close: number; segs: string[] } => {
-  const segs: Mut<string[]> = [];
-  let depth = 0, close = -1, seg = "";
-  for (let i = open; i < source.length; i++) {
-    const c = source.charAt(i);
-    if (c === '"' || c === "'" || c === "`") {
-      let j = i + 1;
-      while (j < source.length && source.charAt(j) !== c) j += source.charAt(j) === "\\" ? 2 : 1;
-      seg += source.slice(i, j + 1); i = j; continue;
-    }
-    if ("([{<".includes(c)) depth++;
-    else if (")]}>".includes(c) && !(c === ">" && source.charAt(i - 1) === "=")) {
-      if (depth === 0) { if (c === ")") close = i; break; }
-      depth--;
-    }
-    if (depth === 0 && c === ",") { segs.push(seg); seg = ""; continue; }
-    seg += c;
-  }
-  segs.push(seg);
-  return { close, segs: segs };
-};
 // the edit adding name (with its annotation) to the end of the cell's own parameter list; null when the text has
-// no parameter list or already takes name
-export const cpAddParameter = (cpHeadLen, cpParamSegments) => (source: string, name: string, annotation: string | null): CpEdit | null => {
-  const open = cpHeadLen(source);
-  if (open < 0) return null;
-  const { close, segs } = cpParamSegments(source, open);
-  if (close < 0 || segs.some((p) => /^\s*(?:\.\.\.)?\s*(?<n>[\w$]+)/.exec(p)?.groups?.n === name)) return null;
+// no closed parameter list or already takes name
+export const cpAddParameter = (cpHeadOf, cpParamNames) => (at: CpTreeAt, source: string, name: string, annotation: string | null): CpEdit | null => {
+  const head = cpHeadOf(at, source);
+  const close = head?.list.kids.find((k) => k.name === ")");
+  if (head === null || close === undefined || cpParamNames(head.list, true).some((k) => source.slice(k.from, k.to) === name)) return null;
   const param = annotation !== null && annotation !== "" ? `${name}: ${annotation}` : name;
-  const inner = source.slice(open, close);
-  if (inner.trim() === "") return { from: open, to: close, insert: param };
-  const last = open + inner.trimEnd().length;
-  return { from: last, to: last, insert: inner.trimEnd().endsWith(",") ? ` ${param}` : `, ${param}` };
+  const last = head.list.kids.filter((k) => k.to <= close.from && k.name !== "⚠").at(-1);
+  if (last === undefined || last.name === "(") return { from: head.list.from + 1, to: close.from, insert: param };
+  return { from: last.to, to: last.to, insert: last.name === "," ? ` ${param}` : `, ${param}` };
 };
 // the annotation of each element of an array, when all agree
 export const cpAnnotationOfArray = () => (ann: (v: unknown, depth: number) => string | null, v: unknown[], depth: number): string | null => {

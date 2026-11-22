@@ -1,0 +1,393 @@
+[
+ {
+  "name": "ah-error",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)",
+   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ah-typed",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]",
+   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ah-url",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): URL(https://x.test/a) -> URL(https://x.test/b)",
+   "CHANGED b (value #1 of 1): {v:URL(https://x.test/a)} -> {v:URL(https://x.test/b)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ah-array",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ah-typed-in-record",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): {t:Uint8Array[0,0]} -> {t:Uint8Array[1,0]}",
+   "CHANGED b (value #1 of 1): {t:Uint8Array[0,0]} -> {t:Uint8Array[1,0]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ah-param",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: ",
+   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ah-gen-helper",
+  "verdict": "REJECT a:unsupported{intrinsic member Generator.next}",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ah-async-cell",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]",
+   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "hc-async-mut-param",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "hc-async-mut-param-unannot",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "hc-async-typed",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b",
+   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]",
+   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "hc-async-error",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b",
+   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)",
+   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "hc-then-mut-param",
+  "verdict": "REJECT H:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "hc-sync-keeper",
+  "verdict": "REJECT H:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "hc-sync-keeper-later",
+  "verdict": "REJECT H:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "hc-async-local",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fo-map-get-nullish",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c",
+   "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "fo-index",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c",
+   "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "fo-member",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fo-member-alias",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fo-alias-before",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fo-switch",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c",
+   "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "fo-arrow-block-helper2",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c",
+   "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "fo-helper-no-annot",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c",
+   "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "fo-returns-helper-itself",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fo-in-record-helper",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c",
+   "CHANGED a (value #1 of 1): {get:fn([0])} -> {get:fn([0,1])}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "fo-alias-then-holder-cell",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,d,c",
+   "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "fo-gen-yield-alias",
+  "verdict": "REJECT c:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fo-write-in-kept-alias",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a",
+   "CHANGED a (value #1 of 1): fn(2) -> fn(3)"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "fo-write-in-kept-helper",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a",
+   "CHANGED a (value #1 of 1): fn(2) -> fn(3)"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "fo-write-in-kept-param",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fo-write-in-kept-forof",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fo-write-in-kept-destr",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fo-write-in-kept-let",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a",
+   "CHANGED a (value #1 of 1): fn(2) -> fn(3)"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "it-values",
+  "verdict": "REJECT a:rejected[iterator-cell]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "it-map-entries",
+  "verdict": "REJECT a:rejected[iterator-cell]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "it-in-record",
+  "verdict": "REJECT a:rejected[iterator-cell]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "it-kept-fn",
+  "verdict": "REJECT a:rejected[iterator-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "re-g-input-test",
+  "verdict": "REJECT r:rejected[regexp-state]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "re-g-literal",
+  "verdict": "REJECT r:rejected[regexp-state]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "re-y",
+  "verdict": "REJECT r:rejected[regexp-state]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "re-flags-var",
+  "verdict": "REJECT r:rejected[regexp-state]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "re-split-g",
+  "verdict": "REJECT r:rejected[regexp-state]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "re-match-g",
+  "verdict": "REJECT r:rejected[regexp-state]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "re-kept-fn",
+  "verdict": "REJECT a:rejected[regexp-state]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "re-in-record",
+  "verdict": "REJECT r:rejected[regexp-state]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ }
+]

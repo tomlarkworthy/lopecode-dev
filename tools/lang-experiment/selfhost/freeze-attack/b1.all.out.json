@@ -1,0 +1,402 @@
+[
+ {
+  "name": "cb-forEach-mut",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-map-mut",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-reduce-acc",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-sort-param",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-find-mut",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-filter-mut-arr",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-map-forEach-mut",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-then-mut",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-local-fn-mut-param-given-input",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-local-fn-var-typed",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-local-fn-record",
+  "verdict": "REJECT a:rejected[type][type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-hof-param",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-generic-ap",
+  "verdict": "REJECT a:rejected[type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "cb-array-of-fn",
+  "verdict": "REJECT a:rejected[no-non-null][type][type][type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fncell-mut-param-call",
+  "verdict": "REJECT a:rejected[inject-type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fncell-mut-param-unannot",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fncell-mut-param-unannot-xs",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fncell-record-method",
+  "verdict": "REJECT a:rejected[inject-type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fncell-generic",
+  "verdict": "REJECT a:rejected[inject-type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-map-get",
+  "verdict": "REJECT a:rejected[no-non-null]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-arr-at",
+  "verdict": "REJECT a:rejected[no-non-null]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-record-field",
+  "verdict": "REJECT c:rejected[inject-type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-destructure",
+  "verdict": "REJECT c:rejected[inject-type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-values-spread",
+  "verdict": "REJECT a:rejected[no-non-null]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-find",
+  "verdict": "REJECT a:rejected[no-non-null]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-cond",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-or",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-helper",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c",
+   "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "reg-iife",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-record-in-result",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-array-in-result",
+  "verdict": "REJECT a:rejected[mut-capture] c:rejected[no-non-null]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-nested-fn",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-method-shorthand",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-fn-decl",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-default-param",
+  "verdict": "REJECT a:rejected[untyped-parameter] c:blocked",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-map-entries",
+  "verdict": "REJECT a:rejected[no-non-null] c:blocked",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-array-from",
+  "verdict": "REJECT a:rejected[no-non-null] c:blocked",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-slice",
+  "verdict": "REJECT a:rejected[no-non-null] c:blocked",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-map-identity",
+  "verdict": "REJECT a:rejected[no-non-null] c:blocked",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "reg-for-of",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c",
+   "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "reg-let-assign",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c",
+   "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "reg-local-alias",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c",
+   "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "err-yield-write",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 2): Error(Error:x) -> Error(Error:y)",
+   "CHANGED b (value #1 of 2): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "err-in-record-yield",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 2): {e:Error(Error:x)} -> {e:Error(Error:y)}",
+   "CHANGED b (value #1 of 2): {e:Error(Error:x)} -> {e:Error(Error:y)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "err-kept-fn-late",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "err-fresh-write",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "err-then-param",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "err-then-capture",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ab-yield-view-write",
+  "verdict": "REJECT a:rejected[member-write][mut-yield]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ab-kept-fn-view",
+  "verdict": "REJECT a:rejected[member-write][mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ab-yield-buffer-prop",
+  "verdict": "REJECT a:rejected[mut-yield]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ab-view-of-input",
+  "verdict": "REJECT a:rejected[member-write]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ab-view-of-input-buffer",
+  "verdict": "REJECT a:rejected[member-write]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ab-view-helper",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ }
+]

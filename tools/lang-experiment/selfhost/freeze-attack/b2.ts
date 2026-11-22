@@ -1,0 +1,56 @@
+import type { Attack } from "./harness.ts";
+const A = (name: string, src: string, show: string[] = []): Attack => ({ name, src, show });
+const C = "\nconst c = (a: () => Mut<number[]>) => { a().push(1); return 0; };";
+export const attacks: Attack[] = [
+  // async helper only called, writing after the cell returned
+  A("ah-error", "const a = () => { const e = new Error(\"x\"); const h = async () => { for (let i = 0; i < 300; i++) await null; e.message = \"y\"; }; h(); return e; };\nconst b = (a: Error) => ({ v: a });"),
+  A("ah-typed", "const a = () => { const t = new Uint8Array(2); const h = async () => { for (let i = 0; i < 300; i++) await null; t[0] = 1; }; h(); return t; };\nconst b = (a: Uint8Array) => ({ v: a });"),
+  A("ah-url", "const a = () => { const u = new URL(\"https://x.test/a\"); const h = async () => { for (let i = 0; i < 300; i++) await null; u.pathname = \"/b\"; }; h(); return u; };\nconst b = (a: URL) => ({ v: a });"),
+  A("ah-array", "const a = () => { const xs = [0]; const h = async () => { for (let i = 0; i < 300; i++) await null; xs.push(1); }; h(); return xs; };\nconst b = (a: number[]) => ({ v: a });"),
+  A("ah-typed-in-record", "const a = () => { const t = new Uint8Array(2); const h = async () => { for (let i = 0; i < 300; i++) await null; t[0] = 1; }; h(); return { t }; };\nconst b = (a: { t: Uint8Array }) => a;"),
+  A("ah-param", "const a = () => { const t = new Uint8Array(2); const h = async (p: Mut<Uint8Array>) => { for (let i = 0; i < 300; i++) await null; p[0] = 1; }; h(t); return t; };"),
+  A("ah-gen-helper", "const a = () => { const t = new Uint8Array(2); const g = function* () { yield 0; t[0] = 1; }; const it = g(); it.next(); return t; };"),
+  A("ah-async-cell", "const a = async () => { const t = new Uint8Array(2); const h = async () => { for (let i = 0; i < 300; i++) await null; await null; t[0] = 1; }; h(); return t; };\nconst b = (a: Uint8Array) => ({ v: a });"),
+  // a sync cell calling another cell's async function with its fresh Mut
+  A("hc-async-mut-param", "const H = () => async (p: Mut<number[]>) => { for (let i = 0; i < 300; i++) await null; p.push(1); return 0; };\nconst a = (H: (p: Mut<number[]>) => Promise<number>) => { const xs = [0]; H(xs); return xs; };\nconst b = (a: number[]) => ({ v: a });"),
+  A("hc-async-mut-param-unannot", "const H = () => async (p: Mut<number[]>) => { for (let i = 0; i < 300; i++) await null; p.push(1); return 0; };\nconst a = (H) => { const xs = [0]; H(xs); return xs; };\nconst b = (a: number[]) => ({ v: a });"),
+  A("hc-async-typed", "const H = () => async (p: Mut<Uint8Array>) => { for (let i = 0; i < 300; i++) await null; p[0] = 1; return 0; };\nconst a = (H: (p: Mut<Uint8Array>) => Promise<number>) => { const t = new Uint8Array(2); H(t); return t; };\nconst b = (a: Uint8Array) => ({ v: a });"),
+  A("hc-async-error", "const H = () => async (p: Mut<Error>) => { for (let i = 0; i < 300; i++) await null; p.message = \"y\"; return 0; };\nconst a = (H: (p: Mut<Error>) => Promise<number>) => { const e = new Error(\"x\"); H(e); return e; };\nconst b = (a: Error) => ({ v: a });"),
+  A("hc-then-mut-param", "const H = () => (p: Mut<number[]>) => Promise.resolve(0).then(() => { p.push(1); return 0; });\nconst a = (H: (p: Mut<number[]>) => Promise<number>) => { const xs = [0]; H(xs); return xs; };"),
+  A("hc-sync-keeper", "const H = () => (p: Mut<number[]>) => () => { p.push(1); return p.length; };\nconst a = (H: (p: Mut<number[]>) => () => number) => { const xs = [0]; const k = H(xs); return { xs, k }; };"),
+  A("hc-sync-keeper-later", "const H = () => (p: Mut<number[]>) => () => { p.push(1); return p.length; };\nconst a = (H: (p: Mut<number[]>) => () => number) => { const xs = [0]; return { xs, k: H(xs) }; };\nconst c = (a: { xs: number[]; k: () => number }) => a.k();"),
+  A("hc-async-local", "const a = () => { const xs = [0]; const H = async (p: Mut<number[]>) => { for (let i = 0; i < 300; i++) await null; p.push(1); }; H(xs); return xs; };\nconst b = (a: number[]) => ({ v: a });"),
+  // owFlowsOut misses: more shapes
+  A("fo-map-get-nullish", "const a = () => { const reg = new Map<string, Mut<number[]>>([[\"k\", [0]]]); return (): Mut<number[]> => reg.get(\"k\") ?? []; };" + C),
+  A("fo-index", "const a = () => { const reg: Mut<number[]>[] = [[0]]; return (): Mut<number[]> => reg[0] ?? []; };" + C),
+  A("fo-member", "const a = () => { const o = { xs: [0] }; return (): Mut<number[]> => o.xs; };" + C),
+  A("fo-member-alias", "const a = () => { const o = { xs: [0] }; return (): Mut<number[]> => { const r = o.xs; return r; }; };" + C),
+  A("fo-alias-before", "const a = () => { const xs = [0]; const ys = xs; return (): Mut<number[]> => ys; };" + C),
+  A("fo-switch", "const a = () => { const xs = [0]; return (): Mut<number[]> => { switch (1) { case 1: { const r = xs; return r; } } return []; }; };" + C),
+  A("fo-arrow-block-helper2", "const a = () => { const xs = [0]; const h = () => xs; const h2 = () => h(); return h2; };" + C),
+  A("fo-helper-no-annot", "const a = () => { const xs = [0]; const h = () => xs; return () => h(); };" + C),
+  A("fo-returns-helper-itself", "const a = () => { const xs = [0]; const h = () => xs; return h; };" + C),
+  A("fo-in-record-helper", "const a = () => { const xs = [0]; const h = () => xs; return { get: () => h() }; };\nconst c = (a: { get: () => Mut<number[]> }) => { a.get().push(1); return 0; };"),
+  A("fo-alias-then-holder-cell", "const a = () => { const xs = [0]; return (): Mut<number[]> => { const r = xs; return r; }; };\nconst d = (a: () => number[]) => ({ v: a() });" + C),
+  A("fo-gen-yield-alias", "const a = () => { const xs = [0]; return function* () { const r = xs; yield r; }; };\nconst c = (a: () => Generator<Mut<number[]>>) => { for (const x of a()) x.push(1); return 0; };"),
+  A("fo-write-in-kept-alias", "const a = () => { const xs = [0]; return () => { const r = xs; r.push(1); return xs.length; }; };"),
+  A("fo-write-in-kept-helper", "const a = () => { const xs = [0]; const h = () => xs; return () => { h().push(1); return xs.length; }; };"),
+  A("fo-write-in-kept-param", "const a = () => { const xs = [0]; const w = (p: Mut<number[]>) => p.push(1); return () => { w(xs); return xs.length; }; };"),
+  A("fo-write-in-kept-forof", "const a = () => { const reg = [[0]]; return () => { for (const r of reg) r.push(1); return reg[0]?.length ?? 0; }; };"),
+  A("fo-write-in-kept-destr", "const a = () => { const o = { xs: [0] }; return () => { const { xs } = o; xs.push(1); return o.xs.length; }; };"),
+  A("fo-write-in-kept-let", "const a = () => { const xs = [0]; return () => { let r: Mut<number[]> = []; r = xs; r.push(1); return xs.length; }; };"),
+  // iterators as cell values
+  A("it-values", "const a = () => [1, 2].values();\nconst b = (a: Iterable<number>) => [...a];\nconst c = (a: Iterable<number>) => [...a];", ["b", "c"]),
+  A("it-map-entries", "const a = () => new Map([[\"k\", 1]]).entries();\nconst b = (a: Iterable<[string, number]>) => [...a].length;\nconst c = (a: Iterable<[string, number]>) => [...a].length;", ["b", "c"]),
+  A("it-in-record", "const a = () => ({ it: [1, 2].values() });\nconst b = (a: { it: Iterable<number> }) => [...a.it];\nconst c = (a: { it: Iterable<number> }) => [...a.it];", ["b", "c"]),
+  A("it-kept-fn", "const a = () => { const it = [1, 2].values(); return () => [...it].length; };", ["a"]),
+  // RegExp with g
+  A("re-g-input-test", "const r = () => new RegExp(\"a\", \"g\");\nconst a = (r: RegExp) => r.test(\"aa\");\nconst b = (r: RegExp) => r.test(\"aa\");", ["a", "b"]),
+  A("re-g-literal", "const r = () => /a/g;\nconst a = (r: RegExp) => r.exec(\"aa\")?.index ?? -1;", ["a"]),
+  A("re-y", "const r = () => new RegExp(\"a\", \"y\");\nconst a = (r: RegExp) => r.test(\"aa\");", ["a"]),
+  A("re-flags-var", "const f = () => \"g\";\nconst r = (f: string) => new RegExp(\"a\", f);\nconst a = (r: RegExp) => r.test(\"aa\");", ["a"]),
+  A("re-split-g", "const r = () => new RegExp(\"a\", \"g\");\nconst a = (r: RegExp) => \"bab\".replace(r, \"x\");", ["a"]),
+  A("re-match-g", "const r = () => new RegExp(\"a\", \"g\");\nconst a = (r: RegExp) => \"bab\".match(r)?.length ?? 0;", ["a"]),
+  A("re-kept-fn", "const a = () => { const r = new RegExp(\"a\", \"g\"); return () => r.test(\"aa\"); };", ["a"]),
+  A("re-in-record", "const r = () => ({ re: new RegExp(\"a\", \"g\") });\nconst a = (r: { re: RegExp }) => r.re.test(\"aa\");", ["a"]),
+];

@@ -1,0 +1,376 @@
+[
+ {
+  "name": "then-alias-inside",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "then-helper-inside",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "then-let-inside",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "then-chain-alias",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "then-error-alias",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b",
+   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)",
+   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "then-record-alias",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "then-map-alias",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "then-in-helper-call",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "then-cb-param-from-value",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "then-resolve-mut-cb-mut",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "then-all",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "then-direct-control",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-concat-deep",
+  "verdict": "REJECT a:rejected[no-non-null]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-concat-deep-arr",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-slice-deep",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-spread-deep",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-map-identity",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-flatmap",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-array-from",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-object-values",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-object-entries",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-new-map",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-new-set",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-fromEntries",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-splice",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-tosorted",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-filter",
+  "verdict": "REJECT a:rejected[member-write]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-record-spread",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-record-literal-field",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-array-literal-elem",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-array-literal-forof",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-map-literal-values",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-ternary",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-or",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-nullish",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-iife",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-identity-generic",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-reduce-init",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-find",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-at",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-structuredclone",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-typed-from",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: t,a"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-typed-new-src",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: t,a"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-typed-subarray",
+  "verdict": "REJECT a:rejected[member-write]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-typed-fill-result",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-sort-result-alias",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-ab-slice",
+  "verdict": "REJECT a:rejected[member-write]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-map-set-returns-self",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-set-add-returns-self",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "fc-fill-returns-self",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ }
+]

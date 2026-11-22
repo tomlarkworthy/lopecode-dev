@@ -1,13 +1,16 @@
 // bun lite/infer/complete-diff.ts: completionsAt of lite/complete.ts (the cells) against lite/infer/frozen/complete.ts
-// (the TypeScript Checker) at every identifier end and after every "." of the examples and the fixtures; exit 1 on a difference
+// (the TypeScript Checker) at every identifier end and after every "." of the examples and the fixtures; exit 1 on a
+// difference that is not in a reviewed class (cp-reviewed.ts)
 import { Glob } from "bun";
 import { parse, kids, type Node } from "./frozen/ts/parse.ts";
 import { completionsAt as live } from "../complete.ts";
 import { completionsAt as frozen } from "./frozen/complete.ts";
 import { splitCells } from "./frozen/ts/toolchain/ss-toolchain.ts";
+import { reviewedClass } from "./cp-reviewed.ts";
 const ROOT = new URL("../..", import.meta.url).pathname;
 const files = [...new Glob("lite/notebook/examples/*.ts*").scanSync(ROOT), ...new Glob("fixtures/*/*/cells.ts*").scanSync(ROOT)].sort();
 let cases = 0, same = 0, diff = 0, empty = 0;
+const reviewed = new Map<string, number>();
 const shown: string[] = [];
 for (const f of files) {
   const tsx = f.endsWith("x");
@@ -24,10 +27,13 @@ for (const f of files) {
     for (const off of ends) {
       cases++;
       const a = JSON.stringify(frozen(cells, at, off, tsx)), b = JSON.stringify(live(cells, at, off, tsx));
-      if (a === b) { same++; if (JSON.parse(a).options.length === 0) empty++; } else { diff++; if (shown.length < 5) shown.push(`${f} cell ${at} @${off}\n  frozen ${a.slice(0, 300)}\n  live   ${b.slice(0, 300)}`); }
+      const rc = a === b ? null : reviewedClass(t, off, tsx, tsx, a, b);
+      if (rc !== null) reviewed.set(rc, (reviewed.get(rc) ?? 0) + 1);
+      else if (a === b) { same++; if (JSON.parse(a).options.length === 0) empty++; } else { diff++; if (shown.length < 5) shown.push(`${f} cell ${at} @${off}\n  frozen ${a.slice(0, 300)}\n  live   ${b.slice(0, 300)}`); }
     }
   }
 }
 console.log(shown.join("\n"));
-console.log(`${files.length} files, ${cases} positions: SAME ${same} (${empty} with no options) DIFFERENT ${diff}`);
+const rv = [...reviewed];
+console.log(`${files.length} files, ${cases} positions: SAME ${same} (${empty} with no options) DIFFERENT ${diff} REVIEWED ${rv.reduce((x, [, k]) => x + k, 0)}${rv.length ? ` (${rv.map(([c, k]) => `${c} ${k}`).join("; ")}; lite/infer/cp-reviewed.ts)` : ""}`);
 if (diff) process.exit(1);

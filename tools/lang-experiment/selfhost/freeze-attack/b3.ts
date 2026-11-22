@@ -1,0 +1,61 @@
+import type { Attack } from "./harness.ts";
+const D0 = "let p: Promise<number> = Promise.resolve(0); for (let i = 0; i < 300; i++) p = p.then(() => 0);";
+const A = (name: string, src: string, show: string[] = []): Attack => ({ name, src, show });
+const B = "\nconst b = (a: number[]) => ({ v: a });";
+const R = "const xs = () => [{ n: 0 }];\n";
+const RA = "const xs = () => [[0]];\n";
+export const attacks: Attack[] = [
+  // then callbacks (kept) writing through an alias / helper / let inside them: no async syntax, so quick
+  A("then-alias-inside", "const a = () => { const D = (): Promise<number> => { let p: Promise<number> = Promise.resolve(0); for (let i = 0; i < 300; i++) p = p.then(() => 0); return p; }; const xs = [0]; D().then(() => { const r = xs; r.push(1); }); return xs; };" + B),
+  A("then-helper-inside", "const a = () => { const D = (): Promise<number> => { let p: Promise<number> = Promise.resolve(0); for (let i = 0; i < 300; i++) p = p.then(() => 0); return p; }; const xs = [0]; const h = () => xs; D().then(() => { h().push(1); }); return xs; };" + B),
+  A("then-let-inside", "const a = () => { const D = (): Promise<number> => { let p: Promise<number> = Promise.resolve(0); for (let i = 0; i < 300; i++) p = p.then(() => 0); return p; }; const xs = [0]; D().then(() => { let r: Mut<number[]> = []; r = xs; r.push(1); }); return xs; };" + B),
+  A("then-chain-alias", "const a = () => { const D = (): Promise<number> => { let p: Promise<number> = Promise.resolve(0); for (let i = 0; i < 300; i++) p = p.then(() => 0); return p; }; const xs = [0]; D().then(() => 1).then(() => { const r = xs; r.push(1); }); return xs; };" + B),
+  A("then-error-alias", "const a = () => { const D = (): Promise<number> => { let p: Promise<number> = Promise.resolve(0); for (let i = 0; i < 300; i++) p = p.then(() => 0); return p; }; const e = new Error(\"x\"); D().then(() => { const r = e; r.message = \"y\"; }); return e; };\nconst b = (a: Error) => ({ v: a });"),
+  A("then-record-alias", "const a = () => { const D = (): Promise<number> => { let p: Promise<number> = Promise.resolve(0); for (let i = 0; i < 300; i++) p = p.then(() => 0); return p; }; const o = { n: 0 }; D().then(() => { const r = o; r.n = 1; }); return o; };\nconst b = (a: { n: number }) => ({ v: a });"),
+  A("then-map-alias", "const a = () => { const D = (): Promise<number> => { let p: Promise<number> = Promise.resolve(0); for (let i = 0; i < 300; i++) p = p.then(() => 0); return p; }; const m = new Map<string, number>(); D().then(() => { const r = m; r.set(\"k\", 1); }); return m; };\nconst b = (a: Map<string, number>) => ({ v: a });"),
+  A("then-in-helper-call", "const a = () => { const D = (): Promise<number> => { let p: Promise<number> = Promise.resolve(0); for (let i = 0; i < 300; i++) p = p.then(() => 0); return p; }; const xs = [0]; const later = () => { D().then(() => { const r = xs; r.push(1); }); }; later(); return xs; };" + B),
+  A("then-cb-param-from-value", "const a = () => { const xs = [0]; Promise.resolve(xs).then((v) => { const r: Mut<number[]> = v; r.push(1); }); return xs; };" + B),
+  A("then-resolve-mut-cb-mut", "const a = () => { const xs = [0]; Promise.resolve(xs).then((v: Mut<number[]>) => { v.push(1); }); return xs; };" + B),
+  A("then-all", "const a = () => { const D = (): Promise<number> => { let p: Promise<number> = Promise.resolve(0); for (let i = 0; i < 300; i++) p = p.then(() => 0); return p; }; const xs = [0]; Promise.all([D()]).then(() => { const r = xs; r.push(1); }); return xs; };" + B),
+  // the then-callback typed write through captured, direct (control)
+  A("then-direct-control", "const a = () => { const D = (): Promise<number> => { let p: Promise<number> = Promise.resolve(0); for (let i = 0; i < 300; i++) p = p.then(() => 0); return p; }; const xs = [0]; D().then(() => { xs.push(1); }); return xs; };" + B),
+  // fresh copies that share structure with another cell's value: deep writes
+  A("fc-concat-deep", R + "const a = (xs: { n: number }[]) => { const ys = xs.concat([]); ys[0]!.n = 1; return 0; };"),
+  A("fc-concat-deep-arr", RA + "const a = (xs: number[][]) => { const ys = xs.concat([]); ys[0]?.push(1); return 0; };"),
+  A("fc-slice-deep", RA + "const a = (xs: number[][]) => { const ys = xs.slice(); const z = ys[0]; if (z) z.push(1); return 0; };"),
+  A("fc-spread-deep", RA + "const a = (xs: number[][]) => { const ys = [...xs]; for (const z of ys) z.push(1); return 0; };"),
+  A("fc-map-identity", RA + "const a = (xs: number[][]) => { const ys = xs.map((z) => z); ys.forEach((z) => z.push(1)); return 0; };"),
+  A("fc-flatmap", RA + "const a = (xs: number[][]) => { const ys = xs.flatMap((z) => [z]); for (const z of ys) z.push(1); return 0; };"),
+  A("fc-array-from", RA + "const a = (xs: number[][]) => { const ys = Array.from(xs); for (const z of ys) z.push(1); return 0; };"),
+  A("fc-object-values", "const o = () => ({ k: [0] });\nconst a = (o: { [k: string]: number[] }) => { for (const z of Object.values(o)) z.push(1); return 0; };"),
+  A("fc-object-entries", "const o = () => ({ k: [0] });\nconst a = (o: { [k: string]: number[] }) => { for (const [, z] of Object.entries(o)) z.push(1); return 0; };"),
+  A("fc-new-map", "const m = () => new Map([[\"k\", [0]]]);\nconst a = (m: Map<string, number[]>) => { const m2 = new Map(m); for (const z of m2.values()) z.push(1); return 0; };"),
+  A("fc-new-set", "const s = () => new Set([[0]]);\nconst a = (s: Set<number[]>) => { const s2 = new Set(s); s2.forEach((z) => z.push(1)); return 0; };"),
+  A("fc-fromEntries", "const o = () => ({ k: [0] });\nconst a = (o: { [k: string]: number[] }) => { const p = Object.fromEntries(Object.entries(o)); p[\"k\"]?.push(1); return 0; };"),
+  A("fc-splice", RA + "const a = (xs: number[][]) => { const ys = [...xs]; const r = ys.splice(0, 1); r[0]?.push(1); return 0; };"),
+  A("fc-tosorted", RA + "const a = (xs: number[][]) => { const ys = xs.toSorted(); ys[0]?.push(1); return 0; };"),
+  A("fc-filter", R + "const a = (xs: { n: number }[]) => { const ys = xs.filter(() => true); for (const y of ys) y.n = 3; return 0; };"),
+  A("fc-record-spread", "const o = () => ({ in: [0] });\nconst a = (o: { in: number[] }) => { const p = { ...o }; p.in.push(1); return 0; };"),
+  A("fc-record-literal-field", "const o = () => [0];\nconst a = (o: number[]) => { const p = { in: o }; p.in.push(1); return 0; };"),
+  A("fc-array-literal-elem", "const o = () => [0];\nconst a = (o: number[]) => { const p = [o]; p[0]?.push(1); return 0; };"),
+  A("fc-array-literal-forof", "const o = () => [0];\nconst a = (o: number[]) => { const p = [o]; for (const z of p) z.push(1); return 0; };"),
+  A("fc-map-literal-values", "const o = () => [0];\nconst a = (o: number[]) => { const m = new Map([[\"k\", o]]); m.get(\"k\")?.push(1); return 0; };"),
+  A("fc-ternary", "const o = () => [0];\nconst a = (o: number[]) => { const p = true ? o : [1]; p.push(1); return 0; };"),
+  A("fc-or", "const o = () => [0];\nconst a = (o: number[]) => { const p = o || [1]; p.push(1); return 0; };"),
+  A("fc-nullish", "const o = () => [0];\nconst a = (o: number[] | null) => { const p = o ?? [1]; p.push(1); return 0; };"),
+  A("fc-iife", "const o = () => [0];\nconst a = (o: number[]) => { const p = (() => o)(); p.push(1); return 0; };"),
+  A("fc-identity-generic", "const o = () => [0];\nconst a = (o: number[]) => { const id = <T,>(v: T) => v; const p = id(o); p.push(1); return 0; };"),
+  A("fc-reduce-init", "const o = () => [0];\nconst a = (o: number[]) => { const p = [1].reduce((acc) => acc, o); p.push(1); return 0; };"),
+  A("fc-find", RA + "const a = (xs: number[][]) => { const p = xs.find(() => true); p?.push(1); return 0; };"),
+  A("fc-at", RA + "const a = (xs: number[][]) => { const p = xs.at(0); p?.push(1); return 0; };"),
+  A("fc-structuredclone", RA + "const a = (xs: number[][]) => { const p = structuredClone(xs); p[0]?.push(1); return p; };"),
+  A("fc-typed-from", "const t = () => new Uint8Array(2);\nconst a = (t: Uint8Array) => { const p = Uint8Array.from(t); p[0] = 1; return 0; };"),
+  A("fc-typed-new-src", "const t = () => new Uint8Array(2);\nconst a = (t: Uint8Array) => { const p = new Uint8Array(t); p[0] = 1; return 0; };"),
+  A("fc-typed-subarray", "const t = () => new Uint8Array(2);\nconst a = (t: Uint8Array) => { const p = t.subarray(0); p[0] = 1; return 0; };"),
+  A("fc-typed-fill-result", "const a = () => { const t = new Uint8Array(2); const u = t.fill(0); return { t, f: () => u[0] }; };"),
+  A("fc-sort-result-alias", "const a = () => { const xs = [2, 1]; const ys = xs.sort(); const f = () => ys[0]; ys.reverse(); return f; };"),
+  A("fc-ab-slice", "const b = () => new ArrayBuffer(2);\nconst a = (b: ArrayBuffer) => { const c = b.slice(0); const v = new Uint8Array(c); v[0] = 1; return 0; };"),
+  A("fc-map-set-returns-self", "const a = () => { const m = new Map<string, number>(); const m2 = m.set(\"a\", 1); const f = () => m.size; m2.set(\"b\", 2); return f; };"),
+  A("fc-set-add-returns-self", "const a = () => { const s = new Set<number>(); const t = s.add(1); const f = () => s.size; t.add(2); return f; };"),
+  A("fc-fill-returns-self", "const a = () => { const xs = [0, 0]; const ys = xs.fill(0); const f = () => xs[0]; ys.fill(5); return f; };"),
+];

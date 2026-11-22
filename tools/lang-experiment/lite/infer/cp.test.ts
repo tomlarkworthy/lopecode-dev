@@ -84,3 +84,76 @@ test("cp-diff.ts: no difference on a seventh of the positions and on the facts; 
   expect(controls.length).toBe(5);
   for (const l of controls) expect(n(l, "DIFFERENT")).toBeGreaterThan(0);
 }, 900000);
+
+// the position of the cursor read on the Lezer tree (cp-lezer.ts, 2026-11-22), in text that does not parse: the mode
+// and an option that must be there ("" for none) or must not (a leading "!")
+import { completionsAt } from "../complete.ts";
+import { cpLezerAt } from "./cp-lezer.ts";
+import { linkCp } from "./cp-index.ts";
+const AT: [string, string, string][] = [
+  ["const f = (x: { readonly a: number }) => x.‸", "member", "a"],
+  ["const f = (x: { readonly a: number }) => x?.‸", "member", "a"],
+  ["const f = (x: { readonly a: number }) => x. ‸", "member", "a"],
+  ["const f = (x) => { if (x.‸", "member", ""],
+  ["const f = (co‸", "param", "count"],
+  ["const f = (‸", "param", "count"],
+  ["const f = (a, ‸", "param", "count"],
+  ["const f = async (‸", "param", "count"],
+  ["function f(‸", "param", "count"],
+  ["const f = function (‸", "param", "count"],
+  ["export const f = (‸", "param", "count"],
+  ["const f = (count, ‸", "param", "!count"],
+  ["const f = (x = 1, ‸", "param", "count"],
+  ["const f = ([a], ‸", "param", "count"],
+  ["const f = ({ a }, ‸", "param", "count"],
+  ["const f = (cb = () => 1, co‸", "param", "count"],
+  ["/* a */ x /* b */ const f = (co‸", "name", ""],
+  ["const f = (x: ‸", "type", "number"],
+  ["const f = (x: Ma‸", "type", "Map"],
+  ["const f = (x: number): ‸", "type", "string"],
+  ["const f = (x: { a: ‸", "type", "number"],
+  ["const f = (x: Map<string, ‸", "type", "number"],
+  ["const f = (x: number = ‸", "name", ""],
+  ["const f = (a: number, b: string) => (‸", "name", ""],
+  ["const f = (x: { readonly a: number }) => `http://h/${x.‸", "member", "a"],
+  ["const f = (x: { readonly a: number }) => `don't ${x.‸", "member", "a"],
+  ["const f = () => `tpl ${ ‸", "name", ""],
+  ['const f = () => "str‸', "none", ""],
+  ["const f = () => 'str‸", "none", ""],
+  ["const f = () => 1; // comm‸", "none", ""],
+  ["const f = () => 1; /* comm‸", "none", ""],
+  ["const f = () => `tpl ‸", "none", ""],
+  ["const f = () => `a ${1} b‸", "none", ""],
+  ["const f = (x: { readonly a: number }) => ({ ...‸", "none", ""],
+  ["const f = () => [...‸", "none", ""],
+  ["const f = () => 1.‸", "none", ""],
+  ["const f = () => <div ‸", "jsx", "class"],
+  ['const f = () => <div class="a" ‸', "jsx", "!class"],
+  ["const f = () => <div cl‸", "jsx", "class"],
+  ["const f = () => <div class={1} ‸", "jsx", "!class"],
+  ['const f = () => <div class="‸', "none", ""],
+  ["const f = () => <div class=‸", "name", ""],
+  ["const f = () => <div class={‸", "name", ""],
+  ["const f = () => <Foo ‸", "name", ""],
+  ["const f = () => <div>text ‸", "name", ""],
+  ["const f = (x: number) => x as ‸", "name", ""],
+  ["const f = () => foo(1, ‸", "name", ""],
+];
+test("completion modes at cursor positions in incomplete text", () => {
+  const got = AT.map(([t, mode, label]) => {
+    const r = completionsAt(["const count = () => 1;", t.split("‸").join("")], 1, t.indexOf("‸"), true);
+    const labels = r.options.map((o) => o.label);
+    const ok = r.mode === mode && (label === "" || (label.startsWith("!") ? !labels.includes(label.slice(1)) : labels.includes(label)));
+    return ok ? "ok" : `${t}: ${r.mode} ${JSON.stringify(labels.slice(0, 8))}`;
+  });
+  expect(got.filter((g) => g !== "ok")).toEqual([]);
+}, 120000);
+test("the brackets open at the end of a text, innermost first, from the tree", () => {
+  const L = linkCp();
+  const closers = (t: string) => L.cpScan(t, cpLezerAt(t, t.length, true)).closers;
+  expect(closers("f(a, [1, {b: `x ${y")).toEqual(["}", "`", "}", "]", ")"]);
+  expect(closers("if (a) { g(")).toEqual([")", "}"]);
+  expect(closers("const s = `http://h/${a.")).toEqual(["}", "`"]);
+  expect(closers("x = f(a) + [1]")).toEqual([]);
+  expect(L.cpScan("x = `a ${b} c", cpLezerAt("x = `a ${b} c", 13, true)).quoted).toBe(true);
+});

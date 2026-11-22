@@ -1659,3 +1659,75 @@ Unverified / left: acorn.test census, 1 of 1995 truncations gives a different er
 codemodded text; not looked into). Prose now false: spec S4.1–S4.9, S5.1–S5.5; tutorial lines 64, 70, 281 and the
 rule list; examples/03-mut.ts and 02-errors.ts comments. Unchecked lines added: freeze.ts 17, observe.ts 39,
 strip-calls.ts 64 (test-only), bun-verify/run.ts 2.
+
+## 2026-11-22 12:22–12:48: completion's cursor position read on a Lezer tree (build owner, logs `lite/soundscript/.scratch/cp-port/g-*.log`, `lz-*.log`)
+Start time not recorded; 12:22 is the first `date`. The character scan `cpScan` and 12 of the 15 regular expressions
+over the text before the cursor (complete.ts's) are replaced by a Lezer parse with the TSX/TypeScript grammars of
+`@tomlarkworthy/codemirror-6-v2` (`codemirror.tsxLanguage` / `typescriptLanguage`, the grammar the editor already
+loads). No grammar or dependency is added to the notebook.
+
+Step 0. (a) Parsing the text before the cursor gives usable nodes at its end for every case tried: `a.`/`a?.` (last
+token `.`/`?.` under MemberExpression), `<Fo` (JSXIdentifier), `<Foo bar=` (Equals under JSXAttribute), `(x: `
+(TypeAnnotation under ParamList), `): ` (TypeAnnotation under ArrowFunction), `foo(1, ` (ArgList), `"str` (String with
+an error child), `// comment` (LineComment), `` `tpl ${ `` (Interpolation), `{ ...` / `[...` (Spread), `1.` (Number
+"1."), `type T = { a: `, `x as ` (BinaryExpression). An unclosed node ends at the end with a zero-width `⚠` child,
+which is how an open string, comment, template or bracket is told from a closed one. Two shapes needed handling:
+`const f = (` and `const f = ([a], ` parse as ParenthesizedExpression (taken as the head's list while it has no `)`),
+and JSXBuiltin's span includes the space after the tag name (the name is read from its JSXIdentifier child).
+(b) bun: `lite/infer/cp-lezer-bun.ts` reads the attachment `codemirror_javascript%405.js.gz` from the build's input,
+lopecode/notebooks/quick_start.html, gunzips it once to `soundscript/.scratch/codemirror_javascript-<hash>.js` and
+`require`s it on first use. It loads in bun with no DOM (22 ms). The notebook does not use this file: the checker
+module gets `import { codemirror } from "@tomlarkworthy/codemirror-6-v2"` (ts-cells.ts PARSER_CELLS; `reachable()`
+skips the bun-only file).
+
+Changes. New unchecked cell `cpLezerAt` (`lite/infer/cp-lezer.ts`, 30 lines, 21 of them code): parses `text` (4 trees
+kept, by text) and returns the path from the top node down to the last non-empty node starting before `pos`, innermost
+first, each `{ name, from, to, kids }`. It reaches the cells as `CpHost.treeAt` (complete.ts), not through the
+boundary, so nothing is copied or frozen per call. Checked cells in cp-text.ss.ts: `cpOpenIn`, `cpQuoted`, `cpScan`,
+`cpNoOffer`, `cpIsMember`, `cpNodeOf`, `cpTagAt`, `cpGivenAttrs`, `cpHeadFn`, `cpHeadOf`, `cpSameNode`, `cpSelfName`,
+`cpParamNames`, `cpParamListAt`, `cpTypeAt` (largest `cpHeadFn`, 13 lines). `cpAddParameter` reads the head's ParamList;
+`cpParamSegments`, `cpHeadLen`, `cpCommentEnd`, `cpQuoteEnd` are deleted. Lines: cp-text 127 -> 124, cp-param 69 -> 45,
+cp-modes 88 -> 89, cp-types 29 -> 37. Scope kept: type and parameter modes only in the cell's own head function.
+Regular expressions removed: cp-text 46, 54, 61, 66, 80, 92, 98, 117, 125 (two), 127; cp-param 32. Kept, a deviation from the brief: cp-text 5 and 7
+(`cpWordEnd`, `cpAfterWord`, the typed word and its rest after the cursor). Inside a string, comment or JSX text the
+tree has no token for the word, and `from` there is part of the compared answer; at code positions the tree could give
+it, at the cost of a parse of the whole text. Kept as allowed: cp-param 58 (one object key tested as an identifier); `cpDeclared` (type names a text
+declares, not the cursor's position; untouched).
+
+Commands and lines (12:27–12:38, AC Power, load 1.99–3.98):
+- `bun lite/soundscript/build.ts --force`: exit 0.
+- `bun bun-verify/run.ts`: `bun-verify: 168 pass, 0 fail, 0 timed out, 0 skipped; 5.8 s`.
+- `bun fixtures.ts`: `14/14 fixtures pass; 51 lint/injection rules registered, 51 with a reject case (49 of them in the specification module); 0 failure(s)`.
+- `bun lite/infer/cp-diff.ts`: `completion: 15669 positions (and their reruns with outside cells / tsx off): SAME 17825 DIFFERENT 0 REVIEWED 30 (type argument read as a JSX tag 8; TSX text read with tsx off 12; arrow in an earlier parameter 10)`; `addParameter / annotationOf: SAME 67834 DIFFERENT 0`; `facts: 3588 sources: cellsOf SAME 3552 DIFFERENT 0 (both threw 36)`.
+- `bun lite/infer/complete-diff.ts`: `37 files, 6099 positions: SAME 6095 (1729 with no options) DIFFERENT 0 REVIEWED 4 (arrow in an earlier parameter 4; lite/infer/cp-reviewed.ts)`.
+- `cd lite && bun test infer/cp.test.ts`: `7 pass 0 fail` (two new tests: 47 cursor positions in incomplete text, mode and an option present or absent; closers from the tree). `bun complete.test.ts`: `58 pass, 0 fail`.
+- `bun lite/soundscript/verify.ts`: `power AC Power; functional 649 pass 0 fail; measurements 8`.
+
+Reviewed differences (`lite/infer/cp-reviewed.ts`, a predicate and a comment per class; the gate is 0 DIFFERENT):
+1. Arrow in an earlier parameter (known bug 2): `const test_replay = (start: () => World, s‸` was a name position
+   (the `>` of `=>` closed the list); now the parameter list. 10 in cp-diff, 4 in complete-diff.
+2. Type argument read as a JSX tag: `State<readonly A‸` gave "none" (tag "readonly"); now a type (in the head) or a
+   name probe. 8.
+3. TSX text read with tsx off (cp-diff's rerun of JSX positions): the TypeScript grammar misreads JSX and answers
+   "none" where the scan answered "name"; neither answer means anything and both offer nothing. 12. The 6 member
+   positions of the same cell (09-breakout cell 20) with tsx off: 3 the same, 3 member [] before and name/none [] now.
+Class 1's predicate was narrowed to an arrow after the first `(` after the review; reruns of complete-diff and
+`cp-diff.ts --no-facts` give the same counts (logs `g2-*.log`).
+Known bugs 1 (a `//` or `'` in a template's text hid a later `${…}`) and 3 (text between two block comments before
+the head) have no corpus position; `bun lite/infer/repro/cp-complete-bugs.ts` shows both fixed (member ["a"]; name []).
+Also changed and seen only in hand checks: `(x: T = ‸` is no longer a type position; `<p>don"t {a.‸` is a member read.
+
+Cost. bun (`bun lite/infer/cp-lezer-time.ts --old <copy>`, 51 tutorial positions, checks answered from a table):
+before 15.0–23.1 µs per completion, after 41.2–62.0 µs (+26 to +39 µs; one parse of the text before the cursor, and a
+few for the head). Browser (verify, the final build): completion `median 4.8 ms, max 5.5 ms of 30`, lint `median 4.6
+ms, max 8.8 ms of 30` (given baseline 5.4 / 4.9 ms; an earlier verify of an intermediate build gave 4.9 / 4.6 ms).
+
+Dead ends: the build rejected the first cells ([possibly-undefined] on `path[0]`, `init.kids[i]`; [strict-eq-object]
+on comparing two nodes) and was fixed in the cells, not the checker; entry.ts reachability listed the bun-only loader
+until `BUN_ONLY`. Unverified: the "before" timing uses the pre-change cells from `selfhost/opaque-handles/base/lite/infer`
+(same line counts, copied to `.scratch/cp-port/oldcp`) with their `mut(...)`/`freeze(...)` calls stripped, not the exact shipped copy, which was not kept;
+the browser baseline is the given one. In an unclosed `(…` parsed as a sequence, a name inside `a = 1` is not read as
+already given. `/review-notebook` not run on this section. Options offered through the notebook's own import of codemirror are
+asserted by verify's `pass completion: typing count. in increment lists exactly set and update: ["set","update"]`.
+`bun lite/soundscript/ts-cells.test.ts` now injects the bun codemirror as a module (as it injects the parser):
+`9 pass, 0 fail`. The "before" cells are kept in `lite/soundscript/.scratch/cp-port/oldcp` (cp-lezer-time.ts's default).

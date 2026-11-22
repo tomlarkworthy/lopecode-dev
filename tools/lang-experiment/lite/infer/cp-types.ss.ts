@@ -19,11 +19,19 @@ export type CpHost = {
   readonly cellTypes: (cells: string) => [string, string][] | null;
   readonly annotate: (name: string) => string | null;
   readonly fresh: () => CpReg;
+  readonly treeAt: CpTreeAt;
 };
 // the capabilities by name with their types, and the type names a cell may write
 export type CpConst = { readonly caps: Map<string, string>; readonly typeNames: string[] };
 export type CpOutside = { readonly name: string; readonly view?: boolean };
 export type CpScan = { readonly quoted: boolean; readonly closers: string[] };
+// a node of a Lezer parse (cp-lezer.ts): its name in the grammar ("⚠" for an error) and its span
+export type CpLzSpan = { readonly name: string; readonly from: number; readonly to: number };
+export type CpLzNode = { readonly name: string; readonly from: number; readonly to: number; readonly kids: CpLzSpan[] };
+// the path from the top node down to the last non-empty node starting before pos, innermost first, with children
+export type CpTreeAt = (text: string, pos: number) => CpLzNode[];
+// the cell's own function: its declaration, the function and its parameter list
+export type CpHead = { readonly decl: CpLzNode; readonly fn: CpLzNode; readonly list: CpLzNode };
 export type CpEdit = { readonly from: number; readonly to: number; readonly insert: string };
 // facts.ts cellsOf: the cells' facts, or the parse error's message
 export type CpCells = { readonly ok: true; readonly cells: MdInfo[] } | { readonly ok: false; readonly message: string };

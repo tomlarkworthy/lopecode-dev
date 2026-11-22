@@ -56,7 +56,7 @@ const SS_GROUPS = [INFER, TOOLCHAIN];
 const SS_SHELL: Record<string, string[]> = { "acorn/acorn.ss.ts": ["acorn/acorn-shell.ts"], "acorn/syntax.ss.ts": ["acorn/acorn-shell.ts"], ...Object.fromEntries(INFER.map((f) => [f, ["acorn/acorn-shell.ts"]])),
   ...Object.fromEntries(TOOLCHAIN.map((f) => [f, ["acorn/acorn-shell.ts", "toolchain/tc-shell.ts"]])) };
 const BOOTSTRAP = ["types.ts", "runtime-ss.ts", "shape-ss.ts", "checks-ss.ts", "link.ts", "acorn/index.ts", "infer-ss.ts", "toolchain/tc-index.ts"];
-const CHECKER_FILES = ["parse.ts", "intrinsics.ts", "subtype.ss.ts", "walks.ss.ts", "island.ss.ts", "island.ts", "facts.ts", "messages.ss.ts", "acorn/acorn-rows.ts", "acorn/acorn-shell.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "acorn/syntax.ss.ts", ...INFER, "infer/rg-registry.ts", "core.ts", "complete.ts", "jsx/lower.ts", "browser/erase.ts", "toolchain/ss-toolchain.ts", "toolchain/tc-shell.ts", ...TOOLCHAIN];
+const CHECKER_FILES = ["parse.ts", "intrinsics.ts", "subtype.ss.ts", "walks.ss.ts", "island.ss.ts", "island.ts", "facts.ts", "messages.ss.ts", "acorn/acorn-rows.ts", "acorn/acorn-shell.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "acorn/syntax.ss.ts", ...INFER, "infer/rg-registry.ts", "core.ts", "infer/cp-lezer.ts", "complete.ts", "jsx/lower.ts", "browser/erase.ts", "toolchain/ss-toolchain.ts", "toolchain/tc-shell.ts", ...TOOLCHAIN];
 // the third-party imports, and the cells of the checker module that provide them
 const THIRD_PARTY: Record<string, { namespace?: string; names?: string[] }> = { acorn: { namespace: "acorn" }, "@sveltejs/acorn-typescript": { names: ["tsPlugin"] } };
 export const PARSER_FILE = "acorn-typescript.js.gz";
@@ -74,6 +74,8 @@ const PARSER_CELLS = [
 }`,
   "acorn = parser_lib.acorn",
   "tsPlugin = parser_lib.tsPlugin",
+  // the editor's Lezer grammars, which completion reads the cursor's position with (infer/cp-lezer.ts)
+  `import { codemirror } from "@tomlarkworthy/codemirror-6-v2"`,
 ];
 // globals a generated cell may take as an input (the runtime resolves them: Generators is its builtin, the rest are on window)
 const GLOBALS = new Set(["globalThis", "structuredClone", "Event", "EventTarget", "Generators"]);
@@ -107,6 +109,7 @@ const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?:
   "intrinsics.ts": { title: "Prelude declarations", checker: "The declaration text the checker reads for the prelude, the capabilities, JSX and the allowed globals, and the lists of prelude functions and capability names." },
   "subtype.ss.ts": { title: "Subtyping and unification", checker: "Which type names expand before a comparison, member lookup, subtyping, call signatures, the element type of an iterable, and the unification that infers type arguments, over the checker's types. The Registry passes in what needs its declarations: alias expansion and an interface's members. These cells are SoundScript." },
   "walks.ss.ts": { title: "Walks over a type", checker: "Questions asked of a type by walking it, with aliases expanded: what may not be sent to a worker (`uncloneableWith`), what a `structuredClone` call cannot copy (`cloneProblemWith`), whether undefined is one of its values, which of some names it mentions, and whether it holds a type the checker could not work out (`hasErrWith`). These cells are SoundScript." },
+  "infer/cp-lezer.ts": { title: "The parser for the cursor's position", checker: "`cpLezerAt` parses a cell's text with the TypeScript or TSX grammar of `@tomlarkworthy/codemirror-6-v2`, which gives a tree for text that does not parse, and returns the nodes from the top down to the last one before a position, each with its children, as plain data. Completion reads where the cursor is from them. It is the one cell of completion that is not checked." },
   "infer/rg-registry.ts": { title: "Declarations", checker: "`rgRegistryOf` makes the registry the cells of the section \"Declarations over typed trees\" read and write: its tables, the records of functions the cells of the section \"Subtyping and unification\" take, and the three declaration texts loaded."  },
   "infer/ix": { title: "Type checking a cell", checker: "The type checker for one cell, and the facts it records for the ownership rules. These cells are SoundScript." },
   "infer/rg": { title: "Declarations over typed trees", checker: "The declarations the checker knows by name, read from the typed tree of the prelude, the capabilities, JSX, a module's foreign declarations and its own type declarations; the conversion of type syntax to the checker's types, the expansion of aliases and an interface's members, which the cells of the section \"Subtyping and unification\" take. `checkSources` builds its registry from these cells. These cells are SoundScript." },
@@ -146,11 +149,13 @@ type Stmt = { file: string; names: string[]; isLet: boolean; kind: "function" | 
 type Group = { file: string; stmts: Stmt[]; module?: string; deps: Set<Group>; name: string };
 
 // the files bundled from entry.ts, by their relative imports
+// a bun-only file a source imports a notebook cell's stand-in from; in the notebook the cell is an import (PARSER_CELLS)
+const BUN_ONLY = ["infer/cp-lezer-bun.ts"];
 function reachable(): string[] {
   const tt = new Bun.Transpiler({ loader: "ts" });
   const seen = new Set<string>();
   const go = (f: string) => {
-    if (seen.has(f)) return;
+    if (seen.has(f) || BUN_ONLY.includes(relative(LITE, f))) return;
     seen.add(f);
     for (const i of tt.scanImports(readFileSync(f, "utf8"))) if (i.path.startsWith(".")) go(resolve(dirname(f), i.path));
   };
@@ -409,7 +414,7 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   }
   for (const m of [RUNTIME, CHECKER]) if (tests[m].cells.length) cells[m].push(`md\`## Tests\n\n${mdText(TESTS_LINE[m])}\``, ...tests[m].cells);
   // inputs that are neither cells nor the parser's: globals, listed
-  const known = new Set([...owner.keys(), ...groups.map((g) => g.name).filter(Boolean), ...tests[RUNTIME].names, ...tests[CHECKER].names, "acorn", "tsPlugin", "parser_lib", "md", "FileAttachment", "soundscript", ...RUNTIME_INPUTS.keys()]);
+  const known = new Set([...owner.keys(), ...groups.map((g) => g.name).filter(Boolean), ...tests[RUNTIME].names, ...tests[CHECKER].names, "acorn", "tsPlugin", "parser_lib", "codemirror", "md", "FileAttachment", "soundscript", ...RUNTIME_INPUTS.keys()]);
   const strays = new Set<string>();
   for (const m of [RUNTIME, CHECKER, WORKERS]) for (const src of cells[m]) for (const v of compile(src)) for (const i of v._inputs ?? []) if (!known.has(i)) strays.add(i);
   const unexpected = [...strays].filter((n) => !GLOBALS.has(n));

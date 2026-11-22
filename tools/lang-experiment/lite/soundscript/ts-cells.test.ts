@@ -81,6 +81,13 @@ const all = async (name: string) => {
 };
 load(RUNTIME);
 await all(RUNTIME);
+// the checker imports codemirror (completion's Lezer grammars, infer/cp-lezer.ts): the bun copy, as the parser is injected
+{
+  const { codemirror } = await import("../infer/cp-lezer-bun.ts");
+  const cm = runtime.module();
+  cm.define("codemirror", [], () => codemirror);
+  mods.set("@tomlarkworthy/codemirror-6-v2", cm);
+}
 const checker = load(CHECKER, { parser_lib: { acorn, tsPlugin } });
 await all(CHECKER);
 const ss = await checker.value("soundscript");

@@ -11,10 +11,11 @@ export const cpPick = () => (from: number, to: number, mode: CpMode, options: Cp
   ({ from, to, mode, options: options.filter((o) => o.label.startsWith(prefix)) });
 export const cpByLabel = () => (xs: CpOption[]): CpOption[] => xs.toSorted((a, b) => a.label.localeCompare(b.label));
 // <tag attr…: the tag's declared attributes not given yet, children never; null when the tag is not declared
-export const cpJsxOptions = (cpMemberNames, cpGivenAttrs, cpByLabel, named, show) => (reg: CpReg, before: string, tag: string): CpOption[] | null => {
-  const p = reg.member(named("IntrinsicElements"), tag);
+export const cpJsxOptions = (cpMemberNames, cpGivenAttrs, cpNodeOf, cpByLabel, named, show) => (reg: CpReg, at: CpTreeAt, before: string, tag: CpLzNode): CpOption[] | null => {
+  const b = tag.kids.find((k) => k.name === "JSXBuiltin"), id = b === undefined ? undefined : cpNodeOf(at, before, b)?.kids[0];
+  const p = id === undefined ? undefined : reg.member(named("IntrinsicElements"), before.slice(id.from, id.to));
   if (p === undefined) return null;
-  const have = cpGivenAttrs(before.slice(before.lastIndexOf("<" + tag)));
+  const have = cpGivenAttrs(at, before, tag);
   const opts: Mut<CpOption[]> = [];
   for (const n of cpMemberNames(reg, reg.expand(p.t))) {
     if (n === "children" || have.has(n)) continue;
@@ -33,8 +34,7 @@ export const cpTypeOptions = (cpDeclared, cpByLabel) => (typeNames: string[], ce
 export const cpOutsideOption = () => (n: string, ann: string | null): CpOption =>
   ({ label: n, type: "variable", detail: ann !== null && ann !== "" ? `other language: ${ann}` : "other language: annotate its type", apply: `${n}: ${ann ?? ""}` });
 // in the parameter list: the other cells with their types, the capabilities, the cells in other languages
-export const cpParamOptions = (cpSelfName, cpOutsideOption, cpByLabel) => (H: CpHost, caps: Map<string, string>, cells: string[], at: number, before: string, params: string[], outside: CpOutside[], prefix: string): CpOption[] => {
-  const self = cpSelfName(before);
+export const cpParamOptions = (cpOutsideOption, cpByLabel) => (H: CpHost, caps: Map<string, string>, cells: string[], at: number, self: string | null, params: string[], outside: CpOutside[], prefix: string): CpOption[] => {
   const types = new Map(H.cellTypes(cells.filter((c, i) => i !== at).join("\n\n")) ?? []);
   const opts: Mut<CpOption[]> = [];
   for (const [n, t] of types) if (n !== self && !params.includes(n)) opts.push({ label: n, type: "variable", detail: `cell: ${t}` });
@@ -69,20 +69,21 @@ export const cpProbeOptions = (cpVariants, cpMembersOf, cpNameOptions, cpPick) =
   return { from, to: offset, options: [], mode: member ? "member" : "name" };
 };
 // completionsAt: the options at offset of cell at, and the range the chosen one replaces
-export const cpCompletionsAt = (cpWordEnd, cpScan, cpNoOffer, cpTagAt, cpJsxOptions, cpTypeAt, cpTypeOptions, cpParamListAt, cpParamOptions, cpIsMember, cpProbeOptions, cpPick) =>
+export const cpCompletionsAt = (cpWordEnd, cpScan, cpNoOffer, cpTagAt, cpJsxOptions, cpHeadOf, cpTypeAt, cpTypeOptions, cpParamListAt, cpSelfName, cpParamOptions, cpIsMember, cpProbeOptions, cpPick) =>
   (H: CpHost, E: CpConst, cells: string[], at: number, offset: number, tsx: boolean, outside: CpOutside[]): CpResult => {
     const text = cells[at] ?? "";
     const prefix = cpWordEnd(text.slice(0, offset));
     const from = offset - prefix.length, before = text.slice(0, from);
     const none: CpResult = { from, to: offset, options: [], mode: "none" };
-    const sc = cpScan(text, from);
-    if (sc.quoted || cpNoOffer(before)) return none;
-    const tag = tsx ? cpTagAt(before) : null;
-    if (tag !== null) { const o = cpJsxOptions(H.fresh(), before, tag); return o === null ? none : cpPick(from, offset, "jsx", o, prefix); }
-    if (cpTypeAt(before)) return cpPick(from, offset, "type", cpTypeOptions(E.typeNames, cells, at), prefix);
-    const params = cpParamListAt(before);
-    if (params !== null) return cpPick(from, offset, "param", cpParamOptions(H, E.caps, cells, at, before, params, outside, prefix), prefix);
-    const member = cpIsMember(before);
+    const path = H.treeAt(before, from), sc = cpScan(before, path);
+    if (sc.quoted || cpNoOffer(before, path)) return none;
+    const tag = tsx ? cpTagAt(before, path) : null;
+    if (tag !== null) { const o = cpJsxOptions(H.fresh(), H.treeAt, before, tag); return o === null ? none : cpPick(from, offset, "jsx", o, prefix); }
+    const head = cpHeadOf(H.treeAt, before);
+    if (cpTypeAt(path, head)) return cpPick(from, offset, "type", cpTypeOptions(E.typeNames, cells, at), prefix);
+    const params = cpParamListAt(before, path, head);
+    if (params !== null) return cpPick(from, offset, "param", cpParamOptions(H, E.caps, cells, at, cpSelfName(before, head), params, outside, prefix), prefix);
+    const member = cpIsMember(path);
     if (!member && prefix === "") return { from, to: offset, options: [], mode: "name" };
     return cpProbeOptions(H, cells, at, offset, from, before, sc.closers, member, prefix);
   };

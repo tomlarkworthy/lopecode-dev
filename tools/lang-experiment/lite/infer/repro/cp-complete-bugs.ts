@@ -1,4 +1,5 @@
-// complete.ts behaviour the cp cells reproduce, not fixed (bun lite/infer/repro/cp-complete-bugs.ts prints both sides).
+// complete.ts behaviour the cp cells reproduced until 2026-11-22; bugs 1 to 3 are fixed since the cells read the cursor's
+// position on a Lezer tree (cp-lezer.ts). bun lite/infer/repro/cp-complete-bugs.ts prints both sides.
 // 1. scan reads `//`, `/*`, `"` and `'` as a comment or string even inside a template literal's text, so after
 //    `http://` or `don't` in a template the cursor counts as quoted and nothing is offered inside a later `${…}`.
 // 2. paramListAt counts the `>` of `=>` as a closing bracket, so after a parameter whose default is an arrow function

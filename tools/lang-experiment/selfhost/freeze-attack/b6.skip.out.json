@@ -1,0 +1,365 @@
+[
+ {
+  "name": "hs-then-alias-param",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: H,a,b",
+   "CHANGED a (value #1 of 1): [0] -> [0,1]",
+   "CHANGED b (value #1 of 1): {v:[0]} -> {v:[0,1]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "hs-then-direct-param",
+  "verdict": "REJECT H:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "hs-then-alias-param-error",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: H,a,b",
+   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)",
+   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "hs-async-inner-helper",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b",
+   "CHANGED a (value #1 of 1): [0] -> [0,1]",
+   "CHANGED b (value #1 of 1): {v:[0]} -> {v:[0,1]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "hs-async-inner-helper-typed",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b",
+   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[3,0]",
+   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[3,0]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "hs-async-inner-helper-url",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b",
+   "CHANGED a (value #1 of 1): URL(https://x.test/) -> URL(https://x.test/#z)",
+   "CHANGED b (value #1 of 1): {v:URL(https://x.test/)} -> {v:URL(https://x.test/#z)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ls-nested-async-in-helper-typed",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[4,0]",
+   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[4,0]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ls-async-iife-typed",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ls-async-iife-error",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ls-async-fn-decl-typed",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[6,0]",
+   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[6,0]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ls-async-alias-typed",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[7,0]",
+   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[7,0]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ls-async-subarray",
+  "verdict": "REJECT a:rejected[member-write]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ls-async-fill",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[9,9]",
+   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[9,9]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ls-async-buffer-view",
+  "verdict": "REJECT a:rejected[member-write]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ls-async-url-search",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): {u:URL(https://x.test/)} -> {u:URL(https://x.test/?q)}",
+   "CHANGED b (value #1 of 1): {u:URL(https://x.test/)} -> {u:URL(https://x.test/?q)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ls-async-typed-then-cell-two",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): [Float64Array[0]] -> [Float64Array[1.5]]",
+   "CHANGED b (value #1 of 1): {v:[Float64Array[0]]} -> {v:[Float64Array[1.5]]}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ls-async-param-error",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:z)",
+   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:z)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ls-gen-cell-async-helper-typed",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: "
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ac-then-alias-state-typed",
+  "verdict": "REJECT w:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ac-then-alias-state-error",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: w,b",
+   "show b = {v:Error(Error:y)}"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ac-then-alias-state-array",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: w,b",
+   "show b = {v:[5]}"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ac-returns-typed",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: w"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ac-update-keeps",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: w"
+  ],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ac-state-typed-initial-then",
+  "verdict": "REJECT s:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "ac-state-error-initial-then",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED s (value #1 of 1): Error(Error:x) -> Error(Error:y)",
+   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "ac-state-url-initial-async",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: b",
+   "CHANGED s (value #1 of 1): URL(https://x.test/) -> URL(https://x.test/#q)",
+   "CHANGED b (value #1 of 1): {v:URL(https://x.test/)} -> {v:URL(https://x.test/#q)}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "th-typed-helper",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "th-typed-alias",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "th-error-helper",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a",
+   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "th-error-direct",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "th-url-helper",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "th-map-helper-skip",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b",
+   "CHANGED a (value #1 of 1): Map{} -> Map{\"k\"=>1}",
+   "CHANGED b (value #1 of 1): {v:Map{}} -> {v:Map{\"k\"=>1}}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "th-set-alias-skip",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,b",
+   "CHANGED a (value #1 of 1): Set{} -> Set{1}",
+   "CHANGED b (value #1 of 1): {v:Set{}} -> {v:Set{1}}"
+  ],
+  "silent": true,
+  "threw": false
+ },
+ {
+  "name": "th-nested-record-skip",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "th-member-of-captured",
+  "verdict": "REJECT a:rejected[mutating-method][mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "th-forof-captured",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "th-at-captured",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "th-index-captured",
+  "verdict": "REJECT a:rejected[mutating-method][mut-capture]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "th-map-get-captured",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "silent": false,
+  "threw": false
+ },
+ {
+  "name": "th-kept-returns-then",
+  "verdict": "ACCEPT",
+  "out": [
+   "quick: a,c,b",
+   "CHANGED a (value #1 of 1): {xs:[0],k:fn(0)} -> {xs:[0,1,1],k:fn(0)}",
+   "CHANGED b (value #1 of 1): {v:[0]} -> {v:[0,1,1]}"
+  ],
+  "silent": true,
+  "threw": false
+ }
+]

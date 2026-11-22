@@ -22,6 +22,7 @@ import { linkCp, type CpLinked } from "./cp-index.ts";
 import { completionsAtWith, addParameter, annotationOf, completionWork as cpWork } from "../complete.ts";
 import { cellsOf, factsOf as cpFactsOf, preludeCalls, globalRefs } from "../facts.ts";
 import { PROBES } from "./cp-probes.ts";
+import { reviewedClass } from "./cp-reviewed.ts";
 import type { AstNode } from "../acorn/acorn-types.ss.ts";
 import type { Ty } from "../types.ts";
 
@@ -150,14 +151,17 @@ function kindsOf(p: Pos, res: string, seen: Seen, withOutside: boolean, tsxOff: 
 
 type Tally = Map<string, { same: number; diff: number; withOptions: number; notProbe: number }>;
 const bump = (t: Tally, k: string, same: boolean, withOptions: boolean, probe: boolean) => { const e = t.get(k) ?? { same: 0, diff: 0, withOptions: 0, notProbe: 0 }; if (same) e.same++; else e.diff++; if (withOptions) e.withOptions++; if (!probe) e.notProbe++; t.set(k, e); };
-function completionPass(L: CpLinked, ps: Pos[], label: string, withKinds: boolean): { same: number; diff: number; tally: Tally; shown: string[] } {
+function completionPass(L: CpLinked, ps: Pos[], label: string, withKinds: boolean): { same: number; diff: number; reviewed: Map<string, number>; tally: Tally; shown: string[] } {
   let same = 0, diff = 0;
+  const reviewed = new Map<string, number>();
   const tally: Tally = new Map(), shown: string[] = [];
   const one = (p: Pos, tsx: boolean, outside: Outside[] | null) => {
     const seen: Seen = { found: null, probes: 0, answered: 0, expand: null };
     const a = liveSide(p, tsx, outside), b = cpSide(L, p, tsx, outside, seen);
     const ok = a.json === b.json && a.checks === b.checks && a.cells === b.cells;
-    if (ok) same++; else { diff++; if (shown.length < SHOW) shown.push(`${label} ${p.file} cell ${p.at} @${p.off} [${p.tags}] tsx ${tsx} outside ${!!outside}\n  complete.ts ${a.json.slice(0, 400)} checks ${a.checks} cells ${a.cells}\n  cp          ${b.json.slice(0, 400)} checks ${b.checks} cells ${b.cells}`); }
+    const rc = ok ? null : reviewedClass(p.cells[p.at], p.off, tsx, p.tsx, a.json, b.json);
+    if (rc !== null) reviewed.set(rc, (reviewed.get(rc) ?? 0) + 1);
+    else if (ok) same++; else { diff++; if (shown.length < SHOW) shown.push(`${label} ${p.file} cell ${p.at} @${p.off} [${p.tags}] tsx ${tsx} outside ${!!outside}\n  complete.ts ${a.json.slice(0, 400)} checks ${a.checks} cells ${a.cells}\n  cp          ${b.json.slice(0, 400)} checks ${b.checks} cells ${b.cells}`); }
     const n = a.json.startsWith("threw") ? 0 : JSON.parse(a.json).options.length;
     if (withKinds) for (const k of kindsOf(p, a.json, seen, !!outside, !tsx && p.tsx)) bump(tally, k, ok, n > 0, p.tags.includes("probe"));
     return a.json;
@@ -167,7 +171,7 @@ function completionPass(L: CpLinked, ps: Pos[], label: string, withKinds: boolea
     if (!res.startsWith("threw") && JSON.parse(res).mode === "param") one(p, p.tsx, OUTSIDE);
     if (p.tsx && p.tags.some((t) => t.startsWith("jsx"))) one(p, false, null);
   }
-  return { same, diff, tally, shown };
+  return { same, diff, reviewed, tally, shown };
 }
 
 // addParameter and annotationOf on their own inputs: every cell text with each name it reads, a fresh name, annotated or not
@@ -283,16 +287,14 @@ const CONTROLS: { file: string; what: string; over: Record<string, (...inputs: n
   { file: "cp-text", what: "cpNoOffer never stops", over: { cpNoOffer: () => () => false }, on: "complete" },
   { file: "cp-members", what: "cpKindOf always property", over: { cpKindOf: () => () => "property" }, on: "complete" },
   { file: "cp-modes", what: "cpByLabel does not sort", over: { cpByLabel: () => (xs: unknown) => xs }, on: "complete" },
-  { file: "cp-param", what: "cpAddParameter without the already-there check", over: { cpAddParameter: (cpHeadLen: (s: string) => number, cpParamSegments: (s: string, o: number) => { close: number; segs: string[] }) => (source: string, name: string, annotation: string | null) => {
-    const open = cpHeadLen(source);
-    if (open < 0) return null;
-    const { close } = cpParamSegments(source, open);
-    if (close < 0) return null;
+  { file: "cp-param", what: "cpAddParameter without the already-there check", over: { cpAddParameter: (cpHeadOf: (at: unknown, s: string) => { list: { from: number; kids: { name: string; from: number; to: number }[] } } | null) => (at: unknown, source: string, name: string, annotation: string | null) => {
+    const head = cpHeadOf(at, source);
+    const close = head?.list.kids.find((k) => k.name === ")");
+    if (!head || !close) return null;
     const param = annotation !== null && annotation !== "" ? `${name}: ${annotation}` : name;
-    const inner = source.slice(open, close);
-    if (inner.trim() === "") return { from: open, to: close, insert: param };
-    const last = open + inner.trimEnd().length;
-    return { from: last, to: last, insert: inner.trimEnd().endsWith(",") ? ` ${param}` : `, ${param}` };
+    const last = head.list.kids.filter((k) => k.to <= close.from && k.name !== "⚠").at(-1);
+    if (last === undefined || last.name === "(") return { from: head.list.from + 1, to: close.from, insert: param };
+    return { from: last.to, to: last.to, insert: last.name === "," ? ` ${param}` : `, ${param}` };
   } } as never, on: "edit" },
   { file: "cp-facts", what: "cpStatementDefs without function declarations", over: { cpStatementDefs: () => (st: { type: string; declaration?: { type: string; declarations: { type: string; id: { type: string; name: string }; init: { type: string } | null }[] } | null }) => {
     const d = st.type === "ExportNamedDeclaration" ? st.declaration ?? null : st as never;
@@ -312,7 +314,8 @@ if (!has("--no-complete")) {
   const t0 = performance.now();
   const r = completionPass(L0, ps, "complete", true);
   say(r.shown.join("\n"));
-  say(`completion: ${ps.length} positions (and their reruns with outside cells / tsx off): SAME ${r.same} DIFFERENT ${r.diff}; ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+  const rv = [...r.reviewed];
+  say(`completion: ${ps.length} positions (and their reruns with outside cells / tsx off): SAME ${r.same} DIFFERENT ${r.diff} REVIEWED ${rv.reduce((x, [, k]) => x + k, 0)}${rv.length ? ` (${rv.map(([c, k]) => `${c} ${k}`).join("; ")})` : ""}; ${((performance.now() - t0) / 1000).toFixed(1)} s`);
   const rows = [...r.tally].sort((a, b) => a[0].localeCompare(b[0]));
   say(`by kind (a position counts under each kind it has): kind SAME DIFFERENT, positions with at least one option, positions not from cp-probes.ts`);
   for (const [k, v] of rows) say(`  ${k.padEnd(30)} ${String(v.same).padStart(6)} ${String(v.diff).padStart(4)} ${String(v.withOptions).padStart(6)} ${String(v.notProbe).padStart(6)}${v.same + v.diff < 20 ? "   (fewer than 20)" : ""}`);
