@@ -50,7 +50,9 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
    - **Services** (lines 2, 5): every Worker answers and passes its tests (the health check of
      `knowledge/calling-a-cloud-brain-from-this-checkout.md`; `brain.ts redistil`); errors and failures in the logs
      (`logs.*`); deploys put back, on probation, or held and never shipped (`logs.deploys`); tests red on `main` of
-     `cloud-brain-dev`.
+     `cloud-brain-dev`. Calls: `metric.query?metric=core.calls&by=method` and `&by=status` over 7 d (Analytics
+     Engine, not sampled): the count, the share that is not 2xx, and the methods with the most total time, with mean
+     and max ms.
    - **Security** (line 1): `S=<dir> python3 tools/cloud-brain/retro/idle-tokens.py` lists each delegation alive with
      no end, its calls in the 7 days the logs keep, and the files that name it. Revoke one that is `idle` and that no
      file names (`brain.ts token revoke`), and list the rest for the owner. Who can call what that is new this week
@@ -58,6 +60,9 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
    - **Cost** (line 5): model runs (`cost` events), Cloudflare (`usage.account`, `quota.get`), Fly machines and their
      hours (`fly.*`), browsers and containers left running (`browser.all`, `container.all`). Cost against what it
      bought.
+     Split model spend by class, each with its 24 h and 7 d USD, its share of the total and the day before:
+     product, the loop's own machinery and tracker, and the owner's four. The owner, 2026-11-22: the loop's work on
+     itself is not capped, but it is tracked as its own line.
    - **Data**: the daily snapshot ran and is whole; stores that grow without bound; anything written that cannot be
      read back.
    - **People** (line 4): feedback issues and member reports, answered or not; what the owner asked for this week and
