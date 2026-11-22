@@ -26,7 +26,7 @@
 == reg-cond: REJECT a:rejected[mut-capture]
 == reg-or: REJECT a:rejected[mut-capture]
 == reg-helper: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])
 == reg-iife: REJECT a:rejected[mut-capture]
 == reg-record-in-result: REJECT a:rejected[mut-capture]
@@ -40,25 +40,25 @@
 == reg-slice: REJECT a:rejected[no-non-null] c:blocked
 == reg-map-identity: REJECT a:rejected[no-non-null] c:blocked
 == reg-for-of: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])
 == reg-let-assign: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])
 == reg-local-alias: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])
 == err-yield-write: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 2): Error(Error:x) -> Error(Error:y)
-   CHANGED b (value #1 of 2): {v:Error(Error:x)} -> {v:Error(Error:y)}
+   quick: 
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
 == err-in-record-yield: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 2): {e:Error(Error:x)} -> {e:Error(Error:y)}
-   CHANGED b (value #1 of 2): {e:Error(Error:x)} -> {e:Error(Error:y)}
+   quick: 
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
 == err-kept-fn-late: REJECT a:rejected[mut-capture]
 == err-fresh-write: ACCEPT
-   quick: a
+   quick: 
 == err-then-param: REJECT a:rejected[type]
 == err-then-capture: REJECT a:rejected[mut-capture]
 == ab-yield-view-write: REJECT a:rejected[member-write][mut-yield]
@@ -68,85 +68,70 @@
 == ab-view-of-input-buffer: REJECT a:rejected[member-write]
 == ab-view-helper: REJECT a:rejected[type]
 == ah-error: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)
-   CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}
+   quick: 
 == ah-typed: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}
+   quick: 
 == ah-url: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): URL(https://x.test/a) -> URL(https://x.test/b)
-   CHANGED b (value #1 of 1): {v:URL(https://x.test/a)} -> {v:URL(https://x.test/b)}
+   quick: 
 == ah-array: ACCEPT
-   quick: b
+   quick: 
 == ah-typed-in-record: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): {t:Uint8Array[0,0]} -> {t:Uint8Array[1,0]}
-   CHANGED b (value #1 of 1): {t:Uint8Array[0,0]} -> {t:Uint8Array[1,0]}
+   quick: 
 == ah-param: ACCEPT
    quick: 
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]
 == ah-gen-helper: REJECT a:unsupported{intrinsic member Generator.next}
 == ah-async-cell: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}
+   quick: 
 == hc-async-mut-param: ACCEPT
-   quick: a,b
+   quick: 
 == hc-async-mut-param-unannot: ACCEPT
-   quick: a,b
+   quick: 
 == hc-async-typed: ACCEPT
-   quick: a,b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}
+   quick: 
 == hc-async-error: ACCEPT
-   quick: a,b
-   CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)
-   CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}
+   quick: 
 == hc-then-mut-param: REJECT H:rejected[mut-capture]
 == hc-sync-keeper: REJECT H:rejected[mut-capture]
 == hc-sync-keeper-later: REJECT H:rejected[mut-capture]
 == hc-async-local: ACCEPT
-   quick: b
+   quick: 
 == fo-map-get-nullish: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])
 == fo-index: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])
 == fo-member: REJECT a:rejected[type]
 == fo-member-alias: REJECT a:rejected[type]
 == fo-alias-before: REJECT a:rejected[mut-capture]
 == fo-switch: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])
 == fo-arrow-block-helper2: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])
 == fo-helper-no-annot: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])
 == fo-returns-helper-itself: REJECT a:rejected[mut-capture]
 == fo-in-record-helper: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): {get:fn([0])} -> {get:fn([0,1])}
 == fo-alias-then-holder-cell: ACCEPT
-   quick: a,d,c
+   quick: 
    CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])
 == fo-gen-yield-alias: REJECT c:rejected[type]
 == fo-write-in-kept-alias: ACCEPT
-   quick: a
+   quick: 
    CHANGED a (value #1 of 1): fn(2) -> fn(3)
 == fo-write-in-kept-helper: ACCEPT
-   quick: a
+   quick: 
    CHANGED a (value #1 of 1): fn(2) -> fn(3)
 == fo-write-in-kept-param: REJECT a:rejected[mut-capture]
 == fo-write-in-kept-forof: REJECT a:rejected[mutating-method]
 == fo-write-in-kept-destr: REJECT a:rejected[mutating-method]
 == fo-write-in-kept-let: ACCEPT
-   quick: a
+   quick: 
    CHANGED a (value #1 of 1): fn(2) -> fn(3)
 == it-values: REJECT a:rejected[iterator-cell]
 == it-map-entries: REJECT a:rejected[iterator-cell]
@@ -161,27 +146,25 @@
 == re-kept-fn: REJECT a:rejected[regexp-state]
 == re-in-record: REJECT r:rejected[regexp-state]
 == then-alias-inside: ACCEPT
-   quick: a,b
+   quick: 
 == then-helper-inside: ACCEPT
-   quick: a,b
+   quick: 
 == then-let-inside: ACCEPT
-   quick: a,b
+   quick: 
 == then-chain-alias: ACCEPT
-   quick: a,b
+   quick: 
 == then-error-alias: ACCEPT
-   quick: a,b
-   CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)
-   CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}
+   quick: 
 == then-record-alias: ACCEPT
-   quick: a,b
+   quick: 
 == then-map-alias: ACCEPT
-   quick: a,b
+   quick: 
 == then-in-helper-call: ACCEPT
-   quick: a,b
+   quick: 
 == then-cb-param-from-value: REJECT a:rejected[type]
 == then-resolve-mut-cb-mut: REJECT a:rejected[type]
 == then-all: ACCEPT
-   quick: a,b
+   quick: 
 == then-direct-control: REJECT a:rejected[mut-capture]
 == fc-concat-deep: REJECT a:rejected[no-non-null]
 == fc-concat-deep-arr: REJECT a:rejected[mutating-method]
@@ -213,9 +196,9 @@
 == fc-at: REJECT a:rejected[mutating-method]
 == fc-structuredclone: REJECT a:rejected[mutating-method]
 == fc-typed-from: ACCEPT
-   quick: t,a
+   quick: 
 == fc-typed-new-src: ACCEPT
-   quick: t,a
+   quick: 
 == fc-typed-subarray: REJECT a:rejected[member-write]
 == fc-typed-fill-result: REJECT a:rejected[mut-capture]
 == fc-sort-result-alias: REJECT a:rejected[mutating-method]
@@ -225,25 +208,21 @@
 == fc-fill-returns-self: REJECT a:rejected[mutating-method]
 == kc-alias-write-by-cell: REJECT a:rejected[mut-capture]
 == kc-flow-helper-by-cell: ACCEPT
-   quick: a,d,c
+   quick: 
    show d = {v:[0]}
    error c: Attempted to assign to readonly property.
 == kc-flow-alias-typed: REJECT a:rejected[mut-capture]
 == st-error-async-writer: ACCEPT
-   quick: b
-   CHANGED w (value #1 of 1): Error(Error:x) -> Error(Error:y)
-   CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}
+   quick: 
 == st-typed-initial-async: ACCEPT
-   quick: b
-   CHANGED s (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}
+   quick: 
 == st-array-initial-async: ACCEPT
-   quick: b
+   quick: 
 == st-array-initial-then: ACCEPT
-   quick: b
+   quick: 
 == st-set-typed-action: REJECT w:rejected[action-async]
 == st-set-array-action-then: ACCEPT
-   quick: w,b
+   quick: 
    show b = {v:[0]}
 == st-action-arg-typed-kept: REJECT c:rejected[action-call]
 == ev-error-yield: ACCEPT
@@ -265,33 +244,31 @@
 == gl-symbol: REJECT a:unsupported{intrinsic Symbol has no signature in lite/intrinsics.ts}
 == gl-object-assign: REJECT a:rejected[object-assign]{Object.assign}
 == gl-object-freeze: ACCEPT
-   quick: a
+   quick: 
 == gl-error-cause: REJECT a:rejected[arity]
 == gl-intl: REJECT a:rejected[new-non-intrinsic]
 == gl-json-parse-write: REJECT a:rejected[no-cast]
 == er-input-cast: REJECT a:rejected[no-cast]
 == er-input-member-write: REJECT a:rejected[member-write]
 == er-in-yield-record-gen: ACCEPT
-   quick: b
-   CHANGED g (value #1 of 2): {list:[Error(Error:x)]} -> {list:[Error(Error:y)]}
-   CHANGED b (value #1 of 2): {v:{list:[Error(Error:x)]}} -> {v:{list:[Error(Error:y)]}}
+   quick: 
+   error g: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
 == er-captured-gen: REJECT g:rejected[mut-capture]
 == er-kept-fn-name: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 2): Error(TypeError:x) -> Error(TypeError:y)
-   CHANGED b (value #1 of 2): {v:Error(TypeError:x)} -> {v:Error(TypeError:y)}
+   quick: 
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
 == er-range: ACCEPT
    quick: 
-   CHANGED a (value #1 of 2): {e:Error(RangeError:x)} -> {e:Error(RangeError:q)}
+   error a: Attempted to assign to readonly property.
 == er-name-write: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 2): Error(Error:x) -> Error(Boom:x,name="Boom")
-   CHANGED b (value #1 of 2): {v:Error(Error:x)} -> {v:Error(Boom:x,name="Boom")}
+   quick: 
+   error a: Attempting to define property on object that is not extensible.
+   error b: Attempting to define property on object that is not extensible.
 == er-url-searchparams-gen: REJECT a:rejected[mut-yield]
 == er-async-cell-promise: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)
-   CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}
+   quick: 
 == tm-generic-ret: REJECT a:rejected[type]
 == tm-generic-param-mut: REJECT a:rejected[type]{intrinsic member Mut.push}
 == tm-union-null: REJECT a:rejected[mutating-method]
@@ -337,103 +314,78 @@
 == kp-local-keeper-alias: REJECT a:rejected[mut-capture]
 == kp-local-keeper-direct: REJECT a:rejected[mut-capture]
 == kp-kept-alias-of-captured: ACCEPT
-   quick: a,c,b
+   quick: 
    show b = {v:[0]}
    error c: Attempted to assign to readonly property.
 == kp-kept-helper-of-captured: ACCEPT
-   quick: a,c,b
+   quick: 
    show b = {v:[0]}
    error c: Attempted to assign to readonly property.
 == kp-kept-let-of-captured: ACCEPT
-   quick: a,c,b
+   quick: 
    show b = {v:[0]}
    error c: Attempted to assign to readonly property.
 == kp-kept-error-alias: ACCEPT
-   quick: a,c,b
-   CHANGED a (value #1 of 1): {e:Error(Error:x),k:fn(0)} -> {e:Error(Error:y),k:fn(0)}
-   show b = {v:Error(Error:y)}
+   quick: 
+   show b = {v:Error(Error:x)}
+   error c: Attempted to assign to readonly property.
 == hs-then-alias-param: ACCEPT
-   quick: H,a,b
+   quick: 
 == hs-then-direct-param: REJECT H:rejected[mut-capture]
 == hs-then-alias-param-error: ACCEPT
-   quick: H,a,b
-   CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)
-   CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}
+   quick: 
 == hs-async-inner-helper: ACCEPT
-   quick: a,b
+   quick: 
 == hs-async-inner-helper-typed: ACCEPT
-   quick: a,b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[3,0]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[3,0]}
+   quick: 
 == hs-async-inner-helper-url: ACCEPT
-   quick: a,b
-   CHANGED a (value #1 of 1): URL(https://x.test/) -> URL(https://x.test/#z)
-   CHANGED b (value #1 of 1): {v:URL(https://x.test/)} -> {v:URL(https://x.test/#z)}
+   quick: 
 == ls-nested-async-in-helper-typed: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[4,0]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[4,0]}
+   quick: 
 == ls-async-iife-typed: REJECT a:rejected[mut-capture]
 == ls-async-iife-error: REJECT a:rejected[mut-capture]
 == ls-async-fn-decl-typed: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[6,0]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[6,0]}
+   quick: 
 == ls-async-alias-typed: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[7,0]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[7,0]}
+   quick: 
 == ls-async-subarray: REJECT a:rejected[member-write]
 == ls-async-fill: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[9,9]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[9,9]}
+   quick: 
 == ls-async-buffer-view: REJECT a:rejected[member-write]
 == ls-async-url-search: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): {u:URL(https://x.test/)} -> {u:URL(https://x.test/?q)}
-   CHANGED b (value #1 of 1): {u:URL(https://x.test/)} -> {u:URL(https://x.test/?q)}
+   quick: 
 == ls-async-typed-then-cell-two: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): [Float64Array[0]] -> [Float64Array[1.5]]
-   CHANGED b (value #1 of 1): {v:[Float64Array[0]]} -> {v:[Float64Array[1.5]]}
+   quick: 
 == ls-async-param-error: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:z)
-   CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:z)}
+   quick: 
 == ls-gen-cell-async-helper-typed: ACCEPT
    quick: 
 == ac-then-alias-state-typed: REJECT w:rejected[mut-capture]
 == ac-then-alias-state-error: ACCEPT
-   quick: w,b
-   show b = {v:Error(Error:y)}
+   quick: 
+   show b = {v:Error(Error:x)}
 == ac-then-alias-state-array: ACCEPT
-   quick: w,b
+   quick: 
    show b = {v:[5]}
 == ac-returns-typed: ACCEPT
-   quick: w
+   quick: 
 == ac-update-keeps: ACCEPT
-   quick: w
+   quick: 
 == ac-state-typed-initial-then: REJECT s:rejected[mut-capture]
 == ac-state-error-initial-then: ACCEPT
-   quick: b
-   CHANGED s (value #1 of 1): Error(Error:x) -> Error(Error:y)
-   CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}
+   quick: 
 == ac-state-url-initial-async: ACCEPT
-   quick: b
-   CHANGED s (value #1 of 1): URL(https://x.test/) -> URL(https://x.test/#q)
-   CHANGED b (value #1 of 1): {v:URL(https://x.test/)} -> {v:URL(https://x.test/#q)}
+   quick: 
 == th-typed-helper: REJECT a:rejected[mut-capture]
 == th-typed-alias: REJECT a:rejected[mut-capture]
 == th-error-helper: ACCEPT
-   quick: a
-   CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)
+   quick: 
 == th-error-direct: REJECT a:rejected[mut-capture]
 == th-url-helper: REJECT a:rejected[mut-capture]
 == th-map-helper-skip: ACCEPT
-   quick: a,b
+   quick: 
 == th-set-alias-skip: ACCEPT
-   quick: a,b
+   quick: 
 == th-nested-record-skip: REJECT a:rejected[mutating-method]
 == th-member-of-captured: REJECT a:rejected[mutating-method][mut-capture]
 == th-forof-captured: REJECT a:rejected[mutating-method]
@@ -441,120 +393,96 @@
 == th-index-captured: REJECT a:rejected[mutating-method][mut-capture]
 == th-map-get-captured: REJECT a:rejected[mutating-method]
 == th-kept-returns-then: ACCEPT
-   quick: a,c,b
+   quick: 
 == cb-forEach-async-typed: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}
+   quick: 
 == cb-map-async-typed: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}
+   quick: 
 == cb-forEach-async-error: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)
-   CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}
+   quick: 
 == cb-forEach-async-array: ACCEPT
-   quick: b
+   quick: 
 == cb-some-async-url: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): URL(https://x.test/) -> URL(https://x.test/#s)
-   CHANGED b (value #1 of 1): {v:URL(https://x.test/)} -> {v:URL(https://x.test/#s)}
+   quick: 
 == cb-map-forEach-async-typed: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[2,0]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[2,0]}
+   quick: 
 == cb-typed-forEach-async: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[0,2]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[0,2]}
+   quick: 
 == cb-array-from-async: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[3,0]
-   CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[3,0]}
+   quick: 
 == cb-reduce-async: REJECT a:rejected[type]
 == kf-starts-async-typed: REJECT a:rejected[mut-capture]
 == kf-starts-async-error: REJECT a:rejected[mut-capture]
 == fo-error-helper: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn(Error(Error:x)) -> fn(Error(Error:y))
 == fo-error-alias: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn(Error(Error:x)) -> fn(Error(Error:y))
 == fo-map-helper: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn(Map{}) -> fn(Map{"k"=>1})
 == fo-set-alias: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn(Set{}) -> fn(Set{1})
 == fo-record-helper: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn({n:0}) -> fn({n:5})
 == fo-map-get-plain: REJECT c:rejected[inject-type][mutating-method]
 == fo-map-get-typed: REJECT c:rejected[inject-type]
 == fo-arr-index-typed: REJECT c:rejected[inject-type]
 == fo-arr-index-error: REJECT c:rejected[inject-type]
 == fo-recurse: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])
 == fo-two-level-helper: ACCEPT
-   quick: a,c
+   quick: 
    CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])
 == fo-gen-alias-yield: REJECT a:rejected[mut-capture]
 == fo-gen-helper-after-yield: ACCEPT
    quick: 
 == kw-map-alias: ACCEPT
-   quick: a,c,b
+   quick: 
    error c: set on a frozen Map: a value cannot change after its cell returns
 == kw-typed-alias: REJECT a:rejected[mut-capture]
 == kw-url-alias: REJECT a:rejected[mut-capture]
 == kw-record-alias-field: ACCEPT
-   quick: a,c,b
+   quick: 
    error c: Attempted to assign to readonly property.
 == kw-alias-ternary: REJECT a:rejected[mutating-method][type]
 == kw-alias-param-of-helper: ACCEPT
-   quick: a,c
+   quick: 
    error c: Attempted to assign to readonly property.
 == kw-alias-inner-closure: ACCEPT
-   quick: a,c
+   quick: 
    error c: Attempted to assign to readonly property.
 == kw-alias-outside-made-inside: REJECT a:rejected[mut-capture]
 == gy-error-alias: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 2): Error(Error:x) -> Error(Error:y)
-   CHANGED b (value #1 of 2): {v:Error(Error:x)} -> {v:Error(Error:y)}
+   quick: 
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
 == gy-error-helper: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 2): Error(Error:x) -> Error(Error:y)
-   CHANGED b (value #1 of 2): {v:Error(Error:x)} -> {v:Error(Error:y)}
+   quick: 
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
 == gy-error-in-map: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 2): Map{"k"=>Error(Error:x)} -> Map{"k"=>Error(Error:y)}
-   CHANGED b (value #1 of 2): {v:Map{"k"=>Error(Error:x)}} -> {v:Map{"k"=>Error(Error:y)}}
+   quick: 
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
 == gy-error-in-set: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 2): Set{Error(Error:x)} -> Set{Error(Error:y)}
-   CHANGED b (value #1 of 2): {v:Set{Error(Error:x)}} -> {v:Set{Error(Error:y)}}
+   quick: 
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
 == gy-error-async-gen: ACCEPT
-   quick: b
-   CHANGED a (value #1 of 2): Error(Error:x) -> Error(Error:y)
-   CHANGED b (value #1 of 2): {v:Error(Error:x)} -> {v:Error(Error:y)}
+   quick: 
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
 == gy-error-array-of: REJECT a:rejected[no-cast][member-write] b:blocked
--- mode all: 315 candidates, 105 accepted, 65 silent
+-- mode all: 315 candidates, 105 accepted, 21 silent
 SILENT b1.ts:reg-helper
 SILENT b1.ts:reg-for-of
 SILENT b1.ts:reg-let-assign
 SILENT b1.ts:reg-local-alias
-SILENT b1.ts:err-yield-write
-SILENT b1.ts:err-in-record-yield
-SILENT b2.ts:ah-error
-SILENT b2.ts:ah-typed
-SILENT b2.ts:ah-url
-SILENT b2.ts:ah-typed-in-record
-SILENT b2.ts:ah-param
-SILENT b2.ts:ah-async-cell
-SILENT b2.ts:hc-async-typed
-SILENT b2.ts:hc-async-error
 SILENT b2.ts:fo-map-get-nullish
 SILENT b2.ts:fo-index
 SILENT b2.ts:fo-switch
@@ -565,35 +493,6 @@ SILENT b2.ts:fo-alias-then-holder-cell
 SILENT b2.ts:fo-write-in-kept-alias
 SILENT b2.ts:fo-write-in-kept-helper
 SILENT b2.ts:fo-write-in-kept-let
-SILENT b3.ts:then-error-alias
-SILENT b4.ts:st-error-async-writer
-SILENT b4.ts:st-typed-initial-async
-SILENT b4.ts:er-in-yield-record-gen
-SILENT b4.ts:er-kept-fn-name
-SILENT b4.ts:er-range
-SILENT b4.ts:er-name-write
-SILENT b4.ts:er-async-cell-promise
-SILENT b5.ts:kp-kept-error-alias
-SILENT b6.ts:hs-then-alias-param-error
-SILENT b6.ts:hs-async-inner-helper-typed
-SILENT b6.ts:hs-async-inner-helper-url
-SILENT b6.ts:ls-nested-async-in-helper-typed
-SILENT b6.ts:ls-async-fn-decl-typed
-SILENT b6.ts:ls-async-alias-typed
-SILENT b6.ts:ls-async-fill
-SILENT b6.ts:ls-async-url-search
-SILENT b6.ts:ls-async-typed-then-cell-two
-SILENT b6.ts:ls-async-param-error
-SILENT b6.ts:ac-state-error-initial-then
-SILENT b6.ts:ac-state-url-initial-async
-SILENT b6.ts:th-error-helper
-SILENT b7.ts:cb-forEach-async-typed
-SILENT b7.ts:cb-map-async-typed
-SILENT b7.ts:cb-forEach-async-error
-SILENT b7.ts:cb-some-async-url
-SILENT b7.ts:cb-map-forEach-async-typed
-SILENT b7.ts:cb-typed-forEach-async
-SILENT b7.ts:cb-array-from-async
 SILENT b7.ts:fo-error-helper
 SILENT b7.ts:fo-error-alias
 SILENT b7.ts:fo-map-helper
@@ -601,8 +500,3 @@ SILENT b7.ts:fo-set-alias
 SILENT b7.ts:fo-record-helper
 SILENT b7.ts:fo-recurse
 SILENT b7.ts:fo-two-level-helper
-SILENT b7.ts:gy-error-alias
-SILENT b7.ts:gy-error-helper
-SILENT b7.ts:gy-error-in-map
-SILENT b7.ts:gy-error-in-set
-SILENT b7.ts:gy-error-async-gen

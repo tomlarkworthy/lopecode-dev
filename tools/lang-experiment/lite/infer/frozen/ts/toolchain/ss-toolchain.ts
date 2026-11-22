@@ -1,5 +1,5 @@
 // FROZEN FIXTURE (2026-11-22, switch4): lite/toolchain/ss-toolchain.ts as it was before the rg, cp and tc cells were switched on.
-// DELIBERATE CHANGES since: stage A (2026-11-22) ss_out around a plain cell, Map/Set bound to ss_SsMap/ss_SsSet (marked below); B7 (2026-11-22) ss_out(v, 1) for a body that makes no async or generator function.
+// DELIBERATE CHANGES since: stage A (2026-11-22) ss_out around a plain cell, Map/Set bound to ss_SsMap/ss_SsSet (marked below); B7 (ss_out(v, 1)) added and removed again 2026-11-22; closure registrations (2026-11-22, cause A: lite/fnreg.ts, bracketed /*ss+*/ /*ss-*/, dropped by decompile).
 // Only the differentials and tests compare against it; nothing shipped imports it, and the build does not reach it.
 // ss_toolchain: SoundScript cells <-> Lopecode runtime variables.
 // A compiled cell is ordinary JS whose first comment is /*{lang:"ss"}*/. The typed source is kept in
@@ -11,6 +11,7 @@ import { lowerJsx } from "../jsx/lower.ts";
 import { cellsOf, preludeCalls, globalRefs, type CellInfo } from "../facts.ts";
 import { commentTypes, langOf, LANG, esc, unesc } from "./comment-types.ts";
 import { CAPABILITIES, PRELUDE_FNS, OJS_INPUT_GLOBALS } from "../../../../intrinsics.ts";
+import { fnRegEdits, applyRegEdits, regUses } from "../../../../fnreg.ts";
 
 export type Variable = { name: string; inputs: string[]; definition: string };
 export { langOf, LANG };
@@ -18,7 +19,7 @@ export { langOf, LANG };
 // the prelude functions, and h, the JSX element function lowered JSX calls
 const PRELUDE = [...PRELUDE_FNS, "h"];
 // the runtime module's cells a compiled cell can take: the built-ins its body uses and what its compiled form calls
-export const RUNTIME_CELLS = [...PRELUDE, "ref", "events", "listen", "cross", "viewRef", "compileFor", "rejected", "release", "out", "SsMap", "SsSet"];
+export const RUNTIME_CELLS = [...PRELUDE, "ref", "events", "listen", "cross", "viewRef", "compileFor", "rejected", "release", "out", "SsMap", "SsSet", "SsURL", "closure", "methods", "tdz"];
 // A capability parameter or a runtime cell -> the input that provides it: ss_<name>, except invalidation, the
 // runtime's own. ss_compile is defined in each module that compiles, because compile reads that module's cells; a
 // runtime cell is imported from the runtime module under that name, and the runtime module takes its own cell
@@ -284,17 +285,20 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   const params = info.params.map((p) => p.name);
   const loweredFn = parse(`(${lowered})`).program;
   const IN = ctx.inputs ?? INPUTS;
+  // DELIBERATE CHANGE (2026-11-22, cause A): each function the cell makes registers the locals it captures (fnreg.ts)
+  const regEdits = fnRegEdits(acorn.parseExpressionAt(`(${typed})`, 0, { ecmaVersion: "latest" }), { closure: IN.closure, methods: IN.methods, tdz: IN.tdz });
+  const regTyped = applyRegEdits(typed, regEdits, 1), regIns = regUses(regEdits).map((u) => IN[u]);
   // the built-ins the body calls or reads: free references only, not a property, a key or a local of that name.
   // Each is bound to its input at the top of the definition, unless its input has its own name (the runtime module)
   const used = PRELUDE.filter((n) => globalRefs(loweredFn, n).size > 0);
-  // DELIBERATE CHANGE (2026-11-22, stage A): Map and Set in the body are the runtime's SsMap and SsSet
-  const bound: [string, string][] = [...used.filter((n) => IN[n] !== n).map((n): [string, string] => [n, n]), ...([["Map", "SsMap"], ["Set", "SsSet"]] as [string, string][]).filter(([g]) => globalRefs(loweredFn, g).size > 0)];
+  // DELIBERATE CHANGE (2026-11-22, stage A): Map and Set in the body are the runtime's SsMap and SsSet; (holes6) URL is SsURL
+  const bound: [string, string][] = [...used.filter((n) => IN[n] !== n).map((n): [string, string] => [n, n]), ...([["Map", "SsMap"], ["Set", "SsSet"], ["URL", "SsURL"]] as [string, string][]).filter(([g]) => globalRefs(loweredFn, g).size > 0)];
   // the allowed globals Observable's parser does not know, and built-ins read by their own name, are inputs, in order of first use
   const globals = [...OJS_INPUT_GLOBALS, ...used.filter((n) => IN[n] === n)].map((g) => [g, Math.min(...[...globalRefs(loweredFn, g)].map((n) => n.start))] as const).filter(([, at]) => at < Infinity).sort((a, b) => a[1] - b[1]).map(([g]) => g);
   // a cell that calls the prelude's on(...) is a listener: the checker allows on(...) only as the cell's whole value
   const kind = info.returnsRef ? "ref" : info.generator && ctx.events.has(info.name) ? "events" : preludeCalls(fn, "on").size ? "listener" : "cell";
   const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
-  const inner = `${LANG}${header({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${typed}`;
+  const inner = `${LANG}${header({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${regTyped}`;
   // a parameter's argument, r spelling each input. A State<T> parameter takes the handle variable; a
   // capability the variable that provides it; compile, compileFor over ss_compile with the refs of its calls
   // (it re-runs, and returns new functions, when one changes). A cell in another language crosses checked
@@ -317,17 +321,15 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   const expr = (r: (i: string) => string) => {
     if (kind === "ref" || kind === "events") {
       const head = `${r(IN[kind])}(${kind === "ref" ? "this" : mod}, ${name}, [${args(r)}], `;
-      globals.forEach(r);
+      globals.forEach(r); regIns.forEach(r);
       return `${head}${inner}${kind === "events" ? `, ${r("invalidation")}` : ""})`;
     }
     const listen = kind === "listener" ? `${r(IN.listen)}(` : "";
-    if (listen) { globals.forEach(r); return `${listen}(${inner})(${args(r)}), ${name}, ${r("invalidation")}, ${mod})`; }
+    if (listen) { globals.forEach(r); regIns.forEach(r); return `${listen}(${inner})(${args(r)}), ${name}, ${r("invalidation")}, ${mod})`; }
     // DELIBERATE CHANGE (2026-11-22, stage A): a plain cell's value is deep-frozen as it leaves the cell (freeze.ts out)
     const o = r(IN.out);
-    globals.forEach(r);
-    // DELIBERATE CHANGE (2026-11-22, B7): a sync body that makes no async or generator function is published unfrozen
-    const late = (n: any): boolean => !!n && typeof n === "object" && ((/^(ArrowFunctionExpression|FunctionExpression|FunctionDeclaration)$/.test(n.type) && (n.async || n.generator)) || Object.values(n).some((v) => Array.isArray(v) ? v.some(late) : v && typeof v === "object" && typeof v.type === "string" && late(v)));
-    return `${o}((${inner})(${args(r)})${late(fn) ? "" : ", 1"})`;
+    globals.forEach(r); regIns.forEach(r);
+    return `${o}((${inner})(${args(r)}))`;
   };
   const block = bound.length > 0;
   const out = ojsCell(variableName(info.name), kind === "ref", block, (r) => block ? `{ const ${bound.map(([n, c]) => `${n} = ${r(IN[c])}`).join(", ")}; return ${expr(r)}; }` : expr(r));
@@ -417,13 +419,17 @@ export function decompileVariable(definition: string): string | null {
   // the function, and the comments that close it: a JSX element or a type (`x as T`, `x!`) that ends an
   // arrow body closes after the function node does
   let end = p.fn.end;
-  for (const c of p.comments) if (c.start === end && c.type === "Block" && (c.value === "ss>" || c.value.startsWith("ss:"))) end = c.end;
+  // DELIBERATE CHANGE (2026-11-22, cause A): also the /*ss-*/ that closes a registration ending the function's body
+  for (const c of p.comments) if (c.start === end && c.type === "Block" && (c.value === "ss>" || c.value === "ss-" || c.value.startsWith("ss:"))) end = c.end;
   // the text between the header and end, each kept comment put back: /*ss:T*/ is T, and /*ss<E*/…/*ss>*/
   // (a lowered JSX element) is the element E
-  let out = "", at = p.headerEnd, inJsx = false;
+  let out = "", at = p.headerEnd, inJsx = false, inReg = false;
   for (const c of p.comments) {
     if (c.start < p.headerEnd || c.end > end || c.type !== "Block") continue;
     if (inJsx) { if (c.value === "ss>") { inJsx = false; at = c.end; } continue; }
+    // DELIBERATE CHANGE (2026-11-22, cause A): a closure registration /*ss+*/…/*ss-*/ is not source
+    if (inReg) { if (c.value === "ss-") { inReg = false; at = c.end; } continue; }
+    if (c.value === "ss+") { out += definition.slice(at, c.start); inReg = true; continue; }
     if (c.value.startsWith("ss<")) { out += definition.slice(at, c.start) + unkeep(c.value.slice(3)); inJsx = true; }
     else if (c.value.startsWith("ss:")) { out += definition.slice(at, c.start) + unesc(c.value.slice(3)); at = c.end; }
   }

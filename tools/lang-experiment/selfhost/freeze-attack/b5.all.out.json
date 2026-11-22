@@ -311,7 +311,7 @@
   "name": "kp-kept-alias-of-captured",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c,b",
+   "quick: ",
    "show b = {v:[0]}",
    "error c: Attempted to assign to readonly property."
   ],
@@ -322,7 +322,7 @@
   "name": "kp-kept-helper-of-captured",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c,b",
+   "quick: ",
    "show b = {v:[0]}",
    "error c: Attempted to assign to readonly property."
   ],
@@ -333,7 +333,7 @@
   "name": "kp-kept-let-of-captured",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c,b",
+   "quick: ",
    "show b = {v:[0]}",
    "error c: Attempted to assign to readonly property."
   ],
@@ -344,11 +344,11 @@
   "name": "kp-kept-error-alias",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c,b",
-   "CHANGED a (value #1 of 1): {e:Error(Error:x),k:fn(0)} -> {e:Error(Error:y),k:fn(0)}",
-   "show b = {v:Error(Error:y)}"
+   "quick: ",
+   "show b = {v:Error(Error:x)}",
+   "error c: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  }
 ]

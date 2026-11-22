@@ -1731,3 +1731,111 @@ already given. `/review-notebook` not run on this section. Options offered throu
 asserted by verify's `pass completion: typing count. in increment lists exactly set and update: ["set","update"]`.
 `bun lite/soundscript/ts-cells.test.ts` now injects the bun codemirror as a module (as it injects the parser):
 `9 pass, 0 fail`. The "before" cells are kept in `lite/soundscript/.scratch/cp-port/oldcp` (cp-lezer-time.ts's default).
+
+## 2026-11-22 12:54–14:20: holes6, the guarantee by construction at run time (build owner, logs `lite/soundscript/.scratch/holes6/`)
+Ruling (owner): the guarantee holds at run time by construction; the static capture rules stay as edit-time diagnostics,
+unchanged, and no cause depends on them being complete. No static alias case was added.
+Start: `selfhost/freeze-attack/run-all.sh` reproduced `mode skip: 315 candidates, 105 accepted, 88 silent` and `mode
+all: 315 candidates, 105 accepted, 65 silent`. Commit edf75d99's "0 silent in both freeze modes" did not test skip
+mode: `lite/browser/run.ts` and `lite/link.ts` called `out(v)` without the quick flag, so no bun runner ever took the quick path.
+
+Step 0. `lite/browser/run.ts`: Generators `input` imported as `genInput` (the local `input` shadowed it; a state cell failed on
+`p.name`). `lite/infer/attack/observe.ts`: `observeProgram` replaces `cells.ts scheduler.frame` with a queue it pumps
+(no timer), so events cells and listeners run; an action is not read by calling it (a call is a write; the
+freeze-attack harness does call them). `lite/browser/run.test.ts` (new): a state cell + action, and an events cell +
+listener ending at `s = 6`: `2 pass 0 fail`. `runCells` now runs each cell's compiled function text (`compileModule`,
+the slice between the header and the function's end), with the registrations below; the erased text only when compile
+throws. `lite/infer/attack/run-sets.ts` (new) runs every set: freeze 315, attack2 252, attack1 8, oldspec 49,
+oldvariants 239, runtime 98, new 70 (attack2 through new: the 716 programs) and h6 54; `--off` drops mut-capture, let-capture, mut-yield,
+mut-cell, member-write, mutating-method, regexp-state, iterator-capture in the runner only.
+
+Step 1 (cause B). The quick path is deleted, not flagged: `tcQuickOut` cell gone, `ss_out(v, 1)` no longer emitted,
+`freezeAll`/`SS_FREEZE_ALL`/`?ss_freeze_all=1` gone (freeze.ts, bun-verify/run.ts, freeze.test.ts, spec S4.6 row,
+frozen toolchain B7 mark reverted, roundtrip-edge C4). Browser, AC power: before (skip on; 13:01, load 2.05) title
+442 ms, lint median 4.6 ms, completion median 4.9 ms, `functional 648 pass 1 fail` (FAIL core-only reopened: at boot 10
+test cells are pending, listeners attached undefined); after (13:08, load 2.68) 448 ms, 4.6 ms, 5.0 ms, `functional 649
+pass 0 fail`. Checkpoint (qg1): build 0; `bun-verify: 168 pass, 0 fail ...; 5.8 s`; `14/14 fixtures pass`; diff
+`SAME 3613 DIFFERENT 0`; live `462 pass 0 fail`; run-all.sh `skip: ... 65 silent`, `all: ... 65 silent`; run-sets freeze
+65 silent.
+
+Step 2 (cause A). The compiler registers, for each function a cell's function makes, the cell locals it captures:
+`F` -> `ss_closure(F, (i) => i < 0 ? k : i === 0 ? a : b)`; a function declaration -> `ss_closure(h, …);` at the start
+of its block (hoisted); an object literal with methods -> `ss_methods({...}, "m", thunk, …)`; `;ss_tdz();` after a
+let/const that a function made before the statement's end captures. Each insertion is bracketed by `/*ss+*/ … /*ss-*/`
+and decompile drops it (round-trip exact: tc-diff decompile 0 DIFFERENT). Captures: free names (scope-aware walk) that
+are declared anywhere in the cell, sorted; the cell function's own parameters only if the cell assigns one (they are
+other cells' values, frozen at their own boundary, or capabilities). A function capturing nothing is not registered.
+Getters, setters and class members are unsupported in SoundScript and are skipped. The thunk reads the current value,
+so registration freezes nothing; `deepFreeze` on a registered function (as the value, in any container, among another
+function's captures, an action handle's body: `prelude.runtime.ts action` registers its handle) walks each capture with
+the usual seen-set; a capture still in its dead zone puts the function in PENDING (not DONE), and `ss_tdz()` walks the
+pending ones again right after the declaration, so what remains is none known. Thunk storage: a WeakMap.set per closure
+made collect 29% slower (883.3 876.5 898.4 µs/cell vs 673.8 685.4 694.3); kept on the function under a symbol: 722.0
+717.8. The non-retaining-callback exemption is not applied: judged on syntax alone a user record's own `map` method
+could keep the literal, so it is unsound without types. Implementations: `lite/fnreg.ts` (TypeScript over acorn,
+unchecked, 148 lines, 128 non-comment; used by link.ts and the frozen toolchain) and `lite/toolchain/tc-reg.ss.ts`
+(21 SoundScript cells, ≤ 22 lines each, ported by an opus subagent; `selfcheck: 39072 cells, 0 not accepted`); tc-build,
+tc-decomp, tc-text (runtime cells closure, methods, tdz), tc-index, ts-cells.ts BOOTSTRAP (fnreg.ts). Frozen toolchain:
+the same under DELIBERATE CHANGE (2026-11-22, cause A). `[let-capture]` audit (`.scratch/holes6/letcap.ts`, 20 routes:
+later in text, the kept function itself, `++`, async helper, then, a helper called from then / a kept fn / an async fn,
+generator after yield, loop, destructuring, `+=`, a let record, an action, a JSX handler, a method, a declaration,
+catch, switch): all `[let-capture]`; the two allowed forms (assignment before the function is made; a helper only
+called) accept. Not tightened; 0 shipped cells flipped. Checkpoint (qg2, 13:41): build 0; first bun-verify `14 pass,
+155 fail`: tc-decomp's comment held the reserved text `/*ss` (reworded); then `168 pass, 1 fail` (the new S4.6 row,
+which needs step 3); fixtures 14/14; diff 0 DIFFERENT; live `462 pass 1 fail` (the new run-sets test, which needs step 3); run-sets freeze 46 silent (all Error, typed array or URL), h6 10;
+run-all.sh 65/65 (its run-skip.ts evaluates erased text: it cannot see registrations).
+
+Step 3 (causes C, D). One table, `lite/freeze-table.ts`, walked by `lite/freeze-table.test.ts` (a script: a late write
+that throws is an unhandled rejection, which bun:test counts as a failure): every `new`-able INTRINSIC_DECLS name has a
+row; each probe is published along 8 routes (value, kept closure, record, array, Map, alias, helper, yield) and written
+late by its maker, with no checker. Before: `62 pass, 124 fail`; after: `freeze-table: 176 programs; late writes that
+threw: 70; 186 pass, 0 fail`. Treatments in `deepFreeze`: frozen (arrays, records, Error and every subclass: own data
+properties walked, `cause` included, `name` write throws as a new property; RegExp: `lastIndex` unwritable so a g/y
+`exec` throws; JSX elements); guarded (SsMap, SsSet, new SsURL: each setter throws once frozen; `URL` in SoundScript
+code is bound to `ss_SsURL` as Map is; URL setters are not in the table either way, but `readonly` is not enforced
+through `Mut`, so the run-time guard is what holds); copied (typed arrays, ArrayBuffer: a copy in the slot, marked so
+it is not copied again; one typed array twice in one value is one copy; at a slot that cannot be written, a function's
+captures or an already frozen value, deepFreeze throws at publish; native Map/Set/URL the same); read-only
+(URLSearchParams: get, has, toString); opaque (Promise in a slot: replaced by `p.then(deepFreeze)`; among captures: its
+value frozen in place when it settles; functions via step 2; State/Events/listener handles); banned (iterators and
+generator objects: deepFreeze throws); absent (DataView, Date, WeakMap, WeakSet, Intl, TextEncoder, TextDecoder).
+Typed-array copy: a 1,075,200-byte Uint8ClampedArray (Mandelbrot's image) slices in median 0.014 ms, max 0.479 ms of 50
+(bun); browser Mandelbrot pool 44.0 ms before step 1 (verify0), 49.9 ms after step 1 with no copying (verify1), 51.4 ms
+after step 3 (medians of 7, load 2.05 to 2.68); about 1.5 ms is step 3, the 6 ms of step 1 has no established cause. Checkpoint (qg3): build 0 after two fixes (an `EvalError` name the runtime module does not define: errors
+are now told by `Error.prototype.isPrototypeOf`; bun-verify's URL keeps setters further up the prototype chain:
+`d.get` of undefined in 165 tests, SsURL now walks the chain); `bun-verify: 169 pass, 0 fail`; live `463 pass 0 fail`;
+run-sets `all: 1085 programs, silent 0`, freeze 0; run-all.sh `skip: ... 21 silent`, `all: ... 21 silent`, all 21
+kept-closure programs (reg-*, fo-*), which its erased-text runner cannot protect by design.
+
+Step 4. Rules on: every set 0 silent (freeze 315/105 accepted, attack2 252/132, attack1 8/1, oldspec 49/31,
+oldvariants 239/40, runtime 98/80, new 70/20, h6 54/17). `live.test.ts` gains a test running freeze + h6 through
+run-sets in a child process. Rules off (`sets-off.txt`): `all: 1085 programs, silent 12`:
+- captured let reassigned, 3 (b4-let-reassign-after, b4-let-captured-array, h6-let-late):
+  `const a = function* () { let n = 0; const f = () => n; yield f; n = 1; yield f; };`
+- a cell writing its input typed array or ArrayBuffer through a view or a mutating method, 9: ab-view-of-input,
+  ab-view-of-input-buffer, fc-typed-subarray, iterable-of-ab-union-narrowed, ta-view-of-cell-buffer, ta-view-of-cell-ab,
+  ta-with-offset-view, S5.2#38, b6-typed-fill-input:
+  `const t = () => new Uint8Array(2);\nconst a = (t: Uint8Array) => { const p = t.subarray(0); p[0] = 1; return 0; };`
+  A typed array cannot be frozen, and every cell that reads one gets the same object, so a consumer's write is stopped
+  only by its type (member-write / mutating-method). This is the T -> Mut<T> case.
+New attack programs: `lite/infer/attack/h6-attacks.ts`, 54 (29 on closures, 25 on the table).
+
+Gates (final). Browser (13:47, AC, load 2.37): `functional 651 pass 0 fail`; title 445 ms, lint 4.7 ms, completion 5.1 ms.
+Collect (13:53, load 3.24) 764.4 735.9 756.2 µs/cell (step 1, load 2.05: 673.8 685.4 694.3; step 2 alone 718–722); the
++10% is across different loads and was not rerun back to back; collect output identical to step 1's. bun-verify 6.2 / 6.4 s (5.8 s before).
+Rest of the final gates (`.scratch/holes6/final-gates.sh`, 13:55–14:21, logs in `fg/`): diff --module-only `SAME 1029
+DIFFERENT 0`; rg-diff `registry level: ... SAME 82871 DIFFERENT 0 ... BOTH THREW 8`, `end to end: 1041 sources: SAME 1041
+DIFFERENT 0`; tc-diff decompileVariable `SAME 34943 ... DIFFERENT 0`; cp-diff `cellsOf SAME 3552 DIFFERENT 0`; complete-diff
+`SAME 6095 ... DIFFERENT 0 REVIEWED 4`; delivery `50469 orderings, 0 fail`. Every lite/ test passes but two:
+- `acorn.test.ts` `4 pass, 2 fail`. The census failure is the earlier one (truncation of `lite/store.ss.ts` at 0.3: acorn
+  itself throws `TypeError ... node.declaration.id.start`, the boundary reports it wrapped). The controls failure is new
+  and caused by this round's files: the controls read `census.slice(300, 320)`, and 7 new files under lite/ sort before
+  index 300, which moved the unparseable reject case `spec#7` to 316 (`.scratch/holes6/acorn-idx.ts`). Not changed.
+- `toolchain/tc.test.ts` `10 pass 1 fail` (the tc-preload redirect never fired for ss-toolchain.test.ts); with
+  `BUN_RUNTIME_TRANSPILER_CACHE_PATH=0` `11 pass 0 fail`: a cached transpile of that test skips the preload plugin.
+Not done or unverified: `/review-notebook` ran once on this section (FIX, 7 findings, 6 taken here; the collect rerun at
+equal load not made). `ts-cells.test.ts` passes `a parse that does not fit Parse throws` on `ss_out is not defined` (also
+in the 12:43 cp-port log, before this round). run-all.sh cannot see registrations, so its 21 is not a measure of the
+notebook. Thunk timings 722.0 / 717.8 have no kept log. No shipped cell is newly rejected (`selfcheck 0 not accepted`,
+bun-verify 169/0, browser 651/0); a cell whose kept function captures a typed array now throws at publish (none in
+bun-verify or the browser suite; the shipped corpus outside those was not run).

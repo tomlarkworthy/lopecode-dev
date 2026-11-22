@@ -84,11 +84,14 @@ export const tcDecompileVariable = (tcParseCompiled, tcUnesc, tcUnkeep) => (defi
   if (!p.hasFn) throw new Error("SoundScript variable whose marker opens no call");
   if (p.header.h === null || p.header.t === null) throw new Error("tc-gap: a header without h and t");
   let end = p.fnEnd;
-  for (const c of p.comments) if (c.start === end && c.block && (c.text === "ss>" || c.text.startsWith("ss:"))) end = c.end;
-  let out = "", at = p.headerEnd, inJsx = false;
+  for (const c of p.comments) if (c.start === end && c.block && (c.text === "ss>" || c.text === "ss-" || c.text.startsWith("ss:"))) end = c.end;
+  let out = "", at = p.headerEnd, inJsx = false, inReg = false;
   for (const c of p.comments) {
     if (c.start < p.headerEnd || c.end > end || !c.block) continue;
     if (inJsx) { if (c.text === "ss>") { inJsx = false; at = c.end; } continue; }
+    // a closure registration (the comments ss+ ... ss-) is not source
+    if (inReg) { if (c.text === "ss-") { inReg = false; at = c.end; } continue; }
+    if (c.text === "ss+") { out += definition.slice(at, c.start); inReg = true; continue; }
     if (c.text.startsWith("ss<")) { out += definition.slice(at, c.start) + tcUnkeep(c.text.slice(3)); inJsx = true; }
     else if (c.text.startsWith("ss:")) { out += definition.slice(at, c.start) + tcUnesc(c.text.slice(3)); at = c.end; }
   }

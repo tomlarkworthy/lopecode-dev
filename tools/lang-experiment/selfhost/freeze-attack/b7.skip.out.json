@@ -3,40 +3,34 @@
   "name": "cb-forEach-async-typed",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "cb-map-async-typed",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "cb-forEach-async-error",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)",
-   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "cb-forEach-async-array",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -45,44 +39,36 @@
   "name": "cb-some-async-url",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): URL(https://x.test/) -> URL(https://x.test/#s)",
-   "CHANGED b (value #1 of 1): {v:URL(https://x.test/)} -> {v:URL(https://x.test/#s)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "cb-map-forEach-async-typed",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[2,0]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[2,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "cb-typed-forEach-async",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[0,2]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[0,2]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "cb-array-from-async",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[3,0]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[3,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
@@ -110,7 +96,7 @@
   "name": "fo-error-helper",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn(Error(Error:x)) -> fn(Error(Error:y))"
   ],
   "silent": true,
@@ -120,7 +106,7 @@
   "name": "fo-error-alias",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn(Error(Error:x)) -> fn(Error(Error:y))"
   ],
   "silent": true,
@@ -130,7 +116,7 @@
   "name": "fo-map-helper",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn(Map{}) -> fn(Map{\"k\"=>1})"
   ],
   "silent": true,
@@ -140,7 +126,7 @@
   "name": "fo-set-alias",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn(Set{}) -> fn(Set{1})"
   ],
   "silent": true,
@@ -150,7 +136,7 @@
   "name": "fo-record-helper",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn({n:0}) -> fn({n:5})"
   ],
   "silent": true,
@@ -188,7 +174,7 @@
   "name": "fo-recurse",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
   ],
   "silent": true,
@@ -198,7 +184,7 @@
   "name": "fo-two-level-helper",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
   ],
   "silent": true,
@@ -224,11 +210,11 @@
   "name": "kw-map-alias",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c,b",
-   "CHANGED a (value #1 of 1): {m:Map{},k:fn(0)} -> {m:Map{\"k\"=>1},k:fn(0)}"
+   "quick: ",
+   "error c: set on a frozen Map: a value cannot change after its cell returns"
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "kw-typed-alias",
@@ -248,11 +234,11 @@
   "name": "kw-record-alias-field",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c,b",
-   "CHANGED a (value #1 of 1): {o:{n:0},k:fn(0)} -> {o:{n:7},k:fn(0)}"
+   "quick: ",
+   "error c: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "kw-alias-ternary",
@@ -265,21 +251,21 @@
   "name": "kw-alias-param-of-helper",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
-   "CHANGED a (value #1 of 1): {xs:[0],k:fn(0)} -> {xs:[0,1,1],k:fn(0)}"
+   "quick: ",
+   "error c: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "kw-alias-inner-closure",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
-   "CHANGED a (value #1 of 1): {xs:[0],k:fn(0)} -> {xs:[0,1,1],k:fn(0)}"
+   "quick: ",
+   "error c: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "kw-alias-outside-made-inside",
@@ -292,56 +278,56 @@
   "name": "gy-error-alias",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 2): Error(Error:x) -> Error(Error:y)",
-   "CHANGED b (value #1 of 2): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+   "quick: ",
+   "error a: Attempted to assign to readonly property.",
+   "error b: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "gy-error-helper",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 2): Error(Error:x) -> Error(Error:y)",
-   "CHANGED b (value #1 of 2): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+   "quick: ",
+   "error a: Attempted to assign to readonly property.",
+   "error b: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "gy-error-in-map",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 2): Map{\"k\"=>Error(Error:x)} -> Map{\"k\"=>Error(Error:y)}",
-   "CHANGED b (value #1 of 2): {v:Map{\"k\"=>Error(Error:x)}} -> {v:Map{\"k\"=>Error(Error:y)}}"
+   "quick: ",
+   "error a: Attempted to assign to readonly property.",
+   "error b: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "gy-error-in-set",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 2): Set{Error(Error:x)} -> Set{Error(Error:y)}",
-   "CHANGED b (value #1 of 2): {v:Set{Error(Error:x)}} -> {v:Set{Error(Error:y)}}"
+   "quick: ",
+   "error a: Attempted to assign to readonly property.",
+   "error b: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "gy-error-async-gen",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 2): Error(Error:x) -> Error(Error:y)",
-   "CHANGED b (value #1 of 2): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+   "quick: ",
+   "error a: Attempted to assign to readonly property.",
+   "error b: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "gy-error-array-of",

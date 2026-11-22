@@ -817,18 +817,29 @@ test_spec_S4_5 = {
 // %%
 test_spec_S4_6 = {
   // a cell's value is deep-frozen when the cell returns: its array, its Map and its Set refuse a write from any code.
-  // B7 (2026-11-22): a sync cell that makes no async or generator function is published unfrozen unless freezeAll is
-  // on, so the cell here is async; q is such a sync cell, and the result says whether it was frozen
+  // a sync cell's value is frozen too (B7's unfrozen quick path was removed 2026-11-22)
   const V = await spec_load("const v = async () => ({ xs: [1], m: new Map<string, number[]>([[\"k\", [1]]]), s: new Set([1]) });\nconst q = () => ({ xs: [1] });", {});
   try {
     const v = await V.value("v"), q = await V.value("q");
     const tries = [() => v.xs.push(2), () => v.m.set("j", []), () => v.m.get("k").push(2), () => v.s.add(2), () => { v.n = 1; }];
     const got = tries.map((f) => { try { f(); return "no throw"; } catch (e) { return e instanceof TypeError ? "TypeError" : String(e); } });
     spec_is([...got, v.m instanceof Map, JSON.stringify([...v.m])], ["TypeError", "TypeError", "TypeError", "TypeError", "TypeError", true, '[["k",[1]]]']);
-    var quick = Object.isFrozen(q.xs) ? "frozen (freezeAll)" : "not frozen";
-    spec_is(quick, new URLSearchParams(location.search).get("ss_freeze_all") === "1" ? "frozen (freezeAll)" : "not frozen");
+    spec_is(Object.isFrozen(q.xs), true);
   } finally { V.dispose(); }
-  return `${spec_acceptsFor("S4.6")}; an async cell's array, record, Map and Set refuse a write; a quick sync cell's value: ${quick}`;
+  return `${spec_acceptsFor("S4.6")}; an async cell's array, record, Map and Set refuse a write; a sync cell's value is frozen`;
+}
+// %%
+test_spec_S4_6_reach = {
+  // holes6 (2026-11-22): what a published function captures is frozen when it is published (the compiler registers
+  // each closure's captured locals); an Error is frozen; a URL is the guarded SsURL; a typed array is published as a copy
+  const V = await spec_load("const f = () => { const xs = [1]; const h = () => xs; return () => h(); };\nconst e = () => new Error(\"x\");\nconst u = () => new URL(\"https://x.test/a\");\nconst t = () => { const a = new Uint8Array(2); return { a, b: a }; };", {});
+  try {
+    const f = await V.value("f"), e = await V.value("e"), u = await V.value("u"), t = await V.value("t");
+    const tries = [() => f().push(2), () => { e.message = "y"; }, () => { e.name = "Y"; }, () => { u.pathname = "/b"; }];
+    const got = tries.map((g) => { try { g(); return "no throw"; } catch (x) { return x instanceof TypeError ? "TypeError" : String(x); } });
+    spec_is([...got, u.href, t.a === t.b, t.a instanceof Uint8Array], ["TypeError", "TypeError", "TypeError", "TypeError", "https://x.test/a", true, true]);
+  } finally { V.dispose(); }
+  return "a published function's captures, an Error and a URL refuse a write; a typed array published twice in one value is one copy";
 }
 // %%
 test_spec_S4_7 = spec_rejectsFor("S4.7")

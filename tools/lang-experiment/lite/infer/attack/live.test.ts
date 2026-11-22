@@ -52,3 +52,14 @@ for (const [name, rule] of Object.entries(MUST))
 test("the programs that need the owner (printed)", () => {
   for (const p of OWNER) console.log(`owner ${p.hole} ${p.name}: ${verdict(p.src, p.foreign ?? null)}`);
 });
+// holes6 (2026-11-22): the break families of selfhost/freeze-attack (b1-b7: aliases and helpers in kept functions, the
+// freeze skip, async helpers after return, Error) and this round's own (h6-attacks.ts), run by run-sets.ts in a child
+// process (a late write that throws is an unhandled rejection, which bun:test would count against this test):
+// accepted by the checker; running it changes nothing another cell holds, or throws.
+test("freeze-attack and h6 families: accepted programs change nothing another cell holds, or throw", () => {
+  const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "freeze,h6"], { stdout: "pipe", stderr: "pipe" });
+  const out = r.stdout.toString(), lines = out.split("\n");
+  console.log(lines.filter((l) => l.startsWith("-- ")).join("\n"));
+  expect(lines.filter((l) => l.startsWith("SILENT "))).toEqual([]);
+  expect(out).toMatch(/^-- freeze: 315 programs/m);
+}, 120000); // the child run takes about 5 s, bun's default limit

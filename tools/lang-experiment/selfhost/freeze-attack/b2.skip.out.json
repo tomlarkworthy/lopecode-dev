@@ -3,40 +3,34 @@
   "name": "ah-error",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)",
-   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "ah-typed",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "ah-url",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): URL(https://x.test/a) -> URL(https://x.test/b)",
-   "CHANGED b (value #1 of 1): {v:URL(https://x.test/a)} -> {v:URL(https://x.test/b)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "ah-array",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -45,21 +39,18 @@
   "name": "ah-typed-in-record",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): {t:Uint8Array[0,0]} -> {t:Uint8Array[1,0]}",
-   "CHANGED b (value #1 of 1): {t:Uint8Array[0,0]} -> {t:Uint8Array[1,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "ah-param",
   "verdict": "ACCEPT",
   "out": [
-   "quick: ",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
@@ -73,55 +64,45 @@
   "name": "ah-async-cell",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "hc-async-mut-param",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b",
-   "CHANGED a (value #1 of 1): [0] -> [0,1]",
-   "CHANGED b (value #1 of 1): {v:[0]} -> {v:[0,1]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "hc-async-mut-param-unannot",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b",
-   "CHANGED a (value #1 of 1): [0] -> [0,1]",
-   "CHANGED b (value #1 of 1): {v:[0]} -> {v:[0,1]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "hc-async-typed",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "hc-async-error",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b",
-   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)",
-   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
@@ -149,7 +130,7 @@
   "name": "hc-async-local",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -158,7 +139,7 @@
   "name": "fo-map-get-nullish",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
   ],
   "silent": true,
@@ -168,7 +149,7 @@
   "name": "fo-index",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
   ],
   "silent": true,
@@ -199,7 +180,7 @@
   "name": "fo-switch",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
   ],
   "silent": true,
@@ -209,7 +190,7 @@
   "name": "fo-arrow-block-helper2",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
   ],
   "silent": true,
@@ -219,7 +200,7 @@
   "name": "fo-helper-no-annot",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
   ],
   "silent": true,
@@ -236,7 +217,7 @@
   "name": "fo-in-record-helper",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): {get:fn([0])} -> {get:fn([0,1])}"
   ],
   "silent": true,
@@ -246,7 +227,7 @@
   "name": "fo-alias-then-holder-cell",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,d,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
   ],
   "silent": true,
@@ -263,7 +244,7 @@
   "name": "fo-write-in-kept-alias",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn(2) -> fn(3)"
   ],
   "silent": true,
@@ -273,7 +254,7 @@
   "name": "fo-write-in-kept-helper",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn(2) -> fn(3)"
   ],
   "silent": true,
@@ -304,7 +285,7 @@
   "name": "fo-write-in-kept-let",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn(2) -> fn(3)"
   ],
   "silent": true,

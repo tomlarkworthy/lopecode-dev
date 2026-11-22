@@ -39,7 +39,7 @@ export const tcApplyEdits = () => (src: string, edits: TcEdit[]): string => {
 };
 
 export const tcPrelude = (tcPreludeFns: () => string[]) => [...tcPreludeFns(), "h"];
-export const tcRuntimeCells = (tcPrelude) => [...tcPrelude, "ref", "events", "listen", "cross", "viewRef", "compileFor", "rejected", "release", "out", "SsMap", "SsSet"];
+export const tcRuntimeCells = (tcPrelude) => [...tcPrelude, "ref", "events", "listen", "cross", "viewRef", "compileFor", "rejected", "release", "out", "SsMap", "SsSet", "SsURL", "closure", "methods", "tdz"];
 // a capability or runtime cell -> the input that provides it: ss_<name>, except invalidation and, in the runtime module, its own cells
 export const tcInputsIn = (tcCaps, tcRuntimeCells) => (runtimeModule: boolean): Map<string, string> =>
   new Map([...tcCaps, ...tcRuntimeCells].map((n) => [n, n === "invalidation" || (runtimeModule && tcRuntimeCells.includes(n)) ? n : `ss_${n}`]));

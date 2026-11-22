@@ -72,7 +72,7 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   const expect = (ok: boolean, what: string) => { if (!ok) { fail++; console.log("FAIL " + what); } };
   expect(JSON.stringify(g.get("world")?.inputs) === JSON.stringify(["Generators", "viewof world"]) && g.get("world")?.definition === "(G, _) => G.input(_)", "a state cell's value variable is Generators.input of its handle: " + g.get("world")?.inputs);
   expect(JSON.stringify(g.get("viewof world")?.inputs) === JSON.stringify(["ss_state", "ss_ref", "start"]), "a state cell's handle is viewof world and takes its inputs: " + g.get("viewof world")?.inputs);
-  expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["ss_action", "ss_out", "viewof world", "step"]), "a State<T> parameter reads the handle: " + g.get("tick")?.inputs);
+  expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["ss_action", "ss_out", "ss_closure", "viewof world", "step"]), "a State<T> parameter reads the handle: " + g.get("tick")?.inputs);
   expect([...g.values()].every((v) => !v.inputs.includes("@variable")), "no variable takes @variable (the exporter reads two inputs ending in @variable as an import)");
   expect(toolchain.compiledKind(g.get("ticks")!.definition)?.callee === "events" && !g.has("viewof ticks"), "a generator taken as Events is one handle variable");
   expect(passesModule(g.get("ticks")!.definition, "ticks"), "an events cell's definition is a function that passes its module name: " + g.get("ticks")!.definition.slice(0, 40));

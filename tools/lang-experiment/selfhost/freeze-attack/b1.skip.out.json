@@ -192,7 +192,7 @@
   "name": "reg-helper",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
   ],
   "silent": true,
@@ -279,7 +279,7 @@
   "name": "reg-for-of",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
   ],
   "silent": true,
@@ -289,7 +289,7 @@
   "name": "reg-let-assign",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
   ],
   "silent": true,
@@ -299,7 +299,7 @@
   "name": "reg-local-alias",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c",
+   "quick: ",
    "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])"
   ],
   "silent": true,
@@ -309,23 +309,23 @@
   "name": "err-yield-write",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 2): Error(Error:x) -> Error(Error:y)",
-   "CHANGED b (value #1 of 2): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+   "quick: ",
+   "error a: Attempted to assign to readonly property.",
+   "error b: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "err-in-record-yield",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 2): {e:Error(Error:x)} -> {e:Error(Error:y)}",
-   "CHANGED b (value #1 of 2): {e:Error(Error:x)} -> {e:Error(Error:y)}"
+   "quick: ",
+   "error a: Attempted to assign to readonly property.",
+   "error b: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "err-kept-fn-late",
@@ -338,7 +338,7 @@
   "name": "err-fresh-write",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a"
+   "quick: "
   ],
   "silent": false,
   "threw": false

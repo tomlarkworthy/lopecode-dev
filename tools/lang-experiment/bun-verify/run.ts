@@ -106,8 +106,6 @@ const ex: any = await loadNotebook(opt.notebook, {
   settleTimeout: 30000,
   pollInterval: opt.poll,
   ...(opt.hash ? { hash: opt.hash } : {}),
-  // B7 (2026-11-22): SS_FREEZE_ALL=1 boots with ?ss_freeze_all=1, which turns freeze.ts freezeAll on
-  ...(process.env.SS_FREEZE_ALL === "1" ? { search: "?ss_freeze_all=1" } : {}),
   log: (m: string) => { const t = performance.now(); if (m.startsWith("Bootloader: @")) tParsed = t; if (opt.verbose) process.stderr.write(m + "\n"); },
   instrument: (runtime: any) => { for (const c of installed) c.install((n: string) => runtime._global(n), runtime); if (deepFreezeOn) deepFreezeCells(runtime); },
 });

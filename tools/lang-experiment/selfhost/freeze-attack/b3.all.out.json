@@ -3,7 +3,7 @@
   "name": "then-alias-inside",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -12,7 +12,7 @@
   "name": "then-helper-inside",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -21,7 +21,7 @@
   "name": "then-let-inside",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -30,7 +30,7 @@
   "name": "then-chain-alias",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -39,18 +39,16 @@
   "name": "then-error-alias",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b",
-   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)",
-   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "then-record-alias",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -59,7 +57,7 @@
   "name": "then-map-alias",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -68,7 +66,7 @@
   "name": "then-in-helper-call",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -91,7 +89,7 @@
   "name": "then-all",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -310,7 +308,7 @@
   "name": "fc-typed-from",
   "verdict": "ACCEPT",
   "out": [
-   "quick: t,a"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -319,7 +317,7 @@
   "name": "fc-typed-new-src",
   "verdict": "ACCEPT",
   "out": [
-   "quick: t,a"
+   "quick: "
   ],
   "silent": false,
   "threw": false

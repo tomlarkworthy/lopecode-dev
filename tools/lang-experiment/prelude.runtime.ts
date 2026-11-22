@@ -3,7 +3,7 @@
 // and what a commit applies, is decided by storeStep and the cells of lite/store.ss.ts (checked SoundScript). This
 // file holds the one StoreState value and each handle's store record, runs the actions' functions between steps,
 // and performs the effects.
-import { deepFreeze, SsMap, SsSet, emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
+import { deepFreeze, closure, SsMap, SsSet, emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
 export { mut, freeze, borrow } from "./lite/runtime-ss.ts";
 
 const STATECELL = Symbol.for("lc.statecell");
@@ -169,7 +169,8 @@ export function action(f: (...args: unknown[]) => unknown) {
     return storeFeed({ t: "exit", threw: false, value: v });
   };
   Object.defineProperty(a, ACTION, { value: true });
-  return a;
+  // an action handle reaches its body: deepFreeze freezes what the body captures when the handle is published
+  return closure(a, (i) => (i < 0 ? 1 : f));
 }
 
 export function snapshot<T>(v: T): T {

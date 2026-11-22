@@ -13,6 +13,7 @@ import * as build from "./tc-build.ss.ts";
 import * as ctxCells from "./tc-ctx.ss.ts";
 import * as decomp from "./tc-decomp.ss.ts";
 import * as modjs from "./tc-modjs.ss.ts";
+import * as reg from "./tc-reg.ss.ts";
 import * as shell from "./tc-shell.ts";
 import { link } from "../link.ts";
 import { linkAcorn, firstParamShape } from "../acorn/index.ts";
@@ -21,8 +22,8 @@ import { cross, type Shape } from "../boundary.ts";
 import * as prelude from "../../prelude.runtime.ts";
 export type * from "./tc-types.ss.ts";
 
-export const TC_FILES = ["types", "text", "cuts", "free", "build", "ctx", "decomp", "modjs"].map((x) => `tc-${x}.ss.ts`);
-export const TC_CELLS = { ...text, ...cuts, ...free, ...build, ...ctxCells, ...decomp, ...modjs };
+export const TC_FILES = ["types", "text", "cuts", "free", "build", "ctx", "decomp", "modjs", "reg"].map((x) => `tc-${x}.ss.ts`);
+export const TC_CELLS = { ...text, ...cuts, ...free, ...build, ...ctxCells, ...decomp, ...modjs, ...reg };
 
 // the shape of the first parameter of a cell of tc-text.ss.ts, from its annotation
 const paramShape = (cell: string): Shape => firstParamShape(["../acorn/acorn-types.ss.ts", "tc-types.ss.ts", "tc-text.ss.ts"].map((f) => readFileSync(join(import.meta.dir, f), "utf8")).join("\n"), cell);

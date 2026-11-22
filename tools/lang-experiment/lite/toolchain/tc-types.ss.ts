@@ -36,3 +36,12 @@ export type TcModuleVar = { readonly pid: string; readonly name: string | null; 
 export type TcModuleImport = { readonly from: string; readonly remote: string; readonly local: string };
 export type TcObsVar = { readonly name: string | null; readonly inputs: string[]; readonly definition: string };
 export type TcTranslated = { readonly text: string; readonly reason: null } | { readonly text: null; readonly reason: string };
+// fnreg.ts closure registration: a node of the cell function's walk, a work item of freeIn (pat: the node is a binding
+// pattern), an edit before its final position is taken, a function's start and captures, and the result
+export type TcRegNode = { readonly n: AstNode; readonly parent: AstNode | null; readonly depth: number };
+export type TcFreeItem = { readonly n: AstNode | null; readonly b: Set<string>; readonly pat: boolean };
+export type TcRegEdit = { readonly at: number; readonly depth: number; readonly end: boolean; readonly text: string; readonly use: string | null };
+export type TcRegCap = { readonly start: number; readonly names: string[] };
+export type TcRegHit = { readonly edits: TcRegEdit[]; readonly caps: TcRegCap[] };
+export type TcRegNames = { readonly closure: string; readonly methods: string; readonly tdz: string };
+export type TcRegs = { readonly edits: TcEdit[]; readonly uses: string[] };

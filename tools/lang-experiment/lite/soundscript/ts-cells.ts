@@ -55,7 +55,7 @@ const SS_GROUPS = [INFER, TOOLCHAIN];
 // a section whose cells take a cell of a TypeScript file of the module, checked with those files as its shell (S9.1)
 const SS_SHELL: Record<string, string[]> = { "acorn/acorn.ss.ts": ["acorn/acorn-shell.ts"], "acorn/syntax.ss.ts": ["acorn/acorn-shell.ts"], ...Object.fromEntries(INFER.map((f) => [f, ["acorn/acorn-shell.ts"]])),
   ...Object.fromEntries(TOOLCHAIN.map((f) => [f, ["acorn/acorn-shell.ts", "toolchain/tc-shell.ts"]])) };
-const BOOTSTRAP = ["types.ts", "runtime-ss.ts", "shape-ss.ts", "checks-ss.ts", "link.ts", "acorn/index.ts", "infer-ss.ts", "toolchain/tc-index.ts"];
+const BOOTSTRAP = ["types.ts", "runtime-ss.ts", "shape-ss.ts", "checks-ss.ts", "link.ts", "fnreg.ts", "acorn/index.ts", "infer-ss.ts", "toolchain/tc-index.ts"];
 const CHECKER_FILES = ["parse.ts", "intrinsics.ts", "subtype.ss.ts", "walks.ss.ts", "island.ss.ts", "island.ts", "facts.ts", "messages.ss.ts", "acorn/acorn-rows.ts", "acorn/acorn-shell.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "acorn/syntax.ss.ts", ...INFER, "infer/rg-registry.ts", "core.ts", "infer/cp-lezer.ts", "complete.ts", "jsx/lower.ts", "browser/erase.ts", "toolchain/ss-toolchain.ts", "toolchain/tc-shell.ts", ...TOOLCHAIN];
 // the third-party imports, and the cells of the checker module that provide them
 const THIRD_PARTY: Record<string, { namespace?: string; names?: string[] }> = { acorn: { namespace: "acorn" }, "@sveltejs/acorn-typescript": { names: ["tsPlugin"] } };

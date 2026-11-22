@@ -10,13 +10,12 @@
   "name": "kc-flow-helper-by-cell",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,d,c",
-   "CHANGED a (value #1 of 1): fn([0]) -> fn([0,1])",
-   "CHANGED d (value #1 of 1): {v:[0]} -> {v:[0,1]}",
-   "show d = {v:[0,1]}"
+   "quick: ",
+   "show d = {v:[0]}",
+   "error c: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "kc-flow-alias-typed",
@@ -29,29 +28,25 @@
   "name": "st-error-async-writer",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED w (value #1 of 1): Error(Error:x) -> Error(Error:y)",
-   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "st-typed-initial-async",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED s (value #1 of 1): Uint8Array[0,0] -> Uint8Array[1,0]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[1,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "st-array-initial-async",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -60,7 +55,7 @@
   "name": "st-array-initial-then",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -76,7 +71,7 @@
   "name": "st-set-array-action-then",
   "verdict": "ACCEPT",
   "out": [
-   "quick: w,b",
+   "quick: ",
    "show b = {v:[0]}"
   ],
   "silent": false,
@@ -208,7 +203,7 @@
   "name": "gl-object-freeze",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -252,12 +247,12 @@
   "name": "er-in-yield-record-gen",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED g (value #1 of 2): {list:[Error(Error:x)]} -> {list:[Error(Error:y)]}",
-   "CHANGED b (value #1 of 2): {v:{list:[Error(Error:x)]}} -> {v:{list:[Error(Error:y)]}}"
+   "quick: ",
+   "error g: Attempted to assign to readonly property.",
+   "error b: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "er-captured-gen",
@@ -270,33 +265,33 @@
   "name": "er-kept-fn-name",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 2): Error(TypeError:x) -> Error(TypeError:y)",
-   "CHANGED b (value #1 of 2): {v:Error(TypeError:x)} -> {v:Error(TypeError:y)}"
+   "quick: ",
+   "error a: Attempted to assign to readonly property.",
+   "error b: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "er-range",
   "verdict": "ACCEPT",
   "out": [
    "quick: ",
-   "CHANGED a (value #1 of 2): {e:Error(RangeError:x)} -> {e:Error(RangeError:q)}"
+   "error a: Attempted to assign to readonly property."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "er-name-write",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 2): Error(Error:x) -> Error(Boom:x,name=\"Boom\")",
-   "CHANGED b (value #1 of 2): {v:Error(Error:x)} -> {v:Error(Boom:x,name=\"Boom\")}"
+   "quick: ",
+   "error a: Attempting to define property on object that is not extensible.",
+   "error b: Attempting to define property on object that is not extensible."
   ],
-  "silent": true,
-  "threw": false
+  "silent": false,
+  "threw": true
  },
  {
   "name": "er-url-searchparams-gen",
@@ -309,11 +304,9 @@
   "name": "er-async-cell-promise",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)",
-   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  }
 ]

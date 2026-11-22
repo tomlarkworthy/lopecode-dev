@@ -3,11 +3,9 @@
   "name": "hs-then-alias-param",
   "verdict": "ACCEPT",
   "out": [
-   "quick: H,a,b",
-   "CHANGED a (value #1 of 1): [0] -> [0,1]",
-   "CHANGED b (value #1 of 1): {v:[0]} -> {v:[0,1]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
@@ -21,55 +19,45 @@
   "name": "hs-then-alias-param-error",
   "verdict": "ACCEPT",
   "out": [
-   "quick: H,a,b",
-   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)",
-   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "hs-async-inner-helper",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b",
-   "CHANGED a (value #1 of 1): [0] -> [0,1]",
-   "CHANGED b (value #1 of 1): {v:[0]} -> {v:[0,1]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "hs-async-inner-helper-typed",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[3,0]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[3,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "hs-async-inner-helper-url",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b",
-   "CHANGED a (value #1 of 1): URL(https://x.test/) -> URL(https://x.test/#z)",
-   "CHANGED b (value #1 of 1): {v:URL(https://x.test/)} -> {v:URL(https://x.test/#z)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "ls-nested-async-in-helper-typed",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[4,0]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[4,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
@@ -90,22 +78,18 @@
   "name": "ls-async-fn-decl-typed",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[6,0]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[6,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "ls-async-alias-typed",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[7,0]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[7,0]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
@@ -119,11 +103,9 @@
   "name": "ls-async-fill",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Uint8Array[0,0] -> Uint8Array[9,9]",
-   "CHANGED b (value #1 of 1): {v:Uint8Array[0,0]} -> {v:Uint8Array[9,9]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
@@ -137,33 +119,27 @@
   "name": "ls-async-url-search",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): {u:URL(https://x.test/)} -> {u:URL(https://x.test/?q)}",
-   "CHANGED b (value #1 of 1): {u:URL(https://x.test/)} -> {u:URL(https://x.test/?q)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "ls-async-typed-then-cell-two",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): [Float64Array[0]] -> [Float64Array[1.5]]",
-   "CHANGED b (value #1 of 1): {v:[Float64Array[0]]} -> {v:[Float64Array[1.5]]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "ls-async-param-error",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:z)",
-   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:z)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
@@ -186,8 +162,8 @@
   "name": "ac-then-alias-state-error",
   "verdict": "ACCEPT",
   "out": [
-   "quick: w,b",
-   "show b = {v:Error(Error:y)}"
+   "quick: ",
+   "show b = {v:Error(Error:x)}"
   ],
   "silent": false,
   "threw": false
@@ -196,7 +172,7 @@
   "name": "ac-then-alias-state-array",
   "verdict": "ACCEPT",
   "out": [
-   "quick: w,b",
+   "quick: ",
    "show b = {v:[5]}"
   ],
   "silent": false,
@@ -206,7 +182,7 @@
   "name": "ac-returns-typed",
   "verdict": "ACCEPT",
   "out": [
-   "quick: w"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -215,7 +191,7 @@
   "name": "ac-update-keeps",
   "verdict": "ACCEPT",
   "out": [
-   "quick: w"
+   "quick: "
   ],
   "silent": false,
   "threw": false
@@ -231,22 +207,18 @@
   "name": "ac-state-error-initial-then",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED s (value #1 of 1): Error(Error:x) -> Error(Error:y)",
-   "CHANGED b (value #1 of 1): {v:Error(Error:x)} -> {v:Error(Error:y)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "ac-state-url-initial-async",
   "verdict": "ACCEPT",
   "out": [
-   "quick: b",
-   "CHANGED s (value #1 of 1): URL(https://x.test/) -> URL(https://x.test/#q)",
-   "CHANGED b (value #1 of 1): {v:URL(https://x.test/)} -> {v:URL(https://x.test/#q)}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
@@ -267,10 +239,9 @@
   "name": "th-error-helper",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a",
-   "CHANGED a (value #1 of 1): Error(Error:x) -> Error(Error:y)"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
@@ -291,22 +262,18 @@
   "name": "th-map-helper-skip",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b",
-   "CHANGED a (value #1 of 1): Map{} -> Map{\"k\"=>1}",
-   "CHANGED b (value #1 of 1): {v:Map{}} -> {v:Map{\"k\"=>1}}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
   "name": "th-set-alias-skip",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,b",
-   "CHANGED a (value #1 of 1): Set{} -> Set{1}",
-   "CHANGED b (value #1 of 1): {v:Set{}} -> {v:Set{1}}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  },
  {
@@ -355,11 +322,9 @@
   "name": "th-kept-returns-then",
   "verdict": "ACCEPT",
   "out": [
-   "quick: a,c,b",
-   "CHANGED a (value #1 of 1): {xs:[0],k:fn(0)} -> {xs:[0,1,1],k:fn(0)}",
-   "CHANGED b (value #1 of 1): {v:[0]} -> {v:[0,1,1]}"
+   "quick: "
   ],
-  "silent": true,
+  "silent": false,
   "threw": false
  }
 ]

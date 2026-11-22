@@ -1,5 +1,5 @@
 // bun lite/freeze.test.ts: SsMap/SsSet keep working as a Map and Set, refuse writes once frozen, and deepFreeze's walk
-import { SsMap, SsSet, deepFreeze, freeze, borrow, yielded, out } from "./freeze.ts";
+import { SsMap, SsSet, deepFreeze, freeze, borrow, yielded, out, closure, methods, tdz } from "./freeze.ts";
 import { equals, snapshot } from "../prelude.runtime.ts";
 let pass = 0, fail = 0;
 const ok = (c: boolean, what: string) => { if (c) pass++; else { fail++; console.log(`FAIL ${what}`); } };
@@ -37,8 +37,7 @@ ok(mk === nm && nested.mm.get(mk) === nm && sk === nm, "a native Map as a key, a
 const top = deepFreeze(new Map([["a", [1]]])) as any;
 ok(Object.getPrototypeOf(top) === SsMap.prototype && Object.isFrozen(top.get("a")), "a native Map at the top: its frozen copy");
 const shut = Object.freeze([new Map([["a", 1]])]);
-deepFreeze(shut);
-ok(Object.getPrototypeOf(shut[0]) === Map.prototype && !throws(() => (shut[0] as any).set("b", 2)), "a native Map in an already frozen array cannot be replaced (stays writable)");
+ok(throws(() => deepFreeze(shut)), "a native Map in an already frozen array cannot be replaced: deepFreeze throws (2026-11-22; it was left writable)");
 class C { xs = [1]; }
 const inst = new C(), fn = () => 1, ta = new Float32Array(2), d = new Date(0);
 deepFreeze({ inst, fn, ta, d });
@@ -56,14 +55,28 @@ ok(Object.isFrozen(p) && Object.isFrozen(p.xs), "out: a promise's resolved value
 const big = Array.from({ length: 1000 }, (_, i) => ({ i }));
 deepFreeze(big);
 ok(deepFreeze(big) === big && Object.isFrozen(big[999]), "again: the same value, O(1)");
+
+// closures (2026-11-22, cause A): a registered function's captures are frozen when it is published, not when it is made
+{
+  const xs = [0], ys = [1];
+  const g = closure(() => ys.length, (i) => (i < 0 ? 1 : ys));
+  const f = closure(() => xs.length + g(), (i) => (i < 0 ? 2 : i === 0 ? g : xs));
+  xs.push(1);
+  ok(!Object.isFrozen(xs), "closure: registering does not freeze");
+  deepFreeze(f);
+  ok(Object.isFrozen(xs) && Object.isFrozen(ys) && throws(() => xs.push(2)), "closure: publishing freezes the captures, through a captured function");
+  const o = methods({ m() { return zs; } }, "m", (i: number) => (i < 0 ? 1 : zs));
+  const zs = [0];
+  deepFreeze(o);
+  ok(Object.isFrozen(zs), "methods: a method's captures are frozen with its record");
+  let late: number[] | undefined;
+  const h = closure(() => late, (i) => (i < 0 ? 1 : (() => { if (late === undefined) throw new ReferenceError("tdz"); return late; })()));
+  deepFreeze(h);
+  late = [0];
+  tdz();
+  ok(Object.isFrozen(late), "tdz: a capture in its dead zone at publish is frozen once it is initialised (tdz())");
+}
+ok(Object.isFrozen(out({ xs: [1] }).xs), "out: every sync value is frozen (B7's quick path removed 2026-11-22)");
 console.log(`${pass} pass, ${fail} fail`);
 process.exit(fail ? 1 : 0);
 
-// B7 (2026-11-22): out(v, 1) publishes a quick cell's value unfrozen unless freezeAll is on
-test("b7_quick_out_and_freezeAll", () => {
-  const a = out({ xs: [1] }, 1);
-  expect(Object.isFrozen(a.xs)).toBe(false);
-  expect(Object.isFrozen(out({ xs: [1] }).xs)).toBe(true);
-  (globalThis as { SS_FREEZE_ALL?: boolean }).SS_FREEZE_ALL = true;
-  try { expect(Object.isFrozen(out({ xs: [1] }, 1).xs)).toBe(true); } finally { delete (globalThis as { SS_FREEZE_ALL?: boolean }).SS_FREEZE_ALL; }
-});

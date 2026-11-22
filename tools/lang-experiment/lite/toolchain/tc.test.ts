@@ -57,7 +57,7 @@ test("no name declared in a tc file is declared in another .ss.ts file, and each
 
 // the owner's shape rules on the AST: no `!`, no cast, no module state; every ===/!== between two non-literals is listed
 // here after reading it (all compare strings, numbers or booleans: names, nids, positions, lengths), so a new one fails
-const EQ_READ = 28;
+const EQ_READ = 32;
 test("tc cells: no non-null assertion or cast, nothing at the top but const cells and types, the equalities read", () => {
   const kids = (n: any): any[] => Object.entries(n).flatMap(([, v]) => (Array.isArray(v) ? v : [v])).filter((v: any) => v && typeof v === "object" && typeof v.type === "string");
   const lit = (n: any) => n.type === "Literal" || n.type === "TemplateLiteral" || n.type === "UnaryExpression" || (n.type === "Identifier" && n.name === "undefined");

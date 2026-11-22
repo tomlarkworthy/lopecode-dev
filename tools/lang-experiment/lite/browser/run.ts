@@ -6,9 +6,10 @@ import { lowerJsx } from "../jsx/lower.ts";
 import { h } from "../jsx/h.ts";
 import { erase } from "./erase.ts";
 // a state cell's value is Observable's own Generators.input of its handle (a view)
-import { input } from "../../../../vendor/observable-stdlib/src/generators/input.js";
+import { input as genInput } from "../../../../vendor/observable-stdlib/src/generators/input.js";
 import * as P from "../../prelude.runtime.ts";
-import { SsMap, SsSet, out, deepFreeze } from "../freeze.ts";
+import { SsMap, SsSet, SsURL, out, deepFreeze, closure, methods, tdz } from "../freeze.ts";
+import { compileModule, parseCompiled } from "../toolchain/ss-toolchain.ts";
 import { island, type IslandSpec } from "../island.ts";
 import { CAPABILITIES, PRELUDE_FNS } from "../intrinsics.ts";
 import { cellsOf, on, events, listen, nameAction, release, guard, generatorish, type CellInfo } from "./cells.ts";
@@ -24,10 +25,23 @@ export type Verdicts = { cells: { name: string; status: string; errors: unknown[
 
 const CAPS = new Set(Object.keys(CAPABILITIES));
 // Map and Set in a cell are the freezable subclasses (freeze.ts), as in a compiled cell
-const PRELUDE_VALUES: Record<string, unknown> = { Map: SsMap, Set: SsSet, state: P.state, action: P.action, mut: P.mut, freeze: P.freeze, borrow: P.borrow, snapshot: P.snapshot, equals: P.equals, messageOf: P.messageOf, on, read: P.read, h };
-const PRELUDE = [...PRELUDE_FNS, "h", "Map", "Set"];
+const PRELUDE_VALUES: Record<string, unknown> = { Map: SsMap, Set: SsSet, URL: SsURL, state: P.state, action: P.action, mut: P.mut, freeze: P.freeze, borrow: P.borrow, snapshot: P.snapshot, equals: P.equals, messageOf: P.messageOf, on, read: P.read, h };
+const PRELUDE = [...PRELUDE_FNS, "h", "Map", "Set", "URL"];
 if (PRELUDE.some((n) => !(n in PRELUDE_VALUES))) throw new Error("a prelude function has no runtime value");
 export type Program = ReturnType<typeof runCells>;
+const REG_NAMES = ["ss_closure", "ss_methods", "ss_tdz"];
+// cell name -> the function text of its compiled definition (between the header and the function's end)
+function compiledFunctions(source: string, tsx: boolean): Map<string, string> {
+  const out = new Map<string, string>();
+  let vars: { name: string; definition: string }[];
+  try { vars = compileModule(source, tsx, null); } catch { return out; }
+  for (const v of vars) {
+    const p = parseCompiled(v.definition);
+    if (p === null || !p.hasFn || p.callee === "rejected") continue;
+    out.set(v.name.replace(/^viewof /, ""), v.definition.slice(p.headerEnd, p.fnEnd));
+  }
+  return out;
+}
 
 let programs = 0;
 
@@ -39,6 +53,10 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
   const names = cells.map((c) => c.name);
   const exports = new Function(...PRELUDE, `"use strict";\n${js}\nreturn {${names.join(", ")}};`)(
     ...PRELUDE.map((n) => PRELUDE_VALUES[n])) as Record<string, (...a: unknown[]) => unknown>;
+  // each cell's function as the notebook runs it: the compiled definition's function text, with the closure
+  // registrations the compiler emits (lite/fnreg.ts, toolchain tc-reg); the erased text only when compiling fails
+  const compiledFns = compiledFunctions(source, !!opts.tsx);
+  for (const [n, text] of compiledFns) exports[n] = new Function(...PRELUDE, ...REG_NAMES, `"use strict";\nreturn (${text});`)(...PRELUDE.map((x) => PRELUDE_VALUES[x]), closure, methods, tdz);
   const byName = new Map(cells.map((c) => [c.name, c]));
   const caps = opts.caps ?? {};
   const runtime = new Runtime();
@@ -151,7 +169,7 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
         if (!P.isStateCell(r)) throw new Error(`${c.name} did not return state(...)`);
         return P.materialize(r, c.name);
       });
-      main.variable(observe(rec)).define(c.name, [`${c.name}$ref`], (hd: unknown) => input(hd));
+      main.variable(observe(rec)).define(c.name, [`${c.name}$ref`], (hd: unknown) => genInput(hd));
       variables.push({ name: `${c.name}$ref`, inputs, kind: "state cell: the handle State<T> parameters get" }, { name: c.name, inputs: [`${c.name}$ref`], kind: "state cell: its current value, one per write" });
     } else if (c.generator) {
       main.variable(observe(rec)).define(c.name, inputs, counted);
