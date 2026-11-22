@@ -113,10 +113,10 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
 - The owner reads the report. Write what you did and what you saw, with evidence; do not argue or reassure.
 - Give every long command a time limit, and do not wait on one with none: `timeout 900 bun test.ts …`,
   `timeout 900 bun test tests/`. On 2026-11-21 the run waited about 10 h on a `bun` that grew to 3.5 GB until the
-  OOM killer ended it, and wrote no cost and no close of its own. That `bun` was `test.ts brain-deployer`, which loads
-  every service at once (issue `test-ts-importers-one-process-memory`): on 2026-11-22 it reached 2.7 GB of this
-  machine's 3.9 GB in 135 s, before its first test. Do not run it, or `test.ts` of any module every service imports,
-  here. A test run that hits the limit is a finding:
+  OOM killer ended it, and wrote no cost and no close of its own. That `bun` was `test.ts brain-deployer` (issue
+  `test-ts-importers-one-process-memory`): on 2026-11-22 it reached 2.7 GB of this machine's 3.9 GB in 135 s, where
+  `test.ts brain-x-canary` ended in under 5 s. Do not run `test.ts brain-deployer` here. A test run that hits the
+  limit is a finding:
   write its name and the limit in the report and go on. `run.sh` kills the whole agent 5 minutes after its 4 h.
 - Commit your edits as you make them. What is left uncommitted at the end is not pushed: `run.sh` names it in
   `fly logs` and on the run's issue, and the next boot resets the checkout.

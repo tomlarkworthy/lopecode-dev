@@ -445,3 +445,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   report's `deploy.ts` change printed an order that does not apply when two queued patches clash with each other, fixed in
   cloud-brain-dev `c76b211` with a test; 17 commits the submodule pointer carries left unnamed; a secret's exposure put
   down to the command that showed it, not `brain.ts:600` that causes it; two slips). 85.5k subagent tokens, 2m44s.
+- 2026-11-22 `plan/retros/2026-11-22.md`, authored by the spawning session: FIX, 8 findings, all confirmed and taken (the
+  report put the memory of `test.ts brain-deployer` in a load that runs for every module, and a canary run then showed the
+  load is not it, so the issue and the brief were corrected too; 10 h 38 min left unexplained; a cost placeholder; a stdin
+  hazard of the bearer change unsaid; three counts and a path). 105.9k subagent tokens, 4m26s.
