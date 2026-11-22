@@ -19,16 +19,16 @@ const rig = () => {
   copyFileSync(script, join(root, "issue-as.sh"));
   chmodSync(join(root, "issue-as.sh"), 0o755);
   writeFileSync(join(root, ".emitted/cb4-issues-tokens.json"), JSON.stringify({ t: "not-a-token" }));
-  // Writes its arguments one a line, then answers as curl does for the tracker: the body on stdout, and the status
+  // Writes its arguments one a line (and its stdin, when a header is read from it), then answers as curl does for the tracker: the body on stdout, and the status
   // where the -w it was given puts it.
-  writeFileSync(join(root, "bin/curl"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${root}/sent"\nprintf '{"ok":true}'\ncase "$*" in *'%{stderr} [%{http_code}]'*) printf ' [200]\\n' >&2;; *) printf ' [200]\\n';; esac\n`);
+  writeFileSync(join(root, "bin/curl"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${root}/sent"\ncase " $* " in *' @- '*) cat > "${root}/stdin";; esac\nprintf '{"ok":true}'\ncase "$*" in *'%{stderr} [%{http_code}]'*) printf ' [200]\\n' >&2;; *) printf ' [200]\\n';; esac\n`);
   chmodSync(join(root, "bin/curl"), 0o755);
   return (now: string, method: string, body?: unknown, more: Record<string, string> = {}) => {
     const args = [join(root, "issue-as.sh"), "t", method];
     if (body !== undefined) args.push(typeof body === "string" ? body : JSON.stringify(body));
     const p = Bun.spawnSync(args, { env: { ...process.env, PATH: `${join(root, "bin")}:${process.env.PATH}`, TZ: "Europe/Berlin", ISSUE_AS_NOW: now, ...more } });
     const sent = existsSync(join(root, "sent")) ? readFileSync(join(root, "sent"), "utf8") : null;
-    return { code: p.exitCode, out: p.stdout.toString(), err: p.stderr.toString(), sent };
+    return { code: p.exitCode, out: p.stdout.toString(), err: p.stderr.toString(), sent, root };
   };
 };
 const at = "2026-10-11T11:06:00";
@@ -67,7 +67,8 @@ test("a time of the past is sent, with the body as given", () => {
   expect(JSON.parse(r.out)).toEqual({ ok: true });
   expect(r.err).toBe(" [200]\n");
   expect(r.sent).toContain(body);
-  expect(r.sent).toContain("authorization: Bearer not-a-token");
+  expect(r.sent).not.toContain("not-a-token");
+  expect(readFileSync(join(r.root, "stdin"), "utf8")).toBe("authorization: Bearer not-a-token\n");
   expect(r.sent).toContain("https://cb4.endpointservices.workers.dev/xrpc/com.lopecode.brain.issue.move");
 });
 

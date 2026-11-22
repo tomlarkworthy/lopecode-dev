@@ -597,7 +597,8 @@ else if (cmd === "approval" || cmd === "approve" || cmd === "rollback") {
   const have = name ? { ...tokens(AGENTS), ...tokens(BASE + "-issues-tokens.json"), ...tokens() } : {};
   if (as >= 0 && !name) { console.log("--as needs a name: curl <path> --as NAME"); process.exit(1); }
   if (as >= 0 && !keptToken(have, name)) { console.log(`no token "${name}" is kept; make one with: token ${name} <method…>, or for an agent's tracker calls: agent-token <role>`); process.exit(1); }
-  const extra = name ? ["-H", "authorization: Bearer " + keptToken(have, name)] : args.includes("--owner") && st.session ? ["-H", "authorization: Bearer " + st.session] : args.includes("--other") && st.otherSession ? ["-H", "authorization: Bearer " + st.otherSession] : [];
-  const p = Bun.spawn(["curl", "-s", "-m", "30", "-w", "%{stderr} [%{http_code}]\n", ...extra, ...rest, (path.startsWith("http") ? "" : B()) + path], { stdout: "inherit", stderr: "inherit" });
+  const bearer = name ? keptToken(have, name) : args.includes("--owner") && st.session ? st.session : args.includes("--other") && st.otherSession ? st.otherSession : "";
+  // The bearer goes to curl on stdin (-H @-), not in its arguments, which ps and pgrep -af print (retro 2026-11-20).
+  const p = Bun.spawn(["curl", "-s", "-m", "30", "-w", "%{stderr} [%{http_code}]\n", ...(bearer ? ["-H", "@-"] : []), ...rest, (path.startsWith("http") ? "" : B()) + path], { stdin: bearer ? new Blob([`authorization: Bearer ${bearer}\n`]) : "inherit", stdout: "inherit", stderr: "inherit" });
   await p.exited;
 } else console.log("unknown command");

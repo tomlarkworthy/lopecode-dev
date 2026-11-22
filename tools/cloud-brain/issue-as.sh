@@ -128,9 +128,10 @@ parts += ['"%s":%s' % (k, dump(v)) for k, v in a.items() if k not in ("issue", "
 parts.append('"events":[\n' + ",\n".join(dump(e) for e in events) + "\n]")
 sys.stdout.write("{" + ",\n".join(parts) + "}\n")
 PY
-  curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" "$U" | python3 -c "$PY"
-  exit "${PIPESTATUS[0]}"
+  printf 'authorization: Bearer %s\n' "$tok" | curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H @- "$U" | python3 -c "$PY"
+  exit "${PIPESTATUS[1]}"
 fi
-if [ -n "$F" ]; then curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" -H 'content-type: application/json' -X POST --data-binary "@$F" "$U"
-elif [ -n "$3" ]; then curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" -H 'content-type: application/json' -X POST -d "$3" "$U"
-else curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H "authorization: Bearer $tok" "$U"; fi
+# The token goes to curl on stdin, not in its arguments, as in lock.sh.
+if [ -n "$F" ]; then printf 'authorization: Bearer %s\n' "$tok" | curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H @- -H 'content-type: application/json' -X POST --data-binary "@$F" "$U"
+elif [ -n "$3" ]; then printf 'authorization: Bearer %s\n' "$tok" | curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H @- -H 'content-type: application/json' -X POST -d "$3" "$U"
+else printf 'authorization: Bearer %s\n' "$tok" | curl -s -m 30 -w '%{stderr} [%{http_code}]\n' -H @- "$U"; fi
