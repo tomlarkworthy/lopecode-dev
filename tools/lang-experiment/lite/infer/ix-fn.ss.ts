@@ -20,7 +20,7 @@ export const ixFnParts = () => (e: AstNode): IxFnParts | null => {
 };
 // the names assignments and updates under n write (patternNames over the left sides)
 export const ixAssignedNames = (kidsOf) => (n: AstNode): Set<string> => {
-  const out: Mut<Set<string>> = mut(new Set());
+  const out: Mut<Set<string>> = new Set();
   const names = (p: AstNode | null): void => {
     if (p === null) return;
     if (p.type === "Identifier") out.add(p.name);
@@ -35,7 +35,7 @@ export const ixAssignedNames = (kidsOf) => (n: AstNode): Set<string> => {
     for (const k of kidsOf(x)) walk(k);
   };
   walk(n);
-  return freeze(out);
+  return out;
 };
 // a function whose parameters and return type are all annotated has a signature before its body is checked
 export const ixAnnotatedSig = (ixFnParts, ixAnnOf, ixDrain, ixTps, ixLookTable, isNamed, named) => (K: IxK, V: IxVars, C: IxCtls, env: IxEnv, e: AstNode): Fn | null => {
@@ -51,13 +51,13 @@ export const ixAnnotatedSig = (ixFnParts, ixAnnOf, ixDrain, ixTps, ixLookTable, 
 };
 // the narrowings a closure keeps: those of const roots, functions and parameters never assigned
 export const ixClosureFlow = (ixFlowOf, ixPathOf, ixFindBinding) => (V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv): IxFlow => {
-  const out: Mut<IxFlow> = mut(new Map());
+  const out: Mut<IxFlow> = new Map();
   for (const [k, t] of ixFlowOf(W, C.cur)) {
     const id = Number(ixPathOf(k).slice(1).split(".")[0]);
     const b = ixFindBinding(V, env, id);
     if (b && (b.kind === "const" || b.kind === "fn" || (b.kind === "param" && !b.assigned))) out.set(k, t);
   }
-  return freeze(out);
+  return out;
 };
 // a returned value, checked against the return context
 export const ixReturned = (ixErr, members, isNamed, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty => {
@@ -121,14 +121,14 @@ export const ixFnBody = (ixHoist, ixStmts, ixReturned) => (K: IxK, T: IxTypes, V
 };
 export type IxParamsOut = { ps: Param[]; rest: Ty | undefined };
 export const ixParams = (ixParam) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, params: AstNode[], ctxSig: Fn | undefined, injected: Ty[] | null, assigned: Set<string>): IxParamsOut => {
-  const ps: Mut<Param[]> = mut([]);
+  const ps: Mut<Param[]> = [];
   let rest: Ty | undefined;
   for (const [i, p] of params.entries()) {
     const r = ixParam(K, T, V, W, C, env, p, i, ctxSig, injected, assigned);
     if (r.rest) rest = r.t;
     else ps.push({ n: r.n, t: r.t, opt: r.opt });
   }
-  return { ps: freeze(ps), rest };
+  return { ps: ps, rest };
 };
 // one parameter: its type from the annotation, the cell's injection or the context; then bound
 export const ixParamType = (ixAnnOf, ixConvert, ixErr, show, arr, UNKNOWN, UNDEF, ERR) => (K: IxK, V: IxVars, C: IxCtls, env: IxEnv, p: AstNode, i: number, ctxSig: Fn | undefined, injected: Ty[] | null): Ty => {

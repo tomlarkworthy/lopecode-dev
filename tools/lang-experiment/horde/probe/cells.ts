@@ -13,9 +13,9 @@ export const p_fn_ref = (compile: Compile, pool: Pool) => compile({ inputs: ["n"
 // 4. world state as a state cell holding typed arrays, updated per frame by an action
 export const world = (): StateCell<W> => state<W>({ xs: new Float32Array(8) });
 export const step = () => (w: W, dt: number): W => {
-  const xs = mut(new Float32Array(w.xs.length));
+  const xs = new Float32Array(w.xs.length);
   for (let i = 0; i < xs.length; i++) xs[i] = w.xs[i] + dt;
-  return { xs: freeze(xs) };
+  return { xs: xs };
 };
 export const tick = (world: State<W>, step: (w: W, dt: number) => W) => action((dt: number) => world.update((w) => step(w, dt)));
 // 5. an action awaiting the pool's result (an async write)

@@ -20,9 +20,9 @@ export const specProblems = () => (names: Set<string>, spec: IslandSpec): Island
 export const islandWith = (specProblems) => (capabilities: Set<string>) => (cells: IslandCell[], spec: IslandSpec): Island => {
   const by = new Map(cells.map((c): [string, IslandCell] => [c.name, c]));
   const cut = new Set([...spec.inputs, ...spec.refs]);
-  const problems: Mut<IslandProblem[]> = mut([...specProblems(new Set(by.keys()), spec)]);
-  const order: Mut<string[]> = mut([]);
-  const seen = mut(new Set<string>());
+  const problems: Mut<IslandProblem[]> = [...specProblems(new Set(by.keys()), spec)];
+  const order: Mut<string[]> = [];
+  const seen = new Set<string>();
   function visit(n: string, from: string): void {
     if (cut.has(n) || seen.has(n)) return;
     seen.add(n);
@@ -36,5 +36,5 @@ export const islandWith = (specProblems) => (capabilities: Set<string>) => (cell
     order.push(n);
   }
   for (const o of spec.outputs) if (by.has(o) && !cut.has(o)) visit(o, o);
-  return { order: freeze(order), problems: freeze(problems) };
+  return { order: order, problems: problems };
 };

@@ -10,18 +10,18 @@ export const checkKey = () => (source: string, tsx: boolean, outside: readonly C
   (tsx ? "x" : "s") + (outside !== null && outside.length ? JSON.stringify(outside) : "") + "\u0000" + source;
 // key set to v and moved to the end (most recently used), the oldest dropped past limit
 export const lruTouch = () => <V,>(m: Map<string, V>, key: string, v: V, limit: number): Map<string, V> => {
-  const out: Mut<Map<string, V>> = mut(new Map([...m].filter(([k]) => k !== key)));
+  const out: Mut<Map<string, V>> = new Map([...m].filter(([k]) => k !== key));
   out.set(key, v);
   const first = [...out.keys()][0];
   if (out.size > limit && first !== undefined) out.delete(first);
-  return freeze(out);
+  return out;
 };
 // each cell text kept (its index) or a stand-in of the same name and line count for one that does not parse; the k-th
 // declaration of a name is "<name> (k)" (core.ts distinctNames)
 export const standIns = () => (cells: readonly CellText[]): StoodIn => {
-  const seen: Mut<Map<string, number>> = mut(new Map());
-  const texts: Mut<(number | string)[]> = mut([]);
-  const unparsed: Mut<(readonly [string, string])[]> = mut([]);
+  const seen: Mut<Map<string, number>> = new Map();
+  const texts: Mut<(number | string)[]> = [];
+  const unparsed: Mut<(readonly [string, string])[]> = [];
   for (const [i, c] of cells.entries()) {
     const name = c.declared;
     const n = name !== null ? (seen.get(name) ?? 0) + 1 : 0;
@@ -31,7 +31,7 @@ export const standIns = () => (cells: readonly CellText[]): StoodIn => {
     unparsed.push([n > 1 ? `${name} (${n})` : name, c.parseError]);
     texts.push(`const ${name} = () => $ss$unparsed;` + "\n".repeat(c.lines - 1));
   }
-  return { texts: freeze(texts), unparsed: freeze(unparsed) };
+  return { texts: texts, unparsed: unparsed };
 };
 // the caller and island cells the checker did not accept (the last verdict of a name)
 export const refusedCells = () => (verdicts: readonly CellVerdict[], caller: string, order: readonly string[]): readonly string[] => {

@@ -70,7 +70,7 @@ export const ixMayHide = () => {
   return (R: IxRegCore, t: Ty): boolean => {
     const hit = R.mayHideMemo.get(t);
     if (hit !== undefined) return hit;
-    const seen: Mut<Set<string>> = mut(new Set());
+    const seen: Mut<Set<string>> = new Set();
     const r = go(R, seen, t, 0);
     R.mayHideMemo.set(t, r);
     return r;
@@ -100,7 +100,7 @@ export const ixMayHoldFn = (ixMayHide) => {
   }
   return (R: IxRegCore, t: Ty): boolean => {
     if (ixMayHide(R, t)) return true;
-    const seen: Mut<Set<string>> = mut(new Set());
+    const seen: Mut<Set<string>> = new Set();
     return go(R, seen, t, 0);
   };
 };

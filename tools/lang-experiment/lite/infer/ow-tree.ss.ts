@@ -2,9 +2,9 @@
 
 // preorder in parse.ts kids order; an Other node is recorded, since own.ts reads node types the typed tree lacks there
 export const owIndex = (kidsOf, isFnNode) => (F: IxFacts, cellFn: AstNode): OwTree => {
-  const parent: Mut<Map<number, AstNode>> = mut(new Map()), byNid: Mut<Map<number, AstNode>> = mut(new Map());
-  const all: Mut<AstNode[]> = mut([]), fns: Mut<AstNode[]> = mut([]), refs: Mut<Map<number, AstNode[]>> = mut(new Map());
-  const todo: Mut<AstNode[]> = mut([cellFn]);
+  const parent: Mut<Map<number, AstNode>> = new Map(), byNid: Mut<Map<number, AstNode>> = new Map();
+  const all: Mut<AstNode[]> = [], fns: Mut<AstNode[]> = [], refs: Mut<Map<number, AstNode[]>> = new Map();
+  const todo: Mut<AstNode[]> = [cellFn];
   let other: string | null = null;
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     all.push(n);
@@ -18,9 +18,8 @@ export const owIndex = (kidsOf, isFnNode) => (F: IxFacts, cellFn: AstNode): OwTr
     for (const k of ks) parent.set(k.nid, n);
     for (const k of ks.toReversed()) todo.push(k);
   }
-  return { fn: cellFn, parent: freeze(parent), byNid: freeze(byNid), all: freeze(all), fns: freeze(fns), refs: freeze(refs), other };
+  return { fn: cellFn, parent: parent, byNid: byNid, all: all, fns: fns, refs: refs, other };
 };
-export const owParent = () => (O: OwCtx, n: AstNode): AstNode | undefined => O.T.parent.get(n.nid);
 // the function around n, or the cell's
 export const owEncl = (isFnNode) => (O: OwCtx, n: AstNode): AstNode => {
   let p = O.T.parent.get(n.nid);
@@ -45,14 +44,14 @@ export const owIsCallee = () => (O: OwCtx, r: AstNode): boolean => {
 export const owPrelude = () => (O: OwCtx, c: AstNode): string | null => (c.type === "CallExpression" ? O.F.calls.get(c.nid)?.prelude ?? null : null);
 // bindingOfFn: over the bindings bindingOf holds, in the order first met, the last naming each function
 export const owBindingOfFn = () => (F: IxFacts): Map<number, number> => {
-  const seen: Mut<Set<number>> = mut(new Set()), out: Mut<Map<number, number>> = mut(new Map());
+  const seen: Mut<Set<number>> = new Set(), out: Mut<Map<number, number>> = new Map();
   for (const id of F.bindingOf.values()) {
     if (seen.has(id)) continue;
     seen.add(id);
     const b = F.bindings.get(id);
     if (b !== undefined && b.fnNode >= 0) out.set(b.fnNode, id);
   }
-  return freeze(out);
+  return out;
 };
 // the binding of a function that is a const or a function declaration and only called
 // every name of f only called; a function expression also bound to a const (its own name alone is not a helper's)

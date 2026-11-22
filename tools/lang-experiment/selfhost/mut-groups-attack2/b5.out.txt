@@ -1,0 +1,12 @@
+== iterable-given-ab: REJECT a:rejected[type]
+== iterable-given-ab-via-unknown: REJECT a:rejected[no-cast]
+== arraylike-given-ab: REJECT a:rejected[type]
+== generic-src: REJECT a:rejected[type][mut-not-fresh]
+== ta-given-as-iterable: ACCEPT
+   show r = 0
+== object-param-given-ab: REJECT a:rejected[type][mut-not-fresh]
+== byteLength-record-given-ab: REJECT a:rejected[type][type][mut-not-fresh]
+== iterable-of-ab-union-narrowed: REJECT a:rejected[mut-not-fresh]
+== iterable-via-map-keys: ACCEPT
+   show a = Float32Array[1]
+-- 9 candidates, 2 accepted

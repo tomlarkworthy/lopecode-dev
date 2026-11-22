@@ -25,7 +25,7 @@ import {
   union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames, cloneProblemWith, inexact,
 } from "../../types.ts";
 import { ALLOWED_GLOBALS, PRELUDE_FNS } from "../../intrinsics.ts";
-import { mutIn } from "./own.ts";
+import { mutIn, stripMut } from "./own.ts";
 // holes2 step C (2026-11-22): freeze of a group reads each owned field Mut<X> as X; null when a Mut is left (as ixThaw)
 function thaw(t: Ty, reg: Registry): Ty | null {
   const topMut = (y: Ty) => { const x = reg.expand(y); return isNamed(x, "Mut") || (x.k === "union" && x.ts.some((m) => isNamed(reg.expand(m), "Mut"))); };
@@ -472,6 +472,16 @@ export class Checker {
   }
   check1(e: Node, env: Env, expected: Ty | undefined, soft: boolean, q: boolean): Ty {
     if (!expected) return this.infer(e, env);
+    // DELIBERATE CHANGE (2026-11-22, S4): a literal, or a fresh call or new, checked against Mut<X> is checked against X
+    const viaMut = e.type === "CallExpression" && e.callee.type === "Identifier" && e.callee.name === "mut";
+    if (isNamed(expected, "Mut") && !viaMut && /^(ArrayExpression|ObjectExpression|CallExpression|NewExpression)$/.test(e.type)) {
+      const x = expected.args[0] ?? expected;
+      const t = this.check(e, env, x, soft, q);
+      const fresh = e.type === "ArrayExpression" || e.type === "ObjectExpression" || this.freshAt === e;
+      if (!soft && !fresh) this.expect(e, t, expected, q);
+      this.rec(e, fresh ? expected : t);
+      return fresh ? expected : t;
+    }
     if (expected.k === "unknown" && !this.ctxSensitive(e)) { const t = this.infer(e, env); if (!q) this.hides(e, t, expected); return t; }
     let t: Ty;
     switch (e.type) {
@@ -826,6 +836,7 @@ export class Checker {
       if (e.name === "arguments") return ERR; // syntax pass
       if (this.cellNames.has(e.name)) this.err(e, "cell-by-name", `cell ${e.name} referenced by name; take it as a parameter`);
       else if (ALLOWED_GLOBALS.has(e.name)) this.unsupported(e, `intrinsic ${e.name} has no signature in lite/intrinsics.ts`);
+      else if (e.name === "mut" || e.name === "freeze" || e.name === "borrow") this.err(e, "removed-call", `${e.name}(...) is no longer part of the language: delete the call and keep its argument (a fresh value bound to a local is writable; a cell's value is frozen when it leaves the cell)`); // DELIBERATE CHANGE (2026-11-22, S4)
       else this.err(e, "free-name", `free name ${e.name}`);
       return ERR;
     }
@@ -1032,11 +1043,8 @@ export class Checker {
   writeRule(obj: Node, env: Env, at: Node, rule: string) {
     const ot = this.infer(obj, env);
     if (ot.k === "err" || isNamed(ot, "Mut")) return;
-    let root = obj;
-    while (root.type === "MemberExpression") root = root.object;
-    const rt = this.facts.types.get(root);
-    if (rt && isNamed(rt, "Mut")) this.err(at, "mut-deep-write", `write below the first level of a Mut (${show(ot)} is not Mut)`);
-    else this.err(at, rule, `write to a ${show(ot)}, which is not Mut`);
+    // DELIBERATE CHANGE (2026-11-22, S4): [mut-deep-write] is gone; a write below a Mut is the plain rule
+    this.err(at, rule, `write to a ${show(ot)}, which is not Mut`);
   }
   assign(e: Node, env: Env): Ty {
     if (!MUTATING_OPS.has(e.operator)) { this.unsupported(e, `assignment ${e.operator}`); return ERR; }
@@ -1302,7 +1310,7 @@ export class Checker {
       const clone = callee.type === "Identifier" && callee.name === "structuredClone" && env.scope.get(callee.name)?.kind === "global";
       if (clone) this.cloneCallees.add(callee);
       calleeT = this.infer(callee, env);
-      if (clone) { const t = this.apply(e, this.reg.callSigs(calleeT)[0], env, expected); const a = e.arguments[0], at = a && this.facts.types.get(a); const w = at && this.cloneProblem(at); if (w) this.err(a, "type", `structuredClone of ${show(at)}, which ${w}: the clone would throw or lose it`); return t; }
+      if (clone) { const t = this.apply(e, this.reg.callSigs(calleeT)[0], env, expected); const a = e.arguments[0], at = a && this.facts.types.get(a); const w = at && this.cloneProblem(at); if (w) this.err(a, "type", `structuredClone of ${show(at)}, which ${w}: the clone would throw or lose it`); this.freshAt = e; return t; }
       if (callee.type === "MemberExpression" || (callee.type === "ChainExpression" && callee.expression.type === "MemberExpression")) {
         const m = callee.type === "ChainExpression" ? callee.expression : callee;
         const fl = this.facts.memberFlags.get(m);
@@ -1327,12 +1335,17 @@ export class Checker {
     }
     const explicit = this.typeArgs(e, env);
     let t: Ty = ERR;
-    if (sigs.length === 1) t = this.apply(e, sigs[0], env, expected, explicit);
+    // DELIBERATE CHANGE (2026-11-22, S4): the call's value is fresh when the signature tried last is a fresh intrinsic
+    const cm0 = callee.type === "ChainExpression" ? callee.expression : callee;
+    const bview = cm0.type === "MemberExpression" && !!this.facts.memberFlags.get(cm0)?.view && isNamed(this.facts.types.get(cm0.object) ?? ERR, "Borrowed");
+    const freshOf = (s: Fn) => { const fl = s.flags; this.freshAt = fl && fl.intrinsic && fl.fresh && !fl.view && !bview ? e : null; };
+    if (sigs.length === 1) { t = this.apply(e, sigs[0], env, expected, explicit); freshOf(sigs[0]); }
     else {
       let done = false;
       for (let i = 0; i < sigs.length && !done; i++) {
         const d = this.diags.length, u = this.unsup.length, flow = new Map(env.flow);
         t = this.apply(e, sigs[i], env, expected, explicit);
+        freshOf(sigs[i]);
         if (this.diags.length === d && this.unsup.length === u) done = true;
         else if (i < sigs.length - 1) { this.diags.length = d; this.unsup.length = u; env.flow = flow; }
       }
@@ -1342,6 +1355,7 @@ export class Checker {
     return t;
   }
   cloneCallees = new Set<Node>();
+  freshAt: Node | null = null;
   // what structuredClone cannot copy in a value of type t (walks.ss.ts)
   cloneProblem(t: Ty, depth = 0): string | null {
     return cloneProblemWith(this.reg.ops)(t, depth);
@@ -1460,22 +1474,13 @@ export class Checker {
     const explicit = this.typeArgs(e, env);
     const one = () => { if (args.length !== 1) this.err(e, "arity", `${name} takes one argument`); return args[0]; };
     switch (name) {
-      case "mut": {
-        const a = one();
-        const inner = expected && isNamed(expected, "Mut") ? expected.args[0] : undefined;
-        const t = explicit ? this.check(a, env, explicit[0]) : a ? this.check(a, env, inner) : ERR;
-        return named("Mut", explicit ? explicit[0] : inner ?? inexact(t));
-      }
-      case "freeze": case "borrow": case "snapshot": {
+      // DELIBERATE CHANGE (2026-11-22, S4): mut, freeze and borrow are gone; snapshot copies any value (fresh)
+      case "snapshot": {
         const a = one();
         const t = a ? this.infer(a, env) : ERR;
-        const want = name === "snapshot" ? "Borrowed" : "Mut";
         if (t.k === "err") return ERR;
-        if (!isNamed(t, want)) { this.err(e, "type", `${name} needs a ${want}<T>, got ${show(t)}`); return ERR; }
-        if (name !== "freeze") return name === "borrow" ? named("Borrowed", t.args[0]) : t.args[0];
-        const y = this.reg.peek(() => thaw(t.args[0], this.reg));
-        if (y === null) this.err(e, "type", `freeze of ${show(t)}: the frozen value would still hold a Mut`);
-        return y ?? ERR;
+        this.freshAt = e;
+        return this.reg.peek(() => stripMut(unwrap(t), this.reg));
       }
       case "state": {
         const a = one();
@@ -1656,13 +1661,16 @@ export class Checker {
       this.bindPattern(d.id, declared, env, k);
       return;
     }
-    const t = this.check(init, env, declared);
-    const isMut = init.type === "CallExpression" && init.callee.type === "Identifier" && init.callee.name === "mut" && env.scope.get("mut")?.kind === "prelude";
+    const t0 = this.check(init, env, declared);
+    // DELIBERATE CHANGE (2026-11-22, S4): a fresh value bound to a local with no annotation is a Mut
+    const fresh = !declared && t0.k !== "err" && !isNamed(t0, "Mut") && (init.type === "ArrayExpression" || init.type === "ObjectExpression" || this.freshAt === init);
+    const t = fresh ? named("Mut", k === "let" ? widen(t0) : t0) : t0;
+    const isMut = fresh || (init.type === "CallExpression" && init.callee.type === "Identifier" && init.callee.name === "mut" && env.scope.get("mut")?.kind === "prelude");
     if (d.id.type === "Identifier") {
-      const b = this.declare(env, d.id.name, declared ?? (k === "let" ? widen(t) : t), k, d.id, { mutOwned: isMut });
+      const b = this.declare(env, d.id.name, declared ?? (k === "let" && !fresh ? widen(t) : t), k, d.id, { mutOwned: isMut });
       if (k === "let" && declared) env.flow.set("#" + b.id, this.reg.sub(t, declared) ? t : declared);
       if (fnInit) b.fnNode = init;
-    } else this.bindPattern(d.id, declared ?? t, env, k);
+    } else this.bindPattern(d.id, declared ?? unwrap(t0), env, k);
   }
   invalidate(n: Node, env: Env) {
     for (const name of this.assignedNames(n)) {

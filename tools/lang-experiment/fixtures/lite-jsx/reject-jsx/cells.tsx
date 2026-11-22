@@ -13,7 +13,7 @@ let bad_component_props = (Badge) => <Badge text={3} />;
 let bad_component_missing_prop = (Badge) => <Badge />;
 let bad_component_not_elem = (NotElem) => <NotElem text="a" />;
 let bad_mut_in_jsx = () => {
-  const xs = mut([1, 2]);
+  const xs = [1, 2];
   return <div>{xs}</div>;
 };
 let bad_free_component = () => <Missing />;

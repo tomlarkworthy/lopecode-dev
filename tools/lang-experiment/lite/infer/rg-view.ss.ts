@@ -4,7 +4,7 @@
 export const rgBuiltin = (builtinNamesOf) => (Y: RgTypes): Set<string> => builtinNamesOf([...Y]);
 // globalsOf: the prelude functions, the allowed intrinsics and undefined, bound in a cell's scope 0
 export const rgGlobals = (ERR, UNDEF) => (V: RgValues, preludeFns: Set<string>, allowed: Set<string>): { name: string; t: Ty; kind: RgKind }[] => {
-  const out: Mut<Map<string, { name: string; t: Ty; kind: RgKind }>> = mut(new Map());
+  const out: Mut<Map<string, { name: string; t: Ty; kind: RgKind }>> = new Map();
   for (const name of preludeFns) out.set(name, { name, t: ERR, kind: "prelude" });
   for (const name of allowed) {
     const v = V.get(name);

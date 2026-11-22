@@ -1,0 +1,55 @@
+== ta-view-of-cell-buffer: REJECT a:rejected[mut-not-fresh]
+== ta-view-of-cell-ab: REJECT a:rejected[mut-not-fresh]
+== ta-union-overload: REJECT a:rejected[type][mut-not-fresh]
+== ta-cond-overload: REJECT a:rejected[type][mut-not-fresh]
+== ta-iterable-param: ACCEPT
+   show a = 0
+== ta-from-cell-ta-then-write: ACCEPT
+   show a = 0
+== ta-with-offset-view: REJECT a:rejected[mut-not-fresh]
+== ta-view-from-frozen-own: REJECT a:rejected[mut-not-fresh]
+== ta-set-from-self-buffer: ACCEPT
+   show a = Float32Array[0,0]
+== ta-subarray-of-frozen-mut: REJECT a:rejected[mut-not-fresh]
+== ta-map-fresh-via-cell: ACCEPT
+   show a = 0
+== ta-ofbuffer-typed-number: ACCEPT
+   show a = 0
+== array-from-ta-of-cell: ACCEPT
+   show a = 0
+== concat-mut-alias-element: ACCEPT
+   show a = [0,1]
+== fromEntries-mut-map: ACCEPT
+   show a = {a:1}
+== map-ctor-from-mut-map: ACCEPT
+   show a = Map{"a"=>1}
+== set-ctor-from-mut-array: ACCEPT
+   show a = Set{1}
+== promise-all-mut: ACCEPT
+   show a = [1]
+== mut-fill-with-object: ACCEPT
+   show a = [{k:3},{k:3}]
+== mut-fill-with-cell-value: ACCEPT
+   show a = [{k:1}]
+== mut-array-of-cell-value-then-reassign: ACCEPT
+   show a = [[1],[[9]]]
+== mut-spread-of-cell-array-of-arrays: ACCEPT
+   show a = 1
+== splice-insert-cell-array: ACCEPT
+   show a = [[1],[0]]
+== forEach-callback-receives-element: REJECT a:rejected[mutating-method]
+== map-callback-index-alias: ACCEPT
+   show a = [0]
+== reduce-acc-is-mut: ACCEPT
+   show a = [1,3]
+== reduce-init-mut: REJECT a:rejected[mut-escape][mut-escape][mut-source]
+== sort-comparator-writes-self: ACCEPT
+   show a = [1,2,3]
+== find-returns-inner-of-mut-then-shallow-write: ACCEPT
+   show a = [1]
+== for-of-mut-map-entries-then-set: ACCEPT
+   show a = 1
+== for-of-mut-values-iter-arg: ACCEPT
+   show a = 3
+== for-of-destructure-group-field: REJECT a:rejected[possibly-undefined]
+-- 32 candidates, 22 accepted

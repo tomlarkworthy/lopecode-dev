@@ -1,7 +1,7 @@
 // Borrowed values: views stay borrowed; use after await is checked across loop back-edges.
 let frames = function* () {
-  const buf = mut(new Float32Array(2));
-  for (let k = 0; k < 2; k++) { buf[0] = k; yield borrow(buf); }
+  const buf = new Float32Array(2);
+  for (let k = 0; k < 2; k++) { buf[0] = k; yield buf; }
 };
 let bad_view = (frames) => frames.subarray(0);
 let bad_loop_await = async (frames) => {

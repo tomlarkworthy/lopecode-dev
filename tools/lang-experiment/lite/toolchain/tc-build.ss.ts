@@ -6,9 +6,9 @@ export const tcR = () => (input: string): TcPart => ({ k: "in", input });
 export const tcM = () => (input: string): TcPart => ({ k: "mention", input });
 // ojsCell: `[viewof ]<name> = <body>` and the variables Observable's compiler makes of it; a viewof input is $0, $1, …
 export const tcBuiltOf = (tcSTATE_VALUE) => (name: string, view: boolean, block: boolean, parts: TcPart[]): TcBuilt => {
-  const order: Mut<string[]> = mut([]);
+  const order: Mut<string[]> = [];
   for (const p of parts) if (p.k !== "text" && !order.includes(p.input)) order.push(p.input);
-  const inputs = freeze(order);
+  const inputs = order;
   const views = inputs.filter((i) => i.startsWith("viewof "));
   const spell = (i: string) => (views.includes(i) ? `$${views.indexOf(i)}` : i);
   let text = "", js = "";
@@ -61,7 +61,7 @@ export const tcModifierAt = (nodeKind) => (n: AstNode): string => {
 export const tcErasesToJs = (tcJsErrorOf, tcModifierAt, kidsOf) => (typed: string, fn: AstNode): void => {
   const err = tcJsErrorOf(`(${typed})`);
   if (err === null) return;
-  const todo: Mut<AstNode[]> = mut([fn]);
+  const todo: Mut<AstNode[]> = [fn];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     const what = tcModifierAt(n);
     if (what !== "") throw new Error(`unsupported: ${what} (${err})`);
@@ -85,27 +85,40 @@ export const tcArgParts = (tcCaps, tcIn, tcT, tcR) => (p: TcParam, cell: string,
 };
 export const tcArgsParts = (tcArgParts, tcT) => (info: TcInfo, refs: string[], IN: Map<string, string>, mod: string): TcPart[] =>
   info.params.flatMap((p, i) => [...(i > 0 ? [tcT(", ")] : []), ...tcArgParts(p, info.name, refs, IN, mod)]);
+// B7 (2026-11-22): a sync, non-generator body that makes no async or generator function: no code of the cell runs
+// after it returns, so its value is published unfrozen (ss_out(v, 1); freeze.ts freezeAll turns the freeze back on)
+export const tcQuickOut = (kidsOf) => (fn: AstNode): boolean => {
+  const todo: Mut<AstNode[]> = [fn];
+  for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
+    if ((n.type === "ArrowFunctionExpression" || n.type === "FunctionExpression" || n.type === "FunctionDeclaration") && (n.async || n.generator)) return false;
+    for (const k of kidsOf(n)) todo.push(k);
+  }
+  return true;
+};
 // the cell's expression, in text order: ref/events(this|module, name, [args], fn[, invalidation]), listen((fn)(args), …), or (fn)(args)
-export const tcExprParts = (tcArgsParts, tcIn, tcT, tcR, tcM) => (kind: string, info: TcInfo, refs: string[], IN: Map<string, string>, mod: string, globals: string[], inner: string): TcPart[] => {
+export const tcExprParts = (tcArgsParts, tcIn, tcT, tcR, tcM) => (kind: string, info: TcInfo, refs: string[], IN: Map<string, string>, mod: string, globals: string[], inner: string, quick: boolean): TcPart[] => {
   const args = tcArgsParts(info, refs, IN, mod), name = JSON.stringify(info.name), seen = globals.map(tcM);
   if (kind === "ref" || kind === "events")
     return [tcR(tcIn(IN, kind)), tcT(`(${kind === "ref" ? "this" : mod}, ${name}, [`), ...args, tcT("], "), ...seen, tcT(inner), ...(kind === "events" ? [tcT(", "), tcR("invalidation")] : []), tcT(")")];
   if (kind === "listener") return [tcR(tcIn(IN, "listen")), tcT("("), ...seen, tcT(`(${inner})(`), ...args, tcT(`), ${name}, `), tcR("invalidation"), tcT(`, ${mod})`)];
-  return [...seen, tcT(`(${inner})(`), ...args, tcT(")")];
+  // a plain cell's value is deep-frozen as it leaves the cell (freeze.ts out)
+  return [tcR(tcIn(IN, "out")), tcT("("), ...seen, tcT(`(${inner})(`), ...args, tcT(quick ? "), 1)" : "))")];
 };
 // after the checks and the erasure: the inputs, the kind and the definition
-export const tcAssemble = (tcPrelude, tcOjsInputGlobals, tcGlobalRefStarts, tcGlobalsInOrder, mdPreludeCalls, tcExprParts, tcBuiltOf, tcVariableName, tcLANG, tcHeader, tcIn, tcINPUTS, tcT, tcR) =>
+export const tcAssemble = (tcPrelude, tcOjsInputGlobals, tcGlobalRefStarts, tcGlobalsInOrder, mdPreludeCalls, tcExprParts, tcQuickOut, tcBuiltOf, tcVariableName, tcLANG, tcHeader, tcIn, tcINPUTS, tcT, tcR) =>
   (text: string, fn: AstNode, info: TcInfo, prog: AstNode, typed: string, ctx: TcCtx): TcBuilt => {
     const IN = ctx.inputs ?? tcINPUTS;
     const used = tcPrelude.filter((n) => tcGlobalRefStarts(prog, n).length > 0);
-    const bound = used.filter((n) => tcIn(IN, n) !== n);
+    // Map and Set in the body are the runtime's freezable SsMap and SsSet
+    const classes: [string, string][] = [["Map", "SsMap"], ["Set", "SsSet"]];
+    const bound: [string, string][] = [...used.filter((n) => tcIn(IN, n) !== n).map((n): [string, string] => [n, n]), ...classes.filter(([g]) => tcGlobalRefStarts(prog, g).length > 0)];
     const globals = tcGlobalsInOrder(prog, [...tcOjsInputGlobals, ...used.filter((n) => tcIn(IN, n) === n)]);
     const kind = info.returnsRef ? "ref" : info.generator && ctx.events.has(info.name) ? "events" : mdPreludeCalls(fn, "on").size > 0 ? "listener" : "cell";
     const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
     const inner = `${tcLANG}${tcHeader({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${typed}`;
-    const expr = tcExprParts(kind, info, refs, IN, JSON.stringify(ctx.module), globals, inner);
+    const expr = tcExprParts(kind, info, refs, IN, JSON.stringify(ctx.module), globals, inner, kind === "cell" && tcQuickOut(fn));
     const block = bound.length > 0;
-    const parts = block ? [tcT("{ const "), ...bound.flatMap((n, i) => [tcT(`${i > 0 ? ", " : ""}${n} = `), tcR(tcIn(IN, n))]), tcT("; return "), ...expr, tcT("; }")] : expr;
+    const parts = block ? [tcT("{ const "), ...bound.flatMap(([n, c], i) => [tcT(`${i > 0 ? ", " : ""}${n} = `), tcR(tcIn(IN, c))]), tcT("; return "), ...expr, tcT("; }")] : expr;
     const b = tcBuiltOf(tcVariableName(info.name), kind === "ref", block, parts);
     return { text: b.text, vars: b.vars, key: info.name, ref: kind === "ref" };
   };

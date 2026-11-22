@@ -1,0 +1,238 @@
+[
+ {
+  "name": "ta-view-of-cell-buffer",
+  "verdict": "REJECT a:rejected[mut-not-fresh]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "ta-view-of-cell-ab",
+  "verdict": "REJECT a:rejected[mut-not-fresh]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "ta-union-overload",
+  "verdict": "REJECT a:rejected[type][mut-not-fresh]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "ta-cond-overload",
+  "verdict": "REJECT a:rejected[type][mut-not-fresh]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "ta-iterable-param",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 0"
+  ],
+  "broke": false
+ },
+ {
+  "name": "ta-from-cell-ta-then-write",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 0"
+  ],
+  "broke": false
+ },
+ {
+  "name": "ta-with-offset-view",
+  "verdict": "REJECT a:rejected[mut-not-fresh]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "ta-view-from-frozen-own",
+  "verdict": "REJECT a:rejected[mut-not-fresh]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "ta-set-from-self-buffer",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = Float32Array[0,0]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "ta-subarray-of-frozen-mut",
+  "verdict": "REJECT a:rejected[mut-not-fresh]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "ta-map-fresh-via-cell",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 0"
+  ],
+  "broke": false
+ },
+ {
+  "name": "ta-ofbuffer-typed-number",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 0"
+  ],
+  "broke": false
+ },
+ {
+  "name": "array-from-ta-of-cell",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 0"
+  ],
+  "broke": false
+ },
+ {
+  "name": "concat-mut-alias-element",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [0,1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "fromEntries-mut-map",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = {a:1}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "map-ctor-from-mut-map",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = Map{\"a\"=>1}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "set-ctor-from-mut-array",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = Set{1}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "promise-all-mut",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "mut-fill-with-object",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [{k:3},{k:3}]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "mut-fill-with-cell-value",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [{k:1}]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "mut-array-of-cell-value-then-reassign",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [[1],[[9]]]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "mut-spread-of-cell-array-of-arrays",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "splice-insert-cell-array",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [[1],[0]]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "forEach-callback-receives-element",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "map-callback-index-alias",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [0]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "reduce-acc-is-mut",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,3]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "reduce-init-mut",
+  "verdict": "REJECT a:rejected[mut-escape][mut-escape][mut-source]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "sort-comparator-writes-self",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2,3]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "find-returns-inner-of-mut-then-shallow-write",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "for-of-mut-map-entries-then-set",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "for-of-mut-values-iter-arg",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 3"
+  ],
+  "broke": false
+ },
+ {
+  "name": "for-of-destructure-group-field",
+  "verdict": "REJECT a:rejected[possibly-undefined]",
+  "out": [],
+  "broke": false
+ }
+]

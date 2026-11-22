@@ -137,9 +137,9 @@ let constantsToRHSFn = (OperatorNode, ConstantNode) => {
 
   const splitConditional = (node: MathNode): MathNode => {
     if (node.isOperatorNode && node.op === "<") {
-      const terms = mut<MConstantNode[]>([]);
+      const terms: Mut<MConstantNode[]> = [];
       const a0 = prunedLHS(node.args[0], terms);
-      const a1 = appendRHS(node.args[1], freeze(terms));
+      const a1 = appendRHS(node.args[1], terms);
       return OperatorNode(node.op, node.fn, [a0, a1]);
     } else {
       throw new Error(`Only works with < as top node ${node.isOperatorNode || node.isFunctionNode ? node.fn : undefined}`);
@@ -240,7 +240,7 @@ let step2 = (math, expandBrackets, constantsToRHS, simplifyStep, complexityToLHS
   (initial: string | MathNode): MathNode => {
     // Terminate on a repeated expression. Comparing the printed form is cheaper than a deep
     // equality over the AST, and is what @jwolondon's fork uses.
-    const seen = mut(new Set<string>());
+    const seen = new Set<string>();
     let exp: string | MathNode = initial;
     while (!seen.has(exp.toString())) {
       seen.add(exp.toString());
@@ -303,7 +303,7 @@ let extract = (canonicalize, extractLHS, extractRHS) => (expression: string): Ex
   const zero = <T,>(v: T) => (Object.is(v, -0) ? 0 : v);
   // simplify may leave a variable in several terms (-2y - 2x - y); the solver wants one
   // coefficient per name, so sum them here rather than relying on a normal form.
-  const merged = mut(new Map<string, number>());
+  const merged = new Map<string, number>();
   for (const { coef, name } of extractLHS([], canonical.args[0])) {
     // the original adds whatever the ConstantNode held; a non-number would concatenate or coerce
     if (typeof coef !== "number") throw new TypeError(`Coefficient of ${name} is not a number: ${coef}`);
@@ -352,8 +352,8 @@ let extractRHS = () => (op: string, rhs: MathNode): Bounds => {
 // port copies `acc` into a local Mut and returns the frozen copy; every caller passes a fresh [].
 let extractLHS = () =>
   function extractLHS(acc: readonly Term[], rootLhs: MathNode): readonly Term[] {
-    const out = mut([...acc]);
-    const stack = mut([rootLhs]);
+    const out = [...acc];
+    const stack = [rootLhs];
 
     while (stack.length) {
       const lhs = stack.pop();
@@ -431,7 +431,7 @@ let extractLHS = () =>
       }
     }
 
-    return freeze(out);
+    return out;
   };
 
 // ---- Test helpers ------------------------------------------------------------------------

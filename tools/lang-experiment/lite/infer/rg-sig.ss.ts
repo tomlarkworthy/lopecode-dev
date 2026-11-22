@@ -4,7 +4,7 @@
 export const RG_FLAG_NAMES = () => ["mutates", "fresh", "view", "retains", "banned"];
 // flagsOf: the flags a declaration's leading comments name, and intrinsic for the intrinsics; null for none
 export const rgFlags = (RG_FLAG_NAMES, leadingComments) => (ast: Ast, n: AstNode, origin: RgOrigin): Flags | null => {
-  const f: Mut<Flags> = mut({});
+  const f: Mut<Flags> = {};
   let any = false;
   for (const c of leadingComments(ast, n.start)) for (const k of RG_FLAG_NAMES) {
     if (!c.text.includes("@" + k)) continue;
@@ -12,7 +12,7 @@ export const rgFlags = (RG_FLAG_NAMES, leadingComments) => (ast: Ast, n: AstNode
     if (k === "mutates") f.mutates = true; else if (k === "fresh") f.fresh = true; else if (k === "view") f.view = true; else if (k === "retains") f.retains = true; else f.banned = true;
   }
   if (origin === "intrinsic") { f.intrinsic = true; any = true; }
-  return any ? freeze(f) : null;
+  return any ? f : null;
 };
 export const rgKeyName = () => (k: AstNode): string | null => (k.type === "Identifier" ? k.name : k.type === "Literal" ? String(k.value) : null);
 // the names of a type parameter declaration
@@ -30,7 +30,7 @@ export const rgSig = (rgTpNames, rgTpChecks, rgSigParam, VOID) => (G: RgK, Y: Rg
   const tps = rgTpNames(Q, tp);
   rgTpChecks(Q, tp);
   const inner: RgCtx = { ...c, tps: new Set([...c.tps, ...tps]) };
-  const ps: Mut<Param[]> = mut([]);
+  const ps: Mut<Param[]> = [];
   let rest: Ty | undefined = undefined;
   for (const q of params) {
     const o = rgSigParam(G, Y, E, I, Q, q, inner);
@@ -38,7 +38,7 @@ export const rgSig = (rgTpNames, rgTpChecks, rgSigParam, VOID) => (G: RgK, Y: Rg
     else if (o.k === "rest") rest = o.t;
   }
   const r = ret !== null ? G.convert(G, Y, E, I, Q, ret, inner) : VOID;
-  return flags !== null ? { k: "fn", tps, ps: freeze(ps), rest, ret: r, flags } : { k: "fn", tps, ps: freeze(ps), rest, ret: r };
+  return flags !== null ? { k: "fn", tps, ps: ps, rest, ret: r, flags } : { k: "fn", tps, ps: ps, rest, ret: r };
 };
 // the annotation of a parameter's name or pattern
 export const rgParamAnn = (rgAnn, rgOther) => (Q: RgCtls, id: AstNode): AstNode | null =>
@@ -65,11 +65,11 @@ export const rgSigParam = (rgParamAnn, rgUnsup, rgGap, RG_PARAMS, nodeKind, UNKN
 // the node types literal reads fields of
 export const RG_MEMBERS = () => new Set(["TSPropertySignature", "TSMethodSignature", "TSIndexSignature", "TSCallSignatureDeclaration", "TSConstructSignatureDeclaration"]);
 export const rgLiteral = (rgMember) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, ms: AstNode[], c: RgCtx): Rec => {
-  const props: Mut<Map<string, Prop>> = mut(new Map());
-  const over: Mut<Map<string, Fn[]>> = mut(new Map());
+  const props: Mut<Map<string, Prop>> = new Map();
+  const over: Mut<Map<string, Fn[]>> = new Map();
   let acc: RgAcc = { index: undefined, calls: undefined, ctors: undefined };
   for (const m of ms) acc = rgMember(G, Y, E, I, Q, props, over, m, c, acc);
-  return { k: "rec", props: freeze(props), index: acc.index, calls: acc.calls, ctors: acc.ctors };
+  return { k: "rec", props: props, index: acc.index, calls: acc.calls, ctors: acc.ctors };
 };
 // a Prop with its flags when it has any
 export const rgProp = () => (t: Ty, opt: boolean, flags: Flags | null): Prop => (flags !== null ? { t, opt, flags } : { t, opt });

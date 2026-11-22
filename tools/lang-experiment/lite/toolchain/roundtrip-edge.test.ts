@@ -1,5 +1,6 @@
 // bun lite/toolchain/roundtrip-edge.test.ts — compile/decompile edge cases: Sub-typed cells, plain cells and ids,
 // TS constructs the eraser must not break, comment terminators and control characters in source.
+import { out, SsMap, SsSet } from "../freeze.ts";
 import * as acorn from "acorn";
 import * as toolchain from "./ss-toolchain.ts";
 import { compileCell, decompileVariable, contextFromCheck } from "./ss-toolchain.ts";
@@ -18,7 +19,7 @@ let fail = 0, n = 0;
 const expect = (ok: boolean, what: string) => { n++; if (!ok) { fail++; console.log("FAIL " + what); } };
 const attempt = <T>(f: () => T): T | Error => { try { return f(); } catch (e) { return e as Error; } };
 // stand-ins for the runtime cells a definition takes, by input name; its other parameters take args in order
-const fakeRuntime: Record<string, unknown> = { ss_h: (tag: unknown, props: unknown, ...kids: unknown[]) => ({ tag, props, kids }) };
+const fakeRuntime: Record<string, unknown> = { ss_out: out, ss_SsMap: SsMap, ss_SsSet: SsSet, ss_h: (tag: unknown, props: unknown, ...kids: unknown[]) => ({ tag, props, kids }) };
 const run = (def: string, ...args: unknown[]) => (0, eval)(`(${def})`)(...(acorn.parseExpressionAt(def, 0, { ecmaVersion: "latest" }) as any).params.map((p: any) => (p.name in fakeRuntime ? fakeRuntime[p.name] : args.shift())));
 
 // compiles, every definition parses and survives Function.toString, and decompiles to the exact source
@@ -79,13 +80,13 @@ expect(!("idOf" in toolchain) && !("withId" in toolchain), "C4 ss-toolchain has 
   const ctx = contextFromCheck(checkSources({ cells: texts.join("\n\n"), tsx: true }));
   const by = new Map(texts.map((t) => [t, compileCell(t, true, ctx)]));
   const area = by.get(texts[2])!;
-  expect(toolchain.compileCellText(texts[2], true, ctx) === `area = (/*{lang:"ss"}*//*ss^{"h":"const area = ","t":";"}*/(width/*ss:: number*/, height/*ss:: number*/) => width * height)(width, height)`, "C4 a plain cell's text: " + toolchain.compileCellText(texts[2], true, ctx));
-  expect(area.length === 1 && JSON.stringify(area[0].inputs) === JSON.stringify(["width", "height"]) && toolchain.compiledKind(area[0].definition)?.callee === "plain", "C4 a plain cell takes its inputs and no ss: " + JSON.stringify(area[0].inputs));
-  expect(decompileVariable(area[0].definition) === texts[2] && (0, eval)(`(${area[0].definition})`)(3, 4) === 12, "C4 a plain cell decompiles to its source and runs with no stdlib");
+  expect(toolchain.compileCellText(texts[2], true, ctx) === `area = ss_out((/*{lang:"ss"}*//*ss^{"h":"const area = ","t":";"}*/(width/*ss:: number*/, height/*ss:: number*/) => width * height)(width, height), 1)`, "C4 a plain cell's text (B7: a body that makes no async or generator function: ss_out(v, 1), published unfrozen) (its value deep-frozen by ss_out): " + toolchain.compileCellText(texts[2], true, ctx));
+  expect(area.length === 1 && JSON.stringify(area[0].inputs) === JSON.stringify(["ss_out", "width", "height"]) && toolchain.compiledKind(area[0].definition)?.callee === "plain", "C4 a plain cell takes its inputs and no ss but ss_out: " + JSON.stringify(area[0].inputs));
+  expect(decompileVariable(area[0].definition) === texts[2] && run(area[0].definition, 3, 4) === 12, "C4 a plain cell decompiles to its source and runs with ss_out only");
   expect(toolchain.compiledKind(by.get(texts[3])![0].definition)?.callee === "plain", "C4 a property named like a built-in (r.h) leaves a cell plain");
   const held = by.get(texts[6])![0];
-  expect(JSON.stringify(held.inputs) === JSON.stringify(["viewof n"]) && toolchain.compiledKind(held.definition)?.callee === "plain", "C4 a plain cell taking State<T> takes viewof n: " + JSON.stringify(held.inputs));
-  expect(JSON.stringify([...by.get(texts[5])!, ...by.get(texts[7])!].map((v) => v.inputs)) === JSON.stringify([["ss_state", "ss_ref"], ["Generators", "viewof n"], ["ss_action", "viewof n"]]), "C4 a state cell takes ss_state and ss_ref, a cell calling action takes ss_action: " + JSON.stringify([...by.get(texts[5])!, ...by.get(texts[7])!].map((v) => v.inputs)));
+  expect(JSON.stringify(held.inputs) === JSON.stringify(["ss_out", "viewof n"]) && toolchain.compiledKind(held.definition)?.callee === "plain", "C4 a plain cell taking State<T> takes viewof n: " + JSON.stringify(held.inputs));
+  expect(JSON.stringify([...by.get(texts[5])!, ...by.get(texts[7])!].map((v) => v.inputs)) === JSON.stringify([["ss_state", "ss_ref"], ["Generators", "viewof n"], ["ss_action", "ss_out", "viewof n"]]), "C4 a state cell takes ss_state and ss_ref, a cell calling action takes ss_action: " + JSON.stringify([...by.get(texts[5])!, ...by.get(texts[7])!].map((v) => v.inputs)));
   expect(toolchain.compiledKind(by.get(texts[8])![0].definition)?.callee === "plain", "C4 a generator no cell takes as Events is a plain cell: " + by.get(texts[8])![0].definition);
   expect(toolchain.compiledKind(compileCell(texts[2], true).at(-1)!.definition)?.callee === "plain", "C4 with no module context a cell compiles to the same shape");
 }
@@ -232,8 +233,8 @@ for (const src of [
   const vs = new Map(toolchain.splitCells(src, false).flatMap((t) => compileCell(t, false, ctx)).map((v) => [v.name, v]));
   expect(r.cells.every((c) => c.status === "ok"), `L1 the cells check ok: ${JSON.stringify(r.cells.map((c) => [c.name, c.status]))}`);
   for (const name of ["cfg", "use", "sum", "inc", "box"]) expect(toolchain.compiledKind(vs.get(name)?.definition ?? "")?.callee === "plain", `L1 ${name} compiles as a plain cell, not a listener or state cell`);
-  // a plain cell takes no ss
-  const value = (name: string, ...args: unknown[]) => attempt(() => (0, eval)(`(${vs.get(name)!.definition})`)(...args));
+  // a plain cell takes no ss but ss_out
+  const value = (name: string, ...args: unknown[]) => attempt(() => run(vs.get(name)!.definition, ...args));
   const cfg = value("cfg");
   expect(JSON.stringify(cfg) === '{"on":true,"n":1}', `L1 cfg runs: ${cfg instanceof Error ? cfg.message : JSON.stringify(cfg)}`);
   const use = value("use", cfg);

@@ -35,9 +35,9 @@ export const rgConvertTs = (union, arr, rgLitType, rgTuple, rgTypeQuery, rgTypeR
     case "TSParenthesizedType": return G.convert(G, Y, E, I, Q, n.typeAnnotation, c);
     case "TSLiteralType": return rgLitType(Q, n);
     case "TSUnionType": {
-      const ts: Mut<Ty[]> = mut([]);
+      const ts: Mut<Ty[]> = [];
       for (const x of n.types) ts.push(G.convert(G, Y, E, I, Q, x, c));
-      return union(freeze(ts));
+      return union(ts);
     }
     case "TSArrayType": return arr(G.convert(G, Y, E, I, Q, n.elementType, c));
     case "TSTupleType": return rgTuple(G, Y, E, I, Q, n, c);
@@ -71,13 +71,13 @@ export const rgLitType = (lit, rgUnsup, rgGap, rgOther, ERR) => (Q: RgCtls, n: A
 };
 export const rgTuple = (nodeKind, ERR, rgUnsup) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, n: AstNode, c: RgCtx): Ty => {
   if (n.type !== "TSTupleType") return ERR;
-  const els: Mut<Ty[]> = mut([]);
+  const els: Mut<Ty[]> = [];
   for (const e of n.elementTypes) {
     const k = nodeKind(e);
     if (k === "TSNamedTupleMember" || k === "TSOptionalType" || k === "TSRestType") return rgUnsup(Q, e, k);
     els.push(G.convert(G, Y, E, I, Q, e, c));
   }
-  return { k: "tup", els: freeze(els) };
+  return { k: "tup", els: els };
 };
 export const rgTypeQuery = (rgUnsup, rgOther, ERR) => (Q: RgCtls, n: AstNode, c: RgCtx): Ty => {
   if (n.type === "TSTypeQuery" && rgOther(Q, n.exprName)) return ERR;
@@ -89,11 +89,11 @@ export const rgTypeQuery = (rgUnsup, rgOther, ERR) => (Q: RgCtls, n: AstNode, c:
 };
 // the type arguments, converted before the name is looked at
 export const rgArgs = (rgGap) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, ta: AstNode | null, c: RgCtx): Ty[] => {
-  const out: Mut<Ty[]> = mut([]);
-  if (ta === null) return freeze(out);
-  if (ta.type !== "TSTypeParameterInstantiation") { rgGap(Q, `type arguments held as ${ta.type}`); return freeze(out); }
+  const out: Mut<Ty[]> = [];
+  if (ta === null) return out;
+  if (ta.type !== "TSTypeParameterInstantiation") { rgGap(Q, `type arguments held as ${ta.type}`); return out; }
   for (const x of ta.params) out.push(G.convert(G, Y, E, I, Q, x, c));
-  return freeze(out);
+  return out;
 };
 export const rgTypeRef = (rgOther, rgArgs, rgNamedRef, RG_ONE_ARG, WRAPPERS, UNKNOWN, ERR, arr, named, rgUnsup, rgReport) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, n: AstNode, c: RgCtx): Ty => {
   if (n.type !== "TSTypeReference") return ERR;

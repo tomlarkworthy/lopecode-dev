@@ -44,14 +44,11 @@ export const RULES: RuleInfo[] = [
   { id: "iterator-capture", section: "Immutable by default", how: "approx", summary: "a nested function uses a binding of an enclosing function whose type may hold an iterator (Iterable, Generator or a type parameter)" },
   { id: "iterator-cell", section: "Immutable by default", how: "approx", summary: "a cell's value (a state cell's content, an events value) whose type may hold an iterator" },
   // Opt-in 1
-  { id: "mut-bind", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "mut(...) must be the initializer of a local const" },
-  { id: "mut-escape", section: "Opt-in 1: Mut<T> locals", how: "approx", summary: "Mut value returned, yielded, aliased, put in a literal, or passed to a non-Mut parameter" },
-  { id: "mut-capture", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "Mut value referenced from a nested function" },
-  { id: "mut-after-freeze", section: "Opt-in 1: Mut<T> locals", how: "approx", summary: "Mut binding used textually after freeze(binding)" },
+  // 2026-11-22: what another cell holds is frozen at run time; the static ownership rules below are what is left
+  { id: "mut-capture", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a function the cell keeps writes a captured Mut, captures a Mut typed array, or the Mut is written after it" },
+  { id: "mut-yield", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a generator cell yields a Mut typed array that is not a fresh copy" },
+  { id: "removed-call", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "mut(...), freeze(...) or borrow(...): no longer part of the language" },
   // Opt-in 2
-  { id: "borrow-placement", section: "Opt-in 2: owner cells", how: "exact", summary: "borrow(x) only as the operand of yield in a generator cell" },
-  { id: "borrowed-escape", section: "Opt-in 2: owner cells", how: "approx", summary: "Borrowed value returned, yielded, put in a state cell/literal/let, or captured by a closure" },
-  { id: "borrowed-await", section: "Opt-in 2: owner cells", how: "approx", summary: "Borrowed value used textually after an await in the same function" },
   // State and actions
   { id: "state-placement", section: "State and actions", how: "exact", summary: "state(...) only as the returned value of a sync, non-generator cell" },
   { id: "state-in-state", section: "State and actions", how: "exact", summary: "a state cell whose content type contains State or StateCell anywhere" },

@@ -1,0 +1,4 @@
+== ctrl-accept: ACCEPT
+   show a = {t:[1,2],n:3}
+== ctrl-reject: REJECT a:rejected[mut-escape]
+-- 2 candidates, 1 accepted

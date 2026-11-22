@@ -5,12 +5,12 @@ export const ixKnot = (ixInfer, ixCheck, ixCond, ixStmt, ixFnExpr, ixCall, ixBin
   ({ reg, src, cellNames, allowed, probe, infer: ixInfer, check: ixCheck, cond: ixCond, stmt: ixStmt, fnExpr: ixFnExpr, call: ixCall, bind: ixBind });
 export const ixFreshCtl = () => (count: number): IxCtl => ({
   cur: 0, nextFlow: 0, diags: null, unsup: null, rets: [], yields: [], quiet: 0, nextId: 0, nextScope: 0, nextNid: count,
-  fresh: 1000000, short: new Set(), clones: new Set(), breaks: null, flagsAt: -1, flags: undefined, gap: null, facts: null, probe: null,
+  fresh: 1000000, short: new Set(), clones: new Set(), breaks: null, flagsAt: -1, flags: undefined, freshAt: -1, gap: null, facts: null, probe: null,
 });
 export const ixCheckFn = (ixKnot, ixFreshCtl, ixDrain, ixOut, ixFoldFacts) => (reg: IxReg, input: IxInput): IxOutput => {
   const K: IxK = ixKnot(reg, input.src, input.cellNames, input.allowed, null);
-  const T: IxTypes = mut(new Map()), V: IxVars = mut(new Map()), W: IxFlows = mut(new Map([[0, new Map()]]));
-  const C: IxCtls = mut({ ...ixFreshCtl(input.count) });
+  const T: IxTypes = new Map(), V: IxVars = new Map(), W: IxFlows = new Map([[0, new Map()]]);
+  const C: IxCtls = { ...ixFreshCtl(input.count) };
   C.nextFlow = 1;
   for (const g of input.globals) {
     C.nextId += 1;

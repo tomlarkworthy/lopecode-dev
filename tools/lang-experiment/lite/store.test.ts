@@ -1,11 +1,12 @@
 // Unit tests for the decision cells of store.ss.ts, each called alone with plain values. Run: bun lite/store.test.ts
 import * as rtCells from "./runtime.ss.ts";
+import { freeze } from "./freeze.ts";
 import * as eventCells from "./events.ss.ts";
 import * as storeCells from "./store.ss.ts";
 import type { StoreRecord, StoreState, Writes } from "./store.ss.ts";
 import { link } from "./link.ts";
 
-const S = link({ ...rtCells, ...eventCells, ...storeCells }, { mut: rtCells.mut(), freeze: rtCells.freeze() });
+const S = link({ ...rtCells, ...eventCells, ...storeCells }, { mut: rtCells.mut(), freeze });
 let pass = 0, fail = 0;
 const ok = (name: string, cond: boolean, detail: unknown = "") => {
   if (cond) { pass++; console.log(`pass ${name}`); } else { fail++; console.log(`FAIL ${name}: ${JSON.stringify(detail)}`); }

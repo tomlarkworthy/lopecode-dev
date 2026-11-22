@@ -1,0 +1,242 @@
+[
+ {
+  "name": "method-this-read",
+  "verdict": "REJECT a:rejected[no-this]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "method-this-push-after-freeze",
+  "verdict": "REJECT a:rejected[no-this]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "plain-mut-method-this-push",
+  "verdict": "REJECT a:rejected[no-this]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "method-in-plain-record-this",
+  "verdict": "REJECT a:rejected[no-this]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "method-returns-field",
+  "verdict": "REJECT a:rejected[no-this]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-method-capture-outer",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-method-cell-value",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = {t:[1],f:fn}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-arrow-field",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 2"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-getter",
+  "verdict": "REJECT a:unsupported{get accessor}{intrinsic member Mut.u}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-computed-key",
+  "verdict": "REJECT a:rejected[no-member]{computed property}{intrinsic member Mut.t}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-spread-other",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 2"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-spread-group-literal",
+  "verdict": "REJECT a:rejected[mut-bind]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-field-mut-of-spread-cell",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-field-plain-from-cell",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-plain-object-field-from-cell-write",
+  "verdict": "REJECT a:rejected[mut-deep-write]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "plain-mut-record-holding-cell-value-write-deep",
+  "verdict": "REJECT a:rejected[mut-deep-write]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-field-map-of-cell-arrays",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "mut-map-holding-mut",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "map-get-of-mut-map-deep-write",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-field-sort-returns",
+  "verdict": "REJECT a:rejected[mut-view]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-field-sort-in-arg",
+  "verdict": "REJECT a:rejected[mut-view]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "plain-sort-in-arg-keep",
+  "verdict": "REJECT a:rejected[mut-view]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "plain-sort-in-intrinsic-arg",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [0,1,3]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "map-set-chain-in-new-map",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "set-add-into-new-set",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "values-into-array-from",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "object-entries-of-mut",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "object-assign-into-mut",
+  "verdict": "REJECT a:rejected[mut-escape]{Object.assign}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "object-assign-from-mut-into-literal",
+  "verdict": "REJECT a:rejected[mut-escape]{Object.assign}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "structuredClone-mut",
+  "verdict": "REJECT a:rejected[mut-escape][mut-escape][mut-source]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "array-of-mut-spread",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [[1]]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "spread-mut-record-field-array-alias",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [0,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "mut-array-of-arrays-shallow-copy-alias",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [[1]]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-equals",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = true"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-messageOf",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = \"[object Object]\""
+  ],
+  "broke": false
+ }
+]

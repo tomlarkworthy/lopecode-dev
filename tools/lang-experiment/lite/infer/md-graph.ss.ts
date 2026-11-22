@@ -5,12 +5,12 @@ export type MdSpec = { readonly inputs: string[]; readonly refs: string[]; reado
 // a literal array of strings, or null
 export const mdNames = () => (v: AstNode): string[] | null => {
   if (v.type !== "ArrayExpression") return null;
-  const out: Mut<string[]> = mut([]);
+  const out: Mut<string[]> = [];
   for (const el of v.elements) {
     if (el === null || el.type !== "Literal" || typeof el.value !== "string") return null;
     out.push(el.value);
   }
-  return freeze(out);
+  return out;
 };
 // island.ts specOf: compile({ inputs, refs, outputs, options }) with literal arrays of cell names, or null
 export const mdSpecOf = (mdNames) => (call: AstNode): MdSpec | null => {
@@ -34,13 +34,13 @@ export const mdSpecOf = (mdNames) => (call: AstNode): MdSpec | null => {
 // island.ts compileCalls: the compile(...) calls in the body of a cell whose parameters include compile
 export const mdCompileCalls = (kidsOf) => (fn: FnNode): AstNode[] => {
   if (!fn.params.some((p) => p.type === "Identifier" && p.name === "compile")) return [];
-  const out: Mut<AstNode[]> = mut([]);
-  const todo: Mut<AstNode[]> = mut([fn.body]);
+  const out: Mut<AstNode[]> = [];
+  const todo: Mut<AstNode[]> = [fn.body];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     if (n.type === "CallExpression" && n.callee.type === "Identifier" && n.callee.name === "compile") out.push(n);
     for (const k of kidsOf(n).toReversed()) todo.push(k);
   }
-  return freeze(out);
+  return out;
 };
 // the cells a cell is checked after: its parameters that name cells, then the cells its compile(...) calls name
 export const mdDeps = (mdCompileCalls, mdSpecOf) => (d: MdDef, cellNames: Set<string>): string[] => {
@@ -74,7 +74,7 @@ export const mdVisit = () => {
 // the order the cells are checked in, and each cell's cycle errors
 export const mdOrder = (mdDeps, mdVisit) => (defs: MdDef[], byName: Map<string, MdDef>, cellNames: Set<string>, lines: Map<string, number>): { order: MdDef[]; cycles: Map<string, MdErr[]> } => {
   const deps = new Map(defs.map((d): [string, string[]] => [d.name, mdDeps(d, cellNames)]));
-  const S: Mut<MdVisit> = mut({ state: new Map(), order: [], cycles: new Map() });
+  const S: Mut<MdVisit> = { state: new Map(), order: [], cycles: new Map() };
   for (const d of defs) mdVisit(S, deps, byName, lines, d.name, []);
   return { order: S.order, cycles: S.cycles };
 };

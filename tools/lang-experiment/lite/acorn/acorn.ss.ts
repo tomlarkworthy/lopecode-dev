@@ -8,9 +8,9 @@ export const parseTree = (acornParse: (text: string, jsx: boolean) => Parse) => 
 
 // the position each line starts at
 export const lineStarts = () => (src: string): number[] => {
-  const out: Mut<number[]> = mut([0]);
+  const out: Mut<number[]> = [0];
   for (let i = 0; i < src.length; i++) if (src.charCodeAt(i) === 10) out.push(i + 1);
-  return freeze(out);
+  return out;
 };
 // the line (from 1) of position pos, given the line starts
 export const lineIn = () => (starts: number[], pos: number): number => {
@@ -28,7 +28,7 @@ export const lineAt = (lineStarts, lineIn) => (src: string): ((pos: number) => n
 };
 // parse.ts leading: the comments separated from start (and from each other) only by whitespace
 export const leadingComments = () => (ast: Ast, start: number): AstComment[] => {
-  const out: Mut<AstComment[]> = mut([]);
+  const out: Mut<AstComment[]> = [];
   let at = start;
   for (let i = ast.comments.length - 1; i >= 0; i--) {
     const c = ast.comments[i];
@@ -37,7 +37,7 @@ export const leadingComments = () => (ast: Ast, start: number): AstComment[] => 
     out.unshift(c);
     at = c.start;
   }
-  return freeze(out);
+  return out;
 };
 // the node type as acorn names it (an Other node keeps it in kind)
 export const nodeKind = () => (n: AstNode): string => (n.type === "Other" ? n.kind : n.type);
@@ -52,28 +52,28 @@ export const kidsOf = (childrenOf, TYPE_FIELDS) => (n: AstNode): AstNode[] =>
   childrenOf(n).filter((k) => !TYPE_FIELDS.has(k.key)).map((k) => k.node).toSorted((a, b) => a.start - b.start);
 // every node of the tree, at its nid
 export const byNid = (childrenOf) => (ast: Ast): (AstNode | null)[] => {
-  const out: Mut<(AstNode | null)[]> = mut(Array.from({ length: ast.count }, () => null));
-  const todo: Mut<AstNode[]> = mut([ast.program]);
+  const out: Mut<(AstNode | null)[]> = Array.from({ length: ast.count }, () => null);
+  const todo: Mut<AstNode[]> = [ast.program];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     out[n.nid] = n;
     for (const k of childrenOf(n)) todo.push(k.node);
   }
-  return freeze(out);
+  return out;
 };
 // the nid of each node's parent, at its nid (-1 for the program); a tree cannot hold its parent, as a value that
 // contains itself does not cross
 export const parentNids = (childrenOf) => (ast: Ast): number[] => {
-  const out: Mut<number[]> = mut(Array.from({ length: ast.count }, () => -1));
-  const todo: Mut<AstNode[]> = mut([ast.program]);
+  const out: Mut<number[]> = Array.from({ length: ast.count }, () => -1);
+  const todo: Mut<AstNode[]> = [ast.program];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     for (const k of childrenOf(n)) { out[k.node.nid] = n.nid; todo.push(k.node); }
   }
-  return freeze(out);
+  return out;
 };
 // the nids are a pre-order numbering: every nid below count occurs once, and each node's subtree holds exactly the nids
 // from its own to its own + its size - 1. The boundary checks the shape, not this
 export const preorder = (childrenOf) => (ast: Ast): boolean => {
-  const seen: Mut<boolean[]> = mut(Array.from({ length: ast.count }, () => false));
+  const seen: Mut<boolean[]> = Array.from({ length: ast.count }, () => false);
   // the size of n's subtree when it holds the nids n.nid .. n.nid + size - 1, each once; -1 when it does not
   const size = (n: AstNode): number => {
     if (n.nid < 0 || n.nid >= ast.count || seen[n.nid]) return -1;

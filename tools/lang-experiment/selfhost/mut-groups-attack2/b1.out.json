@@ -1,0 +1,252 @@
+[
+ {
+  "name": "async-helper-capture",
+  "verdict": "REJECT a:rejected[borrowed-await]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "async-helper-param",
+  "verdict": "REJECT a:rejected[borrowed-await]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "async-helper-group-param",
+  "verdict": "REJECT a:rejected[borrowed-await]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "async-helper-group-capture",
+  "verdict": "REJECT a:rejected[borrowed-await]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "async-helper-param-sync-cell",
+  "verdict": "REJECT a:rejected[borrowed-await]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "async-fn-decl-param",
+  "verdict": "REJECT a:rejected[borrowed-await]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "async-no-await-before-write",
+  "verdict": "REJECT a:rejected[borrowed-await]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "gen-helper-capture",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "gen-helper-param",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "gen-helper-param-spread",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "gen-helper-group-param",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "gen-helper-array-from",
+  "verdict": "REJECT a:rejected[arity][type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "freeze-as",
+  "verdict": "REJECT a:rejected[no-cast][mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "freeze-nonnull",
+  "verdict": "REJECT a:rejected[no-non-null][mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "freeze-satisfies",
+  "verdict": "REJECT a:unsupported{satisfies}{TSSatisfiesExpression}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "freeze-paren",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "freeze-group-as",
+  "verdict": "REJECT a:rejected[no-cast][mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "freeze-group-nonnull",
+  "verdict": "REJECT a:rejected[no-non-null][mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "freeze-typearg",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "freeze-optional-call",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "helper-optional-call-after-freeze",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "helper-typearg-call-after-freeze",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "helper-via-helper-after-freeze",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "helper-new-after-freeze",
+  "verdict": "REJECT a:rejected[new-non-intrinsic]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "helper-tagged-after-freeze",
+  "verdict": "REJECT a:rejected[unknown-type]{tagged template}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "helper-hoisted-decl-after-freeze",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "helper-default-param-uses-m",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "sibling-array-after-freeze",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "sibling-args-after-freeze",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "sibling-binary-after-freeze",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "tagged-template-alias",
+  "verdict": "REJECT a:rejected[unknown-type]{tagged template}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "sequence-alias",
+  "verdict": "REJECT a:unsupported{comma expression}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "catch-alias",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "throw-group-field",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "loop-freeze-label",
+  "verdict": "REJECT a:unsupported{label}{LabeledStatement in a function holding a Mut/Borrowed}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-shorthand-field",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-self-closure",
+  "verdict": "REJECT a:rejected[free-name]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-method-this",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-field-outer-mut-closure",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 2"
+  ],
+  "broke": false
+ },
+ {
+  "name": "plain-field-assigned-mut",
+  "verdict": "REJECT a:rejected[no-cast][mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-plain-field-assigned-owned",
+  "verdict": "REJECT a:rejected[no-cast][mut-escape]",
+  "out": [],
+  "broke": false
+ }
+]

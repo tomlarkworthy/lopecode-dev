@@ -80,7 +80,7 @@ export const ixFnDeclStmt = (ixLookup, ixUpdate, ixCopyFlow) => (K: IxK, T: IxTy
   C.cur = own;
   ixUpdate(V, C, { ...b, checked: true, t: b.t.k === "err" ? f : b.t, lazy: { k: "none" } });
 };
-export const ixVarDecl = (ixAnnOf, ixConvert, ixVarFn, ixDeclare, ixNoExtra, ixLookup, ixFlowSet, ixErr, ixUnsup, widen, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, d: AstNode, kind: string): void => {
+export const ixVarDecl = (ixAnnOf, ixConvert, ixVarFn, ixDeclare, ixNoExtra, ixLookup, ixFlowSet, ixErr, ixUnsup, widen, named, isNamed, unwrap, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, d: AstNode, kind: string): void => {
   if (d.type !== "VariableDeclarator") { ixUnsup(K, C, d, `declarator ${d.type}`); return; }
   const k: IxKind = kind === "const" ? "const" : "let", id = d.id, init = d.init;
   const ann = ixAnnOf(id), declared = ann !== null ? ixConvert(K, V, env, ann) : null;
@@ -92,10 +92,13 @@ export const ixVarDecl = (ixAnnOf, ixConvert, ixVarFn, ixDeclare, ixNoExtra, ixL
     K.bind(K, T, V, W, C, env, id, declared ?? ERR, k, ixNoExtra);
     return;
   }
-  const t = K.check(K, T, V, W, C, env, init, declared, false, false);
-  const isMut = init.type === "CallExpression" && init.callee.type === "Identifier" && init.callee.name === "mut" && ixLookup(V, env, "mut")?.kind === "prelude";
-  if (id.type !== "Identifier") return K.bind(K, T, V, W, C, env, id, declared ?? t, k, ixNoExtra);
-  const b = ixDeclare(V, C, env, id.name, declared ?? (k === "let" ? widen(t) : t), k, id, ixNoExtra, { k: "none" }, isMut, fnInit ? init.nid : -1);
+  const t0 = K.check(K, T, V, W, C, env, init, declared, false, false);
+  // S4: a fresh value bound to a local with no annotation is a Mut (a literal, new or a call of a fresh intrinsic)
+  const fresh = declared === null && t0.k !== "err" && !isNamed(t0, "Mut") && (init.type === "ArrayExpression" || init.type === "ObjectExpression" || C.freshAt === init.nid);
+  const t = fresh ? named("Mut", k === "let" ? widen(t0) : t0) : t0;
+  const isMut = fresh || (init.type === "CallExpression" && init.callee.type === "Identifier" && init.callee.name === "mut" && ixLookup(V, env, "mut")?.kind === "prelude");
+  if (id.type !== "Identifier") return K.bind(K, T, V, W, C, env, id, declared ?? unwrap(t0), k, ixNoExtra);
+  const b = ixDeclare(V, C, env, id.name, declared ?? (k === "let" && !fresh ? widen(t) : t), k, id, ixNoExtra, { k: "none" }, isMut, fnInit ? init.nid : -1);
   if (k === "let" && declared !== null) ixFlowSet(W, C.cur, "#" + b.id, K.reg.sub(t, declared) ? t : declared);
 };
 // const f = (…) => …: bound before its body is checked, so it can call itself (with annotations)

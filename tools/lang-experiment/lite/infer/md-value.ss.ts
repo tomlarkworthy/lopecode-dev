@@ -24,10 +24,11 @@ export const mdStateRules = (mdKept, admitsUndefinedWith, holdsWith, show) => (R
 };
 export type MdValueOut = { readonly errors: MdErr[]; readonly value: Ty; readonly events: Ty | null; readonly ref: Ty | null; readonly listener: boolean; readonly gap: string | null };
 // the rules in core.ts's order: events, state cell, iterator, listener; and what the cell gives the cells after it
-export const mdValueRules = (mdValueType, mdKept, mdStateRules, owIter, owMut, holdsWith, isNamed, show) => (R: IxReg, X: MdCtx, d: MdDef, fnT: Ty, fedBy: string | null): MdValueOut => {
+export const mdValueRules = (mdValueType, mdKept, mdStateRules, owIter, owStripMut, holdsWith, isNamed, show) => (R: IxReg, X: MdCtx, d: MdDef, fnT: Ty, fedBy: string | null): MdValueOut => {
   const v = mdValueType(d.fn, fnT);
   const line = X.line(d.fn.start), sync = d.fn.generator && !d.fn.async;
-  let ret = v.ret;
+  // S4: a cell's value, each value it yields and a state's value are the read-only view (frozen at run time)
+  let ret = owStripMut(R, v.ret);
   const events = v.gen && sync ? ret : null;
   const errs = sync ? mdKept(R, d.name, fedBy, line, "an events cell yields", ret, "a listener's action would receive it") : [];
   const sc = ret.k === "named" && isNamed(ret, "StateCell");
@@ -37,10 +38,9 @@ export const mdValueRules = (mdValueType, mdKept, mdStateRules, owIter, owMut, h
   if (inner !== undefined) ret = inner;
   const it = owIter(R, ret);
   const iter = it === null ? [] : [{ rule: "iterator-cell", line, msg: `value ${show(ret)} may hold an iterator (${it}); every cell that takes it would use up the same one, so what each computes would depend on the order the cells run in. Make it an array` }];
-  const mt = owMut(R, ret), mutv = mt === null ? [] : [{ rule: "mut-cell", line, msg: `value ${show(ret)} holds ${mt}; a cell's value is never a Mut: every cell that takes it could write it` }];
   const isL = (t: Ty): boolean => t.k === "named" && isNamed(t, "Listener");
   const listener = isL(ret) || (ret.k === "union" && ret.ts.every(isL));
   const held = listener ? null : holdsWith(X.R.ops)(ret, ["Listener"]);
   const place = held ? [{ rule: "listener-placement", line, msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` }] : [];
-  return { errors: [...errs, ...state, ...iter, ...mutv, ...place], value: ret, events, ref: inner ?? null, listener, gap: v.gap };
+  return { errors: [...errs, ...state, ...iter, ...place], value: ret, events, ref: inner ?? null, listener, gap: v.gap };
 };

@@ -57,17 +57,17 @@ md`\`jittered\` is how \`jitter\` should be written. It takes \`random\` as a pa
 
 **Try it.** In the box, change \`label: number\` to \`label: string\` in \`doubled\`. The message changes from an input type error to a type error on \`label * 2\`.`
 // %%
-md`## 3. Local writes: \`mut\` and \`freeze\`
+md`## 3. Local writes
 
-Building an array or a typed array one element at a time is ordinary and fast, and rule 3 does not forbid it. \`mut(...)\` marks a value this cell made as writable. \`freeze(...)\` ends the writes and returns the plain value. Between the two, the value may not leave the cell.
+Building an array or a typed array one element at a time is ordinary and fast, and rule 3 does not forbid it. A value a cell makes itself (a literal, \`new Map()\`, a copy) is writable inside that cell, under as many names as you like. What a cell returns is read-only to every cell that takes it: a write there is rejected by the checker, and where the checker cannot prove it, the value is frozen when it leaves the cell, so a late write throws.
 
-\`leak\` returns a writable value and \`late\` writes after \`freeze\`. Both are rejected, so neither runs; each shows the checker's message. They are live here so that you can fix them.`
+\`grown\` writes an array it made and returns it. \`twoNames\` holds one array under two names; the write shows through both. Both are accepted.`
 // %%
-sourceListing(tutorial_module, invalidation, { from: "samples", to: "late" })
+sourceListing(tutorial_module, invalidation, { from: "samples", to: "twoNames" })
 // %%
 //ss: 03-mut.ts
 // %%
-md`**Try it.** Open \`leak\` and change \`return xs\` to \`return freeze(xs)\`. The edit is accepted, and \`leak\` turns from rejected to ok and runs.`
+md`**Try it.** Open \`twoNames\` and change \`const done = xs;\` to \`const done = [...xs];\`. Now \`done\` is a copy, and the cell's value is \`[1, 2, 3]\`.`
 // %%
 md`## 4. State and views
 
@@ -278,7 +278,7 @@ The compiler turns each cell, one at a time, into one *variable* of the notebook
 
 The runtime decides when a cell runs: when it is first read, and again whenever one of its inputs was computed again. It does not compare values, so a cell whose input was recomputed to an equal value runs too.
 
-A cell the checker rejects, such as \`leak\` or section 8's mistakes, does not run at all: its variable raises the checker's message.`
+A cell the checker rejects, such as section 8's mistakes, does not run at all: its variable raises the checker's message.`
 // %%
 md`### A state cell is two variables
 
@@ -435,29 +435,20 @@ Allowed: local \`let\` and reassigning it, loops, \`switch\`, \`throw\`, \`try\`
 
 Not modelled, reported *unsupported*: \`for…in\`, \`instanceof\`, \`??=\` \`&&=\` \`||=\`, destructuring assignment (\`[a, b] = [b, a]\`), tagged templates, the comma operator, \`satisfies\`, a \`type\` declared inside a body, \`yield*\`, \`for await\`, and, in a function holding a \`Mut\`, \`try/finally\` and labelled \`break\`.`
 // %%
-md`### Local mutation: \`mut\`, \`freeze\`
+md`### Local mutation
 
-\`const out = mut(new Float32Array(n))\` gives a \`Mut<Float32Array>\` that the cell may write; \`freeze(out)\` ends the writing and gives the plain value (section 3). The checker tracks the \`Mut\` binding, not the object.
+A local bound to a fresh value (an array or object literal, \`new\` on an intrinsic, a copy) is a \`Mut<T>\`: the function that made it may write it. \`Mut<T>\` is assignable to \`T\`, not the other way. A helper may take a \`Mut<T>\` parameter and write it. The value a cell returns or yields is frozen at run time unless the checker has proved nothing can write it afterwards.
 
 | rule | |
 |---|---|
-| \`mut(e)\` only as the initializer of a local \`const\` | \`[mut-bind]\` |
-| \`e\` must be fresh: an array or object literal, a spread copy, \`new\` on an intrinsic, or an intrinsic result marked fresh | \`[mut-not-fresh]\` |
-| a \`Mut\` may not be returned, yielded, aliased, put in a literal, or captured by an escaping function | \`[mut-escape]\`, \`[mut-capture]\` |
-| no use after \`freeze\` | \`[mut-after-freeze]\` |
-| writes only at the first level (\`out[i] = …\`, not \`out.a.b = …\`) | \`[mut-deep-write]\` |
-| a view (\`subarray\`) of a \`Mut\` buffer may only be passed straight to a non-retaining intrinsic, not bound to a name | \`[mut-view]\` |
-| only a \`Mut\` made by this function may be frozen, not a \`Mut\` parameter | \`[mut-freeze-param]\` |
-| a \`Mut\` comes only from \`mut(...)\` or a \`Mut\` parameter, not from another call's result, a member or a destructured name | \`[mut-source]\` |
+| a value that is not a \`Mut\` is not written | \`[member-write]\`, \`[mutating-method]\` |
 | a cell's value and a cell's inputs never hold a \`Mut\` | \`[mut-cell]\` |
-| an owned field of a group (\`mut({ t: mut([]) })\`) is not assigned or deleted | \`[mut-field-assign]\` |
-| \`mut\`, \`freeze\` and the other prelude functions are only called, not used as values; \`mut\`, \`freeze\`, \`borrow\` and \`snapshot\` are not declared again as locals | \`[prelude-value]\`, \`[prelude-shadow]\` |
+| a function that outlives the call that made it does not write what it captured, and what it captured is not written after it is made | \`[mut-capture]\`, \`[let-capture]\` |
+| a generator cell does not yield a typed array or a \`URL\` it can still write; these cannot be frozen, so yield a copy | \`[mut-yield]\` |
+| \`mut\`, \`freeze\` and \`borrow\` were removed; delete the call | \`[removed-call]\` |
+| prelude functions are only called, not used as values or declared again as locals | \`[prelude-value]\`, \`[prelude-shadow]\` |
 
-A helper may take a \`Mut<T>\` parameter and write it. A local helper that is only called may also capture one (S4.5 in the specification). The reference checker rejects every capture.`
-// %%
-md`### Lending a buffer: \`borrow\`, \`snapshot\`
-
-A generator cell may keep a \`Mut\` across yields and \`yield borrow(buf)\`; readers get a \`Borrowed<T>\`, read-only, valid during their own synchronous run. \`borrow\` appears only as the operand of \`yield\` (\`[borrow-placement]\`). A reader may not keep a \`Borrowed\` across \`await\` (\`[borrowed-await]\`), return it, store it or capture it in a nested function such as a \`map\` callback (\`[borrowed-escape]\`); \`snapshot(b)\` copies it to a plain \`T\`. A cell that reads a generator is not memoised, because the lent buffer changes in place between yields.`
+\`snapshot(v)\` gives a copy of \`v\`.`
 // %%
 md`### State: \`state\`, \`action\`
 
@@ -517,7 +508,7 @@ three ports             144 + 25 + 38 cells, all ok   (index reads typed T, as T
                         2 rejected that the reference accepts (a number made a string, then used as a number)
                         12 unsupported (renamed intrinsic members)
 fixture and port cells  5 of 503 accepted that the reference rejects: three helpers capturing a Mut
-                        (allowed deliberately), and one cell each for mut-escape and mut-after-freeze
+                        (allowed deliberately), and one cell each for an escaping Mut and a use after freeze
 known slips             12 of 13 rejected
 check time, CLI         53-63 ms lite, 282-331 ms the reference (whole process, median of 5)
 \`\`\`
@@ -565,7 +556,7 @@ testsView = testTable([["tutorial", tutorial_module], ["reducer", reducer_module
 // %%
 test_examples_check_as_expected = {
   tests_on;
-  const want = { cells: [7, 0], errors: [8, 5], mut: [4, 2], counter: [6, 0], reducer: [10, 0], model: [10, 0], workers: [13, 0], rejectJsx: [17, 11], game: [21, 0] };
+  const want = { cells: [7, 0], errors: [8, 4], mut: [4, 0], counter: [6, 0], reducer: [10, 0], model: [10, 0], workers: [13, 0], rejectJsx: [17, 11], game: [21, 0] };
   const got = {};
   for (const [k, [n, rejected]] of Object.entries(want)) {
     const r = soundscript.checkSources({ cells: examples[k], tsx: k !== "cells" && k !== "errors" && k !== "mut" });
@@ -1155,10 +1146,10 @@ test_ss_module_checks = {
   tests_on;
   const { result } = ss_check(tutorial_module);
   const got = Object.fromEntries(result.cells.map((c) => [c.name, c.status]));
-  const want = { width: "ok", height: "ok", area: "ok", aspect: "ok", scale: "ok", half: "ok", test_half: "ok", samples: "ok", histogram: "ok", leak: "rejected", late: "rejected", count: "ok", increment: "ok", clear: "ok", saved: "ok", save: "ok", app: "ok", measure: "ok", word: "ok", wordSize: "ok", measureAsked: "ok", measureWord: "ok", measured: "ok", wordSizes: "ok", storeSize: "ok", onSize: "ok", measureView: "ok", n: "ok", inc: "ok", setN: "ok", Badge: "ok", NotElem: "ok", bad_attr_type: "rejected", bad_unknown_attr: "rejected", bad_unknown_element: "rejected", bad_handler_not_action: "rejected", bad_handler_wrong_args: "rejected", bad_component_props: "rejected", bad_component_missing_prop: "rejected", bad_component_not_elem: "rejected", bad_mut_in_jsx: "rejected", bad_child_object: "rejected", ok_all: "ok", shopTotal: "ok", cheaper: "ok", shopView: "ok" };
+  const want = { width: "ok", height: "ok", area: "ok", aspect: "ok", scale: "ok", half: "ok", test_half: "ok", samples: "ok", histogram: "ok", grown: "ok", twoNames: "ok", count: "ok", increment: "ok", clear: "ok", saved: "ok", save: "ok", app: "ok", measure: "ok", word: "ok", wordSize: "ok", measureAsked: "ok", measureWord: "ok", measured: "ok", wordSizes: "ok", storeSize: "ok", onSize: "ok", measureView: "ok", n: "ok", inc: "ok", setN: "ok", Badge: "ok", NotElem: "ok", bad_attr_type: "rejected", bad_unknown_attr: "rejected", bad_unknown_element: "rejected", bad_handler_not_action: "rejected", bad_handler_wrong_args: "rejected", bad_component_props: "rejected", bad_component_missing_prop: "rejected", bad_component_not_elem: "rejected", bad_mut_in_jsx: "rejected", bad_child_object: "rejected", ok_all: "ok", shopTotal: "ok", cheaper: "ok", shopView: "ok" };
   if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(`verdicts ${JSON.stringify(got)}`);
   if (result.module.length) throw new Error(`module errors ${JSON.stringify(result.module)}`);
-  return `${result.cells.length} cells: leak, late and the ten bad_* rejected, the rest ok`;
+  return `${result.cells.length} cells: the ten bad_* rejected, the rest ok`;
 }
 // %%
 //raw: test_ss_counter

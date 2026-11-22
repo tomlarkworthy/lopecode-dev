@@ -1,0 +1,262 @@
+[
+ {
+  "name": "map-set-arg-freeze",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 0"
+  ],
+  "broke": false
+ },
+ {
+  "name": "fill-arg-freeze",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [2,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "splice-arg-freeze",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "computed-key-freeze",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,7]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "compound-assign-freeze",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "update-expr-freeze-key",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "delete-key-freeze",
+  "verdict": "REJECT a:rejected[no-cast][mut-not-fresh]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "logical-assign-freeze",
+  "verdict": "REJECT a:unsupported{logical assignment ||=}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "nullish-assign-freeze",
+  "verdict": "REJECT a:rejected[no-cast]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-field-index-assign-freeze",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = {t:[6],n:0}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "unshift-arg-freeze",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "pop-after-freeze-in-cond",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "freeze-and-short-circuit",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "jsx-child-mut",
+  "verdict": "REJECT a:rejected[type][type][type][mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "jsx-attr-mut",
+  "verdict": "REJECT a:rejected[type][type][mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "jsx-attr-field",
+  "verdict": "REJECT a:rejected[type][type][mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "jsx-child-length",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = {tag:\"div\",props:{},children:[1]}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "jsx-onclick-capture",
+  "verdict": "REJECT a:rejected[type][type][mut-capture]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "jsx-spread-attrs-group",
+  "verdict": "REJECT a:unsupported{spread attribute}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "class-field-mut",
+  "verdict": "REJECT a:rejected[no-class]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "for-of-destructure-mut-pairs",
+  "verdict": "REJECT a:rejected[mutating-method]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "catch-destructure",
+  "verdict": "REJECT a:rejected[no-member]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "try-finally-freeze",
+  "verdict": "REJECT a:unsupported{try/finally in a function holding a Mut/Borrowed}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "while-freeze-break",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,1,1,1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "switch-fallthrough-freeze",
+  "verdict": "REJECT a:rejected[switch-fallthrough][mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "recursive-helper-group",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [4,[1,3,2,1]]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "generic-group-alias",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "generic-group-return-field-elem",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "symbol-iterator-mut",
+  "verdict": "REJECT a:unsupported{intrinsic Symbol has no signature in lite/intrinsics.ts}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "object-keys-group",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "in-group",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = true"
+  ],
+  "broke": false
+ },
+ {
+  "name": "typeof-group-field",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = \"object\""
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-field-optional-chain-push",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-cond-arg-field",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "yield-freeze-then-throw-catch",
+  "verdict": "ACCEPT",
+  "out": [
+   "CHANGED gen (value #1 of 1): [1] -> [8]",
+   "CHANGED r (value #1 of 1): {v:[1]} -> {v:[8]}",
+   "show gen = [8]",
+   "show r = {v:[8]}"
+  ],
+  "broke": true
+ },
+ {
+  "name": "yield-freeze-reader-holds",
+  "verdict": "ACCEPT",
+  "out": [
+   "CHANGED gen (value #1 of 1): [1] -> [8]",
+   "CHANGED r (value #1 of 1): {v:[1]} -> {v:[8]}",
+   "show gen = [8]",
+   "show r = {v:[8]}"
+  ],
+  "broke": true
+ }
+]

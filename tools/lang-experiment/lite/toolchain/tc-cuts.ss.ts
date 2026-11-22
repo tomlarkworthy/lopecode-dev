@@ -42,32 +42,32 @@ export const tcCutNode = (tcCutKinds, tcWholeType, tcAsFrom, tcAssertionTo, tcOp
   if (n.type === "TSNonNullExpression") return { cuts: [{ from: n.end - 1, to: n.end, text: "" }], next: [n.expression] };
   if (n.type === "TSTypeAssertion" && mode === "comment")
     return { cuts: [{ from: n.start, to: tcAssertionTo(ast, n.typeAnnotation.end, n.expression.start), text: "" }], next: [n.expression] };
-  const cuts: Mut<TcEdit[]> = mut([]);
-  const next: Mut<AstNode[]> = mut([]);
+  const cuts: Mut<TcEdit[]> = [];
+  const next: Mut<AstNode[]> = [];
   if (n.type === "ExportNamedDeclaration" && n.declaration !== null) cuts.push({ from: n.start, to: n.declaration.start, text: "" });
   if (n.type === "Identifier" && n.optional === true) cuts.push(...tcOptionalCut(ast, n.start + n.name.length));
   for (const k of childrenOf(n)) {
     if (TYPE_FIELDS.has(k.key)) cuts.push({ from: k.node.start, to: k.node.end, text: "" });
     else next.push(k.node);
   }
-  return { cuts: freeze(cuts), next: freeze(next) };
+  return { cuts: cuts, next: next };
 };
 // every cut of the tree, overlapping and touching spans merged, in order
 export const tcCuts = (tcCutNode) => (ast: Ast, mode: string): TcEdit[] => {
-  const all: Mut<TcEdit[]> = mut([]);
-  const todo: Mut<AstNode[]> = mut([ast.program]);
+  const all: Mut<TcEdit[]> = [];
+  const todo: Mut<AstNode[]> = [ast.program];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     const r = tcCutNode(ast, n, mode);
     all.push(...r.cuts);
     todo.push(...r.next);
   }
-  const merged: Mut<TcEdit[]> = mut([]);
+  const merged: Mut<TcEdit[]> = [];
   for (const c of all.toSorted((a, b) => a.from - b.from)) {
     const last = merged.at(-1);
     if (last !== undefined && c.from <= last.to) merged[merged.length - 1] = { from: last.from, to: Math.max(last.to, c.to), text: "" };
     else merged.push(c);
   }
-  return freeze(merged);
+  return merged;
 };
 // a source's typed tree (not TSX); the parser's error is thrown as it is
 export const tcMustParse = (parseTree) => (src: string, jsx: boolean): Ast => {

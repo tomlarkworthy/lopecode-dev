@@ -6,9 +6,9 @@ export const tcLitStr = () => (n: AstNode | null | undefined): string | null => 
 // an array of string literals, or null
 export const tcStrings = (tcLitStr) => (n: AstNode | null | undefined): string[] | null => {
   if (n === null || n === undefined || n.type !== "ArrayExpression") return null;
-  const out: Mut<string[]> = mut([]);
+  const out: Mut<string[]> = [];
   for (const e of n.elements) { const s = tcLitStr(e); if (s === null) return null; out.push(s); }
-  return freeze(out);
+  return out;
 };
 export const tcPropName = () => (n: AstNode): string | null => (n.type === "MemberExpression" && n.property.type === "Identifier" ? n.property.name : null);
 // one call of the module's define function: a $def(pid, name, inputs, _fn) variable, or an import main.define(name, ["module M", "@variable"], (_, v) => v.import(...))
@@ -24,7 +24,7 @@ export const tcModuleCall = (tcLitStr, tcStrings, tcPropName) => (n: AstNode, co
   if (tcPropName(n.callee) !== "define" || s === null || s[1] !== "@variable" || m === undefined || !m.startsWith("module ")) return { v: null, i: null };
   const call = a2 !== undefined && a2.type === "ArrowFunctionExpression" ? a2.body : null;
   if (call === null || call.type !== "CallExpression" || tcPropName(call.callee) !== "import") return { v: null, i: null };
-  const args: Mut<string[]> = mut([]);
+  const args: Mut<string[]> = [];
   for (const a of call.arguments) { const x = tcLitStr(a); if (x !== null) args.push(x); }
   const remote = args[0], local = args.at(-1);
   if (remote === undefined || local === undefined) throw new Error("tc-gap: an import call with no string argument");
@@ -34,11 +34,11 @@ export const tcModuleJs = (parseTree, tcModuleCall, childrenOf) => (src: string)
   const p = parseTree(src, false);
   if (!p.ok) throw new Error(`tc-gap: a module the typed parse does not read: ${p.message}`);
   const body = p.ast.program.type === "Program" ? p.ast.program.body : [];
-  const consts: Mut<Map<string, string>> = mut(new Map());
+  const consts: Mut<Map<string, string>> = new Map();
   for (const st of body) if (st.type === "VariableDeclaration") for (const d of st.declarations) if (d.type === "VariableDeclarator" && d.id.type === "Identifier" && d.init !== null) consts.set(d.id.name, src.slice(d.init.start, d.init.end));
-  const known = freeze(consts);
-  const variables: Mut<TcModuleVar[]> = mut([]), imports: Mut<TcModuleImport[]> = mut([]);
-  const todo: Mut<AstNode[]> = mut([]);
+  const known = consts;
+  const variables: Mut<TcModuleVar[]> = [], imports: Mut<TcModuleImport[]> = [];
+  const todo: Mut<AstNode[]> = [];
   for (const st of body.toReversed()) if (st.type === "ExportDefaultDeclaration") todo.push(st.declaration);
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     const r = tcModuleCall(n, known);
@@ -46,7 +46,7 @@ export const tcModuleJs = (parseTree, tcModuleCall, childrenOf) => (src: string)
     if (r.i !== null) imports.push(r.i);
     for (const k of childrenOf(n).toReversed()) todo.push(k.node);
   }
-  return { variables: freeze(variables), imports: freeze(imports) };
+  return { variables: variables, imports: imports };
 };
 // throw Object.assign(new SyntaxError(message), {_sourceExpression: ...}): the message, or null
 export const tcStubMessage = (tcPropName) => (n: AstNode): string | null => {
@@ -61,7 +61,7 @@ export const tcStubMessage = (tcPropName) => (n: AstNode): string | null => {
 export const tcSyntaxStub = (parseTree, tcStubMessage, childrenOf) => (definition: string): string | null => {
   const p = parseTree(`(${definition})`, false);
   if (!p.ok) throw new Error(`tc-gap: a definition the typed parse does not read: ${p.message}`);
-  const todo: Mut<AstNode[]> = mut([p.ast.program]);
+  const todo: Mut<AstNode[]> = [p.ast.program];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     const m = tcStubMessage(n);
     if (m !== null) return m;
@@ -72,7 +72,7 @@ export const tcSyntaxStub = (parseTree, tcStubMessage, childrenOf) => (definitio
 
 // ownThis: `this` or `arguments` read by the function itself, not by a function or class body inside it
 export const tcOwnThis = (childrenOf) => (body: AstNode): string | null => {
-  const todo: Mut<AstNode[]> = mut([body]);
+  const todo: Mut<AstNode[]> = [body];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     if (n.type === "ThisExpression") return "this";
     if (n.type === "Identifier" && n.name === "arguments") return "arguments";

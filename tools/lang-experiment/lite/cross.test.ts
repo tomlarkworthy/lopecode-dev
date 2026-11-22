@@ -1,11 +1,12 @@
 // Unit tests for the cells of cross.ss.ts, called with plain shapes and descriptions; each control links a mutant of one
 // cell and must fail at least one of the same checks. Run: bun lite/cross.test.ts
 import * as rtCells from "./runtime.ss.ts";
+import { freeze } from "./freeze.ts";
 import * as crossCells from "./cross.ss.ts";
 import type { Shape } from "./runtime.ss.ts";
 import { link } from "./link.ts";
 
-const linkCross = (over: Record<string, (...inputs: never[]) => unknown> = {}) => link({ ...rtCells, ...crossCells, ...over } as typeof rtCells & typeof crossCells, { mut: rtCells.mut(), freeze: rtCells.freeze() });
+const linkCross = (over: Record<string, (...inputs: never[]) => unknown> = {}) => link({ ...rtCells, ...crossCells, ...over } as typeof rtCells & typeof crossCells, { mut: rtCells.mut(), freeze });
 const eq = (a: unknown, b: unknown) => Bun.deepEquals(a, b, true);
 const rec = (...ps: [string, Shape, boolean?][]): Shape => ({ k: "rec", props: ps.map(([n, s, o]) => [n, s, !!o]) });
 const lit = (v: string | number | boolean): Shape => ({ k: "lit", v });

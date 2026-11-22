@@ -81,7 +81,7 @@ export const ixIsArrayTest = (ixLookup) => (V: IxVars, env: IxEnv, e: AstNode): 
   return e.arguments[0] ?? null;
 };
 export const ixCondLeaf = (ixNarrow, ixDiscriminant, ixNarrowCompare, ixIsArrayTest, ixNarrowIn, ixNarrowArray, ixTruthy, ixFalsy, ixFlowOf, ixNewFlow) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, t: Ty): IxCond => {
-  const TT: Mut<IxFlow> = mut(new Map(ixFlowOf(W, C.cur))), FF: Mut<IxFlow> = mut(new Map(ixFlowOf(W, C.cur)));
+  const TT: Mut<IxFlow> = new Map(ixFlowOf(W, C.cur)), FF: Mut<IxFlow> = new Map(ixFlowOf(W, C.cur));
   const arrayArg = ixIsArrayTest(V, env, e);
   if (e.type === "BinaryExpression" && ["===", "!==", "==", "!="].includes(e.operator)) ixNarrowCompare(K, T, V, env, TT, FF, e);
   else if (e.type === "BinaryExpression" && e.operator === "in" && e.left.type === "Literal" && typeof e.left.value === "string") {
@@ -92,5 +92,5 @@ export const ixCondLeaf = (ixNarrow, ixDiscriminant, ixNarrowCompare, ixIsArrayT
     ixNarrow(K, T, V, env, TT, FF, e, t, (x, br) => (br ? ixTruthy(K.reg, x) : ixFalsy(K.reg, x)));
     ixDiscriminant(K, T, V, env, TT, FF, e, (pt, br) => (br ? ixTruthy(K.reg, pt) : ixFalsy(K.reg, pt)).k !== "never");
   }
-  return { t: ixNewFlow(W, C, freeze(TT)), f: ixNewFlow(W, C, freeze(FF)) };
+  return { t: ixNewFlow(W, C, TT), f: ixNewFlow(W, C, FF) };
 };

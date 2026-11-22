@@ -9,6 +9,7 @@ import * as renderCells from "./render.ss.ts";
 import * as crossCells from "./cross.ss.ts";
 import * as poolCells from "./pool.ss.ts";
 import { link } from "./link.ts";
+import { freeze, borrow, SsMap, SsSet, out, deepFreeze, yielded } from "./freeze.ts";
 export type { Shape, PointerLike, Ptr, Place, Compiler, Data } from "./runtime.ss.ts";
 export type { Delivery, DeliveryEvent, Effect } from "./events.ss.ts";
 export type { StoreState, StoreEvent, StoreEffect, StoreRecord, Seen } from "./store.ss.ts";
@@ -17,8 +18,9 @@ export type { ValueSeen, Dispatch } from "./cross.ss.ts";
 export type { PoolState, PoolEvent, PoolEffect, PoolResult } from "./pool.ss.ts";
 
 // a cell that uses mut or freeze takes the runtime module's own cell of that name, as in the notebook
-const L = link({ ...cells, ...eventCells, ...storeCells, ...renderCells, ...crossCells }, { mut: cells.mut(), freeze: cells.freeze() });
-export const { mut, freeze, borrow, want, flat, ptr, DOM_EVENTS, PROPS, same, orderKeyed, rejected, compileFor } = L;
+const L = link({ ...cells, ...eventCells, ...storeCells, ...renderCells, ...crossCells }, { mut: cells.mut(), freeze });
+export { freeze, borrow, SsMap, SsSet, out, deepFreeze, yielded };
+export const { mut, want, flat, ptr, DOM_EVENTS, PROPS, same, orderKeyed, rejected, compileFor } = L;
 export const { emptyDelivery, step, handleAtKey, sweepCandidates, liveEventsCount, runningCount, pullingCount } = L;
 export const { emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan } = L;
 export const { drawnTag, propOps, childOps, keepsNode } = L;

@@ -7,15 +7,19 @@
 // cycle in which runtime-ss.ts links before the prelude's exports exist. runtime-ss.ts passes the runtime module's
 // own mut and freeze cells, which events.ss.ts uses, as a compiled cell of that module takes them. given: values for
 // names that are not cells of the file (a cell in another language, as acorn/index.ts gives acornParse).
+// Each text is evaluated in strict mode, as module code in the notebook is (a write to a frozen value throws), and each
+// cell's value is deep-frozen (freeze.ts out).
 import * as acorn from "acorn";
 import { PRELUDE_FNS } from "./intrinsics.ts";
+import { SsMap, SsSet, out } from "./freeze.ts";
 
 type Cell = (...inputs: never[]) => unknown;
 export type Linked<C> = { [K in keyof C]: C[K] extends (...inputs: never[]) => infer V ? V : never };
 
 export function link<C extends Record<string, Cell>>(cells: C, prelude: Record<string, unknown> = {}, given: Record<string, unknown> = {}): Linked<C> {
-  const scope = [...PRELUDE_FNS].filter((n) => n in prelude);
-  const scopeValues = scope.map((n) => prelude[n]);
+  // Map and Set in a cell's text are the freezable subclasses, as in a compiled cell
+  const scope = [...[...PRELUDE_FNS].filter((n) => n in prelude), "Map", "Set"];
+  const scopeValues = [...scope.slice(0, -2).map((n) => prelude[n]), SsMap, SsSet];
   const values = new Map<string, unknown>(), open = new Set<string>();
   const value = (name: string): unknown => {
     if (values.has(name)) return values.get(name);
@@ -30,8 +34,8 @@ export function link<C extends Record<string, Cell>>(cells: C, prelude: Record<s
       if (p.type !== "Identifier") throw new Error(`link: ${name} has a parameter that is not a name`);
       return value(p.name);
     });
-    const cell = new Function(...scope, `return (${text});`)(...scopeValues);
-    const v = cell(...inputs);
+    const cell = new Function(...scope, `"use strict";\nreturn (${text});`)(...scopeValues);
+    const v = out(cell(...inputs));
     open.delete(name);
     values.set(name, v);
     return v;

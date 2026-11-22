@@ -19,10 +19,10 @@ export const rgGap = (ERR) => (Q: RgCtls, what: string): Ty => {
 };
 // the reports since the last call, oldest first
 export const rgTake = () => (Q: RgCtls): RgReport[] => {
-  const out: Mut<RgReport[]> = mut([]);
+  const out: Mut<RgReport[]> = [];
   for (let x = Q.log; x !== null; x = x.next) out.unshift(x.r);
   Q.log = null;
-  return freeze(out);
+  return out;
 };
 export const rgUndoPush = () => (Q: RgCtls, memo: "expand" | "iface", key: string): void => {
   if (Q.peeks > 0) Q.undo = { memo, key, n: (Q.undo?.n ?? 0) + 1, next: Q.undo };

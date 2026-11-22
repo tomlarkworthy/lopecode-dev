@@ -22,7 +22,7 @@ export const cpQuoteEnd = () => (text: string, i: number, end: number): number =
 };
 // scan: whether end sits in a string or comment, and the closers of the brackets open there, innermost first
 export const cpScan = (cpCommentEnd, cpQuoteEnd, cpCloserOf) => (text: string, end: number): CpScan => {
-  const stack: Mut<string[]> = mut([]);
+  const stack: Mut<string[]> = [];
   let i = 0;
   while (i < end) {
     const c = text.charAt(i), d = text.charAt(i + 1);
@@ -99,23 +99,23 @@ export const cpTypeAt = (cpHeadLen) => (before: string): boolean => {
 };
 // declared: the names of the types and interfaces a line of src starts to declare, in order
 export const cpDeclared = () => (src: string): string[] => {
-  const out: Mut<string[]> = mut([]);
+  const out: Mut<string[]> = [];
   let pos = 0;
   for (;;) {
     const re = pos === 0 ? /(?<all>(?:^|\n)\s*(?:export\s+)?(?:interface|type)\s+(?<n>[\w$]+))/ : /(?<all>\n\s*(?:export\s+)?(?:interface|type)\s+(?<n>[\w$]+))/;
     const m = re.exec(src.slice(pos));
-    if (m === null) return freeze(out);
+    if (m === null) return out;
     out.push(m.groups?.n ?? "");
     pos += (m.index ?? 0) + (m.groups?.all ?? "").length;
   }
 };
 // the attribute names a tag's text already gives (\s([\w-]+)= over it)
 export const cpGivenAttrs = () => (s: string): Set<string> => {
-  const out: Mut<Set<string>> = mut(new Set());
+  const out: Mut<Set<string>> = new Set();
   let pos = 0;
   for (;;) {
     const m = /\s(?<n>[\w-]+)=/.exec(s.slice(pos));
-    if (m === null) return freeze(out);
+    if (m === null) return out;
     const n = m.groups?.n ?? "";
     out.add(n);
     pos += (m.index ?? 0) + n.length + 2;

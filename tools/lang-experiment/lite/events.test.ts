@@ -1,11 +1,12 @@
 // Unit tests for the decision cells of events.ss.ts, each called alone with plain values; the handlers are given
 // plain Maps and arrays for their Mut working copies. Run: bun lite/events.test.ts
 import * as rtCells from "./runtime.ss.ts";
+import { freeze } from "./freeze.ts";
 import * as eventCells from "./events.ss.ts";
 import type { EventsRecord, ListenerRecord, Effect } from "./events.ss.ts";
 import { link } from "./link.ts";
 
-const S = link({ ...rtCells, ...eventCells }, { mut: rtCells.mut(), freeze: rtCells.freeze() });
+const S = link({ ...rtCells, ...eventCells }, { mut: rtCells.mut(), freeze });
 let pass = 0, fail = 0;
 const ok = (name: string, cond: boolean, detail: unknown = "") => {
   if (cond) { pass++; console.log(`pass ${name}`); } else { fail++; console.log(`FAIL ${name}: ${JSON.stringify(detail)}`); }

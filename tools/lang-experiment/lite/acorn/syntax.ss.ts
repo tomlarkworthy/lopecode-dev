@@ -57,13 +57,13 @@ export const moduleShape = (typeClash, isTypeStatement, statementCells) => (prog
   if (prog.type !== "Program") return { cells: [], clashes: [], errors: [] };
   const found = prog.body.filter((st) => !isTypeStatement(st)).map((st) => statementCells(st));
   const cells = found.flatMap((f) => f.cells);
-  const dups: Mut<ModErr[]> = mut([]);
-  const seen: Mut<Set<string>> = mut(new Set());
+  const dups: Mut<ModErr[]> = [];
+  const seen: Mut<Set<string>> = new Set();
   for (const c of cells) {
     if (seen.has(c.name) || shellNames.has(c.name)) dups.push({ at: c.stmt, rule: "duplicate-cell", msg: `cell ${c.name} defined twice` });
     seen.add(c.name);
   }
-  return { cells, clashes: prog.body.flatMap((st) => typeClash(st, builtin)), errors: [...found.flatMap((f) => f.errors), ...freeze(dups)] };
+  return { cells, clashes: prog.body.flatMap((st) => typeClash(st, builtin)), errors: [...found.flatMap((f) => f.errors), ...dups] };
 };
 
 // syntax pass (core.ts syntaxPass): one list of what the walk reports, unsup for what it calls unsupported
@@ -102,13 +102,13 @@ export const bansAt = (SYNTAX_BANS, reservedName, RESERVED_MSG, viewofInputName,
 };
 // the walk: every node under root in acorn's key order, with its parent and whether it is in a type position
 export const syntaxBans = (childrenOf, bansAt, TYPE_FIELDS) => (root: AstNode): SyntaxDiag[] => {
-  const out: Mut<SyntaxDiag[]> = mut([]);
+  const out: Mut<SyntaxDiag[]> = [];
   const walk = (x: AstNode, p: AstNode | null, inType: boolean): void => {
     for (const d of bansAt(x, p, inType)) out.push(d);
     for (const c of childrenOf(x)) walk(c.node, x, inType || TYPE_FIELDS.has(c.key));
   };
   walk(root, null, false);
-  return freeze(out);
+  return out;
 };
 
 // core.ts distinctNames: a name declared twice is parsed again under a stand-in of the same length, up to 40^len
@@ -128,12 +128,12 @@ export const standIn = (STAND_INS) => (k: number, len: number): string | null =>
 };
 export const distinctParse = (parseTree, nameAt, standIn) => (src: string, jsx: boolean): Distinct => {
   let text = src;
-  const dups: Mut<[string, string][]> = mut([]);
+  const dups: Mut<[string, string][]> = [];
   for (let parses = 1; ; parses++) {
     const p = parseTree(text, jsx);
     const name = p.ok || !p.message.includes("has already been declared") ? "" : nameAt(text, p.pos);
     const ph = p.ok || name === "" ? null : standIn(dups.length, name.length);
-    if (p.ok || ph === null || dups.some((d) => d[0] === ph)) return { parse: p, text, dups: freeze(dups), parses };
+    if (p.ok || ph === null || dups.some((d) => d[0] === ph)) return { parse: p, text, dups: dups, parses };
     dups.push([ph, src.slice(p.pos, p.pos + name.length)]);
     text = text.slice(0, p.pos) + ph + text.slice(p.pos + name.length);
   }

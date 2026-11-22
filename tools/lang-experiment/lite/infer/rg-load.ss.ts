@@ -15,15 +15,15 @@ export const rgMarker = (leadingComments) => (ast: Ast, n: AstNode): "pure" | "e
 };
 // the statements of a parse; skip: the nids of declarations not to load (a user type with a built-in name)
 export const rgLoad = (rgLoadStmt, rgLoadFns) => (G: RgK, Y: RgTypes, V: RgValues, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, ast: Ast, origin: RgOrigin, typesOnly: boolean, skip: Set<number>): AstNode[] => {
-  const rest: Mut<AstNode[]> = mut([]);
-  const fns: Mut<Map<string, AstNode[]>> = mut(new Map());
+  const rest: Mut<AstNode[]> = [];
+  const fns: Mut<Map<string, AstNode[]>> = new Map();
   const body = ast.program.type === "Program" ? ast.program.body : [];
   for (const st of body) {
     const r = rgLoadStmt(G, Y, V, E, I, Q, fns, ast, origin, typesOnly, skip, st);
     if (r !== null) rest.push(r);
   }
   rgLoadFns(G, Y, V, E, I, Q, fns, ast, origin);
-  return freeze(rest);
+  return rest;
 };
 export const RG_DECLS = () => new Set(["TSTypeAliasDeclaration", "TSInterfaceDeclaration", "TSDeclareFunction", "VariableDeclaration", "ExportNamedDeclaration"]);
 // one statement: loaded, grouped as a declared function, skipped, or left (returned)
@@ -68,21 +68,21 @@ export const rgConvertIn = (rgBareCtx) => (G: RgK, Y: RgTypes, E: RgExpandMemo, 
 // declared functions, after the other statements: one signature, or overloads as a record of call signatures
 export const rgLoadFns = (rgBareCtx, rgFlags, rgMarker, rgAnn) => (G: RgK, Y: RgTypes, V: RgValues, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, fns: Mut<Map<string, AstNode[]>>, ast: Ast, origin: RgOrigin): void => {
   for (const [name, list] of fns) {
-    const sigs: Mut<Fn[]> = mut([]);
+    const sigs: Mut<Fn[]> = [];
     for (const d of list) if (d.type === "TSDeclareFunction") sigs.push(G.sig(G, Y, E, I, Q, d.params, rgAnn(Q, d.returnType), d.typeParameters, rgBareCtx(ast, origin), rgFlags(ast, d, origin)));
     const first = list[0], one = sigs[0];
     if (first === undefined) continue;
-    const t: Ty = sigs.length === 1 && one !== undefined ? one : { k: "rec", props: new Map(), calls: freeze(sigs) };
+    const t: Ty = sigs.length === 1 && one !== undefined ? one : { k: "rec", props: new Map(), calls: sigs };
     V.set(name, { t, origin, node: first, marker: rgMarker(ast, first), flags: null });
   }
 };
 // core.ts loadUser: the declarations starting at a clash, by nid
 export const rgSkip = () => (ast: Ast, clash: number[]): Set<number> => {
-  const at = new Set(clash), out: Mut<Set<number>> = mut(new Set());
+  const at = new Set(clash), out: Mut<Set<number>> = new Set();
   const body = ast.program.type === "Program" ? ast.program.body : [];
   for (const st of body) {
     const d = st.type === "ExportNamedDeclaration" && st.declaration !== null ? st.declaration : st;
     if (at.has(d.start)) out.add(d.nid);
   }
-  return freeze(out);
+  return out;
 };

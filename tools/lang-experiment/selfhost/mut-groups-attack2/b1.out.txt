@@ -1,0 +1,44 @@
+== async-helper-capture: REJECT a:rejected[borrowed-await]
+== async-helper-param: REJECT a:rejected[borrowed-await]
+== async-helper-group-param: REJECT a:rejected[borrowed-await]
+== async-helper-group-capture: REJECT a:rejected[borrowed-await]
+== async-helper-param-sync-cell: REJECT a:rejected[borrowed-await]
+== async-fn-decl-param: REJECT a:rejected[borrowed-await]
+== async-no-await-before-write: REJECT a:rejected[borrowed-await]
+== gen-helper-capture: REJECT a:rejected[type]
+== gen-helper-param: REJECT a:rejected[type]
+== gen-helper-param-spread: REJECT a:rejected[type]
+== gen-helper-group-param: REJECT a:rejected[type]
+== gen-helper-array-from: REJECT a:rejected[arity][type]
+== freeze-as: REJECT a:rejected[no-cast][mut-escape]
+== freeze-nonnull: REJECT a:rejected[no-non-null][mut-escape]
+== freeze-satisfies: REJECT a:unsupported{satisfies}{TSSatisfiesExpression}
+== freeze-paren: REJECT a:rejected[mut-after-freeze]
+== freeze-group-as: REJECT a:rejected[no-cast][mut-escape]
+== freeze-group-nonnull: REJECT a:rejected[no-non-null][mut-escape]
+== freeze-typearg: REJECT a:rejected[mut-after-freeze]
+== freeze-optional-call: REJECT a:rejected[mut-after-freeze]
+== helper-optional-call-after-freeze: REJECT a:rejected[mut-after-freeze]
+== helper-typearg-call-after-freeze: REJECT a:rejected[mut-after-freeze]
+== helper-via-helper-after-freeze: REJECT a:rejected[mut-after-freeze]
+== helper-new-after-freeze: REJECT a:rejected[new-non-intrinsic]
+== helper-tagged-after-freeze: REJECT a:rejected[unknown-type]{tagged template}
+== helper-hoisted-decl-after-freeze: REJECT a:rejected[mut-after-freeze]
+== helper-default-param-uses-m: REJECT a:rejected[mut-after-freeze]
+== sibling-array-after-freeze: REJECT a:rejected[mut-after-freeze]
+== sibling-args-after-freeze: REJECT a:rejected[mut-after-freeze]
+== sibling-binary-after-freeze: REJECT a:rejected[mut-after-freeze]
+== tagged-template-alias: REJECT a:rejected[unknown-type]{tagged template}
+== sequence-alias: REJECT a:unsupported{comma expression}
+== catch-alias: REJECT a:rejected[mut-escape]
+== throw-group-field: REJECT a:rejected[mut-escape]
+== loop-freeze-label: REJECT a:unsupported{label}{LabeledStatement in a function holding a Mut/Borrowed}
+== group-shorthand-field: REJECT a:rejected[mut-escape]
+== group-self-closure: REJECT a:rejected[free-name]
+== group-method-this: ACCEPT
+   show a = 1
+== group-field-outer-mut-closure: ACCEPT
+   show a = 2
+== plain-field-assigned-mut: REJECT a:rejected[no-cast][mut-escape]
+== group-plain-field-assigned-owned: REJECT a:rejected[no-cast][mut-escape]
+-- 41 candidates, 2 accepted

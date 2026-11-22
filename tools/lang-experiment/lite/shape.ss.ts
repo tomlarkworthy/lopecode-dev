@@ -68,7 +68,7 @@ export const expandFull = (subst) => (t: Named, expand: (t: Ty) => Ty): Ty => {
 };
 // the definition of n reaches n through unions and refs alone, so no finite value is checked against it
 export const unproductive = () => (n: string, defs: Map<string, TypeShape>): boolean => {
-  const met: Mut<Set<string>> = mut(new Set());
+  const met: Mut<Set<string>> = new Set();
   function go(s: TypeShape): boolean {
     if (s.k === "union") { for (const m of s.ts) if (go(m)) return true; return false; }
     if (s.k !== "ref") return false;
@@ -89,16 +89,16 @@ export const boolUnion = () => (ts: readonly TypeShape[]): TypeShape => {
 };
 // each of xs as a shape, d deep, or the first error
 export const shapesOf = () => (xs: readonly Ty[], sub: ShapeSub, d: number, ctx: ShapeCtx): { readonly k: "many"; readonly shapes: TypeShape[] } | ShapeErr => {
-  const out: Mut<TypeShape[]> = mut([]);
+  const out: Mut<TypeShape[]> = [];
   for (const x of xs) { const s = sub(x, d, ctx); if (s.k === "error") return s; out.push(s); }
-  return { k: "many", shapes: freeze(out) };
+  return { k: "many", shapes: out };
 };
 export const recShape = () => (t: Rec, sub: ShapeSub, d: number, ctx: ShapeCtx): ShapeOr => {
   if (t.calls?.length || t.ctors?.length) return { k: "error", error: "a function" };
   if (t.index) return { k: "error", error: "an index signature" };
-  const props: Mut<[string, TypeShape, boolean][]> = mut([]);
+  const props: Mut<[string, TypeShape, boolean][]> = [];
   for (const [n, p] of t.props) { const s = sub(p.t, d, ctx); if (s.k === "error") return { k: "error", error: `${n}: ${s.error}` }; props.push([n, s, p.opt]); }
-  return { k: "rec", props: freeze(props) };
+  return { k: "rec", props: props };
 };
 // an alias met again while it is being expanded is a ref, and the shape of the whole annotation lists the definition of
 // each such alias once (defs); an alias that is not recursive is expanded in place
@@ -154,10 +154,10 @@ export const withDefs = (unproductive) => (body: ShapeOr, defs: Map<string, Type
 // The shape of an annotation. A type nested deeper than 16 is refused unless it is recursive; a recursive one is expanded
 // again up to 256, as a ring of aliases closes only after each is open
 export const shapeAt = (shapeIn, withDefs) => (t: Ty, X: Expansion): ShapeOr => {
-  const near: ShapeCtx = mut({ open: [], rec: new Set(), defs: new Map(), names: new Map(), limit: 16 });
+  const near: ShapeCtx = { open: [], rec: new Set(), defs: new Map(), names: new Map(), limit: 16 };
   const first = shapeIn(t, X, near);
   if (first.k !== "error") return withDefs(first, near.defs);
-  const far: ShapeCtx = mut({ open: [], rec: new Set(), defs: new Map(), names: new Map(), limit: 256 });
+  const far: ShapeCtx = { open: [], rec: new Set(), defs: new Map(), names: new Map(), limit: 256 };
   const again = shapeIn(t, X, far);
   return far.rec.size ? withDefs(again, far.defs) : first;
 };
@@ -166,11 +166,11 @@ export const shapeAt = (shapeIn, withDefs) => (t: Ty, X: Expansion): ShapeOr => 
 export const fnShape = (shapeAt) => (f: Fn, X: Expansion): ShapeOr => {
   if (f.tps.length || f.rest) return { k: "error", error: "a function with type parameters or a rest parameter" };
   const part = (x: Ty, what: string): ShapeOr => { const s = shapeAt(x, X); return s.k === "error" ? { k: "error", error: `a function whose ${what} is or holds ${s.error}` } : s; };
-  const ps: Mut<TypeShape[]> = mut([]);
+  const ps: Mut<TypeShape[]> = [];
   for (const [i, p] of f.ps.entries()) { const s = part(p.t, `parameter ${p.n !== "" ? p.n : String(i + 1)}`); if (s.k === "error") return s; ps.push(p.opt ? { k: "union", ts: [s, { k: "undef" }] } : s); }
   const ret = f.ret.k === "named" && f.ret.n === "Promise" ? f.ret.args[0] : undefined;
   const r = part(ret ?? f.ret, "result");
-  return r.k === "error" ? r : { k: "fn", ps: freeze(ps), ret: r, async: ret !== undefined };
+  return r.k === "error" ? r : { k: "fn", ps: ps, ret: r, async: ret !== undefined };
 };
 // The shape of a parameter's annotation. fnOk (not under State): a function type may be the whole annotation
 export const boundaryShapeAt = (shapeAt, fnShape) => (t: Ty, X: Expansion, fnOk: boolean): ShapeOr => {

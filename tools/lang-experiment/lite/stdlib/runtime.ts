@@ -5,7 +5,7 @@
 import { isRefHandle, viewHandle } from "../../prelude.runtime.ts";
 import { h, type Elem } from "../jsx/h.ts";
 import { create, patch, kidOf, drawnOf } from "../jsx/render.ts";
-import { keepsNode } from "../runtime-ss.ts";
+import { keepsNode, deepFreeze } from "../runtime-ss.ts";
 import { lowerJsx } from "../jsx/lower.ts";
 import { erase } from "../browser/erase.ts";
 import { on, events, listen, running, pulling, isEvents, release, sweep, cellsOf, setListenerOrder, listenerOrderChanged } from "../browser/cells.ts";
@@ -65,7 +65,7 @@ export function checkCells(texts: string[], tsx = true, outside: readonly Outsid
   }
 }
 // rejected (the body of a cell the checker did not accept) and compileFor are SoundScript cells
-export { rejected, compileFor } from "../runtime-ss.ts";
+export { rejected, compileFor, out, SsMap, SsSet, deepFreeze } from "../runtime-ss.ts";
 
 export { state, action, mut, freeze, borrow, snapshot, equals, messageOf, read, idle, ref, actionNamer } from "../../prelude.runtime.ts";
 // The value of a viewof variable as a State<T>: an Observable JavaScript view's element, whose value is
@@ -127,9 +127,10 @@ export function compiler(read: () => string) {
         const runtime = spec.options?.runtime;
         return async (args: Record<string, unknown>) => {
           const job = { key, js, names: isl.order, order, values: { ...refs, ...args }, outputs: spec.outputs };
-          if (runtime && typeof runtime.run === "function") return runtime.run(job, owner);
+          // an island's results cross the boundary as a cell's value does: deep-frozen (freeze.ts)
+          if (runtime && typeof runtime.run === "function") return deepFreeze(await runtime.run(job, owner));
           await null;
-          return runHere(job);
+          return deepFreeze(runHere(job));
         };
       };
     },

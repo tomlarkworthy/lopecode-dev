@@ -5,9 +5,9 @@
 // ---- logs ----
 export const ixPush = () => (log: IxLog | null, d: IxDiag): IxLog => ({ d, n: (log?.n ?? 0) + 1, next: log });
 export const ixOut = () => (log: IxLog | null): IxDiag[] => {
-  const out: Mut<IxDiag[]> = mut([]);
+  const out: Mut<IxDiag[]> = [];
   for (let x = log; x !== null; x = x.next) out.unshift(x.d);
-  return freeze(out);
+  return out;
 };
 export const ixFact = () => (C: IxCtls, f: IxFact): void => {
   C.facts = { f, next: C.facts };
@@ -50,9 +50,9 @@ export const ixNewFlow = () => (W: IxFlows, C: IxCtls, f: IxFlow): number => {
 export const ixCopyFlow = (ixNewFlow, ixFlowOf) => (W: IxFlows, C: IxCtls, id: number): number => ixNewFlow(W, C, ixFlowOf(W, id));
 // flow.set(k, t) on the flow object id, which every environment holding it sees
 export const ixFlowSet = (ixFlowOf) => (W: IxFlows, id: number, k: string, t: Ty): void => {
-  const m: Mut<IxFlow> = mut(new Map(ixFlowOf(W, id)));
+  const m: Mut<IxFlow> = new Map(ixFlowOf(W, id));
   m.set(k, t);
-  W.set(id, freeze(m));
+  W.set(id, m);
 };
 // a flow key that is not a path: a path starts with "#", so no property name can produce one of these
 export const ixExclusion = () => (x: string, path: string): string => `!${x} ${path}`;
@@ -60,18 +60,18 @@ export const ixPathOf = () => (key: string): string => (key.startsWith("!") ? ke
 // dropRoot: the narrowings of a binding and of every path below it go, in place
 export const ixDropRoot = (ixFlowOf, ixPathOf) => (W: IxFlows, id: number, b: IxBinding): void => {
   const k = "#" + b.id;
-  const m: Mut<IxFlow> = mut(new Map(ixFlowOf(W, id)));
+  const m: Mut<IxFlow> = new Map(ixFlowOf(W, id));
   for (const key of [...m.keys()]) { const p = ixPathOf(key); if (p === k || p.startsWith(k + ".")) m.delete(key); }
-  W.set(id, freeze(m));
+  W.set(id, m);
 };
 // join: the keys both flows narrow, as the union of the two; a null side gives the other flow object itself
 export const ixJoin = (ixFlowOf, ixNewFlow, union) => (W: IxFlows, C: IxCtls, a: number | null, b: number | null): number | null => {
   if (a === null) return b;
   if (b === null) return a;
-  const out: Mut<IxFlow> = mut(new Map());
+  const out: Mut<IxFlow> = new Map();
   const fb = ixFlowOf(W, b);
   for (const [k, t] of ixFlowOf(W, a)) { const u = fb.get(k); if (u) out.set(k, union([t, u])); }
-  return ixNewFlow(W, C, freeze(out));
+  return ixNewFlow(W, C, out);
 };
 export const ixJoin2 = (ixJoin) => (W: IxFlows, C: IxCtls, a: number, b: number): number => ixJoin(W, C, a, b) ?? a;
 
@@ -108,25 +108,25 @@ export const ixUpdate = (ixFact) => (V: IxVars, C: IxCtls, b: IxBinding): void =
 };
 // findBinding: a binding by id among those the scope chain holds
 export const ixFindBinding = () => (V: IxVars, env: IxEnv, id: number): IxBinding | undefined => {
-  const scopes: Mut<Set<number>> = mut(new Set([env.scope]));
+  const scopes: Mut<Set<number>> = new Set([env.scope]);
   for (let c = env.up; c !== null; c = c.up) scopes.add(c.id);
   for (const b of V.values()) if (b.id === id && scopes.has(b.scope)) return b;
   return undefined;
 };
 // typeCtx: the type parameters of the function and the functions around it
 export const ixTps = () => (env: IxEnv): string[] => {
-  const out: Mut<string[]> = mut([]);
+  const out: Mut<string[]> = [];
   for (let fi: IxFnCtx | null = env.fi; fi !== null; fi = fi.parent) for (const n of fi.tps) out.push(n);
-  return freeze(out);
+  return out;
 };
 // typeofLookup, taken once: the type of each name the scope chain holds, the innermost first
 export const ixLookTable = (ixLookup) => (V: IxVars, env: IxEnv): Map<string, Ty> => {
-  const out: Mut<Map<string, Ty>> = mut(new Map());
+  const out: Mut<Map<string, Ty>> = new Map();
   for (const b of V.values()) {
     const seen = ixLookup(V, env, b.name);
     if (seen && seen.id === b.id && seen.kind !== "prelude") out.set(b.name, b.t);
   }
-  return freeze(out);
+  return out;
 };
 export const ixConvert = (ixTps, ixLookTable) => (K: IxK, V: IxVars, env: IxEnv, n: AstNode): Ty =>
   K.reg.convert(n, ixTps(env), K.reg.hasTypeQuery(n) ? ixLookTable(V, env) : null);
@@ -145,13 +145,13 @@ export const ixUm = () => {
 };
 export const ixFilter = (ixUm, union) => (R: IxRegCore, t: Ty, keep: (m: Ty) => boolean | Ty): Ty => {
   if (t.k === "err") return t;
-  const out: Mut<Ty[]> = mut([]);
+  const out: Mut<Ty[]> = [];
   for (const m of ixUm(R, t)) {
     const r = keep(m);
     if (r === true) out.push(m);
     else if (r !== false) out.push(r);
   }
-  return union(freeze(out));
+  return union(out);
 };
 // m, a record with no call signature, may hold a value of one of kinds although its typeof tag is "object": any such
 // record a function (a callable type with m's members is assignable to it), {} and { a?: number } a string or an array
@@ -243,7 +243,7 @@ export const ixNarrowIn = (ixFilter, UNKNOWN) => (R: IxRegCore, t: Ty, k: string
   if (pos) {
     if (!!R.member(m, k) && R.expand(m).k !== "unknown") return true;
     const x = R.expand(m);
-    if (x.k === "rec") { const props: Mut<Map<string, Prop>> = mut(new Map(x.props)); props.set(k, { t: UNKNOWN, opt: false }); return { ...x, props: freeze(props) }; }
+    if (x.k === "rec") { const props: Mut<Map<string, Prop>> = new Map(x.props); props.set(k, { t: UNKNOWN, opt: false }); return { ...x, props: props }; }
     if (x.k === "object" || x.k === "unknown") return { k: "rec", props: new Map([[k, { t: UNKNOWN, opt: false }]]) };
     return true;
   }

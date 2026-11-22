@@ -73,7 +73,7 @@ export const partsOf = () => (t: Ty): Ty[] => {
 // the first of names that t mentions anywhere (aliases expanded), or null
 export const holdsWith = (partsOf) => (R: RegOps) => (t: Ty, names: string[]): string | null => {
   // per alias without type arguments, the least depth its walk found nothing from; from as deep it finds nothing again
-  const none: Mut<Map<string, number>> = mut(new Map());
+  const none: Mut<Map<string, number>> = new Map();
   function holds(x: Ty, depth: number): string | null {
     if (depth > 12) return null;
     if (x.k === "named" && names.includes(x.n)) return x.n;

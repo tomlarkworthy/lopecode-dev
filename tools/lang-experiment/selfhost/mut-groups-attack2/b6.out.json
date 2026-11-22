@@ -1,0 +1,141 @@
+[
+ {
+  "name": "lend-then-freeze-same-call",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "lend-field-then-freeze-group-same-call",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "lend-group-then-freeze-group-same-call",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "lend-then-freeze-kept-result",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "lend-then-freeze-map",
+  "verdict": "REJECT a:rejected[unknown-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "lend-then-freeze-new",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "lend-in-nested-call-then-freeze",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "covariant-mut-array-push-string",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "covariant-group-field-union",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "covariant-group-plain-field",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "covariant-plain-record-field",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "covariant-map-value",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-width-extra-field",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-width-missing-plain",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-optional-plain-field-delete",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "plain-optional-delete",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "action-captures-mut",
+  "verdict": "REJECT b:rejected[mut-capture][action-capture]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "update-callback-mut",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = undefined",
+   "error c: undefined is not an object (evaluating 'p.name')"
+  ],
+  "broke": false
+ },
+ {
+  "name": "cell-fn-input-with-mut-param",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "cell-fn-input-untyped-given-mut",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,1]"
+  ],
+  "broke": false
+ }
+]

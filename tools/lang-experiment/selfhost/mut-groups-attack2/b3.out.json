@@ -1,0 +1,222 @@
+[
+ {
+  "name": "borrow-reader-returns-it",
+  "verdict": "REJECT r:rejected[borrowed-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-reader-readonly-returns-it",
+  "verdict": "REJECT r:rejected[inject-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-reader-plain-returns-it",
+  "verdict": "REJECT r:rejected[inject-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-reader-wraps",
+  "verdict": "REJECT r:rejected[inject-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-reader-array",
+  "verdict": "REJECT r:rejected[inject-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-reader-closure",
+  "verdict": "REJECT r:rejected[inject-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-reader-map-value",
+  "verdict": "REJECT r:rejected[inject-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-reader-unknown",
+  "verdict": "REJECT r:rejected[inject-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-reader-untyped",
+  "verdict": "REJECT r:rejected[borrowed-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-group-field-reader-returns",
+  "verdict": "REJECT r:rejected[inject-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-reader-via-identity",
+  "verdict": "REJECT r:rejected[inject-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-reader-concat-self",
+  "verdict": "REJECT r:rejected[inject-type]{intrinsic member Array.flat}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-reader-object-values",
+  "verdict": "REJECT r:rejected[inject-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-reader-third-cell",
+  "verdict": "REJECT r:rejected[inject-type] s:rejected[inject-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-map",
+  "verdict": "REJECT r:rejected[inject-type][unknown-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrow-map-plain",
+  "verdict": "REJECT r:rejected[inject-type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "rest-param-of-group",
+  "verdict": "REJECT a:unsupported{object rest of a non-record}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "rest-param-of-group-read",
+  "verdict": "REJECT a:unsupported{object rest of a non-record}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "destructure-param-of-group",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 2"
+  ],
+  "broke": false
+ },
+ {
+  "name": "destructure-param-of-group-return",
+  "verdict": "REJECT a:rejected[mut-escape][mut-source]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "destructure-param-of-group-closure",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "destructure-param-default",
+  "verdict": "REJECT a:rejected[mut-bind]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "rest-param-plain-record-mut",
+  "verdict": "REJECT a:unsupported{object rest of a non-record}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "default-param-alias-field",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "default-param-alias-plain",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "param-return-field-as-readonly",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "param-return-field-in-record",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "param-closure-over-group-param",
+  "verdict": "REJECT a:rejected[mut-capture]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "param-group-to-inner-helper",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "param-group-relend-whole",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "param-group-relend-twice-via-capture",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-and-capturing-helper-indirect",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-param-to-helper-calling-capturer",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-lent-helper-captures-via-other",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "plain-lent-helper-captures-via-other",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ }
+]

@@ -15,13 +15,13 @@ export const cpJsxOptions = (cpMemberNames, cpGivenAttrs, cpByLabel, named, show
   const p = reg.member(named("IntrinsicElements"), tag);
   if (p === undefined) return null;
   const have = cpGivenAttrs(before.slice(before.lastIndexOf("<" + tag)));
-  const opts: Mut<CpOption[]> = mut([]);
+  const opts: Mut<CpOption[]> = [];
   for (const n of cpMemberNames(reg, reg.expand(p.t))) {
     if (n === "children" || have.has(n)) continue;
     const q = reg.member(p.t, n);
     opts.push({ label: n, type: "property", detail: q === undefined ? "" : show(q.t) });
   }
-  return cpByLabel(freeze(opts));
+  return cpByLabel(opts);
 };
 // in a type: the type names, and those the module's other cells declare
 export const cpTypeOptions = (cpDeclared, cpByLabel) => (typeNames: string[], cells: string[], at: number): CpOption[] => {
@@ -36,7 +36,7 @@ export const cpOutsideOption = () => (n: string, ann: string | null): CpOption =
 export const cpParamOptions = (cpSelfName, cpOutsideOption, cpByLabel) => (H: CpHost, caps: Map<string, string>, cells: string[], at: number, before: string, params: string[], outside: CpOutside[], prefix: string): CpOption[] => {
   const self = cpSelfName(before);
   const types = new Map(H.cellTypes(cells.filter((c, i) => i !== at).join("\n\n")) ?? []);
-  const opts: Mut<CpOption[]> = mut([]);
+  const opts: Mut<CpOption[]> = [];
   for (const [n, t] of types) if (n !== self && !params.includes(n)) opts.push({ label: n, type: "variable", detail: `cell: ${t}` });
   for (const [n, t] of caps) if (!params.includes(n) && !types.has(n)) opts.push({ label: n, type: "variable", detail: `capability: ${t}` });
   for (const o of outside) {
@@ -44,7 +44,7 @@ export const cpParamOptions = (cpSelfName, cpOutsideOption, cpByLabel) => (H: Cp
     if (n === self || params.includes(n) || types.has(n) || caps.has(n) || !n.startsWith(prefix)) continue;
     opts.push(cpOutsideOption(n, H.annotate(n)));
   }
-  return cpByLabel(freeze(opts));
+  return cpByLabel(opts);
 };
 // the copies of the cell with the placeholder where the typed word is; the last: an unclosed `if (` takes a body
 export const cpVariants = (cpPH, cpAfterWord) => (text: string, before: string, offset: number, closers: string[]): string[] => {

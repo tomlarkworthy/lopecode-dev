@@ -1,6 +1,7 @@
 // Unit tests for the decision cells of render.ss.ts, each called alone with plain values, and for the four renderer
 // defects these cells and jsx/render.ts fix, drawn in happy-dom. Run: bun lite/render.test.ts
 import { Window } from "happy-dom";
+import { freeze } from "./freeze.ts";
 import * as rtCells from "./runtime.ss.ts";
 import * as renderCells from "./render.ss.ts";
 import type { Drawn, Kid, ChildOp } from "./render.ss.ts";
@@ -9,7 +10,7 @@ import { h } from "./jsx/h.ts";
 import { create, patch } from "./jsx/render.ts";
 import { mount } from "./stdlib/runtime.ts";
 
-const S = link({ ...rtCells, ...renderCells }, { mut: rtCells.mut(), freeze: rtCells.freeze() });
+const S = link({ ...rtCells, ...renderCells }, { mut: rtCells.mut(), freeze });
 let pass = 0, fail = 0;
 const ok = (name: string, cond: boolean, detail: unknown = "") => {
   if (cond) { pass++; console.log(`pass ${name}`); } else { fail++; console.log(`FAIL ${name}: ${JSON.stringify(detail)}`); }

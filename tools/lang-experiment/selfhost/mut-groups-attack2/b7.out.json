@@ -1,0 +1,121 @@
+[
+ {
+  "name": "push-arg-freeze-self",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "push-arg-freeze-self-let",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "member-assign-rhs-freeze",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "member-assign-rhs-freeze-group",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "field-push-arg-freeze-group",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "helper-callee-arg-freeze",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "lend-then-freeze-via-capture-of-frozen-in-helper",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = 1"
+  ],
+  "broke": false
+ },
+ {
+  "name": "lend-then-freeze-in-nested-arg",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "lend-then-freeze-in-array-arg",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "lend-then-freeze-in-record-arg",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "lend-then-freeze-conditional",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "lend-then-freeze-new-expression",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = {r:[1,2]}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "lend-twice-frozen-into-cell-value-keeps",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]",
+   "show b = 2"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-lent-then-field-frozen",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [0,7,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "freeze-in-default-param-of-helper-call",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = []"
+  ],
+  "broke": false
+ }
+]

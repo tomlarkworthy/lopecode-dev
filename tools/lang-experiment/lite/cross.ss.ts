@@ -45,7 +45,7 @@ export const resolveRef = () => (m: Shape, defs: Map<string, Shape> | null): Sha
 };
 // each member by its literal at key, when every member is a record with a literal there of its own; else null
 export const tagTable = () => (ms: readonly Shape[], key: string): Map<string | number | boolean, Shape> | null => {
-  const by: Mut<Map<string | number | boolean, Shape>> = mut(new Map());
+  const by: Mut<Map<string | number | boolean, Shape>> = new Map();
   for (const m of ms) {
     const p = m.k === "rec" ? m.props.find((q) => q[0] === key) : undefined;
     if (p === undefined || p[2]) return null;
@@ -53,7 +53,7 @@ export const tagTable = () => (ms: readonly Shape[], key: string): Map<string | 
     if (lit.k !== "lit" || by.has(lit.v)) return null;
     by.set(lit.v, m);
   }
-  return freeze(by);
+  return by;
 };
 // a union whose members are records that each give one property a literal of its own (a tag): that property and the
 // member for each literal; else null. A member that is a ref is looked up in defs
@@ -71,7 +71,7 @@ export const tagDispatch = (resolveRef, tagTable) => (s: UnionShape, defs: Map<s
 // the kinds of value a shape could take, as bits: 1 a record, 2 an array, 4 a primitive. wide: a shape that throws
 // other than a mismatch (a function, a ref with no definition) counts as taking every kind
 export const memberKinds = () => (s0: Shape, defs: Map<string, Shape> | null, wide: boolean): number => {
-  const met: Mut<Set<string>> = mut(new Set());
+  const met: Mut<Set<string>> = new Set();
   function go(s: Shape): number {
     switch (s.k) {
       case "rec": return 1;

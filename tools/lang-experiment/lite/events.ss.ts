@@ -310,13 +310,13 @@ export const dispatch = (onOpen, onRun, onMade, onEventsInvalidated, onListen, o
   };
 // one event applied to working copies of the state; the copies are frozen into the next state
 export const step = (dispatch) => (st: Delivery, ev: DeliveryEvent): StepResult => {
-  const handles = mut(new Map(st.handles)), handleAt = mut(new Map(st.handleAt));
-  const listeners = mut(new Map(st.listeners)), listenerAt = mut(new Map(st.listenerAt));
-  const counters: Counters = mut({ placer: st.placer, generation: st.generation });
-  const fx: Effects = mut([]);
+  const handles = new Map(st.handles), handleAt = new Map(st.handleAt);
+  const listeners = new Map(st.listeners), listenerAt = new Map(st.listenerAt);
+  const counters: Counters = { placer: st.placer, generation: st.generation };
+  const fx: Effects = [];
   dispatch(handles, handleAt, listeners, listenerAt, fx, counters, ev);
-  const state = { handles: freeze(handles), handleAt: freeze(handleAt), listeners: freeze(listeners), listenerAt: freeze(listenerAt), placer: counters.placer, generation: counters.generation };
-  return { state, effects: freeze(fx) };
+  const state = { handles: handles, handleAt: handleAt, listeners: listeners, listenerAt: listenerAt, placer: counters.placer, generation: counters.generation };
+  return { state, effects: fx };
 };
 
 export const handleAtKey = () => (st: Delivery, key: string): number | null => st.handleAt.get(key) ?? null;

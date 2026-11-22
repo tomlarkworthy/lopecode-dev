@@ -31,6 +31,8 @@ export type IxCtl = {
   cur: number; nextFlow: number; diags: IxLog | null; unsup: IxLog | null; rets: Ty[]; yields: Ty[];
   quiet: number; nextId: number; nextScope: number; nextNid: number; fresh: number;
   short: Set<number>; clones: Set<number>; breaks: IxBreaks | null; flagsAt: number; flags: Flags | undefined;
+  // freshAt: the last call or new whose value is fresh (an intrinsic marked @fresh, structuredClone, snapshot)
+  freshAt: number;
   gap: string | null; facts: IxFactLog | null; probe: IxProbe | null;
 };
 // completion's question (lite/complete.ts): the placeholder name, and whether it is asked for as a member

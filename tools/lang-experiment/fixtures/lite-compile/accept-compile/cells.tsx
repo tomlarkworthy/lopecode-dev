@@ -8,7 +8,7 @@ const y1 = () => 1;
 // Escape-time Mandelbrot for rows y0 up to y1, four bytes (RGBA) per pixel. The smooth
 // iteration count goes through a cosine palette, dark indigo far out through steel blue to gold near the set; points that never escape are black.
 const rows = (width: number, height: number, maxIter: number, y0: number, y1: number) => {
-  const out = mut(new Uint8ClampedArray((y1 - y0) * width * 4));
+  const out = new Uint8ClampedArray((y1 - y0) * width * 4);
   for (let y = y0; y < y1; y++) {
     const ci = (y - height / 2) * (3.5 / width);
     for (let x = 0; x < width; x++) {
@@ -31,7 +31,7 @@ const rows = (width: number, height: number, maxIter: number, y0: number, y1: nu
       }
     }
   }
-  return freeze(out);
+  return out;
 };
 
 // compile turns the island into an ordinary async function. inputs become its argument, refs are
@@ -51,13 +51,13 @@ const bands = (height: number, poolSize: number) => {
 
 const image = async (inPool, bands, width: number, height: number) => {
   const parts = await Promise.all(bands.map((b) => inPool(b)));
-  const out = mut(new Uint8ClampedArray(width * height * 4));
+  const out = new Uint8ClampedArray(width * height * 4);
   let at = 0;
   for (const p of parts) {
     out.set(p.rows, at);
     at += p.rows.length;
   }
-  return freeze(out);
+  return out;
 };
 
 const setMaxIter = (maxIter: State<number>) => action((s: string) => maxIter.set(Number(s)));

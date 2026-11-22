@@ -1453,3 +1453,209 @@ bun tests: infer 5/0, rg 7/0, cp 5/0, tc 11/0, live 278/0, narrow-kinds 49/0, ot
 power AC Power; functional 649 pass 0 fail; measurements 8
 lint median 5.0 ms (max 8.8), completion median 5.2 ms (max 5.9)
 ```
+
+## 2026-11-22 08:10–08:55: holes3 step 1, freeze made real at run time (build owner, logs `lite/soundscript/.scratch/holes3/`)
+Target: the hole of `selfhost/mut-groups-attack2/RESULTS.md` (a write or lend whose own operand freezes the same Mut).
+Dead end, reverted on the owner's ruling ("let real execution define the ordering"): a static rule in `ow-flow`
+(`owValueRoots`/`owActOperands`/`owActUse`: an action's receiver, arguments and target used after all its operands) and
+its `frozen/own.ts` mirror. Its counts, kept for the record: corpus `959 -> 959 sources; 0 differ`, shipped sections 0
+flips; attack2 252 candidates, accepted 111 -> 63 (all 48 freeze-in-operand programs rejected, the 63 left are the
+RESULTS "harmless" list); 50 own variants, 42 accepted before it and 0 after; mirror off `ownership: 3746 cells: SAME 3653
+DIFFERENT 93`. Saved as `holes3/ow-flow.fixed.ss.ts`, `holes3/own.fixed.ts`. After the revert: `ow-flow.ss.ts` 73 lines,
+`own.ts` 690 lines as before, collect vs base `0 differ`, the S4.6 rows and the variants removed. The static
+use-after-freeze rule is unchanged.
+
+What changed:
+- `lite/freeze.ts` (new, unchecked, 37 lines, one cell `freeze` of the runtime module): an array or plain record is
+  `Object.freeze`d, with a plain record's array, record, Map or Set members (a group's fields; one level). Map and Set:
+  the instance goes in a WeakSet that wrapped `Map.prototype.set/delete/clear` and `Set.prototype.add/delete/clear` test
+  before writing (wrapped once per realm, keyed by `Symbol.for`), then `Object.freeze`. Typed arrays and ArrayBuffers are
+  returned as they are. A second WeakSet remembers what it froze, so freeze of a frozen value is O(1).
+  Why not SoundScript: `Object.defineProperty` is `@banned`, a shell cell crosses as another language's function (its
+  arguments are frozen copies, S11), and there is no way to change `Map.prototype`. Why not `prelude.runtime.ts`: it
+  imports `runtime-ss.ts`, which links the cells that take `freeze` at load, so it would be an import cycle.
+  Why the prototype and not own properties on the instance: tried first; `m.set("k", freeze(m).size)` reads `m.set`
+  before the freeze runs and wrote anyway (attack2 `map-set-arg-freeze`, `obs-map-set`).
+- `runtime.ss.ts`: the identity `freeze` cell removed (mut, borrow stay identity). `runtime-ss.ts` links with
+  `freeze.ts`'s freeze. `ts-cells.ts`: `freeze.ts` in RUNTIME_FILES and SECTIONS. Four runtime tests import it.
+- `lite/link.ts`: each linked text is evaluated with `"use strict"`, as module code in the notebook is; in sloppy mode
+  `frozen[0] = 1` is silently dropped. Corpus with and without: `0 differ`.
+- `spec.ojs` `test_spec_S4_6`: a run of five accepted cells (a push, a Map's set, a group lent and frozen in one call, a
+  group field's push, each with the freeze inside an operand: TypeError; a write before the freeze: kept, value 2).
+- `attack/variants.ts` `RUNTIME_FREEZE`: the 48 attack2 programs (C1 16, C2 21, C3 11; copied, that folder not edited)
+  and the 50 D forms. `attack/live.test.ts`: per family C1–C3, accepted by the checker and the run throws at the write
+  with no value changed (runAttack, imported from the attack2 harness, which writes nothing on import).
+- `bun-verify/run.ts --deep-freeze` (off by default, measurement only).
+
+Evidence:
+- attack2 through its harness's `runAttack` (`holes3/run2.ts`, all 12 batches): `accepted 111, broke 0` (was 11 with
+  CHANGED). Of the 48 freeze-in-operand programs 46 throw at the write; `yield-freeze-then-throw-catch` throws and its own
+  `catch {}` swallows it (gen `[1]`, r `{v:[1]}`, unchanged); `state-action-freeze-in-operand` is not run (runCells cannot
+  run a state cell). C3: gen errors, `r` is not changed (its first value stays `{v:[1]}`), then errors with gen.
+- live.test `282 pass 0 fail`; `D: 42 accepted by the checker, 40 of them throw at run time` (the 2: `c || freeze(m)` with
+  c true never freezes; `delete m[1]` on a one-element array deletes nothing).
+- Shipped code: no cell threw. The checker itself runs on the real freeze (bun and notebook): corpus `0 differ`.
+- Typed arrays today: `t[0] = (fr = freeze(t)).length + 5` on `mut(new Float32Array(2))` is accepted and gives `7,0`:
+  the frozen value changed. Unchanged (open ruling: copy on freeze, O(n)).
+- Bypass: `Map.prototype.set.call(m, …)` is now refused too (the prototype method tests the WeakSet). Remaining: code in
+  another language that kept a reference to the original `Map.prototype.set` before the runtime module loaded, or
+  another realm's Map methods. SoundScript has no `Map.prototype` member and no `.call` on a method (`[no-member]`).
+
+Costs (`holes3/cost1.txt`, 08:51–08:53, AC Power, load 2.8–3.1; bun is JavaScriptCore):
+```
+freeze, median of 21:  n=10 array 0.88 µs Map 0.33 µs | n=1k array 64.8 µs Map 0.29 µs | n=100k array 15.3 ms Map 3.8 µs
+again (frozen):        0.04 µs (array 0.75 µs at 100k)
+Map.set through the wrap 11.1 ns, native 4.8 ns per call
+JSC (bun) vs V8 (node), 1k array: freeze 61.6 µs vs ~0; 200 sums plain 0.18 ms frozen 1.39 ms vs 0.74/0.76; isFrozen 34 µs vs 0.02 µs
+collect µs/cell: identity freeze 787.2 761.6 768.8; real freeze 938.9 938.1 963.1 (+22%)
+bun-verify: 6.7 6.7 6.8 s (gC record 6.3 s; not rerun with the identity freeze)
+browser (Chromium): lint median 5.5 ms (max 8.4), completion 5.5 ms (max 6.1); verifyC record 5.0 / 5.2 ms at 07:54, not rerun
+```
+The checker's +22% in bun is JSC: a frozen array is slower to read and to freeze; V8 does neither.
+Deep freeze of every SoundScript cell's value (flag on): `bun-verify: 168 pass, 0 fail`; `4484 cell values, 48 nodes
+frozen, 1.4 ms`. Tutorial module alone (`--mains soundscript-tutorial`, 10 tests time out with and without the flag):
+`16 nodes frozen, 1.2 ms`, 16.2 s both. Most cell values are functions or already frozen. Browser time with the flag: not
+measured.
+
+Gates (full set, run before the owner's trim; `g1.txt`, `g1b.txt`, `verify1.txt`, 08:32–08:51, AC Power, load 2.4–3.4):
+```
+-- build exit 0, dependancy map lines: 0
+bun-verify: 168 pass, 0 fail, 0 timed out, 0 skipped; 6.7 s
+959 sources, 3640 cells: SAME 3626 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14; sources that threw 1
+ownership: 3626 cells: SAME 3626 DIFFERENT 0 NOT COVERED 0
+whole module: 1049 sources: SAME 1049 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+registry level: 83224 units in 1058 sources: SAME 83216 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8
+end to end: 1061 sources: SAME 1061 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+37 files, 6385 positions: SAME 6385 (1733 with no options) DIFFERENT 0
+completion: 16237 positions (and their reruns with outside cells / tsx off): SAME 18423 DIFFERENT 0; 178.6 s
+corpus calls, repro rows left out: SAME 339976 SAME THROW 3756 DIFFERENT 0 NOT COVERED 0 TODAY TYPEERROR 0
+  erase (repro)              SAME 2 SAME THROW 0 DIFFERENT 1   (by design)
+bun tests: infer 5/0, rg 7/0, cp 5/0, tc 11/0, live 282/0, narrow-kinds 49/0, other script tests 0 fail
+14/14 fixtures pass; 55 lint/injection rules registered, 55 with a reject case (53 of them in the specification module); 0 failure(s)
+power AC Power; functional 649 pass 0 fail; measurements 8
+```
+After the gates the freeze memo (second WeakSet) was added: collect `0 differ`, `bun-verify: 168 pass, 0 fail`, live
+`282 pass 0 fail`, runtime script tests 0 fail; the slow gates were not rerun for it.
+PROSE PENDING (S4.6, proposed): "At run time `freeze` makes the value unwritable: a write to it, or to an owned field
+of a frozen group, throws a TypeError at the write. A typed array is not frozen."
+Open rulings: typed arrays (copy on freeze, O(n)); the JSC cost (+22% checker time in bun; Safari users pay the same);
+Map/Set prototypes are wrapped page-wide; deep freeze of cell values (0 test failures, ~1.4 ms).
+
+## 2026-11-22 09:16–10:05: stage A, freezable Map/Set subclasses and deep freeze at the boundary (build owner, logs `lite/soundscript/.scratch/holes4/`)
+Start: build exit 0, `bun-verify: 168 pass, 0 fail ...; 6.6 s`, `14/14 fixtures pass` (`g0.txt`).
+What changed:
+- `lite/freeze.ts` (unchecked, 104 lines, 88 non-comment): no prototype patch. `SsMap extends Map`, `SsSet extends Set`;
+  set/add/delete/clear throw a TypeError once the instance is in a module WeakSet (not a private field: `super(iterable)`
+  calls `this.set` before fields exist). `instanceof` both ways (static `Symbol.hasInstance`), `name` "Map"/"Set",
+  `SsMap.groupBy` and the Set algebra return the subclass. `deepFreeze` (explicit stack, per-call native->copy map, DONE
+  WeakSet filled only when a walk ends), `freeze` = deepFreeze, `borrow` (marks a lent value; moved from runtime.ss.ts,
+  so it is no longer a checked cell), `yielded` (skips a lent value at a yield only), `out` (value, promise, generator).
+- Map/Set in SoundScript code are the subclass: `tc-build.ss.ts` binds `const Map = ss_SsMap, Set = ss_SsSet` when the
+  body names them and wraps a plain cell's expression in `ss_out(...)`; `tc-text.ss.ts` adds out/SsMap/SsSet to the
+  runtime cells; `tc-decomp.ss.ts` does not count ss_out as taking runtime cells (a plain cell stays "plain").
+  `link.ts` gives Map/Set and wraps each linked value in out; `browser/run.ts` the same for runCells.
+- Boundaries: `prelude.runtime.ts` madeStore (state initial), write (each set/update), action arguments; `browser/cells.ts`
+  events yields; `equals` treats SsMap/SsSet as Map/Set (it compared prototypes: `equals(ssMap, nativeCopy)` was false).
+- Build: `ts-cells.ts` workers module imports aliased runtime inputs; `stdlib/runtime.ts` exports out/SsMap/SsSet.
+- Tests: `lite/freeze.test.ts` (new, 27); input-list expectations gain ss_out in `ss-toolchain.test.ts`,
+  `roundtrip-edge.test.ts`, `stdlib/runtime.test.ts`, `checker-tests.ojs`; spec S4.6 gains a row (a returned array,
+  record, Map, Set refuse writes from JS). `stdlib/runtime.test.ts` wrote into `T.splitCells(...)`'s frozen array
+  (frozen by `freeze(out)` in tc-ctx since holes3): it copies now.
+Evidence (`attack-run.ts`, `probes.ts`, `run2.txt`): rules on, `-- accepted 111, broke 0, with an error 48` (holes3
+run2 through runAttack); attack1 breaks `8 programs, accepted 1, ... changed silently 0`. Rules off (mut-*,
+prelude-value, regexp-state dropped in the runner, checker unchanged): attack2 `accepted 160, ... changed silently 1`
+(b4 `ta-view-of-cell-buffer`, a typed array), attack1 8/0, spec rows 44/0, variants 98/0. Still rejecting:
+`mutating-method 5`, `member-write`, `let-capture` (probes); with those dropped too: attack2 163, same 1 silent.
+Outside the expected classes: `const u = () => new URL("https://x.test/a"); const w = (u: URL) => { u.pathname = "/b";
+return 1; }; const r = (u: URL, w: number) => u.href;` gives r `"https://x.test/b"` (class instances are not frozen;
+the harness serialises a URL as `{}`, so it is not in the counts). A shared `/g` RegExp is `unsupported` today; a frozen
+RegExp throws on `test`. Kept closures: 22 accepted programs dropped only mut-capture; functions serialise as `fn`.
+Costs (`cost.txt`, AC Power, load 2.4): bun set 3.29 -> 4.44 ns, get 2.02 -> 3.91, has 5.41 -> 3.36; node set 7.14 ->
+10.51. deepFreeze bun 100k array 17.2 ms, 100k records 26.5 ms, again 0.4–0.9 µs; node 0.34 ms / 13.1 ms; Chromium 100k
+records with arrays 27.2 ms, again 0.000 ms (function in a blank page, not a notebook cell). Collect µs/cell before
+897.8 905.0 894.9, after 1236.5 1233.3 1190.4; with native Map in the checker 1217/1223, with a shallow freeze 913/895:
+the +36% is the deep explicit freeze(x) in the checker cells. bun-verify 6.6 s -> 7.3 7.4 7.6 s. Browser lint median
+5.8 ms -> 9.2 ms (speed-only alone); completion 8.7 ms in the full verify run alongside tc-diff (holes3: 5.5 ms).
+Gates (`gates.txt`, `round2.txt`): build exit 0, dependancy 0; `bun-verify: 168 pass, 0 fail`; 14/14 fixtures; diff.ts
+`ownership: 3624 cells: SAME 3624 DIFFERENT 0`, `whole module: 1049 sources: SAME 1049 DIFFERENT 0`; infer 5/0 rg 7/0
+cp 5/0 narrow-kinds 49/0 live 282/0; cross 24 events 29 store 38 render 25 boundary 130 freeze 27 workers 8 ts-cells 9
+stdlib/runtime 82, 0 fail; edge 114/114; ojs-roundtrip all pass; browser `functional 649 pass 0 fail`. tc-diff
+`corpus calls ... DIFFERENT 25238` (compileCell 11684, compiledKind 79, ...; decompile 0 DIFFERENT) against the frozen
+toolchain, by design; tc.test `10 pass 1 fail` (that case). Collect vs before: 3 sources differ, all line shifts of
+edited files and the removed borrow cell. Not done: `browser/workers.ts:32` (island runs with identity freeze/borrow,
+native Map, results not frozen). delivery.test hangs under `bun test`; as a script: `pass delivery: 50469 orderings, 0 fail`.
+PROSE PENDING (S4.6): "A cell's value is deep-frozen when the cell returns, yields or resolves, and when it is written to
+state or passed to an action: arrays, plain records, Map and Set. A write to it throws a TypeError at the write. Class
+instances, functions and typed arrays are not frozen." `ts-cells.ts:84` freeze.ts section sentence is stale.
+
+## 2026-11-22 10:07–11:45: stage B, ownership rules replaced by the run-time freeze (build owner, logs `lite/soundscript/.scratch/holes5/`)
+Ruling: a value another cell holds never changes, by a deep freeze at the boundary; the ownership rules go, groups
+included; what can be checked simply stays static.
+Language now: `mut`, `freeze`, `borrow` are gone. A call to one is `[removed-call]` (ix-expr ixIdent). An unannotated
+local bound to a literal, `new` on an intrinsic or a fresh intrinsic call is `Mut<T>` (ix-stmt ixVarDecl, `C.freshAt`
+set by ix-call and ixSnapshotCall); `Mut<T>` is assignable to `T`, not back (subtype namedSubWith). What a cell exposes is
+read with every `Mut` stripped (md-value, `owStripMut`); a `Mut` input stays `[mut-cell]`. Kept functions
+(ow-capture `owKept`: not a helper only called, not a callback of a non-retaining intrinsic) may read a captured `Mut`;
+`[mut-capture]` when one writes it, when it captures a typed array or URL a name in the cell can still write
+(`owTypedIn`, `owTypedSafeB`), when the `Mut` is written later in the text, in a loop that makes the function or inside
+a function (`owLateWrite`), when it returns or yields the captured `Mut` (`owFlowsOut`), and when any `Mut` (any name,
+or a call's result) is written later in a generator cell or inside an async or generator function the cell makes
+(`owGenLateWrites`, `owInLateFn`: aliases, helpers still running after the cell returned). `[let-capture]` also for a captured let assigned late (`owLateLet`). `[mut-yield]`: a
+generator cell yields a typed array or URL (also inside a literal) that is not a fresh copy, a cell input or a
+read-only const made by one (`owTypedOut`, `owTypedSafe`). `OW_UNFREEZABLE` gained URL and URLSearchParams.
+Deleted ids (AST count, `rule-ids.ts`, branch soundscript-experiment 51f12a0d vs now): 49 -> 41: borrowed-await,
+mut-after-freeze, mut-bind, mut-deep-write, mut-escape, mut-field-assign, mut-freeze-param, mut-not-fresh, mut-source,
+mut-view; new mut-yield, removed-call. ow-* lines 1257 -> 1057 (ow-group.ss.ts and ow-pos.ss.ts deleted; 27 dead
+cells removed on the AST by `dead-cells.ts` + `del-cells.ts` to a fixpoint). Registry 55 -> 51 rules, each with a case.
+Codemod (`codemod.ts`, TypeScript AST): 153 files, 737 sites plus spec-4/5 (8); `mut<T>(e)` in a declarator -> `: Mut<T>`
+(5). Attack programs from the untouched folders are rewritten in memory (`lite/infer/attack/strip-calls.ts`).
+B7: `tc-build` `tcQuickOut`: a sync, non-generator body that makes no async or generator function compiles to
+`ss_out(v, 1)`, and freeze.ts `out` publishes it unfrozen unless freezeAll (`globalThis.SS_FREEZE_ALL`,
+`SS_FREEZE_ALL=1`, or `?ss_freeze_all=1`; bun-verify passes the last). Not the owner's "no kept captures" test: no
+freeze is emitted where a kept function is made, so the static rules above carry it; a cell in another language can
+write a quick cell's value (no attack covers that).
+Run time: island results deep-frozen (L3; runtime.test `c4_island_results_frozen`). Not done: a `deepFreeze` emitted
+where a kept function is made (B4 run-time half), and removing the run-time `mut`/`freeze`/`borrow`/`yielded`/LENT
+plumbing (prelude.runtime.ts, run.ts PRELUDE_VALUES, workers.ts Function params): no accepted program reaches it.
+Evidence (`attack-run.ts --codemod`, functions read by calling them, URL by href; `ar-m0.txt`, `ar-m1.txt`), both modes
+identical: attack2 252 programs, accepted 132, silent 0, in error 25; attack1 8/1/0/0; old S4+S5 rows 49/31/0/0; old
+variants 239/40/0/1; runtime 98/80/0/12; new (`lite/infer/attack/b-attacks.ts`) 70/20/0/4. Before the fixes the new
+set had 10 silent (alias writes between yields, typed-array view capture, late let, typed array in a yielded literal)
+and 2 more with URL (`u.pathname = ...` after `yield u`: Object.freeze does not stop URL setters); a review then
+found 4 more, fixed by owFlowsOut and owInLateFn: `const a = () => { const xs = [0]; return () => xs; };` with
+`const c = (a: () => Mut<number[]>) => { a().push(9); return 0; };` (a reads fn([0]) then fn([0,9])), its record and
+unannotated forms, and an async helper writing an alias 50 awaits after the cell returned. A first fix, stripping Mut
+from exposed function results, rejected 177 shipped cells (registries pass Mut-returning functions) and was reverted. Forced (rejected
+programs run anyway): 46 would change silently; held by mut-capture 20, mut-yield 16, mutating-method 4,
+new-non-intrinsic 3, member-write 3, type 2, let-capture 2, unknown-type 1. live.test `460 pass 0 fail`; in both modes
+`live: 445 programs, 140 accepted and run, 17 of them with a cell in error`.
+B6 audit (`b6-audit.ts`, AST over INTRINSIC_DECLS, 285 members): no writable property; every mutator tagged
+`@mutates`; Date is not an intrinsic; RegExp has no setter and `lastIndex` writes are `[regexp-state]`; URL fields are
+readonly and setters on a non-Mut URL are `[member-write]`, but `readonly` is not enforced through `Mut` (a fresh local
+URL may be written: accepted, by design here); URLSearchParams has only get/has/toString.
+Timing (AC Power, the tests loop running beside): out of 100k records quick 0.00 ms, freezeAll 48.95 ms
+(`b7-bench.ts`); bun-verify 6.8 s / 6.6 s (boot 4.90 / 5.09 in the quiet run); live.test 1.65 / 1.68 s; attack-run
+2.90 / 3.00 s. Collect 881.3 µs/cell (before B 1397.9 on that run).
+Flips (`flips.py c-before.json c-after.json`): rejected->ok 45 (mut-escape 15, mut-after-freeze 7, mut-view 6, mut-source
+3, mut-capture 3, member-write 2, let-capture 2, mut-not-fresh 2, type, borrowed-await, borrowed-escape, inject-type,
+mut-freeze-param, unsupported 1 each); accepted->rejected among shipped sources: none (selfcheck `0 not accepted`); 486 cells before and 475 after have no
+match on the other side (renamed, deleted or new cells) and are not in these counts;
+the fixtures accept-owner and known-slips (kept pre-codemod for the legacy check.ts) give [removed-call].
+Gates: build exit 0; `bun-verify: 168 pass, 0 fail` with freezeAll off and on; `14/14 fixtures pass; 51 ... 0
+failure(s)`; diff.ts `939 sources, 3627 cells: SAME 3613 DIFFERENT 0 ... REAL CRASH 14`, `ownership: 3613 cells: SAME
+3613 DIFFERENT 0`; `whole module: 1029 sources: SAME 1029 DIFFERENT 0`; rg-diff `end to end: 1041 sources: SAME 1041
+DIFFERENT 0`; tc-diff `corpus calls, repro rows left out: SAME 337369 ... DIFFERENT 0`; cp-diff 0 DIFFERENT;
+complete-diff `6099 positions: SAME 6099 DIFFERENT 0`; browser `functional 648 pass 1 fail`: the tutorial's reference
+names 12 deleted ids and not mut-yield/removed-call (prose, left for the owner). Tests (30 files under lite/, bun:test files
+by `bun test`, the rest as scripts, `g-tests.txt`): all 0 fail but acorn.test `5 pass, 1 fail` (below); complete.test
+(3 cases used mut) and cp.test (corpus positions 6385 -> 6099) were updated and rerun: 58/0, 5/0. Frozen comparators (own.ts, infer.ts,
+core.ts, ts/toolchain/ss-toolchain.ts) carry each change under a DELIBERATE CHANGE (2026-11-22) mark.
+Dead ends: the first runner skipped function values (`typeof x.obj !== "object"`), so kept-closure changes read as 0;
+`while read` with bun inside ate stdin, so the dead-cell deletion stopped after one file per round.
+Left: `borrow-placement` (owCellPlace) and `borrowed-escape` (a captured `Borrowed`) are still in the cells, no longer
+registered and unreachable from accepted source (no `borrow`). Final gates after the review fixes (11:40): build exit
+0, bun-verify 168/0 both modes, fixtures 14/14, diff.ts and --module-only 0 DIFFERENT, live 460/0.
+Unverified / left: acorn.test census, 1 of 1995 truncations gives a different error value (inputs now include
+codemodded text; not looked into). Prose now false: spec S4.1–S4.9, S5.1–S5.5; tutorial lines 64, 70, 281 and the
+rule list; examples/03-mut.ts and 02-errors.ts comments. Unchecked lines added: freeze.ts 17, observe.ts 39,
+strip-calls.ts 64 (test-only), bun-verify/run.ts 2.

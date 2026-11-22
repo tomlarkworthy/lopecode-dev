@@ -6,9 +6,9 @@ export type IxApp = { sig: Fn; tvs: string[]; tvSet: Set<string>; opaque: Set<st
 export const ixParamAt = () => (sig: Fn, i: number): Ty | undefined => sig.ps[i]?.t ?? sig.rest;
 // the substitution so far with what the expected return type gave for the variables it has not solved
 export const ixCtxSubst = (subst) => (t: Ty, m: Map<string, Ty>, fromRet: Map<string, Ty>): Ty => {
-  const cm: Mut<Map<string, Ty>> = mut(new Map(m));
+  const cm: Mut<Map<string, Ty>> = new Map(m);
   for (const [k, v] of fromRet) if (!cm.has(k)) cm.set(k, v);
-  return subst(t, freeze(cm));
+  return subst(t, cm);
 };
 // a contextual type with unresolved variables replaced by unknown (keeps tuple and record shape for literals)
 export const ixCtxOnly = (subst, UNKNOWN) => (t: Ty, tvs: Set<string>): Ty | null => {
@@ -82,14 +82,14 @@ export const ixExplicit = (ixErr) => (K: IxK, C: IxCtls, e: AstNode, tvs: string
 export const ixApply = (ixArity, ixExplicit, ixFirstArg, ixDeferredArg, ixWidenFree, ixSolve, ixFinalArgs, ixSettled, ixFact, instantiate, subst, hasTv) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression | NewExpression, sig0: Fn, expected: Ty | null, explicit: Ty[] | null): Ty => {
   const inst = instantiate(sig0, C.fresh);
   C.fresh += sig0.tps.length;
-  const tvSet = new Set(inst.tvs), m: Mut<Map<string, Ty>> = mut(new Map()), fromRet: Mut<Map<string, Ty>> = mut(new Map());
+  const tvSet = new Set(inst.tvs), m: Mut<Map<string, Ty>> = new Map(), fromRet: Mut<Map<string, Ty>> = new Map();
   ixExplicit(K, C, e, inst.tvs, explicit, m);
   const A: IxApp = { sig: inst.f, tvs: inst.tvs, tvSet, opaque: sig0.flags?.intrinsic ? null : tvSet, fixed: new Set(m.keys()) };
   ixArity(K, C, e, e.arguments, A.sig);
   const decl = sig0.decl ?? sig0, fl = sig0.flags;
   ixFact(C, { k: "sig", at: e.nid, sig: fl ? { ...inst.f, decl, flags: fl } : { ...inst.f, decl } });
   if (expected !== null && hasTv(A.sig.ret, tvSet)) K.reg.unify(A.sig.ret, expected, fromRet, tvSet);
-  const ret = new Map(fromRet), argT: Mut<(Ty | null)[]> = mut([]), deferred: Mut<number[]> = mut([]);
+  const ret = new Map(fromRet), argT: Mut<(Ty | null)[]> = [], deferred: Mut<number[]> = [];
   for (const [i, a] of e.arguments.entries()) {
     const t = ixFirstArg(K, T, V, W, C, env, A, a, i, m, ret);
     if (t === "defer") deferred.push(i);
@@ -98,7 +98,7 @@ export const ixApply = (ixArity, ixExplicit, ixFirstArg, ixDeferredArg, ixWidenF
   ixWidenFree(m, A.fixed);
   for (const i of deferred) { const a = e.arguments[i]; if (a !== undefined) argT[i] = ixDeferredArg(K, T, V, W, C, env, A, a, i, m, ret); }
   ixSolve(m, ret, A);
-  ixFinalArgs(K, C, A, e.arguments, freeze(argT), freeze(deferred), new Map(m));
+  ixFinalArgs(K, C, A, e.arguments, argT, deferred, new Map(m));
   return ixSettled(K.reg, subst(A.sig.ret, new Map(m)));
 };
 // a promise never fulfils with a promise-like: resolving with one adopts what it settles to

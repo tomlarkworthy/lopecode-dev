@@ -1,0 +1,62 @@
+== map-set-arg-freeze: ACCEPT
+   show a = 0
+== fill-arg-freeze: ACCEPT
+   show a = [2,2]
+== splice-arg-freeze: ACCEPT
+   show a = [1,1]
+== computed-key-freeze: ACCEPT
+   show a = [1,7]
+== compound-assign-freeze: ACCEPT
+   show a = [2]
+== update-expr-freeze-key: ACCEPT
+   show a = [2]
+== delete-key-freeze: REJECT a:rejected[no-cast][mut-not-fresh]
+== logical-assign-freeze: REJECT a:unsupported{logical assignment ||=}
+== nullish-assign-freeze: REJECT a:rejected[no-cast]
+== group-field-index-assign-freeze: ACCEPT
+   show a = {t:[6],n:0}
+== unshift-arg-freeze: ACCEPT
+   show a = [1,1]
+== pop-after-freeze-in-cond: ACCEPT
+   show a = [1]
+== freeze-and-short-circuit: REJECT a:rejected[mut-after-freeze]
+== jsx-child-mut: REJECT a:rejected[type][type][type][mut-escape]
+== jsx-attr-mut: REJECT a:rejected[type][type][mut-escape]
+== jsx-attr-field: REJECT a:rejected[type][type][mut-escape]
+== jsx-child-length: ACCEPT
+   show a = {tag:"div",props:{},children:[1]}
+== jsx-onclick-capture: REJECT a:rejected[type][type][mut-capture]
+== jsx-spread-attrs-group: REJECT a:unsupported{spread attribute}
+== class-field-mut: REJECT a:rejected[no-class]
+== for-of-destructure-mut-pairs: REJECT a:rejected[mutating-method]
+== catch-destructure: REJECT a:rejected[no-member]
+== try-finally-freeze: REJECT a:unsupported{try/finally in a function holding a Mut/Borrowed}
+== while-freeze-break: ACCEPT
+   show a = [1,1,1,1]
+== switch-fallthrough-freeze: REJECT a:rejected[switch-fallthrough][mut-after-freeze]
+== recursive-helper-group: ACCEPT
+   show a = [4,[1,3,2,1]]
+== generic-group-alias: ACCEPT
+   show a = [1,2]
+== generic-group-return-field-elem: ACCEPT
+   show a = [1]
+== symbol-iterator-mut: REJECT a:unsupported{intrinsic Symbol has no signature in lite/intrinsics.ts}
+== object-keys-group: REJECT a:rejected[mut-escape]
+== in-group: ACCEPT
+   show a = true
+== typeof-group-field: ACCEPT
+   show a = "object"
+== group-field-optional-chain-push: ACCEPT
+   show a = [1,2]
+== group-cond-arg-field: REJECT a:rejected[mut-escape]
+== yield-freeze-then-throw-catch: ACCEPT
+   CHANGED gen (value #1 of 1): [1] -> [8]
+   CHANGED r (value #1 of 1): {v:[1]} -> {v:[8]}
+   show gen = [8]
+   show r = {v:[8]}
+== yield-freeze-reader-holds: ACCEPT
+   CHANGED gen (value #1 of 1): [1] -> [8]
+   CHANGED r (value #1 of 1): {v:[1]} -> {v:[8]}
+   show gen = [8]
+   show r = {v:[8]}
+-- 36 candidates, 19 accepted

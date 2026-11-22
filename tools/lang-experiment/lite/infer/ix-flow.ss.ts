@@ -111,7 +111,7 @@ export const ixTry = (ixInvalidate, ixCopyFlow, ixJoin2, ixBlock, ixNewScope, ix
 export const ixDropWithin = (ixDrain, ixPush) => (K: IxK, C: IxCtls, mark: { d: IxLog | null; u: IxLog | null }, span: AstNode): void => {
   ixDrain(K, C);
   const keep = (log: IxLog | null, base: IxLog | null): IxLog | null => {
-    const added: Mut<IxDiag[]> = mut([]);
+    const added: Mut<IxDiag[]> = [];
     for (let x = log; x !== null && x.n > (base?.n ?? 0); x = x.next) added.unshift(x.d);
     let out = base;
     for (const d of added) if (!(d.start >= span.start && d.end <= span.end)) out = ixPush(out, d);
@@ -124,7 +124,7 @@ export type IxCases = { taken: (number | null)[]; none: number; rest: Ty };
 // each case is checked as the condition d === test, in the flow where every earlier test was false; rest: the values
 // of d that no case has taken, for exhaustiveness
 export const ixSwitchTests = (ixMark, ixDropWithin, ixPathKey, ixNoOverlap, ixNarrowEq, ixErr, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: SwitchStatement, dt: Ty, none0: number): IxCases => {
-  const d = s.discriminant, own = C.cur, taken: Mut<(number | null)[]> = mut([]);
+  const d = s.discriminant, own = C.cur, taken: Mut<(number | null)[]> = [];
   let rest = dt, none = none0;
   for (const c of s.cases) {
     const test = c.type === "SwitchCase" ? c.test : null;
@@ -143,7 +143,7 @@ export const ixSwitchTests = (ixMark, ixDropWithin, ixPathKey, ixNoOverlap, ixNa
       ixErr(K, C, test, "type", `case ${show(bt)}: no value of ${show(dt)} is left for it after the earlier cases`);
     if (bt && (bt.k === "lit" || bt.k === "null" || bt.k === "undef")) rest = ixNarrowEq(K.reg, rest, bt, false, false);
   }
-  return { taken: freeze(taken), none, rest };
+  return { taken: taken, none, rest };
 };
 export const ixSwitch = (ixSwitchTests, ixSwitchBodies, ixCopyFlow, ixJoin2) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: SwitchStatement): boolean => {
   const d = s.discriminant, dt = K.infer(K, T, V, W, C, env, d);

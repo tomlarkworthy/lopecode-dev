@@ -64,25 +64,25 @@ export const propOps = (propSet, propGone) => (old: Props, now: Props, listening
 export const slotId = () => (tag: string, key: Key): string => `${tag}:${key}`;
 // the children's slot ids when every one is an element with a key, else null: they are matched by position
 export const keyedIds = (slotId) => (kids: readonly Kid[]): readonly string[] | null => {
-  const out: Mut<string[]> = mut([]);
+  const out: Mut<string[]> = [];
   for (const c of kids) {
     if (c.k !== "elem" || c.key === undefined) return null;
     out.push(slotId(c.tag, c.key));
   }
-  return out.length ? freeze(out) : null;
+  return out.length ? out : null;
 };
 export const drawnId = (slotId) => (d: Drawn): string | null => (d.k === "elem" && d.key !== undefined ? slotId(d.tag, d.key) : null);
 // for each new slot, the old child it reuses: of old children with its id, the last, each used once
 export const matchKeyed = () => (oldIds: readonly (string | null)[], ids: readonly string[]): readonly (number | null)[] => {
-  const byId: Mut<Map<string, number>> = mut(new Map());
+  const byId: Mut<Map<string, number>> = new Map();
   for (const [j, id] of oldIds.entries()) if (id !== null) byId.set(id, j);
-  const out: Mut<(number | null)[]> = mut([]);
+  const out: Mut<(number | null)[]> = [];
   for (const id of ids) {
     const j = byId.get(id);
     out.push(j ?? null);
     if (j !== undefined) byId.delete(id);
   }
-  return freeze(out);
+  return out;
 };
 // the old children kept by the first pass: those whose id some new slot has (an unused duplicate too)
 export const keptByKey = () => (oldIds: readonly (string | null)[], ids: readonly string[]): readonly number[] => {
@@ -92,28 +92,28 @@ export const keptByKey = () => (oldIds: readonly (string | null)[], ids: readonl
 // whether each new child must be inserted at its index: after i placements the DOM is the first i new children,
 // then the kept old children not yet placed, in their old order; a child already first among those stays
 export const mustPlace = () => (kept: readonly number[], reuse: readonly (number | null)[]): readonly boolean[] => {
-  const placedAt: Mut<Map<number, number>> = mut(new Map());
+  const placedAt: Mut<Map<number, number>> = new Map();
   for (const [i, j] of reuse.entries()) if (j !== null) placedAt.set(j, i);
-  const out: Mut<boolean[]> = mut([]);
+  const out: Mut<boolean[]> = [];
   let p = 0;
   for (const [i, j] of reuse.entries()) {
     while (p < kept.length && (placedAt.get(kept[p] ?? -1) ?? Infinity) < i) p++;
     out.push(j === null || kept[p] !== j);
   }
-  return freeze(out);
+  return out;
 };
 // keyed children: drop the old ones no slot wants, reuse or create each, insert where not in place, drop unused duplicates
 export const keyedOps = (drawnId, matchKeyed, keptByKey, mustPlace) => (old: readonly Drawn[], ids: readonly string[]): readonly ChildOp[] => {
   const oldIds = old.map((d) => drawnId(d));
   const reuse = matchKeyed(oldIds, ids), kept = keptByKey(oldIds, ids), place = mustPlace(kept, reuse);
   const keptSet = new Set(kept), used = new Set(reuse);
-  const out: Mut<ChildOp[]> = mut(old.flatMap((_d, j): ChildOp[] => (keptSet.has(j) ? [] : [{ op: "remove", old: j }])));
+  const out: Mut<ChildOp[]> = old.flatMap((_d, j): ChildOp[] => (keptSet.has(j) ? [] : [{ op: "remove", old: j }]));
   for (const [i, j] of reuse.entries()) {
     out.push(j === null ? { op: "create", kid: i } : { op: "reuse", old: j, kid: i });
     if (place[i] === true) out.push({ op: "place", kid: i });
   }
   for (const j of kept) if (!used.has(j)) out.push({ op: "remove", old: j });
-  return freeze(out);
+  return out;
 };
 // a node is patched in place for a new element of the tag it was created for (a child here, a root in mount)
 export const keepsNode = () => (cur: Drawn, kid: Kid): boolean => cur.k === "elem" && kid.k === "elem" && cur.tag === kid.tag;

@@ -72,16 +72,17 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   const expect = (ok: boolean, what: string) => { if (!ok) { fail++; console.log("FAIL " + what); } };
   expect(JSON.stringify(g.get("world")?.inputs) === JSON.stringify(["Generators", "viewof world"]) && g.get("world")?.definition === "(G, _) => G.input(_)", "a state cell's value variable is Generators.input of its handle: " + g.get("world")?.inputs);
   expect(JSON.stringify(g.get("viewof world")?.inputs) === JSON.stringify(["ss_state", "ss_ref", "start"]), "a state cell's handle is viewof world and takes its inputs: " + g.get("viewof world")?.inputs);
-  expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["ss_action", "viewof world", "step"]), "a State<T> parameter reads the handle: " + g.get("tick")?.inputs);
+  expect(JSON.stringify(g.get("tick")?.inputs) === JSON.stringify(["ss_action", "ss_out", "viewof world", "step"]), "a State<T> parameter reads the handle: " + g.get("tick")?.inputs);
   expect([...g.values()].every((v) => !v.inputs.includes("@variable")), "no variable takes @variable (the exporter reads two inputs ending in @variable as an import)");
   expect(toolchain.compiledKind(g.get("ticks")!.definition)?.callee === "events" && !g.has("viewof ticks"), "a generator taken as Events is one handle variable");
   expect(passesModule(g.get("ticks")!.definition, "ticks"), "an events cell's definition is a function that passes its module name: " + g.get("ticks")!.definition.slice(0, 40));
   expect(JSON.stringify(g.get("ticks")?.inputs) === JSON.stringify(["ss_events", "ss_now", "playing", "over", "invalidation"]), "an events cell takes invalidation: " + g.get("ticks")?.inputs);
   expect(JSON.stringify(g.get("onTick")?.inputs) === JSON.stringify(["ss_on", "ss_listen", "ticks", "tick", "invalidation"]) && toolchain.compiledKind(g.get("onTick")!.definition)?.callee === "listen", "on(...) makes a listener that takes invalidation: " + g.get("onTick")?.inputs);
   const w = by(await Bun.file(root + "lite/notebook/examples/07-workers.tsx").text());
-  expect(JSON.stringify(w.get("inPool")?.inputs) === JSON.stringify(["ss_compileFor", "ss_compile", "width", "height", "maxIter", "ss_pool"]), "compile refs are inputs, in the order the definition reads them: " + w.get("inPool")?.inputs);
+  expect(JSON.stringify(w.get("inPool")?.inputs) === JSON.stringify(["ss_out", "ss_compileFor", "ss_compile", "width", "height", "maxIter", "ss_pool"]), "compile refs are inputs, in the order the definition reads them: " + w.get("inPool")?.inputs);
   const m = by(await Bun.file(root + "lite/notebook/examples/06-model.tsx").text());
-  const mutSrc = await Bun.file(root + "lite/notebook/examples/03-mut.ts").text();
+  // S4 (2026-11-22): 03-mut.ts has no rejected cell any more; two cells the checker rejects, named as before
+  const mutSrc = "const xs = () => [1];\nconst leak = (xs: number[]) => { xs.push(2); return 0; };\nconst late = () => { const u = [1]; const f = () => { u.push(2); return 0; }; return f; };";
   const mu = new Map(compileModule(mutSrc, false, accepted(mutSrc, false)).map((v) => [v.name, v]));
   expect(["leak", "late"].every((n) => toolchain.compiledKind(mu.get(n)!.definition)?.callee === "rejected" && JSON.stringify(mu.get(n)!.inputs) === JSON.stringify(["ss_rejected", "ss_release"])), "cells the checker rejects (leak, late) compile to a body that only raises: ss_rejected(..., ss_release(this)), which first ends a listener or events the cell held");
   // a parameter named for an Object.prototype member is no capability: a cell of that name, or inject-unknown
@@ -92,7 +93,7 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
     const both = checkSources({ cells: src, tsx: false }).cells.map((c) => `${c.name}:${c.status}:${c.value}`).join();
     expect(both === `${n}:ok:number,b:ok:number`, `a parameter ${n} takes the cell ${n}: ${both}`);
     const b = new Map(compileModule(src, false, accepted(src, false)).map((v) => [v.name, v])).get("b");
-    expect(JSON.stringify(b?.inputs) === JSON.stringify([n]), `the compiled b takes the variable ${n}: ${JSON.stringify(b?.inputs)}`);
+    expect(JSON.stringify(b?.inputs) === JSON.stringify(["ss_out", n]), `the compiled b takes the variable ${n}: ${JSON.stringify(b?.inputs)}`);
   }
   const cap = checkSources({ cells: "const n = () => state(0);\nconst copy = (n: State<number>, constructor: number) => action(() => n.set(constructor));", tsx: false, outside: [{ name: "constructor" }] }).cells[1];
   const capMsg = cap?.errors.map((e) => `${e.rule}: ${e.msg}`).join(" | ") ?? "";

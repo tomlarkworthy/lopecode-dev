@@ -16,8 +16,14 @@ const cases: Case[] = [
   { id: "1g", note: "port mode: foreign.d.ts /** pure */ decompile", src: { cells: `const shown = (decompile: (v: number) => string) => decompile(1);`, foreign: `/** pure */ declare function decompile(v: number): string;` } },
   { id: "1h", note: "notebook module: a top-level declare", src: nb(`declare function decompile(v: number): string;\nconst shown = (decompile) => decompile(1);`) },
   // 2. a mutable foreign object with identity
-  { id: "2a", note: "owner cell constructs EditorView from an outside class", src: nb(`const view = function* (EditorView: unknown) {\n  const v = mut(new EditorView());\n  yield borrow(v);\n};`, [{ name: "EditorView" }]) },
-  { id: "2b", note: "owner cell: mut of an outside instance", src: nb(`const view = function* (code_editor_view: unknown) {\n  const v = mut(code_editor_view);\n  yield borrow(v);\n};`, [{ name: "code_editor_view" }]) },
+  { id: "2a", note: "owner cell constructs EditorView from an outside class", src: nb(`const view = function* (EditorView: unknown) {
+  const v = new EditorView();
+  yield v;
+};`, [{ name: "EditorView" }]) },
+  { id: "2b", note: "owner cell: mut of an outside instance", src: nb(`const view = function* (code_editor_view: unknown) {
+  const v = code_editor_view;
+  yield v;
+};`, [{ name: "code_editor_view" }]) },
   { id: "2c", note: "state cell holding the outside view", src: nb(`const held = (code_editor_view: unknown) => state(code_editor_view);`, [{ name: "code_editor_view" }]) },
   { id: "2d", note: "call a method on the outside view", src: nb(`const text = (code_editor_view: { state: { doc: string } }) => code_editor_view.state.doc;`, [{ name: "code_editor_view" }]) },
   { id: "2e", note: "dispatch on the view inside an action", src: nb(`const src = () => state("");\nconst save = (src: State<string>, code_editor_view: unknown) => action(() => src.set(String(code_editor_view)));`, [{ name: "code_editor_view" }]) },

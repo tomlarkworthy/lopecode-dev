@@ -1,0 +1,31 @@
+== push-arg-freeze-self: ACCEPT
+   show a = 1
+== push-arg-freeze-self-let: ACCEPT
+   show a = [1,1]
+== member-assign-rhs-freeze: ACCEPT
+   show a = 1
+== member-assign-rhs-freeze-group: ACCEPT
+   show a = 1
+== field-push-arg-freeze-group: ACCEPT
+   show a = 1
+== helper-callee-arg-freeze: REJECT a:rejected[mut-after-freeze]
+== lend-then-freeze-via-capture-of-frozen-in-helper: ACCEPT
+   show a = 1
+== lend-then-freeze-in-nested-arg: ACCEPT
+   show a = [1,2]
+== lend-then-freeze-in-array-arg: ACCEPT
+   show a = [1,2]
+== lend-then-freeze-in-record-arg: ACCEPT
+   show a = [1,2]
+== lend-then-freeze-conditional: ACCEPT
+   show a = [1,2]
+== lend-then-freeze-new-expression: ACCEPT
+   show a = {r:[1,2]}
+== lend-twice-frozen-into-cell-value-keeps: ACCEPT
+   show a = [1,2]
+   show b = 2
+== group-lent-then-field-frozen: ACCEPT
+   show a = [0,7,2]
+== freeze-in-default-param-of-helper-call: ACCEPT
+   show a = []
+-- 15 candidates, 14 accepted

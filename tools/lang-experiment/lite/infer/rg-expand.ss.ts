@@ -40,7 +40,7 @@ export const rgLiveSet = () => (E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, name
 };
 // the interface is built: it leaves the building list and its keys need no more updates
 export const rgBuilt = () => (Q: RgCtls, name: string): void => {
-  const keep: Mut<RgAlias[]> = mut([]);
+  const keep: Mut<RgAlias[]> = [];
   for (let a = Q.aliases; a !== null; a = a.next) if (a.name !== name) keep.push(a);
   let out: RgAlias | null = null;
   for (let i = keep.length - 1; i >= 0; i--) { const a = keep[i]; if (a !== undefined) out = { name: a.name, key: a.key, next: out }; }
@@ -74,10 +74,10 @@ export const rgIfaceExtends = (named, ERR, rgUnsup, rgLiveSet, rgGap) => (G: RgK
     if (h.type === "Other" || (h.type === "TSExpressionWithTypeArguments" && h.expression.type === "Other")) { rgGap(Q, "extends clause held as Other"); continue; }
     const base = h.type === "TSExpressionWithTypeArguments" && h.expression.type === "Identifier" ? G.expand(G, Y, E, I, Q, named(h.expression.name)) : ERR;
     if (base.k !== "rec") { rgUnsup(Q, h, "interface extends a non-object type"); continue; }
-    const props: Mut<Map<string, Prop>> = mut(new Map(r.props));
+    const props: Mut<Map<string, Prop>> = new Map(r.props);
     for (const [k, v] of base.props) if (!props.has(k)) props.set(k, v);
     const calls = base.calls !== undefined ? [...(r.calls ?? []), ...base.calls] : r.calls;
-    r = { k: "rec", props: freeze(props), index: r.index ?? base.index, calls, ctors: r.ctors };
+    r = { k: "rec", props: props, index: r.index ?? base.index, calls, ctors: r.ctors };
     rgLiveSet(E, I, Q, name, r);
   }
   return r;
@@ -86,15 +86,15 @@ export const rgIfaceExtends = (named, ERR, rgUnsup, rgLiveSet, rgGap) => (G: RgK
 export const rgIfaceOwn = (rgGap) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, node: AstNode, c: RgCtx, r: Rec): Rec => {
   if (node.type !== "TSInterfaceDeclaration" || node.body.type !== "TSInterfaceBody") { rgGap(Q, "interface body held as Other"); return r; }
   const own = G.literal(G, Y, E, I, Q, node.body.body, c);
-  const props: Mut<Map<string, Prop>> = mut(new Map(r.props));
+  const props: Mut<Map<string, Prop>> = new Map(r.props);
   for (const [k, v] of own.props) props.set(k, v);
   const calls = own.calls !== undefined ? [...(r.calls ?? []), ...own.calls] : r.calls;
-  return { k: "rec", props: freeze(props), index: own.index ?? r.index, calls, ctors: own.ctors ?? r.ctors };
+  return { k: "rec", props: props, index: own.index ?? r.index, calls, ctors: own.ctors ?? r.ctors };
 };
 
 // expanding t, or any alias it reaches, reports no problem; keys found quiet are kept for later calls
 export const rgQuiet = () => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, K: RgQuietKeys, t: Ty): boolean => {
-  const seen: Mut<Set<string>> = mut(new Set());
+  const seen: Mut<Set<string>> = new Set();
   const ok = G.quietGo(G, Y, E, I, Q, K, seen, t);
   if (ok) for (const k of seen) K.add(k);
   return ok;
@@ -125,6 +125,6 @@ export const rgQuietAll = () => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIface
 // the scan memberOf skips would record pairs in a seen of the caller's, and convert aliases, which may report
 export const rgSub = (rgQuiet) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, K: RgQuietKeys, s: Ty, t: Ty): boolean => {
   if (rgQuiet(G, Y, E, I, Q, K, s) && rgQuiet(G, Y, E, I, Q, K, t) && G.memberOf(s, t)) return true;
-  const seen: Mut<Set<string>> = mut(new Set());
+  const seen: Mut<Set<string>> = new Set();
   return G.subOps(s, t, seen);
 };

@@ -17,7 +17,7 @@ test_checker_roundtrip = {
   const lost = texts.filter((t, i) => back[i].length !== 1 || back[i][0] !== t);
   if (lost.length) throw new Error(`not recovered exactly: ${lost.join(" | ")}`);
   // run the plain cells, each with the values of the cells it takes
-  const values = {};
+  const values = Object.fromEntries(ss.RUNTIME_CELLS.map((n) => [ss.INPUTS[n], ss[n]]));
   for (const v of variables.flat().filter((v) => ["width", "area"].includes(v.name))) values[v.name] = new Function(`return (${v.definition});`)()(...v.inputs.map((n) => values[n]));
   if (values.area !== 9) throw new Error(`area is ${values.area}, expected 9`);
   return `${texts.length} cells checked, compiled and recovered; area ${values.area}`;
@@ -30,8 +30,8 @@ test_checker_on_as_a_property_is_not_a_listener = {
   if (result.cells.some((c) => c.status !== "ok")) throw new Error(JSON.stringify(result.cells.map((c) => [c.name, c.status])));
   const ctx = ss.contextFromCheck(result, source, true);
   const [cfg, use] = ss.splitCells(source, true).map((t) => ss.compileCell(t, true, ctx)[0]);
-  // both are plain cells: the function applied to its inputs, with no ss
-  const run = (v, ...args) => new Function(`return (${v.definition});`)()(...args);
+  // both are plain cells: the function applied to its inputs, with no ss but the deep freeze of the value (ss_out)
+  const run = (v, ...args) => new Function(`return (${v.definition});`)()(ss.out, ...args);
   const value = run(cfg);
   const n = run(use, value);
   const kinds = [cfg, use].map((v) => ss.compiledKind(v.definition)?.callee);
@@ -46,7 +46,7 @@ test_checker_action_capture_by_binding = {
     ["const s = () => state(0);\nconst mk = (s: State<number>) => (h: () => number) => action(() => s.set(h()));\nconst c = (now: Clock, mk: (h: () => number) => Action<[]>) => mk(now);",["action-capture"]],
     ["const s = () => state(0);\nconst c = (now: Clock, s: State<number>) => { const mk = (h: () => number = now) => action(() => s.set(h())); return mk(); };",["action-capture"]],
     ["const s = () => state(0);\nconst c = (random: Random, s: State<number>) => [random].map((h) => action(() => s.set(h())));",["action-capture"]],
-    ["const s = () => state(0);\nconst c = (now: Clock, s: State<number>) => { const m = mut(new Map<string, () => number>()); m.set(\"k\", now); const f = m.get(\"k\") ?? (() => 0); return action(() => s.set(f())); };",["action-capture"]],
+    ["const s = () => state(0);\nconst c = (now: Clock, s: State<number>) => { const m = new Map<string, () => number>(); m.set(\"k\", now); const f = m.get(\"k\") ?? (() => 0); return action(() => s.set(f())); };",["action-capture"]],
     ["const s = () => state(0);\nconst c = (now: Clock, s: State<number>) => { function f(h: () => number = now): () => number { return h; } const q = f(); return action(() => s.set(q())); };",["action-capture"]],
     ["const s = () => state(0);\nconst c = (now: Clock, s: State<number>) => action(() => { { const now = 1; s.set(now); } s.set(now()); });",["action-capture"]],
     ["const s = () => state(0);\nconst mk = (s: State<number>) => (f: () => number) => { const q = f(); return action(() => s.set(q)); };",["action-capture"]],
@@ -138,13 +138,13 @@ test_checker_structured_clone = {
 }
 // %%
 test_checker_mut_across_await = {
-  // an async function may use a Mut it did not make (a parameter, or a helper's capture) only before its first await: from there its caller runs and may change or freeze it
-  const cases = [["const c = () => async (): Promise<number> => { const r = async (m: Mut<{ n: number }>): Promise<number> => { await 0; return m.n; }; const m = mut({ n: 1 }); const p = r(m); m.n = 5; return await p; };",["borrowed-await"]],
-    ["const c = () => async (): Promise<number> => { const f = async (m: Mut<{ n: number }>): Promise<number> => { let t = 0; for (const x of [1, 2]) { t += m.n + x; await 0; } return t; }; const m = mut({ n: 1 }); return await f(m); };",["borrowed-await"]],
-    ["const c = () => async (): Promise<number> => { const f = async (m: Mut<{ n: number }>): Promise<void> => { const g = (): void => { m.n = 9; }; await 0; g(); }; const m = mut({ n: 1 }); const p = f(m); const v = freeze(m); await p; return v.n; };",["borrowed-await"]],
-    ["const c = () => async (): Promise<number> => { const m = mut({ n: 1 }); const g = (): void => { m.n = 9; }; const h = async (): Promise<void> => { await 0; g(); }; const p = h(); const v = freeze(m); await p; return v.n; };",["borrowed-await"]],
-    ["const c = () => async (): Promise<number> => { const f = async (m: Mut<{ n: number }>): Promise<number> => { m.n = 3; const a = m.n; await 0; return a; }; const m = mut({ n: 1 }); return await f(m); };",[]],
-    ["const c = async () => { const m = mut({ n: 1 }); await 0; m.n = 2; return freeze(m).n; };",[]]];
+  // an async function may use a Mut across an await (2026-11-22: what another cell holds is frozen at run time, so only this cell's own values can change)
+  const cases = [["const c = () => async (): Promise<number> => { const r = async (m: Mut<{ n: number }>): Promise<number> => { await 0; return m.n; }; const m = { n: 1 }; const p = r(m); m.n = 5; return await p; };",[]],
+    ["const c = () => async (): Promise<number> => { const f = async (m: Mut<{ n: number }>): Promise<number> => { let t = 0; for (const x of [1, 2]) { t += m.n + x; await 0; } return t; }; const m = { n: 1 }; return await f(m); };",[]],
+    ["const c = () => async (): Promise<number> => { const f = async (m: Mut<{ n: number }>): Promise<void> => { const g = (): void => { m.n = 9; }; await 0; g(); }; const m = { n: 1 }; const p = f(m); const v = m; await p; return v.n; };",[]],
+    ["const c = () => async (): Promise<number> => { const m = { n: 1 }; const g = (): void => { m.n = 9; }; const h = async (): Promise<void> => { await 0; g(); }; const p = h(); const v = m; await p; return v.n; };",[]],
+    ["const c = () => async (): Promise<number> => { const f = async (m: Mut<{ n: number }>): Promise<number> => { m.n = 3; const a = m.n; await 0; return a; }; const m = { n: 1 }; return await f(m); };",[]],
+    ["const c = async () => { const m = { n: 1 }; await 0; m.n = 2; return m.n; };",[]]];
   const bad = [];
   for (const [source, want] of cases) {
     const r = soundscript.checkSources({ cells: source, tsx: true });

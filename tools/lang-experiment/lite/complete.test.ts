@@ -72,7 +72,7 @@ const show = (r: { labels: string[]; mode: string }) => `${r.mode} ${JSON.string
   ok("omitted parameter type comes from the named cell", has(r, "toFixed") && lacks(r, "set"), show(r));
 }
 {
-  const r = at("const hist = () => {\n  const bins = mut([1, 2]);\n  bins.|\n  return freeze(bins);\n};");
+  const r = at("const hist = () => {\n  const bins = [1, 2];\n  bins.|\n  return bins;\n};");
   ok("Mut<T[]> local offers mutating methods", has(r, "push", "sort", "map", "length"), show(r));
 }
 {
@@ -80,7 +80,7 @@ const show = (r: { labels: string[]; mode: string }) => `${r.mode} ${JSON.string
   ok("a plain array offers no mutating method", has(r, "map", "filter", "length", "slice") && lacks(r, "push", "sort", "splice", "reverse", "fill"), show(r));
 }
 {
-  const r = at("const h = () => {\n  const b = mut(new Float64Array(4));\n  b.|\n  return freeze(b);\n};");
+  const r = at("const h = () => {\n  const b = new Float64Array(4);\n  b.|\n  return b;\n};");
   ok("Mut typed array offers set and fill", has(r, "set", "fill", "length"), show(r));
   const q = at("const h = (b: Float64Array) => b.|");
   ok("a plain typed array offers no set or fill", has(q, "length", "subarray") && lacks(q, "set", "fill"), show(q));
@@ -154,8 +154,9 @@ const show = (r: { labels: string[]; mode: string }) => `${r.mode} ${JSON.string
   ok("allowed intrinsics are offered", has(m, "Math", "Map") && lacks(m, "MutationObserver"), show(m));
   const c = at("const f = (x: number) => dou|");
   ok("another cell is not a name in scope", lacks(c, "doubled"), show(c));
-  const e = at("const f = (x: number) => action(() => { mu| })");
-  ok("mut from the prelude", has(e, "mut"), show(e));
+  // S4 (2026-11-22): mut is gone from the prelude; snapshot stays
+  const e = at("const f = (x: number) => action(() => { sn| })");
+  ok("snapshot from the prelude", has(e, "snapshot"), show(e));
 }
 
 // ---- parameter lists

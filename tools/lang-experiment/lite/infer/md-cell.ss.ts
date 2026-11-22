@@ -42,9 +42,9 @@ export const mdCell = (ixKnot, ixFreshCtl, ixDrain, mdSyntax, mdInject, mdTainte
   if (M.value.has(d.name) || rec === undefined) return null;
   const R = X.R.cell(d.fn.start);
   const K: IxK = ixKnot(R.ix, X.src, X.cellNames, X.R.allowed, X.probe);
-  const C: IxCtls = mut({ ...ixFreshCtl(X.count) });
+  const C: IxCtls = { ...ixFreshCtl(X.count) };
   C.nextFlow = 1;
-  const L: MdL = mut({ errors: rec.errors, ch: [], chUnsup: [], blockedBy: [] });
+  const L: MdL = { errors: rec.errors, ch: [], chUnsup: [], blockedBy: [] };
   mdSyntax(K, C, X, L, d);
   const injected = mdInject(K, C, X, M, L, d);
   const tainted = mdTainted(X, M, d), fedBy = mdFedBy(M, d);

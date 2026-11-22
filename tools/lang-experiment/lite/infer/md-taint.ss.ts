@@ -21,12 +21,12 @@ export const mdTaintOf = (mdAnn, mdRefName, isNamed) => (X: MdCtx, M: MdMod, p: 
   return caps && name !== "invalidation" && name !== "log" ? `capability ${name}` : null;
 };
 export const mdTainted = (mdTaintOf) => (X: MdCtx, M: MdMod, d: MdDef): Map<string, string> => {
-  const out: Mut<Map<string, string>> = mut(new Map());
+  const out: Mut<Map<string, string>> = new Map();
   for (const p of d.fn.params) {
     const why = mdTaintOf(X, M, p);
     if (why !== null && p.type === "Identifier") out.set(p.name, why);
   }
-  return freeze(out);
+  return out;
 };
 // the first parameter that feeds the cell a function from another language, and how
 export const mdFedBy = () => (M: MdMod, d: MdDef): string | null => {

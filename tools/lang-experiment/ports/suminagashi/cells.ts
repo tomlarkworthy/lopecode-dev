@@ -123,7 +123,7 @@ let defaults = () => ({
 // absorbance of a saturated film: paper * exp(-absorb) is the fluid's colour.
 // The original writes from a forEach callback; a Mut may not be captured, so it is a for loop.
 let absorbance = (fluids) => {
-  const absorb = mut(new Float32Array(32));
+  const absorb = new Float32Array(32);
   for (let i = 0; i < fluids.length; i++) {
     const fluid = fluids[i];
     if (!fluid.color) continue;
@@ -133,7 +133,7 @@ let absorbance = (fluids) => {
       absorb[4 * i + k] = -Math.log(Math.max(channel, 0.02));
     }
   }
-  return freeze(absorb);
+  return absorb;
 };
 
 // ---- lines: drops as closed polylines carried by the water ----
@@ -188,7 +188,7 @@ let createContours = () =>
       const shortest2 = 0.09 * spacing * spacing;
       const bend = 0.08 * spacing;
       const bend2 = bend * bend;
-      const to = mut(new Float32Array(4 * n));
+      const to = new Float32Array(4 * n);
       let m = 0;
       let lastX = 0;
       let lastY = 0;
@@ -228,7 +228,7 @@ let createContours = () =>
         }
         x0 = x1; y0 = y1; x1 = x2; y1 = y2; x2 = x3; y2 = y3;
       }
-      return { ...curve, n: m, xy: freeze(to) };
+      return { ...curve, n: m, xy: to };
     };
 
     const make = (curves: readonly Curve[], version: number, lineage: object): Contours => ({
@@ -242,22 +242,22 @@ let createContours = () =>
       // a new drop: a circle, painted over everything born before it
       birth: ({ x, y, radius, color, outline = true }) => {
         const n = Math.max(12, Math.ceil((2 * Math.PI * radius) / spacing));
-        const xy = mut(new Float32Array(2 * n));
+        const xy = new Float32Array(2 * n);
         for (let i = 0; i < n; i++) {
           xy[2 * i] = x + radius * Math.cos((2 * Math.PI * i) / n);
           xy[2 * i + 1] = y + radius * Math.sin((2 * Math.PI * i) / n);
         }
-        return make([...curves, { color, outline, n, xy: freeze(xy) }], version + 1, lineage);
+        return make([...curves, { color, outline, n, xy: xy }], version + 1, lineage);
       },
       // Carry every vertex along for dt, on the CPU. velocity: what
       // tray.read("velocity") returns. The tray does the same on the GPU, in
       // contourAdvectShader; this one is what the tests compare that with.
       advect: (velocity, dt) => {
-        const out = mut([0, 0]);
-        const moved = mut<Curve[]>([]);
+        const out = [0, 0];
+        const moved: Mut<Curve[]> = [];
         for (const curve of curves) {
           const { n, xy } = curve;
-          const next = mut(new Float32Array(2 * n));
+          const next = new Float32Array(2 * n);
           for (let i = 0; i < n; i++) {
             let x = xy[2 * i];
             let y = xy[2 * i + 1];
@@ -274,9 +274,9 @@ let createContours = () =>
             next[2 * i] = x;
             next[2 * i + 1] = y;
           }
-          moved.push({ ...curve, xy: freeze(next) });
+          moved.push({ ...curve, xy: next });
         }
-        return make(freeze(moved), version, lineage).resample();
+        return make(moved, version, lineage).resample();
       },
       // re-space curve k, or every curve
       resample: (k) =>
@@ -285,7 +285,7 @@ let createContours = () =>
       // any run of them is a triangle fan. box: [x0, y0, x1, y1]
       pack: (k) => {
         const { n, xy } = curves[k];
-        const packed = mut(new Float32Array(2 * n + 2));
+        const packed = new Float32Array(2 * n + 2);
         packed.set(xy.subarray(0, 2 * n));
         packed[2 * n] = xy[0];
         packed[2 * n + 1] = xy[1];
@@ -297,14 +297,14 @@ let createContours = () =>
           if (y < y0) y0 = y;
           if (y > y1) y1 = y;
         }
-        return { packed: freeze(packed), n, box: [x0, y0, x1, y1] };
+        return { packed: packed, n, box: [x0, y0, x1, y1] };
       },
       // take curve k's vertices back from an array laid out by pack()
       unpack: (k, packed) => {
         const n = curves[k].n;
-        const xy = mut(new Float32Array(2 * n));
+        const xy = new Float32Array(2 * n);
         xy.set(packed.subarray(0, 2 * n));
-        const taken = freeze(xy);
+        const taken = xy;
         return make(curves.map((c, i) => (i === k ? { ...c, xy: taken } : c)), version, lineage);
       },
       // signed area enclosed by curve number k, cells squared
@@ -329,13 +329,13 @@ let test_lines_keep_their_area = (runTests, createContours) => {
   // a rigid quarter turn about the centre of a 96 cell tray, on the CPU
   const size = 96;
   const turn = Math.PI / 2 / 200;
-  const field = mut(new Float32Array(size * size * 4));
+  const field = new Float32Array(size * size * 4);
   for (let j = 0; j < size; j++)
     for (let i = 0; i < size; i++) {
       field[4 * (j * size + i)] = -turn * (j + 0.5 - size / 2); // u, west face
       field[4 * (j * size + i) + 1] = turn * (i + 0.5 - size / 2); // v, south face
     }
-  const velocity = freeze(field);
+  const velocity = field;
   let contours = createContours(size, size);
   contours = contours.birth({ x: 64, y: 48, radius: 12, color: [0, 0, 0] });
   const before = contours.area(0);

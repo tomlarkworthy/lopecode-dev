@@ -125,10 +125,10 @@ const hash01 = (xs32: (s: number) => number) => (seed: number, frame: number, ag
 const maze = (atMI: AtM<Int32Array>, atMU8: AtM<Uint8Array>, params: Params, xs32: (s: number) => number): Maze => {
   const cw = params.cellsW, ch = params.cellsH, c = params.cell;
   const w = cw * c + 1, h = ch * c + 1;
-  const walls = mut(new Uint8Array(w * h));
+  const walls = new Uint8Array(w * h);
   walls.fill(1);
-  const seen = mut(new Uint8Array(cw * ch));
-  const stack = mut(new Int32Array(cw * ch));
+  const seen = new Uint8Array(cw * ch);
+  const stack = new Int32Array(cw * ch);
   let s = params.seed >>> 0 || 1;
   let top = 0;
   stack[0] = 0;
@@ -175,7 +175,7 @@ const maze = (atMI: AtM<Int32Array>, atMU8: AtM<Uint8Array>, params: Params, xs3
   for (let ty = ry0 * c + 1; ty < (ry0 + 3) * c; ty++) for (let tx = rx0 * c + 1; tx < (rx0 + 4) * c; tx++) walls[ty * w + tx] = 0;
   // spawn points: the centres of the cells on the border
   const ns = 2 * (cw + ch) - 4;
-  const spawns = mut(new Float32Array(ns * 2));
+  const spawns = new Float32Array(ns * 2);
   let k = 0;
   for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) {
     if (cx !== 0 && cy !== 0 && cx !== cw - 1 && cy !== ch - 1) continue;
@@ -183,7 +183,7 @@ const maze = (atMI: AtM<Int32Array>, atMU8: AtM<Uint8Array>, params: Params, xs3
     spawns[k * 2 + 1] = cy * c + c / 2 + 0.5;
     k++;
   }
-  return { w, h, walls: freeze(walls), spawns: freeze(spawns) };
+  return { w, h, walls: walls, spawns: spawns };
 };
 
 // The flow field: breadth-first distance from the player's tile over floor tiles (4-connected),
@@ -192,9 +192,9 @@ const maze = (atMI: AtM<Int32Array>, atMU8: AtM<Uint8Array>, params: Params, xs3
 // distance 1e9 and direction 0.
 const flowOf = (atF: AtF, atU8: AtU8, atMF: AtM<Float32Array>, atMI: AtM<Int32Array>) => (maze: Maze, player: Float32Array): Float32Array => {
   const w = maze.w, h = maze.h, walls = maze.walls;
-  const dist = mut(new Float32Array(w * h));
+  const dist = new Float32Array(w * h);
   dist.fill(1e9);
-  const queue = mut(new Int32Array(w * h));
+  const queue = new Int32Array(w * h);
   const px = Math.max(1, Math.min(w - 2, Math.floor(atF(player, 0))));
   const py = Math.max(1, Math.min(h - 2, Math.floor(atF(player, 1))));
   let head = 0, tail = 0;
@@ -209,7 +209,7 @@ const flowOf = (atF: AtF, atU8: AtU8, atMF: AtM<Float32Array>, atMI: AtM<Int32Ar
     if (atU8(walls, n2) === 0 && atMF(dist, n2) > d) { dist[n2] = d; queue[tail] = n2; tail++; }
     if (atU8(walls, n3) === 0 && atMF(dist, n3) > d) { dist[n3] = d; queue[tail] = n3; tail++; }
   }
-  const out = mut(new Float32Array(w * h * 3));
+  const out = new Float32Array(w * h * 3);
   for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
     const i = y * w + x;
     out[i * 3] = atMF(dist, i);
@@ -227,7 +227,7 @@ const flowOf = (atF: AtF, atU8: AtU8, atMF: AtM<Float32Array>, atMI: AtM<Int32Ar
     out[i * 3 + 1] = bx;
     out[i * 3 + 2] = by;
   }
-  return freeze(out);
+  return out;
 };
 
 // The coarse grid from last frame's agents: per tile, count and summed velocity of the live agents
@@ -235,7 +235,7 @@ const flowOf = (atF: AtF, atU8: AtU8, atMF: AtM<Float32Array>, atMI: AtM<Int32Ar
 // is sent small.
 const gridOf = (atF: AtF, atMF: AtM<Float32Array>, S: number) => (maze: Maze, agents: readonly Float32Array[]): Float32Array => {
   const w = maze.w, h = maze.h;
-  const g = mut(new Float32Array(w * h * 3));
+  const g = new Float32Array(w * h * 3);
   for (const a of agents) {
     for (let i = 0; i < a.length; i += S) {
       if (atF(a, i + 4) <= 0) continue;
@@ -245,14 +245,14 @@ const gridOf = (atF: AtF, atMF: AtM<Float32Array>, S: number) => (maze: Maze, ag
       g[t + 2] = atMF(g, t + 2) + (atF(a, i + 3));
     }
   }
-  return freeze(g);
+  return g;
 };
 
 // The spatial hash for separation: live agents counting-sorted into half-tile cells, in global index
 // order within a cell, so the neighbour order does not depend on batching.
 const neighOf = (atF: AtF, atMI: AtM<Int32Array>, S: number) => (maze: Maze, agents: readonly Float32Array[]): Neigh => {
   const hw = maze.w * 2, cells = hw * maze.h * 2;
-  const start = mut(new Int32Array(cells + 1));
+  const start = new Int32Array(cells + 1);
   let live = 0;
   for (const a of agents) for (let i = 0; i < a.length; i += S) {
     if (atF(a, i + 4) <= 0) continue;
@@ -260,8 +260,8 @@ const neighOf = (atF: AtF, atMI: AtM<Int32Array>, S: number) => (maze: Maze, age
     live++;
   }
   for (let c = 0; c < cells; c++) start[c + 1] = atMI(start, c + 1) + (atMI(start, c));
-  const fill = mut(new Int32Array(cells));
-  const pos = mut(new Float32Array(live * 2));
+  const fill = new Int32Array(cells);
+  const pos = new Float32Array(live * 2);
   for (const a of agents) for (let i = 0; i < a.length; i += S) {
     if (atF(a, i + 4) <= 0) continue;
     const c = Math.floor(atF(a, i + 1) * 2) * hw + Math.floor(atF(a, i) * 2);
@@ -270,29 +270,29 @@ const neighOf = (atF: AtF, atMI: AtM<Int32Array>, S: number) => (maze: Maze, age
     pos[k * 2 + 1] = atF(a, i + 1);
     fill[c] = atMI(fill, c) + (1);
   }
-  return { start: freeze(start), pos: freeze(pos) };
+  return { start: start, pos: pos };
 };
 
 // Bullets (x, y, vx, vy) binned by tile: start[t]..start[t+1] index list.
 const binsOf = (atF: AtF, atMI: AtM<Int32Array>) => (maze: Maze, bullets: Float32Array): Bins => {
   const n = bullets.length / 4, cells = maze.w * maze.h;
-  const start = mut(new Int32Array(cells + 1));
-  const list = mut(new Int32Array(n));
-  const tileOf = mut(new Int32Array(n));
+  const start = new Int32Array(cells + 1);
+  const list = new Int32Array(n);
+  const tileOf = new Int32Array(n);
   for (let b = 0; b < n; b++) {
     const t = Math.floor(atF(bullets, b * 4 + 1)) * maze.w + Math.floor(atF(bullets, b * 4));
     tileOf[b] = t >= 0 && t < cells ? t : -1;
     if (atMI(tileOf, b) >= 0) start[atMI(tileOf, b) + 1] = atMI(start, atMI(tileOf, b) + 1) + (1);
   }
   for (let t = 0; t < cells; t++) start[t + 1] = atMI(start, t + 1) + (atMI(start, t));
-  const fill = mut(new Int32Array(cells));
+  const fill = new Int32Array(cells);
   for (let b = 0; b < n; b++) {
     const t = atMI(tileOf, b);
     if (t < 0) continue;
     list[atMI(start, t) + atMI(fill, t)] = b;
     fill[t] = atMI(fill, t) + (1);
   }
-  return { start: freeze(start), list: freeze(list) };
+  return { start: start, list: list };
 };
 
 // The kind a pair of agents is: 40% chevrons, 35% diamonds, 25% hexagons.
@@ -329,9 +329,9 @@ const stepBatch = (atF: AtF, atI: AtI, atU8: AtU8, hash01: (seed: number, frame:
 ): Stepped => {
   const w = maze.w, walls = maze.walls, dt = params.dt, hw = w * 2;
   const n = batch.length / S;
-  const out = mut(new Float32Array(batch.length));
+  const out = new Float32Array(batch.length);
   // every hit is recorded: a fixed cap would make the result depend on how agents are batched
-  const hits = mut<number[]>([]);
+  const hits: Mut<number[]> = [];
   const sepR = params.sepR, sepCap = params.sepCap, r2 = sepR * sepR;
   // this frame's player and shockwave, read once
   const plx = atF(player, 0), ply = atF(player, 1);
@@ -467,7 +467,7 @@ const stepBatch = (atF: AtF, atI: AtI, atU8: AtU8, hash01: (seed: number, frame:
     out[o] = x; out[o + 1] = y; out[o + 2] = vx; out[o + 3] = vy; out[o + 4] = life;
     out[o + 5] = kind; out[o + 6] = hp; out[o + 7] = flash;
   }
-  return { agents: freeze(out), hits: Int32Array.from(freeze(hits)) };
+  return { agents: out, hits: Int32Array.from(hits) };
 };
 type StepFn = (batch: Float32Array, base: number, frame: number, field: Float32Array, neigh: Neigh, binned: Bins,
   bullets: Float32Array, player: Float32Array, shock: Float32Array, active: number, maze: Maze, params: Params) => Stepped;
@@ -480,7 +480,7 @@ const hits = (stepped: Stepped) => stepped.hits;
 // Agents to start with: all dormant at spawn points with staggered countdowns; those below active
 // count down and arrive over the first seconds.
 const initial = (atF: AtF, maze: Maze, params: Params, hash01: (seed: number, frame: number, agent: number, k: number) => number, S: number) => (n: number, from: number): Float32Array => {
-  const out = mut(new Float32Array(n * S));
+  const out = new Float32Array(n * S);
   for (let a = 0; a < n; a++) {
     const id = from + a;
     const k = Math.floor(hash01(params.seed, 0, id, 6) * (maze.spawns.length / 2));
@@ -488,7 +488,7 @@ const initial = (atF: AtF, maze: Maze, params: Params, hash01: (seed: number, fr
     out[a * S + 1] = atF(maze.spawns, k * 2 + 1) + (hash01(params.seed, 0, id, 8) - 0.5) * 2.6;
     out[a * S + 4] = -hash01(params.seed, 0, id, 9) * 4;
   }
-  return freeze(out);
+  return out;
 };
 
 // The batch update as a function on the worker pool. The flow field, spatial hash and
@@ -516,13 +516,13 @@ const test_batches_do_not_matter = (maze: Maze, params: Params, initial: (n: num
       const sh = new Float32Array([80.5, 50.5, 8, f % 60 === 0 ? 20 : 0]);
       parts = parts.map((p, i) => stepBatch(p, i * size, f, fl, nb, bn, bl, pl, sh, 2048, maze, params).agents);
     }
-    const all = mut(new Float32Array(2048 * S));
+    const all = new Float32Array(2048 * S);
     for (let i = 0; i < parts.length; i++) {
       const p = parts.at(i);
       if (p === undefined) throw new RangeError("part " + i);
       all.set(p, i * size * S);
     }
-    return freeze(all);
+    return all;
   };
   const a = run(256), b = run(1024);
   for (let i = 0; i < a.length; i++) if (!Object.is(atF(a, i), atF(b, i))) throw new Error(`agent ${Math.floor(i / S)} field ${i % S} differs`);

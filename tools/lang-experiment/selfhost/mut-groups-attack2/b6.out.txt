@@ -1,0 +1,31 @@
+== lend-then-freeze-same-call: ACCEPT
+   show a = [1,2]
+== lend-field-then-freeze-group-same-call: ACCEPT
+   show a = [1,2]
+== lend-group-then-freeze-group-same-call: ACCEPT
+   show a = [1,2]
+== lend-then-freeze-kept-result: ACCEPT
+   show a = [1,2]
+== lend-then-freeze-map: REJECT a:rejected[unknown-type]
+== lend-then-freeze-new: ACCEPT
+   show a = [2]
+== lend-in-nested-call-then-freeze: ACCEPT
+   show a = [1,2]
+== covariant-mut-array-push-string: REJECT a:rejected[type]
+== covariant-group-field-union: REJECT a:rejected[type]
+== covariant-group-plain-field: REJECT a:rejected[type]
+== covariant-plain-record-field: REJECT a:rejected[type]
+== covariant-map-value: REJECT a:rejected[type]
+== group-width-extra-field: REJECT a:rejected[type]
+== group-width-missing-plain: REJECT a:rejected[type]
+== group-optional-plain-field-delete: REJECT a:rejected[type]
+== plain-optional-delete: REJECT a:rejected[type]
+== action-captures-mut: REJECT b:rejected[mut-capture][action-capture]
+== update-callback-mut: ACCEPT
+   show a = undefined
+   error c: undefined is not an object (evaluating 'p.name')
+== cell-fn-input-with-mut-param: ACCEPT
+   show a = [1,1]
+== cell-fn-input-untyped-given-mut: ACCEPT
+   show a = [1,1]
+-- 20 candidates, 9 accepted

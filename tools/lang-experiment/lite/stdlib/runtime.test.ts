@@ -60,7 +60,8 @@ async function load(src: string, opts: { unchecked?: boolean; outside?: Record<s
   const runs = new Map<string, number>();
   const errs: string[] = [];
   // a cell defined later is checked with the module as it then is, as the editor checks an edit
-  const texts = T.splitCells(src, true);
+  // a copy: splitCells returns a frozen array (freeze(out) in tc-ctx.ss.ts)
+  const texts = [...T.splitCells(src, true)];
   const define = (text: string) => {
     const name = ss.declaredName(text);
     const at = texts.findIndex((t) => ss.declaredName(t) === name);
@@ -293,6 +294,18 @@ await run("c3_island_cache_bounded", async () => {
   ok("c3_recent_island_keeps_key", new Set(keyOf(199)).size === 1, JSON.stringify(keyOf(199)));
 });
 
+
+await run("c4_island_results_frozen", async () => {
+  const c = ss.compiler(() => `const x = () => 1;\nexport const y = (x: number) => [x, 2];\nexport const m = (x: number) => new Map([["k", x]]);\nexport const go = (compile: Compile) => compile({ inputs: ["x"], refs: [], outputs: ["y", "m"] });\n`);
+  const refuses = (f: () => unknown) => { try { f(); return false; } catch (e) { return e instanceof TypeError; } };
+  const here: any = await c.for("go", {})({ inputs: ["x"], refs: [], outputs: ["y", "m"] } as any)({ x: 1 });
+  ok("c4_here_array_refuses_write", refuses(() => here.y.push(3)) && here.y.length === 2, JSON.stringify(here.y));
+  ok("c4_here_map_refuses_write", refuses(() => here.m.set("k", 9)) && here.m.get("k") === 1, String(here.m.get("k")));
+  const pool = { size: 1, run: async () => ({ y: [1, 2], m: new Map([["k", 1]]) }) };
+  const there: any = await c.for("go", {})({ inputs: ["x"], refs: [], outputs: ["y", "m"], options: { runtime: pool } } as any)({ x: 1 });
+  ok("c4_pool_array_refuses_write", refuses(() => there.y.push(3)) && there.y.length === 2, JSON.stringify(there.y));
+  ok("c4_pool_map_refuses_write", refuses(() => there.m.set("k", 9)) && there.m.get("k") === 1, String(there.m.get("k")));
+});
 
 // flush groups: each top-level action call applies or is dropped on its own, in call order
 const refOf = (v: unknown, name: string) => P.materialize(P.state(v), name) as any;
@@ -553,7 +566,7 @@ const n = (base: number): StateCell<number> => state(base);
 const other = (): StateCell<number> => state(0);
 const both = (n: State<number>, other: State<number>) => action(() => { other.update((v) => v + 1); n.update((v) => v + 1); });`;
   const p = await load(SRC);
-  ok("w1_two_variables_per_state_cell", JSON.stringify(p.vars.get("both")._inputs.map((i: any) => i._name)) === JSON.stringify(["ss_action", "viewof n", "viewof other"]) && p.m._scope.has("viewof n"), JSON.stringify([...p.m._scope.keys()]));
+  ok("w1_two_variables_per_state_cell", JSON.stringify(p.vars.get("both")._inputs.map((i: any) => i._name)) === JSON.stringify(["ss_action", "ss_out", "viewof n", "viewof other"]) && p.m._scope.has("viewof n"), JSON.stringify([...p.m._scope.keys()]));
   const error = async () => { try { await p.m.value("both"); return ""; } catch (e) { return (e as Error).message; } };
   const held = p.value("both");
   const base = p.vars.get("base");

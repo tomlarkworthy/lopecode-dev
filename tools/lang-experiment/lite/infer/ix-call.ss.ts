@@ -7,9 +7,9 @@ export const ixBail = (ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: Ix
 };
 export const ixTypeArgs = (ixConvert) => (K: IxK, V: IxVars, env: IxEnv, n: AstNode | null): Ty[] | null => {
   if (n === null || n.type !== "TSTypeParameterInstantiation") return null;
-  const out: Mut<Ty[]> = mut([]);
+  const out: Mut<Ty[]> = [];
   for (const t of n.params) out.push(ixConvert(K, V, env, t));
-  return freeze(out);
+  return out;
 };
 export const ixCall = (ixLookup, ixPreludeCall, ixCompileCall, ixNewSigs, ixCallSigs, ixApplyAll, ixFact, ixGap) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null): Ty => {
   if (e.type !== "CallExpression" && e.type !== "NewExpression") return ixGap(C, `call node ${e.type}`);
@@ -81,6 +81,8 @@ export const ixApplyAll = (ixTypeArgs, ixApply, ixMark, ixCopyFlow, named, ERR) 
   for (const [i, sig] of sigs.entries()) {
     const mark = ixMark(K, C), flow = ixCopyFlow(W, C, C.cur);
     t = ixApply(K, T, V, W, C, env, e, sig, expected, explicit);
+    const fl = sig.flags;
+    C.freshAt = fl !== undefined && !!fl.intrinsic && !!fl.fresh && !fl.view && !view ? e.nid : -1;
     if (sigs.length === 1) break;
     const now = ixMark(K, C);
     if ((now.d?.n ?? 0) === (mark.d?.n ?? 0) && (now.u?.n ?? 0) === (mark.u?.n ?? 0)) break;
@@ -96,6 +98,7 @@ export const ixCloneCall = (ixApply, ixErr, show, ERR) => (K: IxK, T: IxTypes, V
   const a = e.arguments[0], at = a === undefined ? undefined : T.get(a.nid);
   const w = a !== undefined && at !== undefined ? K.reg.cloneProblem(at) : null;
   if (a !== undefined && at !== undefined && w) ixErr(K, C, a, "type", `structuredClone of ${show(at)}, which ${w}: the clone would throw or lose it`);
+  C.freshAt = e.nid;
   return t;
 };
 export const ixObjectAssign = (ixErr, ixUnsup, isNamed, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression): Ty => {

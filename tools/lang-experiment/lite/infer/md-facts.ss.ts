@@ -38,14 +38,14 @@ export const mdRebinds = (mdBinds, mdDeclares) => (n: AstNode, name: string): bo
 };
 // facts.ts preludeCalls: the calls of the bare name the cell does not bind, as nids
 export const mdPreludeCalls = (mdRebinds, kidsOf) => (fn: AstNode, name: string): Set<number> => {
-  const out: Mut<Set<number>> = mut(new Set());
-  const todo: Mut<AstNode[]> = mut([fn]);
+  const out: Mut<Set<number>> = new Set();
+  const todo: Mut<AstNode[]> = [fn];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     if (mdRebinds(n, name)) continue;
     if (n.type === "CallExpression" && n.callee.type === "Identifier" && n.callee.name === name) out.add(n.nid);
     for (const k of kidsOf(n).toReversed()) todo.push(k);
   }
-  return freeze(out);
+  return out;
 };
 // a returned expression that is a state(...) call, through parentheses and casts
 export const mdIsRefCall = () => (calls: Set<number>, e0: AstNode | null): boolean => {

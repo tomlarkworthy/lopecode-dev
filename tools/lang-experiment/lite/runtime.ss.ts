@@ -22,10 +22,9 @@ export type Place = readonly [string, number] | null;
 export type Compiler = { for(caller: string, refs: { readonly [k: string]: unknown }): unknown };
 export type Data = null | undefined | boolean | number | string | bigint | symbol | readonly Data[] | { readonly [k: string]: Data };
 
-// the ownership built-ins, which the checker gives their meaning: at run time each returns its argument
+// the ownership built-ins, which the checker gives their meaning: at run time mut returns its argument; freeze (a deep
+// freeze) and borrow (which marks a lent value so a yield does not freeze it) are unchecked cells of ./freeze.ts
 export const mut = () => <T,>(v: T): T => v;
-export const freeze = () => <T,>(v: T): T => v;
-export const borrow = () => <T,>(v: T): T => v;
 // what a value of a shape is, for a mismatch message (boundary.ts copy)
 export const want = () => {
   const w = (s: Shape): string => {

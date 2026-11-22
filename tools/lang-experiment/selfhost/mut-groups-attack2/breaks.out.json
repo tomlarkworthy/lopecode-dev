@@ -1,0 +1,67 @@
+[
+ {
+  "name": "C1-lend-then-freeze-in-one-call",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "C1g-group-lent-then-frozen-in-one-call",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [0,7,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "C2-write-whose-operand-freezes",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "C2g-group-field-write-whose-operand-freezes",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = {t:[6],n:0}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "C3-yield-freeze-inside-a-write-other-cell-changes",
+  "verdict": "ACCEPT",
+  "out": [
+   "CHANGED gen (value #1 of 1): [1] -> [8]",
+   "CHANGED r (value #1 of 1): {v:[1]} -> {v:[8]}",
+   "show gen = [8]",
+   "show r = {v:[8]}"
+  ],
+  "broke": true
+ },
+ {
+  "name": "C3b-yield-freeze-inside-a-lend",
+  "verdict": "ACCEPT",
+  "out": [
+   "CHANGED gen (value #1 of 1): [1] -> [1,2]",
+   "CHANGED r (value #1 of 1): {v:[1]} -> {v:[1,2]}",
+   "show gen = [1,2]",
+   "show r = {v:[1,2]}"
+  ],
+  "broke": true
+ },
+ {
+  "name": "C3g-yield-frozen-group-inside-field-write",
+  "verdict": "ACCEPT",
+  "out": [
+   "CHANGED gen (value #1 of 1): {t:[1],n:0} -> {t:[1],n:8}",
+   "CHANGED r (value #1 of 1): {v:{t:[1],n:0}} -> {v:{t:[1],n:8}}",
+   "show gen = {t:[1],n:8}",
+   "show r = {v:{t:[1],n:8}}"
+  ],
+  "broke": true
+ }
+]

@@ -1,0 +1,51 @@
+== method-this-read: REJECT a:rejected[no-this]
+== method-this-push-after-freeze: REJECT a:rejected[no-this]
+== plain-mut-method-this-push: REJECT a:rejected[no-this]
+== method-in-plain-record-this: REJECT a:rejected[no-this]
+== method-returns-field: REJECT a:rejected[no-this]
+== group-method-capture-outer: REJECT a:rejected[mut-capture]
+== group-method-cell-value: ACCEPT
+   show a = {t:[1],f:fn}
+== group-arrow-field: ACCEPT
+   show a = 2
+== group-getter: REJECT a:unsupported{get accessor}{intrinsic member Mut.u}
+== group-computed-key: REJECT a:rejected[no-member]{computed property}{intrinsic member Mut.t}
+== group-spread-other: ACCEPT
+   show a = 2
+== group-spread-group-literal: REJECT a:rejected[mut-bind]
+== group-field-mut-of-spread-cell: ACCEPT
+   show a = [1,2]
+== group-field-plain-from-cell: ACCEPT
+   show a = 1
+== group-plain-object-field-from-cell-write: REJECT a:rejected[mut-deep-write]
+== plain-mut-record-holding-cell-value-write-deep: REJECT a:rejected[mut-deep-write]
+== group-field-map-of-cell-arrays: ACCEPT
+   show a = 1
+== mut-map-holding-mut: REJECT a:rejected[mut-escape]
+== map-get-of-mut-map-deep-write: REJECT a:rejected[mutating-method]
+== group-field-sort-returns: REJECT a:rejected[mut-view]
+== group-field-sort-in-arg: REJECT a:rejected[mut-view]
+== plain-sort-in-arg-keep: REJECT a:rejected[mut-view]
+== plain-sort-in-intrinsic-arg: ACCEPT
+   show a = [0,1,3]
+== map-set-chain-in-new-map: ACCEPT
+   show a = 1
+== set-add-into-new-set: ACCEPT
+   show a = 1
+== values-into-array-from: ACCEPT
+   show a = [1]
+== object-entries-of-mut: REJECT a:rejected[type]
+== object-assign-into-mut: REJECT a:rejected[mut-escape]{Object.assign}
+== object-assign-from-mut-into-literal: REJECT a:rejected[mut-escape]{Object.assign}
+== structuredClone-mut: REJECT a:rejected[mut-escape][mut-escape][mut-source]
+== array-of-mut-spread: ACCEPT
+   show a = [[1]]
+== spread-mut-record-field-array-alias: ACCEPT
+   show a = [0,2]
+== mut-array-of-arrays-shallow-copy-alias: ACCEPT
+   show a = [[1]]
+== group-equals: ACCEPT
+   show a = true
+== group-messageOf: ACCEPT
+   show a = "[object Object]"
+-- 35 candidates, 15 accepted

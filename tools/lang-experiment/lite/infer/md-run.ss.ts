@@ -5,7 +5,7 @@
 export type MdRun = { readonly fnT: Ty; readonly facts: IxFacts | null; readonly crash: string | null; readonly gap: string | null };
 // ixCheckFn on a log the injection already wrote to: the globals bound in scope 0, then the cell's function
 export const mdInferFn = (ixFoldFacts) => (K: IxK, C: IxCtls, X: MdCtx, fn: FnNode, injected: Ty[]): { fnT: Ty; facts: IxFacts } => {
-  const T: IxTypes = mut(new Map()), V: IxVars = mut(new Map()), W: IxFlows = mut(new Map([[0, new Map()]]));
+  const T: IxTypes = new Map(), V: IxVars = new Map(), W: IxFlows = new Map([[0, new Map()]]);
   for (const g of X.R.globals) {
     C.nextId += 1;
     V.set(`0:${g.name}`, { id: C.nextId, scope: 0, name: g.name, t: g.t, kind: g.kind, nid: -1, fi: -1, fnNode: -1, mutOwned: false, assigned: false, cellParam: false, checked: true, lazy: { k: "none" } });
@@ -44,13 +44,13 @@ export const mdRunChecks = (mdInferFn, mdAfterInfer, ixDrain, ixUnsup, ERR) => (
 };
 // core.ts dedupe: the first of each line, rule and message
 export const mdDedupe = () => (es: MdErr[]): MdErr[] => {
-  const seen: Mut<Set<string>> = mut(new Set());
-  const out: Mut<MdErr[]> = mut([]);
+  const seen: Mut<Set<string>> = new Set();
+  const out: Mut<MdErr[]> = [];
   for (const e of es) {
     const k = `${e.line}:${e.rule}:${e.msg}`;
     if (seen.has(k)) continue;
     seen.add(k);
     out.push(e);
   }
-  return freeze(out);
+  return out;
 };

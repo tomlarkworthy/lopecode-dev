@@ -1,0 +1,60 @@
+[
+ {
+  "name": "iterable-given-ab",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "iterable-given-ab-via-unknown",
+  "verdict": "REJECT a:rejected[no-cast]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "arraylike-given-ab",
+  "verdict": "REJECT a:rejected[type]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "generic-src",
+  "verdict": "REJECT a:rejected[type][mut-not-fresh]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "ta-given-as-iterable",
+  "verdict": "ACCEPT",
+  "out": [
+   "show r = 0"
+  ],
+  "broke": false
+ },
+ {
+  "name": "object-param-given-ab",
+  "verdict": "REJECT a:rejected[type][mut-not-fresh]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "byteLength-record-given-ab",
+  "verdict": "REJECT a:rejected[type][type][mut-not-fresh]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "iterable-of-ab-union-narrowed",
+  "verdict": "REJECT a:rejected[mut-not-fresh]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "iterable-via-map-keys",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = Float32Array[1]"
+  ],
+  "broke": false
+ }
+]

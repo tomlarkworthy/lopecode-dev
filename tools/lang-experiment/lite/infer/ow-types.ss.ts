@@ -10,8 +10,9 @@ export type OwCtx = { readonly T: OwTree; readonly F: IxFacts; readonly R: IxReg
 // own.ts err: the first report of a rule at a start position is kept
 export type OwLog = { errs: IxLog | null; seen: Set<string>; unsup: IxLog | null };
 export type OwW = Mut<OwLog>;
-// per function: the Mut and Borrowed bindings it captures, the let and param bindings it assigns, the helpers it calls
-export type OwCap = { readonly mut: number[]; readonly let: number[]; readonly calls: number[] };
+// per function: the Mut and Borrowed bindings it captures, those of them it writes, the let and param bindings it
+// assigns, the helpers it calls
+export type OwCap = { readonly mut: number[]; readonly wmut: number[]; readonly let: number[]; readonly read: number[]; readonly calls: number[] };
 export type OwCaps = Mut<Map<number, OwCap>>;
 export type OwKind = "mut" | "borrowed" | "view";
 

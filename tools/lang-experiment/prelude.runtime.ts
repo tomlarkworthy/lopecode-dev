@@ -1,9 +1,9 @@
 // Runtime half of prelude.d.ts. Imported by the transpiled cells.ts/shell.ts and by run.ts.
-// mut, freeze and borrow are SoundScript cells (lite/runtime.ss.ts). What a write, a read and an action call may do,
+// mut is a SoundScript cell (lite/runtime.ss.ts), freeze and borrow cells of lite/freeze.ts. What a write, a read and an action call may do,
 // and what a commit applies, is decided by storeStep and the cells of lite/store.ss.ts (checked SoundScript). This
 // file holds the one StoreState value and each handle's store record, runs the actions' functions between steps,
 // and performs the effects.
-import { emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
+import { deepFreeze, SsMap, SsSet, emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
 export { mut, freeze, borrow } from "./lite/runtime-ss.ts";
 
 const STATECELL = Symbol.for("lc.statecell");
@@ -89,7 +89,7 @@ export const isRefHandle = (v: unknown) => !!v && typeof v === "object" && Objec
 // an update function that throws throws here, inside the call, before its write
 function write(h: object, f: (v: unknown) => unknown) {
   const s = recordOf(h)!;
-  const v = f(seenValue(h, updateSees(storeState, nameOfHandle(h), s)));
+  const v = deepFreeze(f(seenValue(h, updateSees(storeState, nameOfHandle(h), s))));
   storeFeed({ t: "write", handle: storeHandleOf(h), name: nameOfHandle(h), store: s, value: v });
 }
 // A handle is an Observable view: an EventTarget whose value is the committed state, which dispatches
@@ -105,8 +105,9 @@ function handleOf(name: string, check: (v: unknown) => unknown = (v) => v): obje
   });
   return h;
 }
+// a state cell's initial value and each written value are deep-frozen as they go into the store
 const madeStore = (h: object, value: unknown, view: boolean, run: { fid: string; args: unknown[] } | null) =>
-  storeFeed({ t: "made", handle: h, name: nameOfHandle(h), value, view, run });
+  storeFeed({ t: "made", handle: h, name: nameOfHandle(h), value: deepFreeze(value), view, run });
 
 // Turn the StateCell a cell returned into a handle on a store of its own (the port harness, run.ts).
 export function materialize(cell: { initial: unknown }, name: string) {
@@ -163,7 +164,8 @@ export function action(f: (...args: unknown[]) => unknown) {
   const a = (...args: unknown[]): unknown => {
     storeFeed({ t: "enter", evaluating: rt.evalDepth > 0 });
     let v: unknown;
-    try { v = f(...args); } catch (err) { storeFeed({ t: "exit", threw: true, value: undefined }); throw err; }
+    // the arguments are deep-frozen: the caller's values are published to the action's writes and listeners
+    try { v = f(...args.map(deepFreeze)); } catch (err) { storeFeed({ t: "exit", threw: true, value: undefined }); throw err; }
     return storeFeed({ t: "exit", threw: false, value: v });
   };
   Object.defineProperty(a, ACTION, { value: true });
@@ -185,10 +187,12 @@ export function messageOf(e: unknown): string {
   }
 }
 
+// an SsMap or SsSet (what SoundScript code makes) equals a native Map or Set with the same entries
+const protoOf = (x: object) => { const p = Object.getPrototypeOf(x); return p === SsMap.prototype ? Map.prototype : p === SsSet.prototype ? Set.prototype : p; };
 export function equals(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
   if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
-  if (Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) return false;
+  if (protoOf(a) !== protoOf(b)) return false;
   if (ArrayBuffer.isView(a)) {
     const x = a as unknown as ArrayLike<unknown>, y = b as unknown as ArrayLike<unknown>;
     if (x.length !== y.length) return false;

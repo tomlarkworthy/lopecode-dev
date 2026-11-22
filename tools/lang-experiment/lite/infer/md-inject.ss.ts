@@ -115,7 +115,7 @@ export const mdInjectParam = (mdAnn, mdRefName, mdDiag, mdInjectCell, mdInjectFo
 };
 // every parameter's type, then the parameters whose type holds one lite does not understand
 export const mdInject = (mdInjectParam, mdDiag, owMut, hasErrWith) => (K: IxK, C: IxCtls, X: MdCtx, M: MdMod, L: MdL, d: MdDef): Ty[] => {
-  const injected: Mut<Ty[]> = mut([]);
+  const injected: Mut<Ty[]> = [];
   for (const p of d.fn.params) injected.push(mdInjectParam(K, C, X, M, L, d.name, p));
   const hasErr = hasErrWith(X.R.ops);
   for (const [i, t] of injected.entries()) {
@@ -124,5 +124,5 @@ export const mdInject = (mdInjectParam, mdDiag, owMut, hasErrWith) => (K: IxK, C
     if (mt !== null && p !== undefined && p.type === "Identifier") mdDiag(X, L, p, "mut-cell", `input ${p.name}: ${mt}; an input is never a Mut: the cell it comes from and every other cell that takes it share it`);
     if (t.k !== "err" && hasErr(t) && p !== undefined && p.type === "Identifier") L.blockedBy = [...L.blockedBy, `${p.name} (type not understood)`];
   }
-  return freeze(injected);
+  return injected;
 };

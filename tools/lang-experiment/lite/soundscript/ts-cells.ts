@@ -33,7 +33,7 @@ const WORKERS_ROOTS = ["pagePool"];
 // the inputs compiled SoundScript cells take for runtime cells (ss_freeze ...), each to the runtime cell it imports
 const RUNTIME_INPUTS = new Map(RUNTIME_CELLS.map((n) => [INPUTS[n], n]));
 // in dependency order; where each declaration goes is decided in generate() ("module placement")
-const RUNTIME_FILES = ["../prelude.runtime.ts", "runtime.ss.ts", "events.ss.ts", "store.ss.ts", "render.ss.ts", "cross.ss.ts", "types.ss.ts", "shape.ss.ts", "checks.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "pool.ss.ts", "browser/workers.ts"];
+const RUNTIME_FILES = ["../prelude.runtime.ts", "freeze.ts", "runtime.ss.ts", "events.ss.ts", "store.ss.ts", "render.ss.ts", "cross.ss.ts", "types.ss.ts", "shape.ss.ts", "checks.ss.ts", "boundary.ts", "jsx/h.ts", "jsx/render.ts", "browser/cells.ts", "pool.ss.ts", "browser/workers.ts"];
 const SPLIT = "stdlib/runtime.ts";
 // SoundScript sections, in the order of their modules in the notebook, and the files bun reaches that link them
 // (types.ts imports types.ss.ts, subtype.ss.ts, walks.ss.ts, island.ss.ts and messages.ss.ts, shape-ss.ts shape.ss.ts, checks-ss.ts checks.ss.ts, runtime-ss.ts runtime.ss.ts, events.ss.ts, store.ss.ts, render.ss.ts and cross.ss.ts, acorn/index.ts the acorn sections, infer-ss.ts the sections of lite/infer, through link.ts)
@@ -81,6 +81,7 @@ const GLOBALS = new Set(["globalThis", "structuredClone", "Event", "EventTarget"
 // (keyed by source file; a file that gives a module cells and has no sentence for it stops the build)
 const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?: string; checker?: string; workers?: string }> = {
   "../prelude.runtime.ts": { title: "State cells and actions", runtime: "Each state cell's handle and the record behind it, `action`, and the commit timer. It runs action bodies and does what the cells of the section \"Writes, reads and commits\" decide." },
+  "freeze.ts": { title: "freeze at run time", runtime: "`freeze` makes the value it returns unwritable: an array or a plain record is frozen, with a record's array, record, Map or Set members, and a Map or Set refuses set, add, delete and clear; a write after it throws. A typed array is returned as it is." },
   "runtime.ss.ts": { title: "Runtime cells in SoundScript", runtime: "Cells of the runtime written in SoundScript, compiled from lite/runtime.ss.ts: mismatch wording and the comparison of copies for the boundary, JSX children and event data, the order of listeners, and the bodies of a rejected cell and of compile." },
   "events.ss.ts": { title: "Delivering events", runtime: "How each value an events cell yields reaches its listeners: `step` takes the delivery state and one event, and returns the next state and the effects that `events`, `listen`, `release` and `sweep` perform. These cells are SoundScript." },
   "store.ss.ts": { title: "Writes, reads and commits", runtime: "What a write, a read and an action call may do, and what a commit applies: `storeStep` takes the store state and one event, and returns the next state and the effects that `action`, `set`, `update` and `commit` perform. These cells are SoundScript." },
@@ -447,7 +448,7 @@ export function generate(compile: Compile, ssKeys: string[]): Generated {
   for (const m of [RUNTIME, CHECKER]) for (const src of cells[m]) for (const v of compile(src)) for (const i of v._inputs ?? []) if (workersNames.has(i)) throw new Error(`${m} cell ${v._name} takes the add-on's ${i}`);
   // it hosts SoundScript cells, so it imports rejected as ss_rejected, as the checker module does
   const hostsSs = stmts.some((s) => s.kind === "ss" && SS_HOME[s.file] === WORKERS);
-  const fromModule = (names: Set<string>, m: string) => { const xs = [...workersTakes.filter((n) => names.has(n)), ...(m === RUNTIME && hostsSs ? [`rejected as ${INPUTS.rejected}`] : [])]; return xs.length ? [`import { ${xs.join(", ")} } from "${m}"`] : []; };
+  const fromModule = (names: Set<string>, m: string) => { const xs = [...workersTakes.filter((n) => names.has(n)), ...(m === RUNTIME ? workersTakes.filter((i) => RUNTIME_INPUTS.has(i) && i !== INPUTS.rejected).map((i) => `${RUNTIME_INPUTS.get(i)} as ${i}`) : []), ...(m === RUNTIME && hostsSs ? [`rejected as ${INPUTS.rejected}`] : [])]; return xs.length ? [`import { ${xs.join(", ")} } from "${m}"`] : []; };
   const workers = [
     `md\`# SoundScript workers\n\nA worker pool for \\\`compile\\\`. A module whose cells take \\\`pool\\\` imports \\\`ss_pool\\\` from here; a notebook that does not import it starts no worker.\n\nThe build generates these cells from \\\`tools/lang-experiment/lite/browser/workers.ts\\\` and \\\`tools/lang-experiment/lite/pool.ss.ts\\\`, so an edit made here is lost at the next build.\``,
     "ss_pool = pagePool()",

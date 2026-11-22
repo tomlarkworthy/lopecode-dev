@@ -10,8 +10,20 @@ export const ixCheck = (ixCheck1) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows,
   C.quiet = q && (e.type === "ObjectExpression" || e.type === "ArrayExpression" || e.type === "ConditionalExpression" || e.type === "LogicalExpression") ? 1 : 0;
   try { return ixCheck1(K, T, V, W, C, env, e, expected, soft, q); } finally { C.quiet = outer; }
 };
-export const ixCheck1 = (ixCtxSensitive, ixHides, ixObjLit, ixArrLit, ixConditional, ixCheckLogical, ixExpect) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null, soft: boolean, q: boolean): Ty => {
+// a literal, or a fresh call or new, checked against Mut<X>: checked against X, and its type is Mut<X> (S4: a fresh value
+// is writable; no one else holds it). Any other value checked against Mut<X> is a [type] error: T is not a Mut<T>.
+export const ixCheckFresh = (ixExpect) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty, soft: boolean, q: boolean): Ty => {
+  const x = expected.k === "named" ? expected.args[0] ?? expected : expected;
+  const t = K.check(K, T, V, W, C, env, e, x, soft, q);
+  const fresh = e.type === "ArrayExpression" || e.type === "ObjectExpression" || C.freshAt === e.nid;
+  if (!soft && !fresh) ixExpect(K, C, e, t, expected, q);
+  T.set(e.nid, fresh ? expected : t);
+  return fresh ? expected : t;
+};
+export const ixCheck1 = (ixCheckFresh, ixCtxSensitive, ixHides, ixObjLit, ixArrLit, ixConditional, ixCheckLogical, ixExpect) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null, soft: boolean, q: boolean): Ty => {
   if (expected === null) return K.infer(K, T, V, W, C, env, e);
+  const viaMut = e.type === "CallExpression" && e.callee.type === "Identifier" && e.callee.name === "mut";
+  if (expected.k === "named" && expected.n === "Mut" && !viaMut && ["ArrayExpression", "ObjectExpression", "CallExpression", "NewExpression"].includes(e.type)) return ixCheckFresh(K, T, V, W, C, env, e, expected, soft, q);
   if (expected.k === "unknown" && !ixCtxSensitive(e)) { const t = K.infer(K, T, V, W, C, env, e); if (!q) ixHides(K, C, e, t, expected, null); return t; }
   let t: Ty;
   switch (e.type) {
@@ -93,6 +105,7 @@ export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixFact, 
     if (e.name === "arguments") return ERR;
     if (K.cellNames.has(e.name)) ixErr(K, C, e, "cell-by-name", `cell ${e.name} referenced by name; take it as a parameter`);
     else if (K.allowed.has(e.name)) ixUnsup(K, C, e, `intrinsic ${e.name} has no signature in lite/intrinsics.ts`);
+    else if (e.name === "mut" || e.name === "freeze" || e.name === "borrow") ixErr(K, C, e, "removed-call", `${e.name}(...) is no longer part of the language: delete the call and keep its argument (a fresh value bound to a local is writable; a cell's value is frozen when it leaves the cell)`);
     else ixErr(K, C, e, "free-name", `free name ${e.name}`);
     return ERR;
   }
@@ -106,15 +119,15 @@ export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixFact, 
 };
 // the bindings in scope at env, innermost scope first, each name once, with its type in the current flow
 export const ixScopeNames = (ixFlowOf) => (V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv): IxScopeName[] => {
-  const ids: Mut<number[]> = mut([env.scope]);
+  const ids: Mut<number[]> = [env.scope];
   for (let c = env.up; c !== null; c = c.up) ids.push(c.id);
-  const flow = ixFlowOf(W, C.cur), seen: Mut<Set<string>> = mut(new Set()), out: Mut<IxScopeName[]> = mut([]);
+  const flow = ixFlowOf(W, C.cur), seen: Mut<Set<string>> = new Set(), out: Mut<IxScopeName[]> = [];
   for (const id of ids) for (const b of V.values()) {
     if (b.scope !== id || seen.has(b.name)) continue;
     seen.add(b.name);
     out.push({ name: b.name, kind: b.kind, t: flow.get("#" + b.id) ?? b.t });
   }
-  return freeze(out);
+  return out;
 };
 // a path (identifier or chain of non-computed members) as a narrowing key; links: a ?. member is one too
 export const ixPathKey = (ixLookup, isNamed) => {
@@ -187,7 +200,7 @@ export const ixMember = (ixPathKey, ixFlowOf, ixCollapseArrays, ixNonNullish, ix
 };
 // a member read by name: each member of the object's type, one report per kind of member lacking it
 export const ixNamedMember = (ixUm, ixMemberless, ixInActionOnly, ixReportMissing, ixErr, ixFact, propT, isNamed, unwrap, named, union, show, ERR) => (K: IxK, C: IxCtls, env: IxEnv, e: MemberExpression, ot: Ty, name: string): Ty => {
-  const out: Mut<Ty[]> = mut([]), missing: Mut<Ty[]> = mut([]);
+  const out: Mut<Ty[]> = [], missing: Mut<Ty[]> = [];
   let flags: Flags | undefined;
   let bad = false;
   for (const m of ixUm(K.reg, ot)) {
@@ -202,11 +215,11 @@ export const ixNamedMember = (ixUm, ixMemberless, ixInActionOnly, ixReportMissin
     const pt = propT(p);
     out.push(isNamed(m, "Borrowed") && p.flags?.view && !K.reg.callSigs(pt).length ? named("Borrowed", pt) : pt);
   }
-  ixReportMissing(K, C, freeze(missing), name, e.property);
+  ixReportMissing(K, C, missing, name, e.property);
   C.flagsAt = e.nid;
   C.flags = flags;
   ixFact(C, { k: "flags", at: e.nid, flags: flags ?? null });
-  return bad && out.length === 0 ? ERR : union(freeze(out));
+  return bad && out.length === 0 ? ERR : union(out);
 };
 export const ixReportMissing = (ixIntrinsicName, ixMemberMissing, union) => (K: IxK, C: IxCtls, missing: Ty[], name: string, at: AstNode): void => {
   const nullish = (m: Ty) => m.k === "null" || m.k === "undef" || m.k === "void";
@@ -226,7 +239,7 @@ export const ixInActionOnly = (ixErr, ixFact) => (K: IxK, C: IxCtls, env: IxEnv,
 // an index read; strict: Registry.strictIndex, which an assignment target turns off
 export const ixIndex = (ixUm, ixErr, unwrap, isNamed, show, NUM, STR, UNDEF, ERR, union) => (K: IxK, C: IxCtls, ot: Ty, it: Ty, e: AstNode, strict: boolean): Ty => {
   const R = strict ? K.reg : K.reg.lax, si = strict && K.reg.strictIndex;
-  const out: Mut<Ty[]> = mut([]);
+  const out: Mut<Ty[]> = [];
   for (const m0 of ixUm(R, ot)) {
     if (m0.k === "err" || it.k === "err") { out.push(ERR); continue; }
     const m = unwrap(m0), x = R.expand(m), numeric = R.sub(it, NUM);
@@ -247,7 +260,7 @@ export const ixIndex = (ixUm, ixErr, unwrap, isNamed, show, NUM, STR, UNDEF, ERR
     ixErr(K, C, e, "type", `cannot index ${show(m)} with ${show(it)}`);
     out.push(ERR);
   }
-  return union(freeze(out));
+  return union(out);
 };
 export const ixExpect = (ixHides, ixErr, ixNonUndef, members, isNamed, show) => (K: IxK, C: IxCtls, at: AstNode, t: Ty, expected: Ty, ctx: boolean): boolean => {
   if (K.reg.sub(t, expected)) return ctx || ixHides(K, C, at, t, expected, null);

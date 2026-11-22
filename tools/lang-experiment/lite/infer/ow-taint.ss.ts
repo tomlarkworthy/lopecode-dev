@@ -20,9 +20,9 @@ export const owRefsOf = (owNotARef, childrenOf, TYPE_FIELDS) => {
     for (const k of childrenOf(n)) if (!TYPE_FIELDS.has(k.key)) walk(k.node, out, n, k.key);
   }
   return (n: AstNode): AstNode[] => {
-    const out: Mut<AstNode[]> = mut([]);
+    const out: Mut<AstNode[]> = [];
     walk(n, out, null, "");
-    return freeze(out);
+    return out;
   };
 };
 // the names a pattern binds
@@ -42,17 +42,17 @@ export const owBound = () => {
   return bound;
 };
 export const owBoundNames = (owBound) => (p: AstNode | null): Set<string> => {
-  const out: Mut<Set<string>> = mut(new Set());
+  const out: Mut<Set<string>> = new Set();
   owBound(p, out);
-  return freeze(out);
+  return out;
 };
 // every name declared anywhere inside fn: its parameters, locals, nested functions' names and parameters
 export const owDeclaredIn = (owBound, ixFnParts, isFnNode, kidsOf) => (fn: AstNode): Set<string> => {
-  const out: Mut<Set<string>> = mut(new Set());
+  const out: Mut<Set<string>> = new Set();
   const parts = ixFnParts(fn);
-  if (parts === null) return freeze(out);
+  if (parts === null) return out;
   for (const p of parts.params) owBound(p, out);
-  const todo: Mut<AstNode[]> = mut([parts.body]);
+  const todo: Mut<AstNode[]> = [parts.body];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     if (n.type === "VariableDeclarator") owBound(n.id, out);
     if ((n.type === "FunctionDeclaration" || n.type === "FunctionExpression") && n.id !== null && n.id.type === "Identifier") out.add(n.id.name);
@@ -62,21 +62,21 @@ export const owDeclaredIn = (owBound, ixFnParts, isFnNode, kidsOf) => (fn: AstNo
     if (n.type === "ClassDeclaration" && n.id.type === "Identifier") out.add(n.id.name);
     for (const k of kidsOf(n)) todo.push(k);
   }
-  return freeze(out);
+  return out;
 };
 export const owIsActionCall = () => (n: AstNode): boolean => n.type === "CallExpression" && n.callee.type === "Identifier" && n.callee.name === "action";
 export type OwLocal = { readonly names: Set<string>; readonly from: AstNode };
 // the cell's locals outside any action body, each with what its value is computed from
 export const owLocals = (owIsActionCall, owBoundNames, kidsOf) => (body: AstNode): OwLocal[] => {
-  const out: Mut<OwLocal[]> = mut([]);
-  const todo: Mut<AstNode[]> = mut([body]);
+  const out: Mut<OwLocal[]> = [];
+  const todo: Mut<AstNode[]> = [body];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     if (owIsActionCall(n)) continue;
     if (n.type === "VariableDeclarator" && n.init !== null) out.push({ names: owBoundNames(n.id), from: n.init });
     if (n.type === "FunctionDeclaration" && n.id.type === "Identifier") out.push({ names: new Set([n.id.name]), from: n.body });
     for (const k of kidsOf(n).toReversed()) todo.push(k);
   }
-  return freeze(out);
+  return out;
 };
 // the first reference in from to a tainted name
 export const owFirstTainted = (owRefsOf) => (taint: Mut<Map<string, string>>, from: AstNode): string | null => {
@@ -98,7 +98,7 @@ export const owTaintPass = (owFirstTainted) => (taint: Mut<Map<string, string>>,
 export const owActionTaint = (owDeclaredIn, owRefsOf, ixFnParts) => (taint: Mut<Map<string, string>>, f: AstNode, out: Mut<OwCapture[]>): void => {
   const parts = ixFnParts(f);
   if (parts === null) return;
-  const own = owDeclaredIn(f), seen: Mut<Set<string>> = mut(new Set());
+  const own = owDeclaredIn(f), seen: Mut<Set<string>> = new Set();
   for (const r of owRefsOf(parts.body)) {
     const why = r.type === "Identifier" ? taint.get(r.name) : undefined;
     if (r.type !== "Identifier" || why === undefined || own.has(r.name) || seen.has(r.name)) continue;
@@ -113,11 +113,11 @@ export const owActionTaint = (owDeclaredIn, owRefsOf, ixFnParts) => (taint: Mut<
 export const owTaintCaptures = (owLocals, owTaintPass, owActionTaint, owIsActionCall, isFnNode, ixFnParts, kidsOf) => (fn: AstNode, tainted: Map<string, string>): OwCapture[] => {
   const parts = ixFnParts(fn);
   if (parts === null) return [];
-  const taint: Mut<Map<string, string>> = mut(new Map(tainted)), locals = owLocals(parts.body);
+  const taint: Mut<Map<string, string>> = new Map(tainted), locals = owLocals(parts.body);
   for (let changed = true; changed; ) changed = owTaintPass(taint, locals);
-  const out: Mut<OwCapture[]> = mut([]);
-  if (!taint.size) return freeze(out);
-  const todo: Mut<AstNode[]> = mut([parts.body]);
+  const out: Mut<OwCapture[]> = [];
+  if (!taint.size) return out;
+  const todo: Mut<AstNode[]> = [parts.body];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     if (n.type === "CallExpression" && owIsActionCall(n)) {
       const f = n.arguments[0];
@@ -126,5 +126,5 @@ export const owTaintCaptures = (owLocals, owTaintPass, owActionTaint, owIsAction
     }
     for (const k of kidsOf(n).toReversed()) todo.push(k);
   }
-  return freeze(out);
+  return out;
 };

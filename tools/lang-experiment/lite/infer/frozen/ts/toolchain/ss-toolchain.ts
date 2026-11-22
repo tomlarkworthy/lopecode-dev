@@ -1,4 +1,5 @@
 // FROZEN FIXTURE (2026-11-22, switch4): lite/toolchain/ss-toolchain.ts as it was before the rg, cp and tc cells were switched on.
+// DELIBERATE CHANGES since: stage A (2026-11-22) ss_out around a plain cell, Map/Set bound to ss_SsMap/ss_SsSet (marked below); B7 (2026-11-22) ss_out(v, 1) for a body that makes no async or generator function.
 // Only the differentials and tests compare against it; nothing shipped imports it, and the build does not reach it.
 // ss_toolchain: SoundScript cells <-> Lopecode runtime variables.
 // A compiled cell is ordinary JS whose first comment is /*{lang:"ss"}*/. The typed source is kept in
@@ -17,7 +18,7 @@ export { langOf, LANG };
 // the prelude functions, and h, the JSX element function lowered JSX calls
 const PRELUDE = [...PRELUDE_FNS, "h"];
 // the runtime module's cells a compiled cell can take: the built-ins its body uses and what its compiled form calls
-export const RUNTIME_CELLS = [...PRELUDE, "ref", "events", "listen", "cross", "viewRef", "compileFor", "rejected", "release"];
+export const RUNTIME_CELLS = [...PRELUDE, "ref", "events", "listen", "cross", "viewRef", "compileFor", "rejected", "release", "out", "SsMap", "SsSet"];
 // A capability parameter or a runtime cell -> the input that provides it: ss_<name>, except invalidation, the
 // runtime's own. ss_compile is defined in each module that compiles, because compile reads that module's cells; a
 // runtime cell is imported from the runtime module under that name, and the runtime module takes its own cell
@@ -286,7 +287,8 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   // the built-ins the body calls or reads: free references only, not a property, a key or a local of that name.
   // Each is bound to its input at the top of the definition, unless its input has its own name (the runtime module)
   const used = PRELUDE.filter((n) => globalRefs(loweredFn, n).size > 0);
-  const bound = used.filter((n) => IN[n] !== n);
+  // DELIBERATE CHANGE (2026-11-22, stage A): Map and Set in the body are the runtime's SsMap and SsSet
+  const bound: [string, string][] = [...used.filter((n) => IN[n] !== n).map((n): [string, string] => [n, n]), ...([["Map", "SsMap"], ["Set", "SsSet"]] as [string, string][]).filter(([g]) => globalRefs(loweredFn, g).size > 0)];
   // the allowed globals Observable's parser does not know, and built-ins read by their own name, are inputs, in order of first use
   const globals = [...OJS_INPUT_GLOBALS, ...used.filter((n) => IN[n] === n)].map((g) => [g, Math.min(...[...globalRefs(loweredFn, g)].map((n) => n.start))] as const).filter(([, at]) => at < Infinity).sort((a, b) => a[1] - b[1]).map(([g]) => g);
   // a cell that calls the prelude's on(...) is a listener: the checker allows on(...) only as the cell's whole value
@@ -319,12 +321,16 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
       return `${head}${inner}${kind === "events" ? `, ${r("invalidation")}` : ""})`;
     }
     const listen = kind === "listener" ? `${r(IN.listen)}(` : "";
+    if (listen) { globals.forEach(r); return `${listen}(${inner})(${args(r)}), ${name}, ${r("invalidation")}, ${mod})`; }
+    // DELIBERATE CHANGE (2026-11-22, stage A): a plain cell's value is deep-frozen as it leaves the cell (freeze.ts out)
+    const o = r(IN.out);
     globals.forEach(r);
-    const applied = `(${inner})(${args(r)})`;
-    return listen ? `${listen}${applied}, ${name}, ${r("invalidation")}, ${mod})` : applied;
+    // DELIBERATE CHANGE (2026-11-22, B7): a sync body that makes no async or generator function is published unfrozen
+    const late = (n: any): boolean => !!n && typeof n === "object" && ((/^(ArrowFunctionExpression|FunctionExpression|FunctionDeclaration)$/.test(n.type) && (n.async || n.generator)) || Object.values(n).some((v) => Array.isArray(v) ? v.some(late) : v && typeof v === "object" && typeof v.type === "string" && late(v)));
+    return `${o}((${inner})(${args(r)})${late(fn) ? "" : ", 1"})`;
   };
   const block = bound.length > 0;
-  const out = ojsCell(variableName(info.name), kind === "ref", block, (r) => block ? `{ const ${bound.map((n) => `${n} = ${r(IN[n])}`).join(", ")}; return ${expr(r)}; }` : expr(r));
+  const out = ojsCell(variableName(info.name), kind === "ref", block, (r) => block ? `{ const ${bound.map(([n, c]) => `${n} = ${r(IN[c])}`).join(", ")}; return ${expr(r)}; }` : expr(r));
   return { ...out, key: info.name, ref: kind === "ref" };
 }
 
@@ -376,7 +382,8 @@ export function parseCompiled(definition: string): Compiled | null {
     const refs: string[] = [];
     const scan = (n: any) => {
       if (n === fn) return;
-      if ((n.type === "Identifier" && RUNTIME_INPUTS.has(n.name)) || rtCall(n, ["cross", "viewRef", "compileFor"])) ss = true;
+      // DELIBERATE CHANGE (2026-11-22, stage A): ss_out around a plain cell does not make it take runtime cells
+      if ((n.type === "Identifier" && RUNTIME_INPUTS.has(n.name) && RUNTIME_INPUTS.get(n.name) !== "out") || rtCall(n, ["cross", "viewRef", "compileFor"])) ss = true;
       if (rtCall(n, ["compileFor"]) && n.arguments[2]?.type === "ObjectExpression")
         for (const p of n.arguments[2].properties) if (p.type === "Property" && p.key.type === "Literal") refs.push(String(p.key.value));
       for (const c of children(n)) scan(c);

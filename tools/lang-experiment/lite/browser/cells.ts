@@ -5,7 +5,7 @@
 // value, gives each handle, listener and action an id, and performs step's effects: it runs the generators, the
 // listeners' actions and the host's placeOf, and feeds back what happened.
 import { rt, actionNames, isAction, nameOf } from "../../prelude.runtime.ts";
-import { orderKeyed, emptyDelivery, step, handleAtKey, sweepCandidates, liveEventsCount, runningCount, pullingCount, type Place, type Delivery, type DeliveryEvent, type Effect } from "../runtime-ss.ts";
+import { yielded, orderKeyed, emptyDelivery, step, handleAtKey, sweepCandidates, liveEventsCount, runningCount, pullingCount, type Place, type Delivery, type DeliveryEvent, type Effect } from "../runtime-ss.ts";
 export { cellsOf, factsOf, type CellInfo } from "../facts.ts";
 
 export const generatorish = (v: any): v is Generator => !!v && typeof v.next === "function" && typeof v.return === "function";
@@ -55,10 +55,11 @@ function perform(e: Effect): DeliveryEvent | void {
       let r: any;
       try { r = generators.get(hid)!.next(); } catch (error) { return { t: "threw", hid, epoch, error }; }
       if (r && typeof r.then === "function") {
-        r.then((x: IteratorResult<unknown>) => feed({ t: "resolved", hid, epoch, done: !!x.done, value: x.value }), (error: unknown) => feed({ t: "rejected", hid, epoch, error }));
+        r.then((x: IteratorResult<unknown>) => feed({ t: "resolved", hid, epoch, done: !!x.done, value: yielded(x.value) }), (error: unknown) => feed({ t: "rejected", hid, epoch, error }));
         return { t: "awaiting", hid };
       }
-      return { t: "got", hid, epoch, done: !!r.done, value: r.value };
+      // each value an events cell yields is deep-frozen before a listener gets it
+      return { t: "got", hid, epoch, done: !!r.done, value: yielded(r.value) };
     }
     case "return": { const g = generators.get(e.hid); generators.delete(e.hid); if (g) try { g.return(); } catch {} return; }
     case "make": { const { make, args } = making!; generators.set(e.hid, guard(make(...args) as Generator)); return { t: "made", hid: e.hid, args, make: String(make) }; }

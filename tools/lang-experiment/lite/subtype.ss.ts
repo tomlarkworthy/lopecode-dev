@@ -109,10 +109,10 @@ export const iterElemWith = (union, STR, ERR, namedElemWith) => (R: RegOps) => {
       case "err": return ERR;
       case "named": return namedElem(t);
       case "union": {
-        const es: Mut<Ty[]> = mut([]);
+        const es: Mut<Ty[]> = [];
         let all = true;
         for (const x of t.ts) { const e = iterElem(x); if (e) es.push(e); else all = false; }
-        return all ? union(freeze(es)) : undefined;
+        return all ? union(es) : undefined;
       }
       default: return undefined;
     }
@@ -210,7 +210,7 @@ export const recSubWith = (propT, someFnSub, callableToPlain, UNKNOWN) => (R: Re
 };
 
 // a named type t: Iterable and ArrayLike by element, Mut and State invariant, Action contravariant, the rest covariant
-export const namedSubWith = (UNKNOWN) => (R: RegOps, sub: Sub, iterElem: (t: Ty) => Ty | undefined) => (s: Ty, t: Named, seen: Mut<Set<string>>): boolean => {
+export const namedSubWith = (UNKNOWN, inexact) => (R: RegOps, sub: Sub, iterElem: (t: Ty) => Ty | undefined) => (s: Ty, t: Named, seen: Mut<Set<string>>): boolean => {
   const t0 = R.at(t.args, 0);
   if (t.n === "Iterable" || t.n === "ArrayLike") {
     const e = iterElem(s);
@@ -218,7 +218,9 @@ export const namedSubWith = (UNKNOWN) => (R: RegOps, sub: Sub, iterElem: (t: Ty)
   }
   if (s.k !== "named" || s.n !== t.n) return false;
   const s0 = R.at(s.args, 0);
-  if (t.n === "Mut" || t.n === "State") return sub(s0, t0, seen) && sub(t0, s0, seen);
+  // a fresh Mut record is exact; the writable view it is passed as need not be
+  if (t.n === "Mut") return sub(s0, t0, seen) && sub(t0, inexact(s0), seen);
+  if (t.n === "State") return sub(s0, t0, seen) && sub(t0, s0, seen);
   if (t.n === "Action") return sub(t0, s0, seen);
   let i = 0;
   for (const a of t.args) if (!sub(s.args[i++] ?? UNKNOWN, a, seen)) return false;
@@ -228,7 +230,7 @@ export const namedSubWith = (UNKNOWN) => (R: RegOps, sub: Sub, iterElem: (t: Ty)
 // s is or has as a member (aliases expanded) a Mut or Borrowed, which sub unwraps before it scans a union; a generic
 // alias is not walked and counts as one that may
 export const unwrapsWith = () => (R: RegOps) => (s: Ty): boolean => {
-  const aliases: Mut<Set<string>> = mut(new Set());
+  const aliases: Mut<Set<string>> = new Set();
   function unwraps(x: Ty): boolean {
     if (x.k === "union") { for (const m of x.ts) if (unwraps(m)) return true; return false; }
     if (x.k !== "named") return false;
@@ -297,7 +299,7 @@ export const unifyUnionWith = (members, hasAnyTv) => (unify: Unify, sub: Sub) =>
   for (const x of members(a)) {
     const shape = others.find((q) => (q.k === x.k && (q.k !== "named" || (x.k === "named" && x.n === q.n))) || (q.k === "arr" && x.k === "tup"));
     if (shape && hasAnyTv(shape, tvs)) unify(shape, x, m, tvs, depth + 1);
-    else if (others.some((q) => { const seen = mut(new Set<string>()); return sub(x, q, seen); })) continue;
+    else if (others.some((q) => { const seen = new Set<string>(); return sub(x, q, seen); })) continue;
     else if (only) unify(only, x, m, tvs, depth + 1);
   }
 };

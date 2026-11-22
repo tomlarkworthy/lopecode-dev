@@ -5,7 +5,7 @@
 // a file's cell texts in order, leading comments included; a statement of several declarators is one text each
 export const tcSplitCells = (tcMustParse, leadingComments) => (src: string, tsx: boolean): string[] => {
   const ast = tcMustParse(src, tsx);
-  const out: Mut<string[]> = mut([]);
+  const out: Mut<string[]> = [];
   let end = 0;
   for (const st of ast.program.type === "Program" ? ast.program.body : []) {
     const first = leadingComments(ast, st.start)[0];
@@ -21,7 +21,7 @@ export const tcSplitCells = (tcMustParse, leadingComments) => (src: string, tsx:
     end = st.end;
   }
   if (ast.comments.some((c) => c.start >= end)) throw new Error("a comment after the last cell has no cell to belong to");
-  return freeze(out);
+  return out;
 };
 export const tcContextOfFacts = () => (infos: TcInfo[], accepted: Set<string> | null, facts: Map<string, TcInfo> | null, why: Map<string, string[]> | null): TcCtx => {
   const generators = new Set(infos.filter((c) => c.generator).map((c) => c.name));
@@ -30,11 +30,11 @@ export const tcContextOfFacts = () => (infos: TcInfo[], accepted: Set<string> | 
 };
 // contextOf: the facts parsed from each text; a text whose facts do not parse gives none
 export const tcContextOf = (tcInfosOf, tcLowered, tcContextOfFacts) => (texts: string[], tsx: boolean, accepted: Set<string> | null): TcCtx => {
-  const infos: Mut<TcInfo[]> = mut([]);
+  const infos: Mut<TcInfo[]> = [];
   for (const t of texts) {
     try { infos.push(...tcInfosOf(tsx ? tcLowered(t, false) : t)); } catch (e) { messageOf(e); }
   }
-  return tcContextOfFacts(freeze(infos), accepted, null, null);
+  return tcContextOfFacts(infos, accepted, null, null);
 };
 // the cells a check accepts: ok, with no errors, and parsed
 export const tcAcceptedOf = () => (r: TcCheck): Set<string> =>
@@ -56,14 +56,14 @@ export const tcContextFromCheck = (tcAcceptedOf, tcWhyOf, tcContextOfFacts) => (
 };
 // the names in takes whose state is not ok
 export const tcNotOk = () => (out: Mut<Map<string, TcCellState>>, takes: string[]): string[] => {
-  const by: Mut<string[]> = mut([]);
+  const by: Mut<string[]> = [];
   for (const n of takes) { const s = out.get(n); if (s === undefined || s.state !== "ok") by.push(n); }
-  return freeze(by);
+  return by;
 };
 // ok; rejected (not accepted, or does not parse); blocked (a cell it takes is not ok), to a fixpoint
 export const tcCellStates = (tcAcceptedOf, tcWhyOf, tcNotOk) => (r: TcCheck): Map<string, TcCellState> => {
   const accepted = tcAcceptedOf(r);
-  const out: Mut<Map<string, TcCellState>> = mut(new Map());
+  const out: Mut<Map<string, TcCellState>> = new Map();
   const names = new Set(r.cells.map((c) => c.name));
   for (const c of r.cells) {
     const own = c.status === "blocked" && c.errors.length === 0 && c.unsupported.length === 0 && !(r.unparsed !== null && r.unparsed.has(c.name));
@@ -82,5 +82,5 @@ export const tcCellStates = (tcAcceptedOf, tcWhyOf, tcNotOk) => (r: TcCheck): Ma
       if (by.length > 0 && (st.state !== "blocked" || by.join() !== st.blockedBy.join())) { out.set(name, { state: "blocked", why: [], blockedBy: by }); changed = true; }
     }
   }
-  return freeze(out);
+  return out;
 };

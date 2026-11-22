@@ -10,7 +10,7 @@
 import { parse, type Node, type Parsed } from "./ts/parse.ts";
 import { Registry } from "./ts/registry.ts";
 import { Checker } from "./infer.ts";
-import { ownership, actionEscapes, iterIn, mutIn } from "./own.ts";
+import { ownership, actionEscapes, iterIn, mutIn, stripMut } from "./own.ts";
 import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, reservedName, RESERVED_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith } from "../../types.ts";
 import { CAPABILITIES } from "../../intrinsics.ts";
 import { island, specOf, compileCalls } from "./ts/island.ts";
@@ -314,7 +314,10 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     // value type
     let ret = fnT.k === "fn" ? fnT.ret : ERR;
     if (c.fn.async && isNamed(ret, "Promise")) ret = ret.args[0];
-    if (c.fn.generator && isNamed(ret, "Generator")) { ret = ret.args[0]; if (!c.fn.async) eventsInner.set(c.name, ret); }
+    if (c.fn.generator && isNamed(ret, "Generator")) ret = ret.args[0];
+    // DELIBERATE CHANGE (2026-11-22, S4): what a cell exposes is the read-only view (frozen at run time), not [mut-cell]
+    ret = stripMut(ret, reg);
+    if (c.fn.generator && !c.fn.async) eventsInner.set(c.name, ret);
     const fnKept = (what: string, t: Ty, then: string) => { if (fedBy && ch.mayHoldFn(t)) r.errors.push({ rule: "action-capture", line: P.line(c.fn.start), msg: `${what} ${show(t)}, which may be or hold a function from another language (${c.name} ${fedBy}); ${then}` }); };
     if (c.fn.generator && !c.fn.async) fnKept("an events cell yields", ret, "a listener's action would receive it");
     if (isNamed(ret, "StateCell")) {
@@ -328,9 +331,6 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     }
     const it = iterIn(ret, reg);
     if (it) r.errors.push({ rule: "iterator-cell", line: P.line(c.fn.start), msg: `value ${show(ret)} may hold an iterator (${it}); every cell that takes it would use up the same one, so what each computes would depend on the order the cells run in. Make it an array` });
-    // holes step 2: a cell's value is never a Mut, a backstop reported only when the cell has no other error
-    const mt = mutIn(ret, reg);
-    if (mt && errsBefore === 0) r.errors.push({ rule: "mut-cell", line: P.line(c.fn.start), msg: `value ${show(ret)} holds ${mt}; a cell's value is never a Mut: every cell that takes it could write it` });
     // a Listener is a whole cell value: not in a list, record, state cell, union with another type, or function
     if (isNamed(ret, "Listener") || (ret.k === "union" && ret.ts.every((t) => isNamed(t, "Listener")))) listenerCells.add(c.name);
     else if (holds(ret, ["Listener"])) r.errors.push({ rule: "listener-placement", line: P.line(c.fn.start), msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` });

@@ -79,8 +79,7 @@ const UNSUPPORTED_PROBES: [string, string, boolean?][] = [
   ["type inside a body", "const f = () => { type T = number; return 1; };"],
   ["yield*", "const f = function* () { yield* [1, 2]; };"],
   ["for await", "const f = async () => { for await (const x of [1]) { return x; } return 0; };"],
-  ["try/finally holding a Mut", "const f = () => { const a = mut([1]); try { a.push(2); } finally { } return freeze(a); };"],
-  ["labelled break holding a Mut", "const f = () => { const a = mut([1]); outer: for (const x of [1, 2]) { if (x > 1) break outer; a.push(x); } return freeze(a); };"],
+  ["labelled break holding a Mut", "const f = () => { const a = [1]; outer: for (const x of [1, 2]) { if (x > 1) break outer; a.push(x); } return a; };"],
   ["Symbol", "const f = () => Symbol(\"a\");"],
   ["new Promise", "const f = () => new Promise<number>((r: (n: number) => void) => r(1));"],
   ["Object.assign({}, …)", "const f = () => Object.assign({}, { a: 1 });"],
@@ -218,7 +217,7 @@ const read = (page: Page, name: string) => page.evaluate(async (name) => {
 }, name);
 
 // the lesson cells that are rejected on purpose (section 3, section 8): each raises its checker message
-const REJECTED_LESSON = ["leak", "late", "bad_attr_type", "bad_unknown_attr", "bad_unknown_element", "bad_handler_not_action", "bad_handler_wrong_args", "bad_component_props", "bad_component_missing_prop", "bad_component_not_elem", "bad_mut_in_jsx", "bad_child_object"];
+const REJECTED_LESSON = ["bad_attr_type", "bad_unknown_attr", "bad_unknown_element", "bad_handler_not_action", "bad_handler_wrong_args", "bad_component_props", "bad_component_missing_prop", "bad_component_not_elem", "bad_mut_in_jsx", "bad_child_object"];
 async function testsPass(page: Page, label: string, name: string, tests: string[], expectErrors: string[] = []) {
   if (name === TUTORIAL) expectErrors = [...expectErrors, ...REJECTED_LESSON];
   // the specification holds s11_late_twice, which reads s11_late, a cell that exists only while test_spec_S11_10 runs
@@ -1682,8 +1681,8 @@ const runsOf = (page: Page, module: string) => page.evaluate((module) => {
   return out;
 }, module);
 
-// Every "Try it" cell of the tutorial, done as the text says, on a page of its own (the leak fix
-// changes a verdict the tests pin). Each check states what the text promises.
+// Every "Try it" cell of the tutorial, done as the text says, on a page of its own (the edits
+// change values the tests pin). Each check states what the text promises.
 async function tryIts(page: Page, firstOnly = false) {
   const tab = (m: string) => page.locator(`[title="${m}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
   await page.waitForFunction(() => { const m = (window as any).__ojs_runtime?.mains?.get("@tomlarkworthy/soundscript-tutorial"); return m?._scope.get("benchmark")?._value && document.querySelector(".lite-lesson"); }, null, { timeout: 60000 });
@@ -1771,16 +1770,16 @@ async function tryIts(page: Page, firstOnly = false) {
   report(/\[inject-type\]/.test(before ?? "") && /\[type\]/.test(after ?? "") && /label \* 2/.test(after ?? "") && !/inject-type/.test(after ?? ""), `try (section 2): doubled with label: string: before ${JSON.stringify(before)}; after ${JSON.stringify(after)}`);
   await box.fill(src);
 
-  // section 3: leak returns freeze(xs)
-  const leak = await openEditor(page, TUTORIAL, "leak");
-  if (leak) {
-    const t = await editorText(leak);
-    await typeInto(page, leak, t.replace("return xs;", "return freeze(xs);"));
-    await until(page, async () => /\bok\b/.test((await rowText(page, ".lite-panel", "leak")) ?? ""));
-    const row = await rowText(page, ".lite-panel", "leak");
+  // section 3: twoNames with done as a copy
+  const two = await openEditor(page, TUTORIAL, "twoNames");
+  if (two) {
+    const t = await editorText(two);
+    await typeInto(page, two, t.replace("const done = xs;", "const done = [...xs];"));
+    await until(page, async () => JSON.stringify(await valueOf(page, TUTORIAL, "twoNames")) === "[1,2,3]");
+    const row = await rowText(page, ".lite-panel", "twoNames");
     if (firstOnly) { if (FOCUS_TRACE) console.log("TRACE\n" + (await page.evaluate(() => (window as any).__ft.slice(-60).join("\n")))); return; }
-    report(/^leak\s*ok/.test(row ?? "") && String(await defOf(page, TUTORIAL, "leak")).includes("freeze(xs)"), `try (section 3): leak with return freeze(xs) is applied and its row reads ok: ${JSON.stringify(row)}`);
-  } else report(false, "try: no editor for leak");
+    report(/^twoNames\s*ok/.test(row ?? "") && String(await defOf(page, TUTORIAL, "twoNames")).includes("[...xs]"), `try (section 3): twoNames with done = [...xs] is applied, its row reads ok and its value is [1,2,3]: ${JSON.stringify(row)}`);
+  } else report(false, "try: no editor for twoNames");
 
   // section 4: add one, then onClick={count} in app is stored: app does not check and its buttons are
   // replaced by the message; changed back, the buttons return and count is what it was

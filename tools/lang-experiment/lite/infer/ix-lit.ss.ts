@@ -24,7 +24,7 @@ export const ixObjSpread = (ixUm, ixUnsup, ixNotOwn, unwrap, show) => (K: IxK, T
   for (const [k, v] of x.props) props.set(k, v);
 };
 export const ixObjLit = (ixObjCtx, ixObjSpread, ixProtoKey, ixErr, ixUnsup, ixGap, union, widen, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: ObjectExpression, expected: Ty | null): Ty => {
-  const props: Mut<Map<string, Prop>> = mut(new Map());
+  const props: Mut<Map<string, Prop>> = new Map();
   const { recs, exact } = ixObjCtx(K.reg, expected);
   let closed = true;
   for (const p of e.properties) {
@@ -41,7 +41,7 @@ export const ixObjLit = (ixObjCtx, ixObjSpread, ixProtoKey, ixErr, ixUnsup, ixGa
     const t = K.check(K, T, V, W, C, env, p.value, ctx, false, false);
     props.set(k, { t: expected === null ? widen(t) : t, opt: false });
   }
-  return closed ? { k: "rec", props: freeze(props), exact: true } : { k: "rec", props: freeze(props) };
+  return closed ? { k: "rec", props: props, exact: true } : { k: "rec", props: props };
 };
 // the element context of an array literal: an array's element, an iterable's
 export const ixElCtx = (union, NEVER) => (ms: Ty[]): Ty | null => {
@@ -53,12 +53,12 @@ export const ixArrLit = (ixUm, ixElCtx, ixErr, ixUnsup, union, widen, arr, show,
   const tup = ms.find((m) => m.k === "tup" && m.els.length === e.elements.length);
   const noSpread = e.elements.every((x) => x !== null && x.type !== "SpreadElement");
   if (tup !== undefined && tup.k === "tup" && noSpread) {
-    const ts: Mut<Ty[]> = mut([]);
+    const ts: Mut<Ty[]> = [];
     for (const [i, x] of e.elements.entries()) if (x !== null) ts.push(K.check(K, T, V, W, C, env, x, tup.els[i] ?? null, false, false));
-    return { k: "tup", els: freeze(ts) };
+    return { k: "tup", els: ts };
   }
   const ctx = expected === null ? null : ixElCtx(ms);
-  const els: Mut<Ty[]> = mut([]);
+  const els: Mut<Ty[]> = [];
   for (const x of e.elements) {
     if (x === null) { ixUnsup(K, C, e, "array hole"); continue; }
     if (x.type === "SpreadElement") {
@@ -69,30 +69,30 @@ export const ixArrLit = (ixUm, ixElCtx, ixErr, ixUnsup, union, widen, arr, show,
     }
     els.push(K.check(K, T, V, W, C, env, x, ctx, false, false));
   }
-  const el = union(freeze(els));
+  const el = union(els);
   return arr(ctx !== null ? el : widen(el));
 };
 export const ixConstLit = (ixUnsup, ixProtoKey, ERR) => {
   function constLit(K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty {
     if (e.type === "ArrayExpression") {
-      const els: Mut<Ty[]> = mut([]);
+      const els: Mut<Ty[]> = [];
       for (const x of e.elements) {
         if (x !== null && x.type !== "SpreadElement") els.push(constLit(K, T, V, W, C, env, x));
         else { ixUnsup(K, C, e, "as const with spread"); els.push(ERR); }
       }
-      const t: Ty = { k: "tup", els: freeze(els) };
+      const t: Ty = { k: "tup", els: els };
       T.set(e.nid, t);
       return t;
     }
     if (e.type !== "ObjectExpression") return K.infer(K, T, V, W, C, env, e);
-    const props: Mut<Map<string, Prop>> = mut(new Map());
+    const props: Mut<Map<string, Prop>> = new Map();
     for (const p of e.properties) {
       if (p.type !== "Property" || p.computed || p.kind !== "init" || p.method) { ixUnsup(K, C, p, "as const object member"); continue; }
       ixProtoKey(K, C, p);
       const key = p.key;
       props.set(key.type === "Identifier" ? key.name : key.type === "Literal" ? String(key.value) : "undefined", { t: constLit(K, T, V, W, C, env, p.value), opt: false });
     }
-    const r: Ty = { k: "rec", props: freeze(props) };
+    const r: Ty = { k: "rec", props: props };
     T.set(e.nid, r);
     return r;
   }
@@ -116,7 +116,7 @@ export const ixBind = (ixDeclare, ixBindObject, ixBindArray, ixNonUndef, ixUnsup
   }
 };
 export const ixBindObject = (ixBindRest, ixUm, ixErr, ixUnsup, ixInActionOnly, ixPropOf, ixFact, ixGap, isNamed, unwrap, PROTO_NAMES) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: ObjectPattern, t: Ty, kind: IxKind, extra: IxExtra): void => {
-  const used: Mut<string[]> = mut([]);
+  const used: Mut<string[]> = [];
   for (const prop of p.properties) {
     if (prop.type === "RestElement") { ixBindRest(K, T, V, W, C, env, prop, t, [...used], kind, extra); continue; }
     if (prop.type !== "Property") { ixGap(C, `object pattern member ${prop.type}`); continue; }
@@ -150,7 +150,7 @@ export const ixBindArray = (ixIndexOf, arr, ERR) => (K: IxK, T: IxTypes, V: IxVa
   }
 };
 export const ixIndexOf = (ixUm, ixErr, unwrap, union, show, UNDEF, ERR) => (K: IxK, C: IxCtls, t: Ty, i: number, at: AstNode): Ty => {
-  const out: Mut<Ty[]> = mut([]);
+  const out: Mut<Ty[]> = [];
   for (const m0 of ixUm(K.reg, t)) {
     const m = unwrap(m0), e = K.reg.expand(m);
     if (e.k === "tup") {
@@ -164,5 +164,5 @@ export const ixIndexOf = (ixUm, ixErr, unwrap, union, show, UNDEF, ERR) => (K: I
     out.push(el);
     if (K.reg.strictIndex) out.push(UNDEF);
   }
-  return union(freeze(out));
+  return union(out);
 };

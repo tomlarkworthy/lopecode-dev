@@ -80,9 +80,9 @@ export const enterCall = () => (st: StoreState, evaluating: boolean): StoreStep 
 // a finished call's writes join those waiting for the commit, in first-write order; the first to join asks for the commit
 export const mergeWrites = () => (ready: Writes, call: Writes): { readonly ready: Writes; readonly schedule: boolean } => {
   if (call.size === 0) return { ready, schedule: false };
-  const next = mut(new Map(ready));
+  const next = new Map(ready);
   for (const [sid, p] of call) next.set(sid, p);
-  return { ready: freeze(next), schedule: ready.size === 0 };
+  return { ready: next, schedule: ready.size === 0 };
 };
 // a nested call returns its function's value and leaves its writes in the call, also when it threw (its caller
 // caught it); a top-level call returns nothing, and its writes join ready unless it threw
@@ -96,9 +96,9 @@ export const exitCall = (mergeWrites) => (st: StoreState, threw: boolean, value:
 export const writeInCall = (writeTarget) => (st: StoreState, handle: unknown, name: string, store: StoreRecord, value: unknown): StoreStep => {
   const w = writeTarget(st, name);
   if (!w.ok) return { state: st, effects: [{ fx: "throw", msg: w.msg }] };
-  const call = mut(new Map(w.call));
+  const call = new Map(w.call);
   call.set(store.sid, { handle, value });
-  return { state: { ...st, call: freeze(call) }, effects: [] };
+  return { state: { ...st, call: call }, effects: [] };
 };
 // a new store for a handle; a write waiting for the store it replaces is not committed
 export const makeStore = () => (st: StoreState, handle: unknown, name: string, value: unknown, view: boolean, run: StoreRun | null): StoreStep => {
@@ -108,7 +108,7 @@ export const makeStore = () => (st: StoreState, handle: unknown, name: string, v
 // stores: the records the handles in ready hold now, by sid. Every store takes its value before any is told, so no
 // reader sees some of a commit's values and not others; a view's element is told as a user's change would tell it
 export const commitReady = () => (st: StoreState, stores: Map<number, StoreRecord>): StoreStep => {
-  const sets: Mut<StoreEffect[]> = mut([]), tells: Mut<StoreEffect[]> = mut([]);
+  const sets: Mut<StoreEffect[]> = [], tells: Mut<StoreEffect[]> = [];
   for (const [sid, p] of st.ready) {
     const s = stores.get(sid);
     if (s === undefined) continue;

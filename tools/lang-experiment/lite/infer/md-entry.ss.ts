@@ -3,14 +3,14 @@
 
 // each stand-in a cell holds: the name it shows, "<name> (k)" with the first k no cell and no earlier stand-in has
 export const mdShownNames = () => (dups: MdDup[], out: Map<string, MdCellRec>, cellNames: Set<string>): Map<string, string> => {
-  const shown: Mut<Map<string, string>> = mut(new Map());
+  const shown: Mut<Map<string, string>> = new Map();
   for (const d of dups) {
     if (!out.has(d.ph)) continue;
     let k = 2;
     while (cellNames.has(`${d.name} (${k})`) || [...shown.values()].includes(`${d.name} (${k})`)) k++;
     shown.set(d.ph, `${d.name} (${k})`);
   }
-  return freeze(shown);
+  return shown;
 };
 // the text with each stand-in replaced: by the name its cell shows, then by the name it stands for
 export const mdUnPh = () => (shown: Map<string, string>, dups: MdDup[], x0: string): string => {
@@ -21,8 +21,8 @@ export const mdUnPh = () => (shown: Map<string, string>, dups: MdDup[], x0: stri
 };
 // duplicate-cell for every name declared again: first in that cell's errors, or of the module when it is no cell
 export const mdDupErrs = () => (dups: MdDup[], defs: MdDef[], out: Map<string, MdCellRec>, line: (pos: number) => number): { module: MdErr[]; cell: Map<string, MdErr> } => {
-  const module: Mut<MdErr[]> = mut([]);
-  const cell: Mut<Map<string, MdErr>> = mut(new Map());
+  const module: Mut<MdErr[]> = [];
+  const cell: Mut<Map<string, MdErr>> = new Map();
   for (const d of dups) {
     const first = defs.find((c) => c.name === d.name);
     const at = first === undefined ? null : out.get(first.name)?.line ?? null;
@@ -31,7 +31,7 @@ export const mdDupErrs = () => (dups: MdDup[], defs: MdDef[], out: Map<string, M
     if (mine === undefined) module.push({ rule: "duplicate-cell", line: line(d.pos), msg });
     else cell.set(d.ph, { rule: "duplicate-cell", line: mine.line, msg });
   }
-  return { module: freeze(module), cell: freeze(cell) };
+  return { module: module, cell: cell };
 };
 // the records with the names declared again given back
 export const mdRenamed = (mdShownNames, mdUnPh, mdDupErrs) => (X: MdCtx, dups: MdDup[], out: Map<string, MdCellRec>): { module: MdErr[]; out: Map<string, MdCellRec>; shown: Map<string, string> } => {
@@ -70,7 +70,7 @@ export const mdCheckSources = (mdDistinct, mdShellNames, lineAt, mdModuleLevel, 
   const lines = new Map(ml.defs.map((d): [string, number] => [d.name, line(d.stmt.start)]));
   const { order, cycles } = mdOrder(ml.defs, X.byName, X.cellNames, lines);
   const fresh = ml.defs.map((d): [string, MdCellRec] => [d.name, mdFreshRec(d, lines.get(d.name) ?? 0, [...(ml.ignores.get(d.name) ?? []), ...(cycles.get(d.name) ?? [])])]);
-  const M: MdMod = mut({ value: new Map(), refInner: new Map(), eventsInner: new Map(), listeners: new Set(), stateful: new Map(), fnFed: new Map(), boundaries: new Map(), viewTypes: new Map(), out: new Map(fresh), probe: null });
+  const M: MdMod = { value: new Map(), refInner: new Map(), eventsInner: new Map(), listeners: new Set(), stateful: new Map(), fnFed: new Map(), boundaries: new Map(), viewTypes: new Map(), out: new Map(fresh), probe: null };
   let gap: string | null = null;
   for (const d of order) {
     const g = mdCell(X, M, d);

@@ -126,7 +126,7 @@ let parseViewDSL = () =>
       }
     }
     function parseList(c: Mut<Cursor>): ViewNode[] {
-      const items = mut<ViewNode[]>([]);
+      const items: Mut<ViewNode[]> = [];
       while (c.i < input.length && input[c.i] !== ")") {
         while (c.i < input.length && /\s/.test(input[c.i])) c.i++;
         items.push(parseItem(c));
@@ -137,9 +137,9 @@ let parseViewDSL = () =>
           break;
         }
       }
-      return freeze(items);
+      return items;
     }
-    const cursor = mut<Cursor>({ i: 0 });
+    const cursor: Mut<Cursor> = { i: 0 };
     const ast = parseGroup(cursor);
     while (cursor.i < input.length && /\s/.test(input[cursor.i])) cursor.i++;
     if (cursor.i < input.length) err(cursor, "Unexpected input remaining");
@@ -304,7 +304,7 @@ let linkToWith = (parseUrl) =>
     // Parse existing hash params manually to avoid percent-encoding DSL chars
     const base = parseUrl(baseURI);
     const rawHash = (base.hash || "#").slice(1);
-    const hashParams = mut(new Map<string, string>());
+    const hashParams = new Map<string, string>();
     // open/close/focus/from are transient intents that lopepage consumes and clears; view= is
     // canonical layout state owned by lopepage (issue #150). None of them is deep-linked.
     const drop = new Set(["view", "open", "close", "focus", "from"]);

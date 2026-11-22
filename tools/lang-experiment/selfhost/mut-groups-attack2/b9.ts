@@ -1,0 +1,43 @@
+import type { Attack } from "./harness.ts";
+const A = (name: string, src: string, show = ["a"]): Attack => ({ name, src, show });
+const G = "const g = mut({ t: mut([1]), n: 0 });";
+const L = "let fr: readonly number[] = [];\n  ";
+const LM = "let fr: ReadonlyMap<string, number> | null = null;\n  ";
+export const attacks: Attack[] = [
+  A("map-set-arg-freeze", "const a = () => {\n  const m = mut(new Map<string, number>());\n  let n = 0;\n  m.set(\"k\", freeze(m).size);\n  return n;\n};"),
+  A("fill-arg-freeze", "const a = () => {\n  const m = mut([1, 2]);\n  " + L + "m.fill((fr = freeze(m)).length);\n  return fr;\n};"),
+  A("splice-arg-freeze", "const a = () => {\n  const m = mut([1]);\n  " + L + "m.splice(0, 0, (fr = freeze(m)).length);\n  return fr;\n};"),
+  A("computed-key-freeze", "const a = () => {\n  const m = mut([1]);\n  " + L + "m[(fr = freeze(m)).length] = 7;\n  return fr;\n};"),
+  A("compound-assign-freeze", "const a = () => {\n  const m = mut([1]);\n  " + L + "m[0] += (fr = freeze(m)).length;\n  return fr;\n};"),
+  A("update-expr-freeze-key", "const a = () => {\n  const m = mut([1]);\n  " + L + "m[(fr = freeze(m)).length - 1]++;\n  return fr;\n};"),
+  A("delete-key-freeze", "const a = () => {\n  const m = mut({ k: 1 } as { k?: number });\n  return 1;\n};"),
+  A("logical-assign-freeze", "const a = () => {\n  const m = mut([0]);\n  " + L + "m[0] ||= (fr = freeze(m)).length;\n  return fr;\n};"),
+  A("nullish-assign-freeze", "const a = () => {\n  const m = mut([null as number | null]);\n  return 1;\n};"),
+  A("group-field-index-assign-freeze", "const a = () => {\n  " + G + "\n  let fr: { readonly t: readonly number[]; readonly n: number } = { t: [], n: 0 };\n  g.t[0] = (fr = freeze(g)).t.length + 5;\n  return fr;\n};"),
+  A("unshift-arg-freeze", "const a = () => {\n  const m = mut([1]);\n  " + L + "m.unshift((fr = freeze(m)).length);\n  return fr;\n};"),
+  A("pop-after-freeze-in-cond", "const a = () => {\n  const m = mut([1]);\n  " + L + "const x = (fr = freeze(m)).length > 0 ? 1 : 0;\n  return fr;\n};"),
+  A("freeze-and-short-circuit", "const c = () => true;\nconst a = (c: boolean) => {\n  const m = mut([1]);\n  const r = c && freeze(m);\n  m.push(2);\n  return r;\n};"),
+  A("jsx-child-mut", "const a = () => {\n  const m = mut([1]);\n  const el = <div>{m}</div>;\n  return 1;\n};"),
+  A("jsx-attr-mut", "const a = () => {\n  const m = mut([1]);\n  const el = <div title={m}></div>;\n  return 1;\n};"),
+  A("jsx-attr-field", "const a = () => {\n  " + G + "\n  const el = <div title={g.t}></div>;\n  return 1;\n};"),
+  A("jsx-child-length", "const a = () => {\n  " + G + "\n  return <div>{g.t.length}</div>;\n};"),
+  A("jsx-onclick-capture", "const a = () => {\n  const m = mut([1]);\n  return <button onClick={() => m.push(2)}>x</button>;\n};"),
+  A("jsx-spread-attrs-group", "const a = () => {\n  " + G + "\n  return <div {...g}></div>;\n};"),
+  A("class-field-mut", "const a = () => {\n  class C { xs = mut([1]); }\n  return 1;\n};"),
+  A("for-of-destructure-mut-pairs", "const a = () => {\n  const m = mut(new Map<string, number[]>([[\"a\", [1]]]));\n  for (const [k, v] of m) { v.push(2); }\n  return 1;\n};"),
+  A("catch-destructure", "const a = () => {\n  const m = mut([1]);\n  try { m.push(2); } catch ({ message }) { return 0; }\n  return freeze(m);\n};"),
+  A("try-finally-freeze", "const a = () => {\n  const m = mut([1]);\n  try { return freeze(m); } finally { m.push(2); }\n};"),
+  A("while-freeze-break", "const a = () => {\n  const m = mut([1]);\n  while (true) { m.push(1); if (m.length > 3) break; }\n  return freeze(m);\n};"),
+  A("switch-fallthrough-freeze", "const c = () => 1;\nconst a = (c: number) => {\n  const m = mut([1]);\n  let fr: readonly number[] = [];\n  switch (c) {\n    case 1: fr = freeze(m);\n    case 2: m.push(2);\n  }\n  return fr;\n};"),
+  A("recursive-helper-group", "type G = Mut<{ t: Mut<number[]>; n: number }>;\nconst a = () => {\n  " + G + "\n  const rec = (p: G, k: number): number => { if (k === 0) return p.t.length; p.t.push(k); return rec(p, k - 1); };\n  return [rec(g, 3), freeze(g).t];\n};"),
+  A("generic-group-alias", "type G<T> = Mut<{ t: Mut<T[]>; n: number }>;\nconst a = () => {\n  " + G + "\n  const f = <T,>(p: G<T>, v: T) => p.t.push(v);\n  f(g, 2);\n  return freeze(g).t;\n};"),
+  A("generic-group-return-field-elem", "type G<T> = Mut<{ t: Mut<T[]>; n: number }>;\nconst a = () => {\n  const g = mut({ t: mut([[1]]), n: 0 });\n  const f = <T,>(p: G<T>): T | undefined => p.t[0];\n  const inner = f(g);\n  return inner;\n};"),
+  A("symbol-iterator-mut", "const a = () => {\n  const m = mut([1]);\n  const it = m[Symbol.iterator]();\n  return 1;\n};"),
+  A("object-keys-group", "const a = () => {\n  " + G + "\n  return Object.keys(g);\n};"),
+  A("in-group", "const a = () => {\n  " + G + "\n  return \"t\" in g;\n};"),
+  A("typeof-group-field", "const a = () => {\n  " + G + "\n  return typeof g.t;\n};"),
+  A("group-field-optional-chain-push", "const a = () => {\n  " + G + "\n  g.t?.push(2);\n  return freeze(g).t;\n};"),
+  A("group-cond-arg-field", "const c = () => true;\nconst a = (c: boolean) => {\n  " + G + "\n  const h = mut({ t: mut([5]), n: 0 });\n  const f = (p: Mut<number[]>, q: Mut<number[]>) => { q.push(1); return p.length; };\n  return f(c ? g.t : h.t, c ? h.t : g.t);\n};"),
+  A("yield-freeze-then-throw-catch", "const gen = function* () {\n  const m = mut([1]);\n  try { m[0] = (yield freeze(m)) === undefined ? 9 : 8; } catch (e) { }\n};\nconst r = (gen: readonly number[]) => ({ v: gen });", ["gen", "r"]),
+  A("yield-freeze-reader-holds", "const gen = function* () {\n  const m = mut([1]);\n  m[0] = (yield freeze(m)) === undefined ? 9 : 8;\n};\nconst r = (gen: readonly number[]) => ({ v: gen });", ["gen", "r"]),
+];

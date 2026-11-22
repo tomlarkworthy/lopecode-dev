@@ -97,14 +97,14 @@ export const owActionRoot = (owEnclFn) => (O: OwCtx, n: AstNode | null): AstNode
 };
 // a node the facts name that is not in the tree reaches the comparison as a report of its own, never as silence
 export const owActionUses = (owActionRoot, owChain, OW_WHY_K) => (O: OwCtx, M: Mut<Map<number, string | null>>): IxDiag[] => {
-  const out: Mut<IxDiag[]> = mut([]);
+  const out: Mut<IxDiag[]> = [];
   for (const u of O.F.inActionUses) {
     const fi = O.T.byNid.get(u.fi), at = O.T.byNid.get(u.at);
     if (fi === undefined || at === undefined) { out.push({ start: 0, end: 0, rule: "ow-internal", msg: `in-action use at nid ${u.at} outside the tree` }); continue; }
     const w = owChain(OW_WHY_K, O, M, fi, owActionRoot(O, fi) ?? O.T.fn);
     if (w) out.push({ start: at.start, end: at.end, rule: u.rule, msg: `${u.msg}: the function it is in was made in an action body and may run after the call, because ${w}` });
   }
-  return freeze(out);
+  return out;
 };
 // the name of a member read or a destructured property, as own.ts reads it
 export const owMemberName = () => (x: AstNode): string | null => {
@@ -115,7 +115,7 @@ export const owMemberName = () => (x: AstNode): string | null => {
   return key.type === "Literal" ? String(key.value) : null;
 };
 export const owStateWrites = (owMemberName, owIsState, owEnclFn, owActionRoot, owMethodValue, OW_WHY_K) => (O: OwCtx, M: Mut<Map<number, string | null>>): IxDiag[] => {
-  const out: Mut<IxDiag[]> = mut([]);
+  const out: Mut<IxDiag[]> = [];
   for (const x of O.T.all) {
     const isMember = x.type === "MemberExpression";
     if (!isMember && !O.F.stateProps.has(x.nid)) continue;
@@ -126,11 +126,11 @@ export const owStateWrites = (owMemberName, owIsState, owEnclFn, owActionRoot, o
     const w = owMethodValue(OW_WHY_K, O, M, x);
     if (w) out.push({ start: x.start, end: x.end, rule: "state-write", msg: `State.${name ?? "member"} taken as a value in an action body may write after the call, because ${w}` });
   }
-  return freeze(out);
+  return out;
 };
 export const owActionEscapes = (owActionUses, owStateWrites) => (O: OwCtx): IxDiag[] => {
   if (!O.F.actionBodies.size) return [];
-  const M: Mut<Map<number, string | null>> = mut(new Map());
+  const M: Mut<Map<number, string | null>> = new Map();
   const uses = owActionUses(O, M);
   return [...uses, ...owStateWrites(O, M)];
 };

@@ -88,6 +88,63 @@ spec_rejectsFor = (statement) => {
   return `${cases.length} source(s) give exactly [${[...new Set(cases.map((c) => c.rule))].join(", ")}]`;
 }
 // %%
+// sources a deleted ownership rule rejected that are accepted since the 2026-11-22 language change (S4): a cell's value
+// is frozen when it leaves the cell, so what another cell holds cannot change. was: the rule that rejected it
+spec_accepts = [
+  { statement: "S3.1", was: "member-write", source: "const w = () => {\n  const l = { a: 1 };\n  l.a = 2;\n  return l;\n};" },
+  { statement: "S3.11", was: "let-capture", source: "const passed = () => {\n  let n = 0;\n  [1, 2].forEach((x) => {\n    n += x;\n  });\n  return n;\n};" },
+  { statement: "S3.18", was: "mut-escape", source: "const f = () => (a: number) => {\n  const m = [1];\n  switch (a) {\n    case 1: return m;\n  }\n  return m;\n};" },
+  { statement: "S3.18", was: "mut-after-freeze", source: "const f = () => (a: number): readonly number[] => {\n  const m = [1];\n  let out: readonly number[] = [];\n  switch (a) {\n    case 1: out = m; break;\n  }\n  m.push(2);\n  return out;\n};" },
+  { statement: "S3.18", was: "mut-after-freeze", source: "const f = () => (xs: readonly number[]): readonly number[] => {\n  const m = [1];\n  let out: readonly number[] = [];\n  for (const x of xs) {\n    switch (x) {\n      case 1: out = m; continue;\n    }\n    m.push(x);\n  }\n  return out;\n};" },
+  { statement: "S3.18", was: "let-capture", source: "const f = () => (a: number): number => {\n  let n = 0;\n  switch (a) {\n    case 1: return [1].map((x) => { n = x; return x; }).length;\n  }\n  return n;\n};" },
+  { statement: "S4.2", was: "mut-bind", source: "const a = () => {\n  let out = [0];\n  out[0] = 1;\n  return out;\n};" },
+  { statement: "S4.2", was: "mut-bind", source: "const a = () => [0];" },
+  { statement: "S4.2", was: "mut-bind", source: "const a = () => [[0]];" },
+  { statement: "S4.2", was: "mut-bind", source: "const a = () => {\n  const g = { h: { t: [1] } };\n  return 1;\n};" },
+  { statement: "S4.2", was: "mut-field-assign", source: "const a = () => {\n  const g = { t: [1] };\n  delete g.t;\n  return 1;\n};" },
+  { statement: "S4.3", was: "mut-not-fresh", source: "const bad = () => {\n  const a = [1];\n  const f = a;\n  const b = f;\n  b[0] = 2;\n  return b;\n};" },
+  { statement: "S4.4", was: "mut-escape", source: "const sum = () => (xs: number[]) => xs.reduce((p, q) => p + q, 0);\nconst a = (sum) => {\n  const out = [0, 1];\n  const alias = out;\n  return 1;\n};" },
+  { statement: "S4.4", was: "mut-escape", source: "const sum = () => (xs: number[]) => xs.reduce((p, q) => p + q, 0);\nconst a = (sum) => {\n  const out = [0, 1];\n  const arr = [out];\n  return 1;\n};" },
+  { statement: "S4.4", was: "mut-escape", source: "const sum = () => (xs: number[]) => xs.reduce((p, q) => p + q, 0);\nconst a = (sum) => {\n  const out = [0, 1];\n  sum(out);\n  return 1;\n};" },
+  { statement: "S4.4", was: "mut-escape", source: "const a = () => {\n  const out = [0, 1];\n  return out;\n};" },
+  { statement: "S4.4", was: "mut-escape", source: "const b = () => {\n  const out = [0];\n  return { out };\n};" },
+  { statement: "S4.4", was: "mut-escape", source: "const g = function* () {\n  const out = [0, 1];\n  yield out;\n};" },
+  { statement: "S4.4", was: "mut-source", source: "const a = () => {\n  const g = (mk: () => Mut<number[]>) => {\n    const xs = mk();\n    xs.push(1);\n    return xs.length;\n  };\n  return 1;\n};" },
+  { statement: "S4.4", was: "mut-source", source: "const a = () => {\n  const g = (p: { readonly y: Mut<number[]> }) => {\n    const { y } = p;\n    y.push(1);\n    return 1;\n  };\n  return 1;\n};" },
+  { statement: "S4.4", was: "mut-escape", source: "const a = () => {\n  const g = (p: { readonly y: Mut<number[]> }) => {\n    const ys = p.y;\n    ys.push(1);\n    return 1;\n  };\n  return 1;\n};" },
+  { statement: "S4.4", was: "mut-escape", source: "const a = () => {\n  const g = { t: [1] };\n  const t = g.t;\n  return g.t.length;\n};" },
+  { statement: "S4.4", was: "mut-escape", source: "const a = () => {\n  const g = { t: [1] };\n  const h = { ...g };\n  return g.t.length;\n};" },
+  { statement: "S4.4", was: "mut-escape", source: "const a = () => {\n  const f = (p: Mut<{ t: Mut<number[]> | null }>) => {\n    const x = p.t;\n    return x === null ? 0 : x.length;\n  };\n  return 1;\n};" },
+  { statement: "S4.4", was: "type", source: "const a = () => {\n  const g = { m: new Map<string, Mut<number[]>>() };\n  return g.m.size;\n};" },
+  { statement: "S4.5", was: "mut-capture", source: "const a = () => {\n  const out = [0];\n  const f = () => out.length;\n  return f;\n};" },
+  { statement: "S4.5", was: "mut-capture", source: "const a = () => {\n  const out = [0];\n  [1].forEach(() => {\n    out[0] = 1;\n  });\n  return out;\n};" },
+  { statement: "S4.6", was: "mut-after-freeze", source: "const a = () => {\n  const out = [0];\n  const r = out;\n  out[0] = 2;\n  return r;\n};" },
+  { statement: "S4.6", was: "mut-after-freeze", source: "const a = () => {\n  const out = [0];\n  const f = () => {\n    out[0] = 1;\n  };\n  const r = out;\n  f();\n  return r;\n};" },
+  { statement: "S4.8", was: "mut-view", source: "const a = () => {\n  const t = new Float32Array(4);\n  const v = t.subarray(0, 2);\n  return t;\n};" },
+  { statement: "S4.8", was: "mut-view", source: "const a = () => {\n  const m = new Map<string, number>();\n  const set = (k: string) => m.set(k, 1);\n  set(\"a\");\n  return m.size;\n};" },
+  { statement: "S4.9", was: "mut-freeze-param", source: "const a = () => {\n  const g = (m: Mut<number[]>) => m;\n  return 1;\n};" },
+  { statement: "S5.1", was: "borrow-placement", source: "const a = () => {\n  const b = [1];\n  return snapshot(b);\n};" },
+  { statement: "S5.1", was: "borrow-placement", source: "const g = function* () {\n  const b = [1];\n  const f = function* () {\n    yield b;\n  };\n  yield 1;\n};" },
+  { statement: "S5.2", was: "inject-type", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst plain = (frames: Float32Array) => frames.length;" },
+  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => frames;" },
+  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => {\n  const f = () => frames.length;\n  return f();\n};" },
+  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => [frames];" },
+  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => state(frames);" },
+  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => {\n  let x = frames;\n  return 1;\n};" },
+  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = function* (frames) {\n  yield frames;\n};" },
+  { statement: "S5.4", was: "borrowed-await", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = async (frames) => {\n  await Promise.resolve();\n  return frames.length;\n};" },
+  { statement: "S5.4", was: "borrowed-await", source: "const bad = () => async () => {\n  const bump = async (m: Mut<{ n: number }>): Promise<void> => {\n    await 0;\n    m.n = 2;\n  };\n  const m = { n: 1 };\n  const p = bump(m);\n  const v = m;\n  await p;\n  return v.n;\n};" },
+  { statement: "S5.4", was: "borrowed-await", source: "const bad = () => async () => {\n  const m = { n: 1 };\n  const h = async (): Promise<void> => {\n    await 0;\n    m.n = 2;\n  };\n  const p = h();\n  const v = m;\n  await p;\n  return v.n;\n};" },
+  { statement: "S5.5", was: "type", source: "const f = () => snapshot([1]);" }
+]
+// %%
+spec_acceptsFor = (statement) => {
+  const cases = spec_accepts.filter((c) => c.statement === statement);
+  if (!cases.length) throw new Error(`${statement} has no accepted case`);
+  for (const c of cases) spec_okCells(c.source);
+  return `${cases.length} source(s) once rejected by [${[...new Set(cases.map((c) => c.was))].join(", ")}] are accepted`;
+}
+// %%
 spec_okCells = (source) => {
   // the cells of an accepted source, name:status; throws if the source is rejected
   const r = soundscript.check(source);
@@ -311,12 +368,12 @@ spec_rejects_2 = [
   { statement: "S2.6", rule: "free-name", source: "const c = () => eval(\"1\");" },
   { statement: "S2.6", rule: "free-name", source: "const c = () => window;" },
   { statement: "S2.6", rule: "free-name", source: "const c = () => Function(\"return 1\");" },
-  { statement: "S2.6", rule: "prelude-value", source: "const x = () => [1, 2];\nconst y = (x: number[]) => {\n  const mk = mut;\n  const a = mk(x);\n  a.push(3);\n  return a.length;\n};" },
-  { statement: "S2.6", rule: "prelude-value", source: "const a = () => {\n  const fz: <T>(m: Mut<T>) => T = freeze;\n  const m = mut([1]);\n  const r = fz(m);\n  m.push(2);\n  return r.length;\n};" },
-  { statement: "S2.6", rule: "prelude-value", source: "const x = () => [1, 2];\nconst c = () => true;\nconst y = (x: number[], c: boolean) => {\n  const a = (c ? mut : mut)(x);\n  return a.length;\n};" },
+  { statement: "S2.6", rule: "removed-call", source: "const x = () => [1, 2];\nconst y = (x: number[]) => {\n  const mk = mut;\n  const a = mk(x);\n  a.push(3);\n  return a.length;\n};" },
+  { statement: "S2.6", rule: "removed-call", source: "const a = () => {\n  const fz: <T>(m: Mut<T>) => T = freeze;\n  const m = [1];\n  const r = fz(m);\n  m.push(2);\n  return r.length;\n};" },
+  { statement: "S2.6", rule: "removed-call", source: "const x = () => [1, 2];\nconst c = () => true;\nconst y = (x: number[], c: boolean) => {\n  const a = (c ? mut : mut)(x);\n  return a.length;\n};" },
   { statement: "S2.6", rule: "prelude-value", source: "const s = () => {\n  const st = state;\n  return st(0);\n};" },
-  { statement: "S2.6", rule: "prelude-shadow", source: "const a = () => {\n  const freeze = (m: Mut<number[]>): number => m.length;\n  const m = mut([1]);\n  return freeze(m);\n};" },
-  { statement: "S2.6", rule: "prelude-shadow", source: "const x = () => [1, 2];\nconst y = (x: number[]) => {\n  const g = (mut: (v: number[]) => number[]) => mut(x).length;\n  return 1;\n};" },
+  { statement: "S2.6", rule: "prelude-shadow", source: "const a = () => {\n  const snapshot = (m: Mut<number[]>): number => m.length;\n  const m = [1];\n  return m;\n};" },
+  { statement: "S2.6", rule: "prelude-shadow", source: "const x = () => [1, 2];\nconst y = (x: number[]) => {\n  const g = (snapshot: (v: number[]) => number[]) => x.length;\n  return 1;\n};" },
   { statement: "S2.7", rule: "banned-member", source: "const a = () => Math.random();" },
   { statement: "S2.7", rule: "banned-member", source: "const b = () => {\n  const M = Math;\n  return M.random();\n};" },
   { statement: "S2.7", rule: "banned-member", source: "const b = () => Math[\"random\"]();" },
@@ -401,7 +458,7 @@ test_spec_S2_6 = {
   const names = /the intrinsics \\`([^`\\]+)\\`/.exec(statement)[1].split(" ");
   const bad = names.filter((n) => spec_okCells(`const a = () => ${n};`) !== "a:ok");
   if (bad.length) throw new Error(`not accepted as a value: ${bad.join(", ")}`);
-  spec_is(spec_okCells("const n = () => state(0);\nconst a = (n: State<number>) => { const m = mut([1]); const f = freeze(m); return [equals(f, [1]), action(() => n.set(read(n) + 1))]; };"), "n:ok,a:ok");
+  spec_is(spec_okCells("const n = () => state(0);\nconst a = (n: State<number>) => { const m = [1]; const f = m; return [equals(f, [1]), action(() => n.set(read(n) + 1))]; };"), "n:ok,a:ok");
   return `${spec_rejectsFor("S2.6")}; ${names.length} intrinsics and the prelude functions accepted`;
 }
 // %%
@@ -498,7 +555,6 @@ spec_rejects_3 = [
   { statement: "S3.1", rule: "member-write", source: "const o = () => ({ a: 1, xs: [1] });\nconst w = (o) => {\n  o.a++;\n  return o;\n};" },
   { statement: "S3.1", rule: "member-write", source: "const o = () => ({ a: 1, xs: [1] });\nconst w = (o) => {\n  --o.a;\n  return o;\n};" },
   { statement: "S3.1", rule: "member-write", source: "const o = () => ({ a: 1 });\nconst d = (o) => {\n  [o.a] = [5];\n  ({ k: o.a } = { k: 6 });\n  return o;\n};" },
-  { statement: "S3.1", rule: "member-write", source: "const w = () => {\n  const l = { a: 1 };\n  l.a = 2;\n  return l;\n};" },
   { statement: "S3.2", rule: "mutating-method", source: "const xs = () => [3, 1, 2];\nconst w = (xs) => xs.push(1);" },
   { statement: "S3.2", rule: "mutating-method", source: "const xs = () => [3, 1, 2];\nconst w = (xs) => xs.pop();" },
   { statement: "S3.2", rule: "mutating-method", source: "const xs = () => [3, 1, 2];\nconst w = (xs) => xs.shift();" },
@@ -541,7 +597,6 @@ spec_rejects_3 = [
   { statement: "S3.9", rule: "no-namespace", source: "module M { const x = 1; }" },
   { statement: "S3.9", rule: "no-namespace", source: "declare module \"x\" {}" },
   { statement: "S3.11", rule: "let-capture", source: "const returned = () => {\n  let n = 0;\n  const inc = () => {\n    n = n + 1;\n  };\n  return inc;\n};" },
-  { statement: "S3.11", rule: "let-capture", source: "const passed = () => {\n  let n = 0;\n  [1, 2].forEach((x) => {\n    n += x;\n  });\n  return n;\n};" },
   { statement: "S3.11", rule: "let-capture", source: "const stored = () => {\n  let [n] = [0];\n  const set = () => {\n    n = 1;\n  };\n  return { set };\n};" },
   { statement: "S3.11", rule: "let-capture", source: "const aliased = () => {\n  let n = 0;\n  const inc = () => {\n    n++;\n  };\n  const again = inc;\n  again();\n  return n;\n};" },
   { statement: "S3.11", rule: "let-capture", source: "const viaEscapingOuter = () => {\n  let n = 0;\n  const outer = () => {\n    const inner = () => {\n      n = 2;\n    };\n    inner();\n  };\n  return [outer];\n};" },
@@ -563,11 +618,7 @@ spec_rejects_3 = [
   { statement: "S3.16", rule: "switch-declaration", source: "const f = () => (a: number): number => {\n  switch (a) {\n    case 1: function g(): number { return 2; } return g();\n  }\n  return 0;\n};" },
   { statement: "S3.17", rule: "type", source: "type T = { readonly k: \"n\"; readonly v: number } | { readonly k: \"s\"; readonly s: string };\nconst f = () => (t: T): number => {\n  switch (t.k) {\n    case \"n\": return t.v;\n  }\n};" },
   { statement: "S3.17", rule: "type", source: "const f = () => (c: string): number => {\n  switch (c) {\n    case \"a\": return 1;\n    case \"b\": return 2;\n  }\n};" },
-  { statement: "S3.18", rule: "mut-escape", source: "const f = () => (a: number) => {\n  const m = mut([1]);\n  switch (a) {\n    case 1: return m;\n  }\n  return freeze(m);\n};" },
   { statement: "S3.18", rule: "state-write", source: "const n = () => state(0);\nconst w = (n: State<number>) => (a: number): number => {\n  switch (a) {\n    case 1: n.set(1); return 1;\n  }\n  return 0;\n};" },
-  { statement: "S3.18", rule: "mut-after-freeze", source: "const f = () => (a: number): readonly number[] => {\n  const m = mut([1]);\n  let out: readonly number[] = [];\n  switch (a) {\n    case 1: out = freeze(m); break;\n  }\n  m.push(2);\n  return out;\n};" },
-  { statement: "S3.18", rule: "mut-after-freeze", source: "const f = () => (xs: readonly number[]): readonly number[] => {\n  const m = mut([1]);\n  let out: readonly number[] = [];\n  for (const x of xs) {\n    switch (x) {\n      case 1: out = freeze(m); continue;\n    }\n    m.push(x);\n  }\n  return out;\n};" },
-  { statement: "S3.18", rule: "let-capture", source: "const f = () => (a: number): number => {\n  let n = 0;\n  switch (a) {\n    case 1: return [1].map((x) => { n = x; return x; }).length;\n  }\n  return n;\n};" },
   { statement: "S3.19", rule: "iterator-capture", source: "const counter = () => {\n  const it = [1, 2, 3].values();\n  return (n: number) => {\n    let s = 0;\n    for (const x of it) s += x;\n    return s + n;\n  };\n};" },
   { statement: "S3.19", rule: "iterator-capture", source: "const later = () => (it: Iterable<number>) => () => [...it].length;" },
   { statement: "S3.19", rule: "iterator-capture", source: "const boxed = () => {\n  const r = { it: new Map([[\"a\", 1]]).entries() };\n  return () => [...r.it].length;\n};" },
@@ -670,7 +721,7 @@ test_spec_S3_17 = {
 }
 // %%
 test_spec_S3_18 = {
-  spec_is(spec_okCells("const f = () => (a: number): readonly number[] => {\n  const m = mut([1]);\n  switch (a) {\n    case 1: m.push(2); break;\n    case 2: { m.push(3); break; }\n    default: m.push(4);\n  }\n  return freeze(m);\n};\nconst n = () => state(0);\nconst bump = (n: State<number>) => action((a: number) => {\n  switch (a) {\n    case 1: n.set(1); break;\n    default: n.update((x) => x + a);\n  }\n});"), "f:ok,n:ok,bump:ok");
+  spec_is(spec_okCells("const f = () => (a: number): readonly number[] => {\n  const m = [1];\n  switch (a) {\n    case 1: m.push(2); break;\n    case 2: { m.push(3); break; }\n    default: m.push(4);\n  }\n  return m;\n};\nconst n = () => state(0);\nconst bump = (n: State<number>) => action((a: number) => {\n  switch (a) {\n    case 1: n.set(1); break;\n    default: n.update((x) => x + a);\n  }\n});"), "f:ok,n:ok,bump:ok");
   return `${spec_rejectsFor("S3.18")}; a Mut written in cases and frozen after, and a State written in a case inside an action, are accepted`;
 }
 // %%
@@ -711,47 +762,33 @@ md`The cells of this section. \`s4_blur\` writes a box blur into a \`Mut\` buffe
 //ss: ./spec-4.ts
 // %%
 spec_rejects_4 = [
-  { statement: "S4.2", rule: "mut-bind", source: "const a = () => {\n  let out = mut([0]);\n  out[0] = 1;\n  return freeze(out);\n};" },
-  { statement: "S4.2", rule: "mut-bind", source: "const a = () => freeze(mut([0]));" },
-  { statement: "S4.2", rule: "mut-bind", source: "const a = () => [mut([0])];" },
-  { statement: "S4.2", rule: "mut-bind", source: "const a = () => {\n  const g = mut({ h: mut({ t: mut([1]) }) });\n  return 1;\n};" },
-  { statement: "S4.2", rule: "mut-field-assign", source: "const a = () => {\n  const g = mut({ t: mut([1]) });\n  delete g.t;\n  return 1;\n};" },
-  { statement: "S4.3", rule: "mut-not-fresh", source: "const xs = () => [1, 2, 3];\nconst bad = (xs) => {\n  const m = mut(xs);\n  m[0] = 9;\n  return freeze(m);\n};" },
-  { statement: "S4.3", rule: "mut-not-fresh", source: "const bad = () => {\n  const a = mut([1]);\n  const f = freeze(a);\n  const b = mut(f);\n  b[0] = 2;\n  return freeze(b);\n};" },
-  { statement: "S4.4", rule: "mut-escape", source: "const sum = () => (xs: number[]) => xs.reduce((p, q) => p + q, 0);\nconst a = (sum) => {\n  const out = mut([0, 1]);\n  const alias = out;\n  return 1;\n};" },
-  { statement: "S4.4", rule: "mut-escape", source: "const sum = () => (xs: number[]) => xs.reduce((p, q) => p + q, 0);\nconst a = (sum) => {\n  const out = mut([0, 1]);\n  const arr = [out];\n  return 1;\n};" },
-  { statement: "S4.4", rule: "mut-escape", source: "const sum = () => (xs: number[]) => xs.reduce((p, q) => p + q, 0);\nconst a = (sum) => {\n  const out = mut([0, 1]);\n  sum(out);\n  return 1;\n};" },
-  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const out = mut([0, 1]);\n  return out;\n};" },
-  { statement: "S4.4", rule: "mut-escape", source: "const b = () => {\n  const out = mut([0]);\n  return { out };\n};" },
-  { statement: "S4.4", rule: "mut-escape", source: "const g = function* () {\n  const out = mut([0, 1]);\n  yield out;\n};" },
-  { statement: "S4.4", rule: "mut-source", source: "const a = () => {\n  const g = (mk: () => Mut<number[]>) => {\n    const xs = mk();\n    xs.push(1);\n    return xs.length;\n  };\n  return 1;\n};" },
-  { statement: "S4.4", rule: "mut-source", source: "const a = () => {\n  const g = (p: { readonly y: Mut<number[]> }) => {\n    const { y } = p;\n    y.push(1);\n    return 1;\n  };\n  return 1;\n};" },
-  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const g = (p: { readonly y: Mut<number[]> }) => {\n    const ys = p.y;\n    ys.push(1);\n    return 1;\n  };\n  return 1;\n};" },
+  { statement: "S4.3", rule: "member-write", source: "const xs = () => [1, 2, 3];\nconst bad = (xs) => {\n  const m = xs;\n  m[0] = 9;\n  return m;\n};" },
   { statement: "S4.4", rule: "mut-cell", source: "const a = () => null;\nconst b = (a: Mut<number[]> | null) => (a === null ? 0 : a.length);" },
   { statement: "S4.4", rule: "mut-cell", source: "const a = () => [];\nconst b = (a: readonly Mut<number[]>[]) => a.length;" },
   { statement: "S4.4", rule: "mut-cell", source: "type Box<T> = { readonly v: T | null };\nconst a = () => ({ v: null });\nconst b = (a: Box<Mut<number[]>>) => 1;" },
-  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const g = mut({ t: mut([1]) });\n  const t = g.t;\n  return freeze(g).t.length;\n};" },
-  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const g = mut({ t: mut([1]) });\n  const h = { ...g };\n  return freeze(g).t.length;\n};" },
-  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const g = mut({ xs: mut([1]), ys: mut([10]) });\n  const leak = <Y,>(c: Mut<{ xs: Mut<number[]>; ys: Y }>): number => c.xs.length;\n  return leak(g) + freeze(g).ys.length;\n};" },
-  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const g = mut({ t: mut([1]) });\n  const f = (p: Mut<{ t: Mut<number[]> }>, q: Mut<number[]>) => {\n    q.push(2);\n    return p.t.length;\n  };\n  return f(g, g.t);\n};" },
-  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const f = (p: Mut<{ t: Mut<number[]> | null }>) => {\n    const x = p.t;\n    return x === null ? 0 : x.length;\n  };\n  return 1;\n};" },
-  { statement: "S4.4", rule: "type", source: "const a = () => {\n  const g = mut({ m: mut(new Map<string, Mut<number[]>>()) });\n  return freeze(g).m.size;\n};" },
-  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = mut([0]);\n  const f = () => out.length;\n  return f;\n};" },
-  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = mut([0]);\n  [1].forEach(() => {\n    out[0] = 1;\n  });\n  return freeze(out);\n};" },
-  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const keep = (k: () => number) => k;\n  const m = mut([1]);\n  const f = function g(): number {\n    m.push(2);\n    return 0;\n  };\n  const h = keep(f);\n  return [freeze(m), h];\n};" },
-  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const m = mut([1]);\n  const fs = [function g(): number {\n    m.push(2);\n    return 0;\n  }];\n  return [freeze(m), fs.length];\n};" },
-  { statement: "S4.6", rule: "mut-after-freeze", source: "const a = () => {\n  const out = mut([0]);\n  const r = freeze(out);\n  out[0] = 2;\n  return r;\n};" },
-  { statement: "S4.6", rule: "mut-after-freeze", source: "const a = () => {\n  const out = mut([0]);\n  const f = () => {\n    out[0] = 1;\n  };\n  const r = freeze(out);\n  f();\n  return r;\n};" },
-  { statement: "S4.7", rule: "mut-deep-write", source: "const a = () => {\n  const m = mut({ a: { b: 1 }, xs: [1] });\n  m.a.b = 2;\n  m.xs.push(2);\n  return freeze(m);\n};" },
-  { statement: "S4.8", rule: "mut-view", source: "const a = () => {\n  const t = mut(new Float32Array(4));\n  const v = t.subarray(0, 2);\n  return freeze(t);\n};" },
-  { statement: "S4.8", rule: "mut-view", source: "const a = () => {\n  const m = mut(new Map<string, number>());\n  const set = (k: string) => m.set(k, 1);\n  set(\"a\");\n  return freeze(m).size;\n};" },
-  { statement: "S4.9", rule: "mut-freeze-param", source: "const a = () => {\n  const g = (m: Mut<number[]>) => freeze(m);\n  return 1;\n};" }
+  { statement: "S4.4", rule: "type", source: "const a = () => {\n  const g = { xs: [1], ys: [10] };\n  const leak = <Y,>(c: Mut<{ xs: Mut<number[]>; ys: Y }>): number => c.xs.length;\n  return leak(g) + g.ys.length;\n};" },
+  { statement: "S4.4", rule: "type", source: "const a = () => {\n  const g = { t: [1] };\n  const f = (p: Mut<{ t: Mut<number[]> }>, q: Mut<number[]>) => {\n    q.push(2);\n    return p.t.length;\n  };\n  return f(g, g.t);\n};" },
+  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const keep = (k: () => number) => k;\n  const m = [1];\n  const f = function g(): number {\n    m.push(2);\n    return 0;\n  };\n  const h = keep(f);\n  return [m, h];\n};" },
+  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const m = [1];\n  const fs = [function g(): number {\n    m.push(2);\n    return 0;\n  }];\n  return [m, fs.length];\n};" },
+  { statement: "S4.7", rule: "member-write", source: "const a = () => {\n  const m = { a: { b: 1 }, xs: [1] };\n  m.a.b = 2;\n  return m;\n};" },
+  { statement: "S4.2", rule: "removed-call", source: "const a = () => {\n  const xs = mut([1]);\n  xs.push(2);\n  return xs;\n};" },
+  { statement: "S4.2", rule: "removed-call", source: "const a = () => {\n  const xs = [1];\n  return freeze(xs);\n};" },
+  { statement: "S4.2", rule: "removed-call", source: "const g = function* () {\n  const b = [1];\n  yield borrow(b);\n};" },
+  { statement: "S4.3", rule: "mutating-method", source: "const xs = () => [1];\nconst b = (xs) => {\n  const ys = xs.slice();\n  ys.push(2);\n  xs.push(3);\n  return ys.length;\n};" },
+  { statement: "S4.3", rule: "type", source: "const xs = () => [1];\nconst b = (xs) => {\n  const g = (m: Mut<number[]>) => m.length;\n  return g(xs);\n};" },
+  { statement: "S4.4", rule: "mutating-method", source: "const a = () => {\n  const xs = [1];\n  xs.push(2);\n  return xs;\n};\nconst b = (a) => {\n  a.push(3);\n  return 1;\n};" },
+  { statement: "S4.4", rule: "mutating-method", source: "const a = () => {\n  const m = new Map<string, number>();\n  m.set(\"k\", 1);\n  return { m };\n};\nconst b = (a) => {\n  a.m.set(\"j\", 2);\n  return 1;\n};" },
+  { statement: "S4.4", rule: "member-write", source: "const a = function* () {\n  const r = { n: 0 };\n  for (let k = 0; k < 2; k++) {\n    r.n = k;\n    yield { ...r };\n  }\n};\nconst b = (a) => {\n  a.n = 9;\n  return 1;\n};" },
+  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const t = new Float32Array(2);\n  return () => t.length;\n};" },
+  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = [0];\n  const f = () => out.length;\n  out.push(1);\n  return f;\n};" },
+  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = [0];\n  return { f: () => { out.push(1); return out.length; } };\n};" },
+  { statement: "S4.8", rule: "mut-yield", source: "const g = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf;\n  }\n};" }
 ]
 // %%
 spec_rejects_4_view = spec_rejectsTable(spec_rejects_4)
 // %%
 test_spec_S4_1 = {
-  spec_is(spec_okCells("const a = () => {\n  const t = mut(new Float32Array(3));\n  t.fill(0);\n  t[1] = 2;\n  t[2] += 1;\n  t[0]++;\n  const m = mut(new Map<string, number>());\n  m.set(\"a\", 1);\n  m.delete(\"a\");\n  const o = mut({ a: 1, b: 2 });\n  delete o.a;\n  const xs = mut([3, 1]);\n  xs.push(2);\n  xs.sort((p, q) => p - q);\n  const r: number[] = freeze(xs);\n  return [freeze(t), freeze(m).size, freeze(o), r];\n};"), "a:ok");
+  spec_is(spec_okCells("const a = () => {\n  const t = new Float32Array(3);\n  t.fill(0);\n  t[1] = 2;\n  t[2] += 1;\n  t[0]++;\n  const m = new Map<string, number>();\n  m.set(\"a\", 1);\n  m.delete(\"a\");\n  const o = { a: 1, b: 2 };\n  delete o.a;\n  const xs = [3, 1];\n  xs.push(2);\n  xs.sort((p, q) => p - q);\n  const r: number[] = xs;\n  return [t, m.size, o, r];\n};"), "a:ok");
   const blur = Array.from(await spec_module.value("s4_blur"), (v) => Math.round(v * 1e6) / 1e6);
   spec_is(blur, [0, 1, 1, 1, 0]);
   spec_is(await spec_module.value("s4_record"), { b: 3 });
@@ -761,33 +798,47 @@ test_spec_S4_1 = {
 test_spec_S4_2 = spec_rejectsFor("S4.2")
 // %%
 test_spec_S4_3 = {
-  spec_is(spec_okCells("const xs = () => [1, 2, 3];\nconst o = () => ({ a: 1 });\nconst a = (xs, o) => {\n  const p = mut([...xs]);\n  const q = mut({ ...o });\n  const r = mut(Array.from(xs));\n  const s = mut(xs.slice(1));\n  const t = mut(xs.map((x) => x * 2));\n  const u = mut(structuredClone(xs));\n  const v = mut(new Map<string, number>());\n  p.push(4); q.a = 2; r.push(5); s.push(6); t.reverse(); u.reverse(); v.set(\"k\", 1);\n  return [freeze(p), freeze(q), freeze(r), freeze(s), freeze(t), freeze(u), freeze(v).size];\n};"), "xs:ok,o:ok,a:ok");
+  spec_is(spec_okCells("const xs = () => [1, 2, 3];\nconst o = () => ({ a: 1 });\nconst a = (xs, o) => {\n  const p = [...xs];\n  const q = { ...o };\n  const r = Array.from(xs);\n  const s = xs.slice(1);\n  const t = xs.map((x) => x * 2);\n  const u = structuredClone(xs);\n  const v = new Map<string, number>();\n  p.push(4); q.a = 2; r.push(5); s.push(6); t.reverse(); u.reverse(); v.set(\"k\", 1);\n  return [p, q, r, s, t, u, v.size];\n};"), "xs:ok,o:ok,a:ok");
   return `${spec_rejectsFor("S4.3")}; literals, spreads, new and fresh intrinsics are accepted`;
 }
 // %%
 test_spec_S4_4 = {
-  spec_is(spec_okCells("const a = () => {\n  const set0 = (m: Mut<number[]>) => {\n    m[0] = 5;\n  };\n  const out = mut([0, 1]);\n  set0(out);\n  const s = JSON.stringify(out);\n  return [freeze(out), s];\n};"), "a:ok");
+  spec_is(spec_okCells("const a = () => {\n  const set0 = (m: Mut<number[]>) => {\n    m[0] = 5;\n  };\n  const out = [0, 1];\n  set0(out);\n  const s = JSON.stringify(out);\n  return [out, s];\n};"), "a:ok");
   // an owned group: fields written, lent whole to a parameter declared as the group, a helper that is only called, frozen
-  spec_is(spec_okCells("type G = Mut<{ t: Mut<number[]>; n: number }>;\nconst fill = () => (p: G, k: number): number => {\n  p.t.push(k);\n  p.n = p.n + 1;\n  return p.t.length;\n};\nconst a = (fill: (p: G, k: number) => number) => {\n  const g: G = mut({ t: mut([1]), n: 0 });\n  const put = (k: number) => {\n    g.t.push(k);\n  };\n  put(2);\n  fill(g, 3);\n  const f = freeze(g);\n  const xs: readonly number[] = f.t;\n  return xs.length + f.n;\n};"), "fill:ok,a:ok");
+  spec_is(spec_okCells("type G = Mut<{ t: Mut<number[]>; n: number }>;\nconst fill = () => (p: G, k: number): number => {\n  p.t.push(k);\n  p.n = p.n + 1;\n  return p.t.length;\n};\nconst a = (fill: (p: G, k: number) => number) => {\n  const g: G = { t: [1], n: 0 };\n  const put = (k: number) => {\n    g.t.push(k);\n  };\n  put(2);\n  fill(g, 3);\n  const f = g;\n  const xs: readonly number[] = f.t;\n  return xs.length + f.n;\n};"), "fill:ok,a:ok");
   return `${spec_rejectsFor("S4.4")}; a Mut<…> parameter and a read by JSON.stringify are accepted`;
 }
 // %%
 test_spec_S4_5 = {
-  spec_is(spec_okCells("const a = () => {\n  const out = mut([0]);\n  const f = () => out.length;\n  return f();\n};"), "a:ok");
+  spec_is(spec_okCells("const a = () => {\n  const out = [0];\n  const f = () => out.length;\n  return f();\n};"), "a:ok");
   spec_is(await spec_module.value("s4_counts"), [2, 1]);
   return `${spec_rejectsFor("S4.5")}; a helper that is only called may use the Mut; s4_counts is [2,1]`;
 }
 // %%
-test_spec_S4_6 = spec_rejectsFor("S4.6")
+test_spec_S4_6 = {
+  // a cell's value is deep-frozen when the cell returns: its array, its Map and its Set refuse a write from any code.
+  // B7 (2026-11-22): a sync cell that makes no async or generator function is published unfrozen unless freezeAll is
+  // on, so the cell here is async; q is such a sync cell, and the result says whether it was frozen
+  const V = await spec_load("const v = async () => ({ xs: [1], m: new Map<string, number[]>([[\"k\", [1]]]), s: new Set([1]) });\nconst q = () => ({ xs: [1] });", {});
+  try {
+    const v = await V.value("v"), q = await V.value("q");
+    const tries = [() => v.xs.push(2), () => v.m.set("j", []), () => v.m.get("k").push(2), () => v.s.add(2), () => { v.n = 1; }];
+    const got = tries.map((f) => { try { f(); return "no throw"; } catch (e) { return e instanceof TypeError ? "TypeError" : String(e); } });
+    spec_is([...got, v.m instanceof Map, JSON.stringify([...v.m])], ["TypeError", "TypeError", "TypeError", "TypeError", "TypeError", true, '[["k",[1]]]']);
+    var quick = Object.isFrozen(q.xs) ? "frozen (freezeAll)" : "not frozen";
+    spec_is(quick, new URLSearchParams(location.search).get("ss_freeze_all") === "1" ? "frozen (freezeAll)" : "not frozen");
+  } finally { V.dispose(); }
+  return `${spec_acceptsFor("S4.6")}; an async cell's array, record, Map and Set refuse a write; a quick sync cell's value: ${quick}`;
+}
 // %%
 test_spec_S4_7 = spec_rejectsFor("S4.7")
 // %%
 test_spec_S4_8 = {
-  spec_is(spec_okCells("const a = () => {\n  const t = mut(new Float32Array(4));\n  t.set(t.subarray(0, 2), 2);\n  return freeze(t);\n};"), "a:ok");
+  spec_is(spec_okCells("const a = () => {\n  const t = new Float32Array(4);\n  t.set(t.subarray(0, 2), 2);\n  return t;\n};"), "a:ok");
   return `${spec_rejectsFor("S4.8")}; a view consumed at once as an argument is accepted`;
 }
 // %%
-test_spec_S4_9 = spec_rejectsFor("S4.9")
+test_spec_S4_9 = spec_acceptsFor("S4.9")
 // %%
 md`## 5. Owner cells
 
@@ -807,58 +858,43 @@ md`The cells of this section. \`s5_frames\` lends one buffer three times, filled
 // %%
 //ss: ./spec-5.ts
 // %%
-spec_rejects_5 = (() => {
-  // the S5.2-S5.4 cases read this owner cell
-  const frames = "const frames = function* () {\n  const buf = mut(new Float32Array(2));\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield borrow(buf);\n  }\n};\n";
-  return [
-    { statement: "S5.1", rule: "borrow-placement", source: "const a = () => {\n  const b = mut([1]);\n  return snapshot(borrow(b));\n};" },
-    { statement: "S5.1", rule: "borrow-placement", source: "const g = function* () {\n  const b = mut([1]);\n  const f = function* () {\n    yield borrow(b);\n  };\n  yield 1;\n};" },
-    { statement: "S5.2", rule: "inject-type", source: frames + "const plain = (frames: Float32Array) => frames.length;" },
-    { statement: "S5.2", rule: "member-write", source: frames + "const w = (frames) => {\n  frames[0] = 1;\n  return 1;\n};" },
-    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => frames;" },
-    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => {\n  const f = () => frames.length;\n  return f();\n};" },
-    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => [frames];" },
-    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => state(frames);" },
-    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = (frames) => {\n  let x = frames;\n  return 1;\n};" },
-    { statement: "S5.3", rule: "borrowed-escape", source: frames + "const bad = function* (frames) {\n  yield frames;\n};" },
-    { statement: "S5.4", rule: "borrowed-await", source: frames + "const bad = async (frames) => {\n  await Promise.resolve();\n  return frames.length;\n};" },
-    { statement: "S5.4", rule: "borrowed-await", source: "const bad = () => async () => {\n  const bump = async (m: Mut<{ n: number }>): Promise<void> => {\n    await 0;\n    m.n = 2;\n  };\n  const m = mut({ n: 1 });\n  const p = bump(m);\n  const v = freeze(m);\n  await p;\n  return v.n;\n};" },
-    { statement: "S5.4", rule: "borrowed-await", source: "const bad = () => async () => {\n  const m = mut({ n: 1 });\n  const h = async (): Promise<void> => {\n    await 0;\n    m.n = 2;\n  };\n  const p = h();\n  const v = freeze(m);\n  await p;\n  return v.n;\n};" },
-    { statement: "S5.5", rule: "type", source: "const f = () => snapshot([1]);" }
-  ];
-})()
+spec_rejects_5 = [
+  { statement: "S5.1", rule: "mut-yield", source: "const g = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf;\n  }\n};" },
+  { statement: "S5.2", rule: "member-write", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst w = (frames) => {\n  frames[0] = 1;\n  return 1;\n};" },
+  { statement: "S5.2", rule: "inject-type", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst w = (frames: string) => frames.length;" }
+]
 // %%
 spec_rejects_5_view = spec_rejectsTable(spec_rejects_5)
 // %%
 test_spec_S5_1 = {
-  spec_is(spec_okCells("const g = function* () {\n  const b = mut([1]);\n  b.push(2);\n  yield borrow(b);\n};\nconst h = async function* () {\n  const b = mut([1]);\n  yield borrow(b);\n};"), "g:ok,h:ok");
-  return `${spec_rejectsFor("S5.1")}; a sync and an async generator may yield borrow`;
+  spec_is(spec_okCells("const g = function* () {\n  const b = [1];\n  b.push(2);\n  yield b;\n};\nconst h = async function* () {\n  const b = new Float32Array(1);\n  yield b.slice();\n};"), "g:ok,h:ok");
+  return `${spec_rejectsFor("S5.1")}; ${spec_acceptsFor("S5.1")}; a generator yields an array (frozen as it is yielded) or a typed array's copy`;
 }
 // %%
 test_spec_S5_2 = {
-  const owner = "const frames = function* () {\n  const buf = mut(new Float32Array(2));\n  yield borrow(buf);\n};\n";
-  spec_is(spec_okCells(owner + "const a = (frames: Borrowed<Float32Array>) => frames.length;\nconst b = (frames) => frames.length;"), "frames:ok,a:ok,b:ok");
-  return `${spec_rejectsFor("S5.2")}; Borrowed<Float32Array> and no annotation are accepted`;
+  const owner = "const frames = function* () {\n  const buf = new Float32Array(2);\n  yield buf.slice();\n};\n";
+  spec_is(spec_okCells(owner + "const a = (frames: Float32Array) => frames.length;\nconst b = (frames) => frames.length;"), "frames:ok,a:ok,b:ok");
+  return `${spec_rejectsFor("S5.2")}; ${spec_acceptsFor("S5.2")}; Float32Array and no annotation are accepted`;
 }
 // %%
 test_spec_S5_3 = {
-  const owner = "const frames = function* () {\n  const buf = mut(new Float32Array(2));\n  yield borrow(buf);\n};\n";
+  const owner = "const frames = function* () {\n  const buf = new Float32Array(2);\n  yield buf.slice();\n};\n";
   spec_is(spec_okCells(owner + "const a = (frames) => {\n  let s = 0;\n  for (const v of frames) s += v;\n  return s + (frames.at(0) ?? 0);\n};"), "frames:ok,a:ok");
-  return `${spec_rejectsFor("S5.3")}; reads during the evaluation are accepted`;
+  return `${spec_acceptsFor("S5.3")}; reads during the evaluation are accepted`;
 }
 // %%
 test_spec_S5_4 = {
   const first = await spec_module.value("s5_first");
   if (![1, 2, 3].includes(first)) throw new Error(`s5_first is ${first}`);
-  const owner = "const frames = function* () {\n  const buf = mut(new Float32Array(2));\n  yield borrow(buf);\n};\n";
+  const owner = "const frames = function* () {\n  const buf = new Float32Array(2);\n  yield buf.slice();\n};\n";
   spec_is(spec_okCells(owner + "const a = async (frames) => {\n  const x = frames.at(0) ?? 0;\n  await Promise.resolve();\n  return x;\n};"), "frames:ok,a:ok");
-  return `${spec_rejectsFor("S5.4")}; a value read before the await is kept (s5_first is ${first})`;
+  return `${spec_acceptsFor("S5.4")}; a value read before the await is kept (s5_first is ${first})`;
 }
 // %%
 test_spec_S5_5 = {
   // an owner yields once a frame; the copy never ends, so whichever frame is read first, a later one follows
   const frames = (f) => spec_frames(f, 240);
-  const L = await spec_load("const frames = function* () {\n  const buf = mut(new Float32Array(3));\n  for (let k = 1; ; k++) {\n    for (let i = 0; i < buf.length; i++) buf[i] = k * (i + 1);\n    yield borrow(buf);\n  }\n};\nconst kept = (frames) => snapshot(frames);\nconst total = (frames) => {\n  let s = 0;\n  for (const v of frames) s += v;\n  return s;\n};", {});
+  const L = await spec_load("const frames = function* () {\n  const buf = new Float32Array(3);\n  for (let k = 1; ; k++) {\n    for (let i = 0; i < buf.length; i++) buf[i] = k * (i + 1);\n    yield buf.slice();\n  }\n};\nconst kept = (frames) => snapshot(frames);\nconst total = (frames) => {\n  let s = 0;\n  for (const v of frames) s += v;\n  return s;\n};", {});
   try {
     const kept0 = await L.value("kept"), was = Array.from(kept0), k = was[0];
     spec_is(was, [k, 2 * k, 3 * k]);
@@ -870,7 +906,7 @@ test_spec_S5_5 = {
   } finally { L.dispose(); }
   if (!(await frames(async () => (await spec_module.value("s5_total")) === 18))) throw new Error("s5_total did not reach 18");
   spec_is(Array.from(await spec_module.value("s5_kept")), [3, 6, 9]);
-  return `${spec_rejectsFor("S5.5")}; a copy of an early frame is unchanged after the last; s5_kept is [3,6,9], s5_total 18`;
+  return `${spec_acceptsFor("S5.5")}; a copy of an early frame is unchanged after the last; s5_kept is [3,6,9], s5_total 18`;
 }
 // %%
 md`## 6. State cells and actions
@@ -1063,7 +1099,7 @@ spec_rejects_6 = [
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  for (const q of [now]) return action(() => other.set(q()));\n  return action(() => other.set(0));\n};" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) =>\n  action(() => {\n    const f = (now: number) => now;\n    other.set(now() + f(1));\n  });" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  const { q = now }: { readonly q?: () => number } = {};\n  return action(() => other.set(q()));\n};" },
-  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  const box = mut([() => 1]);\n  box[0] = now;\n  const f = box[0] ?? (() => 0);\n  return action(() => other.set(f()));\n};" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  const box = [() => 1];\n  box[0] = now;\n  const f = box[0] ?? (() => 0);\n  return action(() => other.set(f()));\n};" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst make = (other: State<number>) => (h: () => number) => action(() => other.set(h()));\nconst stamp = (now: Clock, make: (h: () => number) => Action<[]>) => make(now);" },
   { statement: "S6.9", rule: "action-capture", source: "const xs = (): StateCell<readonly number[]> => state([1, 2]);\nconst other = (): StateCell<number> => state(0);\nconst pick = (xs: readonly number[], other: State<number>) => xs.map((x) => action(() => other.set(x)));" },
   { statement: "S6.18", rule: "state-undefined", source: "const c = () => state(undefined);" },

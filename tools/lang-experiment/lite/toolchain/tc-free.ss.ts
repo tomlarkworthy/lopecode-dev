@@ -11,25 +11,25 @@ export const tcNotARef = () => (p: AstNode | null, n: AstNode): boolean => {
 };
 // the start of each free reference to name in fn, in walk order
 export const tcGlobalRefStarts = (tcNotARef, mdRebinds, kidsOf) => (fn: AstNode, name: string): number[] => {
-  const out: Mut<number[]> = mut([]);
-  const todo: Mut<{ readonly n: AstNode; readonly p: AstNode | null }[]> = mut([{ n: fn, p: null }]);
+  const out: Mut<number[]> = [];
+  const todo: Mut<{ readonly n: AstNode; readonly p: AstNode | null }[]> = [{ n: fn, p: null }];
   for (let e = todo.pop(); e !== undefined; e = todo.pop()) {
     const n = e.n;
     if (mdRebinds(n, name)) continue;
     if (n.type === "Identifier" && n.name === name && !tcNotARef(e.p, n)) out.push(n.start);
     for (const k of kidsOf(n).toReversed()) todo.push({ n: k, p: n });
   }
-  return freeze(out);
+  return out;
 };
 // the JSX elements and fragments not inside another, in source order
 export const tcJsxRoots = (kidsOf) => (ast: Ast): AstNode[] => {
-  const out: Mut<AstNode[]> = mut([]);
-  const todo: Mut<AstNode[]> = mut([ast.program]);
+  const out: Mut<AstNode[]> = [];
+  const todo: Mut<AstNode[]> = [ast.program];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     if (n.type === "JSXElement" || n.type === "JSXFragment") { out.push(n); continue; }
     for (const k of kidsOf(n).toReversed()) todo.push(k);
   }
-  return freeze(out);
+  return out;
 };
 // keepJsx: the function's text lowered, each `ss<` block comment rewritten to hold its element's original as kept text
 export const tcKeepJsx = (tcMustParse, tcJsxRoots, tcLowered, tcKeep, tcApplyEdits, parseTree) => (fnSrc: string): string => {

@@ -30,8 +30,8 @@ export const cpNamedKey = () => (x: AstNode, p: AstNode): boolean => {
 };
 // globalRefs: the nids of the identifiers in fn that read the global name, outside every scope binding it
 export const cpGlobalRefs = (mdRebinds, cpNamedKey, kidsOf) => (fn: AstNode, name: string): Set<number> => {
-  const out: Mut<Set<number>> = mut(new Set());
-  const todo: Mut<{ n: AstNode; p: AstNode | null }[]> = mut([{ n: fn, p: null }]);
+  const out: Mut<Set<number>> = new Set();
+  const todo: Mut<{ n: AstNode; p: AstNode | null }[]> = [{ n: fn, p: null }];
   for (let e = todo.pop(); e !== undefined; e = todo.pop()) {
     const n = e.n, p = e.p;
     if (mdRebinds(n, name)) continue;
@@ -39,5 +39,5 @@ export const cpGlobalRefs = (mdRebinds, cpNamedKey, kidsOf) => (fn: AstNode, nam
     if (n.type === "Identifier" && n.name === name && !label && !(p !== null && cpNamedKey(n, p))) out.add(n.nid);
     for (const k of kidsOf(n).toReversed()) todo.push({ n: k, p: n });
   }
-  return freeze(out);
+  return out;
 };

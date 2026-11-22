@@ -26,7 +26,7 @@ export const mdIslandProblems = (mdHookErr, islandWith) => (S: MdIsland, R: IxRe
 };
 // one side of the call: each named cell's value type, which must cross to a worker
 export const mdIslandSide = (mdHookErr, uncloneableWith, show) => (S: MdIsland, R: IxReg, H: Mut<MdHookLog>, e: AstNode, names: string[]): { t: Rec; bad: boolean } => {
-  const props: Mut<Map<string, Prop>> = mut(new Map());
+  const props: Mut<Map<string, Prop>> = new Map();
   let bad = false;
   for (const n of names) {
     const t = S.value.get(n);
@@ -35,11 +35,11 @@ export const mdIslandSide = (mdHookErr, uncloneableWith, show) => (S: MdIsland, 
     if (why) { mdHookErr(R, H, e, "compile-boundary", `${n}: ${show(t)} cannot cross to a worker (${why})`); bad = true; }
     props.set(n, { t, opt: false });
   }
-  return { t: { k: "rec", props: freeze(props) }, bad };
+  return { t: { k: "rec", props: props }, bad };
 };
 // the hook: asks for the options' type first when the call has options, then types the call
 export const mdCompileType = (mdSpecOf, mdHookErr, mdIslandProblems, mdIslandSide, named, show, ERR) => (S: MdIsland, R: IxReg, e: AstNode, options: Ty | null): MdCompiled => {
-  const H: Mut<MdHookLog> = mut({ out: [] });
+  const H: Mut<MdHookLog> = { out: [] };
   const sp = mdSpecOf(e);
   if (sp === null) {
     H.out = [...H.out, ...R.drain(), { start: e.start, end: e.end, rule: "unsupported", msg: "compile takes { inputs, refs, outputs, options } with literal arrays of cell names" }];

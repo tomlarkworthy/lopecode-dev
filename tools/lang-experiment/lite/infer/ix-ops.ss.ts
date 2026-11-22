@@ -132,14 +132,10 @@ export const ixBinary = (ixErr, ixUnsup, ixNumeric, ixOrder, ixInOp, ixNoOverlap
 export const ixWriteRule = (ixErr, isNamed, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, obj: AstNode, at: AstNode, rule: string): void => {
   const ot = K.infer(K, T, V, W, C, env, obj);
   if (ot.k === "err" || isNamed(ot, "Mut")) return;
-  let root = obj;
-  while (root.type === "MemberExpression") root = root.object;
-  const rt = T.get(root.nid);
-  if (rt && isNamed(rt, "Mut")) ixErr(K, C, at, "mut-deep-write", `write below the first level of a Mut (${show(ot)} is not Mut)`);
-  else ixErr(K, C, at, rule, `write to a ${show(ot)}, which is not Mut`);
+  ixErr(K, C, at, rule, `write to a ${show(ot)}, which is not Mut`);
 };
 export const ixPropOf = (ixUm, ixMemberless, ixMemberMissing, ixErr, propT, union, show, ERR) => (K: IxK, C: IxCtls, t: Ty, k: string, at: AstNode): Ty => {
-  const out: Mut<Ty[]> = mut([]);
+  const out: Mut<Ty[]> = [];
   for (const m of ixUm(K.reg, t)) {
     if (m.k === "err") return ERR;
     if (ixMemberless(m)) { ixErr(K, C, at, "type", `${show(m)} has no members`); return ERR; }
@@ -147,7 +143,7 @@ export const ixPropOf = (ixUm, ixMemberless, ixMemberMissing, ixErr, propT, unio
     if (!p) { ixMemberMissing(K, C, m, k, at, m); return ERR; }
     out.push(propT(p));
   }
-  return union(freeze(out));
+  return union(out);
 };
 // an assignment target: its declared type, with the write rules applied
 export const ixLvalue = (ixLookup, ixIdent, ixErr, ixUnsup, ixLvalueMember, ixFact, nodeKind, ERR) => {

@@ -71,7 +71,8 @@ test("cp-diff.ts: no difference on a seventh of the positions and on the facts; 
   const out = p.stdout.toString() + p.stderr.toString();
   const line = (has: string) => out.split("\n").find((l) => l.includes(has)) ?? "";
   const n = (l: string, k: string) => parseInt(l.split(`${k} `)[1] ?? "", 10);
-  expect(out).toContain("complete-diff.ts positions 6385");
+  // S4 (2026-11-22): the codemod dropped mut/freeze/borrow calls from the corpus, 6385 -> 6099 positions
+  expect(out).toContain("complete-diff.ts positions 6099");
   const c = line("completion: ");
   expect(n(c, "DIFFERENT")).toBe(0);
   expect(n(c, "SAME")).toBeGreaterThan(2000);

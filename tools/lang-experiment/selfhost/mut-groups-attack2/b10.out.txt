@@ -1,0 +1,18 @@
+== obs-member-assign-group-n: ACCEPT
+   show a = {t:[1],n:6}
+== obs-map-set: ACCEPT
+   show a = Map{"k"=>0}
+== obs-lend-then-freeze-new: ACCEPT
+   show a = [[1,2]]
+== destructure-assign-target: REJECT a:unsupported{destructuring assignment}
+== destructure-assign-object-target: REJECT a:unsupported{destructuring assignment}
+== state-action-freeze-in-operand: ACCEPT
+   show a = undefined
+   error c: undefined is not an object (evaluating 'p.name')
+== state-set-mut: REJECT b:rejected[mut-escape] Mut m argument to a parameter not typed Mut<…>
+== state-update-returns-mut: REJECT b:rejected[mut-escape] Mut m returned
+== for-of-lent-field-push: ACCEPT
+   show a = {t:[1,2],u:[0,1,2],n:0}
+== for-of-field-while-pushing-self: ACCEPT
+   show a = {t:[1,1,1,1],n:0}
+-- 10 candidates, 6 accepted

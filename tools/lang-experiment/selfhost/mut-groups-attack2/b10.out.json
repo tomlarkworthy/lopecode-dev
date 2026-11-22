@@ -1,0 +1,75 @@
+[
+ {
+  "name": "obs-member-assign-group-n",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = {t:[1],n:6}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "obs-map-set",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = Map{\"k\"=>0}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "obs-lend-then-freeze-new",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [[1,2]]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "destructure-assign-target",
+  "verdict": "REJECT a:unsupported{destructuring assignment}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "destructure-assign-object-target",
+  "verdict": "REJECT a:unsupported{destructuring assignment}",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "state-action-freeze-in-operand",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = undefined",
+   "error c: undefined is not an object (evaluating 'p.name')"
+  ],
+  "broke": false
+ },
+ {
+  "name": "state-set-mut",
+  "verdict": "REJECT b:rejected[mut-escape] Mut m argument to a parameter not typed Mut<…>",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "state-update-returns-mut",
+  "verdict": "REJECT b:rejected[mut-escape] Mut m returned",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "for-of-lent-field-push",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = {t:[1,2],u:[0,1,2],n:0}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "for-of-field-while-pushing-self",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = {t:[1,1,1,1],n:0}"
+  ],
+  "broke": false
+ }
+]

@@ -9,13 +9,13 @@ export const owWithin = () => (x: AstNode, f: AstNode): boolean => x.start >= f.
 export const owIsLocal = () => (b: IxBinding): boolean => b.kind !== "prelude" && b.kind !== "global";
 // identifiers in preorder, and JSX component names (a capitalised or member name), which have no binding in the facts
 export const owIdsAndComps = (owIsUpper) => (O: OwCtx): { ids: AstNode[]; comps: AstNode[] } => {
-  const ids: Mut<AstNode[]> = mut([]), comps: Mut<AstNode[]> = mut([]);
+  const ids: Mut<AstNode[]> = [], comps: Mut<AstNode[]> = [];
   for (const n of O.T.all) {
     if (n.type === "Identifier") ids.push(n);
     const p = O.T.parent.get(n.nid);
     if (p !== undefined && p.type === "JSXOpeningElement" && p.name.nid === n.nid && (n.type !== "JSXIdentifier" || owIsUpper(n.name))) comps.push(n);
   }
-  return { ids: freeze(ids), comps: freeze(comps) };
+  return { ids: ids, comps: comps };
 };
 export const owIsUpper = () => (s: string): boolean => { const c = s.charAt(0); return c >= "A" && c <= "Z"; };
 // the local bindings referenced inside span from outside it
@@ -64,9 +64,9 @@ export const OW_WHY_B = (owOpaqueWhy): OwWhyB => ({ why: owOpaqueWhy });
 // skip: the references the by-name rule already reported
 export const owOpaqueCaptures = (owIdsAndComps, owBindingAt, owIsLocal, owWithin, OW_WHY_B) => (O: OwCtx, tainted: Map<string, string>, skip: Set<number>): OwCapture[] => {
   if (!O.F.actionBodies.size) return [];
-  const Q: OwOpaque = { ...owIdsAndComps(O), tainted }, B: OwB = mut({ bad: new Map(), visiting: new Set() });
+  const Q: OwOpaque = { ...owIdsAndComps(O), tainted }, B: OwB = { bad: new Map(), visiting: new Set() };
   const bodies = [...O.F.actionBodies].flatMap((id) => O.T.byNid.get(id) ?? []);
-  const out: Mut<OwCapture[]> = mut([]), seen: Mut<Set<string>> = mut(new Set());
+  const out: Mut<OwCapture[]> = [], seen: Mut<Set<string>> = new Set();
   for (const r of Q.ids) {
     const b = owBindingAt(O, r), d = b === undefined ? undefined : O.T.byNid.get(b.nid);
     if (skip.has(r.nid) || b === undefined || !owIsLocal(b) || b.nid === r.nid || r.type !== "Identifier") continue;
@@ -77,5 +77,5 @@ export const owOpaqueCaptures = (owIdsAndComps, owBindingAt, owIsLocal, owWithin
     out.push({ at: r, name: b.name, why: w, opaque: !b.cellParam });
   }
   for (const j of Q.comps) if (bodies.some((a) => owWithin(j, a))) out.push({ at: j, name: `<${j.type === "JSXIdentifier" ? j.name : "component"}>`, why: "is a JSX component, which the checker does not follow", opaque: true });
-  return freeze(out);
+  return out;
 };

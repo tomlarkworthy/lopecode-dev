@@ -1,0 +1,32 @@
+== yield-in-member-assign-rhs: ACCEPT
+   CHANGED gen (value #1 of 1): [1] -> [8]
+   show gen = [8]
+   show r = 1
+== yield-in-push-arg: ACCEPT
+   CHANGED gen (value #1 of 1): [1] -> [1,8]
+   show gen = [1,8]
+   show r = 1
+== yield-in-push-arg-then-more: ACCEPT
+   CHANGED gen (value #1 of 2): [1] -> [1,8]
+   show gen = [0]
+   show r = 1
+== yield-in-lend-arg: ACCEPT
+   CHANGED gen (value #1 of 1): [1] -> [1,2]
+   show gen = [1,2]
+   show r = 1
+== yield-in-group-field-push: ACCEPT
+   CHANGED gen (value #1 of 1): [1] -> [1,8]
+   show gen = [1,8]
+   show r = 1
+== yield-in-group-n-assign: ACCEPT
+   CHANGED gen (value #1 of 1): {t:[1],n:0} -> {t:[1],n:8}
+   show gen = {t:[1],n:8}
+   show r = 0
+== member-assign-let-observe: ACCEPT
+   show a = [6]
+== group-assign-let-observe: REJECT a:rejected[mut-after-freeze]
+== group-field-push-let-observe: ACCEPT
+   show a = {t:[1,1],n:0}
+== await-in-push-arg: ACCEPT
+   show a = [1,1]
+-- 10 candidates, 9 accepted

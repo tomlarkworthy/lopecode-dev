@@ -1,0 +1,41 @@
+== borrow-reader-returns-it: REJECT r:rejected[borrowed-escape]
+== borrow-reader-readonly-returns-it: REJECT r:rejected[inject-type]
+== borrow-reader-plain-returns-it: REJECT r:rejected[inject-type]
+== borrow-reader-wraps: REJECT r:rejected[inject-type]
+== borrow-reader-array: REJECT r:rejected[inject-type]
+== borrow-reader-closure: REJECT r:rejected[inject-type]
+== borrow-reader-map-value: REJECT r:rejected[inject-type]
+== borrow-reader-unknown: REJECT r:rejected[inject-type]
+== borrow-reader-untyped: REJECT r:rejected[borrowed-escape]
+== borrow-group-field-reader-returns: REJECT r:rejected[inject-type]
+== borrow-reader-via-identity: REJECT r:rejected[inject-type]
+== borrow-reader-concat-self: REJECT r:rejected[inject-type]{intrinsic member Array.flat}
+== borrow-reader-object-values: REJECT r:rejected[inject-type]
+== borrow-reader-third-cell: REJECT r:rejected[inject-type] s:rejected[inject-type]
+== borrow-map: REJECT r:rejected[inject-type][unknown-type]
+== borrow-map-plain: REJECT r:rejected[inject-type]
+== rest-param-of-group: REJECT a:unsupported{object rest of a non-record}
+== rest-param-of-group-read: REJECT a:unsupported{object rest of a non-record}
+== destructure-param-of-group: ACCEPT
+   show a = 2
+== destructure-param-of-group-return: REJECT a:rejected[mut-escape][mut-source]
+== destructure-param-of-group-closure: REJECT a:rejected[mut-capture]
+== destructure-param-default: REJECT a:rejected[mut-bind]
+== rest-param-plain-record-mut: REJECT a:unsupported{object rest of a non-record}
+== default-param-alias-field: REJECT a:rejected[mut-escape]
+== default-param-alias-plain: REJECT a:rejected[mut-escape]
+== param-return-field-as-readonly: REJECT a:rejected[mut-escape]
+== param-return-field-in-record: ACCEPT
+   show a = 1
+== param-closure-over-group-param: REJECT a:rejected[mut-capture]
+== param-group-to-inner-helper: ACCEPT
+   show a = [1,2]
+== param-group-relend-whole: ACCEPT
+   show a = [1,2]
+== param-group-relend-twice-via-capture: REJECT a:rejected[mut-escape]
+== group-and-capturing-helper-indirect: REJECT a:rejected[mut-escape]
+== group-param-to-helper-calling-capturer: REJECT a:rejected[mut-escape]
+== field-lent-helper-captures-via-other: REJECT a:rejected[mut-escape]
+== plain-lent-helper-captures-via-other: ACCEPT
+   show a = [1,2]
+-- 35 candidates, 5 accepted

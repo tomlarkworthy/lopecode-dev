@@ -3,7 +3,7 @@
 
 // the end of the parameter list opening at open (its ")"), and its segments as written; close -1 when it has none
 export const cpParamSegments = () => (source: string, open: number): { close: number; segs: string[] } => {
-  const segs: Mut<string[]> = mut([]);
+  const segs: Mut<string[]> = [];
   let depth = 0, close = -1, seg = "";
   for (let i = open; i < source.length; i++) {
     const c = source.charAt(i);
@@ -21,7 +21,7 @@ export const cpParamSegments = () => (source: string, open: number): { close: nu
     seg += c;
   }
   segs.push(seg);
-  return { close, segs: freeze(segs) };
+  return { close, segs: segs };
 };
 // the edit adding name (with its annotation) to the end of the cell's own parameter list; null when the text has
 // no parameter list or already takes name
@@ -56,7 +56,7 @@ export const cpAnnotationOf = (cpAnnotationOfArray) => (plain: (v: unknown) => b
     if (!plain(v)) return null;
     const keys = Object.keys(v);
     if (keys.length === 0 || keys.length > 8 || !keys.every((k) => /^[A-Za-z_$][\w$]*$/.test(k))) return null;
-    const parts: Mut<string[]> = mut([]);
+    const parts: Mut<string[]> = [];
     for (const k of keys) {
       const t = ann(field(v, k), depth + 1);
       if (t === null || t === "") return null;

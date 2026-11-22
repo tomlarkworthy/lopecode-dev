@@ -12,6 +12,9 @@ const DEFAULT_NOTEBOOK = resolve(import.meta.dir, "../../../lopebooks/notebooks/
 // the modules the SoundScript build writes; --all runs every module's tests
 const OWN = /^@tomlarkworthy\/(soundscript(-[a-z]+)?|raw-cells)$/;
 const argv = process.argv.slice(2);
+// --deep-freeze (measurement only, off by default, not in the notebook): each SoundScript cell's value deep-frozen when
+// the cell returns or yields, through ../lite/freeze.ts: arrays, plain records, Map and Set; a frozen subtree is skipped
+let deepFreezeOn = false;
 const opt = { notebook: DEFAULT_NOTEBOOK, filter: null as string | null, all: false, timeout: 15000, without: [] as string[], report: null as string | null, verbose: false, hash: null as string | null, mains: null as string[] | null, poll: 100, toggle: true };
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
@@ -25,6 +28,7 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === "--verbose") opt.verbose = true;
   else if (a === "--poll") opt.poll = Number(argv[++i]);
   else if (a === "--no-toggle") opt.toggle = false;
+  else if (a === "--deep-freeze") deepFreezeOn = true;
   else if (!a.startsWith("--")) opt.notebook = a;
   else { console.error(`unknown argument ${a}`); process.exit(2); }
 }
@@ -53,6 +57,45 @@ if (opt.mains) {
   opt.notebook = resolve(dir, basename(opt.notebook));
   writeFileSync(opt.notebook, html.slice(0, start) + "\n" + JSON.stringify(conf, null, 2) + "\n" + html.slice(end));
 }
+const deepFreezeStat = { values: 0, nodes: 0, ms: 0 };
+function deepFreezeCells(runtime: any) {
+  const { freeze } = require("../lite/freeze.ts");
+  const deep = (v: unknown) => {
+    const t0 = performance.now(), stack = [v];
+    while (stack.length) {
+      const x = stack.pop();
+      if (typeof x !== "object" || x === null || Object.isFrozen(x)) continue;
+      const p = Object.getPrototypeOf(x);
+      const kids = Array.isArray(x) ? x : x instanceof Map ? [...x.keys(), ...x.values()] : x instanceof Set ? [...x] : p === Object.prototype || p === null ? Object.values(x) : null;
+      if (kids === null) continue;
+      freeze(x); deepFreezeStat.nodes++;
+      for (const k of kids) stack.push(k);
+    }
+    deepFreezeStat.values++; deepFreezeStat.ms += performance.now() - t0;
+    return v;
+  };
+  const probe = runtime.module().variable();
+  const proto = Object.getPrototypeOf(probe);
+  probe.delete();
+  const define = proto.define;
+  proto.define = function (...a: any[]) {
+    const i = a.findIndex((x) => typeof x === "function");
+    const f = a[i];
+    if (f && String(f).includes('/*{lang:"ss"}*/')) a[i] = { [f.name || "cell"](this: unknown, ...xs: unknown[]) {
+      const v = f.apply(this, xs);
+      if (v && typeof v.next === "function" && typeof v[Symbol.iterator] === "function") {
+        const next = v.next.bind(v);
+        v.next = (...n: unknown[]) => { const r = next(...n); if (r && typeof r.then === "function") return r; if (!r.done) deep(r.value); return r; };
+        return v;
+      }
+      if (v && typeof v.then === "function") return v.then(deep);
+      return deep(v);
+    } }[f.name || "cell"];
+    // the toolchain reads a definition's text (decompile, the SoundScript mark): the wrapper shows the cell's own
+    if (a[i] !== f) Object.defineProperty(a[i], "toString", { value: () => String(f) });
+    return define.apply(this, a);
+  };
+}
 const installed = ALL.filter((c) => !opt.without.includes(c.name));
 for (const c of installed) c.preBoot?.();
 let tParsed = 0;
@@ -63,8 +106,10 @@ const ex: any = await loadNotebook(opt.notebook, {
   settleTimeout: 30000,
   pollInterval: opt.poll,
   ...(opt.hash ? { hash: opt.hash } : {}),
+  // B7 (2026-11-22): SS_FREEZE_ALL=1 boots with ?ss_freeze_all=1, which turns freeze.ts freezeAll on
+  ...(process.env.SS_FREEZE_ALL === "1" ? { search: "?ss_freeze_all=1" } : {}),
   log: (m: string) => { const t = performance.now(); if (m.startsWith("Bootloader: @")) tParsed = t; if (opt.verbose) process.stderr.write(m + "\n"); },
-  instrument: (runtime: any) => { for (const c of installed) c.install((n: string) => runtime._global(n), runtime); },
+  instrument: (runtime: any) => { for (const c of installed) c.install((n: string) => runtime._global(n), runtime); if (deepFreezeOn) deepFreezeCells(runtime); },
 });
 const rt = ex.runtime;
 const tBoot = performance.now();
@@ -147,5 +192,6 @@ if (opt.without.length) out(`capabilities removed: ${opt.without.join(", ")}`);
 const sec = (a: number, b: number) => ((b - a) / 1000).toFixed(2);
 out(`boot ${sec(t0, tBoot)} s (parse ${sec(t0, tParsed)}, imports and settle ${sec(tParsed, tBoot)}), tests ${sec(tBoot, tTests)} s`);
 out(`bun-verify: ${n("passed")} pass, ${n("failed")} fail, ${n("timeout")} timed out, ${n("skipped")} skipped; ${((performance.now() - t0) / 1000).toFixed(1)} s`);
+if (deepFreezeOn) out(`deep-freeze: ${deepFreezeStat.values} cell values, ${deepFreezeStat.nodes} nodes frozen, ${deepFreezeStat.ms.toFixed(1)} ms`);
 if (opt.report) writeFileSync(opt.report, JSON.stringify({ notebook: resolve(opt.notebook), without: opt.without, bootMs: tBoot - t0, testsMs: tTests - tBoot, results }, null, 2));
 process.exit(n("failed") + n("timeout") ? 1 : 0);

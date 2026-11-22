@@ -24,13 +24,13 @@ export const cpMemberNames = (cpIfaceNames) => (reg: CpReg, x: Ty): string[] => 
 export const cpKindOf = () => (reg: CpReg, t: Ty): string => (reg.callSigs(t).length > 0 ? "method" : "property");
 // the members one union member m offers: banned ones never, mutating ones only on a Mut receiver
 export const cpOwnMembers = (cpMemberNames, cpKindOf, show, propT) => (reg: CpReg, m: Ty, x: Ty, onMut: boolean): Map<string, CpOption> => {
-  const own: Mut<Map<string, CpOption>> = mut(new Map());
+  const own: Mut<Map<string, CpOption>> = new Map();
   for (const name of cpMemberNames(reg, x)) {
     const p = reg.member(m, name);
     if (p === undefined || p.flags?.banned === true || (p.flags?.mutates === true && !onMut)) continue;
     own.set(name, { label: name, type: cpKindOf(reg, p.t), detail: show(propT(p)) });
   }
-  return freeze(own);
+  return own;
 };
 // membersOf: the members every member of t's union offers, by label; null when t has no members to offer
 export const cpMembersOf = (cpOwnMembers, CP_NO_MEMBERS, members, isNamed) => (reg: CpReg, t: Ty): CpOption[] | null => {
@@ -50,7 +50,7 @@ export const cpMembersOf = (cpOwnMembers, CP_NO_MEMBERS, members, isNamed) => (r
 };
 // scopeNames: the bindings in scope at the placeholder; read only inside an action body, the one place it is legal
 export const cpScopeNames = (cpPH, show) => (reg: CpReg, names: IxScopeName[], inAction: boolean): CpOption[] => {
-  const out: Mut<CpOption[]> = mut([]);
+  const out: Mut<CpOption[]> = [];
   for (const b of names) {
     const name = b.name, kind = b.kind;
     if (name === cpPH) continue;
@@ -62,5 +62,5 @@ export const cpScopeNames = (cpPH, show) => (reg: CpReg, names: IxScopeName[], i
     const type = kind === "global" ? (calls ? "function" : "namespace") : kind === "fn" || calls ? "function" : "variable";
     out.push({ label: name, type, detail: kind === "global" ? "intrinsic" : show(b.t) });
   }
-  return freeze(out);
+  return out;
 };

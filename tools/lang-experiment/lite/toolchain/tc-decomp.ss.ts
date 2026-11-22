@@ -20,7 +20,7 @@ export const tcHeaderOf = () => (text: string): TcHeader => {
 };
 // the call whose callee or an argument starts at pos, with the node around it
 export const tcCallAt = (childrenOf) => (root: AstNode, pos: number): { readonly call: AstNode; readonly fn: AstNode; readonly up: AstNode | null } | null => {
-  const todo: Mut<{ readonly n: AstNode; readonly up: AstNode | null }[]> = mut([{ n: root, up: null }]);
+  const todo: Mut<{ readonly n: AstNode; readonly up: AstNode | null }[]> = [{ n: root, up: null }];
   for (let e = todo.pop(); e !== undefined; e = todo.pop()) {
     const n = e.n;
     if (n.type === "CallExpression") {
@@ -34,17 +34,18 @@ export const tcCallAt = (childrenOf) => (root: AstNode, pos: number): { readonly
 // outside the function: whether anything reads a runtime cell, and the ref names of compileFor(input, "name", {"ref": ref})
 export const tcOutside = (tcRtCall, tcRuntimeInputs, childrenOf) => (root: AstNode, fnNid: number): { readonly ss: boolean; readonly refs: string[] } => {
   let ss = false;
-  const refs: Mut<string[]> = mut([]);
-  const todo: Mut<AstNode[]> = mut([root]);
+  const refs: Mut<string[]> = [];
+  const todo: Mut<AstNode[]> = [root];
   for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
     if (n.nid === fnNid) continue;
-    if ((n.type === "Identifier" && tcRuntimeInputs.has(n.name)) || tcRtCall(n, ["cross", "viewRef", "compileFor"]) !== null) ss = true;
+    // the deep freeze every plain cell's value goes through (ss_out) does not make it take runtime cells
+    if ((n.type === "Identifier" && tcRuntimeInputs.has(n.name) && tcRuntimeInputs.get(n.name) !== "out") || tcRtCall(n, ["cross", "viewRef", "compileFor"]) !== null) ss = true;
     const o = n.type === "CallExpression" && tcRtCall(n, ["compileFor"]) !== null ? n.arguments[2] : undefined;
     if (o !== undefined && o.type === "ObjectExpression")
       for (const p of o.properties) if (p.type === "Property" && p.key.type === "Literal") refs.push(String(p.key.value));
     for (const k of childrenOf(n).toReversed()) todo.push(k.node);
   }
-  return { ss, refs: freeze(refs) };
+  return { ss, refs: refs };
 };
 export const tcParseCompiled = (parseTree, tcLangOf, tcLANG, tcHeaderOf, tcCallAt, tcOutside, tcRtCall) => (definition: string): TcCompiled | null => {
   if (tcLangOf(definition) !== "ss") return null;
@@ -94,7 +95,7 @@ export const tcDecompileVariable = (tcParseCompiled, tcUnesc, tcUnkeep) => (defi
   return p.header.h + out + definition.slice(at, end) + p.header.t;
 };
 export const tcDecompileModule = (tcDecompileVariable) => (definitions: string[]): string => {
-  const out: Mut<string[]> = mut([]);
+  const out: Mut<string[]> = [];
   for (const d of definitions) { const s = tcDecompileVariable(d); if (s !== null) out.push(s); }
-  return freeze(out).join("\n\n") + "\n";
+  return out.join("\n\n") + "\n";
 };

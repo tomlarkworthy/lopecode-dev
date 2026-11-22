@@ -1,0 +1,92 @@
+[
+ {
+  "name": "yield-in-member-assign-rhs",
+  "verdict": "ACCEPT",
+  "out": [
+   "CHANGED gen (value #1 of 1): [1] -> [8]",
+   "show gen = [8]",
+   "show r = 1"
+  ],
+  "broke": true
+ },
+ {
+  "name": "yield-in-push-arg",
+  "verdict": "ACCEPT",
+  "out": [
+   "CHANGED gen (value #1 of 1): [1] -> [1,8]",
+   "show gen = [1,8]",
+   "show r = 1"
+  ],
+  "broke": true
+ },
+ {
+  "name": "yield-in-push-arg-then-more",
+  "verdict": "ACCEPT",
+  "out": [
+   "CHANGED gen (value #1 of 2): [1] -> [1,8]",
+   "show gen = [0]",
+   "show r = 1"
+  ],
+  "broke": true
+ },
+ {
+  "name": "yield-in-lend-arg",
+  "verdict": "ACCEPT",
+  "out": [
+   "CHANGED gen (value #1 of 1): [1] -> [1,2]",
+   "show gen = [1,2]",
+   "show r = 1"
+  ],
+  "broke": true
+ },
+ {
+  "name": "yield-in-group-field-push",
+  "verdict": "ACCEPT",
+  "out": [
+   "CHANGED gen (value #1 of 1): [1] -> [1,8]",
+   "show gen = [1,8]",
+   "show r = 1"
+  ],
+  "broke": true
+ },
+ {
+  "name": "yield-in-group-n-assign",
+  "verdict": "ACCEPT",
+  "out": [
+   "CHANGED gen (value #1 of 1): {t:[1],n:0} -> {t:[1],n:8}",
+   "show gen = {t:[1],n:8}",
+   "show r = 0"
+  ],
+  "broke": true
+ },
+ {
+  "name": "member-assign-let-observe",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [6]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-assign-let-observe",
+  "verdict": "REJECT a:rejected[mut-after-freeze]",
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-field-push-let-observe",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = {t:[1,1],n:0}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "await-in-push-arg",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = [1,1]"
+  ],
+  "broke": false
+ }
+]

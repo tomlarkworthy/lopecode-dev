@@ -62,8 +62,8 @@ export const union = (show, typeKey, ERR, UNKNOWN, NEVER) => (ts: Ty[]): Ty => {
   const flat = ts.flatMap(flatten);
   if (flat.some((t) => t.k === "err")) return ERR;
   if (flat.some((t) => t.k === "unknown")) return UNKNOWN;
-  const seen = mut(new Set<string>());
-  const out: Mut<Ty[]> = mut([]);
+  const seen = new Set<string>();
+  const out: Mut<Ty[]> = [];
   const has = (k: string) => flat.some((t) => t.k === k);
   for (const t of flat) {
     if (t.k === "lit" && ((typeof t.v === "string" && has("str")) || (typeof t.v === "number" && has("num")))) continue;
@@ -72,7 +72,7 @@ export const union = (show, typeKey, ERR, UNKNOWN, NEVER) => (ts: Ty[]): Ty => {
     seen.add(key);
     out.push(t);
   }
-  const kept = freeze(out);
+  const kept = out;
   const first = kept[0];
   return first === undefined ? NEVER : kept.length === 1 ? first : { k: "union", ts: kept };
 };
@@ -167,9 +167,9 @@ export const subst = (union) => {
       case "named": return t.args.length ? { k: "named", n: t.n, args: t.args.map((x) => subst(x, m)) } : t;
       case "fn": return substFn(t, m);
       case "rec": {
-        const props = mut(new Map<string, Prop>());
+        const props = new Map<string, Prop>();
         for (const [k, p] of t.props) props.set(k, { ...p, t: subst(p.t, m) });
-        return { k: "rec", props: freeze(props), index: t.index && subst(t.index, m), calls: t.calls?.map((c) => substFn(c, m)), ctors: t.ctors?.map((c) => substFn(c, m)) };
+        return { k: "rec", props: props, index: t.index && subst(t.index, m), calls: t.calls?.map((c) => substFn(c, m)), ctors: t.ctors?.map((c) => substFn(c, m)) };
       }
       default: return t;
     }

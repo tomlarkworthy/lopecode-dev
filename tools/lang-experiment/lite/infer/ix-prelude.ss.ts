@@ -32,7 +32,7 @@ export const ixYield = (ixErr, ixUnsup, show, UNDEF, UNKNOWN, ERR) => (K: IxK, T
   C.yields = [...C.yields, t];
   return UNKNOWN;
 };
-export const ixPreludeCall = (ixTypeArgs, ixErr, ixMutCall, ixUnwrapCall, ixStateCall, ixActionCall, ixReadCall, ixOnCall, ixFact, BOOL, STR, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, name: string, expected: Ty | null): Ty => {
+export const ixPreludeCall = (ixTypeArgs, ixErr, ixSnapshotCall, ixStateCall, ixActionCall, ixReadCall, ixOnCall, ixFact, BOOL, STR, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, name: string, expected: Ty | null): Ty => {
   ixFact(C, { k: "prelude", at: e.nid, name });
   const args = e.arguments, explicit = ixTypeArgs(K, V, env, e.typeArguments);
   if (name === "on") return ixOnCall(K, T, V, W, C, env, e);
@@ -46,52 +46,20 @@ export const ixPreludeCall = (ixTypeArgs, ixErr, ixMutCall, ixUnwrapCall, ixStat
     for (const a of args) K.infer(K, T, V, W, C, env, a);
     return STR;
   }
-  if (!["mut", "freeze", "borrow", "snapshot", "state", "action", "read"].includes(name)) return ERR;
+  if (!["snapshot", "state", "action", "read"].includes(name)) return ERR;
   if (args.length !== 1) ixErr(K, C, e, "arity", `${name} takes one argument`);
   const a = args[0] ?? null;
-  if (name === "mut") return ixMutCall(K, T, V, W, C, env, a, expected, explicit);
   if (name === "state") return ixStateCall(K, T, V, W, C, env, a, expected, explicit);
   if (name === "action") return ixActionCall(K, T, V, W, C, env, e, a, expected);
   if (name === "read") return ixReadCall(K, T, V, W, C, env, e, a);
-  return ixUnwrapCall(K, T, V, W, C, env, e, name, a);
+  return ixSnapshotCall(K, T, V, W, C, env, e, a);
 };
-export const ixMutCall = (ixGap, named, isNamed, inexact, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, a: AstNode | null, expected: Ty | null, explicit: Ty[] | null): Ty => {
-  const inner = expected !== null && expected.k === "named" && isNamed(expected, "Mut") ? expected.args[0] ?? null : null;
-  if (explicit !== null) {
-    const x = explicit[0];
-    if (a === null || x === undefined) return ixGap(C, "mut<…>() with no argument or no type argument");
-    K.check(K, T, V, W, C, env, a, x, false, false);
-    return named("Mut", x);
-  }
-  const t = a !== null ? K.check(K, T, V, W, C, env, a, inner, false, false) : ERR;
-  return named("Mut", inner ?? inexact(t));
-};
-// freeze, borrow and snapshot: the type inside the Mut (or Borrowed)
-export const ixUnwrapCall = (ixErr, ixThaw, named, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, name: string, a: AstNode | null): Ty => {
+// snapshot(x): a copy of x (structuredClone, or slice for a typed array), so a fresh value: its type is x's with no Mut
+export const ixSnapshotCall = (owStripMut, unwrap, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, a: AstNode | null): Ty => {
   const t = a !== null ? K.infer(K, T, V, W, C, env, a) : ERR;
-  const want = name === "snapshot" ? "Borrowed" : "Mut";
   if (t.k === "err") return ERR;
-  if (t.k !== "named" || t.n !== want) { ixErr(K, C, e, "type", `${name} needs a ${want}<T>, got ${show(t)}`); return ERR; }
-  const x = t.args[0] ?? ERR;
-  if (name !== "freeze") return name === "borrow" ? named("Borrowed", x) : x;
-  const y = ixThaw(K.reg.quiet, x);
-  if (y === null) ixErr(K, C, e, "type", `freeze of ${show(t)}: the frozen value would still hold a Mut`);
-  return y ?? ERR;
-};
-// freeze of a group: its owned fields frozen with it, a field Mut<X> (or a Mut member of a field's union) read as X, in
-// the record or each record of a union; null when the frozen value would still hold a Mut (freeze fails closed)
-export const ixThaw = (owMut, owTopMut, isNamed, union) => (R: IxRegCore, t: Ty): Ty | null => {
-  const owned = (y: Ty): boolean => { const x = R.expand(y); return x.k === "rec" && [...x.props.values()].some((p) => owTopMut(R, p.t)); };
-  const one = (y: Ty): Ty => { const x = R.expand(y); return x.k === "named" && isNamed(x, "Mut") ? x.args[0] ?? x : y; };
-  const field = (y: Ty): Ty => { const x = R.expand(y); return x.k === "union" ? union(x.ts.map(one)) : one(x); };
-  const thaw1 = (y: Ty): Ty => {
-    const x = R.expand(y);
-    if (x.k !== "rec" || !owned(x)) return y;
-    return { ...x, props: new Map([...x.props].map(([k, p]) => [k, owTopMut(R, p.t) ? { ...p, t: field(p.t) } : p])) };
-  };
-  const e = R.expand(t), grp = owned(e) || (e.k === "union" && e.ts.some(owned));
-  const u: Ty = e.k === "union" && grp ? union(e.ts.map(thaw1)) : thaw1(t);
-  return grp && owMut(R, u) !== null ? null : u;
+  C.freshAt = e.nid;
+  return owStripMut(K.reg.quiet, unwrap(t));
 };
 export const ixStateCall = (named, isNamed, widen, inexact, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, a: AstNode | null, expected: Ty | null, explicit: Ty[] | null): Ty => {
   const inner = explicit?.[0] ?? (expected !== null && expected.k === "named" && isNamed(expected, "StateCell") ? expected.args[0] ?? null : null);

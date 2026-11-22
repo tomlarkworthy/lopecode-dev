@@ -15,7 +15,7 @@ export const ixJsxText = (ixAt) => (C: IxCtls, c: JSXText): AstNode | null => {
   return { type: "Literal", ...ixAt(C, c), value: t, raw: JSON.stringify(t), regex: null, bigint: null };
 };
 export const ixJsxChildren = (ixJsxText, ixUnsup, ixGap) => (K: IxK, C: IxCtls, e: JSXElement | JSXFragment): AstNode[] | null => {
-  const out: Mut<AstNode[]> = mut([]);
+  const out: Mut<AstNode[]> = [];
   for (const c of e.children) {
     if (c.type === "Other") { ixGap(C, `jsx child ${c.kind} (Other)`); return null; }
     if (c.type === "JSXText") { const t = ixJsxText(C, c); if (t !== null) out.push(t); }
@@ -23,11 +23,11 @@ export const ixJsxChildren = (ixJsxText, ixUnsup, ixGap) => (K: IxK, C: IxCtls, 
     else if (c.type === "JSXElement" || c.type === "JSXFragment") out.push(c);
     else { ixUnsup(K, C, c, c.type); return null; }
   }
-  return freeze(out);
+  return out;
 };
 // a bare attribute (<a b/>) is true
 export const ixJsxProps = (ixJsxProp, ixAt, ixUnsup, ixGap) => (K: IxK, C: IxCtls, op: JSXOpeningElement): AstNode[] | null => {
-  const out: Mut<AstNode[]> = mut([]);
+  const out: Mut<AstNode[]> = [];
   for (const a of op.attributes) {
     if (a.type === "Other") { ixGap(C, `jsx attribute ${a.kind} (Other)`); return null; }
     if (a.type !== "JSXAttribute" || a.name.type !== "JSXIdentifier") { ixUnsup(K, C, a, a.type === "JSXAttribute" ? "namespaced attribute" : "spread attribute"); return null; }
@@ -39,7 +39,7 @@ export const ixJsxProps = (ixJsxProp, ixAt, ixUnsup, ixGap) => (K: IxK, C: IxCtl
     else { ixUnsup(K, C, a, "attribute value"); return null; }
     out.push(ixJsxProp(C, a, a.name, a.name.name, v));
   }
-  return freeze(out);
+  return out;
 };
 export const ixJsx = (ixJsxChildren, ixJsxProps, ixJsxProp, ixAt, ixUnsup, ixErr, ixGap, named, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty => {
   const ELEM = named("Elem");

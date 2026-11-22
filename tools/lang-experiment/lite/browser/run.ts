@@ -8,6 +8,7 @@ import { erase } from "./erase.ts";
 // a state cell's value is Observable's own Generators.input of its handle (a view)
 import { input } from "../../../../vendor/observable-stdlib/src/generators/input.js";
 import * as P from "../../prelude.runtime.ts";
+import { SsMap, SsSet, out, deepFreeze } from "../freeze.ts";
 import { island, type IslandSpec } from "../island.ts";
 import { CAPABILITIES, PRELUDE_FNS } from "../intrinsics.ts";
 import { cellsOf, on, events, listen, nameAction, release, guard, generatorish, type CellInfo } from "./cells.ts";
@@ -22,8 +23,9 @@ export type Capabilities = { now?: (cell: string) => () => number; random?: (cel
 export type Verdicts = { cells: { name: string; status: string; errors: unknown[] }[] };
 
 const CAPS = new Set(Object.keys(CAPABILITIES));
-const PRELUDE_VALUES: Record<string, unknown> = { state: P.state, action: P.action, mut: P.mut, freeze: P.freeze, borrow: P.borrow, snapshot: P.snapshot, equals: P.equals, messageOf: P.messageOf, on, read: P.read, h };
-const PRELUDE = [...PRELUDE_FNS, "h"];
+// Map and Set in a cell are the freezable subclasses (freeze.ts), as in a compiled cell
+const PRELUDE_VALUES: Record<string, unknown> = { Map: SsMap, Set: SsSet, state: P.state, action: P.action, mut: P.mut, freeze: P.freeze, borrow: P.borrow, snapshot: P.snapshot, equals: P.equals, messageOf: P.messageOf, on, read: P.read, h };
+const PRELUDE = [...PRELUDE_FNS, "h", "Map", "Set"];
 if (PRELUDE.some((n) => !(n in PRELUDE_VALUES))) throw new Error("a prelude function has no runtime value");
 export type Program = ReturnType<typeof runCells>;
 
@@ -65,9 +67,10 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
     const key = `${programId}`;
     return async (args: Record<string, unknown>) => {
       const job = { key, js, names, order, values: { ...refs, ...args }, outputs: spec.outputs };
-      if (runtime && typeof runtime.run === "function") return runtime.run(job, owner);
+      // an island's results cross the boundary as a cell's value does: deep-frozen (freeze.ts)
+      if (runtime && typeof runtime.run === "function") return deepFreeze(await runtime.run(job, owner));
       await null;
-      return runHere(job);
+      return deepFreeze(runHere(job));
     };
   };
   // every variable value this program made, so dispose ends its listeners and stops its generators
@@ -107,7 +110,8 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
     const counted = (...a: unknown[]) => {
       rec.evals++;
       P.rt.evalDepth++;
-      try { const r = raw(...a); return generatorish(r) ? guard(r) : r; } finally { P.rt.evalDepth--; }
+      // the value is deep-frozen as it leaves the cell: a promise's resolved value, each value a generator yields
+      try { const r = out(raw(...a)); return generatorish(r) ? guard(r) : r; } finally { P.rt.evalDepth--; }
     };
     const inputs = c.params.map((p) => input(c, p));
     // A compile call's refs are hidden inputs: the cell recomputes, and returns a new function, when one changes.

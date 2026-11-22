@@ -4,12 +4,12 @@
 // core.ts distinctNames, as syntax.ss.ts distinctParse, keeping where each name was declared again
 export const mdDistinct = (parseTree, nameAt, standIn) => (src: string, jsx: boolean): { parse: Parse; text: string; dups: MdDup[] } => {
   let text = src;
-  const dups: Mut<MdDup[]> = mut([]);
+  const dups: Mut<MdDup[]> = [];
   for (;;) {
     const p = parseTree(text, jsx);
     const name = p.ok || !p.message.includes("has already been declared") ? "" : nameAt(text, p.pos);
     const ph = p.ok || name === "" ? null : standIn(dups.length, name.length);
-    if (p.ok || ph === null || dups.some((d) => d.ph === ph)) return { parse: p, text, dups: freeze(dups) };
+    if (p.ok || ph === null || dups.some((d) => d.ph === ph)) return { parse: p, text, dups: dups };
     dups.push({ ph, name: src.slice(p.pos, p.pos + name.length), pos: p.pos });
     text = text.slice(0, p.pos) + ph + text.slice(p.pos + name.length);
   }
@@ -22,16 +22,16 @@ export const mdMustParse = (parseTree) => (text: string, jsx: boolean): Ast => {
 };
 // shell.ts: the names it exports, a const or let declarator's or a function's
 export const mdShellNames = (mdMustParse) => (text: string): Set<string> => {
-  const out: Mut<Set<string>> = mut(new Set());
+  const out: Mut<Set<string>> = new Set();
   const prog = mdMustParse(text, false).program;
-  if (prog.type !== "Program") return freeze(out);
+  if (prog.type !== "Program") return out;
   for (const st of prog.body) {
     const d = st.type === "ExportNamedDeclaration" ? st.declaration : null;
     if (d !== null && d.type === "VariableDeclaration") {
       for (const x of d.declarations) if (x.type === "VariableDeclarator" && x.id.type === "Identifier") out.add(x.id.name);
     } else if (d !== null && d.type === "FunctionDeclaration" && d.id.type === "Identifier") out.add(d.id.name);
   }
-  return freeze(out);
+  return out;
 };
 // a registry report while foreign.d.ts or the user's declarations load: module-level, under core.ts's foreign.d.ts prefix
 export const mdLoadErr = () => (r: MdReport): MdErr => ({ rule: r.rule, line: r.line, msg: `foreign.d.ts: ${r.msg}` });
@@ -45,8 +45,8 @@ export const mdTsIgnore = () => (text: string): boolean => text.includes("@ts-ig
 export const MD_NO_TS_IGNORE = () => "@ts-ignore/@ts-expect-error/@ts-nocheck";
 // each such comment: an error of the first cell whose statement holds it, else of the module
 export const mdIgnores = (mdTsIgnore, MD_NO_TS_IGNORE) => (ast: Ast, defs: MdDef[], line: (pos: number) => number): { cell: Map<string, MdErr[]>; module: MdErr[] } => {
-  const cell: Mut<Map<string, MdErr[]>> = mut(new Map());
-  const module: Mut<MdErr[]> = mut([]);
+  const cell: Mut<Map<string, MdErr[]>> = new Map();
+  const module: Mut<MdErr[]> = [];
   for (const cm of ast.comments) {
     if (!mdTsIgnore(cm.text)) continue;
     const c = defs.find((d) => d.stmt.start <= cm.start && cm.start < d.stmt.end);
@@ -54,7 +54,7 @@ export const mdIgnores = (mdTsIgnore, MD_NO_TS_IGNORE) => (ast: Ast, defs: MdDef
     if (c === undefined) module.push(e);
     else cell.set(c.name, [...(cell.get(c.name) ?? []), e]);
   }
-  return { cell: freeze(cell), module: freeze(module) };
+  return { cell: cell, module: module };
 };
 // a cell's record before its check: the line of its statement and the errors made before the cell loop
 export const mdFreshRec = () => (d: MdDef, line: number, errors: MdErr[]): MdCellRec => ({

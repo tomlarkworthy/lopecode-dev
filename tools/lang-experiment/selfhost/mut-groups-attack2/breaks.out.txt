@@ -1,0 +1,24 @@
+== C1-lend-then-freeze-in-one-call: ACCEPT
+   show a = [1,2]
+== C1g-group-lent-then-frozen-in-one-call: ACCEPT
+   show a = [0,7,2]
+== C2-write-whose-operand-freezes: ACCEPT
+   show a = [1,1]
+== C2g-group-field-write-whose-operand-freezes: ACCEPT
+   show a = {t:[6],n:0}
+== C3-yield-freeze-inside-a-write-other-cell-changes: ACCEPT
+   CHANGED gen (value #1 of 1): [1] -> [8]
+   CHANGED r (value #1 of 1): {v:[1]} -> {v:[8]}
+   show gen = [8]
+   show r = {v:[8]}
+== C3b-yield-freeze-inside-a-lend: ACCEPT
+   CHANGED gen (value #1 of 1): [1] -> [1,2]
+   CHANGED r (value #1 of 1): {v:[1]} -> {v:[1,2]}
+   show gen = [1,2]
+   show r = {v:[1,2]}
+== C3g-yield-frozen-group-inside-field-write: ACCEPT
+   CHANGED gen (value #1 of 1): {t:[1],n:0} -> {t:[1],n:8}
+   CHANGED r (value #1 of 1): {v:{t:[1],n:0}} -> {v:{t:[1],n:8}}
+   show gen = {t:[1],n:8}
+   show r = {v:{t:[1],n:8}}
+-- 7 candidates, 7 accepted

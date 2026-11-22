@@ -1,0 +1,16 @@
+[
+ {
+  "name": "ctrl-accept",
+  "verdict": "ACCEPT",
+  "out": [
+   "show a = {t:[1,2],n:3}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "ctrl-reject",
+  "verdict": "REJECT a:rejected[mut-escape]",
+  "out": [],
+  "broke": false
+ }
+]
