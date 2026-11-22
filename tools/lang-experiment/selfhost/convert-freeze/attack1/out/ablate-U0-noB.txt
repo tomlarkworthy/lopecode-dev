@@ -1,0 +1,265 @@
+== C/map-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/filter-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/flatMap-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/find-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/findIndex-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/findLast-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/some-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/every-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/forEach-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/map-result-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/map-forEach-3rd [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/set-forEach-3rd [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== N/array-of [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== rest/spread-of-mut-of-mut [rest]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== N/reduce-init-typearg [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== N/reduce-init-typearg-empty [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== N/reduce-init-map2 [N]: ACCEPT
+   CHANGED round 1 a#1 call: 0 -> 1
+   tracked 0 objects, 1 calls
+== N/reduce-init-set2 [N]: ACCEPT
+   CHANGED round 1 a#1 call: 0 -> 1
+   tracked 0 objects, 1 calls
+== N/reduce-init-promise-sink [N]: ACCEPT
+   CHANGED round 1 a#1.p>: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== N/reduce-init-async-sink [N]: ACCEPT
+   CHANGED round 1 a#1.p>: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== N/reduce-init-state-sink [N]: ACCEPT
+   CHANGED round 1 s#1: [1] -> [1,2]
+   CHANGED round 1 c#1: {s:[1]} -> {s:[1,2]}
+   tracked 2 objects, 0 calls
+== N/reduce-init-direct-return [N]: ACCEPT
+   CHANGED round 1 a#1: [1] -> [1,2]
+   tracked 1 objects, 0 calls
+== N/reduce-init-consumer [N]: ACCEPT
+   CHANGED round 1 a#1(): [1] -> [1,2]
+   CHANGED round 1 c#1: {held:[1]} -> {held:[1,2]}
+   CHANGED round 1 a#1 call: [1] -> [1,2]
+   tracked 2 objects, 1 calls
+== N/reduce-init-mut-param [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 3 calls
+== N/array-of-promise-sink [N]: ACCEPT
+   CHANGED round 1 a#1.p>: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== N/array-of-map [N]: ACCEPT
+   CHANGED round 1 a#1 call: 0 -> 1
+   tracked 0 objects, 1 calls
+== C/forEach-let-stash [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/map-promise-sink [C]: ACCEPT
+   CHANGED round 1 a#1.p>: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== C/map-state-sink [C]: ACCEPT
+   CHANGED round 1 s#1: [1] -> [1,2]
+   CHANGED round 1 c#1: {s:[1]} -> {s:[1,2]}
+   tracked 2 objects, 0 calls
+== C/map-mut-param-receiver [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== C/map-of-record-mut [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/reduce-4th-typearg [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/ta-forEach-promise-sink [C]: ACCEPT
+   CHANGED round 1 a#1.p>: Float32Array[0,0] -> Float32Array[7,0]
+   tracked 2 objects, 0 calls
+== C/map-gen-cell [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== spread/push-spread-retains [spread]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== spread/unshift-spread [spread]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== spread/rest-spread-promise-sink [spread]: ACCEPT
+   CHANGED round 1 a#1.p>: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== spread/rest-spread-map-values [spread]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== spread/rest-spread-maps [spread]: ACCEPT
+   CHANGED round 1 a#1 call: 0 -> 1
+   tracked 0 objects, 1 calls
+== spread/array-of-spread [spread]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/map-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/filter-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/find-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/some-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/every-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/forEach-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/flatMap-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/findIndex-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/findLast-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== N/ta-reduce-init [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== let/for-of-c-alias [let]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== N/reduce-init-cell-input [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/map-named-rest-result [C]: ACCEPT
+   CHANGED round 1 a#1 call: "[1]" -> "[1,2]"
+   tracked 0 objects, 1 calls
+== C/map-named-opt-result [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/map-named-default-result [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/min-literal-callback [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== C/min-named-callback [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== N/min-reduce-init [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== N/min-array-of [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== spread/min-spread-arg [spread]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== V/ta-view-promise-sink [V]: ACCEPT
+   CHANGED round 1 a#1.p>: Uint8Array[0,0,0,0,0,0,0,0] -> Uint8Array[0,0,224,64,0,0,0,0]
+   tracked 2 objects, 0 calls
+== V/ta-view-direct-return [V]: ACCEPT
+   CHANGED round 1 a#1: Uint8Array[0,0,0,0,0,0,0,0] -> Uint8Array[0,0,224,64,0,0,0,0]
+   tracked 1 objects, 0 calls
+== consumer/C-consumer-reads-twice [consumer]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 1 objects, 1 calls
+== consumer/N-consumer-reads-twice [consumer]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 1 objects, 1 calls
+== consumer/spread-consumer-reads-twice [consumer]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 1 objects, 1 calls
+-- progs: 65 programs, accepted 65, silent 65, with a run-time error 0
+SILENT C/map-inline-opt [C]
+SILENT C/filter-inline-opt [C]
+SILENT C/flatMap-inline-opt [C]
+SILENT C/find-inline-opt [C]
+SILENT C/findIndex-inline-opt [C]
+SILENT C/findLast-inline-opt [C]
+SILENT C/some-inline-opt [C]
+SILENT C/every-inline-opt [C]
+SILENT C/forEach-inline-opt [C]
+SILENT C/map-result-opt [C]
+SILENT C/map-forEach-3rd [C]
+SILENT C/set-forEach-3rd [C]
+SILENT N/array-of [N]
+SILENT rest/spread-of-mut-of-mut [rest]
+SILENT N/reduce-init-typearg [N]
+SILENT N/reduce-init-typearg-empty [N]
+SILENT N/reduce-init-map2 [N]
+SILENT N/reduce-init-set2 [N]
+SILENT N/reduce-init-promise-sink [N]
+SILENT N/reduce-init-async-sink [N]
+SILENT N/reduce-init-state-sink [N]
+SILENT N/reduce-init-direct-return [N]
+SILENT N/reduce-init-consumer [N]
+SILENT N/reduce-init-mut-param [N]
+SILENT N/array-of-promise-sink [N]
+SILENT N/array-of-map [N]
+SILENT C/forEach-let-stash [C]
+SILENT C/map-promise-sink [C]
+SILENT C/map-state-sink [C]
+SILENT C/map-mut-param-receiver [C]
+SILENT C/map-of-record-mut [C]
+SILENT C/reduce-4th-typearg [C]
+SILENT C/ta-forEach-promise-sink [C]
+SILENT C/map-gen-cell [C]
+SILENT spread/push-spread-retains [spread]
+SILENT spread/unshift-spread [spread]
+SILENT spread/rest-spread-promise-sink [spread]
+SILENT spread/rest-spread-map-values [spread]
+SILENT spread/rest-spread-maps [spread]
+SILENT spread/array-of-spread [spread]
+SILENT C/map-inline-default [C]
+SILENT C/filter-inline-default [C]
+SILENT C/find-inline-default [C]
+SILENT C/some-inline-default [C]
+SILENT C/every-inline-default [C]
+SILENT C/forEach-inline-default [C]
+SILENT C/flatMap-inline-default [C]
+SILENT C/findIndex-inline-default [C]
+SILENT C/findLast-inline-default [C]
+SILENT N/ta-reduce-init [N]
+SILENT let/for-of-c-alias [let]
+SILENT N/reduce-init-cell-input [N]
+SILENT C/map-named-rest-result [C]
+SILENT C/map-named-opt-result [C]
+SILENT C/map-named-default-result [C]
+SILENT C/min-literal-callback [C]
+SILENT C/min-named-callback [C]
+SILENT N/min-reduce-init [N]
+SILENT N/min-array-of [N]
+SILENT spread/min-spread-arg [spread]
+SILENT V/ta-view-promise-sink [V]
+SILENT V/ta-view-direct-return [V]
+SILENT consumer/C-consumer-reads-twice [consumer]
+SILENT consumer/N-consumer-reads-twice [consumer]
+SILENT consumer/spread-consumer-reads-twice [consumer]

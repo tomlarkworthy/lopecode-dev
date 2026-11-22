@@ -1,0 +1,21 @@
+== named-callback-accumulator [ergo]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== inline-callback-accumulator [ergo]: ACCEPT
+   tracked 0 objects, 0 calls
+== record-of-helpers [ergo]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== helper-passed-to-user-fn [ergo]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== helper-in-array-called [ergo]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== typed-array-returned [ergo]: ACCEPT
+   tracked 1 objects, 0 calls
+== typed-array-slice-returned [ergo]: ACCEPT
+   tracked 1 objects, 0 calls
+== view-ctor-fresh-buffer [ergo]: REJECT a:rejected[member-write] write to a Float32Array, which is not Mut
+== view-ctor-local-buffer [ergo]: REJECT a:rejected[member-write] write to a Uint8Array, which is not Mut
+== map-built-then-summarised [ergo]: ACCEPT
+   tracked 0 objects, 0 calls
+== sort-copy-then-return [ergo]: ACCEPT
+   tracked 1 objects, 0 calls
+== kept-fn-then-write [ergo]: REJECT a:rejected[mut-capture] xs may be written after a function the cell keeps captured it (later i
+== promise-resolve-then-write [ergo]: REJECT a:rejected[type] Mut<number[]> is not assignable to Mut<number[]> | Promise<Mut<number[
+== map-of-map-reads [ergo]: ACCEPT
+   tracked 0 objects, 0 calls
+-- ergo: 14 programs, accepted 6, silent 0, with a run-time error 0

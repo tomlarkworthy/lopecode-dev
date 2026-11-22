@@ -1,0 +1,112 @@
+== C: 98 callback parameters over 414 members; 66 get more arguments than declared; in 66 an extra argument is the receiver
+  Array#map param 0: declared 2 args, real 3, an extra argument is the receiver
+  Array#filter param 0: declared 2 args, real 3, an extra argument is the receiver
+  Array#flatMap param 0: declared 2 args, real 3, an extra argument is the receiver
+  Array#toSorted param 0: declared 2 args, real 2
+  Array#reduce param 0: declared 3 args, real 4, an extra argument is the receiver
+  Array#find param 0: declared 2 args, real 3, an extra argument is the receiver
+  Array#findIndex param 0: declared 2 args, real 3, an extra argument is the receiver
+  Array#findLast param 0: declared 2 args, real 3, an extra argument is the receiver
+  Array#some param 0: declared 2 args, real 3, an extra argument is the receiver
+  Array#every param 0: declared 2 args, real 3, an extra argument is the receiver
+  Array#forEach param 0: declared 2 args, real 3, an extra argument is the receiver
+  Array#sort param 0: declared 2 args, real 2
+  Array.from param 1: declared 2 args, real 2
+  Array.from param 1: declared 2 args, real 2
+  Map#forEach param 0: declared 2 args, real 3, an extra argument is the receiver
+  Set#forEach param 0: declared 1 args, real 3, an extra argument is the receiver
+  Promise#then param 0: declared 1 args, real async (not measured)
+  Float32Array#sort param 0: declared 2 args, real 2
+  Float32Array#map param 0: declared 2 args, real 3, an extra argument is the receiver
+  Float32Array#filter param 0: declared 2 args, real 3, an extra argument is the receiver
+  Float32Array#toSorted param 0: declared 2 args, real 2
+  Float32Array#reduce param 0: declared 3 args, real 4, an extra argument is the receiver
+  Float32Array#forEach param 0: declared 2 args, real 3, an extra argument is the receiver
+  Float32Array#every param 0: declared 2 args, real 3, an extra argument is the receiver
+  Float32Array#some param 0: declared 2 args, real 3, an extra argument is the receiver
+  Float32Array.from param 1: declared 2 args, real 2
+  Float64Array#sort param 0: declared 2 args, real 2
+  Float64Array#map param 0: declared 2 args, real 3, an extra argument is the receiver
+  Float64Array#filter param 0: declared 2 args, real 3, an extra argument is the receiver
+  Float64Array#toSorted param 0: declared 2 args, real 2
+  Float64Array#reduce param 0: declared 3 args, real 4, an extra argument is the receiver
+  Float64Array#forEach param 0: declared 2 args, real 3, an extra argument is the receiver
+  Float64Array#every param 0: declared 2 args, real 3, an extra argument is the receiver
+  Float64Array#some param 0: declared 2 args, real 3, an extra argument is the receiver
+  Float64Array.from param 1: declared 2 args, real 2
+  Int8Array#sort param 0: declared 2 args, real 2
+  Int8Array#map param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int8Array#filter param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int8Array#toSorted param 0: declared 2 args, real 2
+  Int8Array#reduce param 0: declared 3 args, real 4, an extra argument is the receiver
+  Int8Array#forEach param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int8Array#every param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int8Array#some param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int8Array.from param 1: declared 2 args, real 2
+  Uint8Array#sort param 0: declared 2 args, real 2
+  Uint8Array#map param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint8Array#filter param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint8Array#toSorted param 0: declared 2 args, real 2
+  Uint8Array#reduce param 0: declared 3 args, real 4, an extra argument is the receiver
+  Uint8Array#forEach param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint8Array#every param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint8Array#some param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint8Array.from param 1: declared 2 args, real 2
+  Uint8ClampedArray#sort param 0: declared 2 args, real 2
+  Uint8ClampedArray#map param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint8ClampedArray#filter param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint8ClampedArray#toSorted param 0: declared 2 args, real 2
+  Uint8ClampedArray#reduce param 0: declared 3 args, real 4, an extra argument is the receiver
+  Uint8ClampedArray#forEach param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint8ClampedArray#every param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint8ClampedArray#some param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint8ClampedArray.from param 1: declared 2 args, real 2
+  Int16Array#sort param 0: declared 2 args, real 2
+  Int16Array#map param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int16Array#filter param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int16Array#toSorted param 0: declared 2 args, real 2
+  Int16Array#reduce param 0: declared 3 args, real 4, an extra argument is the receiver
+  Int16Array#forEach param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int16Array#every param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int16Array#some param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int16Array.from param 1: declared 2 args, real 2
+  Uint16Array#sort param 0: declared 2 args, real 2
+  Uint16Array#map param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint16Array#filter param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint16Array#toSorted param 0: declared 2 args, real 2
+  Uint16Array#reduce param 0: declared 3 args, real 4, an extra argument is the receiver
+  Uint16Array#forEach param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint16Array#every param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint16Array#some param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint16Array.from param 1: declared 2 args, real 2
+  Int32Array#sort param 0: declared 2 args, real 2
+  Int32Array#map param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int32Array#filter param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int32Array#toSorted param 0: declared 2 args, real 2
+  Int32Array#reduce param 0: declared 3 args, real 4, an extra argument is the receiver
+  Int32Array#forEach param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int32Array#every param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int32Array#some param 0: declared 2 args, real 3, an extra argument is the receiver
+  Int32Array.from param 1: declared 2 args, real 2
+  Uint32Array#sort param 0: declared 2 args, real 2
+  Uint32Array#map param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint32Array#filter param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint32Array#toSorted param 0: declared 2 args, real 2
+  Uint32Array#reduce param 0: declared 3 args, real 4, an extra argument is the receiver
+  Uint32Array#forEach param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint32Array#every param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint32Array#some param 0: declared 2 args, real 3, an extra argument is the receiver
+  Uint32Array.from param 1: declared 2 args, real 2
+== N: 12 non-@retains parameters whose type parameter reaches the result; 11 keep the argument itself
+  Array#reduce param 1 (init: U) -> U: KEEPS the argument
+  Array.of param 0 (...xs: T[]) -> T[]: KEEPS the argument
+  global.structuredClone param 0 (v: T) -> T: does not keep it
+  Float32Array#reduce param 1 (init: U) -> U: KEEPS the argument
+  Float64Array#reduce param 1 (init: U) -> U: KEEPS the argument
+  Int8Array#reduce param 1 (init: U) -> U: KEEPS the argument
+  Uint8Array#reduce param 1 (init: U) -> U: KEEPS the argument
+  Uint8ClampedArray#reduce param 1 (init: U) -> U: KEEPS the argument
+  Int16Array#reduce param 1 (init: U) -> U: KEEPS the argument
+  Uint16Array#reduce param 1 (init: U) -> U: KEEPS the argument
+  Int32Array#reduce param 1 (init: U) -> U: KEEPS the argument
+  Uint32Array#reduce param 1 (init: U) -> U: KEEPS the argument

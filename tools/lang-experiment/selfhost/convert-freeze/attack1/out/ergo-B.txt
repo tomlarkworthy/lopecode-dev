@@ -1,0 +1,35 @@
+== named-callback-accumulator [ergo]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== inline-callback-accumulator [ergo]: ACCEPT
+   tracked 0 objects, 0 calls
+== record-of-helpers [ergo]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== helper-passed-to-user-fn [ergo]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== helper-in-array-called [ergo]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== typed-array-returned [ergo]: ACCEPT
+   error a: ss_f: cannot freeze a typed array or DataView
+   tracked 0 objects, 0 calls
+== typed-array-slice-returned [ergo]: ACCEPT
+   error a: ss_f: cannot freeze a typed array or DataView
+   tracked 0 objects, 0 calls
+== view-ctor-fresh-buffer [ergo]: REJECT a:rejected[member-write] write to a Float32Array, which is not Mut
+== view-ctor-local-buffer [ergo]: REJECT a:rejected[member-write] write to a Uint8Array, which is not Mut
+== map-built-then-summarised [ergo]: ACCEPT
+   tracked 0 objects, 0 calls
+== sort-copy-then-return [ergo]: ACCEPT
+   tracked 1 objects, 0 calls
+== kept-fn-then-write [ergo]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== promise-resolve-then-write [ergo]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== map-of-map-reads [ergo]: ACCEPT
+   tracked 0 objects, 0 calls
+-- ergo: 14 programs, accepted 12, silent 0, with a run-time error 8

@@ -1,0 +1,8 @@
+consumers, B=0:
+consumer/C-consumer-reads-twice: c = [1,2] status fulfilled
+consumer/N-consumer-reads-twice: c = [1,2] status fulfilled
+consumer/spread-consumer-reads-twice: c = [1,2] status fulfilled
+consumers, B=1:
+consumer/C-consumer-reads-twice: c = [1,2] status fulfilled
+consumer/N-consumer-reads-twice: c = [1,2] status fulfilled
+consumer/spread-consumer-reads-twice: c = [1,2] status fulfilled

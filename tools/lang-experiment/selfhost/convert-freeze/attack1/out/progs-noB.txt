@@ -1,0 +1,686 @@
+== C/map-opt [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/map-rest [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/map-default [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/map-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/filter-opt [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/filter-rest [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/filter-default [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/filter-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/flatMap-opt [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/flatMap-rest [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/flatMap-default [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/flatMap-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/find-opt [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/find-rest [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/find-default [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/find-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/findIndex-opt [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/findIndex-rest [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/findIndex-default [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/findIndex-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/findLast-opt [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/findLast-rest [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/findLast-default [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/findLast-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/some-opt [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/some-rest [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/some-default [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/some-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/every-opt [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/every-rest [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/every-default [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/every-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/forEach-opt [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/forEach-rest [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/forEach-default [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/forEach-inline-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/reduce-4th-opt [C]: REJECT a:rejected[type] parameter number does not accept unknown
+== C/map-result-opt [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/map-forEach-3rd [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/set-forEach-3rd [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/ta-map-opt [C]: REJECT a:rejected[mut-capture] r holds a Float32Array that a name in this cell can still write, captu
+== C/from-mapfn-opt [C]: ACCEPT
+   tracked 0 objects, 1 calls
+== C/sort-cmp-rest [C]: REJECT a:rejected[type] parameter number[] does not accept number
+== C/callback-via-generic-helper [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== C/then-callback-opt [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 0 calls
+== N/reduce-init-empty [N]: REJECT a:rejected[type] parameter number[] does not accept unknown
+== N/reduce-init-nonempty [N]: REJECT a:rejected[type] parameter number[] does not accept unknown
+== N/reduce-init-data [N]: REJECT a:rejected[type] parameter number[] does not accept unknown
+== N/reduce-init-map [N]: REJECT a:rejected[type] parameter Map<string, number> does not accept unknown
+== N/reduce-init-set [N]: REJECT a:rejected[type] parameter Set<number> does not accept unknown
+== N/reduce-init-ta [N]: REJECT a:rejected[type] parameter Float32Array does not accept unknown[mut-capture] r holds a Float32Array that a name in this cell can still write, captu
+== N/find-on-literal [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/array-from-self [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/concat-arg [N]: REJECT a:rejected[no-cast] as cast
+== N/concat-arg2 [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/new-map-entries [N]: REJECT a:rejected[type] Mut<[string, Mut<number[]>][]> is not assignable to Iterable<[string, 
+== N/object-values [N]: REJECT a:rejected[type] Mut<number[]> is not assignable to Mut<number[]> | undefined
+== N/fromEntries [N]: REJECT a:rejected[type] Mut<[string, Mut<number[]>][]> is not assignable to Iterable<[string, 
+== N/promise-all [N]: REJECT a:rejected[possibly-undefined] property length of a value that may be undefined
+== N/structuredClone [N]: ACCEPT
+   tracked 0 objects, 1 calls
+== N/array-of [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== N/push-into-plain [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/set-ctor-of-muts [N]: REJECT a:rejected[type] Mut<Mut<number[]>[]> is not assignable to Iterable<number[]>
+== N/map-ctor-from-map [N]: REJECT a:rejected[type] Mut<Map<string, Mut<number[]>>> is not assignable to Iterable<[string,
+== N/fill-receiver [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/includes-indexOf [N]: REJECT a:rejected[strict-eq-object] indexOf on an element and an argument that may both be objects compare
+== V/ta-over-buffer [V]: REJECT a:rejected[member-write] write to a Float32Array, which is not Mut[mut-capture] v holds a Float32Array that a name in this cell can still write, captu
+== V/ta-from-ta-buffer [V]: REJECT a:rejected[mut-capture] v holds a Uint8Array that a name in this cell can still write, capture
+== V/ta-slice-buffer [V]: REJECT a:rejected[mut-capture] u holds a Uint8Array that a name in this cell can still write, capture
+== V/ta-entries-iter [V]: REJECT a:rejected[iterator-capture] it may hold an iterator (Iterable<number>), which reading uses up, so 
+== V/array-entries-later [V]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== V/map-values-spread [V]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== V/searchParams [V]: REJECT a:rejected[no-cast] as cast[mut-capture] sp holds a URLSearchParams that a name in this cell can still write, c
+== V/sort-returns-receiver [V]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== V/map-set-returns-receiver [V]: ACCEPT
+   unhandled set on a frozen Map: a value cannot change after its cell returns
+   tracked 0 objects, 1 calls
+== V/chained-sort-reverse [V]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== V/splice-fresh [V]: ACCEPT
+   tracked 0 objects, 1 calls
+== rest/rest-param-helper [rest]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== rest/spread-call-arg [rest]: REJECT a:rejected[no-cast] as cast
+== rest/spread-of-mut-of-mut [rest]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== rest/array-spread-of-mut-of-mut [rest]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== rest/object-spread-mut-field [rest]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== rest/object-spread-to-plain [rest]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/array-destructure [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/object-destructure-annot [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/object-destructure-infer [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/nested-destructure [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/destructure-default [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/array-destructure-default [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/param-destructure-default [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== default/default-param [default]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== default/default-param-kept [default]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== default/default-param-arrow-in-arrow [default]: REJECT a:rejected[type] () => Mut<number[]> is not assignable to () => number[][type] call of () => number[] | () => Mut<number[]>
+== default/assign-op-nullish [default]: REJECT a:unsupported
+== default/assign-op-or [default]: REJECT a:unsupported
+== default/comma-expr [default]: REJECT a:unsupported
+== default/paren-assign-expr [default]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== default/chained-assign [default]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== union/ternary-mixed [union]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== union/logical-and [union]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== union/optional-chain-receiver [union]: REJECT a:rejected[type] { in: Mut<number[]> } is not assignable to { in?: Mut<number[]> }[mutating-method] write to a Mut<number[]> | undefined, which is not Mut
+== union/union-with-string [union]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== union/unknown-narrow [union]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== union/switch-return [union]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== let/let-plain-then-assign-mut [let]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== let/let-plain-assign-in-loop [let]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== let/for-of-muts [let]: REJECT a:rejected[mutating-method] write to a (() => number)[], which is not Mut
+== let/for-of-plain-alias [let]: REJECT a:rejected[mutating-method] write to a number[][], which is not Mut
+== let/loop-var-closure [let]: REJECT a:rejected[mutating-method] write to a (() => number)[], which is not Mut
+== let/while-alias [let]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== let/labelled-break [let]: REJECT a:unsupported
+== keep/helper-in-array [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== keep/helper-in-record [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== keep/helper-alias [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== keep/helper-via-ternary [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== keep/helper-passed-to-user-fn [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== keep/helper-returned-by-helper [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== keep/helper-promise-resolve [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== keep/helper-then [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 0 calls
+== keep/helper-then-later [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 0 calls
+== keep/async-helper-result [keep]: ACCEPT
+   tracked 1 objects, 0 calls
+== keep/helper-captures-helper [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== keep/helper-in-map-callback-returning-fn [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== keep/iife-returns-fn [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== keep/fn-decl-hoisted-used-before [keep]: REJECT a:rejected[free-name] free name xs
+== keep/fn-decl-in-array-before-init [keep]: REJECT a:rejected[free-name] free name xs
+== keep/recursive-helper-returns-fn [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== keep/generic-identity-fn [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== keep/optional-call-helper [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== keep/tagged-template-keeps-fn [keep]: REJECT a:unsupported
+== keep/tagged-template-plain [keep]: REJECT a:unsupported
+== keep/getter-method [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== keep/method-shorthand-returns-mut [keep]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== gen/yield-star-helper [gen]: REJECT a:unsupported
+== gen/yield-star-array-of-mut [gen]: REJECT a:unsupported
+== gen/yield-star-values [gen]: REJECT a:unsupported
+== gen/yield-fn-then-write [gen]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== gen/yield-plain-alias [gen]: REJECT a:rejected[type] parameter number[] does not accept unknown
+== gen/yield-record-of-fn [gen]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== gen/async-gen-yield [gen]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== gen/gen-helper-object-returned [gen]: REJECT a:rejected[iterator-capture] it may hold an iterator (Generator<number>), which reading uses up, so
+== gen/gen-cell-local-reused [gen]: ACCEPT
+   tracked 3 objects, 0 calls
+== gen/gen-yield-captured-helper-write [gen]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== throw/throw-catch-alias [throw]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== throw/async-reject-reason [throw]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 2 objects, 0 calls
+== throw/error-cause [throw]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== throw/finally-alias [throw]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== generic/generic-helper-returns-arg [generic]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== generic/generic-pair [generic]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== generic/generic-box-fn [generic]: REJECT a:rejected[iterator-capture] v may hold an iterator (the type parameter T), which reading uses up, 
+== generic/generic-explicit-mut [generic]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== generic/generic-callback [generic]: REJECT a:rejected[type] () => Mut<number[]> is not assignable to () => number[]
+== generic/generic-callback-mut-annot [generic]: REJECT a:rejected[type] () => Mut<number[]> is not assignable to () => number[]
+== mutparam/mut-param-returns-plain [mutparam]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== mutparam/mut-param-stores-in-closure [mutparam]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== mutparam/mut-param-into-literal [mutparam]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== mutparam/mut-result-fn [mutparam]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== mutparam/mut-field-of-plain-record [mutparam]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== mutparam/mut-in-tuple [mutparam]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== mutparam/fn-typed-mut-param-var [mutparam]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== state/state-initial-mut [state]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 2 objects, 0 calls
+== state/action-captures-mut [state]: REJECT c:rejected[action-capture] xs is a Mut, which the cell may change after the action is made; an ac
+== state/action-update-returns-alias [state]: REJECT c:rejected[type] parameter number[] does not accept unknown
+== state/action-arg-stored [state]: ACCEPT
+   tracked 1 objects, 0 calls
+== jsx/jsx-child-array [jsx]: REJECT a:rejected[type] parameter string[] does not accept unknown[type] string[] is not assignable to Child[type] string[][] is not assignable to Child[][type] { children: string[][] } is not assignable to CommonProps
+== jsx/jsx-component-prop [jsx]: REJECT Item:rejected[inject-unknown] parameter p names no cell, foreign or capability a:rejected[cell-by-name] cell Item referenced by name; take it as a parameter
+== jsx/jsx-children-keep [jsx]: REJECT a:rejected[type] Mut<string[]> is not assignable to Child[type] Mut<string[]>[] is not assignable to Child[][type] { children: Mut<string[]>[] } is not assignable to CommonProps
+== N/reduce-init-typearg [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== N/reduce-init-typearg-empty [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== N/reduce-init-map2 [N]: ACCEPT
+   CHANGED round 1 a#1 call: 0 -> 1
+   tracked 0 objects, 1 calls
+== N/reduce-init-set2 [N]: ACCEPT
+   CHANGED round 1 a#1 call: 0 -> 1
+   tracked 0 objects, 1 calls
+== N/reduce-init-promise-sink [N]: ACCEPT
+   CHANGED round 1 a#1.p>: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== N/reduce-init-async-sink [N]: ACCEPT
+   CHANGED round 1 a#1.p>: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== N/reduce-init-state-sink [N]: ACCEPT
+   CHANGED round 1 s#1: [1] -> [1,2]
+   CHANGED round 1 c#1: {s:[1]} -> {s:[1,2]}
+   tracked 2 objects, 0 calls
+== N/reduce-init-direct-return [N]: ACCEPT
+   CHANGED round 1 a#1: [1] -> [1,2]
+   tracked 1 objects, 0 calls
+== N/reduce-init-consumer [N]: ACCEPT
+   CHANGED round 1 a#1(): [1] -> [1,2]
+   CHANGED round 1 c#1: {held:[1]} -> {held:[1,2]}
+   CHANGED round 1 a#1 call: [1] -> [1,2]
+   tracked 2 objects, 1 calls
+== N/reduce-init-mut-param [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 3 calls
+== N/array-of-promise-sink [N]: ACCEPT
+   CHANGED round 1 a#1.p>: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== N/array-of-map [N]: ACCEPT
+   CHANGED round 1 a#1 call: 0 -> 1
+   tracked 0 objects, 1 calls
+== C/forEach-let-stash [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/map-promise-sink [C]: ACCEPT
+   CHANGED round 1 a#1.p>: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== C/map-state-sink [C]: ACCEPT
+   CHANGED round 1 s#1: [1] -> [1,2]
+   CHANGED round 1 c#1: {s:[1]} -> {s:[1,2]}
+   tracked 2 objects, 0 calls
+== C/map-mut-param-receiver [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== C/map-of-record-mut [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/reduce-4th-typearg [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/ta-forEach-promise-sink [C]: ACCEPT
+   CHANGED round 1 a#1.p>: Float32Array[0,0] -> Float32Array[7,0]
+   tracked 2 objects, 0 calls
+== C/map-gen-cell [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== C/filter-elements-mut [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== spread/push-spread-retains [spread]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== spread/push-spread-then-return [spread]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== spread/unshift-spread [spread]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== spread/rest-spread-promise-sink [spread]: ACCEPT
+   CHANGED round 1 a#1.p>: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== spread/rest-spread-map-values [spread]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== spread/rest-spread-maps [spread]: ACCEPT
+   CHANGED round 1 a#1 call: 0 -> 1
+   tracked 0 objects, 1 calls
+== spread/array-of-spread [spread]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/map-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/map-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/filter-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/filter-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/find-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/find-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/some-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/some-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/every-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/every-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/forEach-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/forEach-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/flatMap-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/flatMap-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/findIndex-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/findIndex-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/findLast-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/findLast-inline-default [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/map-forEach-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number[possibly-undefined] property size of a value that may be null
+== N/ta-reduce-init [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== let/for-of-muts-fixed [let]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== let/for-of-plain-alias-fixed [let]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== let/loop-var-closure-fixed [let]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== let/for-of-c-alias [let]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== union/optional-chain-fixed [union]: REJECT a:rejected[type] Mut<number[]> is not assignable to Mut<number[]> | undefined[type] { in: Mut<number[]> } is not assignable to { in: Mut<number[]> | undef[mutating-method] write to a Mut<number[]> | undefined, which is not Mut
+== union/optional-chain-c [union]: REJECT a:rejected[type] number[] is not assignable to Mut<number[]> | undefined[type] { in: number[] } is not assignable to { in: Mut<number[]> | undefined [mutating-method] write to a Mut<number[]> | undefined, which is not Mut
+== events/events-yield-c-alias [events]: ACCEPT
+events ev threw; it yields nothing more until it runs again: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,h,Map,Set,URL,ss_f
+3 | ) {
+4 | const ev = function* () { const xs = [1]; const r = xs.map((v, i, arr) => arr ?? [])[0] ?? []; yield r; xs.push(2); yield [0]; };
+                                                                                                                   ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/run.ts:4:112)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/cells.ts:16:17)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/cells.ts:16:17)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/cells.ts:56:38)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/attack1/observe2.ts:104:112)
+      at async observeDeep (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/attack1/observe2.ts:109:11)
+
+   tracked 6 objects, 0 calls
+== events/events-yield-mut [events]: REJECT ev:rejected[proto-F] a Mut beneath a function, Promise or Iterable in a cell's value (rule 
+== jsx/jsx-fn-c-alias [jsx]: ACCEPT
+   tracked 0 objects, 1 calls
+== jsx/jsx-elem-of-mut-children [jsx]: REJECT a:rejected[no-member] <b> is not a declared element
+== N/reduce-init-cell-input [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/map-named-rest-result [C]: ACCEPT
+   CHANGED round 1 a#1 call: "[1]" -> "[1,2]"
+   tracked 0 objects, 1 calls
+== C/map-named-opt-result [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/map-named-default-result [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== C/min-literal-callback [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== C/min-named-callback [C]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== N/min-reduce-init [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== N/min-array-of [N]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== spread/min-spread-arg [spread]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 2 calls
+== V/ta-view-promise-sink [V]: ACCEPT
+   CHANGED round 1 a#1.p>: Uint8Array[0,0,0,0,0,0,0,0] -> Uint8Array[0,0,224,64,0,0,0,0]
+   tracked 2 objects, 0 calls
+== V/ta-view-direct-return [V]: ACCEPT
+   CHANGED round 1 a#1: Uint8Array[0,0,0,0,0,0,0,0] -> Uint8Array[0,0,224,64,0,0,0,0]
+   tracked 1 objects, 0 calls
+== V/ta-view-gen-yield [V]: REJECT a:rejected[mut-yield] a Uint8Array the cell may still write, yielded: a typed array or URL c
+== V/ta-subarray-promise-sink [V]: ACCEPT
+   error a: ss_f: cannot freeze a typed array or DataView
+   tracked 0 objects, 0 calls
+== sites/index-assign-into-mut [sites]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== sites/field-assign-into-mut [sites]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== sites/iife-arg [sites]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== sites/method-arg [sites]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== sites/curried-arg [sites]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== consumer/C-consumer-reads-twice [consumer]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 1 objects, 1 calls
+== consumer/N-consumer-reads-twice [consumer]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 1 objects, 1 calls
+== consumer/spread-consumer-reads-twice [consumer]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 1 objects, 1 calls
+-- progs: 246 programs, accepted 182, silent 65, with a run-time error 109
+SILENT C/map-inline-opt [C]
+SILENT C/filter-inline-opt [C]
+SILENT C/flatMap-inline-opt [C]
+SILENT C/find-inline-opt [C]
+SILENT C/findIndex-inline-opt [C]
+SILENT C/findLast-inline-opt [C]
+SILENT C/some-inline-opt [C]
+SILENT C/every-inline-opt [C]
+SILENT C/forEach-inline-opt [C]
+SILENT C/map-result-opt [C]
+SILENT C/map-forEach-3rd [C]
+SILENT C/set-forEach-3rd [C]
+SILENT N/array-of [N]
+SILENT rest/spread-of-mut-of-mut [rest]
+SILENT N/reduce-init-typearg [N]
+SILENT N/reduce-init-typearg-empty [N]
+SILENT N/reduce-init-map2 [N]
+SILENT N/reduce-init-set2 [N]
+SILENT N/reduce-init-promise-sink [N]
+SILENT N/reduce-init-async-sink [N]
+SILENT N/reduce-init-state-sink [N]
+SILENT N/reduce-init-direct-return [N]
+SILENT N/reduce-init-consumer [N]
+SILENT N/reduce-init-mut-param [N]
+SILENT N/array-of-promise-sink [N]
+SILENT N/array-of-map [N]
+SILENT C/forEach-let-stash [C]
+SILENT C/map-promise-sink [C]
+SILENT C/map-state-sink [C]
+SILENT C/map-mut-param-receiver [C]
+SILENT C/map-of-record-mut [C]
+SILENT C/reduce-4th-typearg [C]
+SILENT C/ta-forEach-promise-sink [C]
+SILENT C/map-gen-cell [C]
+SILENT spread/push-spread-retains [spread]
+SILENT spread/unshift-spread [spread]
+SILENT spread/rest-spread-promise-sink [spread]
+SILENT spread/rest-spread-map-values [spread]
+SILENT spread/rest-spread-maps [spread]
+SILENT spread/array-of-spread [spread]
+SILENT C/map-inline-default [C]
+SILENT C/filter-inline-default [C]
+SILENT C/find-inline-default [C]
+SILENT C/some-inline-default [C]
+SILENT C/every-inline-default [C]
+SILENT C/forEach-inline-default [C]
+SILENT C/flatMap-inline-default [C]
+SILENT C/findIndex-inline-default [C]
+SILENT C/findLast-inline-default [C]
+SILENT N/ta-reduce-init [N]
+SILENT let/for-of-c-alias [let]
+SILENT N/reduce-init-cell-input [N]
+SILENT C/map-named-rest-result [C]
+SILENT C/map-named-opt-result [C]
+SILENT C/map-named-default-result [C]
+SILENT C/min-literal-callback [C]
+SILENT C/min-named-callback [C]
+SILENT N/min-reduce-init [N]
+SILENT N/min-array-of [N]
+SILENT spread/min-spread-arg [spread]
+SILENT V/ta-view-promise-sink [V]
+SILENT V/ta-view-direct-return [V]
+SILENT consumer/C-consumer-reads-twice [consumer]
+SILENT consumer/N-consumer-reads-twice [consumer]
+SILENT consumer/spread-consumer-reads-twice [consumer]

@@ -1,6 +1,13 @@
 # Freeze at the conversion (hypothesis under test, 2026-11-22)
 
-Status: UNTESTED. Written to be invalidated. Nothing here is in the main tree.
+Status: INVALIDATED, 2026-11-22. Not adopted. Nothing here is in the main tree.
+
+Record of the test, in order:
+- `paper-attack/RESULTS.md`: R1-R7 as written broken four ways (F, V, C, H); six rules added.
+- `proto/RESULTS.md`: with nine added rules, 0 silent on the 1,799 programs written against the earlier design; rule C not built; a typed array returned from a cell throws.
+- `attack1/RESULTS.md`: 246 new programs written against this design. Strongest mode accepts 182; 65 change silently (60 with rule B). The main design at ab2d0911 on the same programs: accepts 118, 0 silent.
+
+Why it fails: the conversion is found where a `Mut` type meets a plain type, but a plain-typed name can alias a live `Mut` object by a path the checker never sees as a conversion (the receiver handed to a callback, an intrinsic that returns its argument, a spread element, a view made by a constructor). Each such path needs its own rule or annotation, which is the alias tracking the design was meant to avoid.
 
 ## Why
 Static ownership and the boundary deep freeze both chase references (through the text, through the heap). Three attack

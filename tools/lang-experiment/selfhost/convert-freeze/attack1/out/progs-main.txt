@@ -1,0 +1,502 @@
+== C/map-opt [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/map-rest [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/map-default [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/map-inline-opt [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/filter-opt [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/filter-rest [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/filter-default [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/filter-inline-opt [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/flatMap-opt [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/flatMap-rest [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/flatMap-default [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/flatMap-inline-opt [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/find-opt [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/find-rest [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/find-default [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/find-inline-opt [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/findIndex-opt [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/findIndex-rest [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/findIndex-default [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/findIndex-inline-opt [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/findLast-opt [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/findLast-rest [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/findLast-default [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/findLast-inline-opt [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/some-opt [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/some-rest [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/some-default [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/some-inline-opt [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/every-opt [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/every-rest [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/every-default [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/every-inline-opt [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/forEach-opt [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/forEach-rest [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/forEach-default [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/forEach-inline-opt [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/reduce-4th-opt [C]: REJECT a:rejected[type] parameter number does not accept unknown
+== C/map-result-opt [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/map-forEach-3rd [C]: ACCEPT
+   unhandled set on a frozen Map: a value cannot change after its cell returns
+   tracked 0 objects, 1 calls
+== C/set-forEach-3rd [C]: ACCEPT
+   unhandled add on a frozen Set: a value cannot change after its cell returns
+   tracked 0 objects, 1 calls
+== C/ta-map-opt [C]: REJECT a:rejected[mut-capture] r holds a Float32Array that a name in this cell can still write, captu
+== C/from-mapfn-opt [C]: ACCEPT
+   tracked 0 objects, 1 calls
+== C/sort-cmp-rest [C]: REJECT a:rejected[type] parameter number[] does not accept number[mut-capture] a Mut is written where it may run after out's reader, a function the c[mut-capture] out may be written after a function the cell keeps captured it (later 
+== C/callback-via-generic-helper [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== C/then-callback-opt [C]: REJECT a:rejected[mut-capture] Mut out written by a function the cell keeps (not a local helper that 
+== N/reduce-init-empty [N]: REJECT a:rejected[type] parameter number[] does not accept unknown
+== N/reduce-init-nonempty [N]: REJECT a:rejected[type] parameter number[] does not accept unknown
+== N/reduce-init-data [N]: REJECT a:rejected[type] parameter number[] does not accept unknown
+== N/reduce-init-map [N]: REJECT a:rejected[type] parameter Map<string, number> does not accept unknown
+== N/reduce-init-set [N]: REJECT a:rejected[type] parameter Set<number> does not accept unknown
+== N/reduce-init-ta [N]: REJECT a:rejected[type] parameter Float32Array does not accept unknown[mut-capture] r holds a Float32Array that a name in this cell can still write, captu
+== N/find-on-literal [N]: REJECT a:rejected[mut-capture] a Mut is written where it may run after r's reader, a function the cel
+== N/array-from-self [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/concat-arg [N]: REJECT a:rejected[no-cast] as cast
+== N/concat-arg2 [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/new-map-entries [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/object-values [N]: REJECT a:rejected[type] Mut<number[]> is not assignable to Mut<number[]> | undefined
+== N/fromEntries [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/promise-all [N]: REJECT a:rejected[type] Mut<number[]> is not assignable to Mut<number[]> | Promise<Mut<number[[possibly-undefined] property length of a value that may be undefined
+== N/structuredClone [N]: REJECT a:rejected[mut-capture] a Mut is written where it may run after r's reader, a function the cel
+== N/array-of [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/push-into-plain [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/set-ctor-of-muts [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/map-ctor-from-map [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/fill-receiver [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/includes-indexOf [N]: REJECT a:rejected[strict-eq-object] indexOf on an element and an argument that may both be objects compare
+== V/ta-over-buffer [V]: REJECT a:rejected[member-write] write to a Float32Array, which is not Mut[mut-capture] v holds a Float32Array that a name in this cell can still write, captu
+== V/ta-from-ta-buffer [V]: REJECT a:rejected[mut-capture] v holds a Uint8Array that a name in this cell can still write, capture
+== V/ta-slice-buffer [V]: REJECT a:rejected[mut-capture] u holds a Uint8Array that a name in this cell can still write, capture
+== V/ta-entries-iter [V]: REJECT a:rejected[iterator-capture] it may hold an iterator (Iterable<number>), which reading uses up, so 
+== V/array-entries-later [V]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== V/map-values-spread [V]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== V/searchParams [V]: REJECT a:rejected[no-cast] as cast[mut-capture] sp holds a URLSearchParams that a name in this cell can still write, c
+== V/sort-returns-receiver [V]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== V/map-set-returns-receiver [V]: ACCEPT
+   unhandled set on a frozen Map: a value cannot change after its cell returns
+   tracked 0 objects, 1 calls
+== V/chained-sort-reverse [V]: REJECT a:rejected[mutating-method] write to a number[], which is not Mut
+== V/splice-fresh [V]: ACCEPT
+   tracked 0 objects, 1 calls
+== rest/rest-param-helper [rest]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== rest/spread-call-arg [rest]: REJECT a:rejected[no-cast] as cast
+== rest/spread-of-mut-of-mut [rest]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== rest/array-spread-of-mut-of-mut [rest]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== rest/object-spread-mut-field [rest]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== rest/object-spread-to-plain [rest]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/array-destructure [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/object-destructure-annot [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/object-destructure-infer [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/nested-destructure [destr]: REJECT a:rejected[mut-capture] a Mut is written where it may run after r's reader, a function the cel
+== destr/destructure-default [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/array-destructure-default [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== destr/param-destructure-default [destr]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== default/default-param [default]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== default/default-param-kept [default]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== default/default-param-arrow-in-arrow [default]: REJECT a:rejected[mut-capture] Mut xs returned or yielded by a function the cell keeps: whoever calls
+== default/assign-op-nullish [default]: REJECT a:unsupported
+== default/assign-op-or [default]: REJECT a:unsupported
+== default/comma-expr [default]: REJECT a:unsupported
+== default/paren-assign-expr [default]: REJECT a:rejected[mut-capture] a Mut is written where it may run after r's reader, a function the cel
+== default/chained-assign [default]: REJECT a:rejected[mut-capture] a Mut is written where it may run after r's reader, a function the cel
+== union/ternary-mixed [union]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== union/logical-and [union]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== union/optional-chain-receiver [union]: REJECT a:rejected[type] { in: Mut<number[]> } is not assignable to { in?: Mut<number[]> }[mutating-method] write to a Mut<number[]> | undefined, which is not Mut
+== union/union-with-string [union]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== union/unknown-narrow [union]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== union/switch-return [union]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== let/let-plain-then-assign-mut [let]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== let/let-plain-assign-in-loop [let]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== let/for-of-muts [let]: REJECT a:rejected[mutating-method] write to a (() => number)[], which is not Mut[mut-capture] a Mut is written where it may run after e's reader, a function the cel
+== let/for-of-plain-alias [let]: REJECT a:rejected[mutating-method] write to a number[][], which is not Mut
+== let/loop-var-closure [let]: REJECT a:rejected[mutating-method] write to a (() => number)[], which is not Mut[mut-capture] xs may be written after a function the cell keeps captured it (later i
+== let/while-alias [let]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== let/labelled-break [let]: REJECT a:unsupported
+== keep/helper-in-array [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/helper-in-record [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/helper-alias [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/helper-via-ternary [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/helper-passed-to-user-fn [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/helper-returned-by-helper [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/helper-promise-resolve [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/helper-then [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/helper-then-later [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/async-helper-result [keep]: ACCEPT
+   tracked 1 objects, 0 calls
+== keep/helper-captures-helper [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/helper-in-map-callback-returning-fn [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/iife-returns-fn [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/fn-decl-hoisted-used-before [keep]: REJECT a:rejected[free-name] free name xs
+== keep/fn-decl-in-array-before-init [keep]: REJECT a:rejected[free-name] free name xs
+== keep/recursive-helper-returns-fn [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/generic-identity-fn [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/optional-call-helper [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/tagged-template-keeps-fn [keep]: REJECT a:unsupported
+== keep/tagged-template-plain [keep]: REJECT a:unsupported
+== keep/getter-method [keep]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== keep/method-shorthand-returns-mut [keep]: REJECT a:rejected[mut-capture] Mut xs returned or yielded by a function the cell keeps: whoever calls
+== gen/yield-star-helper [gen]: REJECT a:unsupported
+== gen/yield-star-array-of-mut [gen]: REJECT a:unsupported
+== gen/yield-star-values [gen]: REJECT a:unsupported
+== gen/yield-fn-then-write [gen]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== gen/yield-plain-alias [gen]: REJECT a:rejected[type] parameter number[] does not accept unknown
+== gen/yield-record-of-fn [gen]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== gen/async-gen-yield [gen]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== gen/gen-helper-object-returned [gen]: REJECT a:rejected[iterator-capture] it may hold an iterator (Generator<number>), which reading uses up, so
+== gen/gen-cell-local-reused [gen]: ACCEPT
+   tracked 3 objects, 0 calls
+== gen/gen-yield-captured-helper-write [gen]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== throw/throw-catch-alias [throw]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== throw/async-reject-reason [throw]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== throw/error-cause [throw]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== throw/finally-alias [throw]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== generic/generic-helper-returns-arg [generic]: REJECT a:rejected[mut-capture] a Mut is written where it may run after r's reader, a function the cel
+== generic/generic-pair [generic]: REJECT a:rejected[mut-capture] a Mut is written where it may run after r's reader, a function the cel
+== generic/generic-box-fn [generic]: REJECT a:rejected[iterator-capture] v may hold an iterator (the type parameter T), which reading uses up, 
+== generic/generic-explicit-mut [generic]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== generic/generic-callback [generic]: REJECT a:rejected[mut-capture] Mut xs returned or yielded by a function the cell keeps: whoever calls[mut-capture] a Mut is written where it may run after r's reader, a function the cel
+== generic/generic-callback-mut-annot [generic]: REJECT a:rejected[mut-capture] Mut xs returned or yielded by a function the cell keeps: whoever calls
+== mutparam/mut-param-returns-plain [mutparam]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== mutparam/mut-param-stores-in-closure [mutparam]: REJECT a:rejected[mut-capture] a Mut is written where it may run after p's reader, a function the cel
+== mutparam/mut-param-into-literal [mutparam]: REJECT a:rejected[mut-capture] a Mut is written where it may run after r's reader, a function the cel
+== mutparam/mut-result-fn [mutparam]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== mutparam/mut-field-of-plain-record [mutparam]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== mutparam/mut-in-tuple [mutparam]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== mutparam/fn-typed-mut-param-var [mutparam]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== state/state-initial-mut [state]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 2 objects, 0 calls
+== state/action-captures-mut [state]: REJECT c:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce[action-capture] xs is a Mut, which the cell may change after the action is made; an ac
+== state/action-update-returns-alias [state]: REJECT c:rejected[type] parameter number[] does not accept unknown
+== state/action-arg-stored [state]: ACCEPT
+   tracked 1 objects, 0 calls
+== jsx/jsx-child-array [jsx]: REJECT a:rejected[type] parameter string[] does not accept unknown[type] string[] is not assignable to Child[type] string[][] is not assignable to Child[][type] { children: string[][] } is not assignable to CommonProps
+== jsx/jsx-component-prop [jsx]: REJECT Item:rejected[inject-unknown] parameter p names no cell, foreign or capability a:rejected[cell-by-name] cell Item referenced by name; take it as a parameter
+== jsx/jsx-children-keep [jsx]: REJECT a:rejected[type] Mut<string[]> is not assignable to Child[type] Mut<string[]>[] is not assignable to Child[][type] { children: Mut<string[]>[] } is not assignable to CommonProps
+== N/reduce-init-typearg [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/reduce-init-typearg-empty [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/reduce-init-map2 [N]: ACCEPT
+   unhandled set on a frozen Map: a value cannot change after its cell returns
+   tracked 0 objects, 1 calls
+== N/reduce-init-set2 [N]: ACCEPT
+   unhandled add on a frozen Set: a value cannot change after its cell returns
+   tracked 0 objects, 1 calls
+== N/reduce-init-promise-sink [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 2 objects, 0 calls
+== N/reduce-init-async-sink [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 2 objects, 0 calls
+== N/reduce-init-state-sink [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 2 objects, 0 calls
+== N/reduce-init-direct-return [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 0 calls
+== N/reduce-init-consumer [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 2 objects, 1 calls
+== N/reduce-init-mut-param [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 3 calls
+== N/array-of-promise-sink [N]: REJECT a:rejected[type] Mut<number[]> | never[] is not assignable to Mut<number[]> | never[] |
+== N/array-of-map [N]: ACCEPT
+   unhandled set on a frozen Map: a value cannot change after its cell returns
+   tracked 0 objects, 1 calls
+== C/forEach-let-stash [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/map-promise-sink [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 2 objects, 0 calls
+== C/map-state-sink [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 2 objects, 0 calls
+== C/map-mut-param-receiver [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 2 calls
+== C/map-of-record-mut [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/reduce-4th-typearg [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/ta-forEach-promise-sink [C]: ACCEPT
+   tracked 2 objects, 0 calls
+== C/map-gen-cell [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/filter-elements-mut [C]: REJECT a:rejected[mut-capture] a Mut is written where it may run after e's reader, a function the cel
+== spread/push-spread-retains [spread]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== spread/push-spread-then-return [spread]: REJECT a:rejected[mut-capture] a Mut is written where it may run after out's reader, a function the c
+== spread/unshift-spread [spread]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== spread/rest-spread-promise-sink [spread]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 2 objects, 0 calls
+== spread/rest-spread-map-values [spread]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== spread/rest-spread-maps [spread]: ACCEPT
+   unhandled set on a frozen Map: a value cannot change after its cell returns
+   tracked 0 objects, 1 calls
+== spread/array-of-spread [spread]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/map-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/map-inline-default [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/filter-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/filter-inline-default [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/find-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/find-inline-default [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/some-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/some-inline-default [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/every-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/every-inline-default [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/forEach-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/forEach-inline-default [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/flatMap-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/flatMap-inline-default [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/findIndex-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/findIndex-inline-default [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/findLast-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number
+== C/findLast-inline-default [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/map-forEach-inline-rest [C]: REJECT a:rejected[type] parameter unknown[] does not accept number[possibly-undefined] property size of a value that may be null
+== N/ta-reduce-init [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== let/for-of-muts-fixed [let]: REJECT a:rejected[mut-capture] a Mut is written where it may run after e's reader, a function the cel
+== let/for-of-plain-alias-fixed [let]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== let/loop-var-closure-fixed [let]: REJECT a:rejected[mut-capture] a Mut is written where it may run after xs's reader, a function the ce
+== let/for-of-c-alias [let]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== union/optional-chain-fixed [union]: REJECT a:rejected[type] Mut<number[]> is not assignable to Mut<number[]> | undefined[type] { in: Mut<number[]> } is not assignable to { in: Mut<number[]> | undef[mutating-method] write to a Mut<number[]> | undefined, which is not Mut
+== union/optional-chain-c [union]: REJECT a:rejected[type] number[] is not assignable to Mut<number[]> | undefined[type] { in: number[] } is not assignable to { in: Mut<number[]> | undefined [mutating-method] write to a Mut<number[]> | undefined, which is not Mut
+== events/events-yield-c-alias [events]: ACCEPT
+events ev threw; it yields nothing more until it runs again: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,h,Map,Set,URL,ss_f,ss_closure,ss_methods
+3 | ) {
+4 | return (function* () { const xs = [1]; const r = xs.map((v/*ss:: number*/, i/*ss:: number*/, arr/*ss:?: number[]*/)/*ss:: number[]*/ => arr ?? [])[0] ?? []; yield r; xs.push(2); yield [0]; });
+                                                                                                                                                                                 ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/run.ts:4:174)
+      at next (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/freeze.ts:202:47)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/cells.ts:16:17)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/cells.ts:16:17)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/cells.ts:56:38)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/attack1/observe2.ts:104:112)
+      at async observeDeep (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/attack1/observe2.ts:109:11)
+
+   tracked 6 objects, 0 calls
+== events/events-yield-mut [events]: ACCEPT
+events ev threw; it yields nothing more until it runs again: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,h,Map,Set,URL,ss_f,ss_closure,ss_methods
+3 | ) {
+4 | return (function* () { const xs = [1]; yield xs; xs.push(2); yield [0]; });
+                                                            ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/run.ts:4:57)
+      at next (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/freeze.ts:202:47)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/cells.ts:16:17)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/cells.ts:16:17)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/cells.ts:56:38)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/attack1/observe2.ts:104:112)
+      at async observeDeep (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/convert-freeze/attack1/observe2.ts:109:11)
+
+   tracked 6 objects, 0 calls
+== jsx/jsx-fn-c-alias [jsx]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== jsx/jsx-elem-of-mut-children [jsx]: REJECT a:rejected[no-member] <b> is not a declared element
+== N/reduce-init-cell-input [N]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/map-named-rest-result [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/map-named-opt-result [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/map-named-default-result [C]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/min-literal-callback [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== C/min-named-callback [C]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/min-reduce-init [N]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== N/min-array-of [N]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== spread/min-spread-arg [spread]: ACCEPT
+   error a: Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== V/ta-view-promise-sink [V]: ACCEPT
+   tracked 2 objects, 0 calls
+== V/ta-view-direct-return [V]: ACCEPT
+   tracked 1 objects, 0 calls
+== V/ta-view-gen-yield [V]: REJECT a:rejected[mut-yield] a Uint8Array the cell may still write, yielded: a typed array or URL c
+== V/ta-subarray-promise-sink [V]: ACCEPT
+   tracked 2 objects, 0 calls
+== sites/index-assign-into-mut [sites]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== sites/field-assign-into-mut [sites]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== sites/iife-arg [sites]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== sites/method-arg [sites]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== sites/curried-arg [sites]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== consumer/C-consumer-reads-twice [consumer]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== consumer/N-consumer-reads-twice [consumer]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== consumer/spread-consumer-reads-twice [consumer]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+-- progs: 246 programs, accepted 118, silent 0, with a run-time error 107

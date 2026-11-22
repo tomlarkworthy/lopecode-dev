@@ -1,0 +1,35 @@
+== ctl-direct [control]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 0 calls
+== ctl-consumer-holds [control]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 2 objects, 0 calls
+== ctl-promise-settled [control]: REJECT a:rejected[proto-F] a Mut beneath a function, Promise or Iterable in a cell's value (rule 
+== ctl-promise-value [control]: REJECT a:rejected[proto-F] a Mut beneath a function, Promise or Iterable in a cell's value (rule 
+== ctl-promise-reject [control]: REJECT a:rejected[mutating-method] write to a number[], which is not Mut
+== ctl-fn-again [control]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+== ctl-fn-in-data [control]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 1 objects, 1 calls
+== ctl-gen-prev-yield [control]: REJECT a:rejected[proto-F] a Mut beneath a function, Promise or Iterable in a cell's value (rule 
+== ctl-iterator-value [control]: REJECT a:rejected[proto-F] a Mut beneath a function, Promise or Iterable in a cell's value (rule [iterator-cell] value { it: Generator<number[]> } may hold an iterator (Generator<numb
+== ctl-map [control]: ACCEPT
+   unhandled set on a frozen Map: a value cannot change after its cell returns
+   tracked 1 objects, 0 calls
+== ctl-set [control]: ACCEPT
+   unhandled add on a frozen Set: a value cannot change after its cell returns
+   tracked 1 objects, 0 calls
+== ctl-url [control]: REJECT a:rejected[no-cast] as cast[no-any] TSAnyKeyword
+== ctl-typed-array [control]: ACCEPT
+   error a: ss_f: cannot freeze a typed array or DataView
+   tracked 0 objects, 0 calls
+== ctl-date [control]: REJECT a:rejected[new-non-intrinsic] new on something that is not an allowed intrinsic
+== ctl-regexp [control]: REJECT a:rejected[regexp-state] a regexp that may have the g or y flag keeps lastIndex, which test, ex
+== ctl-error [control]: REJECT a:rejected[no-cast] as cast[no-any] TSAnyKeyword
+== ctl-getter [control]: REJECT a:unsupported
+== ctl-promise-fn [control]: ACCEPT
+   unhandled Attempted to assign to readonly property.
+   tracked 0 objects, 1 calls
+-- controls: 18 programs, accepted 8, silent 0, with a run-time error 8

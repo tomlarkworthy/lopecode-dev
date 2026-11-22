@@ -1,0 +1,74 @@
+== ctl-direct [control]: ACCEPT
+   CHANGED round 1 a#1: [1] -> [1,2]
+   tracked 1 objects, 0 calls
+== ctl-consumer-holds [control]: ACCEPT
+   CHANGED round 1 a#1: [1] -> [1,2]
+   CHANGED round 1 c#1: {held:[1]} -> {held:[1,2]}
+   tracked 2 objects, 0 calls
+== ctl-promise-settled [control]: ACCEPT
+   CHANGED round 1 a#1.p>: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== ctl-promise-value [control]: ACCEPT
+   CHANGED round 1 a#1: [1] -> [1,2]
+   tracked 1 objects, 0 calls
+== ctl-promise-reject [control]: REJECT a:rejected[mutating-method] write to a number[], which is not Mut
+   CHANGED round 1 a#1.p!>: {m:[1]} -> {m:[1,2]}
+   tracked 2 objects, 0 calls
+== ctl-fn-again [control]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+== ctl-fn-in-data [control]: ACCEPT
+   CHANGED round 1 a#1.f call: 1 -> 2
+   tracked 1 objects, 1 calls
+== ctl-gen-prev-yield [control]: ACCEPT
+   CHANGED round 1 a#1: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== ctl-iterator-value [control]: REJECT a:rejected[iterator-cell] value { it: Generator<number[]> } may hold an iterator (Generator<numb
+   CHANGED round 1 a#1.it.next0: [1] -> [1,2]
+   tracked 2 objects, 0 calls
+== ctl-map [control]: ACCEPT
+   CHANGED round 1 a#1: Map{} -> Map{"k"=>1}
+   tracked 1 objects, 0 calls
+== ctl-set [control]: ACCEPT
+   CHANGED round 1 a#1: Set{} -> Set{1}
+   tracked 1 objects, 0 calls
+== ctl-url [control]: REJECT a:rejected[no-cast] as cast[no-any] TSAnyKeyword
+   CHANGED round 1 a#1: URL(http://x/) -> URL(http://x/#z)
+   tracked 1 objects, 0 calls
+== ctl-typed-array [control]: ACCEPT
+   CHANGED round 1 a#1: Float32Array[0,0] -> Float32Array[1,0]
+   tracked 1 objects, 0 calls
+== ctl-date [control]: REJECT a:rejected[new-non-intrinsic] new on something that is not an allowed intrinsic
+   CHANGED round 1 a#1: Date(0) -> Date(5)
+   tracked 1 objects, 0 calls
+== ctl-regexp [control]: REJECT a:rejected[regexp-state] a regexp that may have the g or y flag keeps lastIndex, which test, ex
+   CHANGED round 1 a#1: RegExp(a/g li=0,lastIndex:0) -> RegExp(a/g li=1,lastIndex:1)
+   tracked 1 objects, 0 calls
+== ctl-error [control]: REJECT a:rejected[no-cast] as cast[no-any] TSAnyKeyword
+   CHANGED round 1 a#1: Error(Error:x,message:"x",originalLine:4,originalColumn:38,line:4,column:38,sourceURL:"file:///Users/tom.larkworthy/dev/ -> Error(Error:y,message:"y",originalLine:4,originalColumn:38,line:4,column:38,sourceURL:"file:///Users/tom.larkworthy/dev/
+   tracked 1 objects, 0 calls
+== ctl-getter [control]: REJECT a:unsupported
+   CHANGED round 1 a#1: {n:get=1} -> {n:get=2}
+   tracked 1 objects, 0 calls
+== ctl-promise-fn [control]: ACCEPT
+   CHANGED round 1 a#1 call: 1 -> 2
+   tracked 0 objects, 1 calls
+-- controls: 18 programs, accepted 11, silent 18, with a run-time error 0 (forced)
+SILENT ctl-direct [control]
+SILENT ctl-consumer-holds [control]
+SILENT ctl-promise-settled [control]
+SILENT ctl-promise-value [control]
+SILENT ctl-promise-reject [control] (checker rejected; forced)
+SILENT ctl-fn-again [control]
+SILENT ctl-fn-in-data [control]
+SILENT ctl-gen-prev-yield [control]
+SILENT ctl-iterator-value [control] (checker rejected; forced)
+SILENT ctl-map [control]
+SILENT ctl-set [control]
+SILENT ctl-url [control] (checker rejected; forced)
+SILENT ctl-typed-array [control]
+SILENT ctl-date [control] (checker rejected; forced)
+SILENT ctl-regexp [control] (checker rejected; forced)
+SILENT ctl-error [control] (checker rejected; forced)
+SILENT ctl-getter [control] (checker rejected; forced)
+SILENT ctl-promise-fn [control]
