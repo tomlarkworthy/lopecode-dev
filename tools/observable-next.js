@@ -22,7 +22,7 @@ const ORIGIN = 'https://observablehq.com';
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
 
 export function isNextCookiesFile(file) {
-  try { return 'D' in JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return false; }
+  try { const c = JSON.parse(fs.readFileSync(file, 'utf8')); return 'D' in c && 'sesh' in c; } catch { return false; }
 }
 
 export function loadNextCookies(file) {
@@ -179,7 +179,7 @@ export async function fetchNextNotebookPage(id, cookies) {
 /**
  * Same surface as connectWS in lope-push-ws.js: `send({type:'save', events, version})` and a
  * `ws` emitter that yields `saveconfirm` / `error` messages, so waitForConfirm works unchanged.
- * A network failure is reported as status 0 so the caller's retry sees it instead of the process dying.
+ * A network failure is reported as status 0; the caller re-reads the version and retries.
  */
 export function connectNext(target, cookies, version, options = {}) {
   const id = notebookIdFromTarget(target);

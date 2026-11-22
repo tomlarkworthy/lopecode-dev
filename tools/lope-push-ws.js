@@ -821,12 +821,16 @@ async function removeNodesViaWS(targetUrl, nodeIds, options) {
           await new Promise((r) => setTimeout(r, options.pace || 0));
           break;
         } catch (err) {
-          if (attempt >= 6 || !/status (404|409|429|50\d)/.test(err.message)) throw err;
+          if (attempt >= 6 || !/status (0|404|409|429|50\d)/.test(err.message)) throw err;
           log(`remove ${id}: ${err.message} — retry ${attempt}/6 in ${delay}ms`);
           await new Promise((r) => setTimeout(r, delay));
           delay = Math.min(delay * 2, 20000);
-          // A 409 means our version is stale (someone else edited): resending it can never succeed.
-          if (/status 409/.test(err.message)) version = (await getNotebook(slug, cookies, options)).version;
+          // 409: our version is stale, so resending it cannot succeed. 0 (HTTP route, network error):
+          // the POST may have landed. Either way re-read the version.
+          if (/status (0|409)\b/.test(err.message)) {
+            const fresh = await getNotebook(slug, cookies, options);
+            version = fresh.version || fresh.latest_version;
+          }
         }
       }
     }
@@ -900,13 +904,13 @@ async function pushViaWS(decompiled, targetUrl, options) {
             return newVersion;
           } catch (err) {
             const dead = /Timeout waiting for saveconfirm/.test(err.message);
-            if (attempt >= 6 || !(dead || /status (404|409|429|50\d)/.test(err.message))) throw err;
+            if (attempt >= 6 || !(dead || /status (0|404|409|429|50\d)/.test(err.message))) throw err;
             log(`${what}: ${err.message} — retry ${attempt}/6 in ${delay}ms`);
             await new Promise((r) => setTimeout(r, delay));
             delay = Math.min(delay * 2, 20000);
             // A timeout means the socket went quiet; the save may or may not have landed, so
             // re-read the version from the API rather than assuming either.
-            if (dead || /status 409/.test(err.message)) await reconnect();
+            if (dead || /status (0|409)\b/.test(err.message)) await reconnect();
           }
         }
       };
@@ -1150,7 +1154,8 @@ async function main() {
   // browser-profile cookie path keeps its later validation in pushViaWS().
   if (options.cookiesFile && !options.dryRun) {
     log('Validating cookies before decompile (fast-fail)...');
-    await extractCookies(options);
+    const cookies = await extractCookies(options);
+    if (options.next && options.target) await getNotebook(options.target, cookies, options);
   }
 
   // Fall back to spec file's upstreams map if no --target.

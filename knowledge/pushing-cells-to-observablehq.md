@@ -151,6 +151,10 @@ GET /edits?version=24  -> 200 {"version":24,"base":24,"events":[],…}     (curr
 GET /edits?version=25  -> 404
 ```
 
+`more` is `true` on every reply, including one with no events. At version 56, `?version=3`
+returned all 53 events (4…56) with `version: 56`. So at that size `more` does not mark a page,
+and `version` is the current one. Longer histories have not been tried.
+
 A node's id is the version that inserted it, so the newest node id is always in range unless
 the history no longer goes back that far. On that fallback, and on an empty notebook, the
 reader loads the `/d/<id>` page in headless Chromium and takes `version` from the payload.
@@ -179,14 +183,17 @@ Both returned each one exactly as sent, with the right mode and pinned flag:
 - a pinned `ts` cell;
 - blank and indented lines.
 
-**Tool.** `lope-push-ws.js` selects this route when `--cookies-file` holds `D` and `sesh`
-(or with `--next`). `--target` takes a `/d/<id>` URL or a bare 16-hex id. `@user/slug` URLs
+**Tool.** `lope-push-ws.js` selects this route when `--cookies-file` holds `D` and `sesh`.
+`--next` forces it and still needs that file. `--target` takes a `/d/<id>` URL or a bare 16-hex id. `@user/slug` URLs
 are rejected by `notebookIdFromTarget`. `connectNext` answers `saveconfirm`/`error` like the
 websocket, so `--cells`, full replace, `--remove-nodes`, pacing and retries are the existing
-code. Two things changed for this route:
-- A `409` now re-reads the version before the retry. Resending the stale version could never
-  succeed. This is traced in the code and has not been triggered live.
-- A network error inside `send` is reported as `status 0`, not as an unhandled rejection.
+code. Three things changed with it:
+- On both routes, a `409` now re-reads the version before the retry, because resending a stale
+  version cannot succeed. This is traced in the code and has not been triggered live.
+- A network error inside `send` is reported as `status 0`. It is retried like a `409`, after a
+  version re-read, because the POST may have landed.
+- The fast-fail cookie check fetches `/api/export/<id>`. With bad cookies it exits in 0.45 s
+  (`GET /api/export/3ec6cd9f87b28862: 404`), before the decompile.
 
 ```sh
 # tools/.observable-next-cookies.json (gitignored): {"D": "<value>", "sesh": "<value>"}
@@ -273,7 +280,8 @@ Observable's save endpoint answers **404 after about three back-to-back writes**
 and the insert phase unrun — the notebook was missing its import cell and every dependent read
 `… is not defined`. The tool now paces saves (`--pace`, default 150ms) and retries a
 404/409/429/5xx six times with backoff; the errored event is not applied, so resending the same
-version is safe. If a push still dies partway, re-run it — `--delete-first` is monotonic — and
+version is safe for a 404/429/5xx. A 409 means the version is stale, so since 2026-11-22 the tool
+re-reads it before resending. If a push still dies partway, re-run it — `--delete-first` is monotonic — and
 check `GET /document/{slug}` for the node count before assuming the mirror is fine.
 
 ### A connection goes quiet after ~57 saves
