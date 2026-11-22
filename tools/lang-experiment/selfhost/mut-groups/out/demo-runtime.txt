@@ -1,0 +1,7 @@
+proto verdict: a ok
+erased: "const a = () => {\n  const ctx = mut({ types: mut(new Map()), xs: mut([1]), n: 0 });\n  ctx.types.set(\"a\", 1);\n  ctx.xs.push(2);\n  ctx.n = 3;\n  return freeze(ctx);\n};"
+calls: mut mut mut freeze
+freeze(ctx) === ctx: true | Object.isFrozen(out): false | Object.isFrozen(out.types): false
+value: {"types":[["a",1]],"xs":[1,2],"n":3}
+equals(out, same shape): true | snapshot copies: true
+plain: freeze(m) === m: true | Object.isFrozen: false

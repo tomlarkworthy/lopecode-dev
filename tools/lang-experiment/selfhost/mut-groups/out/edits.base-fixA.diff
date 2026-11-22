@@ -1,0 +1,22 @@
+diff -ru --exclude node_modules base/lite/infer/ow-tree.ss.ts fixA/lite/infer/ow-tree.ss.ts
+--- base/lite/infer/ow-tree.ss.ts	2026-11-21 16:22:23
++++ fixA/lite/infer/ow-tree.ss.ts	2026-11-22 01:07:04
+@@ -55,10 +55,17 @@
+   return freeze(out);
+ };
+ // the binding of a function that is a const or a function declaration and only called
++// every name of f only called; a function expression also bound to a const (its own name alone is not a helper's)
+ export const owHelper = (owIsCallee) => (O: OwCtx, byFn: Map<number, number>, f: AstNode): IxBinding | undefined => {
+   const id = byFn.get(f.nid), b = id === undefined ? undefined : O.F.bindings.get(id);
+   if (b === undefined || (b.kind !== "const" && b.kind !== "fn")) return undefined;
+-  return (O.T.refs.get(b.id) ?? []).every((r) => owIsCallee(O, r)) ? b : undefined;
++  let bound = f.type !== "FunctionExpression";
++  for (const x of O.F.bindings.values()) {
++    if (x.fnNode !== f.nid) continue;
++    if (x.kind === "const") bound = true;
++    if (!(O.T.refs.get(x.id) ?? []).every((r) => owIsCallee(O, r))) return undefined;
++  }
++  return bound ? b : undefined;
+ };
+ export const owErr = (ixPush) => (W: OwW, at: AstNode, rule: string, msg: string): void => {
+   const k = `${at.start}:${rule}`;

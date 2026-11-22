@@ -661,3 +661,18 @@ divergences found in the first two runs and fixed (tests that read a cell by nam
 Latency, median of 10, AC, load 4-5: runtime cell 4.9 s, spec test 3.4 s, checker cell 12.7 s, against build +
 bun-verify 14.5 s. Compiling is under 0.2 s; the rest is tests rerunning. A checker edit gains 1.14x only.
 Needs a restart for a new module or an edit to the toolchain files it imports.
+
+## 2026-11-22 03:40: owned groups of Mut (prototype, `selfhost/mut-groups/`)
+Record: `selfhost/mut-groups/RESULTS.md`. Form prototyped: `mut({ types: mut(new Map()), vars: mut(new Map()), n: 0 })`,
+one level; a field marked `mut(fresh)` is owned by the group. The bare form `mut({ types: new Map() })` is not a
+group: that shape is the S4.7 reject row (`m.xs.push(2)` after `mut({ xs: [1] })`), kept as it is.
+158 probes (125 written before the patch); corpus 890 jobs / 4267 cells, 0 verdict changes; the checker accepts
+its own 508 cells; 15 of 16 mutants caught (the survivor is covered by an existing rule). +49 -8 lines in 5 files
+plus `ow-group.ss.ts` (81 lines, 9 cells). Timing difference inside the 5.6% noise between two identical trees.
+Refactor trial: the four tables T,V,W,C as one group: ix parameters 1197 -> 957, Mut parameters 425 -> 185,
+functions with 2 or more Mut parameters 100 -> 23, source -1.9%; outputs identical.
+Its rules had a hole each of the three times they were checked (Object.values on a group, a group inside a
+conditional, a generic parameter handing a field back as T). Soundness rests on probes, not proof. An independent
+attempt to break it runs before integration.
+Hole 1 confirmed in the shipped checker: `[function g(){ ctx.push(2) }]` called after `freeze` is accepted. Fix +8 -1
+in `ow-tree.ss.ts`, no corpus verdict changes.

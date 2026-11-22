@@ -1,0 +1,22 @@
+### param-write
+a ok  
+b ok  
+c ok  
+### annot-nonfresh
+a rejected [mut-escape] Mut xs placed in an object literal 
+b rejected [type] number[] is not assignable to Mut<number[]> | [type] { f: number[] } is not assignable to { f: Mut<number[]> } 
+d rejected [type] number[] is not assignable to Mut<number[]> | [type] { f: number[] } is not assignable to { f: Mut<number[]> } 
+### arr-elem
+a rejected [mutating-method] write to a Mut<number[]> | undefined, which is not Mut 
+b rejected [mutating-method] write to a Mut<number[]> | undefined, which is not Mut 
+### freeze-strip
+a rejected [mut-bind] mut(...) must be the initializer of a local const 
+### borrow
+gen rejected [mut-bind] mut(...) must be the initializer of a local const 
+rd ok  
+### values
+a rejected [mutating-method] write to a Mut<number[]> | undefined, which is not Mut | [mut-escape] Mut g argument to a parameter not typed Mut<…> | [mut-bind] mut(...) must be the initializer of a local const 
+### cond-fresh
+a ok  
+### nested-plain
+a rejected [mut-bind] mut(...) must be the initializer of a local const 
