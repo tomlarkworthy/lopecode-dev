@@ -117,8 +117,11 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
   write its name and the limit in the report and go on. `run.sh` kills the whole agent 5 minutes after its 4 h.
 - Commit your edits as you make them. What is left uncommitted at the end is not pushed: `run.sh` names it in
   `fly logs` and on the run's issue, and the next boot resets the checkout.
-- Do not deploy a shared module (`apply.ts --shared-embedded`) or a patch of the kernel, `brain-core`, `brain-db` or
-  the deployer. Leave each for the owner's session, and list it in section 4 with its commands. The owner,
-  2026-11-21, asked whether the retro should send a reviewed shared module itself until `unattended-deployer-and-shared`
-  is switched on: "b" (leave every one to him). The run of 2026-11-21 had sent `brain-shell` on its own judgment,
-  without the embedders' tests first, the cap or the DM. No Cloudflare token is given to this machine.
+- Do not deploy a patch of the kernel, `brain-core`, `brain-db` or the deployer. Leave each for the owner's session,
+  and list it in section 4 with its commands. No Cloudflare token is given to this machine.
+- Do not publish or pin a shared module yourself. Since `cloud-brain-dev` `7349695` (2026-11-21) there is no
+  `apply.ts --shared-embedded`: a shared module is a published version (`module.ts publish`) and a pin in each
+  service's patch, sent as any service patch (`cloud-brain-dev/README.md`, "Shared modules as published versions"), so
+  it is the loop's. Asked on 2026-11-21 whether the retro should send a reviewed shared module, the owner answered "b"
+  (leave every one to him); the run of that day had sent `brain-shell` on its own judgment, without the embedders'
+  tests first, the cap or the DM. This line no longer names the removed flag.
