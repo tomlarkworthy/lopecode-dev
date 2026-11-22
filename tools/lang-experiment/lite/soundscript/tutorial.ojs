@@ -450,6 +450,7 @@ md`### Local mutation: \`mut\`, \`freeze\`
 | only a \`Mut\` made by this function may be frozen, not a \`Mut\` parameter | \`[mut-freeze-param]\` |
 | a \`Mut\` comes only from \`mut(...)\` or a \`Mut\` parameter, not from another call's result, a member or a destructured name | \`[mut-source]\` |
 | a cell's value and a cell's inputs never hold a \`Mut\` | \`[mut-cell]\` |
+| an owned field of a group (\`mut({ t: mut([]) })\`) is not assigned or deleted | \`[mut-field-assign]\` |
 | \`mut\`, \`freeze\` and the other prelude functions are only called, not used as values; \`mut\`, \`freeze\`, \`borrow\` and \`snapshot\` are not declared again as locals | \`[prelude-value]\`, \`[prelude-shadow]\` |
 
 A helper may take a \`Mut<T>\` parameter and write it. A local helper that is only called may also capture one (S4.5 in the specification). The reference checker rejects every capture.`

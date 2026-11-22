@@ -28,6 +28,7 @@ import * as owLoop from "./infer/ow-loop.ss.ts";
 import * as owAction from "./infer/ow-action.ss.ts";
 import * as owTaint from "./infer/ow-taint.ss.ts";
 import * as owOpaque from "./infer/ow-opaque.ss.ts";
+import * as owGroup from "./infer/ow-group.ss.ts";
 import * as owEntry from "./infer/ow-entry.ss.ts";
 import "./infer/md-types.ss.ts";
 import * as mdShape from "./infer/md-shape.ss.ts";
@@ -65,11 +66,11 @@ export type * from "./infer/cp-types.ss.ts";
 
 // file names in lite/infer
 export const IX_FILES = ["types", "core", "hides", "expr", "ops", "cond", "fn", "stmt", "flow", "lit", "call", "apply", "prelude", "jsx", "entry", "facts"].map((x) => `ix-${x}.ss.ts`);
-export const OW_FILES = ["types", "tree", "capture", "pos", "place", "flow", "stmt", "loop", "action", "taint", "opaque", "entry"].map((x) => `ow-${x}.ss.ts`);
+export const OW_FILES = ["types", "tree", "capture", "pos", "place", "flow", "stmt", "loop", "action", "taint", "opaque", "group", "entry"].map((x) => `ow-${x}.ss.ts`);
 export const MD_FILES = ["types", "shape", "graph", "inject", "taint", "compile", "value", "run", "cell", "facts", "entry"].map((x) => `md-${x}.ss.ts`);
 export const CP_FILES = ["types", "text", "members", "modes", "param", "facts"].map((x) => `cp-${x}.ss.ts`);
 export const RG_FILES = ["types", "ctl", "convert", "sig", "expand", "load", "view"].map((x) => `rg-${x}.ss.ts`);
-export const OW_CELLS = { ...owTree, ...owCapture, ...owPos, ...owPlace, ...owFlow, ...owStmt, ...owLoop, ...owAction, ...owTaint, ...owOpaque, ...owEntry };
+export const OW_CELLS = { ...owTree, ...owCapture, ...owPos, ...owPlace, ...owFlow, ...owStmt, ...owLoop, ...owAction, ...owTaint, ...owOpaque, ...owGroup, ...owEntry };
 export const IX_CELLS = { ...core, ...hides, ...expr, ...ops, ...cond, ...fn, ...stmt, ...flow, ...lit, ...call, ...apply, ...preludeCells, ...jsx, ...entry, ...facts, ...OW_CELLS };
 export const CP_CELLS = { ...cpText, ...cpMembers, ...cpModes, ...cpParam, ...cpFacts };
 export const RG_CELLS = { ...rgCtl, ...rgConvertCells, ...rgSigCells, ...rgExpandCells, ...rgLoadCells, ...rgView };

@@ -20,7 +20,7 @@ export const ixCheck1 = (ixCtxSensitive, ixHides, ixObjLit, ixArrLit, ixConditio
     case "ArrowFunctionExpression": case "FunctionExpression": t = K.fnExpr(K, T, V, W, C, env, e, expected, null); break;
     case "ConditionalExpression": { const c = ixConditional(K, T, V, W, C, env, e, expected); T.set(e.nid, c); return c; }
     case "LogicalExpression":
-      if (e.operator !== "&&") { const l = ixCheckLogical(K, T, V, W, C, env, e, expected); T.set(e.nid, l); return l; }
+      if (e.operator !== "&&") { const l = ixCheckLogical(K, T, V, W, C, env, e, expected, soft, q); T.set(e.nid, l); return l; }
       t = K.infer(K, T, V, W, C, env, e);
       break;
     case "CallExpression": case "NewExpression": t = K.call(K, T, V, W, C, env, e, expected); break;

@@ -13,12 +13,13 @@ export const owFlowCheck = (owTracked, OW_K, ixFnParts) => (O: OwCtx, W: OwW, ca
 // gap: an Other node in the cell's tree, where own.ts reads a node type the typed tree does not give
 export const owCheck = (owIndex, owCheckIn) => (R: IxRegCore, F: IxFacts, fn: AstNode): OwOutput => owCheckIn(R, F, owIndex(F, fn));
 // owCheck over a tree index already made (the module check makes one per cell)
-export const owCheckIn = (owBindingOfFn, owCaptures, owCaptureErrs, owEscapes, owPlacement, owFlowCheck, owActionEscapes, ixOut) => (R: IxRegCore, F: IxFacts, T: OwTree): OwOutput => {
+export const owCheckIn = (owBindingOfFn, owCaptures, owCaptureErrs, owEscapes, owGroupEscapes, owPlacement, owFlowCheck, owActionEscapes, ixOut) => (R: IxRegCore, F: IxFacts, T: OwTree): OwOutput => {
   const O: OwCtx = { T, F, R };
   const W: OwW = mut({ errs: null, seen: new Set(), unsup: null });
   const caps = owCaptures(O, W);
   owCaptureErrs(O, W, caps, owBindingOfFn(F));
   owEscapes(O, W);
+  owGroupEscapes(O, W, caps);
   owPlacement(O, W);
   for (const f of T.fns) owFlowCheck(O, W, caps, f);
   return { diags: ixOut(W.errs), actions: owActionEscapes(O), unsup: ixOut(W.unsup), gap: T.other };

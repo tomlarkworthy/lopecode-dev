@@ -18,12 +18,11 @@ export const verdict = (src: string, foreign: string | null = null): string => {
   if (!bad.length && !r.module.length && r.cells.length) return "ACCEPT";
   return `REJECT ${[...r.module.map((m) => `module[${m.rule}]`), ...bad.map((c) => `${c.name}:${c.status}${c.errors.map((e) => `[${e.rule}]`).join("")}`)].join(" ")}`;
 };
-// B3 (f(m, m)) needs the owner and B4 needs groups (a prototype); FAMILY: the families of the holes closed so far
+// B3 (f(m, m)) needs the owner; FAMILY: the families of the holes closed so far (group-generic-field: B4, holes2 step C)
 const OWNER_BREAKS = new Set(["B3-same-mut-twice"]);
-const PROTO_ONLY = /^B4/;
-const FAMILY = new Set(["prelude-as-value", "mut-holder", "known-base-hole", "hidden-intrinsic-state"]);
+const FAMILY = new Set(["prelude-as-value", "mut-holder", "known-base-hole", "hidden-intrinsic-state", "group-generic-field"]);
 const fromAttack: Program[] = [...breaks, ...a1, ...a5, ...a18]
-  .filter((a) => !OWNER_BREAKS.has(a.name) && !PROTO_ONLY.test(a.name) && FAMILY.has(a.family))
+  .filter((a) => !OWNER_BREAKS.has(a.name) && FAMILY.has(a.family))
   .map((a) => ({ name: `attack:${a.name}`, hole: a.family, src: a.src }));
 
 for (const p of [...fromAttack, ...VARIANTS])

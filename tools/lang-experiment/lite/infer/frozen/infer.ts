@@ -8,6 +8,9 @@
 // (without), and mut and state hold no closed type (inexact) (holes step 5, 2026-11-22), as ixObjLit, ixBindRest,
 // ixMutCall and ixStateCall. A destructured key naming an Object.prototype member of an index record (holes step 6), as
 // ixBindObject. A kept record in narrowTypeof is the kinds it may hold (holes step 9), as ixNarrowTypeof.
+// Changed since: check1's || and ?? check the part of the left side that can be the result against the expected type
+// (holes2 step A, 2026-11-22), as ixCheckLogical.
+// Changed since: freeze of an owned group reads each owned field Mut<X> as X, and fails closed (holes2 step C), as ixThaw.
 const KIND_9 = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["undefined", UNDEF],
   ["symbol", SYMBOL], ["function", { k: "fn", tps: [], ps: [], rest: NEVER, ret: UNKNOWN }]]);
 const PROTO_NAMES_6 = new Set(["__proto__", "constructor", "toString", "toLocaleString", "valueOf", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"]);
@@ -22,6 +25,22 @@ import {
   union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames, cloneProblemWith, inexact,
 } from "../../types.ts";
 import { ALLOWED_GLOBALS, PRELUDE_FNS } from "../../intrinsics.ts";
+import { mutIn } from "./own.ts";
+// holes2 step C (2026-11-22): freeze of a group reads each owned field Mut<X> as X; null when a Mut is left (as ixThaw)
+function thaw(t: Ty, reg: Registry): Ty | null {
+  const topMut = (y: Ty) => { const x = reg.expand(y); return isNamed(x, "Mut") || (x.k === "union" && x.ts.some((m) => isNamed(reg.expand(m), "Mut"))); };
+  const owned = (y: Ty) => { const x = reg.expand(y); return x.k === "rec" && [...x.props.values()].some((p) => topMut(p.t)); };
+  const one = (y: Ty): Ty => { const x = reg.expand(y); return x.k === "named" && isNamed(x, "Mut") ? x.args[0] ?? x : y; };
+  const field = (y: Ty): Ty => { const x = reg.expand(y); return x.k === "union" ? union(x.ts.map(one)) : one(x); };
+  const thaw1 = (y: Ty): Ty => {
+    const x = reg.expand(y);
+    if (x.k !== "rec" || !owned(x)) return y;
+    return { ...x, props: new Map([...x.props].map(([k, p]) => [k, topMut(p.t) ? { ...p, t: field(p.t) } : p])) };
+  };
+  const e = reg.expand(t), grp = owned(e) || (e.k === "union" && e.ts.some(owned));
+  const u: Ty = e.k === "union" && grp ? union(e.ts.map(thaw1)) : thaw1(t);
+  return grp && mutIn(u, reg) ? null : u;
+}
 
 export type BKind = "const" | "let" | "param" | "fn" | "global" | "prelude";
 export type Binding = {
@@ -463,7 +482,8 @@ export class Checker {
       case "LogicalExpression": {
         if (e.operator === "&&") { t = this.infer(e, env); break; }
         const [T, F] = this.cond(e.left, env);
-        const lt = this.facts.types.get(e.left)!;
+        const lt = this.facts.types.get(e.left)!, kept = this.logicalType(e, lt, NEVER);
+        if (!soft && kept.k !== "never") this.expect(e.left, kept, expected, q);
         const r = this.check(e.right, { ...env, flow: e.operator === "||" ? F : new Map(env.flow) }, expected);
         env.flow = this.join(T, F)!;
         return this.rec(e, this.logicalType(e, lt, r));
@@ -1452,7 +1472,10 @@ export class Checker {
         const want = name === "snapshot" ? "Borrowed" : "Mut";
         if (t.k === "err") return ERR;
         if (!isNamed(t, want)) { this.err(e, "type", `${name} needs a ${want}<T>, got ${show(t)}`); return ERR; }
-        return name === "borrow" ? named("Borrowed", t.args[0]) : t.args[0];
+        if (name !== "freeze") return name === "borrow" ? named("Borrowed", t.args[0]) : t.args[0];
+        const y = this.reg.peek(() => thaw(t.args[0], this.reg));
+        if (y === null) this.err(e, "type", `freeze of ${show(t)}: the frozen value would still hold a Mut`);
+        return y ?? ERR;
       }
       case "state": {
         const a = one();

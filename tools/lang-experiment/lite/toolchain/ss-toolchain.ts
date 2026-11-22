@@ -3,7 +3,7 @@
 // it (types as /*ss:...*/ comments, JSX as /*ss<...*/, the text around the function in a /*ss^{...}*/
 // header), so decompile recovers the cell exactly from the variable's definition text. The work is the cells of the
 // section "The toolchain over typed trees" (lite/toolchain/tc-*.ss.ts); this file gives them the shapes its callers
-// pass (sets and records for the cells' sets and maps), remembers langOf and parseCompiled per text, and reads the
+// pass (sets and records for the cells' sets and maps), remembers langOf, parseCompiled and decompileVariable per text, and reads the
 // call of a compiled definition with acorn for the callers that walk it (Compiled call and fn).
 import * as acorn from "acorn";
 import {
@@ -73,7 +73,7 @@ export function toolchainOf(L: TcCalls) {
   };
   const fromTc = (c: TcCtx, facts: ReadonlyMap<string, CellInfo> | null = null): Context => ({ generators: c.generators, events: c.events, accepted: c.accepted, facts, why: c.why });
   const toCheck = (r: CheckLike): TcCheck => ({ cells: r.cells.map(toCheckCell), facts: factsOf(r.facts), unparsed: r.unparsed ? new Map(r.unparsed) : null });
-  const langs = new Map<string, string | null>(), parsed = new Map<string, Compiled | null>();
+  const langs = new Map<string, string | null>(), parsed = new Map<string, Compiled | null>(), decompiled = new Map<string, string | null>();
   const langOf = (js: string): string | null => remembered(langs, js, () => L.tcLangOf(js));
   const parseCompiled = (d: string): Compiled | null => remembered(parsed, d, () => { const p = L.tcParseCompiled(d); return p === null ? null : { ...p, ...(p.hasFn ? callAt(d, p.headerEnd) : { call: null, fn: null }) }; });
   const rec = (m: Map<string, string>) => Object.fromEntries(m);
@@ -92,7 +92,7 @@ export function toolchainOf(L: TcCalls) {
     compileModule: (src: string, tsx: boolean, accepted: ReadonlySet<string> | null = null): Variable[] => L.tcCompileModule(src, tsx, accepted ? new Set(accepted) : null),
     langOf, parseCompiled,
     compiledKind: (d: string) => { const p = parseCompiled(d); return p === null || p.callee === null ? null : { callee: p.callee, kind: L.tcKinds.get(p.callee) ?? null, refs: p.refs }; },
-    decompileVariable: (d: string): string | null => L.tcDecompileVariable(d),
+    decompileVariable: (d: string): string | null => remembered(decompiled, d, () => L.tcDecompileVariable(d)),
     decompileModule: (ds: string[]): string => L.tcDecompileModule(ds),
     fromObservableVariables: (vars: { name: string | null; inputs: string[]; definition: string }[], opts: { expression?: boolean } = {}): Translated => {
       const r = L.tcFromObservableVariables(vars, opts.expression ?? null);

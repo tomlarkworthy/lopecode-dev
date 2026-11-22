@@ -6,6 +6,9 @@
 // Changed since: helper asks every name of a function (holes step 3, 2026-11-22), as owHelper. [regexp-state] (holes
 // step 4) in the placement loop, as owRegexpPlace. A literal key naming an Object.prototype member on an index record
 // (holes step 6), as owProtoRead. includes, indexOf, lastIndexOf on objects (holes step 7), as owIdentityOp.
+// Changed since: owned groups (holes2 step C, 2026-11-22): a member that is or may be a Mut by its declared type, a
+// group spread or given to a function, lent twice, an owned field written, mut(...) as an owned field, as the cells
+// of ow-group.ss.ts, owMutSource and owMutPlace.
 // Ownership rules over one checked cell, using the facts infer.ts recorded:
 //  - mut(e): e fresh, bound to a local const; Mut/Borrowed/view expressions only in whitelisted positions
 //  - captures: a nested function may use a Mut (or assign a let) only if it is a non-escaping local helper,
@@ -238,6 +241,64 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
       if (pos) err(r, kind === "mut" ? "mut-escape" : "borrowed-escape", `${kind === "mut" ? "Mut" : "Borrowed"} ${b.name} ${pos}`);
     }
   }
+  // holes2 step C (2026-11-22): owned groups, as the cells of ow-group.ss.ts and owMutPlace/owMutSource
+  const isGroup = (t: Ty | undefined): boolean => !!t && ((isNamed(t, "Mut") && !!mutIn(unwrap(t), ch.reg)) || (t.k === "union" && t.ts.some((m) => isNamed(m, "Mut") && !!mutIn(unwrap(m), ch.reg))));
+  const topMut = (t: Ty): boolean => { const x = ch.reg.expand(t); return isNamed(x, "Mut") || (x.k === "union" && x.ts.some((m) => isNamed(ch.reg.expand(m), "Mut"))); };
+  const memberName = (n: Node): string | null => !n.computed && n.property.type === "Identifier" ? n.property.name : n.property.type === "Literal" && typeof n.property.value === "string" ? n.property.value : null;
+  const fieldOf = (n: Node): boolean => {
+    const t = typeOf(n), o = typeOf(n.object), k = memberName(n);
+    if (t && topMut(t)) return true;
+    if (!o) return false;
+    if (!t && isGroup(o)) return true;
+    return k !== null && ch.um(o).some((m) => { const r = ch.reg.expand(unwrap(m)); const p = r.k === "rec" ? r.props.get(k) : undefined; return !!p && topMut(p.t); });
+  };
+  const written = (n: Node): boolean => { const p = parent.get(n); return !!p && ((p.type === "AssignmentExpression" && p.left === n) || (p.type === "UnaryExpression" && p.operator === "delete")); };
+  const groupParam = (dp: Ty, at: Ty): boolean => {
+    if (!isNamed(dp, "Mut") || !isNamed(at, "Mut")) return false;
+    const d = ch.reg.expand(unwrap(dp)), a = ch.reg.expand(unwrap(at));
+    if (d.k !== "rec" || a.k !== "rec" || d.index) return false;
+    if ([...d.props.values()].some((p) => ch.reg.expand(p.t).k === "tv")) return false;
+    return [...a.props].every(([k, p]) => !topMut(p.t) || (!!d.props.get(k) && isNamed(ch.reg.expand(d.props.get(k)!.t), "Mut")));
+  };
+  const lent = (n: Node, out: string[]): void => {
+    if (n.type === "ConditionalExpression") { lent(n.consequent, out); lent(n.alternate, out); return; }
+    if (n.type === "LogicalExpression") { lent(n.left, out); lent(n.right, out); return; }
+    if (n.type === "ChainExpression") { lent(n.expression, out); return; }
+    if (n.type === "SpreadElement") { lent(n.argument, out); return; }
+    const g = n.type === "MemberExpression" ? n.object : n;
+    const b = g.type === "Identifier" ? F.bindingOf.get(g) : undefined;
+    if (!b || !(isGroup(b.t) || isGroup(typeOf(g)))) return;
+    const k = n.type === "MemberExpression" ? memberName(n) : null;
+    out.push(k === null ? `${b.id}` : `${b.id}.${k}`);
+  };
+  const groupArg = (p: Node, n: Node, at: Ty | undefined): string | null => {
+    const i = p.arguments.indexOf(n), pre = prelude(p);
+    if (pre === "freeze" || pre === "equals" || pre === "messageOf") return null;
+    const dp = !pre && i >= 0 ? declParam(p, i, false) : undefined;
+    if (dp && at && groupParam(dp, at)) return null;
+    if (pre === "borrow") return "borrowed whole: a reader could write its fields";
+    return "passed where its fields could come back out: a group goes only to a parameter declared as a group whose owned fields are each Mut<…>, or to freeze, equals or messageOf";
+  };
+  for (const n of all) {
+    const p = parent.get(n), b = n.type === "Identifier" ? F.bindingOf.get(n) : undefined, t = typeOf(n);
+    if (p && (isGroup(t) || (b && isGroup(b.t)))) {
+      const what = n.type === "Identifier" ? `group ${n.name}` : "a group";
+      if (p.type === "SpreadElement") err(n, "mut-escape", `${what} spread: its fields would have a second name`);
+      else if ((p.type === "CallExpression" || p.type === "NewExpression") && p.callee !== n) { const why = groupArg(p, n, b ? b.t : t); if (why) err(n, "mut-escape", `${what} ${why}`); }
+    }
+    if (n.type === "CallExpression" || n.type === "NewExpression") {
+      const cb = n.callee.type === "Identifier" ? F.bindingOf.get(n.callee) : undefined;
+      const held = [...(cb?.fnNode ? capMut.get(cb.fnNode) ?? [] : [])].map((x) => `${x.id}`);
+      const clash = (a: string, c: string) => a === c || a.startsWith(`${c}.`) || c.startsWith(`${a}.`);
+      for (const a of n.arguments) {
+        const ks: string[] = [];
+        lent(a, ks);
+        if (ks.some((k) => held.some((h) => clash(k, h)))) err(a, "mut-escape", "a group or its field lent twice in one call (two arguments, or an argument of a helper that captures the group): two names would write one container");
+        held.push(...ks);
+      }
+    }
+    if (n.type === "MemberExpression" && written(n) && isNamed(typeOf(n.object) ?? ERR, "Mut") && fieldOf(n)) err(n, "mut-field-assign", "an owned field of a group is made once, by mut(...) in the group's literal; it is not assigned or deleted");
+  }
   for (const n of all) {
     if ((n.type !== "CallExpression" && n.type !== "MemberExpression") || prelude(n) === "borrow") continue;
     const t = typeOf(n);
@@ -271,7 +332,7 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     }
     if (nb && nb.kind !== "prelude" && nb.kind !== "global" && nb.node === n && ["mut", "freeze", "borrow", "snapshot"].includes(n.name)) err(n, "prelude-shadow", `${n.name} names a prelude function; a binding of that name would hide it from the rules of ${n.name}(...)`);
     const st = n.type === "CallExpression" || n.type === "NewExpression" || n.type === "MemberExpression" || n.type === "AwaitExpression" ? typeOf(n) : undefined;
-    if (st && isNamed(st, "Mut") && n.type === "MemberExpression") { const pos = position(n, "mut"); if (pos) err(n, "mut-escape", `a Mut member ${pos}`); }
+    if (n.type === "MemberExpression" && ((st && isNamed(st, "Mut")) || fieldOf(n)) && !(written(n) && isNamed(typeOf(n.object) ?? ERR, "Mut") && fieldOf(n))) { const pos = position(n, "mut"); if (pos) err(n, "mut-escape", `a Mut member ${pos}`); }
     if (st && isNamed(st, "Mut") && n.type !== "MemberExpression" && prelude(n) !== "mut") err(n, "mut-source", "a Mut comes only from mut(...): this expression gives a Mut<…> that another name may also hold");
     if (nb && nb.node === n && (nb.kind === "const" || nb.kind === "let") && isMutB(nb) && !nb.mutOwned) {
       const p = parent.get(n);
@@ -310,7 +371,11 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     if (pre === "mut") {
       const p = parent.get(n)!;
       const decl = parent.get(p);
-      if (!(p.type === "VariableDeclarator" && p.init === n && p.id.type === "Identifier" && decl?.kind === "const")) err(n, "mut-bind", "mut(...) must be the initializer of a local const");
+      const constInit = (x: Node) => { const q = parent.get(x)!, d = parent.get(q); return q.type === "VariableDeclarator" && q.init === x && q.id.type === "Identifier" && d?.kind === "const"; };
+      const lit = (p.type === "Property" || p.type === "ObjectProperty") && p.value === n && !p.computed && !p.shorthand && !p.method && p.kind === "init" ? parent.get(p) : undefined;
+      const outer = lit?.type === "ObjectExpression" ? parent.get(lit) : undefined;
+      const group = !!outer && outer.type === "CallExpression" && prelude(outer) === "mut" && outer.arguments[0] === lit && constInit(outer);
+      if (!(p.type === "VariableDeclarator" && p.init === n && p.id.type === "Identifier" && decl?.kind === "const") && !group) err(n, "mut-bind", "mut(...) must be the initializer of a local const");
       const a = n.arguments[0];
       if (a && !fresh(a)) err(a, "mut-not-fresh", "mut(e) needs a fresh value: a literal, a spread copy, new on an intrinsic, or an intrinsic marked @fresh");
     } else if (pre === "borrow") {

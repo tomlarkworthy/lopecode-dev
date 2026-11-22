@@ -1264,3 +1264,192 @@ sources: SAME 1029 DIFFERENT 0`; `registry level: 82931 units in 1038 sources: S
 DIFFERENT 0`; `addParameter / annotationOf: SAME 70450 DIFFERENT 0`; facts DIFFERENT 0 throughout; tc `all calls: SAME
 337231 SAME THROW 3756 DIFFERENT 1` (the erase repro row), corpus `DIFFERENT 0`. Browser verify (`verifyG.txt`, 06:31, AC
 Power, load 1.86): `power AC Power; functional 649 pass 0 fail; measurements 8`; lint 7.7 ms, completion 10.2 ms.
+
+## 2026-11-22 06:50–: holes2, three steps (build owner, `lite/infer/attack/`, logs `lite/soundscript/.scratch/holes2/`)
+Counting as in the holes section: `checker-port/collect.ts` + `switch3/ndiff.ts` against `holes2/base.json` (06:50: `939
+sources, 3670 cells ... 713.9 µs/cell`) and `attack/sections.ts` against `holes2/sec-base.json` (`77 sections, 38744
+records, not ok 0`). `holes2/try.ts '<cells>'` prints the live checker's verdict and messages.
+
+### Step A (06:50–07:13): ?? and || under an expected type
+Cause: `ixCheckLogical` (ix-ops) checked only the right operand against the expected type and `ixCheck1` returned its
+union without `ixExpect`, so the left operand's surviving part was checked by nothing (`const r: number = ["a"][0] ?? 1`
+accepted). The frozen `check1` the same. `&&` and the conditional do not share it: `&&` goes through `infer` then
+`ixExpect` on the whole result, a conditional checks each arm (`x && 1` into `number` with `x: string | number`, and `c ?
+x : 1` with `x: string`, both `[type]` before the fix).
+Fix: `ixCheckLogical` takes `soft` and `q`; `kept = ixLogicalType(K.reg, op, lt, NEVER)` (the left's truthy part for `||`,
+its non-nullish part for `??`, or the whole left when it decides the result) is checked with `ixExpect` at `e.left` when
+not soft and not `never`. +3 lines, -1 (ix-ops), one call changed (ix-expr). Controls accepted: `x ?? 1` for `x: number |
+undefined`, `y || 1` for `y: "" | number`, `x ?? 1` into `number | string`.
+Counts before the fix (the rule in the cells, `sA.json`, `sec-sA.json`): corpus `939 -> 939 sources; 0 differ, 0 record
+differences`; shipped sections `77 -> 77 sources; 0 differ`. Rule id: `[type]` (S2.9). Collect after: 707.3 µs/cell (713.9
+before; one run each).
+Frozen infer.ts: the same two lines in `check1` (header line). Control: frozen lines off, `diff.ts` `943 sources, 3626 cells:
+SAME 3608 DIFFERENT 4` (the two new rows and their inline copies); on, `SAME 3612 DIFFERENT 0`.
+Rows: S2.9 `[type]` x2 (`xs[0] ?? 1`, `x || 1` with `x: number | string`), each exactly `[type]` (`attack/rows.ts`);
+`test_spec_S2_9` gains an accepted control (`x ?? 1`, `y || 1`). The two owner.ts repros moved to variants.ts.
+Variants (20, `A-logical-left`, all `[type]`): the two repros, a return type, an inner function's return, an argument,
+an array element, a record member, a chain of `??`, a conditional's arm, parenthesized, a generic identity, a record on
+the left, `||` on an index read, `find`, `Map.get`, a call, `||` then `??`, a throwing right side, `||` keeping a string,
+a generator cell. Control: the fix off (`if (false && …)`), 17 of 20 accepted; the array element, the record member and
+the generic identity are rejected without it (the literal's or the call's own check of the whole). live.test `214 pass 0 fail`.
+`??=` and `||=` are unsupported (`logical assignment ??=`), not a route.
+Gates (`gA.txt`, 06:53, AC Power, load 2.54): build exit 0, 0 dependancy map lines; `bun-verify: 168 pass, 0 fail, 0 timed
+out, 0 skipped; 6.4 s`; `943 sources, 3626 cells: SAME 3612 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14; sources that threw 1`;
+`ownership: 3612 cells: SAME 3612 DIFFERENT 0 NOT COVERED 0`; `fed rule: 3612 cells: SAME 3612 DIFFERENT 0`; `whole module:
+1033 sources: SAME 1033 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0`; `registry level: 82959 units in 1042 sources: SAME 82951
+DIFFERENT 0 NOT COVERED 0 BOTH THREW 8`; `end to end: 1045 sources: SAME 1045 DIFFERENT 0`; `37 files, 6385 positions: SAME
+6385 (1733 with no options) DIFFERENT 0`; infer 5, rg 7, cp 5, tc 11, live 214 pass 0 fail; narrow-kinds `49 pass, 0 fail`;
+other script tests unchanged; `14/14 fixtures pass; 55 lint/injection rules registered, 55 with a reject case`.
+cp-diff/tc-diff (`gA-cptc.txt`, 07:01): `completion: 16237 positions ...: SAME 18423 DIFFERENT 0`; `addParameter /
+annotationOf: SAME 70450 DIFFERENT 0`; facts `cellsOf SAME 3558 DIFFERENT 0`, sets `SAME 256392 DIFFERENT 0`; tc `all calls:
+SAME 337487 SAME THROW 3756 DIFFERENT 1` (the erase repro row, `--- erase (repro) DIFFERENT`), `corpus calls, repro rows
+left out: SAME 337305 SAME THROW 3756 DIFFERENT 0`.
+Browser verify (`verifyA.txt`, 07:05–07:13, `Now drawing from 'AC Power'`, `load averages: 1.63 2.07 2.25` at start,
+`2.04 2.05 2.16` at end): `power AC Power; functional 649 pass 0 fail; measurements 8`; lint `median 7.8 ms, max 11.0 ms of
+30`; completion `median 10.0 ms, max 10.6 ms of 30`.
+Files: `lite/infer/ix-ops.ss.ts`, `lite/infer/ix-expr.ss.ts`, `lite/infer/frozen/infer.ts`, `lite/soundscript/spec.ojs`,
+`lite/infer/attack/{variants.ts,owner.ts}`, the notebook.
+
+### Step B (07:13–07:30): the decompile memo
+Cause as the 05:48 diagnosis: since D, `toolchainOf` passed `decompileVariable` straight to `L.tcDecompileVariable`, which
+calls the cell `tcParseCompiled` and parses across the boundary on each of the 47 decompiles per lint and completion.
+Fix (ss-toolchain.ts `toolchainOf`): a third `remembered` map, `decompiled`, per definition text around
+`L.tcDecompileVariable(d)`; the header comment names it. +1 map and one changed line; 0 lines added net. A `null` result
+is a hit (`remembered` tests `undefined`); a throw is not stored, so it throws again on the next call, as before.
+Gates (`gB.txt`, 07:13, AC Power, load 1.77): build exit 0, 0 dependancy map lines; `bun-verify: 168 pass, 0 fail, 0 timed
+out, 0 skipped; 6.0 s`; `943 sources, 3626 cells: SAME 3612 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14`; `ownership: 3612
+cells: SAME 3612 DIFFERENT 0`; `fed rule: 3612 cells: SAME 3612 DIFFERENT 0`; `whole module: 1033 sources: SAME 1033
+DIFFERENT 0`; `registry level: 82959 units in 1042 sources: SAME 82951 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8`; `end to
+end: 1045 sources: SAME 1045 DIFFERENT 0`; `37 files, 6385 positions: SAME 6385`; infer 5, rg 7, cp 5, tc 11, live 214
+pass 0 fail; narrow-kinds 49; other script tests unchanged; `14/14 fixtures pass`. cp-diff/tc-diff (`gB-cptc.txt`):
+`completion ... SAME 18423 DIFFERENT 0`; `addParameter / annotationOf: SAME 70450 DIFFERENT 0`; facts DIFFERENT 0; tc `all
+calls: SAME 337487 SAME THROW 3756 DIFFERENT 1` (`erase (repro) ... DIFFERENT 1`), `corpus calls, repro rows left out: SAME
+337305 ... DIFFERENT 0`.
+Browser verify, before (step A's run, `verifyA.txt`) and after (`verifyB.txt`), both `Now drawing from 'AC Power'`:
+```
+before 07:05-07:13  load 1.63 2.07 2.25 -> 2.04 2.05 2.16   lint median 7.8 ms (max 11.0)   completion median 10.0 ms (max 10.6)
+after  07:25-07:29  load 3.51 3.65 3.19 -> 3.05 3.44 3.23   lint median 4.9 ms (max 8.6)    completion median 5.5 ms (max 6.1)
+```
+`functional 649 pass 0 fail; measurements 8` in both. The after run was at higher load (cp-diff/tc-diff had just ended),
+so the gain is not overstated by load. Targets were ~6 ms lint (B/C: 4.6-4.9) and 5-6 ms completion (B/C: 4.9-5.2).
+Files: `lite/toolchain/ss-toolchain.ts`, the notebook.
+
+### Step C (07:30–07:55): owned groups in the live checker
+Ported by re-deriving from `selfhost/mut-groups/RESULTS.md` onto the current ow cells, not by applying the old diff.
+Probed first on the live tree, before any edit (`holes2/try.ts`): for a `Mut<{ t: Mut<number[]> | null }>` parameter,
+`const x = p.t` was accepted, as were `if (Array.isArray(p.t)) { const x = p.t; return x; }` and the `typeof … ===
+"object"` form. Tonight's member rule (`owMutSource`) needed the member's recorded type to be exactly `Mut`. A union or a
+narrowed member was not caught. A group makes these reachable, so the field rule now keys on the declared type too.
+Rules (new file `lite/infer/ow-group.ss.ts`, 114 lines, 13 cells, longest 15; `ow-place` +20 -5; `ow-entry` +2 -1;
+`ix-prelude` +19 -1; `infer-ss.ts` +1, 2 lines changed):
+- `owMutPlace` + `owConstInit` + `owGroupOf`: a `mut(fresh)` that is the value of a plain property of the literal given to
+  a `mut(...)` initializing a local const is an owned field. Any deeper or other `mut` is `[mut-bind]` (one level).
+- `owFieldOf` (in `owMutSource`): a member is a field when it is or may be a Mut. That is: its recorded type is `Mut` or
+  a union with one, or the property's declared type in the object's record is, or the object is a group and the member
+  has no recorded type (fails closed). It takes the Mut position rule (`[mut-escape]`), except as an owned field's write
+  target.
+- `owGroupRef`/`owGroupArg`/`owGroupParam`: a group (by recorded type or binding type; a union with a group member too)
+  spread is `[mut-escape]`. As an argument it goes only to `freeze`, `equals`, `messageOf`, or a parameter whose declared,
+  alias-expanded type is `Mut` of a record with no index signature. In that record no field is a type variable, and
+  each field the group owns is declared `Mut<…>` (closes B4). There must be a resolved signature. Everything else is
+  `[mut-escape]`, `borrow` included.
+- `owLendTwice`/`owLent`: one call is not lent a group twice, a group and its field, or a field twice. This is seen
+  through conditionals, logicals, chains and spreads, and covers an argument of a local helper that captures the group
+  (`[mut-escape]`). Plain `f(m, m)` (B3) is unchanged.
+- `owFieldWritten`/`owFieldAssign`: an owned field assigned or deleted is `[mut-field-assign]` (new id).
+- `ixThaw` (in `ixUnwrapCall`): `freeze` of a group reads each owned field `Mut<X>` (or a union's Mut member) as `X`,
+  in the record or each record of a union. When the result still holds a Mut it is `[type]` (fails closed).
+  `owMut`/`owTopMut` come from the ow family.
+Counts with the rules in the cells (`sC.json` vs `sA.json`): corpus `939 -> 943 sources; 4 differ, 6 record
+differences`, all four step A's S2.9 rows and their inline copies, so 0 from C. Shipped sections (`sec-sC.json` vs
+`sec-sA.json`): `78 sections, 40344 records, not ok 0`. Every difference is a new cell, `ok`.
+Dead end: the first build of `ow-group` named a cell `owMemberName`, which `ow-action.ss.ts` already has. Sections then
+gave `[duplicate-cell]` and the S6.19 row crashed (`undefined is not an object (evaluating 'n.property.type')`, the
+other cell linked). Renamed `owFieldName`.
+Prototype probes on the live tree (`bun selfhost/mut-groups/probes.ts ../..`): before the port `PASS 34 FAIL 124`; after,
+`158 probes, 170 cells: PASS 138 FAIL 20`. The 20 are:
+- three stricter verdicts, from the lend-twice ruling: `r3-helper-reaches-both`, `r3-group-and-its-field` and
+  `r3-same-field-twice` were ok and are now `[mut-escape]`;
+- `r1-borrow-group`'s reader, which now gains `[mut-cell]`;
+- 16 already-rejected cells, each gaining a second rule from tonight's rules (`mut-source`, `mut-cell`, `type`).
+No probe the prototype rejected is accepted live.
+Attack files on the live tree (`holes2/attack-live.ts`, every program of `selfhost/mut-groups-attack/a*.ts` and
+breaks.ts): `163 programs, live ACCEPT 14, proto REJECT but live ACCEPT 0`. The 14 were each accepted by proto too and
+judged harmless there: param aliasing (B3, owner), `in`, JSX child, a shadowing name, a generator lending a field, two
+copying Borrowed views. a15 (foreign) imports write their own `.out.json` when imported; it was regenerated by that run.
+Foreign `keep(g)` and `keep(g.xs)` (a15) stay accepted, as B6 `keep(m)` (owner).
+`breaks.ts` on live (`holes2/breaks-live.ts`):
+- B1 `[prelude-value]`, B2 `[prelude-value]`, B2b `[prelude-value]`, B5 `[regexp-state]`.
+- B4 `[mut-escape][mut-source]`, B4b `[mut-escape]`, B4c `[mut-escape]`.
+- B7: `b4-holder-record-returned` gives a `[mut-escape]`, b `[mut-cell]`. `b4-holder-closure` gives a `[mut-escape]`.
+  `b1-holder-*` give `[prelude-value]`.
+- B3 ACCEPT (owner).
+live.test now includes the `group-generic-field` family (B4, B4b, B4c).
+Variants (60, `C-groups`, each rejected with its rule): field bound, returned by a helper, in an array, in an object,
+yielded, frozen, deleted, assigned another field; group spread into a record and into mut; `Object.values`,
+`Object.entries`, `JSON.stringify`, `structuredClone`, `borrow` of the group; lent to `Mut<{ t: T }>`; B4 mixed, through a
+generic alias, a generic interface, `<X, Y>`; B4c; lent twice, group and its field, field twice, a capturing helper
+given a field, twice through a conditional; group as a cell value; group type as a cell input (`[mut-cell]`); field
+destructured; a rest of the group; group returned from a helper; g-flag regexp as an owned field and a plain field
+(`[regexp-state]`); a named function expression capturing the group kept (`[mut-capture]`); an escaping arrow
+(`[mut-capture]`); a field written after freeze (`[mut-after-freeze]`); a frozen field written (`[mutating-method]`); a
+group in a group and a group in a let (`[mut-bind]`); an owned field not fresh (`[mut-not-fresh]`); a field narrowed by
+`Array.isArray`/`typeof` then bound; a nullable and an optional field bound; a union-typed group frozen then written; a
+group in a conditional, and a union with one group member, to `Object.values`; `mut` as a value making a group
+(`[prelude-value]`); a group from a call (`[mut-source]`); the group in a Map's entries; a computed-key field bound; a
+field in a `for...of` source array; to a `G | null` parameter; to a non-Mut record parameter; `Object.assign`; a field
+spread as arguments; awaited; given to `state`; a field to a `Y` parameter; through a higher-order helper.
+live.test `278 pass 0 fail`. Checked and accepted, not variants: a group lent to a function-typed parameter whose
+declared parameter is the group, called twice in sequence.
+Mutants (`holes2/mutants.ts`, each rule off, live.test rerun, file restored; `mutants.txt`):
+```
+M1 field rule: recorded exact Mut only   KILLED by 4 (Array.isArray-narrowed, nullable, optional, typeof-narrowed field bound)
+M2 group spread allowed                  KILLED by 2
+M3 group to any function                 KILLED by 13
+M4 B4 off: any group param               KILLED by 7 (incl. attack:b4-holder-closure and Mut<{ t: T }>)
+M5 lend twice off                        KILLED by 5
+M6 field assign off                      KILLED by 2
+M7 thaw off                              KILLED by 2
+M8 thaw fails open                       SURVIVED (backstop: no buildable group leaves a Mut after thaw but the S4.4 [type] row)
+M9 group depth unbounded                 KILLED by 1
+M10 field rule by declared type only     SURVIVED (the recorded-type and no-type paths are backstops)
+```
+M8 is killed by the new S4.4 `[type]` row (a group field `Mut<Map<string, Mut<number[]>>>`), which is not in live.test.
+Frozen mirror: own.ts (the field rule in the placement loop, a group loop after the escapes for spread/argument/lend-twice/
+field-assign, `mut(...)` as an owned field) and infer.ts (`thaw`, imports `mutIn` from own.ts), header lines in both.
+Control (`holes2/vfiles.ts` writes the 80 A/C variants and the 154 shell-less probes as cells files; `diff.ts --file …`):
+mirror on `1177 sources, 3875 cells: SAME 3861 DIFFERENT 0`, `ownership: 3861 cells: SAME 3861 DIFFERENT 0`; mirror off
+(fieldOf false, group loop off, lend-twice off, owned-field mut-bind exemption off, thaw off) `SAME 3845 DIFFERENT 16`,
+`ownership: 3861 cells: SAME 3685 DIFFERENT 176`. Cell count unchanged between the runs (no mirror threw). 3 sources
+threw: `selfhost/repro-unknown-class.ss.ts` (as before) and two JSX probes read as `.ts`.
+Rows: S4.2 `[mut-bind]` (a group in a group), S4.2 `[mut-field-assign]` (`delete g.t`); S4.4 `[mut-escape]` x5 (a field
+bound, a spread, B4, `f(g, g.t)`, a nullable field of a group parameter bound), S4.4 `[type]` (freeze fails closed).
+Each gives exactly its rule (`attack/rows.ts`); an `Object.values` row was dropped (it also gives `[type]`).
+`test_spec_S4_4` gains an accepted control: fields written, the group lent to a parameter declared as the group, a
+helper that is only called, frozen, a field read as `readonly number[]`. Tutorial Mut table: one row for
+`[mut-field-assign]` (verify requires every rule id named there).
+Dry measurement (no checker cell changed): the codemod (`selfhost/mut-groups/codemod.ts`) on a copy of the live
+ix/md/ow files (`holes2/dry/`, `IxTabs` alias appended), census before/after: ix inner functions `310 fns, 1198 params,
+425 Mut params, 100 with >=2 Mut` -> `958 params, 185 Mut params, 23 with >=2 Mut`; knot types 36 -> 15 Mut params; 733
+edits. The live checker accepts the prototype's refactored cells: `bun selfcheck.ts ../.. refac`: `508 cells ...
+module errors 0, not ok 0`, so the lend-twice rule does not block that refactor (checked on the prototype's older cells,
+not on a refactor of tonight's).
+Cost: collect `707.3 µs/cell` (after A) -> `761.8 µs/cell` (after C), one run each, not repeated.
+Gates after C (one full pass over A+B+C; `holes2/gC.txt`, `gC-cptc.txt`, `verifyC.txt`), 07:38–07:54, AC Power, load 2.66–4.56:
+```
+-- build exit 0
+bun-verify: 168 pass, 0 fail, 0 timed out, 0 skipped; 6.3 s
+959 sources, 3642 cells: SAME 3628 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14; sources that threw 1
+ownership: 3628 cells: SAME 3628 DIFFERENT 0 NOT COVERED 0
+whole module: 1049 sources: SAME 1049 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+registry level: 83244 units in 1058 sources: SAME 83236 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8
+end to end: 1061 sources: SAME 1061 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+37 files, 6385 positions: SAME 6385 (1733 with no options) DIFFERENT 0
+completion: 16237 positions (and their reruns with outside cells / tsx off): SAME 18423 DIFFERENT 0; 140.6 s
+corpus calls, repro rows left out: SAME 340067 SAME THROW 3756 DIFFERENT 0 NOT COVERED 0 TODAY TYPEERROR 0
+  erase (repro)              SAME 2 SAME THROW 0 DIFFERENT 1   (by design)
+bun tests: infer 5/0, rg 7/0, cp 5/0, tc 11/0, live 278/0, narrow-kinds 49/0, other suites 0 fail
+14/14 fixtures pass; 55 lint/injection rules registered, 55 with a reject case (53 of them in the specification module); 0 failure(s)
+power AC Power; functional 649 pass 0 fail; measurements 8
+lint median 5.0 ms (max 8.8), completion median 5.2 ms (max 5.9)
+```

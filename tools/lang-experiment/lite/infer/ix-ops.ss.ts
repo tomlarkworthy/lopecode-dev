@@ -25,10 +25,12 @@ export const ixLogical = (ixLogicalType, ixCopyFlow, ixJoin2, ERR) => (K: IxK, T
   C.cur = ixJoin2(W, C, e.operator === "&&" ? c.f : e.operator === "||" ? c.t : own, C.cur);
   return ixLogicalType(K.reg, e.operator, lt, rt);
 };
-// check1's || and ??: the right side against the expected type, in the flow where it runs
-export const ixCheckLogical = (ixLogicalType, ixCopyFlow, ixJoin2, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: LogicalExpression, expected: Ty): Ty => {
+// check1's || and ??: the right side against the expected type, in the flow where it runs, and the part of the left
+// side that can be the result (its truthy part, or its non-nullish part)
+export const ixCheckLogical = (ixLogicalType, ixExpect, ixCopyFlow, ixJoin2, ERR, NEVER) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: LogicalExpression, expected: Ty, soft: boolean, q: boolean): Ty => {
   const c = K.cond(K, T, V, W, C, env, e.left);
-  const lt = T.get(e.left.nid) ?? ERR;
+  const lt = T.get(e.left.nid) ?? ERR, kept = ixLogicalType(K.reg, e.operator, lt, NEVER);
+  if (!soft && kept.k !== "never") ixExpect(K, C, e.left, kept, expected, q);
   C.cur = e.operator === "||" ? c.f : ixCopyFlow(W, C, C.cur);
   const r = K.check(K, T, V, W, C, env, e.right, expected, false, false);
   C.cur = ixJoin2(W, C, c.t, c.f);

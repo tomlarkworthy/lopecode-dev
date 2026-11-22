@@ -32,10 +32,23 @@ export const owFresh = () => {
   }
   return fresh;
 };
-export const owMutPlace = (owFresh, owErr) => (O: OwCtx, W: OwW, n: CallExpression): void => {
+export const owConstInit = () => (O: OwCtx, n: AstNode): boolean => {
   const p = O.T.parent.get(n.nid), decl = p === undefined ? undefined : O.T.parent.get(p.nid);
   const bound = p !== undefined && p.type === "VariableDeclarator" && p.init !== null && p.init.nid === n.nid && p.id.type === "Identifier";
-  if (!(bound && decl !== undefined && decl.type === "VariableDeclaration" && decl.kind === "const")) owErr(W, n, "mut-bind", "mut(...) must be the initializer of a local const");
+  return bound && decl !== undefined && decl.type === "VariableDeclaration" && decl.kind === "const";
+};
+// an owned field: the value of a plain property of the object literal given to mut(...); that mut(...), or null
+export const owGroupOf = (owPrelude) => (O: OwCtx, n: AstNode): AstNode | null => {
+  const p = O.T.parent.get(n.nid), lit = p === undefined ? undefined : O.T.parent.get(p.nid);
+  const outer = lit === undefined ? undefined : O.T.parent.get(lit.nid);
+  if (p === undefined || p.type !== "Property" || p.value.nid !== n.nid || p.computed || p.shorthand || p.method || p.kind !== "init") return null;
+  if (lit === undefined || lit.type !== "ObjectExpression" || outer === undefined || outer.type !== "CallExpression") return null;
+  return owPrelude(O, outer) === "mut" && outer.arguments[0]?.nid === lit.nid ? outer : null;
+};
+// mut(...) initializes a local const, or is an owned field of a group that does (one level)
+export const owMutPlace = (owFresh, owConstInit, owGroupOf, owErr) => (O: OwCtx, W: OwW, n: CallExpression): void => {
+  const g = owGroupOf(O, n);
+  if (!(owConstInit(O, n) || (g !== null && owConstInit(O, g)))) owErr(W, n, "mut-bind", "mut(...) must be the initializer of a local const");
   const a = n.arguments[0];
   if (a !== undefined && !owFresh(O, a)) owErr(W, a, "mut-not-fresh", "mut(e) needs a fresh value: a literal, a spread copy, new on an intrinsic, or an intrinsic marked @fresh");
 };
@@ -70,11 +83,13 @@ export const owPreludeName = (owNamePlace, owBindingAt, owErr) => (O: OwCtx, W: 
 };
 // a value typed Mut<…> comes from mut(...) or is a Mut binding: not from another call or an await, nor bound from a
 // pattern (a Mut parameter is the caller's)
-export const owMutSource = (owPrelude, owBindingAt, owIsMut, owPosition, owErr, isNamed) => (O: OwCtx, W: OwW, n: AstNode): void => {
+export const owMutSource = (owPrelude, owBindingAt, owIsMut, owPosition, owFieldOf, owFieldWritten, owErr, isNamed) => (O: OwCtx, W: OwW, n: AstNode): void => {
   const t = n.type === "CallExpression" || n.type === "NewExpression" || n.type === "MemberExpression" || n.type === "AwaitExpression" ? O.F.types.get(n.nid) : undefined;
   const isMut = t !== undefined && isNamed(t, "Mut");
-  // a Mut member of a record the shell made (a registry's memo) is used in place, as a Mut binding is
-  const pos = isMut && n.type === "MemberExpression" ? owPosition(O, W, n, "mut", null) : null;
+  // a member that is or may be a Mut (a registry's memo the shell made, a group's field) is used in place, as a Mut
+  // binding is; a group's field written is owFieldAssign's
+  const field = n.type === "MemberExpression" && (isMut || owFieldOf(O, n)) && !owFieldWritten(O, n);
+  const pos = field ? owPosition(O, W, n, "mut", null) : null;
   if (pos !== null) owErr(W, n, "mut-escape", `a Mut member ${pos}`);
   if (isMut && n.type !== "MemberExpression" && owPrelude(O, n) !== "mut") owErr(W, n, "mut-source", "a Mut comes only from mut(...): this expression gives a Mut<…> that another name may also hold");
   const b = n.type === "Identifier" ? owBindingAt(O, n) : undefined, p = O.T.parent.get(n.nid);
