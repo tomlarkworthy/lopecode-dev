@@ -1,0 +1,65 @@
+[
+ {
+  "name": "mut-alias-local",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED x (value #1 of 1, same object): [1,2]  ->  [1,2,3]",
+   "show x = [1,2,3]",
+   "show y = 3"
+  ],
+  "broke": true
+ },
+ {
+  "name": "mut-from-cell",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "REJECT y:blocked",
+   "proto": "REJECT y:blocked",
+   "refac": "REJECT y:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "freeze-alias-generator",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "REJECT g:rejected[mut-escape]",
+   "proto": "REJECT g:rejected[mut-escape]",
+   "refac": "REJECT g:rejected[mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "mut-param-name",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED x (value #1 of 1, same object): {n:1}  ->  {n:99}",
+   "show x = {n:99}",
+   "show y = 1"
+  ],
+  "broke": true
+ },
+ {
+  "name": "brand-forge",
+  "family": "type-brand",
+  "verdicts": {
+   "base": "REJECT y:rejected[inject-type][type]",
+   "proto": "REJECT y:rejected[inject-type][type]",
+   "refac": "REJECT y:rejected[inject-type][type]"
+  },
+  "out": [],
+  "broke": false
+ }
+]

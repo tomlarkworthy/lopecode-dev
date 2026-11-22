@@ -1,0 +1,28 @@
+== foreign-const-typed-mut
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+== foreign-const-typed-mut-unannotated
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+== foreign-fn-returns-mut
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+== foreign-fn-takes-mut
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+== foreign-fn-takes-group
+   base: REJECT a:rejected[mut-bind] mut(...) must be the initializer of a local const
+   proto: ACCEPT
+   refac: ACCEPT
+== foreign-fn-generic-identity
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+== foreign-fn-takes-field
+   base: REJECT a:rejected[mut-bind] mut(...) must be the initializer of a local const
+   proto: ACCEPT
+   refac: ACCEPT

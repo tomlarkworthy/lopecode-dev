@@ -1,0 +1,21 @@
+== typed-array-over-cell-buffer [fresh-intrinsic-shares-storage]
+   base: REJECT y:rejected[mut-not-fresh]
+   proto: REJECT y:rejected[mut-not-fresh]
+   refac: REJECT y:rejected[mut-not-fresh]
+== typed-array-over-frozen-buffer [fresh-intrinsic-shares-storage]
+   base: REJECT a:rejected[mut-not-fresh]
+   proto: REJECT a:rejected[mut-not-fresh]
+   refac: REJECT a:rejected[mut-not-fresh]
+== typed-array-from-cell-typed-array-buffer [fresh-intrinsic-shares-storage]
+   base: REJECT y:rejected[mut-not-fresh]
+   proto: REJECT y:rejected[mut-not-fresh]
+   refac: REJECT y:rejected[mut-not-fresh]
+== regexp-lastindex [hidden-intrinsic-state]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show y = [true,true,false]
+== regexp-exec-lastindex [hidden-intrinsic-state]
+   base: REJECT y:unsupported{intrinsic member RegExp.lastIndex}
+   proto: REJECT y:unsupported{intrinsic member RegExp.lastIndex}
+   refac: REJECT y:unsupported{intrinsic member RegExp.lastIndex}

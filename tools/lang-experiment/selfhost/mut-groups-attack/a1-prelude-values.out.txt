@@ -1,0 +1,26 @@
+== mut-alias-local [prelude-as-value]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED x (value #1 of 1, same object): [1,2]  ->  [1,2,3]
+   show x = [1,2,3]
+   show y = 3
+== mut-from-cell [prelude-as-value]
+   base: REJECT y:blocked
+   proto: REJECT y:blocked
+   refac: REJECT y:blocked
+== freeze-alias-generator [prelude-as-value]
+   base: REJECT g:rejected[mut-escape]
+   proto: REJECT g:rejected[mut-escape]
+   refac: REJECT g:rejected[mut-escape]
+== mut-param-name [prelude-as-value]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED x (value #1 of 1, same object): {n:1}  ->  {n:99}
+   show x = {n:99}
+   show y = 1
+== brand-forge [type-brand]
+   base: REJECT y:rejected[inject-type][type]
+   proto: REJECT y:rejected[inject-type][type]
+   refac: REJECT y:rejected[inject-type][type]

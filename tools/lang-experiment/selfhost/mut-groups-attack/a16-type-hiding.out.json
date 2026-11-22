@@ -1,0 +1,85 @@
+[
+ {
+  "name": "generic-alias-box",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "generic-interface-box",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "generic-optional-field",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[type][possibly-undefined][mutating-method][mut-bind]",
+   "proto": "REJECT a:rejected[type][possibly-undefined][mutating-method]",
+   "refac": "REJECT a:rejected[type][possibly-undefined][mutating-method]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "intersection-hides-field",
+  "family": "group-type-hiding",
+  "verdicts": {
+   "base": "REJECT a:rejected[mutating-method][mut-bind]{IntersectionType type}{intrinsic member Mut.ys}",
+   "proto": "REJECT a:rejected[mutating-method][mut-escape]{IntersectionType type}{intrinsic member Mut.ys}",
+   "refac": "REJECT a:rejected[mutating-method][mut-escape]{IntersectionType type}{intrinsic member Mut.ys}"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "generic-intersection",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[no-member][mut-bind]{IntersectionType type}{intrinsic member Mut.ys}",
+   "proto": "REJECT a:rejected[no-member][mut-escape]{IntersectionType type}{intrinsic member Mut.ys}",
+   "refac": "REJECT a:rejected[no-member][mut-escape]{IntersectionType type}{intrinsic member Mut.ys}"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "generic-two-params",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "readonly-field",
+  "family": "group-type-hiding",
+  "verdicts": {
+   "base": "REJECT a:rejected[mutating-method][mut-bind]",
+   "proto": "REJECT a:rejected[mutating-method][mut-escape]",
+   "refac": "REJECT a:rejected[mutating-method][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ }
+]

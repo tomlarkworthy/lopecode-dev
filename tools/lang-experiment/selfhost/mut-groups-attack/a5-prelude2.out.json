@@ -1,0 +1,110 @@
+[
+ {
+  "name": "freeze-as-param-then-write",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "freeze-annotated-const",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "freeze-as-param-generator-yield",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED gen (value #1 of 1, same object): [1]  ->  [1,2]",
+   "CHANGED reader (value #1 of 1, same object): [1]  ->  [1,2]",
+   "show gen = [1,2]",
+   "show reader = [1,2]"
+  ],
+  "broke": true
+ },
+ {
+  "name": "mut-conditional-callee",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED x (value #1 of 1, same object): [1,2]  ->  [1,2,3]",
+   "show x = [1,2,3]",
+   "show y = 0"
+  ],
+  "broke": true
+ },
+ {
+  "name": "mut-from-cell-annotated",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "REJECT y:blocked",
+   "proto": "REJECT y:blocked",
+   "refac": "REJECT y:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "mut-thaws-own-frozen",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED gen (value #1 of 1, same object): [1]  ->  [1,2]",
+   "show gen = [1,2]"
+  ],
+  "broke": true
+ },
+ {
+  "name": "borrow-as-value",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "mut-param-aliases-freeze-in-callee",
+  "family": "param-aliasing",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ }
+]

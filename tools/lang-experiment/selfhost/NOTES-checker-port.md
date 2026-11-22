@@ -676,3 +676,22 @@ conditional, a generic parameter handing a field back as T). Soundness rests on 
 attempt to break it runs before integration.
 Hole 1 confirmed in the shipped checker: `[function g(){ ctx.push(2) }]` called after `freeze` is accepted. Fix +8 -1
 in `ow-tree.ss.ts`, no corpus verdict changes.
+
+## 2026-11-22 04:10: an independent attack on Mut ownership (`selfhost/mut-groups-attack/`): four shipped holes
+Record: `selfhost/mut-groups-attack/RESULTS.md`; minimal programs `breaks.ts`, rerun by me
+(`cd selfhost/mut-groups-attack && bun harness.ts ./breaks.ts`): accepted and observed as below. 162 programs.
+Shipped checker (base), each accepted and run in the Runtime:
+- B1 `const mk = mut; const a = mk(x); a.push(3)` with `x` another cell's value: `CHANGED x: [1,2] -> [1,2,3]`.
+  The freshness and placement checks apply only when the callee is literally `mut`.
+- B2 `const fz: <T>(m: Mut<T>) => T = freeze; const r = fz(m); m.push(2)`: a generator variant gives
+  `CHANGED reader: [1] -> [1,2]`. A freeze is recorded only for a literal `freeze(...)` call.
+- B7 a cell returns a value typed `{ h: { y: Mut<number[]> } }` and another cell annotates its input with that
+  type and writes it (reached through B1): nothing keeps `Mut` out of a cell's value type or an input annotation.
+- B5 `x = () => /a/g`; `x.test("aa")` twice gives `[false, true]`: `test`/`exec`/`replace` write `lastIndex`.
+- B3 `f(m, m)`: a push through one parameter changes the other's length (a loop ran 6 times over 2 elements).
+- The named-function-expression hole, confirmed by a run: `CHANGED a: {fr:[1]} -> {fr:[1,2]}`.
+Group prototype only: B4, a group parameter with one Mut field and one type-variable field hands the other field
+back (`<Y,>(c: Mut<{ xs: Mut<number[]>; ys: Y }>): Y => c.ys`), also by assignment across groups and by delete.
+Held: 33 expression forms around a Mut, unions, widening, async suspension, flow, callbacks on a field's methods.
+Not attacked: state cells at run time (the harness fails on them), syntax the checker refuses outright.
+Groups are not integrated until B4 is closed and attacked again.

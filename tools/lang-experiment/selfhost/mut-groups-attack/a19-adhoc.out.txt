@@ -1,0 +1,20 @@
+== freeze-local-alias-untyped [prelude-as-value]
+   base: REJECT g:rejected[mut-escape]
+   proto: REJECT g:rejected[mut-escape]
+   refac: REJECT g:rejected[mut-escape]
+== generator-helper-next [helper-deferred-body]
+   base: REJECT a:unsupported{intrinsic member Generator.next}
+   proto: REJECT a:unsupported{intrinsic member Generator.next}
+   refac: REJECT a:unsupported{intrinsic member Generator.next}
+== async-helper-sync-part [async-suspension]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+== yield-star-iterator [helper-deferred-body]
+   base: REJECT g:unsupported{yield*}
+   proto: REJECT g:unsupported{yield*}
+   refac: REJECT g:unsupported{yield*}
+== yield-star-call [helper-deferred-body]
+   base: REJECT g:unsupported{yield*}
+   proto: REJECT g:unsupported{yield*}
+   refac: REJECT g:unsupported{yield*}

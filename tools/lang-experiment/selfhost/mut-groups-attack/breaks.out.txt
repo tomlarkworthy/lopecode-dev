@@ -1,0 +1,45 @@
+== B1-mut-as-value [prelude-as-value]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED x (value #1 of 1, same object): [1,2]  ->  [1,2,3]
+   show x = [1,2,3]
+   show y = 3
+== B2-freeze-as-value [prelude-as-value]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== B2b-freeze-as-value-yield [prelude-as-value]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED gen (value #1 of 1, same object): [1]  ->  [1,2]
+   CHANGED reader (value #1 of 1, same object): [1]  ->  [1,2]
+== B3-same-mut-twice [param-aliasing]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== B4-group-type-variable-field [group-generic-field]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== B4b-group-field-moved-to-other-group [group-generic-field]
+   base: REJECT gen:rejected[mut-bind][mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED gen (value #1 of 1, same object): {xs:[1],ys:[20]}  ->  {xs:[1],ys:[20,30]}
+   CHANGED reader (value #1 of 1, same object): {xs:[1],ys:[20]}  ->  {xs:[1],ys:[20,30]}
+== B4c-group-field-deleted [group-generic-field]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = "undefined"
+== B5-regexp-lastindex [hidden-intrinsic-state]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show y = [true,true]
+   show z = [false,true]

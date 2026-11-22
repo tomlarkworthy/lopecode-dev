@@ -1,0 +1,72 @@
+[
+ {
+  "name": "borrowed-subarray-kept",
+  "family": "borrowed-view",
+  "verdicts": {
+   "base": "REJECT keep:rejected[borrowed-escape]",
+   "proto": "REJECT keep:rejected[borrowed-escape]",
+   "refac": "REJECT keep:rejected[borrowed-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrowed-subarray-in-record",
+  "family": "borrowed-view",
+  "verdicts": {
+   "base": "REJECT keep:rejected[borrowed-escape]",
+   "proto": "REJECT keep:rejected[borrowed-escape]",
+   "refac": "REJECT keep:rejected[borrowed-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrowed-buffer-kept",
+  "family": "borrowed-view",
+  "verdicts": {
+   "base": "REJECT keep:rejected[borrowed-escape]",
+   "proto": "REJECT keep:rejected[borrowed-escape]",
+   "refac": "REJECT keep:rejected[borrowed-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrowed-sort-receiver",
+  "family": "borrowed-view",
+  "verdicts": {
+   "base": "REJECT keep:rejected[borrowed-escape]",
+   "proto": "REJECT keep:rejected[borrowed-escape]",
+   "refac": "REJECT keep:rejected[borrowed-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "borrowed-map-values-iter",
+  "family": "borrowed-view",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show keep = [3]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "borrowed-array-of-arrays-elem",
+  "family": "borrowed-view",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show keep = [3]"
+  ],
+  "broke": false
+ }
+]

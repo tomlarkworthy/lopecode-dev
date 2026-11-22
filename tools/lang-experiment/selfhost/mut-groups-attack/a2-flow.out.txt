@@ -1,0 +1,28 @@
+== generator-helper-runs-after-freeze [helper-deferred-body]
+   base: REJECT a:rejected[type]
+   proto: REJECT a:rejected[type]
+   refac: REJECT a:rejected[type]
+== generator-fn-decl-helper [helper-deferred-body]
+   base: REJECT a:rejected[type]
+   proto: REJECT a:rejected[type]
+   refac: REJECT a:rejected[type]
+== finally-after-return-freeze [try-finally]
+   base: REJECT a:unsupported{try/finally in a function holding a Mut/Borrowed} b:blocked
+   proto: REJECT a:unsupported{try/finally in a function holding a Mut/Borrowed} b:blocked
+   refac: REJECT a:unsupported{try/finally in a function holding a Mut/Borrowed} b:blocked
+== catch-after-throw-freeze [try-finally]
+   base: REJECT a:rejected[mut-after-freeze]
+   proto: REJECT a:rejected[mut-after-freeze]
+   refac: REJECT a:rejected[mut-after-freeze]
+== escaping-thunk-calls-helper [helper-transitive]
+   base: REJECT a:rejected[mut-capture]
+   proto: REJECT a:rejected[mut-capture]
+   refac: REJECT a:rejected[mut-capture]
+== callback-third-arg-alias [intrinsic-callback-alias]
+   base: REJECT g:rejected[arity][type] r:rejected[inject-type]
+   proto: REJECT g:rejected[arity][type] r:rejected[inject-type]
+   refac: REJECT g:rejected[arity][type] r:rejected[inject-type]
+== loop-update-after-freeze [loop]
+   base: REJECT a:rejected[mut-after-freeze]{comma expression}
+   proto: REJECT a:rejected[mut-after-freeze]{comma expression}
+   refac: REJECT a:rejected[mut-after-freeze]{comma expression}

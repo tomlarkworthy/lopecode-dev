@@ -1,0 +1,21 @@
+== generic-field-moved-between-groups [group-generic-field]
+   base: REJECT a:rejected[mut-bind][mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== generic-field-aliased-within-group [group-generic-field]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = {xs:[1],ys:[100,200],zs:[100,200]}
+== generic-field-moved-yield-then-write [group-generic-field]
+   base: REJECT gen:rejected[mut-bind][mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED gen (value #1 of 1, same object): {xs:[1],ys:[20]}  ->  {xs:[1],ys:[20,30]}
+   CHANGED reader (value #1 of 1, same object): {xs:[1],ys:[20]}  ->  {xs:[1],ys:[20,30]}
+== generic-field-delete [group-generic-field]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = "undefined"

@@ -1,0 +1,67 @@
+== async-group-param-field-after-await [async-suspension]
+   base: REJECT a:rejected[mut-bind][borrowed-await]
+   proto: REJECT a:rejected[borrowed-await]
+   refac: REJECT a:rejected[borrowed-await]
+== async-field-param-after-await [async-suspension]
+   base: REJECT a:rejected[mut-bind][borrowed-await]
+   proto: REJECT a:rejected[borrowed-await]
+   refac: REJECT a:rejected[borrowed-await]
+== async-helper-captures-group [async-suspension]
+   base: REJECT a:rejected[mut-bind][borrowed-await]
+   proto: REJECT a:rejected[borrowed-await]
+   refac: REJECT a:rejected[borrowed-await]
+== async-await-in-arg-before-write [async-suspension]
+   base: REJECT a:rejected[mut-bind][borrowed-await]
+   proto: REJECT a:rejected[borrowed-await]
+   refac: REJECT a:rejected[borrowed-await]
+== shadow-group-name-in-helper [shadowing]
+   base: REJECT a:rejected[mut-bind][mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [{xs:[5]},{xs:[1]}]
+== shadow-mut-by-param [shadowing]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+== jsx-child-group [jsx]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+== jsx-field-prop [jsx]
+   base: REJECT a:rejected[type][type][type][mut-bind]
+   proto: REJECT a:rejected[type][type][type][mut-escape]
+   refac: REJECT a:rejected[type][type][type][mut-escape]
+== for-in-group [reflection]
+   base: REJECT a:rejected[mut-bind]{for...in}
+   proto: REJECT a:unsupported{for...in}
+   refac: REJECT a:unsupported{for...in}
+== reflect-get-field [reflection]
+   base: REJECT a:rejected[free-name][mut-escape][mut-bind]
+   proto: REJECT a:rejected[free-name][mut-escape]
+   refac: REJECT a:rejected[free-name][mut-escape]
+== object-entries-group [reflection]
+   base: REJECT a:rejected[mut-bind]
+   proto: REJECT a:rejected[mut-escape]
+   refac: REJECT a:rejected[mut-escape]
+== structuredclone-group [reflection]
+   base: REJECT a:rejected[mut-escape][mut-bind]
+   proto: REJECT a:rejected[mut-escape]
+   refac: REJECT a:rejected[mut-escape]
+== in-operator-group [reflection]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = true
+== equals-group-field [reflection]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = false
+== freeze-in-loop-group [flow]
+   base: REJECT a:rejected[mut-bind][mut-after-freeze][mut-after-freeze]
+   proto: REJECT a:rejected[mut-after-freeze][mut-after-freeze]
+   refac: REJECT a:rejected[mut-after-freeze][mut-after-freeze]
+== freeze-in-switch-fallthrough-group [flow]
+   base: REJECT a:rejected[inject-unknown][mut-bind][mut-after-freeze]
+   proto: REJECT a:rejected[inject-unknown][mut-after-freeze]
+   refac: REJECT a:rejected[inject-unknown][mut-after-freeze]

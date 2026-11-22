@@ -1,0 +1,45 @@
+== freeze-as-param-then-write [prelude-as-value]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== freeze-annotated-const [prelude-as-value]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== freeze-as-param-generator-yield [prelude-as-value]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED gen (value #1 of 1, same object): [1]  ->  [1,2]
+   CHANGED reader (value #1 of 1, same object): [1]  ->  [1,2]
+   show gen = [1,2]
+   show reader = [1,2]
+== mut-conditional-callee [prelude-as-value]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED x (value #1 of 1, same object): [1,2]  ->  [1,2,3]
+   show x = [1,2,3]
+   show y = 0
+== mut-from-cell-annotated [prelude-as-value]
+   base: REJECT y:blocked
+   proto: REJECT y:blocked
+   refac: REJECT y:blocked
+== mut-thaws-own-frozen [prelude-as-value]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED gen (value #1 of 1, same object): [1]  ->  [1,2]
+   show gen = [1,2]
+== borrow-as-value [prelude-as-value]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1]
+== mut-param-aliases-freeze-in-callee [param-aliasing]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]

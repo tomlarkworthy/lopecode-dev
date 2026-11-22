@@ -1,0 +1,26 @@
+== borrowed-subarray-kept [borrowed-view]
+   base: REJECT keep:rejected[borrowed-escape]
+   proto: REJECT keep:rejected[borrowed-escape]
+   refac: REJECT keep:rejected[borrowed-escape]
+== borrowed-subarray-in-record [borrowed-view]
+   base: REJECT keep:rejected[borrowed-escape]
+   proto: REJECT keep:rejected[borrowed-escape]
+   refac: REJECT keep:rejected[borrowed-escape]
+== borrowed-buffer-kept [borrowed-view]
+   base: REJECT keep:rejected[borrowed-escape]
+   proto: REJECT keep:rejected[borrowed-escape]
+   refac: REJECT keep:rejected[borrowed-escape]
+== borrowed-sort-receiver [borrowed-view]
+   base: REJECT keep:rejected[borrowed-escape]
+   proto: REJECT keep:rejected[borrowed-escape]
+   refac: REJECT keep:rejected[borrowed-escape]
+== borrowed-map-values-iter [borrowed-view]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show keep = [3]
+== borrowed-array-of-arrays-elem [borrowed-view]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show keep = [3]

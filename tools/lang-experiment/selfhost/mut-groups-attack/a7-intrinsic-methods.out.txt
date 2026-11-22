@@ -1,0 +1,43 @@
+== regexp-test-cross-cell [hidden-intrinsic-state]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show y = [true,true]
+   show z = [false,true]
+== regexp-replace-resets [hidden-intrinsic-state]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show y = [true,"bb",true]
+== urlsearchparams-append [unlisted-mutating-method]
+   base: REJECT y:unsupported{intrinsic member URLSearchParams.append} z:blocked
+   proto: REJECT y:unsupported{intrinsic member URLSearchParams.append} z:blocked
+   refac: REJECT y:unsupported{intrinsic member URLSearchParams.append} z:blocked
+== urlsearchparams-set-delete-sort [unlisted-mutating-method]
+   base: REJECT y:unsupported{intrinsic member URLSearchParams.set}{intrinsic member URLSearchParams.delete}{intrinsic member URLSearchParams.sort}
+   proto: REJECT y:unsupported{intrinsic member URLSearchParams.set}{intrinsic member URLSearchParams.delete}{intrinsic member URLSearchParams.sort}
+   refac: REJECT y:unsupported{intrinsic member URLSearchParams.set}{intrinsic member URLSearchParams.delete}{intrinsic member URLSearchParams.sort}
+== url-searchparams-member [unlisted-mutating-method]
+   base: REJECT y:unsupported{intrinsic member URLSearchParams.append}
+   proto: REJECT y:unsupported{intrinsic member URLSearchParams.append}
+   refac: REJECT y:unsupported{intrinsic member URLSearchParams.append}
+== arraybuffer-transfer [unlisted-mutating-method]
+   base: REJECT y:unsupported{intrinsic member ArrayBuffer.transfer} z:blocked
+   proto: REJECT y:unsupported{intrinsic member ArrayBuffer.transfer} z:blocked
+   refac: REJECT y:unsupported{intrinsic member ArrayBuffer.transfer} z:blocked
+== arraybuffer-resize [unlisted-mutating-method]
+   base: REJECT x:rejected[arity] y:unsupported{intrinsic member ArrayBuffer.resize}
+   proto: REJECT x:rejected[arity] y:unsupported{intrinsic member ArrayBuffer.resize}
+   refac: REJECT x:rejected[arity] y:unsupported{intrinsic member ArrayBuffer.resize}
+== structuredclone-transfer [unlisted-mutating-method]
+   base: REJECT y:rejected[arity]
+   proto: REJECT y:rejected[arity]
+   refac: REJECT y:rejected[arity]
+== uint8-setfromhex [unlisted-mutating-method]
+   base: REJECT y:unsupported{intrinsic member Uint8Array.setFromHex}
+   proto: REJECT y:unsupported{intrinsic member Uint8Array.setFromHex}
+   refac: REJECT y:unsupported{intrinsic member Uint8Array.setFromHex}
+== typedarray-set-via-subarray [unlisted-mutating-method]
+   base: REJECT y:rejected[mut-not-fresh]
+   proto: REJECT y:rejected[mut-not-fresh]
+   refac: REJECT y:rejected[mut-not-fresh]

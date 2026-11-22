@@ -1,0 +1,44 @@
+[
+ {
+  "name": "generic-field-returns-owned",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = {xs:[1],ys:[10,20,30]}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "generic-field-survives-freeze",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT x:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show x = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "generic-field-yield-then-write",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED gen (value #1 of 1, same object): {xs:[1],ys:[10]}  ->  {xs:[1],ys:[10,20]}",
+   "CHANGED r (value #1 of 1, same object): {xs:[1],ys:[10]}  ->  {xs:[1],ys:[10,20]}",
+   "show gen = {xs:[1],ys:[10,20]}",
+   "show r = {xs:[1],ys:[10,20]}"
+  ],
+  "broke": true
+ }
+]

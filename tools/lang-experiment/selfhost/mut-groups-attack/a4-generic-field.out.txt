@@ -1,0 +1,18 @@
+== generic-field-returns-owned [group-generic-field]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = {xs:[1],ys:[10,20,30]}
+== generic-field-survives-freeze [group-generic-field]
+   base: REJECT x:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show x = [1,2]
+== generic-field-yield-then-write [group-generic-field]
+   base: REJECT gen:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED gen (value #1 of 1, same object): {xs:[1],ys:[10]}  ->  {xs:[1],ys:[10,20]}
+   CHANGED r (value #1 of 1, same object): {xs:[1],ys:[10]}  ->  {xs:[1],ys:[10,20]}
+   show gen = {xs:[1],ys:[10,20]}
+   show r = {xs:[1],ys:[10,20]}

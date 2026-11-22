@@ -1,0 +1,83 @@
+[
+ {
+  "name": "duplicate-key-later-frozen",
+  "family": "group-literal-keys",
+  "verdicts": {
+   "base": "REJECT y:rejected[mut-deep-write][mut-bind]",
+   "proto": "REJECT y:rejected[mut-deep-write]",
+   "refac": "REJECT y:rejected[mut-deep-write]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "duplicate-key-plain-then-owned",
+  "family": "group-literal-keys",
+  "verdicts": {
+   "base": "REJECT y:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show x = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "spread-overrides-owned-field",
+  "family": "group-literal-keys",
+  "verdicts": {
+   "base": "REJECT y:rejected[mut-deep-write][mut-bind]",
+   "proto": "REJECT y:rejected[mut-deep-write]",
+   "refac": "REJECT y:rejected[mut-deep-write]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "computed-duplicate-key",
+  "family": "group-literal-keys",
+  "verdicts": {
+   "base": "REJECT y:rejected[mut-bind]{computed property}",
+   "proto": "REJECT y:unsupported{computed property}",
+   "refac": "REJECT y:unsupported{computed property}"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "string-key-duplicate",
+  "family": "group-literal-keys",
+  "verdicts": {
+   "base": "REJECT y:rejected[mut-deep-write][mut-bind]",
+   "proto": "REJECT y:rejected[mut-deep-write]",
+   "refac": "REJECT y:rejected[mut-deep-write]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "plain-mut-duplicate-key",
+  "family": "group-literal-keys",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show y = \"object\""
+  ],
+  "broke": false
+ },
+ {
+  "name": "proto-key",
+  "family": "group-literal-keys",
+  "verdicts": {
+   "base": "REJECT y:rejected[banned-member]",
+   "proto": "REJECT y:rejected[banned-member]",
+   "refac": "REJECT y:rejected[banned-member]"
+  },
+  "out": [],
+  "broke": false
+ }
+]

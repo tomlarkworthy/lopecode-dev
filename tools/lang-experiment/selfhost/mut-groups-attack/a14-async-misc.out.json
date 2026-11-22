@@ -1,0 +1,184 @@
+[
+ {
+  "name": "async-group-param-field-after-await",
+  "family": "async-suspension",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind][borrowed-await]",
+   "proto": "REJECT a:rejected[borrowed-await]",
+   "refac": "REJECT a:rejected[borrowed-await]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "async-field-param-after-await",
+  "family": "async-suspension",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind][borrowed-await]",
+   "proto": "REJECT a:rejected[borrowed-await]",
+   "refac": "REJECT a:rejected[borrowed-await]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "async-helper-captures-group",
+  "family": "async-suspension",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind][borrowed-await]",
+   "proto": "REJECT a:rejected[borrowed-await]",
+   "refac": "REJECT a:rejected[borrowed-await]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "async-await-in-arg-before-write",
+  "family": "async-suspension",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind][borrowed-await]",
+   "proto": "REJECT a:rejected[borrowed-await]",
+   "refac": "REJECT a:rejected[borrowed-await]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "shadow-group-name-in-helper",
+  "family": "shadowing",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind][mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [{xs:[5]},{xs:[1]}]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "shadow-mut-by-param",
+  "family": "shadowing",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "jsx-child-group",
+  "family": "jsx",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "jsx-field-prop",
+  "family": "jsx",
+  "verdicts": {
+   "base": "REJECT a:rejected[type][type][type][mut-bind]",
+   "proto": "REJECT a:rejected[type][type][type][mut-escape]",
+   "refac": "REJECT a:rejected[type][type][type][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "for-in-group",
+  "family": "reflection",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]{for...in}",
+   "proto": "REJECT a:unsupported{for...in}",
+   "refac": "REJECT a:unsupported{for...in}"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "reflect-get-field",
+  "family": "reflection",
+  "verdicts": {
+   "base": "REJECT a:rejected[free-name][mut-escape][mut-bind]",
+   "proto": "REJECT a:rejected[free-name][mut-escape]",
+   "refac": "REJECT a:rejected[free-name][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "object-entries-group",
+  "family": "reflection",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "REJECT a:rejected[mut-escape]",
+   "refac": "REJECT a:rejected[mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "structuredclone-group",
+  "family": "reflection",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-escape][mut-bind]",
+   "proto": "REJECT a:rejected[mut-escape]",
+   "refac": "REJECT a:rejected[mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "in-operator-group",
+  "family": "reflection",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = true"
+  ],
+  "broke": false
+ },
+ {
+  "name": "equals-group-field",
+  "family": "reflection",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = false"
+  ],
+  "broke": false
+ },
+ {
+  "name": "freeze-in-loop-group",
+  "family": "flow",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind][mut-after-freeze][mut-after-freeze]",
+   "proto": "REJECT a:rejected[mut-after-freeze][mut-after-freeze]",
+   "refac": "REJECT a:rejected[mut-after-freeze][mut-after-freeze]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "freeze-in-switch-fallthrough-group",
+  "family": "flow",
+  "verdicts": {
+   "base": "REJECT a:rejected[inject-unknown][mut-bind][mut-after-freeze]",
+   "proto": "REJECT a:rejected[inject-unknown][mut-after-freeze]",
+   "refac": "REJECT a:rejected[inject-unknown][mut-after-freeze]"
+  },
+  "out": [],
+  "broke": false
+ }
+]

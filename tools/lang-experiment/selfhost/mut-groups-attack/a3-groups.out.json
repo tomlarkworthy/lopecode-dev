@@ -1,0 +1,87 @@
+[
+ {
+  "name": "width-hides-owned-field",
+  "family": "group-param-type-widening",
+  "verdicts": {
+   "base": "REJECT g:rejected[type][mut-bind]",
+   "proto": "REJECT g:rejected[type]",
+   "refac": "REJECT g:rejected[type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "width-hides-owned-field-after-freeze-of-other",
+  "family": "group-param-type-widening",
+  "verdicts": {
+   "base": "REJECT a:rejected[type][mut-bind]",
+   "proto": "REJECT a:rejected[type]",
+   "refac": "REJECT a:rejected[type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-twice-same-call",
+  "family": "param-aliasing",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-and-own-field-same-call",
+  "family": "param-aliasing",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "field-twice-same-call",
+  "family": "param-aliasing",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "plain-mut-twice-same-call",
+  "family": "param-aliasing",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "destructured-group-param",
+  "family": "param-destructuring",
+  "verdicts": {
+   "base": "REJECT g:rejected[type][mut-bind]",
+   "proto": "REJECT g:rejected[type]",
+   "refac": "REJECT g:rejected[type]"
+  },
+  "out": [],
+  "broke": false
+ }
+]

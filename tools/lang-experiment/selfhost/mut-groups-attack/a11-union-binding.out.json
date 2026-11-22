@@ -1,0 +1,57 @@
+[
+ {
+  "name": "union-annotated-mut-yield-then-write",
+  "family": "union-typed-binding",
+  "verdicts": {
+   "base": "REJECT gen:rejected[type]",
+   "proto": "REJECT gen:rejected[type]",
+   "refac": "REJECT gen:rejected[type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "union-annotated-mut-returned-twice",
+  "family": "union-typed-binding",
+  "verdicts": {
+   "base": "REJECT a:rejected[type][mutating-method]",
+   "proto": "REJECT a:rejected[type][mutating-method]",
+   "refac": "REJECT a:rejected[type][mutating-method]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "union-annotated-mut-escapes-in-closure",
+  "family": "union-typed-binding",
+  "verdicts": {
+   "base": "REJECT a:rejected[type]",
+   "proto": "REJECT a:rejected[type]",
+   "refac": "REJECT a:rejected[type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "union-annotated-group",
+  "family": "union-typed-binding",
+  "verdicts": {
+   "base": "REJECT a:rejected[type][mut-bind]",
+   "proto": "REJECT a:rejected[type]",
+   "refac": "REJECT a:rejected[type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "union-param-received-mut",
+  "family": "union-typed-binding",
+  "verdicts": {
+   "base": "REJECT a:rejected[type][mut-escape]",
+   "proto": "REJECT a:rejected[type][mut-escape]",
+   "refac": "REJECT a:rejected[type][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ }
+]

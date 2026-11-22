@@ -1,0 +1,117 @@
+[
+ {
+  "name": "regexp-test-cross-cell",
+  "family": "hidden-intrinsic-state",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show y = [true,true]",
+   "show z = [false,true]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "regexp-replace-resets",
+  "family": "hidden-intrinsic-state",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show y = [true,\"bb\",true]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "urlsearchparams-append",
+  "family": "unlisted-mutating-method",
+  "verdicts": {
+   "base": "REJECT y:unsupported{intrinsic member URLSearchParams.append} z:blocked",
+   "proto": "REJECT y:unsupported{intrinsic member URLSearchParams.append} z:blocked",
+   "refac": "REJECT y:unsupported{intrinsic member URLSearchParams.append} z:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "urlsearchparams-set-delete-sort",
+  "family": "unlisted-mutating-method",
+  "verdicts": {
+   "base": "REJECT y:unsupported{intrinsic member URLSearchParams.set}{intrinsic member URLSearchParams.delete}{intrinsic member URLSearchParams.sort}",
+   "proto": "REJECT y:unsupported{intrinsic member URLSearchParams.set}{intrinsic member URLSearchParams.delete}{intrinsic member URLSearchParams.sort}",
+   "refac": "REJECT y:unsupported{intrinsic member URLSearchParams.set}{intrinsic member URLSearchParams.delete}{intrinsic member URLSearchParams.sort}"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "url-searchparams-member",
+  "family": "unlisted-mutating-method",
+  "verdicts": {
+   "base": "REJECT y:unsupported{intrinsic member URLSearchParams.append}",
+   "proto": "REJECT y:unsupported{intrinsic member URLSearchParams.append}",
+   "refac": "REJECT y:unsupported{intrinsic member URLSearchParams.append}"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "arraybuffer-transfer",
+  "family": "unlisted-mutating-method",
+  "verdicts": {
+   "base": "REJECT y:unsupported{intrinsic member ArrayBuffer.transfer} z:blocked",
+   "proto": "REJECT y:unsupported{intrinsic member ArrayBuffer.transfer} z:blocked",
+   "refac": "REJECT y:unsupported{intrinsic member ArrayBuffer.transfer} z:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "arraybuffer-resize",
+  "family": "unlisted-mutating-method",
+  "verdicts": {
+   "base": "REJECT x:rejected[arity] y:unsupported{intrinsic member ArrayBuffer.resize}",
+   "proto": "REJECT x:rejected[arity] y:unsupported{intrinsic member ArrayBuffer.resize}",
+   "refac": "REJECT x:rejected[arity] y:unsupported{intrinsic member ArrayBuffer.resize}"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "structuredclone-transfer",
+  "family": "unlisted-mutating-method",
+  "verdicts": {
+   "base": "REJECT y:rejected[arity]",
+   "proto": "REJECT y:rejected[arity]",
+   "refac": "REJECT y:rejected[arity]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "uint8-setfromhex",
+  "family": "unlisted-mutating-method",
+  "verdicts": {
+   "base": "REJECT y:unsupported{intrinsic member Uint8Array.setFromHex}",
+   "proto": "REJECT y:unsupported{intrinsic member Uint8Array.setFromHex}",
+   "refac": "REJECT y:unsupported{intrinsic member Uint8Array.setFromHex}"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "typedarray-set-via-subarray",
+  "family": "unlisted-mutating-method",
+  "verdicts": {
+   "base": "REJECT y:rejected[mut-not-fresh]",
+   "proto": "REJECT y:rejected[mut-not-fresh]",
+   "refac": "REJECT y:rejected[mut-not-fresh]"
+  },
+  "out": [],
+  "broke": false
+ }
+]

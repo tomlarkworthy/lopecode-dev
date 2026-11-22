@@ -1,0 +1,79 @@
+[
+ {
+  "name": "generator-helper-runs-after-freeze",
+  "family": "helper-deferred-body",
+  "verdicts": {
+   "base": "REJECT a:rejected[type]",
+   "proto": "REJECT a:rejected[type]",
+   "refac": "REJECT a:rejected[type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "generator-fn-decl-helper",
+  "family": "helper-deferred-body",
+  "verdicts": {
+   "base": "REJECT a:rejected[type]",
+   "proto": "REJECT a:rejected[type]",
+   "refac": "REJECT a:rejected[type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "finally-after-return-freeze",
+  "family": "try-finally",
+  "verdicts": {
+   "base": "REJECT a:unsupported{try/finally in a function holding a Mut/Borrowed} b:blocked",
+   "proto": "REJECT a:unsupported{try/finally in a function holding a Mut/Borrowed} b:blocked",
+   "refac": "REJECT a:unsupported{try/finally in a function holding a Mut/Borrowed} b:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "catch-after-throw-freeze",
+  "family": "try-finally",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-after-freeze]",
+   "proto": "REJECT a:rejected[mut-after-freeze]",
+   "refac": "REJECT a:rejected[mut-after-freeze]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "escaping-thunk-calls-helper",
+  "family": "helper-transitive",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-capture]",
+   "proto": "REJECT a:rejected[mut-capture]",
+   "refac": "REJECT a:rejected[mut-capture]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "callback-third-arg-alias",
+  "family": "intrinsic-callback-alias",
+  "verdicts": {
+   "base": "REJECT g:rejected[arity][type] r:rejected[inject-type]",
+   "proto": "REJECT g:rejected[arity][type] r:rejected[inject-type]",
+   "refac": "REJECT g:rejected[arity][type] r:rejected[inject-type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "loop-update-after-freeze",
+  "family": "loop",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-after-freeze]{comma expression}",
+   "proto": "REJECT a:rejected[mut-after-freeze]{comma expression}",
+   "refac": "REJECT a:rejected[mut-after-freeze]{comma expression}"
+  },
+  "out": [],
+  "broke": false
+ }
+]

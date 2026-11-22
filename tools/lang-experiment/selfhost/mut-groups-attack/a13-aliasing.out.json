@@ -1,0 +1,100 @@
+[
+ {
+  "name": "helper-captures-and-param",
+  "family": "param-aliasing",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-helper-captures-and-field-param",
+  "family": "param-aliasing",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "aliasing-iteration-grows",
+  "family": "param-aliasing",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = 6"
+  ],
+  "broke": false
+ },
+ {
+  "name": "aliasing-map-delete-while-iterating",
+  "family": "param-aliasing",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [\"a\"]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "generic-field-unknown",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[type][mut-bind]",
+   "proto": "REJECT a:rejected[type]",
+   "refac": "REJECT a:rejected[type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "generic-field-bounded",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]{type parameter constraint/default}",
+   "proto": "REJECT a:unsupported{type parameter constraint/default}",
+   "refac": "REJECT a:unsupported{type parameter constraint/default}"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "generic-field-via-callback",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [2,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "generic-whole-group-field-xs",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "REJECT a:rejected[mut-escape]",
+   "refac": "REJECT a:rejected[mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ }
+]

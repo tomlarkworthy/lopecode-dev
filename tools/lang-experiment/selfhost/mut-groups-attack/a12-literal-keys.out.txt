@@ -1,0 +1,30 @@
+== duplicate-key-later-frozen [group-literal-keys]
+   base: REJECT y:rejected[mut-deep-write][mut-bind]
+   proto: REJECT y:rejected[mut-deep-write]
+   refac: REJECT y:rejected[mut-deep-write]
+== duplicate-key-plain-then-owned [group-literal-keys]
+   base: REJECT y:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show x = [1,2]
+== spread-overrides-owned-field [group-literal-keys]
+   base: REJECT y:rejected[mut-deep-write][mut-bind]
+   proto: REJECT y:rejected[mut-deep-write]
+   refac: REJECT y:rejected[mut-deep-write]
+== computed-duplicate-key [group-literal-keys]
+   base: REJECT y:rejected[mut-bind]{computed property}
+   proto: REJECT y:unsupported{computed property}
+   refac: REJECT y:unsupported{computed property}
+== string-key-duplicate [group-literal-keys]
+   base: REJECT y:rejected[mut-deep-write][mut-bind]
+   proto: REJECT y:rejected[mut-deep-write]
+   refac: REJECT y:rejected[mut-deep-write]
+== plain-mut-duplicate-key [group-literal-keys]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show y = "object"
+== proto-key [group-literal-keys]
+   base: REJECT y:rejected[banned-member]
+   proto: REJECT y:rejected[banned-member]
+   refac: REJECT y:rejected[banned-member]

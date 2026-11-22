@@ -1,0 +1,37 @@
+== helper-captures-and-param [param-aliasing]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== group-helper-captures-and-field-param [param-aliasing]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== aliasing-iteration-grows [param-aliasing]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = 6
+== aliasing-map-delete-while-iterating [param-aliasing]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = ["a"]
+== generic-field-unknown [group-generic-field]
+   base: REJECT a:rejected[type][mut-bind]
+   proto: REJECT a:rejected[type]
+   refac: REJECT a:rejected[type]
+== generic-field-bounded [group-generic-field]
+   base: REJECT a:rejected[mut-bind]{type parameter constraint/default}
+   proto: REJECT a:unsupported{type parameter constraint/default}
+   refac: REJECT a:unsupported{type parameter constraint/default}
+== generic-field-via-callback [group-generic-field]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [2,2]
+== generic-whole-group-field-xs [group-generic-field]
+   base: REJECT a:rejected[mut-bind]
+   proto: REJECT a:rejected[mut-escape]
+   refac: REJECT a:rejected[mut-escape]

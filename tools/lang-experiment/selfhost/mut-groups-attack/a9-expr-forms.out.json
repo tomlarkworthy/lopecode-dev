@@ -1,0 +1,365 @@
+[
+ {
+  "name": "paren",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "proto": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "as-const",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "proto": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "satisfies",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:unsupported{satisfies}{TSSatisfiesExpression} reader:blocked",
+   "proto": "REJECT gen:unsupported{satisfies}{TSSatisfiesExpression} reader:blocked",
+   "refac": "REJECT gen:unsupported{satisfies}{TSSatisfiesExpression} reader:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "array-index",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]",
+   "proto": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]",
+   "refac": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "comma",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:unsupported{comma expression} reader:blocked",
+   "proto": "REJECT gen:unsupported{comma expression} reader:blocked",
+   "refac": "REJECT gen:unsupported{comma expression} reader:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "conditional",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "proto": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "nullish",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "proto": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "and",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "proto": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "or",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "proto": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "optional-chain-call-identity",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT reader:rejected[inject-type]",
+   "proto": "REJECT reader:rejected[inject-type]",
+   "refac": "REJECT reader:rejected[inject-type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "tagged-template",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:unsupported{tagged template} reader:blocked",
+   "proto": "REJECT gen:unsupported{tagged template} reader:blocked",
+   "refac": "REJECT gen:unsupported{tagged template} reader:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "tagged-template-strings-arr",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[unknown-type]{tagged template} reader:blocked",
+   "proto": "REJECT gen:rejected[unknown-type]{tagged template} reader:blocked",
+   "refac": "REJECT gen:rejected[unknown-type]{tagged template} reader:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "default-param",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape]",
+   "proto": "REJECT gen:rejected[mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "getter",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[no-member]{get accessor} reader:blocked",
+   "proto": "REJECT gen:rejected[no-member]{get accessor} reader:blocked",
+   "refac": "REJECT gen:rejected[no-member]{get accessor} reader:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "object-method",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-capture][mut-escape]",
+   "proto": "REJECT gen:rejected[mut-capture][mut-escape]",
+   "refac": "REJECT gen:rejected[mut-capture][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "array-destructure",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]",
+   "proto": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]",
+   "refac": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "iife-arrow",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape]",
+   "proto": "REJECT gen:rejected[mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-paren",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape][mut-bind]",
+   "proto": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-conditional",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape][mut-bind]",
+   "proto": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-nullish",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape][mut-bind]",
+   "proto": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-optional-chain",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind] reader:rejected[inject-type]",
+   "proto": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]",
+   "refac": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-computed",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-escape][mut-bind]",
+   "proto": "REJECT gen:rejected[mut-escape][mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-tagged-template",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind]{tagged template} reader:blocked",
+   "proto": "REJECT gen:unsupported{tagged template} reader:blocked",
+   "refac": "REJECT gen:unsupported{tagged template} reader:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-tagged-template",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind]{tagged template} reader:blocked",
+   "proto": "REJECT gen:unsupported{tagged template} reader:blocked",
+   "refac": "REJECT gen:unsupported{tagged template} reader:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-default-param",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind]",
+   "proto": "REJECT gen:rejected[mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-array-index",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[possibly-undefined][mut-escape][mut-bind] reader:blocked",
+   "proto": "REJECT gen:rejected[possibly-undefined][mut-escape] reader:blocked",
+   "refac": "REJECT gen:rejected[possibly-undefined][mut-escape] reader:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-in-array",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind] reader:rejected[inject-type]",
+   "proto": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]",
+   "refac": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-spread-call",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind] reader:rejected[inject-type]",
+   "proto": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]",
+   "refac": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-array-from",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind] reader:rejected[inject-type]",
+   "proto": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]",
+   "refac": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-object-values",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind] reader:rejected[inject-type]",
+   "proto": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]",
+   "refac": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-object-values",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind] reader:rejected[inject-type]",
+   "proto": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]",
+   "refac": "REJECT gen:rejected[mut-escape] reader:rejected[inject-type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-map-get",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind]",
+   "proto": "REJECT gen:rejected[mut-escape]",
+   "refac": "REJECT gen:rejected[mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "field-json-roundtrip-not-alias",
+  "family": "expression-form",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind] reader:rejected[inject-type]",
+   "proto": "REJECT reader:rejected[inject-type]",
+   "refac": "REJECT reader:rejected[inject-type]"
+  },
+  "out": [],
+  "broke": false
+ }
+]

@@ -1,0 +1,32 @@
+== width-hides-owned-field [group-param-type-widening]
+   base: REJECT g:rejected[type][mut-bind]
+   proto: REJECT g:rejected[type]
+   refac: REJECT g:rejected[type]
+== width-hides-owned-field-after-freeze-of-other [group-param-type-widening]
+   base: REJECT a:rejected[type][mut-bind]
+   proto: REJECT a:rejected[type]
+   refac: REJECT a:rejected[type]
+== group-twice-same-call [param-aliasing]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== group-and-own-field-same-call [param-aliasing]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== field-twice-same-call [param-aliasing]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== plain-mut-twice-same-call [param-aliasing]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== destructured-group-param [param-destructuring]
+   base: REJECT g:rejected[type][mut-bind]
+   proto: REJECT g:rejected[type]
+   refac: REJECT g:rejected[type]

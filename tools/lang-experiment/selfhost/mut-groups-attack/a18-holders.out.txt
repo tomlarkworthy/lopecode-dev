@@ -1,0 +1,57 @@
+== b4-holder-record-returned [mut-holder]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED a (value #1 of 1, same object): {h:{y:[10]},fr:{xs:[1],ys:[10]}}  ->  {h:{y:[10,99]},fr:{xs:[1],ys:[10,99]}}
+   show a = {h:{y:[10,99]},fr:{xs:[1],ys:[10,99]}}
+== b4-holder-closure [mut-holder]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED a (value #1 of 1, same object): {fr:{xs:[1],ys:[10]},poke:fn}  ->  {fr:{xs:[1],ys:[10,5]},poke:fn}
+   show b = [1,2]
+== b1-holder-record-returned [mut-holder]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED x (value #1 of 1, same object): [1]  ->  [1,2]
+   CHANGED a (value #1 of 1, same object): {m:[1]}  ->  {m:[1,2]}
+   show x = [1,2]
+== b1-holder-closure [mut-holder]
+   base: REJECT b:blocked
+   proto: REJECT b:blocked
+   refac: REJECT b:blocked
+== named-fnexpr-base [known-base-hole]
+   base: ACCEPT
+   proto: REJECT a:rejected[mut-capture]
+   refac: REJECT a:rejected[mut-capture]
+   CHANGED a (value #1 of 1, same object): {fr:[1],f:fn}  ->  {fr:[1,2],f:fn}
+   show b = [1,2]
+== regexp-exec-no-lastindex-read [hidden-intrinsic-state]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   show y = [false,true]
+== shadow-mut-by-param-called [prelude-as-value]
+   base: ACCEPT
+   proto: ACCEPT
+   refac: ACCEPT
+   CHANGED x (value #1 of 1, same object): [1]  ->  [1,2]
+   show x = [1,2]
+== generic-optional-field-narrowed [group-generic-field]
+   base: REJECT a:rejected[type][mut-bind]
+   proto: REJECT a:rejected[type]
+   refac: REJECT a:rejected[type]
+== group-generator-borrow-field [generator-group]
+   base: REJECT gen:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show keep = 4
+== group-index-signature-field [group-type-hiding]
+   base: REJECT a:rejected[type][mut-bind]
+   proto: REJECT a:rejected[type][mut-escape]
+   refac: REJECT a:rejected[type][mut-escape]
+== freeze-in-conditional-expr [flow]
+   base: REJECT a:rejected[inject-unknown][mut-after-freeze]
+   proto: REJECT a:rejected[inject-unknown][mut-after-freeze]
+   refac: REJECT a:rejected[inject-unknown][mut-after-freeze]

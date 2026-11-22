@@ -1,0 +1,59 @@
+[
+ {
+  "name": "typed-array-over-cell-buffer",
+  "family": "fresh-intrinsic-shares-storage",
+  "verdicts": {
+   "base": "REJECT y:rejected[mut-not-fresh]",
+   "proto": "REJECT y:rejected[mut-not-fresh]",
+   "refac": "REJECT y:rejected[mut-not-fresh]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "typed-array-over-frozen-buffer",
+  "family": "fresh-intrinsic-shares-storage",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-not-fresh]",
+   "proto": "REJECT a:rejected[mut-not-fresh]",
+   "refac": "REJECT a:rejected[mut-not-fresh]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "typed-array-from-cell-typed-array-buffer",
+  "family": "fresh-intrinsic-shares-storage",
+  "verdicts": {
+   "base": "REJECT y:rejected[mut-not-fresh]",
+   "proto": "REJECT y:rejected[mut-not-fresh]",
+   "refac": "REJECT y:rejected[mut-not-fresh]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "regexp-lastindex",
+  "family": "hidden-intrinsic-state",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show y = [true,true,false]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "regexp-exec-lastindex",
+  "family": "hidden-intrinsic-state",
+  "verdicts": {
+   "base": "REJECT y:unsupported{intrinsic member RegExp.lastIndex}",
+   "proto": "REJECT y:unsupported{intrinsic member RegExp.lastIndex}",
+   "refac": "REJECT y:unsupported{intrinsic member RegExp.lastIndex}"
+  },
+  "out": [],
+  "broke": false
+ }
+]

@@ -1,0 +1,143 @@
+[
+ {
+  "name": "b4-holder-record-returned",
+  "family": "mut-holder",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED a (value #1 of 1, same object): {h:{y:[10]},fr:{xs:[1],ys:[10]}}  ->  {h:{y:[10,99]},fr:{xs:[1],ys:[10,99]}}",
+   "show a = {h:{y:[10,99]},fr:{xs:[1],ys:[10,99]}}"
+  ],
+  "broke": true
+ },
+ {
+  "name": "b4-holder-closure",
+  "family": "mut-holder",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED a (value #1 of 1, same object): {fr:{xs:[1],ys:[10]},poke:fn}  ->  {fr:{xs:[1],ys:[10,5]},poke:fn}",
+   "show b = [1,2]"
+  ],
+  "broke": true
+ },
+ {
+  "name": "b1-holder-record-returned",
+  "family": "mut-holder",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED x (value #1 of 1, same object): [1]  ->  [1,2]",
+   "CHANGED a (value #1 of 1, same object): {m:[1]}  ->  {m:[1,2]}",
+   "show x = [1,2]"
+  ],
+  "broke": true
+ },
+ {
+  "name": "b1-holder-closure",
+  "family": "mut-holder",
+  "verdicts": {
+   "base": "REJECT b:blocked",
+   "proto": "REJECT b:blocked",
+   "refac": "REJECT b:blocked"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "named-fnexpr-base",
+  "family": "known-base-hole",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "REJECT a:rejected[mut-capture]",
+   "refac": "REJECT a:rejected[mut-capture]"
+  },
+  "out": [
+   "CHANGED a (value #1 of 1, same object): {fr:[1],f:fn}  ->  {fr:[1,2],f:fn}",
+   "show b = [1,2]"
+  ],
+  "broke": true
+ },
+ {
+  "name": "regexp-exec-no-lastindex-read",
+  "family": "hidden-intrinsic-state",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show y = [false,true]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "shadow-mut-by-param-called",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED x (value #1 of 1, same object): [1]  ->  [1,2]",
+   "show x = [1,2]"
+  ],
+  "broke": true
+ },
+ {
+  "name": "generic-optional-field-narrowed",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[type][mut-bind]",
+   "proto": "REJECT a:rejected[type]",
+   "refac": "REJECT a:rejected[type]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "group-generator-borrow-field",
+  "family": "generator-group",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show keep = 4"
+  ],
+  "broke": false
+ },
+ {
+  "name": "group-index-signature-field",
+  "family": "group-type-hiding",
+  "verdicts": {
+   "base": "REJECT a:rejected[type][mut-bind]",
+   "proto": "REJECT a:rejected[type][mut-escape]",
+   "refac": "REJECT a:rejected[type][mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "freeze-in-conditional-expr",
+  "family": "flow",
+  "verdicts": {
+   "base": "REJECT a:rejected[inject-unknown][mut-after-freeze]",
+   "proto": "REJECT a:rejected[inject-unknown][mut-after-freeze]",
+   "refac": "REJECT a:rejected[inject-unknown][mut-after-freeze]"
+  },
+  "out": [],
+  "broke": false
+ }
+]

@@ -1,0 +1,31 @@
+== generic-alias-box [group-generic-field]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== generic-interface-box [group-generic-field]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== generic-optional-field [group-generic-field]
+   base: REJECT a:rejected[type][possibly-undefined][mutating-method][mut-bind]
+   proto: REJECT a:rejected[type][possibly-undefined][mutating-method]
+   refac: REJECT a:rejected[type][possibly-undefined][mutating-method]
+== intersection-hides-field [group-type-hiding]
+   base: REJECT a:rejected[mutating-method][mut-bind]{IntersectionType type}{intrinsic member Mut.ys}
+   proto: REJECT a:rejected[mutating-method][mut-escape]{IntersectionType type}{intrinsic member Mut.ys}
+   refac: REJECT a:rejected[mutating-method][mut-escape]{IntersectionType type}{intrinsic member Mut.ys}
+== generic-intersection [group-generic-field]
+   base: REJECT a:rejected[no-member][mut-bind]{IntersectionType type}{intrinsic member Mut.ys}
+   proto: REJECT a:rejected[no-member][mut-escape]{IntersectionType type}{intrinsic member Mut.ys}
+   refac: REJECT a:rejected[no-member][mut-escape]{IntersectionType type}{intrinsic member Mut.ys}
+== generic-two-params [group-generic-field]
+   base: REJECT a:rejected[mut-bind]
+   proto: ACCEPT
+   refac: ACCEPT
+   show a = [1,2]
+== readonly-field [group-type-hiding]
+   base: REJECT a:rejected[mutating-method][mut-bind]
+   proto: REJECT a:rejected[mutating-method][mut-escape]
+   refac: REJECT a:rejected[mutating-method][mut-escape]

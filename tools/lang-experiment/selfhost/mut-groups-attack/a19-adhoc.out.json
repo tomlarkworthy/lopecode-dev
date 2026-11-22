@@ -1,0 +1,57 @@
+[
+ {
+  "name": "freeze-local-alias-untyped",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "REJECT g:rejected[mut-escape]",
+   "proto": "REJECT g:rejected[mut-escape]",
+   "refac": "REJECT g:rejected[mut-escape]"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "generator-helper-next",
+  "family": "helper-deferred-body",
+  "verdicts": {
+   "base": "REJECT a:unsupported{intrinsic member Generator.next}",
+   "proto": "REJECT a:unsupported{intrinsic member Generator.next}",
+   "refac": "REJECT a:unsupported{intrinsic member Generator.next}"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "async-helper-sync-part",
+  "family": "async-suspension",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "yield-star-iterator",
+  "family": "helper-deferred-body",
+  "verdicts": {
+   "base": "REJECT g:unsupported{yield*}",
+   "proto": "REJECT g:unsupported{yield*}",
+   "refac": "REJECT g:unsupported{yield*}"
+  },
+  "out": [],
+  "broke": false
+ },
+ {
+  "name": "yield-star-call",
+  "family": "helper-deferred-body",
+  "verdicts": {
+   "base": "REJECT g:unsupported{yield*}",
+   "proto": "REJECT g:unsupported{yield*}",
+   "refac": "REJECT g:unsupported{yield*}"
+  },
+  "out": [],
+  "broke": false
+ }
+]

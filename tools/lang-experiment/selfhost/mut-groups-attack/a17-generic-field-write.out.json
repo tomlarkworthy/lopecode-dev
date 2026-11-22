@@ -1,0 +1,55 @@
+[
+ {
+  "name": "generic-field-moved-between-groups",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind][mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "generic-field-aliased-within-group",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = {xs:[1],ys:[100,200],zs:[100,200]}"
+  ],
+  "broke": false
+ },
+ {
+  "name": "generic-field-moved-yield-then-write",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind][mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED gen (value #1 of 1, same object): {xs:[1],ys:[20]}  ->  {xs:[1],ys:[20,30]}",
+   "CHANGED reader (value #1 of 1, same object): {xs:[1],ys:[20]}  ->  {xs:[1],ys:[20,30]}"
+  ],
+  "broke": true
+ },
+ {
+  "name": "generic-field-delete",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = \"undefined\""
+  ],
+  "broke": false
+ }
+]

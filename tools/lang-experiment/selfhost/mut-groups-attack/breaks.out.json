@@ -1,0 +1,111 @@
+[
+ {
+  "name": "B1-mut-as-value",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED x (value #1 of 1, same object): [1,2]  ->  [1,2,3]",
+   "show x = [1,2,3]",
+   "show y = 3"
+  ],
+  "broke": true
+ },
+ {
+  "name": "B2-freeze-as-value",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "B2b-freeze-as-value-yield",
+  "family": "prelude-as-value",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED gen (value #1 of 1, same object): [1]  ->  [1,2]",
+   "CHANGED reader (value #1 of 1, same object): [1]  ->  [1,2]"
+  ],
+  "broke": true
+ },
+ {
+  "name": "B3-same-mut-twice",
+  "family": "param-aliasing",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "B4-group-type-variable-field",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = [1,2]"
+  ],
+  "broke": false
+ },
+ {
+  "name": "B4b-group-field-moved-to-other-group",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT gen:rejected[mut-bind][mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "CHANGED gen (value #1 of 1, same object): {xs:[1],ys:[20]}  ->  {xs:[1],ys:[20,30]}",
+   "CHANGED reader (value #1 of 1, same object): {xs:[1],ys:[20]}  ->  {xs:[1],ys:[20,30]}"
+  ],
+  "broke": true
+ },
+ {
+  "name": "B4c-group-field-deleted",
+  "family": "group-generic-field",
+  "verdicts": {
+   "base": "REJECT a:rejected[mut-bind]",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show a = \"undefined\""
+  ],
+  "broke": false
+ },
+ {
+  "name": "B5-regexp-lastindex",
+  "family": "hidden-intrinsic-state",
+  "verdicts": {
+   "base": "ACCEPT",
+   "proto": "ACCEPT",
+   "refac": "ACCEPT"
+  },
+  "out": [
+   "show y = [true,true]",
+   "show z = [false,true]"
+  ],
+  "broke": false
+ }
+]
