@@ -782,6 +782,8 @@ spec_rejects_4 = [
   { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const t = new Float32Array(2);\n  return () => t.length;\n};" },
   { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = [0];\n  const f = () => out.length;\n  out.push(1);\n  return f;\n};" },
   { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = [0];\n  return { f: () => { out.push(1); return out.length; } };\n};" },
+  // holes8 (2026-11-22): a kept function that captures a promise (it settles after the function is published)
+  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const p = Promise.resolve([1]);\n  return () => p;\n};" },
   { statement: "S4.8", rule: "mut-yield", source: "const g = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf;\n  }\n};" }
 ]
 // %%
@@ -854,6 +856,33 @@ test_spec_S4_6_host = {
   x.search = "?q=2";
   spec_is([...got, q.get("q"), x.searchParams.get("q")], ["[type]", "TypeError", "1", "2"]);
   return "a cell value with a callable then is rejected by the checker, and a nested one throws at publish, not adopted; searchParams read before a write keeps the value it had";
+}
+// %%
+test_spec_S4_6_holes8 = {
+  // holes8 (2026-11-22): a function the cell keeps that captures a promise is [mut-capture], and where the checker does
+  // not see the promise (typed unknown) publishing it throws; a rejection reason is deep-frozen,
+  // one reason for every reader; a native Map from structuredClone is published as a frozen copy; a match array's
+  // groups and indices are frozen; an action's arguments are frozen all or none; an island on the page takes and
+  // gives structured clones, as a worker does
+  const V = await spec_load("const k = () => { const p = Promise.resolve([1]); return () => p; };\nconst k2 = () => { const p: unknown = Promise.resolve([1]); return () => p; };\nconst n = () => ({ m: structuredClone(new Map([[\"k\", 1]])) });\nconst g = () => ({ m: /(?<g>a)/d.exec(\"ab\") });\nconst s = () => state(0);\nconst add = (s: State<number>) => action((a: number[], b: Iterable<number>) => { s.set(a.length); });", {});
+  const tries = (fs) => fs.map((f) => { try { f(); return "no throw"; } catch (x) { return x instanceof TypeError ? "TypeError" : String(x); } });
+  let got;
+  try {
+    const why = (n) => V.value(n).then(() => "fulfilled", (x) => (/does not check: \[mut-capture\] p holds a promise/.test(x?.message) ? "[mut-capture]" : /promise where it cannot be replaced/.test(x?.message) && x instanceof TypeError ? "TypeError" : String(x)));
+    const k = [await why("k"), await why("k2")];
+    // the rejection through deepFreeze directly, a catch attached at once: a cell's rejected promise read by this test
+    // later than its task is an unhandled rejection the browser reports as a page error
+    const rp = soundscript.deepFreeze({ p: Promise.reject(new Error("x")) }).p, c1 = rp.catch((x) => x), c2 = rp.catch((x) => x);
+    const e1 = await c1, e2 = await c2;
+    const n = await V.value("n"), g = await V.value("g"), add = await V.value("add");
+    const xs = [0];
+    try { add(xs, [1].values()); } catch {}
+    got = [...k, e1 === e2, ...tries([() => { e1.message = "y"; }, () => n.m.set("j", 2)]), Object.isFrozen(g.m.groups), Object.isFrozen(g.m.indices), Object.isFrozen(xs)];
+  } finally { V.dispose(); }
+  const c = soundscript.compiler(() => soundscript.joinCells(["const x = () => [1];", "const y = (x: number[]) => x;", "const go = (compile: Compile) => compile({ inputs: [\"x\"], refs: [], outputs: [\"y\"] });"]));
+  const ys = [0], out = await c.for("go", {})({ inputs: ["x"], refs: [], outputs: ["y"] })({ x: ys });
+  spec_is([...got, out.y === ys, Object.isFrozen(ys), Object.isFrozen(out.y)], ["[mut-capture]", "TypeError", true, "TypeError", "TypeError", true, true, false, false, false, true]);
+  return "a captured promise is [mut-capture], and one typed unknown throws at publish; a rejection reason is frozen and the same for two readers; a structuredClone Map, a match array's groups and indices are frozen; an action that throws on an argument freezes none; an island on the page clones in and out";
 }
 // %%
 test_spec_S4_7 = spec_rejectsFor("S4.7")

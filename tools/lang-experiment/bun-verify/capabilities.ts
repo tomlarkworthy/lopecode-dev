@@ -145,7 +145,32 @@ export const scriptInnerHtmlIsText: Capability = {
   },
 };
 
-export const ALL: Capability[] = [inlineModuleShim, scriptInnerHtmlIsText, frames, symbolKeysOnFormProxies, worker];
+// structuredClone in the notebook's realm (holes8). lope-runtime passes node's own, whose results are node-realm objects;
+// their prototypes are not the realm's, so freeze.ts deepFreeze, which tells kinds by prototype, left them unfrozen.
+// A browser's structuredClone gives objects of the page's realm; this rebuilds node's result with the realm's constructors.
+export const realmClone: Capability = {
+  name: "realm-structured-clone",
+  install(g) {
+    const host = g("structuredClone"), G = g("globalThis"), C = (n: string) => G[n];
+    const into = (v: any, seen: Map<any, any>): any => {
+      if (v === null || typeof v !== "object") return v;
+      if (seen.has(v)) return seen.get(v);
+      const set = (c: any) => (seen.set(v, c), c);
+      const fields = (c: any) => { for (const k of Object.keys(v)) c[k] = into(v[k], seen); return c; };
+      if (Array.isArray(v)) return fields(set(new (C("Array"))(v.length)));
+      if (v instanceof Map) { const m = set(new (C("Map"))()); for (const [a, b] of v) m.set(into(a, seen), into(b, seen)); return m; }
+      if (v instanceof Set) { const s = set(new (C("Set"))()); for (const a of v) s.add(into(a, seen)); return s; }
+      if (v instanceof Date) return set(new (C("Date"))(v.getTime()));
+      if (v instanceof RegExp) return set(new (C("RegExp"))(v.source, v.flags));
+      if (v instanceof ArrayBuffer) { const b = set(new (C("ArrayBuffer"))(v.byteLength)); new (C("Uint8Array"))(b).set(new Uint8Array(v)); return b; }
+      if (ArrayBuffer.isView(v)) return set(new (C(v.constructor.name))(into(v.buffer, seen), v.byteOffset, v instanceof DataView ? v.byteLength : (v as unknown as { length: number }).length));
+      if (v instanceof Error) { const e = fields(set(new (C(typeof G[v.name] === "function" ? v.name : "Error"))(v.message))); if ("cause" in v) e.cause = into(v.cause, seen); return e; }
+      return fields(set(new (C("Object"))()));
+    };
+    G.structuredClone = (v: unknown, o?: StructuredSerializeOptions) => into(host(v, o), new Map());
+  },
+};
+export const ALL: Capability[] = [inlineModuleShim, scriptInnerHtmlIsText, frames, symbolKeysOnFormProxies, worker, realmClone];
 
 // Tests that need a capability this harness does not supply. A failure of one of these is reported SKIPPED
 // only when `present` (a probe of the page's realm, run after the tests) says the capability is absent.

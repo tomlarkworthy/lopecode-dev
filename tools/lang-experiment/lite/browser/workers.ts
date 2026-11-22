@@ -42,7 +42,10 @@ export const EXEC = `(function () {
   };
 })()`;
 
-export const runHere: (job: Job) => Record<string, unknown> = new Function(`return ${EXEC}`)();
+const exec: (job: Job) => Record<string, unknown> = new Function(`return ${EXEC}`)();
+// On the page an island crosses the boundary a worker's does (holes8): its inputs and its results are structured
+// clones, so what cannot be sent to a worker fails here too, and nothing the island makes or reads is shared with a cell
+export const runHere = (job: Job): Record<string, unknown> => structuredClone(exec({ ...job, values: structuredClone(job.values) }));
 
 // From here to the end, the pool: the add-on module @tomlarkworthy/soundscript-workers (ts-cells.ts WORKERS_ROOTS).
 

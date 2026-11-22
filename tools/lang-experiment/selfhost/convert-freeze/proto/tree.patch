@@ -1,0 +1,477 @@
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/browser/run.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/run.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/browser/run.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/run.ts	2026-11-22 17:41:42
+@@ -6,9 +6,13 @@
+ import { h } from "../jsx/h.ts";
+ import { erase } from "./erase.ts";
+ // a state cell's value is Observable's own Generators.input of its handle (a view)
+-import { input as genInput } from "../../../../vendor/observable-stdlib/src/generators/input.js";
++import { input as genInput } from "/Users/tom.larkworthy/dev/lopecode-dev/vendor/observable-stdlib/src/generators/input.js";
+ import * as P from "../../prelude.runtime.ts";
+-import { SsMap, SsSet, SsURL, out, deepFreeze, closure, methods } from "../freeze.ts";
++import { SsMap, SsSet, SsURL, out, bFreeze as deepFreeze, closure, methods, ss_f, ssOut } from "../freeze.ts";
++import { PROTO } from "../proto-flags.ts";
++import { conversionSites } from "../proto-sites.ts";
++import { rewrite } from "../../../convert.ts";
++export const PROTO_LOG: { sites: number; unplaced: string[]; rewritten: string | null } = { sites: 0, unplaced: [], rewritten: null };
+ import { compileModule, parseCompiled } from "../toolchain/ss-toolchain.ts";
+ import { island, type IslandSpec } from "../island.ts";
+ import { CAPABILITIES, PRELUDE_FNS } from "../intrinsics.ts";
+@@ -25,8 +29,8 @@
+ 
+ const CAPS = new Set(Object.keys(CAPABILITIES));
+ // Map and Set in a cell are the freezable subclasses (freeze.ts), as in a compiled cell
+-const PRELUDE_VALUES: Record<string, unknown> = { Map: SsMap, Set: SsSet, URL: SsURL, state: P.state, action: P.action, mut: P.mut, freeze: P.freeze, borrow: P.borrow, snapshot: P.snapshot, equals: P.equals, messageOf: P.messageOf, on, read: P.read, h };
+-const PRELUDE = [...PRELUDE_FNS, "h", "Map", "Set", "URL"];
++const PRELUDE_VALUES: Record<string, unknown> = { Map: SsMap, Set: SsSet, URL: SsURL, state: P.state, action: P.action, mut: P.mut, freeze: P.freeze, borrow: P.borrow, snapshot: P.snapshot, equals: P.equals, messageOf: P.messageOf, on, read: P.read, h, ss_f };
++const PRELUDE = [...PRELUDE_FNS, "h", "Map", "Set", "URL", "ss_f"];
+ if (PRELUDE.some((n) => !(n in PRELUDE_VALUES))) throw new Error("a prelude function has no runtime value");
+ export type Program = ReturnType<typeof runCells>;
+ const REG_NAMES = ["ss_closure", "ss_methods"];
+@@ -46,6 +50,7 @@
+ let programs = 0;
+ 
+ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilities; onChange?: (r: Rec) => void; checked?: Verdicts } = {}) {
++  if (PROTO.convert) { const { sites } = conversionSites(source, !!opts.tsx); const r = rewrite(source, sites, !!opts.tsx); PROTO_LOG.sites = sites.length; PROTO_LOG.unplaced = r.unplaced.map((u) => `${u.site.kind}@${u.site.start}-${u.site.end} ${u.why}`); source = r.out; PROTO_LOG.rewritten = source; }
+   const programId = `p${++programs}`;
+   const ts = opts.tsx ? lowerJsx(source) : source;
+   const js = erase(ts);
+@@ -55,7 +60,7 @@
+     ...PRELUDE.map((n) => PRELUDE_VALUES[n])) as Record<string, (...a: unknown[]) => unknown>;
+   // each cell's function as the notebook runs it: the compiled definition's function text, with the closure
+   // registrations the compiler emits (lite/fnreg.ts, toolchain tc-reg); the erased text only when compiling fails
+-  const compiledFns = compiledFunctions(source, !!opts.tsx);
++  const compiledFns = PROTO.reg ? compiledFunctions(source, !!opts.tsx) : new Map<string, string>();
+   for (const [n, text] of compiledFns) exports[n] = new Function(...PRELUDE, ...REG_NAMES, `"use strict";\nreturn (${text});`)(...PRELUDE.map((x) => PRELUDE_VALUES[x]), closure, methods);
+   const byName = new Map(cells.map((c) => [c.name, c]));
+   const caps = opts.caps ?? {};
+@@ -129,7 +134,7 @@
+       rec.evals++;
+       P.rt.evalDepth++;
+       // the value is deep-frozen as it leaves the cell: a promise's resolved value, each value a generator yields
+-      try { const r = out(raw(...a)); return generatorish(r) ? guard(r) : r; } finally { P.rt.evalDepth--; }
++      try { const r = PROTO.B ? ssOut(raw(...a)) : out(raw(...a)); return generatorish(r) ? guard(r) : r; } finally { P.rt.evalDepth--; }
+     };
+     const inputs = c.params.map((p) => input(c, p));
+     // A compile call's refs are hidden inputs: the cell recomputes, and returns a new function, when one changes.
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/browser/workers.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/workers.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/browser/workers.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/browser/workers.ts	2026-11-22 16:50:13
+@@ -29,9 +29,9 @@
+     if (!modules.has(job.key)) {
+       if (modules.size > 16) modules.clear();
+       if (!job.js) throw Object.assign(new Error("island " + job.key + " was not sent"), { missing: true });
+-      const f = new Function("state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "messageOf", "h",
++      const f = new Function("state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "messageOf", "h", "ss_f",
+         '"use strict";\\n' + job.js + "\\nreturn {" + job.names.join(", ") + "};");
+-      modules.set(job.key, f(refuse("state"), refuse("action"), id, id, id, snapshot, equals, messageOf, refuse("h")));
++      modules.set(job.key, f(refuse("state"), refuse("action"), id, id, id, snapshot, equals, messageOf, refuse("h"), (v) => (typeof globalThis.__ssF === "function" ? globalThis.__ssF(v) : v)));
+     }
+     const fns = modules.get(job.key);
+     const vals = Object.assign({}, job.values);
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/core.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/core.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/core.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/core.ts	2026-11-22 16:44:50
+@@ -6,6 +6,7 @@
+ // The glue left in TypeScript: the registry (infer/rg-registry.ts) as the record each cell's check is handed; which load
+ // or cell each report goes to; a form the registry cells do not read (a gap) as a rejection; and the result as
+ // LiteResult.
++import "./proto-flags.ts";
+ import { cloneProblemWith, type Ty } from "./types.ts";
+ import { CAPABILITIES, ALLOWED_GLOBALS, PRELUDE_FNS } from "./intrinsics.ts";
+ import { parseTree } from "./acorn/index.ts";
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/freeze.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/freeze.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/freeze.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/freeze.ts	2026-11-22 17:55:18
+@@ -5,6 +5,7 @@
+ // deepFreeze freezes plain data: arrays, records whose prototype is Object.prototype or null, SsMap, SsSet, their
+ // keys and values. A native Map or Set met in a slot it can still write is replaced by a frozen SsMap/SsSet copy.
+ // It leaves every other object as it is: functions, class instances, typed arrays, Dates, Promises, DOM nodes.
++import { PROTO } from "./proto-flags.ts";
+ const NMap = Map, NSet = Set, NURL = URL;
+ const FROZEN = new WeakSet<object>(), DONE = new WeakSet<object>(), LENT = new WeakSet<object>();
+ const refuse = (o: object, op: string, what: string) => { if (FROZEN.has(o)) throw new TypeError(`${op} on a frozen ${what}: a value cannot change after its cell returns`); };
+@@ -191,11 +192,56 @@
+ export const borrow = <T,>(v: T): T => { if (typeof v === "object" && v !== null) LENT.add(v); return v; };
+ // a cell's value as the runtime publishes it, at every boundary: deep-frozen; a promise's resolved value; each value a
+ // generator yields. (B7's unfrozen quick path was removed 2026-11-22: it failed the freeze attack.)
++export const bFreeze = <T,>(v: T): T => (PROTO.boundary ? deepFreeze(v) : v);
+ export function out<T>(v: T): T {
++  if (!PROTO.boundary) return v;
+   if (v instanceof Promise) return v.then(deepFreeze) as T;
+   const g = v as any;
+   if (!g || typeof g.next !== "function" || typeof g.return !== "function") return deepFreeze(v);
+   const fz = (r: any): any => (r instanceof Promise ? r.then(fz) : r && typeof r === "object" ? { done: r.done, value: yielded(r.value) } : r);
++  const w = { next: (...a: unknown[]) => fz(g.next(...a)), return: (...a: unknown[]) => fz(g.return(...a)), throw: (...a: unknown[]) => fz(g.throw(...a)) };
++  return Object.assign(w, typeof g[Symbol.asyncIterator] === "function" ? { [Symbol.asyncIterator]() { return w; } } : { [Symbol.iterator]() { return w; } }) as T;
++}
++// convert-freeze prototype: ss_f freezes v and every unfrozen object it reaches (arrays, plain records, Error, RegExp,
++// SsMap/SsSet/SsURL); stops at a frozen object, a function or a promise; throws on anything else, before freezing anything
++export const SS_F_STAT = { calls: 0, nodes: 0 };
++const SSF = new WeakSet<object>();
++export function ss_f<T>(v: T): T {
++  SS_F_STAT.calls++;
++  if ((typeof v !== "object" && typeof v !== "function") || v === null || typeof v === "function" || SSF.has(v) || Object.isFrozen(v)) return v;
++  const order: object[] = [], seen = new NSet<object>();
++  const visit = (x: unknown) => {
++    if (typeof x !== "object" || x === null || seen.has(x) || SSF.has(x) || Object.isFrozen(x)) return;
++    if (x instanceof Promise) return;
++    const p = Object.getPrototypeOf(x);
++    let kind: string;
++    if (p === Array.prototype) kind = "arr";
++    else if (p === Object.prototype || p === null) kind = "rec";
++    else if (p === SsMap.prototype) kind = "map";
++    else if (p === SsSet.prototype) kind = "set";
++    else if (p === SsURL.prototype) kind = "url";
++    else if (p === RegExp.prototype) kind = "re";
++    else if (x instanceof Error) kind = "err";
++    else throw new TypeError(`ss_f: cannot freeze a ${p === NMap.prototype ? "native Map" : p === NSet.prototype ? "native Set" : p === NURL.prototype ? "native URL" : ArrayBuffer.isView(x) ? "typed array or DataView" : x instanceof ArrayBuffer ? "ArrayBuffer" : (p?.constructor?.name ?? "object") + " (unknown prototype)"}`);
++    seen.add(x); order.push(x);
++    if (kind === "arr") for (const e of x as unknown[]) visit(e);
++    else if (kind === "rec") for (const k of Reflect.ownKeys(x)) { const d = Object.getOwnPropertyDescriptor(x, k)!; if ("value" in d) visit(d.value); }
++    else if (kind === "map") for (const [a, b] of NMap.prototype.entries.call(x)) { visit(a); visit(b); }
++    else if (kind === "set") for (const a of NSet.prototype.values.call(x)) visit(a);
++    else if (kind === "err") for (const k of Object.getOwnPropertyNames(x)) { const d = Object.getOwnPropertyDescriptor(x, k)!; if ("value" in d) visit(d.value); }
++  };
++  visit(v);
++  for (const o of order) { const p = Object.getPrototypeOf(o); if (p === SsMap.prototype || p === SsSet.prototype || p === SsURL.prototype) FROZEN.add(o); Object.freeze(o); SSF.add(o); }
++  SS_F_STAT.nodes += order.length;
++  return v;
++}
++(globalThis as any).__ssF = ss_f;
++// rule B: every cell return, yield and promise resolution (and rejection reason) converts
++export function ssOut<T>(v: T): T {
++  if (v instanceof Promise) return v.then(ss_f, (e) => { throw ss_f(e); }) as T;
++  const g = v as any;
++  if (!g || typeof g.next !== "function" || typeof g.return !== "function") return ss_f(v);
++  const fz = (r: any): any => (r instanceof Promise ? r.then(fz, (e: unknown) => { throw ss_f(e); }) : r && typeof r === "object" ? { done: r.done, value: ss_f(r.value) } : r);
+   const w = { next: (...a: unknown[]) => fz(g.next(...a)), return: (...a: unknown[]) => fz(g.return(...a)), throw: (...a: unknown[]) => fz(g.throw(...a)) };
+   return Object.assign(w, typeof g[Symbol.asyncIterator] === "function" ? { [Symbol.asyncIterator]() { return w; } } : { [Symbol.iterator]() { return w; } }) as T;
+ }
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/attack/run-sets.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/attack/run-sets.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/attack/run-sets.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/attack/run-sets.ts	2026-11-22 17:44:21
+@@ -16,7 +16,8 @@
+ export const OFF_RULES = new Set(["mut-capture", "let-capture", "mut-yield", "mut-cell", "member-write", "mutating-method", "regexp-state", "iterator-capture"]);
+ type P = Prog & { set: string; name: string; foreign?: string | null };
+ const progs: P[] = [];
+-const SELF = new URL("../../../selfhost/", import.meta.url).pathname, H5 = new URL("../../soundscript/.scratch/holes5/", import.meta.url).pathname;
++const SELF = new URL("../../../selfhost/", import.meta.url).pathname, H5 = new URL("../../../../snap/holes5/", import.meta.url).pathname;
++process.on("unhandledRejection", () => {});
+ if (SETS.includes("freeze")) for (const f of ["b1", "b2", "b3", "b4", "b5", "b6", "b7"])
+   for (const a of (await import(`${SELF}freeze-attack/${f}.ts`)).attacks) progs.push({ set: "freeze", ...a, name: `${f}:${a.name}` });
+ if (SETS.includes("attack2")) for (const f of readdirSync(SELF + "mut-groups-attack2/").filter((f) => /^(b\d+|breaks)\.ts$/.test(f)))
+@@ -33,6 +34,7 @@
+ if (SETS.includes("h6")) for (const a of (await import("./h6-attacks.ts")).attacks) progs.push({ set: "h6", ...a });
+ if (SETS.includes("freeze2")) for (let i = 0; i <= 11; i++)
+   for (const a of (await import(`${SELF}freeze-attack2/b${i}.ts`)).attacks) progs.push({ set: "freeze2", ...a, name: `b${i}:${a.name}` });
++if (SETS.includes("proto")) for (const a of (await import("../../../../attacks/extra.ts")).attacks) progs.push({ set: "proto", ...a });
+ if (SETS.includes("h7")) for (const a of (await import("./h7-attacks.ts")).attacks) progs.push({ set: "h7", ...a });
+ 
+ export const verdictOf = (src: string, foreign: string | null, off: boolean): { ok: boolean; text: string; dropped: string[] } => {
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/ix-apply.ss.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/ix-apply.ss.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/ix-apply.ss.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/ix-apply.ss.ts	2026-11-22 18:02:27
+@@ -39,6 +39,8 @@
+   const lam = (a.type === "ArrowFunctionExpression" || a.type === "FunctionExpression") && a.params.some((q) => ixAnnOf(q) === null);
+   const pc = subst(p, new Map(m));
+   if (lam && hasTv(pc, A.tvSet)) return "defer";
++  const PN = (globalThis as any).__ssProto;
++  if (PN && PN.N && A.opaque === null && !A.sig.flags?.retains) PN.nonRet.add(a.nid);
+   if (!hasTv(pc, A.tvSet)) return K.check(K, T, V, W, C, env, a, A.sig.ps[i]?.opt && !fnArg ? union([pc, UNDEF]) : pc, false, false);
+   const t = K.check(K, T, V, W, C, env, a, ixCtxOnly(ixCtxSubst(p, new Map(m), fromRet), A.tvSet), true, false);
+   K.reg.unify(p, t, m, A.tvSet);
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/ix-expr.ss.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/ix-expr.ss.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/ix-expr.ss.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/ix-expr.ss.ts	2026-11-22 18:02:27
+@@ -24,7 +24,7 @@
+   if (expected === null) return K.infer(K, T, V, W, C, env, e);
+   const viaMut = e.type === "CallExpression" && e.callee.type === "Identifier" && e.callee.name === "mut";
+   if (expected.k === "named" && expected.n === "Mut" && !viaMut && ["ArrayExpression", "ObjectExpression", "CallExpression", "NewExpression"].includes(e.type)) return ixCheckFresh(K, T, V, W, C, env, e, expected, soft, q);
+-  if (expected.k === "unknown" && !ixCtxSensitive(e)) { const t = K.infer(K, T, V, W, C, env, e); if (!q) ixHides(K, C, e, t, expected, null); return t; }
++  if (expected.k === "unknown" && !ixCtxSensitive(e)) { const t = K.infer(K, T, V, W, C, env, e); const P = (globalThis as any).__ssProto; if (P && P.mentionsMut(t)) P.addSite({ kind: "R2u", start: e.start, end: e.end, fnType: e.type }); if (!q) ixHides(K, C, e, t, expected, null); return t; }
+   let t: Ty;
+   switch (e.type) {
+     case "ObjectExpression": t = ixObjLit(K, T, V, W, C, env, e, expected); break;
+@@ -213,6 +213,8 @@
+     if (p.flags?.banned) ixErr(K, C, e, "banned-member", `${K.src.slice(e.object.start, e.object.end)}.${name} is banned`);
+     flags = p.flags ?? flags;
+     const pt = propT(p);
++    const PV = (globalThis as any).__ssProto;
++    if (PV && PV.V && isNamed(m, "Mut") && p.flags?.view) { out.push(pt.k === "fn" ? { ...pt, ret: named("Mut", pt.ret) } : !K.reg.callSigs(pt).length ? named("Mut", pt) : pt); continue; }
+     out.push(isNamed(m, "Borrowed") && p.flags?.view && !K.reg.callSigs(pt).length ? named("Borrowed", pt) : pt);
+   }
+   ixReportMissing(K, C, missing, name, e.property);
+@@ -263,7 +265,12 @@
+   return union(out);
+ };
+ export const ixExpect = (ixHides, ixErr, ixNonUndef, members, isNamed, show) => (K: IxK, C: IxCtls, at: AstNode, t: Ty, expected: Ty, ctx: boolean): boolean => {
+-  if (K.reg.sub(t, expected)) return ctx || ixHides(K, C, at, t, expected, null);
++  const P = (globalThis as any).__ssProto, h0 = P ? P.hit : false;
++  if (P) P.hit = false;
++  const okSub = K.reg.sub(t, expected);
++  if (P && P.N && okSub && P.hit && P.nonRet.has(at.nid) && !P.mentionsMut(t.k === "named" && t.n === "Mut" ? t.args[0] : t)) P.hit = false;
++  if (P) { if (okSub && P.hit) P.addSite({ kind: "R2", start: at.start, end: at.end, fnType: at.type }); P.hit = h0; }
++  if (okSub) return ctx || ixHides(K, C, at, t, expected, null);
+   let rule = "type";
+   if (K.reg.sub(ixNonUndef(K.reg, t), expected)) rule = "possibly-undefined";
+   else if (members(t).some((m) => isNamed(m, "Action")) && !members(expected).some((m) => isNamed(m, "Action"))) rule = "action-pass";
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/ix-stmt.ss.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/ix-stmt.ss.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/ix-stmt.ss.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/ix-stmt.ss.ts	2026-11-22 17:41:24
+@@ -93,6 +93,8 @@
+     return;
+   }
+   const t0 = K.check(K, T, V, W, C, env, init, declared, false, false);
++  const PU = (globalThis as any).__ssProto;
++  if (PU && PU.U && declared === null && t0.k === "union" && t0.ts.some((x: Ty) => isNamed(x, "Mut")) && t0.ts.some((x: Ty) => !isNamed(x, "Mut") && PU.mentionsMut(x) === false && x.k !== "null" && x.k !== "undef")) PU.addSite({ kind: "R2U", start: init.start, end: init.end, fnType: init.type });
+   // S4: a fresh value bound to a local with no annotation is a Mut (a literal, new or a call of a fresh intrinsic)
+   const fresh = declared === null && t0.k !== "err" && !isNamed(t0, "Mut") && (init.type === "ArrayExpression" || init.type === "ObjectExpression" || C.freshAt === init.nid);
+   const t = fresh ? named("Mut", k === "let" ? widen(t0) : t0) : t0;
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/md-value.ss.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/md-value.ss.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/md-value.ss.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/md-value.ss.ts	2026-11-22 17:41:24
+@@ -38,6 +38,8 @@
+   const v = mdValueType(d.fn, fnT);
+   const line = X.line(d.fn.start), sync = d.fn.generator && !d.fn.async;
+   // S4: a cell's value, each value it yields and a state's value are the read-only view (frozen at run time)
++  const PF = (globalThis as any).__ssProto;
++  const fErr = PF && PF.F && PF.mutUnder(fnT.k === "fn" ? fnT.ret : v.ret) ? [{ rule: "proto-F", line, msg: "a Mut beneath a function, Promise or Iterable in a cell's value (rule F)" }] : [];
+   let ret = owStripMut(R, v.ret);
+   const events = v.gen && sync ? ret : null;
+   const errs = sync ? mdKept(R, d.name, fedBy, line, "an events cell yields", ret, "a listener's action would receive it") : [];
+@@ -53,5 +55,5 @@
+   const listener = isL(ret) || (ret.k === "union" && ret.ts.every(isL));
+   const held = listener ? null : holdsWith(X.R.ops)(ret, ["Listener"]);
+   const place = held ? [{ rule: "listener-placement", line, msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` }] : [];
+-  return { errors: [...errs, ...state, ...iter, ...then, ...place], value: ret, events, ref: inner ?? null, listener, gap: v.gap };
++  return { errors: [...fErr, ...errs, ...state, ...iter, ...then, ...place], value: ret, events, ref: inner ?? null, listener, gap: v.gap };
+ };
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/ow-capture.ss.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/ow-capture.ss.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/ow-capture.ss.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/ow-capture.ss.ts	2026-11-22 17:43:39
+@@ -263,7 +263,15 @@
+   for (const f of O.T.fns) {
+     const c = caps.get(f.nid);
+     if (f.nid === O.T.fn.nid || c === undefined || !owKept(O, byFn, f)) continue;
++    const PX = (globalThis as any).__ssProto;
++    if (PX && c.mut.length) { const pp = O.T.parent.get(f.nid), gp = pp === undefined ? undefined : O.T.parent.get(pp.nid); const meth = pp !== undefined && pp.type === "Property" && (pp.method || pp.kind !== "init"); const at = meth && gp !== undefined ? gp : f; PX.addSite({ kind: meth ? "R3m" : f.type === "FunctionDeclaration" ? "R3d" : "R3", start: at.start, end: at.end, fnType: at.type, names: c.mut.flatMap((id) => O.F.bindings.get(id) ?? []).map((b) => b.name) }); }
++    if (PX && PX.T && f.type === "FunctionDeclaration" && f.id) {
++      const fb = O.F.bindingOf.get(f.id.nid), uses = fb === undefined ? [] : (O.T.refs.get(fb) ?? []).filter((r) => r.start < f.start || r.start > f.end);
++      for (const b of c.read.flatMap((id) => O.F.bindings.get(id) ?? [])) { const d = O.T.byNid.get(b.nid); if (d !== undefined && (d.start < f.start || d.start > f.end) && b.kind !== "fn" && uses.some((r) => r.start < d.start)) owErr(W, f, "proto-T", `${b.name} is captured by a hoisted kept function referenced before ${b.name} is declared`); }
++    }
++    if (PX && PX.r3x) { const xs = c.read.flatMap((id) => O.F.bindings.get(id) ?? []).filter((b) => !c.mut.includes(b.id) && b.kind !== "fn" && PX.mentionsMut(b.t)); if (xs.length) { const pp = O.T.parent.get(f.nid), gp = pp === undefined ? undefined : O.T.parent.get(pp.nid); const meth = pp !== undefined && pp.type === "Property" && (pp.method || pp.kind !== "init"); const at = meth && gp !== undefined ? gp : f; PX.addSite({ kind: meth ? "R3m" : f.type === "FunctionDeclaration" ? "R3d" : "R3", start: at.start, end: at.end, fnType: at.type, names: xs.map((b) => b.name) }); } }
+     for (const b of c.mut.flatMap((id) => O.F.bindings.get(id) ?? [])) {
++      if (PX && PX.hyp && !owIsBor(b) && !(O.R.expand(unwrap(b.t)).k === "named" && (OW_UNFREEZABLE as Set<string>).has((O.R.expand(unwrap(b.t)) as any).n))) continue;
+       const u = O.R.expand(unwrap(b.t)), U: Set<string> = OW_UNFREEZABLE;
+       if (owIsBor(b)) owErr(W, f, "borrowed-escape", `Borrowed ${b.name} captured by a nested function`);
+       else if (c.wmut.includes(b.id)) owErr(W, f, "mut-capture", `Mut ${b.name} written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made`);
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/ow-entry.ss.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/ow-entry.ss.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/infer/ow-entry.ss.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/infer/ow-entry.ss.ts	2026-11-22 16:44:32
+@@ -5,6 +5,14 @@
+   const O: OwCtx = { T, F, R };
+   const W: OwW = { errs: null, seen: new Set(), unsup: null };
+   const caps = owCaptures(O, W);
++  const PX = (globalThis as any).__ssProto;
++  if (PX && PX.sites) for (const n of T.all) {
++    const ty = (x: AstNode | null | undefined) => (x ? F.types.get(x.nid) : undefined);
++    const cellLevel = (x: AstNode) => { let p = T.parent.get(x.nid); while (p !== undefined && !(p.type === "ArrowFunctionExpression" || p.type === "FunctionExpression" || p.type === "FunctionDeclaration")) p = T.parent.get(p.nid); return p === undefined || p.nid === T.fn.nid; };
++    if (n.type === "ThrowStatement" && PX.mentionsMut(ty(n.argument))) PX.addSite({ kind: "R2throw", start: n.argument.start, end: n.argument.end, fnType: n.argument.type });
++    if ((n.type === "ReturnStatement" || n.type === "YieldExpression") && n.argument && cellLevel(n) && PX.mentionsMut(ty(n.argument))) PX.addSite({ kind: "R2cell", start: n.argument.start, end: n.argument.end, fnType: n.argument.type });
++  }
++  if (PX && PX.sites && T.fn.type === "ArrowFunctionExpression" && T.fn.body.type !== "BlockStatement" && PX.mentionsMut(F.types.get(T.fn.body.nid))) PX.addSite({ kind: "R2cell", start: T.fn.body.start, end: T.fn.body.end, fnType: T.fn.body.type });
+   owCaptureErrs(O, W, caps, owBindingOfFn(F));
+   owPlacement(O, W);
+   return { diags: ixOut(W.errs), actions: owActionEscapes(O), unsup: ixOut(W.unsup), gap: T.other };
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/proto-flags.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/proto-flags.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/proto-flags.ts	1970-01-01 01:00:00
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/proto-flags.ts	2026-11-22 18:02:27
+@@ -0,0 +1,50 @@
++// convert-freeze prototype switches and the checker's conversion-site table (unchecked prototype code).
++// SS_BOUNDARY=1: boundary deepFreeze/out on. SS_REG=1: closure registration (compiled fns) on. SS_CONVERT=1: R2/R3 ss_f wraps.
++// SS_HYP=1: drop the static capture sub-rules the hypothesis replaces (kept fn writes / returns / late writes of a Mut).
++const env = (k: string, d: string) => (typeof process !== "undefined" ? process.env[k] ?? d : d);
++export type Site = { kind: string; start: number; end: number; names?: string[]; fnType?: string };
++export type Proto = { boundary: boolean; reg: boolean; convert: boolean; hyp: boolean; r3x: boolean; H: boolean; V: boolean; F: boolean; U: boolean; B: boolean; T: boolean; N: boolean; nonRet: Set<number>; under: number; mutUnder: (t: any) => boolean; hit: boolean; sites: Site[] | null; mentionsMut: (t: any) => boolean; stripMut: (t: any) => any; addSite: (s: Site) => void };
++const mentionsMut = (t: any, d = 0): boolean => {
++  if (!t || d > 14) return false;
++  switch (t.k) {
++    case "named": return t.n === "Mut" || t.args.some((x: any) => mentionsMut(x, d + 1));
++    case "arr": return mentionsMut(t.el, d + 1);
++    case "tup": return t.els.some((x: any) => mentionsMut(x, d + 1));
++    case "union": return t.ts.some((x: any) => mentionsMut(x, d + 1));
++    case "rec": for (const [, p] of t.props) if (mentionsMut(p.t, d + 1)) return true; return mentionsMut(t.index, d + 1);
++    default: return false;
++  }
++};
++const stripMut = (t: any, d = 0): any => {
++  if (!t || d > 14 || !mentionsMut(t)) return t;
++  switch (t.k) {
++    case "named": return t.n === "Mut" ? stripMut(t.args[0], d + 1) : { ...t, args: t.args.map((x: any) => stripMut(x, d + 1)) };
++    case "arr": return { k: "arr", el: stripMut(t.el, d + 1) };
++    case "tup": return { k: "tup", els: t.els.map((x: any) => stripMut(x, d + 1)) };
++    case "union": return { k: "union", ts: t.ts.map((x: any) => stripMut(x, d + 1)) };
++    case "rec": return { ...t, props: new Map([...t.props].map(([k, p]: any) => [k, { ...p, t: stripMut(p.t, d + 1) }])), index: t.index ? stripMut(t.index, d + 1) : t.index };
++    default: return t;
++  }
++};
++// Mut beneath a Promise, Iterable or Generator, at any depth (rule F at a cell's value: owStripMut strips there)
++const LATENT = new Set(["Promise", "Iterable", "ArrayLike", "Generator"]);
++const mutUnder = (t: any, under: boolean, d: number): boolean => {
++  if (!t || d > 14) return false;
++  switch (t.k) {
++    case "named": if (t.n === "Mut" && under) return true; return t.args.some((x: any) => mutUnder(x, under || LATENT.has(t.n), d + 1));
++    case "fn": return t.ps.some((p: any) => mutUnder(p.t, under, d + 1)) || mutUnder(t.ret, under, d + 1) || mutUnder(t.rest, under, d + 1);
++    case "arr": return mutUnder(t.el, under, d + 1);
++    case "tup": return t.els.some((x: any) => mutUnder(x, under, d + 1));
++    case "union": return t.ts.some((x: any) => mutUnder(x, under, d + 1));
++    case "rec": for (const [, p] of t.props) if (mutUnder(p.t, under, d + 1)) return true; return mutUnder(t.index, under, d + 1) || (t.calls ?? []).some((c: any) => mutUnder(c, under, d + 1));
++    default: return false;
++  }
++};
++const G = globalThis as any;
++export const PROTO: Proto = (G.__ssProto ??= {
++  boundary: env("SS_BOUNDARY", "1") === "1", reg: env("SS_REG", "1") === "1", convert: env("SS_CONVERT", "0") === "1", hyp: env("SS_HYP", "0") === "1",
++  r3x: env("SS_R3X", "0") === "1", H: env("SS_H", "0") === "1", V: env("SS_V", "0") === "1", F: env("SS_F", "0") === "1", U: env("SS_U", "0") === "1", B: env("SS_B", "0") === "1", T: env("SS_T", "0") === "1", N: env("SS_N", "0") === "1", nonRet: new Set<number>(), under: 0,
++  mutUnder: (t: any) => mutUnder(t, false, 0),
++  hit: false, sites: null, mentionsMut: (t: any) => mentionsMut(t), stripMut: (t: any) => stripMut(t),
++  addSite(s: Site) { if (this.sites) this.sites.push(s); },
++});
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/proto-sites.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/proto-sites.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/proto-sites.ts	1970-01-01 01:00:00
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/proto-sites.ts	2026-11-22 18:02:41
+@@ -0,0 +1,13 @@
++// the checker's conversion sites for one module text (prototype)
++import { PROTO, type Site } from "./proto-flags.ts";
++import { checkSources } from "./core.ts";
++export function conversionSites(src: string, tsx: boolean): { sites: Site[]; result: any } {
++  const prev = PROTO.sites;
++  PROTO.sites = []; PROTO.nonRet.clear();
++  try {
++    const result = checkSources({ cells: src, tsx, outside: [], foreign: null } as any);
++    const seen = new Set<string>(), out: Site[] = [];
++    for (const s of PROTO.sites) { const k = `${s.kind[0]}${s.kind.startsWith("R3") ? "3" : "2"}:${s.start}:${s.end}`; if (!seen.has(k)) { seen.add(k); out.push(s); } }
++    return { sites: out, result };
++  } finally { PROTO.sites = prev; }
++}
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/runtime-ss.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/runtime-ss.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/runtime-ss.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/runtime-ss.ts	2026-11-22 16:49:29
+@@ -9,7 +9,7 @@
+ import * as crossCells from "./cross.ss.ts";
+ import * as poolCells from "./pool.ss.ts";
+ import { link } from "./link.ts";
+-import { freeze, borrow, SsMap, SsSet, SsURL, out, deepFreeze, yielded, closure, methods } from "./freeze.ts";
++import { freeze, borrow, SsMap, SsSet, SsURL, out, deepFreeze, bFreeze, yielded, closure, methods } from "./freeze.ts";
+ export type { Shape, PointerLike, Ptr, Place, Compiler, Data } from "./runtime.ss.ts";
+ export type { Delivery, DeliveryEvent, Effect } from "./events.ss.ts";
+ export type { StoreState, StoreEvent, StoreEffect, StoreRecord, Seen } from "./store.ss.ts";
+@@ -19,7 +19,7 @@
+ 
+ // a cell that uses mut or freeze takes the runtime module's own cell of that name, as in the notebook
+ const L = link({ ...cells, ...eventCells, ...storeCells, ...renderCells, ...crossCells }, { mut: cells.mut(), freeze });
+-export { freeze, borrow, SsMap, SsSet, SsURL, out, deepFreeze, yielded, closure, methods };
++export { freeze, borrow, SsMap, SsSet, SsURL, out, deepFreeze, bFreeze, yielded, closure, methods };
+ export const { mut, want, flat, ptr, DOM_EVENTS, PROPS, same, orderKeyed, rejected, compileFor } = L;
+ export const { emptyDelivery, step, handleAtKey, sweepCandidates, liveEventsCount, runningCount, pullingCount } = L;
+ export const { emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan } = L;
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/soundscript/ts-cells.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/soundscript/ts-cells.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/soundscript/ts-cells.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/soundscript/ts-cells.ts	2026-11-22 17:45:43
+@@ -178,6 +178,15 @@
+   const src = readFileSync(join(LITE, file), "utf8");
+   return splitCells(src.slice(headerEnd(src)).trimStart(), false);
+ }
++// prototype: the text sectionCheck checks, and where the section's own cells start in it
++export function sectionSource(file: string): { src: string; ownFrom: number; shell: string | null; unit: string } {
++  const group = SS_GROUPS.find((g) => g.includes(file));
++  const withTexts = (SS_CHECKED_WITH[file] ?? []).flatMap(ssCellTexts);
++  const pre = withTexts.join("\n\n");
++  const src = [...withTexts, ...(group ?? [file]).flatMap(ssCellTexts)].join("\n\n");
++  return { src, ownFrom: withTexts.length ? pre.length + 2 : 0, shell: SS_SHELL[file] ? SS_SHELL[file].map((f) => readFileSync(join(LITE, f), "utf8")).join("\n") : null, unit: group ? (group === SS_GROUPS[0] ? "INFER group" : "TOOLCHAIN group") : file };
++}
++export const SS_GROUP_LIST = SS_GROUPS;
+ const groupChecks = new Map<string[], ReturnType<typeof checkSources>>();
+ // the check a section's cells are compiled from: of the section with those it is checked with, or once for its group
+ export function sectionCheck(file: string): ReturnType<typeof checkSources> {
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/subtype.ss.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/subtype.ss.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/lite/subtype.ss.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/lite/subtype.ss.ts	2026-11-22 17:41:24
+@@ -266,7 +266,7 @@
+   const seqSub = seqSubWith(R, sub), fnSub = fnSubWith(R, sub), some = someFnSub(fnSub);
+   const recSub = recSubWith(R, sub, fnSub, callSigs), namedSub = namedSubWith(R, sub, iterElem);
+   function sub(s: Ty, t: Ty, seen: Mut<Set<string>>): boolean {
+-    if (R.same(s, t) || t.k === "unknown" || s.k === "err" || t.k === "err" || s.k === "never") return true;
++    if (R.same(s, t) || t.k === "unknown" || s.k === "err" || t.k === "err" || s.k === "never") { if (t.k === "unknown" && !R.same(s, t) && (globalThis as any).__ssProto?.mentionsMut(s)) (globalThis as any).__ssProto.hit = true; return true; }
+     if ((s.k === "named" && R.isAlias(s.n)) || (t.k === "named" && R.isAlias(t.n))) {
+       const key = typeKey(s) + " <: " + typeKey(t);
+       if (seen.has(key)) return true;
+@@ -274,14 +274,15 @@
+       return sub(R.expand(s), R.expand(t), seen);
+     }
+     if (s.k === "union") { for (const m of s.ts) if (!sub(m, t, seen)) return false; return true; }
+-    if (s.k === "named" && (s.n === "Mut" || s.n === "Borrowed") && !isNamed(t, s.n)) return sub(R.at(s.args, 0), t, seen);
++    if (s.k === "named" && s.n === "Mut" && !isNamed(t, s.n) && (globalThis as any).__ssProto?.F && (globalThis as any).__ssProto.under > 0) return false;
++    if (s.k === "named" && (s.n === "Mut" || s.n === "Borrowed") && !isNamed(t, s.n)) { const ok = sub(R.at(s.args, 0), t, seen); if (ok && s.n === "Mut" && (globalThis as any).__ssProto) (globalThis as any).__ssProto.hit = true; return ok; }
+     if (t.k === "union") { for (const m of t.ts) if (sub(s, m, seen)) return true; return false; }
+     if (s.k === "tv") return t.k === "tv" && t.n === s.n;
+     switch (t.k) {
+       case "arr": case "tup": return seqSub(s, t, seen);
+-      case "fn": return some(callSigs(s), t, seen);
++      case "fn": { const PX = (globalThis as any).__ssProto; if (PX) PX.under++; try { return some(callSigs(s), t, seen); } finally { if (PX) PX.under--; } }
+       case "rec": return recSub(s, t, seen);
+-      case "named": return namedSub(s, t, seen);
++      case "named": { const PX = (globalThis as any).__ssProto, lat = ["Promise", "Iterable", "ArrayLike", "Generator"].includes(t.n); if (PX && lat) PX.under++; try { return namedSub(s, t, seen); } finally { if (PX && lat) PX.under--; } }
+       default: return primSub(s, t);
+     }
+   }
+@@ -345,7 +346,8 @@
+     if (depth > 12 || a.k === "err") return;
+     if (p.k === "tv") {
+       const prev = m.get(p.n);
+-      if (tvs.has(p.n)) m.set(p.n, prev ? union([prev, a]) : a);
++      const PX = (globalThis as any).__ssProto, a1 = PX && PX.hyp ? PX.stripMut(a) : a;
++      if (tvs.has(p.n)) m.set(p.n, prev ? union([prev, a1]) : a1);
+       return;
+     }
+     if (a.k === "named" && R.isAlias(a.n)) unify(p, R.expand(a), m, tvs, depth + 1);
+diff -ruN --exclude=node_modules --exclude=.scratch --exclude=.build /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/prelude.runtime.ts tools/lang-experiment/selfhost/convert-freeze/proto/tree/prelude.runtime.ts
+--- /private/tmp/claude-502/-Users-tom-larkworthy-dev-lopecode-dev/5f2d9784-1516-4aba-a2c8-10b2ee786bd5/scratchpad/base/tools/lang-experiment/prelude.runtime.ts	2026-11-22 16:24:19
++++ tools/lang-experiment/selfhost/convert-freeze/proto/tree/prelude.runtime.ts	2026-11-22 16:49:23
+@@ -3,7 +3,7 @@
+ // and what a commit applies, is decided by storeStep and the cells of lite/store.ss.ts (checked SoundScript). This
+ // file holds the one StoreState value and each handle's store record, runs the actions' functions between steps,
+ // and performs the effects.
+-import { deepFreeze, closure, SsMap, SsSet, emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
++import { bFreeze, deepFreeze, closure, SsMap, SsSet, emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
+ export { mut, freeze, borrow } from "./lite/runtime-ss.ts";
+ 
+ const STATECELL = Symbol.for("lc.statecell");
+@@ -89,7 +89,7 @@
+ // an update function that throws throws here, inside the call, before its write
+ function write(h: object, f: (v: unknown) => unknown) {
+   const s = recordOf(h)!;
+-  const v = deepFreeze(f(seenValue(h, updateSees(storeState, nameOfHandle(h), s))));
++  const v = bFreeze(f(seenValue(h, updateSees(storeState, nameOfHandle(h), s))));
+   storeFeed({ t: "write", handle: storeHandleOf(h), name: nameOfHandle(h), store: s, value: v });
+ }
+ // A handle is an Observable view: an EventTarget whose value is the committed state, which dispatches
+@@ -107,7 +107,7 @@
+ }
+ // a state cell's initial value and each written value are deep-frozen as they go into the store
+ const madeStore = (h: object, value: unknown, view: boolean, run: { fid: string; args: unknown[] } | null) =>
+-  storeFeed({ t: "made", handle: h, name: nameOfHandle(h), value: deepFreeze(value), view, run });
++  storeFeed({ t: "made", handle: h, name: nameOfHandle(h), value: bFreeze(value), view, run });
+ 
+ // Turn the StateCell a cell returned into a handle on a store of its own (the port harness, run.ts).
+ export function materialize(cell: { initial: unknown }, name: string) {
+@@ -165,7 +165,7 @@
+     storeFeed({ t: "enter", evaluating: rt.evalDepth > 0 });
+     let v: unknown;
+     // the arguments are deep-frozen: the caller's values are published to the action's writes and listeners
+-    try { v = f(...args.map(deepFreeze)); } catch (err) { storeFeed({ t: "exit", threw: true, value: undefined }); throw err; }
++    try { v = f(...args.map(bFreeze)); } catch (err) { storeFeed({ t: "exit", threw: true, value: undefined }); throw err; }
+     return storeFeed({ t: "exit", threw: false, value: v });
+   };
+   Object.defineProperty(a, ACTION, { value: true });

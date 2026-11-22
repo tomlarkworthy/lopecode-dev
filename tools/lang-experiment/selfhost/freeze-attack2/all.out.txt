@@ -230,13 +230,7 @@ TypeError: set on a frozen Map: a value cannot change after its cell returns
 == b6.ts:pr-cap-typed: REJECT a:rejected[type][mut-capture] c:rejected[mut-capture]
 == b6.ts:pr-cap-iife: REJECT a:rejected[mut-capture][mut-capture] c:rejected[mut-capture]
 == b6.ts:pr-cap-async-fn: REJECT a:rejected[mut-capture] c:rejected[mut-capture]
-== b6.ts:pr-cap-arr: ACCEPT
-2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,h,Map,Set,URL,ss_closure,ss_methods
-3 | ) {
-4 | return (() => { const xs = [0]; const g = /*ss+*/ss_closure(/*ss-*/async () => xs/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/; const p = g(); const h = /*ss+*/ss_closure(/*ss-*/async () => { for (let i = 0; i < 300; i++) await null; xs.push(1); }/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/; h(); return /*ss+*/ss_closure(/*ss-*/() => p/*ss+*/, (i) => i < 0 ? 1 : p)/*ss-*/; });
-                                                                                                                                                                                                                                              ^
-TypeError: Attempted to assign to readonly property.
-      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:235)
+== b6.ts:pr-cap-arr: REJECT a:rejected[mut-capture]
 == b6.ts:pr-top-then: REJECT a:rejected[type][mut-capture] c:rejected[inject-type]
 == b6.ts:cw-view-buffer: REJECT b:rejected[member-write]
 == b6.ts:cw-subarray: REJECT b:rejected[member-write]
@@ -466,4 +460,4 @@ TypeError: setting hash on a frozen URL: a value cannot change after its cell re
 == b11.ts:tdz-write-no-republish: ACCEPT
    error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
    error b: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
--- 309 candidates, accepted 86, silent 0
+-- 309 candidates, accepted 85, silent 0

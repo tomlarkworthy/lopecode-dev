@@ -2,21 +2,26 @@
 // checker (lite/core.ts), an accepted one run by observe.ts (runCells: the compiled cells' own text, events pumped).
 // Sets: freeze (selfhost/freeze-attack b1-b7, 315), attack2 (252), attack1 (8), oldspec (49), oldvariants (239),
 // runtime (98), new (b-attacks.ts, 70), h6 (h6-attacks.ts), freeze2 (selfhost/freeze-attack2 b0-b11, 309), h7
-// (h7-attacks.ts). The folders they come from are read, not edited.
+// (h7-attacks.ts), freeze3 (selfhost/freeze-attack3 b1-b11, 360; its c0 controls run without the checker and are counted
+// apart: each must fire), h8 (h8-attacks.ts). The folders they come from are read, not edited.
 // --off drops the static capture rules' diagnostics in this runner only (the checker is unchanged).
 import { checkSources } from "../../core.ts";
 import { rewriteSS } from "./strip-calls.ts";
 import { observeProgram, type Prog } from "./observe.ts";
+import type { Verdicts } from "../../browser/run.ts";
 import { RUNTIME_FREEZE } from "./variants.ts";
 import { readdirSync, readFileSync } from "node:fs";
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? null : process.argv[i + 1]!; };
 const OFF = process.argv.includes("--off"), FORCE = process.argv.includes("--force"), ONLY = arg("--only");
-const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7").split(",");
+const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8").split(",");
 export const OFF_RULES = new Set(["mut-capture", "let-capture", "mut-yield", "mut-cell", "member-write", "mutating-method", "regexp-state", "iterator-capture"]);
-type P = Prog & { set: string; name: string; foreign?: string | null };
+type P = Prog & { set: string; name: string; foreign?: string | null; ctl?: boolean };
 const progs: P[] = [];
 const SELF = new URL("../../../selfhost/", import.meta.url).pathname, H5 = new URL("../../soundscript/.scratch/holes5/", import.meta.url).pathname;
+// the sets are loaded only when this file runs: freeze-attack3's harness imports verdictOf from here, and its batches
+// import that harness, so loading them on import would be a cycle through top-level await
+if (import.meta.main) {
 if (SETS.includes("freeze")) for (const f of ["b1", "b2", "b3", "b4", "b5", "b6", "b7"])
   for (const a of (await import(`${SELF}freeze-attack/${f}.ts`)).attacks) progs.push({ set: "freeze", ...a, name: `${f}:${a.name}` });
 if (SETS.includes("attack2")) for (const f of readdirSync(SELF + "mut-groups-attack2/").filter((f) => /^(b\d+|breaks)\.ts$/.test(f)))
@@ -34,8 +39,14 @@ if (SETS.includes("h6")) for (const a of (await import("./h6-attacks.ts")).attac
 if (SETS.includes("freeze2")) for (let i = 0; i <= 11; i++)
   for (const a of (await import(`${SELF}freeze-attack2/b${i}.ts`)).attacks) progs.push({ set: "freeze2", ...a, name: `b${i}:${a.name}` });
 if (SETS.includes("h7")) for (const a of (await import("./h7-attacks.ts")).attacks) progs.push({ set: "h7", ...a });
+if (SETS.includes("freeze3")) for (const f of ["c0", "b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "b10", "b11"])
+  for (const a of (await import(`${SELF}freeze-attack3/${f}.ts`)).cands) progs.push({ set: a.ctl ? "freeze3-controls" : "freeze3", ...a, name: `${f}:${a.name}` });
+if (SETS.includes("h8")) for (const a of (await import("./h8-attacks.ts")).attacks) progs.push({ set: "h8", ...a });
+}
 
-export const verdictOf = (src: string, foreign: string | null, off: boolean): { ok: boolean; text: string; dropped: string[] } => {
+// checked: the verdicts as runCells takes them (compile runs an island only on ok cells); under --off, a cell whose only
+// errors are dropped rules counts as ok
+export const verdictOf = (src: string, foreign: string | null, off: boolean, ctl = false): { ok: boolean; text: string; dropped: string[]; checked?: Verdicts } => {
   try {
     const r = checkSources({ cells: src, tsx: true, outside: [], foreign } as any);
     // --off also drops holes7's thenable [type] (md-value.ss.ts mdThenable), so the run-time ban is what is measured
@@ -47,7 +58,9 @@ export const verdictOf = (src: string, foreign: string | null, off: boolean): { 
     const mod = keep(r.module);
     const dropped = off ? [...new Set([...r.module, ...r.cells.flatMap((c: any) => c.errors)].filter(offRule).map((e: any) => e.rule))] : [];
     const text = bad.length || mod.length ? `REJECT ${[...mod.map((m: any) => `module[${m.rule}]`), ...bad.map((c: any) => `${c.name}:${c.status}${keep(c.errors).map((e: any) => `[${e.rule}]`).join("")}`)].join(" ")}` : "ACCEPT";
-    return { ok: !bad.length && !mod.length && r.cells.length > 0, text, dropped };
+    const checked = { cells: r.cells.map((c: any) => ({ name: c.name, status: ctl || okName.has(c.name) ? "ok" : c.status, errors: ctl || okName.has(c.name) ? [] : c.errors })) };
+    if (ctl) return { ok: r.cells.length > 0, text: "CONTROL (checker skipped)", dropped: [], checked };
+    return { ok: !bad.length && !mod.length && r.cells.length > 0, text, dropped, checked };
   } catch (x) { return { ok: false, text: `CRASH ${(x as Error).message}`, dropped: [] }; }
 };
 
@@ -56,15 +69,17 @@ if (import.meta.main) {
   const silentList: string[] = [];
   for (const p of progs) {
     if (ONLY && !p.name.includes(ONLY)) continue;
-    const src = rewriteSS(p.src, true, p.name)?.out ?? p.src;
+    // a source too deep for the TypeScript parser (freeze3 deep-2000) is run as written
+    let src = p.src;
+    try { src = rewriteSS(p.src, true, p.name)?.out ?? p.src; } catch {}
     const t = (tally[p.set] ??= { n: 0, acc: 0, silent: 0, threw: 0 });
     t.n++;
-    const v = verdictOf(src, p.foreign ?? null, OFF);
+    const v = verdictOf(src, p.foreign ?? null, OFF, !!p.ctl);
     if (v.ok) t.acc++;
     let lines: string[] = [];
     if ((v.ok || FORCE) && !p.foreign) {
       try {
-        const r = await observeProgram({ ...p, src });
+        const r = await observeProgram({ ...p, src, checked: v.checked });
         lines = r.lines;
         if (r.silent.length && v.ok) { t.silent++; silentList.push(`${p.set} ${p.name}${v.dropped.length ? ` (dropped ${v.dropped.join(", ")})` : ""}`); }
         if (r.threw && v.ok) t.threw++;
@@ -75,8 +90,9 @@ if (import.meta.main) {
   }
   console.log(`-- mode rules ${OFF ? `OFF (${[...OFF_RULES].join(", ")} dropped)` : "ON"}${FORCE ? ", forced" : ""}`);
   let n = 0, s = 0;
-  for (const [k, t] of Object.entries(tally)) { n += t.n; s += t.silent; console.log(`-- ${k}: ${t.n} programs, accepted ${t.acc}, silent ${t.silent}, with a cell in error ${t.threw}`); }
+  // a control is meant to change silently: it is counted as fired, not as silent
+  for (const [k, t] of Object.entries(tally)) { if (k.endsWith("-controls")) { console.log(`-- ${k}: ${t.n}, fired ${t.silent}`); continue; } n += t.n; s += t.silent; console.log(`-- ${k}: ${t.n} programs, accepted ${t.acc}, silent ${t.silent}, with a cell in error ${t.threw}`); }
   console.log(`-- all: ${n} programs, silent ${s}`);
-  for (const x of silentList) console.log(`SILENT ${x}`);
+  for (const x of silentList) if (!x.includes("-controls ")) console.log(`SILENT ${x}`);
   process.exit(0);
 }

@@ -94,17 +94,22 @@ ok(deepFreeze(big) === big && Object.isFrozen(big[999]), "again: the same value,
   ok(deepFreeze({ then: 1 }).then === 1 && deepFreeze(Promise.resolve(1)) instanceof Promise, "thenable: a then that is not callable, and a Promise, are not banned");
 }
 {
-  // a promise among a function's captures cannot be replaced: its value is frozen in place when it settles, and a
-  // container on the way to a typed array in it is not marked done, so a later publish of it throws (it can be neither
-  // skipped nor copied into: fail-stop)
-  const t = new Uint8Array(2), r = { t, n: [0] }, q = Promise.resolve(r);
-  deepFreeze(closure(() => q, (i) => (i < 0 ? 1 : q)));
-  await q; await null;
-  ok(Object.isFrozen(r) && Object.isFrozen(r.n) && throws(() => deepFreeze(r)), "a held promise's value: frozen in place; publishing it later throws");
-  const inner = [0], w: { p: Promise<number[]>; t: Uint8Array } = { p: Promise.resolve(inner), t: new Uint8Array(1) }, q2 = Promise.resolve(w);
-  deepFreeze(closure(() => q2, (i) => (i < 0 ? 1 : q2)));
-  await q2; await null; await null;
-  ok(Object.isFrozen(inner), "a promise inside a held promise's value is held too: its value is frozen when it settles");
+  // holes8 (2026-11-22): a promise among a function's captures (or in an Error) cannot be replaced and settles later:
+  // publishing throws, and nothing is frozen. A rejection reason is deep-frozen, one reason for every reader. A match
+  // array's groups and indices are frozen. A native Map from structuredClone is published as a frozen SsMap copy
+  const r = { n: [0] }, q = Promise.resolve(r), f = closure(() => q, (i) => (i < 0 ? 1 : q));
+  ok(throws(() => deepFreeze({ f })) && !Object.isFrozen(r) && !Object.isFrozen(f), "a promise among a function's captures throws at publish; nothing is frozen");
+  const e = new Error("x"); (e as unknown as { p: unknown }).p = q;
+  ok(throws(() => deepFreeze(e)) && !Object.isFrozen(e), "a promise in an Error throws at publish");
+  const reason = { xs: [0] }, pr = deepFreeze({ p: Promise.reject(reason) }).p;
+  const [a1, a2] = [await pr.catch((x) => x), await pr.catch((x) => x)];
+  ok(a1 === a2 && Object.isFrozen(a1) && Object.isFrozen(a1.xs), "a rejection reason is deep-frozen and the same for two readers");
+  const fr = out(Promise.reject([1])) as Promise<unknown>, rr = await fr.catch((x) => x);
+  ok(Object.isFrozen(rr), "out: a returned promise's rejection reason is frozen");
+  const m = deepFreeze({ m: /(?<g>a)/d.exec("ab")! }).m as RegExpExecArray & { indices: unknown[] & { groups: object } };
+  ok(Object.isFrozen(m.groups) && Object.isFrozen(m.indices) && Object.isFrozen(m.indices[0]) && Object.isFrozen(m.indices.groups), "a match array's groups and indices are frozen");
+  const nm = structuredClone(new Map([["k", 1]])), pm = deepFreeze({ nm }).nm;
+  ok(pm !== nm && throws(() => pm.set("j", 2)) && (nm.set("j", 2), true), "a native Map is published as a frozen copy; the cell keeps its original");
 }
 ok(Object.isFrozen(out({ xs: [1] }).xs), "out: every sync value is frozen (B7's quick path removed 2026-11-22)");
 console.log(`${pass} pass, ${fail} fail`);

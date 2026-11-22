@@ -34,7 +34,8 @@ const REG_NAMES = ["ss_closure", "ss_methods"];
 function compiledFunctions(source: string, tsx: boolean): Map<string, string> {
   const out = new Map<string, string>();
   let vars: { name: string; definition: string }[];
-  try { vars = compileModule(source, tsx, null); } catch { return out; }
+  // no fallback to the erased text (holes8): it has no closure registrations, so its functions would publish unfrozen
+  try { vars = compileModule(source, tsx, null); } catch (e) { throw new Error(`the cells do not compile, so they cannot run: ${(e as Error)?.message ?? e}`); }
   for (const v of vars) {
     const p = parseCompiled(v.definition);
     if (p === null || !p.hasFn || p.callee === "rejected") continue;
@@ -54,7 +55,7 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
   const exports = new Function(...PRELUDE, `"use strict";\n${js}\nreturn {${names.join(", ")}};`)(
     ...PRELUDE.map((n) => PRELUDE_VALUES[n])) as Record<string, (...a: unknown[]) => unknown>;
   // each cell's function as the notebook runs it: the compiled definition's function text, with the closure
-  // registrations the compiler emits (lite/fnreg.ts, toolchain tc-reg); the erased text only when compiling fails
+  // registrations the compiler emits (lite/fnreg.ts, toolchain tc-reg); the erased text only for a rejected cell
   const compiledFns = compiledFunctions(source, !!opts.tsx);
   for (const [n, text] of compiledFns) exports[n] = new Function(...PRELUDE, ...REG_NAMES, `"use strict";\nreturn (${text});`)(...PRELUDE.map((x) => PRELUDE_VALUES[x]), closure, methods);
   const byName = new Map(cells.map((c) => [c.name, c]));

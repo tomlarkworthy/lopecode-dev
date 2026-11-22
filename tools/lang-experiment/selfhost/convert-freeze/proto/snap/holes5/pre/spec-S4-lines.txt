@@ -1,0 +1,54 @@
+456:md`**S3.4** \`delete\` on a value that is not \`Mut\` is \`[no-delete]\`. On a \`Mut\` it is accepted (S4.1).`
+691:md`**S4.1** \`const out = mut(e)\` gives \`out\` the type \`Mut<T>\`, where \`e\` has type \`T\`. On a \`Mut\` receiver, member writes, mutating methods and \`delete\` are accepted (S3.1, S3.2, S3.4). \`freeze(out)\` has type \`T\`.`
+693:md`**S4.2** \`mut(...)\` is accepted only as the initializer of a local \`const\`. Anywhere else, a \`let\`, an argument or an array element, it is \`[mut-bind]\`.`
+695:md`**S4.3** The argument of \`mut\` must be fresh: a literal, a spread copy, \`new\` on an intrinsic, or an intrinsic that returns a new value (\`Array.from\`, \`slice\`, \`map\`, \`structuredClone\`). A parameter, another binding or a frozen value is \`[mut-not-fresh]\`.`
+697:md`**S4.4** A \`Mut\` may be read, written, passed to a parameter typed \`Mut<…>\` and passed to \`freeze\`. Returning it, yielding it, binding it to a second name, placing it in an array or object literal, or passing it to a parameter not typed \`Mut<…>\` is \`[mut-escape]\`.`
+699:md`**S4.5** A nested function that uses a \`Mut\` of an enclosing function is \`[mut-capture]\`, unless it is a local helper in the sense of S3.11: bound to a local \`const\` or declared with \`function\`, and only called.`
+701:md`**S4.6** Using a \`Mut\` after \`freeze\` of it, including by calling a helper that uses it, is \`[mut-after-freeze]\`.`
+703:md`**S4.7** Only the first level of a \`Mut\` is writable. A write to, or a mutating method of, a value held inside it is \`[mut-deep-write]\`.`
+705:md`**S4.8** A view of a \`Mut\` buffer (\`subarray\`, \`buffer\`, \`values()\`, or the receiver a mutating method returns) may only be consumed at once as an argument. Binding or returning one is \`[mut-view]\`.`
+707:md`**S4.9** \`freeze\` of a \`Mut<…>\` parameter is \`[mut-freeze-param]\`. Only the function that called \`mut\` freezes it.`
+709:md`The cells of this section. \`s4_blur\` writes a box blur into a \`Mut\` buffer; \`s4_counts\` writes a \`Mut\` map through a local helper (S4.5); \`s4_record\` deletes from a \`Mut\` object.`
+714:  { statement: "S4.2", rule: "mut-bind", source: "const a = () => {\n  let out = mut([0]);\n  out[0] = 1;\n  return freeze(out);\n};" },
+715:  { statement: "S4.2", rule: "mut-bind", source: "const a = () => freeze(mut([0]));" },
+716:  { statement: "S4.2", rule: "mut-bind", source: "const a = () => [mut([0])];" },
+717:  { statement: "S4.2", rule: "mut-bind", source: "const a = () => {\n  const g = mut({ h: mut({ t: mut([1]) }) });\n  return 1;\n};" },
+718:  { statement: "S4.2", rule: "mut-field-assign", source: "const a = () => {\n  const g = mut({ t: mut([1]) });\n  delete g.t;\n  return 1;\n};" },
+719:  { statement: "S4.3", rule: "mut-not-fresh", source: "const xs = () => [1, 2, 3];\nconst bad = (xs) => {\n  const m = mut(xs);\n  m[0] = 9;\n  return freeze(m);\n};" },
+720:  { statement: "S4.3", rule: "mut-not-fresh", source: "const bad = () => {\n  const a = mut([1]);\n  const f = freeze(a);\n  const b = mut(f);\n  b[0] = 2;\n  return freeze(b);\n};" },
+721:  { statement: "S4.4", rule: "mut-escape", source: "const sum = () => (xs: number[]) => xs.reduce((p, q) => p + q, 0);\nconst a = (sum) => {\n  const out = mut([0, 1]);\n  const alias = out;\n  return 1;\n};" },
+722:  { statement: "S4.4", rule: "mut-escape", source: "const sum = () => (xs: number[]) => xs.reduce((p, q) => p + q, 0);\nconst a = (sum) => {\n  const out = mut([0, 1]);\n  const arr = [out];\n  return 1;\n};" },
+723:  { statement: "S4.4", rule: "mut-escape", source: "const sum = () => (xs: number[]) => xs.reduce((p, q) => p + q, 0);\nconst a = (sum) => {\n  const out = mut([0, 1]);\n  sum(out);\n  return 1;\n};" },
+724:  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const out = mut([0, 1]);\n  return out;\n};" },
+725:  { statement: "S4.4", rule: "mut-escape", source: "const b = () => {\n  const out = mut([0]);\n  return { out };\n};" },
+726:  { statement: "S4.4", rule: "mut-escape", source: "const g = function* () {\n  const out = mut([0, 1]);\n  yield out;\n};" },
+727:  { statement: "S4.4", rule: "mut-source", source: "const a = () => {\n  const g = (mk: () => Mut<number[]>) => {\n    const xs = mk();\n    xs.push(1);\n    return xs.length;\n  };\n  return 1;\n};" },
+728:  { statement: "S4.4", rule: "mut-source", source: "const a = () => {\n  const g = (p: { readonly y: Mut<number[]> }) => {\n    const { y } = p;\n    y.push(1);\n    return 1;\n  };\n  return 1;\n};" },
+729:  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const g = (p: { readonly y: Mut<number[]> }) => {\n    const ys = p.y;\n    ys.push(1);\n    return 1;\n  };\n  return 1;\n};" },
+730:  { statement: "S4.4", rule: "mut-cell", source: "const a = () => null;\nconst b = (a: Mut<number[]> | null) => (a === null ? 0 : a.length);" },
+731:  { statement: "S4.4", rule: "mut-cell", source: "const a = () => [];\nconst b = (a: readonly Mut<number[]>[]) => a.length;" },
+732:  { statement: "S4.4", rule: "mut-cell", source: "type Box<T> = { readonly v: T | null };\nconst a = () => ({ v: null });\nconst b = (a: Box<Mut<number[]>>) => 1;" },
+733:  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const g = mut({ t: mut([1]) });\n  const t = g.t;\n  return freeze(g).t.length;\n};" },
+734:  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const g = mut({ t: mut([1]) });\n  const h = { ...g };\n  return freeze(g).t.length;\n};" },
+735:  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const g = mut({ xs: mut([1]), ys: mut([10]) });\n  const leak = <Y,>(c: Mut<{ xs: Mut<number[]>; ys: Y }>): number => c.xs.length;\n  return leak(g) + freeze(g).ys.length;\n};" },
+736:  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const g = mut({ t: mut([1]) });\n  const f = (p: Mut<{ t: Mut<number[]> }>, q: Mut<number[]>) => {\n    q.push(2);\n    return p.t.length;\n  };\n  return f(g, g.t);\n};" },
+737:  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const f = (p: Mut<{ t: Mut<number[]> | null }>) => {\n    const x = p.t;\n    return x === null ? 0 : x.length;\n  };\n  return 1;\n};" },
+738:  { statement: "S4.4", rule: "type", source: "const a = () => {\n  const g = mut({ m: mut(new Map<string, Mut<number[]>>()) });\n  return freeze(g).m.size;\n};" },
+739:  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = mut([0]);\n  const f = () => out.length;\n  return f;\n};" },
+740:  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = mut([0]);\n  [1].forEach(() => {\n    out[0] = 1;\n  });\n  return freeze(out);\n};" },
+741:  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const keep = (k: () => number) => k;\n  const m = mut([1]);\n  const f = function g(): number {\n    m.push(2);\n    return 0;\n  };\n  const h = keep(f);\n  return [freeze(m), h];\n};" },
+742:  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const m = mut([1]);\n  const fs = [function g(): number {\n    m.push(2);\n    return 0;\n  }];\n  return [freeze(m), fs.length];\n};" },
+743:  { statement: "S4.6", rule: "mut-after-freeze", source: "const a = () => {\n  const out = mut([0]);\n  const r = freeze(out);\n  out[0] = 2;\n  return r;\n};" },
+744:  { statement: "S4.6", rule: "mut-after-freeze", source: "const a = () => {\n  const out = mut([0]);\n  const f = () => {\n    out[0] = 1;\n  };\n  const r = freeze(out);\n  f();\n  return r;\n};" },
+745:  { statement: "S4.7", rule: "mut-deep-write", source: "const a = () => {\n  const m = mut({ a: { b: 1 }, xs: [1] });\n  m.a.b = 2;\n  m.xs.push(2);\n  return freeze(m);\n};" },
+746:  { statement: "S4.8", rule: "mut-view", source: "const a = () => {\n  const t = mut(new Float32Array(4));\n  const v = t.subarray(0, 2);\n  return freeze(t);\n};" },
+747:  { statement: "S4.8", rule: "mut-view", source: "const a = () => {\n  const m = mut(new Map<string, number>());\n  const set = (k: string) => m.set(k, 1);\n  set(\"a\");\n  return freeze(m).size;\n};" },
+748:  { statement: "S4.9", rule: "mut-freeze-param", source: "const a = () => {\n  const g = (m: Mut<number[]>) => freeze(m);\n  return 1;\n};" }
+761:test_spec_S4_2 = spec_rejectsFor("S4.2")
+765:  return `${spec_rejectsFor("S4.3")}; literals, spreads, new and fresh intrinsics are accepted`;
+772:  return `${spec_rejectsFor("S4.4")}; a Mut<…> parameter and a read by JSON.stringify are accepted`;
+778:  return `${spec_rejectsFor("S4.5")}; a helper that is only called may use the Mut; s4_counts is [2,1]`;
+797:  return `${spec_rejectsFor("S4.6")}; at run time a write after freeze throws: a push, a Map's set, a group lent and frozen in one call, a group field's push; a write before it is kept; a cell's returned array, record, Map and Set refuse a write`;
+800:test_spec_S4_7 = spec_rejectsFor("S4.7")
+804:  return `${spec_rejectsFor("S4.8")}; a view consumed at once as an argument is accepted`;
+807:test_spec_S4_9 = spec_rejectsFor("S4.9")

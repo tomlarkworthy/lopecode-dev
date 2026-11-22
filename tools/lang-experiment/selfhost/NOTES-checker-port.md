@@ -1949,3 +1949,155 @@ S4.5 (the late-write clause covers nested async functions, not an async cell), S
 bound view is read-only), S4.6 (only sync generator objects throw). Code left as found, for a later step: the
 `[mut-capture]` and `[mut-yield]` messages suggest `u.slice()` for a URL, which is unsupported; `snapshot` of a function
 or URL could be a `[type]`; deepFreeze does not refuse an async generator object (the checker rejects it first).
+
+## 2026-11-22 16:25–18:14: holes8, the run-time freeze holes of selfhost/freeze-attack3, by class (build owner, logs `lite/soundscript/.scratch/holes8/`)
+Saved before overwriting: the attacker's `selfhost/freeze-attack3/all.out.txt` as `attack3-all.out.orig.txt`, the
+current `selfhost/freeze-attack2/all.out.txt` as `attack2-all.out.orig.txt` (holes7 already kept that attacker's copy).
+Originals of every edited runtime file are `*.before.ts` beside them.
+
+Step 0, the observer. `lite/infer/attack/observe.ts` takes from `selfhost/freeze-attack3/harness.ts`: `checked` (the
+checker's verdicts, so compile islands run; run-sets passes them, `--off` marks a cell ok when only dropped rules hit
+it), promise following (each promise a fulfilled value reaches, through functions but not actions, to depth 6, read when
+it settles, value or rejection reason, and again at the end), and `twice` (one reading per run of a consumer). Also
+`fetchBody`, and `scheduler.frame` set per run (freeze-attack3's harness.ts replaces it when its batches are imported).
+run-sets has set freeze3 (b1-b11, 360; c0's 4 controls run without the checker and are counted apart) and h8
+(`lite/infer/attack/h8-attacks.ts`). b4's 30 `-obs` rows died on the attacker's `v.size` on an `unknown` ([no-member]);
+the repaired rows type the consumer with what the promise holds (`h8-obs-*`, 30). freeze3 alone reproduced the attacker's
+list exactly (`diff` of the two SILENT lists empty). Before any fix (`sets-before.txt`, `sets-before-off.txt`):
+```
+rules on:  freeze 0, attack2 0, attack1 0, oldspec 0, oldvariants 0, runtime 0, new 0, h6 0, freeze2 0, h7 0,
+           freeze3 88 (accepted 148), h8 7 (30 programs), controls fired 4 of 4; all 1829, silent 95
+rules off: freeze 3, attack2 4, attack1 0, oldspec 1, oldvariants 0, runtime 0, new 3, h6 1, freeze2 23, h7 0,
+           freeze3 159, h8 24; all 1829, silent 218
+```
+freeze3's 148 against the attacker's 149: `b8:deep-2000` gave `CRASH Not enough stack space to parse input` in the
+checker in that run and was accepted in the freeze3-only run; stack depth, not code. With rules off freeze2 went from
+holes7's 18 to 23: the five new ones are promise-held typed arrays the old observer could not read
+(`b6:pr-cap-iife`, `b7:pc-typed-param`, `pc-typed-ret`, `pc-typed-all`, `pc-typed-in-rec-yield`, all dropped
+`mut-capture`), class C, so in scope.
+
+The classes are the brief's, against `selfhost/freeze-attack3/RESULTS.md`'s causes: A, islands and other paths that run
+erased text (cause 1); B, the keep-mode invariant, and C, measure the held promise then refuse it at publish (both cause
+2); E, rejection reasons (cause 3); D, a native Map or Set, and F, an action's arguments all or none and a match
+array's indices and groups (neither among RESULTS.md's three causes; from the brief).
+
+Class C measured first. `promise-census.ts` (TypeScript program over diff.ts's file globs plus `lite/**/*.ss.ts`, 172
+files): `cells 2016, inner functions 2046, capturing a local 482, capturing a promise-typed local 0 in 0 cells`; of the
+782 captured locals 190 are typed any or unknown, so the AST count alone is not ~0. A control file of 4 cells
+(`census-control.ts`) gave 3 of 3 hits and the negative case clean. Dynamic count: a temporary `console.error` where
+freeze.ts held a promise (and in run.ts's erased-text fallback), built into the notebook: `SS_HELD=1 bun
+bun-verify/run.ts` `170 pass, 0 fail`, 0 lines; fixtures 0; build 0; all run-sets sets 0 fallbacks; freeze3 81 hits
+(the counter fired). Instrumentation removed (files restored from the `.before` copies). Chosen: refuse at publish.
+
+Classes, enumerated, then fixed.
+- A, checked text run without the registering compile: (1) `lite/browser/run.ts` runCells fell back to the erased text
+  when compileModule threw: 0 of 1829 programs took it; now throws `the cells do not compile, so they cannot run`.
+  (2) run.ts compileFor and (3) `lite/stdlib/runtime.ts` compiler (the notebook's `ss_compile`), on the page through
+  `runHere`, in a worker through the pool: erased island text. `lite/browser/workers.ts` runHere now structured-clones
+  `job.values` in and the result out (the pool's postMessage already does both), and the callers deep-freeze it as
+  before; what a worker cannot be sent fails on the page with the same `The object can not be cloned.` (4) the pool
+  worker: unchanged. (5) a rejected cell in runCells runs its erased text: not accepted, out of scope. link.ts and the
+  notebook's compiled cells register (holes6). Static: `walks.ss.ts uncloneable` now refuses a type argument
+  (`Map<string, () => number>`), an open type (unknown, object, a type parameter) and nesting deeper than 8. The frozen
+  comparator imports the same cell from types.ts (DELIBERATE CHANGE note in `frozen/core.ts`). Flips: `diff.ts
+  --module-only` rule tally line identical before and after (`compile-boundary 9`), SAME 1029. After the run-time
+  change alone, all 12 accepted b2 programs (the 10 silent ones among them) were `error go: The object can not be cloned.` (`sets-1.txt`); with the static change
+  all but `isl-pool-typed` are `[compile-boundary]`.
+- B, keep mode: its only caller was the held promise (freeze.ts 177). Deleted with C; no mode is left that passes a leaf.
+- C: a promise in a slot no replacement can be put in (a function's captures, an Error, an already frozen value) throws
+  in the scan, before anything is frozen. Static, cheap: `ow-capture.ss.ts owPromiseIn` (9 lines; owCaptureErrs 21)
+  makes a kept function that reads a local whose type holds a Promise (not through a function type) `[mut-capture]`;
+  mirrored in `frozen/own.ts` under DELIBERATE CHANGE. Flips 0 (`diffmod-static.txt` rule tally identical; full diff
+  SAME 3613). New reject row S4.5.
+- D, native Map/Set in a checked cell: structuredClone and snapshot (the only intrinsics whose result can be one:
+  `mapsources.ts` over INTRINSIC_DECLS lists only Map and Set themselves; Map.groupBy is not declared, Set algebra is
+  wrapped), island and pool results, `new Map` in an island. With keep mode gone, deepFreeze copies a native Map or Set
+  to a frozen SsMap/SsSet at every depth, and throws where no copy can be put. No prelude rebinding.
+- E: `then-sites.ts` (AST): freeze.ts had 3 one-argument `.then` and the keep-mode one; prelude.runtime.ts has none. All
+  three now pass `rethrow` (deep-freezes the reason and throws what that gives, a copy or deepFreeze's own TypeError).
+  One copied promise per published promise, so two readers get one reason (`h8-rej-two-consumers`: `["x"]`, `["x"]`).
+- F: action arguments `f(...deepFreeze(args))`: one scan of all of them, then freezing (`h8-act-partial` `show s = 0`,
+  the caller's later push succeeds). Arrays: `extraKeys` walks own non-element properties only when the array has own
+  `index` or `groups` (match arrays and their `indices`). Measured (`keys-time.txt`, bun): 1e6 elements, walk 5.3 ms,
+  Object.keys 542 ms, two hasOwn 0.000 ms.
+Line counts: freeze.ts 201 -> 201 (161 non-comment both), fnreg.ts 137 -> 137.
+
+Found on the way: in bun-verify every structuredClone result was a node-realm object (lope-runtime.js passes node's
+structuredClone into the vm), whose prototypes freeze.ts does not know, so `snapshot`, structuredClone and now the
+page's island results were published unfrozen there (the new S4.6 row failed on `n.m.set` and on `Object.isFrozen(out.y)`).
+`bun-verify/capabilities.ts realmClone` rebuilds the result with the realm's constructors; a browser's clone is
+same-realm. Not fixed: a host-realm object from another node API (Response.json in bun-verify) is still left alone.
+
+Tables and tests. freeze-table.ts rows: promise among captures (banned), rejection reason, native Map (structuredClone),
+native Set (snapshot), match array groups, match array indices; freeze-table.test.ts routes promise, rejection, kept
+promise (a promise-route consumer awaits, so a banned value puts it in error; Promise.resolve adopts a thenable, which
+is exempted). On the old freeze.ts and prelude: `385 programs; ... 358 pass, 83 fail` (`table-oldcode.txt`); new: `441
+pass, 0 fail`. h8-attacks.ts: 30 repaired obs rows plus 46 by class (9 island, 14 kept promise, 11 native Map/Set, 8
+rejection, 4 action/match array). On the old code (`h8-on-oldcode.txt`) h8 is `silent 13` rules on and 30 off.
+spec.ojs: `test_spec_S4_6_holes8` and the S4.5 reject row. live.test.ts runs freeze3 and h8 too.
+Spec prose this makes false or incomplete (not edited; for the owner): S4.6 "the arguments of an action, and the result
+of a worker" (now also the reason a promise rejects with, all of an action's arguments or none, and an island's result
+on the page, which like a worker's crosses as a structured clone both ways); "Arrays, records, Errors and JSX elements
+are frozen" (a match array's groups and indices too); "A Map, Set or URL made in a cell is an instance of a subclass"
+(a native Map or Set from structuredClone or snapshot is published as a frozen copy of that subclass); "The locals a
+published function uses are frozen with it" and the publish-throws list (a function, Error or already frozen value
+that holds a promise throws). S4.5 does not list a captured promise among the `[mut-capture]` cases (new reject row
+there). The not-specified list (line ~2482) describes `[compile-boundary]` as "an island input that cannot be sent to a
+worker, such as a function"; it is inputs and outputs, and now type arguments, open types and nesting deeper than 8.
+S5.5 stays true.
+Dead end: the first gate run (`fg/`) hung at `selfhost/freeze-attack3/run-all.sh`: run-sets.ts now imports the freeze3
+batches at top level, the batches import harness.ts, and harness.ts imports `verdictOf` from run-sets.ts; the cycle
+through top-level await never settled (a one-candidate run printed nothing in 60 s). Sets now load only under
+`import.meta.main`. Also `bun test ./lite/browser/run.test.ts ./lite/toolchain/tc.test.ts ./lite/acorn.test.ts` in one
+command runs acorn.test.ts only (it calls process.exit), so the three were run apart.
+
+Gates (`fg/` 17:06–17:30, `fg2/` after the S4.5 row, freeze.ts comment edits, freeze.test.ts and run-sets' load guard):
+build `exit 0` (fg2); `bun-verify: 171 pass, 0 fail, 0 timed out, 0 skipped` (fg2; 170 plus test_spec_S4_6_holes8);
+`14/14 fixtures pass; 51 lint/injection rules registered, 51 with a reject case` (fg2); diff `SAME 3615 DIFFERENT 0`
+and --module-only `SAME 1031 DIFFERENT 0` (fg2; +2 sources, the S4.5 row and the inline cells of the S4.6 test; the
+rule tally differs from the start only in `mut-capture 30 -> 32`, those two); tc-diff `all calls: SAME 341388 SAME
+THROW 3828 DIFFERENT 1`, the 1 is `erase (repro)` (fg); live.test `461 pass 0 fail` (fg2; its child run-sets line `all:
+1159 programs, silent 0`); freeze-table as a script `385 programs; late writes that threw: 128; 441 pass, 0 fail`,
+under bun test the script prints `late writes that threw: 0; 441 pass, 0 fail` with the 128 as `Unhandled error between tests` blocks and no bun summary (freeze-table.test.ts calls process.exit) (fg); freeze.test `47 pass, 0 fail` (fg2; in fg it was `0 pass 1 fail 1 error`: its old held-promise check now got the new `TypeError: a promise where it cannot be replaced`, unhandled, and was rewritten); run.test `2 pass 0 fail` (terminal only, not logged), tc.test `11
+pass 0 fail` (685 s, `fg/tctest.txt`), acorn.test `6 pass, 0 fail` (run apart, after the fg build); run-sets (fg) `all: 1875 programs,
+silent 0`, freeze3 accepted 56 silent 0, h8 accepted 28 silent 0, freeze2 accepted 85 (b6:pr-cap-arr is now
+`[mut-capture]`), freeze3 controls fired 3 of 4 (`ctl-promise-typed` now throws at publish: the path it controlled is
+covered); `--off` `all: 1875 programs, silent 52`: the 30 of holes7 (11 captured let or parameter reassigned, 19
+consumer writing its typed-array input) and 22 freeze3 `b6:cw-*` (consumer writes, all `dropped member-write` or
+`mutating-method`), h8 off `accepted 72, silent 0`, freeze2 off back to 18. run-all.sh freeze-attack3 `360 candidates,
+accepted 56, silent 0`, `controls 4, fired 3`; its nb-island.ts now stops at `compile refused: go not ok by the
+checker` (the island is `[compile-boundary]`), so its `notebook compile` line is gone. freeze-attack2 `309 candidates,
+accepted 85, silent 0`. Not rerun after the fg2 changes: tc-diff, freeze-table, run.test, tc.test, acorn.test, run-sets
+(only comments of freeze.ts and run-sets' loading changed for them).
+
+Browser verify, run twice. First (`fg2/verify.txt`, after the fg2 build): `functional 647 pass 8 fail`, all eight
+`page errors 1: x` (themes, phone, touch, try-it, original, reopened, ui, reloaded saved page). The `x` was the
+rejection reason of test_spec_S4_6_holes8's cell `r`: its promise rejected when the cell ran, and the test attached its
+`catch` later, so the page saw an unhandled rejection on every page that loads the spec. The row now calls
+`soundscript.deepFreeze({ p: Promise.reject(new Error("x")) })` and attaches both catches at once; the checks are the
+same (reason frozen, one reason for both readers). Second (`fg3/`, rebuild after that edit): build exit 0,
+`bun-verify: 171 pass, 0 fail`, `14/14 fixtures pass`, diff `SAME 3615 DIFFERENT 0` x5, --module-only `SAME 1031
+DIFFERENT 0`, browser verify `functional 655 pass 0 fail` (653 before plus the holes8 row in the original and the
+reopened export). Then, on the same fg3 tree (`gates3.sh`, 18:07–18:13), every other gate again:
+acorn.test `6 pass, 0 fail`; tc-diff `SAME 341388 SAME THROW 3828 DIFFERENT 1` (`erase (repro)`); freeze-table script
+`late writes that threw: 128; 441 pass, 0 fail`, under bun test `late writes that threw: 0; 441 pass, 0 fail`;
+freeze.test `47 pass, 0 fail`; run.test `2 pass 0 fail` (`fg3/runtest.txt`); live.test `461 pass 0 fail`; run-sets
+`all: 1875 programs, silent 0`, `--off` `silent 52`, every per-set line equal to fg's; run-all.sh freeze-attack3 `360
+candidates, accepted 56, silent 0`, freeze-attack2 `309 candidates, accepted 85, silent 0`; tc.test `11 pass 0 fail`.
+All numbers in this section's last two paragraphs are of one tree.
+
+After review (a fresh agent, BLOCK, 7 findings, all taken: the verify runs above, the heading time, the run.test and
+tc.test logs, the bun-test wording of freeze-table, the fg freeze.test failure, the class map, the b2 count) and an
+advisor pass:
+- The 22 freeze3 `--off` silent programs are one family by construction: `selfhost/freeze-attack3/b6.ts:6` builds every
+  `cw-*` as `const w = (t: Uint8Array) => { <body> return 0; }` over `T = new Uint8Array(2)`, a consumer writing its
+  typed-array input; all 22 are `dropped member-write` (one also `mutating-method`).
+- Line counts (before -> after): freeze.ts 201 -> 201, fnreg.ts 137 -> 137, workers.ts 127 -> 130, run.ts 219 -> 220,
+  prelude.runtime.ts 242 -> 243, stdlib/runtime.ts 148 -> 148, walks.ss.ts 110 -> 113 (the `uncloneableWith` cell 20
+  lines), bun-verify/capabilities.ts 168 -> 193 (realmClone, 25; no before copy kept, counted from the block).
+- S4.6 and S5.5 re-read (spec.ojs:752, :909) against the deleted keep mode and runCells' throw: neither mentions a held
+  promise or an erased-text fallback; S8.7 ("An island of ok cells runs when another cell of the module does not
+  parse") is about `compile`, not runCells, and its test passes in fg3.
+- The rejection half of test_spec_S4_6_holes8 calls `deepFreeze` directly, not through a checked cell (the page-error
+  dead end above). The cell path of a rejection is covered by the 8 `h8-rej-*` attacks and freeze-table's rejection
+  route, not by the spec row.

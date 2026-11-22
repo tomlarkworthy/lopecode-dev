@@ -4,6 +4,10 @@
 // Changed since: fnKept asks ch.mayHoldFn (S11.9 fix, 2026-11-21 review4), as md-value's mdKept asks ixMayHoldFn.
 // Changed since: [mut-cell] on each injected type and, as a backstop, on the value (holes step 2, 2026-11-22), as
 // md-inject's mdInject and md-value's mdValueRules with md-cell's mdKeep.
+// DELIBERATE CHANGE (2026-11-22, holes8): [compile-boundary]'s uncloneableWith is imported from the live types.ts
+// (walks.ss.ts), so this fixture took its change with it: a type argument (Map<string, () => number>), an open type
+// (unknown, object, a type parameter) and nesting deeper than 8 are now uncloneable. 0 rule-count changes on
+// diff.ts --module-only.
 // The lite checker without file access: module shape, syntax bans, injection, a per-cell type
 // check (infer.ts) and the ownership rules (own.ts). Each cell ends ok, rejected, unsupported (a
 // construct lite does not model) or blocked (a dependency has no usable type).

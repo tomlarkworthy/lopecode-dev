@@ -8,12 +8,15 @@
 export const UNCLONEABLE_NAMES = () => ["Action", "State", "StateCell", "Mut", "Borrowed", "Promise", "Generator", "Pool", "Compile", "Events", "Listener", "Elem"];
 export const uncloneableWith = (UNCLONEABLE_NAMES) => (R: RegOps) => {
   function uncloneable(t: Ty, depth: number = 0): string | null {
-    if (depth > 8) return null;
+    // holes8: deeper than 8, a type argument and an open type were let through; the page's island now clones as a
+    // worker does, so these also fail at run time
+    if (depth > 8) return "a type nested deeper than 8 levels";
     if (t.k === "named" && R.isAlias(t.n)) return uncloneable(R.expand(t), depth + 1);
     const first = (xs: Ty[]): string | null => { for (const x of xs) { const w = uncloneable(x, depth + 1); if (w) return w; } return null; };
     switch (t.k) {
       case "fn": return "a function";
-      case "named": return UNCLONEABLE_NAMES.includes(t.n) ? t.n : null;
+      case "named": return UNCLONEABLE_NAMES.includes(t.n) ? t.n : first(t.args);
+      case "unknown": case "object": case "tv": return "a value of an open type (unknown, object or a type parameter), which may be a function";
       case "arr": return uncloneable(t.el, depth + 1);
       case "tup": return first(t.els);
       case "union": return first(t.ts);

@@ -180,6 +180,17 @@ export const owLateWrite = (isFnNode) => (O: OwCtx, r: AstNode, f: AstNode): boo
   return false;
 };
 // where t holds a typed array (which cannot be frozen): through what owTyKids looks into, Mut, type arguments, aliases
+// whether a value of type t holds a promise (not through a function type): a function the cell keeps cannot capture one,
+// as the promise settles after the function is published (freeze.ts throws at publish; holes8, 2026-11-22)
+export const owPromiseIn = (owTyKids) => {
+  function promiseIn(R: IxRegCore, t: Ty, depth: number): boolean {
+    if (depth > 12) return false;
+    if (t.k === "named" && t.n === "Promise") return true;
+    const ks = t.k === "named" ? (R.isAlias(t.n) ? [R.expand(t)] : t.args) : owTyKids(t);
+    return ks.some((x) => promiseIn(R, x, depth + 1));
+  }
+  return (R: IxRegCore, t: Ty): boolean => promiseIn(R, t, 0);
+};
 export const owTypedIn = (owTyKids, OW_UNFREEZABLE) => {
   function typedIn(R: IxRegCore, t: Ty, depth: number): string | null {
     if (depth > 12) return null;
@@ -259,7 +270,7 @@ export const owFlowsOut = (owEncl) => (O: OwCtx, r: AstNode, f: AstNode): boolea
   }
   return false;
 };
-export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLet, owGenLateWrites, owFlowsOut, owTypedIn, owTypedSafeB, owErr, unwrap, OW_UNFREEZABLE) => (O: OwCtx, W: OwW, caps: Map<number, OwCap>, byFn: Map<number, number>): void => {
+export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLet, owGenLateWrites, owFlowsOut, owTypedIn, owTypedSafeB, owPromiseIn, owErr, unwrap, OW_UNFREEZABLE) => (O: OwCtx, W: OwW, caps: Map<number, OwCap>, byFn: Map<number, number>): void => {
   for (const f of O.T.fns) {
     const c = caps.get(f.nid);
     if (f.nid === O.T.fn.nid || c === undefined || !owKept(O, byFn, f)) continue;
@@ -275,6 +286,7 @@ export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLe
     for (const b of c.read.flatMap((id) => O.F.bindings.get(id) ?? [])) {
       owLateLet(O, W, f, b);
       const ta = c.mut.includes(b.id) ? null : owTypedIn(O.R, b.t);
+      if (owPromiseIn(O.R, b.t)) owErr(W, f, "mut-capture", `${b.name} holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself`);
       if (ta !== null && !owTypedSafeB(O, b)) owErr(W, f, "mut-capture", `${b.name} holds a ${ta} that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: ${ta} = x.slice())`);
     }
   }

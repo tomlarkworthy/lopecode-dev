@@ -83,8 +83,10 @@ const kindOf = (v: object): number => {
 // a leaf: replaced by a copy in whatever holds it (a promise: by p.then(deepFreeze)); every other kind is a node
 const leaf = (k: number): boolean => k === K_TYPED || k === K_BUFFER || k === K_URL || k === K_PROMISE;
 const KIND_NAME: Record<number, string> = { 5: "native Map", 6: "native Set", [K_TYPED]: "typed array", [K_BUFFER]: "ArrayBuffer", [K_URL]: "native URL", [K_PROMISE]: "promise" };
+// a rejection reason is published as a value is (holes8): deep-frozen, then thrown on
+const rethrow = (e: unknown): never => { throw deepFreeze(e); };
 const copyOf = (v: object, k: number): object => {
-  if (k === K_PROMISE) return (v as Promise<unknown>).then(deepFreeze);
+  if (k === K_PROMISE) return (v as Promise<unknown>).then(deepFreeze, rethrow);
   if (k === K_URL) { const u = new SsURL((v as URL).href); FROZEN.add(u); Object.freeze(u); DONE.add(u); return u; }
   const c = k === K_TYPED ? (v as Uint8Array).slice() : (v as ArrayBuffer).slice(0);
   COPIES.add(c);
@@ -99,6 +101,8 @@ const noThen = (x: object): void => {
   if (typeof (x as { then?: unknown }).then === "function" && !(x instanceof Promise)) throw new TypeError("a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen");
 };
 const iterErr = () => new TypeError("an iterator or generator object cannot leave its cell: next() changes it");
+// a match array's non-element own properties (index, input, groups, indices); Object.keys on any array is 40-100x the walk
+const extraKeys = (a: object): string[] => (Object.hasOwn(a, "index") || Object.hasOwn(a, "groups") ? Object.keys(a).filter((x) => String(x >>> 0) !== x) : []);
 // each child of node n (of kind k); a capture still in its dead zone throws (fail-stop: nothing has been changed yet)
 const eachKid = (n: object, k: number, f: (x: unknown) => void): void => {
   if (k === K_FN) {
@@ -108,7 +112,7 @@ const eachKid = (n: object, k: number, f: (x: unknown) => void): void => {
       try { x = t(i); } catch (e) { throw new TypeError(`a function is published before a binding it captures is initialised (${(e as Error).message})`); }
       f(x);
     }
-  } else if (k === 1) { const a = n as unknown[]; for (let i = 0; i < a.length; i++) f(a[i]); }
+  } else if (k === 1) { const a = n as unknown[]; for (let i = 0; i < a.length; i++) f(a[i]); for (const key of extraKeys(a)) f((a as unknown as Record<string, unknown>)[key]); }
   else if (k === 2) { const r = n as Record<string, unknown>; for (const key of Object.keys(r)) f(r[key]); }
   else if (k === 3 || k === 5) for (const [a, b] of NMap.prototype.entries.call(n)) { f(a); f(b); }
   else if (k === 4 || k === 6) for (const a of NSet.prototype.values.call(n)) f(a);
@@ -119,17 +123,15 @@ const eachKid = (n: object, k: number, f: (x: unknown) => void): void => {
 // is each container on the way up; the cell's own containers keep its originals and are left as they are. Everything
 // else is frozen in place. 1: a read-only scan, where every throw is, so a publish that throws changes nothing.
 // 2 (only when a leaf was met): containers that reach one, by reverse edges (cycles included). 3: copy and freeze.
-// keep: v cannot be replaced (a held promise's value, which an await gives as it is): frozen in place, nothing copied;
-// a container on a path to a leaf is frozen but not put in DONE, so publishing it later copies the leaf
-export function deepFreeze<T>(v: T): T { return walk(v, false); }
-function walk<T>(v: T, keep: boolean): T {
+// holes8: a promise no slot can take a replacement for (a function's captures, an Error, a frozen value) throws at publish
+export function deepFreeze<T>(v: T): T {
   if (!isObj(v) || DONE.has(v)) return v;
   noThen(v);
   const k0 = kindOf(v);
   if (k0 === 0) return v;
   if (k0 === K_ITER) throw iterErr();
-  if (leaf(k0)) return keep ? v : (copyOf(v, k0) as T);
-  const kinds = new NMap<object, number>([[v, k0]]), order: object[] = [v], leaves = new NMap<object, number>(), held: Promise<unknown>[] = [];
+  if (leaf(k0)) return copyOf(v, k0) as T;
+  const kinds = new NMap<object, number>([[v, k0]]), order: object[] = [v], leaves = new NMap<object, number>();
   let seeded = k0 === 5 || k0 === 6;
   for (let i = 0; i < order.length; i++) {
     const n = order[i]!, k = kinds.get(n)!, fx = fixed(n, k);
@@ -139,8 +141,7 @@ function walk<T>(v: T, keep: boolean): T {
       const kx = kindOf(x);
       if (kx === 0) return;
       if (kx === K_ITER) throw iterErr();
-      // a promise that cannot be replaced: its value is deep-frozen in place when it settles
-      if (kx === K_PROMISE && (fx || keep)) { held.push(x as Promise<unknown>); return; }
+      if (kx === K_PROMISE && fx) throw new TypeError("a promise where it cannot be replaced (among a function's captures, in an Error or in an already frozen value): it would settle after its cell publishes it");
       if (leaf(kx)) { leaves.set(x, kx); seeded = true; return; }
       if (kx === 5 || kx === 6) seeded = true;
       kinds.set(x, kx);
@@ -157,29 +158,28 @@ function walk<T>(v: T, keep: boolean): T {
       eachKid(n, k, (x) => {
         if (!isObj(x)) return;
         const kx = leaves.get(x);
-        if (kx !== undefined) { if (!(kx === K_PROMISE && fx)) mark(n, KIND_NAME[kx]!); }
+        if (kx !== undefined) mark(n, KIND_NAME[kx]!);
         else if (kinds.has(x)) { const ps = parents.get(x); if (ps) ps.push(n); else parents.set(x, [n]); }
       });
     }
     for (let n = todo.pop(); n !== undefined; n = todo.pop()) for (const p of parents.get(n) ?? []) mark(p, why.get(n)!);
-    for (const [n, w] of why) if (!keep && fixed(n, kinds.get(n)!)) throw new TypeError(`a ${w} where it cannot be replaced by a copy (among a function's captures, in an Error or in an already frozen value): a value cannot change after its cell publishes it`);
-    for (const [x, kx] of keep ? [] : leaves) copies.set(x, copyOf(x, kx));
-    for (const n of keep ? [] : why.keys()) { const k = kinds.get(n)!; copies.set(n, k === 1 ? new Array((n as unknown[]).length) : k === 2 ? Object.create(Object.getPrototypeOf(n)) : k === 3 || k === 5 ? new SsMap() : new SsSet()); }
-    for (const n of keep ? [] : why.keys()) {
+    for (const [n, w] of why) if (fixed(n, kinds.get(n)!)) throw new TypeError(`a ${w} where it cannot be replaced by a copy (among a function's captures, in an Error or in an already frozen value): a value cannot change after its cell publishes it`);
+    for (const [x, kx] of leaves) copies.set(x, copyOf(x, kx));
+    for (const n of why.keys()) { const k = kinds.get(n)!; copies.set(n, k === 1 ? new Array((n as unknown[]).length) : k === 2 ? Object.create(Object.getPrototypeOf(n)) : k === 3 || k === 5 ? new SsMap() : new SsSet()); }
+    for (const n of why.keys()) {
       const c = copies.get(n)!, k = kinds.get(n)!;
-      if (k === 1) { const a = n as unknown[], b = c as unknown[]; for (let i = 0; i < a.length; i++) b[i] = rep(a[i]); }
+      if (k === 1) { const a = n as unknown[], b = c as unknown[]; for (let i = 0; i < a.length; i++) b[i] = rep(a[i]); for (const key of extraKeys(a)) (b as unknown as Record<string, unknown>)[key] = rep((a as unknown as Record<string, unknown>)[key]); }
       // every own key, symbols too (a StateCell is a record with a symbol key)
       else if (k === 2) for (const key of Reflect.ownKeys(n)) { const d = Object.getOwnPropertyDescriptor(n, key)!; Object.defineProperty(c, key, "value" in d ? { ...d, value: rep(d.value) } : d); }
       else if (k === 3 || k === 5) for (const [a, b] of NMap.prototype.entries.call(n)) NMap.prototype.set.call(c, rep(a), rep(b));
       else for (const a of NSet.prototype.values.call(n)) NSet.prototype.add.call(c, rep(a));
     }
   }
-  for (const p of held) p.then((x) => walk(x, true), () => undefined);
   for (const n of order) {
     const m = copies.get(n) ?? n, k = kinds.get(n)!;
     if (k === 3 || k === 4 || k === 5 || k === 6 || k === K_SSURL) FROZEN.add(m);
     Object.freeze(m);
-    if (!keep || !why.has(n)) DONE.add(m);
+    DONE.add(m);
   }
   return rep(v) as T;
 }
@@ -192,10 +192,10 @@ export const borrow = <T,>(v: T): T => { if (typeof v === "object" && v !== null
 // a cell's value as the runtime publishes it, at every boundary: deep-frozen; a promise's resolved value; each value a
 // generator yields. (B7's unfrozen quick path was removed 2026-11-22: it failed the freeze attack.)
 export function out<T>(v: T): T {
-  if (v instanceof Promise) return v.then(deepFreeze) as T;
+  if (v instanceof Promise) return v.then(deepFreeze, rethrow) as T;
   const g = v as any;
   if (!g || typeof g.next !== "function" || typeof g.return !== "function") return deepFreeze(v);
-  const fz = (r: any): any => (r instanceof Promise ? r.then(fz) : r && typeof r === "object" ? { done: r.done, value: yielded(r.value) } : r);
+  const fz = (r: any): any => (r instanceof Promise ? r.then(fz, rethrow) : r && typeof r === "object" ? { done: r.done, value: yielded(r.value) } : r);
   const w = { next: (...a: unknown[]) => fz(g.next(...a)), return: (...a: unknown[]) => fz(g.return(...a)), throw: (...a: unknown[]) => fz(g.throw(...a)) };
   return Object.assign(w, typeof g[Symbol.asyncIterator] === "function" ? { [Symbol.asyncIterator]() { return w; } } : { [Symbol.iterator]() { return w; } }) as T;
 }

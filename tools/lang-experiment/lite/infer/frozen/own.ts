@@ -214,6 +214,13 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     for (const x of ks) { const w = typedIn(x, depth + 1); if (w !== null) return w; }
     return null;
   };
+  // DELIBERATE CHANGE (2026-11-22, holes8): a function the cell keeps may not capture a promise (the cells' owPromiseIn)
+  const promiseIn = (t: Ty, depth = 0): boolean => {
+    if (depth > 12) return false;
+    if (t.k === "named" && t.n === "Promise") return true;
+    const ks: Ty[] = t.k === "named" ? (ch.reg.isAlias(t.n) ? [ch.reg.expand(t)] : t.args ?? []) : t.k === "arr" ? [t.el] : t.k === "tup" ? t.els : t.k === "union" ? t.ts : t.k === "rec" ? [...[...t.props.values()].map((p) => p.t), ...(t.index ? [t.index] : [])] : [];
+    return ks.some((x) => promiseIn(x, depth + 1));
+  };
   const typedSafeB = (b: Binding): boolean => {
     if (b.cellParam) return true;
     const d = b.node && parent.get(b.node);
@@ -273,6 +280,7 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     for (const b of capRead.get(f)!) {
       if (b.kind === "let" || b.kind === "param") for (const r of refs.get(b) ?? []) if ((r.start < f.start || r.start > f.end) && assignedRef(r) && lateWrite(r, f)) err(r, "let-capture", `${b.kind} ${b.name} is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged`);
       const ta = capMut.get(f)!.has(b) ? null : typedIn(b.t);
+      if (promiseIn(b.t)) err(f, "mut-capture", `${b.name} holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself`);
       if (ta !== null && !typedSafeB(b)) err(f, "mut-capture", `${b.name} holds a ${ta} that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: ${ta} = x.slice())`);
     }
   }

@@ -164,8 +164,9 @@ export function action(f: (...args: unknown[]) => unknown) {
   const a = (...args: unknown[]): unknown => {
     storeFeed({ t: "enter", evaluating: rt.evalDepth > 0 });
     let v: unknown;
-    // the arguments are deep-frozen: the caller's values are published to the action's writes and listeners
-    try { v = f(...args.map(deepFreeze)); } catch (err) { storeFeed({ t: "exit", threw: true, value: undefined }); throw err; }
+    // the arguments are deep-frozen, all of them or none (one scan before anything is frozen, holes8): the caller's
+    // values are published to the action's writes and listeners
+    try { v = f(...deepFreeze(args)); } catch (err) { storeFeed({ t: "exit", threw: true, value: undefined }); throw err; }
     return storeFeed({ t: "exit", threw: false, value: v });
   };
   Object.defineProperty(a, ACTION, { value: true });

@@ -37,13 +37,18 @@ const W = "for (let i = 0; i < 300; i++) await null; ";
 const shapes: [string, (ty: string) => string, string][] = [
   ["value", (ty) => ty, "v"], ["kept closure", (ty) => `() => ${ty}`, "() => v"], ["record", (ty) => `{ v: ${ty} }`, "{ v }"],
   ["array", (ty) => `${ty}[]`, "[v]"], ["Map", (ty) => `Map<string, ${ty}>`, "new Map([[\"k\", v]])"],
+  // holes8: the value a promise in a slot resolves to, a rejection reason, and a promise a kept function holds
+  ["promise", (ty) => `{ p: Promise<${ty}> }`, "{ p: Promise.resolve(v) }"], ["rejection", () => "{ p: Promise<number> }", "{ p: Promise.reject(v) }"],
+  ["kept promise", (ty) => `() => Promise<${ty}>`, "(() => { const p = Promise.resolve(v); return () => p; })()"],
 ];
 const programs: { name: string; src: string; banned: boolean }[] = [];
 for (const r of VALUE_TABLE) {
   const p = r.probe;
   if (p === null) continue;
   const late = (x: string, pre = "") => `const h = async () => { ${W}${pre}${p.write(x)} }; h();`;
-  for (const [s, ty, pub] of shapes) programs.push({ name: `${r.kind} / ${s} / direct`, banned: r.treatment === "banned", src: `const a = () => { ${p.setup} ${late("t")} return ${pub}; };\nconst b = (a: ${ty(p.ty)}) => ({ held: a });` });
+  // through a promise in a slot, a banned value rejects the promise: the consumer awaits it, so it is the cell in error
+  // Promise.resolve(thenable) adopts it inside the cell (it resolves to what then passes on), so nothing banned is published
+  for (const [s, ty, pub] of shapes) programs.push({ name: `${r.kind} / ${s} / direct`, banned: r.treatment === "banned" && !(r.kind === "thenable" && s === "promise"), src: `const a = () => { ${p.setup} ${late("t")} return ${pub}; };\n${s === "promise" || s === "rejection" ? `const b = async (a: ${ty(p.ty)}) => ({ held: await a.p });` : `const b = (a: ${ty(p.ty)}) => ({ held: a });`}` });
   programs.push({ name: `${r.kind} / value / alias`, banned: r.treatment === "banned", src: `const a = () => { ${p.setup} ${late("r", "const r = t; ")} return v; };\nconst b = (a: ${p.ty}) => ({ held: a });` });
   programs.push({ name: `${r.kind} / record / helper`, banned: r.treatment === "banned", src: `const a = () => { ${p.setup} const get = () => t; ${late("get()")} return { v }; };\nconst b = (a: { v: ${p.ty} }) => ({ held: a });` });
   programs.push({ name: `${r.kind} / yielded`, banned: r.treatment === "banned", src: `const a = function* () { ${p.setup} yield { v }; ${p.write("t")} yield 0; };` });

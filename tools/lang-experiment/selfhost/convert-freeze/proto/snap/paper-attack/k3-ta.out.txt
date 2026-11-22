@@ -1,0 +1,5 @@
+typed-array/ArrayBuffer locals 5; uses that R4 makes a conversion 4
+  lite/notebook/examples/03-mut.ts:7 bins return: return bins;
+  lite/notebook/examples/07-workers.tsx:34 out return: return out;
+  lite/notebook/examples/07-workers.tsx:60 out return: return out;
+  lite/soundscript/spec-4.ts:9 out return: return out;

@@ -1,0 +1,24 @@
+files 95, unannotated initialised locals 2763, written 191, written after an escape 21
+first escape: [["captured",11],["return",4],["literal",2],["arg",2],["literal(loop)",2]]
+files: [["lite/island.ss.ts",3],["lite/acorn/syntax.ss.ts",2],["lite/infer/md-shape.ss.ts",2],["lite/acorn/acorn.ss.ts",1],["lite/cross.ss.ts",1],["lite/infer/cp-text.ss.ts",1],["lite/infer/ix-fn.ss.ts",1],["lite/infer/ix-lit.ss.ts",1],["lite/infer/ow-taint.ss.ts",1],["lite/infer/rg-convert.ss.ts",1],["lite/infer/rg-expand.ss.ts",1],["lite/infer/rg-load.ss.ts",1]]
+lite/acorn/acorn.ss.ts:76 seen esc captured@78 write member=@80
+lite/acorn/syntax.ss.ts:105 out esc captured@106 write .push@107
+lite/acorn/syntax.ss.ts:131 dups esc literal@136 write .push@137
+lite/cross.ss.ts:74 met esc captured@75 write .add@82
+lite/infer/cp-text.ss.ts:115 out esc return@120 write .push@121
+lite/infer/ix-fn.ss.ts:23 out esc captured@24 write .add@26
+lite/infer/ix-lit.ss.ts:27 props esc arg@31 write .set@42
+lite/infer/md-shape.ss.ts:7 dups esc literal@12 write .push@13
+lite/infer/md-shape.ss.ts:25 out esc return@27 write .add@31
+lite/infer/ow-taint.ss.ts:51 out esc return@53 write .add@58
+lite/infer/rg-convert.ss.ts:92 out esc return@93 write .push@95
+lite/infer/rg-expand.ss.ts:77 props esc literal(loop)@80 write .set@78
+lite/infer/rg-load.ss.ts:71 sigs esc literal(loop)@75 write .push@72
+lite/island.ss.ts:23 problems esc captured@26 write .push@31
+lite/island.ss.ts:24 order esc captured@26 write .push@36
+lite/island.ss.ts:25 seen esc captured@26 write .add@28
+lite/shape.ss.ts:71 met esc captured@72 write .add@77
+lite/soundscript/spec-4.ts:13 m esc captured@14 write .set@15
+lite/subtype.ss.ts:233 aliases esc captured@234 write .add@240
+lite/toolchain/tc-ctx.ss.ts:66 out esc arg@81 write .set@82
+lite/walks.ss.ts:79 none esc captured@80 write .set@87
