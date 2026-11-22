@@ -1,0 +1,13 @@
+b1 reg-for-of
+  today:    a:ok explicit=[type-arg,return] writes=[] rets=[Mut<number[]>]  |  c:ok explicit=[in-function-type] writes=[d method:push (call a)] rets=[]
+  no Mut:   a:rejected[mut-capture] explicit=[] writes=[] rets=[]  |  c:rejected[mutating-method] explicit=[] writes=[d method:push (call a)] rets=[]
+b2 fo-index
+  today:    a:ok explicit=[type-arg,return] writes=[] rets=[Mut<number[]>]  |  c:ok explicit=[in-function-type] writes=[d method:push (call a)] rets=[]
+  no Mut:   a:rejected[mut-capture] explicit=[] writes=[] rets=[]  |  c:rejected[mutating-method] explicit=[] writes=[d method:push (call a)] rets=[]
+h6 h6-array-container
+  today:    a:ok explicit=[type-arg,return] writes=[] rets=[Mut<number[]>]  |  c:ok explicit=[in-function-type] writes=[d method:push (call a)] rets=[]
+  no Mut:   a:rejected[mut-capture] explicit=[] writes=[] rets=[]  |  c:rejected[mutating-method] explicit=[] writes=[d method:push (call a)] rets=[]
+h9 h9-r2-kept-returns-field
+  today:    a:ok explicit=[field,return] writes=[] rets=[Mut<number[]>]  |  c:ok explicit=[in-function-type] writes=[d method:push (call a)] rets=[]
+  no Mut:   a:rejected[mut-capture] explicit=[] writes=[] rets=[]  |  c:rejected[mutating-method] explicit=[] writes=[d method:push (call a)] rets=[]
+4/4 programs found

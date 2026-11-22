@@ -1,0 +1,2 @@
+export const srcs: [string, string][] = [["isl", "const x = () => 1;\nconst y = (x: number) => [x];\nconst go = async (compile: Compile) => { const f = compile({ inputs: [\"x\"], refs: [], outputs: [\"y\"] }); const res = await f({ x: 3 }); return res.y; };"],
+["isl2", "const x = () => 1;\nconst y = (x: number) => () => x;\nconst go = async (compile: Compile) => { const f = compile({ inputs: [\"x\"], refs: [], outputs: [\"y\"] }); const res = await f({ x: 3 }); return res.y; };"]];

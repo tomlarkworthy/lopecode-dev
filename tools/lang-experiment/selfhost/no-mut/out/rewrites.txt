@@ -1,0 +1,61 @@
+ok   R1 fixtures/lite-mut/accept-mut-helpers-loops/cells.ts:3 scaled
+     original: rows:ok scaled:ok; D uses 2: scaled: explicit Mut (local); scaled: write f/a method:push out
+     rewrite:  rows:ok scaled:ok; D uses 0; writes none
+     cost: none: one pass, as before
+ok   R2 lite/soundscript/spec-4.ts:12 s4_counts
+     original: s4_counts:ok; D uses 1: s4_counts: write f/a method:set m
+     rewrite:  s4_counts:ok; D uses 0; writes a
+     cost: none: the helper is inlined into the loop
+ok   R3 inline:spec.ojs#2c29mmprz7lwt (S4.5 forEach callback writes a captured Mut)
+     original: a:ok; D uses 1: a: write f/a index-assign out
+     rewrite:  a:ok; D uses 0; writes a
+     cost: none: forEach becomes for-of
+ok   R4 fixtures/lite-mut/reject-mut-escape/cells.ts:30 ok_mut_param
+     original: ok_mut_param:ok; D uses 5: ok_mut_param: explicit Mut (param-nested); ok_mut_param: pass to bump; ok_mut_param: write c index-assign m; ok_mut_param: write c method:push m
+     rewrite:  ok_mut_param:ok; D uses 0; writes none
+     cost: each call copies the array: O(n) per call where the push was O(1); n calls on one array cost O(n^2)
+ok   R5 fixtures/lite-mut/reject-mut-freeze-param/cells.ts:10 ok
+     original: ok:ok; D uses 3: ok: explicit Mut (param-nested); ok: pass to fill; ok: write c index-assign m
+     rewrite:  ok:ok; D uses 0; writes a
+     cost: none: the helper's write moves to the owner
+ok   R6 horde/cells.ts:70 atMF (and atMI, atMU8; probe-at atMF): a reader typed Mut so a writable buffer can be passed (reduction)
+     original: oob:ok atMF:ok use:ok; D uses 5: explicit Mut outside cells (in-function-type); atMF: explicit Mut (param-nested); atMF: Mut alias AtM; use: Mut alias AtM
+     rewrite:  oob:ok atMF:ok use:ok; D uses 0; writes a,a
+     cost: none: the parameter only reads
+ok   R7 horde/probe/cells.ts:26 p_write_param: a typed array a caller passes in, reused across frames
+     original: p_write_param:ok; D uses 2: p_write_param: explicit Mut (param-nested); p_write_param: write c index-assign out
+     rewrite:  p_write_param:ok; D uses 0; writes a
+     cost: a new buffer per call: an allocation of the buffer's size per frame where there was none; the fill is O(n) either way
+ok   R8 inline:spec.ojs#2t3ej43dstrm1 (S4.4: a function returning Mut, written by the caller)
+     original: a:ok; D uses 2: a: explicit Mut (in-function-type); a: write d method:push xs
+     rewrite:  a:ok; D uses 0; writes g-copy
+     cost: one copy of what mk returns
+ok   R9 inline:spec.ojs#5dmpl0o0sfui (S4.4: a Mut field, destructured and written)
+     original: a:ok; D uses 2: a: explicit Mut (field); a: write e method:push y
+     rewrite:  a:ok; D uses 0; writes none
+     cost: the write becomes a copy: O(n)
+ok   R10 fixtures/lite-mut/reject-mut-not-fresh/cells.ts:5 bad_binding (b: a second name writes)
+     original: bad_binding:ok; D uses 1: bad_binding: write b index-assign m
+     rewrite:  bad_binding:ok; D uses 0; writes a
+     cost: none
+ok   R11 lite/infer/ow-taint.ss.ts:16 owRefsOf (a recursive walk pushing into a Mut parameter) (reduction)
+     original: refsOf:ok; D uses 4: refsOf: explicit Mut (param-nested); refsOf: pass to walk; refsOf: write c method:push out
+     rewrite:  refsOf:ok; D uses 0; writes a,a,g-fresh,a
+     cost: none: an explicit stack in one function, O(n) as before
+ok   R12 lite/infer/ow-capture.ss.ts:72 owMutDeep (a recursive helper writing a captured memo) (reduction)
+     original: mutDeep:ok; D uses 1: mutDeep: write f/a method:set none
+     rewrite:  mutDeep:ok; D uses 0; writes a,a,a,a,a,a,a
+     cost: none: an explicit stack with an exit marker per alias, O(n) as before
+ok   R13 lite/events.ss.ts:97 queueValue (27 handlers writing the caller's handles map and effects array) (reduction)
+     original: queueValue:ok step:ok; D uses 8: explicit Mut outside cells (alias-body); queueValue: Mut alias Handles; queueValue: Mut alias Effects; queueValue: write c method:set handles
+     rewrite:  queueValue:ok step:ok; D uses 0; writes g-copy,a
+     cost: none if the one caller applies the deltas to its own fresh map and array; each handler that calls another must return the union of deltas
+ok   R14 lite/infer/ix-core.ss.ts:52 ixFlowSet (a cell's function writing the checker's flow table W, one of 129 such cells) (reduction)
+     original: flowSet:ok check:ok; D uses 5: explicit Mut outside cells (alias-body); flowSet: Mut alias Flows; flowSet: write c method:set W; check: pass to flowSet
+     rewrite:  flowSet:ok check:ok; D uses 0; writes g-copy,g-copy
+     cost: W is copied on every set: O(F) per set where it was O(1), O(F^2) over a check; and every caller up to the cell that made W must take the new table and pass it on
+ok   R15 lite/infer/ix-core.ss.ts:22 ixErr (76 cells updating fields of the checker's control record C) (reduction)
+     original: err:ok run:ok; D uses 5: explicit Mut outside cells (alias-body); err: Mut alias Ctl; err: write c member-assign C; run: pass to err
+     rewrite:  err:ok run:ok; D uses 0; writes none
+     cost: each update copies the record (about 20 fields in IxCtl); every caller must thread the returned record, and a caller that already returns a value must return a pair
+15/15 rewrites accepted with no D use (originals accepted, each with a D use)

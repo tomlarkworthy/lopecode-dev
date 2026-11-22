@@ -1,0 +1,15 @@
+export const srcs: [string, string][] = [
+  ["mutparam-kept", "const a = () => { const mk = (m: Mut<number[]>) => () => { m.push(1); return m.length; }; const xs = [0]; const c: readonly number[] = xs; const w = mk(xs); return { w, r: () => c.length }; };"],
+  ["bind", "const a = () => { const xs = [0]; const c: readonly number[] = xs; const f = (m: Mut<number[]>) => m.push(1); return { w: f.bind(null, xs), r: () => c.length }; };"],
+  ["push-ref", "const a = () => { const xs = [0]; const p = xs.push; return 1; };"],
+  ["withres", "const a = () => { const r = Promise.withResolvers<number>(); return r; };"],
+  ["getter", "const a = () => { const xs = [0]; return { get n() { return 1; } }; };"],
+  ["toJSON", "const a = () => { const c = [0]; return { toJSON: () => c.length }; };"],
+  ["class", "class K { x = 1 }\nconst a = () => 1;"],
+  ["proxy", "const a = () => new Proxy({}, {});"],
+  ["mutparam-helper-ret", "const a = () => { const xs = [0]; const c: readonly number[] = xs; const mk = (m: Mut<number[]>): (() => number) => () => m.push(1); return { w: mk(xs), r: () => c.length }; };"],
+  ["generic-mut", "const a = () => { const id = <T,>(x: T): (() => T) => () => x; const xs = [0]; const g = id(xs); return () => g().length; };"],
+  ["generic-mut2", "const a = () => { const mk = <T,>(x: T) => () => x; const xs = [0]; const g = mk<Mut<number[]>>(xs); return { g }; };\nconst b = (a: { g: () => number[] }) => 1;"],
+  ["wrap-obj", "const a = () => { const mk = (m: Mut<number[]>) => ({ add: () => { m.push(1); }, n: () => m.length }); const xs = [0]; return mk(xs); };"],
+  ["wrap-obj-fresh", "const a = () => { const mk = () => { const m = [0]; return { add: () => { m.push(1); }, n: () => m.length }; }; return mk(); };"],
+];

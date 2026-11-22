@@ -1,0 +1,19 @@
+whole:
+  lite/infer/ow-capture.ss.ts:46 owMutIn: 23 lines
+  lite/infer/ow-capture.ss.ts:92 owMut: 4 lines
+  lite/infer/ow-capture.ss.ts:72 owMutDeep: 17 lines
+  lite/infer/ow-capture.ss.ts:90 owLocalHoldsMut: 2 lines
+  lite/infer/ow-capture.ss.ts:98 owStripMut: 17 lines
+  lite/infer/ix-expr.ss.ts:15 ixCheckFresh: 8 lines
+  lite/infer/ow-tree.ss.ts:90 owMutParamArg: 4 lines
+partial (cell size; the lines removed are counted by hand):
+  lite/subtype.ss.ts:213 namedSubWith: 16 lines
+  lite/infer/rg-convert.ss.ts:120 rgNamedRef: 8 lines
+  lite/infer/rg-convert.ss.ts:13 RG_ONE_ARG: 1 lines
+  lite/infer/md-inject.ss.ts:117 mdInject: 12 lines
+  lite/infer/md-cell.ss.ts:23 mdKeep: 16 lines
+  lite/infer/ow-capture.ss.ts:127 owWriteRef: 12 lines
+  lite/infer/ow-late.ss.ts:78 owLateMsg: 7 lines
+  lite/infer/ix-expr.ss.ts:23 ixCheck1: 22 lines
+  lite/infer/ix-lit.ss.ts:10 ixObjCtx: 6 lines
+whole cells: 75 lines

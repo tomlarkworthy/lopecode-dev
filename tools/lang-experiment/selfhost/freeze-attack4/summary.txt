@@ -1,0 +1,97 @@
+## out-a.txt
+== c0.ts:fa3-ctl-typed-input-write: CONTROL (checker skipped)
+   CONTROL FIRED
+== c0.ts:fa3-ctl-let-reassign: CONTROL (checker skipped)
+   CONTROL FIRED
+== c0.ts:fa3-ctl-promise-typed: CONTROL (checker skipped)
+   CONTROL DID NOT FIRE
+== c0.ts:fa3-ctl-twice: CONTROL (checker skipped)
+   CONTROL FIRED
+== c0.ts:ctl-let-counter: CONTROL (checker skipped)
+   CONTROL FIRED
+== c0.ts:ctl-let-async: CONTROL (checker skipped)
+   CONTROL FIRED
+== c0.ts:ctl-typed-shared: CONTROL (checker skipped)
+   CONTROL FIRED
+-- controls 7, fired 6
+-- accepted with a cell still pending at the end: 0
+-- 223 candidates, accepted 135, silent 5
+SILENT b2.ts:cap-now
+SILENT b2.ts:cap-random
+SILENT b2.ts:cap-now-gen
+SILENT b4.ts:cap-now-in-record
+SILENT b4.ts:cap-random-stored
+## out-b.txt
+== c0.ts:fa3-ctl-typed-input-write: CONTROL (checker skipped)
+   CONTROL FIRED
+== c0.ts:fa3-ctl-let-reassign: CONTROL (checker skipped)
+   CONTROL FIRED
+== c0.ts:fa3-ctl-promise-typed: CONTROL (checker skipped)
+   CONTROL FIRED
+== c0.ts:fa3-ctl-twice: CONTROL (checker skipped)
+   CONTROL FIRED
+== c0.ts:ctl-let-counter: CONTROL (checker skipped)
+   CONTROL FIRED
+== c0.ts:ctl-let-async: CONTROL (checker skipped)
+   CONTROL FIRED
+== c0.ts:ctl-typed-shared: CONTROL (checker skipped)
+   CONTROL FIRED
+-- controls 7, fired 7
+-- accepted with a cell still pending at the end: 0
+-- 223 candidates, accepted 135, silent 56
+SILENT c0.ts:k-h9-r2-kept-returns-field
+SILENT b1.ts:k1-string-method
+SILENT b1.ts:k1-method
+SILENT b1.ts:k1-dup-method
+SILENT b1.ts:k1-fn-decl
+SILENT b1.ts:k1-fn-decl-nested-block
+SILENT b1.ts:k1-fn-expr-named
+SILENT b1.ts:k1-catch-bind
+SILENT b1.ts:k1-for-of-const
+SILENT b1.ts:k1-destructured-ann
+SILENT b1.ts:k1-array-destr
+SILENT b1.ts:k1-helper-local
+SILENT b1.ts:k1-helper-param
+SILENT b1.ts:k1-helper-default-param
+SILENT b1.ts:k1-made-on-call
+SILENT b1.ts:k1-made-on-call-param
+SILENT b1.ts:k1-spread-literal
+SILENT b1.ts:k1-nested-literal
+SILENT b1.ts:k1-array-literal-fn
+SILENT b1.ts:k1-map-value-fn
+SILENT b1.ts:k1-map-set-fn
+SILENT b1.ts:k1-map-callback-makes
+SILENT b1.ts:k1-iife-result
+SILENT b1.ts:k1-recursive
+SILENT b1.ts:k1-default-arg-return
+SILENT b1.ts:k1-generator-fn-kept
+SILENT b1.ts:k1-self-writer-box
+SILENT b1.ts:k1-self-writer-two
+SILENT b1.ts:k1-action-writer
+SILENT b1.ts:k1-map-nested
+SILENT b1.ts:k1-set-nested
+SILENT b1.ts:k1-typed-nested
+SILENT b1.ts:k1-url-nested
+SILENT b1.ts:k1-error-nested
+SILENT b1.ts:k1-record-nested-field
+SILENT b1.ts:k1-tuple
+SILENT b1.ts:k1-array-elem
+SILENT b1.ts:k1-map-arg
+SILENT b1.ts:k1-alias-box
+SILENT b1.ts:k1-generic-holder
+SILENT b1.ts:k1-fn-typed-const
+SILENT b1.ts:k1-input-fn-result
+SILENT b2.ts:t-param-rest
+SILENT b2.ts:cap-now
+SILENT b2.ts:cap-random
+SILENT b2.ts:cap-now-gen
+SILENT b2.ts:hk-tojson
+SILENT b2.ts:hk-tostring
+SILENT b4.ts:sc-async-body
+SILENT b4.ts:sc-gen
+SILENT b4.ts:sc-sync
+SILENT b4.ts:sc-direct-record
+SILENT b4.ts:sc-map
+SILENT b4.ts:sc-async-map
+SILENT b4.ts:cap-now-in-record
+SILENT b4.ts:cap-random-stored

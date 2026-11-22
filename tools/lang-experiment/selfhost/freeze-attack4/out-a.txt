@@ -1,0 +1,342 @@
+== c0.ts:fa3-ctl-typed-input-write: CONTROL (checker skipped)
+   CHANGED t (value #1 of 1): Uint8Array[0,0] | E[] -> Uint8Array[1,0] | E[]
+   CONTROL FIRED
+== c0.ts:fa3-ctl-let-reassign: CONTROL (checker skipped)
+   CHANGED a (value #1 of 2): fn(0) | E[] -> fn(1) | E[]
+   CONTROL FIRED
+== c0.ts:fa3-ctl-promise-typed: CONTROL (checker skipped)
+   error a: a promise where it cannot be replaced (among a function's captures, in an Error or in an already frozen value): it would settle after its cell publishes it
+   CONTROL DID NOT FIRE
+== c0.ts:fa3-ctl-twice: CONTROL (checker skipped)
+   CHANGED t (value #1 of 1): Uint8Array[0,0] | E[] -> Uint8Array[7,0] | E[]
+   twice obs: #1 [0] | E[] , #1 [7] | E[]
+   CONTROL FIRED
+== c0.ts:ctl-let-counter: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+   CONTROL FIRED
+== c0.ts:ctl-let-async: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(0) | E[] -> fn(5) | E[]
+   CONTROL FIRED
+== c0.ts:ctl-typed-shared: CONTROL (checker skipped)
+   CHANGED t (value #1 of 1): Uint8Array[0,0] | E[] -> Uint8Array[9,0] | E[]
+   CONTROL FIRED
+== c0.ts:k-h9-r2-kept-returns-field: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-string-method: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-method: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-dup-method: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-dup-method-rev: ACCEPT
+== b1.ts:k1-numeric-method: REJECT c:rejected[type]
+== b1.ts:k1-fn-decl: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-fn-decl-before-r: REJECT a:rejected[free-name]
+== b1.ts:k1-fn-decl-nested-block: ACCEPT
+   drive -> m() = [0]
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-fn-expr-named: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-catch-bind: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-catch-param: REJECT a:rejected[no-cast]
+== b1.ts:k1-for-of-body: REJECT a:rejected[type]
+== b1.ts:k1-for-of-const: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-destructured: REJECT a:rejected[no-cast]
+== b1.ts:k1-destructured-ann: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-array-destr: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-helper-local: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-helper-param: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-helper-default-param: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-helper-destr-param: REJECT a:rejected[mut-capture]
+== b1.ts:k1-made-on-call: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-made-on-call-param: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-spread-literal: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-nested-literal: ACCEPT
+   drive -> 
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-array-literal-fn: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-map-value-fn: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-map-set-fn: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-set-of-fn: ACCEPT
+== b1.ts:k1-map-callback-makes: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-iife-result: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-recursive: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-default-arg-return: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-async-method: ACCEPT
+   late throws: Attempted to assign to readonly property.
+== b1.ts:k1-generator-fn-kept: ACCEPT
+   late throws: Attempted to assign to readonly property. | Attempted to assign to readonly property. | Attempted to assign to readonly property.
+== b1.ts:k1-self-writer-box: ACCEPT
+   drive -> a() threw Attempted to assign to readonly property.
+== b1.ts:k1-self-writer-two: ACCEPT
+   drive -> inc() threw Attempted to assign to readonly property.; m() = 0
+== b1.ts:k1-action-writer: ACCEPT
+   drive threw: Attempted to assign to readonly property.
+== b1.ts:k1-then-writer: ACCEPT
+   late throws: Attempted to assign to readonly property.
+== b1.ts:k1-invalidation-writer: ACCEPT
+== b1.ts:k1-map-nested: ACCEPT
+   drive -> set() threw set on a frozen Map: a value cannot change after its cell returns; m() = 0
+   late throws: Attempted to assign to readonly property.
+== b1.ts:k1-set-nested: ACCEPT
+   drive -> add() threw add on a frozen Set: a value cannot change after its cell returns; m() = 0
+== b1.ts:k1-typed-nested: ACCEPT
+   drive -> 
+   error a: a typed array where it cannot be replaced by a copy (among a function's captures, in an Error or in an already frozen value): a value cannot change after its cell publishes it
+== b1.ts:k1-url-nested: ACCEPT
+   drive -> w() threw setting pathname on a frozen URL: a value cannot change after its cell returns; m() = "https://x.test/a"
+== b1.ts:k1-error-nested: ACCEPT
+   drive -> w() threw Attempted to assign to readonly property.; m() = "x"
+== b1.ts:k1-record-nested-field: ACCEPT
+   drive -> w() threw Attempted to assign to readonly property.; m() = "x"
+== b1.ts:k1-tuple: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-array-elem: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-map-arg: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-alias-box: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-generic-holder: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-fn-typed-const: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b1.ts:k1-input-fn-result: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b2.ts:t-alias: REJECT a:rejected[mut-capture]
+== b2.ts:t-alias-generic: REJECT a:rejected[mut-capture]
+== b2.ts:t-union-cond: REJECT a:rejected[type]
+== b2.ts:t-union-undef: REJECT a:rejected[type]
+== b2.ts:t-union-num: REJECT a:rejected[type]
+== b2.ts:t-param-alias: REJECT a:rejected[mut-capture]
+== b2.ts:t-param-union: REJECT a:rejected[type]
+== b2.ts:t-param-optional: REJECT a:rejected[type]
+== b2.ts:t-param-rest: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b2.ts:t-param-default: REJECT a:rejected[mut-capture]
+== b2.ts:t-typeof: REJECT a:rejected[mut-capture]
+== b2.ts:t-generic-ext: REJECT a:rejected[iterator-capture] c:blocked
+== b2.ts:t-generic-ext-explicit: REJECT a:rejected[iterator-capture] c:blocked
+== b2.ts:t-generic-holder-fn: REJECT a:rejected[iterator-capture]
+== b2.ts:t-generic-record: REJECT a:rejected[iterator-capture] c:blocked
+== b2.ts:t-inferred-ret: REJECT a:rejected[mut-capture]
+== b2.ts:t-ret-ann-fn: REJECT a:rejected[mut-capture]
+== b2.ts:fr-two-readers: REJECT r:rejected[type] b:rejected[inject-type][type] c2:rejected[inject-type]
+== b2.ts:fr-held-fn: REJECT r:rejected[type] g:rejected[inject-type]
+== b2.ts:fr-in-record: REJECT b:rejected[type]
+== b2.ts:fr-json-twice: REJECT r:rejected[type] b:rejected[inject-type][type] c3:rejected[inject-type]
+== b2.ts:fr-ab: REJECT r:rejected[type] b:rejected[inject-type] c3:rejected[inject-type]
+== b2.ts:cap-now: ACCEPT
+   CHANGED a (value #1 of 1): fn(3975.181125) | E[] -> fn(3980.770375) | E[]
+== b2.ts:cap-random: ACCEPT
+   CHANGED a (value #1 of 1): fn(0.9606861465039284) | E[] -> fn(0.1692653052554023) | E[]
+== b2.ts:cap-now-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn(4006.679125) | E[] -> fn(4012.200792) | E[]
+== b2.ts:hk-tojson: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b2.ts:hk-tostring: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b2.ts:hk-valueof: ACCEPT
+== b2.ts:hk-tojson-plain: ACCEPT
+== b2.ts:it-destr-input: ACCEPT
+== b2.ts:it-spread-input: ACCEPT
+== b2.ts:it-for-of-input-map: REJECT b:rejected[type]
+== b2.ts:it-values-kept: ACCEPT
+== b2.ts:it-entries-input: ACCEPT
+== b2.ts:it-gen-values: ACCEPT
+== b2.ts:lp-let-i: REJECT a:rejected[type][let-capture][let-capture]
+== b2.ts:lp-const-of: REJECT a:rejected[type]
+== b2.ts:lp-const-copy: REJECT a:rejected[type]
+== b2.ts:lp-mut-elem: REJECT a:rejected[type]
+== b2.ts:lp-while: REJECT a:rejected[type]
+== b2.ts:lu-num-null: ACCEPT
+== b2.ts:lu-str-arr: REJECT a:rejected[mut-yield]
+== b2.ts:lu-prev-time: ACCEPT
+== b2.ts:lu-let-record-copy: REJECT a:rejected[mut-yield]
+== b2.ts:lu-let-arr-replace: REJECT a:rejected[mut-yield]
+== b2.ts:rr-state-consumer: REJECT b:rejected[mut-capture]
+== b2.ts:rr-state-array: ACCEPT
+   drive -> bump.
+== b2.ts:rr-state-gen: ACCEPT
+   drive -> bump.
+== b2.ts:rr-state-set-same: ACCEPT
+   drive -> again
+== b2.ts:rr-action-arg-array: ACCEPT
+   drive -> push threw
+== b2.ts:ev-listener: ACCEPT
+== b2.ts:ev-action-returns: ACCEPT
+   drive -> a.
+== b2.ts:ev-update-identity: ACCEPT
+   drive -> a.
+== b2.ts:ev-action-in-state: ACCEPT
+   run crash: Cannot declare a const variable twice: 'h'.
+== b2.ts:er-rethrow: ACCEPT
+   error a: x
+   error b: x
+== b2.ts:er-caught-record: ACCEPT
+== b2.ts:er-throw-rec: ACCEPT
+== b2.ts:er-promise-rej: ACCEPT
+== b2.ts:gn-ternary-join: ACCEPT
+== b2.ts:gn-array-from-shared: REJECT a:rejected[mut-capture]
+== b2.ts:gn-map-get: ACCEPT
+== b2.ts:gn-spread-shallow: REJECT a:rejected[mut-capture]
+== b2.ts:gn-fromentries: REJECT a:rejected[mut-capture]
+== b2.ts:gn-structured-clone-map: ACCEPT
+   error a: a native Map where it cannot be replaced by a copy (among a function's captures, in an Error or in an already frozen value): a value cannot change after its cell publishes it
+== b2.ts:so-comparator: ACCEPT
+== b2.ts:so-reducer: ACCEPT
+== b3.ts:fr-two-readers: ACCEPT
+   show b = "body" | E[]
+   show c2 = "used: Body already used" | E[]
+== b3.ts:fr-held-fn: ACCEPT
+   show hh = ["used","used"] | E[]
+== b3.ts:fr-in-record: ACCEPT
+   show b = "body" | E[]
+   show c3 = "used" | E[]
+== b3.ts:fr-json: ACCEPT
+   show b = [1] | E[]
+   show c3 = "used" | E[]
+== b3.ts:fr-ab: ACCEPT
+   show b = 4 | E[]
+   show c3 = -1 | E[]
+== b3.ts:fr-gen-twice: ACCEPT
+   show c4 = [true,"used"] | E[]
+== b3.ts:fr-same-cell-twice: ACCEPT
+   show b = ["body","used"] | E[]
+== b3.ts:fr-kept-reader: ACCEPT
+== b3.ts:lp-let-i: REJECT a:rejected[mutating-method][let-capture][let-capture]
+== b3.ts:lp-const-of: REJECT a:rejected[mutating-method]
+== b3.ts:lp-const-copy: REJECT a:rejected[mutating-method]
+== b3.ts:lp-mut-elem: REJECT a:rejected[mutating-method]
+== b3.ts:lp-nested-mut-elem: REJECT a:rejected[mutating-method][mut-capture]
+== b3.ts:lp-map-index: ACCEPT
+== b3.ts:lp-for-in: REJECT a:unsupported
+== b3.ts:is-known-root: REJECT go:rejected[compile-boundary] c:blocked
+== b3.ts:is-self-writer: REJECT go:rejected[compile-boundary]
+== b3.ts:is-plain: REJECT go:rejected[compile-boundary]
+== b3.ts:pr-kept-promise-plain: ACCEPT
+== b3.ts:pr-kept-fn-promise: REJECT a:rejected[mut-capture]
+== b3.ts:pr-then-chain: ACCEPT
+== b3.ts:pr-all: ACCEPT
+== b3.ts:w-async-own-body: ACCEPT
+== b3.ts:w-async-input-fn-before: ACCEPT
+== b3.ts:w-async-promise-before: ACCEPT
+   late throws: undefined is not an object (evaluating 'x.length')
+== b3.ts:w-async-log-before: ACCEPT
+   late throws: undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length')
+== b3.ts:w-async-input-rec: ACCEPT
+== b3.ts:nm-cell-named-h: ACCEPT
+   run crash: Cannot declare a const variable twice: 'h'.
+== b4.ts:sc-async-body: ACCEPT
+   error a: Attempted to assign to readonly property.
+== b4.ts:sc-gen: ACCEPT
+   error a: Attempted to assign to readonly property.
+== b4.ts:sc-sync: ACCEPT
+   error a: Attempted to assign to readonly property.
+== b4.ts:sc-direct-record: ACCEPT
+   error a: Attempted to assign to readonly property.
+== b4.ts:sc-map: ACCEPT
+   error a: Attempted to assign to readonly property.
+== b4.ts:sc-async-map: ACCEPT
+   error a: Attempted to assign to readonly property.
+== b4.ts:lp-let-i: REJECT a:rejected[let-capture][let-capture]
+== b4.ts:lp-const-of: ACCEPT
+== b4.ts:lp-const-copy: ACCEPT
+== b4.ts:lp-mut-elem: ACCEPT
+== b4.ts:lp-nested-mut-elem: REJECT a:rejected[mut-capture]
+== b4.ts:lp-row-write-after: ACCEPT
+== b4.ts:jx-children-array: ACCEPT
+== b4.ts:jx-children-then-push: ACCEPT
+== b4.ts:jx-action-prop: ACCEPT
+== b4.ts:jx-kept-in-gen: ACCEPT
+== b4.ts:cap-fetch-fn: ACCEPT
+== b4.ts:cap-now-in-record: ACCEPT
+   CHANGED a (value #1 of 1): {t:fn(5768.620625)} | E[] -> {t:fn(5774.189958)} | E[]
+== b4.ts:cap-random-stored: ACCEPT
+   CHANGED a (value #1 of 1): [fn(0.40926536475235287)] | E[] -> [fn(0.045724853778326024)] | E[]
+== b4.ts:fr-ok-status: ACCEPT
+== b4.ts:fr-gen-reader-race: ACCEPT
+   show b = ERROR Body already used
+   show c = "b" | E[]
+   error b: Body already used
+== b5.ts:p5-string-method: REJECT a:rejected[mut-capture]
+== b5.ts:p5-dup-method: REJECT a:rejected[mut-capture]
+== b5.ts:p5-fn-decl: REJECT a:rejected[mut-capture]
+== b5.ts:p5-fn-decl-nested-block: REJECT a:rejected[mut-capture]
+== b5.ts:p5-fn-expr-named: REJECT a:rejected[mut-capture]
+== b5.ts:p5-catch-bind: REJECT a:rejected[mut-capture]
+== b5.ts:p5-for-of-const-elem: REJECT a:rejected[mut-capture]
+== b5.ts:p5-destructured: REJECT a:rejected[mutating-method]
+== b5.ts:p5-array-destr: ACCEPT
+== b5.ts:p5-helper-local: REJECT a:rejected[mut-capture]
+== b5.ts:p5-helper-default-param: REJECT a:rejected[mut-capture]
+== b5.ts:p5-made-on-call: REJECT a:rejected[mut-capture]
+== b5.ts:p5-spread-literal: REJECT a:rejected[mut-capture]
+== b5.ts:p5-nested-literal: REJECT a:rejected[mut-capture]
+== b5.ts:p5-array-literal-fn: REJECT a:rejected[mut-capture]
+== b5.ts:p5-map-value-fn: REJECT a:rejected[mut-capture]
+== b5.ts:p5-map-callback-makes: REJECT a:rejected[mut-capture]
+== b5.ts:p5-iife-result: REJECT a:rejected[mut-capture]
+== b5.ts:p5-recursive: REJECT a:rejected[mut-capture]
+== b5.ts:p5-default-arg-read: REJECT a:rejected[mut-capture]
+== b5.ts:p5-hook-tojson: REJECT a:rejected[mut-capture]
+== b5.ts:p5-map-set-fn: REJECT a:rejected[mut-capture]
+== b5.ts:p5-ternary-alias: ACCEPT
+== b5.ts:p5-alias-chain: REJECT a:rejected[mut-capture]
+== b5.ts:p5-map-get-elem: ACCEPT
+== erg.ts:e1-accumulate: ACCEPT
+== erg.ts:e2-collect-push: REJECT doubled:rejected[type]
+== erg.ts:e2f-collect-push-ann: REJECT doubled:rejected[mutating-method]
+== erg.ts:e2g-collect-push-mut: ACCEPT
+== erg.ts:e3-map-lookup: REJECT lookup:rejected[mut-capture]
+== erg.ts:e3f-map-lookup-plain: ACCEPT
+== erg.ts:e4-anim-buffer: REJECT frames:rejected[mut-yield][mut-yield]
+== erg.ts:e4f-anim-buffer-slice: REJECT frames:rejected[mut-yield]
+== erg.ts:e4g-anim-buffer-in-loop: REJECT frames:rejected[mut-yield]
+== erg.ts:e5-fetch-store: ACCEPT
+== erg.ts:e6-fetch-then-state: ACCEPT
+== erg.ts:e7-click-counter: ACCEPT
+== erg.ts:e8-todo-add: ACCEPT
+== erg.ts:e9-group-by: REJECT groups:rejected[mutating-method]
+== erg.ts:e9f-group-by-mut: ACCEPT
+== erg.ts:e10-memo-fn: REJECT fib:rejected[mut-capture]
+== erg.ts:e11-ticker: ACCEPT
+== erg.ts:e12-history-gen: REJECT hist:rejected[type][mut-yield]
+== erg.ts:e12f-history-gen-ann: REJECT hist:rejected[mut-yield]
+== erg.ts:e12g-history-let: REJECT hist:rejected[mut-yield]
+== erg.ts:e13-sort-copy: REJECT sorted:rejected[mutating-method]
+== erg.ts:e14-closure-config: ACCEPT
+== erg.ts:e15-async-retry: REJECT data:rejected[type]
+== erg.ts:e15f-async-retry-ann: ACCEPT
+== erg.ts:e4h-anim-buffer-loop-slice: ACCEPT
+== erg.ts:e4i-anim-buffer-plain-alias: REJECT frames:rejected[mut-yield]
+== erg.ts:e10f-memo-table: ACCEPT
+== erg.ts:e12h-history-helper: ACCEPT
+== erg.ts:e13f-sort-tosorted: ACCEPT
+== erg.ts:e13g-sort-bound-copy: ACCEPT
+-- controls 7, fired 6
+-- accepted with a cell still pending at the end: 0
+-- 223 candidates, accepted 135, silent 5
+SILENT b2.ts:cap-now
+SILENT b2.ts:cap-random
+SILENT b2.ts:cap-now-gen
+SILENT b4.ts:cap-now-in-record
+SILENT b4.ts:cap-random-stored
