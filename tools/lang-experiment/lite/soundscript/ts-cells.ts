@@ -174,7 +174,7 @@ export function ssCellTexts(file: string): string[] {
 }
 const groupChecks = new Map<string[], ReturnType<typeof checkSources>>();
 // the check a section's cells are compiled from: of the section with those it is checked with, or once for its group
-function sectionCheck(file: string): ReturnType<typeof checkSources> {
+export function sectionCheck(file: string): ReturnType<typeof checkSources> {
   const group = SS_GROUPS.find((g) => g.includes(file));
   const hit = group && groupChecks.get(group);
   if (hit) return hit;

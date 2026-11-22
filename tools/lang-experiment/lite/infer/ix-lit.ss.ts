@@ -26,8 +26,9 @@ export const ixObjSpread = (ixUm, ixUnsup, ixNotOwn, unwrap, show) => (K: IxK, T
 export const ixObjLit = (ixObjCtx, ixObjSpread, ixProtoKey, ixErr, ixUnsup, ixGap, union, widen, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: ObjectExpression, expected: Ty | null): Ty => {
   const props: Mut<Map<string, Prop>> = mut(new Map());
   const { recs, exact } = ixObjCtx(K.reg, expected);
+  let closed = true;
   for (const p of e.properties) {
-    if (p.type === "SpreadElement") { ixObjSpread(K, T, V, W, C, env, p, props); continue; }
+    if (p.type === "SpreadElement") { closed = false; ixObjSpread(K, T, V, W, C, env, p, props); continue; }
     if (p.type !== "Property") { ixGap(C, `object member ${p.type}`); continue; }
     if (p.kind !== "init") { ixUnsup(K, C, p, `${p.kind} accessor`); continue; }
     if (p.computed) { ixUnsup(K, C, p, "computed property"); continue; }
@@ -40,7 +41,7 @@ export const ixObjLit = (ixObjCtx, ixObjSpread, ixProtoKey, ixErr, ixUnsup, ixGa
     const t = K.check(K, T, V, W, C, env, p.value, ctx, false, false);
     props.set(k, { t: expected === null ? widen(t) : t, opt: false });
   }
-  return { k: "rec", props: freeze(props) };
+  return closed ? { k: "rec", props: freeze(props), exact: true } : { k: "rec", props: freeze(props) };
 };
 // the element context of an array literal: an array's element, an iterable's
 export const ixElCtx = (union, NEVER) => (ms: Ty[]): Ty | null => {
@@ -114,7 +115,7 @@ export const ixBind = (ixDeclare, ixBindObject, ixBindArray, ixNonUndef, ixUnsup
     default: ixUnsup(K, C, p, `pattern ${p.type}`);
   }
 };
-export const ixBindObject = (ixBindRest, ixUm, ixErr, ixUnsup, ixInActionOnly, ixPropOf, ixFact, ixGap, isNamed, unwrap) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: ObjectPattern, t: Ty, kind: IxKind, extra: IxExtra): void => {
+export const ixBindObject = (ixBindRest, ixUm, ixErr, ixUnsup, ixInActionOnly, ixPropOf, ixFact, ixGap, isNamed, unwrap, PROTO_NAMES) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: ObjectPattern, t: Ty, kind: IxKind, extra: IxExtra): void => {
   const used: Mut<string[]> = mut([]);
   for (const prop of p.properties) {
     if (prop.type === "RestElement") { ixBindRest(K, T, V, W, C, env, prop, t, [...used], kind, extra); continue; }
@@ -124,6 +125,7 @@ export const ixBindObject = (ixBindRest, ixUm, ixErr, ixUnsup, ixInActionOnly, i
     const k = key.type === "Identifier" ? key.name : String(key.value);
     used.push(k);
     if (ixUm(K.reg, t).some((m) => m.k !== "err" && K.reg.member(m, k)?.flags?.banned)) ixErr(K, C, prop, "banned-member", `${k} is banned`);
+    else if (PROTO_NAMES.has(k) && ixUm(K.reg, t).some((m) => { const x = K.reg.expand(unwrap(m)); return x.k === "rec" && x.index !== undefined; })) ixErr(K, C, prop, "banned-member", `${k} on a record with an index signature is Object.prototype's ${k}, not an entry`);
     if (ixUm(K.reg, t).some((m) => isNamed(unwrap(m), "State") && K.reg.member(m, k))) {
       ixInActionOnly(K, C, env, prop, "state-write", `State.${k} outside action(...)`);
       ixFact(C, { k: "stateProp", at: prop.nid });
@@ -134,7 +136,8 @@ export const ixBindObject = (ixBindRest, ixUm, ixErr, ixUnsup, ixInActionOnly, i
 export const ixBindRest = (ixUnsup, ixNotOwn, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, prop: RestElement, t: Ty, used: string[], kind: IxKind, extra: IxExtra): void => {
   const base = K.reg.expand(t);
   if (base.k !== "rec") { ixUnsup(K, C, prop, "object rest of a non-record"); K.bind(K, T, V, W, C, env, prop.argument, ERR, kind, extra); return; }
-  const r: Rec = { k: "rec", props: new Map([...base.props].filter(([k]) => !used.includes(k))) };
+  // the names taken out are known not to be members of the rest
+  const r: Rec = { k: "rec", props: new Map([...base.props].filter(([k]) => !used.includes(k))), without: used };
   ixNotOwn(K, C, r, prop);
   K.bind(K, T, V, W, C, env, prop.argument, r, kind, extra);
 };

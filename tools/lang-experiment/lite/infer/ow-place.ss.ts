@@ -57,9 +57,88 @@ export const owCellPlace = (owEncl, owOnWhole, owErr, ixFnParts) => (O: OwCtx, W
     if (!owOnWhole(O, f.body, n) || f.async || f.generator) owErr(W, n, "listener-placement", "on(...) only as the whole value of a sync, non-generator cell (what it returns, or a branch of a conditional that it returns)");
   }
 };
-export const owPlacement = (owOnRead, owMutPlace, owCellPlace, owPrelude) => (O: OwCtx, W: OwW): void => {
+// a prelude function only as the callee of a call (on and read have rules of their own); no binding named like one of
+// the ownership functions, mut, freeze, borrow, snapshot (pre)
+// an identifier with no binding fact is taken for the prelude's when it has a prelude name, as owOnRead does (a
+// shorthand property's key is not: its value carries the binding)
+export const owPreludeName = (owNamePlace, owBindingAt, owErr) => (O: OwCtx, W: OwW, pre: Set<string>, all: Set<string>, n: AstNode): void => {
+  if (n.type !== "Identifier") return;
+  const p = O.T.parent.get(n.nid), key = p !== undefined && p.type === "Property" && p.key.nid === n.nid && p.value.nid !== n.nid;
+  const b = owBindingAt(O, n), isPre = b === undefined ? all.has(n.name) && !key : b.kind === "prelude";
+  if (isPre && n.name !== "on" && n.name !== "read" && !owNamePlace(O, n)) owErr(W, n, "prelude-value", `${n.name} is only called, as ${n.name}(...); as a value its calls would skip the rules of ${n.name}`);
+  if (b !== undefined && b.kind !== "prelude" && b.kind !== "global" && b.nid === n.nid && pre.has(n.name)) owErr(W, n, "prelude-shadow", `${n.name} names a prelude function; a binding of that name would hide it from the rules of ${n.name}(...)`);
+};
+// a value typed Mut<…> comes from mut(...) or is a Mut binding: not from another call or an await, nor bound from a
+// pattern (a Mut parameter is the caller's)
+export const owMutSource = (owPrelude, owBindingAt, owIsMut, owPosition, owErr, isNamed) => (O: OwCtx, W: OwW, n: AstNode): void => {
+  const t = n.type === "CallExpression" || n.type === "NewExpression" || n.type === "MemberExpression" || n.type === "AwaitExpression" ? O.F.types.get(n.nid) : undefined;
+  const isMut = t !== undefined && isNamed(t, "Mut");
+  // a Mut member of a record the shell made (a registry's memo) is used in place, as a Mut binding is
+  const pos = isMut && n.type === "MemberExpression" ? owPosition(O, W, n, "mut", null) : null;
+  if (pos !== null) owErr(W, n, "mut-escape", `a Mut member ${pos}`);
+  if (isMut && n.type !== "MemberExpression" && owPrelude(O, n) !== "mut") owErr(W, n, "mut-source", "a Mut comes only from mut(...): this expression gives a Mut<…> that another name may also hold");
+  const b = n.type === "Identifier" ? owBindingAt(O, n) : undefined, p = O.T.parent.get(n.nid);
+  // a declarator with an initializer is reported there: a Mut reference escapes, another source is the line above
+  const init = p !== undefined && p.type === "VariableDeclarator" && p.id.nid === n.nid && p.init !== null;
+  if (b !== undefined && b.nid === n.nid && !init && (b.kind === "const" || b.kind === "let") && owIsMut(b) && !b.mutOwned) owErr(W, n, "mut-source", `${b.name} is typed Mut<…> but not bound to mut(...): another name may also hold it`);
+};
+// a regexp that may have the g or y flag keeps lastIndex, which test, exec, match and replace read or write: it is
+// used only where it is made, as a member's object or an argument an intrinsic does not keep (a String method's)
+export const owRegexpPlace = (owNonRetainingArg, owArgIndex, owErr) => (O: OwCtx, W: OwW, n: AstNode): void => {
+  const gy = (f: string) => f.includes("g") || f.includes("y");
+  const flags = n.type === "NewExpression" && n.callee.type === "Identifier" && n.callee.name === "RegExp" ? n.arguments[1] : undefined;
+  const lit = n.type === "Literal" && n.regex !== null && gy(n.regex.flags);
+  const made = n.type === "NewExpression" && flags !== undefined && !(flags.type === "Literal" && typeof flags.value === "string" && !gy(flags.value));
+  if (!lit && !made) return;
+  const p = O.T.parent.get(n.nid);
+  if (p !== undefined && p.type === "MemberExpression" && p.object.nid === n.nid) return;
+  if (p !== undefined && p.type === "CallExpression" && p.callee.nid !== n.nid && owNonRetainingArg(O, p, owArgIndex(p.arguments, n))) return;
+  owErr(W, n, "regexp-state", "a regexp that may have the g or y flag keeps lastIndex, which test, exec, match and replace write: use it only where it is made, as the receiver of a call or a String method's argument");
+};
+// Object.prototype's members, which every record made by a literal, JSON.parse or Object.fromEntries also has
+export const PROTO_NAMES = () => new Set(["__proto__", "constructor", "toString", "toLocaleString", "valueOf", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"]);
+// the names a key may be: its string literals, [] for a number, null for any string
+export const owKeyNames = (ixUm) => (O: OwCtx, k: AstNode, computed: boolean): string[] | null => {
+  if (!computed && k.type === "Identifier") return [k.name];
+  if (k.type === "Literal") return typeof k.value === "string" ? [k.value] : [];
+  const t = O.F.types.get(k.nid);
+  if (t === undefined) return null;
+  const ms: Ty[] = ixUm(O.R, t);
+  if (!ms.every((m) => m.k === "num" || m.k === "lit")) return null;
+  return ms.flatMap((m) => (m.k === "lit" && typeof m.v === "string" ? [m.v] : []));
+};
+// a record with an index signature types every key it is read at by the signature; a key that names a member of
+// Object.prototype reads that member instead (a function, or the prototype). A key of type string is not checked
+export const owProtoRead = (owKeyNames, PROTO_NAMES, ixUm, unwrap, owErr) => (O: OwCtx, W: OwW, n: AstNode): void => {
+  const at = n.type === "MemberExpression" ? { o: n.object, k: n.property, c: n.computed } : n.type === "BinaryExpression" && n.operator === "in" ? { o: n.right, k: n.left, c: true } : null;
+  if (at === null) return;
+  const t = O.F.types.get(at.o.nid);
+  if (t === undefined || !ixUm(O.R, t).some((m) => { const x = O.R.expand(unwrap(m)); return x.k === "rec" && x.index !== undefined; })) return;
+  const names = owKeyNames(O, at.k, at.c), P: Set<string> = PROTO_NAMES;
+  const k = names === null ? undefined : names.find((x) => P.has(x));
+  if (k !== undefined) owErr(W, n, "banned-member", `${k} on a record with an index signature is Object.prototype's ${k}, not an entry`);
+};
+// a type that may hold an object, which === compares by identity
+export const owMayObject = (ixUm, isPrimitive) => (O: OwCtx, t: Ty | undefined): boolean => t !== undefined && !ixUm(O.R, t).every((m) => isPrimitive(m));
+// includes, indexOf and lastIndexOf compare by identity, as === does: an element and an argument that may both be
+// objects. (Object.is and a Map or Set keyed by objects are identity too; not checked, holes step 7)
+export const owIdentityOp = (owMayObject, owErr) => (O: OwCtx, W: OwW, n: AstNode): void => {
+  const sig = O.F.calls.get(n.nid)?.sig;
+  if (n.type !== "CallExpression" || n.callee.type !== "MemberExpression" || n.callee.computed || n.callee.property.type !== "Identifier" || sig === null || sig === undefined || !sig.flags?.intrinsic) return;
+  const m = n.callee.property.name, a0 = n.arguments[0];
+  if (a0 === undefined || !["includes", "indexOf", "lastIndexOf"].includes(m)) return;
+  if (owMayObject(O, sig.ps[0]?.t) && owMayObject(O, O.F.types.get(a0.nid))) owErr(W, n, "strict-eq-object", `${m} on an element and an argument that may both be objects compares by identity, as === does; use equals(a, b) with some or findIndex`);
+};
+export const owPlacement = (owOnRead, owPreludeName, owMutSource, owRegexpPlace, owProtoRead, owIdentityOp, owMutPlace, owCellPlace, owPrelude) => (O: OwCtx, W: OwW): void => {
+  const preNames = new Set(["mut", "freeze", "borrow", "snapshot"]);
+  const allPre = new Set([...O.F.bindings.values()].filter((b) => b.kind === "prelude").map((b) => b.name));
   for (const n of O.T.all) {
     owOnRead(O, W, n);
+    owPreludeName(O, W, preNames, allPre, n);
+    owMutSource(O, W, n);
+    owRegexpPlace(O, W, n);
+    owProtoRead(O, W, n);
+    owIdentityOp(O, W, n);
     if (n.type !== "CallExpression") continue;
     const pre = owPrelude(O, n);
     if (pre === "mut") owMutPlace(O, W, n);

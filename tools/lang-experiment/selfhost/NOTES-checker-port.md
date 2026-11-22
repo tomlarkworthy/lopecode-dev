@@ -801,3 +801,466 @@ Unsure: the gap rule rejects every cell checked after a gap's cell, in check ord
 error type forward; that is wider than needed and untested on a real module (no corpus source has a gap now).
 `browser/entry.ts`'s bundle (lite/notebook/build/lite.js) imports browser/run.ts -> erase.ts, which now pulls the
 checker's cells; not built or checked here.
+
+## 2026-11-22 03:17–: soundness holes, one per step (build owner, `lite/infer/attack/`)
+Tools: `lite/infer/attack/gates.sh <dir>` (build, bun-verify, the differentials, the bun tests, the script tests,
+fixtures; logs per gate), `attack/sections.ts` (every registered section checked as the build checks it, through
+`ts-cells.ts` `sectionCheck`, now exported), `attack/rows.ts` (the rule set `spec_rulesOf` gives a candidate row),
+`attack/add-rows.py`, `attack/live.test.ts` + `attack/variants.ts` (the live arm: `breaks.ts` and the attack families of
+the holes closed so far, plus my variants, against `lite/core.ts`; a bun test). Counting: each candidate rule was put
+in the live cells, then `checker-port/collect.ts` + `switch3/ndiff.ts` against `.scratch/holes/base.json` (the corpus,
+spec rows, tutorial and study cells) and `sections.ts` against `sec-base.json` (shipped cells); a flip there sent the
+rule back before rows, mirror or gates. Logs: `lite/soundscript/.scratch/holes/` (`g<step>/`, `g<step>.txt`).
+Baseline gates (03:21, AC Power, load 1.45): as the 03:00 switch4 record; `bun-verify: 168 pass`; fixtures 14/14.
+
+### Step 1 (03:20–03:39): prelude functions as values, shadowed, and a Mut from anything but mut(...)
+Cause: `rgGlobals` binds every prelude function but `equals`/`messageOf` with type `err`, and only a call whose
+callee is the prelude name gets the prelude's rules, so `const mk = mut` gave an `err` function whose call was checked
+by nothing. Rules (ow-place: `owPreludeName`, `owMutSource`, called from `owPlacement`):
+- `[prelude-value]`: a prelude function anywhere but as a callee (or a member/key name, or in a type); `on`/`read` keep
+  their rules. `(mut)(x)` is a prelude call (the typed tree has no parentheses node).
+- `[prelude-shadow]`: a parameter, local or function named `mut`, `freeze`, `borrow` or `snapshot`.
+- `[mut-source]`: a call, `new` or `await` typed `Mut<…>` other than the prelude `mut(...)`; a const/let typed `Mut<…>`
+  that is not mut-owned and is not a declarator with an initializer (a destructuring or `for...of` target; an
+  initializer is reported at its own expression).
+- a member typed `Mut<…>` (a registry memo the shell made) takes the position rule of a Mut binding: `[mut-escape]`
+  when bound, returned, placed, passed to a non-Mut parameter.
+Counts before the final form (collect/ndiff, sections): first trial, shadow ban on all ten names and every member typed
+Mut a `[mut-source]`: corpus 3 cells of `events.ss.ts`/`pool.ss.ts` (`step`, `pumpPool`, `poolStep`: a local named
+`state`), shipped sections 1 (`ixMayHide`: `R.mayHideMemo.get/set`, a Mut member of the registry). Narrowed: the shadow
+ban to the four ownership names (a local `state`/`action`/`equals` is a local, and the compiler's `preludeCalls`
+already skips a bound name); a member typed Mut to the position rule. Final: corpus 1 cell changed (fixture
+`reject-mut-escape` `bad_generic`, already rejected, gains `[mut-source]` on `id(out)`), shipped sections 0, spec
+accept rows 0. `equals`/`messageOf` as values: 0 uses in the corpus; included in `[prelude-value]`.
+Frozen own.ts: the same four checks in the placement loop, header line 4. Control: with the frozen
+`[prelude-shadow]` disabled, `diff.ts` ownership `SAME 3516 DIFFERENT 4`.
+Rows: S2.6 `[prelude-value]` x4 (alias of `mut`; `freeze` aliased then `m.push`; `(c ? mut : mut)(x)`; `state` as a
+value), S2.6 `[prelude-shadow]` x2 (a local `freeze`; a parameter `mut`), S4.4 `[mut-source]` x2 (a call of a
+`() => Mut<number[]>` parameter bound; a Mut destructured from a record), S4.4 `[mut-escape]` x1 (a Mut member bound).
+Variants (attack/variants.ts, 33, all rejected; with the 20 attack programs of families prelude-as-value and
+mut-holder from breaks.ts, a1, a5, a18: `53 pass 0 fail`): alias, identity function, function-typed parameter given
+`mut`, default parameter, conditional callee, `mut.call`, shorthand `{ mut }`, `map(mut)`, IIFE, `yield mut`, a cell
+whose value is `mut`, `freeze` aliased/passed to a helper/conditional/through a generic identity in a generator,
+`borrow`, `snapshot`, `state`, `action`, `equals` as values, a parameter `mut`, a local `freeze`, `function borrow`,
+a cell parameter `snapshot`, a call/await typed Mut, a Mut member bound/returned, destructured, `for...of`,
+`typeof mut` as a parameter type. Not as first written: `(mut)(x)` (a prelude call; `[mut-not-fresh]`).
+Consequence beyond the hole: B6's `declare function grab(): Mut<number[]>` called is now `[mut-source]`.
+Gates (`g1.txt`, 03:31, AC Power, load 1.78):
+```
+889 sources, 3534 cells: SAME 3520 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14; sources that threw 1
+ownership: 3520 cells: SAME 3520 DIFFERENT 0 NOT COVERED 0
+fed rule: 3520 cells: SAME 3520 DIFFERENT 0; cells reported (as if fed) 26, reports 26
+whole module: 979 sources: SAME 979 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+registry level: 81716 units in 988 sources: SAME 81708 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8
+end to end: 991 sources: SAME 991 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+37 files, 6385 positions: SAME 6385 (1733 with no options) DIFFERENT 0
+infer.test 5 pass; rg.test 7 pass; cp.test 5 pass; tc.test 11 pass (10 pass 1 fail in the gate run: ojs-roundtrip read
+the notebook built before the step; passes after the build, so gates.sh now builds first); live.test 53 pass 0 fail
+build exit 0, dependancy map lines: 0; bun-verify: 168 pass, 0 fail, 0 timed out, 0 skipped; 6.3 s
+narrow-kinds 45, ts-cells 9, acorn 6, syntax 14, boundary 130, complete 58, walks 13, checks 14, shape 21, cross 24,
+pool 25, store 38, events 29, render 25 pass, 0 fail
+14/14 fixtures pass; 55 lint/injection rules registered, 55 with a reject case (53 of them in the specification module)
+```
+Files: `lite/infer/ow-place.ss.ts`, `lite/infer/frozen/own.ts`, `lite/soundscript/spec.ojs`, `lite/soundscript/ts-cells.ts`
+(export), `lite/infer/attack/{gates.sh,sections.ts,rows.ts,add-rows.py,live.test.ts,variants.ts}`,
+`lopebooks/notebooks/soundscript.html` (build).
+
+### Step 2 (03:40–03:50): Mut in a cell's value or an input (B7)
+Rule `[mut-cell]`: an injected parameter whose type holds `Mut<…>` (`md-inject` `mdInject`, after the parameters are
+typed: the annotation's type, or the type the input is given, so a foreign value typed with a Mut is rejected too);
+a cell's value (the unwrapped return, the state cell content, the events value) that holds one (`md-value`
+`mdValueRules`) is a backstop, kept only when the cell has no other error (`md-cell` `mdKeep`): with step 1, a Mut
+reaches a value only past `[mut-escape]`, `[mut-bind]` or `[mut-source]`. The walk `owMutIn`/`owMut` (ow-capture, the
+shape of `owIterIn`): arrays, tuples, unions, records and their index, type arguments, aliases expanded (generic and
+recursive ones too); not into a function type.
+Counts: first trial (the walk into a function's result and a call signature's, the value rule unconditional): shipped
+sections 5 cells (`ixKnot`, `ixCheckFn`, `mdCell`, `mdContext`, `mdCheckSources`: a function returning `IxK`/`MdCtx`,
+which hold the registry's `Mut<Map<Ty, boolean>>` memo the shell made), corpus 13 sources, all already rejected cells
+gaining a second rule (`03-mut.ts` `leak`, the `reject-mut-escape` fixture's 7, three S4.2/S4.4 rows, which would no
+longer give exactly one rule). Narrowed: no walk into function types (a function's result can hold only a Mut its
+caller gave it); the value rule a backstop. Final: corpus 0, shipped 0, spec accept rows 0.
+Not closed here: a function value whose result holds a Mut from its arguments (the registry pattern; a second holder of
+that memo is the shell's choice, B6's family).
+Frozen: own.ts `mutIn`; core.ts `[mut-cell]` over `injected` after the loop and on `ret` after `[iterator-cell]` when
+the cell had no error before the value rules (header line 5). Control: frozen input rule disabled, `--module-only`
+`SAME 979 DIFFERENT 6`.
+Rows: S4.4 `[mut-cell]` x3 (an input `Mut<number[]> | null` given `null`; `readonly Mut<number[]>[]` given `[]`;
+`Box<Mut<number[]>>` through a generic alias, given `{ v: null }`).
+Variants (24, all `[mut-cell]`): each of a record field, two levels, an alias, a generic alias, `| null`, an array, a
+tuple, a `Map` value, an interface, a recursive alias, `Mut` itself, as an input annotation and as a foreign value's
+type; a `State<Mut<…>>` handle; a foreign record holding a Mut returned as a cell's value. live.test `77 pass 0 fail`.
+Gates (`g2.txt`, 03:43, AC Power, load 1.99):
+```
+build exit 0, dependancy map lines: 0; bun-verify: 168 pass, 0 fail, 0 timed out, 0 skipped; 6.2 s
+895 sources, 3546 cells: SAME 3532 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14; sources that threw 1
+ownership: 3532 cells: SAME 3532 DIFFERENT 0 NOT COVERED 0
+fed rule: 3532 cells: SAME 3532 DIFFERENT 0; cells reported (as if fed) 26, reports 26
+whole module: 985 sources: SAME 985 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+registry level: 81821 units in 994 sources: SAME 81813 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8
+end to end: 997 sources: SAME 997 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+37 files, 6385 positions: SAME 6385 (1733 with no options) DIFFERENT 0
+infer.test 5, rg.test 7, cp.test 5, tc.test 11, live.test 77 pass 0 fail
+narrow-kinds 45, ts-cells 9, acorn 6, syntax 14, boundary 130, complete 58, walks 13, checks 14, shape 21, cross 24,
+pool 25, store 38, events 29, render 25 pass, 0 fail
+14/14 fixtures pass; 55 lint/injection rules registered, 55 with a reject case (53 of them in the specification module)
+```
+Files: `lite/infer/ow-capture.ss.ts`, `md-value.ss.ts`, `md-inject.ss.ts`, `md-cell.ss.ts`, `lite/infer/frozen/own.ts`,
+`lite/infer/frozen/core.ts`, `lite/soundscript/spec.ojs`, `lite/infer/attack/{variants.ts,live.test.ts}`, the notebook.
+
+### Step 3 (03:50–03:55): a named function expression capturing a Mut taken for a local helper
+`owHelper` (ow-tree) took the binding `owBindingOfFn` gives a function, which for `const f = function g() {…}` is the
+inner name `g`, and asked only that name's uses. Fix as `selfhost/mut-groups/out/edits.base-fixA.diff`: every binding
+naming the function must be only called, and a function expression is a helper only when one of them is a `const`.
+The frozen own.ts `helper` had the same hole and gets the same loop (header line 7). Counts: corpus 0, shipped 0.
+Control: frozen loop removed, `diff.ts` ownership `SAME 3519 DIFFERENT 17`.
+Rows: S4.5 `[mut-capture]` x2 (passed to a keeper and frozen; in an array literal). Variants (14, all `[mut-capture]`,
+with the attack program `named-fnexpr-base`): passed to a keeper, in an array, returned, its own name bound inside,
+its own name returned from inside, bound to a let, in an object literal, a forEach callback, called at once, a
+generator and an async expression passed out, assigned to a let later, in a conditional, called by an escaping
+arrow. live.test `92 pass 0 fail`.
+Gates (`g3.txt`, 03:51, AC Power, load 1.98): build exit 0, 0 dependancy map lines; `bun-verify: 168 pass, 0 fail, 0 timed
+out, 0 skipped; 6.1 s`; `899 sources, 3550 cells: SAME 3536 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14`; `ownership: 3536
+cells: SAME 3536 DIFFERENT 0 NOT COVERED 0`; `fed rule: 3536 cells: SAME 3536 DIFFERENT 0`; `whole module: 989 sources:
+SAME 989 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0`; `registry level: 81849 units in 998 sources: SAME 81841 DIFFERENT 0 NOT
+COVERED 0 BOTH THREW 8`; `end to end: 1001 sources: SAME 1001 DIFFERENT 0`; `37 files, 6385 positions: SAME 6385`;
+infer 5, rg 7, cp 5, tc 11, live 92 pass; the script tests as step 2; `14/14 fixtures pass; 55 ... 55 with a reject case`.
+Files: `lite/infer/ow-tree.ss.ts`, `lite/infer/frozen/own.ts`, `lite/soundscript/spec.ojs`, `lite/infer/attack/{variants.ts,live.test.ts}`, the notebook.
+
+### Step 1, amended (03:56–04:00, gated with step 4)
+- `owPreludeName` failed open where `owOnRead` fails closed: an identifier with no binding fact was skipped. Now such an
+  identifier with a prelude name counts as the prelude's, except a shorthand property's key (its value node carries
+  the binding; without that exception `{ state, effects }` in `events.ss.ts` `step` and `pool.ss.ts` `pumpPool`,
+  `poolStep` flipped: counted, then excluded; final counts 0 and 0). Frozen own.ts the same, with `PRELUDE_FNS`.
+- `fixtures/lite-mut/lite-expect.json`: `reject-mut-escape` lists `mut-source` (read by `lite/oracle.ts`, not a gate).
+- `lite/infer/attack/owner.ts`: the owner's repro programs, printed by live.test (verdicts: B3 both ACCEPT; B6
+  `keep(m)` ACCEPT, the const, the returning function and `id<T>` REJECT since steps 1 and 2; the `{ readonly length }`
+  string ACCEPT; both `Events<T>` routes ACCEPT; a foreign RegExp tested twice ACCEPT).
+- `typeof mut` in a type is `{typeof type query}` (unsupported): not a route.
+
+### Step 4 (04:00–04:05): RegExp lastIndex (B5)
+Candidates, counted over the corpus, rows and shipped cells (AST census `attack/regexp-census.ts`, 532 sources; 4
+files that do not parse and the inline `.ojs` sources not in it): (A) a regexp that may have `g` or `y` only where it
+is made: 0 (the 5 g literals in the tree are all direct arguments of `replace`, in `tc-text.ss.ts` and `ix-jsx.ss.ts`;
+no `new RegExp`); (B) `test`/`exec` only on a regexp literal receiver: 1 shipped cell by the census, an estimate, not
+trialled (`cp-text.ss.ts:106` `re.exec`, a held regexp without g). Chosen (A): fewer rejections, and every regexp a
+cell holds then has neither flag, so `test`/`exec` ignore `lastIndex` and `match`/`replace`/`split` do not write it.
+Trial of (A) in the cells: collect 0 differences, sections 0.
+Rule `[regexp-state]` (ow-place `owRegexpPlace`): a regexp literal with `g` or `y`, or `new RegExp(s, f)` whose `f` is
+not a string literal without them, stands only as a member's object or as an argument of a resolved intrinsic call
+that does not keep it (`owNonRetainingArg`: a String method's argument, not `Array.of`, not a user record's `replace`).
+Frozen own.ts the same in the placement loop (header line 8). Control: frozen rule disabled, ownership `SAME 3540
+DIFFERENT 6`.
+Not closed: a foreign `declare const re: RegExp` (or a foreign function returning one) given a g regexp; S9.3 trusts
+the declaration (owner.ts). No foreign.d.ts in the tree declares a RegExp. A shell or another language's RegExp is
+`[inject-type]`/`[boundary-type]` already.
+Rows: S3.2 `[regexp-state]` x3 (B5's cell value; a held `/a/y`; `new RegExp("a", s)`); `test_spec_S3_2` gains an
+accepted control (`/a/g.test(s)`, `s.replace(/a/g, "b")`, `s.split(/,/g)`, a held `/^a/` tested and exec'd).
+Variants (15, all `[regexp-state]`, with B5 and `regexp-exec-no-lastindex-read`): held local, sticky held, flags from a
+parameter, a `"gi"` literal held, returned by a helper, in an array, in an object, in a conditional, given to a local
+function, given to a record's method named `replace`, kept by `Array.of`, a default parameter, given to a callback, yielded
+by a generator cell, B5's cell value. live.test `109 pass 0 fail`.
+Gates (`g4.txt`, 04:02, AC Power, load 2.62): build 0 dependancy map lines; `bun-verify: 168 pass, 0 fail, 0 timed out, 0
+skipped; 6.2 s`; `905 sources, 3560 cells: SAME 3546 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14`; `ownership: 3546 cells: SAME
+3546 DIFFERENT 0`; `fed rule: 3546 cells: SAME 3546 DIFFERENT 0`; `whole module: 995 sources: SAME 995 DIFFERENT 0`;
+`registry level: 81884 units in 1004 sources: SAME 81876 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8`; `end to end: 1007
+sources: SAME 1007 DIFFERENT 0`; `37 files, 6385 positions: SAME 6385`; infer 5, rg 7, cp 5, tc 11, live 109 pass; script
+tests unchanged; `14/14 fixtures pass`.
+cp-diff and tc-diff (`g4-cptc-full.txt`, 04:12, AC Power, load 1.60): `completion: 16237 positions ...: SAME 18423
+DIFFERENT 0`; `addParameter / annotationOf: SAME 70450 DIFFERENT 0`; facts `SAME 3472 DIFFERENT 0`; tc `all calls: SAME
+332653 SAME THROW 3756 DIFFERENT 1` (the known repro row), `corpus calls, repro rows left out: SAME 332471 ... DIFFERENT 0`.
+Browser verify, first run (04:16, AC Power, load 1.73): `648 pass, 1 fail`, the fail `reference: ... produced but not
+named ["mut-source","prelude-value","prelude-shadow","regexp-state","mut-cell"]`: verify.ts requires every rule id to be
+named in the tutorial's tables. Added four table rows to `lite/soundscript/tutorial.ojs` (the Mut table: mut-source,
+mut-cell, prelude-value/prelude-shadow; the general table: regexp-state). Rerun (`verify4b.txt`, 04:24, AC Power, load
+1.92): `power AC Power; functional 649 pass 0 fail; measurements 8`; lint median 7.6 ms, completion median 10.1 ms.
+Files (step 4): `lite/infer/ow-place.ss.ts`, `lite/infer/frozen/own.ts`, `lite/soundscript/spec.ojs`,
+`lite/soundscript/tutorial.ojs`, `lite/infer/attack/{variants.ts,live.test.ts,owner.ts}`, the notebook.
+
+### Step 5 (04:33–04:45): width subtyping and an optional member
+`recSubWith` (subtype.ss.ts) let a source that lacks a member pass for a target's optional member. A record type may
+stand for a value with more members (width), so `{ b: number }` holding `{ b: 1, a: "x" }` passed for `{ b: number;
+a?: number }`, and `(r.a ?? 0) + 1` gave `"x1"` typed `number`.
+Candidates, counted: (E) a missing optional member only when the member's type admits `unknown`: 1506 shipped cells in
+64 sections, 49 corpus sources (nearly all a fresh object literal leaving an optional member out, `{ t, opt }` for
+`Prop`); not taken. (M) a closed record type: an object literal with no spread has a record type marked `exact`; a
+missing optional member is accepted when the source is marked, or not a record or `object`/`unknown`/a type parameter
+(a string, an array, a function, an intrinsic's members), or a rest that took that name out (`without`), or the
+member's type admits `unknown`. Taken: shipped 0, corpus 1 (`perffix.ss.ts re1`, a scratch probe that is this hole).
+The mark must not reach a value that is not the literal. Closed, each with a variant:
+- a marked type as a target takes only a marked source with no other member (recSubWith), so `let x = {b: 1}; x = q`,
+  `pick({b: 1}, q)` and `[{b: 1}].concat([q])` are `[type]`;
+- `mut(...)` and `state(...)` hold `inexact(t)` (types.ss.ts), so `Mut<…>` and `State<…>` stay invariant against
+  annotations (without it the spec's `Mut<{ n: number }> is not assignable to Mut<{ n: number }>` row and
+  `probe-state.ss.ts` flipped, counted);
+- `union` keys members by `show(t) + exactSig(t)`, so `c ? {b: 1} : q` keeps both;
+- `sub`'s coinduction key (`seen`, an alias on either side) and the registry's expansion and quiet keys (rgExpand,
+  rgQuietGo, frozen registry.ts) add `exactSig`: before that, `const r: T | undefined = xs[1]` with `xs = [{b: 1}, q]`
+  was accepted, because `{ b: number } <: T` was taken as proven for the unmarked member after the marked one.
+Frozen mirrors (infer.ts header line 7, registry.ts line 3): objLit marks, the rest records `without`, mut and state
+`inexact`, the two registry keys. Control: frozen objLit mark removed, `diff.ts` `SAME 3482 DIFFERENT 68`.
+New cells: `exactSig`, `inexact` (types.ss.ts), exported by `lite/types.ts` and given to the ix cells in `lite/infer-ss.ts`.
+Cost: collect went from 613 to 700 µs/cell (one run each, AC Power): the `exactSig` walk in every `union` and key.
+Rows: S2.9 `[type]` x3 (the repro; through `object`; a let of a literal reassigned); `test_spec_S2_9` gains an accepted
+control (a literal, a const of a literal and a rest each leave `a?` out).
+Variants (16, all `[type]`): widened, let reassigned, generic pick, conditional, array literal of both, concat, pushed
+into a Mut of literals, through `{}`, `object`, `unknown`, spread, a helper's result, nested in a conditional, a union
+arm, a rest of the widened record, a helper's parameter. Plus three step-4 routes (`RegExp(/a/g)` without new,
+`structuredClone(/a/g)`, `new RegExp(/a/g)`), all `[regexp-state]`. live.test `128 pass 0 fail`.
+Unchanged: `Events<T>` to `{ a?: number }` then `x.a` (owner.ts) is still ACCEPT.
+Found, not fixed (owner.ts): `const r: number = ["a"][0] ?? 1` and the same with `||` are accepted: `ixCheckLogical`
+checks only the right operand against the expected type (the frozen checker the same, so no differential sees it).
+Gates (`g5.txt`, 04:44, AC Power, load 1.97): build 0 dependancy map lines; `bun-verify: 168 pass, 0 fail, 0 timed out, 0
+skipped; 6.2 s`; `911 sources, 3576 cells: SAME 3562 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14`; `ownership: 3562 cells:
+SAME 3562 DIFFERENT 0`; `fed rule: 3562 cells: SAME 3562 DIFFERENT 0`; `whole module: 1001 sources: SAME 1001 DIFFERENT
+0`; `registry level: 82201 units in 1010 sources: SAME 82193 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8`; `end to end: 1013
+sources: SAME 1013 DIFFERENT 0`; `37 files, 6385 positions: SAME 6385`; infer 5, rg 7, cp 5, tc 11, live 128 pass; script
+tests unchanged; `14/14 fixtures pass`.
+Files (step 5): `lite/types.ss.ts`, `lite/types.ts`, `lite/subtype.ss.ts`, `lite/infer-ss.ts`, `lite/infer/ix-lit.ss.ts`,
+`lite/infer/ix-prelude.ss.ts`, `lite/infer/rg-expand.ss.ts`, `lite/infer/frozen/infer.ts`, `lite/infer/frozen/ts/registry.ts`,
+`lite/soundscript/spec.ojs`, `lite/infer/attack/{variants.ts,owner.ts}`, the notebook.
+
+### Step 6 (04:46–04:55): an index record reaching Object.prototype (partly closed)
+A record with an index signature typed every key by the signature, so `r["constructor"]`, `r.toString`, `"toString" in
+r` and `const { valueOf } = r` were typed as entries; every such record (a literal, `JSON.parse`, `Object.fromEntries`)
+has Object.prototype's members, so `(r["constructor"] ?? 0) + 1` gives a string typed number.
+Candidates, counted: (a) a key whose names are known (a dot name, a string literal, a key of literal or number type) and
+name a member of Object.prototype (the 12 of `Object.getOwnPropertyNames(Object.prototype)`): shipped 0, corpus 0;
+(b) also every key of type `string`: shipped 2 cells, `deepEqual` (runtime.ss.ts, `b[k]` for `k` of `Object.keys(a)`,
+guarded by `kb.has(k)`) and `propOps` (render.ss.ts, `old[k]` for `k` of `Object.entries(now)`: a real read of the
+prototype when `now` has a prop `constructor` and `old` has none), and `selfhost/rt/probe1.ss.ts`. Taken: (a). (b) is not
+done: it needs either both cells rewritten (to `Map`s of `Object.entries`, on the renderer's and `equals`' paths, not
+measured) or a guard the checker can see (`Object.hasOwn(r, k)`), which it has no narrowing for. Owner's choice; repro
+in owner.ts (`open-index-key`).
+Rule `[banned-member]` (S2.7's), message `<k> on a record with an index signature is Object.prototype's <k>, not an
+entry`: `owProtoRead` (ow-place, member reads and `in`, with `owKeyNames` and `PROTO_NAMES`) and `ixBindObject`
+(ix-lit, destructuring). Frozen: own.ts placement loop (header), infer.ts bindPattern (header). Control: frozen own.ts
+rule off, ownership `SAME 3570 DIFFERENT 4`.
+Rows: S2.7 `[banned-member]` x3 (`r["constructor"]`, `"toString" in r`, `const { valueOf } = r` on a `Record`);
+`test_spec_S2_7` becomes a block with an accepted control (`r["a"]`, `r.b`, `"c" in r`).
+Variants (14, all `[banned-member]`): computed `__proto__`, computed `constructor`, dot `toString`, `r?.valueOf`,
+`"toString" in r`, a const key, a literal-union key, a `Record` alias, destructured, destructured and renamed, a
+destructured parameter, a union with an index record, `Object.fromEntries(...)["constructor"]`, a nested index record.
+live.test `142 pass 0 fail`.
+Gates (`g6.txt`, 04:55, AC Power, load 1.46): build 0 dependancy map lines; `bun-verify: 168 pass, 0 fail, 0 timed out, 0
+skipped; 5.9 s`; `917 sources, 3588 cells: SAME 3574 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14`; `ownership: 3574 cells:
+SAME 3574 DIFFERENT 0`; `fed rule: 3574 cells: SAME 3574 DIFFERENT 0`; `whole module: 1007 sources: SAME 1007 DIFFERENT
+0`; `registry level: 82315 units in 1016 sources: SAME 82307 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8`; `end to end: 1019
+sources: SAME 1019 DIFFERENT 0`; `37 files, 6385 positions: SAME 6385`; infer 5, rg 7, cp 5, tc 11, live 142 pass; script
+tests unchanged; `14/14 fixtures pass`.
+Files (step 6): `lite/infer/ow-place.ss.ts`, `lite/infer/ix-lit.ss.ts`, `lite/infer/frozen/{own.ts,infer.ts}`,
+`lite/soundscript/spec.ojs`, `lite/infer/attack/{variants.ts,owner.ts}`, the notebook.
+
+### Step 7 (04:56–05:05): identity operations that bypass [strict-eq-object] (partly closed)
+Shipped uses counted first, one trial rule for all of them (`s7.json`, `sec-s7.json`): 4 shipped cells flip. By part:
+- `includes`, `indexOf`, `lastIndexOf` on an element and an argument that may both be non-primitive: shipped 0, corpus 0.
+- `Object.is` on two values that may be objects: shipped 3 (`deepEqual` runtime.ss.ts:52, `same` events.ss.ts:74,
+  `sameAttribute` render.ss.ts:160, each the identity fast path of an equality), corpus 14 reports (ss and ssx).
+- a `Map`, `Set`, `WeakMap` or `WeakSet` whose key type may be an object, where it is made (`new`, `Map.groupBy`):
+  shipped 1 (`ixMayHide`, ix-hides.ss.ts:2391, `R.mayHideMemo`, a memo keyed by type objects), corpus 38 reports
+  (selfhost/rt boundary, cells, prelude: Sets and Maps of nodes; shape.ss.ts, subtype.ss.ts checked alone).
+Fixed: the first part only, as `[strict-eq-object]`. Not fixed, owner's: `Object.is` (options: accept it as the
+identity fast path, which is sound when only `true` is used to skip work, which the checker cannot see; or rewrite
+the three equalities without it) and object-keyed `Map`/`Set` (options: forbid them and rewrite `ixMayHide`'s memo
+and the selfhost runtime, or allow them as identity-keyed by design and say so in S3.12). Repros in owner.ts
+(`open-identity-key`).
+Rule: `owIdentityOp` (ow-place) with `owMayObject`; the element type is the resolved intrinsic signature's first
+parameter. Frozen own.ts the same (header). A first frozen mirror without `isPrimitive` imported threw on every cell
+it reached: `diff.ts` said `SAME 3484 DIFFERENT 0` with 90 fewer cells, not a DIFFERENT; the cell count is the check.
+Control: frozen rule off, ownership `SAME 3580 DIFFERENT 6`.
+Rows: S3.12 `[strict-eq-object]` x3 (`includes`, `indexOf`, `lastIndexOf`); `test_spec_S3_12` gains an accepted
+control (`includes`/`indexOf` with numbers, `null`, a string).
+Variants (12, all `[strict-eq-object]`): an array literal, a record's indexOf, lastIndexOf, a readonly array, a tuple, a
+union element, in a helper, a generic element, in a callback, an optional chain, a Mut's elements, a function.
+live.test `154 pass 0 fail`.
+Gates (`g7.txt`, 05:05, AC Power, load 2.82): build 0 dependancy map lines; `bun-verify: 168 pass, 0 fail, 0 timed out, 0
+skipped; 6.3 s`; `923 sources, 3600 cells: SAME 3586 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14`; `ownership: 3586 cells:
+SAME 3586 DIFFERENT 0`; `fed rule: 3586 cells: SAME 3586 DIFFERENT 0`; `whole module: 1013 sources: SAME 1013 DIFFERENT
+0`; `registry level: 82353 units in 1022 sources: SAME 82345 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8`; `end to end: 1025
+sources: SAME 1025 DIFFERENT 0`; `37 files, 6385 positions: SAME 6385`; infer 5, rg 7, cp 5, tc 11, live 154 pass; script
+tests unchanged; `14/14 fixtures pass`. Corpus against base6: only the three new S3.12 rows.
+Files (step 7): `lite/infer/ow-place.ss.ts`, `lite/infer/frozen/own.ts`, `lite/soundscript/spec.ojs`,
+`lite/infer/attack/{variants.ts,owner.ts}`, the notebook.
+
+### Step 8 (05:08–05:16): memo and dedupe keys shortened by show()
+`show()` prints `…` past depth 6, and three places used it as an identity: the registry's expansion and quiet memos
+(rgExpand, rgQuietGo, and the old registry.ts they reproduce), `sub`'s coinduction key, and `union`'s dedupe. Two
+alias instantiations that differ only past depth 6 shared one expansion. Program (now an S2.9 row):
+`type Box<T> = { v: T }` and `x: Box<{ a: … 7 deep … string }>` given to `const y: Box<{ a: … number }> = x`: accepted
+before (the second expansion was the first's object, so `sub` compared it with itself), `[type]` now. `Box<Box<…>>` the
+same, through the coinduction key. Counts: shipped 0, corpus 0 (both trials).
+Fix: `typeKey(t)` (types.ss.ts), the whole type with what `show()` leaves out past depth 6, a closed record's mark
+(`!`), optional and a member's flags, `without`; not a parameter's name or a signature's flags (a first version had them,
+and a union of two `toString` signatures then stayed two members: `glpk-canonicalization step2` flipped, `call of () =>
+string | () => string`; counted, then removed). The three memo keys are `typeKey`, and `union` keeps `show()` as its key
+and on a match compares `typeKey`. It replaces step 5's `exactSig` (removed). Depth past 200 prints `…` (unsure: a type
+that deep would collide again; none is near).
+Frozen registry.ts the same (header). Control: frozen key back to `show(t)`, `rg-diff.ts` `registry level: ... SAME
+82200 DIFFERENT 194`; `diff.ts` does not see it (its frozen side is not the old registry).
+Rows: S2.9 `[type]` x2 (an alias's argument; an alias of an alias). Variants (12, all `[type]`, each only
+`[inject-type]` before the fix, and the optional-member form accepted before): an alias's argument, an alias of an
+alias, an interface's argument, two type parameters, an array, a union, a parameter's annotation, a return type, a
+function type's parameter, a tuple, a deep read, an optional member. live.test `166 pass 0 fail`.
+Gates (`g8.txt`, 05:16, AC Power, load 2.40): build 0 dependancy map lines; `bun-verify: 168 pass, 0 fail, 0 timed out, 0
+skipped; 6.4 s`; `927 sources, 3608 cells: SAME 3594 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14`; `ownership: 3594 cells:
+SAME 3594 DIFFERENT 0`; `fed rule: 3594 cells: SAME 3594 DIFFERENT 0`; `whole module: 1017 sources: SAME 1017 DIFFERENT
+0`; `registry level: 82674 units in 1026 sources: SAME 82666 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8`; `end to end: 1029
+sources: SAME 1029 DIFFERENT 0`; `37 files, 6385 positions: SAME 6385`; infer 5, rg 7, cp 5, tc 11, live 166 pass; script
+tests unchanged; `14/14 fixtures pass`.
+Files (step 8): `lite/types.ss.ts`, `lite/types.ts`, `lite/subtype.ss.ts`, `lite/infer-ss.ts`, `lite/infer/rg-expand.ss.ts`,
+`lite/infer/frozen/ts/registry.ts`, `lite/soundscript/spec.ojs`, `lite/infer/attack/variants.ts`, the notebook.
+
+### Step 6, amended (05:20): through Mut and Borrowed
+`owProtoRead` and `ixBindObject`'s proto check expanded the receiver without `unwrap`, so on `Mut<{ [k: string]:
+number }>` and `Borrowed<…>` `m["constructor"]`, `"toString" in m`, `m["__proto__"] = 1` and `const { valueOf } = m`
+were accepted. Both now `R.expand(unwrap(m))`; frozen own.ts and infer.ts the same. 5 variants (`6-index-proto`, all
+`[banned-member]`). `diff.ts` 927 sources SAME 3594 DIFFERENT 0. Files: `lite/infer/ow-place.ss.ts`,
+`lite/infer/ix-lit.ss.ts`, `lite/infer/frozen/own.ts`, `lite/infer/frozen/infer.ts`, `lite/infer/attack/variants.ts`.
+
+### Step 9 (05:20–05:30): narrowing precision (owner's ruling)
+Two parts, counted separately against `base8.json`.
+1. A kept record is the kind tested. Where `typeof` keeps a call-less record (it may hold a value of the kind), the
+   record is replaced by the union of the kinds it admits there, each as its type (`IX_KIND`: `string`, `number`, ...,
+   and for `function` `(...r: never[]) => unknown`, a function of no known signature). Before, it stayed as itself.
+   Count: shipped 0; corpus: `ports/lopepage-urls navHref` and `linkToWith` rejected -> ok (`string | NavIntent` under
+   `typeof === "string"` is `string`); 6 S9.6 rows still rejected, messages now name the kind (`call of (...r: never[])
+   => unknown | (n: number) => string`). This alone does not restore the two idioms: `N` still admitted a function.
+2. A callable reaches a call-less record only where a function of no known signature would (`callableToPlain`,
+   subtype.ss.ts, in `recSubWith`): a source with a call or construct signature, a target with neither, and the target
+   has an index or a required member -> not a subtype. `ixAdmits` then admits `function` by `R.sub(top function, m)`
+   instead of for every call-less record. `{}`, `{ a?: number }`, `E` still admit a function; `N = { n: number }` does
+   not. Count: shipped 0, corpus 0 beyond part 1; the `G` row (callable with `readonly a`) now rejects at `const x = g`.
+Restored: `N | (() => N)` with `typeof v === "function" ? v() : v`; `N | string` with `typeof v === "object" ? v.n :
+v.length` (both now accept controls in `test_spec_S9_6` and `narrow-kinds.test.ts`). The ports/lopepage-urls cells check
+again. `narrow-kinds.test.ts` `49 pass, 0 fail`: its 45 rows still hold, its "cost" row (value or thunk, expected
+rejected) is now a control expected ok, with 4 new rows (2 controls, 2 rejects).
+Frozen: infer.ts `KIND_9` and `narrowTypeof`, `ADMITS` gains `function` (header). subtype.ss.ts is shared. `recSubWith`
+merged its two nominal lines to stay at 26.
+Rows: S9.6 `[type]` x4 (a function to `{ readonly length: number }`; `G` to `{ readonly a: number }`, accepted before;
+a function to an index record; a kept `{}` called with an argument after `typeof === "function"`).
+Variants (12, `9-callable-record`, all `[type]`): a callable `G` with `n` as `N` through a const, an array element, a
+union arm, a generic identity, an argument, a return type, a record member, a tuple, a default parameter, an alias; a
+function to an index record; `Map` to `{ readonly prototype: unknown }`. Before the fix these were also rejected, but at
+the value-or-thunk `use` (the cost); after, `use` checks and each is rejected where the callable becomes `N`. live.test
+`183 pass 0 fail`.
+Gates (`g9.txt`, 05:29, AC Power, load 1.67): build 0 dependancy map lines; `bun-verify: 168 pass, 0 fail, 0 timed out, 0
+skipped; 6.3 s`; `935 sources, 3618 cells: SAME 3604 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14`; `ownership: 3604 cells:
+SAME 3604 DIFFERENT 0`; `fed rule: 3604 cells: SAME 3604 DIFFERENT 0`; `whole module: 1025 sources: SAME 1025 DIFFERENT
+0`; `registry level: 82834 units in 1034 sources: SAME 82826 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8`; `end to end: 1037
+sources: SAME 1037 DIFFERENT 0`; `37 files, 6385 positions: SAME 6385`; infer 5, rg 7, cp 5, tc 11, live 183 pass;
+narrow-kinds `49 pass, 0 fail`; other script tests unchanged; `14/14 fixtures pass`.
+Files (step 9): `lite/infer/ix-core.ss.ts`, `lite/subtype.ss.ts`, `lite/infer/frozen/infer.ts`,
+`lite/infer/narrow-kinds.test.ts`, `lite/soundscript/spec.ojs`, `lite/infer/attack/variants.ts`, the notebook.
+
+### Step 9 browser gates (05:36–05:48)
+cp-diff and tc-diff (`g9-cptc-full.txt`, 05:36, AC Power, load 2.24): `completion: 16237 positions ...: SAME 18423
+DIFFERENT 0`; `addParameter / annotationOf: SAME 70450 DIFFERENT 0`; facts `cellsOf SAME 3541 DIFFERENT 0`, sets `SAME
+255680 DIFFERENT 0`, `factsOf ... SAME 5886`; tc `all calls: SAME 336868 SAME THROW 3756 DIFFERENT 1` (the erase repro
+row), `corpus calls, repro rows left out: ... DIFFERENT 0`. Browser verify (`verify9.txt`, 05:40, AC Power, load 1.86):
+`power AC Power; functional 649 pass 0 fail; measurements 8`; lint median 7.7 ms, completion median 10.1 ms (E 7.6 /
+10.0; step 4 7.6 / 10.1): the soundness steps moved neither.
+
+### Timing diagnosis (05:48–05:53, measured only; nothing in lite/ changed)
+Each of B-, C-, D-snap was built to a scratch notebook (`build.ts --force --out`, the snapshot moved into `lite/` for
+its build and moved back; the build's paths name `../lite/`), and the live tree as E9. In each page,
+`.scratch/timing/prof.ts` times 30 completions of `count.` and 30 lints of `width` as verify.ts does, then takes a CPU
+profile of 200 of each (`*.cpuprofile`); `parts.ts` times the parts. All AC Power.
+```
+05:50 load 3.5-8.2 (the runs themselves)  completion  lint
+  B                                       5.2         4.8
+  C                                       5.0         4.9
+  D                                       9.5         9.6
+  E9                                      9.6         9.9
+05:53 load 2.2-2.4   complete  ss_moduleCells(tutorial)  decompileVariable x 47 tutorial ss variables
+  B                  4.8       0.2                       0.0
+  C                  4.8       0.2                       0.0
+  D                  9.8       4.6                       4.1
+  E9                 9.6       4.5                       4.1
+```
+Phase: D (tc on), +4.6 ms for completion and lint alike; B to C and D to E add nothing measurable. Call path (D's
+profile, `chains.ts`, inclusive ms per call): `complete` (and `lint` -> `check`) -> `ss_moduleCells` 5.0 ->
+`soundscript.decompileVariable` of each of the module's 47 cells -> `tcDecompileVariable` -> `tcParseCompiled` 4.8 ->
+`parseTree` across the shell boundary (`ss_cross.k`, the runtime module's `checkShape` on the way in and
+`fnResult`/`copyResume`/`copyEnter`/`copyUnion` copying the parsed tree out) 4.3, of which the acorn parse is about 1.5.
+In C `decompileVariable` was ss-toolchain.ts's own code, remembered per definition text (0.0 ms for 47); since D the
+glue remembers `langOf` and `parseCompiled` per text but passes `decompileVariable` straight to `L.tcDecompileVariable`,
+which parses again through the boundary on every call. Bun completion stays 1.1 ms because complete.test.ts does not
+go through `ss_moduleCells`/`decompileVariable` on the page's variables.
+What would remove it: remember `decompileVariable` per definition text in `toolchainOf` (ss-toolchain.ts), as `langOf`
+and `parseCompiled` are, or have `tcDecompileVariable` take the remembered `parseCompiled`. Either gives back the 4.1 ms
+of decompiles; the rest of the 4.6 is `ss_moduleCells` itself. Not applied (measure only).
+Aside: `langOf` over all ~5400 definitions costs 12 ms in B and 65-87 ms from C on (a Map keyed by whole definition
+texts); no per-keystroke path calls it over all of them.
+Correction to step 5's cost: collect went 613 -> ~700-725 µs/cell over steps 5-8 and stayed at 699-715 after step 8
+removed `exactSig` from `union`, so the cost is not `exactSig`'s. Unattributed (candidate: `closed`, computed on every
+`recSubWith` call); not measured.
+
+### Fresh review (05:55–06:00): spec.ojs, tonight's rows; BLOCK, 5 findings
+One opus subagent, the reviewer prompt of `.claude/skills/review-notebook/SKILL.md` (147k tokens, 4m21s). Its own
+`bun-verify --filter test_spec_`: 119 pass, 0 fail.
+1. "Not specified" says a prelude function used as a value is accepted; it is `[prelude-value]` now. Confirmed. Prose:
+   left (rule: no statement rewrites); in PROSE PENDING.
+2. `prelude-value`, `prelude-shadow`, `regexp-state`, `mut-source`, `mut-cell` and the new forms under S2.7, S3.12,
+   S9.6, S2.9 are in no statement sentence; the `const { y } = p` (`[mut-source]`) / `p.y` (`[mut-escape]`) split is not
+   explained; S9.6's rows 1-2 restate S3.3. Confirmed. Prose: in PROSE PENDING (with the S3.3 placement as a question).
+3. The holes found and not closed (`??`/`||` left operand, `r[k]` with `k: string`, `Object.is`/Map/Set keys, a foreign
+   g RegExp) are not listed in "Not specified". Confirmed. Prose: in PROSE PENDING.
+4. A top-level cell named `mut` is not `[prelude-shadow]`, and `mut(...)` in another cell is taken as the prelude.
+   Checked: declined. The compiled `b` takes `ss_mut` as input and binds `const mut = ss_mut` (`.scratch/holes/mutcell.ts`),
+   so the runtime calls the prelude, as the checker assumes.
+5. S2.9 rows split around S2.10. Fixed: the five new rows moved before the S2.10 rows (the older `const-assign` row
+   left where it was).
+Final gates after the row move (`gF.txt`, 05:59, AC Power, load 1.65): as step 9's (`bun-verify: 168 pass`, `935
+sources, 3618 cells: SAME 3604 DIFFERENT 0`, registry `SAME 82826 DIFFERENT 0`, `14/14 fixtures pass`, live 183 pass).
+Browser verify (`verifyF.txt`, 06:06, AC Power, load 1.93): `power AC Power; functional 649 pass 0 fail`; lint 7.7 ms,
+completion 10.2 ms. cp-diff/tc-diff not rerun after the move (spec row order only; step 9's run at 05:36 stands).
+The review run is not logged in SKILL.md's Runs list: that file is outside tools/lang-experiment.
+
+### Step 10 (06:14–06:20): an open record reaches an index record; step 9 completed (after the advisor's check)
+Found after step 9: `recSubWith`'s index branch read only the source's declared members, so an open record (`{}`, a
+width-widened `{ b: number }`) was assignable to `{ [k: string]: T }`, its other members then entries of type T.
+`const q: { b: number } = p; const r: { [k: string]: number } = q; r["a"]` (a string) was accepted (hole 5's class,
+open before tonight). Since step 9 it also reached narrowing: an index record no longer admits a function (`R.sub(top
+function, m)` is false for it), so `{}` from a function, as `{ [k: string]: unknown }`, then `typeof y === "function" ?
+y(3)` was accepted (before step 9 it was rejected: every call-less record admitted a function). Fix (subtype.ss.ts,
+shared): the index branch needs a closed source or one with an index. Count against `s9c.json`: shipped 0, corpus 0
+verdict changes (glpk-canonicalization `extract` and `selfhost/rt/jsx.ss.ts hTyped`, both rejected already, gain a
+`[type]`). Rows: S2.9 `[type]` (the width form), S9.6 `[type]` (the function form). Variants (10, `10-open-index`, all
+`[type]`; control: the old index line, all 10 accepted): a width-widened record, `{}` from a function then called,
+`{}` from a string then narrowed, an argument, a return type, an array element, an interface, a union arm, a record
+member, `Object.values` of it.
+Step 9, intersecting: the ruling says a kept record is narrowed to the kind's type by intersecting; step 9 replaced it.
+Now for the function kind the kept record is the record with the kind's call signature (`ixKindOf`, ix-core.ss.ts;
+frozen infer.ts the same): `{ a?: number }` from a function, `typeof y === "function" ? y.a : 0` is accepted (it was
+`[no-member]`), and `y(1)` is still `[type]`. Other kinds stay the kind's type: a record that admits a string has no
+required member, so a string and the intersection have the same members. Accept control `i` in `test_spec_S9_6`.
+Step 9 variants, control: `callableToPlain` made to return false (the `ixAdmits` change kept) accepts 11 of 13; the two
+others are rejected by other rules (a function to an index record by the index branch; the `Map`-to-`prototype` form
+was replaced by a generic record-shaped parameter and an interface, both accepted under the control).
+Corrections: narrow-kinds got 1 control and 3 rejects (not 2 and 2) beside the cost row turned control. Step 6's
+amendment (Mut/Borrowed) had no count of its own; it is inside `s9a.json` against `base8.json`: shipped 0, corpus 0.
+Timing, C's memo: C's `decompileVariable` was not remembered itself; it called ss-toolchain.ts's `parseCompiled`,
+remembered per text. Since D the glue remembers `parseCompiled` too, but `tcDecompileVariable` calls the cell
+`tcParseCompiled`, not the glue's remembered one, so each call parses again across the boundary.
+Frozen own.ts: `PROTO_NAMES` moved above the `// none: per alias…` comment of `iterIn`.
+Files (step 10 and the step 9 completion): `lite/subtype.ss.ts`, `lite/infer/ix-core.ss.ts`, `lite/infer/frozen/infer.ts`,
+`lite/infer/frozen/own.ts`, `lite/soundscript/spec.ojs`, `lite/infer/attack/variants.ts`, the notebook.
+Timing, lint re-timed (06:40, AC Power, load 5.8-6.1 one-minute, 2.6 fifteen-minute, just after the four builds):
+`.scratch/timing/lint.ts`, verify.ts's lint block on a fresh page (one check, then 30 lints of `width`):
+```
+B  lint 4.6 ms   ss_moduleCells 0.2 ms
+C  lint 4.7 ms   ss_moduleCells 0.2 ms
+D  lint 7.4 ms   ss_moduleCells 2.9 ms
+E  lint 7.8 ms   ss_moduleCells 2.9 ms   (verify on the same tree, 06:31: 7.7)
+```
+So lint grew +2.7 ms at D, all of it `ss_moduleCells` (the decompiles above); the 9.6-9.9 ms lint of the 05:50 table came
+after 230 completions in the same page and at load 6-8, and is not verify's figure. Completion grew +4.6 ms at D, where `ss_moduleCells`
+timed 4.5-4.6 ms (parts.ts, 05:53, after the completions); why it is 2.9 ms on a fresh page is not measured. The fix
+named above covers both.
+Final gates (`gG.txt`, 06:20, AC Power, load 1.54): `bun-verify: 168 pass, 0 fail`; `939 sources, 3622 cells: SAME 3608
+DIFFERENT 0`; `ownership: 3608 cells: SAME 3608 DIFFERENT 0`; `fed rule: 3608 ... DIFFERENT 0`; `whole module: 1029
+sources: SAME 1029 DIFFERENT 0`; `registry level: 82931 units in 1038 sources: SAME 82923 DIFFERENT 0 ... BOTH THREW 8`;
+`end to end: 1041 sources: SAME 1041 DIFFERENT 0`; `37 files, 6385 positions: SAME 6385`; live 194 pass; narrow-kinds 49;
+`14/14 fixtures pass`. cp-diff/tc-diff (`gG-cptc-full.txt`, 06:27, AC Power, load 1.79): `completion ... SAME 18423
+DIFFERENT 0`; `addParameter / annotationOf: SAME 70450 DIFFERENT 0`; facts DIFFERENT 0 throughout; tc `all calls: SAME
+337231 SAME THROW 3756 DIFFERENT 1` (the erase repro row), corpus `DIFFERENT 0`. Browser verify (`verifyG.txt`, 06:31, AC
+Power, load 1.86): `power AC Power; functional 649 pass 0 fail; measurements 8`; lint 7.7 ms, completion 10.2 ms.

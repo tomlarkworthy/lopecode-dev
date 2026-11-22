@@ -311,6 +311,12 @@ spec_rejects_2 = [
   { statement: "S2.6", rule: "free-name", source: "const c = () => eval(\"1\");" },
   { statement: "S2.6", rule: "free-name", source: "const c = () => window;" },
   { statement: "S2.6", rule: "free-name", source: "const c = () => Function(\"return 1\");" },
+  { statement: "S2.6", rule: "prelude-value", source: "const x = () => [1, 2];\nconst y = (x: number[]) => {\n  const mk = mut;\n  const a = mk(x);\n  a.push(3);\n  return a.length;\n};" },
+  { statement: "S2.6", rule: "prelude-value", source: "const a = () => {\n  const fz: <T>(m: Mut<T>) => T = freeze;\n  const m = mut([1]);\n  const r = fz(m);\n  m.push(2);\n  return r.length;\n};" },
+  { statement: "S2.6", rule: "prelude-value", source: "const x = () => [1, 2];\nconst c = () => true;\nconst y = (x: number[], c: boolean) => {\n  const a = (c ? mut : mut)(x);\n  return a.length;\n};" },
+  { statement: "S2.6", rule: "prelude-value", source: "const s = () => {\n  const st = state;\n  return st(0);\n};" },
+  { statement: "S2.6", rule: "prelude-shadow", source: "const a = () => {\n  const freeze = (m: Mut<number[]>): number => m.length;\n  const m = mut([1]);\n  return freeze(m);\n};" },
+  { statement: "S2.6", rule: "prelude-shadow", source: "const x = () => [1, 2];\nconst y = (x: number[]) => {\n  const g = (mut: (v: number[]) => number[]) => mut(x).length;\n  return 1;\n};" },
   { statement: "S2.7", rule: "banned-member", source: "const a = () => Math.random();" },
   { statement: "S2.7", rule: "banned-member", source: "const b = () => {\n  const M = Math;\n  return M.random();\n};" },
   { statement: "S2.7", rule: "banned-member", source: "const b = () => Math[\"random\"]();" },
@@ -327,6 +333,9 @@ spec_rejects_2 = [
   { statement: "S2.7", rule: "banned-member", source: "const b = () => ({ \"__proto__\": null, n: 1 } as const);" },
   { statement: "S2.7", rule: "banned-member", source: "const b = () => {\n  const __proto__ = { a: 1 };\n  return { __proto__ };\n};" },
   { statement: "S2.7", rule: "type", source: "const b = () => {\n  const r = (m: { random: () => number }) => m.random();\n  return r(Math);\n};" },
+  { statement: "S2.7", rule: "banned-member", source: "const r = (): { [k: string]: number } => ({ a: 1 });\nconst a = (r: { [k: string]: number }) => (r[\"constructor\"] ?? 0) + 1;" },
+  { statement: "S2.7", rule: "banned-member", source: "const r = (): { [k: string]: number } => ({ a: 1 });\nconst a = (r: { [k: string]: number }) => \"toString\" in r;" },
+  { statement: "S2.7", rule: "banned-member", source: "const r = (): Record<string, number> => ({ a: 1 });\nconst a = (r: Record<string, number>) => {\n  const { valueOf } = r;\n  return valueOf;\n};" },
   { statement: "S2.8", rule: "cell-by-name", source: "const a = () => 1;\nconst b = () => a() + 1;" },
   { statement: "S2.8", rule: "cell-by-name", source: "function f(): number {\n  return f();\n}" },
   { statement: "S2.9", rule: "type", source: "const g = () => {\n  const n: number = \"s\";\n  return n;\n};" },
@@ -335,11 +344,17 @@ spec_rejects_2 = [
   { statement: "S2.9", rule: "arity", source: "const g = () => {\n  const h = (x: number) => x;\n  return h(1, 2);\n};" },
   { statement: "S2.9", rule: "excess-property", source: "const g = () => {\n  const p: { readonly x: number } = { x: 1, y: 2 };\n  return p.x;\n};" },
   { statement: "S2.9", rule: "possibly-undefined", source: "const g = () => {\n  const xs: readonly number[] = [1];\n  const x = xs.find((v) => v > 0);\n  return x + 1;\n};" },
+  { statement: "S2.9", rule: "type", source: "const p = () => ({ b: 1, a: \"x\" });\nconst k = (p: { b: number; a: string }) => {\n  const q: { b: number } = p;\n  const r: { b: number; a?: number } = q;\n  return (r.a ?? 0) + 1;\n};" },
+  { statement: "S2.9", rule: "type", source: "const p = () => ({ b: 1, a: \"x\" });\nconst k = (p: { b: number; a: string }) => {\n  const q: object = p;\n  const r: { a?: number } = q;\n  return r;\n};" },
+  { statement: "S2.9", rule: "type", source: "const p = () => ({ b: 1, a: \"x\" });\nconst k = (p: { b: number; a: string }) => {\n  const q: { b: number } = p;\n  let x = { b: 1 };\n  x = q;\n  const r: { b: number; a?: number } = x;\n  return r;\n};" },
+  { statement: "S2.9", rule: "type", source: "type Box<T> = { v: T };\nconst x = (): Box<{ a: { a: { a: { a: { a: { a: { a: string } } } } } } }> => ({ v: { a: { a: { a: { a: { a: { a: { a: \"s\" } } } } } } } });\nconst k = (x: Box<{ a: { a: { a: { a: { a: { a: { a: string } } } } } } }>) => {\n  const y: Box<{ a: { a: { a: { a: { a: { a: { a: number } } } } } } }> = x;\n  return y;\n};" },
+  { statement: "S2.9", rule: "type", source: "type Box<T> = { v: T };\nconst x = (): Box<Box<{ a: { a: { a: { a: { a: { a: { a: string } } } } } } }>> => ({ v: { v: { a: { a: { a: { a: { a: { a: { a: \"s\" } } } } } } } } });\nconst k = (x: Box<Box<{ a: { a: { a: { a: { a: { a: { a: string } } } } } } }>>) => {\n  const y: Box<Box<{ a: { a: { a: { a: { a: { a: { a: number } } } } } } }>> = x;\n  return y;\n};" },
   { statement: "S2.10", rule: "reserved-name", source: "const a = () => {\n  const viewof = 1;\n  return viewof;\n};" },
   { statement: "S2.10", rule: "reserved-name", source: "const mutable = () => 1;" },
   { statement: "S2.10", rule: "reserved-name", source: "const a = () => {\n  const $0 = 1;\n  return $0;\n};" },
   { statement: "S2.10", rule: "reserved-name", source: "const a = () => ({ $1: 2 });" },
   { statement: "S2.9", rule: "const-assign", source: "const g = () => {\n  const x = 1;\n  x = 2;\n  return x;\n};" },
+  { statement: "S2.9", rule: "type", source: "const k = () => (p: { b: number; a: string }) => {\n  const q: { b: number } = p;\n  const r: { [k: string]: number } = q;\n  return (r[\"a\"] ?? 0) + 1;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = async (): number => 5;\n  return 1;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): number {\n    yield 1;\n  };\n  return 1;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): Generator<number> {\n    yield \"x\";\n  };\n  return g;\n};" },
@@ -388,7 +403,11 @@ test_spec_S2_6 = {
   return `${spec_rejectsFor("S2.6")}; ${names.length} intrinsics and the prelude functions accepted`;
 }
 // %%
-test_spec_S2_7 = spec_rejectsFor("S2.7")
+test_spec_S2_7 = {
+  // an index record read at a literal key that names no member of Object.prototype is accepted
+  spec_is(spec_okCells("const a = (r: { [k: string]: number }) => (r[\"a\"] ?? 0) + (r.b ?? 0) + (\"c\" in r ? 1 : 0);\nconst r = (): { [k: string]: number } => ({ a: 1 });"), "a:ok,r:ok");
+  return `${spec_rejectsFor("S2.7")}; an index record read at a literal key that is not a member of Object.prototype is accepted`;
+}
 // %%
 test_spec_S2_8 = {
   spec_is(spec_okCells("const a = () => 1;\nconst b = () => { const a = 2; return a; };"), "a:ok,b:ok");
@@ -415,7 +434,9 @@ test_spec_S2_9 = {
   spec_is(spec_okCells("const g = () => [1, 2].map((v) => v + 1);\nconst h = () => {\n  const xs: readonly number[] = [1];\n  const x = xs.find((v) => v > 0);\n  return x === undefined ? 0 : x + 1;\n};"), "g:ok,h:ok");
   // an optional parameter takes undefined, so one optional parameter can be passed on to another
   spec_is(spec_okCells("const k = () => {\n  function f(n?: number): number {\n    return n === undefined ? 0 : n;\n  }\n  const g = (n?: number): number => f(n);\n  return g(1);\n};"), "k:ok");
-  return `${spec_rejectsFor("S2.9")}; a callback parameter typed by map, a value narrowed by a check for undefined, and an optional parameter passed on to an optional parameter are accepted`;
+  // an object literal, and a rest without the member, may leave an optional member out; a record type that may have it may not
+  spec_is(spec_okCells("const k = (p: { b: number; a: string }) => {\n  const l = { b: 1 };\n  const { a, ...rest } = p;\n  const r: { b: number; a?: number }[] = [{ b: 2 }, l, rest];\n  return [a, r.length];\n};\nconst p = () => ({ b: 1, a: \"x\" });"), "k:ok,p:ok");
+  return `${spec_rejectsFor("S2.9")}; a callback parameter typed by map, a value narrowed by a check for undefined, and an optional parameter passed on to an optional parameter are accepted; an object literal and a rest leave out an optional member`;
 }
 // %%
 md`## 3. Immutable by default
@@ -490,6 +511,9 @@ spec_rejects_3 = [
   { statement: "S3.2", rule: "mutating-method", source: "const s = () => new Set<number>();\nconst w = (s) => s.add(1);" },
   { statement: "S3.2", rule: "mutating-method", source: "const s = () => new Set<number>();\nconst w = (s) => s.delete(1);" },
   { statement: "S3.2", rule: "mutating-method", source: "const s = () => new Set<number>();\nconst w = (s) => s.clear();" },
+  { statement: "S3.2", rule: "regexp-state", source: "const x = () => /a/g;\nconst y = (x: RegExp) => [x.test(\"aa\"), x.test(\"aa\")];" },
+  { statement: "S3.2", rule: "regexp-state", source: "const a = () => {\n  const re = /a/y;\n  return [re.test(\"aa\"), re.test(\"aa\")];\n};" },
+  { statement: "S3.2", rule: "regexp-state", source: "const a = (s: string) => {\n  const re = new RegExp(\"a\", s);\n  return re.exec(\"aa\");\n};\nconst s = () => \"g\";" },
   { statement: "S3.3", rule: "object-assign", source: "const o = () => ({ a: 1 });\nconst w = (o) => Object.assign(o, { b: 2 });" },
   { statement: "S3.4", rule: "no-delete", source: "const o = (): { a?: number } => ({});\nconst d = (o) => {\n  delete o.a;\n  return o;\n};" },
   { statement: "S3.5", rule: "no-var", source: "const a = () => {\n  var x = 1;\n  return x;\n};" },
@@ -520,6 +544,9 @@ spec_rejects_3 = [
   { statement: "S3.12", rule: "strict-eq-object", source: "const xs = () => [1];\nconst ys = () => [1];\nconst same = (xs, ys) => xs === ys;" },
   { statement: "S3.12", rule: "strict-eq-object", source: "const xs = () => [1];\nconst ys = () => [1];\nconst loose = (xs, ys) => xs == ys || xs != ys || xs !== ys;" },
   { statement: "S3.12", rule: "strict-eq-object", source: "const xs = (): number[] | string => [1];\nconst ys = (): number[] | string => \"a\";\nconst same = (xs, ys) => xs === ys;" },
+  { statement: "S3.12", rule: "strict-eq-object", source: "const xs = () => [[1]];\nconst has = (xs) => xs.includes([1]);" },
+  { statement: "S3.12", rule: "strict-eq-object", source: "const ps = () => [{ x: 1 }];\nconst at = (ps) => ps.indexOf({ x: 1 });" },
+  { statement: "S3.12", rule: "strict-eq-object", source: "const ps = (): ({ x: number } | null)[] => [{ x: 1 }, null];\nconst last = (ps) => ps.lastIndexOf(ps[0] ?? null);" },
   { statement: "S3.13", rule: "strict-eq-object", source: "const f = () => (a: readonly number[], b: readonly number[]): number => {\n  switch (a) {\n    case b: return 1;\n  }\n  return 0;\n};" },
   { statement: "S3.13", rule: "type", source: "const f = () => (a: number): number => {\n  switch (a) {\n    case \"x\": return 1;\n  }\n  return 0;\n};" },
   { statement: "S3.13", rule: "type", source: "const f = () => (a: \"x\" | \"y\"): number => {\n  switch (a) {\n    case \"x\": return 1;\n    case \"x\": return 2;\n  }\n  return 0;\n};" },
@@ -556,7 +583,9 @@ test_spec_S3_1 = spec_rejectsFor("S3.1")
 test_spec_S3_2 = {
   spec_is(spec_okCells("const xs = () => [3, 1, 2];\nconst w = (xs) => [xs.toSorted(), xs.toReversed(), xs.slice(), xs.map((x) => x + 1), xs.filter((x) => x > 1), [...xs, 4]];"), "xs:ok,w:ok");
   spec_is(await spec_module.value("s3_sorted"), [1, 2, 3]);
-  return `${spec_rejectsFor("S3.2")}; the copying methods are accepted; s3_sorted is [1,2,3]`;
+  // a g or y regexp where it is made, and a held regexp without them, are accepted
+  spec_is(spec_okCells("const r = () => {\n  const re = /^a/;\n  const f = (s: string) => [/a/g.test(s), s.replace(/a/g, \"b\"), s.split(/,/g).length, re.test(s), re.exec(s) === null];\n  return f(\"a,b\");\n};"), "r:ok");
+  return `${spec_rejectsFor("S3.2")}; the copying methods are accepted; s3_sorted is [1,2,3]; a g regexp is accepted where it is made`;
 }
 // %%
 test_spec_S3_3 = {
@@ -595,7 +624,9 @@ test_spec_S3_11 = {
 test_spec_S3_12 = {
   spec_is(spec_okCells("const xs = (): number[] | null => [1];\nconst a = (xs) => xs === null || xs?.length === 1 || \"a\" === \"a\";"), "xs:ok,a:ok");
   spec_is(await spec_module.value("s3_same"), [true, false]);
-  return `${spec_rejectsFor("S3.12")}; equals compares structurally (s3_same is [true,false])`;
+  // includes and indexOf with a primitive element or argument are accepted
+  spec_is(spec_okCells("const a = () => {\n  const xs = [1, 2];\n  const ys: (number[] | null)[] = [null];\n  return [xs.includes(2), xs.indexOf(1), ys.includes(null), \"ab\".includes(\"a\")];\n};"), "a:ok");
+  return `${spec_rejectsFor("S3.12")}; equals compares structurally (s3_same is [true,false]); includes and indexOf with a primitive are accepted`;
 }
 // %%
 test_spec_S3_13 = {
@@ -687,8 +718,16 @@ spec_rejects_4 = [
   { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const out = mut([0, 1]);\n  return out;\n};" },
   { statement: "S4.4", rule: "mut-escape", source: "const b = () => {\n  const out = mut([0]);\n  return { out };\n};" },
   { statement: "S4.4", rule: "mut-escape", source: "const g = function* () {\n  const out = mut([0, 1]);\n  yield out;\n};" },
+  { statement: "S4.4", rule: "mut-source", source: "const a = () => {\n  const g = (mk: () => Mut<number[]>) => {\n    const xs = mk();\n    xs.push(1);\n    return xs.length;\n  };\n  return 1;\n};" },
+  { statement: "S4.4", rule: "mut-source", source: "const a = () => {\n  const g = (p: { readonly y: Mut<number[]> }) => {\n    const { y } = p;\n    y.push(1);\n    return 1;\n  };\n  return 1;\n};" },
+  { statement: "S4.4", rule: "mut-escape", source: "const a = () => {\n  const g = (p: { readonly y: Mut<number[]> }) => {\n    const ys = p.y;\n    ys.push(1);\n    return 1;\n  };\n  return 1;\n};" },
+  { statement: "S4.4", rule: "mut-cell", source: "const a = () => null;\nconst b = (a: Mut<number[]> | null) => (a === null ? 0 : a.length);" },
+  { statement: "S4.4", rule: "mut-cell", source: "const a = () => [];\nconst b = (a: readonly Mut<number[]>[]) => a.length;" },
+  { statement: "S4.4", rule: "mut-cell", source: "type Box<T> = { readonly v: T | null };\nconst a = () => ({ v: null });\nconst b = (a: Box<Mut<number[]>>) => 1;" },
   { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = mut([0]);\n  const f = () => out.length;\n  return f;\n};" },
   { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = mut([0]);\n  [1].forEach(() => {\n    out[0] = 1;\n  });\n  return freeze(out);\n};" },
+  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const keep = (k: () => number) => k;\n  const m = mut([1]);\n  const f = function g(): number {\n    m.push(2);\n    return 0;\n  };\n  const h = keep(f);\n  return [freeze(m), h];\n};" },
+  { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const m = mut([1]);\n  const fs = [function g(): number {\n    m.push(2);\n    return 0;\n  }];\n  return [freeze(m), fs.length];\n};" },
   { statement: "S4.6", rule: "mut-after-freeze", source: "const a = () => {\n  const out = mut([0]);\n  const r = freeze(out);\n  out[0] = 2;\n  return r;\n};" },
   { statement: "S4.6", rule: "mut-after-freeze", source: "const a = () => {\n  const out = mut([0]);\n  const f = () => {\n    out[0] = 1;\n  };\n  const r = freeze(out);\n  f();\n  return r;\n};" },
   { statement: "S4.7", rule: "mut-deep-write", source: "const a = () => {\n  const m = mut({ a: { b: 1 }, xs: [1] });\n  m.a.b = 2;\n  m.xs.push(2);\n  return freeze(m);\n};" },
@@ -1810,6 +1849,11 @@ spec_rejects_9 = [
   { statement: "S9.6", rule: "type", source: "interface E {}\nconst f = () => (g: (s: string) => number): string => {\n  const x: E = g;\n  const y: E | ((n: number) => string) = x;\n  switch (typeof y) {\n    case \"function\":\n      return y(3);\n    default:\n      return \"\";\n  }\n};" },
   { statement: "S9.6", rule: "type", source: "const f = () => (g: (s: string) => number): string => {\n  const b: ({} | ((n: number) => string))[] = [g];\n  return typeof b[0] === \"function\" ? b[0](3) : \"\";\n};" },
   { statement: "S9.6", rule: "type", source: "const f = () => (): string => {\n  const x: {} = \"b\";\n  const y: {} | \"a\" = x;\n  if (typeof y !== \"string\") return \"\";\n  const z: \"a\" = y;\n  return z;\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (g: (s: string) => number) => {\n  const x: { readonly length: number } = g;\n  return x.length;\n};" },
+  { statement: "S9.6", rule: "type", source: "interface G { (s: string): number; readonly a: number }\nconst f = () => (g: G) => {\n  const x: { readonly a: number } = g;\n  return x.a;\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (g: (s: string) => number) => {\n  const x: { [k: string]: unknown } = g;\n  return x;\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (g: (s: string) => number) => {\n  const x: {} = g;\n  const y: {} | number = x;\n  if (typeof y !== \"function\") return 0;\n  return y(1);\n};" },
+  { statement: "S9.6", rule: "type", source: "const f = () => (g: (s: string) => number) => {\n  const x: {} = g;\n  const r: { [k: string]: unknown } = x;\n  const y: { [k: string]: unknown } | ((n: number) => string) = r;\n  return typeof y === \"function\" ? y(3) : \"\";\n};" },
   { statement: "S9.7", rule: "no-member", source: "const f = () => async (u: unknown): Promise<unknown> => {\n  if (typeof u !== \"object\" || u === null || !(\"then\" in u)) return 0;\n  const r = await u;\n  return r.then;\n};" },
   { statement: "S9.7", rule: "no-member", source: "type T = { readonly then: (f: (v: number) => void) => void; readonly n: number };\nconst f = () => async (t: T): Promise<number> => (await t).n;" }
 ]
@@ -1858,7 +1902,8 @@ test_spec_S9_6 = {
   spec_is(spec_okCells("const thenable = () => (r: unknown): boolean => (typeof r === \"object\" || typeof r === \"function\") && r !== null && \"then\" in r && typeof r.then === \"function\";"), "thenable:ok");
   spec_is(spec_okCells("interface G { (x: number): number }\nconst f = () => (g: G | number): number => (typeof g === \"function\" ? g(1) : g);\nconst h = () => (g: ((x: number) => number) | string): number => (typeof g === \"function\" ? g(2) : g.length);\nconst s = () => (u: unknown): string => (typeof u === \"symbol\" ? \"symbol\" : typeof u);"), "f:ok,h:ok,s:ok");
   spec_is(spec_okCells("type N = { readonly n: number };\nconst s = () => (v: N | string): number => (typeof v === \"string\" ? v.length : v.n);\nconst a = () => (v: N | number[]): number => (Array.isArray(v) ? v.length : v.n);\nconst z = () => (v: N | null): number => (v ? v.n : 0);\nconst e = () => (g: (s: string) => number): number => {\n  const x: {} = g;\n  const y: {} | ((n: number) => string) = x;\n  return typeof y !== \"function\" ? 0 : 1;\n};"), "s:ok,a:ok,z:ok,e:ok");
-  return `${spec_rejectsFor("S9.6")}; the runtime's thenable test is accepted; a member with a call signature is called after typeof "function"; a record that takes no string, array or falsy value is narrowed away by typeof "string", Array.isArray and a truth test`;
+  spec_is(spec_okCells("type N = { readonly n: number };\nconst t = () => (v: N | (() => N)): N => (typeof v === \"function\" ? v() : v);\nconst o = () => (v: N | string): number => (typeof v === \"object\" ? v.n : v.length);\nconst k = () => (v: {} | number): number => (typeof v === \"string\" ? v.length : 0);\nconst i = () => (g: (s: string) => number): number | undefined => {\n  const x: { a?: number } = g;\n  const y: { a?: number } | number = x;\n  return typeof y === \"function\" ? y.a : 0;\n};"), "t:ok,o:ok,k:ok,i:ok");
+  return `${spec_rejectsFor("S9.6")}; the runtime's thenable test is accepted; a member with a call signature is called after typeof "function"; a record that takes no string, array or falsy value is narrowed away by typeof "string", Array.isArray and a truth test; a record with a required member holds no function, so a value-or-thunk and typeof "object" narrow; a kept record is the kind tested, with its members under typeof "function"`;
 }
 // %%
 test_spec_S9_7 = {

@@ -55,7 +55,7 @@ export const ixPreludeCall = (ixTypeArgs, ixErr, ixMutCall, ixUnwrapCall, ixStat
   if (name === "read") return ixReadCall(K, T, V, W, C, env, e, a);
   return ixUnwrapCall(K, T, V, W, C, env, e, name, a);
 };
-export const ixMutCall = (ixGap, named, isNamed, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, a: AstNode | null, expected: Ty | null, explicit: Ty[] | null): Ty => {
+export const ixMutCall = (ixGap, named, isNamed, inexact, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, a: AstNode | null, expected: Ty | null, explicit: Ty[] | null): Ty => {
   const inner = expected !== null && expected.k === "named" && isNamed(expected, "Mut") ? expected.args[0] ?? null : null;
   if (explicit !== null) {
     const x = explicit[0];
@@ -64,7 +64,7 @@ export const ixMutCall = (ixGap, named, isNamed, ERR) => (K: IxK, T: IxTypes, V:
     return named("Mut", x);
   }
   const t = a !== null ? K.check(K, T, V, W, C, env, a, inner, false, false) : ERR;
-  return named("Mut", inner ?? t);
+  return named("Mut", inner ?? inexact(t));
 };
 // freeze, borrow and snapshot: the type inside the Mut (or Borrowed)
 export const ixUnwrapCall = (ixErr, named, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, name: string, a: AstNode | null): Ty => {
@@ -75,10 +75,10 @@ export const ixUnwrapCall = (ixErr, named, show, ERR) => (K: IxK, T: IxTypes, V:
   const x = t.args[0] ?? ERR;
   return name === "borrow" ? named("Borrowed", x) : x;
 };
-export const ixStateCall = (named, isNamed, widen, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, a: AstNode | null, expected: Ty | null, explicit: Ty[] | null): Ty => {
+export const ixStateCall = (named, isNamed, widen, inexact, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, a: AstNode | null, expected: Ty | null, explicit: Ty[] | null): Ty => {
   const inner = explicit?.[0] ?? (expected !== null && expected.k === "named" && isNamed(expected, "StateCell") ? expected.args[0] ?? null : null);
   const t = a !== null ? K.check(K, T, V, W, C, env, a, inner, false, false) : ERR;
-  return named("StateCell", inner ?? widen(t));
+  return named("StateCell", inner ?? inexact(widen(t)));
 };
 export const ixActionCall = (ixErr, ixUnsup, ixPromiseIn, ixActionFn, ixFact, named, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, a: AstNode | null, expected: Ty | null): Ty => {
   if (a === null || (a.type !== "ArrowFunctionExpression" && a.type !== "FunctionExpression")) { ixUnsup(K, C, e, "action(...) of a non-literal function"); return ERR; }

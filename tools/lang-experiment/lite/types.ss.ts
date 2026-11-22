@@ -8,7 +8,7 @@ export type Flags = { mutates?: boolean; fresh?: boolean; view?: boolean; retain
 export type Param = { n: string; t: Ty; opt: boolean };
 export type Fn = { k: "fn"; tps: string[]; ps: Param[]; rest?: Ty | undefined; ret: Ty; flags?: Flags; decl?: Fn };
 export type Prop = { t: Ty; opt: boolean; flags?: Flags };
-export type Rec = { k: "rec"; props: Map<string, Prop>; index?: Ty | undefined; calls?: Fn[] | undefined; ctors?: Fn[] | undefined };
+export type Rec = { k: "rec"; props: Map<string, Prop>; index?: Ty | undefined; calls?: Fn[] | undefined; ctors?: Fn[] | undefined; exact?: boolean; without?: string[] };
 export type Named = { k: "named"; n: string; args: Ty[] };
 export type Ty =
   | { k: "num" } | { k: "str" } | { k: "bigint" } | { k: "null" } | { k: "undef" } | { k: "void" }
@@ -55,7 +55,7 @@ export const propT = (union, UNDEF) => (p: Prop): Ty => (p.opt ? union([p.t, UND
 export const tpNames = () => (tp: { readonly params?: readonly { readonly name: string | { readonly name: string } }[] } | null | undefined): string[] =>
   (tp?.params ?? []).map((x) => (typeof x.name === "string" ? x.name : x.name.name));
 
-export const union = (show, ERR, UNKNOWN, NEVER) => (ts: Ty[]): Ty => {
+export const union = (show, typeKey, ERR, UNKNOWN, NEVER) => (ts: Ty[]): Ty => {
   function flatten(t: Ty): Ty[] {
     return t.k === "union" ? t.ts.flatMap(flatten) : t.k === "never" ? [] : [t];
   }
@@ -68,13 +68,52 @@ export const union = (show, ERR, UNKNOWN, NEVER) => (ts: Ty[]): Ty => {
   for (const t of flat) {
     if (t.k === "lit" && ((typeof t.v === "string" && has("str")) || (typeof t.v === "number" && has("num")))) continue;
     const key = show(t);
-    if (seen.has(key)) continue;
+    if (seen.has(key) && out.some((o) => show(o) === key && typeKey(o) === typeKey(t))) continue;
     seen.add(key);
     out.push(t);
   }
   const kept = freeze(out);
   const first = kept[0];
   return first === undefined ? NEVER : kept.length === 1 ? first : { k: "union", ts: kept };
+};
+// a type in full, with what show() leaves out past depth 6, a closed record and a member's flags (not a parameter's
+// name or a signature's flags, which show() and the dedupe before it leave out too): two types with one key are one type. A memo or a dedupe keyed by show() takes two types for one when they differ only deep (holes step 8)
+export const typeKey = () => {
+  const fl = (f: Flags | undefined): string => (f === undefined ? "" : `#${f.mutates ? "m" : ""}${f.fresh ? "f" : ""}${f.view ? "v" : ""}${f.retains ? "r" : ""}${f.banned ? "b" : ""}${f.intrinsic ? "i" : ""}`);
+  function key(t: Ty, d: number): string {
+    if (d > 200) return "…";
+    const k = (x: Ty) => key(x, d + 1);
+    switch (t.k) {
+      case "lit": return `L${typeof t.v}:${JSON.stringify(t.v)}`;
+      case "arr": return `A(${k(t.el)})`;
+      case "tup": return `T(${t.els.map(k).join(",")})`;
+      case "union": return `U(${t.ts.map(k).join("|")})`;
+      case "named": return `N${t.n}<${t.args.map(k).join(",")}>`;
+      case "tv": return `V${t.n}`;
+      case "fn": return `F<${t.tps.join(",")}>(${t.ps.map((p) => `${p.opt ? "?" : ""}${k(p.t)}`).join(",")}${t.rest ? `...${k(t.rest)}` : ""})=>${k(t.ret)}`;
+      case "rec": {
+        const ps = [...t.props].map(([n, p]) => `${JSON.stringify(n)}${p.opt ? "?" : ""}${fl(p.flags)}:${k(p.t)}`);
+        return `R${t.exact === true ? "!" : ""}{${ps.join(";")}|${t.index ? k(t.index) : ""}|${(t.calls ?? []).map(k).join(",")}|${(t.ctors ?? []).map(k).join(",")}|${(t.without ?? []).join(",")}}`;
+      }
+      default: return t.k;
+    }
+  }
+  return (t: Ty): string => key(t, 0);
+};
+// t with no closed record type: what a Mut or a state cell holds may be replaced or written by other values
+export const inexact = () => {
+  function go(t: Ty, d: number): Ty {
+    if (d > 12) return t;
+    switch (t.k) {
+      case "rec": return { k: "rec", props: new Map([...t.props].map(([k, p]): [string, Prop] => [k, { ...p, t: go(p.t, d + 1) }])), index: t.index, calls: t.calls, ctors: t.ctors };
+      case "arr": return { k: "arr", el: go(t.el, d + 1) };
+      case "tup": return { k: "tup", els: t.els.map((x) => go(x, d + 1)) };
+      case "union": return { k: "union", ts: t.ts.map((x) => go(x, d + 1)) };
+      case "named": return { k: "named", n: t.n, args: t.args.map((x) => go(x, d + 1)) };
+      default: return t;
+    }
+  }
+  return (t: Ty): Ty => go(t, 0);
 };
 export const members = () => (t: Ty): Ty[] => (t.k === "union" ? t.ts : t.k === "never" ? [] : [t]);
 

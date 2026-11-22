@@ -178,14 +178,21 @@ export const someFnSub = () => (fnSub: FnSub) => (fs: Fn[], c: Fn, seen: Mut<Set
   return false;
 };
 
+// a value with a call or construct signature reaches a record type with none only where a function of no known
+// signature would: no index and every member optional (holes step 9; a call-less record held any function before)
+export const callableToPlain = () => (callable: boolean, t: Rec): boolean => callable && !t.calls?.length && !t.ctors?.length && (t.index !== undefined || [...t.props.values()].some((p) => !p.opt));
 // a record type t: each of its properties, its index signature and its call signatures
-export const recSubWith = (propT, someFnSub) => (R: RegOps, sub: Sub, fnSub: FnSub, callSigs: (t: Ty) => Fn[]) => (s: Ty, t: Rec, seen: Mut<Set<string>>): boolean => {
-  if (["null", "undef", "void"].includes(s.k)) return false;
-  if (s.k === "named" && ["State", "StateCell", "Action"].includes(s.n)) return false; // nominal
+export const recSubWith = (propT, someFnSub, callableToPlain, UNKNOWN) => (R: RegOps, sub: Sub, fnSub: FnSub, callSigs: (t: Ty) => Fn[]) => (s: Ty, t: Rec, seen: Mut<Set<string>>): boolean => {
+  if (["null", "undef", "void"].includes(s.k) || (s.k === "named" && ["State", "StateCell", "Action"].includes(s.n))) return false; // State...: nominal
   const se = R.expand(s), some = someFnSub(fnSub);
+  if (callableToPlain(callSigs(se).length > 0 || (se.k === "rec" && !!se.ctors?.length), t)) return false;
+  // a record type may stand for a value with more members (width); only a literal's type and the intrinsics are closed
+  const closed = !["object", "unknown", "tv"].includes(se.k) && (se.k !== "rec" || se.exact === true || [...se.props.values()].some((p) => p.flags?.intrinsic));
+  // a closed record type holds only closed values: what is assigned to it must be one, with no other member
+  if (t.exact === true && !(se.k === "rec" && se.exact === true && [...se.props.keys()].every((k) => t.props.has(k)))) return false;
   for (const [k, p] of t.props) {
     const sp = R.member(se, k);
-    if (!sp) { if (p.opt) continue; return false; }
+    if (!sp) { if (p.opt && (closed || (se.k === "rec" && se.without?.includes(k) === true) || sub(UNKNOWN, propT(p), seen))) continue; return false; }
     if (sp.flags?.banned || (!p.opt && sp.opt)) return false;
     // a spread, rest or clone copies only own enumerable properties; a member from a prototype is not one
     if (!p.opt && !p.flags?.intrinsic && (se.k !== "rec" || sp.flags?.intrinsic)) return false;
@@ -193,7 +200,7 @@ export const recSubWith = (propT, someFnSub) => (R: RegOps, sub: Sub, fnSub: FnS
   }
   const index = t.index;
   if (index) {
-    if (se.k !== "rec") return false;
+    if (se.k !== "rec" || !(closed || se.index !== undefined)) return false; // an open record may hold other members (holes step 10)
     for (const [, p] of se.props) if (p.flags?.banned || !sub(propT(p), index, seen)) return false;
     const sIndex = se.index;
     if (sIndex && !sub(sIndex, index, seen)) return false;
@@ -253,13 +260,13 @@ export const memberOfWith = (unwrapsWith) => (R: RegOps) => (s: Ty, t: Ty): bool
 };
 
 // Subtyping. Values are immutable: covariant everywhere except function parameters, Mut and State
-export const subWith = (show, isNamed, primSub, seqSubWith, fnSubWith, someFnSub, recSubWith, namedSubWith) => (R: RegOps, iterElem: (t: Ty) => Ty | undefined, callSigs: (t: Ty) => Fn[]) => {
+export const subWith = (typeKey, isNamed, primSub, seqSubWith, fnSubWith, someFnSub, recSubWith, namedSubWith) => (R: RegOps, iterElem: (t: Ty) => Ty | undefined, callSigs: (t: Ty) => Fn[]) => {
   const seqSub = seqSubWith(R, sub), fnSub = fnSubWith(R, sub), some = someFnSub(fnSub);
   const recSub = recSubWith(R, sub, fnSub, callSigs), namedSub = namedSubWith(R, sub, iterElem);
   function sub(s: Ty, t: Ty, seen: Mut<Set<string>>): boolean {
     if (R.same(s, t) || t.k === "unknown" || s.k === "err" || t.k === "err" || s.k === "never") return true;
     if ((s.k === "named" && R.isAlias(s.n)) || (t.k === "named" && R.isAlias(t.n))) {
-      const key = show(s) + " <: " + show(t);
+      const key = typeKey(s) + " <: " + typeKey(t);
       if (seen.has(key)) return true;
       seen.add(key);
       return sub(R.expand(s), R.expand(t), seen);

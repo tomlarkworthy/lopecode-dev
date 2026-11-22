@@ -1,10 +1,10 @@
-// Registry.expand, ifaceRec, quiet and sub. The memos are keyed as registry.ts keys them (an alias by its show(),
-// which is shortened past depth 6); an interface's record is in its memo before it is filled, and a read of it
+// Registry.expand, ifaceRec, quiet and sub. The memos are keyed as registry.ts keys them (an alias by its typeKey(),
+// in full; by show(), shortened past depth 6, until holes step 8); an interface's record is in its memo before it is filled, and a read of it
 // while it is filled (a cycle of extends) sees it as filled so far, later reads as filled.
 
-export const rgExpand = (show, subst, ERR, rgUnsup, rgGap, rgUndoPush, rgIsBuilding, rgAliasAdd) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, t: Ty): Ty => {
+export const rgExpand = (typeKey, subst, ERR, rgUnsup, rgGap, rgUndoPush, rgIsBuilding, rgAliasAdd) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, t: Ty): Ty => {
   if (t.k !== "named" || !G.isAlias(t.n)) return t;
-  const key = show(t);
+  const key = typeKey(t);
   const hit = E.get(key);
   if (hit !== undefined) return hit;
   const d = Y.get(t.n), at = d?.nodes[0];
@@ -99,11 +99,11 @@ export const rgQuiet = () => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMem
   if (ok) for (const k of seen) K.add(k);
   return ok;
 };
-export const rgQuietGo = (show, rgTrial, rgQuietAll) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, K: RgQuietKeys, S: Mut<Set<string>>, x: Ty): boolean => {
+export const rgQuietGo = (typeKey, rgTrial, rgQuietAll) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, K: RgQuietKeys, S: Mut<Set<string>>, x: Ty): boolean => {
   switch (x.k) {
     case "named": {
       if (!G.isAlias(x.n)) return rgQuietAll(G, Y, E, I, Q, K, S, x.args);
-      const key = show(x);
+      const key = typeKey(x);
       if (K.has(key) || S.has(key)) return true;
       if (S.size > 1000) return false;
       S.add(key);

@@ -4,6 +4,13 @@
 // Changed since: mayHoldFn, for core.ts's fed rule (S11.9 fix, 2026-11-21 review4), as the cells' ixMayHoldFn.
 // Changed since: admits, in falsy, narrowTypeof and narrowArray, and a type parameter in narrowArray (typeof-hole fix,
 // 2026-11-21), as the cells' ixAdmits, ixFalsy, ixNarrowTypeof and ixNarrowArray.
+// Changed since: an object literal with no spread has a closed record type (exact), a rest records the names taken out
+// (without), and mut and state hold no closed type (inexact) (holes step 5, 2026-11-22), as ixObjLit, ixBindRest,
+// ixMutCall and ixStateCall. A destructured key naming an Object.prototype member of an index record (holes step 6), as
+// ixBindObject. A kept record in narrowTypeof is the kinds it may hold (holes step 9), as ixNarrowTypeof.
+const KIND_9 = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["undefined", UNDEF],
+  ["symbol", SYMBOL], ["function", { k: "fn", tps: [], ps: [], rest: NEVER, ret: UNKNOWN }]]);
+const PROTO_NAMES_6 = new Set(["__proto__", "constructor", "toString", "toLocaleString", "valueOf", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"]);
 // Bidirectional type checker for one cell: expressions, statements, flow narrowing, generic calls.
 // Records facts (expression types, identifier bindings, resolved call signatures, member flags) that
 // own.ts reads for the ownership rules.
@@ -12,7 +19,7 @@ import type { Registry } from "./ts/registry.ts";
 import {
   type Ty, type Fn, type Rec, type Param, type Subst, type Flags,
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, BOOL, SYMBOL,
-  union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames, cloneProblemWith,
+  union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames, cloneProblemWith, inexact,
 } from "../../types.ts";
 import { ALLOWED_GLOBALS, PRELUDE_FNS } from "../../intrinsics.ts";
 
@@ -59,7 +66,8 @@ const actionFn = (args: Ty): Fn => ({ k: "fn", tps: [], ps: (args.k === "tup" ? 
 // what typeof x === tag says of an unknown x: "function" proves an object, not a signature, so it is not callable
 const TYPEOF = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["undefined", UNDEF],
   ["symbol", SYMBOL], ["object", union([OBJECT, NULL])], ["function", OBJECT]]);
-const ADMITS = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["symbol", SYMBOL], ["undefined", UNDEF], ["array", arr(NEVER)]]);
+const ADMITS = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["symbol", SYMBOL], ["undefined", UNDEF], ["array", arr(NEVER)],
+  ["function", { k: "fn", tps: [], ps: [], rest: NEVER, ret: UNKNOWN }]]); // function: holes step 9
 // the runtime handles of these have none of the members their declarations give them to be nominal
 const memberless = (m: Ty) => isNamed(m, "Action") || isNamed(m, "StateCell") || isNamed(m, "Events") || isNamed(m, "Listener");
 const MUTATING_OPS = new Set(["=", "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", ">>>=", "&=", "|=", "^=", "&&=", "||=", "??="]);
@@ -148,7 +156,7 @@ export class Checker {
   admits(m: Ty, kinds: string[]): boolean {
     const x = m.k === "named" ? this.reg.expand(m) : m;
     if (x.k !== "rec" || !!x.calls?.length || !!x.ctors?.length) return false;
-    return kinds.some((k) => { const w = ADMITS.get(k); return k === "function" || (w !== undefined && this.reg.sub(w, m)); });
+    return kinds.some((k) => { const w = ADMITS.get(k); return w !== undefined && this.reg.sub(w, m); });
   }
   nonNullish = (t: Ty) => this.filter(t, (m) => m.k !== "null" && m.k !== "undef" && m.k !== "void");
   typeTag(m: Ty): string | null {
@@ -174,7 +182,8 @@ export class Checker {
   narrowTypeof(t: Ty, tag: string, pos: boolean): Ty {
     return this.filter(t, (m) => {
       const mt = this.typeTag(m);
-      if (mt === "object" && pos !== (tag === "object") && this.admits(m, pos ? [tag] : ["function", "string", "number", "boolean", "bigint", "symbol", "undefined"])) return true;
+      const ks = (pos ? [tag] : ["function", "string", "number", "boolean", "bigint", "symbol", "undefined"]).filter((k) => this.admits(m, [k]));
+      if (mt === "object" && pos !== (tag === "object") && ks.length) return union(ks.flatMap((k) => { const w = KIND_9.get(k), x = this.reg.expand(m); return w === undefined ? [] : k === "function" && w.k === "fn" && x.k === "rec" ? [{ k: "rec", props: x.props, calls: [w] } as Ty] : [w]; }));
       if (mt !== null) return (mt === tag) === pos;
       if (!pos) return true;
       if (m.k === "unknown" || m.k === "tv") return TYPEOF.get(tag) ?? false;
@@ -351,7 +360,7 @@ export class Checker {
           if (prop.type === "RestElement") {
             const base = this.reg.expand(t);
             if (base.k !== "rec") { this.unsupported(prop, "object rest of a non-record"); this.bindPattern(prop.argument, ERR, env, kind, extra); continue; }
-            const r: Rec = { k: "rec", props: new Map([...base.props].filter(([k]) => !used.includes(k))) };
+            const r: Rec = { k: "rec", props: new Map([...base.props].filter(([k]) => !used.includes(k))), without: [...used] };
             this.notOwn(r, prop);
             this.bindPattern(prop.argument, r, env, kind, extra);
             continue;
@@ -360,6 +369,7 @@ export class Checker {
           const k = prop.key.type === "Identifier" ? prop.key.name : String(prop.key.value);
           used.push(k);
           if (this.um(t).some((m) => m.k !== "err" && this.reg.member(m, k)?.flags?.banned)) this.err(prop, "banned-member", `${k} is banned`);
+          else if (PROTO_NAMES_6.has(k) && this.um(t).some((m) => { const x = this.reg.expand(unwrap(m)); return x.k === "rec" && !!x.index; })) this.err(prop, "banned-member", `${k} on a record with an index signature is Object.prototype's ${k}, not an entry`);
           if (this.um(t).some((m) => isNamed(unwrap(m), "State") && this.reg.member(m, k))) {
             this.inActionOnly(env, prop, "state-write", `State.${k} outside action(...)`);
             this.stateProps.add(prop);
@@ -1039,8 +1049,10 @@ export class Checker {
     const r: Rec = { k: "rec", props: new Map() };
     const recs = expected ? this.um(expected).map((m) => this.reg.expand(isNamed(m, "Mut") ? m.args[0] : m)).filter((m) => m.k === "rec") as Rec[] : [];
     const exact = expected !== undefined && recs.length > 0 && recs.length === this.um(expected).filter((m) => m.k !== "null" && m.k !== "undef").length && recs.every((x) => !x.index);
+    let closed = true;
     for (const p of e.properties) {
       if (p.type === "SpreadElement") {
+        closed = false;
         const st = this.infer(p.argument, env);
         const ms = this.um(unwrap(st)).filter((m) => m.k !== "undef" && m.k !== "null");
         if (ms.length !== 1) { if (st.k !== "err") this.unsupported(p, `object spread of ${show(st)}`); continue; }
@@ -1061,7 +1073,7 @@ export class Checker {
       if (!expected) t = widen(t);
       r.props.set(k, { t, opt: false });
     }
-    return r;
+    return closed ? { ...r, exact: true } : r;
   }
   arrLit(e: Node, env: Env, expected: Ty | undefined): Ty {
     const ms = expected ? this.um(expected).map((m) => this.reg.expand(m)) : [];
@@ -1432,7 +1444,7 @@ export class Checker {
         const a = one();
         const inner = expected && isNamed(expected, "Mut") ? expected.args[0] : undefined;
         const t = explicit ? this.check(a, env, explicit[0]) : a ? this.check(a, env, inner) : ERR;
-        return named("Mut", explicit ? explicit[0] : inner ?? t);
+        return named("Mut", explicit ? explicit[0] : inner ?? inexact(t));
       }
       case "freeze": case "borrow": case "snapshot": {
         const a = one();
@@ -1446,7 +1458,7 @@ export class Checker {
         const a = one();
         const inner = explicit?.[0] ?? (expected && isNamed(expected, "StateCell") ? expected.args[0] : undefined);
         const t = a ? this.check(a, env, inner) : ERR;
-        return named("StateCell", inner ?? widen(t));
+        return named("StateCell", inner ?? inexact(widen(t)));
       }
       case "action": {
         const a = one();

@@ -44,7 +44,13 @@ expect("control: N | number[], Array.isArray", `${N}const k = () => (v: N | numb
 expect("control: N | null, truth test", `${N}const k = () => (v: N | null): number => (v ? v.n : 0);`, "ok");
 expect("control: {} | fn, else of === function", `const k = (f: (s: string) => number) => { const x: {} = f; const y: {} | ${FN} = x; return typeof y !== "function" ? 0 : 1; };`, "ok");
 expect("control: G | number, === function", `interface G { (x: number): number }\nconst k = () => (g: G | number): number => (typeof g === "function" ? g(1) : g);`, "ok");
-expect("cost: N | (() => N), === function (value or thunk)", `${N}const k = () => (v: N | (() => N)): number => (typeof v === "function" ? v() : v).n;`, "rejected");
+// holes step 9: a callable reaches a call-less record only if it has no required member and no index, so N holds no
+// function and the value-or-thunk idiom checks again (it was the cost row, rejected)
+expect("control: N | (() => N), === function (value or thunk)", `${N}const k = () => (v: N | (() => N)): number => (typeof v === "function" ? v() : v).n;`, "ok");
+expect("control: N | string, === object", `${N}const k = () => (v: N | string): number => (typeof v === "object" ? v.n : v.length);`, "ok");
+expect("G to { readonly a: number } (a callable to a record with a required member)", `interface G { (s: string): number; readonly a: number }\nconst k = () => (g: G) => { const x: { readonly a: number } = g; return x; };`, "rejected");
+expect("a function to { length: number }", `const k = () => (f: (s: string) => number) => { const x: { readonly length: number } = f; return x; };`, "rejected");
+expect("a function to { [k: string]: unknown }", `const k = () => (f: (s: string) => number) => { const x: { [k: string]: unknown } = f; return x; };`, "rejected");
 
 console.log(`${pass} pass, ${fail} fail`);
 process.exit(fail ? 1 : 0);

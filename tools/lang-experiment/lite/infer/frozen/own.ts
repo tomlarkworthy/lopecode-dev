@@ -1,6 +1,11 @@
 // FROZEN FIXTURE (2026-11-21, switch3): the TypeScript checker as it was before checkSources ran the cells. Read by
 // lite/infer/diff.ts, lite/infer/complete-diff.ts, lite/syntax.test.ts and selfhost/checker-shape, checker-survey;
 // nothing shipped imports it, and the build does not reach it.
+// Changed since: [prelude-value], [prelude-shadow], [mut-source] and a Mut member's position (holes step 1, 2026-11-22),
+// as the cells' owPreludeName and owMutSource in owPlacement. mutIn (holes step 2), as owMutIn.
+// Changed since: helper asks every name of a function (holes step 3, 2026-11-22), as owHelper. [regexp-state] (holes
+// step 4) in the placement loop, as owRegexpPlace. A literal key naming an Object.prototype member on an index record
+// (holes step 6), as owProtoRead. includes, indexOf, lastIndexOf on objects (holes step 7), as owIdentityOp.
 // Ownership rules over one checked cell, using the facts infer.ts recorded:
 //  - mut(e): e fresh, bound to a local const; Mut/Borrowed/view expressions only in whitelisted positions
 //  - captures: a nested function may use a Mut (or assign a let) only if it is a non-escaping local helper,
@@ -10,14 +15,16 @@
 //  - state(...) and borrow(...) placement
 import { kids, isFn, type Node } from "./ts/parse.ts";
 import type { Checker, Binding } from "./infer.ts";
-import { isNamed, unwrap, show, ERR, type Ty } from "../../types.ts";
+import { isNamed, unwrap, show, ERR, isPrimitive, type Ty } from "../../types.ts";
 import type { Registry } from "./ts/registry.ts";
+import { PRELUDE_FNS } from "../../intrinsics.ts";
 
 type Rule = { node: Node; rule: string; msg: string };
 export { kids };
 
 // What in t may be a one-shot iterator: Iterable (values(), keys() and entries() give one, and an array typed Iterable
 // may be one), Generator, or a type parameter. A function type holds none: a call makes its result anew.
+const PROTO_NAMES = new Set(["__proto__", "constructor", "toString", "toLocaleString", "valueOf", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"]);
 // none: per alias without type arguments, the least depth its walk found nothing from; from as deep it finds nothing again
 export function iterIn(t: Ty, reg: Registry, depth = 0, none = new Map<string, number>()): string | null {
   if (depth > 12) return null;
@@ -35,6 +42,28 @@ export function iterIn(t: Ty, reg: Registry, depth = 0, none = new Map<string, n
       const plain = !t.args?.length, at = none.get(t.n);
       if (plain && at !== undefined && at <= depth) return null;
       const w = iterIn(reg.expand(t), reg, depth + 1, none);
+      if (!w && plain) none.set(t.n, depth);
+      return w;
+    }
+    default: return null;
+  }
+}
+
+// holes step 2 (2026-11-22): where a type holds Mut<…>, not inside a function type (as the cells' owMutIn)
+export function mutIn(t: Ty, reg: Registry, depth = 0, none = new Map<string, number>()): string | null {
+  if (depth > 12) return null;
+  const inner = (ts: Ty[]) => { for (const x of ts) { const w = mutIn(x, reg, depth + 1, none); if (w) return w; } return null; };
+  switch (t.k) {
+    case "arr": return inner([t.el]);
+    case "tup": return inner(t.els);
+    case "union": return inner(t.ts);
+    case "rec": return inner([...[...t.props.values()].map((p) => p.t), ...(t.index ? [t.index] : [])]);
+    case "named": {
+      if (t.n === "Mut") return show(t);
+      if (!reg.isAlias(t.n)) return inner(t.args ?? []);
+      const plain = !t.args?.length, at = none.get(t.n);
+      if (plain && at !== undefined && at <= depth) return null;
+      const w = mutIn(reg.expand(t), reg, depth + 1, none);
       if (!w && plain) none.set(t.n, depth);
       return w;
     }
@@ -73,10 +102,17 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
   const bindingOfFn = new Map<Node, Binding>();
   for (const b of new Set([...F.bindingOf.values()])) if (b.fnNode) bindingOfFn.set(b.fnNode, b);
   const isCallee = (r: Node) => { const p = parent.get(r); return !!p && p.type === "CallExpression" && p.callee === r; };
+  // holes step 3 (2026-11-22): every name of f only called; a function expression also bound to a const (as owHelper)
   const helper = (f: Node): Binding | undefined => {
     const b = bindingOfFn.get(f);
     if (!b || (b.kind !== "const" && b.kind !== "fn")) return undefined;
-    return (refs.get(b) ?? []).every(isCallee) ? b : undefined;
+    let bound = f.type !== "FunctionExpression";
+    for (const x of new Set(F.bindingOf.values())) {
+      if (x.fnNode !== f) continue;
+      if (x.kind === "const") bound = true;
+      if (!(refs.get(x) ?? []).every(isCallee)) return undefined;
+    }
+    return bound ? b : undefined;
   };
   const prelude = (c: Node): string | undefined => (c.type === "CallExpression" ? F.calls.get(c)?.prelude : undefined);
 
@@ -223,6 +259,51 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
         || ((p.type === "Property" || p.type === "ObjectProperty") && p.key === n && !p.computed && !p.shorthand) || /^TS/.test(p.type);
       if (!name && n.name === "on") err(n, "listener-placement", "on is only called, as the whole value of a cell; it is not a value");
       else if (!name) err(n, "read-outside-action", "read is only called, in an action body; it is not a value");
+    }
+    // holes step 1 (2026-11-22): a prelude function only called; no binding named mut, freeze, borrow, snapshot; a Mut only from mut(...)
+    const nb = n.type === "Identifier" ? F.bindingOf.get(n) : undefined;
+    const np = parent.get(n), shKey = !!np && (np.type === "Property" || np.type === "ObjectProperty") && np.key === n && np.value !== n;
+    if (n.type === "Identifier" && (nb ? nb.kind === "prelude" : PRELUDE_FNS.has(n.name) && !shKey) && n.name !== "on" && n.name !== "read") {
+      const p = parent.get(n);
+      const name = !p || (p.type === "CallExpression" && p.callee === n) || (p.type === "MemberExpression" && p.property === n && !p.computed)
+        || ((p.type === "Property" || p.type === "ObjectProperty") && p.key === n && !p.computed && !p.shorthand) || /^TS/.test(p.type);
+      if (!name) err(n, "prelude-value", `${n.name} is only called, as ${n.name}(...); as a value its calls would skip the rules of ${n.name}`);
+    }
+    if (nb && nb.kind !== "prelude" && nb.kind !== "global" && nb.node === n && ["mut", "freeze", "borrow", "snapshot"].includes(n.name)) err(n, "prelude-shadow", `${n.name} names a prelude function; a binding of that name would hide it from the rules of ${n.name}(...)`);
+    const st = n.type === "CallExpression" || n.type === "NewExpression" || n.type === "MemberExpression" || n.type === "AwaitExpression" ? typeOf(n) : undefined;
+    if (st && isNamed(st, "Mut") && n.type === "MemberExpression") { const pos = position(n, "mut"); if (pos) err(n, "mut-escape", `a Mut member ${pos}`); }
+    if (st && isNamed(st, "Mut") && n.type !== "MemberExpression" && prelude(n) !== "mut") err(n, "mut-source", "a Mut comes only from mut(...): this expression gives a Mut<…> that another name may also hold");
+    if (nb && nb.node === n && (nb.kind === "const" || nb.kind === "let") && isMutB(nb) && !nb.mutOwned) {
+      const p = parent.get(n);
+      if (!(p?.type === "VariableDeclarator" && p.id === n && p.init)) err(n, "mut-source", `${nb.name} is typed Mut<…> but not bound to mut(...): another name may also hold it`);
+    }
+    // holes step 4 (2026-11-22): a regexp that may have the g or y flag only where it is made (as owRegexpPlace)
+    {
+      const gy = (f: string) => f.includes("g") || f.includes("y");
+      const fl = n.type === "NewExpression" && n.callee.type === "Identifier" && n.callee.name === "RegExp" ? n.arguments[1] : undefined;
+      const lit = n.type === "Literal" && !!n.regex && gy(n.regex.flags);
+      const made = n.type === "NewExpression" && !!fl && !(fl.type === "Literal" && typeof fl.value === "string" && !gy(fl.value));
+      const p = parent.get(n);
+      if ((lit || made) && !(p?.type === "MemberExpression" && p.object === n) && !(p?.type === "CallExpression" && p.callee !== n && nonRetainingArg(p, p.arguments.indexOf(n))))
+        err(n, "regexp-state", "a regexp that may have the g or y flag keeps lastIndex, which test, exec, match and replace write: use it only where it is made, as the receiver of a call or a String method's argument");
+    }
+    // holes step 6 (2026-11-22): a literal key naming an Object.prototype member on a record with an index signature (as owProtoRead)
+    {
+      const at = n.type === "MemberExpression" ? { o: n.object, k: n.property, c: n.computed } : n.type === "BinaryExpression" && n.operator === "in" ? { o: n.right, k: n.left, c: true } : undefined;
+      const ot = at && typeOf(at.o);
+      if (at && ot && ch.um(ot).some((m) => { const x = ch.reg.expand(unwrap(m)); return x.k === "rec" && !!x.index; })) {
+        const kt = typeOf(at.k);
+        const names = !at.c && at.k.type === "Identifier" ? [at.k.name] : at.k.type === "Literal" ? (typeof at.k.value === "string" ? [at.k.value] : [])
+          : kt && ch.um(kt).every((m) => m.k === "num" || m.k === "lit") ? ch.um(kt).flatMap((m) => (m.k === "lit" && typeof m.v === "string" ? [m.v] : [])) : null;
+        const k = names?.find((x) => PROTO_NAMES.has(x));
+        if (k !== undefined) err(n, "banned-member", `${k} on a record with an index signature is Object.prototype's ${k}, not an entry`);
+      }
+    }
+    // holes step 7 (2026-11-22): includes, indexOf, lastIndexOf on an element and an argument that may both be objects (as owIdentityOp)
+    if (n.type === "CallExpression" && n.callee.type === "MemberExpression" && !n.callee.computed && n.callee.property.type === "Identifier" && ["includes", "indexOf", "lastIndexOf"].includes(n.callee.property.name) && n.arguments[0]) {
+      const sig = F.calls.get(n)?.sig, at = typeOf(n.arguments[0]), el = sig?.ps[0]?.t;
+      const obj = (t: Ty | undefined) => !!t && !ch.um(t).every((m) => isPrimitive(m));
+      if (sig?.flags?.intrinsic && obj(el) && obj(at)) err(n, "strict-eq-object", `${n.callee.property.name} on an element and an argument that may both be objects compares by identity, as === does; use equals(a, b) with some or findIndex`);
     }
     if (n.type !== "CallExpression") continue;
     const pre = prelude(n);

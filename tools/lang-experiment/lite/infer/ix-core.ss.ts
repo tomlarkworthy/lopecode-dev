@@ -155,12 +155,14 @@ export const ixFilter = (ixUm, union) => (R: IxRegCore, t: Ty, keep: (m: Ty) => 
 };
 // m, a record with no call signature, may hold a value of one of kinds although its typeof tag is "object": any such
 // record a function (a callable type with m's members is assignable to it), {} and { a?: number } a string or an array
-export const ixAdmits = (STR, NUM, BOOL, BIGINT, SYMBOL, UNDEF, NEVER, arr) => {
-  const W = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["symbol", SYMBOL], ["undefined", UNDEF], ["array", arr(NEVER)]]);
+// a record admits a function only as a function of no known signature would reach it (holes step 9; any before)
+export const ixAdmits = (STR, NUM, BOOL, BIGINT, SYMBOL, UNDEF, NEVER, UNKNOWN, arr) => {
+  const W = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["symbol", SYMBOL], ["undefined", UNDEF], ["array", arr(NEVER)],
+    ["function", { k: "fn", tps: [], ps: [], rest: NEVER, ret: UNKNOWN }]]);
   return (R: IxRegCore, m: Ty, kinds: string[]): boolean => {
     const x = m.k === "named" ? R.expand(m) : m;
     if (x.k !== "rec" || !!x.calls?.length || !!x.ctors?.length) return false;
-    return kinds.some((k) => { const w = W.get(k); return k === "function" || (w !== undefined && R.sub(w, m)); });
+    return kinds.some((k) => { const w = W.get(k); return w !== undefined && R.sub(w, m); });
   };
 };
 export const ixTruthy = (ixFilter) => (R: IxRegCore, t: Ty): Ty => ixFilter(R, t, (m) => {
@@ -201,10 +203,22 @@ export const ixTypeTag = (unwrap) => {
 };
 export const IX_TYPEOF = (STR, NUM, BOOL, BIGINT, UNDEF, SYMBOL, OBJECT, NULL, union) => new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["undefined", UNDEF],
   ["symbol", SYMBOL], ["object", union([OBJECT, NULL])], ["function", OBJECT]]);
-// a record whose tag is "object" stays, as itself, on a side where a value of it may be of another kind
-export const ixNarrowTypeof = (ixFilter, ixTypeTag, ixAdmits, IX_TYPEOF) => (R: IxReg, t: Ty, tag: string, pos: boolean): Ty => ixFilter(R, t, (m) => {
+// the type of a typeof kind a record may hold: a function of no known signature for "function" (holes step 9)
+export const IX_KIND = (STR, NUM, BOOL, BIGINT, UNDEF, SYMBOL, NEVER, UNKNOWN) => new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["undefined", UNDEF],
+  ["symbol", SYMBOL], ["function", { k: "fn", tps: [], ps: [], rest: NEVER, ret: UNKNOWN }]]);
+// a record and the kind k: for "function", the record with the kind's call signature; another kind has no member a
+// record that admits it can require
+export const ixKindOf = (IX_KIND) => (R: IxReg, m: Ty, k: string): Ty[] => {
+  const w = IX_KIND.get(k), x = R.expand(m);
+  if (w === undefined) return [];
+  return k === "function" && w.k === "fn" && x.k === "rec" ? [{ k: "rec", props: x.props, calls: [w] }] : [w];
+};
+// a record whose tag is "object", on a side where a value of it may be of another kind, is the kinds it may hold
+// there, a function kind intersected with the record (holes step 9: the owner's ruling; it stayed as itself before)
+export const ixNarrowTypeof = (ixFilter, ixTypeTag, ixAdmits, IX_TYPEOF, ixKindOf, union) => (R: IxReg, t: Ty, tag: string, pos: boolean): Ty => ixFilter(R, t, (m) => {
   const mt = ixTypeTag(R, m);
-  if (mt === "object" && pos !== (tag === "object") && ixAdmits(R, m, pos ? [tag] : ["function", "string", "number", "boolean", "bigint", "symbol", "undefined"])) return true;
+  const ks = (pos ? [tag] : ["function", "string", "number", "boolean", "bigint", "symbol", "undefined"]).filter((k) => ixAdmits(R, m, [k]));
+  if (mt === "object" && pos !== (tag === "object") && ks.length) return union(ks.flatMap((k) => ixKindOf(R, m, k)));
   if (mt !== null) return (mt === tag) === pos;
   if (!pos) return true;
   if (m.k === "unknown" || m.k === "tv") return IX_TYPEOF.get(tag) ?? false;

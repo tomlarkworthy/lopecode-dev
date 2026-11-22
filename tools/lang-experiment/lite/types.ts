@@ -16,7 +16,7 @@ export type { RegOps, DeclOps, DeclInfo, Sub, FnSub, Unify } from "./subtype.ss.
 const L = link({ ...cells, ...subtypeCells, ...walkCells, ...messageCells, ...islandCells }, prelude);
 export const {
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, SYMBOL, TRUE, FALSE, BOOL,
-  lit, arr, named, rec, WRAPPERS, unwrap, propT, union, members, show, subst, hasTv, instantiate, widen, isPrimitive,
+  lit, arr, named, rec, WRAPPERS, unwrap, propT, union, members, show, subst, hasTv, instantiate, widen, isPrimitive, typeKey, inexact,
 } = L;
 export const { builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, memberOfWith, unifyWith, hasAnyTv } = L;
 export const { uncloneableWith, cloneProblemWith, admitsUndefinedWith, holdsWith, hasErrWith } = L;

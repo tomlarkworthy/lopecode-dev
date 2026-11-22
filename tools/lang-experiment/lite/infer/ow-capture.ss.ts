@@ -41,6 +41,35 @@ export const owIter = (owIterIn) => (R: IxRegCore, t: Ty): string | null => {
   const none: Mut<Map<string, number>> = mut(new Map());
   return owIterIn(R, t, 0, none);
 };
+// where a type holds Mut<…>: through arrays, tuples, unions, records, type arguments and aliases; not inside a function
+// type (its parameters are its callers'; a result can hold only a Mut the caller gave it, as a registry's memo)
+export const owMutIn = (show, owTyKids) => {
+  function mutIn(R: IxRegCore, t: Ty, depth: number, none: Mut<Map<string, number>>): string | null {
+    if (depth > 12) return null;
+    switch (t.k) {
+      case "arr": case "tup": case "union": case "rec": return inner(R, owTyKids(t), depth, none);
+      case "named": {
+        if (t.n === "Mut") return show(t);
+        if (!R.isAlias(t.n)) return inner(R, t.args, depth, none);
+        const plain = !t.args.length, at = none.get(t.n);
+        if (plain && at !== undefined && at <= depth) return null;
+        const w = mutIn(R, R.expand(t), depth + 1, none);
+        if (!w && plain) none.set(t.n, depth);
+        return w;
+      }
+      default: return null;
+    }
+  }
+  function inner(R: IxRegCore, ts: Ty[], depth: number, none: Mut<Map<string, number>>): string | null {
+    for (const x of ts) { const w = mutIn(R, x, depth + 1, none); if (w) return w; }
+    return null;
+  }
+  return mutIn;
+};
+export const owMut = (owMutIn) => (R: IxRegCore, t: Ty): string | null => {
+  const none: Mut<Map<string, number>> = mut(new Map());
+  return owMutIn(R, t, 0, none);
+};
 // r is written: an assignment's or update's target, or a destructuring target
 export const owAssignedRef = () => (O: OwCtx, r: AstNode): boolean => {
   const p = O.T.parent.get(r.nid);

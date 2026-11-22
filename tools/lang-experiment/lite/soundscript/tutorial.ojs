@@ -425,6 +425,7 @@ Values are read-only. Rejected:
 | \`Object.assign(existing, …)\`; \`Object.assign({}, …)\` is reported unsupported, use a spread | \`[object-assign]\` |
 | \`Object.freeze(x)\` where \`x\` is not an object or array literal | \`[object-freeze]\` |
 | \`===\`, \`!==\`, \`==\`, \`!=\` on two non-primitive values; use \`equals(a, b)\` | \`[strict-eq-object]\` |
+| a regexp with the \`g\` or \`y\` flag kept, returned or passed to anything but a String method: it keeps \`lastIndex\` | \`[regexp-state]\` |
 | reassigning a \`const\` | \`[const-assign]\` |
 | \`var\`, \`class\`, \`this\`, \`arguments\` | \`[no-var]\`, \`[no-class]\`, \`[no-this]\`, \`[no-arguments]\` |
 | \`new\` on anything but an allowed intrinsic | \`[new-non-intrinsic]\` |
@@ -447,6 +448,9 @@ md`### Local mutation: \`mut\`, \`freeze\`
 | writes only at the first level (\`out[i] = …\`, not \`out.a.b = …\`) | \`[mut-deep-write]\` |
 | a view (\`subarray\`) of a \`Mut\` buffer may only be passed straight to a non-retaining intrinsic, not bound to a name | \`[mut-view]\` |
 | only a \`Mut\` made by this function may be frozen, not a \`Mut\` parameter | \`[mut-freeze-param]\` |
+| a \`Mut\` comes only from \`mut(...)\` or a \`Mut\` parameter, not from another call's result, a member or a destructured name | \`[mut-source]\` |
+| a cell's value and a cell's inputs never hold a \`Mut\` | \`[mut-cell]\` |
+| \`mut\`, \`freeze\` and the other prelude functions are only called, not used as values; \`mut\`, \`freeze\`, \`borrow\` and \`snapshot\` are not declared again as locals | \`[prelude-value]\`, \`[prelude-shadow]\` |
 
 A helper may take a \`Mut<T>\` parameter and write it. A local helper that is only called may also capture one (S4.5 in the specification). The reference checker rejects every capture.`
 // %%

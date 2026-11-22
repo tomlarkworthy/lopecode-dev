@@ -1,12 +1,14 @@
 // FROZEN FIXTURE (2026-11-22, switch4): lite/registry.ts as it was before the rg, cp and tc cells were switched on.
 // Only the differentials and tests compare against it; nothing shipped imports it, and the build does not reach it.
+// Changed since: the expansion and quiet keys add exactSig (holes step 5, 2026-11-22), and are typeKey(t), in full,
+// not show(t) (holes step 8, 2026-11-22), as rgExpand and rgQuietGo.
 // Declarations (intrinsic, prelude, foreign, user), type-syntax conversion and expansion. Member lookup,
 // subtyping and inference unification are SoundScript cells (subtype.ss.ts), bound here to this Registry.
 import { parse, type Node, type Parsed } from "./parse.ts";
 import {
   type Ty, type Fn, type Rec, type Prop, type Param, type Flags, type Subst,
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, SYMBOL, BOOL,
-  union, show, subst, named, arr, WRAPPERS, isNamed, tpNames,
+  union, show, subst, named, arr, WRAPPERS, isNamed, tpNames, typeKey,
   type RegOps, type DeclOps, builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, memberOfWith, unifyWith,
 } from "../../../types.ts";
 import { INTRINSIC_DECLS, PRELUDE_DECLS, TYPED_ARRAYS, JSX_DECLS } from "../../../intrinsics.ts";
@@ -232,7 +234,7 @@ export class Registry {
   // ---- expansion ----
   expand(t: Ty): Ty {
     if (t.k !== "named" || !this.isAlias(t.n)) return t;
-    const key = show(t);
+    const key = typeKey(t);
     const hit = this.expandMemo.get(key);
     if (hit) return hit;
     const d = this.types.get(t.n)!;
@@ -302,7 +304,7 @@ export class Registry {
       switch (x.k) {
         case "named": {
           if (!this.isAlias(x.n)) return x.args.every(go);
-          const key = show(x);
+          const key = typeKey(x);
           if (this.quietKeys.has(key) || seen.has(key)) return true;
           if (seen.size > 1000) return false;
           seen.add(key);

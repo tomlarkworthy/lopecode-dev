@@ -2,13 +2,15 @@
 // lite/infer/diff.ts, lite/infer/complete-diff.ts, lite/syntax.test.ts and selfhost/checker-shape, checker-survey;
 // nothing shipped imports it, and the build does not reach it.
 // Changed since: fnKept asks ch.mayHoldFn (S11.9 fix, 2026-11-21 review4), as md-value's mdKept asks ixMayHoldFn.
+// Changed since: [mut-cell] on each injected type and, as a backstop, on the value (holes step 2, 2026-11-22), as
+// md-inject's mdInject and md-value's mdValueRules with md-cell's mdKeep.
 // The lite checker without file access: module shape, syntax bans, injection, a per-cell type
 // check (infer.ts) and the ownership rules (own.ts). Each cell ends ok, rejected, unsupported (a
 // construct lite does not model) or blocked (a dependency has no usable type).
 import { parse, type Node, type Parsed } from "./ts/parse.ts";
 import { Registry } from "./ts/registry.ts";
 import { Checker } from "./infer.ts";
-import { ownership, actionEscapes, iterIn } from "./own.ts";
+import { ownership, actionEscapes, iterIn, mutIn } from "./own.ts";
 import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, reservedName, RESERVED_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith } from "../../types.ts";
 import { CAPABILITIES } from "../../intrinsics.ts";
 import { island, specOf, compileCalls } from "./ts/island.ts";
@@ -264,6 +266,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
         injected.push(want);
       } else injected.push(vt);
     }
+    // holes step 2: an input is never a Mut
+    injected.forEach((t, i) => { const mt = mutIn(t, reg); if (mt && c.fn.params[i]?.type === "Identifier") diag(c.fn.params[i], "mut-cell", `input ${c.fn.params[i].name}: ${mt}; an input is never a Mut: the cell it comes from and every other cell that takes it share it`); });
     injected.forEach((t, i) => { if (t.k !== "err" && hasErr(t)) { r.blockedBy.push(`${c.fn.params[i].name} (type not understood)`); } });
     // action-capture: which parameters are state-dependent values, and why
     const tainted = new Map<string, string>();
@@ -306,6 +310,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     for (const u of ch.unsup) r.unsupported.push({ rule: "unsupported", line: P.line(u.node.start), msg: u.msg });
     r.errors = dedupe(r.errors);
     r.unsupported = dedupe(r.unsupported);
+    const errsBefore = r.errors.length;
     // value type
     let ret = fnT.k === "fn" ? fnT.ret : ERR;
     if (c.fn.async && isNamed(ret, "Promise")) ret = ret.args[0];
@@ -323,6 +328,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     }
     const it = iterIn(ret, reg);
     if (it) r.errors.push({ rule: "iterator-cell", line: P.line(c.fn.start), msg: `value ${show(ret)} may hold an iterator (${it}); every cell that takes it would use up the same one, so what each computes would depend on the order the cells run in. Make it an array` });
+    // holes step 2: a cell's value is never a Mut, a backstop reported only when the cell has no other error
+    const mt = mutIn(ret, reg);
+    if (mt && errsBefore === 0) r.errors.push({ rule: "mut-cell", line: P.line(c.fn.start), msg: `value ${show(ret)} holds ${mt}; a cell's value is never a Mut: every cell that takes it could write it` });
     // a Listener is a whole cell value: not in a list, record, state cell, union with another type, or function
     if (isNamed(ret, "Listener") || (ret.k === "union" && ret.ts.every((t) => isNamed(t, "Listener")))) listenerCells.add(c.name);
     else if (holds(ret, ["Listener"])) r.errors.push({ rule: "listener-placement", line: P.line(c.fn.start), msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` });

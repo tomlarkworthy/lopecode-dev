@@ -21,7 +21,8 @@ export const mdRecord = (mdDedupe) => (X: MdCtx, L: MdL, rec: MdCellRec, ch: IxD
 });
 // what the cell gives the cells after it: its value type when usable, its inner types, and whether it is a listener
 export const mdKeep = (hasErrWith, show) => (X: MdCtx, M: MdMod, d: MdDef, rec: MdCellRec, v: MdValueOut): MdCellRec => {
-  const errors = [...rec.errors, ...v.errors];
+  // [mut-cell] on a value is a backstop: a Mut reaches a value only past a rule that already reported in the cell
+  const errors = [...rec.errors, ...v.errors.filter((e) => e.rule !== "mut-cell" || rec.errors.length === 0)];
   const usable = !hasErrWith(X.R.ops)(v.value) && (rec.unsupported.length === 0 || d.fn.returnType !== null);
   M.value = new Map([...M.value, [d.name, usable ? v.value : null]]);
   const ev = v.events;
