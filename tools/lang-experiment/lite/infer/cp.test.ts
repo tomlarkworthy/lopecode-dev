@@ -42,7 +42,8 @@ test("every cp cell is accepted by the checker", () => {
 test("every name declared in a cp file starts with cp and is declared in no other .ss.ts file", () => {
   const ROOT = join(LITE, "..");
   const where = new Map<string, string[]>();
-  for (const f of new Glob("{lite,selfhost}/**/*.ss.ts").scanSync(ROOT)) {
+  for (const f of new Glob("lite/**/*.ss.ts").scanSync(ROOT)) {
+    // selfhost/** is skipped: prototype agents keep copies of the lite tree there (opaque-handles, effect-runner)
     if (f.includes("node_modules") || f.includes(".scratch")) continue;
     // a copy of the lite tree under selfhost/ (selfhost/opaque-handles/*/lite/, 2026-11-22) holds copies of these files
     if (f.startsWith("selfhost/") && f.includes("/lite/")) continue;
@@ -57,10 +58,10 @@ test("every name declared in a cp file starts with cp and is declared in no othe
   expect(mine.filter(([, fs]) => fs.length > 1)).toEqual([]);
 }, 120000);
 
+// until 2026-11-22 a --preload (cp-redirect.ts) sent complete.test.ts's import to cp-index.ts; complete.ts is the cells now
 test("complete.test.ts's cases pass on the cells", () => {
-  const p = Bun.spawnSync(["bun", "--preload", join(import.meta.dir, "cp-redirect.ts"), join(LITE, "complete.test.ts")], { cwd: LITE });
+  const p = Bun.spawnSync(["bun", join(LITE, "complete.test.ts")], { cwd: LITE });
   const out = p.stdout.toString() + p.stderr.toString();
-  expect(out).toContain("cp-redirect: ./complete.ts -> infer/cp-index.ts");
   expect(out).toContain("58 pass, 0 fail");
   expect(p.exitCode).toBe(0);
 }, 300000);

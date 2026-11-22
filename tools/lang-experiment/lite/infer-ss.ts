@@ -1,6 +1,6 @@
-// The cells of lite/infer (ix: the type check of one cell, ow: ownership and captures, md: the module check), linked
-// for bun (link.ts) with the cells of other sections they take; in the notebook they are compiled cells of
-// @tomlarkworthy/soundscript-checker.
+// The cells of lite/infer (ix: the type check of one cell, ow: ownership and captures, md: the module check, rg: the
+// registry of declarations over the typed tree, cp: completion and cell facts), linked for bun (link.ts) with the cells of other sections they take;
+// in the notebook they are compiled cells of @tomlarkworthy/soundscript-checker.
 import "./infer/ix-types.ss.ts";
 import * as core from "./infer/ix-core.ss.ts";
 import * as hides from "./infer/ix-hides.ss.ts";
@@ -40,6 +40,19 @@ import * as mdRun from "./infer/md-run.ss.ts";
 import * as mdCell from "./infer/md-cell.ss.ts";
 import * as mdFacts from "./infer/md-facts.ss.ts";
 import * as mdEntry from "./infer/md-entry.ss.ts";
+import "./infer/rg-types.ss.ts";
+import * as rgCtl from "./infer/rg-ctl.ss.ts";
+import * as rgConvertCells from "./infer/rg-convert.ss.ts";
+import * as rgSigCells from "./infer/rg-sig.ss.ts";
+import * as rgExpandCells from "./infer/rg-expand.ss.ts";
+import * as rgLoadCells from "./infer/rg-load.ss.ts";
+import * as rgView from "./infer/rg-view.ss.ts";
+import "./infer/cp-types.ss.ts";
+import * as cpText from "./infer/cp-text.ss.ts";
+import * as cpMembers from "./infer/cp-members.ss.ts";
+import * as cpModes from "./infer/cp-modes.ss.ts";
+import * as cpParam from "./infer/cp-param.ss.ts";
+import * as cpFacts from "./infer/cp-facts.ss.ts";
 import { linkShape } from "./shape-ss.ts";
 import { link } from "./link.ts";
 import * as T from "./types.ts";
@@ -47,13 +60,19 @@ import { linkAcorn } from "./acorn/index.ts";
 import * as prelude from "../prelude.runtime.ts";
 export type * from "./infer/ix-types.ss.ts";
 export type * from "./infer/md-types.ss.ts";
+export type * from "./infer/rg-types.ss.ts";
+export type * from "./infer/cp-types.ss.ts";
 
 // file names in lite/infer
 export const IX_FILES = ["types", "core", "hides", "expr", "ops", "cond", "fn", "stmt", "flow", "lit", "call", "apply", "prelude", "jsx", "entry", "facts"].map((x) => `ix-${x}.ss.ts`);
 export const OW_FILES = ["types", "tree", "capture", "pos", "place", "flow", "stmt", "loop", "action", "taint", "opaque", "entry"].map((x) => `ow-${x}.ss.ts`);
 export const MD_FILES = ["types", "shape", "graph", "inject", "taint", "compile", "value", "run", "cell", "facts", "entry"].map((x) => `md-${x}.ss.ts`);
+export const CP_FILES = ["types", "text", "members", "modes", "param", "facts"].map((x) => `cp-${x}.ss.ts`);
+export const RG_FILES = ["types", "ctl", "convert", "sig", "expand", "load", "view"].map((x) => `rg-${x}.ss.ts`);
 export const OW_CELLS = { ...owTree, ...owCapture, ...owPos, ...owPlace, ...owFlow, ...owStmt, ...owLoop, ...owAction, ...owTaint, ...owOpaque, ...owEntry };
 export const IX_CELLS = { ...core, ...hides, ...expr, ...ops, ...cond, ...fn, ...stmt, ...flow, ...lit, ...call, ...apply, ...preludeCells, ...jsx, ...entry, ...facts, ...OW_CELLS };
+export const CP_CELLS = { ...cpText, ...cpMembers, ...cpModes, ...cpParam, ...cpFacts };
+export const RG_CELLS = { ...rgCtl, ...rgConvertCells, ...rgSigCells, ...rgExpandCells, ...rgLoadCells, ...rgView };
 export const MD_CELLS = { ...mdShape, ...mdGraph, ...mdInject, ...mdTaint, ...mdCompile, ...mdValue, ...mdRun, ...mdCell, ...mdFacts, ...mdEntry };
 const A = linkAcorn();
 const GIVEN = {
@@ -61,6 +80,7 @@ const GIVEN = {
   OBJECT: T.OBJECT, ERR: T.ERR, SYMBOL: T.SYMBOL, BOOL: T.BOOL, lit: T.lit, arr: T.arr, named: T.named, unwrap: T.unwrap,
   propT: T.propT, union: T.union, members: T.members, show: T.show, subst: T.subst, hasTv: T.hasTv, instantiate: T.instantiate,
   widen: T.widen, isPrimitive: T.isPrimitive, isNamed: T.isNamed, kidsOf: A.kidsOf, nodeKind: A.nodeKind, isFnNode: A.isFnNode, childrenOf: A.childrenOf, TYPE_FIELDS: A.TYPE_FIELDS,
+  WRAPPERS: T.WRAPPERS, builtinNamesOf: T.builtinNamesOf, leadingComments: A.leadingComments,
 };
 // the cells of other sections the md cells take
 export const MD_GIVEN = {
@@ -72,4 +92,14 @@ export const MD_GIVEN = {
 export const linkIx = (over: Record<string, (...inputs: never[]) => unknown> = {}) => link({ ...IX_CELLS, ...over } as typeof IX_CELLS, prelude, GIVEN);
 export const linkMd = (over: Record<string, (...inputs: never[]) => unknown> = {}, given: Record<string, unknown> = {}) =>
   link({ ...IX_CELLS, ...MD_CELLS, ...over } as typeof IX_CELLS & typeof MD_CELLS, prelude, { ...MD_GIVEN, ...given });
+// the registry cells (over: lite/infer/rg-diff.ts's controls)
+export const linkRg = (over: Record<string, (...inputs: never[]) => unknown> = {}) => link({ ...RG_CELLS, ...over } as typeof RG_CELLS, prelude, GIVEN);
+// the completion and facts cells, with the ix and md cells they take (over: lite/infer/cp-diff.ts's controls)
+export const linkCp = (over: Record<string, (...inputs: never[]) => unknown> = {}) =>
+  link({ ...IX_CELLS, ...MD_CELLS, ...CP_CELLS, ...over } as typeof IX_CELLS & typeof MD_CELLS & typeof CP_CELLS, prelude, MD_GIVEN);
 export const { mdCheckSources, ixHidden, ixActionIn, owIter } = linkMd();
+export const { cpCompletionsAt, cpMembersOf, cpAnnotationOf, cpAddParameter, cpTypeNames, cpPH, cpCellsOf, cpGlobalRefs, mdFactsOf, mdPreludeCalls } = linkCp();
+export const {
+  rgFreshCtl, rgConvert, rgExpand, rgIfaceRec, rgSig, rgLiteral, rgQuietGo, rgSub, rgFresh, rgPeekOpen, rgPeekClose, rgLoad, rgTake,
+  rgIsTypedArray, rgOriginOf, rgHasTypeQuery, rgBuiltin, rgGlobals, rgRestOf, rgForeignValues, rgSkip, rgPeekType,
+} = linkRg();

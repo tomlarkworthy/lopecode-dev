@@ -1,10 +1,10 @@
 // bun lite/infer/complete-diff.ts: completionsAt of lite/complete.ts (the cells) against lite/infer/frozen/complete.ts
 // (the TypeScript Checker) at every identifier end and after every "." of the examples and the fixtures; exit 1 on a difference
 import { Glob } from "bun";
-import { parse, kids, type Node } from "../parse.ts";
+import { parse, kids, type Node } from "./frozen/ts/parse.ts";
 import { completionsAt as live } from "../complete.ts";
 import { completionsAt as frozen } from "./frozen/complete.ts";
-import { splitCells } from "../toolchain/ss-toolchain.ts";
+import { splitCells } from "./frozen/ts/toolchain/ss-toolchain.ts";
 const ROOT = new URL("../..", import.meta.url).pathname;
 const files = [...new Glob("lite/notebook/examples/*.ts*").scanSync(ROOT), ...new Glob("fixtures/*/*/cells.ts*").scanSync(ROOT)].sort();
 let cases = 0, same = 0, diff = 0, empty = 0;

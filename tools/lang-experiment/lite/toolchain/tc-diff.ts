@@ -1,5 +1,6 @@
 // bun lite/toolchain/tc-diff.ts [--controls] [--rounds R] [--only <key part>] [--show N] [--no-ojs]: today's toolchain
-// (ss-toolchain.ts, comment-types.ts, module-js.ts, erase.ts) against the tc cells (tc-index.ts), call by call, over
+// (ss-toolchain.ts, comment-types.ts, module-js.ts, erase.ts, frozen in lite/infer/frozen/ts/ on 2026-11-22) against
+// the shipped files, which are the tc cells (ss-toolchain.ts toolchainOf; a control's linked copy), call by call, over
 // the corpus of lite/infer/diff.ts (sources, cells and the .ojs inline strings), the string literals of the toolchain's
 // test files, every cell of the shipped .ojs files (compiled by the standard Observable compiler) and every variable
 // of the built notebook. Per call: SAME (equal value, or the same thrown message), DIFFERENT, NOT COVERED (the port
@@ -8,15 +9,16 @@ import { readFileSync, existsSync, readdirSync, statSync, writeFileSync, mkdirSy
 import { join, resolve, dirname } from "node:path";
 import { Glob } from "bun";
 import * as acorn from "acorn";
-import * as orig from "./ss-toolchain.ts";
-import * as ct from "./comment-types.ts";
-import * as mj from "./module-js.ts";
-import { erase } from "../browser/erase.ts";
-import { lowerJsx } from "../jsx/lower.ts";
+import * as orig from "../infer/frozen/ts/toolchain/ss-toolchain.ts";
+import * as ct from "../infer/frozen/ts/toolchain/comment-types.ts";
+import * as mj from "../infer/frozen/ts/toolchain/module-js.ts";
+import { erase } from "../infer/frozen/ts/browser/erase.ts";
+import { lowerJsx } from "../infer/frozen/ts/jsx/lower.ts";
 import { checkSources } from "../core.ts";
-import { parse } from "../parse.ts";
+import { parse } from "../infer/frozen/ts/parse.ts";
 import { specRejects } from "../soundscript/spec-cases.ts";
-import { api, linkTc, TC_FILES } from "./tc-index.ts";
+import { linkTc, TC_FILES, type TcLinked } from "./tc-index.ts";
+import { toolchainOf, TOOLCHAIN, TC as SHIPPED } from "./ss-toolchain.ts";
 import { blocks, blockContent } from "../../../lib/notebook-blocks.ts";
 import { CORPUS, EXTRA, OUTSIDE } from "../../ojs-roundtrip/corpus.ts";
 import { checkCells } from "../stdlib/runtime.ts";
@@ -30,7 +32,7 @@ mkdirSync(OUT, { recursive: true });
 
 // ---- the tree this ran on ----
 const stamp = (f: string) => `${f}:${Bun.hash(readFileSync(join(LITE, f), "utf8")).toString(36)}`;
-console.log("today", ["toolchain/ss-toolchain.ts", "toolchain/comment-types.ts", "toolchain/module-js.ts", "browser/erase.ts", "facts.ts", "jsx/lower.ts"].map(stamp).join(" "));
+console.log("today (frozen)", ["toolchain/ss-toolchain.ts", "toolchain/comment-types.ts", "toolchain/module-js.ts", "browser/erase.ts", "facts.ts", "jsx/lower.ts"].map((f) => stamp(`infer/frozen/ts/${f}`)).join(" "));
 console.log("tc", [...TC_FILES, "tc-shell.ts", "tc-index.ts"].map((f) => stamp(`toolchain/${f}`)).join(" "));
 
 // ---- the corpus: module sources (lite/infer/diff.ts's jobs, copied: that file runs when imported) ----
@@ -117,7 +119,9 @@ class Diff {
 const line = (t: Tally) => BUCKETS.map((b) => `${b} ${t[b]}`).join(" ");
 
 // ---- one pass of the corpus through both ----
-type Api = ReturnType<typeof api>;
+// the shipped glue over a linked copy of the cells (a control replaces one)
+const api = (L: TcLinked) => toolchainOf({ ...SHIPPED, ...L });
+type Api = ReturnType<typeof toolchainOf>;
 const checks = new Map<string, any>();
 const checked = (s: Src) => {
   if (!checks.has(s.key)) { let r: any = null; try { r = checkSources({ cells: s.cells, tsx: s.tsx }); } catch {} checks.set(s.key, r); }
@@ -210,7 +214,7 @@ function pass(T: Api, srcs: Src[], ojsCells: Ojs[], defs: { key: string; definit
   cmp("RUNTIME_CELLS", "-", () => orig.RUNTIME_CELLS, () => T.RUNTIME_CELLS);
   return D;
 }
-const tcTranslate = (T: Api, vs: Ojs["vars"], expression: boolean | undefined) => { const r = T.fromObservableVariables(vs, expression ?? null); return r.text !== null ? { text: r.text } : { reason: r.reason }; };
+const tcTranslate = (T: Api, vs: Ojs["vars"], expression: boolean | undefined) => T.fromObservableVariables(vs, expression === undefined ? {} : { expression });
 // what parseCompiled decides, in plain data, from each side
 const str = (x: unknown) => (typeof x === "string" ? x : null);
 const summary = (p: orig.Compiled | null) => p && { header: { d: str(p.header.d), h: str(p.header.h), t: str(p.header.t) }, headerEnd: p.headerEnd, callee: p.callee, name: p.name, refs: p.refs, fnEnd: p.fn ? p.fn.end : -1, comments: p.comments.map((c) => [c.type === "Block", c.value, c.start, c.end]) };
@@ -254,7 +258,7 @@ const TIME_ONLY = process.argv.includes("--time-only");
 const nb = notebook();
 const ojsCells = TIME_ONLY ? [] : [...(await ojsCompiled()), ...nb.ojs];
 const t0 = performance.now();
-const main = TIME_ONLY ? new Diff() : pass(api(linkTc()), srcs, ojsCells, [...nb.defs], nb.modules, true);
+const main = TIME_ONLY ? new Diff() : pass(TOOLCHAIN, srcs, ojsCells, [...nb.defs], nb.modules, true);
 // cells that take cells of another language (OUTSIDE), as ojs-roundtrip.test.ts compiles the study: the boundary params
 function boundaryPass(T: Api, D: Diff) {
   const study = [...CORPUS, ...EXTRA];
@@ -274,7 +278,7 @@ function boundaryPass(T: Api, D: Diff) {
     }
   }
 }
-const TC0 = api(linkTc());
+const TC0 = TOOLCHAIN;
 if (!TIME_ONLY) boundaryPass(TC0, main);
 console.log(`corpus: ${srcs.length} sources, ${ojsCells.length} OJS cells, ${nb.defs.length} notebook definitions, ${nb.modules.length} notebook modules; ${((performance.now() - t0) / 1000).toFixed(1)} s`);
 console.log(`all calls: ${line(main.total())}` + " (SAME THROW: both threw the same message)");

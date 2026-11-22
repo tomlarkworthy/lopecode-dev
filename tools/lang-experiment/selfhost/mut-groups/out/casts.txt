@@ -1,4 +1,0 @@
-base: 4 files, 0 casts or non-null assertions
-proto: 5 files, 0 casts or non-null assertions
-refac: 28 files, 0 casts or non-null assertions
-base: 27 files, 0 casts or non-null assertions

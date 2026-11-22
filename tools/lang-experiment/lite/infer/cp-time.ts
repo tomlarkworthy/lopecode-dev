@@ -7,11 +7,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse, kids, type Node } from "../parse.ts";
 import { checkSources, type Sources, type CheckOpts, type LiteResult } from "../core.ts";
-import { linkCp, completionsAtWith } from "./cp-index.ts";
+import { linkCp } from "./cp-index.ts";
 
-const CORE = join(import.meta.dir, "..", "core.ts"), SHIM = join(import.meta.dir, "cp-time-core.ts");
-plugin({ name: "cp-time", setup(b) { b.onResolve({ filter: /^\.\/core\.ts$/ }, (a) => (a.importer.endsWith("/lite/complete.ts") && join(a.importer, "..", a.path) === CORE ? { path: SHIM } : undefined)); } });
-const { completionsAt: liveAt } = await import("../complete.ts");
+const CORE = join(import.meta.dir, "frozen/ts/core.ts"), SHIM = join(import.meta.dir, "cp-time-core.ts");
+plugin({ name: "cp-time", setup(b) { b.onResolve({ filter: /^\.\/core\.ts$/ }, (a) => (a.importer.endsWith("/lite/infer/frozen/ts/complete.ts") && join(a.importer, "..", a.path) === CORE ? { path: SHIM } : undefined)); } });
+const { completionsAt: liveAt } = await import("./frozen/ts/complete.ts");
+const { completionsAtWith } = await import("../complete.ts");
 const G = globalThis as { __cpCheck?: ((src: Sources, opts: CheckOpts) => LiteResult) | null };
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? null : process.argv[i + 1] ?? ""; };
 const ROUNDS = Number(arg("--rounds") ?? 3), EVERY = Number(arg("--every") ?? 10);

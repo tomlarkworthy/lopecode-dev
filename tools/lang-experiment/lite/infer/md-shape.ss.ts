@@ -67,7 +67,7 @@ export const mdModuleLevel = (moduleShape, mdForeignErrs, mdLoadErr, mdIgnores) 
   const shape = moduleShape(ast.program, R.builtin, shellNames);
   const modErr = (e: ModErr): MdErr => ({ rule: e.rule, line: line(e.at.start), msg: e.msg });
   const clashes = shape.clashes.map(modErr);
-  const user = R.loadUser(text, jsx, shape.clashes.map((c) => c.at.start)).map(mdLoadErr);
+  const user = R.loadUser(ast, jsx, shape.clashes.map((c) => c.at.start)).map(mdLoadErr);
   const defs: MdDef[] = shape.cells.map((c) => ({ name: c.name, fn: c.fn, stmt: c.stmt }));
   const ig = mdIgnores(ast, defs, line);
   return { defs, module: [...(F === null ? [] : mdForeignErrs(F)), ...clashes, ...user, ...shape.errors.map(modErr), ...ig.module], ignores: ig.cell };

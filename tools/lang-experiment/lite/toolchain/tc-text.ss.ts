@@ -12,13 +12,14 @@ export const tcIdentOk = (tcIsIdentifier: (s: string) => boolean) => tcIsIdentif
 export const tcCaps = (tcCapNames: () => string[]) => tcCapNames();
 export const tcOjsInputGlobals = (tcOjsGlobals: () => string[]) => tcOjsGlobals();
 
-export const tcLANG = () => '/*{lang:"ss"}*/';
-export const tcOPEN = () => "/*ss:";
+// the markers are written in two pieces: a cell's source may not hold them (tcCompileChecked)
+export const tcLANG = () => "/*" + '{lang:"ss"}*/';
+export const tcOPEN = () => "/*" + "ss:";
 export const tcSTATE_VALUE = () => "(G, _) => G.input(_)";
 // esc adds one backslash to every "*", backslashes, "/" run, so a comment's text never holds "*/"; unesc inverts it
 export const tcEsc = () => (s: string): string => s.replace(/\*(\\*)\//g, "*\\$1/");
 export const tcUnesc = () => (s: string): string => s.replace(/\*\\(\\*)\//g, "*$1/");
-export const tcHeader = () => (o: unknown): string => `/*ss^${JSON.stringify(o).replaceAll("*/", "*\\/")}*/`;
+export const tcHeader = () => (o: unknown): string => `/*${"ss"}^${JSON.stringify(o).replaceAll("*/", "*\\/")}*/`;
 // a kept JSX original: a JSON string (no line terminator, so no ASI after return), escaped for a comment
 export const tcKeep = (tcEsc) => (s: string): string => tcEsc(JSON.stringify(s).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029"));
 export const tcUnkeep = (tcUnesc) => (s: string): string => {

@@ -7,8 +7,8 @@
 // Bidirectional type checker for one cell: expressions, statements, flow narrowing, generic calls.
 // Records facts (expression types, identifier bindings, resolved call signatures, member flags) that
 // own.ts reads for the ownership rules.
-import { kids, isFn, type Node, type Parsed } from "../../parse.ts";
-import type { Registry } from "../../registry.ts";
+import { kids, isFn, type Node, type Parsed } from "./ts/parse.ts";
+import type { Registry } from "./ts/registry.ts";
 import {
   type Ty, type Fn, type Rec, type Param, type Subst, type Flags,
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, BOOL, SYMBOL,

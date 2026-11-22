@@ -1,17 +1,18 @@
 // Unit tests for the checker's walks over a recursive alias (holdsWith, owIter, ixHidden, Registry.sub): what
-// each finds, and the work it does, counted as Registry.expand calls. Run: bun lite/walks.test.ts
-import { checkSources, mdRegistry, regCore } from "./core.ts";
-import { Registry } from "./registry.ts";
+// each finds, and the work it does, counted as calls of the registry cell rgExpand (registry.ts's Registry.expand until
+// 2026-11-22). Run: bun lite/walks.test.ts
+import { runCheck, mdRegistry, RG, type Sources } from "./core.ts";
+import { parseTree } from "./acorn/index.ts";
 import { holdsWith, named, UNKNOWN, type Ty } from "./types.ts";
-import { ixHidden, ixActionIn, owIter } from "./infer-ss.ts";
+import { ixHidden, ixActionIn, owIter, mdCheckSources } from "./infer-ss.ts";
 
 let pass = 0, fail = 0;
 const ok = (name: string, cond: boolean, detail: unknown = "") => {
   if (cond) { pass++; console.log(`pass ${name}`); } else { fail++; console.log(`FAIL ${name}: ${JSON.stringify(detail)}`); }
 };
 let expansions = 0;
-const expand = Registry.prototype.expand;
-Registry.prototype.expand = function (t: Ty) { expansions++; return expand.call(this, t); };
+const COUNTED = { ...RG, rgExpand: (...a: Parameters<typeof RG.rgExpand>) => { expansions++; return RG.rgExpand(...a); } };
+const checkSources = (src: Sources) => runCheck(mdCheckSources, src, {}, COUNTED).result;
 const counted = <V>(f: () => V): [V, number] => { expansions = 0; const v = f(); return [v, expansions]; };
 
 // Node: a union of 122 records (as many as the AST types), each holding Node four times
@@ -29,10 +30,12 @@ const TYPES = [
   `type MS = Mut<number[]> | number;`,
 ].join("\n");
 // the registry a check of these declarations uses, and the record of its methods the cells take
-const G = mdRegistry();
-G.loadUser(TYPES + "\nconst z = (): number => 1;", false, []);
-const reg = G.reg;
-const R = regCore(reg);
+const G = mdRegistry(true, null, COUNTED);
+const parsed = parseTree(TYPES + "\nconst z = (): number => 1;", false);
+if (!parsed.ok) throw new Error(parsed.message);
+G.loadUser(parsed.ast, false, []);
+const reg = G.R;
+const R = reg.core();
 const hidden = (s: Ty, t: Ty) => ixHidden({ R, opaque: null, find: (x: Ty) => ixActionIn(R, x) }, s, t, 0);
 const holds = holdsWith(reg.ops);
 const T = (n: string) => named(n);

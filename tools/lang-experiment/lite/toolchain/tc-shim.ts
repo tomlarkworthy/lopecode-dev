@@ -1,7 +1,8 @@
-// The exports of ss-toolchain.ts, comment-types.ts, module-js.ts and ../browser/erase.ts with the tc cells in place
-// of every ported function, for tc-preload.ts. 
-import * as orig from "./ss-toolchain.ts";
-import { api, linkTc } from "./tc-index.ts";
+// The exports of ss-toolchain.ts, comment-types.ts, module-js.ts and ../browser/erase.ts over a linked copy of the tc
+// cells, one of them broken when TC_CONTROL is set, for tc-preload.ts: a test that passes on the shipped files and fails
+// here runs on the cells. Until 2026-11-22 this put the cells in place of the shipped functions.
+import { toolchainOf, TC } from "./ss-toolchain.ts";
+import { linkTc } from "./tc-index.ts";
 
 // TC_CONTROL=<name>: one broken cell, to show a test runs on the cells
 const CONTROLS: Record<string, Record<string, (...x: any[]) => unknown>> = {
@@ -12,13 +13,8 @@ const CONTROLS: Record<string, Record<string, (...x: any[]) => unknown>> = {
 };
 const control = process.env.TC_CONTROL;
 if (control && !CONTROLS[control]) throw new Error(`TC_CONTROL ${control}: no such control`);
-const T = api(linkTc(control ? CONTROLS[control] : {}));
+const T = toolchainOf({ ...TC, ...linkTc(control ? CONTROLS[control] : {}) });
 export const { LANG, STATE_VALUE, RUNTIME_CELLS, INPUTS, inputsIn, splitCells, contextOf, acceptedOf, whyOf, contextFromCheck, cellStates, variableName, keyOfVariable, isDuplicateKey, handleName, cellOfVariable,
-  compileCell, compileCellText, compileModule, langOf, compiledKind, decompileVariable, decompileModule, esc, unesc, commentTypes, uncommentTypes, compile, decompile, erase, moduleJs, syntaxStub } = T;
-// the port's parseCompiled is plain data; a test that reads acorn nodes (call, fn) reads today's for those two fields
-export const parseCompiled = (d: string) => { const p = T.parseCompiled(d); return p && { ...p, call: orig.parseCompiled(d)?.call, fn: orig.parseCompiled(d)?.fn }; };
-export const fromObservableVariables = (vars: Parameters<typeof orig.fromObservableVariables>[0], opts: { expression?: boolean } = {}) => {
-  const r = T.fromObservableVariables(vars, opts.expression ?? null);
-  return r.text !== null ? { text: r.text } : { reason: r.reason };
-};
-export const { declaredNameAt, declaredName, tokensOf, paramsOf } = orig;
+  compileCell, compileCellText, compileModule, langOf, compiledKind, decompileVariable, decompileModule, esc, unesc, commentTypes, uncommentTypes, compile, decompile, erase, moduleJs, syntaxStub,
+  parseCompiled, fromObservableVariables } = T;
+export { declaredNameAt, declaredName, tokensOf, paramsOf } from "./tc-shell.ts";

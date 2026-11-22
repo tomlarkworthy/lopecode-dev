@@ -7,10 +7,10 @@
 // the answer is an empty list, never a guess from runtime values.
 import { checkSources, type Outside } from "./core.ts";
 import type { Checker, Env, Scope } from "./infer.ts";
-import { Registry } from "../../registry.ts";
+import { Registry } from "./ts/registry.ts";
 import { type Ty, show, named, isNamed, propT, members, UNKNOWN } from "../../types.ts";
 import { CAPABILITIES, PRELUDE_FNS, PRELUDE_DECLS, JSX_DECLS } from "../../intrinsics.ts";
-import type { Node } from "../../parse.ts";
+import type { Node } from "./ts/parse.ts";
 
 export type Completion = { label: string; type: string; detail?: string; apply?: string };
 export type Completions = { from: number; to: number; options: Completion[]; mode: "member" | "name" | "param" | "type" | "jsx" | "none" };

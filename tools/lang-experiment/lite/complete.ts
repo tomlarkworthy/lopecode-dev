@@ -1,298 +1,60 @@
 // Completion for one cell of a module, from the checker's types. The cell text is usually incomplete
 // while typing, so a copy is checked with a placeholder identifier at the cursor; if the copy does not
 // parse, the cell is cut at the cursor and its open brackets closed. When neither copy can be checked
-// the answer is an empty list, never a guess from runtime values.
-import { checkSources, type Outside, type LiteResult } from "./core.ts";
-import type { IxScopeName } from "./infer-ss.ts";
-import { Registry } from "./registry.ts";
-import { type Ty, show, named, isNamed, propT, members } from "./types.ts";
+// the answer is an empty list, never a guess from runtime values. The decisions are the cells of the section
+// "Completion and cell facts over typed trees" (lite/infer/cp-*.ss.ts); this file runs the module check they ask
+// for, hands them the registry as a record, reads a value's prototype and own properties for annotationOf, and counts
+// the work (completionWork).
+import { checkSources, rgRegistry, type Outside, type Sources, type CheckOpts, type LiteResult, type RgRegistry } from "./core.ts";
+import { cpCompletionsAt, cpMembersOf, cpAnnotationOf, cpAddParameter, cpTypeNames, cpPH } from "./infer-ss.ts";
+import type { CpReg, CpHost, CpConst } from "./infer-ss.ts";
+import type { Ty } from "./types.ts";
 import { CAPABILITIES, PRELUDE_FNS, PRELUDE_DECLS, JSX_DECLS } from "./intrinsics.ts";
 
 export type Completion = { label: string; type: string; detail?: string; apply?: string };
 export type Completions = { from: number; to: number; options: Completion[]; mode: "member" | "name" | "param" | "type" | "jsx" | "none" };
+// the cells this file calls, as one record (lite/infer/cp-diff.ts hands a copy with one cell replaced)
+export const CP = { cpCompletionsAt, cpMembersOf, cpAnnotationOf, cpAddParameter, cpTypeNames, cpPH };
+export type CpCalls = typeof CP;
 
-const PH = "__ss_complete__";
-const KEYWORD_NAMES = "const let return if else for of in while do break continue switch case default function true false null undefined typeof async await yield try catch finally throw".split(" ");
-// types whose members a cell may not read: handles and actions are used whole
-const NO_MEMBERS = new Set(["Action", "StateCell", "Events", "Listener", "Compile"]);
-
-// Where offset sits in text: in a string or comment, and the brackets open there (as closers).
-function scan(text: string, end: number): { quoted: boolean; closers: string[] } {
-  const stack: string[] = [];
-  const CLOSE: Record<string, string> = { "(": ")", "[": "]", "{": "}" };
-  let i = 0;
-  while (i < end) {
-    const c = text[i], d = text[i + 1];
-    if (c === "/" && d === "/") { const n = text.indexOf("\n", i); if (n < 0 || n >= end) return { quoted: true, closers: stack }; i = n + 1; continue; }
-    if (c === "/" && d === "*") { const n = text.indexOf("*/", i + 2); if (n < 0 || n + 2 > end) return { quoted: true, closers: stack }; i = n + 2; continue; }
-    if (c === '"' || c === "'") {
-      let j = i + 1;
-      while (j < end && text[j] !== c && text[j] !== "\n") j += text[j] === "\\" ? 2 : 1;
-      if (j >= end) return { quoted: true, closers: stack };
-      i = j + 1; continue;
-    }
-    if (stack.at(-1) === "`") {
-      if (c === "`") { stack.pop(); i++; continue; }
-      if (c === "\\") { i += 2; continue; }
-      if (c === "$" && d === "{") { stack.push("${"); i += 2; continue; }
-      i++; continue;
-    }
-    if (c === "`") { stack.push("`"); i++; continue; }
-    if (c in CLOSE) stack.push(c);
-    else if (c === ")" || c === "]" || c === "}") stack.pop();
-    i++;
-  }
-  if (stack.at(-1) === "`") return { quoted: true, closers: stack };
-  return { quoted: false, closers: stack.map((o) => (o === "${" ? "}" : o === "`" ? "`" : ({ "(": ")", "[": "]", "{": "}" } as any)[o])).reverse() };
-}
-
-// <tag attr… with the cursor at an attribute name: the tag, else null
-function tagAt(before: string): string | null {
-  if (!/\s$/.test(before)) return null;
-  let depth = 0;
-  for (let i = before.length - 1; i >= 0; i--) {
-    const c = before[i];
-    if (c === "}") depth++;
-    else if (c === "{") { if (depth === 0) return null; depth--; }
-    else if (depth === 0) {
-      if (c === ">") return null;
-      if (c === "<") return /^<([a-z][\w]*)\s/.exec(before.slice(i))?.[1] ?? null;
-    }
-  }
-  return null;
-}
-
-// inside the cell's own parameter list at a name position: the names already there, else null
-function paramListAt(before: string): string[] | null {
-  const head = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/.exec(before);
-  if (!head) return null;
-  const inside = before.slice(head[0].length);
-  let depth = 0;
-  for (const c of inside) { if ("([{<".includes(c)) depth++; else if (")]}>".includes(c)) { if (depth === 0) return null; depth--; } }
-  if (depth !== 0) return null;
-  const last = inside.split(",").at(-1)!;
-  if (last.trim() !== "") return null;
-  return inside.split(",").slice(0, -1).map((p) => /^\s*([\w$]+)/.exec(p)?.[1] ?? "").filter(Boolean);
-}
-
-// Whether the cursor is in a type: after a parameter's colon in the cell's own parameter list, or
-// in the return type after it.
-function typeAt(before: string): boolean {
-  const head = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/.exec(before);
-  if (!head) return false;
-  const inside = before.slice(head[0].length);
-  let depth = 0, seg = "";
-  for (let i = 0; i < inside.length; i++) {
-    const c = inside[i];
-    if ("([{<".includes(c)) depth++;
-    else if (")]}>".includes(c) && !(c === ">" && inside[i - 1] === "=")) {
-      if (depth === 0) return c === ")" && /^\s*:[^={]*$/.test(inside.slice(i + 1));
-      depth--;
-    }
-    if (depth === 0 && c === ",") { seg = ""; continue; }
-    seg += c;
-  }
-  return /^\s*[\w$]+\s*\??\s*:/.test(seg);
-}
-const declared = (src: string) => [...src.matchAll(/(?:^|\n)\s*(?:export\s+)?(?:interface|type)\s+([\w$]+)/g)].map((m) => m[1]);
-// the types a cell may name: the prelude's, JSX's, the handle and ownership types, and the library generics
-const TYPE_NAMES = [...new Set([...declared(PRELUDE_DECLS), ...declared(JSX_DECLS), "Action", "StateCell", "Mut", "Borrowed", "Array", "ReadonlyArray", "Map", "Set", "Promise", "Generator", "Record", "number", "string", "boolean", "bigint", "unknown", "null", "undefined", "void", "readonly"])]
-  .filter((n) => !["FetchResponse", "Child"].includes(n));
-
-const kindOf = (reg: Registry, t: Ty) => (reg.callSigs(t).length ? "method" : "property");
-
-// The members a read of `t.` may name: banned ones never, mutating ones only on a Mut receiver.
-export function membersOf(reg: Registry, t: Ty): Completion[] | null {
-  const ms = members(reg.expand(t)).filter((m) => m.k !== "null" && m.k !== "undef" && m.k !== "void");
-  if (!ms.length) return null;
-  let common: Map<string, Completion> | null = null;
-  for (const m of ms) {
-    if (m.k === "err" || m.k === "unknown" || m.k === "tv") return null;
-    const own = new Map<string, Completion>();
-    const mut = isNamed(m, "Mut");
-    const inner = isNamed(m, "Mut") || isNamed(m, "Borrowed") ? m.args[0] : m;
-    const x = reg.expand(inner);
-    if (x.k === "named" && NO_MEMBERS.has(x.n)) return [];
-    for (const name of memberNames(reg, x)) {
-      const p = reg.member(m, name);
-      if (!p || p.flags?.banned || (p.flags?.mutates && !mut)) continue;
-      own.set(name, { label: name, type: kindOf(reg, p.t), detail: show(propT(p)) });
-    }
-    if (!common) common = own;
-    else for (const k of [...common.keys()]) if (!own.has(k)) common.delete(k);
-  }
-  return [...(common ?? new Map()).values()].sort((a, b) => a.label.localeCompare(b.label));
-}
-function memberNames(reg: Registry, x: Ty): string[] {
-  switch (x.k) {
-    case "rec": return [...x.props.keys()];
-    case "named": return reg.types.has(x.n) && x.n !== "Iterable" && x.n !== "ArrayLike" ? [...reg.ifaceRec(x.n).props.keys()] : [];
-    case "arr": return memberNames(reg, named("Array"));
-    case "tup": return [...memberNames(reg, named("Array"))];
-    case "str": return memberNames(reg, named("String"));
-    case "num": return memberNames(reg, named("Number"));
-    case "lit": return memberNames(reg, typeof x.v === "string" ? named("String") : typeof x.v === "number" ? named("Number") : named("Boolean"));
-    case "union": return x.ts.every((y) => y.k === "lit" && typeof y.v === "boolean") ? memberNames(reg, named("Boolean")) : [];
-    default: return [];
-  }
-}
-
-// Names in scope at the placeholder: locals, parameters, the prelude and the allowed intrinsics.
-// names: the bindings in scope at the placeholder, each name once, innermost first (the cell ixScopeNames)
-function scopeNames(reg: Registry, names: readonly IxScopeName[], inAction: boolean): Completion[] {
-  const out: Completion[] = [];
-  for (const { name, kind, t } of names) {
-    if (name === PH) continue;
-    // read is offered only inside an action body, the one place it is legal
-    if (kind === "prelude") { if (name !== "read" || inAction) out.push({ label: name, type: "function", detail: name === "read" ? "prelude: a state cell's value inside an action" : "prelude" }); continue; }
-    const type = kind === "global" ? (reg.callSigs(t).length ? "function" : "namespace") : kind === "fn" || reg.callSigs(t).length ? "function" : "variable";
-    out.push({ label: name, type, detail: kind === "global" ? "intrinsic" : show(t) });
-  }
-  return out;
-}
-
-const HEAD = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:(?:const|let)\s+[\w$]+\s*=\s*(?:async\s+)?(?:function\*?\s*[\w$]*\s*)?|(?:async\s+)?function\*?\s+[\w$]+\s*)\(/;
-
-// The annotation a value in another language suggests, read from the value alone: number, string, boolean,
-// a non-empty array whose elements all suggest one annotation, or a small plain object of those. Anything
-// else (pending, null, a function, a class instance, a mixed array) suggests none.
-export function annotationOf(v: unknown, depth = 0): string | null {
-  if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") return typeof v;
-  if (depth > 2 || v === null || typeof v !== "object") return null;
-  if (Array.isArray(v)) {
-    if (!v.length || v.length > 1000) return null;
-    const first = annotationOf(v[0], depth + 1);
-    if (!first) return null;
-    for (let i = 1; i < v.length; i++) if (annotationOf(v[i], depth + 1) !== first) return null;
-    return `${first}[]`;
-  }
-  const proto = Object.getPrototypeOf(v);
-  if (proto !== Object.prototype && proto !== null) return null;
-  const keys = Object.keys(v);
-  if (!keys.length || keys.length > 8 || !keys.every((k) => /^[A-Za-z_$][\w$]*$/.test(k))) return null;
-  const parts: string[] = [];
-  for (const k of keys) {
-    const t = annotationOf((v as Record<string, unknown>)[k], depth + 1);
-    if (!t) return null;
-    parts.push(`${k}: ${t}`);
-  }
-  const out = `{ ${parts.join("; ")} }`;
-  return out.length > 120 ? null : out;
-}
-
-// The edit that adds name (with its annotation, when given) to the end of the cell's own parameter list,
-// or null when the text has no parameter list or already takes name.
-export function addParameter(source: string, name: string, annotation: string | null = null): { from: number; to: number; insert: string } | null {
-  const head = HEAD.exec(source);
-  if (!head) return null;
-  const open = head[0].length;
-  let depth = 0, close = -1, seg = "";
-  const names: string[] = [];
-  for (let i = open; i < source.length; i++) {
-    const c = source[i];
-    if (c === '"' || c === "'" || c === "`") {
-      let j = i + 1;
-      while (j < source.length && source[j] !== c) j += source[j] === "\\" ? 2 : 1;
-      seg += source.slice(i, j + 1); i = j; continue;
-    }
-    if ("([{<".includes(c)) depth++;
-    else if (")]}>".includes(c) && !(c === ">" && source[i - 1] === "=")) {
-      if (depth === 0) { if (c === ")") close = i; break; }
-      depth--;
-    }
-    if (depth === 0 && c === ",") { names.push(seg); seg = ""; continue; }
-    seg += c;
-  }
-  if (close < 0) return null;
-  names.push(seg);
-  if (names.some((p) => /^\s*(?:\.\.\.)?\s*([\w$]+)/.exec(p)?.[1] === name)) return null;
-  const param = annotation ? `${name}: ${annotation}` : name;
-  const inner = source.slice(open, close);
-  if (inner.trim() === "") return { from: open, to: close, insert: param };
-  const last = open + inner.trimEnd().length;
-  return { from: last, to: last, insert: inner.trimEnd().endsWith(",") ? ` ${param}` : `, ${param}` };
-}
-
+export const regOf = (reg: RgRegistry): CpReg => ({
+  expand: (t) => reg.expand(t), member: (t, k) => reg.member(t, k), callSigs: (t) => reg.callSigs(t),
+  ifaceKeys: (n) => (reg.types.has(n) ? [...reg.ifaceRec(n).props.keys()] : null),
+});
 // what completionsAt has done: module checks run, and the cells those checks inferred
 export const completionWork = { checks: 0, cells: 0 };
 const counted = () => { completionWork.checks++; return () => { completionWork.cells++; }; };
-
+export type Check = (src: Sources, opts: CheckOpts) => LiteResult;
+export function hostOf(C: CpCalls, tsx: boolean, outside: readonly Outside[] | null, annotate: ((name: string) => string | null) | null, check: Check = checkSources): CpHost {
+  return {
+    probe: (cells, member) => {
+      let probe: LiteResult["probe"];
+      try { probe = check({ cells, tsx, outside }, { onCell: counted(), probe: { name: C.cpPH, member } }).probe; } catch { return null; }
+      return probe?.found ? { found: probe.found, reg: regOf(probe.reg) } : null;
+    },
+    cellTypes: (cells) => { try { return check({ cells, tsx, outside }, { onCell: counted() }).cells.map((c): [string, string] => [c.name, c.value ?? ""]); } catch { return null; } },
+    annotate: (n) => { try { return annotate?.(n) ?? null; } catch { return null; } },
+    fresh: () => regOf(rgRegistry()),
+  };
+}
+const consts = new WeakMap<CpCalls, CpConst>();
+// the capabilities and type names, once per record
+export const constOf = (C: CpCalls): CpConst => {
+  let c = consts.get(C);
+  if (!c) consts.set(C, (c = { caps: new Map(Object.entries(CAPABILITIES)), typeNames: C.cpTypeNames(PRELUDE_DECLS, JSX_DECLS) }));
+  return c;
+};
 // outside: the module's cells in other languages (core.ts Outside), so a parameter that reads one has its annotated type.
 // annotate: for a parameter-list completion of an outside name, the annotation its current value suggests (or null).
-export function completionsAt(cells: readonly string[], at: number, offset: number, tsx = true, outside: readonly Outside[] | null = null, annotate: ((name: string) => string | null) | null = null): Completions {
-  const text = cells[at] ?? "";
-  const before0 = text.slice(0, offset);
-  const prefix = /[\w$]*$/.exec(before0)![0];
-  const from = offset - prefix.length;
-  const before = text.slice(0, from);
-  const none = (): Completions => ({ from, to: offset, options: [], mode: "none" });
-  const pick = (mode: Completions["mode"], options: Completion[]): Completions =>
-    ({ from, to: offset, mode, options: options.filter((o) => o.label.startsWith(prefix)) });
-  const sc = scan(text, from);
-  if (sc.quoted) return none();
-  if (/\.\.\.\s*$/.test(before) || /(^|[^\w$.])\d+\.$/.test(before)) return none();
-
-  if (tsx) {
-    const tag = tagAt(before);
-    if (tag) {
-      const reg = new Registry();
-      const p = reg.member(named("IntrinsicElements"), tag);
-      if (!p) return none();
-      const have = new Set([...before.slice(before.lastIndexOf("<" + tag)).matchAll(/\s([\w-]+)=/g)].map((m) => m[1]));
-      const opts = memberNames(reg, reg.expand(p.t)).filter((n) => n !== "children" && !have.has(n)).map((n) => {
-        const q = reg.member(p.t, n)!;
-        return { label: n, type: "property", detail: show(q.t) };
-      });
-      return pick("jsx", opts.sort((a, b) => a.label.localeCompare(b.label)));
-    }
-  }
-
-  if (typeAt(before)) {
-    const own = cells.flatMap((c, i) => (i === at ? [] : declared(c)));
-    const opts = [...new Set([...TYPE_NAMES, ...own])].map((n) => ({ label: n, type: "type", detail: own.includes(n) ? "type in this module" : "prelude" }));
-    return pick("type", opts.sort((a, b) => a.label.localeCompare(b.label)));
-  }
-
-  const params = paramListAt(before);
-  if (params) {
-    const self = /^(?:\s*(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*(?:export\s+)?(?:const|let|(?:async\s+)?function\*?)\s+([\w$]+)/.exec(before)?.[1];
-    const others = cells.filter((_, i) => i !== at).join("\n\n");
-    let types = new Map<string, string>();
-    try { types = new Map(checkSources({ cells: others, tsx, outside }, { onCell: counted() }).cells.map((c) => [c.name, c.value ?? ""])); } catch {}
-    const opts: Completion[] = [];
-    for (const [n, t] of types) if (n !== self && !params.includes(n)) opts.push({ label: n, type: "variable", detail: `cell: ${t}` });
-    for (const [n, t] of Object.entries(CAPABILITIES)) if (!params.includes(n) && !types.has(n)) opts.push({ label: n, type: "variable", detail: `capability: ${t}` });
-    // a cell in another language must be annotated (S11.2), so it is inserted with its colon
-    for (const o of outside ?? []) {
-      const n = o.name;
-      if (n === self || params.includes(n) || types.has(n) || Object.hasOwn(CAPABILITIES, n) || !n.startsWith(prefix)) continue;
-      let ann: string | null = null;
-      try { ann = annotate?.(n) ?? null; } catch {}
-      opts.push({ label: n, type: "variable", detail: ann ? `other language: ${ann}` : "other language: annotate its type", apply: `${n}: ${ann ?? ""}` });
-    }
-    return pick("param", opts.sort((a, b) => a.label.localeCompare(b.label)));
-  }
-
-  const member = /(\?\.|\.)\s*$/.test(before);
-  if (!member && !prefix) return { ...none(), mode: "name" };
-  // copies of the cell with the placeholder where the typed word is
-  // the rest of a word the cursor is inside goes with the placeholder, so it does not join it
-  const after = text.slice(offset).replace(/^[\w$]*/, "");
-  // the last: an unclosed `if (` or `while (` takes an empty body
-  const cl = sc.closers.join("");
-  const variants = [before + PH + after, before + PH + cl + ";", before + PH + ";" + cl, before + PH + cl.replace(")", ") {}")];
-  for (const v of variants) {
-    const texts = cells.map((c, i) => (i === at ? v : c));
-    let probe: LiteResult["probe"];
-    try { probe = checkSources({ cells: texts.join("\n\n"), tsx, outside }, { onCell: counted(), probe: { name: PH, member } }).probe; } catch { continue; }
-    const got = probe?.found;
-    if (!probe || !got) continue;
-    if (got.k === "member") return pick("member", membersOf(probe.reg, got.t) ?? []);
-    const list = scopeNames(probe.reg, got.names, got.inAction);
-    const kw = KEYWORD_NAMES.map((k) => ({ label: k, type: "keyword" }));
-    return pick("name", [...list, ...kw.filter((k) => !list.some((x) => x.label === k.label))].sort((a, b) => a.label.localeCompare(b.label)));
-  }
-  return { ...none(), mode: member ? "member" : "name" };
+export function completionsAtWith(C: CpCalls, cells: readonly string[], at: number, offset: number, tsx = true, outside: readonly Outside[] | null = null, annotate: ((name: string) => string | null) | null = null, check: Check = checkSources): Completions {
+  return C.cpCompletionsAt(hostOf(C, tsx, outside, annotate, check), constOf(C), [...cells], at, offset, tsx, [...(outside ?? [])]) as Completions;
 }
+export const completionsAt = (cells: readonly string[], at: number, offset: number, tsx = true, outside: readonly Outside[] | null = null, annotate: ((name: string) => string | null) | null = null): Completions =>
+  completionsAtWith(CP, cells, at, offset, tsx, outside, annotate);
+export const membersOf = (reg: RgRegistry, t: Ty, C: CpCalls = CP): Completion[] | null => C.cpMembersOf(regOf(reg), t);
+const isPlainValue = (v: unknown) => { const p = Object.getPrototypeOf(v); return p === Object.prototype || p === null; };
+const ownField = (v: unknown, k: string) => (v as Record<string, unknown>)[k];
+export const annotationOf = (v: unknown, C: CpCalls = CP): string | null => C.cpAnnotationOf(isPlainValue, ownField, v);
+export const addParameter = (source: string, name: string, annotation: string | null = null, C: CpCalls = CP): { from: number; to: number; insert: string } | null => C.cpAddParameter(source, name, annotation);
 
 export { PRELUDE_FNS };

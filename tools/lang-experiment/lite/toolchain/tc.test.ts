@@ -42,7 +42,8 @@ test("every tc cell is accepted by the checker", () => {
 test("no name declared in a tc file is declared in another .ss.ts file, and each starts with tc or Tc", () => {
   const ROOT = join(LITE, "..");
   const where = new Map<string, string[]>();
-  for (const f of new Glob("{lite,selfhost}/**/*.ss.ts").scanSync(ROOT)) {
+  for (const f of new Glob("lite/**/*.ss.ts").scanSync(ROOT)) {
+    // selfhost/** is skipped: prototype agents keep copies of the lite tree there (opaque-handles, effect-runner)
     // selfhost/opaque-handles/{base,proto}/lite is another agent's copy of lite/, tc files included
     if (f.includes("node_modules") || f.includes(".scratch") || (f.startsWith("selfhost/") && f.includes("/lite/"))) continue;
     let body: Node[];

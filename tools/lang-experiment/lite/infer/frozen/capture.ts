@@ -6,7 +6,7 @@
 // let or function in the cell whose initialiser or body uses a tainted name is tainted too. Any use of
 // a tainted name inside an action body is reported. Names the action declares itself (its parameters
 // and locals) are not the cell's, whatever they are called.
-import { kids, isFn, type Node } from "../../parse.ts";
+import { kids, isFn, type Node } from "./ts/parse.ts";
 import type { Checker, Binding } from "./infer.ts";
 
 export type Capture = { node: Node; name: string; why: string; opaque?: boolean };

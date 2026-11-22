@@ -1,1 +1,0 @@
-base: 890 jobs, 4267 cells: ok 2603 rejected 1576 unsupported 81 blocked 7; crashes 0; 4.7 s; Sun Nov 22 2026 00:59:27 GMT+0100 (Central European Standard Time)

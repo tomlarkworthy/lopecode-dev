@@ -32,6 +32,8 @@ export function inputs(): Input[] {
     for (const f of readdirSync(d).sort()) {
       if (f === "node_modules" || f.startsWith(".")) continue;
       const p = join(d, f);
+      // the frozen fixtures are copies of lite files, not corpus (lite/infer/frozen)
+      if (p === join(LITE, "infer/frozen")) continue;
       if (statSync(p).isDirectory()) walk(p, keep);
       else if (keep(f)) out.push({ id: p.slice(ROOT.length + 1), src: readFileSync(p, "utf8"), tsx: f.endsWith("x") });
     }

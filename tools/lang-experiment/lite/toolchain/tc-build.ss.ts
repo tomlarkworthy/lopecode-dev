@@ -112,7 +112,7 @@ export const tcAssemble = (tcPrelude, tcOjsInputGlobals, tcGlobalRefStarts, tcGl
 // compileChecked: a cell the checker accepted (or one compiled with no module context)
 export const tcCompileChecked = (tcMustParse, tcDeclOf, tcFnOf, tcDeclaredIn, tcIdName, tcTypeCell, tcStatementKinds, nodeKind, tcInfosOf, tcLowered, tcKeepJsx, tcCommentTypes, tcErasesToJs, tcAssemble, tcLANG) =>
   (text: string, tsx: boolean, ctx: TcCtx): TcBuilt => {
-    for (const m of ["/*ss", tcLANG]) if (text.includes(m)) throw new Error(`cell source contains the reserved text ${m}`);
+    for (const m of ["/*" + "ss", tcLANG]) if (text.includes(m)) throw new Error(`cell source contains the reserved text ${m}`);
     const prog = tcMustParse(text, tsx).program;
     const body = prog.type === "Program" ? prog.body : [];
     const st = body[0];

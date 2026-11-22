@@ -93,7 +93,7 @@ export const kidsGroup4 = (kidOne, kidMany) => (n: AstNode): AstKid[] | null => 
     case "TSConditionalType": return [{ key: "checkType", node: n.checkType }, { key: "extendsType", node: n.extendsType }, { key: "trueType", node: n.trueType }, { key: "falseType", node: n.falseType }];
     case "TSConstructSignatureDeclaration": return [...kidOne("typeParameters", n.typeParameters), ...kidMany("parameters", n.parameters), { key: "typeAnnotation", node: n.typeAnnotation }];
     case "TSConstructorType": return [...kidOne("typeParameters", n.typeParameters), ...kidMany("parameters", n.parameters), { key: "typeAnnotation", node: n.typeAnnotation }];
-    case "TSDeclareFunction": return [{ key: "id", node: n.id }, ...kidOne("typeParameters", n.typeParameters), ...kidMany("params", n.params), { key: "returnType", node: n.returnType }];
+    case "TSDeclareFunction": return [{ key: "id", node: n.id }, ...kidOne("typeParameters", n.typeParameters), ...kidMany("params", n.params), ...kidOne("returnType", n.returnType)];
     case "TSDeclareMethod": return [...kidOne("id", n.id), ...kidMany("params", n.params), { key: "returnType", node: n.returnType }];
     case "TSEnumDeclaration": return [{ key: "id", node: n.id }, ...kidMany("members", n.members)];
     case "TSEnumMember": return [{ key: "id", node: n.id }, ...kidOne("initializer", n.initializer)];
@@ -117,7 +117,7 @@ export const kidsGroup5 = (kidOne, kidMany) => (n: AstNode): AstKid[] | null => 
     case "TSIntersectionType": return [...kidMany("types", n.types)];
     case "TSLiteralType": return [{ key: "literal", node: n.literal }];
     case "TSMappedType": return [{ key: "typeParameter", node: n.typeParameter }, ...kidOne("nameType", n.nameType), { key: "typeAnnotation", node: n.typeAnnotation }];
-    case "TSMethodSignature": return [{ key: "key", node: n.key }, ...kidOne("typeParameters", n.typeParameters), ...kidMany("parameters", n.parameters), { key: "typeAnnotation", node: n.typeAnnotation }];
+    case "TSMethodSignature": return [{ key: "key", node: n.key }, ...kidOne("typeParameters", n.typeParameters), ...kidMany("parameters", n.parameters), ...kidOne("typeAnnotation", n.typeAnnotation)];
     case "TSModuleBlock": return [...kidMany("body", n.body)];
     case "TSModuleDeclaration": return [{ key: "id", node: n.id }, { key: "body", node: n.body }];
     case "TSNamedTupleMember": return [{ key: "label", node: n.label }, { key: "elementType", node: n.elementType }];
@@ -126,7 +126,7 @@ export const kidsGroup5 = (kidOne, kidMany) => (n: AstNode): AstKid[] | null => 
     case "TSOptionalType": return [{ key: "typeAnnotation", node: n.typeAnnotation }];
     case "TSParameterProperty": return [{ key: "parameter", node: n.parameter }];
     case "TSParenthesizedType": return [{ key: "typeAnnotation", node: n.typeAnnotation }];
-    case "TSPropertySignature": return [{ key: "key", node: n.key }, { key: "typeAnnotation", node: n.typeAnnotation }];
+    case "TSPropertySignature": return [{ key: "key", node: n.key }, ...kidOne("typeAnnotation", n.typeAnnotation)];
     case "TSQualifiedName": return [{ key: "left", node: n.left }, { key: "right", node: n.right }];
     case "TSRestType": return [{ key: "typeAnnotation", node: n.typeAnnotation }];
     case "TSSatisfiesExpression": return [{ key: "expression", node: n.expression }, { key: "typeAnnotation", node: n.typeAnnotation }];

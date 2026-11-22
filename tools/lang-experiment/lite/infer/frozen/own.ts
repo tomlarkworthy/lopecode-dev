@@ -8,10 +8,10 @@
 //  - flow: no use of a Mut after freeze, no use of a Borrowed after await/yield (loops to a fixpoint;
 //    a call of a helper is a use of every Mut it captures)
 //  - state(...) and borrow(...) placement
-import { kids, isFn, type Node } from "../../parse.ts";
+import { kids, isFn, type Node } from "./ts/parse.ts";
 import type { Checker, Binding } from "./infer.ts";
 import { isNamed, unwrap, show, ERR, type Ty } from "../../types.ts";
-import type { Registry } from "../../registry.ts";
+import type { Registry } from "./ts/registry.ts";
 
 type Rule = { node: Node; rule: string; msg: string };
 export { kids };

@@ -1,7 +1,7 @@
 // core.ts's syntax pass and module-level loop as they were before core.ts called syntaxCheck (2026-11-21), frozen:
 // the reference syntax.test.ts compares acorn/syntax.ss.ts against. Not used by the checker.
-import { type Node, type Parsed } from "./parse.ts";
-import { Registry } from "./registry.ts";
+import { type Node, type Parsed } from "./infer/frozen/ts/parse.ts";
+import { Registry } from "./infer/frozen/ts/registry.ts";
 import { reservedName, viewofInputName, RESERVED_MSG } from "./types.ts";
 
 type LiteError = { rule: string; line: number; msg: string };

@@ -39,7 +39,7 @@ export const mdKeep = (hasErrWith, show) => (X: MdCtx, M: MdMod, d: MdDef, rec: 
 export const mdCell = (ixKnot, ixFreshCtl, ixDrain, mdSyntax, mdInject, mdTainted, mdFedBy, mdMarkStateful, owTaintCaptures, captureMessage, mdDiag, mdHookOf, mdRunChecks, ixOut, mdRecord, mdValueRules, mdKeep) => (X: MdCtx, M: MdMod, d: MdDef): string | null => {
   const rec = M.out.get(d.name);
   if (M.value.has(d.name) || rec === undefined) return null;
-  const R = X.R.cell();
+  const R = X.R.cell(d.fn.start);
   const K: IxK = ixKnot(R.ix, X.src, X.cellNames, X.R.allowed, X.probe);
   const C: IxCtls = mut({ ...ixFreshCtl(X.count) });
   C.nextFlow = 1;

@@ -270,7 +270,7 @@ for (const [mode, pick] of [["strict index", (p: Pair) => p.lite], ["--unchecked
 say("### Size and speed\n");
 say("| file | lines |");
 say("|---|---|");
-for (const f of ["parse.ts", "types.ts", "registry.ts", "core.ts", "infer-ss.ts", "check.ts", "intrinsics.ts", "oracle.ts"]) {
+for (const f of ["parse.ts", "types.ts", "infer/rg-registry.ts", "core.ts", "infer-ss.ts", "check.ts", "intrinsics.ts", "oracle.ts"]) {
   const n = readFileSync(join(LITE, f), "utf8").split("\n").length;
   say(`| lite/${f} | ${n} |`);
 }

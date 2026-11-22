@@ -8,6 +8,8 @@ import { checkSources } from "../core.ts";
 import { parse, type Node } from "../parse.ts";
 import { splitCells } from "../toolchain/ss-toolchain.ts";
 import { IX_FILES, OW_FILES, MD_FILES } from "./index.ts";
+import { RG_FILES } from "./rg-index.ts";
+import { CP_FILES } from "./cp-index.ts";
 
 const LITE = join(import.meta.dir, "..");
 function headerEnd(src: string): number {
@@ -19,8 +21,8 @@ const texts = (f: string) => { const s = readFileSync(join(LITE, f), "utf8"); re
 // the sections the ix, ow and md cells take cells of
 const WITH = ["types.ss.ts", "subtype.ss.ts", "walks.ss.ts", "island.ss.ts", "shape.ss.ts", "messages.ss.ts", "acorn/acorn-types.ss.ts", "acorn/acorn-kids.ss.ts", "acorn/acorn.ss.ts", "acorn/syntax.ss.ts"];
 
-test("IX_FILES, OW_FILES and MD_FILES are every .ss.ts file of lite/infer", () => {
-  expect([...new Glob("*.ss.ts").scanSync(import.meta.dir)].sort()).toEqual([...IX_FILES, ...OW_FILES, ...MD_FILES].sort());
+test("IX_FILES, OW_FILES, MD_FILES, RG_FILES and CP_FILES are every .ss.ts file of lite/infer", () => {
+  expect([...new Glob("*.ss.ts").scanSync(import.meta.dir)].sort()).toEqual([...IX_FILES, ...OW_FILES, ...MD_FILES, ...RG_FILES, ...CP_FILES].sort());
 });
 test("every ix, ow and md cell is accepted by the checker", () => {
   const ix = [...IX_FILES, ...OW_FILES, ...MD_FILES].map((f) => `infer/${f}`);
@@ -40,7 +42,8 @@ function declared(st: Node): string {
 test("no name declared in lite/infer is declared in another .ss.ts file", () => {
   const ROOT = join(LITE, "..");
   const where = new Map<string, string[]>();
-  for (const f of new Glob("{lite,selfhost}/**/*.ss.ts").scanSync(ROOT)) {
+  for (const f of new Glob("lite/**/*.ss.ts").scanSync(ROOT)) {
+    // selfhost/** is skipped: prototype agents keep copies of the lite tree there (opaque-handles, effect-runner)
     if (f.includes("node_modules") || f.includes(".scratch")) continue;
     // a file that does not parse declares nothing a cell could take (selfhost/repro-unknown-class.ss.ts)
     let body: Node[];

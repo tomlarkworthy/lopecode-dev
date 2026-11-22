@@ -96,6 +96,9 @@ export const MORE: { id: string; src: string; tsx: boolean }[] = [
     `class O extends D { override m() {} override x = 1; }`, `type IT2 = import("a").B; type IT3 = import("a");`,
     // the two typed-tree gaps of lite/infer/repro: a function expression with type parameters
     `const fe = function <T>(x: T): T { return x; };`,
+    // the four typed-tree gaps of the registry cells (lite/infer/repro/declare-no-return.ts, probes/registry.ts): an
+    // optional method, a property signature with no type, a setter signature, a declared function with no return type
+    `interface Gaps { m?(): void; p; set x(v: number); }`, `declare function nr(x: number);`,
   ].join("\n") },
   { id: "more-ns.d.ts", tsx: false, src: `export as namespace Foo;` },
   { id: "more.tsx", tsx: true, src: `const e = <a>{...xs}</a>;\nconst bare = <input disabled />;` },

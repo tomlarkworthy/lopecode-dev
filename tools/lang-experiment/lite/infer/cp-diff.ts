@@ -1,4 +1,5 @@
-// bun lite/infer/cp-diff.ts: the cp cells (cp-index.ts) against lite/complete.ts and lite/facts.ts.
+// bun lite/infer/cp-diff.ts: the shipped lite/complete.ts and lite/facts.ts (the cp cells, linked here so a control can
+// replace one) against the frozen copies of complete.ts and facts.ts (lite/infer/frozen/ts/, 2026-11-22).
 // Completion: at complete-diff.ts's 6385 positions, and at positions it does not reach (type annotations, JSX, parameter
 // lists, the cell cut at the cursor, offset 0, the end, cp-probes.ts, with cells in another language, tsx off), the
 // result as JSON and the module checks and cells counted. Facts: cellsOf on each source of diff.ts's corpus (its job
@@ -8,16 +9,18 @@ import { Glob } from "bun";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import * as acorn from "acorn";
-import { parse, kids, type Node } from "../parse.ts";
-import * as live from "../complete.ts";
-import * as liveFacts from "../facts.ts";
-import { splitCells } from "../toolchain/ss-toolchain.ts";
-import { lowerJsx } from "../jsx/lower.ts";
+import { parse, kids, type Node } from "./frozen/ts/parse.ts";
+import * as live from "./frozen/ts/complete.ts";
+import * as liveFacts from "./frozen/ts/facts.ts";
+import { splitCells } from "./frozen/ts/toolchain/ss-toolchain.ts";
+import { lowerJsx } from "./frozen/ts/jsx/lower.ts";
 import { checkSources, type Outside, type Sources, type CheckOpts } from "../core.ts";
 import { linkAcorn } from "../acorn/index.ts";
 import { specRejects } from "../soundscript/spec-cases.ts";
 import { PRELUDE_FNS, OJS_INPUT_GLOBALS } from "../intrinsics.ts";
-import { linkCp, completionsAtWith, cellsOfWith, factsOf as cpFactsOf, completionWork as cpWork, type CpLinked } from "./cp-index.ts";
+import { linkCp, type CpLinked } from "./cp-index.ts";
+import { completionsAtWith, addParameter, annotationOf, completionWork as cpWork } from "../complete.ts";
+import { cellsOf, factsOf as cpFactsOf, preludeCalls, globalRefs } from "../facts.ts";
 import { PROBES } from "./cp-probes.ts";
 import type { AstNode } from "../acorn/acorn-types.ss.ts";
 import type { Ty } from "../types.ts";
@@ -169,7 +172,7 @@ function completionPass(L: CpLinked, ps: Pos[], label: string, withKinds: boolea
 
 // addParameter and annotationOf on their own inputs: every cell text with each name it reads, a fresh name, annotated or not
 function editPass(L: CpLinked, ps: Pos[]): { same: number; diff: number; shown: string[] } {
-  const cp = { add: (s: string, n: string, a: string | null) => L.cpAddParameter(s, n, a), ann: (v: unknown) => L.cpAnnotationOf((x) => { const p = Object.getPrototypeOf(x); return p === Object.prototype || p === null; }, (x, k) => (x as Record<string, unknown>)[k], v) };
+  const cp = { add: (s: string, n: string, a: string | null) => addParameter(s, n, a, L), ann: (v: unknown) => annotationOf(v, L) };
   let same = 0, diff = 0;
   const shown: string[] = [];
   const cmp = (what: string, a: unknown, b: unknown) => { const x = JSON.stringify(a), y = JSON.stringify(b); if (x === y) same++; else { diff++; if (shown.length < SHOW) shown.push(`${what}\n  complete.ts ${x}\n  cp          ${y}`); } };
@@ -239,7 +242,7 @@ function factsPass(L: CpLinked, srcs: { key: string; text: string }[]): FactTall
     T.sources++;
     let a: string, b: string, P: ReturnType<typeof parse> | null = null;
     try { P = parse(s.text); a = JSON.stringify(liveFacts.cellsOf(s.text)); } catch (x) { a = `threw ${(x as Error).message}`; }
-    try { b = JSON.stringify(cellsOfWith(L, s.text)); } catch (x) { b = `threw ${(x as Error).message}`; }
+    try { b = JSON.stringify(cellsOf(s.text, L)); } catch (x) { b = `threw ${(x as Error).message}`; }
     if (a === b) { if (a.startsWith("threw")) T.bothThrew++; else T.same++; } else { T.diff++; note(`cellsOf ${s.key}\n  facts.ts ${a.slice(0, 300)}\n  cp       ${b.slice(0, 300)}`); }
     if (!P) continue;
     // preludeCalls and globalRefs: the same cells on both trees, by order
@@ -256,13 +259,13 @@ function factsPass(L: CpLinked, srcs: { key: string; text: string }[]): FactTall
     for (let i = 0; i < pFns.length; i++) {
       // factsOf alone, without its statement (no span) and with it
       const name = tDefs[i].name;
-      const fa = JSON.stringify(liveFacts.factsOf(name, pFns[i])), fb = JSON.stringify(cpFactsOf(name, tDefs[i].fn));
+      const fa = JSON.stringify(liveFacts.factsOf(name, pFns[i])), fb = JSON.stringify(cpFactsOf(name, tDefs[i].fn, undefined, L));
       if (fa === fb) T.factsOf.same++; else { T.factsOf.diff++; note(`factsOf ${s.key} ${name}\n  facts.ts ${fa}\n  cp       ${fb}`); }
       const idents = new Set<string>();
       const w = (n: Node) => { if (n.type === "Identifier") idents.add(n.name); for (const k in n) { if (k === "loc") continue; const v = n[k]; if (Array.isArray(v)) v.forEach((x) => x && typeof x.type === "string" && w(x)); else if (v && typeof v === "object" && typeof v.type === "string") w(v); } };
       w(pFns[i]);
       for (const name of new Set([...PRELUDE_FNS, ...OJS_INPUT_GLOBALS, "h", "compile", ...idents])) {
-        for (const [what, x, y] of [["preludeCalls", liveFacts.preludeCalls(pFns[i], name), L.mdPreludeCalls(tFns[i], name)], ["globalRefs", liveFacts.globalRefs(pFns[i], name), L.cpGlobalRefs(tFns[i], name)]] as const) {
+        for (const [what, x, y] of [["preludeCalls", liveFacts.preludeCalls(pFns[i], name), preludeCalls(tFns[i], name, L)], ["globalRefs", liveFacts.globalRefs(pFns[i], name), globalRefs(tFns[i], name, L)]] as const) {
           T.calls.sets++;
           const pa = [...(x as Set<Node>)].map((n) => `${n.start}:${n.end}:${n.type}`).join(" ");
           const pb = [...(y as Set<number>)].map((nid) => { const n = byNid[nid]; return n ? `${n.start}:${n.end}:${n.type}` : `nid${nid}`; }).join(" ");

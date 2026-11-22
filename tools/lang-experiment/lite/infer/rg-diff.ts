@@ -1,30 +1,33 @@
 // bun lite/infer/rg-diff.ts [--only <key part>] [--file f]... [--rounds R] [--controls] [--skip-big] [--show N] [--out f]
-// The registry cells (rg-*.ss.ts via rg-index.ts) against lite/registry.ts on the corpus of lite/infer/diff.ts.
+// The registry cells (rg-*.ss.ts, built into a registry by core.ts rgRegistry) against the frozen lite/registry.ts
+// (lite/infer/frozen/ts/, 2026-11-22) on the corpus of lite/infer/diff.ts.
 // (1) registry level, per source, the same calls in the same order on both: the three declaration loads, foreign.d.ts,
 //     the user's declarations; every type node whose parent is not a type converted; every function's signature;
 //     every declared name expanded, with its type parameters and with none; every interface's record; sub of each
 //     converted type with itself and with the next one; then the memo tables. Each call compares the Ty (a
 //     structural print), the reports in order (rule, message, span, line) and a throw's message.
-// (2) end to end: core.ts runCheck (two parses) against rgRunCheck (one parse) per module: every module error, cell
-//     record, fact and each cell's span lists.
+// (2) end to end: the frozen core.ts runCheck (registry.ts, two parses) against the shipped core.ts runCheck (the rg
+//     cells, one parse) per module: every module error, cell record, fact and each cell's span lists.
 // SAME / DIFFERENT / NOT COVERED (the rg cells met a gap) / BOTH THREW (the same message). Run from tools/lang-experiment.
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdirSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { Glob } from "bun";
 import * as acorn from "acorn";
-import { runCheck, globalsOf, type Sources } from "../core.ts";
+import { runCheck, globalsOf, type Sources } from "./frozen/ts/core.ts";
 import { PRELUDE_FNS, ALLOWED_GLOBALS } from "../intrinsics.ts";
 import { mdCheckSources } from "../infer-ss.ts";
-import { Registry } from "../registry.ts";
-import { parse, TS, TSX, type Parsed, type Node } from "../parse.ts";
-import { splitCells } from "../toolchain/ss-toolchain.ts";
+import { Registry } from "./frozen/ts/registry.ts";
+import { parse, TS, TSX, type Parsed, type Node } from "./frozen/ts/parse.ts";
+import { splitCells } from "./frozen/ts/toolchain/ss-toolchain.ts";
 import { specRejects } from "../soundscript/spec-cases.ts";
 import { named } from "../types.ts";
 import { linkAcorn } from "../acorn/index.ts";
 import { IX_FILES, OW_FILES, MD_FILES } from "../infer-ss.ts";
 import { MODULE_PROBES } from "./probes/module.ts";
 import { REGISTRY_PROBES } from "./probes/registry.ts";
-import { linkRg, rgRegistry, rgLinkMd, rgRunCheck, RG_FILES, type RgLinked, type RgRegistry } from "./rg-index.ts";
+import { linkRg, rgRegistry, RG_FILES, RG, type RgLinked, type RgRegistry, type RgCells } from "./rg-index.ts";
+import { runCheck as shippedRunCheck } from "../core.ts";
+import { TS as LIVE_TS, TSX as LIVE_TSX } from "../parse.ts";
 import type { Ty } from "../types.ts";
 import type { Ast, AstNode } from "../acorn/acorn-types.ss.ts";
 
@@ -142,12 +145,13 @@ const isTypeKind = (k: string) => k.startsWith("TS") && (k.endsWith("Type") || k
 const kindOf = (n: AstNode) => A.nodeKind(n);
 // both registries, one handler each; old reports carry the parse.ts line
 class Pair {
-  old: Registry; neu: RgRegistry; oldReps: Rep[] = [];
+  old: Registry; neu: RgRegistry; L: RgLinked; oldReps: Rep[] = [];
   constructor(L: RgLinked, strict: boolean) {
+    this.L = L;
     this.old = new Registry(); this.old.strictIndex = strict;
     this.old.onErr = (n, rule, msg) => void this.oldReps.push({ start: n.start, end: n.end, line: n.loc?.start.line ?? 0, rule, msg });
     this.old.onUnsup = (n, what) => void this.oldReps.push({ start: n.start, end: n.end, line: n.loc?.start.line ?? 0, rule: "unsupported", msg: what });
-    this.neu = rgRegistry(L, strict);
+    this.neu = rgRegistry(cellsOf(L), strict);
   }
 }
 function unit(units: Unit[], P: Pair, job: string, what: string, fo: () => string[], fn: () => string[]) {
@@ -199,8 +203,8 @@ function registryPass(L: RgLinked, js: Job[], units: Unit[]) {
       builtinsDone = true;
       unit(units, P, key, "constructor: declarations", () => tables(P, () => true).old, () => tables(P, () => true).neu);
       unit(units, P, key, "constructor: memos", () => memos(P).old, () => memos(P).neu);
-      unit(units, P, key, "constructor: globals", () => globalsOf(P.old).map((g) => `${g.name} ${g.kind} ${sp(g.t)}`), () => P.neu.L.rgGlobals(P.neu.values, PRELUDE_FNS, ALLOWED_GLOBALS).map((g) => `${g.name} ${g.kind} ${sp(g.t)}`));
-      unit(units, P, key, "builtin names", () => [...P.old.builtinTypeNames()].sort(), () => [...P.neu.L.rgBuiltin(P.neu.types)].sort());
+      unit(units, P, key, "constructor: globals", () => globalsOf(P.old).map((g) => `${g.name} ${g.kind} ${sp(g.t)}`), () => P.L.rgGlobals(P.neu.values, PRELUDE_FNS, ALLOWED_GLOBALS).map((g) => `${g.name} ${g.kind} ${sp(g.t)}`));
+      unit(units, P, key, "builtin names", () => [...P.old.builtinTypeNames()].sort(), () => [...P.L.rgBuiltin(P.neu.types)].sort());
     }
     let ast: Ast, Pp: Parsed;
     try { Pp = parse(j.src.cells, { jsx: tsx }); } catch { continue; }
@@ -219,16 +223,16 @@ function registryPass(L: RgLinked, js: Job[], units: Unit[]) {
       if (ft.ok) unit(units, P, key, "load foreign", tOldLC(() => P.old.load(FP, "foreign").map((s) => `rest ${s.type} L${FP.line(s.start)}`).concat(tables(P, (o) => o === "foreign").old)),
         tNeuLC(() => P.neu.load(ft.ast, "foreign").map((s) => `rest ${kindOf(s)} L${s.line}`).concat(tables(P, (o) => o === "foreign").neu)));
     }
-    const shape = A.moduleShape(ast.program, P.neu.L.rgBuiltin(P.neu.types), new Set());
+    const shape = A.moduleShape(ast.program, P.L.rgBuiltin(P.neu.types), new Set());
     const clash = shape.clashes.map((c) => c.at.start);
     unit(units, P, key, "load user", tOldLC(() => {
       const at = new Set(clash), skip = new Set<Node>();
       for (const st of Pp.program.body as Node[]) { const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st; if (at.has(d.start)) skip.add(d); }
       return P.old.load(Pp, "user", true, skip).map((s) => `rest ${s.type}@${s.start}`).concat(tables(P, (o) => o === "user").old);
-    }), tNeuLC(() => P.neu.load(ast, "user", true, P.neu.L.rgSkip(ast, clash)).map((s) => `rest ${kindOf(s)}@${s.start}`).concat(tables(P, (o) => o === "user").neu)));
+    }), tNeuLC(() => P.neu.load(ast, "user", true, P.L.rgSkip(ast, clash)).map((s) => `rest ${kindOf(s)}@${s.start}`).concat(tables(P, (o) => o === "user").neu)));
     // quiet on each declared name before anything expands it: the trial's expansion is the first
     for (const [k] of [...P.old.types].filter(([, d]) => d.origin === "user" || d.origin === "foreign"))
-      unit(units, P, key, `quiet ${k}`, tOld(() => [`${P.old.quiet(named(k))}`]), tNeu(() => [`${P.neu.L.rgQuiet(P.neu.G, P.neu.types, P.neu.expandMemo, P.neu.ifaceMemo, P.neu.Q, P.neu.quietKeys, named(k))}`]));
+      unit(units, P, key, `quiet ${k}`, tOld(() => [`${P.old.quiet(named(k))}`]), tNeu(() => [`${P.L.rgQuiet(P.neu.G, P.neu.types, P.neu.expandMemo, P.neu.ifaceMemo, P.neu.Q, P.neu.quietKeys, named(k))}`]));
     const parent = A.parentNids(ast), byNid = A.byNid(ast);
     const roots: AstNode[] = [], fns: AstNode[] = [];
     for (const n of byNid) {
@@ -253,12 +257,12 @@ function registryPass(L: RgLinked, js: Job[], units: Unit[]) {
       const tps = tpsAt(f, parent, byNid);
       unit(units, P, key, `sig ${spanKey(f)}`,
         tOld(() => tyLines(P.old.sig((fp.params as AstNode[]).map(toP), toP(ret), undefined, { tps: new Set(tps) }, Pp, "user"))),
-        tNeu(() => tyLines(P.neu.L.rgSig(P.neu.G, P.neu.types, P.neu.expandMemo, P.neu.ifaceMemo, P.neu.Q, fp.params, ret, null, { tps: new Set(tps), look: null, ast, origin: "user" }, null))));
+        tNeu(() => tyLines(P.L.rgSig(P.neu.G, P.neu.types, P.neu.expandMemo, P.neu.ifaceMemo, P.neu.Q, fp.params, ret, null, { tps: new Set(tps), look: null, ast, origin: "user" }, null))));
     }
     const olds = convOld;
     for (let i = 0; i < conv.length && i < olds.length; i++) {
       const a0 = olds[i]!, b0 = olds[i + 1] ?? olds[i]!, a1 = conv[i]!, b1 = conv[i + 1] ?? conv[i]!;
-      unit(units, P, key, `sub #${i}`, tOld(() => [`${P.old.sub(a0, a0)} ${P.old.sub(a0, b0)} ${P.old.sub(b0, a0)} ${P.old.quiet(a0)}`]), tNeu(() => [`${P.neu.sub(a1, a1)} ${P.neu.sub(a1, b1)} ${P.neu.sub(b1, a1)} ${P.neu.L.rgQuiet(P.neu.G, P.neu.types, P.neu.expandMemo, P.neu.ifaceMemo, P.neu.Q, P.neu.quietKeys, a1)}`]));
+      unit(units, P, key, `sub #${i}`, tOld(() => [`${P.old.sub(a0, a0)} ${P.old.sub(a0, b0)} ${P.old.sub(b0, a0)} ${P.old.quiet(a0)}`]), tNeu(() => [`${P.neu.sub(a1, a1)} ${P.neu.sub(a1, b1)} ${P.neu.sub(b1, a1)} ${P.L.rgQuiet(P.neu.G, P.neu.types, P.neu.expandMemo, P.neu.ifaceMemo, P.neu.Q, P.neu.quietKeys, a1)}`]));
     }
     const names = [...P.old.types].filter(([, d]) => d.origin === "user" || d.origin === "foreign").map(([k, d]) => [k, d.tps] as const);
     for (const [k, tps] of names) {
@@ -296,10 +300,13 @@ function modLines(r: any, spans: { ch: string[]; chUnsup: string[] }[]): string[
   ];
 }
 const parses = { n: 0 };
-for (const C of [TS, TSX] as any[]) { const p = C.parse.bind(C); C.parse = (...a: unknown[]) => { parses.n++; return p(...a); }; }
+// the frozen parse.ts (registry.ts's second parse) and the live one (acornParse's parsers, both sides' typed trees)
+for (const C of [TS, TSX, LIVE_TS, LIVE_TSX] as any[]) { const p = C.parse.bind(C); C.parse = (...a: unknown[]) => { parses.n++; return p(...a); }; }
+// the shipped glue's record of cells: the linked copy's cells in place of the shipped ones
+const cellsOf = (L: RgLinked): RgCells => ({ ...RG, ...L });
 const parseCount = { real: 0, port: 0 };
 function e2ePass(L: RgLinked, js: Job[]): ModRec[] {
-  const M = rgLinkMd(), recs: ModRec[] = [];
+  const recs: ModRec[] = [], C = cellsOf(L);
   for (const j of js) {
     if (j.src === null) continue;
     let real: string[] = [], port: string[] = [], realErr: string | null = null, portErr: string | null = null, gap: string | null = null;
@@ -308,7 +315,7 @@ function e2ePass(L: RgLinked, js: Job[]): ModRec[] {
     const realMs = performance.now() - t0;
     parseCount.real += parses.n - p0;
     p0 = parses.n; t0 = performance.now();
-    try { const b = rgRunCheck(M, L, j.src, j.opts); port = modLines(b.result, b.spans); gap = b.rgGap; } catch (x) { portErr = (x as Error).message; }
+    try { const b = shippedRunCheck(mdCheckSources, j.src, j.opts, C); port = modLines(b.result, b.spans); gap = b.rgGap; } catch (x) { portErr = (x as Error).message; }
     const portMs = performance.now() - t0;
     parseCount.port += parses.n - p0;
     real = alpha(real); port = alpha(port);
@@ -401,7 +408,7 @@ const L = linkRg();
 const MJ = moduleJobs(jobs());
 if (process.argv.includes("--census")) { census(MJ); process.exit(0); }
 console.log(`rg files ${RG_FILES.map((f) => `${f}:${Bun.hash(readFileSync(join(import.meta.dir, f), "utf8")).toString(36)}`).join(" ")}`);
-console.log(`registry.ts ${Bun.hash(readFileSync(join(ROOT, "lite/registry.ts"), "utf8")).toString(36)} core.ts ${Bun.hash(readFileSync(join(ROOT, "lite/core.ts"), "utf8")).toString(36)}`);
+console.log(`frozen registry.ts ${Bun.hash(readFileSync(join(import.meta.dir, "frozen/ts/registry.ts"), "utf8")).toString(36)} core.ts ${Bun.hash(readFileSync(join(import.meta.dir, "frozen/ts/core.ts"), "utf8")).toString(36)}`);
 const units: Unit[] = [];
 registryPass(L, MJ, units);
 const uc = unitReport(units, "registry level");
@@ -415,13 +422,13 @@ const notBig = (r: ModRec) => r.key !== "module:lite/infer";
 console.log(`  ms, corpus without module:lite/infer: checkSources ${sum("realMs", notBig).toFixed(0)} rg ${sum("portMs", notBig).toFixed(0)}; module:lite/infer ${sum("realMs", (r) => !notBig(r)).toFixed(0)} / ${sum("portMs", (r) => !notBig(r)).toFixed(0)}`);
 if (ROUNDS > 1) {
   const CJ = MJ.filter((j) => j.key !== "module:lite/infer" && j.src !== null);
-  const M = rgLinkMd();
+  const C = cellsOf(L);
   for (let i = 0; i < ROUNDS; i++) {
     let t0 = performance.now();
     for (const j of CJ) { try { runCheck(mdCheckSources, j.src!, j.opts); } catch {} }
     const a = performance.now() - t0;
     t0 = performance.now();
-    for (const j of CJ) { try { rgRunCheck(M, L, j.src!, j.opts); } catch {} }
+    for (const j of CJ) { try { shippedRunCheck(mdCheckSources, j.src!, j.opts, C); } catch {} }
     const b = performance.now() - t0;
     const us = (ms: number) => (ms * 1000 / CJ.length).toFixed(1);
     const tm = (f: () => void) => { const t = performance.now(); f(); return performance.now() - t; };
@@ -430,7 +437,7 @@ if (ROUNDS > 1) {
     const parseNeu = tm(() => { for (const j of CJ) { const t = A.parseTree(j.src!.cells, !!j.src!.tsx); pn.push(t.ok ? t.ast : null); } });
     const ro: Registry[] = [], rn: RgRegistry[] = [];
     const ctorOld = tm(() => { for (const _ of CJ) { const r = new Registry(); r.onErr = () => {}; r.onUnsup = () => {}; ro.push(r); } });
-    const ctorNeu = tm(() => { for (const _ of CJ) rn.push(rgRegistry(L, true)); });
+    const ctorNeu = tm(() => { for (const _ of CJ) rn.push(rgRegistry(C, true)); });
     const loadOld = tm(() => { po.forEach((p, k) => { if (p) try { ro[k]!.load(p as any, "user", true); } catch {} }); });
     const loadNeu = tm(() => { pn.forEach((p, k) => { if (p) try { rn[k]!.load(p as any, "user", true); } catch {} }); });
     const c = parseOld + ctorOld + loadOld, d = parseNeu + ctorNeu + loadNeu;

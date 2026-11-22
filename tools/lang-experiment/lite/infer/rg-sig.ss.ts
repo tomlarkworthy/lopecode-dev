@@ -100,7 +100,7 @@ export const rgMethodSig = (rgKeyName, rgAnn, rgProp, rgUnsup, rgOther) => (G: R
   const list = [...(over.get(k) ?? []), f];
   over.set(k, list);
   const only = list[0];
-  props.set(k, rgProp(list.length === 1 && only !== undefined ? only : { k: "rec", props: new Map(), calls: list }, false, fl));
+  props.set(k, rgProp(list.length === 1 && only !== undefined ? only : { k: "rec", props: new Map(), calls: list }, m.optional === true, fl));
 };
 // a string index signature's value type; undefined when it is not one
 export const rgIndexSig = (rgAnn, rgUnsup, rgGap, rgOther) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, m: AstNode, c: RgCtx): Ty | undefined => {

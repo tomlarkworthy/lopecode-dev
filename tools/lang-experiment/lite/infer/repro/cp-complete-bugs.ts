@@ -8,8 +8,8 @@
 // 4. Not a difference seen: membersOf reads `m.args[0]` of a Mut or Borrowed, which is undefined with no type argument;
 //    the cells read `args[0] ?? m`. For `m: Mut` both give member [] (the type reaching membersOf is not a Mut with no
 //    argument); no input was found where the two differ.
-import * as live from "../../complete.ts";
-import * as cp from "../cp-index.ts";
+import * as live from "../frozen/ts/complete.ts";
+import * as cp from "../../complete.ts";
 const MODULE = ["const count = () => 1;"];
 const cases: [string, string][] = [
   ["1 template with //", "const f = (x: { readonly a: number }) => `http://h/${x.‸}`;"],

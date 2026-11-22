@@ -695,3 +695,109 @@ back (`<Y,>(c: Mut<{ xs: Mut<number[]>; ys: Y }>): Y => c.ys`), also by assignme
 Held: 33 expression forms around a Mut, unions, widening, async suspension, flow, callbacks on a field's methods.
 Not attacked: state cells at run time (the harness fails on them), syntax the checker refuses outright.
 Groups are not integrated until B4 is closed and attacked again.
+
+## 2026-11-22 00:44–03:08: the rg, cp and tc cells switched on; registry.ts deleted
+Baseline differentials 00:44–00:48 (`base0-*.log`), AC Power, load 3.6–8.6. Ended 03:08, AC Power, load 1.48. Work files, logs per phase and
+copies of every file before it changed: `lite/soundscript/.scratch/switch4/` (`A/`…`E/` logs, `B-snap/`…`D-snap/`
+copies of `lite/` at each phase end, `pre*-*.ts`, `deleted/`). `tools/lang-experiment/` is untracked in git, so
+`git diff` shows nothing; those copies are the only per-phase diff.
+
+Starting state: infer.test failed (its file list lacked rg/cp; its name-uniqueness test read `selfhost/opaque-handles`
+copies); the pass/fail counts were not kept. The four
+name globs (`infer.test.ts`, `rg.test.ts`, `cp.test.ts`, `tc.test.ts`) now read `lite/**/*.ss.ts` only.
+
+**A. Comparators frozen.** `lite/infer/frozen/ts/` holds registry.ts, parse.ts, facts.ts, island.ts, jsx/lower.ts,
+core.ts, complete.ts, toolchain/{ss-toolchain,comment-types,module-js}.ts, browser/erase.ts as of 00:54 (file mtimes), imports
+re-pointed on the parse (`.scratch/switch4/freeze.ts`, closure check `--check`). Two changes since, in frozen core.ts
+(01:21, header line 3): `loadUser` takes the parsed tree (it reads `ast.src`) and `cell` takes the cell's start
+(ignored), because the md cells call them that way from B on.
+`census.ts` skips `lite/infer/frozen` — without that the copies shifted the census and acorn.test's control failed
+(`a renamed Identifier differs on 18 of 19 inputs`). The four typed-tree gaps were inputs added to
+`acorn/synthetic.ts`, then `acorn/census.ts` and `acorn/gen.ts`: `TSMethodSignature.optional`, nullable `typeAnnotation` on method and
+property signatures, nullable `TSDeclareFunction.returnType`. `rgMethodSig` reads `optional` (registry.ts:
+`opt: !!m.optional`). rg-diff before and after:
+```
+00:44  registry level: 81546 units ... SAME 81505 DIFFERENT 0 NOT COVERED 33 BOTH THREW 8 / end to end: SAME 971 ... NOT COVERED 2
+01:15  registry level: 81562 units in 970 sources: SAME 81554 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8
+       end to end: 973 sources: SAME 973 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+```
+
+**B. rg on.** core.ts builds the registry from the rg cells (linked in infer-ss.ts, named there) and the md cells hand
+it their own tree: `MdReg.loadUser(ast, jsx, clash)`, `MdReg.cell(at)` with the cell's start. rg-diff's end-to-end
+subject is the shipped `runCheck` with the cell record as a parameter (controls replace one cell):
+`parser runs: checkSources 2003, rg 1030 (973 sources)`. A gap is now loud: every cell checked from the gap's cell
+on is rejected with rule `registry-gap`, and a gap in a declaration load is a module error (rg.test.ts, two tests,
+made by a parseTree that turns one node into `Other`):
+```
+f rejected  the checker cannot read a type here (convert: TSNumberKeyword held as Other), so this cell is not checked
+g rejected  not checked: it is checked after f, where the checker could not read a type (convert: TSNumberKeyword held as Other)
+module      the checker cannot read a declaration (convert: TSNumberKeyword held as Other), so no cell of this module is checked
+```
+`registry-gap` is not a lint rule; the fixtures line still reads 55 registered, 55 with a reject case. walks.test
+counts `rgExpand` calls; the counts equal registry.ts's on the same text (369, 123, 2, 32603, 3081).
+
+**C. cp on.** complete.ts and facts.ts are glue over the cp cells (linked in infer-ss.ts); each export takes a record of
+cells as its last parameter, which cp-diff fills with a linked copy. ss-toolchain's `preludeCalls`/`globalRefs` calls
+read nids on a typed tree of the same text and `byNid` for a start. The three copied scanning bugs stay
+(`infer/repro/cp-complete-bugs.ts` now compares the frozen complete.ts with the shipped one). The `--preload` redirect
+`cp-redirect.ts` is deleted; `complete.test.ts` runs on the cells as shipped (58 pass).
+
+**D. tc on.** `toolchain/tc-index.ts` is a bootstrap file (no cells) that links the tc cells with the shell crossed;
+ss-toolchain.ts is `toolchainOf(record)` plus one export per function, and comment-types.ts, module-js.ts and
+browser/erase.ts call it. `declaredNameAt`, `declaredName`, `tokensOf`, `paramsOf` moved to tc-shell.ts (they were
+the cycle tc-shell -> ss-toolchain). `parseCompiled` keeps `call` and `fn`, which roundtrip-edge and ss-toolchain.test
+read, by a breadth-first acorn walk in the glue (`callAt`); `fromObservableVariables` returns `{text}|{reason}`.
+Met on the way: eight tc cells held the compiler's reserved text in their source (`/*ss` or the LANG marker) and
+compiled to rejected cells in the notebook (`tcUncommentTypes does not check: [compile] cell source contains the
+reserved text /*ss`). Rewritten: comments reworded, markers built from two strings (`"/*" + "ss:"`). comment-types.ts
+is no longer reached from `soundscript/entry.ts`, so it gives no cells.
+
+**E. Deleted.** `lite/registry.ts` (302 code lines) and `lite/infer/cp-redirect.ts` (13). parseTree's own boundary
+shape (acorn/index.ts) and the tc shell shapes (tc-index.ts) are computed by `firstParamShape` over the rg cells,
+linked in acorn/index.ts with the uncrossed parser; the registry glue moved to `infer/rg-registry.ts` so acorn/index.ts
+can use it without importing core.ts (which imports acorn/index.ts). Checked: `builtinTypeNames()` and
+`parseTreeShape()` equal registry.ts's (52 names; shape JSON equal). `parse.ts` stays: acorn-shell.ts takes its
+parsers, and island.ts, jsx/lower.ts, stdlib/runtime.ts, oracle.ts, browser/run.ts and most test tools import it.
+
+Code lines (lines holding a token, `.scratch/switch4/codelines.ts`), the replaced files:
+```
+before  registry 302, core 166, complete 252, facts 60, ss-toolchain 374, comment-types 104, module-js 44, erase 51, tc-shell 32 = 1385
+after   rg-registry 48, core 143, complete 45, facts 21, ss-toolchain 116, comment-types 8, module-js 5, erase 2, tc-shell 60 = 448
+glue that grew or shrank, not in the rows above: acorn/index 30 -> 55, infer-ss 68 -> 96, tc-index 111 -> 38
+```
+Largest cell of rg/cp/tc: 26 lines (`tcCompileChecked`). Notebook modules (ts-cells.test): named cells,
+runtime 269 in every phase; checker 957 -> 1046 (B) -> 1094 (C) -> 1198 (D) -> 1193 (E).
+
+Gates after E (03:00, AC Power, load 2.4): infer/rg/cp/tc bun tests 28 pass 0 fail; every script test exit 0;
+`14/14 fixtures pass`; `bun-verify: 168 pass, 0 fail`; `soundscript/build.ts --force` exit 0 with 0 `dependancy map` lines;
+```
+rg   registry level: 81564 units in 970 sources: SAME 81556 DIFFERENT 0 NOT COVERED 0 BOTH THREW 8
+rg   end to end: 973 sources: SAME 973 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+cp   completion: 16237 positions ...: SAME 18423 DIFFERENT 0; addParameter / annotationOf: SAME 70450 DIFFERENT 0
+cp   facts: cellsOf SAME 3399 DIFFERENT 0; preludeCalls/globalRefs sets SAME 246428 DIFFERENT 0; factsOf SAME 5650 DIFFERENT 0
+tc   all calls: SAME 328954 SAME THROW 3756 DIFFERENT 1 ...; corpus calls, repro rows left out: SAME 328772 ... DIFFERENT 0
+     --- erase (repro) DIFFERENT
+diff 871 sources, 3508 cells: SAME 3494 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14
+mod  whole module: 961 sources: SAME 961 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+cpl  37 files, 6385 positions: SAME 6385 (1733 with no options) DIFFERENT 0
+```
+The one tc DIFFERENT is the repro row `lite/toolchain/repro/erase-optional-comment.ts`, present at baseline
+(`base0-lite_toolchain_tc-diff.ts.log`): the old erase cuts a `?` inside a comment and gives `(x /*  */ ?) => x`, which
+does not parse; the tc cells give `(x /* ? */ ) => x`. Since D, `browser/erase.ts` calls the tc cells, so the shipped
+erase gives the port's output. The tc corpus moved with the notebook it reads (2043 -> 2283 definitions), so its SAME counts are not comparable
+across phases. Browser verify (`bun lite/soundscript/verify.ts`, AC Power):
+```
+B 01:46 load 2.18  646 pass 3 fail  lint median 4.6 ms  completion median 4.9 ms
+E 03:00 load 2.43  649 pass 0 fail  lint median 7.6 ms  completion median 10.0 ms
+```
+B's three failures are mine: I applied C's edits while it ran, and its variant builds read them (`plain is declared in
+boundary.ts and complete.ts`). E's page is slower: lint 4.6 -> 7.6 ms, completion 4.9 -> 10.0 ms. Unattributed: I did
+not run the page after C or D. Bun-side completion is unchanged (complete.test.ts `completion on a 12-cell module: median` 1.1, 1.2, 1.2, 1.2,
+1.1 ms at A–E, `scripts.log` of each phase),
+so the cost is in the notebook path (candidates: the tc shell crossing the boundary on each call, the toolchain cells
+on each keystroke's compile). Not measured.
+
+Unsure: the gap rule rejects every cell checked after a gap's cell, in check order, because a memo can carry the
+error type forward; that is wider than needed and untested on a real module (no corpus source has a gap now).
+`browser/entry.ts`'s bundle (lite/notebook/build/lite.js) imports browser/run.ts -> erase.ts, which now pulls the
+checker's cells; not built or checked here.

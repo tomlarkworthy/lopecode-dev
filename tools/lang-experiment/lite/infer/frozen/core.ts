@@ -5,14 +5,14 @@
 // The lite checker without file access: module shape, syntax bans, injection, a per-cell type
 // check (infer.ts) and the ownership rules (own.ts). Each cell ends ok, rejected, unsupported (a
 // construct lite does not model) or blocked (a dependency has no usable type).
-import { parse, type Node, type Parsed } from "../../parse.ts";
-import { Registry } from "../../registry.ts";
+import { parse, type Node, type Parsed } from "./ts/parse.ts";
+import { Registry } from "./ts/registry.ts";
 import { Checker } from "./infer.ts";
 import { ownership, actionEscapes, iterIn } from "./own.ts";
 import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, reservedName, RESERVED_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith } from "../../types.ts";
 import { CAPABILITIES } from "../../intrinsics.ts";
-import { island, specOf, compileCalls } from "../../island.ts";
-import { factsOf, type CellInfo } from "../../facts.ts";
+import { island, specOf, compileCalls } from "./ts/island.ts";
+import { factsOf, type CellInfo } from "./ts/facts.ts";
 import { captures, opaqueCaptures } from "./capture.ts";
 import { boundaryShape, type Shape } from "../../boundary.ts";
 import { messageOf } from "../../../prelude.runtime.ts";

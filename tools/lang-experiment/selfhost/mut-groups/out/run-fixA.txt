@@ -1,1 +1,0 @@
-fixA: 890 jobs, 4267 cells: ok 2603 rejected 1576 unsupported 81 blocked 7; crashes 0; 4.8 s; Sun Nov 22 2026 01:07:21 GMT+0100 (Central European Standard Time)

@@ -31,7 +31,7 @@ export const tcJsxRoots = (kidsOf) => (ast: Ast): AstNode[] => {
   }
   return freeze(out);
 };
-// keepJsx: the function's text lowered, each /*ss<...*/ comment rewritten to hold its element's original as kept text
+// keepJsx: the function's text lowered, each `ss<` block comment rewritten to hold its element's original as kept text
 export const tcKeepJsx = (tcMustParse, tcJsxRoots, tcLowered, tcKeep, tcApplyEdits, parseTree) => (fnSrc: string): string => {
   const s = `(${fnSrc})`;
   const originals = tcJsxRoots(tcMustParse(s, true)).map((n) => s.slice(n.start, n.end));
@@ -40,6 +40,6 @@ export const tcKeepJsx = (tcMustParse, tcJsxRoots, tcLowered, tcKeep, tcApplyEdi
   if (!p.ok) throw new Error(`tc-gap: the lowered JSX does not parse: ${p.message}`);
   const kept = p.ast.comments.filter((c) => c.block && c.text.startsWith("ss<"));
   if (kept.length !== originals.length) throw new Error("JSX originals and kept comments do not match");
-  const edits = kept.map((c, i) => ({ from: c.start, to: c.end, text: `/*ss<${tcKeep(originals[i] ?? "")}*/` }));
+  const edits = kept.map((c, i) => ({ from: c.start, to: c.end, text: `/*${"ss"}<${tcKeep(originals[i] ?? "")}*/` }));
   return tcApplyEdits(out, edits).slice(1, -1);
 };

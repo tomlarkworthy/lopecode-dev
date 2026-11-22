@@ -1,15 +1,17 @@
 // Test tooling for the cells of lite/infer: the one-cell check (ixCheckFn) run on its own with an optional compile
 // hook, and checkSources run on a copy of the cells (diff.ts's controls, module-time.ts). The shipped checker is
-// lite/core.ts over lite/infer-ss.ts.
-import { makeReg as regView, regCore, globalsOf, runCheck, mdRegistry, type Sources, type CheckOpts, type CheckRun } from "../core.ts";
-import type { Node, Parsed } from "../parse.ts";
-import type { Registry } from "../registry.ts";
+// lite/core.ts over lite/infer-ss.ts. The one-cell check runs on the frozen registry.ts (lite/infer/frozen/ts/), whose
+// Checker diff.ts compares it with; checkSources on a copy runs on the shipped registry cells.
+import { makeReg as regView, regCore, globalsOf } from "./frozen/ts/core.ts";
+import { runCheck, mdRegistry, type Sources, type CheckOpts, type CheckRun } from "../core.ts";
+import type { Node, Parsed } from "./frozen/ts/parse.ts";
+import type { Registry } from "./frozen/ts/registry.ts";
 import type { AstNode } from "../acorn/acorn-types.ss.ts";
 import type { IxReg, IxDiag, IxInput, IxOutput } from "./ix-types.ss.ts";
 import type { Ty } from "../types.ss.ts";
 import { childrenOf } from "../acorn/index.ts";
 import { linkIx, linkMd, IX_FILES, OW_FILES, MD_FILES, IX_CELLS, OW_CELLS, MD_CELLS, MD_GIVEN } from "../infer-ss.ts";
-import { kids } from "../parse.ts";
+import { kids } from "./frozen/ts/parse.ts";
 export { linkIx, linkMd, IX_FILES, OW_FILES, MD_FILES, IX_CELLS, OW_CELLS, MD_CELLS, MD_GIVEN, globalsOf, mdRegistry, regCore, kids };
 
 // core.ts's compile hook, called with the checker methods it uses (diff.ts lends it the real checker's)

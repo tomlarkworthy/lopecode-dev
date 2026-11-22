@@ -12,12 +12,13 @@ export type MdCompiled = { readonly res: IxCompile; readonly out: IxDiag[] };
 // one cell's registry (ix-types IxReg), and the same with core.ts's compile hook, whose reports the glue puts back in
 // the registry's report buffer
 export type MdCellReg = { readonly ix: IxReg; readonly withHook: (hook: (e: AstNode, options: Ty | null) => MdCompiled) => IxReg };
-// lite/registry.ts as the module check calls it
+// the registry as the module check calls it (core.ts). loadUser reads the declarations from the tree the check parsed;
+// cell takes the start of the cell's function, so the glue knows which cell a report or a gap belongs to
 export type MdReg = {
   readonly builtin: Set<string>;
   readonly loadForeign: (text: string) => MdForeign;
-  readonly loadUser: (text: string, jsx: boolean, clash: number[]) => MdReport[];
-  readonly cell: () => MdCellReg;
+  readonly loadUser: (ast: Ast, jsx: boolean, clash: number[]) => MdReport[];
+  readonly cell: (at: number) => MdCellReg;
   // an annotation converted with nothing reported or kept, an alias expanded once (core.ts shellFn)
   readonly peekType: (n: AstNode) => Ty;
   readonly ops: RegOps;

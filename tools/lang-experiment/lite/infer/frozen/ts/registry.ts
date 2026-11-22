@@ -1,3 +1,5 @@
+// FROZEN FIXTURE (2026-11-22, switch4): lite/registry.ts as it was before the rg, cp and tc cells were switched on.
+// Only the differentials and tests compare against it; nothing shipped imports it, and the build does not reach it.
 // Declarations (intrinsic, prelude, foreign, user), type-syntax conversion and expansion. Member lookup,
 // subtyping and inference unification are SoundScript cells (subtype.ss.ts), bound here to this Registry.
 import { parse, type Node, type Parsed } from "./parse.ts";
@@ -6,8 +8,8 @@ import {
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, SYMBOL, BOOL,
   union, show, subst, named, arr, WRAPPERS, isNamed, tpNames,
   type RegOps, type DeclOps, builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, memberOfWith, unifyWith,
-} from "./types.ts";
-import { INTRINSIC_DECLS, PRELUDE_DECLS, TYPED_ARRAYS, JSX_DECLS } from "./intrinsics.ts";
+} from "../../../types.ts";
+import { INTRINSIC_DECLS, PRELUDE_DECLS, TYPED_ARRAYS, JSX_DECLS } from "../../../intrinsics.ts";
 
 export type Origin = "intrinsic" | "prelude" | "jsx" | "foreign" | "user";
 type Decl = { kind: "alias" | "iface"; tps: string[]; nodes: Node[]; origin: Origin; parsed: Parsed };

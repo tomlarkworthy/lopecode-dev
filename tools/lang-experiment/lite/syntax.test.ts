@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse, type Node } from "./parse.ts";
 import { checkSources } from "./core.ts";
-import { builtinTypeNames } from "./registry.ts";
+import { builtinTypeNames } from "./core.ts";
 import { syntaxPass, moduleShape } from "./syntax.frozen.ts";
 import { specRejects } from "./soundscript/spec-cases.ts";
 import { inputs, type Input } from "./acorn/census.ts";

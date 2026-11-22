@@ -9,7 +9,7 @@ export const tcWholeType = (nodeKind) => (n: AstNode): boolean => {
   if (n.type === "ImportDeclaration") return n.importKind === "type";
   return n.type === "ExportNamedDeclaration" && n.declaration !== null && nodeKind(n.declaration).startsWith("TS");
 };
-// where the cut of `x as T` starts. comment: after the `)`s closing a parenthesised operand and the /*ss>*/ closing a
+// where the cut of `x as T` starts. comment: after the `)`s closing a parenthesised operand and the `ss>` block comment closing a
 // lowered JSX operand. erase: at the first token that is not a `)` (erase.ts reads this with a regex over the gap)
 export const tcAsFrom = (tcLexed) => (ast: Ast, at: number, to: number, mode: string): number => {
   const toks = tcLexed(ast.src.slice(at, to), 1e9);
@@ -75,7 +75,7 @@ export const tcMustParse = (parseTree) => (src: string, jsx: boolean): Ast => {
   if (!p.ok) throw new Error(p.message);
   return p.ast;
 };
-// commentTypes, with the tree it parsed: types to /*ss:...*/ comments
+// commentTypes, with the tree it parsed: types to `ss:` block comments
 export const tcCommentTypes = (tcMustParse, tcCuts, tcApplyEdits, tcEsc, tcOPEN, tcLANG) => (src: string): { readonly text: string; readonly ast: Ast } => {
   if (src.includes(tcOPEN) || src.includes(tcLANG)) throw new Error("source contains a reserved marker");
   const ast = tcMustParse(src, false);
@@ -83,7 +83,7 @@ export const tcCommentTypes = (tcMustParse, tcCuts, tcApplyEdits, tcEsc, tcOPEN,
   return { text: tcApplyEdits(src, edits), ast };
 };
 export const tcErase = (tcMustParse, tcCuts, tcApplyEdits) => (src: string): string => tcApplyEdits(src, tcCuts(tcMustParse(src, false), "erase"));
-// uncommentTypes: each /*ss:T*/ comment put back as T. On the typed parse, so a text that does not parse is not covered
+// uncommentTypes: each `ss:T` block comment put back as T. On the typed parse, so a text that does not parse is not covered
 export const tcUncommentTypes = (parseTree, tcApplyEdits, tcUnesc) => (js: string): string => {
   const p = parseTree(js, false);
   if (!p.ok) throw new Error(`tc-gap: uncommentTypes of a text that does not parse: ${p.message}`);
