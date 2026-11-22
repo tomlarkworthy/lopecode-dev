@@ -99,6 +99,123 @@ When asking the user to paste cookies: tell them to open devtools (Cmd+Opt+I) �
 
 Observable made Notebooks 2.0 the default and moved the 1.0 editor to `old.observablehq.com`. Pushed 5 cells to `@tomlarkworthy/claude-code-pairing` on 2026-09-02, after the switch, with the tool unchanged: `api.observablehq.com/document/{slug}` returned version 1890, `wss://ws.observablehq.com/document/{id}/edit` accepted the hello, five `modify_node` saves confirmed to version 1895, and `api.observablehq.com/@tomlarkworthy/claude-code-pairing.js?v=4` served the new cell bodies. Nothing needed the `old.` host.
 
+## New site: HTTP edits route (`--next`)
+
+Found 2026-11-22. The `I`/`T` login to the old host was no longer available, and a notebook
+created on the new site (`/d/3ec6cd9f87b28862`, a scrap notebook) 404s on
+`api.observablehq.com/document/<id>` and `…/d/<id>.js?v=4`, so neither the REST read nor the
+websocket above can reach it. The route was found from the browser's Network panel: a cell edit
+POSTs
+
+```
+https://observablehq.com/api/notebook/3ec6cd9f87b28862/edits
+{version: 6, edits: [{type: "modify_node", node_id: 2, new_node_value: "hello"}]}
+```
+
+The `edits` entries are the old websocket's `events` without their `version` field. Measured by
+curl with only the `D` and `sesh` cookies, plus `Origin`, `Content-Type: application/json` and a
+browser `User-Agent`:
+
+```
+POST {version:6, modify_node}   -> 409 Conflict          (stale; the doc was at 7)
+POST {version:7, modify_node}   -> 200 {"version":8}
+POST {version:9, insert_node node_id:10, new_node_mode:"js"}  -> 200 {"version":10}
+POST {version:0, edits:[]}      -> 400 Bad request
+GET  /edits?version=9           -> 200 {version:10, base:9, more:true, events:[…insert_node…], keyframes:[], files:[], users:[], publishes:[]}
+GET  /edits?version=1|2         -> 404   (earliest accepted base on this doc was 3)
+```
+
+The `insert_node` sent as mode `"js"` is stored as mode `"ojs"`; the site also has `"ts"` and
+`"md"` cells.
+
+**Reading the current cells: `/api/export/<id>`.** It is the site's "download" route
+(`content-disposition: attachment;filename="Scrap.html"`). It returns the current draft as
+notebook-kit HTML, one `<script>` per cell, whose `id` is the node id. It answers curl with the
+two cookies, and 404s without them.
+
+```
+<notebook theme="air">
+  <title>Scrap</title>
+  <script id="12" type="application/vnd.observable.javascript">
+    intro = md`# Plugin Registry
+```
+
+`tools/observable-next.js` `parseExport` decodes it the way notebook-kit's `deserialize` does
+(`vendor/notebook-kit/src/lib/serialize.ts:32`): it maps `type` to a mode, unescapes `<\/script`,
+and strips the 4-space indent. The export has no version number. `GET /edits?version=N`
+supplies it: the reply's `version` is the current one for any N from the oldest kept version
+up to the current one, and anything outside that range 404s.
+
+```
+GET /edits?version=24  -> 200 {"version":24,"base":24,"events":[],…}     (current was 24)
+GET /edits?version=25  -> 404
+```
+
+A node's id is the version that inserted it, so the newest node id is always in range unless
+the history no longer goes back that far. On that fallback, and on an empty notebook, the
+reader loads the `/d/<id>` page in headless Chromium and takes `version` from the payload.
+
+That page read was the first reader, before the export route was found. The page carries the
+notebook in its Next.js React Server Components (RSC) payload, the `self.__next_f.push(...)`
+chunks: `{version, publish_version, role, body:{title, cells:[{id, value, mode, pinned, …}]}}`.
+It has two costs:
+- curl gets a `429` Vercel Security Checkpoint even with browser headers, so it needs Chromium.
+- Long values come as references (`"$4a"`) to RSC text rows `4a:T<hexByteLength>,<text>`, which
+  can follow one another with no separator.
+
+Waiting for `networkidle` timed out at 60 s, so the page reader takes the body of the `200`
+response for `/d/<id>`.
+
+Compared on 2026-11-22 on the same notebook, the two readers agreed:
+
+```
+export v24 11 cells 463ms  |  page v24 11 cells 674ms   all 11: same value, mode, pinned
+```
+
+Both readers were also given four probe cells, inserted by `tools/scratch/newobs-edge-probe.mjs`.
+Both returned each one exactly as sent, with the right mode and pinned flag:
+- a value containing `<script>` and `</script >`;
+- an md cell starting with `$`;
+- a pinned `ts` cell;
+- blank and indented lines.
+
+**Tool.** `lope-push-ws.js` selects this route when `--cookies-file` holds `D` and `sesh`
+(or with `--next`). `--target` takes a `/d/<id>` URL or a bare 16-hex id. `@user/slug` URLs
+are rejected by `notebookIdFromTarget`. `connectNext` answers `saveconfirm`/`error` like the
+websocket, so `--cells`, full replace, `--remove-nodes`, pacing and retries are the existing
+code. Two things changed for this route:
+- A `409` now re-reads the version before the retry. Resending the stale version could never
+  succeed. This is traced in the code and has not been triggered live.
+- A network error inside `send` is reported as `status 0`, not as an unhandled rejection.
+
+```sh
+# tools/.observable-next-cookies.json (gitignored): {"D": "<value>", "sesh": "<value>"}
+node --experimental-vm-modules tools/lope-push-ws.js lopecode/notebooks/@tomlarkworthy_exporter-3.html \
+  --module @tomlarkworthy/plugin-registry \
+  --target https://observablehq.com/d/3ec6cd9f87b28862 \
+  --cookies-file tools/.observable-next-cookies.json
+```
+
+Runs on 2026-11-22 against the scrap notebook:
+- `--remove-nodes 10`: version 10 → 11.
+- Full replace: 11 inserted, 2 deleted (11 → 24).
+- I set cell 12 to `intro = md\`# tampered\`` by hand. `--cells intro` then put it back (29 → 30).
+- Full replace with a bare-id target: 11 inserted, 15 deleted (30 → 56). A re-read found all 11
+  cells byte-identical to the local `--dump`.
+
+**Not yet known:**
+- **Publishing.** The scrap notebook shows `publish_version: null`, and nothing here publishes.
+- **Attachments.** The edits route carries no files. The site CSP's `connect-src` lists
+  `observable-file-attachments-production.s3.us-east-1.amazonaws.com`, which suggests a presigned
+  S3 upload; that route has not been captured. Inside a notebook, the worker's stdlib has
+  `FileAttachment.attach(file)`. It posts `{type:"attachFile", file}` to the editor frame. This
+  was read from `chat-worker/assets/index-DNNwTBO5.js` and not exercised.
+- **Cookie lifetime.** `D`'s suffix `1819515881390` reads as a 2027 epoch-ms timestamp, which
+  is an inference. `sesh`'s lifetime is unknown.
+- **Pacing.** The ~57-save socket limit and the 404-under-load behaviour were measured on the
+  websocket, not on this route. A 26-save full replace ran with no retries. The tool still
+  re-reads the version every 40 saves, which here costs one export fetch.
+
 ## Tool: lope-push-ws.js (Preferred)
 
 ```bash
@@ -134,7 +251,8 @@ node --experimental-vm-modules tools/lope-push-ws.js --login --headed
 | `--pace <ms>` | Delay between saves (default 150) — the endpoint 404s on sustained back-to-back writes |
 | `--timeout <ms>` | Max wait time (default: 30000) |
 | `--profile <path>` | Browser profile for cookie storage (default: `~/.claude/lope-push-browser-profile`) |
-| `--cookies-file <path>` | Read T/I cookies from a JSON file instead of Playwright (recommended; see "Workaround" above) |
+| `--cookies-file <path>` | Read T/I cookies from a JSON file instead of Playwright (recommended; see "Workaround" above). A file holding `D`/`sesh` selects the new-site route |
+| `--next` | New-site HTTP edits route (see "New site" above); automatic when the cookies file holds `D`/`sesh` |
 | `--login` | Open browser for manual login |
 | `--headed` | Show browser (for `--login`) |
 

@@ -22,6 +22,7 @@
  *   --timeout <ms>      Max wait time (default: 30000)
  *   --profile <path>    Browser profile directory for cookie extraction
  *   --cookies-file <path>  Read T/I cookies from JSON file (bypasses Playwright; recommended)
+ *   --next              Use the new site's HTTP edits route (auto when the cookies file has D/sesh)
  *   --login             Open browser for manual login
  *   --headed            Show browser (for --login)
  *
@@ -48,6 +49,12 @@ import {
   extractNotebookSlug,
   fetchNotebook,
 } from './observable-auth.js';
+import {
+  isNextCookiesFile,
+  loadNextCookies,
+  fetchNextNotebook,
+  connectNext,
+} from './observable-next.js';
 
 // Check for --experimental-vm-modules flag (required for decompilation)
 if (typeof vm.SourceTextModule !== 'function') {
@@ -109,6 +116,8 @@ function parseArgs(argv) {
       options.profile = args[++i];
     } else if (arg === '--cookies-file' && args[i + 1]) {
       options.cookiesFile = args[++i];
+    } else if (arg === '--next') {
+      options.next = true;
     } else if (arg === '--login') {
       options.login = true;
     } else if (arg === '--headed') {
@@ -145,6 +154,7 @@ Options:
   --timeout <ms>      Max wait time (default: 30000)
   --profile <path>    Browser profile for persistent login
   --cookies-file <path>  Read T/I cookies from JSON instead of Playwright (recommended; see knowledge/pushing-cells-to-observablehq.md)
+  --next                 New site HTTP edits route (automatic when --cookies-file holds D/sesh)
   --login             Open browser for manual login
   --headed            Show browser (for --login)
       `);
@@ -156,6 +166,12 @@ Options:
 
   if ((options.cells || options.cellsMatchBody) && options.noDelete) {
     console.error('Error: --cells / --cells-match-body already do in-place modify; combining with --no-delete inserts duplicates instead of replacing. Drop --no-delete.');
+    process.exit(1);
+  }
+
+  if (options.cookiesFile && isNextCookiesFile(options.cookiesFile)) options.next = true;
+  if (options.next && !options.cookiesFile) {
+    console.error('Error: --next needs --cookies-file with D and sesh');
     process.exit(1);
   }
 
@@ -557,6 +573,7 @@ function extractCellName(source) {
 // --- Cookie extraction ---
 
 async function extractCookies(options) {
+  if (options.next) return loadNextCookies(options.cookiesFile);
   // Cookie-file shortcut: bypasses Playwright entirely. Per
   // knowledge/pushing-cells-to-observablehq.md, headless Playwright
   // cookie extraction is unreliable (Observable's anti-bot wipes the
@@ -639,6 +656,12 @@ async function extractCookies(options) {
 }
 
 // --- Observable API ---
+
+// --next (or a cookies file holding D/sesh) selects the new site's HTTP edits route.
+const getNotebook = (slug, cookies, options) =>
+  options.next ? fetchNextNotebook(slug, cookies) : fetchNotebook(slug, cookies);
+const connect = (id, cookies, version, options) =>
+  (options.next ? connectNext : connectWS)(id, cookies, version, options);
 
 /**
  * Connect to Observable's WebSocket editing endpoint.
@@ -757,9 +780,9 @@ function waitForConfirm(ws, expectedVersion, options) {
  * sustained writes.
  */
 async function removeNodesViaWS(targetUrl, nodeIds, options) {
-  const slug = extractNotebookSlug(targetUrl);
+  const slug = options.next ? targetUrl : extractNotebookSlug(targetUrl);
   const cookies = await extractCookies(options);
-  const notebook = await fetchNotebook(slug, cookies);
+  const notebook = await getNotebook(slug, cookies, options);
   const existing = new Set((notebook.nodes || []).map((n) => n.id));
   const docVersion = notebook.version || notebook.latest_version;
   log(`Notebook ${notebook.id}: ${existing.size} cell(s), version ${docVersion}`);
@@ -778,7 +801,7 @@ async function removeNodesViaWS(targetUrl, nodeIds, options) {
     return;
   }
 
-  const conn = await connectWS(notebook.id, cookies, docVersion, options);
+  const conn = await connect(notebook.id, cookies, docVersion, options);
   let { version, subversion } = conn;
   try {
     for (const id of nodeIds) {
@@ -802,6 +825,8 @@ async function removeNodesViaWS(targetUrl, nodeIds, options) {
           log(`remove ${id}: ${err.message} — retry ${attempt}/6 in ${delay}ms`);
           await new Promise((r) => setTimeout(r, delay));
           delay = Math.min(delay * 2, 20000);
+          // A 409 means our version is stale (someone else edited): resending it can never succeed.
+          if (/status 409/.test(err.message)) version = (await getNotebook(slug, cookies, options)).version;
         }
       }
     }
@@ -812,20 +837,20 @@ async function removeNodesViaWS(targetUrl, nodeIds, options) {
 }
 
 async function pushViaWS(decompiled, targetUrl, options) {
-  const slug = extractNotebookSlug(targetUrl);
+  const slug = options.next ? targetUrl : extractNotebookSlug(targetUrl);
   const cookies = await extractCookies(options);
 
   // Fetch current notebook state
   log(`Fetching notebook ${slug}...`);
-  const notebook = await fetchNotebook(slug, cookies);
+  const notebook = await getNotebook(slug, cookies, options);
   const notebookId = notebook.id;
   const existingNodes = notebook.nodes || [];
   const docVersion = notebook.version || notebook.latest_version;
   log(`Notebook ${notebookId}: ${existingNodes.length} existing cell(s), version ${docVersion}`);
 
   // Connect to WebSocket
-  log('Connecting to Observable WebSocket...');
-  let conn = await connectWS(notebookId, cookies, docVersion, options);
+  log(`Connecting to Observable ${options.next ? '(HTTP edits)' : 'WebSocket'}...`);
+  let conn = await connect(notebookId, cookies, docVersion, options);
   log(`Connected at version ${conn.version}`);
 
   try {
@@ -840,8 +865,8 @@ async function pushViaWS(decompiled, targetUrl, options) {
     let savesOnConn = 0;
     const reconnect = async () => {
       try { conn.ws.close(); } catch (_) {}
-      const fresh = await fetchNotebook(slug, cookies);
-      conn = await connectWS(notebookId, cookies, fresh.version || fresh.latest_version, options);
+      const fresh = await getNotebook(slug, cookies, options);
+      conn = await connect(notebookId, cookies, fresh.version || fresh.latest_version, options);
       version = conn.version;
       subversion = conn.subversion;
       savesOnConn = 0;
@@ -881,7 +906,7 @@ async function pushViaWS(decompiled, targetUrl, options) {
             delay = Math.min(delay * 2, 20000);
             // A timeout means the socket went quiet; the save may or may not have landed, so
             // re-read the version from the API rather than assuming either.
-            if (dead) await reconnect();
+            if (dead || /status 409/.test(err.message)) await reconnect();
           }
         }
       };
