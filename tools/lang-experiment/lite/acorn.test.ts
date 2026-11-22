@@ -64,7 +64,7 @@ function nodeDiff(e: { node: any; kids: Map<string, any> }, n: any): string | nu
   return null;
 }
 function compare(texts: Input[], label: string, mutate?: (ast: any) => any) {
-  const t = { parsed: 0, nodes: 0, nodeDiff: 0, commentDiff: 0, other: 0, okMismatch: 0, threw: 0, notPreorder: 0, cut: 0, thrown: 0, errSame: 0, errDiff: 0 };
+  const t = { parsed: 0, nodes: 0, nodeDiff: 0, commentDiff: 0, other: 0, okMismatch: 0, threw: 0, notPreorder: 0, cut: 0, thrown: 0, errSame: 0, errDiff: 0, crash: 0, crashSame: 0 };
   const shown: string[] = [];
   for (const c of texts) {
     let P: any = null;
@@ -90,13 +90,22 @@ function compare(texts: Input[], label: string, mutate?: (ast: any) => any) {
     t.cut++;
     let thrown: any = null;
     try { parse(s, { jsx: c.tsx }); } catch (e) { thrown = e; }
+    // acorn-shell.ts returns a SyntaxError as a value and rethrows anything else; acorn-typescript 1.0.13 throws a
+    // TypeError on `export type` at end of input, so there parseTree must throw acorn's message
+    if (thrown && !(thrown instanceof SyntaxError)) {
+      t.crash++;
+      let m: string | null = null;
+      try { A.parseTree(s, c.tsx); } catch (e: any) { m = String(e?.message); }
+      if (m !== null && m.endsWith(thrown.message)) t.crashSame++; else { t.errDiff++; shown.push(`${c.id} cut ${f}: acorn threw ${thrown.message}, parseTree ${m === null ? "did not throw" : `threw ${m}`}`); }
+      continue;
+    }
     let v: any;
-    try { v = A.parseTree(s, c.tsx); } catch { t.errDiff++; continue; }
+    try { v = A.parseTree(s, c.tsx); } catch (e: any) { t.errDiff++; shown.push(`${c.id} cut ${f}: parseTree threw ${e.message}`); continue; }
     if (!thrown) { if (!v.ok) t.errDiff++; continue; }
     t.thrown++;
     if (!v.ok && v.message === thrown.message && v.pos === thrown.pos && v.line === thrown.loc.line && v.column === thrown.loc.column) t.errSame++; else t.errDiff++;
   }
-  console.log(`  ${label}: ${texts.length} inputs, ${t.parsed} parse; ${t.nodes} nodes, ${t.nodeDiff} differ; comments differ on ${t.commentDiff}; Other ${t.other}; not preorder ${t.notPreorder}; ok differs ${t.okMismatch}; parseTree threw ${t.threw}; truncations ${t.cut}, ${t.thrown} throw in parse.ts, error value equal ${t.errSame}, differ ${t.errDiff}`);
+  console.log(`  ${label}: ${texts.length} inputs, ${t.parsed} parse; ${t.nodes} nodes, ${t.nodeDiff} differ; comments differ on ${t.commentDiff}; Other ${t.other}; not preorder ${t.notPreorder}; ok differs ${t.okMismatch}; parseTree threw ${t.threw}; truncations ${t.cut}, ${t.thrown} throw in parse.ts, error value equal ${t.errSame}, differ ${t.errDiff}; acorn threw a non-SyntaxError on ${t.crash}, parseTree threw it on ${t.crashSame}`);
   for (const s of shown.slice(0, 5)) console.log(`    ${s.slice(0, 300)}`);
   return t;
 }
@@ -109,9 +118,14 @@ const h = compare(held, `held out (${held.length} files of tools/)`);
 ok(h.nodeDiff === 0 && h.commentDiff === 0 && h.other === 0 && h.notPreorder === 0 && h.okMismatch === 0 && h.threw === 0 && h.errDiff === 0 && h.nodes > 0, `held out: ${h.nodes} nodes, 0 differ; ${h.thrown} failing truncations, error values equal`);
 // controls: the copy's first Identifier renamed; one Literal's value changed; a comment dropped
 const edit = (f: (s: any) => boolean) => (ast: any) => { const s = JSON.parse(JSON.stringify(ast)); const go = (n: any): boolean => { if (n && typeof n === "object") { if (f(n)) return true; for (const k in n) if (go(n[k])) return true; } return false; }; go(s.program); return s; };
-const some = census.slice(300, 320);
+// the 20 shortest census inputs (ties by id) that parse and hold an Identifier and a number Literal, so every one can
+// differ under both edits whatever files lite/ gains
+const some = census
+  .flatMap((c) => { try { const o = acornOrder(parse(c.src, { jsx: c.tsx }).program); return o.some((e) => e.node.type === "Identifier") && o.some((e) => e.node.type === "Literal" && typeof e.node.value === "number") ? [c] : []; } catch { return []; } })
+  .sort((a, b) => a.src.length - b.src.length || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+  .slice(0, 20);
 const k1 = compare(some, "control: first Identifier renamed", edit((n) => n.type === "Identifier" && ((n.name += "_"), true)));
 const k2 = compare(some, "control: first number Literal changed", edit((n) => n.type === "Literal" && typeof n.value === "number" && ((n.value += 1), true)));
-ok(k1.nodeDiff === k1.parsed && k1.parsed > 0 && k2.nodeDiff > 0, `controls: a renamed Identifier differs on ${k1.nodeDiff} of ${k1.parsed} inputs, a changed Literal on ${k2.nodeDiff}`);
+ok(some.length === 20 && k1.nodeDiff === k1.parsed && k1.parsed === some.length && k2.nodeDiff === k2.parsed, `controls: a renamed Identifier differs on ${k1.nodeDiff} of ${k1.parsed} inputs, a changed Literal on ${k2.nodeDiff}`);
 console.log(`${pass} pass, ${fail} fail`);
 process.exit(fail ? 1 : 0);

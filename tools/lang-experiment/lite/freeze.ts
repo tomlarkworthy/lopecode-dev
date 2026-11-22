@@ -36,14 +36,11 @@ export class SsSet extends NSet {
 const CAPS = Symbol("ss captures");
 type Caps = (i: number) => unknown;
 const capsOf = (f: object): Caps | undefined => (f as { [CAPS]?: Caps })[CAPS];
-// published functions with a capture still in its dead zone; tdz() (emitted after such a declaration) walks them again
-const PENDING = new NSet<object>();
 export const closure = <F,>(f: F, t: Caps): F => { (f as { [CAPS]?: Caps })[CAPS] = t; return f; };
 export const methods = <O,>(o: O, ...r: unknown[]): O => {
   for (let i = 0; i < r.length; i += 2) ((o as Record<string, object>)[r[i] as string] as { [CAPS]?: Caps })[CAPS] = r[i + 1] as Caps;
   return o;
 };
-export const tdz = (): void => { if (PENDING.size === 0) return; for (const f of [...PENDING]) { PENDING.delete(f); deepFreeze(f); } };
 // SsURL (2026-11-22, cause D): the URL SoundScript code makes (a compiled cell takes it as URL). Object.freeze does not
 // stop URL's setters (they are on the prototype and write internal slots), so a frozen one refuses each setter
 export class SsURL extends NURL {
@@ -57,6 +54,9 @@ export class SsURL extends NURL {
       if (d === undefined || d.set === undefined) continue;
       Object.defineProperty(this.prototype, k, { configurable: true, enumerable: true, get: d.get, set(v: string) { refuse(this, `setting ${k}`, "URL"); d!.set!.call(this, v); } });
     }
+    // a detached snapshot (the params of a URL no one else holds): URLSearchParams is read-only in the language, and a
+    // live one would follow a URL the cell still writes
+    Object.defineProperty(this.prototype, "searchParams", { configurable: true, enumerable: true, get() { return new NURL((this as unknown as URL).href).searchParams; } });
   }
 }
 // the kinds of object deepFreeze treats (lite/freeze-table.ts gives the one treatment of each kind of value)
@@ -80,70 +80,108 @@ const kindOf = (v: object): number => {
   // an iterator or generator object: next() changes it, so it cannot be published (banned)
   return p !== null && (p === ITER_PROTO || Object.getPrototypeOf(p) === ITER_PROTO || (Object.getPrototypeOf(p) !== null && Object.getPrototypeOf(Object.getPrototypeOf(p)) === ITER_PROTO)) ? K_ITER : 0;
 };
-// the kinds a walk replaces by a copy in the parent's slot
-const swapped = (k: number): boolean => k === 5 || k === 6 || k === K_TYPED || k === K_BUFFER || k === K_URL || k === K_PROMISE;
-const KIND_NAME: Record<number, string> = { 5: "native Map", 6: "native Set", [K_TYPED]: "typed array", [K_BUFFER]: "ArrayBuffer", [K_URL]: "native URL" };
-// a native Map or Set -> its SsMap/SsSet copy, per call: a native one met twice in one value gets one copy
-const copyOf = (v: object, k: number, copies: Map<object, object>): object => {
-  let c = copies.get(v);
-  if (c) return c;
-  if (k === K_PROMISE) c = (v as Promise<unknown>).then(deepFreeze);
-  else if (k === K_TYPED) { c = (v as Uint8Array).slice(); COPIES.add(c); }
-  else if (k === K_BUFFER) { c = (v as ArrayBuffer).slice(0); COPIES.add(c); }
-  else if (k === K_URL) c = new SsURL((v as URL).href);
-  else c = k === 5 ? new SsMap(v as Map<unknown, unknown>) : new SsSet(v as Set<unknown>);
-  copies.set(v, c);
+// a leaf: replaced by a copy in whatever holds it (a promise: by p.then(deepFreeze)); every other kind is a node
+const leaf = (k: number): boolean => k === K_TYPED || k === K_BUFFER || k === K_URL || k === K_PROMISE;
+const KIND_NAME: Record<number, string> = { 5: "native Map", 6: "native Set", [K_TYPED]: "typed array", [K_BUFFER]: "ArrayBuffer", [K_URL]: "native URL", [K_PROMISE]: "promise" };
+const copyOf = (v: object, k: number): object => {
+  if (k === K_PROMISE) return (v as Promise<unknown>).then(deepFreeze);
+  if (k === K_URL) { const u = new SsURL((v as URL).href); FROZEN.add(u); Object.freeze(u); DONE.add(u); return u; }
+  const c = k === K_TYPED ? (v as Uint8Array).slice() : (v as ArrayBuffer).slice(0);
+  COPIES.add(c);
   return c;
 };
-// one node of the walk: each child through child, which may give a native Map or Set's copy to write back in its slot
-// (when the node is not frozen yet); an SsMap or SsSet is refilled only when a key or member was replaced
-const walkNode = (n: object, child: (x: unknown, fixed: boolean) => unknown): void => {
-  const k = kindOf(n), w = !Object.isFrozen(n);
-  if (k === 7) {
-    const t = capsOf(n)!, k = t(-1) as number;
-    for (let i = 0; i < k; i++) { let x: unknown; try { x = t(i); } catch { PENDING.add(n); continue; } child(x, true); }
-    Object.freeze(n);
-    return;
-  }
-  if (k === K_ERROR) { const e = n as unknown as Record<string, unknown>; for (const key of Object.getOwnPropertyNames(e)) { const d = Object.getOwnPropertyDescriptor(e, key)!; if (!("value" in d)) continue; const y = child(d.value, !w || !d.writable); if (y !== d.value) e[key] = y; } }
-  else if (k === 1) { const a = n as unknown[]; for (let i = 0; i < a.length; i++) { const y = child(a[i], !w); if (y !== a[i]) a[i] = y; } }
-  else if (k === 2) { const r = n as Record<string, unknown>; for (const key of Object.keys(r)) { const y = child(r[key], !w); if (y !== r[key]) r[key] = y; } }
-  else if (k === 3) {
-    const m = n as Map<unknown, unknown>, es = [...NMap.prototype.entries.call(m)], ys = es.map(([a, b]) => [child(a, FROZEN.has(m)), child(b, FROZEN.has(m))] as const);
-    if (!FROZEN.has(m) && ys.some(([a, b], i) => a !== es[i]![0] || b !== es[i]![1])) { NMap.prototype.clear.call(m); for (const [a, b] of ys) NMap.prototype.set.call(m, a, b); }
-  } else if (k === 4) {
-    const s = n as Set<unknown>, es = [...NSet.prototype.values.call(s)], ys = es.map((a) => child(a, FROZEN.has(s)));
-    if (!FROZEN.has(s) && ys.some((a, i) => a !== es[i])) { NSet.prototype.clear.call(s); for (const a of ys) NSet.prototype.add.call(s, a); }
-  }
-  if (k === 3 || k === 4 || k === K_SSURL) FROZEN.add(n);
-  if (w) Object.freeze(n);
+// a node whose slots cannot be given a copy: a function's captures, an Error, a value frozen before (a JSX element)
+const fixed = (n: object, k: number): boolean => k === K_FN || k === K_ERROR || (k !== 5 && k !== 6 && Object.isFrozen(n));
+const isObj = (x: unknown): x is object => (typeof x === "object" || typeof x === "function") && x !== null;
+// the runtime adopts a value with a callable then (it calls then and publishes what then passes on, unfrozen), and so
+// does every await: a thenable that is not a Promise is banned anywhere in a published value
+const noThen = (x: object): void => {
+  if (typeof (x as { then?: unknown }).then === "function" && !(x instanceof Promise)) throw new TypeError("a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen");
 };
-// one walk, an explicit stack; a node goes in DONE only when the whole walk ends, so an aborted walk is not trusted
-export function deepFreeze<T>(v: T): T {
-  if ((typeof v !== "object" && typeof v !== "function") || v === null || DONE.has(v)) return v;
+const iterErr = () => new TypeError("an iterator or generator object cannot leave its cell: next() changes it");
+// each child of node n (of kind k); a capture still in its dead zone throws (fail-stop: nothing has been changed yet)
+const eachKid = (n: object, k: number, f: (x: unknown) => void): void => {
+  if (k === K_FN) {
+    const t = capsOf(n)!, c = t(-1) as number;
+    for (let i = 0; i < c; i++) {
+      let x: unknown;
+      try { x = t(i); } catch (e) { throw new TypeError(`a function is published before a binding it captures is initialised (${(e as Error).message})`); }
+      f(x);
+    }
+  } else if (k === 1) { const a = n as unknown[]; for (let i = 0; i < a.length; i++) f(a[i]); }
+  else if (k === 2) { const r = n as Record<string, unknown>; for (const key of Object.keys(r)) f(r[key]); }
+  else if (k === 3 || k === 5) for (const [a, b] of NMap.prototype.entries.call(n)) { f(a); f(b); }
+  else if (k === 4 || k === 6) for (const a of NSet.prototype.values.call(n)) f(a);
+  else if (k === K_ERROR) for (const key of Object.getOwnPropertyNames(n)) { const d = Object.getOwnPropertyDescriptor(n, key)!; if ("value" in d) f(d.value); }
+};
+// Path copying (2026-11-22, holes7): no slot of a container the cell made is written. A container that reaches a leaf
+// (or a native Map or Set, which is always copied) is published as a frozen shallow copy holding the leaf's copy, and so
+// is each container on the way up; the cell's own containers keep its originals and are left as they are. Everything
+// else is frozen in place. 1: a read-only scan, where every throw is, so a publish that throws changes nothing.
+// 2 (only when a leaf was met): containers that reach one, by reverse edges (cycles included). 3: copy and freeze.
+// keep: v cannot be replaced (a held promise's value, which an await gives as it is): frozen in place, nothing copied;
+// a container on a path to a leaf is frozen but not put in DONE, so publishing it later copies the leaf
+export function deepFreeze<T>(v: T): T { return walk(v, false); }
+function walk<T>(v: T, keep: boolean): T {
+  if (!isObj(v) || DONE.has(v)) return v;
+  noThen(v);
   const k0 = kindOf(v);
   if (k0 === 0) return v;
-  const copies = new NMap<object, object>(), seen: object[] = [];
-  if (k0 === K_ITER) throw new TypeError("an iterator or generator object cannot leave its cell: next() changes it");
-  const top = swapped(k0) ? copyOf(v, k0, copies) : v;
-  if (k0 === K_PROMISE || k0 === K_TYPED || k0 === K_BUFFER) return top as T;
-  const stack: object[] = [top], open = new NSet<object>([top]);
-  const child = (x: unknown, fixed: boolean): unknown => {
-    if ((typeof x !== "object" && typeof x !== "function") || x === null || DONE.has(x)) return x;
-    const k = kindOf(x);
-    if (k === 0) return x;
-    if (k === K_ITER) throw new TypeError("an iterator or generator object cannot leave its cell: next() changes it");
-    // a promise that cannot be replaced: its value is deep-frozen in place when it settles (a typed array in it is not)
-    if (k === K_PROMISE && fixed) { (x as Promise<unknown>).then(deepFreeze, () => undefined); return x; }
-    if (swapped(k) && fixed) throw new TypeError(`a ${KIND_NAME[k]} where it cannot be replaced by a copy (in a frozen value or among a function's captures): a value cannot change after its cell publishes it`);
-    const y = swapped(k) ? copyOf(x, k, copies) : x;
-    if (k === K_PROMISE || k === K_TYPED || k === K_BUFFER) return y;
-    if (!open.has(y)) { open.add(y); stack.push(y); }
-    return y;
-  };
-  for (let n = stack.pop(); n !== undefined; n = stack.pop()) { seen.push(n); walkNode(n, child); }
-  for (const n of seen) if (!PENDING.has(n)) DONE.add(n);
-  return top as T;
+  if (k0 === K_ITER) throw iterErr();
+  if (leaf(k0)) return keep ? v : (copyOf(v, k0) as T);
+  const kinds = new NMap<object, number>([[v, k0]]), order: object[] = [v], leaves = new NMap<object, number>(), held: Promise<unknown>[] = [];
+  let seeded = k0 === 5 || k0 === 6;
+  for (let i = 0; i < order.length; i++) {
+    const n = order[i]!, k = kinds.get(n)!, fx = fixed(n, k);
+    eachKid(n, k, (x) => {
+      if (!isObj(x) || DONE.has(x) || kinds.has(x)) return;
+      noThen(x);
+      const kx = kindOf(x);
+      if (kx === 0) return;
+      if (kx === K_ITER) throw iterErr();
+      // a promise that cannot be replaced: its value is deep-frozen in place when it settles
+      if (kx === K_PROMISE && (fx || keep)) { held.push(x as Promise<unknown>); return; }
+      if (leaf(kx)) { leaves.set(x, kx); seeded = true; return; }
+      if (kx === 5 || kx === 6) seeded = true;
+      kinds.set(x, kx);
+      order.push(x);
+    });
+  }
+  const copies = new NMap<object, object>(), rep = (x: unknown): unknown => (isObj(x) ? copies.get(x) ?? x : x), why = new NMap<object, string>();
+  if (seeded) {
+    const parents = new NMap<object, object[]>(), todo: object[] = [];
+    const mark = (n: object, w: string) => { if (!why.has(n)) { why.set(n, w); todo.push(n); } };
+    for (const n of order) {
+      const k = kinds.get(n)!, fx = fixed(n, k);
+      if (k === 5 || k === 6) mark(n, KIND_NAME[k]!);
+      eachKid(n, k, (x) => {
+        if (!isObj(x)) return;
+        const kx = leaves.get(x);
+        if (kx !== undefined) { if (!(kx === K_PROMISE && fx)) mark(n, KIND_NAME[kx]!); }
+        else if (kinds.has(x)) { const ps = parents.get(x); if (ps) ps.push(n); else parents.set(x, [n]); }
+      });
+    }
+    for (let n = todo.pop(); n !== undefined; n = todo.pop()) for (const p of parents.get(n) ?? []) mark(p, why.get(n)!);
+    for (const [n, w] of why) if (!keep && fixed(n, kinds.get(n)!)) throw new TypeError(`a ${w} where it cannot be replaced by a copy (among a function's captures, in an Error or in an already frozen value): a value cannot change after its cell publishes it`);
+    for (const [x, kx] of keep ? [] : leaves) copies.set(x, copyOf(x, kx));
+    for (const n of keep ? [] : why.keys()) { const k = kinds.get(n)!; copies.set(n, k === 1 ? new Array((n as unknown[]).length) : k === 2 ? Object.create(Object.getPrototypeOf(n)) : k === 3 || k === 5 ? new SsMap() : new SsSet()); }
+    for (const n of keep ? [] : why.keys()) {
+      const c = copies.get(n)!, k = kinds.get(n)!;
+      if (k === 1) { const a = n as unknown[], b = c as unknown[]; for (let i = 0; i < a.length; i++) b[i] = rep(a[i]); }
+      // every own key, symbols too (a StateCell is a record with a symbol key)
+      else if (k === 2) for (const key of Reflect.ownKeys(n)) { const d = Object.getOwnPropertyDescriptor(n, key)!; Object.defineProperty(c, key, "value" in d ? { ...d, value: rep(d.value) } : d); }
+      else if (k === 3 || k === 5) for (const [a, b] of NMap.prototype.entries.call(n)) NMap.prototype.set.call(c, rep(a), rep(b));
+      else for (const a of NSet.prototype.values.call(n)) NSet.prototype.add.call(c, rep(a));
+    }
+  }
+  for (const p of held) p.then((x) => walk(x, true), () => undefined);
+  for (const n of order) {
+    const m = copies.get(n) ?? n, k = kinds.get(n)!;
+    if (k === 3 || k === 4 || k === 5 || k === 6 || k === K_SSURL) FROZEN.add(m);
+    Object.freeze(m);
+    if (!keep || !why.has(n)) DONE.add(m);
+  }
+  return rep(v) as T;
 }
 // a value a generator yields: deep-frozen, unless the generator lends it with borrow(x) (S5) and keeps writing it
 export const yielded = <T,>(v: T): T => (typeof v === "object" && v !== null && LENT.has(v) ? v : deepFreeze(v));

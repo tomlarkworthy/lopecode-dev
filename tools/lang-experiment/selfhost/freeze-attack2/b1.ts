@@ -1,0 +1,56 @@
+import { A, W, D, C, B } from "./common.ts";
+const TH = "{ then: (r: (v: { n: () => number; k: () => number }) => void) => void; n: () => number; k: () => number }";
+export const attacks = [
+  // __proto__ in a literal: the prototype is not Object.prototype, so kindOf gives 0 and deepFreeze skips it
+  A("pr-gen", "const a = function* () { const o = { __proto__: {}, xs: [0] }; yield o; o.xs.push(1); yield 1; };"),
+  A("pr-gen-null", "const a = function* () { const o = { __proto__: null, xs: [0] }; yield o; o.xs.push(1); yield 1; };"),
+  A("pr-fn", "const a = () => { const o = { __proto__: { q: 1 }, xs: [0] }; return (): Mut<number[]> => o.xs; };" + C),
+  A("pr-ret-cfn", "const a = () => { const xs = [0]; return { __proto__: {}, xs, k: () => { xs.push(1); return 0; } }; };\nconst c = (a: { k: () => number }) => a.k();\nconst b = (a: { xs: number[] }) => ({ v: a.xs });"),
+  A("pr-ret-typed", "const a = () => { const t = new Uint8Array(2); return { __proto__: {}, t, k: () => { t[0] = 1; return 0; } }; };\nconst c = (a: { k: () => number }) => a.k();\nconst b = (a: { t: Uint8Array }) => ({ v: a.t });"),
+  A("pr-str-key", "const a = function* () { const o = { \"__proto__\": {}, xs: [0] }; yield o; o.xs.push(1); yield 1; };"),
+  // computed method keys are not registered (fnreg: !p.computed)
+  A("cm-method", "const a = () => { const xs = [0]; return { [\"m\"](): Mut<number[]> { return xs; } }; };\nconst c = (a: { m: () => Mut<number[]> }) => { a.m().push(1); return 0; };"),
+  A("cm-method-gen", "const a = function* () { const xs = [0]; yield { [\"m\"]() { return xs.length; } }; xs.push(1); yield 0; };"),
+  A("cm-method-kept", "const a = () => { const xs = [0]; return { xs, [\"k\"]() { xs.push(1); return 0; } }; };\nconst c = (a: { k: () => number }) => a.k();\nconst b = (a: { xs: number[] }) => ({ v: a.xs });"),
+  A("cm-method-typed", "const a = () => { const t = new Uint8Array(2); return { [\"m\"]() { return t[0]; } }; };"),
+  A("num-method", "const a = () => { const xs = [0]; return { 0(): Mut<number[]> { return xs; } }; };\nconst c = (a: { 0: () => Mut<number[]> }) => { a[0]().push(1); return 0; };"),
+  A("getter", "const a = () => { const xs = [0]; return { get g(): Mut<number[]> { return xs; } }; };\nconst c = (a: { g: Mut<number[]> }) => { a.g.push(1); return 0; };"),
+  A("getter-gen", "const a = function* () { const xs = [0]; yield { get g() { return xs.length; } }; xs.push(1); yield 0; };"),
+  A("setter", "const a = () => { const xs = [0]; return { set s(v: number) { xs.push(v); }, n: () => xs.length }; };"),
+  // thenables: the runtime adopts them; out() deep-freezes only a real Promise's resolved value
+  A("th-record", "const a = () => ({ then: (r: (v: { n: () => number; k: () => number }) => void) => { const xs = [0]; r({ n: () => xs.length, k: () => { xs.push(1); return 0; } }); }, n: () => 0, k: () => 0 });\nconst c = (a: { k: () => number }) => a.k();\nconst b = (a: { n: () => number }) => ({ v: a.n });"),
+  A("th-record-arr", "const a = () => ({ then: (r: (v: { xs: number[] }) => void) => { r({ xs: [0] }); }, xs: [9] });\nconst b = (a: { xs: number[] }) => ({ v: a.xs });"),
+  A("th-typed", "const a = () => ({ then: (r: (v: Uint8Array) => void) => { const t = new Uint8Array(2); r(t); } });\nconst b = (a: unknown) => ({ v: a });"),
+  A("th-method", "const a = () => ({ then(r: (v: { n: () => number; k: () => number }) => void) { const xs = [0]; r({ n: () => xs.length, k: () => { xs.push(1); return 0; } }); }, n: () => 0, k: () => 0 });\nconst c = (a: { k: () => number }) => a.k();\nconst b = (a: { n: () => number }) => ({ v: a.n });"),
+  A("th-gen-yield", "const a = function* () { yield { then: (r: (v: { n: () => number; k: () => number }) => void) => { const xs = [0]; r({ n: () => xs.length, k: () => { xs.push(1); return 0; } }); }, n: () => 0, k: () => 0 }; };\nconst c = (a: { k: () => number }) => a.k();\nconst b = (a: { n: () => number }) => ({ v: a.n });"),
+  A("th-state", "const s = () => state({ then: (r: (v: { n: () => number; k: () => number }) => void) => { const xs = [0]; r({ n: () => xs.length, k: () => { xs.push(1); return 0; } }); }, n: () => 0, k: () => 0 });\nconst c = (s: { k: () => number }) => s.k();\nconst b = (s: { n: () => number }) => ({ v: s.n });"),
+  // TDZ: a record holding a pending function is put in DONE; the capture is written before ss_tdz runs
+  A("tdz-done-yield", "const a = function* () { const f = (): number[] => late; const r = { f }; yield 0; const late = [0], z = yield r, w = late.push(9); yield 2; };"),
+  A("tdz-done-yield2", "const a = function* () { const f = (): number => late.length; const r = { f }; yield r; const late = [0], z = yield r, w = late.push(9); yield 2; };"),
+  A("tdz-same-decl", "const a = function* () { const f = (): number => late.length; yield f; const late = [0], z = yield 1, w = late.push(9); yield 2; };\nconst b = (a: (() => number) | number) => ({ v: a });"),
+  A("tdz-async", "const a = async function* () { const f = (): number => late.length; const r = { f }; yield r; const late = [0], z = yield r, w = late.push(9); yield 2; };"),
+  A("tdz-fn-decl", "const a = function* () { const r = { g }; yield 0; const late = [0], z = yield r, w = late.push(9); yield 2; function g(): number { return late.length; } };"),
+  // cell parameter reassigned by destructuring or for-of: fnreg counts only Identifier assignment
+  A("param-destr-gen", "const b = () => [5];\nconst a = function* (b: number[]) { const xs = [0]; [b] = [xs]; yield () => b.length; xs.push(1); yield 0; };"),
+  A("param-obj-destr-gen", "const b = () => [5];\nconst a = function* (b: number[]) { const xs = [0]; ({ b } = { b: xs }); yield () => b.length; xs.push(1); yield 0; };"),
+  A("param-forof-gen", "const b = () => [5];\nconst a = function* (b: number[]) { const xs = [0]; for (b of [xs]) { } yield () => b.length; xs.push(1); yield 0; };"),
+  A("param-assign-gen", "const b = () => [5];\nconst a = function* (b: number[]) { const xs = [0]; b = xs; yield () => b.length; xs.push(1); yield 0; };"),
+  A("param-destr-ret", "const b = () => [5];\nconst a = (b: number[]) => { const xs = [0]; [b] = [xs]; return { n: () => b.length, k: () => { xs.push(1); return 0; } }; };\nconst c = (a: { k: () => number }) => a.k();\nconst d = (a: { n: () => number }) => ({ v: a.n });"),
+  A("param-destr-typed", "const b = () => new Uint8Array(2);\nconst a = (b: Uint8Array) => { const t = new Uint8Array(2); [b] = [t]; return { n: () => b[0], k: () => { t[0] = 7; return 0; } }; };\nconst c = (a: { k: () => number }) => a.k();\nconst d = (a: { n: () => number }) => ({ v: a.n });"),
+  // captured let reassigned by forms the let-capture rule may miss
+  A("let-destr", "const a = function* () { let n = [0]; const f = () => n.length; yield f; [n] = [[1, 2]]; yield 0; };"),
+  A("let-obj-destr", "const a = function* () { let n = 0; const f = () => n; yield f; ({ n } = { n: 5 }); yield 0; };"),
+  A("let-or-assign", "const a = function* () { let n = 0; const f = () => n; yield f; n ||= 5; yield 0; };"),
+  A("let-nullish-assign", "const a = function* () { let n: number | null = null; const f = () => n; yield f; n ??= 5; yield 0; };"),
+  A("let-and-assign", "const a = function* () { let n = 1; const f = () => n; yield f; n &&= 5; yield 0; };"),
+  A("let-forof", "const a = function* () { let n = 0; const f = () => n; yield f; for (n of [3, 4]) { } yield 0; };"),
+  A("let-forin", "const a = function* () { let n = \"\"; const f = () => n; yield f; for (n in { z: 1 }) { } yield 0; };"),
+  A("let-for-header", "const a = function* () { let n = 0; const f = () => n; yield f; for (n = 0; n < 3; n++) { } yield 0; };"),
+  A("let-pow-assign", "const a = function* () { let n = 2; const f = () => n; yield f; n **= 3; yield 0; };"),
+  A("let-shift-assign", "const a = function* () { let n = 2; const f = () => n; yield f; n <<= 3; yield 0; };"),
+  A("let-counter", "const a = () => { let n = 0; return { inc: () => n++, get: () => n }; };\nconst c = (a: { inc: () => number }) => a.inc();\nconst b = (a: { get: () => number }) => ({ v: a.get });"),
+  A("let-two-closures-pre", "const a = () => { let n = 0; const w = () => { n = n + 1; return 0; }; const r = () => n; return { w, r }; };\nconst c = (a: { w: () => number }) => a.w();\nconst b = (a: { r: () => number }) => ({ v: a.r });"),
+  A("let-destr-in-closure", "const a = () => { let n = 0; const w = () => { [n] = [n + 1]; return 0; }; return { w, r: () => n }; };\nconst c = (a: { w: () => number }) => a.w();\nconst b = (a: { r: () => number }) => ({ v: a.r });"),
+  A("let-forof-in-closure", "const a = () => { let n = 0; const w = () => { for (n of [7]) { } return 0; }; return { w, r: () => n }; };\nconst c = (a: { w: () => number }) => a.w();\nconst b = (a: { r: () => number }) => ({ v: a.r });"),
+  A("let-or-in-closure", "const a = () => { let n = 0; const w = () => { n ||= 9; return 0; }; return { w, r: () => n }; };\nconst c = (a: { w: () => number }) => a.w();\nconst b = (a: { r: () => number }) => ({ v: a.r });"),
+];

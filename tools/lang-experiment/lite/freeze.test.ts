@@ -1,5 +1,5 @@
 // bun lite/freeze.test.ts: SsMap/SsSet keep working as a Map and Set, refuse writes once frozen, and deepFreeze's walk
-import { SsMap, SsSet, deepFreeze, freeze, borrow, yielded, out, closure, methods, tdz } from "./freeze.ts";
+import { SsMap, SsSet, deepFreeze, freeze, borrow, yielded, out, closure, methods } from "./freeze.ts";
 import { equals, snapshot } from "../prelude.runtime.ts";
 let pass = 0, fail = 0;
 const ok = (c: boolean, what: string) => { if (c) pass++; else { fail++; console.log(`FAIL ${what}`); } };
@@ -27,13 +27,14 @@ ok(Object.isFrozen(cyc) && Object.isFrozen(cyc.xs), "a cycle");
 const shared = [1], two = { a: shared, b: shared };
 deepFreeze(two);
 ok(Object.isFrozen(shared) && two.a === two.b, "a shared subtree is frozen once and stays shared");
-const nk = new Map([["k", 1]]), nested = { m: nk, arr: [new Set([1])], mm: new SsMap([[nk, nk]]), ss: new SsSet([nk]) };
-deepFreeze(nested);
+const nk = new Map([["k", 1]]), orig = { m: nk, arr: [new Set([1])], mm: new SsMap([[nk, nk]]), ss: new SsSet([nk]) };
+const nested = deepFreeze(orig);
+ok(nested !== orig && orig.m === nk && !Object.isFrozen(orig), "a native Map or Set is published in a copy of each container on its path; the originals are left as they are");
 const nm = nested.m as any;
 ok(Object.getPrototypeOf(nm) === SsMap.prototype && throws(() => nm.set("j", 2)) && nk.size === 1, "a native Map in a record is replaced by a frozen SsMap copy");
 ok(Object.getPrototypeOf(nested.arr[0]) === SsSet.prototype && throws(() => (nested.arr[0] as any).add(2)), "a native Set in an array slot is replaced");
 const [mk] = [...nested.mm.keys()] as any[], [sk] = [...nested.ss] as any[];
-ok(mk === nm && nested.mm.get(mk) === nm && sk === nm, "a native Map as a key, a value and a member: one copy, the map refilled");
+ok(mk === nm && nested.mm.get(mk) === nm && sk === nm, "a native Map as a key, a value and a member: one copy, in a copy of the map");
 const top = deepFreeze(new Map([["a", [1]]])) as any;
 ok(Object.getPrototypeOf(top) === SsMap.prototype && Object.isFrozen(top.get("a")), "a native Map at the top: its frozen copy");
 const shut = Object.freeze([new Map([["a", 1]])]);
@@ -69,12 +70,41 @@ ok(deepFreeze(big) === big && Object.isFrozen(big[999]), "again: the same value,
   const zs = [0];
   deepFreeze(o);
   ok(Object.isFrozen(zs), "methods: a method's captures are frozen with its record");
-  let late: number[] | undefined;
-  const h = closure(() => late, (i) => (i < 0 ? 1 : (() => { if (late === undefined) throw new ReferenceError("tdz"); return late; })()));
-  deepFreeze(h);
-  late = [0];
-  tdz();
-  ok(Object.isFrozen(late), "tdz: a capture in its dead zone at publish is frozen once it is initialised (tdz())");
+  const ws = [0];
+  const h = closure(() => ws, (i) => (i < 0 ? 2 : i === 0 ? ws : (() => { throw new ReferenceError("late is not initialised"); })()));
+  const r = { h, ws };
+  ok(throws(() => deepFreeze(r)) && !Object.isFrozen(r) && !Object.isFrozen(ws), "dead zone: publishing a function before a capture is initialised throws, and freezes nothing");
+}
+{
+  // path copying (holes7): the cell keeps its containers and typed arrays; what is published is a frozen copy
+  const t = new Uint8Array(2), inner = { t }, shared = [1], o = { inner, again: inner, shared }, cyc: any = { t };
+  cyc.self = cyc;
+  const p = deepFreeze(o) as any;
+  ok(p !== o && p.inner !== inner && p.inner === p.again && p.inner.t !== t && p.shared === shared, "path copy: a copy on the path to a typed array, one copy per container, shared subtrees frozen in place");
+  ok(Object.isFrozen(p) && Object.isFrozen(p.inner) && !Object.isFrozen(o) && !Object.isFrozen(inner) && Object.isFrozen(shared) && o.inner.t === t, "path copy: the copies are frozen, the originals are left as they are");
+  t[0] = 7;
+  ok(p.inner.t[0] === 0, "path copy: a write to the original typed array does not reach the published one");
+  const c = deepFreeze(cyc) as any;
+  ok(c !== cyc && c.self === c && c.t !== t, "path copy: a cycle maps to one copy");
+  const mk = new SsMap<unknown, number>([[t, 1]]), mc = deepFreeze(mk) as Map<unknown, number>;
+  ok(mc !== mk && !mc.has(t) && [...mc.keys()][0] instanceof Uint8Array && throws(() => mc.set(1, 1)), "path copy: a typed-array Map key is copied in a copy of the Map");
+  const f = closure(() => inner.t[0], (i) => (i < 0 ? 1 : inner));
+  ok(throws(() => deepFreeze({ f })) && !Object.isFrozen(f), "path copy: a function whose captures reach a typed array throws at publish");
+  ok(throws(() => deepFreeze({ x: { then: (r: (v: number) => void) => r(1) } })) && throws(() => deepFreeze({ then: () => 0 })), "thenable: a record with a callable then is banned, at the top and nested");
+  ok(deepFreeze({ then: 1 }).then === 1 && deepFreeze(Promise.resolve(1)) instanceof Promise, "thenable: a then that is not callable, and a Promise, are not banned");
+}
+{
+  // a promise among a function's captures cannot be replaced: its value is frozen in place when it settles, and a
+  // container on the way to a typed array in it is not marked done, so a later publish of it throws (it can be neither
+  // skipped nor copied into: fail-stop)
+  const t = new Uint8Array(2), r = { t, n: [0] }, q = Promise.resolve(r);
+  deepFreeze(closure(() => q, (i) => (i < 0 ? 1 : q)));
+  await q; await null;
+  ok(Object.isFrozen(r) && Object.isFrozen(r.n) && throws(() => deepFreeze(r)), "a held promise's value: frozen in place; publishing it later throws");
+  const inner = [0], w: { p: Promise<number[]>; t: Uint8Array } = { p: Promise.resolve(inner), t: new Uint8Array(1) }, q2 = Promise.resolve(w);
+  deepFreeze(closure(() => q2, (i) => (i < 0 ? 1 : q2)));
+  await q2; await null; await null;
+  ok(Object.isFrozen(inner), "a promise inside a held promise's value is held too: its value is frozen when it settles");
 }
 ok(Object.isFrozen(out({ xs: [1] }).xs), "out: every sync value is frozen (B7's quick path removed 2026-11-22)");
 console.log(`${pass} pass, ${fail} fail`);

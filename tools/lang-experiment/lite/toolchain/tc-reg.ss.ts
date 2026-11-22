@@ -1,6 +1,6 @@
 // fnreg.ts fnRegEdits over the typed tree: for each function a cell's function makes, the cell locals it captures, as
 // insertions bracketed by /*ss+*/ ... /*ss-*/ (ss_closure around a function, ss_methods around an object literal with
-// methods, ss_tdz() after a let/const an earlier function captures). Names are compared as fnreg.ts compares them: by
+// methods). Names are compared as fnreg.ts compares them: by
 // name, not by scope.
 
 // the brackets, written in two pieces: a cell's source may not hold them (tcCompileChecked)
@@ -144,52 +144,38 @@ export const tcRegWalk = (tcBindsAt, tcPatNames, kidsOf) => (cellFn: AstNode): {
 };
 // an object literal whose methods capture: ss_methods(obj, "m", thunk, ...)
 export const tcRegMethods = (tcRegCaps, tcThunk, tcREG_OPEN, tcREG_CLOSE) => (n: AstNode, depth: number, locals: Set<string>, names: TcRegNames): TcRegHit => {
-  if (n.type !== "ObjectExpression") return { edits: [], caps: [] };
+  if (n.type !== "ObjectExpression") return { edits: [] };
   const ms = n.properties.flatMap((p) => (p.type === "Property" && p.method && !p.computed
     ? [{ key: p.key.type === "Identifier" ? p.key.name : p.key.type === "Literal" ? String(p.key.value) : "", cs: tcRegCaps(p.value, locals), start: p.value.start }] : []));
   const reg = ms.filter((m) => m.cs.length > 0);
-  if (reg.length === 0) return { edits: [], caps: [] };
+  if (reg.length === 0) return { edits: [] };
   const list = reg.map((m) => `${JSON.stringify(m.key)}, ${tcThunk(m.cs)}`).join(", ");
   const open: TcRegEdit = { at: n.start, depth, end: false, text: `${tcREG_OPEN}${names.methods}(${tcREG_CLOSE}`, use: "methods" };
   const close: TcRegEdit = { at: n.end, depth, end: true, text: `${tcREG_OPEN}, ${list})${tcREG_CLOSE}`, use: null };
-  return { edits: [open, close], caps: reg.map((m) => ({ start: m.start, names: m.cs })) };
+  return { edits: [open, close] };
 };
 // the edits at one node of the walk: a capturing function (a declaration at the start of its block: it is hoisted)
 export const tcRegAt = (tcRegMethods, tcRegCaps, tcThunk, tcREG_OPEN, tcREG_CLOSE) => (e: TcRegNode, locals: Set<string>, names: TcRegNames): TcRegHit => {
   const n = e.n, p = e.parent, depth = e.depth;
-  if (p === null) return { edits: [], caps: [] };
+  if (p === null) return { edits: [] };
   if (n.type === "ObjectExpression") return tcRegMethods(n, depth, locals, names);
-  if (n.type !== "ArrowFunctionExpression" && n.type !== "FunctionExpression" && n.type !== "FunctionDeclaration") return { edits: [], caps: [] };
+  if (n.type !== "ArrowFunctionExpression" && n.type !== "FunctionExpression" && n.type !== "FunctionDeclaration") return { edits: [] };
   // a method, getter or setter is registered by its object literal (ss_methods) or not at all
-  if ((p.type === "Property" && (p.method || p.kind !== "init") && p.value.nid === n.nid) || p.type === "MethodDefinition") return { edits: [], caps: [] };
+  if ((p.type === "Property" && (p.method || p.kind !== "init") && p.value.nid === n.nid) || p.type === "MethodDefinition") return { edits: [] };
   const cs = tcRegCaps(n, locals);
-  if (cs.length === 0) return { edits: [], caps: [] };
+  if (cs.length === 0) return { edits: [] };
   const block = n.type === "FunctionDeclaration" && p.type === "BlockStatement";
   const at = block ? p.start + 1 : n.start;
-  const caps = [{ start: at, names: cs }];
   if (n.type === "FunctionDeclaration") {
     const id = n.id.type === "Identifier" ? n.id.name : "";
-    return { edits: [{ at, depth: block ? depth : depth - 1, end: false, text: `${tcREG_OPEN}${names.closure}(${id}, ${tcThunk(cs)});${tcREG_CLOSE}`, use: "closure" }], caps };
+    return { edits: [{ at, depth: block ? depth : depth - 1, end: false, text: `${tcREG_OPEN}${names.closure}(${id}, ${tcThunk(cs)});${tcREG_CLOSE}`, use: "closure" }] };
   }
   const open: TcRegEdit = { at: n.start, depth, end: false, text: `${tcREG_OPEN}${names.closure}(${tcREG_CLOSE}`, use: "closure" };
-  return { edits: [open, { at: n.end, depth, end: true, text: `${tcREG_OPEN}, ${tcThunk(cs)})${tcREG_CLOSE}`, use: null }], caps };
-};
-// a let/const statement declaring a name a function made before its end captures: ;ss_tdz(); after it
-export const tcRegTdz = (tcDeclNames, tcREG_OPEN, tcREG_CLOSE) => (all: TcRegNode[], caps: TcRegCap[], names: TcRegNames): TcRegEdit[] => {
-  const out: Mut<TcRegEdit[]> = [];
-  const levels = ["BlockStatement", "SwitchCase", "Program", "StaticBlock"];
-  for (const e of all) {
-    const n = e.n, p = e.parent;
-    if (n.type !== "VariableDeclaration" || n.kind === "var" || p === null || !levels.includes(p.type)) continue;
-    const ds = tcDeclNames(n.declarations);
-    if (caps.some((c) => c.start < n.end && c.names.some((x) => ds.includes(x))))
-      out.push({ at: n.end, depth: e.depth, end: true, text: `${tcREG_OPEN};${names.tdz}();${tcREG_CLOSE}`, use: "tdz" });
-  }
-  return out;
+  return { edits: [open, { at: n.end, depth, end: true, text: `${tcREG_OPEN}, ${tcThunk(cs)})${tcREG_CLOSE}`, use: null }] };
 };
 // the registrations of a typed cell function, as edits to its text in their final order (at one position: ends deepest
-// first, then starts outermost first), and the runtime cells they call, in the order closure, methods, tdz
-export const tcFnRegs = (parseTree, tcRegWalk, tcRegAt, tcRegTdz) => (typed: string, names: TcRegNames): TcRegs => {
+// first, then starts outermost first), and the runtime cells they call, in the order closure, methods
+export const tcFnRegs = (parseTree, tcRegWalk, tcRegAt) => (typed: string, names: TcRegNames): TcRegs => {
   const p = parseTree(`(${typed})`, false);
   if (!p.ok) throw new Error(`tc-gap: a typed cell function that does not parse: ${p.message}`);
   const prog = p.ast.program;
@@ -197,9 +183,8 @@ export const tcFnRegs = (parseTree, tcRegWalk, tcRegAt, tcRegTdz) => (typed: str
   if (st === undefined || st.type !== "ExpressionStatement") throw new Error("tc-gap: a typed cell function that is not one expression");
   const w = tcRegWalk(st.expression);
   const hits = w.all.map((e) => tcRegAt(e, w.locals, names));
-  const caps = hits.flatMap((h) => h.caps);
-  const es = [...hits.flatMap((h) => h.edits), ...tcRegTdz(w.all, caps, names)]
+  const es = hits.flatMap((h) => h.edits)
     .toSorted((a, b) => a.at - b.at || (a.end === b.end ? (a.end ? b.depth - a.depth : a.depth - b.depth) : a.end ? -1 : 1));
-  const uses = ["closure", "methods", "tdz"].filter((u) => es.some((e) => e.use === u));
+  const uses = ["closure", "methods"].filter((u) => es.some((e) => e.use === u));
   return { edits: es.map((e) => ({ from: e.at - 1, to: e.at - 1, text: e.text })), uses };
 };

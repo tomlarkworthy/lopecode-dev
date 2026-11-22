@@ -1,5 +1,5 @@
 // FROZEN FIXTURE (2026-11-22, switch4): lite/toolchain/ss-toolchain.ts as it was before the rg, cp and tc cells were switched on.
-// DELIBERATE CHANGES since: stage A (2026-11-22) ss_out around a plain cell, Map/Set bound to ss_SsMap/ss_SsSet (marked below); B7 (ss_out(v, 1)) added and removed again 2026-11-22; closure registrations (2026-11-22, cause A: lite/fnreg.ts, bracketed /*ss+*/ /*ss-*/, dropped by decompile).
+// DELIBERATE CHANGES since: stage A (2026-11-22) ss_out around a plain cell, Map/Set bound to ss_SsMap/ss_SsSet (marked below); B7 (ss_out(v, 1)) added and removed again 2026-11-22; closure registrations (2026-11-22, cause A: lite/fnreg.ts, bracketed /*ss+*/ /*ss-*/, dropped by decompile); ss_tdz removed again (2026-11-22, holes7: a capture in its dead zone at publish throws in freeze.ts).
 // Only the differentials and tests compare against it; nothing shipped imports it, and the build does not reach it.
 // ss_toolchain: SoundScript cells <-> Lopecode runtime variables.
 // A compiled cell is ordinary JS whose first comment is /*{lang:"ss"}*/. The typed source is kept in
@@ -19,7 +19,8 @@ export { langOf, LANG };
 // the prelude functions, and h, the JSX element function lowered JSX calls
 const PRELUDE = [...PRELUDE_FNS, "h"];
 // the runtime module's cells a compiled cell can take: the built-ins its body uses and what its compiled form calls
-export const RUNTIME_CELLS = [...PRELUDE, "ref", "events", "listen", "cross", "viewRef", "compileFor", "rejected", "release", "out", "SsMap", "SsSet", "SsURL", "closure", "methods", "tdz"];
+export const RUNTIME_CELLS = [...PRELUDE, "ref", "events", "listen", "cross", "viewRef", "compileFor", "rejected", "release", "out", "SsMap", "SsSet", "SsURL", "closure", "methods"];
+// DELIBERATE CHANGE (2026-11-22, holes7): no tdz runtime cell (deepFreeze throws on a capture in its dead zone)
 // A capability parameter or a runtime cell -> the input that provides it: ss_<name>, except invalidation, the
 // runtime's own. ss_compile is defined in each module that compiles, because compile reads that module's cells; a
 // runtime cell is imported from the runtime module under that name, and the runtime module takes its own cell
@@ -286,7 +287,8 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   const loweredFn = parse(`(${lowered})`).program;
   const IN = ctx.inputs ?? INPUTS;
   // DELIBERATE CHANGE (2026-11-22, cause A): each function the cell makes registers the locals it captures (fnreg.ts)
-  const regEdits = fnRegEdits(acorn.parseExpressionAt(`(${typed})`, 0, { ecmaVersion: "latest" }), { closure: IN.closure, methods: IN.methods, tdz: IN.tdz });
+  const regEdits = fnRegEdits(acorn.parseExpressionAt(`(${typed})`, 0, { ecmaVersion: "latest" }), { closure: IN.closure, methods: IN.methods });
+  // DELIBERATE CHANGE (2026-11-22, holes7): no ;ss_tdz(); edit after a declaration
   const regTyped = applyRegEdits(typed, regEdits, 1), regIns = regUses(regEdits).map((u) => IN[u]);
   // the built-ins the body calls or reads: free references only, not a property, a key or a local of that name.
   // Each is bound to its input at the top of the definition, unless its input has its own name (the runtime module)

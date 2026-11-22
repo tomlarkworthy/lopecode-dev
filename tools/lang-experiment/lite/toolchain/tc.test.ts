@@ -82,9 +82,10 @@ test("tc cells: no non-null assertion or cast, nothing at the top but const cell
   expect(eq).toBe(EQ_READ);
 });
 
-// the shipped test files, their toolchain imports resolved to tc-shim.ts (tc-preload.ts)
+// the shipped test files, their toolchain imports resolved to tc-shim.ts (tc-preload.ts). The transpiler cache is off:
+// a cached transpile of the test file never calls the plugin's onResolve, so its imports keep the shipped files
 const runTest = (file: string, control: string | null) => {
-  const p = Bun.spawnSync(["bun", "--preload", join(import.meta.dir, "tc-preload.ts"), join(LITE, file)], { cwd: LITE, env: { ...process.env, TC_CONTROL: control ?? "", TC_SHOW: "1" } });
+  const p = Bun.spawnSync(["bun", "--preload", join(import.meta.dir, "tc-preload.ts"), join(LITE, file)], { cwd: LITE, env: { ...process.env, TC_CONTROL: control ?? "", TC_SHOW: "1", BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0" } });
   return { code: p.exitCode, out: p.stdout.toString() + p.stderr.toString() };
 };
 // each file with the control that breaks it (tc-shim.ts CONTROLS)

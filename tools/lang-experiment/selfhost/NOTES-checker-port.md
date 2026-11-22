@@ -1839,3 +1839,90 @@ in the 12:43 cp-port log, before this round). run-all.sh cannot see registration
 notebook. Thunk timings 722.0 / 717.8 have no kept log. No shipped cell is newly rejected (`selfcheck 0 not accepted`,
 bun-verify 169/0, browser 651/0); a cell whose kept function captures a typed array now throws at publish (none in
 bun-verify or the browser suite; the shipped corpus outside those was not run).
+
+## 2026-11-22 14:57–15:58: holes7, the four causes of selfhost/freeze-attack2 (build owner, logs `lite/soundscript/.scratch/holes7/`)
+Start: `selfhost/freeze-attack2/run-all.sh` reproduced `-- 309 candidates, accepted 110, silent 67` (`attack2-before.txt`;
+the script overwrites the folder's `all.out.txt`, the attacker's copy is kept as `attack2-all.out.orig.txt`); run-sets
+`-- all: 1085 programs, silent 0` (`sets-before.txt`).
+
+Cause 1, thenables. `deepFreeze` throws on any object or function with a callable `then` that is not `instanceof
+Promise`, at the top and at every depth it walks (a nested one is unwrapped by any later `await`). A foreign object
+(kind 0) is checked where it is met, not walked into. Static: a cell, yield or state value type that is a record, or
+a union with a record member, whose `then` is a function type is `[type]`, top level only (`md-value.ss.ts
+mdThenable`; frozen/core.ts the same under DELIBERATE CHANGE). The run-time ban cannot close one shape:
+`const a = async () => ({ n: 1, then: (r) => r("str") })` is adopted by the async function's own return before `out()`
+sees it (h7-then-async-return, before the rule: `show b = "undefined"`, `h7-on.txt`); the rule rejects it. Flips: 0
+on the module corpus (`--module-only` `rules met on SAME sources (lines): type 445`, the same as holes6's
+`fg/diffmod.log`). freeze2 with the run-time ban only: `accepted 110, silent 0` (`a2-run1.txt`, before the keep-mode
+and ss_tdz edits); with the rule: `accepted 86, silent 0` (`fg/attack2.txt`). run-sets `--off` now also drops this
+`[type]` (run-sets.ts `offRule`), so the off run measures the run-time ban.
+
+Cause 2, path copying. No slot of a container the cell made is written. `deepFreeze` is three passes: a read-only scan
+(every throw is in it, so a publish that throws changes nothing); only when a leaf (typed array, ArrayBuffer, native
+URL, promise) or a native Map/Set was met, the containers that reach one, by reverse edges (a cycle maps to one copy);
+then the copies, frozen shallow copies holding the leaf copies, and in-place freezing of the rest. A copy carries every
+own key, symbols included: the first run copied `Object.keys` only and a StateCell (a record with a symbol key) lost
+its mark, `s did not return state(...)` in 3 programs (`sets-run1.txt`). The cell's own containers on such a path are
+left unfrozen and not DONE. A record holding a promise is now copied rather than written in place. Throws at publish:
+a function, an Error or an already frozen value (a JSX element) that reaches a leaf. A promise among a function's
+captures cannot be replaced: its value is frozen in place when it settles (`walk(x, true)`), promises inside it too,
+and a container on its path to a leaf is not put in DONE, so publishing that container later throws (it can be neither
+skipped nor copied into). A typed array in such a value stays the cell's (as before). Every boundary already used the
+return value (prelude.runtime.ts 92, 110, 168; cells.ts 58, 62; run.ts 89 and stdlib/runtime.ts 131 for workers); the
+two discarded results were `tdz()` and the held promise's `then`.
+
+Cause 3. `SsURL.prototype.searchParams` returns `new URL(this.href).searchParams`, the params of a URL no one else
+holds (`new URLSearchParams(...)` made the build refuse: `generated cells take URLSearchParams, which no cell defines`).
+The only URL the language makes is `new URL` (intrinsics.ts 246-251), compiled to SsURL. Rows added to freeze-table.ts
+for the live views: URL searchParams, typed subarray, typed buffer, Map and Set iterators (banned), Error cause (Error's
+`{ cause }` option is `[arity]` in the language, so the row publishes an Error beside the array), thenable (banned).
+RegExp lastIndex already had a row; AggregateError is not an intrinsic.
+
+Cause 4. A registered function whose thunk throws (a capture in its dead zone) makes `deepFreeze` throw `a function is
+published before a binding it captures is initialised (Cannot access 'late' before initialization.)`. PENDING, `tdz()`
+and the `;ss_tdz();` edit are removed: fnreg.ts 148 -> 137 lines, tc-reg.ss.ts 205 -> 190 (tcRegTdz, and the caps it
+alone read), and the tdz runtime cell (tc-text, link.ts `slice(0, -6)` -> `-5`, run.ts, runtime-ss.ts,
+stdlib/runtime.ts, tc-types, tc-build; frozen ss-toolchain under DELIBERATE CHANGE). Census with the old fnreg.ts
+(`tdz-census.ts`, output `tdz-census.out.txt`): 892 cells in 86 shipped .ss.ts and example files, 28 tdz edits in 19
+cells; 10 follow a declaration whose initializers are all functions (a recursive local), the other 18 a name a hoisted function or a
+same-named binding in another scope captures (fnreg compares names, not scopes). These are toolchain cells that run in
+every check; none throws in bun-verify (170/0) or the browser suite. freeze.ts 163 -> 201 lines (132 -> 161 non-comment).
+
+Attacks. run-sets has sets freeze2 (selfhost/freeze-attack2 b0-b11, imported) and h7 (`lite/infer/attack/h7-attacks.ts`,
+45 programs, by name prefix: 11 h7-then, 18 h7-ta, 8 h7-lv, 8 h7-tdz). The three dead-zone programs first written with
+arrows were `[free-name]` and never ran; rewritten as hoisted declarations (let, a parameter default, a catching body)
+they run and throw. Of the 45, 26 run with the rules on and 40 off (`fg/setson2.txt`, `fg/setsoff2.txt`). live.test.ts
+(lite/infer/attack/) runs freeze, h6, freeze2, h7. Final: run-all.sh `-- 309 candidates, accepted 86, silent 0`;
+run-sets `-- all: 1439 programs, silent 0`; `--off` `-- all: 1439 programs, silent 30`, freeze2 `accepted 246, silent 18`,
+h7 `accepted 40, silent 0`. The 30 are the two known classes (SILENT lines in `fg/setsoff2.txt`): a captured let or
+parameter reassigned, 11 (b4-let-reassign-after, b4-let-captured-array, h6-let-late, let-for-header, let-pow-assign,
+let-shift-assign, let-counter, let-two-closures-pre, catch-reassign, inner-param-reassign, cell-param-reassign); a
+consumer writing its typed-array input, 19 (ab-view-of-input, ab-view-of-input-buffer, fc-typed-subarray,
+iterable-of-ab-union-narrowed, ta-view-of-cell-buffer, ta-view-of-cell-ab, ta-with-offset-view, S5.2#38,
+b6-typed-fill-input, cw-view-buffer, cw-subarray, cw-union, cw-rec-wrap, cw-arr-wrap, cw-map-wrap, cw-fill-view,
+cw-ab-input, cw-ternary-rec, cw-for-of-mix).
+
+Gates (`.scratch/holes7/gates.sh`, 15:25–15:41, logs in `fg/`; after the keep-mode fix rerun by hand ~15:55): build 0;
+`bun-verify: 170 pass, 0 fail, 0 timed out, 0 skipped; 6.3 s`; `14/14 fixtures pass`; diff `SAME 3613 DIFFERENT 0`;
+--module-only `SAME 1029 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0`; tc-diff decompileVariable `SAME 34936 ... DIFFERENT 0`,
+all calls `DIFFERENT 1`, which is `erase (repro)` on `lite/toolchain/repro/erase-optional-comment.ts`, an untracked
+repro of an erase.ts bug this round did not make; live `461 pass 0 fail` (holes6's `bt-infer_attack_live.test.ts.log`
+is also 461); freeze-table as a script `232 programs; late writes that threw: 77; 266 pass, 0 fail` (under `bun test`:
+`late writes that threw: 0`, `fg/table.txt`); run.test `2 pass`; delivery `50469 orderings, 0 fail` (the process took
+769 s to exit); freeze.test `43 pass, 0 fail`. Not rerun after the keep-mode fix: diff, tc-diff, delivery (freeze.ts
+only changed, and none of them reaches a held promise).
+Browser (AC). Before, the 13:46 build (`verify-before.txt`, 15:04, load 2.27): title 449 ms, lint median 4.7 ms,
+completion 5.0 ms, Mandelbrot pool 48.9 ms (main 66.5); its `647 pass 4 fail` are the core-only, no-raw and
+core-not-main builds, made while freeze.ts was mid-edit (`SsURL still has TypeScript after erase`). `verify-after.txt`
+(15:16, load 3.38): pool 42.8 ms, `648 pass 5 fail` (the new S4.6 row expected a run-time TypeError where the checker
+now refuses first; core-only's boot probe read `listeners attached undefined`, not seen again). `verify-final.txt`
+(15:41, load 2.34): `functional 653 pass 0 fail`; title 442 ms, lint 5.1 ms, completion 5.8 ms, pool 55.7 ms (main
+69.1). `verify-final2.txt`, after the keep-mode fix (15:53, load 2.31): `functional 653 pass 0 fail`; title 1074 ms (one
+reading, not explained; 441-449 ms in the three runs before), lint 4.7 ms, completion 5.1 ms, pool 50.7 ms (main 69.0). The pool's spread over runs of nearly the same code is larger than any
+difference that could be put on path copying; unresolved, not measured back to back. Spec row `test_spec_S4_6_host`: a
+top-level thenable is `[type]`, a nested one throws TypeError at publish, and `searchParams` read before
+`x.search = "?q=2"` still gives `"1"`: pass in the original and the reopened export.
+Not done or unverified: the collect µs/cell cost of the new scan was not measured. The acorn census index used by
+`acorn.test.ts` controls moves again with h7-attacks.ts (the other agent's file; not run). A fresh-context review
+(sonnet, read-only) of the first draft of this section gave 7 findings; taken: log paths, the h7 split, the full list
+of 19, the census output, the h7 run counts; its claim that holes7 has no browser log was wrong (`verify-*.txt`).

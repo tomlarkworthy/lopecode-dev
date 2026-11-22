@@ -1,0 +1,469 @@
+== b0.ts:s0-closure: ACCEPT
+== b1.ts:pr-gen: REJECT a:rejected[banned-member][mutating-method]
+== b1.ts:pr-gen-null: REJECT a:rejected[banned-member][mutating-method]
+== b1.ts:pr-fn: REJECT a:rejected[banned-member][type]
+== b1.ts:pr-ret-cfn: REJECT a:rejected[banned-member][mut-capture]
+== b1.ts:pr-ret-typed: REJECT a:rejected[banned-member][mut-capture]
+== b1.ts:pr-str-key: REJECT a:rejected[banned-member][mutating-method]
+== b1.ts:cm-method: REJECT a:unsupported c:blocked
+== b1.ts:cm-method-gen: REJECT a:unsupported
+== b1.ts:cm-method-kept: REJECT a:unsupported c:blocked b:blocked
+== b1.ts:cm-method-typed: REJECT a:unsupported
+== b1.ts:num-method: REJECT a:rejected[mut-capture] c:rejected[type]
+== b1.ts:getter: REJECT a:unsupported c:blocked
+== b1.ts:getter-gen: REJECT a:unsupported
+== b1.ts:setter: REJECT a:unsupported
+== b1.ts:th-record: REJECT a:rejected[mut-capture][mut-capture][type]
+== b1.ts:th-record-arr: REJECT a:rejected[type]
+== b1.ts:th-typed: REJECT a:rejected[type]
+== b1.ts:th-method: REJECT a:rejected[mut-capture][mut-capture][type]
+== b1.ts:th-gen-yield: REJECT a:rejected[mut-capture][mut-capture][type]
+== b1.ts:th-state: REJECT s:rejected[mut-capture][mut-capture][type]
+== b1.ts:tdz-done-yield: REJECT a:rejected[free-name]
+== b1.ts:tdz-done-yield2: REJECT a:rejected[free-name]
+== b1.ts:tdz-same-decl: REJECT a:rejected[free-name]
+== b1.ts:tdz-async: REJECT a:rejected[free-name]
+== b1.ts:tdz-fn-decl: ACCEPT
+   error a: Attempted to assign to readonly property.
+== b1.ts:param-destr-gen: REJECT a:unsupported
+== b1.ts:param-obj-destr-gen: REJECT a:unsupported
+== b1.ts:param-forof-gen: REJECT a:unsupported
+== b1.ts:param-assign-gen: ACCEPT
+   error a: Attempted to assign to readonly property.
+== b1.ts:param-destr-ret: REJECT a:rejected[mut-capture] c:blocked d:blocked
+== b1.ts:param-destr-typed: REJECT a:rejected[mut-capture] c:blocked d:blocked
+== b1.ts:let-destr: REJECT a:rejected[let-capture]
+== b1.ts:let-obj-destr: REJECT a:rejected[let-capture]
+== b1.ts:let-or-assign: REJECT a:rejected[let-capture]
+== b1.ts:let-nullish-assign: REJECT a:rejected[let-capture]
+== b1.ts:let-and-assign: REJECT a:rejected[let-capture]
+== b1.ts:let-forof: REJECT a:unsupported
+== b1.ts:let-forin: REJECT a:unsupported
+== b1.ts:let-for-header: REJECT a:rejected[let-capture]
+== b1.ts:let-pow-assign: REJECT a:rejected[let-capture]
+== b1.ts:let-shift-assign: REJECT a:rejected[let-capture]
+== b1.ts:let-counter: REJECT a:rejected[let-capture][let-capture]
+== b1.ts:let-two-closures-pre: REJECT a:rejected[let-capture][let-capture]
+== b1.ts:let-destr-in-closure: REJECT a:rejected[let-capture][let-capture] c:blocked b:blocked
+== b1.ts:let-forof-in-closure: REJECT a:unsupported c:blocked b:blocked
+== b1.ts:let-or-in-closure: REJECT a:rejected[let-capture][let-capture] c:blocked b:blocked
+== b2.ts:th-arr-async: REJECT a:rejected[type]
+== b2.ts:th-typed-async: REJECT a:rejected[type]
+== b2.ts:th-rec-async: REJECT a:rejected[type]
+== b2.ts:th-map-async: REJECT a:rejected[type]
+== b2.ts:th-set-async: REJECT a:rejected[type]
+== b2.ts:th-url-async: REJECT a:rejected[type]
+== b2.ts:th-err-async: REJECT a:rejected[type]
+== b2.ts:th-arr-then-cb: REJECT a:rejected[mut-capture][type]
+== b2.ts:th-arr-typed-rec: REJECT a:rejected[type]
+== b2.ts:th-method-async: REJECT a:rejected[type]
+== b2.ts:th-gen: REJECT a:rejected[type]
+== b2.ts:th-async-gen: REJECT a:rejected[type]
+== b2.ts:th-state: REJECT s:rejected[type]
+== b2.ts:th-async-cell: REJECT a:rejected[type]
+== b2.ts:th-promise-resolve: ACCEPT
+2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return (() => Promise.resolve({ then: (r/*ss:: (v: number[]) => void*/) => { const xs = [0]; const h = /*ss+*/ss_closure(/*ss-*/async () => { for (let i = 0; i < 300; i++) await null; xs.push(1); }/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/; h(); r(xs); } }));
+                                                                                                                                                                                                   ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:192)
+   show a = [0]
+== b2.ts:th-fn-value: REJECT a:rejected[mut-capture][type]
+== b2.ts:th-await-consumer: REJECT a:rejected[type]
+== b2.ts:th-await-inner: ACCEPT
+2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return (async () => { const t = { then: (r/*ss:: (v: number[]) => void*/) => { const xs = [0]; const h = /*ss+*/ss_closure(/*ss-*/async () => { for (let i = 0; i < 300; i++) await null; xs.push(1); }/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/; h(); r(xs); } }; const v = await t; return /*ss+*/ss_closure(/*ss-*/() => v/*ss+*/, (i) => i < 0 ? 1 : v)/*ss-*/; });
+                                                                                                                                                                                                     ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:194)
+   show c = fn([0])
+== b2.ts:th-confuse-type: REJECT a:rejected[type]
+== b3.ts:cs-record: REJECT a:rejected[member-write]
+== b3.ts:cs-record-fill: REJECT a:rejected[mutating-method]
+== b3.ts:cs-array: REJECT a:rejected[member-write]
+== b3.ts:cs-map: REJECT a:rejected[member-write]
+== b3.ts:cs-set: REJECT a:rejected[member-write]
+== b3.ts:cs-nested3: REJECT a:rejected[member-write]
+== b3.ts:cs-record-in-array: REJECT a:rejected[member-write]
+== b3.ts:cs-alias-record: REJECT a:rejected[member-write]
+== b3.ts:cs-buffer: REJECT a:rejected[member-write]
+== b3.ts:cs-sort: REJECT a:rejected[mutating-method]
+== b3.ts:cs-set-method: REJECT a:rejected[mutating-method]
+== b3.ts:cs-subarray: REJECT a:rejected[member-write]
+== b3.ts:cs-gen: REJECT a:rejected[member-write][mut-yield]
+== b3.ts:cs-gen-alias: REJECT a:rejected[member-write][mut-yield]
+== b3.ts:cs-gen-map: REJECT a:rejected[member-write][mut-yield]
+== b3.ts:cs-gen-helper: REJECT a:rejected[type][mut-yield]
+== b3.ts:cs-then: REJECT a:rejected[member-write][mut-capture]
+== b3.ts:cs-state-initial: REJECT s:rejected[member-write]
+== b3.ts:cs-key-map: ACCEPT
+== b3.ts:cs-fn-cap-rec: REJECT a:rejected[member-write][mut-capture]
+== b3.ts:cs-sync-in-cell: REJECT a:rejected[mut-capture]
+== b3.ts:usp-async: ACCEPT
+== b3.ts:usp-top: ACCEPT
+== b3.ts:usp-gen: REJECT a:rejected[mut-yield]
+== b3.ts:usp-gen-rec: REJECT a:rejected[mut-yield]
+== b3.ts:usp-fn: REJECT a:rejected[mut-capture]
+== b3.ts:usp-state: ACCEPT
+== b3.ts:usp-copy-url-in: ACCEPT
+ 5 | // deepFreeze freezes plain data: arrays, records whose prototype is Object.prototype or null, SsMap, SsSet, their
+ 6 | // keys and values. A native Map or Set met in a slot it can still write is replaced by a frozen SsMap/SsSet copy.
+ 7 | // It leaves every other object as it is: functions, class instances, typed arrays, Dates, Promises, DOM nodes.
+ 8 | const NMap = Map, NSet = Set, NURL = URL;
+ 9 | const FROZEN = new WeakSet<object>(), DONE = new WeakSet<object>(), LENT = new WeakSet<object>();
+10 | const refuse = (o: object, op: string, what: string) => { if (FROZEN.has(o)) throw new TypeError(`${op} on a frozen ${what}: a value cannot change after its cell returns`); };
+                                                                                            ^
+TypeError: setting hash on a frozen URL: a value cannot change after its cell returns
+      at refuse (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:10:88)
+      at set (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:55:117)
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:151)
+== b3.ts:usp-from-published-url: ACCEPT
+== b4.ts:rk-map-value-forEach: REJECT a:rejected[member-write]
+== b4.ts:rk-map-key-forEach: REJECT a:rejected[member-write]
+== b4.ts:rk-map-key-forof: REJECT a:rejected[member-write]
+== b4.ts:rk-map-keys-forof: REJECT a:rejected[member-write]
+== b4.ts:rk-map-values-forof: REJECT a:rejected[member-write]
+== b4.ts:rk-map-spread: REJECT a:rejected[member-write]
+== b4.ts:rk-map-arrayfrom: REJECT a:rejected[member-write]
+== b4.ts:rk-map-get: REJECT a:rejected[mutating-method]
+== b4.ts:rk-set-forof: REJECT a:rejected[member-write]
+== b4.ts:rk-set-values: REJECT a:rejected[member-write]
+== b4.ts:rk-set-spread: REJECT a:rejected[member-write]
+== b4.ts:rk-arr-forof: REJECT a:rejected[member-write]
+== b4.ts:rk-arr-forEach: REJECT a:rejected[member-write]
+== b4.ts:rk-arr-map: REJECT a:rejected[member-write]
+== b4.ts:rk-arr-find: REJECT a:rejected[member-write]
+== b4.ts:rk-arr-at: REJECT a:rejected[member-write]
+== b4.ts:rk-arr-destr: REJECT a:rejected[member-write]
+== b4.ts:rk-arr-slice: REJECT a:rejected[member-write]
+== b4.ts:rk-arr-reduce: REJECT a:rejected[member-write]
+== b4.ts:rk-rec-destr: REJECT a:rejected[member-write]
+== b4.ts:rk-rec-values: REJECT a:rejected[member-write]
+== b4.ts:rk-rec-entries: REJECT a:rejected[member-write]
+== b4.ts:rk-rec-param: REJECT a:rejected[type]
+== b4.ts:rk-rec-helper-get: REJECT a:rejected[type]
+== b4.ts:rk-map-key-nested: REJECT a:rejected[member-write]
+== b4.ts:rk-map-key-arr: REJECT a:rejected[member-write]
+== b4.ts:rk-map-key-state: REJECT s:rejected[member-write]
+== b4.ts:rk-map-key-gen: REJECT a:rejected[member-write][mut-yield]
+== b4.ts:rk-map-key-gen-later: REJECT a:rejected[member-write][mut-yield]
+== b4.ts:rk-map-key-fill: REJECT a:rejected[mutating-method]
+== b4.ts:rk-map-key-buffer: REJECT a:rejected[member-write]
+== b4.ts:rk-map-key-sync-ok: REJECT a:rejected[member-write]
+== b4.ts:rk-map-key-url: REJECT a:rejected[member-write]
+== b4.ts:rk-map-key-err: REJECT a:rejected[member-write]
+== b4.ts:rk-map-key-arr-elem: REJECT a:rejected[mutating-method]
+== b5.ts:nm-rec-field: ACCEPT
+== b5.ts:nm-rec-destr: ACCEPT
+== b5.ts:nm-arr-index: ACCEPT
+== b5.ts:nm-arr-forEach: ACCEPT
+== b5.ts:nm-arr-forof: ACCEPT
+== b5.ts:nm-map-get: ACCEPT
+== b5.ts:nm-map-forEach: ACCEPT
+== b5.ts:nm-map-key: ACCEPT
+== b5.ts:nm-map-key-forof: ACCEPT
+== b5.ts:nm-set-forEach: ACCEPT
+== b5.ts:nm-set-forof: ACCEPT
+== b5.ts:nm-nested: ACCEPT
+== b5.ts:nm-rec-buffer: REJECT a:rejected[member-write]
+== b5.ts:nm-rec-url: ACCEPT
+ 5 | // deepFreeze freezes plain data: arrays, records whose prototype is Object.prototype or null, SsMap, SsSet, their
+ 6 | // keys and values. A native Map or Set met in a slot it can still write is replaced by a frozen SsMap/SsSet copy.
+ 7 | // It leaves every other object as it is: functions, class instances, typed arrays, Dates, Promises, DOM nodes.
+ 8 | const NMap = Map, NSet = Set, NURL = URL;
+ 9 | const FROZEN = new WeakSet<object>(), DONE = new WeakSet<object>(), LENT = new WeakSet<object>();
+10 | const refuse = (o: object, op: string, what: string) => { if (FROZEN.has(o)) throw new TypeError(`${op} on a frozen ${what}: a value cannot change after its cell returns`); };
+                                                                                            ^
+TypeError: setting pathname on a frozen URL: a value cannot change after its cell returns
+      at refuse (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:10:88)
+      at set (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:55:117)
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:167)
+== b5.ts:nm-rec-err: ACCEPT
+2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return (() => { const e = new Error("x"); const o = { e }; const h = /*ss+*/ss_closure(/*ss-*/async () => { for (let i = 0; i < 300; i++) await null; o.e.message = "y"; }/*ss+*/, (i) => i < 0 ? 1 : o)/*ss-*/; h(); return o; });
+                                                                                                                                                             ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:154)
+== b5.ts:nm-rec-arr: ACCEPT
+2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return (() => { const xs = [0]; const o = { xs }; const h = /*ss+*/ss_closure(/*ss-*/async () => { for (let i = 0; i < 300; i++) await null; o.xs.push(1); }/*ss+*/, (i) => i < 0 ? 1 : o)/*ss-*/; h(); return o; });
+                                                                                                                                                          ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:151)
+== b5.ts:nm-map-in-rec-native: ACCEPT
+ 5 | // deepFreeze freezes plain data: arrays, records whose prototype is Object.prototype or null, SsMap, SsSet, their
+ 6 | // keys and values. A native Map or Set met in a slot it can still write is replaced by a frozen SsMap/SsSet copy.
+ 7 | // It leaves every other object as it is: functions, class instances, typed arrays, Dates, Promises, DOM nodes.
+ 8 | const NMap = Map, NSet = Set, NURL = URL;
+ 9 | const FROZEN = new WeakSet<object>(), DONE = new WeakSet<object>(), LENT = new WeakSet<object>();
+10 | const refuse = (o: object, op: string, what: string) => { if (FROZEN.has(o)) throw new TypeError(`${op} on a frozen ${what}: a value cannot change after its cell returns`); };
+                                                                                            ^
+TypeError: set on a frozen Map: a value cannot change after its cell returns
+      at refuse (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:10:88)
+      at set (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:14:33)
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:176)
+== b5.ts:nm-gen-rec: REJECT a:rejected[mut-yield]
+== b5.ts:nm-gen-map-key: REJECT a:rejected[mut-yield]
+== b5.ts:nm-state: ACCEPT
+== b5.ts:nm-then-cb: REJECT a:rejected[mut-capture]
+== b5.ts:nm-rec-helper: ACCEPT
+== b5.ts:nm-rec-fill: ACCEPT
+== b5.ts:nm-rec-subarray: REJECT a:rejected[member-write]
+== b5.ts:nm-map-key-in-set: ACCEPT
+== b6.ts:fd-reassign-gen: REJECT a:rejected[const-assign]
+== b6.ts:fd-reassign-async: REJECT a:rejected[const-assign]
+== b6.ts:var-capture: REJECT a:rejected[no-var][let-capture]
+== b6.ts:catch-reassign: REJECT a:rejected[let-capture]
+== b6.ts:inner-param-reassign: REJECT a:rejected[let-capture]
+== b6.ts:cell-param-reassign: REJECT a:rejected[let-capture]
+== b6.ts:kept-alias-rec: REJECT a:rejected[mut-capture]
+== b6.ts:kept-alias-map: REJECT a:rejected[mut-capture]
+== b6.ts:kept-sep-rec: REJECT a:rejected[mut-capture]
+== b6.ts:kept-fn-arr: REJECT a:rejected[mut-capture]
+== b6.ts:act-arg-rec: REJECT a:rejected[action-call]
+== b6.ts:act-arg-map: REJECT a:rejected[action-call]
+== b6.ts:act-arg-direct: REJECT a:rejected[action-call]
+== b6.ts:pr-cap-typed: REJECT a:rejected[type][mut-capture] c:rejected[mut-capture]
+== b6.ts:pr-cap-iife: REJECT a:rejected[mut-capture][mut-capture] c:rejected[mut-capture]
+== b6.ts:pr-cap-async-fn: REJECT a:rejected[mut-capture] c:rejected[mut-capture]
+== b6.ts:pr-cap-arr: ACCEPT
+2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return (() => { const xs = [0]; const g = /*ss+*/ss_closure(/*ss-*/async () => xs/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/; const p = g(); const h = /*ss+*/ss_closure(/*ss-*/async () => { for (let i = 0; i < 300; i++) await null; xs.push(1); }/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/; h(); return /*ss+*/ss_closure(/*ss-*/() => p/*ss+*/, (i) => i < 0 ? 1 : p)/*ss-*/; });
+                                                                                                                                                                                                                                              ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:235)
+== b6.ts:pr-top-then: REJECT a:rejected[type][mut-capture] c:rejected[inject-type]
+== b6.ts:cw-view-buffer: REJECT b:rejected[member-write]
+== b6.ts:cw-subarray: REJECT b:rejected[member-write]
+== b6.ts:cw-union: REJECT b:rejected[member-write]
+== b6.ts:cw-rec-wrap: REJECT b:rejected[member-write]
+== b6.ts:cw-arr-wrap: REJECT b:rejected[member-write]
+== b6.ts:cw-map-wrap: REJECT b:rejected[member-write]
+== b6.ts:cw-alias-let: REJECT b:rejected[type]
+== b6.ts:cw-fill-view: REJECT b:rejected[mutating-method]
+== b6.ts:cw-ab-input: REJECT b:rejected[member-write]
+== b6.ts:cw-ternary-rec: REJECT b:rejected[member-write]
+== b6.ts:cw-for-of-mix: REJECT b:rejected[member-write]
+== b6.ts:usp-arr: ACCEPT
+== b6.ts:usp-map: ACCEPT
+== b6.ts:usp-consumer-reads: ACCEPT
+== b7.ts:sym-key: REJECT a:unsupported c:blocked
+== b7.ts:sym-iter-key: REJECT a:unsupported
+== b7.ts:computed-str-key: REJECT a:unsupported
+== b7.ts:fn-prop: REJECT a:rejected[member-write][no-member]
+== b7.ts:pc-typed-param: REJECT a:rejected[mut-capture] c:rejected[mut-capture]
+== b7.ts:pc-typed-ret: REJECT a:rejected[mut-capture] c:rejected[mut-capture]
+== b7.ts:pc-typed-all: REJECT a:rejected[mut-capture] c:rejected[mut-capture]
+== b7.ts:pc-typed-top: REJECT c:rejected[inject-type]
+== b7.ts:pc-typed-in-rec-yield: REJECT a:rejected[mut-capture] c:rejected[mut-capture]
+== b7.ts:pc-url: REJECT a:rejected[mut-capture] c:rejected[mut-capture]
+== b7.ts:pc-usp: REJECT a:rejected[mut-capture] c:rejected[mut-capture]
+== b7.ts:th-in-record-field: ACCEPT
+   error a: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   error c: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+== b7.ts:th-listener-events: REJECT g:rejected[type] l:rejected[inject-events]
+== b7.ts:th-action-set: REJECT s:rejected[state-undefined] w:rejected[action-async]
+== b7.ts:th-copy-slot: REJECT a:rejected[type]
+== b7.ts:th-nested-then: REJECT a:rejected[type]
+== b7.ts:th-consumer-type-lie: REJECT a:rejected[type]
+== b7.ts:th-fn-cell: ACCEPT
+2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return (() => () => ({ then: (r/*ss:: (v: number[]) => void*/) => { const xs = [0]; const h = /*ss+*/ss_closure(/*ss-*/async () => { for (let i = 0; i < 300; i++) await null; xs.push(1); }/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/; h(); r(xs); } }));
+                                                                                                                                                                                          ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:183)
+== b7.ts:upd-keeps-old: ACCEPT
+   show s = [0,1]
+== b7.ts:act-reenter: ACCEPT
+   show s = {n:[0]}
+== b7.ts:state-arr-of-typed: ACCEPT
+== b7.ts:usp-action-set: ACCEPT
+   show s = USP(q=1)
+== b7.ts:usp-yield-fresh: REJECT a:rejected[mut-yield]
+== b7.ts:usp-yield-via-helper: REJECT a:rejected[mut-yield]
+== b8.ts:thc-consumer-push: REJECT a:rejected[mut-capture][type]
+== b8.ts:thc-consumer-typed: REJECT a:rejected[mut-capture][type]
+== b8.ts:thc-consumer-direct-mut: REJECT a:rejected[mut-capture][type]
+== b8.ts:cs-async-cell: ACCEPT
+== b8.ts:cs-promise-resolve: REJECT a:rejected[type] b:rejected[inject-type]
+== b8.ts:cs-async-gen-ret: REJECT a:rejected[mut-yield]
+== b8.ts:cs-gen-after-last-yield: REJECT a:rejected[mut-yield]
+== b8.ts:cs-gen-return: ACCEPT
+== b8.ts:rg-template: REJECT a:rejected[mut-capture]
+== b8.ts:rg-try: REJECT a:rejected[mut-capture]
+== b8.ts:rg-catch: REJECT a:rejected[mut-capture]
+== b8.ts:rg-finally: REJECT a:rejected[mut-capture]
+== b8.ts:rg-loop: REJECT a:rejected[mutating-method][mut-capture]
+== b8.ts:rg-while: REJECT a:rejected[mut-capture]
+== b8.ts:rg-switch: REJECT a:rejected[mut-capture]
+== b8.ts:rg-switch-decl: REJECT a:rejected[switch-declaration][mut-capture]
+== b8.ts:rg-labeled: REJECT a:rejected[mut-capture] c:blocked b:blocked
+== b8.ts:rg-comma: REJECT a:unsupported c:blocked b:blocked
+== b8.ts:rg-logical: REJECT a:rejected[mut-capture]
+== b8.ts:rg-iife-returns: REJECT a:rejected[mut-capture]
+== b8.ts:rg-iife-two: REJECT a:rejected[mut-capture]
+== b8.ts:rg-default-param-fn: REJECT a:rejected[mut-capture]
+== b8.ts:rg-nested-arrow-body: REJECT a:rejected[mut-capture]
+== b8.ts:rg-shadow: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b8.ts:rg-shadow-param: REJECT a:rejected[mut-capture]
+== b8.ts:rg-shadow-inner: REJECT a:rejected[mut-capture]
+== b8.ts:rg-destr-cap: REJECT a:rejected[mut-capture]
+== b8.ts:rg-arr-destr-cap: REJECT a:rejected[possibly-undefined]
+== b8.ts:rg-catch-cap: REJECT a:rejected[no-cast]
+== b8.ts:rg-forof-cap: REJECT a:rejected[mut-capture][mut-capture]
+== b8.ts:rg-recursive: ACCEPT
+   error c: Attempted to assign to readonly property.
+== b8.ts:rg-mutual: REJECT a:rejected[free-name]
+== b8.ts:rg-fn-decl-hoist: REJECT a:rejected[mut-capture]
+== b8.ts:rg-async-fn: REJECT a:rejected[mut-capture]
+== b8.ts:rg-gen-fn: REJECT a:rejected[mut-capture]
+== b8.ts:rg-method-ret: REJECT a:rejected[mut-capture]
+== b8.ts:rg-method-shorthand-str: REJECT a:rejected[mut-capture]
+== b8.ts:rg-fn-expr-prop: REJECT a:rejected[mut-capture]
+== b8.ts:rg-arrow-prop: REJECT a:rejected[mut-capture]
+== b8.ts:rg-spread-methods: REJECT a:rejected[mut-capture]
+== b8.ts:rg-array-of-fn: REJECT a:rejected[mut-capture]
+== b8.ts:rg-map-of-fn: REJECT a:rejected[mut-capture]
+== b8.ts:rg-cond-expr: REJECT a:rejected[mut-capture]
+== b8.ts:rg-as-cast: REJECT a:rejected[no-cast][mut-capture] c:blocked b:blocked
+== b8.ts:rg-tagged: REJECT a:rejected[mut-capture] c:blocked b:blocked
+== b9.ts:tdz-done: ACCEPT
+   error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+== b9.ts:tdz-done-plain: ACCEPT
+   error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+== b9.ts:tdz-done-arr: ACCEPT
+   error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+== b9.ts:tdz-done-fn-direct: ACCEPT
+   error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+   error b: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+== b9.ts:tdz-done-after-tdz-other: ACCEPT
+   error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+== b9.ts:tdz-done-state-like: ACCEPT
+   error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+== b9.ts:tdz-done-typed: REJECT a:rejected[mut-capture]
+== b9.ts:tdz-done-map: ACCEPT
+   error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+== b9.ts:tdz-done-record-holder: ACCEPT
+   error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+== b9.ts:tdz-done-consumer: ACCEPT
+   error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+   error b: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+== b9.ts:usp-async-cell: ACCEPT
+== b9.ts:usp-set: ACCEPT
+== b9.ts:usp-then-cb: REJECT a:rejected[mut-capture]
+== b9.ts:usp-reader-cell: ACCEPT
+== b9.ts:cs-two-yields: REJECT a:rejected[mut-yield]
+== b9.ts:cs-state-map-key: ACCEPT
+== b9.ts:cs-f32: ACCEPT
+== b9.ts:cs-reverse: ACCEPT
+== b9.ts:cs-copywithin: ACCEPT
+== b9.ts:cs-buffer-named: REJECT a:rejected[member-write]
+== b9.ts:cs-buffer-of-typed: REJECT a:rejected[member-write]
+== b9.ts:cs-subarray-named: REJECT a:rejected[member-write]
+== b9.ts:cs-second-consumer-sees: ACCEPT
+   show b = 0
+== b9.ts:ctl-array-late: ACCEPT
+2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return (() => { const xs = [0]; const h = /*ss+*/ss_closure(/*ss-*/async () => { for (let i = 0; i < 300; i++) await null; xs.push(1); }/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/; h(); return xs; });
+                                                                                                                                      ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:131)
+== b9.ts:ctl-typed-direct: ACCEPT
+== b9.ts:ctl-url-late: ACCEPT
+ 5 | // deepFreeze freezes plain data: arrays, records whose prototype is Object.prototype or null, SsMap, SsSet, their
+ 6 | // keys and values. A native Map or Set met in a slot it can still write is replaced by a frozen SsMap/SsSet copy.
+ 7 | // It leaves every other object as it is: functions, class instances, typed arrays, Dates, Promises, DOM nodes.
+ 8 | const NMap = Map, NSet = Set, NURL = URL;
+ 9 | const FROZEN = new WeakSet<object>(), DONE = new WeakSet<object>(), LENT = new WeakSet<object>();
+10 | const refuse = (o: object, op: string, what: string) => { if (FROZEN.has(o)) throw new TypeError(`${op} on a frozen ${what}: a value cannot change after its cell returns`); };
+                                                                                            ^
+TypeError: setting pathname on a frozen URL: a value cannot change after its cell returns
+      at refuse (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:10:88)
+      at set (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:55:117)
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:148)
+== b9.ts:ctl-error-late: ACCEPT
+2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return (() => { const e = new Error("x"); const h = /*ss+*/ss_closure(/*ss-*/async () => { for (let i = 0; i < 300; i++) await null; e.message = "y"; }/*ss+*/, (i) => i < 0 ? 1 : e)/*ss-*/; h(); return e; });
+                                                                                                                                          ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:135)
+== b9.ts:ctl-map-late: ACCEPT
+ 5 | // deepFreeze freezes plain data: arrays, records whose prototype is Object.prototype or null, SsMap, SsSet, their
+ 6 | // keys and values. A native Map or Set met in a slot it can still write is replaced by a frozen SsMap/SsSet copy.
+ 7 | // It leaves every other object as it is: functions, class instances, typed arrays, Dates, Promises, DOM nodes.
+ 8 | const NMap = Map, NSet = Set, NURL = URL;
+ 9 | const FROZEN = new WeakSet<object>(), DONE = new WeakSet<object>(), LENT = new WeakSet<object>();
+10 | const refuse = (o: object, op: string, what: string) => { if (FROZEN.has(o)) throw new TypeError(`${op} on a frozen ${what}: a value cannot change after its cell returns`); };
+                                                                                            ^
+TypeError: set on a frozen Map: a value cannot change after its cell returns
+      at refuse (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:10:88)
+      at set (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:14:33)
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:157)
+== b9.ts:ctl-set-late: ACCEPT
+ 5 | // deepFreeze freezes plain data: arrays, records whose prototype is Object.prototype or null, SsMap, SsSet, their
+ 6 | // keys and values. A native Map or Set met in a slot it can still write is replaced by a frozen SsMap/SsSet copy.
+ 7 | // It leaves every other object as it is: functions, class instances, typed arrays, Dates, Promises, DOM nodes.
+ 8 | const NMap = Map, NSet = Set, NURL = URL;
+ 9 | const FROZEN = new WeakSet<object>(), DONE = new WeakSet<object>(), LENT = new WeakSet<object>();
+10 | const refuse = (o: object, op: string, what: string) => { if (FROZEN.has(o)) throw new TypeError(`${op} on a frozen ${what}: a value cannot change after its cell returns`); };
+                                                                                            ^
+TypeError: add on a frozen Set: a value cannot change after its cell returns
+      at refuse (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:10:88)
+      at add (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:21:21)
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:149)
+== b9.ts:ctl-regexp-replace: ACCEPT
+   show b = ["ba","ba"]
+== b9.ts:ctl-rec-of-url: ACCEPT
+ 5 | // deepFreeze freezes plain data: arrays, records whose prototype is Object.prototype or null, SsMap, SsSet, their
+ 6 | // keys and values. A native Map or Set met in a slot it can still write is replaced by a frozen SsMap/SsSet copy.
+ 7 | // It leaves every other object as it is: functions, class instances, typed arrays, Dates, Promises, DOM nodes.
+ 8 | const NMap = Map, NSet = Set, NURL = URL;
+ 9 | const FROZEN = new WeakSet<object>(), DONE = new WeakSet<object>(), LENT = new WeakSet<object>();
+10 | const refuse = (o: object, op: string, what: string) => { if (FROZEN.has(o)) throw new TypeError(`${op} on a frozen ${what}: a value cannot change after its cell returns`); };
+                                                                                            ^
+TypeError: setting hash on a frozen URL: a value cannot change after its cell returns
+      at refuse (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:10:88)
+      at set (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:55:117)
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:165)
+== b9.ts:ctl-structured-map: ACCEPT
+== b9.ts:ctl-structured-in-rec: ACCEPT
+== b9.ts:ctl-snapshot-typed: ACCEPT
+== b9.ts:ctl-native-map-in-rec-key: ACCEPT
+== b10.ts:ev-rec-typed: REJECT l:rejected[inject-events]
+== b10.ts:ev-usp: REJECT l:rejected[inject-events]
+== b10.ts:ev-listener-writes-arg: ACCEPT
+   show s = [0]
+== b10.ts:st-usp-rec: ACCEPT
+== b10.ts:st-cs-nested: ACCEPT
+== b10.ts:st-cs-then-read-in-action: ACCEPT
+== b10.ts:th-action-set-typed: ACCEPT
+   show s = {n:1}
+== b10.ts:th-state-update-thenable: ACCEPT
+   show s = ERROR a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   error s: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   error c: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+== b10.ts:th-state-thenable-async: REJECT s:rejected[type]
+== b10.ts:th-two-consumers: REJECT a:rejected[type]
+== b10.ts:th-records-equal: REJECT a:rejected[type]
+== b10.ts:th-messageOf: REJECT a:rejected[type]
+== b10.ts:cs-deep-async: ACCEPT
+== b10.ts:cs-map-value-arr: ACCEPT
+== b10.ts:cs-arr-of-rec: ACCEPT
+== b11.ts:tdz-exit-only: ACCEPT
+   error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+   error b: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+== b11.ts:tdz-exit-only-rec: ACCEPT
+   error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+== b11.ts:tdz-write-no-republish: ACCEPT
+   error a: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+   error b: a function is published before a binding it captures is initialised (Cannot access 'late' before initialization.)
+-- 309 candidates, accepted 86, silent 0

@@ -1,0 +1,55 @@
+import { A, W, D, B, C } from "./common.ts";
+const L = (body: string) => `const h = async () => { ${W}${body} }; h(); `;
+const T = "const t = new Uint8Array(2); ";
+const F = "(): Mut<number[]> => xs";
+const HB = "\nconst b = (a: () => Mut<number[]>) => () => a();";
+// a published function returning its capture as Mut: the consumer's push throws if registration froze it
+const P = (name: string, body: string) => A(name, `const a = () => { const xs = [0]; ${body} };` + C + HB);
+export const attacks = [
+  A("thc-consumer-push", "const a = () => ({ then: (r: (v: { f: () => Mut<number[]> }) => void) => { const xs = [0]; r({ f: (): Mut<number[]> => xs }); }, f: (): Mut<number[]> => [9] });\nconst c = (a: { f: () => Mut<number[]> }) => { a.f().push(1); return 0; };\nconst b = (a: { f: () => Mut<number[]> }) => () => a.f();"),
+  A("thc-consumer-typed", "const a = () => ({ then: (r: (v: { f: () => Mut<Uint8Array> }) => void) => { const t = new Uint8Array(2); r({ f: (): Mut<Uint8Array> => t }); }, f: (): Mut<Uint8Array> => new Uint8Array(1) });\nconst c = (a: { f: () => Mut<Uint8Array> }) => { a.f()[0] = 1; return 0; };\nconst b = (a: { f: () => Mut<Uint8Array> }) => () => a.f();"),
+  A("thc-consumer-direct-mut", "const a = () => ({ then: (r: (v: () => Mut<number[]>) => void) => { const xs = [0]; r((): Mut<number[]> => xs); } });\nconst c = (a: unknown) => 0;"),
+  A("cs-async-cell", "const a = async () => { " + T + "const o = { t }; " + L("o.t[0] = 1;") + "return o; };" + B("{ t: Uint8Array }")),
+  A("cs-promise-resolve", "const a = () => { " + T + "const o = { t }; " + L("o.t[0] = 1;") + "return Promise.resolve(o); };" + B("{ t: Uint8Array }")),
+  A("cs-async-gen-ret", "const a = async function* () { " + T + "const o = { t }; " + L("o.t[0] = 1;") + "yield o; };" + B("{ t: Uint8Array }")),
+  A("cs-gen-after-last-yield", "const a = function* () { " + T + "const o = { t }; " + L("o.t[0] = 1;") + "yield o; };" + B("{ t: Uint8Array }")),
+  A("cs-gen-return", "const a = function* () { " + T + "const o = { t }; " + L("o.t[0] = 1;") + "yield 0; return o; };"),
+  // registration in syntactic positions
+  P("rg-template", "const s = `${0}`; const f = s.length > 0 ? " + F + " : " + F + "; return f;"),
+  P("rg-try", "try { const f = " + F + "; return f; } finally { }"),
+  P("rg-catch", "try { throw 1; } catch { const f = " + F + "; return f; }"),
+  P("rg-finally", "let g: (() => Mut<number[]>) | null = null; try { } finally { g = (" + F + "); } return g ?? (" + F + ");"),
+  P("rg-loop", "const fs: (() => Mut<number[]>)[] = []; for (let i = 0; i < 2; i++) fs.push(" + F + "); return fs[0] ?? (" + F + ");"),
+  P("rg-while", "let k = 0; let g = " + F + "; while (k < 1) { g = " + F + "; k++; } return g;"),
+  P("rg-switch", "switch (xs.length) { case 1: { const f = " + F + "; return f; } default: return " + F + "; }"),
+  P("rg-switch-decl", "switch (xs.length) { case 1: function g(): Mut<number[]> { return xs; } return g; default: return " + F + "; }"),
+  P("rg-labeled", "outer: for (const q of [1]) { const f = " + F + "; return f; } return " + F + ";"),
+  P("rg-comma", "return (0, " + F + ");"),
+  P("rg-logical", "return null ?? (" + F + ");"),
+  P("rg-iife-returns", "return (() => " + F + ")();"),
+  P("rg-iife-two", "return ((): (() => Mut<number[]>) => { const g = " + F + "; return g; })();"),
+  P("rg-default-param-fn", "const mk = (g: () => Mut<number[]> = " + F + ") => g; return mk();"),
+  P("rg-nested-arrow-body", "const mk = () => () => () => xs; return (): Mut<number[]> => mk()()();"),
+  P("rg-shadow", "const g = (): Mut<number[]> => { const ys = xs; return ys; }; return g;"),
+  P("rg-shadow-param", "const g = (xs: number) => (): Mut<number[]> => [xs]; return (): Mut<number[]> => { const f = g(1); f(); return xs; };"),
+  P("rg-shadow-inner", "const g = (): Mut<number[]> => { { const xs = [5]; } return xs; }; return g;"),
+  P("rg-destr-cap", "const { q } = { q: xs }; return (): Mut<number[]> => q;"),
+  P("rg-arr-destr-cap", "const [q] = [xs]; return (): Mut<number[]> => q;"),
+  P("rg-catch-cap", "try { throw xs; } catch (e) { const q = e as Mut<number[]>; return (): Mut<number[]> => q; }"),
+  P("rg-forof-cap", "for (const q of [xs]) return (): Mut<number[]> => q; return " + F + ";"),
+  P("rg-recursive", "const g = (n: number): Mut<number[]> => n > 0 ? g(n - 1) : xs; return () => g(2);"),
+  P("rg-mutual", "const g = (n: number): Mut<number[]> => n > 0 ? k(n - 1) : xs; const k = (n: number): Mut<number[]> => g(n); return () => k(3);"),
+  P("rg-fn-decl-hoist", "return g; function g(): Mut<number[]> { return xs; }"),
+  P("rg-async-fn", "const g = async (): Promise<Mut<number[]>> => xs; return (): Mut<number[]> => xs;"),
+  P("rg-gen-fn", "const g = function* () { yield xs; }; return (): Mut<number[]> => xs;"),
+  P("rg-method-ret", "const o = { m(): Mut<number[]> { return xs; } }; return () => o.m();"),
+  P("rg-method-shorthand-str", "const o = { \"m\"(): Mut<number[]> { return xs; } }; return () => o.m();"),
+  P("rg-fn-expr-prop", "const o = { m: function (): Mut<number[]> { return xs; } }; return o.m;"),
+  P("rg-arrow-prop", "const o = { m: " + F + " }; return o.m;"),
+  P("rg-spread-methods", "const o = { ...{ m(): Mut<number[]> { return xs; } } }; return o.m;"),
+  P("rg-array-of-fn", "const fs = [" + F + "]; return fs[0] ?? (" + F + ");"),
+  P("rg-map-of-fn", "const m = new Map([[\"f\", " + F + "]]); return m.get(\"f\") ?? (" + F + ");"),
+  P("rg-cond-expr", "return xs.length > 5 ? (): Mut<number[]> => [1] : " + F + ";"),
+  P("rg-as-cast", "return (" + F + ") as () => Mut<number[]>;"),
+  P("rg-tagged", "const tag = (s: readonly string[]) => s.length; tag`x`; return " + F + ";"),
+];

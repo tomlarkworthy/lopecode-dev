@@ -842,6 +842,20 @@ test_spec_S4_6_reach = {
   return "a published function's captures, an Error and a URL refuse a write; a typed array published twice in one value is one copy";
 }
 // %%
+test_spec_S4_6_host = {
+  // holes7 (2026-11-22): the two host behaviours the bun runs cannot show. The notebook's runtime would adopt a cell
+  // value with a callable then: at the top the checker rejects it ([type]); nested, where the checker does not look,
+  // deepFreeze throws at publish. And a URL's searchParams is a snapshot, not bound to its URL
+  const V = await spec_load("const p = () => ({ n: 1, then: (r: (v: string) => void) => r(\"str\") });\nconst q = () => ({ x: { then: (r: (v: string) => void) => r(\"str\") } });", {});
+  const why = (n) => V.value(n).then((v) => `fulfilled with ${JSON.stringify(v)}`, (x) => (!/callable then/.test(x?.message) ? String(x) : /does not check: \[type\]/.test(x.message) ? "[type]" : x instanceof TypeError ? "TypeError" : String(x)));
+  let got;
+  try { got = [await why("p"), await why("q")]; } finally { V.dispose(); }
+  const x = new soundscript.SsURL("https://x.test/?q=1"), q = x.searchParams;
+  x.search = "?q=2";
+  spec_is([...got, q.get("q"), x.searchParams.get("q")], ["[type]", "TypeError", "1", "2"]);
+  return "a cell value with a callable then is rejected by the checker, and a nested one throws at publish, not adopted; searchParams read before a write keeps the value it had";
+}
+// %%
 test_spec_S4_7 = spec_rejectsFor("S4.7")
 // %%
 test_spec_S4_8 = {

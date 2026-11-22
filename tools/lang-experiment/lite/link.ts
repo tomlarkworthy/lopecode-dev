@@ -11,18 +11,18 @@
 // cell's value is deep-frozen (freeze.ts out).
 import * as acorn from "acorn";
 import { PRELUDE_FNS } from "./intrinsics.ts";
-import { SsMap, SsSet, SsURL, out, closure, methods, tdz } from "./freeze.ts";
+import { SsMap, SsSet, SsURL, out, closure, methods } from "./freeze.ts";
 import { fnRegEdits, applyRegEdits } from "./fnreg.ts";
 // the closure registrations a compiled cell carries (fnreg.ts), as the notebook's compiled cells do
-const REG = { closure: "ss_closure", methods: "ss_methods", tdz: "ss_tdz" };
+const REG = { closure: "ss_closure", methods: "ss_methods" };
 
 type Cell = (...inputs: never[]) => unknown;
 export type Linked<C> = { [K in keyof C]: C[K] extends (...inputs: never[]) => infer V ? V : never };
 
 export function link<C extends Record<string, Cell>>(cells: C, prelude: Record<string, unknown> = {}, given: Record<string, unknown> = {}): Linked<C> {
   // Map and Set in a cell's text are the freezable subclasses, as in a compiled cell
-  const scope = [...[...PRELUDE_FNS].filter((n) => n in prelude), "Map", "Set", "URL", REG.closure, REG.methods, REG.tdz];
-  const scopeValues = [...scope.slice(0, -6).map((n) => prelude[n]), SsMap, SsSet, SsURL, closure, methods, tdz];
+  const scope = [...[...PRELUDE_FNS].filter((n) => n in prelude), "Map", "Set", "URL", REG.closure, REG.methods];
+  const scopeValues = [...scope.slice(0, -5).map((n) => prelude[n]), SsMap, SsSet, SsURL, closure, methods];
   const values = new Map<string, unknown>(), open = new Set<string>();
   const value = (name: string): unknown => {
     if (values.has(name)) return values.get(name);

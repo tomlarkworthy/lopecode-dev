@@ -4,13 +4,12 @@
 //   a function expression or arrow F          -> ss_closure(F, (i) => i < 0 ? 2 : i === 0 ? a : b)
 //   a function declaration h                  -> ss_closure(h, ...); at the start of its block
 //   an object literal with methods            -> ss_methods({...}, "m", (i) => ..., ...)
-//   const/let x after a function capturing x  -> ;ss_tdz(); after the declaration (x was in its dead zone)
 // A function capturing nothing is not registered. The cell function's own parameters are not captures (other cells'
 // values, frozen at their own boundary, and capabilities) unless the cell assigns one. The TypeScript twin of the
 // cells' tcFnRegs (lite/toolchain/tc-reg.ss.ts); link.ts and the frozen toolchain use this one. Unchecked.
 type N = any;
-export type RegEdit = { at: number; depth: number; end: boolean; text: string; use: "closure" | "methods" | "tdz" | null };
-export type RegNames = { closure: string; methods: string; tdz: string };
+export type RegEdit = { at: number; depth: number; end: boolean; text: string; use: "closure" | "methods" | null };
+export type RegNames = { closure: string; methods: string };
 const FNS = new Set(["ArrowFunctionExpression", "FunctionExpression", "FunctionDeclaration"]);
 const isNode = (x: unknown): x is N => !!x && typeof (x as N).type === "string";
 const kids = (n: N): N[] => {
@@ -102,14 +101,12 @@ export function fnRegEdits(cellFn: N, names: RegNames): RegEdit[] {
   for (const p of own) if (assigned.has(p as string)) locals.add(p as string);
   const edits: RegEdit[] = [];
   const capsOf = (f: N): string[] => [...freeIn(f)].filter((x) => locals.has(x)).sort();
-  const captured: { start: number; names: string[] }[] = [];
   for (const { n, parent, depth } of all) {
     if (n === cellFn) continue;
     if (n.type === "ObjectExpression") {
       const ms = n.properties.filter((p: N) => p.type === "Property" && p.method && !p.computed).map((p: N) => ({ key: p.key.type === "Identifier" ? p.key.name : String(p.key.value), cs: capsOf(p.value), start: p.value.start }));
       const reg = ms.filter((m: { cs: string[] }) => m.cs.length > 0);
       if (!reg.length) continue;
-      for (const m of reg) captured.push({ start: m.start, names: m.cs });
       edits.push({ at: n.start, depth, end: false, text: `${wrapOpen}${names.methods}(${wrapClose}`, use: "methods" });
       edits.push({ at: n.end, depth, end: true, text: `${wrapOpen}, ${reg.map((m: { key: string; cs: string[] }) => `${JSON.stringify(m.key)}, ${thunk(m.cs)}`).join(", ")})${wrapClose}`, use: null });
       continue;
@@ -120,20 +117,12 @@ export function fnRegEdits(cellFn: N, names: RegNames): RegEdit[] {
     if (!cs.length) continue;
     // a declaration is registered at the start of its block (it is hoisted): a capture declared after that may be in its dead zone
     const at = n.type === "FunctionDeclaration" && parent.type === "BlockStatement" ? parent.start + 1 : n.start;
-    captured.push({ start: at, names: cs });
     if (n.type === "FunctionDeclaration") {
       edits.push({ at, depth: parent.type === "BlockStatement" ? depth : depth - 1, end: false, text: `${wrapOpen}${names.closure}(${n.id.name}, ${thunk(cs)});${wrapClose}`, use: "closure" });
     } else {
       edits.push({ at: n.start, depth, end: false, text: `${wrapOpen}${names.closure}(${wrapClose}`, use: "closure" });
       edits.push({ at: n.end, depth, end: true, text: `${wrapOpen}, ${thunk(cs)})${wrapClose}`, use: null });
     }
-  }
-  // a let/const statement declaring a name that a function made before the statement ends captures (one in its own
-  // initializer too): that function may have been published while the name was in its dead zone
-  for (const { n, parent, depth } of all) {
-    if (n.type !== "VariableDeclaration" || n.kind === "var" || !parent || !["BlockStatement", "SwitchCase", "Program", "StaticBlock"].includes(parent.type)) continue;
-    const ds = n.declarations.flatMap((d: N) => patNames(d.id));
-    if (captured.some((c) => c.start < n.end && c.names.some((x) => ds.includes(x)))) edits.push({ at: n.end, depth, end: true, text: `${wrapOpen};${names.tdz}();${wrapClose}`, use: "tdz" });
   }
   return edits;
 }
@@ -144,5 +133,5 @@ export function applyRegEdits(text: string, edits: RegEdit[], offset = 0): strin
   for (const e of es) { out += text.slice(at, e.at - offset) + e.text; at = e.at - offset; }
   return out + text.slice(at);
 }
-// the runtime cells the edits call, in the order closure, methods, tdz
-export const regUses = (edits: RegEdit[]): ("closure" | "methods" | "tdz")[] => (["closure", "methods", "tdz"] as const).filter((u) => edits.some((e) => e.use === u));
+// the runtime cells the edits call, in the order closure, methods
+export const regUses = (edits: RegEdit[]): ("closure" | "methods")[] => (["closure", "methods"] as const).filter((u) => edits.some((e) => e.use === u));

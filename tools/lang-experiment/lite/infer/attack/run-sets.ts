@@ -1,7 +1,8 @@
 // bun lite/infer/attack/run-sets.ts [--off] [--force] [--sets a,b] [--only s]: every attack program through the live
 // checker (lite/core.ts), an accepted one run by observe.ts (runCells: the compiled cells' own text, events pumped).
 // Sets: freeze (selfhost/freeze-attack b1-b7, 315), attack2 (252), attack1 (8), oldspec (49), oldvariants (239),
-// runtime (98), new (b-attacks.ts, 70), h6 (h6-attacks.ts). The folders they come from are read, not edited.
+// runtime (98), new (b-attacks.ts, 70), h6 (h6-attacks.ts), freeze2 (selfhost/freeze-attack2 b0-b11, 309), h7
+// (h7-attacks.ts). The folders they come from are read, not edited.
 // --off drops the static capture rules' diagnostics in this runner only (the checker is unchanged).
 import { checkSources } from "../../core.ts";
 import { rewriteSS } from "./strip-calls.ts";
@@ -11,7 +12,7 @@ import { readdirSync, readFileSync } from "node:fs";
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? null : process.argv[i + 1]!; };
 const OFF = process.argv.includes("--off"), FORCE = process.argv.includes("--force"), ONLY = arg("--only");
-const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6").split(",");
+const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7").split(",");
 export const OFF_RULES = new Set(["mut-capture", "let-capture", "mut-yield", "mut-cell", "member-write", "mutating-method", "regexp-state", "iterator-capture"]);
 type P = Prog & { set: string; name: string; foreign?: string | null };
 const progs: P[] = [];
@@ -30,16 +31,21 @@ if (SETS.includes("oldvariants")) for (const v of (await import(H5 + "pre/varian
 if (SETS.includes("runtime")) for (const v of RUNTIME_FREEZE) progs.push({ set: "runtime", name: v.name, src: v.src, show: v.show });
 if (SETS.includes("new")) for (const a of (await import("./b-attacks.ts")).attacks) progs.push({ set: "new", ...a });
 if (SETS.includes("h6")) for (const a of (await import("./h6-attacks.ts")).attacks) progs.push({ set: "h6", ...a });
+if (SETS.includes("freeze2")) for (let i = 0; i <= 11; i++)
+  for (const a of (await import(`${SELF}freeze-attack2/b${i}.ts`)).attacks) progs.push({ set: "freeze2", ...a, name: `b${i}:${a.name}` });
+if (SETS.includes("h7")) for (const a of (await import("./h7-attacks.ts")).attacks) progs.push({ set: "h7", ...a });
 
 export const verdictOf = (src: string, foreign: string | null, off: boolean): { ok: boolean; text: string; dropped: string[] } => {
   try {
     const r = checkSources({ cells: src, tsx: true, outside: [], foreign } as any);
-    const keep = (es: any[]) => es.filter((e) => !(off && OFF_RULES.has(e.rule)));
+    // --off also drops holes7's thenable [type] (md-value.ss.ts mdThenable), so the run-time ban is what is measured
+    const offRule = (e: any) => OFF_RULES.has(e.rule) || (e.rule === "type" && /callable then/.test(e.msg ?? e.message ?? ""));
+    const keep = (es: any[]) => es.filter((e) => !(off && offRule(e)));
     const okName = new Set<string>();
     for (const c of r.cells) if (!keep(c.errors).length && !c.unsupported.length && (c.status === "ok" || (off && c.status !== "unsupported"))) okName.add(c.name);
     const bad = r.cells.filter((c: any) => !okName.has(c.name) || (c.status === "blocked" && (c.blockedBy ?? []).some((b: string) => !okName.has(b))));
     const mod = keep(r.module);
-    const dropped = off ? [...new Set([...r.module, ...r.cells.flatMap((c: any) => c.errors)].filter((e: any) => OFF_RULES.has(e.rule)).map((e: any) => e.rule))] : [];
+    const dropped = off ? [...new Set([...r.module, ...r.cells.flatMap((c: any) => c.errors)].filter(offRule).map((e: any) => e.rule))] : [];
     const text = bad.length || mod.length ? `REJECT ${[...mod.map((m: any) => `module[${m.rule}]`), ...bad.map((c: any) => `${c.name}:${c.status}${keep(c.errors).map((e: any) => `[${e.rule}]`).join("")}`)].join(" ")}` : "ACCEPT";
     return { ok: !bad.length && !mod.length && r.cells.length > 0, text, dropped };
   } catch (x) { return { ok: false, text: `CRASH ${(x as Error).message}`, dropped: [] }; }

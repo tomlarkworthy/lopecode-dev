@@ -22,9 +22,19 @@ export const mdStateRules = (mdKept, admitsUndefinedWith, holdsWith, show) => (R
     ...mdKept(R, name, fedBy, line, "a state cell holds", inner, "an action that reads the state cell could call it"),
   ];
 };
+// a value with a callable then (holes7): the runtime, and an async cell's own return, call then and give the cells that
+// take the value what then passes on, not this type
+export const mdThenable = () => (t: Ty): boolean => {
+  const todo: Mut<Ty[]> = [t];
+  for (let u = todo.pop(); u !== undefined; u = todo.pop()) {
+    if (u.k === "union") todo.push(...u.ts);
+    else if (u.k === "rec" && u.props.get("then")?.t.k === "fn") return true;
+  }
+  return false;
+};
 export type MdValueOut = { readonly errors: MdErr[]; readonly value: Ty; readonly events: Ty | null; readonly ref: Ty | null; readonly listener: boolean; readonly gap: string | null };
 // the rules in core.ts's order: events, state cell, iterator, listener; and what the cell gives the cells after it
-export const mdValueRules = (mdValueType, mdKept, mdStateRules, owIter, owStripMut, holdsWith, isNamed, show) => (R: IxReg, X: MdCtx, d: MdDef, fnT: Ty, fedBy: string | null): MdValueOut => {
+export const mdValueRules = (mdValueType, mdKept, mdStateRules, owIter, owStripMut, holdsWith, isNamed, show, mdThenable) => (R: IxReg, X: MdCtx, d: MdDef, fnT: Ty, fedBy: string | null): MdValueOut => {
   const v = mdValueType(d.fn, fnT);
   const line = X.line(d.fn.start), sync = d.fn.generator && !d.fn.async;
   // S4: a cell's value, each value it yields and a state's value are the read-only view (frozen at run time)
@@ -38,9 +48,10 @@ export const mdValueRules = (mdValueType, mdKept, mdStateRules, owIter, owStripM
   if (inner !== undefined) ret = inner;
   const it = owIter(R, ret);
   const iter = it === null ? [] : [{ rule: "iterator-cell", line, msg: `value ${show(ret)} may hold an iterator (${it}); every cell that takes it would use up the same one, so what each computes would depend on the order the cells run in. Make it an array` }];
+  const then = mdThenable(ret) ? [{ rule: "type", line, msg: `value ${show(ret)} has a callable then: the runtime would call it and give the cells that take it what then passes on, not this type. Rename then` }] : [];
   const isL = (t: Ty): boolean => t.k === "named" && isNamed(t, "Listener");
   const listener = isL(ret) || (ret.k === "union" && ret.ts.every(isL));
   const held = listener ? null : holdsWith(X.R.ops)(ret, ["Listener"]);
   const place = held ? [{ rule: "listener-placement", line, msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` }] : [];
-  return { errors: [...errs, ...state, ...iter, ...place], value: ret, events, ref: inner ?? null, listener, gap: v.gap };
+  return { errors: [...errs, ...state, ...iter, ...then, ...place], value: ret, events, ref: inner ?? null, listener, gap: v.gap };
 };

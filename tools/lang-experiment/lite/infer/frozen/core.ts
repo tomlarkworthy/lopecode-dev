@@ -331,6 +331,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     }
     const it = iterIn(ret, reg);
     if (it) r.errors.push({ rule: "iterator-cell", line: P.line(c.fn.start), msg: `value ${show(ret)} may hold an iterator (${it}); every cell that takes it would use up the same one, so what each computes would depend on the order the cells run in. Make it an array` });
+    // DELIBERATE CHANGE (2026-11-22, holes7): a value with a callable then is a type error (md-value.ss.ts mdThenable)
+    const thenable = (t: Ty): boolean => t.k === "union" ? t.ts.some(thenable) : t.k === "rec" && t.props.get("then")?.t.k === "fn";
+    if (thenable(ret)) r.errors.push({ rule: "type", line: P.line(c.fn.start), msg: `value ${show(ret)} has a callable then: the runtime would call it and give the cells that take it what then passes on, not this type. Rename then` });
     // a Listener is a whole cell value: not in a list, record, state cell, union with another type, or function
     if (isNamed(ret, "Listener") || (ret.k === "union" && ret.ts.every((t) => isNamed(t, "Listener")))) listenerCells.add(c.name);
     else if (holds(ret, ["Listener"])) r.errors.push({ rule: "listener-placement", line: P.line(c.fn.start), msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` });

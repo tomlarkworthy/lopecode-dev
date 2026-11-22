@@ -8,7 +8,7 @@ import { erase } from "./erase.ts";
 // a state cell's value is Observable's own Generators.input of its handle (a view)
 import { input as genInput } from "../../../../vendor/observable-stdlib/src/generators/input.js";
 import * as P from "../../prelude.runtime.ts";
-import { SsMap, SsSet, SsURL, out, deepFreeze, closure, methods, tdz } from "../freeze.ts";
+import { SsMap, SsSet, SsURL, out, deepFreeze, closure, methods } from "../freeze.ts";
 import { compileModule, parseCompiled } from "../toolchain/ss-toolchain.ts";
 import { island, type IslandSpec } from "../island.ts";
 import { CAPABILITIES, PRELUDE_FNS } from "../intrinsics.ts";
@@ -29,7 +29,7 @@ const PRELUDE_VALUES: Record<string, unknown> = { Map: SsMap, Set: SsSet, URL: S
 const PRELUDE = [...PRELUDE_FNS, "h", "Map", "Set", "URL"];
 if (PRELUDE.some((n) => !(n in PRELUDE_VALUES))) throw new Error("a prelude function has no runtime value");
 export type Program = ReturnType<typeof runCells>;
-const REG_NAMES = ["ss_closure", "ss_methods", "ss_tdz"];
+const REG_NAMES = ["ss_closure", "ss_methods"];
 // cell name -> the function text of its compiled definition (between the header and the function's end)
 function compiledFunctions(source: string, tsx: boolean): Map<string, string> {
   const out = new Map<string, string>();
@@ -56,7 +56,7 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
   // each cell's function as the notebook runs it: the compiled definition's function text, with the closure
   // registrations the compiler emits (lite/fnreg.ts, toolchain tc-reg); the erased text only when compiling fails
   const compiledFns = compiledFunctions(source, !!opts.tsx);
-  for (const [n, text] of compiledFns) exports[n] = new Function(...PRELUDE, ...REG_NAMES, `"use strict";\nreturn (${text});`)(...PRELUDE.map((x) => PRELUDE_VALUES[x]), closure, methods, tdz);
+  for (const [n, text] of compiledFns) exports[n] = new Function(...PRELUDE, ...REG_NAMES, `"use strict";\nreturn (${text});`)(...PRELUDE.map((x) => PRELUDE_VALUES[x]), closure, methods);
   const byName = new Map(cells.map((c) => [c.name, c]));
   const caps = opts.caps ?? {};
   const runtime = new Runtime();
