@@ -1,6 +1,6 @@
 const s5_frames = function* () {
-  const buf = new Float32Array(3);
   for (let k = 1; k <= 3; k++) {
+    const buf = new Float32Array(3);
     for (let i = 0; i < buf.length; i++) buf[i] = k * (i + 1);
     yield buf.slice();
   }

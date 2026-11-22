@@ -58,9 +58,10 @@ test("the programs that need the owner (printed)", () => {
 // process (a late write that throws is an unhandled rejection, which bun:test would count against this test):
 // accepted by the checker; running it changes nothing another cell holds, or throws.
 // holes8: selfhost/freeze-attack3 (islands on the page, promises a kept function captures, rejection reasons) and
-// h8-attacks.ts, read by the observer with promise snapshots, compile islands and two readings per run
-test("freeze-attack, h6, freeze-attack2, h7, freeze-attack3 and h8 families: accepted programs change nothing another cell holds, or throw", () => {
-  const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "freeze,h6,freeze2,h7,freeze3,h8"], { stdout: "pipe", stderr: "pipe" });
+// h8-attacks.ts, read by the observer with promise snapshots, compile islands and two readings per run; rule set R:
+// h9-attacks.ts
+test("freeze-attack, h6, freeze-attack2, h7, freeze-attack3, h8 and h9 families: accepted programs change nothing another cell holds, or throw", () => {
+  const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "freeze,h6,freeze2,h7,freeze3,h8,h9"], { stdout: "pipe", stderr: "pipe" });
   const out = r.stdout.toString(), lines = out.split("\n");
   console.log(lines.filter((l) => l.startsWith("-- ")).join("\n"));
   expect(lines.filter((l) => l.startsWith("SILENT "))).toEqual([]);
@@ -69,4 +70,5 @@ test("freeze-attack, h6, freeze-attack2, h7, freeze-attack3 and h8 families: acc
   expect(out).toMatch(/^-- h7: \d+ programs/m);
   expect(out).toMatch(/^-- freeze3: 360 programs/m);
   expect(out).toMatch(/^-- h8: \d+ programs/m);
+  expect(out).toMatch(/^-- h9: \d+ programs/m);
 }, 300000); // the child run takes about 15 s, over bun's default limit

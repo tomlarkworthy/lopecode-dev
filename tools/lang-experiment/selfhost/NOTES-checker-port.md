@@ -2101,3 +2101,145 @@ advisor pass:
 - The rejection half of test_spec_S4_6_holes8 calls `deepFreeze` directly, not through a checked cell (the page-error
   dead end above). The cell path of a rejection is covered by the 8 `h8-rej-*` attacks and freeze-table's rejection
   route, not by the spec row.
+
+## 2026-11-22 19:06–21:08: rule set R, code that runs after a value is given (build owner, logs `lite/soundscript/.scratch/r1/`)
+The owner's decision: exclude statically the uses by code that keeps running after a cell gave a value. Built as
+specified, on selfhost/late-code's definitions (its `visibleFn`, "used after", loop and helper-call rules, copied into
+cells, not reinvented). Originals of every edited file are in `.scratch/r1/orig/`.
+
+Rules and cells.
+- R-Y `[mut-yield]` and R-A `[mut-await]`: new file `lite/infer/ow-late.ss.ts` (111 lines; cells owLateCand 2,
+  owVisibleFn 11, owLatePoints 6, owUsesOf 12, owWriteAt 10, owLoopBody 6, owLoopsOut 5, owAfter 11, owLateMsg 6,
+  owLateUses 19), registered in `lite/infer-ss.ts` OW_FILES and run last in `ow-entry.ss.ts owCheckIn` (10 lines). One
+  report per binding and function, at the first use after the point: per use, the S5.1 row `yield buf` in a loop gave
+  two `[mut-yield]` and `spec_rejectsFor` wants exactly one.
+- `[mut-await]` is a new id (rules.ts, 52 rules): `[mut-yield]` would name a yield where the point is an await.
+- R-K: `owCaptureErrs` 20 -> 22 lines plus `owKeptReadMsg` (3). The Mut read report goes after the existing branches and
+  late-write reports, so a more specific message at the same node still wins (`owErr` keeps the first per start:rule);
+  none of the old reports was removed.
+- Frozen mirror: `lite/infer/frozen/own.ts` 653 -> 709 lines, two DELIBERATE CHANGE blocks. `diff.ts` `ownership: 3628
+  cells: SAME 3628 DIFFERENT 0`, `--module-only` `SAME 1044 DIFFERENT 0` (`.scratch/r1/w/diff1.log`, `diffmod2.log`).
+- Messages name the fix the checker accepts, each run through `checkSources` (`.scratch/r1/p1.txt`, `p4.txt`): a
+  `const` under the plain type (`const c: readonly number[] = out`), a local made in the loop body, a helper call.
+
+Primitive lets. As specified, a primitive `let` is allowed across a yield and an await, but not under R-K. So
+`accept-basic ticks`, `s7_beats` (`for (let i…)`), breakout `ticks` (`let t`, the previous time, example and fixture)
+and `selfhost/rt/probe3 awaitLoop` (`let s`) are accepted unchanged: checked by `.scratch/r1/census2.ts` (late-code's
+corpus against its own pre-R verdicts, `w/census2.txt`), where none of them changed.
+
+Shipped cells rewritten (the full changed list is `w/census2.txt` plus `.scratch/r1/census.ts` over the build's
+sections, which found the checker's own cells late-code did not see):
+- `lite/render.ss.ts eventOf`: `const events: Map<string, string> = …`;
+- `lite/infer/ix-core.ss.ts ixAdmits`: `const W: Map<string, Ty> = …` (rejected in 61 sections, since every section
+  takes ix-core);
+- `lite/toolchain/tc-build.ss.ts tcBuiltOf`: `const views: readonly string[] = …`, not in late-code's list. `spell`
+  is passed by name to `map`, so it is not a helper and counts as kept;
+- `lite/soundscript/spec-5.ts s5_frames`: the buffer is made in the loop body;
+- spec.ojs: the 10 `frames` owners (the same edit), the S4.4 row's owner (`for (const k of [0, 1]) yield { n: k }`),
+  the S3.19 `boxed` row and its accept test (plain types), the S6.9 `let q` row (the action reads `const r = q`), the
+  test_spec_S4_6_reach and S5_5 programs, and the S4.8/S5.1 typed-array rows (one yield, no loop);
+- checker-tests.ojs: expectations of test_checker_action_capture_by_binding (two cases gain `[let-capture]`),
+  test_checker_iterator_rules (one gains `[mut-capture]`; two accept cases bound under plain types) and
+  test_checker_mut_across_await (four cases are now `[mut-await]`; comment rewritten).
+- Become reject rows: the S4.5 `return f` accept row (now S4.10), the two S5.4 `bad` accept rows (they are the hazard
+  itself). The first is an S5.7 reject row; the second (`const h = async (): Promise<void>`) gives two `[mut-await]`
+  (on `v` and `m`), and a spec row allows one rule, so it is a case of test_checker_mut_across_await instead. `fixtures/lite-mut/reject-mut-capture bad_stored` is now rejected, as its fixture name says.
+
+Spec. New statements S4.10 (R-K), S5.6 (R-Y), S5.7 (R-A), each with a test and reject rows (3, 5, 3). Sentences R made
+false, all rewritten: S3.11 "Reading a captured `let` is accepted"; S3.19 "An array, a string, a `Map` and a `Set` may
+be kept"; S4.5 "A kept function may read a `Mut` of an enclosing function"; the section 5 title and intro ("A
+generator cell may keep one writable value across its yields"); S5.1 "may keep a writable local across its yields"
+and "a generator that goes on writing yields a copy"; the S5 cells md ("fills one buffer three times").
+
+Measurement switches. `lite/freeze.ts` (201 -> 205): in a bun process `SS_MEASURE_REG=0` makes `closure()` and
+`methods()` register nothing (the prelude's own `closure` for an action's handle included) and `SS_MEASURE_FREEZE=0`
+makes `deepFreeze` return its argument; read from `globalThis.process?.env`, so a browser has no switch. Mode (a) is
+shipped, (b) REG=0, (c) both. `.scratch/r1/measure.sh`, outputs `.scratch/r1/m/`. The 246 programs of
+`selfhost/convert-freeze/attack1/progs.ts` run through `.scratch/r1/attack1-main.ts`: run-sets `verdictOf` after
+`rewriteSS`, and attack1's own observer copied as `observe2-main.ts` with its imports pointed at the main tree.
+
+Observer controls, static capture rules dropped (`--off`), 2026-11-22 19:20 to 19:35:
+```
+attack1 --off   (a) accepted 199, silent 0   (b) silent 170   (c) silent 187
+run-sets --off  (a) all: 1921 programs, silent 52   (b) silent 375   (c) silent 810
+```
+(a)'s 52 is holes8's 52, the same programs. A first run of (c) gave `silent 0`: zsh does not split `env $e`, so both
+variables went in as one, and freeze stayed on. Rerun with arrays.
+
+With R on:
+```
+                               programs  accepted  silent (a)  (b)  (c)
+run-sets (13 sets, h9 included)    1921       326           0   19   27
+freeze-attack2 run.ts               309        11           0    0    2
+freeze-attack3 run.ts               360        15           0    0    0   controls fired 3 / 4 / 4 of 4
+attack1 (main tree)                 246         3           0    2    2
+```
+Before R, run-sets accepted 739 of 2121 programs (late-code's count, a different set list).
+
+Every program silent in (b), by mechanism:
+- A Mut below the top level of a binding whose own type is not `Mut` (10): `freeze b1:reg-for-of`, `b2:fo-index`,
+  `h6-array-container` (`const reg: Mut<number[]>[]`, a kept function returns an element typed `Mut`, the consumer
+  pushes into it); attack1 `mutparam/mut-field-of-plain-record`, `mutparam/mut-in-tuple` (`const o: { f: Mut<number[]> }`
+  written by a visible async helper); `h9-nm-gen-after-yield`, `h9-nm-gen-record`, `h9-nm-async-helper`, `h9-nm-aa`,
+  `h9-nm-map`. R-Y, R-A and R-K test `isNamed(b.t, "Mut")` on the binding, as specified.
+- An async function inside an async function, not awaited (11): `h9-aa-alias-fn`, `-map-alias`, `-set-alias`,
+  `-rec-alias`, `-param`, `-helper-write`, `-two-deep`, `-all`, `-branch`, `-recursive`, `-default-param`. late-code's
+  `visibleFn` takes a nested async function in an async encloser as awaited, which is not checked. The kept function
+  reads a `const` of plain type that aliases the Mut the helper writes.
+(c) adds what only the publish freeze stopped (8): `freeze b2:ah-async-cell`, `b4:er-async-cell-promise`, freeze2
+`b8:cs-async-cell`, `b10:cs-deep-async`, `h9-aa-direct`, `-alias-rec`, `-consumer`, `h9-nm-direct-yield`.
+
+Answer to the question: with R in, closure registration is still needed, for these two classes. Neither is closed
+without a change the brief did not ask for. The first needs R to take any binding whose type holds a Mut (owMutIn), not
+only `Mut<…>` at the top. The second needs to know whether a promise is awaited before its encloser ends, which is
+flow tracking of the promise value. Both left open, not built.
+
+h9 (`lite/infer/attack/h9-attacks.ts`, 46 programs, in run-sets and live.test): (a) `accepted 26, silent 0, with a cell
+in error 4`; (b) silent 16; (c) silent 20 (`w/h9-*.txt`). By the checker: then/catch/Map.set callbacks are
+`[mut-capture]` (the intrinsic retains them), sort's comparator is called at once, `finally` after a yield and an async
+generator's await are `[mut-yield]`, a held iterator and a stepped generator object `[iterator-capture]`; a getter, a
+labelled `continue` in a generator and a nested `function*` are `unsupported`. The 4 h9 programs that run into an error
+in (a) are the `h9-nm` ones caught by the freeze at the later write. The `h9-pr` four are controls of the rule: accepted,
+silent in no mode.
+
+Dead ends. `env $e` in zsh (above). Reporting every use gave double `[mut-yield]` rows. The first gate run was stopped
+after S3.11 and S3.19 were found false; the gates were rerun on the final tree.
+
+Gates, final tree, 20:42 to 21:07 (`.scratch/r1/gates.sh`, `gates-long.sh`; logs `w/gates-final/`, summary
+`w/gates-final-summary.txt`):
+```
+build.ts --force                exit 0 (writes lopebooks/notebooks/soundscript.html)
+bun-verify                      174 pass, 0 fail
+fixtures.ts                     14/14; 52 rules registered, 52 with a reject case
+diff.ts                         SAME 3629 DIFFERENT 0 REAL CRASH 14 (14 before R: holes8/diff-walks.txt)
+diff.ts --module-only           SAME 1045 DIFFERENT 0
+tc-diff.ts                      corpus rows DIFFERENT 0; erase (repro) DIFFERENT (by design)
+live.test.ts                    461 pass, 0 fail (sets freeze..h9: 1205 programs, silent 0)
+freeze-table.test.ts            441 pass, 0 fail
+browser/run.test.ts             2 pass, 0 fail;  acorn.test.ts 6 pass, 0 fail (run apart)
+run-sets                        1921 programs, silent 0  (--off: silent 52)
+freeze-attack2 / 3 run-all.sh   silent 0 / silent 0
+tc.test.ts                      11 pass, 0 fail
+verify.ts (browser)             661 pass, 0 fail
+```
+Three earlier gate runs (19:46, 20:10, 20:24; the last passed in full before the S5.6 row) lost their log directory: the scripts resolved `$0` after `cd`, so the logs went
+to `tools/lang-experiment/g` and `w/gates`; moved into `w/gates-run1`, `w/gates`. Their browser verify failed 3 and 2:
+`reference` (`[mut-await]` produced but not named in the tutorial's rule table), `prose` (a repository path and
+"below" in the spec's new Not specified items), and once `original` (17 test cells pending at boot, load 5; passed in
+the next run). The first two were fixed; the rule table in tutorial.ojs also still said a kept function may capture
+what is not written, and gained the R rows.
+
+Fresh review (`/review-notebook`, 2026-11-22 19:40, BLOCK, 8 findings, all confirmed and taken): S3.11 lacked the
+intrinsic-callback exception; test_spec_S3_11 and S4_5 did not run their accept rows (now `spec_acceptsFor`); S5.7
+said an awaited async helper is exempt when the checker exempts it awaited or not (reworded; both open classes added to
+"Not specified"); S4.5 called `[mut-capture]` more specific than itself (now "the message names the case") and repeated
+S4.10 for a `let` (removed); the S4.5 promise row followed from no statement (sentence added to S4.10); this section
+was unfinished; where the second S5.4 row went; S5.6's `xs.push(yield 1)` example also gives `[type]`
+(kept, with a reject row whose `xs` is `Mut<unknown[]>`, probed to give one `[mut-yield]`: `w/../p5.txt`). After the
+review the S4.10 promise sentence lost an unchecked reason. The edits made after the review (S5.7 wording, the two Not
+specified items, the tutorial rows, this row) were not reviewed again.
+
+Open: the two (b) classes above; the for-of rewrites pass R only syntactically (an array iterator carries state across
+a yield, late-code noted it); late-code's `analyze.ts` hooked `owCheckIn` now also runs `owLateUses` (`.scratch/r1/late-smoke.ts`: the same
+verdicts as `checkSources` on four programs; its tables were not rerun); the brief's ~13 list was late-code's R with primitive lets counted; under R as specified the rejected
+shipped cells are the ones listed above.

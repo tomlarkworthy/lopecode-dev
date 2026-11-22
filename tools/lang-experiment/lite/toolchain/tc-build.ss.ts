@@ -9,7 +9,7 @@ export const tcBuiltOf = (tcSTATE_VALUE) => (name: string, view: boolean, block:
   const order: Mut<string[]> = [];
   for (const p of parts) if (p.k !== "text" && !order.includes(p.input)) order.push(p.input);
   const inputs = order;
-  const views = inputs.filter((i) => i.startsWith("viewof "));
+  const views: readonly string[] = inputs.filter((i) => i.startsWith("viewof "));
   const spell = (i: string) => (views.includes(i) ? `$${views.indexOf(i)}` : i);
   let text = "", js = "";
   for (const p of parts) {

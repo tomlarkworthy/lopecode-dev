@@ -1,0 +1,41 @@
+ok   fixtures/accept-basic/cells.ts:15 ticks; lite/soundscript/spec-7.ts:1 s7_beats (same shape)
+     before: ticks:ok R[Y:i]
+     after:  ticks:ok R[]
+     loop counter becomes for-of over a fresh array; the iterator still carries state across the yield, out of the checker's sight
+ok   fixtures/accept-basic/cells.ts:15 ticks, general bound n
+     before: n:ok R[] ticks:ok R[Y:i]
+     after:  n:ok R[] ticks:ok R[]
+     the same for a bound that is an input; allocates n numbers up front, and an unbounded generator has no such rewrite
+ok   lite/soundscript/spec-5.ts:1 s5_frames (and the 9 inline copies in spec.ojs, reject:S5.2#191/#192)
+     before: s5_frames:ok R[Y:buf,Y:k]
+     after:  s5_frames:ok R[]
+     build each frame in a helper call; the .slice() stays because the checker does not take a helper's result as fresh for mut-yield (two allocations per frame instead of one)
+ok   inline:spec.ojs#om4wd8zo38rt a; reject:S4.4#184 a
+     before: a:ok R[Y:r,Y:k]
+     after:  a:ok R[]
+     yield a fresh record per step
+ok   lite/notebook/examples/09-breakout.tsx:56 ticks; fixtures/lite-game/accept-breakout/cells.tsx:56 ticks
+     before: now:ok R[] playing:ok R[] over:ok R[] ticks:ok R[Y:t]
+     after:  -
+     no reasonable rewrite: the frame delta needs the previous time carried across the yield. Recursion through yield* grows without bound; yielding now() moves the subtraction to the consumer, which then needs a state cell
+ok   selfhost/rt/probe3.ss.ts:9 awaitLoop (ss and ssx)
+     before: awaitLoop:ok R[A:s]
+     after:  awaitLoop:ok R[]
+     Promise.all then a fold; a rejection is now reported by the first promise to reject rather than the first in order
+ok   inline:spec.ojs#2cylt8z8h1s2l a
+     before: a:ok R[K:out]
+     after:  a:ok R[]
+     annotate the local read-only, so it is not Mut
+ok   lite/render.ss.ts:33 eventOf (module context: sswith); lite/infer/ix-core.ss.ts:159 ixAdmits (module:lite/infer) has the same shape (standalone reduction: DOM_EVENTS inlined)
+     before: eventOf:ok R[K:events]
+     after:  eventOf:ok R[]
+     a lookup table built once and read by the returned function: annotate it with its plain (non-Mut) type, which is read-only
+ok   fixtures/lite-mut/reject-mut-capture/cells.ts:5 bad_stored
+     before: bad_stored:ok R[K:out]
+     after:  bad_stored:ok R[]
+     const snapshot before the kept function; note this cell sits in a fixture named reject-mut-capture but is accepted today
+ok   inline:spec.ojs#1lj0ijbwa8dg5 bad and #3af5e7gfxw7kh bad (S5.4, was borrowed-await)
+     before: bad:ok R[A:v,A:m]
+     after:  -
+     a spec example of the hazard itself (a write after an await seen through an alias); R rejecting it is the intent, no rewrite is meant
+10/10

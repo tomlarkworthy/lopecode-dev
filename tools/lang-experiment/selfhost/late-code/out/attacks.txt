@@ -1,0 +1,17 @@
+| set | programs | threw | accepted today | accepted, R rejects | ... R without primitive lets | accepted, not R-rejected, with late code | with K | with Y | with A |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| freeze | 315 | 0 | 105 | 95 | 95 | 6 | 4 | 0 | 2 |
+| attack2 | 252 | 0 | 132 | 25 | 25 | 14 | 10 | 0 | 4 |
+| attack1 | 8 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| oldspec | 49 | 0 | 31 | 3 | 3 | 5 | 3 | 2 | 0 |
+| oldvariants | 239 | 0 | 40 | 1 | 1 | 3 | 0 | 2 | 1 |
+| runtime | 98 | 0 | 80 | 12 | 12 | 4 | 2 | 0 | 2 |
+| new | 70 | 0 | 20 | 13 | 13 | 1 | 1 | 0 | 0 |
+| h6 | 54 | 0 | 17 | 16 | 16 | 1 | 1 | 0 | 0 |
+| freeze2 | 309 | 0 | 85 | 74 | 74 | 9 | 7 | 1 | 3 |
+| h7 | 45 | 0 | 26 | 25 | 24 | 0 | 0 | 0 | 0 |
+| freeze3 | 360 | 0 | 56 | 44 | 41 | 10 | 3 | 0 | 7 |
+| h8 | 76 | 0 | 28 | 18 | 17 | 9 | 2 | 1 | 6 |
+| convert-freeze/attack1 | 246 | 0 | 118 | 117 | 115 | 1 | 1 | 0 | 0 |
+| all | 2121 | 0 | 739 | 443 | 436 | 63 | 34 | 6 | 25 |
+accepted-today verdicts that differ from run-sets verdictOf: 0

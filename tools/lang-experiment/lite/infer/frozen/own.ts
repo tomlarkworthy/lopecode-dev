@@ -266,6 +266,10 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     if (p && p.type === "CallExpression" && p.callee !== f && nonRetainingArg(p, p.arguments.indexOf(f))) return false;
     return !helper(f);
   };
+  // DELIBERATE CHANGE (2026-11-22, R-K): a function the cell keeps captures no Mut and no let, reads included (the cells' owKeptReadMsg)
+  const keptReadMsg = (b: Binding): string => isMutB(b)
+    ? `Mut ${b.name} captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: ${show(stripMut(b.t, ch.reg))} = ${b.name}) and capture that, or make it inside the function`
+    : `let ${b.name} captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = ${b.name}) and capture that`;
   for (const f of fns) {
     if (f === cellFn || !kept(f)) continue;
     for (const b of capMut.get(f)!) {
@@ -274,11 +278,12 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
       else if (capW.get(f)!.has(b)) err(f, "mut-capture", `Mut ${b.name} written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made`);
       else if (u.k === "named" && UNFREEZABLE.has(u.n)) err(f, "mut-capture", `Mut ${b.name} (${u.n}) captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: ${u.n} = ${b.name}.slice())`);
       else if ((refs.get(b) ?? []).some((r) => r.start > f.start && r.end <= f.end && flowsOut(r, f))) err(f, "mut-capture", `Mut ${b.name} returned or yielded by a function the cell keeps: whoever calls it could write ${b.name}; return a copy`);
-      else { genLateWrites(f, b); for (const r of refs.get(b) ?? []) if ((r.start < f.start || r.start > f.end) && writeRef(r) && lateWrite(r, f)) err(r, "mut-capture", `${b.name} may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged`); }
+      else { genLateWrites(f, b); for (const r of refs.get(b) ?? []) if ((r.start < f.start || r.start > f.end) && writeRef(r) && lateWrite(r, f)) err(r, "mut-capture", `${b.name} may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged`); err(f, "mut-capture", keptReadMsg(b)); }
     }
     for (const b of capLet.get(f)!) err(f, "let-capture", `${b.kind} ${b.name} assigned from a function that escapes`);
     for (const b of capRead.get(f)!) {
       if (b.kind === "let" || b.kind === "param") for (const r of refs.get(b) ?? []) if ((r.start < f.start || r.start > f.end) && assignedRef(r) && lateWrite(r, f)) err(r, "let-capture", `${b.kind} ${b.name} is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged`);
+      if (b.kind === "let") err(f, "let-capture", keptReadMsg(b));
       const ta = capMut.get(f)!.has(b) ? null : typedIn(b.t);
       if (promiseIn(b.t)) err(f, "mut-capture", `${b.name} holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself`);
       if (ta !== null && !typedSafeB(b)) err(f, "mut-capture", `${b.name} holds a ${ta} that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: ${ta} = x.slice())`);
@@ -354,6 +359,57 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
       while (p && (p.type === "ParenthesizedExpression" || (p.type === "ConditionalExpression" && p.test !== cur))) { cur = p; p = parent.get(p); }
       const whole = cellFn.body === cur || (p?.type === "ReturnStatement" && encl(p) === cellFn);
       if (!whole || cellFn.async || cellFn.generator) err(n, "listener-placement", "on(...) only as the whole value of a sync, non-generator cell (what it returns, or a branch of a conditional that it returns)");
+    }
+  }
+  // DELIBERATE CHANGE (2026-11-22, R-Y and R-A): no Mut, nor a let of a type that is not primitive, declared before a yield
+  // (or an await in a function whose values may be seen before it ends) is used after it (the cells of ow-late.ss.ts)
+  {
+    const within = (a: Node, b: Node) => a.start >= b.start && a.end <= b.end;
+    const LOOPS = /^(ForStatement|ForOfStatement|ForInStatement|WhileStatement|DoWhileStatement)$/;
+    const cand = (b: Binding) => !b.cellParam && b.kind !== "global" && b.kind !== "prelude" && b.kind !== "fn" && (isMutB(b) || (b.kind === "let" && isPrimitive(b.t) === false));
+    const visible = (g: Node): boolean => !!g.generator || (g !== cellFn && (kept(g) || !encl(g).async || visible(encl(g))));
+    const writeAt = (r: Node): Node | null => {
+      for (let cur = r, p = parent.get(r); p; cur = p, p = parent.get(p)) {
+        if (/^(CallExpression|AssignmentExpression|UpdateExpression)$/.test(p.type) || (p.type === "UnaryExpression" && p.operator === "delete")) return p;
+        if (!((p.type === "MemberExpression" && p.object === cur) || /^(ArrayPattern|ObjectPattern|Property|AssignmentPattern)$/.test(p.type))) return null;
+      }
+      return null;
+    };
+    const loopsOut = (n: Node, g: Node): Node[] => { const out: Node[] = []; for (let p = parent.get(n); p && p !== g && !isFn(p); p = parent.get(p)) if (LOOPS.test(p.type)) out.push(p); return out; };
+    const usesOf = (b: Binding): { at: Node; write: boolean }[] => [...(refs.get(b) ?? []).map((r) => ({ at: r, write: assignedRef(r) || writeRef(r) })),
+      ...fns.flatMap((f) => { const hb = capRead.get(f)!.has(b) ? bindingOfFn.get(f) : undefined; return hb ? (refs.get(hb) ?? []).filter(isCallee).map((r) => ({ at: parent.get(r)!, write: capW.get(f)!.has(b) || capLet.get(f)!.has(b) })) : []; })];
+    const after = (g: Node, d: Node, captured: boolean, u: { at: Node; write: boolean }, p: Node): boolean => {
+      if (!captured && d.start >= p.start) return false;
+      const r = u.at, right = p.type === "ForOfStatement" ? p.right : null, inRight = !!right && within(r, right);
+      if (r.start >= (right ? right.end : p.end) && !inRight) return true;
+      const we = u.write ? writeAt(r) : null;
+      if (we && within(p, we)) return true;
+      const l = [...(right ? [p] : []), ...loopsOut(p, g)].find((x) => within(r, x) && !(x === p && inRight));
+      return !!l && (captured || !within(d, l.body));
+    };
+    const lateMsg = (b: Binding, p: Node): string => {
+      const what = isMutB(b) ? `Mut ${b.name}` : `let ${b.name} of type ${show(b.t)}`;
+      const at = p.type === "YieldExpression" ? "a yield" : "an await in a function whose values may be seen before it ends";
+      const w = p.type === "YieldExpression" ? "yield" : "await";
+      return `${what} is declared before ${at} and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the ${w}, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the ${w} (const c: ${show(unwrap(b.t))} = ...) and read c${isMutB(b) ? "" : "; a let of a primitive type may be used across it"}`;
+    };
+    for (const g of fns) {
+      if (!g.async && !g.generator) continue;
+      const aw = !!g.async && visible(g);
+      const ps = all.filter((n) => encl(n) === g && (n.type === "YieldExpression" || (aw && (n.type === "AwaitExpression" || (n.type === "ForOfStatement" && !!n.await)))));
+      if (!ps.length) continue;
+      for (const b of refs.keys()) {
+        if (!cand(b) || !b.node) continue;
+        const d = b.node, captured = encl(d) !== g;
+        if (captured && !capRead.get(g)!.has(b)) continue;
+        for (const u of usesOf(b)) {
+          if (u.at === d || (captured && !within(u.at, g))) continue;
+          const p = ps.find((x) => after(g, d, captured, u, x));
+          if (!p) continue;
+          err(u.at, p.type === "YieldExpression" ? "mut-yield" : "mut-await", lateMsg(b, p));
+          break;
+        }
+      }
     }
   }
   function fresh(a: Node): boolean {

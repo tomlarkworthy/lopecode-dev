@@ -123,7 +123,6 @@ spec_accepts = [
   { statement: "S4.4", was: "mut-escape", source: "const a = () => {\n  const g = { t: [1] };\n  const h = { ...g };\n  return g.t.length;\n};" },
   { statement: "S4.4", was: "mut-escape", source: "const a = () => {\n  const f = (p: Mut<{ t: Mut<number[]> | null }>) => {\n    const x = p.t;\n    return x === null ? 0 : x.length;\n  };\n  return 1;\n};" },
   { statement: "S4.4", was: "type", source: "const a = () => {\n  const g = { m: new Map<string, Mut<number[]>>() };\n  return g.m.size;\n};" },
-  { statement: "S4.5", was: "mut-capture", source: "const a = () => {\n  const out = [0];\n  const f = () => out.length;\n  return f;\n};" },
   { statement: "S4.5", was: "mut-capture", source: "const a = () => {\n  const out = [0];\n  [1].forEach(() => {\n    out[0] = 1;\n  });\n  return out;\n};" },
   { statement: "S4.6", was: "mut-after-freeze", source: "const a = () => {\n  const out = [0];\n  const r = out;\n  out[0] = 2;\n  return r;\n};" },
   { statement: "S4.6", was: "mut-after-freeze", source: "const a = () => {\n  const out = [0];\n  const f = () => {\n    out[0] = 1;\n  };\n  const r = out;\n  f();\n  return r;\n};" },
@@ -132,16 +131,14 @@ spec_accepts = [
   { statement: "S4.9", was: "mut-freeze-param", source: "const a = () => {\n  const g = (m: Mut<number[]>) => m;\n  return 1;\n};" },
   { statement: "S5.1", was: "borrow-placement", source: "const a = () => {\n  const b = [1];\n  return snapshot(b);\n};" },
   { statement: "S5.1", was: "borrow-placement", source: "const g = function* () {\n  const b = [1];\n  const f = function* () {\n    yield b;\n  };\n  yield 1;\n};" },
-  { statement: "S5.2", was: "inject-type", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst plain = (frames: Float32Array) => frames.length;" },
-  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => frames;" },
-  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => {\n  const f = () => frames.length;\n  return f();\n};" },
-  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => [frames];" },
-  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => state(frames);" },
-  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => {\n  let x = frames;\n  return 1;\n};" },
-  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = function* (frames) {\n  yield frames;\n};" },
-  { statement: "S5.4", was: "borrowed-await", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = async (frames) => {\n  await Promise.resolve();\n  return frames.length;\n};" },
-  { statement: "S5.4", was: "borrowed-await", source: "const bad = () => async () => {\n  const bump = async (m: Mut<{ n: number }>): Promise<void> => {\n    await 0;\n    m.n = 2;\n  };\n  const m = { n: 1 };\n  const p = bump(m);\n  const v = m;\n  await p;\n  return v.n;\n};" },
-  { statement: "S5.4", was: "borrowed-await", source: "const bad = () => async () => {\n  const m = { n: 1 };\n  const h = async (): Promise<void> => {\n    await 0;\n    m.n = 2;\n  };\n  const p = h();\n  const v = m;\n  await p;\n  return v.n;\n};" },
+  { statement: "S5.2", was: "inject-type", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst plain = (frames: Float32Array) => frames.length;" },
+  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => frames;" },
+  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => {\n  const f = () => frames.length;\n  return f();\n};" },
+  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => [frames];" },
+  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => state(frames);" },
+  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => {\n  let x = frames;\n  return 1;\n};" },
+  { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = function* (frames) {\n  yield frames;\n};" },
+  { statement: "S5.4", was: "borrowed-await", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = async (frames) => {\n  await Promise.resolve();\n  return frames.length;\n};" },
   { statement: "S5.5", was: "type", source: "const f = () => snapshot([1]);" }
 ]
 // %%
@@ -531,7 +528,7 @@ md`**S3.9** \`enum\` and \`const enum\` are \`[no-enum]\`. \`namespace\`, \`modu
 // %%
 md`**S3.10** \`throw\`, \`try\`/\`catch\`/\`finally\`, loops and assigning a local \`let\` are accepted.`
 // %%
-md`**S3.11** A local \`let\` may be assigned from a nested function only when every function from the assignment out to the \`let\` is a local helper: bound to a local \`const\` or declared with \`function\`, and every use of its name a direct call. Otherwise it is \`[let-capture]\`: the helper is returned, passed as an argument, put in a literal, bound to a second name, or called from a function that escapes. Reading a captured \`let\` is accepted.`
+md`**S3.11** A local \`let\` may be assigned from a nested function only when every function from the assignment out to the \`let\` is a local helper: bound to a local \`const\` or declared with \`function\`, and every use of its name a direct call. Otherwise it is \`[let-capture]\`: the helper is returned, passed as an argument, put in a literal, bound to a second name, or called from a function that escapes. A callback of an intrinsic that calls it before returning (\`forEach\`, \`map\`) may assign it as a helper does; one the intrinsic keeps (\`then\`) is \`[let-capture]\`. A helper that is only called may read a captured \`let\`; a kept function does not capture one (S4.10).`
 // %%
 md`**S3.12** \`===\`, \`!==\`, \`==\` and \`!=\` with two operands that may both be non-primitive is \`[strict-eq-object]\`. \`equals(a, b)\` compares structurally. Comparing with a primitive, \`null\` included, is accepted.`
 // %%
@@ -547,7 +544,7 @@ md`**S3.17** A \`switch\` with no \`default\`, whose case values have literal, \
 // %%
 md`**S3.18** The rules of sections 3 to 7 apply in a case body as in the body of an \`if\`: a \`State\` written in a case outside an action is \`[state-write]\`. A writable local may be returned from a case, and written after a case bound it to a second name.`
 // %%
-md`**S3.19** A nested function that uses a binding of an enclosing function whose type may hold an iterator is \`[iterator-capture]\`, and a cell whose value, state cell content or events value may hold one is \`[iterator-cell]\`: reading an iterator uses it up. A type may hold one when it is or contains \`Iterable<T>\` (what \`values()\`, \`keys()\` and \`entries()\` return), \`Generator<T>\` or a type parameter; a function type, \`Action\`, \`State\` and \`Events\` hold none. An array, a string, a \`Map\` and a \`Set\` may be kept, and \`[...it]\` copies an iterator into an array.`
+md`**S3.19** A nested function that uses a binding of an enclosing function whose type may hold an iterator is \`[iterator-capture]\`, and a cell whose value, state cell content or events value may hold one is \`[iterator-cell]\`: reading an iterator uses it up. A type may hold one when it is or contains \`Iterable<T>\` (what \`values()\`, \`keys()\` and \`entries()\` return), \`Generator<T>\` or a type parameter; a function type, \`Action\`, \`State\` and \`Events\` hold none. An array, a string, a \`Map\` and a \`Set\` may be kept, under a type that is not \`Mut<…>\` (S4.10), and \`[...it]\` copies an iterator into an array.`
 // %%
 md`**S3.20** \`Object.freeze(e)\`, where \`e\` is an object or array literal, is accepted and has the type of \`e\`. With any other argument it is \`[object-freeze]\`: freezing a value that another cell holds would change it. \`Object.freeze\` read other than in such a call is \`[no-member]\`.`
 // %%
@@ -628,7 +625,7 @@ spec_rejects_3 = [
   { statement: "S3.18", rule: "state-write", source: "const n = () => state(0);\nconst w = (n: State<number>) => (a: number): number => {\n  switch (a) {\n    case 1: n.set(1); return 1;\n  }\n  return 0;\n};" },
   { statement: "S3.19", rule: "iterator-capture", source: "const counter = () => {\n  const it = [1, 2, 3].values();\n  return (n: number) => {\n    let s = 0;\n    for (const x of it) s += x;\n    return s + n;\n  };\n};" },
   { statement: "S3.19", rule: "iterator-capture", source: "const later = () => (it: Iterable<number>) => () => [...it].length;" },
-  { statement: "S3.19", rule: "iterator-capture", source: "const boxed = () => {\n  const r = { it: new Map([[\"a\", 1]]).entries() };\n  return () => [...r.it].length;\n};" },
+  { statement: "S3.19", rule: "iterator-capture", source: "const boxed = () => {\n  const r: { readonly it: Iterable<[string, number]> } = { it: new Map([[\"a\", 1]]).entries() };\n  return () => [...r.it].length;\n};" },
   { statement: "S3.19", rule: "iterator-capture", source: "const keep = () => {\n  const hold = <T,>(x: T) => () => x;\n  const g = hold([1, 2].values());\n  return [...g()].length;\n};" },
   { statement: "S3.19", rule: "iterator-cell", source: "const it = () => [1, 2, 3].values();" },
   { statement: "S3.19", rule: "iterator-cell", source: "const s = () => state([1, 2, 3].values());" },
@@ -680,7 +677,7 @@ test_spec_S3_10 = {
 test_spec_S3_11 = {
   spec_is(spec_okCells("const a = () => {\n  let n = 0;\n  const inc = () => {\n    n++;\n  };\n  function add(k: number) {\n    n += k;\n  }\n  inc();\n  add(2);\n  const read = () => n;\n  return read();\n};"), "a:ok");
   spec_is(await spec_module.value("s3_tree"), [1, [2, 30], []]);
-  return `${spec_rejectsFor("S3.11")}; helpers only called may assign; s3_tree is ${JSON.stringify(await spec_module.value("s3_tree"))}`;
+  return `${spec_rejectsFor("S3.11")}; ${spec_acceptsFor("S3.11")}; helpers only called may assign; s3_tree is ${JSON.stringify(await spec_module.value("s3_tree"))}`;
 }
 // %%
 test_spec_S3_12 = {
@@ -733,7 +730,7 @@ test_spec_S3_18 = {
 }
 // %%
 test_spec_S3_19 = {
-  spec_is(spec_okCells("const xs = () => [1, 2, 3];\nconst sum = () => (it: Iterable<number>) => {\n  let s = 0;\n  for (const x of it) s += x;\n  return s;\n};\nconst later = (xs: readonly number[], sum: (it: Iterable<number>) => number) => {\n  const m = new Map([[\"a\", 1]]);\n  const values = () => [...m.values()].length;\n  return () => sum(xs) + values() + [...\"ab\"].length;\n};"), "xs:ok,sum:ok,later:ok");
+  spec_is(spec_okCells("const xs = () => [1, 2, 3];\nconst sum = () => (it: Iterable<number>) => {\n  let s = 0;\n  for (const x of it) s += x;\n  return s;\n};\nconst later = (xs: readonly number[], sum: (it: Iterable<number>) => number) => {\n  const m: Map<string, number> = new Map([[\"a\", 1]]);\n  const values = () => [...m.values()].length;\n  return () => sum(xs) + values() + [...\"ab\"].length;\n};"), "xs:ok,sum:ok,later:ok");
   return `${spec_rejectsFor("S3.19")}; a function that captures an array, a Map or a function taking an Iterable, and one that copies an iterator into an array, are accepted`;
 }
 // %%
@@ -754,7 +751,7 @@ md`**S4.3** A fresh value is a literal, a spread copy, \`new\` on an intrinsic, 
 // %%
 md`**S4.4** A \`Mut\` may be bound to a second name, placed in an array or object literal, passed to a parameter typed \`Mut<…>\`, which may write it, and passed to any parameter of its plain type. Every name is the same value, and a write through one is seen through the others. What a cell exposes is read with every \`Mut\` removed: a cell that takes it gets a read-only value, and a write there is \`[member-write]\` or \`[mutating-method]\`. \`Mut\` in the type of a cell input is \`[mut-cell]\`.`
 // %%
-md`**S4.5** A function is kept when it is returned, yielded, stored, or passed to something that may call it later. A helper bound to a local \`const\` or declared with \`function\` and only called (S3.11) is not kept, nor is a callback of an intrinsic that calls it before returning. A kept function may read a \`Mut\` of an enclosing function. It is \`[mut-capture]\` when the kept function writes the \`Mut\`, returns it or yields it; when the \`Mut\` is written after the function is made, later in the text, in a loop that makes the function, or inside another function; when the \`Mut\` is a typed array or a \`URL\` that a name in the cell can still write; and, in a generator cell or in a nested async or generator function, when any \`Mut\` is written after the function is made. A \`let\` a kept function uses that is assigned after the function is made is \`[let-capture]\`.`
+md`**S4.5** A function is kept when it is returned, yielded, stored, or passed to something that may call it later. A helper bound to a local \`const\` or declared with \`function\` and only called (S3.11) is not kept, nor is a callback of an intrinsic that calls it before returning. A kept function does not capture a \`Mut\` or a \`let\` of an enclosing function (S4.10). A capture of a \`Mut\` is \`[mut-capture]\` in every case; the message names the case when the kept function writes the \`Mut\`, returns it or yields it; when the \`Mut\` is written after the function is made, later in the text, in a loop that makes the function, or inside another function; when the \`Mut\` is a typed array or a \`URL\` that a name in the cell can still write; and, in a generator cell or in a nested async or generator function, when any \`Mut\` is written after the function is made.`
 // %%
 md`**S4.6** At run time every value a cell publishes is frozen, with everything it reaches, when it is published: the value a cell returns, each value a generator cell yields, the value a returned promise resolves to, a value written to a state cell, the arguments of an action, and the result of a worker. A write to a published value, from any code, throws a \`TypeError\`. Arrays, records, \`Error\`s and JSX elements are frozen. A \`Map\`, \`Set\` or \`URL\` made in a cell is an instance of a subclass whose writing methods throw once it is frozen. The locals a published function uses are frozen with it. A typed array or \`ArrayBuffer\` is published as a copy, and a container that reaches one as a frozen copy; the cell keeps its original. The \`searchParams\` of a \`URL\` is a copy taken when it is read. Publishing throws, and the cell is in error, for: an iterator or a sync generator object (a cell whose value is one is \`[iterator-cell]\` first); a value with a callable \`then\` that is not a promise (as a cell's whole value also \`[type]\`); a function, \`Error\` or already frozen value that reaches a typed array; and a function that uses a binding not yet initialised. A publish that throws changes no value.`
 // %%
@@ -763,6 +760,8 @@ md`**S4.7** Only the first level of an inferred \`Mut\` is writable. A write to,
 md`**S4.8** A view of a local buffer (\`subarray\`, \`buffer\`) may be bound and read; a write through it is \`[member-write]\`. Freezing does not stop a write to a typed array or a \`URL\`'s setters, so a generator cell that yields a typed array or a \`URL\` it can still write, also inside a literal, is \`[mut-yield]\`. A fresh copy (\`buf.slice()\` for a typed array, \`new URL(u.href)\` for a \`URL\`), a cell input, or a read-only \`const\` made from one is accepted.`
 // %%
 md`**S4.9** \`Mut<T>\` may be written in any type inside a cell: a parameter, a local, a function's result, a field, a type alias. Only in the type of a cell input is it rejected (S4.4). A function may return a \`Mut<…>\` parameter.`
+// %%
+md`**S4.10** A kept function (S4.5) does not capture a \`Mut\` local of an enclosing function, also only to read it. That is \`[mut-capture]\`. It does not capture a \`let\` of an enclosing function, of any type. That is \`[let-capture]\`. A call of a helper that uses the local counts as a capture of it. A \`const\` annotated with a type that is not \`Mut<…>\` and bound before the function may be captured: \`const c: readonly number[] = out\`, \`const m: Map<string, number> = new Map(…)\`, \`const c = n\` for a \`let n\`. A kept function that captures a local holding a promise is \`[mut-capture]\`. Since 2026-11-22.`
 // %%
 md`The cells of this section. \`s4_blur\` writes a box blur into a local buffer; \`s4_counts\` writes a local map through a helper that is only called (S4.5); \`s4_record\` deletes from a local object.`
 // %%
@@ -785,13 +784,16 @@ spec_rejects_4 = [
   { statement: "S4.3", rule: "type", source: "const xs = () => [1];\nconst b = (xs) => {\n  const g = (m: Mut<number[]>) => m.length;\n  return g(xs);\n};" },
   { statement: "S4.4", rule: "mutating-method", source: "const a = () => {\n  const xs = [1];\n  xs.push(2);\n  return xs;\n};\nconst b = (a) => {\n  a.push(3);\n  return 1;\n};" },
   { statement: "S4.4", rule: "mutating-method", source: "const a = () => {\n  const m = new Map<string, number>();\n  m.set(\"k\", 1);\n  return { m };\n};\nconst b = (a) => {\n  a.m.set(\"j\", 2);\n  return 1;\n};" },
-  { statement: "S4.4", rule: "member-write", source: "const a = function* () {\n  const r = { n: 0 };\n  for (let k = 0; k < 2; k++) {\n    r.n = k;\n    yield { ...r };\n  }\n};\nconst b = (a) => {\n  a.n = 9;\n  return 1;\n};" },
+  { statement: "S4.4", rule: "member-write", source: "const a = function* () {\n  for (const k of [0, 1]) yield { n: k };\n};\nconst b = (a) => {\n  a.n = 9;\n  return 1;\n};" },
   { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const t = new Float32Array(2);\n  return () => t.length;\n};" },
   { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = [0];\n  const f = () => out.length;\n  out.push(1);\n  return f;\n};" },
   { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const out = [0];\n  return { f: () => { out.push(1); return out.length; } };\n};" },
   // holes8 (2026-11-22): a kept function that captures a promise (it settles after the function is published)
   { statement: "S4.5", rule: "mut-capture", source: "const a = () => {\n  const p = Promise.resolve([1]);\n  return () => p;\n};" },
-  { statement: "S4.8", rule: "mut-yield", source: "const g = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf;\n  }\n};" }
+  { statement: "S4.10", rule: "mut-capture", source: "const a = () => {\n  const out = [0];\n  const f = () => out.length;\n  return f;\n};" },
+  { statement: "S4.10", rule: "mut-capture", source: "const a = () => {\n  const m = new Map([[\"k\", 1]]);\n  const get = (k: string) => m.get(k) ?? 0;\n  return () => get(\"k\");\n};" },
+  { statement: "S4.10", rule: "let-capture", source: "const a = () => {\n  let n = 1;\n  return () => n;\n};" },
+  { statement: "S4.8", rule: "mut-yield", source: "const g = function* () {\n  const buf = new Float32Array(2);\n  buf[0] = 1;\n  yield buf;\n};" }
 ]
 // %%
 spec_rejects_4_view = spec_rejectsTable(spec_rejects_4)
@@ -821,7 +823,7 @@ test_spec_S4_4 = {
 test_spec_S4_5 = {
   spec_is(spec_okCells("const a = () => {\n  const out = [0];\n  const f = () => out.length;\n  return f();\n};"), "a:ok");
   spec_is(await spec_module.value("s4_counts"), [2, 1]);
-  return `${spec_rejectsFor("S4.5")}; a helper that is only called may use the Mut; s4_counts is [2,1]`;
+  return `${spec_rejectsFor("S4.5")}; ${spec_acceptsFor("S4.5")}; a helper that is only called may use the Mut; s4_counts is [2,1]`;
 }
 // %%
 test_spec_S4_6 = {
@@ -841,7 +843,7 @@ test_spec_S4_6 = {
 test_spec_S4_6_reach = {
   // holes6 (2026-11-22): what a published function captures is frozen when it is published (the compiler registers
   // each closure's captured locals); an Error is frozen; a URL is the guarded SsURL; a typed array is published as a copy
-  const V = await spec_load("const f = () => { const xs = [1]; const h = () => xs; return () => h(); };\nconst e = () => new Error(\"x\");\nconst u = () => new URL(\"https://x.test/a\");\nconst t = () => { const a = new Uint8Array(2); return { a, b: a }; };", {});
+  const V = await spec_load("const f = () => { const xs: number[] = [1]; const h = () => xs; return () => h(); };\nconst e = () => new Error(\"x\");\nconst u = () => new URL(\"https://x.test/a\");\nconst t = () => { const a = new Uint8Array(2); return { a, b: a }; };", {});
   try {
     const f = await V.value("f"), e = await V.value("e"), u = await V.value("u"), t = await V.value("t");
     const tries = [() => f().push(2), () => { e.message = "y"; }, () => { e.name = "Y"; }, () => { u.pathname = "/b"; }];
@@ -901,11 +903,16 @@ test_spec_S4_8 = {
 // %%
 test_spec_S4_9 = spec_acceptsFor("S4.9")
 // %%
-md`## 5. Generator cells that keep a value
-
-A generator cell may keep one writable value across its yields. What it yields is frozen or a copy, and a cell that reads it may keep it.`
+test_spec_S4_10 = {
+  spec_is(spec_okCells("const a = () => {\n  const out = [0];\n  out.push(1);\n  const c: readonly number[] = out;\n  const m: Map<string, number> = new Map([[\"k\", 1]]);\n  let n = 2;\n  n += 1;\n  const k = n;\n  return () => c.length + (m.get(\"k\") ?? 0) + k;\n};"), "a:ok");
+  return `${spec_rejectsFor("S4.10")}; a const of a plain type, and a const copy of a let, bound before the kept function are accepted`;
+}
 // %%
-md`**S5.1** A generator cell, sync or async, may keep a writable local across its yields. Each value is frozen as it is yielded (S4.6), so a later write to a yielded array or record throws; a generator that goes on writing yields a copy (\`[...b]\`, \`buf.slice()\`). Yielding a typed array or \`URL\` it can still write is \`[mut-yield]\` (S4.8).`
+md`## 5. Generator cells and the values they give
+
+A generator cell does not keep a writable value across its yields (S5.6). What it yields is frozen or a copy, and a cell that reads it may keep it.`
+// %%
+md`**S5.1** A generator cell, sync or async, may write a local and then yield it. Each value is frozen as it is yielded (S4.6). The local is not used after the yield (S5.6), so a generator that yields a new value each time makes it after the previous yield: in the body of the loop that holds the yield, or in a helper it calls. Yielding a typed array or \`URL\` it can still write is \`[mut-yield]\` (S4.8).`
 // %%
 md`**S5.2** A cell that takes a generator cell gets each yielded value, read-only. A write to it is \`[member-write]\`, and an annotation the yielded type is not assignable to is \`[inject-type]\`. \`Borrowed\` is still a name of the checker (S1.10), but no value has that type: on an input it is \`[inject-type]\`.`
 // %%
@@ -915,14 +922,26 @@ md`**S5.4** The reader may use the value after an \`await\`.`
 // %%
 md`**S5.5** \`snapshot(v)\` is a fresh copy of \`v\`, of the same type, and a local bound to it is writable (S4.3). The copy is made by \`slice\` for a typed array and by \`structuredClone\` for anything else, so \`snapshot\` of a function or a \`URL\` is accepted by the checker and throws at run time.`
 // %%
-md`The cells of this section. \`s5_frames\` fills one buffer three times with \`k * (1, 2, 3)\` for \`k\` = 1, 2, 3 and yields a copy each time; \`s5_total\` sums the frame it is given and \`s5_kept\` keeps a copy.`
+md`**S5.6** In a generator, a \`Mut\` local, or a \`let\` whose type is not primitive, declared before a \`yield\` is not used after it, to read or to write. That is \`[mut-yield]\`. A use is after the \`yield\` when it is later in the text, when it writes the local in an expression that holds the \`yield\` (\`xs.push(yield 1)\`), or when it is in a loop that holds the \`yield\` and the local is declared outside that loop's body. A local declared in the loop body is a new binding in each iteration. A call of a function that uses the local is a use of it at the call. A \`let\` of a primitive type, such as a loop counter or the previous time, may be used across a \`yield\`. Since 2026-11-22.`
+// %%
+md`**S5.7** S5.6 holds for an \`await\` in a function whose values may be seen before it ends, and the rule is \`[mut-await]\`. Such a function is a generator, a function the cell keeps, an async function made in a function that is not async, or an async function made in one of these. An async cell, and an async function made in an async function that is none of these, may use a \`Mut\` across an \`await\`, whether or not the encloser awaits it (see Not specified). Since 2026-11-22.`
+// %%
+md`The cells of this section. \`s5_frames\` makes a buffer for each \`k\` = 1, 2, 3, fills it with \`k * (1, 2, 3)\` and yields a copy; \`s5_total\` sums the frame it is given and \`s5_kept\` keeps a copy.`
 // %%
 //ss: ./spec-5.ts
 // %%
 spec_rejects_5 = [
-  { statement: "S5.1", rule: "mut-yield", source: "const g = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf;\n  }\n};" },
-  { statement: "S5.2", rule: "member-write", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst w = (frames) => {\n  frames[0] = 1;\n  return 1;\n};" },
-  { statement: "S5.2", rule: "inject-type", source: "const frames = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst w = (frames: string) => frames.length;" }
+  { statement: "S5.1", rule: "mut-yield", source: "const g = function* () {\n  const buf = new Float32Array(2);\n  buf[0] = 1;\n  yield buf;\n};" },
+  { statement: "S5.6", rule: "mut-yield", source: "const g = function* () {\n  const xs: Mut<unknown[]> = [];\n  xs.push(yield 1);\n};" },
+  { statement: "S5.6", rule: "mut-yield", source: "const g = function* () {\n  const r = { n: 0 };\n  yield 1;\n  r.n = 1;\n  yield r.n;\n};" },
+  { statement: "S5.6", rule: "mut-yield", source: "const g = function* () {\n  const buf = new Float32Array(2);\n  for (let k = 0; k < 2; k++) {\n    buf[0] = k;\n    yield buf.slice();\n  }\n};" },
+  { statement: "S5.6", rule: "mut-yield", source: "const g = function* () {\n  let xs: readonly number[] = [1];\n  yield xs.length;\n  xs = [2];\n  yield xs.length;\n};" },
+  { statement: "S5.6", rule: "mut-yield", source: "const g = function* () {\n  const xs = [1];\n  const add = () => xs.push(2);\n  yield 1;\n  add();\n};" },
+  { statement: "S5.7", rule: "mut-await", source: "const bad = () => async () => {\n  const bump = async (m: Mut<{ n: number }>): Promise<void> => {\n    await 0;\n    m.n = 2;\n  };\n  const m = { n: 1 };\n  const p = bump(m);\n  const v = m;\n  await p;\n  return v.n;\n};" },
+  { statement: "S5.7", rule: "mut-await", source: "const a = () => {\n  const xs = [0];\n  const h = async () => {\n    await 0;\n    xs.push(1);\n  };\n  h();\n  return 1;\n};" },
+  { statement: "S5.7", rule: "mut-await", source: "const g = async function* () {\n  const xs = [0];\n  await 0;\n  xs.push(1);\n  yield xs.length;\n};" },
+  { statement: "S5.2", rule: "member-write", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst w = (frames) => {\n  frames[0] = 1;\n  return 1;\n};" },
+  { statement: "S5.2", rule: "inject-type", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst w = (frames: string) => frames.length;" }
 ]
 // %%
 spec_rejects_5_view = spec_rejectsTable(spec_rejects_5)
@@ -955,7 +974,7 @@ test_spec_S5_4 = {
 test_spec_S5_5 = {
   // an owner yields once a frame; the copy never ends, so whichever frame is read first, a later one follows
   const frames = (f) => spec_frames(f, 240);
-  const L = await spec_load("const frames = function* () {\n  const buf = new Float32Array(3);\n  for (let k = 1; ; k++) {\n    for (let i = 0; i < buf.length; i++) buf[i] = k * (i + 1);\n    yield buf.slice();\n  }\n};\nconst kept = (frames) => snapshot(frames);\nconst total = (frames) => {\n  let s = 0;\n  for (const v of frames) s += v;\n  return s;\n};", {});
+  const L = await spec_load("const frames = function* () {\n  for (let k = 1; ; k++) {\n    const buf = new Float32Array(3);\n    for (let i = 0; i < buf.length; i++) buf[i] = k * (i + 1);\n    yield buf.slice();\n  }\n};\nconst kept = (frames) => snapshot(frames);\nconst total = (frames) => {\n  let s = 0;\n  for (const v of frames) s += v;\n  return s;\n};", {});
   try {
     const kept0 = await L.value("kept"), was = Array.from(kept0), k = was[0];
     spec_is(was, [k, 2 * k, 3 * k]);
@@ -968,6 +987,16 @@ test_spec_S5_5 = {
   if (!(await frames(async () => (await spec_module.value("s5_total")) === 18))) throw new Error("s5_total did not reach 18");
   spec_is(Array.from(await spec_module.value("s5_kept")), [3, 6, 9]);
   return `${spec_acceptsFor("S5.5")}; a copy of an early frame is unchanged after the last; s5_kept is [3,6,9], s5_total 18`;
+}
+// %%
+test_spec_S5_6 = {
+  spec_is(spec_okCells("const t = function* (now: Clock) {\n  let t0 = now();\n  for (let i = 0; i < 2; i++) {\n    const t1 = now();\n    yield t1 - t0;\n    t0 = t1;\n  }\n};\nconst f = function* () {\n  for (let k = 0; k < 2; k++) {\n    const xs = [k];\n    xs.push(1);\n    yield xs;\n  }\n};"), "t:ok,f:ok");
+  return `${spec_rejectsFor("S5.6")}; a primitive let across a yield and a local made in the loop body are accepted`;
+}
+// %%
+test_spec_S5_7 = {
+  spec_is(spec_okCells("const c = async () => {\n  const m = { n: 1 };\n  await 0;\n  m.n = 2;\n  return m.n;\n};\nconst s = () => async (xs: readonly Promise<number>[]): Promise<number> => {\n  let t = 0;\n  for (const x of xs) t += await x;\n  return t;\n};"), "c:ok,s:ok");
+  return `${spec_rejectsFor("S5.7")}; an async cell's Mut and a kept async function's primitive let across an await are accepted`;
 }
 // %%
 md`## 6. State cells and actions
@@ -1156,7 +1185,7 @@ spec_rejects_6 = [
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst roll = (other: State<number>, random: Random) => action(() => other.set(random()));" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => action(() => other.set(now()));" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst load = (other: State<number>, fetch: Fetch) =>\n  action(() => {\n    fetch(\"https://example.invalid/\");\n    other.set(1);\n  });" },
-  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  let q = () => 1;\n  q = now;\n  return action(() => other.set(q()));\n};" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  let q = () => 1;\n  q = now;\n  const r = q;\n  return action(() => other.set(r()));\n};" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  for (const q of [now]) return action(() => other.set(q()));\n  return action(() => other.set(0));\n};" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) =>\n  action(() => {\n    const f = (now: number) => now;\n    other.set(now() + f(1));\n  });" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  const { q = now }: { readonly q?: () => number } = {};\n  return action(() => other.set(q()));\n};" },
@@ -2462,6 +2491,10 @@ test_spec_S11_11 = {
 md`## Not specified
 
 Behaviour the code has today that this page does not promise. Each item is undecided or unfinished, and none should be relied on.`
+// %%
+md`- An async function made in an async function that is not kept and not a generator is not checked under S5.7, though the encloser may return before it ends: \`const a = async () => { const xs = [0]; const c: readonly number[] = xs; const h = async () => { await null; xs.push(1); }; h(); return () => c.length; };\` is accepted. At run time the write throws: the function's captures are frozen when the cell gives its value. Found 2026-11-22.`
+// %%
+md`- S4.10, S5.6 and S5.7 look at a binding's own type, so a \`Mut\` inside a binding whose own type is not \`Mut<…>\` is not followed: \`const r: { readonly t: Mut<number[]> } = { t: [0] }\` may be captured by a kept function and written after a \`yield\`. At run time the write throws. Found 2026-11-22.`
 // %%
 md`- \`DataView\`, \`TextEncoder\`, \`TextDecoder\` and \`Symbol\` were on the first list of allowed intrinsics (the tutorial's rule list), but the checker has no signatures for them: reading one leaves the cell unsupported, and \`new\` on one is \`[new-non-intrinsic]\`.`
 // %%

@@ -36,7 +36,7 @@ export const RULES: RuleInfo[] = [
   { id: "no-enum", section: "Immutable by default", how: "exact", summary: "enum" },
   { id: "no-namespace", section: "Immutable by default", how: "exact", summary: "namespace / module declaration" },
   { id: "no-dynamic-import", section: "Immutable by default", how: "exact", summary: "import()" },
-  { id: "let-capture", section: "Immutable by default", how: "exact", summary: "a let assigned from inside a nested function" },
+  { id: "let-capture", section: "Immutable by default", how: "exact", summary: "a let assigned from inside a nested function, or captured at all by a function the cell keeps (R-K)" },
   { id: "switch-fallthrough", section: "Immutable by default", how: "exact", summary: "a non-empty case body that can reach its end, followed by another case" },
   { id: "switch-declaration", section: "Immutable by default", how: "exact", summary: "const, let, function or class directly in a case, not in a block" },
   { id: "builtin-type-name", section: "Files", how: "exact", summary: "a top-level type or interface named as one of the checker's own types (Listener, Array, Pool, ...)" },
@@ -45,8 +45,10 @@ export const RULES: RuleInfo[] = [
   { id: "iterator-cell", section: "Immutable by default", how: "approx", summary: "a cell's value (a state cell's content, an events value) whose type may hold an iterator" },
   // Opt-in 1
   // 2026-11-22: what another cell holds is frozen at run time; the static ownership rules below are what is left
-  { id: "mut-capture", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a function the cell keeps writes a captured Mut, captures a Mut typed array, or the Mut is written after it" },
-  { id: "mut-yield", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a generator cell yields a Mut typed array that is not a fresh copy" },
+  { id: "mut-capture", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a function the cell keeps captures a Mut (R-K: reads too), writes it, or the Mut is written after it" },
+  { id: "mut-yield", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a generator cell yields a Mut typed array that is not a fresh copy; R-Y: a Mut, or a let of a non-primitive type, declared before a yield of a generator is used after it" },
+  // 2026-11-22, R-A: [mut-yield] would name a yield where the point is an await
+  { id: "mut-await", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a Mut, or a let of a non-primitive type, declared before an await is used after it, in a function whose values may be seen before it ends" },
   { id: "removed-call", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "mut(...), freeze(...) or borrow(...): no longer part of the language" },
   // Opt-in 2
   // State and actions

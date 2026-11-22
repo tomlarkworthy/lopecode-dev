@@ -1,0 +1,202 @@
+[
+ {
+  "at": "fixtures/accept-basic/cells.ts:15",
+  "name": "ticks",
+  "bucket": "fixtures",
+  "why": [
+   "Y:i(let primitive,written) fn fixtures/accept-basic/cells.ts:15 [cell/gen] used 16r,16w,16r"
+  ]
+ },
+ {
+  "at": "fixtures/lite-game/accept-breakout/cells.tsx:56",
+  "name": "ticks",
+  "bucket": "fixtures",
+  "why": [
+   "Y:t(let primitive,written) fn fixtures/lite-game/accept-breakout/cells.tsx:56 [cell/gen] used 61r,62w"
+  ]
+ },
+ {
+  "at": "fixtures/lite-mut/reject-mut-capture/cells.ts:5",
+  "name": "bad_stored",
+  "bucket": "fixtures",
+  "why": [
+   "K:out(Mut,read) kept fn fixtures/lite-mut/reject-mut-capture/cells.ts:5"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#13ypm555m0c4s:1",
+  "name": "frames",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:buf(Mut,written) fn inline:spec.ojs#13ypm555m0c4s:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn inline:spec.ojs#13ypm555m0c4s:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#1ifueoppiy3nj:1",
+  "name": "frames",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:buf(Mut,written) fn inline:spec.ojs#1ifueoppiy3nj:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn inline:spec.ojs#1ifueoppiy3nj:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#1lj0ijbwa8dg5:1",
+  "name": "bad",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "A:v(Mut,read) fn inline:spec.ojs#1lj0ijbwa8dg5:1 [kept/async] used 10r",
+   "A:m(Mut, captured,written) fn inline:spec.ojs#1lj0ijbwa8dg5:3 [helper/async] used 5w"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#1mxmkw2j7ts1s:1",
+  "name": "frames",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:buf(Mut,written) fn inline:spec.ojs#1mxmkw2j7ts1s:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn inline:spec.ojs#1mxmkw2j7ts1s:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#2cylt8z8h1s2l:1",
+  "name": "a",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "K:out(Mut,read) kept fn inline:spec.ojs#2cylt8z8h1s2l:3"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#2ihncfn9lpuj2:1",
+  "name": "frames",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:buf(Mut,written) fn inline:spec.ojs#2ihncfn9lpuj2:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn inline:spec.ojs#2ihncfn9lpuj2:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#323oevuhyk318:1",
+  "name": "frames",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:buf(Mut,written) fn inline:spec.ojs#323oevuhyk318:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn inline:spec.ojs#323oevuhyk318:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#3af5e7gfxw7kh:1",
+  "name": "bad",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "A:v(Mut,read) fn inline:spec.ojs#3af5e7gfxw7kh:1 [kept/async] used 10r",
+   "A:m(Mut,written) fn inline:spec.ojs#3af5e7gfxw7kh:2 [helper/async] used 4w"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#9ec4mucnrj9d:1",
+  "name": "frames",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:buf(Mut,written) fn inline:spec.ojs#9ec4mucnrj9d:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn inline:spec.ojs#9ec4mucnrj9d:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#cyeo42df2ksb:1",
+  "name": "frames",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:buf(Mut,written) fn inline:spec.ojs#cyeo42df2ksb:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn inline:spec.ojs#cyeo42df2ksb:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#mslx5y3g6m4c:1",
+  "name": "frames",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:buf(Mut,written) fn inline:spec.ojs#mslx5y3g6m4c:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn inline:spec.ojs#mslx5y3g6m4c:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#om4wd8zo38rt:1",
+  "name": "a",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:r(Mut,written) fn inline:spec.ojs#om4wd8zo38rt:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn inline:spec.ojs#om4wd8zo38rt:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "inline:spec.ojs#tjqan7zs9bl9:1",
+  "name": "frames",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:buf(Mut,written) fn inline:spec.ojs#tjqan7zs9bl9:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn inline:spec.ojs#tjqan7zs9bl9:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "lite/notebook/examples/09-breakout.tsx:56",
+  "name": "ticks",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:t(let primitive,written) fn lite/notebook/examples/09-breakout.tsx:56 [cell/gen] used 61r,62w"
+  ]
+ },
+ {
+  "at": "lite/soundscript/spec-5.ts:1",
+  "name": "s5_frames",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:buf(Mut,written) fn lite/soundscript/spec-5.ts:1 [cell/gen] used 4r,4w,5r",
+   "Y:k(let primitive,written) fn lite/soundscript/spec-5.ts:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "lite/soundscript/spec-7.ts:1",
+  "name": "s7_beats",
+  "bucket": "tutorial/spec/examples",
+  "why": [
+   "Y:i(let primitive,written) fn lite/soundscript/spec-7.ts:1 [cell/gen] used 2r,2w,2r"
+  ]
+ },
+ {
+  "at": "reject:S4.4#184:1",
+  "name": "a",
+  "bucket": "spec-rejects",
+  "why": [
+   "Y:r(Mut,written) fn reject:S4.4#184:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn reject:S4.4#184:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "reject:S5.2#191:1",
+  "name": "frames",
+  "bucket": "spec-rejects",
+  "why": [
+   "Y:buf(Mut,written) fn reject:S5.2#191:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn reject:S5.2#191:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "reject:S5.2#192:1",
+  "name": "frames",
+  "bucket": "spec-rejects",
+  "why": [
+   "Y:buf(Mut,written) fn reject:S5.2#192:1 [cell/gen] used 4w,5r",
+   "Y:k(let primitive,written) fn reject:S5.2#192:1 [cell/gen] used 3r,3w,4r"
+  ]
+ },
+ {
+  "at": "selfhost/rt/probe3.ss.ts:9",
+  "name": "awaitLoop",
+  "bucket": "checker/toolchain",
+  "why": [
+   "A:s(let primitive,written) fn selfhost/rt/probe3.ss.ts:9 [kept/async] used 9w,9r"
+  ]
+ }
+]

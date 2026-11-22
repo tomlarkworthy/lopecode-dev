@@ -31,7 +31,7 @@ export const drawnTag = () => (tag: string): { readonly tag: string; readonly fr
   tag === "" ? { tag: "span", fragment: true } : { tag, fragment: false };
 // the DOM event of an event prop; own keys only, so a prop named "constructor" is not an event
 export const eventOf = (DOM_EVENTS) => {
-  const events = new Map(Object.entries(DOM_EVENTS).map(([k, v]) => [k, v[0]]));
+  const events: Map<string, string> = new Map(Object.entries(DOM_EVENTS).map(([k, v]) => [k, v[0]]));
   return (name: string): string | undefined => events.get(name);
 };
 // an attribute value that removes the attribute

@@ -34,11 +34,15 @@ export class SsSet extends NSet {
 // The thunk is kept on the function under a symbol no SoundScript code can name (a WeakMap.set per closure made the
 // checker 25% slower in bun, 2026-11-22); t(-1) is the count.
 const CAPS = Symbol("ss captures");
+// measurement switches (2026-11-22, rule set R, selfhost/NOTES-checker-port.md): with SS_MEASURE_REG=0 in a bun process
+// closure() and methods() register nothing; with SS_MEASURE_FREEZE=0 deepFreeze returns its argument. Off in a browser
+const MEASURE_ENV = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
+const REG_ON = MEASURE_ENV?.SS_MEASURE_REG !== "0", FREEZE_ON = MEASURE_ENV?.SS_MEASURE_FREEZE !== "0";
 type Caps = (i: number) => unknown;
 const capsOf = (f: object): Caps | undefined => (f as { [CAPS]?: Caps })[CAPS];
-export const closure = <F,>(f: F, t: Caps): F => { (f as { [CAPS]?: Caps })[CAPS] = t; return f; };
+export const closure = <F,>(f: F, t: Caps): F => { if (REG_ON) (f as { [CAPS]?: Caps })[CAPS] = t; return f; };
 export const methods = <O,>(o: O, ...r: unknown[]): O => {
-  for (let i = 0; i < r.length; i += 2) ((o as Record<string, object>)[r[i] as string] as { [CAPS]?: Caps })[CAPS] = r[i + 1] as Caps;
+  if (REG_ON) for (let i = 0; i < r.length; i += 2) ((o as Record<string, object>)[r[i] as string] as { [CAPS]?: Caps })[CAPS] = r[i + 1] as Caps;
   return o;
 };
 // SsURL (2026-11-22, cause D): the URL SoundScript code makes (a compiled cell takes it as URL). Object.freeze does not
@@ -125,7 +129,7 @@ const eachKid = (n: object, k: number, f: (x: unknown) => void): void => {
 // 2 (only when a leaf was met): containers that reach one, by reverse edges (cycles included). 3: copy and freeze.
 // holes8: a promise no slot can take a replacement for (a function's captures, an Error, a frozen value) throws at publish
 export function deepFreeze<T>(v: T): T {
-  if (!isObj(v) || DONE.has(v)) return v;
+  if (!FREEZE_ON || !isObj(v) || DONE.has(v)) return v;
   noThen(v);
   const k0 = kindOf(v);
   if (k0 === 0) return v;

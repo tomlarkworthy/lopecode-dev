@@ -1,0 +1,18 @@
+[
+ {
+  "at": "lite/infer/ix-core.ss.ts:159",
+  "name": "ixAdmits",
+  "bucket": "module:lite/infer",
+  "why": [
+   "K:W(Mut,read) kept fn lite/infer/ix-core.ss.ts:162"
+  ]
+ },
+ {
+  "at": "lite/render.ss.ts:33",
+  "name": "eventOf",
+  "bucket": "sswith:lite/render.ss.ts",
+  "why": [
+   "K:events(Mut,read) kept fn lite/render.ss.ts:35"
+  ]
+ }
+]
