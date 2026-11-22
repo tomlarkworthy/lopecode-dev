@@ -1,0 +1,623 @@
+== c0.ts:ctl-typed-input-write: CONTROL (checker skipped)
+   CHANGED t (value #1 of 1): Uint8Array[0,0] | E[] -> Uint8Array[1,0] | E[]
+   CONTROL FIRED
+== c0.ts:ctl-let-reassign: CONTROL (checker skipped)
+   CHANGED a (value #1 of 2): fn(0) | E[] -> fn(1) | E[]
+   CONTROL FIRED
+== c0.ts:ctl-promise-typed: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[1,0]
+   CONTROL FIRED
+== c0.ts:ctl-twice: CONTROL (checker skipped)
+   CHANGED t (value #1 of 1): Uint8Array[0,0] | E[] -> Uint8Array[7,0] | E[]
+   twice obs: #1 [0] | E[] , #1 [7] | E[]
+   CONTROL FIRED
+== b1.ts:isl-basic: ACCEPT
+== b1.ts:isl-fn-out-captures-local: REJECT y:rejected[mut-capture] go:rejected[compile-island][compile-boundary]
+== b1.ts:isl-fn-out-in-rec: REJECT y:rejected[mut-capture] go:rejected[compile-island][compile-boundary]
+== b1.ts:isl-fn-out-sync: REJECT go:rejected[compile-boundary]
+== b1.ts:isl-arg-captured: REJECT go:rejected[compile-boundary]
+== b1.ts:isl-arg-typed-captured: REJECT go:rejected[compile-boundary]
+== b1.ts:isl-arg-identity: ACCEPT
+   late throws: Attempted to assign to readonly property.
+== b1.ts:isl-arg-typed-identity: ACCEPT
+== b1.ts:isl-between-cells: REJECT go:rejected[compile-boundary]
+== b1.ts:isl-between-cells-map: REJECT go:rejected[compile-boundary]
+== b1.ts:isl-between-cells-url: REJECT go:rejected[compile-boundary]
+== b1.ts:isl-native-map-out: ACCEPT
+   late throws: set on a frozen Map: a value cannot change after its cell returns
+== b1.ts:isl-url-out: ACCEPT
+   late throws: setting pathname on a frozen URL: a value cannot change after its cell returns
+== b1.ts:isl-error-out: ACCEPT
+   late throws: Attempted to assign to readonly property. | Attempted to assign to readonly property.
+== b1.ts:isl-sync-go: REJECT y:rejected[mut-capture] go:rejected[compile-island][compile-boundary] use:blocked
+== b1.ts:isl-ref: REJECT go:rejected[compile-boundary]
+== b2.ts:isl-map-fn-arg: ACCEPT
+   CHANGED go (value #1 of 1): Map{"g"=>fn(1)} | E[] -> Map{"g"=>fn(2)} | E[]
+== b2.ts:isl-set-fn-arg: ACCEPT
+   CHANGED go (value #1 of 1): Set{fn(1)} | E[] -> Set{fn(2)} | E[]
+== b2.ts:isl-map-fn-arg-typed: ACCEPT
+   CHANGED go (value #1 of 1): Map{"g"=>fn(0)} | E[] -> Map{"g"=>fn(1)} | E[]
+== b2.ts:isl-unknown-fn-arg: ACCEPT
+   CHANGED go (value #1 of 1): fn(1) | E[] -> fn(2) | E[]
+== b2.ts:isl-unknown-rec-fn-arg: ACCEPT
+   CHANGED go (value #1 of 1): {g:fn(1)} | E[] -> {g:fn(2)} | E[]
+== b2.ts:isl-deep9-fn-arg: ACCEPT
+   CHANGED go (value #1 of 1): {a:{a:{a:{a:{a:{a:{a:{a:{a:fn(1)}}}}}}}}} | E[] -> {a:{a:{a:{a:{a:{a:{a:{a:{a:fn(2)}}}}}}}}} | E[]
+== b2.ts:isl-deep7-fn-arg: REJECT go:rejected[compile-boundary]
+== b2.ts:isl-between-map-fn: ACCEPT
+   CHANGED go (value #1 of 1): Map{"g"=>fn(1)} | E[] -> Map{"g"=>fn(2)} | E[]
+   late throws: Attempted to assign to readonly property.
+== b2.ts:isl-between-unknown: ACCEPT
+   CHANGED go (value #1 of 1): fn(1) | E[] -> fn(2) | E[]
+   late throws: Attempted to assign to readonly property.
+== b2.ts:isl-between-typed-unknown: ACCEPT
+   CHANGED go (value #1 of 1): fn(0) | E[] -> fn(1) | E[]
+== b2.ts:isl-map-fn-consumer: ACCEPT
+   CHANGED go (value #1 of 1): Map{"g"=>fn(1)} | E[] -> Map{"g"=>fn(2)} | E[]
+   twice obs: #1 [1] | E[] , #1 [2] | E[]
+== b2.ts:isl-pool-map-fn: ACCEPT
+   error go: The object can not be cloned.
+== b2.ts:isl-pool-typed: ACCEPT
+== b3.ts:hp-typed-iife: REJECT a:rejected[mut-capture][mut-capture]
+== b3.ts:hp-typed-helper: REJECT a:rejected[mut-capture]
+== b3.ts:hp-rec-typed: REJECT a:rejected[mut-capture][mut-capture]
+== b3.ts:hp-promise-resolve: REJECT a:rejected[type][mut-capture]
+== b3.ts:hp-promise-all: REJECT a:rejected[type][mut-capture]
+== b3.ts:hp-then: REJECT a:rejected[type][mut-capture][mut-capture]
+== b3.ts:hp-native-map: REJECT a:rejected[mut-capture]
+== b3.ts:hp-native-set: REJECT a:rejected[mut-capture]
+== b3.ts:hp-native-map-rec: REJECT a:rejected[mut-capture]
+== b3.ts:hp-array: REJECT a:rejected[mut-capture]
+== b3.ts:hp-in-rec-fn: REJECT a:rejected[mut-capture][mut-capture]
+== b3.ts:hp-action: REJECT a:rejected[mut-capture][mut-capture][action-capture]
+== b3.ts:hp-consumer-awaits: REJECT a:rejected[mut-capture][mut-capture]
+== b3.ts:hp-consumer-awaits-map: REJECT a:rejected[mut-capture]
+== b3.ts:hp-gen-yield-fn: REJECT a:rejected[mut-capture][mut-capture]
+== b3.ts:ps-slot-typed: REJECT a:rejected[mut-capture]
+== b3.ts:ps-slot-native-map: REJECT a:rejected[mut-capture]
+== b3.ts:rej-error-message-slot: REJECT a:rejected[mut-capture]
+== b3.ts:rej-error-message-fn: REJECT a:rejected[mut-capture]
+== b3.ts:rej-error-cell: ACCEPT
+   error a: y
+== b3.ts:rej-array-thrown: REJECT a:rejected[mut-capture]
+== b3.ts:rej-typed-thrown: REJECT a:rejected[mut-capture]
+== b3.ts:rej-caught-published: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-arg-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-arg-rec-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-arg-obs: REJECT a:rejected[mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ta-mk-rec-arg-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-rec-arg-rec-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-rec-arg-obs: REJECT a:rejected[mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ta-mk-arr-arg-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-arr-arg-rec-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-arr-arg-obs: REJECT a:rejected[mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ta-mk-map-arg-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-map-arg-rec-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-map-arg-obs: REJECT a:rejected[mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ta-mk-two-step-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-two-step-rec-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-two-step-obs: REJECT a:rejected[mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ta-mk-wrap-later-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-wrap-later-rec-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-wrap-later-obs: REJECT a:rejected[mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ta-then-arg-fn: ACCEPT
+== b4.ts:kp-ta-then-arg-rec-fn: ACCEPT
+== b4.ts:kp-ta-then-arg-obs: REJECT obs:rejected[no-member]
+== b4.ts:kp-ta-all-arg-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-all-arg-rec-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-all-arg-obs: REJECT a:rejected[mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ta-mk-gen-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-gen-rec-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-gen-obs: REJECT a:rejected[mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ta-mk-await-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-await-rec-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-ta-mk-await-obs: REJECT a:rejected[mut-capture] obs:rejected[no-member]
+== b4.ts:kp-nmap-mk-arg-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+== b4.ts:kp-nmap-mk-arg-rec-fn: ACCEPT
+   CHANGED a (value #1 of 1): {g:fn(Promise)} | E[] -> {g:fn(Promise)} | E[] promise Map{} -> Map{"k"=>1}
+== b4.ts:kp-nmap-mk-arg-obs: REJECT obs:rejected[no-member]
+== b4.ts:kp-nmap-mk-rec-arg-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise {t:Map{}} -> {t:Map{"k"=>1}}
+== b4.ts:kp-nmap-mk-rec-arg-rec-fn: ACCEPT
+   CHANGED a (value #1 of 1): {g:fn(Promise)} | E[] -> {g:fn(Promise)} | E[] promise {t:Map{}} -> {t:Map{"k"=>1}}
+== b4.ts:kp-nmap-mk-rec-arg-obs: REJECT obs:rejected[no-member]
+== b4.ts:kp-nmap-mk-arr-arg-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise [Map{}] -> [Map{"k"=>1}]
+== b4.ts:kp-nmap-mk-arr-arg-rec-fn: ACCEPT
+   CHANGED a (value #1 of 1): {g:fn(Promise)} | E[] -> {g:fn(Promise)} | E[] promise [Map{}] -> [Map{"k"=>1}]
+== b4.ts:kp-nmap-mk-arr-arg-obs: REJECT obs:rejected[no-member]
+== b4.ts:kp-nmap-mk-map-arg-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{"k"=>Map{}} -> Map{"k"=>Map{"k"=>1}}
+== b4.ts:kp-nmap-mk-map-arg-rec-fn: ACCEPT
+   CHANGED a (value #1 of 1): {g:fn(Promise)} | E[] -> {g:fn(Promise)} | E[] promise Map{"k"=>Map{}} -> Map{"k"=>Map{"k"=>1}}
+== b4.ts:kp-nmap-mk-map-arg-obs: REJECT obs:rejected[no-member]
+== b4.ts:kp-nmap-mk-two-step-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+== b4.ts:kp-nmap-mk-two-step-rec-fn: ACCEPT
+   CHANGED a (value #1 of 1): {g:fn(Promise)} | E[] -> {g:fn(Promise)} | E[] promise Map{} -> Map{"k"=>1}
+== b4.ts:kp-nmap-mk-two-step-obs: REJECT obs:rejected[no-member]
+== b4.ts:kp-nmap-mk-wrap-later-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise {t:Map{}} -> {t:Map{"k"=>1}}
+== b4.ts:kp-nmap-mk-wrap-later-rec-fn: ACCEPT
+   CHANGED a (value #1 of 1): {g:fn(Promise)} | E[] -> {g:fn(Promise)} | E[] promise {t:Map{}} -> {t:Map{"k"=>1}}
+== b4.ts:kp-nmap-mk-wrap-later-obs: REJECT obs:rejected[no-member]
+== b4.ts:kp-nmap-then-arg-fn: ACCEPT
+== b4.ts:kp-nmap-then-arg-rec-fn: ACCEPT
+== b4.ts:kp-nmap-then-arg-obs: REJECT obs:rejected[no-member]
+== b4.ts:kp-nmap-all-arg-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-nmap-all-arg-rec-fn: REJECT a:rejected[mut-capture]
+== b4.ts:kp-nmap-all-arg-obs: REJECT a:rejected[mut-capture] obs:rejected[no-member]
+== b4.ts:kp-nmap-mk-gen-fn: ACCEPT
+== b4.ts:kp-nmap-mk-gen-rec-fn: ACCEPT
+== b4.ts:kp-nmap-mk-gen-obs: REJECT obs:rejected[no-member]
+== b4.ts:kp-nmap-mk-await-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+== b4.ts:kp-nmap-mk-await-rec-fn: ACCEPT
+   CHANGED a (value #1 of 1): {g:fn(Promise)} | E[] -> {g:fn(Promise)} | E[] promise Map{} -> Map{"k"=>1}
+== b4.ts:kp-nmap-mk-await-obs: REJECT obs:rejected[no-member]
+== b4.ts:kp-ab-mk-arg-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-arg-rec-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-arg-obs: REJECT a:rejected[member-write][mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ab-mk-rec-arg-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-rec-arg-rec-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-rec-arg-obs: REJECT a:rejected[member-write][mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ab-mk-arr-arg-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-arr-arg-rec-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-arr-arg-obs: REJECT a:rejected[member-write][mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ab-mk-map-arg-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-map-arg-rec-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-map-arg-obs: REJECT a:rejected[member-write][mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ab-mk-two-step-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-two-step-rec-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-two-step-obs: REJECT a:rejected[member-write][mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ab-mk-wrap-later-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-wrap-later-rec-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-wrap-later-obs: REJECT a:rejected[member-write][mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ab-then-arg-fn: REJECT a:rejected[member-write]
+== b4.ts:kp-ab-then-arg-rec-fn: REJECT a:rejected[member-write]
+== b4.ts:kp-ab-then-arg-obs: REJECT a:rejected[member-write] obs:rejected[no-member]
+== b4.ts:kp-ab-all-arg-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-all-arg-rec-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-all-arg-obs: REJECT a:rejected[member-write][mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ab-mk-gen-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-gen-rec-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-gen-obs: REJECT a:rejected[member-write][mut-capture] obs:rejected[no-member]
+== b4.ts:kp-ab-mk-await-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-await-rec-fn: REJECT a:rejected[member-write][mut-capture]
+== b4.ts:kp-ab-mk-await-obs: REJECT a:rejected[member-write][mut-capture] obs:rejected[no-member]
+== b5.ts:kp-nmap-consumer-twice: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+   twice obs: #1 [0] | E[] , #1 [1] | E[]
+== b5.ts:kp-nmap-two-consumers: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+   show b = [0] | E[]
+   show c = [1] | E[]
+== b5.ts:kp-nset-consumer-twice: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Set{} -> Set{1}
+   twice obs: #1 [0] | E[] , #1 [1] | E[]
+== b5.ts:kp-nmap-in-rec-from-clone: REJECT a:rejected[mutating-method]
+== b5.ts:kp-nmap-delete: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{"k"=>1} -> Map{}
+== b5.ts:kp-nmap-action-handle: REJECT a:rejected[action-capture]
+== b5.ts:kp-nmap-gen: ACCEPT
+== b5.ts:kp-nmap-state: ACCEPT
+   CHANGED s (value #1 of 1): {g:fn(Promise)} | E[] -> {g:fn(Promise)} | E[] promise Map{} -> Map{"k"=>1}
+   twice obs: #1 [0] | E[] , #1 [1] | E[]
+== b5.ts:nm-capture-direct: REJECT a:rejected[mut-capture]
+== b5.ts:nm-slot: ACCEPT
+== b5.ts:rej-arg-error: ACCEPT
+   CHANGED a (value #1 of 1): {p:Promise} | E[] -> {p:Promise} | E[] promise REJ Error(Error:x) -> REJ Error(Error:y)
+   twice obs: #1 "x" | E[] , #1 "y" | E[]
+== b5.ts:rej-arg-error-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise REJ Error(Error:x) -> REJ Error(Error:y)
+   twice obs: #1 "x" | E[] , #1 "y" | E[]
+== b5.ts:rej-arg-array: ACCEPT
+   CHANGED a (value #1 of 1): {p:Promise} | E[] -> {p:Promise} | E[] promise REJ [0] -> REJ [0,1]
+   twice obs: #1 "[0]" | E[] , #1 "[0,1]" | E[]
+== b5.ts:rej-arg-typed: ACCEPT
+   CHANGED a (value #1 of 1): {p:Promise} | E[] -> {p:Promise} | E[] promise REJ Uint8Array[0,0] -> REJ Uint8Array[1,0]
+   twice obs: #1 "0,0" | E[] , #1 "1,0" | E[]
+== b5.ts:rej-arg-nmap: ACCEPT
+   CHANGED a (value #1 of 1): {p:Promise} | E[] -> {p:Promise} | E[] promise REJ Map{} -> REJ Map{"k"=>1}
+   twice obs: #1 "[object Map]" | E[] , #1 "[object Map]" | E[]
+== b5.ts:rej-cell-arg-error: ACCEPT
+   CHANGED a (value #1 of 1): {p:Promise} | E[] -> {p:Promise} | E[] promise REJ Error(Error:x) -> REJ Error(Error:y)
+   twice obs: #1 "x" | E[] , #1 "y" | E[]
+== b5.ts:rej-yield-arg-error: ACCEPT
+   CHANGED a (value #1 of 2): {p:Promise} | E[] -> {p:Promise} | E[] promise REJ Error(Error:x) -> REJ Error(Error:y)
+== b5.ts:rej-catch-republish: ACCEPT
+   CHANGED a (value #1 of 1): {p:Promise} | E[] -> {p:Promise} | E[] promise REJ Error(Error:x) -> REJ Error(Error:y)
+   show b = ["x"] | E[]
+   show c = ["y"] | E[]
+== b6.ts:proto-literal-obj: REJECT a:rejected[banned-member]
+== b6.ts:proto-literal-str: REJECT a:rejected[banned-member]
+== b6.ts:proto-literal-null: REJECT a:rejected[banned-member]
+== b6.ts:proto-literal-arr: REJECT a:rejected[banned-member]
+== b6.ts:match-groups-write: REJECT a:rejected[member-write]
+== b6.ts:match-index: ACCEPT
+== b6.ts:cw-foreach-mut: REJECT w:rejected[type][type]
+== b6.ts:cw-map-mut: REJECT w:rejected[type][type]
+== b6.ts:cw-reduce-init-fresh: REJECT w:rejected[type][type][member-write]
+== b6.ts:cw-reduce-noann: REJECT w:rejected[member-write]
+== b6.ts:cw-find-mixed: REJECT w:rejected[strict-eq-object][member-write]
+== b6.ts:cw-arr-mixed-index: REJECT w:rejected[member-write]
+== b6.ts:cw-ternary-join: REJECT w:rejected[member-write]
+== b6.ts:cw-nullish-join: REJECT w:rejected[member-write]
+== b6.ts:cw-or-join: REJECT w:rejected[member-write]
+== b6.ts:cw-map-get-mixed: REJECT w:rejected[member-write]
+== b6.ts:cw-fromentries: REJECT w:rejected[member-write]
+== b6.ts:cw-values: REJECT w:rejected[member-write]
+== b6.ts:cw-arrayfrom: REJECT w:rejected[member-write]
+== b6.ts:cw-flatmap: REJECT w:rejected[member-write]
+== b6.ts:cw-concat: REJECT w:rejected[member-write]
+== b6.ts:cw-slice: REJECT w:rejected[member-write]
+== b6.ts:cw-fn-ret-mut: REJECT w:rejected[type]
+== b6.ts:cw-fn-param-mut: REJECT w:rejected[type]
+== b6.ts:cw-generic-id: REJECT w:rejected[member-write]
+== b6.ts:cw-annot-local: REJECT w:rejected[type]
+== b6.ts:cw-as-cast: REJECT w:rejected[no-cast]
+== b6.ts:cw-destructure: REJECT w:rejected[member-write]
+== b6.ts:cw-destructure-rec: REJECT w:rejected[member-write]
+== b6.ts:cw-forof-mixed: REJECT w:rejected[member-write]
+== b6.ts:cw-spread-rec: REJECT w:rejected[member-write]
+== b6.ts:cw-then-mut: REJECT w:rejected[type][type]
+== b6.ts:cw-sort-cb: REJECT w:rejected[mutating-method][type][type]
+== b6.ts:cw-set-of: REJECT w:rejected[type][type]
+== b6.ts:cw-structured-identity: ACCEPT
+   twice obs: #1 [0] | E[] , #1 [0] | E[]
+== b6.ts:cw-subarray-fresh: REJECT w:rejected[member-write]
+== b6.ts:cw-view-ctor-buffer: REJECT w:rejected[member-write]
+== b6.ts:cw-typed-from: ACCEPT
+   twice obs: #1 [0] | E[] , #1 [0] | E[]
+== b6.ts:cw-set-into-fresh: ACCEPT
+   twice obs: #1 [0] | E[] , #1 [0] | E[]
+== b6.ts:cw-fill-ret: REJECT w:rejected[mutating-method][member-write]
+== b6.ts:cw-record-mutfield: REJECT w:rejected[type][type]
+== b6.ts:cw-arr-of-mut-annot: REJECT w:rejected[type][type]
+== b6.ts:cw-map-of-mut-annot: REJECT w:rejected[type][type][type]
+== b6.ts:cw-union-param: REJECT w:rejected[type]
+== b6.ts:cw-optional-param: REJECT w:rejected[type]
+== b6.ts:cw-default-param: REJECT w:rejected[type][member-write]
+== b6.ts:cw-rest-param: REJECT w:rejected[type]
+== b6.ts:cw-fn-typed-var: REJECT w:rejected[type][type]
+== b6.ts:cw-callback-in-record: REJECT w:rejected[type]
+== b6.ts:cw-method-shorthand: REJECT w:rejected[type]
+== b6.ts:cw-iife: REJECT w:rejected[type]
+== b6.ts:cw-nested-arr: REJECT w:rejected[member-write]
+== b6.ts:cw-nested-arr2: REJECT w:rejected[member-write]
+== b7.ts:st-init-rej: ACCEPT
+   CHANGED s (value #1 of 1): {p:Promise} | E[] -> {p:Promise} | E[] promise REJ Error(Error:x) -> REJ Error(Error:y)
+   twice obs: #1 "x" | E[] , #1 "y" | E[]
+== b7.ts:st-set-rej: REJECT w:rejected[action-async]
+== b7.ts:st-set-nmap-fn: REJECT w:rejected[action-async]
+== b7.ts:ev-yield-rej: REJECT add:rejected[arity][untyped-parameter][state-write] l:rejected[inject-events]
+== b7.ts:gen-yield-rej: ACCEPT
+   CHANGED a (value #1 of 2): {p:Promise} | E[] -> {p:Promise} | E[] promise REJ Error(Error:x) -> REJ Error(Error:y)
+   twice obs: #1 "x" | E[] , #2 "none" | E[]
+== b7.ts:gen-return-rej: ACCEPT
+   late throws: x
+== b7.ts:async-gen-yield-nmap-fn: ACCEPT
+== b7.ts:act-arg-rej: REJECT add:rejected[arity][untyped-parameter][state-write] w:rejected[action-async]
+== b7.ts:jsx-fn-prop-rej: REJECT a:rejected[arity][action-capture]
+== b7.ts:gen-reyield-written: ACCEPT
+   error a: Attempted to assign to readonly property.
+== b7.ts:gen-reyield-copy-path: REJECT a:rejected[mut-yield]
+== b7.ts:gen-reyield-copy-path-inner: REJECT a:rejected[mut-yield]
+== b7.ts:gen-yield-fn-then-write: REJECT a:rejected[mut-capture]
+== b7.ts:invalidation-write: REJECT a:rejected[mut-capture]
+== b7.ts:handler-arg-host: ACCEPT
+== b8.ts:resp-shared: ACCEPT
+   show b = ERROR Body already used
+   show c = ["hello"] | E[]
+   error b: Body already used
+== b8.ts:resp-direct: REJECT b:rejected[inject-type] c:rejected[inject-type]
+== b8.ts:resp-json-twice: REJECT b:rejected[inject-type] c:rejected[inject-type]
+== b8.ts:resp-arraybuffer: REJECT r:rejected[mutating-method]
+== b8.ts:re-sticky-test: REJECT a:rejected[regexp-state]
+== b8.ts:re-global-match: REJECT a:rejected[regexp-state]
+== b8.ts:re-dflag-exec: ACCEPT
+   show a = {m:["a","a"]} | E[]
+== b8.ts:re-split: REJECT a:rejected[regexp-state]
+== b8.ts:re-replaceall: REJECT a:rejected[regexp-state]
+== b8.ts:cyclic-map: ACCEPT
+== b8.ts:deep-2000: ACCEPT
+   late throws: Attempted to assign to readonly property.
+== b8.ts:same-obj-two-cells: REJECT c:rejected[strict-eq-object]
+== b8.ts:act-partial-freeze: ACCEPT
+   drive -> w threw Attempted to assign to readonly property.
+   show s = 0 | E[]
+== b8.ts:act-partial-freeze2: REJECT w:rejected[action-call]
+== b8.ts:publish-throws-then-ok: REJECT a:rejected[iterator-cell]
+== b8.ts:gen-yield-throws-continues: REJECT a:rejected[iterator-cell]
+== b8.ts:state-init-throw: REJECT s:rejected[iterator-cell]
+== b9.ts:ku-ta-unknown-ret-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[1,0]
+== b9.ts:ku-ta-unknown-ret-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[1,0]
+   twice obs: #1 "{\"0\":0,\"1\":0}" | E[] , #1 "{\"0\":1,\"1\":0}" | E[]
+== b9.ts:ku-ta-unknown-ret-slot: ACCEPT
+== b9.ts:ku-ta-unknown-param-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[1,0]
+== b9.ts:ku-ta-unknown-param-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[1,0]
+   twice obs: #1 "{\"0\":0,\"1\":0}" | E[] , #1 "{\"0\":1,\"1\":0}" | E[]
+== b9.ts:ku-ta-unknown-param-slot: ACCEPT
+== b9.ts:ku-ta-object-ret-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[1,0]
+== b9.ts:ku-ta-object-ret-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[1,0]
+   twice obs: #1 "{\"0\":0,\"1\":0}" | E[] , #1 "{\"0\":1,\"1\":0}" | E[]
+== b9.ts:ku-ta-object-ret-slot: ACCEPT
+== b9.ts:ku-ta-unknown-await-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[1,0]
+== b9.ts:ku-ta-unknown-await-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[1,0]
+   twice obs: #1 "{\"0\":0,\"1\":0}" | E[] , #1 "{\"0\":1,\"1\":0}" | E[]
+== b9.ts:ku-ta-unknown-await-slot: ACCEPT
+== b9.ts:ku-f64-unknown-ret-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Float64Array[0,0] -> Float64Array[2.5,2.5]
+== b9.ts:ku-f64-unknown-ret-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Float64Array[0,0] -> Float64Array[2.5,2.5]
+   twice obs: #1 "{\"0\":0,\"1\":0}" | E[] , #1 "{\"0\":2.5,\"1\":2.5}" | E[]
+== b9.ts:ku-f64-unknown-ret-slot: ACCEPT
+== b9.ts:ku-f64-unknown-param-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Float64Array[0,0] -> Float64Array[2.5,2.5]
+== b9.ts:ku-f64-unknown-param-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Float64Array[0,0] -> Float64Array[2.5,2.5]
+   twice obs: #1 "{\"0\":0,\"1\":0}" | E[] , #1 "{\"0\":2.5,\"1\":2.5}" | E[]
+== b9.ts:ku-f64-unknown-param-slot: ACCEPT
+== b9.ts:ku-f64-object-ret-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Float64Array[0,0] -> Float64Array[2.5,2.5]
+== b9.ts:ku-f64-object-ret-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Float64Array[0,0] -> Float64Array[2.5,2.5]
+   twice obs: #1 "{\"0\":0,\"1\":0}" | E[] , #1 "{\"0\":2.5,\"1\":2.5}" | E[]
+== b9.ts:ku-f64-object-ret-slot: ACCEPT
+== b9.ts:ku-f64-unknown-await-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Float64Array[0,0] -> Float64Array[2.5,2.5]
+== b9.ts:ku-f64-unknown-await-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Float64Array[0,0] -> Float64Array[2.5,2.5]
+   twice obs: #1 "{\"0\":0,\"1\":0}" | E[] , #1 "{\"0\":2.5,\"1\":2.5}" | E[]
+== b9.ts:ku-f64-unknown-await-slot: ACCEPT
+== b9.ts:ku-ab-unknown-ret-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise AB[0,0] -> AB[0,3]
+== b9.ts:ku-ab-unknown-ret-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise AB[0,0] -> AB[0,3]
+   twice obs: #1 "{}" | E[] , #1 "{}" | E[]
+== b9.ts:ku-ab-unknown-ret-slot: ACCEPT
+== b9.ts:ku-ab-unknown-param-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise AB[0,0] -> AB[0,3]
+== b9.ts:ku-ab-unknown-param-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise AB[0,0] -> AB[0,3]
+   twice obs: #1 "{}" | E[] , #1 "{}" | E[]
+== b9.ts:ku-ab-unknown-param-slot: ACCEPT
+== b9.ts:ku-ab-object-ret-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise AB[0,0] -> AB[0,3]
+== b9.ts:ku-ab-object-ret-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise AB[0,0] -> AB[0,3]
+   twice obs: #1 "{}" | E[] , #1 "{}" | E[]
+== b9.ts:ku-ab-object-ret-slot: ACCEPT
+== b9.ts:ku-ab-unknown-await-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise AB[0,0] -> AB[0,3]
+== b9.ts:ku-ab-unknown-await-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise AB[0,0] -> AB[0,3]
+   twice obs: #1 "{}" | E[] , #1 "{}" | E[]
+== b9.ts:ku-ab-unknown-await-slot: ACCEPT
+== b9.ts:ku-sub-unknown-ret-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[9,0]
+== b9.ts:ku-sub-unknown-ret-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[9,0]
+   twice obs: #1 "{\"0\":0,\"1\":0}" | E[] , #1 "{\"0\":9,\"1\":0}" | E[]
+== b9.ts:ku-sub-unknown-ret-slot: ACCEPT
+== b9.ts:ku-sub-unknown-param-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[9,0]
+== b9.ts:ku-sub-unknown-param-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[9,0]
+   twice obs: #1 "{\"0\":0,\"1\":0}" | E[] , #1 "{\"0\":9,\"1\":0}" | E[]
+== b9.ts:ku-sub-unknown-param-slot: ACCEPT
+== b9.ts:ku-sub-object-ret-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[9,0]
+== b9.ts:ku-sub-object-ret-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[9,0]
+   twice obs: #1 "{\"0\":0,\"1\":0}" | E[] , #1 "{\"0\":9,\"1\":0}" | E[]
+== b9.ts:ku-sub-object-ret-slot: ACCEPT
+== b9.ts:ku-sub-unknown-await-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[9,0]
+== b9.ts:ku-sub-unknown-await-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[9,0]
+   twice obs: #1 "{\"0\":0,\"1\":0}" | E[] , #1 "{\"0\":9,\"1\":0}" | E[]
+== b9.ts:ku-sub-unknown-await-slot: ACCEPT
+== b9.ts:ku-rec-unknown-ret-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise {t:Uint8Array[0,0]} -> {t:Uint8Array[4,0]}
+== b9.ts:ku-rec-unknown-ret-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise {t:Uint8Array[0,0]} -> {t:Uint8Array[4,0]}
+   twice obs: #1 "{\"t\":{\"0\":0,\"1\":0}}" | E[] , #1 "{\"t\":{\"0\":4,\"1\":0}}" | E[]
+== b9.ts:ku-rec-unknown-ret-slot: ACCEPT
+== b9.ts:ku-rec-unknown-param-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise {t:Uint8Array[0,0]} -> {t:Uint8Array[4,0]}
+== b9.ts:ku-rec-unknown-param-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise {t:Uint8Array[0,0]} -> {t:Uint8Array[4,0]}
+   twice obs: #1 "{\"t\":{\"0\":0,\"1\":0}}" | E[] , #1 "{\"t\":{\"0\":4,\"1\":0}}" | E[]
+== b9.ts:ku-rec-unknown-param-slot: ACCEPT
+== b9.ts:ku-rec-object-ret-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise {t:Uint8Array[0,0]} -> {t:Uint8Array[4,0]}
+== b9.ts:ku-rec-object-ret-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise {t:Uint8Array[0,0]} -> {t:Uint8Array[4,0]}
+   twice obs: #1 "{\"t\":{\"0\":0,\"1\":0}}" | E[] , #1 "{\"t\":{\"0\":4,\"1\":0}}" | E[]
+== b9.ts:ku-rec-object-ret-slot: ACCEPT
+== b9.ts:ku-rec-unknown-await-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise {t:Uint8Array[0,0]} -> {t:Uint8Array[4,0]}
+== b9.ts:ku-rec-unknown-await-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise {t:Uint8Array[0,0]} -> {t:Uint8Array[4,0]}
+   twice obs: #1 "{\"t\":{\"0\":0,\"1\":0}}" | E[] , #1 "{\"t\":{\"0\":4,\"1\":0}}" | E[]
+== b9.ts:ku-rec-unknown-await-slot: ACCEPT
+== b9.ts:ku-nmap-unknown-ret-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+== b9.ts:ku-nmap-unknown-ret-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+   twice obs: #1 "{}" | E[] , #1 "{}" | E[]
+== b9.ts:ku-nmap-unknown-ret-slot: ACCEPT
+== b9.ts:ku-nmap-unknown-param-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+== b9.ts:ku-nmap-unknown-param-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+   twice obs: #1 "{}" | E[] , #1 "{}" | E[]
+== b9.ts:ku-nmap-unknown-param-slot: ACCEPT
+== b9.ts:ku-nmap-object-ret-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+== b9.ts:ku-nmap-object-ret-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+   twice obs: #1 "{}" | E[] , #1 "{}" | E[]
+== b9.ts:ku-nmap-object-ret-slot: ACCEPT
+== b9.ts:ku-nmap-unknown-await-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+== b9.ts:ku-nmap-unknown-await-obs: ACCEPT
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Map{} -> Map{"k"=>1}
+   twice obs: #1 "{}" | E[] , #1 "{}" | E[]
+== b9.ts:ku-nmap-unknown-await-slot: ACCEPT
+== b10.ts:bi-dataview: REJECT a:rejected[new-non-intrinsic]
+== b10.ts:bi-date: REJECT a:rejected[new-non-intrinsic]
+== b10.ts:bi-weakmap: REJECT a:rejected[new-non-intrinsic]
+== b10.ts:bi-weakref: REJECT a:rejected[new-non-intrinsic]
+== b10.ts:bi-intl: REJECT a:rejected[new-non-intrinsic]
+== b10.ts:bi-sab: REJECT a:rejected[new-non-intrinsic]
+== b10.ts:bi-atomics: REJECT a:rejected[free-name]
+== b10.ts:bi-proxy: REJECT a:rejected[new-non-intrinsic]
+== b10.ts:bi-reflect-apply: REJECT a:rejected[free-name][banned-member][no-member]
+== b10.ts:bi-call-push: REJECT a:rejected[no-member]
+== b10.ts:bi-object-create: REJECT a:rejected[no-member]
+== b10.ts:bi-object-assign: REJECT a:unsupported
+== b10.ts:bi-define-property: REJECT a:rejected[banned-member]
+== b10.ts:bi-getter-literal: REJECT a:unsupported
+== b10.ts:bi-symbol-key: REJECT a:unsupported
+== b10.ts:bi-computed-key: REJECT a:unsupported
+== b10.ts:bi-groupby: REJECT a:rejected[no-member][untyped-parameter]
+== b10.ts:bi-map-groupby: REJECT a:rejected[no-member][untyped-parameter]
+== b10.ts:bi-fromasync: REJECT a:rejected[no-member]
+== b10.ts:bi-iter-helper: REJECT a:rejected[untyped-parameter]
+== b10.ts:bi-bind: REJECT a:rejected[no-member]
+== b10.ts:bi-arguments: REJECT a:rejected[no-arguments][arity]
+== b10.ts:bi-regexp-compile: REJECT a:unsupported
+== b10.ts:bi-textencoder: REJECT a:rejected[new-non-intrinsic]
+== b10.ts:bi-class: REJECT a:rejected[no-class][new-non-intrinsic]
+== b10.ts:bi-setprototypeof: REJECT a:rejected[banned-member]
+== b10.ts:bi-logical-assign-member: REJECT a:unsupported
+== b10.ts:bi-destructure-assign-member: REJECT a:unsupported
+== b10.ts:bi-tagged-template: REJECT a:unsupported
+== b10.ts:bi-sparse-array: REJECT a:unsupported
+== b11.ts:lis-rej: REJECT l:rejected[inject-events]
+== b11.ts:lis-rej-sync: REJECT l:rejected[inject-events]
+== b11.ts:lis-nmap: REJECT l:rejected[inject-events]
+== b11.ts:lis-nmap-sync: REJECT l:rejected[inject-events]
+== b11.ts:act-set-rej: REJECT w:rejected[mut-capture][action-capture]
+== b11.ts:act-set-rej-inner: ACCEPT
+   twice obs: #1 "none" | E[] , #2 "y" | E[] , #2 "y" | E[] , #3 "y" | E[] , #3 "y" | E[]
+   late throws: y | y
+== b11.ts:act-arg-rej: ACCEPT
+   twice obs: #1 "none" | E[] , #2 "y" | E[] , #2 "y" | E[] , #3 "y" | E[] , #3 "y" | E[]
+   late throws: y | y | y | y
+== b11.ts:act-set-nmap: ACCEPT
+   twice obs: #1 [0] | E[] , #2 [1] | E[] , #2 [1] | E[] , #3 [1] | E[] , #3 [1] | E[]
+   late throws: y | y
+== b11.ts:act-update-nmap: ACCEPT
+   twice obs: #1 [0] | E[] , #2 [1] | E[] , #2 [1] | E[] , #3 [1] | E[] , #3 [1] | E[]
+== b11.ts:act-arg-nmap: ACCEPT
+   twice obs: #1 [0] | E[] , #2 [1] | E[] , #2 [1] | E[] , #3 [1] | E[] , #3 [1] | E[]
+== b11.ts:jsx-nmap: ACCEPT
+   CHANGED a (value #1 of 1): {el:Promise,g:fn(Promise)} | E[] -> {el:Promise,g:fn(Promise)} | E[] promise Map{} -> Map{"k"=>1}
+== b11.ts:isl-pool-typed-show: ACCEPT
+   show go = {t:Uint8Array[3,0]} | E[]
+== b11.ts:re-dflag-probe: ACCEPT
+   drive -> array true indices false groups false
+-- controls 4, fired 4
+-- accepted with a cell still pending at the end: 0
+-- 360 candidates, accepted 149, silent 88
+SILENT b2.ts:isl-map-fn-arg
+SILENT b2.ts:isl-set-fn-arg
+SILENT b2.ts:isl-map-fn-arg-typed
+SILENT b2.ts:isl-unknown-fn-arg
+SILENT b2.ts:isl-unknown-rec-fn-arg
+SILENT b2.ts:isl-deep9-fn-arg
+SILENT b2.ts:isl-between-map-fn
+SILENT b2.ts:isl-between-unknown
+SILENT b2.ts:isl-between-typed-unknown
+SILENT b2.ts:isl-map-fn-consumer
+SILENT b4.ts:kp-nmap-mk-arg-fn
+SILENT b4.ts:kp-nmap-mk-arg-rec-fn
+SILENT b4.ts:kp-nmap-mk-rec-arg-fn
+SILENT b4.ts:kp-nmap-mk-rec-arg-rec-fn
+SILENT b4.ts:kp-nmap-mk-arr-arg-fn
+SILENT b4.ts:kp-nmap-mk-arr-arg-rec-fn
+SILENT b4.ts:kp-nmap-mk-map-arg-fn
+SILENT b4.ts:kp-nmap-mk-map-arg-rec-fn
+SILENT b4.ts:kp-nmap-mk-two-step-fn
+SILENT b4.ts:kp-nmap-mk-two-step-rec-fn
+SILENT b4.ts:kp-nmap-mk-wrap-later-fn
+SILENT b4.ts:kp-nmap-mk-wrap-later-rec-fn
+SILENT b4.ts:kp-nmap-mk-await-fn
+SILENT b4.ts:kp-nmap-mk-await-rec-fn
+SILENT b5.ts:kp-nmap-consumer-twice
+SILENT b5.ts:kp-nmap-two-consumers
+SILENT b5.ts:kp-nset-consumer-twice
+SILENT b5.ts:kp-nmap-delete
+SILENT b5.ts:kp-nmap-state
+SILENT b5.ts:rej-arg-error
+SILENT b5.ts:rej-arg-error-fn
+SILENT b5.ts:rej-arg-array
+SILENT b5.ts:rej-arg-typed
+SILENT b5.ts:rej-arg-nmap
+SILENT b5.ts:rej-cell-arg-error
+SILENT b5.ts:rej-yield-arg-error
+SILENT b5.ts:rej-catch-republish
+SILENT b7.ts:st-init-rej
+SILENT b7.ts:gen-yield-rej
+SILENT b9.ts:ku-ta-unknown-ret-fn
+SILENT b9.ts:ku-ta-unknown-ret-obs
+SILENT b9.ts:ku-ta-unknown-param-fn
+SILENT b9.ts:ku-ta-unknown-param-obs
+SILENT b9.ts:ku-ta-object-ret-fn
+SILENT b9.ts:ku-ta-object-ret-obs
+SILENT b9.ts:ku-ta-unknown-await-fn
+SILENT b9.ts:ku-ta-unknown-await-obs
+SILENT b9.ts:ku-f64-unknown-ret-fn
+SILENT b9.ts:ku-f64-unknown-ret-obs
+SILENT b9.ts:ku-f64-unknown-param-fn
+SILENT b9.ts:ku-f64-unknown-param-obs
+SILENT b9.ts:ku-f64-object-ret-fn
+SILENT b9.ts:ku-f64-object-ret-obs
+SILENT b9.ts:ku-f64-unknown-await-fn
+SILENT b9.ts:ku-f64-unknown-await-obs
+SILENT b9.ts:ku-ab-unknown-ret-fn
+SILENT b9.ts:ku-ab-unknown-ret-obs
+SILENT b9.ts:ku-ab-unknown-param-fn
+SILENT b9.ts:ku-ab-unknown-param-obs
+SILENT b9.ts:ku-ab-object-ret-fn
+SILENT b9.ts:ku-ab-object-ret-obs
+SILENT b9.ts:ku-ab-unknown-await-fn
+SILENT b9.ts:ku-ab-unknown-await-obs
+SILENT b9.ts:ku-sub-unknown-ret-fn
+SILENT b9.ts:ku-sub-unknown-ret-obs
+SILENT b9.ts:ku-sub-unknown-param-fn
+SILENT b9.ts:ku-sub-unknown-param-obs
+SILENT b9.ts:ku-sub-object-ret-fn
+SILENT b9.ts:ku-sub-object-ret-obs
+SILENT b9.ts:ku-sub-unknown-await-fn
+SILENT b9.ts:ku-sub-unknown-await-obs
+SILENT b9.ts:ku-rec-unknown-ret-fn
+SILENT b9.ts:ku-rec-unknown-ret-obs
+SILENT b9.ts:ku-rec-unknown-param-fn
+SILENT b9.ts:ku-rec-unknown-param-obs
+SILENT b9.ts:ku-rec-object-ret-fn
+SILENT b9.ts:ku-rec-object-ret-obs
+SILENT b9.ts:ku-rec-unknown-await-fn
+SILENT b9.ts:ku-rec-unknown-await-obs
+SILENT b9.ts:ku-nmap-unknown-ret-fn
+SILENT b9.ts:ku-nmap-unknown-ret-obs
+SILENT b9.ts:ku-nmap-unknown-param-fn
+SILENT b9.ts:ku-nmap-unknown-param-obs
+SILENT b9.ts:ku-nmap-object-ret-fn
+SILENT b9.ts:ku-nmap-object-ret-obs
+SILENT b9.ts:ku-nmap-unknown-await-fn
+SILENT b9.ts:ku-nmap-unknown-await-obs
+SILENT b11.ts:jsx-nmap
+notebook compile: g() 1 -> 2; result Map frozen true; argument frozen false

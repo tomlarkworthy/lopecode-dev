@@ -1926,3 +1926,26 @@ Not done or unverified: the collect µs/cell cost of the new scan was not measur
 `acorn.test.ts` controls moves again with h7-attacks.ts (the other agent's file; not run). A fresh-context review
 (sonnet, read-only) of the first draft of this section gave 7 findings; taken: log paths, the h7 split, the full list
 of 19, the census output, the h7 run counts; its claim that holes7 has no browser log was wrong (`verify-*.txt`).
+
+## 2026-11-22 16:10: spec S3.18, S4.1–S4.9, S5.1–S5.5 reworded for the freeze design (prose only; for the owner's end review)
+Statement numbers kept, because `test_spec_S*` and the reject rows are keyed on them. No test, row or rule changed
+except one result string of `test_spec_S3_18` ("frozen after" -> "returned after"). Section titles: "4. Local writes",
+"5. Generator cells that keep a value". Written by the orchestrating session under the owner's 2026-11-22 go-ahead
+("your wording changes are fine, I will review everything once the language is stabilised").
+Each claim was read off a reject or accept row, or a probe run through `checkSources`
+(`lite/soundscript/.scratch/mine7/probe.ts`, 19 programs): nested literal write rejected (`m.a.b = 2` [member-write],
+`m.xs.push(2)` [mutating-method]) and accepted under `Mut<{ a: Mut<{ b: number }> }>`; alias write accepted; `let`
+local writable; `const xs: number[] = [1]; xs.push(2)` [mutating-method]; kept function reading accepted, returning the
+Mut [mut-capture]; `snapshot` of an input and of a local gives a writable local; `Borrowed<…>` on an input [inject-type];
+a call result not typed Mut is not writable.
+Not probed, taken from the builders' notes: the S4.6 list of what throws at publish (holes6, holes7) and "the arguments
+of an action". Open for the owner: whether S4/S5 should be renumbered into one section; whether `snapshot` keeps its
+name now that nothing is borrowed; S4.6 is one long statement and could be split per boundary.
+Gates after the edit: build exit 0, `bun-verify: 170 pass, 0 fail`, `14/14 fixtures pass`. Browser verify not rerun.
+Fresh review of the rewording (opus, no context, 23 tool uses): BLOCK, 6 findings, all confirmed by its `checkSources`
+probes (`lite/soundscript/.scratch/review-s4/`), all taken in the prose: S4.9 (Mut is accepted in any type inside a
+cell), S5.2 (`Borrowed` still resolves), S5.5 (snapshot is structuredClone: a function or URL throws at run time),
+S4.5 (the late-write clause covers nested async functions, not an async cell), S4.8 (URL copy is `new URL(u.href)`; a
+bound view is read-only), S4.6 (only sync generator objects throw). Code left as found, for a later step: the
+`[mut-capture]` and `[mut-yield]` messages suggest `u.slice()` for a URL, which is unsupported; `snapshot` of a function
+or URL could be a `[type]`; deepFreeze does not refuse an async generator object (the checker rejects it first).
