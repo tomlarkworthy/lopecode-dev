@@ -1,0 +1,1936 @@
+diff -ruN -x node_modules proto/lite/infer/ix-apply.ss.ts refac/lite/infer/ix-apply.ss.ts
+--- proto/lite/infer/ix-apply.ss.ts	2026-11-21 16:16:44
++++ refac/lite/infer/ix-apply.ss.ts	2026-11-22 01:10:13
+@@ -23,36 +23,36 @@
+   if (args.length < required && !args.some((a) => a.type === "SpreadElement")) ixErr(K, C, e, "arity", `expected at least ${required} arguments, got ${args.length}`);
+   if (args.length > sig.ps.length && !sig.rest) ixErr(K, C, e, "arity", `expected at most ${sig.ps.length} arguments, got ${args.length}`);
+ };
+-export const ixSpreadArg = (ixErr, ixUnsup, ixHides, subst, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, A: IxApp, a: SpreadElement, i: number, m: Map<string, Ty>): void => {
+-  const st = K.infer(K, T, V, W, C, env, a.argument), el = K.reg.iterElem(st), rest = A.sig.rest;
+-  if (!el) ixErr(K, C, a, "type", `spread of non-iterable ${show(st)}`);
+-  else if (rest === undefined || i < A.sig.ps.length) ixUnsup(K, C, a, "spread argument to a non-rest parameter");
+-  else if (!K.reg.sub(el, subst(rest, m))) ixErr(K, C, a, "type", `spread element ${show(el)} is not assignable to ${show(subst(rest, m))}`);
+-  else ixHides(K, C, a, el, rest, A.opaque);
++export const ixSpreadArg = (ixErr, ixUnsup, ixHides, subst, show) => (K: IxK, G: IxTabs, env: IxEnv, A: IxApp, a: SpreadElement, i: number, m: Map<string, Ty>): void => {
++  const st = K.infer(K, G, env, a.argument), el = K.reg.iterElem(st), rest = A.sig.rest;
++  if (!el) ixErr(K, G.C, a, "type", `spread of non-iterable ${show(st)}`);
++  else if (rest === undefined || i < A.sig.ps.length) ixUnsup(K, G.C, a, "spread argument to a non-rest parameter");
++  else if (!K.reg.sub(el, subst(rest, m))) ixErr(K, G.C, a, "type", `spread element ${show(el)} is not assignable to ${show(subst(rest, m))}`);
++  else ixHides(K, G.C, a, el, rest, A.opaque);
+ };
+ // the first pass over one argument: its type, or "defer" for a callback whose parameters wait on type variables
+-export const ixFirstArg = (ixSpreadArg, ixParamAt, ixCtxSubst, ixCtxOnly, ixAnnOf, subst, hasTv, union, UNDEF, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, A: IxApp, a: AstNode, i: number, m: Mut<Map<string, Ty>>, fromRet: Map<string, Ty>): Ty | "defer" | null => {
++export const ixFirstArg = (ixSpreadArg, ixParamAt, ixCtxSubst, ixCtxOnly, ixAnnOf, subst, hasTv, union, UNDEF, ERR) => (K: IxK, G: IxTabs, env: IxEnv, A: IxApp, a: AstNode, i: number, m: Mut<Map<string, Ty>>, fromRet: Map<string, Ty>): Ty | "defer" | null => {
+   const p = ixParamAt(A.sig, i);
+-  if (a.type === "SpreadElement") { ixSpreadArg(K, T, V, W, C, env, A, a, i, new Map(m)); return ERR; }
+-  if (p === undefined) { K.infer(K, T, V, W, C, env, a); return null; }
++  if (a.type === "SpreadElement") { ixSpreadArg(K, G, env, A, a, i, new Map(m)); return ERR; }
++  if (p === undefined) { K.infer(K, G, env, a); return null; }
+   const fnArg = a.type === "ArrowFunctionExpression" || a.type === "FunctionExpression";
+   const lam = (a.type === "ArrowFunctionExpression" || a.type === "FunctionExpression") && a.params.some((q) => ixAnnOf(q) === null);
+   const pc = subst(p, new Map(m));
+   if (lam && hasTv(pc, A.tvSet)) return "defer";
+-  if (!hasTv(pc, A.tvSet)) return K.check(K, T, V, W, C, env, a, A.sig.ps[i]?.opt && !fnArg ? union([pc, UNDEF]) : pc, false, false);
+-  const t = K.check(K, T, V, W, C, env, a, ixCtxOnly(ixCtxSubst(p, new Map(m), fromRet), A.tvSet), true, false);
++  if (!hasTv(pc, A.tvSet)) return K.check(K, G, env, a, A.sig.ps[i]?.opt && !fnArg ? union([pc, UNDEF]) : pc, false, false);
++  const t = K.check(K, G, env, a, ixCtxOnly(ixCtxSubst(p, new Map(m), fromRet), A.tvSet), true, false);
+   K.reg.unify(p, t, m, A.tvSet);
+   return t;
+ };
+ // a deferred callback, checked once the arguments before it fixed its parameters' types
+-export const ixDeferredArg = (ixParamAt, ixCtxSubst, ixUnsup, ixWidenFree, hasTv, UNKNOWN, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, A: IxApp, a: AstNode, i: number, m: Mut<Map<string, Ty>>, fromRet: Map<string, Ty>): Ty => {
++export const ixDeferredArg = (ixParamAt, ixCtxSubst, ixUnsup, ixWidenFree, hasTv, UNKNOWN, ERR) => (K: IxK, G: IxTabs, env: IxEnv, A: IxApp, a: AstNode, i: number, m: Mut<Map<string, Ty>>, fromRet: Map<string, Ty>): Ty => {
+   const p = ixParamAt(A.sig, i) ?? ERR;
+   const pc = ixCtxSubst(p, new Map(m), fromRet);
+   const ps = K.reg.callSigs(pc)[0];
+-  if (ps && ps.ps.some((q) => hasTv(q.t, A.tvSet))) { ixUnsup(K, C, a, "callback whose parameter types are not inferred before it"); return ERR; }
++  if (ps && ps.ps.some((q) => hasTv(q.t, A.tvSet))) { ixUnsup(K, G.C, a, "callback whose parameter types are not inferred before it"); return ERR; }
+   const ctx: Ty = ps ? { ...ps, ret: !hasTv(ps.ret, A.tvSet) ? ps.ret : UNKNOWN } : pc;
+-  const t = K.fnExpr(K, T, V, W, C, env, a, ctx, null);
+-  T.set(a.nid, t);
++  const t = K.fnExpr(K, G, env, a, ctx, null);
++  G.T.set(a.nid, t);
+   K.reg.unify(p, t, m, A.tvSet);
+   ixWidenFree(m, A.fixed);
+   return t;
+@@ -79,26 +79,26 @@
+   if (explicit.length !== tvs.length) ixErr(K, C, e, "type", `expected ${tvs.length} type arguments, got ${explicit.length}`);
+   for (const [i, n] of tvs.entries()) { const x = explicit[i]; if (x) m.set(n, x); }
+ };
+-export const ixApply = (ixArity, ixExplicit, ixFirstArg, ixDeferredArg, ixWidenFree, ixSolve, ixFinalArgs, ixSettled, ixFact, instantiate, subst, hasTv) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression | NewExpression, sig0: Fn, expected: Ty | null, explicit: Ty[] | null): Ty => {
+-  const inst = instantiate(sig0, C.fresh);
+-  C.fresh += sig0.tps.length;
++export const ixApply = (ixArity, ixExplicit, ixFirstArg, ixDeferredArg, ixWidenFree, ixSolve, ixFinalArgs, ixSettled, ixFact, instantiate, subst, hasTv) => (K: IxK, G: IxTabs, env: IxEnv, e: CallExpression | NewExpression, sig0: Fn, expected: Ty | null, explicit: Ty[] | null): Ty => {
++  const inst = instantiate(sig0, G.C.fresh);
++  G.C.fresh += sig0.tps.length;
+   const tvSet = new Set(inst.tvs), m: Mut<Map<string, Ty>> = mut(new Map()), fromRet: Mut<Map<string, Ty>> = mut(new Map());
+-  ixExplicit(K, C, e, inst.tvs, explicit, m);
++  ixExplicit(K, G.C, e, inst.tvs, explicit, m);
+   const A: IxApp = { sig: inst.f, tvs: inst.tvs, tvSet, opaque: sig0.flags?.intrinsic ? null : tvSet, fixed: new Set(m.keys()) };
+-  ixArity(K, C, e, e.arguments, A.sig);
++  ixArity(K, G.C, e, e.arguments, A.sig);
+   const decl = sig0.decl ?? sig0, fl = sig0.flags;
+-  ixFact(C, { k: "sig", at: e.nid, sig: fl ? { ...inst.f, decl, flags: fl } : { ...inst.f, decl } });
++  ixFact(G.C, { k: "sig", at: e.nid, sig: fl ? { ...inst.f, decl, flags: fl } : { ...inst.f, decl } });
+   if (expected !== null && hasTv(A.sig.ret, tvSet)) K.reg.unify(A.sig.ret, expected, fromRet, tvSet);
+   const ret = new Map(fromRet), argT: Mut<(Ty | null)[]> = mut([]), deferred: Mut<number[]> = mut([]);
+   for (const [i, a] of e.arguments.entries()) {
+-    const t = ixFirstArg(K, T, V, W, C, env, A, a, i, m, ret);
++    const t = ixFirstArg(K, G, env, A, a, i, m, ret);
+     if (t === "defer") deferred.push(i);
+     argT.push(t === "defer" ? null : t);
+   }
+   ixWidenFree(m, A.fixed);
+-  for (const i of deferred) { const a = e.arguments[i]; if (a !== undefined) argT[i] = ixDeferredArg(K, T, V, W, C, env, A, a, i, m, ret); }
++  for (const i of deferred) { const a = e.arguments[i]; if (a !== undefined) argT[i] = ixDeferredArg(K, G, env, A, a, i, m, ret); }
+   ixSolve(m, ret, A);
+-  ixFinalArgs(K, C, A, e.arguments, freeze(argT), freeze(deferred), new Map(m));
++  ixFinalArgs(K, G.C, A, e.arguments, freeze(argT), freeze(deferred), new Map(m));
+   return ixSettled(K.reg, subst(A.sig.ret, new Map(m)));
+ };
+ // a promise never fulfils with a promise-like: resolving with one adopts what it settles to
+diff -ruN -x node_modules proto/lite/infer/ix-call.ss.ts refac/lite/infer/ix-call.ss.ts
+--- proto/lite/infer/ix-call.ss.ts	2026-11-21 16:12:22
++++ refac/lite/infer/ix-call.ss.ts	2026-11-22 01:10:13
+@@ -1,8 +1,8 @@
+ // Calls (lite/infer.ts call, apply, preludeCall, objectAssign, objectFreeze, settled, ctxOnly).
+ 
+ // the call is not checked; its arguments still are (a spread's operand only when asked)
+-export const ixBail = (ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, args: AstNode[], spread: boolean): Ty => {
+-  for (const a of args) K.infer(K, T, V, W, C, env, spread && a.type === "SpreadElement" ? a.argument : a);
++export const ixBail = (ERR) => (K: IxK, G: IxTabs, env: IxEnv, args: AstNode[], spread: boolean): Ty => {
++  for (const a of args) K.infer(K, G, env, spread && a.type === "SpreadElement" ? a.argument : a);
+   return ERR;
+ };
+ export const ixTypeArgs = (ixConvert) => (K: IxK, V: IxVars, env: IxEnv, n: AstNode | null): Ty[] | null => {
+@@ -11,115 +11,115 @@
+   for (const t of n.params) out.push(ixConvert(K, V, env, t));
+   return freeze(out);
+ };
+-export const ixCall = (ixLookup, ixPreludeCall, ixCompileCall, ixNewSigs, ixCallSigs, ixApplyAll, ixFact, ixGap) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null): Ty => {
+-  if (e.type !== "CallExpression" && e.type !== "NewExpression") return ixGap(C, `call node ${e.type}`);
++export const ixCall = (ixLookup, ixPreludeCall, ixCompileCall, ixNewSigs, ixCallSigs, ixApplyAll, ixFact, ixGap) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode, expected: Ty | null): Ty => {
++  if (e.type !== "CallExpression" && e.type !== "NewExpression") return ixGap(G.C, `call node ${e.type}`);
+   const callee = e.callee;
+   if (e.type === "CallExpression" && callee.type === "Identifier") {
+-    const b = ixLookup(V, env, callee.name);
+-    if (b?.kind === "prelude") return ixPreludeCall(K, T, V, W, C, env, e, callee.name, expected);
+-    if (b?.kind === "param" && b.t.k === "named" && b.t.n === "Compile") return ixCompileCall(K, T, V, W, C, env, e);
+-    if (b && (b.kind === "fn" || b.kind === "const") && b.fnNode >= 0) ixFact(C, { k: "helper", at: e.nid, id: b.id });
++    const b = ixLookup(G.V, env, callee.name);
++    if (b?.kind === "prelude") return ixPreludeCall(K, G, env, e, callee.name, expected);
++    if (b?.kind === "param" && b.t.k === "named" && b.t.n === "Compile") return ixCompileCall(K, G, env, e);
++    if (b && (b.kind === "fn" || b.kind === "const") && b.fnNode >= 0) ixFact(G.C, { k: "helper", at: e.nid, id: b.id });
+   }
+-  const found = e.type === "NewExpression" ? ixNewSigs(K, T, V, W, C, env, e) : ixCallSigs(K, T, V, W, C, env, e, expected);
++  const found = e.type === "NewExpression" ? ixNewSigs(K, G, env, e) : ixCallSigs(K, G, env, e, expected);
+   if (found.k === "done") return found.t;
+-  return ixApplyAll(K, T, V, W, C, env, e, found.sigs, expected, found.view);
++  return ixApplyAll(K, G, env, e, found.sigs, expected, found.view);
+ };
+ export type IxSigs = { k: "done"; t: Ty } | { k: "sigs"; sigs: Fn[]; view: boolean };
+-export const ixNewSigs = (ixLookup, ixErr, ixUnsup, ixBail) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: NewExpression): IxSigs => {
++export const ixNewSigs = (ixLookup, ixErr, ixUnsup, ixBail) => (K: IxK, G: IxTabs, env: IxEnv, e: NewExpression): IxSigs => {
+   const callee = e.callee;
+-  if (callee.type !== "Identifier" || ixLookup(V, env, callee.name)?.kind !== "global") {
+-    ixErr(K, C, e, "new-non-intrinsic", "new on something that is not an allowed intrinsic");
+-    return { k: "done", t: ixBail(K, T, V, W, C, env, e.arguments, false) };
++  if (callee.type !== "Identifier" || ixLookup(G.V, env, callee.name)?.kind !== "global") {
++    ixErr(K, G.C, e, "new-non-intrinsic", "new on something that is not an allowed intrinsic");
++    return { k: "done", t: ixBail(K, G, env, e.arguments, false) };
+   }
+-  const x = K.reg.expand(K.infer(K, T, V, W, C, env, callee));
++  const x = K.reg.expand(K.infer(K, G, env, callee));
+   const sigs = x.k === "rec" ? (x.ctors ?? []) : [];
+-  if (!sigs.length) { ixUnsup(K, C, e, `new ${callee.name}`); return { k: "done", t: ixBail(K, T, V, W, C, env, e.arguments, false) }; }
++  if (!sigs.length) { ixUnsup(K, G.C, e, `new ${callee.name}`); return { k: "done", t: ixBail(K, G, env, e.arguments, false) }; }
+   return { k: "sigs", sigs, view: false };
+ };
+ // Object.assign and Object.freeze on the global Object, and structuredClone, have rules of their own
+-export const ixSpecialCall = (ixLookup, ixObjectAssign, ixObjectFreeze, ixCloneCall) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, expected: Ty | null): Ty | null => {
++export const ixSpecialCall = (ixLookup, ixObjectAssign, ixObjectFreeze, ixCloneCall) => (K: IxK, G: IxTabs, env: IxEnv, e: CallExpression, expected: Ty | null): Ty | null => {
+   const callee = e.callee;
+-  if (callee.type === "MemberExpression" && callee.object.type === "Identifier" && callee.object.name === "Object" && !callee.computed && ixLookup(V, env, "Object")?.kind === "global" && callee.property.type === "Identifier") {
+-    if (callee.property.name === "assign") return ixObjectAssign(K, T, V, W, C, env, e);
+-    if (callee.property.name === "freeze") return ixObjectFreeze(K, T, V, W, C, env, e, expected);
++  if (callee.type === "MemberExpression" && callee.object.type === "Identifier" && callee.object.name === "Object" && !callee.computed && ixLookup(G.V, env, "Object")?.kind === "global" && callee.property.type === "Identifier") {
++    if (callee.property.name === "assign") return ixObjectAssign(K, G, env, e);
++    if (callee.property.name === "freeze") return ixObjectFreeze(K, G, env, e, expected);
+   }
+-  if (callee.type === "Identifier" && callee.name === "structuredClone" && ixLookup(V, env, callee.name)?.kind === "global") return ixCloneCall(K, T, V, W, C, env, e, callee, expected);
++  if (callee.type === "Identifier" && callee.name === "structuredClone" && ixLookup(G.V, env, callee.name)?.kind === "global") return ixCloneCall(K, G, env, e, callee, expected);
+   return null;
+ };
+-export const ixCallSigs = (ixSpecialCall, ixWriteRule, ixBail, ixUm, ixNonNullish, ixInActionOnly, ixActionFn, ixNotCallable, ixErr, show, isNamed) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, expected: Ty | null): IxSigs => {
+-  const special = ixSpecialCall(K, T, V, W, C, env, e, expected);
++export const ixCallSigs = (ixSpecialCall, ixWriteRule, ixBail, ixUm, ixNonNullish, ixInActionOnly, ixActionFn, ixNotCallable, ixErr, show, isNamed) => (K: IxK, G: IxTabs, env: IxEnv, e: CallExpression, expected: Ty | null): IxSigs => {
++  const special = ixSpecialCall(K, G, env, e, expected);
+   if (special !== null) return { k: "done", t: special };
+-  const callee = e.callee, calleeT = K.infer(K, T, V, W, C, env, callee);
++  const callee = e.callee, calleeT = K.infer(K, G, env, callee);
+   const m = callee.type === "ChainExpression" ? callee.expression : callee;
+-  const fl = m.type === "MemberExpression" && C.flagsAt === m.nid ? C.flags : undefined;
+-  if (m.type === "MemberExpression" && fl?.mutates) ixWriteRule(K, T, V, W, C, env, m.object, e, "mutating-method");
+-  if (calleeT.k === "err") return { k: "done", t: ixBail(K, T, V, W, C, env, e.arguments, true) };
+-  const isShort = e.optional === true || C.short.has(callee.nid);
+-  if (isShort) C.short = new Set([...C.short, e.nid]);
++  const fl = m.type === "MemberExpression" && G.C.flagsAt === m.nid ? G.C.flags : undefined;
++  if (m.type === "MemberExpression" && fl?.mutates) ixWriteRule(K, G, env, m.object, e, "mutating-method");
++  if (calleeT.k === "err") return { k: "done", t: ixBail(K, G, env, e.arguments, true) };
++  const isShort = e.optional === true || G.C.short.has(callee.nid);
++  if (isShort) G.C.short = new Set([...G.C.short, e.nid]);
+   const ms = ixUm(K.reg, isShort ? ixNonNullish(K.reg, calleeT) : calleeT);
+-  const view = m.type === "MemberExpression" && !!fl?.view && isNamed(T.get(m.object.nid) ?? { k: "err" }, "Borrowed");
++  const view = m.type === "MemberExpression" && !!fl?.view && isNamed(G.T.get(m.object.nid) ?? { k: "err" }, "Borrowed");
+   const action = ms.find((x) => isNamed(x, "Action"));
+   if (action !== undefined && action.k === "named") {
+-    ixInActionOnly(K, C, env, e, "action-call", "an Action called outside action(...)");
++    ixInActionOnly(K, G.C, env, e, "action-call", "an Action called outside action(...)");
+     return { k: "sigs", sigs: [ixActionFn(action.args[0] ?? { k: "tup", els: [] })], view };
+   }
+   const m0 = ms[0];
+-  if (ms.length !== 1 || m0 === undefined) { ixErr(K, C, e, "type", `call of ${show(calleeT)}`); return { k: "done", t: ixBail(K, T, V, W, C, env, e.arguments, false) }; }
++  if (ms.length !== 1 || m0 === undefined) { ixErr(K, G.C, e, "type", `call of ${show(calleeT)}`); return { k: "done", t: ixBail(K, G, env, e.arguments, false) }; }
+   const sigs = K.reg.callSigs(m0);
+   if (sigs.length) return { k: "sigs", sigs, view };
+-  ixNotCallable(K, C, e, m0);
+-  return { k: "done", t: ixBail(K, T, V, W, C, env, e.arguments, false) };
++  ixNotCallable(K, G.C, e, m0);
++  return { k: "done", t: ixBail(K, G, env, e.arguments, false) };
+ };
+ export const ixNotCallable = (ixErr, show) => (K: IxK, C: IxCtls, e: AstNode, m: Ty): void => {
+   if (m.k === "null" || m.k === "undef") ixErr(K, C, e, "possibly-undefined", `call of a value that may be ${show(m)}`);
+   else ixErr(K, C, e, "type", `${show(m)} is not callable`);
+ };
+ // one signature, or each overload in turn until one gives no new diagnostic (the others are rolled back)
+-export const ixApplyAll = (ixTypeArgs, ixApply, ixMark, ixCopyFlow, named, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression | NewExpression, sigs: Fn[], expected: Ty | null, view: boolean): Ty => {
+-  const explicit = ixTypeArgs(K, V, env, e.typeArguments);
++export const ixApplyAll = (ixTypeArgs, ixApply, ixMark, ixCopyFlow, named, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: CallExpression | NewExpression, sigs: Fn[], expected: Ty | null, view: boolean): Ty => {
++  const explicit = ixTypeArgs(K, G.V, env, e.typeArguments);
+   let t: Ty = ERR;
+   for (const [i, sig] of sigs.entries()) {
+-    const mark = ixMark(K, C), flow = ixCopyFlow(W, C, C.cur);
+-    t = ixApply(K, T, V, W, C, env, e, sig, expected, explicit);
++    const mark = ixMark(K, G.C), flow = ixCopyFlow(G.W, G.C, G.C.cur);
++    t = ixApply(K, G, env, e, sig, expected, explicit);
+     if (sigs.length === 1) break;
+-    const now = ixMark(K, C);
++    const now = ixMark(K, G.C);
+     if ((now.d?.n ?? 0) === (mark.d?.n ?? 0) && (now.u?.n ?? 0) === (mark.u?.n ?? 0)) break;
+-    if (i < sigs.length - 1) { C.diags = mark.d; C.unsup = mark.u; C.cur = flow; }
++    if (i < sigs.length - 1) { G.C.diags = mark.d; G.C.unsup = mark.u; G.C.cur = flow; }
+   }
+   return view ? named("Borrowed", t) : t;
+ };
+-export const ixCloneCall = (ixApply, ixErr, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, callee: Identifier, expected: Ty | null): Ty => {
+-  C.clones = new Set([...C.clones, callee.nid]);
+-  const sig = K.reg.callSigs(K.infer(K, T, V, W, C, env, callee))[0];
++export const ixCloneCall = (ixApply, ixErr, show, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: CallExpression, callee: Identifier, expected: Ty | null): Ty => {
++  G.C.clones = new Set([...G.C.clones, callee.nid]);
++  const sig = K.reg.callSigs(K.infer(K, G, env, callee))[0];
+   if (sig === undefined) return ERR;
+-  const t = ixApply(K, T, V, W, C, env, e, sig, expected, null);
+-  const a = e.arguments[0], at = a === undefined ? undefined : T.get(a.nid);
++  const t = ixApply(K, G, env, e, sig, expected, null);
++  const a = e.arguments[0], at = a === undefined ? undefined : G.T.get(a.nid);
+   const w = a !== undefined && at !== undefined ? K.reg.cloneProblem(at) : null;
+-  if (a !== undefined && at !== undefined && w) ixErr(K, C, a, "type", `structuredClone of ${show(at)}, which ${w}: the clone would throw or lose it`);
++  if (a !== undefined && at !== undefined && w) ixErr(K, G.C, a, "type", `structuredClone of ${show(at)}, which ${w}: the clone would throw or lose it`);
+   return t;
+ };
+-export const ixObjectAssign = (ixErr, ixUnsup, isNamed, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression): Ty => {
++export const ixObjectAssign = (ixErr, ixUnsup, isNamed, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: CallExpression): Ty => {
+   const target = e.arguments[0];
+-  const tt = target !== undefined ? K.infer(K, T, V, W, C, env, target) : ERR;
+-  if (target === undefined || (target.type !== "ObjectExpression" && !isNamed(tt, "Mut"))) ixErr(K, C, e, "object-assign", "Object.assign onto an existing value");
+-  for (const s of e.arguments.slice(1)) K.infer(K, T, V, W, C, env, s);
+-  ixUnsup(K, C, e, "Object.assign");
++  const tt = target !== undefined ? K.infer(K, G, env, target) : ERR;
++  if (target === undefined || (target.type !== "ObjectExpression" && !isNamed(tt, "Mut"))) ixErr(K, G.C, e, "object-assign", "Object.assign onto an existing value");
++  for (const s of e.arguments.slice(1)) K.infer(K, G, env, s);
++  ixUnsup(K, G.C, e, "Object.assign");
+   return ERR;
+ };
+ // Object.freeze of a literal: the value is the cell's own, so freezing it changes nothing another cell holds
+-export const ixObjectFreeze = (ixErr, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, expected: Ty | null): Ty => {
++export const ixObjectFreeze = (ixErr, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: CallExpression, expected: Ty | null): Ty => {
+   const a = e.arguments[0];
+-  if (e.arguments.length === 1 && a !== undefined && (a.type === "ObjectExpression" || a.type === "ArrayExpression")) return K.check(K, T, V, W, C, env, a, expected, false, false);
+-  ixErr(K, C, e, "object-freeze", "Object.freeze takes one object or array literal");
+-  for (const x of e.arguments) K.infer(K, T, V, W, C, env, x.type === "SpreadElement" ? x.argument : x);
++  if (e.arguments.length === 1 && a !== undefined && (a.type === "ObjectExpression" || a.type === "ArrayExpression")) return K.check(K, G, env, a, expected, false, false);
++  ixErr(K, G.C, e, "object-freeze", "Object.freeze takes one object or array literal");
++  for (const x of e.arguments) K.infer(K, G, env, x.type === "SpreadElement" ? x.argument : x);
+   return ERR;
+ };
+ // compile({ inputs, refs, outputs, options }): typed from the cell graph by core.ts; the port infers the options
+-export const ixCompileCall = (ixUnsup, ixGap, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression): Ty => {
++export const ixCompileCall = (ixUnsup, ixGap, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: CallExpression): Ty => {
+   const hook = K.reg.compile;
+-  if (hook === null) { ixUnsup(K, C, e, "compile outside a module check"); return ERR; }
++  if (hook === null) { ixUnsup(K, G.C, e, "compile outside a module check"); return ERR; }
+   const first = hook(e, null);
+   if (first.k === "done") return first.t;
+-  const second = hook(e, K.infer(K, T, V, W, C, env, first.at));
+-  return second.k === "done" ? second.t : ixGap(C, "compile hook asked for a second type");
++  const second = hook(e, K.infer(K, G, env, first.at));
++  return second.k === "done" ? second.t : ixGap(G.C, "compile hook asked for a second type");
+ };
+diff -ruN -x node_modules proto/lite/infer/ix-cond.ss.ts refac/lite/infer/ix-cond.ss.ts
+--- proto/lite/infer/ix-cond.ss.ts	2026-11-21 15:23:26
++++ refac/lite/infer/ix-cond.ss.ts	2026-11-22 01:10:13
+@@ -2,24 +2,24 @@
+ // flows are built in place as local tables, then become new flow objects.
+ 
+ export type IxBy = (t: Ty, branch: boolean) => Ty;
+-export const ixCond = (ixCondLeaf, ixCondLogical, BOOL) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): IxCond => {
++export const ixCond = (ixCondLeaf, ixCondLogical, BOOL) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode): IxCond => {
+   if (e.type === "UnaryExpression" && e.operator === "!") {
+-    const c = K.cond(K, T, V, W, C, env, e.argument);
+-    T.set(e.nid, BOOL);
++    const c = K.cond(K, G, env, e.argument);
++    G.T.set(e.nid, BOOL);
+     return { t: c.f, f: c.t };
+   }
+-  if (e.type === "LogicalExpression" && (e.operator === "&&" || e.operator === "||")) return ixCondLogical(K, T, V, W, C, env, e);
+-  const t = K.infer(K, T, V, W, C, env, e);
+-  return ixCondLeaf(K, T, V, W, C, env, e, t);
++  if (e.type === "LogicalExpression" && (e.operator === "&&" || e.operator === "||")) return ixCondLogical(K, G, env, e);
++  const t = K.infer(K, G, env, e);
++  return ixCondLeaf(K, G, env, e, t);
+ };
+-export const ixCondLogical = (ixLogicalType, ixJoin2, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: LogicalExpression): IxCond => {
+-  const l = K.cond(K, T, V, W, C, env, e.left);
+-  const own = C.cur;
+-  C.cur = e.operator === "&&" ? l.t : l.f;
+-  const r = K.cond(K, T, V, W, C, env, e.right);
+-  C.cur = own;
+-  T.set(e.nid, ixLogicalType(K.reg, e.operator, T.get(e.left.nid) ?? ERR, T.get(e.right.nid) ?? ERR));
+-  return e.operator === "&&" ? { t: r.t, f: ixJoin2(W, C, l.f, r.f) } : { t: ixJoin2(W, C, l.t, r.t), f: r.f };
++export const ixCondLogical = (ixLogicalType, ixJoin2, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: LogicalExpression): IxCond => {
++  const l = K.cond(K, G, env, e.left);
++  const own = G.C.cur;
++  G.C.cur = e.operator === "&&" ? l.t : l.f;
++  const r = K.cond(K, G, env, e.right);
++  G.C.cur = own;
++  G.T.set(e.nid, ixLogicalType(K.reg, e.operator, G.T.get(e.left.nid) ?? ERR, G.T.get(e.right.nid) ?? ERR));
++  return e.operator === "&&" ? { t: r.t, f: ixJoin2(G.W, G.C, l.f, r.f) } : { t: ixJoin2(G.W, G.C, l.t, r.t), f: r.f };
+ };
+ // where an optional chain's value cannot be undefined on this branch, no ?. link short-circuited
+ export const ixChainLinks = (ixPathKey, ixExclusion, ixNonNullish, NEVER) => (K: IxK, T: IxTypes, V: IxVars, env: IxEnv, M: Mut<IxFlow>, n: ChainExpression): void => {
+@@ -80,17 +80,17 @@
+   if (c.property.type !== "Identifier" || c.property.name !== "isArray" || ixLookup(V, env, "Array")?.kind !== "global") return null;
+   return e.arguments[0] ?? null;
+ };
+-export const ixCondLeaf = (ixNarrow, ixDiscriminant, ixNarrowCompare, ixIsArrayTest, ixNarrowIn, ixNarrowArray, ixTruthy, ixFalsy, ixFlowOf, ixNewFlow) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, t: Ty): IxCond => {
+-  const TT: Mut<IxFlow> = mut(new Map(ixFlowOf(W, C.cur))), FF: Mut<IxFlow> = mut(new Map(ixFlowOf(W, C.cur)));
+-  const arrayArg = ixIsArrayTest(V, env, e);
+-  if (e.type === "BinaryExpression" && ["===", "!==", "==", "!="].includes(e.operator)) ixNarrowCompare(K, T, V, env, TT, FF, e);
++export const ixCondLeaf = (ixNarrow, ixDiscriminant, ixNarrowCompare, ixIsArrayTest, ixNarrowIn, ixNarrowArray, ixTruthy, ixFalsy, ixFlowOf, ixNewFlow) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode, t: Ty): IxCond => {
++  const TT: Mut<IxFlow> = mut(new Map(ixFlowOf(G.W, G.C.cur))), FF: Mut<IxFlow> = mut(new Map(ixFlowOf(G.W, G.C.cur)));
++  const arrayArg = ixIsArrayTest(G.V, env, e);
++  if (e.type === "BinaryExpression" && ["===", "!==", "==", "!="].includes(e.operator)) ixNarrowCompare(K, G.T, G.V, env, TT, FF, e);
+   else if (e.type === "BinaryExpression" && e.operator === "in" && e.left.type === "Literal" && typeof e.left.value === "string") {
+     const key = e.left.value;
+-    ixNarrow(K, T, V, env, TT, FF, e.right, T.get(e.right.nid), (rt, br) => ixNarrowIn(K.reg, rt, key, br));
+-  } else if (arrayArg !== null) ixNarrow(K, T, V, env, TT, FF, arrayArg, T.get(arrayArg.nid), (at, br) => ixNarrowArray(K.reg, at, br));
++    ixNarrow(K, G.T, G.V, env, TT, FF, e.right, G.T.get(e.right.nid), (rt, br) => ixNarrowIn(K.reg, rt, key, br));
++  } else if (arrayArg !== null) ixNarrow(K, G.T, G.V, env, TT, FF, arrayArg, G.T.get(arrayArg.nid), (at, br) => ixNarrowArray(K.reg, at, br));
+   else {
+-    ixNarrow(K, T, V, env, TT, FF, e, t, (x, br) => (br ? ixTruthy(K.reg, x) : ixFalsy(K.reg, x)));
+-    ixDiscriminant(K, T, V, env, TT, FF, e, (pt, br) => (br ? ixTruthy(K.reg, pt) : ixFalsy(K.reg, pt)).k !== "never");
++    ixNarrow(K, G.T, G.V, env, TT, FF, e, t, (x, br) => (br ? ixTruthy(K.reg, x) : ixFalsy(K.reg, x)));
++    ixDiscriminant(K, G.T, G.V, env, TT, FF, e, (pt, br) => (br ? ixTruthy(K.reg, pt) : ixFalsy(K.reg, pt)).k !== "never");
+   }
+-  return { t: ixNewFlow(W, C, freeze(TT)), f: ixNewFlow(W, C, freeze(FF)) };
++  return { t: ixNewFlow(G.W, G.C, freeze(TT)), f: ixNewFlow(G.W, G.C, freeze(FF)) };
+ };
+diff -ruN -x node_modules proto/lite/infer/ix-entry.ss.ts refac/lite/infer/ix-entry.ss.ts
+--- proto/lite/infer/ix-entry.ss.ts	2026-11-21 19:10:44
++++ refac/lite/infer/ix-entry.ss.ts	2026-11-22 01:10:59
+@@ -9,14 +9,13 @@
+ });
+ export const ixCheckFn = (ixKnot, ixFreshCtl, ixDrain, ixOut, ixFoldFacts) => (reg: IxReg, input: IxInput): IxOutput => {
+   const K: IxK = ixKnot(reg, input.src, input.cellNames, input.allowed, null);
+-  const T: IxTypes = mut(new Map()), V: IxVars = mut(new Map()), W: IxFlows = mut(new Map([[0, new Map()]]));
+-  const C: IxCtls = mut({ ...ixFreshCtl(input.count) });
+-  C.nextFlow = 1;
++  const G: IxTabs = mut({ T: mut(new Map()), V: mut(new Map()), W: mut(new Map([[0, new Map()]])), C: mut({ ...ixFreshCtl(input.count) }) });
++  G.C.nextFlow = 1;
+   for (const g of input.globals) {
+-    C.nextId += 1;
+-    V.set(`0:${g.name}`, { id: C.nextId, scope: 0, name: g.name, t: g.t, kind: g.kind, nid: -1, fi: -1, fnNode: -1, mutOwned: false, assigned: false, cellParam: false, checked: true, lazy: { k: "none" } });
++    G.C.nextId += 1;
++    G.V.set(`0:${g.name}`, { id: G.C.nextId, scope: 0, name: g.name, t: g.t, kind: g.kind, nid: -1, fi: -1, fnNode: -1, mutOwned: false, assigned: false, cellParam: false, checked: true, lazy: { k: "none" } });
+   }
+-  const fn = K.fnExpr(K, T, V, W, C, null, input.fn, null, input.injected);
+-  ixDrain(K, C);
+-  return { fn, diags: ixOut(C.diags), unsup: ixOut(C.unsup), gap: C.gap, facts: ixFoldFacts(T, V, C.facts) };
++  const fn = K.fnExpr(K, G, null, input.fn, null, input.injected);
++  ixDrain(K, G.C);
++  return { fn, diags: ixOut(G.C.diags), unsup: ixOut(G.C.unsup), gap: G.C.gap, facts: ixFoldFacts(G.T, G.V, G.C.facts) };
+ };
+diff -ruN -x node_modules proto/lite/infer/ix-expr.ss.ts refac/lite/infer/ix-expr.ss.ts
+--- proto/lite/infer/ix-expr.ss.ts	2026-11-21 19:23:05
++++ refac/lite/infer/ix-expr.ss.ts	2026-11-22 01:10:13
+@@ -4,64 +4,64 @@
+ export const ixCtxSensitive = () => (e: AstNode): boolean =>
+   e.type === "ObjectExpression" || e.type === "ArrayExpression" || e.type === "ArrowFunctionExpression" || e.type === "FunctionExpression";
+ // soft: expected is a context only; ctx: expected is a context, not the type the value finally has
+-export const ixCheck = (ixCheck1) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null, soft: boolean, ctx: boolean): Ty => {
+-  const outer = C.quiet;
++export const ixCheck = (ixCheck1) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode, expected: Ty | null, soft: boolean, ctx: boolean): Ty => {
++  const outer = G.C.quiet;
+   const q = soft || ctx || outer > 0;
+-  C.quiet = q && (e.type === "ObjectExpression" || e.type === "ArrayExpression" || e.type === "ConditionalExpression" || e.type === "LogicalExpression") ? 1 : 0;
+-  try { return ixCheck1(K, T, V, W, C, env, e, expected, soft, q); } finally { C.quiet = outer; }
++  G.C.quiet = q && (e.type === "ObjectExpression" || e.type === "ArrayExpression" || e.type === "ConditionalExpression" || e.type === "LogicalExpression") ? 1 : 0;
++  try { return ixCheck1(K, G, env, e, expected, soft, q); } finally { G.C.quiet = outer; }
+ };
+-export const ixCheck1 = (ixCtxSensitive, ixHides, ixObjLit, ixArrLit, ixConditional, ixCheckLogical, ixExpect) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null, soft: boolean, q: boolean): Ty => {
+-  if (expected === null) return K.infer(K, T, V, W, C, env, e);
+-  if (expected.k === "unknown" && !ixCtxSensitive(e)) { const t = K.infer(K, T, V, W, C, env, e); if (!q) ixHides(K, C, e, t, expected, null); return t; }
++export const ixCheck1 = (ixCtxSensitive, ixHides, ixObjLit, ixArrLit, ixConditional, ixCheckLogical, ixExpect) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode, expected: Ty | null, soft: boolean, q: boolean): Ty => {
++  if (expected === null) return K.infer(K, G, env, e);
++  if (expected.k === "unknown" && !ixCtxSensitive(e)) { const t = K.infer(K, G, env, e); if (!q) ixHides(K, G.C, e, t, expected, null); return t; }
+   let t: Ty;
+   switch (e.type) {
+-    case "ObjectExpression": t = ixObjLit(K, T, V, W, C, env, e, expected); break;
+-    case "ArrayExpression": t = ixArrLit(K, T, V, W, C, env, e, expected); break;
+-    case "ArrowFunctionExpression": case "FunctionExpression": t = K.fnExpr(K, T, V, W, C, env, e, expected, null); break;
+-    case "ConditionalExpression": { const c = ixConditional(K, T, V, W, C, env, e, expected); T.set(e.nid, c); return c; }
++    case "ObjectExpression": t = ixObjLit(K, G, env, e, expected); break;
++    case "ArrayExpression": t = ixArrLit(K, G, env, e, expected); break;
++    case "ArrowFunctionExpression": case "FunctionExpression": t = K.fnExpr(K, G, env, e, expected, null); break;
++    case "ConditionalExpression": { const c = ixConditional(K, G, env, e, expected); G.T.set(e.nid, c); return c; }
+     case "LogicalExpression":
+-      if (e.operator !== "&&") { const l = ixCheckLogical(K, T, V, W, C, env, e, expected); T.set(e.nid, l); return l; }
+-      t = K.infer(K, T, V, W, C, env, e);
++      if (e.operator !== "&&") { const l = ixCheckLogical(K, G, env, e, expected); G.T.set(e.nid, l); return l; }
++      t = K.infer(K, G, env, e);
+       break;
+-    case "CallExpression": case "NewExpression": t = K.call(K, T, V, W, C, env, e, expected); break;
+-    default: t = K.infer(K, T, V, W, C, env, e);
++    case "CallExpression": case "NewExpression": t = K.call(K, G, env, e, expected); break;
++    default: t = K.infer(K, G, env, e);
+   }
+-  T.set(e.nid, t);
+-  if (!soft) ixExpect(K, C, e, t, expected, q);
++  G.T.set(e.nid, t);
++  if (!soft) ixExpect(K, G.C, e, t, expected, q);
+   return t;
+ };
+-export const ixInfer = (ixInfer1) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty => {
+-  const q = C.quiet;
+-  C.quiet = 0;
++export const ixInfer = (ixInfer1) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode): Ty => {
++  const q = G.C.quiet;
++  G.C.quiet = 0;
+   try {
+-    const t = ixInfer1(K, T, V, W, C, env, e);
+-    T.set(e.nid, t);
++    const t = ixInfer1(K, G, env, e);
++    G.T.set(e.nid, t);
+     return t;
+-  } finally { C.quiet = q; }
++  } finally { G.C.quiet = q; }
+ };
+-export const ixInfer1 = (ixInferAtom, ixInferOp, ixInferRest, ixUnsup, ixGap, nodeKind, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty => {
+-  if (e.type === "Other") return ixGap(C, `node ${e.kind} (Other)`);
+-  const t = ixInferAtom(K, T, V, W, C, env, e) ?? ixInferOp(K, T, V, W, C, env, e) ?? ixInferRest(K, T, V, W, C, env, e);
++export const ixInfer1 = (ixInferAtom, ixInferOp, ixInferRest, ixUnsup, ixGap, nodeKind, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode): Ty => {
++  if (e.type === "Other") return ixGap(G.C, `node ${e.kind} (Other)`);
++  const t = ixInferAtom(K, G, env, e) ?? ixInferOp(K, G, env, e) ?? ixInferRest(K, G, env, e);
+   if (t !== null) return t;
+-  ixUnsup(K, C, e, nodeKind(e));
++  ixUnsup(K, G.C, e, nodeKind(e));
+   return ERR;
+ };
+ // literals, names, and what the syntax pass reports
+-export const ixInferAtom = (ixLiteral, ixIdent, ixConstLit, ERR, STR, lit) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty | null => {
++export const ixInferAtom = (ixLiteral, ixIdent, ixConstLit, ERR, STR, lit) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode): Ty | null => {
+   switch (e.type) {
+     case "Literal": return ixLiteral(e);
+     case "TemplateLiteral": {
+-      for (const x of e.expressions) K.infer(K, T, V, W, C, env, x);
++      for (const x of e.expressions) K.infer(K, G, env, x);
+       const q = e.quasis[0];
+       return e.expressions.length || q === undefined || q.type !== "TemplateElement" ? STR : lit(q.value.cooked ?? "");
+     }
+-    case "Identifier": return ixIdent(K, T, V, W, C, env, e);
++    case "Identifier": return ixIdent(K, G, env, e);
+     case "ThisExpression": case "ClassExpression": case "ImportExpression": return ERR;
+-    case "TSNonNullExpression": case "TSTypeAssertion": K.infer(K, T, V, W, C, env, e.expression); return ERR;
++    case "TSNonNullExpression": case "TSTypeAssertion": K.infer(K, G, env, e.expression); return ERR;
+     case "TSAsExpression": {
+       const a = e.typeAnnotation, n = a.type === "TSTypeReference" ? a.typeName : null;
+-      if (n !== null && n.type === "Identifier" && n.name === "const") return ixConstLit(K, T, V, W, C, env, e.expression);
+-      K.infer(K, T, V, W, C, env, e.expression);
++      if (n !== null && n.type === "Identifier" && n.name === "const") return ixConstLit(K, G, env, e.expression);
++      K.infer(K, G, env, e.expression);
+       return ERR;
+     }
+     default: return null;
+@@ -73,36 +73,36 @@
+   return e.value === null ? NULL : lit(e.value);
+ };
+ // what reading a binding with no type yet gives (Binding.lazy)
+-export const ixLazyRead = (ixUnsup, ixUpdate, ixNewFlow, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, b: IxBinding): Ty => {
++export const ixLazyRead = (ixUnsup, ixUpdate, ixNewFlow, ERR) => (K: IxK, G: IxTabs, b: IxBinding): Ty => {
+   const z = b.lazy;
+   if (z.k === "none") return b.t;
+-  if (z.k === "unsup") { ixUnsup(K, C, z.at, "recursive function without a return type"); return ERR; }
+-  if (z.busy) { ixUnsup(K, C, z.fn, "recursive function without a return type"); return ERR; }
+-  ixUpdate(V, C, { ...b, lazy: { ...z, busy: true } });
+-  const own = C.cur;
+-  C.cur = ixNewFlow(W, C, new Map());
+-  const f = K.fnExpr(K, T, V, W, C, z.env, z.fn, null, null);
+-  C.cur = own;
+-  ixUpdate(V, C, { ...b, t: f, checked: true, lazy: { k: "none" } });
++  if (z.k === "unsup") { ixUnsup(K, G.C, z.at, "recursive function without a return type"); return ERR; }
++  if (z.busy) { ixUnsup(K, G.C, z.fn, "recursive function without a return type"); return ERR; }
++  ixUpdate(G.V, G.C, { ...b, lazy: { ...z, busy: true } });
++  const own = G.C.cur;
++  G.C.cur = ixNewFlow(G.W, G.C, new Map());
++  const f = K.fnExpr(K, G, z.env, z.fn, null, null);
++  G.C.cur = own;
++  ixUpdate(G.V, G.C, { ...b, t: f, checked: true, lazy: { k: "none" } });
+   return f;
+ };
+-export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixFact, ixScopeNames, NEVER, UNKNOWN, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: Identifier): Ty => {
+-  if (K.probe !== null && !K.probe.member && C.probe === null && e.name === K.probe.name) C.probe = { k: "name", names: ixScopeNames(V, W, C, env), inAction: env.fi.inAction };
+-  const b = ixLookup(V, env, e.name);
++export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixFact, ixScopeNames, NEVER, UNKNOWN, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: Identifier): Ty => {
++  if (K.probe !== null && !K.probe.member && G.C.probe === null && e.name === K.probe.name) G.C.probe = { k: "name", names: ixScopeNames(G.V, G.W, G.C, env), inAction: env.fi.inAction };
++  const b = ixLookup(G.V, env, e.name);
+   if (!b) {
+     if (e.name === "arguments") return ERR;
+-    if (K.cellNames.has(e.name)) ixErr(K, C, e, "cell-by-name", `cell ${e.name} referenced by name; take it as a parameter`);
+-    else if (K.allowed.has(e.name)) ixUnsup(K, C, e, `intrinsic ${e.name} has no signature in lite/intrinsics.ts`);
+-    else ixErr(K, C, e, "free-name", `free name ${e.name}`);
++    if (K.cellNames.has(e.name)) ixErr(K, G.C, e, "cell-by-name", `cell ${e.name} referenced by name; take it as a parameter`);
++    else if (K.allowed.has(e.name)) ixUnsup(K, G.C, e, `intrinsic ${e.name} has no signature in lite/intrinsics.ts`);
++    else ixErr(K, G.C, e, "free-name", `free name ${e.name}`);
+     return ERR;
+   }
+-  ixFact(C, { k: "bind", at: e.nid, id: b.id });
++  ixFact(G.C, { k: "bind", at: e.nid, id: b.id });
+   if (b.kind === "prelude") return b.t;
+   // its argument is checked where it is called, so the value takes no argument (S2.6 lets a body name it)
+-  if (b.kind === "global" && e.name === "structuredClone" && !C.clones.has(e.nid)) return { k: "fn", tps: [], ps: [{ n: "v", t: NEVER, opt: false }], ret: UNKNOWN };
+-  const nt = ixFlowOf(W, C.cur).get("#" + b.id);
++  if (b.kind === "global" && e.name === "structuredClone" && !G.C.clones.has(e.nid)) return { k: "fn", tps: [], ps: [{ n: "v", t: NEVER, opt: false }], ret: UNKNOWN };
++  const nt = ixFlowOf(G.W, G.C.cur).get("#" + b.id);
+   if (nt) return nt;
+-  return b.checked ? b.t : ixLazyRead(K, T, V, W, C, b);
++  return b.checked ? b.t : ixLazyRead(K, G, b);
+ };
+ // the bindings in scope at env, innermost scope first, each name once, with its type in the current flow
+ export const ixScopeNames = (ixFlowOf) => (V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv): IxScopeName[] => {
+@@ -167,22 +167,22 @@
+   const v = p.value;
+   return ixUm(R, ot).some((m) => { const x = R.expand(unwrap(m)); return x.k === "arr" || x.k === "tup" || (R.member(x, "length") !== undefined && !R.member(x, v)); }) ? v : null;
+ };
+-export const ixMember = (ixPathKey, ixFlowOf, ixCollapseArrays, ixNonNullish, ixNumStr, ixIndex, ixNamedMember, ixGap, nodeKind, lit, UNKNOWN) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: MemberExpression): Ty => {
+-  const ot0 = K.infer(K, T, V, W, C, env, e.object);
+-  const k = ixPathKey(V, env, e, false);
+-  const nt = k ? ixFlowOf(W, C.cur).get(k) : undefined;
+-  const isShort = e.optional || C.short.has(e.object.nid);
+-  if (isShort) C.short = new Set([...C.short, e.nid]);
++export const ixMember = (ixPathKey, ixFlowOf, ixCollapseArrays, ixNonNullish, ixNumStr, ixIndex, ixNamedMember, ixGap, nodeKind, lit, UNKNOWN) => (K: IxK, G: IxTabs, env: IxEnv, e: MemberExpression): Ty => {
++  const ot0 = K.infer(K, G, env, e.object);
++  const k = ixPathKey(G.V, env, e, false);
++  const nt = k ? ixFlowOf(G.W, G.C.cur).get(k) : undefined;
++  const isShort = e.optional || G.C.short.has(e.object.nid);
++  if (isShort) G.C.short = new Set([...G.C.short, e.nid]);
+   const ot1 = ixCollapseArrays(K.reg, ot0);
+   const ot = isShort ? ixNonNullish(K.reg, ot1) : ot1;
+   const p = e.property, num = ixNumStr(K.reg, e, ot);
+   let t: Ty;
+-  if (num !== null) { T.set(p.nid, lit(Number(num))); t = ixIndex(K, C, ot, lit(Number(num)), e, true); }
+-  else if (e.computed && !(p.type === "Literal" && typeof p.value === "string")) t = ixIndex(K, C, ot, K.infer(K, T, V, W, C, env, p), e, true);
+-  else if (p.type === "Literal") t = ixNamedMember(K, C, env, e, ot, String(p.value));
+-  else if (p.type === "Identifier" || p.type === "PrivateIdentifier") t = ixNamedMember(K, C, env, e, ot, p.name);
+-  else t = ixGap(C, `member property ${nodeKind(p)}`);
+-  if (K.probe !== null && K.probe.member && C.probe === null && !e.computed && (p.type === "Identifier" || p.type === "PrivateIdentifier") && p.name === K.probe.name) C.probe = { k: "member", t: T.get(e.object.nid) ?? UNKNOWN };
++  if (num !== null) { G.T.set(p.nid, lit(Number(num))); t = ixIndex(K, G.C, ot, lit(Number(num)), e, true); }
++  else if (e.computed && !(p.type === "Literal" && typeof p.value === "string")) t = ixIndex(K, G.C, ot, K.infer(K, G, env, p), e, true);
++  else if (p.type === "Literal") t = ixNamedMember(K, G.C, env, e, ot, String(p.value));
++  else if (p.type === "Identifier" || p.type === "PrivateIdentifier") t = ixNamedMember(K, G.C, env, e, ot, p.name);
++  else t = ixGap(G.C, `member property ${nodeKind(p)}`);
++  if (K.probe !== null && K.probe.member && G.C.probe === null && !e.computed && (p.type === "Identifier" || p.type === "PrivateIdentifier") && p.name === K.probe.name) G.C.probe = { k: "member", t: G.T.get(e.object.nid) ?? UNKNOWN };
+   return nt ?? t;
+ };
+ // a member read by name: each member of the object's type, one report per kind of member lacking it
+diff -ruN -x node_modules proto/lite/infer/ix-flow.ss.ts refac/lite/infer/ix-flow.ss.ts
+--- proto/lite/infer/ix-flow.ss.ts	2026-11-21 15:31:23
++++ refac/lite/infer/ix-flow.ss.ts	2026-11-22 01:10:13
+@@ -23,87 +23,87 @@
+   return top?.exits ?? [];
+ };
+ export type IxLoopNode = WhileStatement | DoWhileStatement | ForStatement;
+-export const ixLoopInit = (ixVarDecl, ixErr) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, inner: IxEnv, s: IxLoopNode): void => {
++export const ixLoopInit = (ixVarDecl, ixErr) => (K: IxK, G: IxTabs, inner: IxEnv, s: IxLoopNode): void => {
+   const init = s.type === "ForStatement" ? s.init : null;
+   if (init === null) return;
+-  if (init.type !== "VariableDeclaration") { K.infer(K, T, V, W, C, inner, init); return; }
+-  if (init.kind === "var") ixErr(K, C, init, "no-var", "var");
+-  for (const d of init.declarations) ixVarDecl(K, T, V, W, C, inner, d, init.kind);
++  if (init.type !== "VariableDeclaration") { K.infer(K, G, inner, init); return; }
++  if (init.kind === "var") ixErr(K, G.C, init, "no-var", "var");
++  for (const d of init.declarations) ixVarDecl(K, G, inner, d, init.kind);
+ };
+ // the loop body, and the flow where the loop's test is false (null when it has none)
+-export const ixLoopBody = (ixSub1, ixInvalidate, ixCopyFlow) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, inner: IxEnv, s: IxLoopNode, head: number): number | null => {
++export const ixLoopBody = (ixSub1, ixInvalidate, ixCopyFlow) => (K: IxK, G: IxTabs, inner: IxEnv, s: IxLoopNode, head: number): number | null => {
+   if (s.type === "DoWhileStatement") {
+-    C.cur = ixCopyFlow(W, C, head);
+-    ixSub1(K, T, V, W, C, inner, s.body);
+-    ixInvalidate(V, W, inner, C.cur, s);
+-    return K.cond(K, T, V, W, C, inner, s.test).f;
++    G.C.cur = ixCopyFlow(G.W, G.C, head);
++    ixSub1(K, G, inner, s.body);
++    ixInvalidate(G.V, G.W, inner, G.C.cur, s);
++    return K.cond(K, G, inner, s.test).f;
+   }
+   const test = s.test;
+   let F: number | null = null;
+-  let body = ixCopyFlow(W, C, head);
+-  if (test !== null) { const c = K.cond(K, T, V, W, C, inner, test); body = c.t; F = c.f; }
+-  C.cur = body;
+-  ixSub1(K, T, V, W, C, inner, s.body);
+-  if (s.type === "ForStatement" && s.update !== null) K.infer(K, T, V, W, C, inner, s.update);
++  let body = ixCopyFlow(G.W, G.C, head);
++  if (test !== null) { const c = K.cond(K, G, inner, test); body = c.t; F = c.f; }
++  G.C.cur = body;
++  ixSub1(K, G, inner, s.body);
++  if (s.type === "ForStatement" && s.update !== null) K.infer(K, G, inner, s.update);
+   return F;
+ };
+-export const ixLoop = (ixNewScope, ixLoopInit, ixLoopBody, ixInvalidate, ixCopyFlow, ixPushBreaks, ixPopBreaks, ixHasBreak) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: IxLoopNode): boolean => {
+-  const own = C.cur, inner = ixNewScope(C, env);
+-  ixLoopInit(K, T, V, W, C, inner, s);
+-  ixInvalidate(V, W, inner, C.cur, s);
+-  const head = ixCopyFlow(W, C, C.cur);
+-  ixPushBreaks(C, null);
+-  const F = ixLoopBody(K, T, V, W, C, inner, s, head);
+-  ixPopBreaks(C);
++export const ixLoop = (ixNewScope, ixLoopInit, ixLoopBody, ixInvalidate, ixCopyFlow, ixPushBreaks, ixPopBreaks, ixHasBreak) => (K: IxK, G: IxTabs, env: IxEnv, s: IxLoopNode): boolean => {
++  const own = G.C.cur, inner = ixNewScope(G.C, env);
++  ixLoopInit(K, G, inner, s);
++  ixInvalidate(G.V, G.W, inner, G.C.cur, s);
++  const head = ixCopyFlow(G.W, G.C, G.C.cur);
++  ixPushBreaks(G.C, null);
++  const F = ixLoopBody(K, G, inner, s, head);
++  ixPopBreaks(G.C);
+   const test = s.test;
+   const infinite = (s.type !== "DoWhileStatement" && test === null) || (test !== null && test.type === "Literal" && test.value === true);
+   const brk = ixHasBreak(s.body);
+-  if (infinite && !brk) { C.cur = own; return false; }
+-  C.cur = brk || F === null ? head : F;
++  if (infinite && !brk) { G.C.cur = own; return false; }
++  G.C.cur = brk || F === null ? head : F;
+   return true;
+ };
+-export const ixForOf = (ixNewScope, ixInvalidate, ixCopyFlow, ixPushBreaks, ixPopBreaks, ixSub1, ixErr, ixUnsup, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: ForOfStatement): boolean => {
+-  if (s.await) { ixUnsup(K, C, s, "for await"); return true; }
+-  const inner = ixNewScope(C, env);
+-  const rt = K.infer(K, T, V, W, C, inner, s.right);
++export const ixForOf = (ixNewScope, ixInvalidate, ixCopyFlow, ixPushBreaks, ixPopBreaks, ixSub1, ixErr, ixUnsup, show, ERR) => (K: IxK, G: IxTabs, env: IxEnv, s: ForOfStatement): boolean => {
++  if (s.await) { ixUnsup(K, G.C, s, "for await"); return true; }
++  const inner = ixNewScope(G.C, env);
++  const rt = K.infer(K, G, inner, s.right);
+   const el = K.reg.iterElem(rt);
+-  if (!el) ixErr(K, C, s.right, "type", `for...of over non-iterable ${show(rt)}`);
+-  ixInvalidate(V, W, inner, C.cur, s);
+-  const head = ixCopyFlow(W, C, C.cur);
++  if (!el) ixErr(K, G.C, s.right, "type", `for...of over non-iterable ${show(rt)}`);
++  ixInvalidate(G.V, G.W, inner, G.C.cur, s);
++  const head = ixCopyFlow(G.W, G.C, G.C.cur);
+   const left = s.left;
+   if (left.type === "VariableDeclaration") {
+     const d = left.declarations[0];
+-    if (left.kind === "var") ixErr(K, C, left, "no-var", "var");
+-    if (d !== undefined && d.type === "VariableDeclarator") K.bind(K, T, V, W, C, inner, d.id, el ?? ERR, left.kind === "const" ? "const" : "let", { assigned: false, cellParam: false });
+-  } else ixUnsup(K, C, left, "for...of over an existing binding");
+-  ixPushBreaks(C, null);
+-  ixSub1(K, T, V, W, C, inner, s.body);
+-  ixPopBreaks(C);
+-  C.cur = head;
++    if (left.kind === "var") ixErr(K, G.C, left, "no-var", "var");
++    if (d !== undefined && d.type === "VariableDeclarator") K.bind(K, G, inner, d.id, el ?? ERR, left.kind === "const" ? "const" : "let", { assigned: false, cellParam: false });
++  } else ixUnsup(K, G.C, left, "for...of over an existing binding");
++  ixPushBreaks(G.C, null);
++  ixSub1(K, G, inner, s.body);
++  ixPopBreaks(G.C);
++  G.C.cur = head;
+   return true;
+ };
+-export const ixTry = (ixInvalidate, ixCopyFlow, ixJoin2, ixBlock, ixNewScope, ixGap, UNKNOWN) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: TryStatement): boolean => {
+-  const before = ixCopyFlow(W, C, C.cur);
+-  ixInvalidate(V, W, env, C.cur, s.block);
+-  const pre = ixCopyFlow(W, C, C.cur), blk = s.block, h = s.handler, fin = s.finalizer;
+-  if (blk.type !== "BlockStatement") { ixGap(C, "try without a block"); return true; }
+-  C.cur = ixCopyFlow(W, C, pre);
+-  const la = ixBlock(K, T, V, W, C, env, blk.body);
+-  const af = C.cur;
++export const ixTry = (ixInvalidate, ixCopyFlow, ixJoin2, ixBlock, ixNewScope, ixGap, UNKNOWN) => (K: IxK, G: IxTabs, env: IxEnv, s: TryStatement): boolean => {
++  const before = ixCopyFlow(G.W, G.C, G.C.cur);
++  ixInvalidate(G.V, G.W, env, G.C.cur, s.block);
++  const pre = ixCopyFlow(G.W, G.C, G.C.cur), blk = s.block, h = s.handler, fin = s.finalizer;
++  if (blk.type !== "BlockStatement") { ixGap(G.C, "try without a block"); return true; }
++  G.C.cur = ixCopyFlow(G.W, G.C, pre);
++  const la = ixBlock(K, G, env, blk.body);
++  const af = G.C.cur;
+   let lb = false;
+-  const b = ixNewScope(C, env);
+-  C.cur = ixCopyFlow(W, C, pre);
++  const b = ixNewScope(G.C, env);
++  G.C.cur = ixCopyFlow(G.W, G.C, pre);
+   if (h !== null && h.type === "CatchClause" && h.body.type === "BlockStatement") {
+-    if (h.param !== null) K.bind(K, T, V, W, C, b, h.param, UNKNOWN, "let", { assigned: false, cellParam: false });
+-    lb = ixBlock(K, T, V, W, C, b, h.body.body);
+-  } else if (h !== null) ixGap(C, "catch clause");
+-  const bf = C.cur;
+-  C.cur = la && lb ? ixJoin2(W, C, af, bf) : la ? af : lb ? bf : before;
++    if (h.param !== null) K.bind(K, G, b, h.param, UNKNOWN, "let", { assigned: false, cellParam: false });
++    lb = ixBlock(K, G, b, h.body.body);
++  } else if (h !== null) ixGap(G.C, "catch clause");
++  const bf = G.C.cur;
++  G.C.cur = la && lb ? ixJoin2(G.W, G.C, af, bf) : la ? af : lb ? bf : before;
+   if (fin === null || fin.type !== "BlockStatement") return la || lb;
+-  const kept = C.cur;
+-  C.cur = ixCopyFlow(W, C, pre);
+-  const lf = ixBlock(K, T, V, W, C, env, fin.body);
+-  C.cur = kept;
++  const kept = G.C.cur;
++  G.C.cur = ixCopyFlow(G.W, G.C, pre);
++  const lf = ixBlock(K, G, env, fin.body);
++  G.C.cur = kept;
+   return lf && (la || lb);
+ };
+ // the diagnostics written since mark whose node lies inside span: the discriminant is read again for each case, and
+@@ -123,59 +123,59 @@
+ export type IxCases = { taken: (number | null)[]; none: number; rest: Ty };
+ // each case is checked as the condition d === test, in the flow where every earlier test was false; rest: the values
+ // of d that no case has taken, for exhaustiveness
+-export const ixSwitchTests = (ixMark, ixDropWithin, ixPathKey, ixNoOverlap, ixNarrowEq, ixErr, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: SwitchStatement, dt: Ty, none0: number): IxCases => {
+-  const d = s.discriminant, own = C.cur, taken: Mut<(number | null)[]> = mut([]);
++export const ixSwitchTests = (ixMark, ixDropWithin, ixPathKey, ixNoOverlap, ixNarrowEq, ixErr, show) => (K: IxK, G: IxTabs, env: IxEnv, s: SwitchStatement, dt: Ty, none0: number): IxCases => {
++  const d = s.discriminant, own = G.C.cur, taken: Mut<(number | null)[]> = mut([]);
+   let rest = dt, none = none0;
+   for (const c of s.cases) {
+     const test = c.type === "SwitchCase" ? c.test : null;
+     if (test === null) { taken.push(null); continue; }
+-    C.nextNid += 1;
+-    const eq: AstNode = { type: "BinaryExpression", nid: C.nextNid, start: test.start, end: test.end, line: test.line, left: d, operator: "===", right: test };
+-    const mark = ixMark(K, C);
+-    C.cur = none;
+-    const r = K.cond(K, T, V, W, C, env, eq);
+-    C.cur = own;
+-    ixDropWithin(K, C, mark, d);
++    G.C.nextNid += 1;
++    const eq: AstNode = { type: "BinaryExpression", nid: G.C.nextNid, start: test.start, end: test.end, line: test.line, left: d, operator: "===", right: test };
++    const mark = ixMark(K, G.C);
++    G.C.cur = none;
++    const r = K.cond(K, G, env, eq);
++    G.C.cur = own;
++    ixDropWithin(K, G.C, mark, d);
+     taken.push(r.t);
+     none = r.f;
+-    const bt = T.get(test.nid);
+-    if (bt && !ixPathKey(V, env, d, false) && !ixNoOverlap(K.reg, dt, bt) && ixNoOverlap(K.reg, rest, bt))
+-      ixErr(K, C, test, "type", `case ${show(bt)}: no value of ${show(dt)} is left for it after the earlier cases`);
++    const bt = G.T.get(test.nid);
++    if (bt && !ixPathKey(G.V, env, d, false) && !ixNoOverlap(K.reg, dt, bt) && ixNoOverlap(K.reg, rest, bt))
++      ixErr(K, G.C, test, "type", `case ${show(bt)}: no value of ${show(dt)} is left for it after the earlier cases`);
+     if (bt && (bt.k === "lit" || bt.k === "null" || bt.k === "undef")) rest = ixNarrowEq(K.reg, rest, bt, false, false);
+   }
+   return { taken: freeze(taken), none, rest };
+ };
+-export const ixSwitch = (ixSwitchTests, ixSwitchBodies, ixCopyFlow, ixJoin2) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: SwitchStatement): boolean => {
+-  const d = s.discriminant, dt = K.infer(K, T, V, W, C, env, d);
+-  const cases = ixSwitchTests(K, T, V, W, C, env, s, dt, ixCopyFlow(W, C, C.cur));
+-  T.set(d.nid, dt);
+-  const exits = ixSwitchBodies(K, T, V, W, C, env, s, cases);
++export const ixSwitch = (ixSwitchTests, ixSwitchBodies, ixCopyFlow, ixJoin2) => (K: IxK, G: IxTabs, env: IxEnv, s: SwitchStatement): boolean => {
++  const d = s.discriminant, dt = K.infer(K, G, env, d);
++  const cases = ixSwitchTests(K, G, env, s, dt, ixCopyFlow(G.W, G.C, G.C.cur));
++  G.T.set(d.nid, dt);
++  const exits = ixSwitchBodies(K, G, env, s, cases);
+   const first = exits[0];
+   if (first === undefined) return false;
+   let out = first;
+-  for (const x of exits.slice(1)) out = ixJoin2(W, C, out, x);
+-  C.cur = out;
++  for (const x of exits.slice(1)) out = ixJoin2(G.W, G.C, out, x);
++  G.C.cur = out;
+   return true;
+ };
+-export const ixSwitchBodies = (ixJoin, ixNewScope, ixHoist, ixStmts, ixPushBreaks, ixPopBreaks, ixCopyFlow, ixErr) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: SwitchStatement, cases: IxCases): number[] => {
+-  const own = C.cur;
++export const ixSwitchBodies = (ixJoin, ixNewScope, ixHoist, ixStmts, ixPushBreaks, ixPopBreaks, ixCopyFlow, ixErr) => (K: IxK, G: IxTabs, env: IxEnv, s: SwitchStatement, cases: IxCases): number[] => {
++  const own = G.C.cur;
+   let into: number | null = null;
+-  ixPushBreaks(C, []);
++  ixPushBreaks(G.C, []);
+   for (const [i, c] of s.cases.entries()) {
+     if (c.type !== "SwitchCase") continue;
+-    const flow = ixJoin(W, C, into, cases.taken[i] ?? cases.none) ?? cases.none;
++    const flow = ixJoin(G.W, G.C, into, cases.taken[i] ?? cases.none) ?? cases.none;
+     for (const st of c.consequent) if (st.type === "VariableDeclaration" || st.type === "FunctionDeclaration" || st.type === "ClassDeclaration")
+-      ixErr(K, C, st, "switch-declaration", "a declaration directly in a case is visible to every case of the switch; put the case's statements in a block { … }");
++      ixErr(K, G.C, st, "switch-declaration", "a declaration directly in a case is visible to every case of the switch; put the case's statements in a block { … }");
+     if (!c.consequent.length) { into = flow; continue; }
+-    const inner = ixNewScope(C, env);
+-    C.cur = ixCopyFlow(W, C, flow);
+-    ixHoist(K, V, C, inner, c.consequent);
+-    const end = ixStmts(K, T, V, W, C, inner, c.consequent);
+-    if (end && i < s.cases.length - 1) ixErr(K, C, c, "switch-fallthrough", "this case falls through into the next one; end it with break, return, throw or continue");
+-    into = end ? C.cur : null;
++    const inner = ixNewScope(G.C, env);
++    G.C.cur = ixCopyFlow(G.W, G.C, flow);
++    ixHoist(K, G.V, G.C, inner, c.consequent);
++    const end = ixStmts(K, G, inner, c.consequent);
++    if (end && i < s.cases.length - 1) ixErr(K, G.C, c, "switch-fallthrough", "this case falls through into the next one; end it with break, return, throw or continue");
++    into = end ? G.C.cur : null;
+   }
+-  const exits = ixPopBreaks(C);
+-  C.cur = own;
++  const exits = ixPopBreaks(G.C);
++  G.C.cur = own;
+   const tail: number[] = [...(into !== null ? [into] : []), ...(!s.cases.some((c) => c.type === "SwitchCase" && c.test === null) && cases.rest.k !== "never" ? [cases.none] : [])];
+   return [...exits, ...tail];
+ };
+diff -ruN -x node_modules proto/lite/infer/ix-fn.ss.ts refac/lite/infer/ix-fn.ss.ts
+--- proto/lite/infer/ix-fn.ss.ts	2026-11-21 19:03:50
++++ refac/lite/infer/ix-fn.ss.ts	2026-11-22 01:10:13
+@@ -60,11 +60,11 @@
+   return freeze(out);
+ };
+ // a returned value, checked against the return context
+-export const ixReturned = (ixErr, members, isNamed, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty => {
++export const ixReturned = (ixErr, members, isNamed, show) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode): Ty => {
+   const fi = env.fi;
+-  const t = K.check(K, T, V, W, C, env, e, fi.retCtx, false, fi.retFromCtx);
++  const t = K.check(K, G, env, e, fi.retCtx, false, fi.retFromCtx);
+   if (fi.isAsync && !fi.isGen && members(K.reg.expand(t)).some((m) => isNamed(K.reg.expand(m), "Promise")))
+-    ixErr(K, C, e, "type", `an async function returns ${show(t)}, a promise: await it, so the function's type says what it resolves to`);
++    ixErr(K, G.C, e, "type", `an async function returns ${show(t)}, a promise: await it, so the function's type says what it resolves to`);
+   return t;
+ };
+ // Function declarations are hoisted: bound first, their bodies checked in order (or on the first read)
+@@ -87,44 +87,44 @@
+   if (tp === null || tp.type !== "TSTypeParameterDeclaration") return;
+   for (const x of tp.params) if (x.type === "TSTypeParameter" && (x.constraint !== null || x.default !== null)) ixUnsup(K, C, x, "type parameter constraint/default");
+ };
+-export const ixFnExpr = (ixFnParts, ixClosureFlow, ixNewFlow, ixSelfName, ixTpBounds, ixAssignedNames, ixParams, ixRetCtx, ixFnBody, ixFnRet, ixTpNames, ixGap) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv | null, e: AstNode, expected: Ty | null, injected: Ty[] | null): Ty => {
++export const ixFnExpr = (ixFnParts, ixClosureFlow, ixNewFlow, ixSelfName, ixTpBounds, ixAssignedNames, ixParams, ixRetCtx, ixFnBody, ixFnRet, ixTpNames, ixGap) => (K: IxK, G: IxTabs, env: IxEnv | null, e: AstNode, expected: Ty | null, injected: Ty[] | null): Ty => {
+   const f = ixFnParts(e);
+-  if (f === null) return ixGap(C, `function node ${e.type}`);
++  if (f === null) return ixGap(G.C, `function node ${e.type}`);
+   const ctxSig = expected === null ? undefined : K.reg.callSigs(expected).filter((s) => !s.tps.length)[0];
+   const fi0: IxFnCtx = { fid: e.nid, parent: env?.fi ?? null, isAsync: f.async, isGen: f.generator, isCell: injected !== null, inAction: !!env?.fi.inAction, retCtx: null, retFromCtx: false, yieldCtx: null, tps: ixTpNames(f.typeParameters) };
+-  const own = C.cur, rets = C.rets, yields = C.yields;
+-  C.cur = ixNewFlow(W, C, env === null ? new Map() : ixClosureFlow(V, W, C, env));
+-  C.rets = [];
+-  C.yields = [];
+-  C.nextScope += 1;
+-  const inner0: IxEnv = { scope: C.nextScope, up: env === null ? { id: 0, up: null } : { id: env.scope, up: env.up }, fi: fi0, dead: false };
+-  ixSelfName(K, V, C, inner0, e, f);
+-  const ps = ixParams(K, T, V, W, C, inner0, f.params, ctxSig, injected, ixAssignedNames(f.body));
+-  const rc = ixRetCtx(K, T, V, W, C, inner0, f, ctxSig);
++  const own = G.C.cur, rets = G.C.rets, yields = G.C.yields;
++  G.C.cur = ixNewFlow(G.W, G.C, env === null ? new Map() : ixClosureFlow(G.V, G.W, G.C, env));
++  G.C.rets = [];
++  G.C.yields = [];
++  G.C.nextScope += 1;
++  const inner0: IxEnv = { scope: G.C.nextScope, up: env === null ? { id: 0, up: null } : { id: env.scope, up: env.up }, fi: fi0, dead: false };
++  ixSelfName(K, G.V, G.C, inner0, e, f);
++  const ps = ixParams(K, G, inner0, f.params, ctxSig, injected, ixAssignedNames(f.body));
++  const rc = ixRetCtx(K, G, inner0, f, ctxSig);
+   const inner: IxEnv = { ...inner0, fi: rc.fi };
+-  const reachable = ixFnBody(K, T, V, W, C, inner, f.body);
+-  const ret = ixFnRet(K, C, e, f, rc, reachable);
+-  ixTpBounds(K, C, f);
+-  C.cur = own;
+-  C.rets = rets;
+-  C.yields = yields;
++  const reachable = ixFnBody(K, G, inner, f.body);
++  const ret = ixFnRet(K, G.C, e, f, rc, reachable);
++  ixTpBounds(K, G.C, f);
++  G.C.cur = own;
++  G.C.rets = rets;
++  G.C.yields = yields;
+   return { k: "fn", tps: ixTpNames(f.typeParameters), ps: ps.ps, rest: ps.rest, ret };
+ };
+-export const ixFnBody = (ixHoist, ixStmts, ixReturned) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, body: AstNode): boolean => {
++export const ixFnBody = (ixHoist, ixStmts, ixReturned) => (K: IxK, G: IxTabs, env: IxEnv, body: AstNode): boolean => {
+   if (body.type === "BlockStatement") {
+-    ixHoist(K, V, C, env, body.body);
+-    return ixStmts(K, T, V, W, C, env, body.body);
++    ixHoist(K, G.V, G.C, env, body.body);
++    return ixStmts(K, G, env, body.body);
+   }
+-  const t = ixReturned(K, T, V, W, C, env, body);
+-  C.rets = [...C.rets, t];
++  const t = ixReturned(K, G, env, body);
++  G.C.rets = [...G.C.rets, t];
+   return false;
+ };
+ export type IxParamsOut = { ps: Param[]; rest: Ty | undefined };
+-export const ixParams = (ixParam) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, params: AstNode[], ctxSig: Fn | undefined, injected: Ty[] | null, assigned: Set<string>): IxParamsOut => {
++export const ixParams = (ixParam) => (K: IxK, G: IxTabs, env: IxEnv, params: AstNode[], ctxSig: Fn | undefined, injected: Ty[] | null, assigned: Set<string>): IxParamsOut => {
+   const ps: Mut<Param[]> = mut([]);
+   let rest: Ty | undefined;
+   for (const [i, p] of params.entries()) {
+-    const r = ixParam(K, T, V, W, C, env, p, i, ctxSig, injected, assigned);
++    const r = ixParam(K, G, env, p, i, ctxSig, injected, assigned);
+     if (r.rest) rest = r.t;
+     else ps.push({ n: r.n, t: r.t, opt: r.opt });
+   }
+@@ -144,33 +144,33 @@
+   if (ct && !K.reg.sub(ct, t)) ixErr(K, C, p, "type", `parameter ${show(t)} does not accept ${show(ct)}`);
+   return t;
+ };
+-export const ixParam = (ixParamType, union, UNDEF, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: AstNode, i: number, ctxSig: Fn | undefined, injected: Ty[] | null, assigned: Set<string>): { n: string; t: Ty; opt: boolean; rest: boolean } => {
+-  const t = ixParamType(K, V, C, env, p, i, ctxSig, injected);
++export const ixParam = (ixParamType, union, UNDEF, ERR) => (K: IxK, G: IxTabs, env: IxEnv, p: AstNode, i: number, ctxSig: Fn | undefined, injected: Ty[] | null, assigned: Set<string>): { n: string; t: Ty; opt: boolean; rest: boolean } => {
++  const t = ixParamType(K, G.V, G.C, env, p, i, ctxSig, injected);
+   if (p.type === "RestElement") {
+-    K.bind(K, T, V, W, C, env, p.argument, t, "param", { assigned: false, cellParam: false });
++    K.bind(K, G, env, p.argument, t, "param", { assigned: false, cellParam: false });
+     return { n: "", t: t.k === "arr" ? t.el : ERR, opt: false, rest: true };
+   }
+   const optional = p.type === "Identifier" && p.optional === true;
+   const pt = optional ? union([t, UNDEF]) : t;
+   const id = p.type === "AssignmentPattern" ? p.left : p;
+-  if (id.type === "Identifier") K.bind(K, T, V, W, C, env, p, pt, "param", { cellParam: injected !== null, assigned: assigned.has(id.name) });
+-  else K.bind(K, T, V, W, C, env, p, t, "param", { assigned: true, cellParam: false });
++  if (id.type === "Identifier") K.bind(K, G, env, p, pt, "param", { cellParam: injected !== null, assigned: assigned.has(id.name) });
++  else K.bind(K, G, env, p, t, "param", { assigned: true, cellParam: false });
+   return { n: p.type === "Identifier" ? p.name : `p${i}`, t: pt, opt: p.type === "AssignmentPattern" || optional, rest: false };
+ };
+ export type IxRetCtx = { fi: IxFnCtx; retAnn: Ty | null; ctxRet: Ty | null; declared: Ty | null };
+ // the return annotation, checked against async and generator, and the context the body's returns are checked against
+-export const ixRetCtx = (ixConvert, ixErr, ixAwaited, hasTv, isNamed, named, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, f: IxFnParts, ctxSig: Fn | undefined): IxRetCtx => {
++export const ixRetCtx = (ixConvert, ixErr, ixAwaited, hasTv, isNamed, named, show, ERR) => (K: IxK, G: IxTabs, env: IxEnv, f: IxFnParts, ctxSig: Fn | undefined): IxRetCtx => {
+   const fi = env.fi, rt = f.returnType;
+-  let retAnn: Ty | null = rt !== null && rt.type === "TSTypeAnnotation" ? ixConvert(K, V, env, rt.typeAnnotation) : null;
++  let retAnn: Ty | null = rt !== null && rt.type === "TSTypeAnnotation" ? ixConvert(K, G.V, env, rt.typeAnnotation) : null;
+   let yieldCtx: Ty | null = null;
+   if (rt !== null && retAnn !== null && fi.isAsync && !fi.isGen && retAnn.k !== "err" && !isNamed(K.reg.expand(retAnn), "Promise")) {
+-    ixErr(K, C, rt, "type", `an async function returns a Promise; its return type ${show(retAnn)} is not Promise<…>`);
++    ixErr(K, G.C, rt, "type", `an async function returns a Promise; its return type ${show(retAnn)} is not Promise<…>`);
+     retAnn = named("Promise", retAnn);
+   }
+   if (rt !== null && retAnn !== null && fi.isGen && retAnn.k !== "err") {
+     const g = K.reg.expand(retAnn);
+     if (g.k === "named" && g.n === "Generator") yieldCtx = g.args[0] ?? null;
+-    else { ixErr(K, C, rt, "type", `a generator function returns a Generator; its return type ${show(retAnn)} is not Generator<…>`); retAnn = ERR; }
++    else { ixErr(K, G.C, rt, "type", `a generator function returns a Generator; its return type ${show(retAnn)} is not Generator<…>`); retAnn = ERR; }
+   }
+   const ctxRet = retAnn === null && ctxSig && !hasTv(ctxSig.ret) ? ctxSig.ret : null;
+   const declared = retAnn ?? ctxRet;
+diff -ruN -x node_modules proto/lite/infer/ix-jsx.ss.ts refac/lite/infer/ix-jsx.ss.ts
+--- proto/lite/infer/ix-jsx.ss.ts	2026-11-21 19:03:50
++++ refac/lite/infer/ix-jsx.ss.ts	2026-11-22 01:10:13
+@@ -41,28 +41,28 @@
+   }
+   return freeze(out);
+ };
+-export const ixJsx = (ixJsxChildren, ixJsxProps, ixJsxProp, ixAt, ixUnsup, ixErr, ixGap, named, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty => {
++export const ixJsx = (ixJsxChildren, ixJsxProps, ixJsxProp, ixAt, ixUnsup, ixErr, ixGap, named, show, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode): Ty => {
+   const ELEM = named("Elem");
+-  if (e.type !== "JSXElement" && e.type !== "JSXFragment") return ixGap(C, `jsx ${e.type}`);
+-  const children = ixJsxChildren(K, C, e);
++  if (e.type !== "JSXElement" && e.type !== "JSXFragment") return ixGap(G.C, `jsx ${e.type}`);
++  const children = ixJsxChildren(K, G.C, e);
+   if (children === null) return ERR;
+-  if (e.type === "JSXFragment") { for (const k of children) K.check(K, T, V, W, C, env, k, named("Child"), false, false); return ELEM; }
++  if (e.type === "JSXFragment") { for (const k of children) K.check(K, G, env, k, named("Child"), false, false); return ELEM; }
+   const op = e.openingElement;
+-  if (op.type !== "JSXOpeningElement") return ixGap(C, `jsx opening ${op.type}`);
+-  const props = ixJsxProps(K, C, op);
++  if (op.type !== "JSXOpeningElement") return ixGap(G.C, `jsx opening ${op.type}`);
++  const props = ixJsxProps(K, G.C, op);
+   if (props === null) return ERR;
+-  const all = children.length ? [...props, ixJsxProp(C, e, e, "children", { type: "ArrayExpression", ...ixAt(C, e), elements: children })] : props;
+-  const obj: AstNode = { type: "ObjectExpression", ...ixAt(C, op), properties: all };
++  const all = children.length ? [...props, ixJsxProp(G.C, e, e, "children", { type: "ArrayExpression", ...ixAt(G.C, e), elements: children })] : props;
++  const obj: AstNode = { type: "ObjectExpression", ...ixAt(G.C, op), properties: all };
+   const name = op.name;
+-  if (name.type !== "JSXIdentifier") { ixUnsup(K, C, name, "member or namespaced element name"); return ERR; }
++  if (name.type !== "JSXIdentifier") { ixUnsup(K, G.C, name, "member or namespaced element name"); return ERR; }
+   if (/^[a-z]/.test(name.name)) {
+     const p = K.reg.member(named("IntrinsicElements"), name.name);
+-    if (!p) { ixErr(K, C, name, "no-member", `<${name.name}> is not a declared element`); K.infer(K, T, V, W, C, env, obj); return ERR; }
+-    K.check(K, T, V, W, C, env, obj, p.t, false, false);
++    if (!p) { ixErr(K, G.C, name, "no-member", `<${name.name}> is not a declared element`); K.infer(K, G, env, obj); return ERR; }
++    K.check(K, G, env, obj, p.t, false, false);
+     return ELEM;
+   }
+-  const callee: AstNode = { type: "Identifier", ...ixAt(C, name), name: name.name, optional: null, typeAnnotation: null };
+-  const t = K.call(K, T, V, W, C, env, { type: "CallExpression", ...ixAt(C, e), optional: false, callee, arguments: [obj], typeArguments: null }, ELEM);
+-  if (t.k !== "err" && !K.reg.sub(t, ELEM)) ixErr(K, C, e, "type", `component ${name.name} returns ${show(t)}, not Elem`);
++  const callee: AstNode = { type: "Identifier", ...ixAt(G.C, name), name: name.name, optional: null, typeAnnotation: null };
++  const t = K.call(K, G, env, { type: "CallExpression", ...ixAt(G.C, e), optional: false, callee, arguments: [obj], typeArguments: null }, ELEM);
++  if (t.k !== "err" && !K.reg.sub(t, ELEM)) ixErr(K, G.C, e, "type", `component ${name.name} returns ${show(t)}, not Elem`);
+   return ELEM;
+ };
+diff -ruN -x node_modules proto/lite/infer/ix-lit.ss.ts refac/lite/infer/ix-lit.ss.ts
+--- proto/lite/infer/ix-lit.ss.ts	2026-11-21 16:12:22
++++ refac/lite/infer/ix-lit.ss.ts	2026-11-22 01:10:13
+@@ -13,31 +13,31 @@
+   const exact = recs.length > 0 && recs.length === ixUm(R, expected).filter((m) => m.k !== "null" && m.k !== "undef").length && recs.every((x) => !x.index);
+   return { recs, exact };
+ };
+-export const ixObjSpread = (ixUm, ixUnsup, ixNotOwn, unwrap, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: SpreadElement, props: Mut<Map<string, Prop>>): void => {
+-  const st = K.infer(K, T, V, W, C, env, p.argument);
++export const ixObjSpread = (ixUm, ixUnsup, ixNotOwn, unwrap, show) => (K: IxK, G: IxTabs, env: IxEnv, p: SpreadElement, props: Mut<Map<string, Prop>>): void => {
++  const st = K.infer(K, G, env, p.argument);
+   const ms = ixUm(K.reg, unwrap(st)).filter((m) => m.k !== "undef" && m.k !== "null");
+   const m0 = ms[0];
+-  if (ms.length !== 1 || m0 === undefined) { if (st.k !== "err") ixUnsup(K, C, p, `object spread of ${show(st)}`); return; }
++  if (ms.length !== 1 || m0 === undefined) { if (st.k !== "err") ixUnsup(K, G.C, p, `object spread of ${show(st)}`); return; }
+   const x = K.reg.expand(m0);
+-  if (x.k !== "rec" || x.index) { if (x.k !== "err") ixUnsup(K, C, p, `object spread of ${show(x)}`); return; }
+-  ixNotOwn(K, C, x, p);
++  if (x.k !== "rec" || x.index) { if (x.k !== "err") ixUnsup(K, G.C, p, `object spread of ${show(x)}`); return; }
++  ixNotOwn(K, G.C, x, p);
+   for (const [k, v] of x.props) props.set(k, v);
+ };
+-export const ixObjLit = (ixObjCtx, ixObjSpread, ixProtoKey, ixErr, ixUnsup, ixGap, union, widen, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: ObjectExpression, expected: Ty | null): Ty => {
++export const ixObjLit = (ixObjCtx, ixObjSpread, ixProtoKey, ixErr, ixUnsup, ixGap, union, widen, show) => (K: IxK, G: IxTabs, env: IxEnv, e: ObjectExpression, expected: Ty | null): Ty => {
+   const props: Mut<Map<string, Prop>> = mut(new Map());
+   const { recs, exact } = ixObjCtx(K.reg, expected);
+   for (const p of e.properties) {
+-    if (p.type === "SpreadElement") { ixObjSpread(K, T, V, W, C, env, p, props); continue; }
+-    if (p.type !== "Property") { ixGap(C, `object member ${p.type}`); continue; }
+-    if (p.kind !== "init") { ixUnsup(K, C, p, `${p.kind} accessor`); continue; }
+-    if (p.computed) { ixUnsup(K, C, p, "computed property"); continue; }
+-    ixProtoKey(K, C, p);
++    if (p.type === "SpreadElement") { ixObjSpread(K, G, env, p, props); continue; }
++    if (p.type !== "Property") { ixGap(G.C, `object member ${p.type}`); continue; }
++    if (p.kind !== "init") { ixUnsup(K, G.C, p, `${p.kind} accessor`); continue; }
++    if (p.computed) { ixUnsup(K, G.C, p, "computed property"); continue; }
++    ixProtoKey(K, G.C, p);
+     const key = p.key, k = key.type === "Identifier" ? key.name : key.type === "Literal" ? String(key.value) : null;
+-    if (k === null) { ixGap(C, `object key ${key.type}`); continue; }
++    if (k === null) { ixGap(G.C, `object key ${key.type}`); continue; }
+     const cs = recs.flatMap((x) => { const c = x.props.get(k)?.t ?? x.index; return c ? [c] : []; });
+     const ctx = cs.length ? union(cs) : null;
+-    if (exact && ctx === null && expected !== null) ixErr(K, C, p, "excess-property", `property ${k} is not in ${show(expected)}`);
+-    const t = K.check(K, T, V, W, C, env, p.value, ctx, false, false);
++    if (exact && ctx === null && expected !== null) ixErr(K, G.C, p, "excess-property", `property ${k} is not in ${show(expected)}`);
++    const t = K.check(K, G, env, p.value, ctx, false, false);
+     props.set(k, { t: expected === null ? widen(t) : t, opt: false });
+   }
+   return { k: "rec", props: freeze(props) };
+@@ -47,103 +47,103 @@
+   const c = union(ms.map((m) => (m.k === "arr" ? m.el : m.k === "named" && (m.n === "Iterable" || m.n === "ArrayLike") ? m.args[0] ?? NEVER : NEVER)));
+   return c.k === "never" ? null : c;
+ };
+-export const ixArrLit = (ixUm, ixElCtx, ixErr, ixUnsup, union, widen, arr, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: ArrayExpression, expected: Ty | null): Ty => {
++export const ixArrLit = (ixUm, ixElCtx, ixErr, ixUnsup, union, widen, arr, show, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: ArrayExpression, expected: Ty | null): Ty => {
+   const ms = expected === null ? [] : ixUm(K.reg, expected).map((m) => K.reg.expand(m));
+   const tup = ms.find((m) => m.k === "tup" && m.els.length === e.elements.length);
+   const noSpread = e.elements.every((x) => x !== null && x.type !== "SpreadElement");
+   if (tup !== undefined && tup.k === "tup" && noSpread) {
+     const ts: Mut<Ty[]> = mut([]);
+-    for (const [i, x] of e.elements.entries()) if (x !== null) ts.push(K.check(K, T, V, W, C, env, x, tup.els[i] ?? null, false, false));
++    for (const [i, x] of e.elements.entries()) if (x !== null) ts.push(K.check(K, G, env, x, tup.els[i] ?? null, false, false));
+     return { k: "tup", els: freeze(ts) };
+   }
+   const ctx = expected === null ? null : ixElCtx(ms);
+   const els: Mut<Ty[]> = mut([]);
+   for (const x of e.elements) {
+-    if (x === null) { ixUnsup(K, C, e, "array hole"); continue; }
++    if (x === null) { ixUnsup(K, G.C, e, "array hole"); continue; }
+     if (x.type === "SpreadElement") {
+-      const st = K.infer(K, T, V, W, C, env, x.argument), el = K.reg.iterElem(st);
+-      if (!el) ixErr(K, C, x, "type", `spread of non-iterable ${show(st)}`);
++      const st = K.infer(K, G, env, x.argument), el = K.reg.iterElem(st);
++      if (!el) ixErr(K, G.C, x, "type", `spread of non-iterable ${show(st)}`);
+       els.push(el ?? ERR);
+       continue;
+     }
+-    els.push(K.check(K, T, V, W, C, env, x, ctx, false, false));
++    els.push(K.check(K, G, env, x, ctx, false, false));
+   }
+   const el = union(freeze(els));
+   return arr(ctx !== null ? el : widen(el));
+ };
+ export const ixConstLit = (ixUnsup, ixProtoKey, ERR) => {
+-  function constLit(K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty {
++  function constLit(K: IxK, G: IxTabs, env: IxEnv, e: AstNode): Ty {
+     if (e.type === "ArrayExpression") {
+       const els: Mut<Ty[]> = mut([]);
+       for (const x of e.elements) {
+-        if (x !== null && x.type !== "SpreadElement") els.push(constLit(K, T, V, W, C, env, x));
+-        else { ixUnsup(K, C, e, "as const with spread"); els.push(ERR); }
++        if (x !== null && x.type !== "SpreadElement") els.push(constLit(K, G, env, x));
++        else { ixUnsup(K, G.C, e, "as const with spread"); els.push(ERR); }
+       }
+       const t: Ty = { k: "tup", els: freeze(els) };
+-      T.set(e.nid, t);
++      G.T.set(e.nid, t);
+       return t;
+     }
+-    if (e.type !== "ObjectExpression") return K.infer(K, T, V, W, C, env, e);
++    if (e.type !== "ObjectExpression") return K.infer(K, G, env, e);
+     const props: Mut<Map<string, Prop>> = mut(new Map());
+     for (const p of e.properties) {
+-      if (p.type !== "Property" || p.computed || p.kind !== "init" || p.method) { ixUnsup(K, C, p, "as const object member"); continue; }
+-      ixProtoKey(K, C, p);
++      if (p.type !== "Property" || p.computed || p.kind !== "init" || p.method) { ixUnsup(K, G.C, p, "as const object member"); continue; }
++      ixProtoKey(K, G.C, p);
+       const key = p.key;
+-      props.set(key.type === "Identifier" ? key.name : key.type === "Literal" ? String(key.value) : "undefined", { t: constLit(K, T, V, W, C, env, p.value), opt: false });
++      props.set(key.type === "Identifier" ? key.name : key.type === "Literal" ? String(key.value) : "undefined", { t: constLit(K, G, env, p.value), opt: false });
+     }
+     const r: Ty = { k: "rec", props: freeze(props) };
+-    T.set(e.nid, r);
++    G.T.set(e.nid, r);
+     return r;
+   }
+   return constLit;
+ };
+ 
+ // ---- patterns ----
+-export const ixBind = (ixDeclare, ixBindObject, ixBindArray, ixNonUndef, ixUnsup, ixGap, widen, union) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: AstNode, t: Ty, kind: IxKind, extra: IxExtra): void => {
++export const ixBind = (ixDeclare, ixBindObject, ixBindArray, ixNonUndef, ixUnsup, ixGap, widen, union) => (K: IxK, G: IxTabs, env: IxEnv, p: AstNode, t: Ty, kind: IxKind, extra: IxExtra): void => {
+   switch (p.type) {
+-    case "Identifier": ixDeclare(V, C, env, p.name, kind === "let" ? widen(t) : t, kind, p, extra, { k: "none" }, false, -1); return;
++    case "Identifier": ixDeclare(G.V, G.C, env, p.name, kind === "let" ? widen(t) : t, kind, p, extra, { k: "none" }, false, -1); return;
+     case "AssignmentPattern": {
+       const nt = ixNonUndef(K.reg, t);
+-      const dt = K.check(K, T, V, W, C, env, p.right, nt, false, false);
+-      K.bind(K, T, V, W, C, env, p.left, K.reg.sub(dt, nt) && nt.k !== "never" ? nt : union([nt, dt]), kind, extra);
++      const dt = K.check(K, G, env, p.right, nt, false, false);
++      K.bind(K, G, env, p.left, K.reg.sub(dt, nt) && nt.k !== "never" ? nt : union([nt, dt]), kind, extra);
+       return;
+     }
+-    case "ObjectPattern": ixBindObject(K, T, V, W, C, env, p, t, kind, extra); return;
+-    case "ArrayPattern": ixBindArray(K, T, V, W, C, env, p, t, kind, extra); return;
+-    case "Other": ixGap(C, `pattern ${p.kind} (Other)`); return;
+-    default: ixUnsup(K, C, p, `pattern ${p.type}`);
++    case "ObjectPattern": ixBindObject(K, G, env, p, t, kind, extra); return;
++    case "ArrayPattern": ixBindArray(K, G, env, p, t, kind, extra); return;
++    case "Other": ixGap(G.C, `pattern ${p.kind} (Other)`); return;
++    default: ixUnsup(K, G.C, p, `pattern ${p.type}`);
+   }
+ };
+-export const ixBindObject = (ixBindRest, ixUm, ixErr, ixUnsup, ixInActionOnly, ixPropOf, ixFact, ixGap, isNamed, unwrap) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: ObjectPattern, t: Ty, kind: IxKind, extra: IxExtra): void => {
++export const ixBindObject = (ixBindRest, ixUm, ixErr, ixUnsup, ixInActionOnly, ixPropOf, ixFact, ixGap, isNamed, unwrap) => (K: IxK, G: IxTabs, env: IxEnv, p: ObjectPattern, t: Ty, kind: IxKind, extra: IxExtra): void => {
+   const used: Mut<string[]> = mut([]);
+   for (const prop of p.properties) {
+-    if (prop.type === "RestElement") { ixBindRest(K, T, V, W, C, env, prop, t, [...used], kind, extra); continue; }
+-    if (prop.type !== "Property") { ixGap(C, `object pattern member ${prop.type}`); continue; }
++    if (prop.type === "RestElement") { ixBindRest(K, G, env, prop, t, [...used], kind, extra); continue; }
++    if (prop.type !== "Property") { ixGap(G.C, `object pattern member ${prop.type}`); continue; }
+     const key = prop.key;
+-    if (prop.computed || (key.type !== "Identifier" && key.type !== "Literal")) { ixUnsup(K, C, prop, "computed destructuring key"); continue; }
++    if (prop.computed || (key.type !== "Identifier" && key.type !== "Literal")) { ixUnsup(K, G.C, prop, "computed destructuring key"); continue; }
+     const k = key.type === "Identifier" ? key.name : String(key.value);
+     used.push(k);
+-    if (ixUm(K.reg, t).some((m) => m.k !== "err" && K.reg.member(m, k)?.flags?.banned)) ixErr(K, C, prop, "banned-member", `${k} is banned`);
++    if (ixUm(K.reg, t).some((m) => m.k !== "err" && K.reg.member(m, k)?.flags?.banned)) ixErr(K, G.C, prop, "banned-member", `${k} is banned`);
+     if (ixUm(K.reg, t).some((m) => isNamed(unwrap(m), "State") && K.reg.member(m, k))) {
+-      ixInActionOnly(K, C, env, prop, "state-write", `State.${k} outside action(...)`);
+-      ixFact(C, { k: "stateProp", at: prop.nid });
++      ixInActionOnly(K, G.C, env, prop, "state-write", `State.${k} outside action(...)`);
++      ixFact(G.C, { k: "stateProp", at: prop.nid });
+     }
+-    K.bind(K, T, V, W, C, env, prop.value, ixPropOf(K, C, t, k, prop), kind, extra);
++    K.bind(K, G, env, prop.value, ixPropOf(K, G.C, t, k, prop), kind, extra);
+   }
+ };
+-export const ixBindRest = (ixUnsup, ixNotOwn, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, prop: RestElement, t: Ty, used: string[], kind: IxKind, extra: IxExtra): void => {
++export const ixBindRest = (ixUnsup, ixNotOwn, ERR) => (K: IxK, G: IxTabs, env: IxEnv, prop: RestElement, t: Ty, used: string[], kind: IxKind, extra: IxExtra): void => {
+   const base = K.reg.expand(t);
+-  if (base.k !== "rec") { ixUnsup(K, C, prop, "object rest of a non-record"); K.bind(K, T, V, W, C, env, prop.argument, ERR, kind, extra); return; }
++  if (base.k !== "rec") { ixUnsup(K, G.C, prop, "object rest of a non-record"); K.bind(K, G, env, prop.argument, ERR, kind, extra); return; }
+   const r: Rec = { k: "rec", props: new Map([...base.props].filter(([k]) => !used.includes(k))) };
+-  ixNotOwn(K, C, r, prop);
+-  K.bind(K, T, V, W, C, env, prop.argument, r, kind, extra);
++  ixNotOwn(K, G.C, r, prop);
++  K.bind(K, G, env, prop.argument, r, kind, extra);
+ };
+-export const ixBindArray = (ixIndexOf, arr, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: ArrayPattern, t: Ty, kind: IxKind, extra: IxExtra): void => {
++export const ixBindArray = (ixIndexOf, arr, ERR) => (K: IxK, G: IxTabs, env: IxEnv, p: ArrayPattern, t: Ty, kind: IxKind, extra: IxExtra): void => {
+   for (const [i, el] of p.elements.entries()) {
+     if (el === null) continue;
+-    if (el.type !== "RestElement") { K.bind(K, T, V, W, C, env, el, ixIndexOf(K, C, t, i, el), kind, extra); continue; }
++    if (el.type !== "RestElement") { K.bind(K, G, env, el, ixIndexOf(K, G.C, t, i, el), kind, extra); continue; }
+     const e = K.reg.expand(t);
+-    K.bind(K, T, V, W, C, env, el.argument, e.k === "tup" ? { k: "tup", els: e.els.slice(i) } : arr(K.reg.iterElem(t) ?? ERR), kind, extra);
++    K.bind(K, G, env, el.argument, e.k === "tup" ? { k: "tup", els: e.els.slice(i) } : arr(K.reg.iterElem(t) ?? ERR), kind, extra);
+   }
+ };
+ export const ixIndexOf = (ixUm, ixErr, unwrap, union, show, UNDEF, ERR) => (K: IxK, C: IxCtls, t: Ty, i: number, at: AstNode): Ty => {
+diff -ruN -x node_modules proto/lite/infer/ix-ops.ss.ts refac/lite/infer/ix-ops.ss.ts
+--- proto/lite/infer/ix-ops.ss.ts	2026-11-21 16:12:22
++++ refac/lite/infer/ix-ops.ss.ts	2026-11-22 01:10:13
+@@ -1,13 +1,13 @@
+ // Operators and assignments (lite/infer.ts unary, binary, the logical and conditional cases, assign, lvalue).
+ 
+-export const ixInferOp = (ixUnary, ixBinary, ixUpdateExpr, ixLogical, ixConditional, ixAssign) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty | null => {
++export const ixInferOp = (ixUnary, ixBinary, ixUpdateExpr, ixLogical, ixConditional, ixAssign) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode): Ty | null => {
+   switch (e.type) {
+-    case "UnaryExpression": return ixUnary(K, T, V, W, C, env, e);
+-    case "UpdateExpression": return ixUpdateExpr(K, T, V, W, C, env, e);
+-    case "BinaryExpression": return ixBinary(K, T, V, W, C, env, e);
+-    case "LogicalExpression": return ixLogical(K, T, V, W, C, env, e);
+-    case "ConditionalExpression": return ixConditional(K, T, V, W, C, env, e, null);
+-    case "AssignmentExpression": return ixAssign(K, T, V, W, C, env, e);
++    case "UnaryExpression": return ixUnary(K, G, env, e);
++    case "UpdateExpression": return ixUpdateExpr(K, G, env, e);
++    case "BinaryExpression": return ixBinary(K, G, env, e);
++    case "LogicalExpression": return ixLogical(K, G, env, e);
++    case "ConditionalExpression": return ixConditional(K, G, env, e, null);
++    case "AssignmentExpression": return ixAssign(K, G, env, e);
+     default: return null;
+   }
+ };
+@@ -17,30 +17,30 @@
+   if (op === "||") return ixFalsy(R, lt).k === "never" ? lt : union([ixTruthy(R, lt), rt]);
+   return ixUm(R, lt).some((m) => ["null", "undef", "void", "unknown", "tv", "err"].includes(m.k)) ? union([ixNonNullish(R, lt), rt]) : lt;
+ };
+-export const ixLogical = (ixLogicalType, ixCopyFlow, ixJoin2, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: LogicalExpression): Ty => {
+-  const c = K.cond(K, T, V, W, C, env, e.left);
+-  const own = C.cur, lt = T.get(e.left.nid) ?? ERR;
+-  C.cur = e.operator === "&&" ? c.t : e.operator === "||" ? c.f : ixCopyFlow(W, C, own);
+-  const rt = K.infer(K, T, V, W, C, env, e.right);
+-  C.cur = ixJoin2(W, C, e.operator === "&&" ? c.f : e.operator === "||" ? c.t : own, C.cur);
++export const ixLogical = (ixLogicalType, ixCopyFlow, ixJoin2, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: LogicalExpression): Ty => {
++  const c = K.cond(K, G, env, e.left);
++  const own = G.C.cur, lt = G.T.get(e.left.nid) ?? ERR;
++  G.C.cur = e.operator === "&&" ? c.t : e.operator === "||" ? c.f : ixCopyFlow(G.W, G.C, own);
++  const rt = K.infer(K, G, env, e.right);
++  G.C.cur = ixJoin2(G.W, G.C, e.operator === "&&" ? c.f : e.operator === "||" ? c.t : own, G.C.cur);
+   return ixLogicalType(K.reg, e.operator, lt, rt);
+ };
+ // check1's || and ??: the right side against the expected type, in the flow where it runs
+-export const ixCheckLogical = (ixLogicalType, ixCopyFlow, ixJoin2, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: LogicalExpression, expected: Ty): Ty => {
+-  const c = K.cond(K, T, V, W, C, env, e.left);
+-  const lt = T.get(e.left.nid) ?? ERR;
+-  C.cur = e.operator === "||" ? c.f : ixCopyFlow(W, C, C.cur);
+-  const r = K.check(K, T, V, W, C, env, e.right, expected, false, false);
+-  C.cur = ixJoin2(W, C, c.t, c.f);
++export const ixCheckLogical = (ixLogicalType, ixCopyFlow, ixJoin2, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: LogicalExpression, expected: Ty): Ty => {
++  const c = K.cond(K, G, env, e.left);
++  const lt = G.T.get(e.left.nid) ?? ERR;
++  G.C.cur = e.operator === "||" ? c.f : ixCopyFlow(G.W, G.C, G.C.cur);
++  const r = K.check(K, G, env, e.right, expected, false, false);
++  G.C.cur = ixJoin2(G.W, G.C, c.t, c.f);
+   return ixLogicalType(K.reg, e.operator, lt, r);
+ };
+-export const ixConditional = (ixJoin2, union) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: ConditionalExpression, expected: Ty | null): Ty => {
+-  const c = K.cond(K, T, V, W, C, env, e.test);
+-  C.cur = c.t;
+-  const a = K.check(K, T, V, W, C, env, e.consequent, expected, false, false);
+-  C.cur = c.f;
+-  const b = K.check(K, T, V, W, C, env, e.alternate, expected, false, false);
+-  C.cur = ixJoin2(W, C, c.t, c.f);
++export const ixConditional = (ixJoin2, union) => (K: IxK, G: IxTabs, env: IxEnv, e: ConditionalExpression, expected: Ty | null): Ty => {
++  const c = K.cond(K, G, env, e.test);
++  G.C.cur = c.t;
++  const a = K.check(K, G, env, e.consequent, expected, false, false);
++  G.C.cur = c.f;
++  const b = K.check(K, G, env, e.alternate, expected, false, false);
++  G.C.cur = ixJoin2(G.W, G.C, c.t, c.f);
+   return union([a, b]);
+ };
+ export const ixNumeric = (ixErr, ixNonUndef, ixFilter, show, NUM) => (K: IxK, C: IxCtls, at: AstNode, t: Ty): boolean => {
+@@ -49,17 +49,17 @@
+   else ixErr(K, C, at, "type", `${show(t)} used as a number`);
+   return false;
+ };
+-export const ixUnary = (ixNumeric, ixUnsup, ixErr, isNamed, lit, BOOL, STR, UNDEF, NUM, BIGINT, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: UnaryExpression): Ty => {
++export const ixUnary = (ixNumeric, ixUnsup, ixErr, isNamed, lit, BOOL, STR, UNDEF, NUM, BIGINT, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: UnaryExpression): Ty => {
+   const a = e.argument;
+   if (e.operator === "delete") {
+-    if (a.type !== "MemberExpression") { ixErr(K, C, e, "no-delete", "delete"); return BOOL; }
+-    const ot = K.infer(K, T, V, W, C, env, a.object);
+-    if (!isNamed(ot, "Mut")) ixErr(K, C, e, "no-delete", "delete on a value that is not Mut");
+-    else K.infer(K, T, V, W, C, env, a);
++    if (a.type !== "MemberExpression") { ixErr(K, G.C, e, "no-delete", "delete"); return BOOL; }
++    const ot = K.infer(K, G, env, a.object);
++    if (!isNamed(ot, "Mut")) ixErr(K, G.C, e, "no-delete", "delete on a value that is not Mut");
++    else K.infer(K, G, env, a);
+     return BOOL;
+   }
+-  if (e.operator === "!") { K.cond(K, T, V, W, C, env, a); return BOOL; }
+-  const t = K.infer(K, T, V, W, C, env, a);
++  if (e.operator === "!") { K.cond(K, G, env, a); return BOOL; }
++  const t = K.infer(K, G, env, a);
+   if (t.k === "err" && e.operator !== "typeof") return ERR;
+   switch (e.operator) {
+     case "typeof": return STR;
+@@ -67,17 +67,17 @@
+     case "-": case "+": case "~":
+       if (e.operator === "-" && a.type === "Literal" && typeof a.value === "number") return lit(-a.value);
+       if (e.operator !== "+" && K.reg.sub(t, BIGINT)) return BIGINT;
+-      if (e.operator !== "+") ixNumeric(K, C, a, t);
++      if (e.operator !== "+") ixNumeric(K, G.C, a, t);
+       return NUM;
+   }
+-  ixUnsup(K, C, e, `unary ${e.operator}`);
++  ixUnsup(K, G.C, e, `unary ${e.operator}`);
+   return ERR;
+ };
+-export const ixUpdateExpr = (ixLvalue, ixLookup, ixDropRoot, ixErr, show, NUM) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: UpdateExpression): Ty => {
+-  const t = ixLvalue(K, T, V, W, C, env, e.argument, e);
++export const ixUpdateExpr = (ixLvalue, ixLookup, ixDropRoot, ixErr, show, NUM) => (K: IxK, G: IxTabs, env: IxEnv, e: UpdateExpression): Ty => {
++  const t = ixLvalue(K, G, env, e.argument, e);
+   const a = e.argument;
+-  if (a.type === "Identifier") { const b = ixLookup(V, env, a.name); if (b) ixDropRoot(W, C.cur, b); }
+-  if (t.k !== "err" && !K.reg.sub(t, NUM)) ixErr(K, C, e, "type", `${e.operator} on ${show(t)}`);
++  if (a.type === "Identifier") { const b = ixLookup(G.V, env, a.name); if (b) ixDropRoot(G.W, G.C.cur, b); }
++  if (t.k !== "err" && !K.reg.sub(t, NUM)) ixErr(K, G.C, e, "type", `${e.operator} on ${show(t)}`);
+   return NUM;
+ };
+ // TypeScript's "no overlap" comparison error, for operands that are unions of primitives only
+@@ -103,38 +103,38 @@
+     if (isPrimitive(m) && m.k !== "err") { ixErr(K, C, e.right, m.k === "null" || m.k === "undef" ? "possibly-undefined" : "type", `in on a value that may be ${show(m)}`); return; }
+   }
+ };
+-export const ixBinary = (ixErr, ixUnsup, ixNumeric, ixOrder, ixInOp, ixNoOverlap, ixUm, isPrimitive, show, BOOL, STR, NUM, BIGINT, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: BinaryExpression): Ty => {
++export const ixBinary = (ixErr, ixUnsup, ixNumeric, ixOrder, ixInOp, ixNoOverlap, ixUm, isPrimitive, show, BOOL, STR, NUM, BIGINT, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: BinaryExpression): Ty => {
+   const op = e.operator;
+-  if (op === "instanceof") { ixUnsup(K, C, e, "instanceof"); return BOOL; }
+-  const a = K.infer(K, T, V, W, C, env, e.left), b = K.infer(K, T, V, W, C, env, e.right);
++  if (op === "instanceof") { ixUnsup(K, G.C, e, "instanceof"); return BOOL; }
++  const a = K.infer(K, G, env, e.left), b = K.infer(K, G, env, e.right);
+   if ((a.k === "err" || b.k === "err") && !["===", "!==", "==", "!=", "<", ">", "<=", ">=", "in"].includes(op)) return ERR;
+   switch (op) {
+     case "===": case "!==": case "==": case "!=":
+-      if (!ixUm(K.reg, a).every((m) => isPrimitive(m)) && !ixUm(K.reg, b).every((m) => isPrimitive(m))) ixErr(K, C, e, "strict-eq-object", `${op} on two non-primitive operands; use equals(a, b)`);
+-      else if (ixNoOverlap(K.reg, a, b)) ixErr(K, C, e, "type", `${op} between ${show(a)} and ${show(b)}, which have no value in common`);
++      if (!ixUm(K.reg, a).every((m) => isPrimitive(m)) && !ixUm(K.reg, b).every((m) => isPrimitive(m))) ixErr(K, G.C, e, "strict-eq-object", `${op} on two non-primitive operands; use equals(a, b)`);
++      else if (ixNoOverlap(K.reg, a, b)) ixErr(K, G.C, e, "type", `${op} between ${show(a)} and ${show(b)}, which have no value in common`);
+       return BOOL;
+     case "+":
+       if (K.reg.sub(a, STR) || K.reg.sub(b, STR)) return STR;
+       if (K.reg.sub(a, BIGINT) && K.reg.sub(b, BIGINT)) return BIGINT;
+-      ixNumeric(K, C, e.left, a); ixNumeric(K, C, e.right, b);
++      ixNumeric(K, G.C, e.left, a); ixNumeric(K, G.C, e.right, b);
+       return NUM;
+-    case "<": case ">": case "<=": case ">=": ixOrder(K, C, e, a, b); return BOOL;
+-    case "in": ixInOp(K, C, e, a, b); return BOOL;
++    case "<": case ">": case "<=": case ">=": ixOrder(K, G.C, e, a, b); return BOOL;
++    case "in": ixInOp(K, G.C, e, a, b); return BOOL;
+     default:
+       if (K.reg.sub(a, BIGINT) && K.reg.sub(b, BIGINT)) return BIGINT;
+-      ixNumeric(K, C, e.left, a); ixNumeric(K, C, e.right, b);
++      ixNumeric(K, G.C, e.left, a); ixNumeric(K, G.C, e.right, b);
+       return NUM;
+   }
+ };
+ // a write to obj.x / obj[i] / obj.method(): obj must have type Mut<T>
+-export const ixWriteRule = (ixErr, isNamed, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, obj: AstNode, at: AstNode, rule: string): void => {
+-  const ot = K.infer(K, T, V, W, C, env, obj);
++export const ixWriteRule = (ixErr, isNamed, show) => (K: IxK, G: IxTabs, env: IxEnv, obj: AstNode, at: AstNode, rule: string): void => {
++  const ot = K.infer(K, G, env, obj);
+   if (ot.k === "err" || isNamed(ot, "Mut")) return;
+   let root = obj;
+   while (root.type === "MemberExpression") root = root.object;
+-  const rt = T.get(root.nid);
+-  if (rt && isNamed(rt, "Mut")) ixErr(K, C, at, "mut-deep-write", `write below the first level of a Mut (${show(ot)} is not Mut)`);
+-  else ixErr(K, C, at, rule, `write to a ${show(ot)}, which is not Mut`);
++  const rt = G.T.get(root.nid);
++  if (rt && isNamed(rt, "Mut")) ixErr(K, G.C, at, "mut-deep-write", `write below the first level of a Mut (${show(ot)} is not Mut)`);
++  else ixErr(K, G.C, at, rule, `write to a ${show(ot)}, which is not Mut`);
+ };
+ export const ixPropOf = (ixUm, ixMemberless, ixMemberMissing, ixErr, propT, union, show, ERR) => (K: IxK, C: IxCtls, t: Ty, k: string, at: AstNode): Ty => {
+   const out: Mut<Ty[]> = mut([]);
+@@ -149,35 +149,35 @@
+ };
+ // an assignment target: its declared type, with the write rules applied
+ export const ixLvalue = (ixLookup, ixIdent, ixErr, ixUnsup, ixLvalueMember, ixFact, nodeKind, ERR) => {
+-  function lvalue(K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, t: AstNode, at: AstNode): Ty {
++  function lvalue(K: IxK, G: IxTabs, env: IxEnv, t: AstNode, at: AstNode): Ty {
+     if (t.type === "Identifier") {
+-      const b = ixLookup(V, env, t.name);
+-      if (!b) { ixIdent(K, T, V, W, C, env, t); return ERR; }
+-      ixFact(C, { k: "bind", at: t.nid, id: b.id });
+-      if (b.kind !== "let" && b.kind !== "param") { ixErr(K, C, at, "const-assign", `assignment to ${b.kind} ${t.name}`); return ERR; }
++      const b = ixLookup(G.V, env, t.name);
++      if (!b) { ixIdent(K, G, env, t); return ERR; }
++      ixFact(G.C, { k: "bind", at: t.nid, id: b.id });
++      if (b.kind !== "let" && b.kind !== "param") { ixErr(K, G.C, at, "const-assign", `assignment to ${b.kind} ${t.name}`); return ERR; }
+       return b.t;
+     }
+-    if (t.type === "MemberExpression") return ixLvalueMember(K, T, V, W, C, env, t, at);
++    if (t.type === "MemberExpression") return ixLvalueMember(K, G, env, t, at);
+     if (t.type === "ArrayPattern" || t.type === "ObjectPattern") {
+       const parts = t.type === "ArrayPattern" ? t.elements : t.properties.map((p) => (p.type === "Property" ? p.value : p));
+-      for (const p of parts) if (p !== null) lvalue(K, T, V, W, C, env, p.type === "AssignmentPattern" ? p.left : p, at);
+-      ixUnsup(K, C, t, "destructuring assignment");
++      for (const p of parts) if (p !== null) lvalue(K, G, env, p.type === "AssignmentPattern" ? p.left : p, at);
++      ixUnsup(K, G.C, t, "destructuring assignment");
+       return ERR;
+     }
+-    ixUnsup(K, C, t, `assignment target ${nodeKind(t)}`);
++    ixUnsup(K, G.C, t, `assignment target ${nodeKind(t)}`);
+     return ERR;
+   }
+   return lvalue;
+ };
+-export const ixLvalueMember = (ixWriteRule, ixIndex, ixPropOf, ixGap, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, t: MemberExpression, at: AstNode): Ty => {
+-  ixWriteRule(K, T, V, W, C, env, t.object, at, "member-write");
+-  const ot = T.get(t.object.nid) ?? ERR, p = t.property;
++export const ixLvalueMember = (ixWriteRule, ixIndex, ixPropOf, ixGap, ERR) => (K: IxK, G: IxTabs, env: IxEnv, t: MemberExpression, at: AstNode): Ty => {
++  ixWriteRule(K, G, env, t.object, at, "member-write");
++  const ot = G.T.get(t.object.nid) ?? ERR, p = t.property;
+   let r: Ty;
+-  if (t.computed && !(p.type === "Literal" && typeof p.value === "string")) r = ixIndex(K, C, ot, K.infer(K, T, V, W, C, env, p), t, false);
+-  else if (p.type === "Literal") r = ixPropOf(K, C, ot, String(p.value), p);
+-  else if (p.type === "Identifier") r = ixPropOf(K, C, ot, p.name, p);
+-  else r = ixGap(C, "assignment to a member that is not named");
+-  T.set(t.nid, r);
++  if (t.computed && !(p.type === "Literal" && typeof p.value === "string")) r = ixIndex(K, G.C, ot, K.infer(K, G, env, p), t, false);
++  else if (p.type === "Literal") r = ixPropOf(K, G.C, ot, String(p.value), p);
++  else if (p.type === "Identifier") r = ixPropOf(K, G.C, ot, p.name, p);
++  else r = ixGap(G.C, "assignment to a member that is not named");
++  G.T.set(t.nid, r);
+   return r;
+ };
+ export const ixCompound = (ixUnsup, ixNumeric, STR, NUM, ERR) => (K: IxK, C: IxCtls, e: AssignmentExpression, cur: Ty, r: Ty): Ty => {
+@@ -187,20 +187,20 @@
+   ixNumeric(K, C, e.left, cur); ixNumeric(K, C, e.right, r);
+   return NUM;
+ };
+-export const ixAssign = (IX_MUTATING_OPS, ixLookup, ixLvalue, ixIdent, ixCompound, ixExpect, ixDropRoot, ixFlowSet, ixUnsup, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AssignmentExpression): Ty => {
+-  if (!IX_MUTATING_OPS.has(e.operator)) { ixUnsup(K, C, e, `assignment ${e.operator}`); return ERR; }
+-  const l = e.left, b = l.type === "Identifier" ? ixLookup(V, env, l.name) : undefined;
+-  const decl = ixLvalue(K, T, V, W, C, env, l, e);
++export const ixAssign = (IX_MUTATING_OPS, ixLookup, ixLvalue, ixIdent, ixCompound, ixExpect, ixDropRoot, ixFlowSet, ixUnsup, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: AssignmentExpression): Ty => {
++  if (!IX_MUTATING_OPS.has(e.operator)) { ixUnsup(K, G.C, e, `assignment ${e.operator}`); return ERR; }
++  const l = e.left, b = l.type === "Identifier" ? ixLookup(G.V, env, l.name) : undefined;
++  const decl = ixLvalue(K, G, env, l, e);
+   let v: Ty;
+-  if (e.operator === "=") v = K.check(K, T, V, W, C, env, e.right, decl.k === "err" ? null : decl, false, false);
++  if (e.operator === "=") v = K.check(K, G, env, e.right, decl.k === "err" ? null : decl, false, false);
+   else {
+-    const cur = l.type === "Identifier" ? ixIdent(K, T, V, W, C, env, l) : decl;
+-    v = ixCompound(K, C, e, cur, K.infer(K, T, V, W, C, env, e.right));
+-    if (decl.k !== "err") ixExpect(K, C, e, v, decl, false);
++    const cur = l.type === "Identifier" ? ixIdent(K, G, env, l) : decl;
++    v = ixCompound(K, G.C, e, cur, K.infer(K, G, env, e.right));
++    if (decl.k !== "err") ixExpect(K, G.C, e, v, decl, false);
+   }
+   if (b && decl.k !== "err") {
+-    ixDropRoot(W, C.cur, b);
+-    ixFlowSet(W, C.cur, "#" + b.id, K.reg.sub(v, decl) ? v : decl);
++    ixDropRoot(G.W, G.C.cur, b);
++    ixFlowSet(G.W, G.C.cur, "#" + b.id, K.reg.sub(v, decl) ? v : decl);
+   }
+   return v;
+ };
+diff -ruN -x node_modules proto/lite/infer/ix-prelude.ss.ts refac/lite/infer/ix-prelude.ss.ts
+--- proto/lite/infer/ix-prelude.ss.ts	2026-11-22 01:22:47
++++ refac/lite/infer/ix-prelude.ss.ts	2026-11-22 01:23:39
+@@ -1,81 +1,81 @@
+ // The prelude's calls, each with a rule of its own (lite/infer.ts preludeCall), and the expressions left from
+ // infer1: literals of objects, arrays and functions, members, chains, calls, await and yield.
+ 
+-export const ixInferRest = (ixObjLit, ixArrLit, ixMember, ixAwait, ixYield, ixJsx, ixUnsup, union, UNDEF, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty | null => {
++export const ixInferRest = (ixObjLit, ixArrLit, ixMember, ixAwait, ixYield, ixJsx, ixUnsup, union, UNDEF, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode): Ty | null => {
+   switch (e.type) {
+-    case "ObjectExpression": return ixObjLit(K, T, V, W, C, env, e, null);
+-    case "ArrayExpression": return ixArrLit(K, T, V, W, C, env, e, null);
+-    case "ArrowFunctionExpression": case "FunctionExpression": return K.fnExpr(K, T, V, W, C, env, e, null, null);
+-    case "MemberExpression": return ixMember(K, T, V, W, C, env, e);
++    case "ObjectExpression": return ixObjLit(K, G, env, e, null);
++    case "ArrayExpression": return ixArrLit(K, G, env, e, null);
++    case "ArrowFunctionExpression": case "FunctionExpression": return K.fnExpr(K, G, env, e, null, null);
++    case "MemberExpression": return ixMember(K, G, env, e);
+     case "ChainExpression": {
+-      const t = K.infer(K, T, V, W, C, env, e.expression);
+-      return C.short.has(e.expression.nid) ? union([t, UNDEF]) : t;
++      const t = K.infer(K, G, env, e.expression);
++      return G.C.short.has(e.expression.nid) ? union([t, UNDEF]) : t;
+     }
+-    case "CallExpression": case "NewExpression": return K.call(K, T, V, W, C, env, e, null);
+-    case "AwaitExpression": return ixAwait(K, T, V, W, C, env, e);
+-    case "YieldExpression": return ixYield(K, T, V, W, C, env, e);
+-    case "JSXElement": case "JSXFragment": return ixJsx(K, T, V, W, C, env, e);
+-    case "SequenceExpression": ixUnsup(K, C, e, "comma expression"); return ERR;
+-    case "TaggedTemplateExpression": ixUnsup(K, C, e, "tagged template"); return ERR;
++    case "CallExpression": case "NewExpression": return K.call(K, G, env, e, null);
++    case "AwaitExpression": return ixAwait(K, G, env, e);
++    case "YieldExpression": return ixYield(K, G, env, e);
++    case "JSXElement": case "JSXFragment": return ixJsx(K, G, env, e);
++    case "SequenceExpression": ixUnsup(K, G.C, e, "comma expression"); return ERR;
++    case "TaggedTemplateExpression": ixUnsup(K, G.C, e, "tagged template"); return ERR;
+     default: return null;
+   }
+ };
+-export const ixAwait = (ixErr, ixAwaited) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AwaitExpression): Ty => {
+-  if (!env.fi.isAsync) ixErr(K, C, e, "type", "await outside an async function");
+-  else if (env.fi.inAction) ixErr(K, C, e, "action-async", "await in an action body: an action is synchronous; wait in an async cell and give the result to an action (S6.12)");
+-  return ixAwaited(K.reg, K.infer(K, T, V, W, C, env, e.argument), false);
++export const ixAwait = (ixErr, ixAwaited) => (K: IxK, G: IxTabs, env: IxEnv, e: AwaitExpression): Ty => {
++  if (!env.fi.isAsync) ixErr(K, G.C, e, "type", "await outside an async function");
++  else if (env.fi.inAction) ixErr(K, G.C, e, "action-async", "await in an action body: an action is synchronous; wait in an async cell and give the result to an action (S6.12)");
++  return ixAwaited(K.reg, K.infer(K, G, env, e.argument), false);
+ };
+-export const ixYield = (ixErr, ixUnsup, show, UNDEF, UNKNOWN, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: YieldExpression): Ty => {
+-  if (!env.fi.isGen) ixErr(K, C, e, "type", "yield outside a generator");
+-  if (e.delegate) { ixUnsup(K, C, e, "yield*"); return ERR; }
+-  const t = K.check(K, T, V, W, C, env, e.argument, env.fi.yieldCtx, false, false);
+-  C.yields = [...C.yields, t];
++export const ixYield = (ixErr, ixUnsup, show, UNDEF, UNKNOWN, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: YieldExpression): Ty => {
++  if (!env.fi.isGen) ixErr(K, G.C, e, "type", "yield outside a generator");
++  if (e.delegate) { ixUnsup(K, G.C, e, "yield*"); return ERR; }
++  const t = K.check(K, G, env, e.argument, env.fi.yieldCtx, false, false);
++  G.C.yields = [...G.C.yields, t];
+   return UNKNOWN;
+ };
+-export const ixPreludeCall = (ixTypeArgs, ixErr, ixMutCall, ixUnwrapCall, ixStateCall, ixActionCall, ixReadCall, ixOnCall, ixFact, BOOL, STR, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, name: string, expected: Ty | null): Ty => {
+-  ixFact(C, { k: "prelude", at: e.nid, name });
+-  const args = e.arguments, explicit = ixTypeArgs(K, V, env, e.typeArguments);
+-  if (name === "on") return ixOnCall(K, T, V, W, C, env, e);
++export const ixPreludeCall = (ixTypeArgs, ixErr, ixMutCall, ixUnwrapCall, ixStateCall, ixActionCall, ixReadCall, ixOnCall, ixFact, BOOL, STR, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: CallExpression, name: string, expected: Ty | null): Ty => {
++  ixFact(G.C, { k: "prelude", at: e.nid, name });
++  const args = e.arguments, explicit = ixTypeArgs(K, G.V, env, e.typeArguments);
++  if (name === "on") return ixOnCall(K, G, env, e);
+   if (name === "equals") {
+-    if (args.length !== 2) ixErr(K, C, e, "arity", "equals takes two arguments");
+-    for (const a of args) K.infer(K, T, V, W, C, env, a);
++    if (args.length !== 2) ixErr(K, G.C, e, "arity", "equals takes two arguments");
++    for (const a of args) K.infer(K, G, env, a);
+     return BOOL;
+   }
+   if (name === "messageOf") {
+-    if (args.length !== 1) ixErr(K, C, e, "arity", "messageOf takes one argument");
+-    for (const a of args) K.infer(K, T, V, W, C, env, a);
++    if (args.length !== 1) ixErr(K, G.C, e, "arity", "messageOf takes one argument");
++    for (const a of args) K.infer(K, G, env, a);
+     return STR;
+   }
+   if (!["mut", "freeze", "borrow", "snapshot", "state", "action", "read"].includes(name)) return ERR;
+-  if (args.length !== 1) ixErr(K, C, e, "arity", `${name} takes one argument`);
++  if (args.length !== 1) ixErr(K, G.C, e, "arity", `${name} takes one argument`);
+   const a = args[0] ?? null;
+-  if (name === "mut") return ixMutCall(K, T, V, W, C, env, a, expected, explicit);
+-  if (name === "state") return ixStateCall(K, T, V, W, C, env, a, expected, explicit);
+-  if (name === "action") return ixActionCall(K, T, V, W, C, env, e, a, expected);
+-  if (name === "read") return ixReadCall(K, T, V, W, C, env, e, a);
+-  return ixUnwrapCall(K, T, V, W, C, env, e, name, a);
++  if (name === "mut") return ixMutCall(K, G, env, a, expected, explicit);
++  if (name === "state") return ixStateCall(K, G, env, a, expected, explicit);
++  if (name === "action") return ixActionCall(K, G, env, e, a, expected);
++  if (name === "read") return ixReadCall(K, G, env, e, a);
++  return ixUnwrapCall(K, G, env, e, name, a);
+ };
+-export const ixMutCall = (ixGap, named, isNamed, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, a: AstNode | null, expected: Ty | null, explicit: Ty[] | null): Ty => {
++export const ixMutCall = (ixGap, named, isNamed, ERR) => (K: IxK, G: IxTabs, env: IxEnv, a: AstNode | null, expected: Ty | null, explicit: Ty[] | null): Ty => {
+   const inner = expected !== null && expected.k === "named" && isNamed(expected, "Mut") ? expected.args[0] ?? null : null;
+   if (explicit !== null) {
+     const x = explicit[0];
+-    if (a === null || x === undefined) return ixGap(C, "mut<…>() with no argument or no type argument");
+-    K.check(K, T, V, W, C, env, a, x, false, false);
++    if (a === null || x === undefined) return ixGap(G.C, "mut<…>() with no argument or no type argument");
++    K.check(K, G, env, a, x, false, false);
+     return named("Mut", x);
+   }
+-  const t = a !== null ? K.check(K, T, V, W, C, env, a, inner, false, false) : ERR;
++  const t = a !== null ? K.check(K, G, env, a, inner, false, false) : ERR;
+   return named("Mut", inner ?? t);
+ };
+ // freeze, borrow and snapshot: the type inside the Mut (or Borrowed)
+-export const ixUnwrapCall = (ixErr, ixThaw, named, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, name: string, a: AstNode | null): Ty => {
+-  const t = a !== null ? K.infer(K, T, V, W, C, env, a) : ERR;
++export const ixUnwrapCall = (ixErr, ixThaw, named, show, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode, name: string, a: AstNode | null): Ty => {
++  const t = a !== null ? K.infer(K, G, env, a) : ERR;
+   const want = name === "snapshot" ? "Borrowed" : "Mut";
+   if (t.k === "err") return ERR;
+-  if (t.k !== "named" || t.n !== want) { ixErr(K, C, e, "type", `${name} needs a ${want}<T>, got ${show(t)}`); return ERR; }
++  if (t.k !== "named" || t.n !== want) { ixErr(K, G.C, e, "type", `${name} needs a ${want}<T>, got ${show(t)}`); return ERR; }
+   const x = t.args[0] ?? ERR;
+   if (name !== "freeze") return name === "borrow" ? named("Borrowed", x) : x;
+   const y = ixThaw(K.reg.quiet, x);
+-  if (y === null) ixErr(K, C, e, "type", `freeze of ${show(t)}: the frozen value would still hold a Mut`);
++  if (y === null) ixErr(K, G.C, e, "type", `freeze of ${show(t)}: the frozen value would still hold a Mut`);
+   return y ?? ERR;
+ };
+ // a frozen group: its owned fields frozen with it, Mut<X> read as X one level down, in a record or each member of a
+@@ -94,38 +94,38 @@
+   const M: Mut<Map<Ty, boolean>> = mut(new Map());
+   return grp && owHoldsMut(R, M, u, 0) ? null : u;
+ };
+-export const ixStateCall = (named, isNamed, widen, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, a: AstNode | null, expected: Ty | null, explicit: Ty[] | null): Ty => {
++export const ixStateCall = (named, isNamed, widen, ERR) => (K: IxK, G: IxTabs, env: IxEnv, a: AstNode | null, expected: Ty | null, explicit: Ty[] | null): Ty => {
+   const inner = explicit?.[0] ?? (expected !== null && expected.k === "named" && isNamed(expected, "StateCell") ? expected.args[0] ?? null : null);
+-  const t = a !== null ? K.check(K, T, V, W, C, env, a, inner, false, false) : ERR;
++  const t = a !== null ? K.check(K, G, env, a, inner, false, false) : ERR;
+   return named("StateCell", inner ?? widen(t));
+ };
+-export const ixActionCall = (ixErr, ixUnsup, ixPromiseIn, ixActionFn, ixFact, named, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, a: AstNode | null, expected: Ty | null): Ty => {
+-  if (a === null || (a.type !== "ArrowFunctionExpression" && a.type !== "FunctionExpression")) { ixUnsup(K, C, e, "action(...) of a non-literal function"); return ERR; }
++export const ixActionCall = (ixErr, ixUnsup, ixPromiseIn, ixActionFn, ixFact, named, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode, a: AstNode | null, expected: Ty | null): Ty => {
++  if (a === null || (a.type !== "ArrowFunctionExpression" && a.type !== "FunctionExpression")) { ixUnsup(K, G.C, e, "action(...) of a non-literal function"); return ERR; }
+   const args = expected !== null && expected.k === "named" && expected.n === "Action" ? expected.args[0] : undefined;
+   const ctx = args !== undefined && args.k === "tup" ? ixActionFn(args) : null;
+-  ixFact(C, { k: "action", at: a.nid });
+-  if (a.async || a.generator) ixErr(K, C, a, "action-async", `the function given to action(...) is ${a.async ? "async" : "a generator"}; an action is synchronous (S6.12)`);
+-  const f = K.fnExpr(K, T, V, W, C, { ...env, fi: { ...env.fi, inAction: true } }, a, ctx, null);
++  ixFact(G.C, { k: "action", at: a.nid });
++  if (a.async || a.generator) ixErr(K, G.C, a, "action-async", `the function given to action(...) is ${a.async ? "async" : "a generator"}; an action is synchronous (S6.12)`);
++  const f = K.fnExpr(K, G, { ...env, fi: { ...env.fi, inAction: true } }, a, ctx, null);
+   if (f.k !== "fn") return ERR;
+   const p = a.async || a.generator ? null : ixPromiseIn(K.reg, f.ret, 0);
+-  if (p) ixErr(K, C, a, "action-async", `the function given to action(...) returns ${p}; an action is synchronous (S6.12)`);
+-  T.set(a.nid, f);
++  if (p) ixErr(K, G.C, a, "action-async", `the function given to action(...) returns ${p}; an action is synchronous (S6.12)`);
++  G.T.set(a.nid, f);
+   return named("Action", { k: "tup", els: f.ps.map((q) => q.t) });
+ };
+ // read(s): the value as of this point in the call order; only inside an action body
+-export const ixReadCall = (ixInActionOnly, ixErr, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, a: AstNode | null): Ty => {
+-  ixInActionOnly(K, C, env, e, "read-outside-action", "read(...) is only for an action body; a cell takes the value as a parameter");
+-  const t = a !== null ? K.infer(K, T, V, W, C, env, a) : ERR;
++export const ixReadCall = (ixInActionOnly, ixErr, show, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: AstNode, a: AstNode | null): Ty => {
++  ixInActionOnly(K, G.C, env, e, "read-outside-action", "read(...) is only for an action body; a cell takes the value as a parameter");
++  const t = a !== null ? K.infer(K, G, env, a) : ERR;
+   if (t.k === "err" || a === null) return ERR;
+-  if (t.k !== "named" || t.n !== "State") { ixErr(K, C, a, "type", `read needs a State<T>, got ${show(t)}`); return ERR; }
++  if (t.k !== "named" || t.n !== "State") { ixErr(K, G.C, a, "type", `read needs a State<T>, got ${show(t)}`); return ERR; }
+   return t.args[0] ?? ERR;
+ };
+-export const ixOnCall = (ixErr, named, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression): Ty => {
++export const ixOnCall = (ixErr, named, show, ERR) => (K: IxK, G: IxTabs, env: IxEnv, e: CallExpression): Ty => {
+   const [h, act] = e.arguments;
+-  if (e.arguments.length !== 2 || h === undefined || act === undefined) { ixErr(K, C, e, "arity", "on takes an events handle and an action"); return named("Listener"); }
+-  const s = K.infer(K, T, V, W, C, env, h);
++  if (e.arguments.length !== 2 || h === undefined || act === undefined) { ixErr(K, G.C, e, "arity", "on takes an events handle and an action"); return named("Listener"); }
++  const s = K.infer(K, G, env, h);
+   if (s.k === "err") return named("Listener");
+-  if (s.k !== "named" || s.n !== "Events") { ixErr(K, C, h, "type", `on needs an Events<T>, got ${show(s)}`); return named("Listener"); }
+-  K.check(K, T, V, W, C, env, act, named("Action", { k: "tup", els: [s.args[0] ?? ERR] }), false, false);
++  if (s.k !== "named" || s.n !== "Events") { ixErr(K, G.C, h, "type", `on needs an Events<T>, got ${show(s)}`); return named("Listener"); }
++  K.check(K, G, env, act, named("Action", { k: "tup", els: [s.args[0] ?? ERR] }), false, false);
+   return named("Listener");
+ };
+diff -ruN -x node_modules proto/lite/infer/ix-stmt.ss.ts refac/lite/infer/ix-stmt.ss.ts
+--- proto/lite/infer/ix-stmt.ss.ts	2026-11-21 16:11:42
++++ refac/lite/infer/ix-stmt.ss.ts	2026-11-22 01:10:13
+@@ -1,64 +1,64 @@
+ // Statements (lite/infer.ts stmts, block, stmt, varDecl, loop, switchStmt): each returns false when the end is
+ // unreachable. stmt is a dispatch over two families.
+ 
+-export const ixStmts = (ixCopyFlow) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, list: AstNode[]): boolean => {
++export const ixStmts = (ixCopyFlow) => (K: IxK, G: IxTabs, env: IxEnv, list: AstNode[]): boolean => {
+   let live = true;
+   for (const s of list) {
+-    if (live) { live = K.stmt(K, T, V, W, C, env, s); continue; }
+-    const own = C.cur;
+-    C.cur = ixCopyFlow(W, C, own);
+-    K.stmt(K, T, V, W, C, { ...env, dead: true }, s);
+-    C.cur = own;
++    if (live) { live = K.stmt(K, G, env, s); continue; }
++    const own = G.C.cur;
++    G.C.cur = ixCopyFlow(G.W, G.C, own);
++    K.stmt(K, G, { ...env, dead: true }, s);
++    G.C.cur = own;
+   }
+   return live;
+ };
+-export const ixBlock = (ixNewScope, ixHoist, ixStmts) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, list: AstNode[]): boolean => {
+-  const inner = ixNewScope(C, env);
+-  ixHoist(K, V, C, inner, list);
+-  return ixStmts(K, T, V, W, C, inner, list);
++export const ixBlock = (ixNewScope, ixHoist, ixStmts) => (K: IxK, G: IxTabs, env: IxEnv, list: AstNode[]): boolean => {
++  const inner = ixNewScope(G.C, env);
++  ixHoist(K, G.V, G.C, inner, list);
++  return ixStmts(K, G, inner, list);
+ };
+-export const ixSub1 = (ixBlock) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: AstNode): boolean =>
+-  s.type === "BlockStatement" ? ixBlock(K, T, V, W, C, env, s.body) : K.stmt(K, T, V, W, C, env, s);
+-export const ixStmt = (ixStmtSimple, ixStmtFlow, ixUnsup, ixGap, nodeKind) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: AstNode): boolean => {
+-  if (s.type === "Other") { ixGap(C, `statement ${s.kind} (Other)`); return true; }
+-  const r = ixStmtSimple(K, T, V, W, C, env, s) ?? ixStmtFlow(K, T, V, W, C, env, s);
++export const ixSub1 = (ixBlock) => (K: IxK, G: IxTabs, env: IxEnv, s: AstNode): boolean =>
++  s.type === "BlockStatement" ? ixBlock(K, G, env, s.body) : K.stmt(K, G, env, s);
++export const ixStmt = (ixStmtSimple, ixStmtFlow, ixUnsup, ixGap, nodeKind) => (K: IxK, G: IxTabs, env: IxEnv, s: AstNode): boolean => {
++  if (s.type === "Other") { ixGap(G.C, `statement ${s.kind} (Other)`); return true; }
++  const r = ixStmtSimple(K, G, env, s) ?? ixStmtFlow(K, G, env, s);
+   if (r !== null) return r;
+-  ixUnsup(K, C, s, nodeKind(s));
++  ixUnsup(K, G.C, s, nodeKind(s));
+   return true;
+ };
+-export const ixStmtSimple = (ixBlock, ixVarDecl, ixFnDeclStmt, ixReturn, ixBreak, ixHides, ixDeclare, ixNoExtra, ixUnsup, UNKNOWN, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: AstNode): boolean | null => {
++export const ixStmtSimple = (ixBlock, ixVarDecl, ixFnDeclStmt, ixReturn, ixBreak, ixHides, ixDeclare, ixNoExtra, ixUnsup, UNKNOWN, ERR) => (K: IxK, G: IxTabs, env: IxEnv, s: AstNode): boolean | null => {
+   switch (s.type) {
+-    case "BlockStatement": return ixBlock(K, T, V, W, C, env, s.body);
++    case "BlockStatement": return ixBlock(K, G, env, s.body);
+     case "EmptyStatement": return true;
+-    case "ExpressionStatement": return K.infer(K, T, V, W, C, env, s.expression).k !== "never";
+-    case "VariableDeclaration": for (const d of s.declarations) ixVarDecl(K, T, V, W, C, env, d, s.kind); return true;
+-    case "FunctionDeclaration": ixFnDeclStmt(K, T, V, W, C, env, s); return true;
+-    case "ReturnStatement": return ixReturn(K, T, V, W, C, env, s);
++    case "ExpressionStatement": return K.infer(K, G, env, s.expression).k !== "never";
++    case "VariableDeclaration": for (const d of s.declarations) ixVarDecl(K, G, env, d, s.kind); return true;
++    case "FunctionDeclaration": ixFnDeclStmt(K, G, env, s); return true;
++    case "ReturnStatement": return ixReturn(K, G, env, s);
+     // a catch takes it as unknown
+-    case "ThrowStatement": ixHides(K, C, s.argument, K.infer(K, T, V, W, C, env, s.argument), UNKNOWN, null); return false;
+-    case "BreakStatement": case "ContinueStatement": return ixBreak(K, W, C, env, s);
+-    case "ClassDeclaration": if (s.id.type === "Identifier") ixDeclare(V, C, env, s.id.name, ERR, "const", s.id, ixNoExtra, { k: "none" }, false, -1); return true;
+-    case "ForInStatement": ixUnsup(K, C, s, "for...in"); return true;
+-    case "LabeledStatement": ixUnsup(K, C, s, "label"); return true;
+-    case "TSTypeAliasDeclaration": case "TSInterfaceDeclaration": ixUnsup(K, C, s, "local type declaration"); return true;
++    case "ThrowStatement": ixHides(K, G.C, s.argument, K.infer(K, G, env, s.argument), UNKNOWN, null); return false;
++    case "BreakStatement": case "ContinueStatement": return ixBreak(K, G.W, G.C, env, s);
++    case "ClassDeclaration": if (s.id.type === "Identifier") ixDeclare(G.V, G.C, env, s.id.name, ERR, "const", s.id, ixNoExtra, { k: "none" }, false, -1); return true;
++    case "ForInStatement": ixUnsup(K, G.C, s, "for...in"); return true;
++    case "LabeledStatement": ixUnsup(K, G.C, s, "label"); return true;
++    case "TSTypeAliasDeclaration": case "TSInterfaceDeclaration": ixUnsup(K, G.C, s, "local type declaration"); return true;
+     default: return null;
+   }
+ };
+-export const ixStmtFlow = (ixIf, ixLoop, ixForOf, ixTry, ixSwitch) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: AstNode): boolean | null => {
++export const ixStmtFlow = (ixIf, ixLoop, ixForOf, ixTry, ixSwitch) => (K: IxK, G: IxTabs, env: IxEnv, s: AstNode): boolean | null => {
+   switch (s.type) {
+-    case "IfStatement": return ixIf(K, T, V, W, C, env, s);
+-    case "WhileStatement": case "DoWhileStatement": case "ForStatement": return ixLoop(K, T, V, W, C, env, s);
+-    case "ForOfStatement": return ixForOf(K, T, V, W, C, env, s);
+-    case "TryStatement": return ixTry(K, T, V, W, C, env, s);
+-    case "SwitchStatement": return ixSwitch(K, T, V, W, C, env, s);
++    case "IfStatement": return ixIf(K, G, env, s);
++    case "WhileStatement": case "DoWhileStatement": case "ForStatement": return ixLoop(K, G, env, s);
++    case "ForOfStatement": return ixForOf(K, G, env, s);
++    case "TryStatement": return ixTry(K, G, env, s);
++    case "SwitchStatement": return ixSwitch(K, G, env, s);
+     default: return null;
+   }
+ };
+-export const ixReturn = (ixReturned, ixErr, show, UNDEF) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: ReturnStatement): boolean => {
++export const ixReturn = (ixReturned, ixErr, show, UNDEF) => (K: IxK, G: IxTabs, env: IxEnv, s: ReturnStatement): boolean => {
+   const a = s.argument, ctx = env.fi.retCtx;
+-  const t = a !== null ? ixReturned(K, T, V, W, C, env, a) : UNDEF;
+-  if (a === null && ctx !== null && !K.reg.sub(UNDEF, ctx)) ixErr(K, C, s, "type", `return without a value from a function returning ${show(ctx)}`);
+-  C.rets = [...C.rets, t];
++  const t = a !== null ? ixReturned(K, G, env, a) : UNDEF;
++  if (a === null && ctx !== null && !K.reg.sub(UNDEF, ctx)) ixErr(K, G.C, s, "type", `return without a value from a function returning ${show(ctx)}`);
++  G.C.rets = [...G.C.rets, t];
+   return false;
+ };
+ // a break of the innermost switch takes the flow with it; a loop's exit flow is its head
+@@ -70,52 +70,52 @@
+   return false;
+ };
+ // a function declaration's body, checked where it stands unless a read checked it first
+-export const ixFnDeclStmt = (ixLookup, ixUpdate, ixCopyFlow) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: FunctionDeclaration): void => {
+-  const b = s.id.type === "Identifier" ? ixLookup(V, env, s.id.name) : undefined;
++export const ixFnDeclStmt = (ixLookup, ixUpdate, ixCopyFlow) => (K: IxK, G: IxTabs, env: IxEnv, s: FunctionDeclaration): void => {
++  const b = s.id.type === "Identifier" ? ixLookup(G.V, env, s.id.name) : undefined;
+   if (!b || b.checked) return;
+-  ixUpdate(V, C, { ...b, checked: true });
+-  const own = C.cur;
+-  C.cur = ixCopyFlow(W, C, own);
+-  const f = K.fnExpr(K, T, V, W, C, env, s, null, null);
+-  C.cur = own;
+-  ixUpdate(V, C, { ...b, checked: true, t: b.t.k === "err" ? f : b.t, lazy: { k: "none" } });
++  ixUpdate(G.V, G.C, { ...b, checked: true });
++  const own = G.C.cur;
++  G.C.cur = ixCopyFlow(G.W, G.C, own);
++  const f = K.fnExpr(K, G, env, s, null, null);
++  G.C.cur = own;
++  ixUpdate(G.V, G.C, { ...b, checked: true, t: b.t.k === "err" ? f : b.t, lazy: { k: "none" } });
+ };
+-export const ixVarDecl = (ixAnnOf, ixConvert, ixVarFn, ixDeclare, ixNoExtra, ixLookup, ixFlowSet, ixErr, ixUnsup, widen, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, d: AstNode, kind: string): void => {
+-  if (d.type !== "VariableDeclarator") { ixUnsup(K, C, d, `declarator ${d.type}`); return; }
++export const ixVarDecl = (ixAnnOf, ixConvert, ixVarFn, ixDeclare, ixNoExtra, ixLookup, ixFlowSet, ixErr, ixUnsup, widen, ERR) => (K: IxK, G: IxTabs, env: IxEnv, d: AstNode, kind: string): void => {
++  if (d.type !== "VariableDeclarator") { ixUnsup(K, G.C, d, `declarator ${d.type}`); return; }
+   const k: IxKind = kind === "const" ? "const" : "let", id = d.id, init = d.init;
+-  const ann = ixAnnOf(id), declared = ann !== null ? ixConvert(K, V, env, ann) : null;
++  const ann = ixAnnOf(id), declared = ann !== null ? ixConvert(K, G.V, env, ann) : null;
+   const fnInit = init !== null && (init.type === "ArrowFunctionExpression" || init.type === "FunctionExpression");
+-  if (id.type === "Identifier" && init !== null && fnInit && k === "const") return ixVarFn(K, T, V, W, C, env, id, init, declared);
++  if (id.type === "Identifier" && init !== null && fnInit && k === "const") return ixVarFn(K, G, env, id, init, declared);
+   if (init === null) {
+-    if (k === "const") ixErr(K, C, d, "type", "const without initializer");
+-    if (declared === null) ixUnsup(K, C, d, "let without a type or initializer");
+-    K.bind(K, T, V, W, C, env, id, declared ?? ERR, k, ixNoExtra);
++    if (k === "const") ixErr(K, G.C, d, "type", "const without initializer");
++    if (declared === null) ixUnsup(K, G.C, d, "let without a type or initializer");
++    K.bind(K, G, env, id, declared ?? ERR, k, ixNoExtra);
+     return;
+   }
+-  const t = K.check(K, T, V, W, C, env, init, declared, false, false);
+-  const isMut = init.type === "CallExpression" && init.callee.type === "Identifier" && init.callee.name === "mut" && ixLookup(V, env, "mut")?.kind === "prelude";
+-  if (id.type !== "Identifier") return K.bind(K, T, V, W, C, env, id, declared ?? t, k, ixNoExtra);
+-  const b = ixDeclare(V, C, env, id.name, declared ?? (k === "let" ? widen(t) : t), k, id, ixNoExtra, { k: "none" }, isMut, fnInit ? init.nid : -1);
+-  if (k === "let" && declared !== null) ixFlowSet(W, C.cur, "#" + b.id, K.reg.sub(t, declared) ? t : declared);
++  const t = K.check(K, G, env, init, declared, false, false);
++  const isMut = init.type === "CallExpression" && init.callee.type === "Identifier" && init.callee.name === "mut" && ixLookup(G.V, env, "mut")?.kind === "prelude";
++  if (id.type !== "Identifier") return K.bind(K, G, env, id, declared ?? t, k, ixNoExtra);
++  const b = ixDeclare(G.V, G.C, env, id.name, declared ?? (k === "let" ? widen(t) : t), k, id, ixNoExtra, { k: "none" }, isMut, fnInit ? init.nid : -1);
++  if (k === "let" && declared !== null) ixFlowSet(G.W, G.C.cur, "#" + b.id, K.reg.sub(t, declared) ? t : declared);
+ };
+ // const f = (…) => …: bound before its body is checked, so it can call itself (with annotations)
+-export const ixVarFn = (ixAnnotatedSig, ixDeclare, ixNoExtra, ixUpdate, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, id: Identifier, init: AstNode, declared: Ty | null): void => {
+-  const pre = declared ?? ixAnnotatedSig(K, V, C, env, init);
+-  const b = ixDeclare(V, C, env, id.name, pre ?? ERR, "const", id, ixNoExtra, pre ? { k: "none" } : { k: "unsup", at: init }, false, init.nid);
+-  const t = K.check(K, T, V, W, C, env, init, declared, false, false);
+-  ixUpdate(V, C, { ...b, t: declared ?? t, lazy: { k: "none" } });
++export const ixVarFn = (ixAnnotatedSig, ixDeclare, ixNoExtra, ixUpdate, ERR) => (K: IxK, G: IxTabs, env: IxEnv, id: Identifier, init: AstNode, declared: Ty | null): void => {
++  const pre = declared ?? ixAnnotatedSig(K, G.V, G.C, env, init);
++  const b = ixDeclare(G.V, G.C, env, id.name, pre ?? ERR, "const", id, ixNoExtra, pre ? { k: "none" } : { k: "unsup", at: init }, false, init.nid);
++  const t = K.check(K, G, env, init, declared, false, false);
++  ixUpdate(G.V, G.C, { ...b, t: declared ?? t, lazy: { k: "none" } });
+ };
+-export const ixIf = (ixSub1, ixJoin2) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: IfStatement): boolean => {
+-  const c = K.cond(K, T, V, W, C, env, s.test);
+-  const own = C.cur;
+-  C.cur = c.t;
+-  const la = ixSub1(K, T, V, W, C, env, s.consequent);
+-  const af = C.cur;
+-  C.cur = c.f;
++export const ixIf = (ixSub1, ixJoin2) => (K: IxK, G: IxTabs, env: IxEnv, s: IfStatement): boolean => {
++  const c = K.cond(K, G, env, s.test);
++  const own = G.C.cur;
++  G.C.cur = c.t;
++  const la = ixSub1(K, G, env, s.consequent);
++  const af = G.C.cur;
++  G.C.cur = c.f;
+   const alt = s.alternate;
+-  const lb = alt !== null ? ixSub1(K, T, V, W, C, env, alt) : true;
+-  const bf = C.cur;
+-  if (!la && !lb) { C.cur = own; return false; }
+-  C.cur = la && lb ? ixJoin2(W, C, af, bf) : la ? af : bf;
++  const lb = alt !== null ? ixSub1(K, G, env, alt) : true;
++  const bf = G.C.cur;
++  if (!la && !lb) { G.C.cur = own; return false; }
++  G.C.cur = la && lb ? ixJoin2(G.W, G.C, af, bf) : la ? af : bf;
+   return true;
+ };
+diff -ruN -x node_modules proto/lite/infer/ix-types.ss.ts refac/lite/infer/ix-types.ss.ts
+--- proto/lite/infer/ix-types.ss.ts	2026-11-21 19:10:44
++++ refac/lite/infer/ix-types.ss.ts	2026-11-22 01:10:59
+@@ -64,6 +64,8 @@
+ export type IxVars = Mut<Map<string, IxBinding>>;
+ export type IxFlows = Mut<Map<number, IxFlow>>;
+ export type IxCtls = Mut<IxCtl>;
++// the four tables as one owned group (selfhost/mut-groups refactor trial)
++export type IxTabs = Mut<{ T: IxTypes; V: IxVars; W: IxFlows; C: IxCtls }>;
+ 
+ // lite/registry.ts as the port calls it; quiet: the same functions, each inside Registry.peek; lax: strictIndex off
+ export type IxRegCore = {
+@@ -113,13 +115,13 @@
+ // the recursive entry points and the per-check constants every method reads
+ export type IxK = {
+   readonly reg: IxReg; readonly src: string; readonly cellNames: Set<string>; readonly allowed: Set<string>; readonly probe: IxProbeAsk | null;
+-  readonly infer: (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode) => Ty;
+-  readonly check: (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null, soft: boolean, ctx: boolean) => Ty;
+-  readonly cond: (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode) => IxCond;
+-  readonly stmt: (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, s: AstNode) => boolean;
+-  readonly fnExpr: (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv | null, e: AstNode, expected: Ty | null, injected: Ty[] | null) => Ty;
+-  readonly call: (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null) => Ty;
+-  readonly bind: (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: AstNode, t: Ty, kind: IxKind, extra: IxExtra) => void;
++  readonly infer: (K: IxK, G: IxTabs, env: IxEnv, e: AstNode) => Ty;
++  readonly check: (K: IxK, G: IxTabs, env: IxEnv, e: AstNode, expected: Ty | null, soft: boolean, ctx: boolean) => Ty;
++  readonly cond: (K: IxK, G: IxTabs, env: IxEnv, e: AstNode) => IxCond;
++  readonly stmt: (K: IxK, G: IxTabs, env: IxEnv, s: AstNode) => boolean;
++  readonly fnExpr: (K: IxK, G: IxTabs, env: IxEnv | null, e: AstNode, expected: Ty | null, injected: Ty[] | null) => Ty;
++  readonly call: (K: IxK, G: IxTabs, env: IxEnv, e: AstNode, expected: Ty | null) => Ty;
++  readonly bind: (K: IxK, G: IxTabs, env: IxEnv, p: AstNode, t: Ty, kind: IxKind, extra: IxExtra) => void;
+ };
+ // Partial<Binding> as bindPattern passes it on
+ export type IxExtra = { assigned: boolean; cellParam: boolean };
+diff -ruN -x node_modules proto/lite/infer/md-cell.ss.ts refac/lite/infer/md-cell.ss.ts
+--- proto/lite/infer/md-cell.ss.ts	2026-11-21 19:10:44
++++ refac/lite/infer/md-cell.ss.ts	2026-11-22 01:10:59
+@@ -41,24 +41,24 @@
+   if (M.value.has(d.name) || rec === undefined) return null;
+   const R = X.R.cell();
+   const K: IxK = ixKnot(R.ix, X.src, X.cellNames, X.R.allowed, X.probe);
+-  const C: IxCtls = mut({ ...ixFreshCtl(X.count) });
+-  C.nextFlow = 1;
++  const G: IxTabs = mut({ T: mut(new Map()), V: mut(new Map()), W: mut(new Map([[0, new Map()]])), C: mut({ ...ixFreshCtl(X.count) }) });
++  G.C.nextFlow = 1;
+   const L: MdL = mut({ errors: rec.errors, ch: [], chUnsup: [], blockedBy: [] });
+-  mdSyntax(K, C, X, L, d);
+-  const injected = mdInject(K, C, X, M, L, d);
++  mdSyntax(K, G.C, X, L, d);
++  const injected = mdInject(K, G.C, X, M, L, d);
+   const tainted = mdTainted(X, M, d), fedBy = mdFedBy(M, d);
+   mdMarkStateful(M, d, tainted, fedBy);
+   const byName = owTaintCaptures(d.fn, tainted);
+   for (const cap of byName) mdDiag(X, L, cap.at, "action-capture", captureMessage(cap));
+-  ixDrain(K, C);
++  ixDrain(K, G.C);
+   const hook = mdHookOf(R.ix, X, M.value, M.refInner, M.out, { ...rec, errors: L.errors });
+   const K2: IxK = ixKnot(R.withHook(hook), X.src, X.cellNames, X.R.allowed, X.probe);
+-  const run = mdRunChecks(K2, C, X, d, injected, tainted, new Set(byName.map((c) => c.at.nid)));
+-  const r1 = mdRecord(X, L, rec, ixOut(C.diags), ixOut(C.unsup));
++  const run = mdRunChecks(K2, G, X, d, injected, tainted, new Set(byName.map((c) => c.at.nid)));
++  const r1 = mdRecord(X, L, rec, ixOut(G.C.diags), ixOut(G.C.unsup));
+   const v = mdValueRules(K2.reg, X, d, run.fnT, fedBy);
+   // what the registry reports from here on reaches the Checker but not the record (core.ts copies the lists above)
+-  ixDrain(K2, C);
+-  if (M.probe === null) M.probe = C.probe;
+-  M.out = new Map([...M.out, [d.name, { ...mdKeep(X, M, d, r1, v), ch: ixOut(C.diags), chUnsup: ixOut(C.unsup) }]]);
++  ixDrain(K2, G.C);
++  if (M.probe === null) M.probe = G.C.probe;
++  M.out = new Map([...M.out, [d.name, { ...mdKeep(X, M, d, r1, v), ch: ixOut(G.C.diags), chUnsup: ixOut(G.C.unsup) }]]);
+   return run.gap ?? v.gap;
+ };
+diff -ruN -x node_modules proto/lite/infer/md-run.ss.ts refac/lite/infer/md-run.ss.ts
+--- proto/lite/infer/md-run.ss.ts	2026-11-21 18:59:22
++++ refac/lite/infer/md-run.ss.ts	2026-11-22 01:10:59
+@@ -4,14 +4,13 @@
+ 
+ export type MdRun = { readonly fnT: Ty; readonly facts: IxFacts | null; readonly crash: string | null; readonly gap: string | null };
+ // ixCheckFn on a log the injection already wrote to: the globals bound in scope 0, then the cell's function
+-export const mdInferFn = (ixFoldFacts) => (K: IxK, C: IxCtls, X: MdCtx, fn: FnNode, injected: Ty[]): { fnT: Ty; facts: IxFacts } => {
+-  const T: IxTypes = mut(new Map()), V: IxVars = mut(new Map()), W: IxFlows = mut(new Map([[0, new Map()]]));
++export const mdInferFn = (ixFoldFacts) => (K: IxK, G: IxTabs, X: MdCtx, fn: FnNode, injected: Ty[]): { fnT: Ty; facts: IxFacts } => {
+   for (const g of X.R.globals) {
+-    C.nextId += 1;
+-    V.set(`0:${g.name}`, { id: C.nextId, scope: 0, name: g.name, t: g.t, kind: g.kind, nid: -1, fi: -1, fnNode: -1, mutOwned: false, assigned: false, cellParam: false, checked: true, lazy: { k: "none" } });
++    G.C.nextId += 1;
++    G.V.set(`0:${g.name}`, { id: G.C.nextId, scope: 0, name: g.name, t: g.t, kind: g.kind, nid: -1, fi: -1, fnNode: -1, mutOwned: false, assigned: false, cellParam: false, checked: true, lazy: { k: "none" } });
+   }
+-  const fnT = K.fnExpr(K, T, V, W, C, null, fn, null, injected);
+-  return { fnT, facts: ixFoldFacts(T, V, C.facts) };
++  const fnT = K.fnExpr(K, G, null, fn, null, injected);
++  return { fnT, facts: ixFoldFacts(G.T, G.V, G.C.facts) };
+ };
+ // ownership and actionEscapes, then the captures by binding (opaqueCaptures), over one index of the cell's tree
+ export const mdAfterInfer = (owIndex, owCheckIn, owOpaqueCaptures, ixDrain, ixPush, captureMessage) => (K: IxK, C: IxCtls, F: IxFacts, fn: FnNode, tainted: Map<string, string>, skip: Set<number>): string | null => {
+@@ -26,21 +25,21 @@
+   return T.other;
+ };
+ // the try: a throw keeps what the log holds and becomes an unsupported item at the cell's function
+-export const mdRunChecks = (mdInferFn, mdAfterInfer, ixDrain, ixUnsup, ERR) => (K: IxK, C: IxCtls, X: MdCtx, d: MdDef, injected: Ty[], tainted: Map<string, string>, skip: Set<number>): MdRun => {
++export const mdRunChecks = (mdInferFn, mdAfterInfer, ixDrain, ixUnsup, ERR) => (K: IxK, G: IxTabs, X: MdCtx, d: MdDef, injected: Ty[], tainted: Map<string, string>, skip: Set<number>): MdRun => {
+   let fnT: Ty = ERR, facts: IxFacts | null = null, gap: string | null = null;
+   try {
+-    const r = mdInferFn(K, C, X, d.fn, injected);
++    const r = mdInferFn(K, G, X, d.fn, injected);
+     fnT = r.fnT;
+     facts = r.facts;
+-    gap = mdAfterInfer(K, C, r.facts, d.fn, tainted, skip);
++    gap = mdAfterInfer(K, G.C, r.facts, d.fn, tainted, skip);
+   } catch (e) {
+-    ixDrain(K, C);
++    ixDrain(K, G.C);
+     const msg = messageOf(e);
+-    ixUnsup(K, C, d.fn, `checker crashed: ${msg}`);
+-    return { fnT, facts, crash: msg, gap: C.gap };
++    ixUnsup(K, G.C, d.fn, `checker crashed: ${msg}`);
++    return { fnT, facts, crash: msg, gap: G.C.gap };
+   }
+-  ixDrain(K, C);
+-  return { fnT, facts, crash: null, gap: C.gap ?? gap };
++  ixDrain(K, G.C);
++  return { fnT, facts, crash: null, gap: G.C.gap ?? gap };
+ };
+ // core.ts dedupe: the first of each line, rule and message
+ export const mdDedupe = () => (es: MdErr[]): MdErr[] => {

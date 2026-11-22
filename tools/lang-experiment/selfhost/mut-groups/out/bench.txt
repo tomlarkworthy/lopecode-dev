@@ -1,0 +1,6 @@
+Sun Nov 22 2026 01:26:32 GMT+0100 (Central European Standard Time) | Now drawing from 'AC Power' | 1:26  up 6 days,  4:22, 0 users, load averages: 5.46 4.61 4.56
+base   corpus 889 jobs: median 4863 ms (min 4747, max 5239); self:infer median 2755 ms (min 2594, max 2844)
+proto  corpus 889 jobs: median 4954 ms (min 4531, max 5329); self:infer median 2820 ms (min 2457, max 2929)
+refac  corpus 889 jobs: median 4979 ms (min 4705, max 5265); self:infer median 2774 ms (min 2481, max 3063)
+base2  corpus 889 jobs: median 5135 ms (min 4895, max 5338); self:infer median 2754 ms (min 2602, max 2927)
+Sun Nov 22 2026 01:29:12 GMT+0100 (Central European Standard Time) | Now drawing from 'AC Power' | 1:29  up 6 days,  4:25, 0 users, load averages: 6.16 5.27 4.83

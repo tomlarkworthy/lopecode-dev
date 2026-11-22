@@ -1,0 +1,10 @@
+Sun 22 Nov 2026 00:38:02 CET
+Now drawing from 'AC Power'
+ 0:38  up 6 days,  3:33, 0 users, load averages: 5.56 5.75 8.50
+base: 100000 values x 5 rounds, us per value: 0.876 0.838 0.838 0.934 0.850; median 0.850
+handles: 100000 values x 5 rounds, us per value: 0.955 0.905 0.891 0.867 0.875; median 0.891
+base: 100000 values x 5 rounds, us per value: 0.806 0.788 0.774 0.780 0.781; median 0.781
+handles: 100000 values x 5 rounds, us per value: 0.880 0.838 0.860 0.865 0.854; median 0.860
+base: 100000 values x 5 rounds, us per value: 0.869 0.854 0.818 0.818 0.830; median 0.830
+handles: 100000 values x 5 rounds, us per value: 0.867 0.854 0.824 0.830 0.849; median 0.849
+ 0:38  up 6 days,  3:33, 0 users, load averages: 5.56 5.75 8.50

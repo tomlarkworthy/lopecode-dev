@@ -1,0 +1,684 @@
+kidOne: rejected
+    [unknown-type] L4 unknown type AstNode
+    [unknown-type] L4 unknown type AstKid
+kidMany: rejected (blocked by kidOne)
+    [unknown-type] L6 unknown type AstNode
+    [unknown-type] L6 unknown type AstKid
+kidsGroup1: rejected (blocked by kidOne, kidMany)
+    [unknown-type] L8 unknown type AstNode
+    [unknown-type] L8 unknown type AstKid
+kidsGroup2: rejected (blocked by kidOne, kidMany)
+    [unknown-type] L35 unknown type AstNode
+    [unknown-type] L35 unknown type AstKid
+kidsGroup3: rejected (blocked by kidOne, kidMany)
+    [unknown-type] L62 unknown type AstNode
+    [unknown-type] L62 unknown type AstKid
+kidsGroup4: rejected (blocked by kidOne, kidMany)
+    [unknown-type] L89 unknown type AstNode
+    [unknown-type] L89 unknown type AstKid
+kidsGroup5: rejected (blocked by kidOne, kidMany)
+    [unknown-type] L116 unknown type AstNode
+    [unknown-type] L116 unknown type AstKid
+kidsGroup6: rejected (blocked by kidOne, kidMany)
+    [unknown-type] L143 unknown type AstNode
+    [unknown-type] L143 unknown type AstKid
+kidsGroup7: rejected (blocked by kidOne, kidMany)
+    [unknown-type] L170 unknown type AstNode
+    [unknown-type] L170 unknown type AstKid
+childrenOf: rejected (blocked by kidMany, kidsGroup1, kidsGroup2, kidsGroup3, kidsGroup4, kidsGroup5, kidsGroup6, kidsGroup7)
+    [unknown-type] L179 unknown type AstNode
+    [unknown-type] L179 unknown type AstKid
+    [untyped-parameter] L180 parameter has no type and no contextual type
+lite/acorn/acorn-kids.ss.ts: 10 cells, 10 not ok, 0 module errors
+lite/acorn/acorn-types.ss.ts: 0 cells, 0 not ok, 0 module errors
+parseTree: rejected
+    [inject-unknown] L7 parameter acornParse names no cell, foreign or capability
+    [unknown-type] L7 unknown type Parse
+leadingComments: rejected
+    [unknown-type] L33 unknown type Ast
+    [unknown-type] L33 unknown type AstComment
+    [unknown-type] L34 unknown type AstComment
+nodeKind: rejected
+    [unknown-type] L47 unknown type AstNode
+isFnNode: rejected
+    [unknown-type] L52 unknown type AstNode
+kidsOf: rejected
+    [inject-unknown] L59 parameter childrenOf names no cell, foreign or capability
+    [unknown-type] L59 unknown type AstNode
+    [untyped-parameter] L60 parameter has no type and no contextual type
+byNid: rejected
+    [inject-unknown] L63 parameter childrenOf names no cell, foreign or capability
+    [unknown-type] L63 unknown type Ast
+    [unknown-type] L63 unknown type AstNode
+    [unknown-type] L64 unknown type AstNode
+    [unknown-type] L65 unknown type AstNode
+parentNids: rejected
+    [inject-unknown] L75 parameter childrenOf names no cell, foreign or capability
+    [unknown-type] L75 unknown type Ast
+    [unknown-type] L77 unknown type AstNode
+preorder: rejected
+    [inject-unknown] L86 parameter childrenOf names no cell, foreign or capability
+    [unknown-type] L86 unknown type Ast
+    [unknown-type] L89 unknown type AstNode
+lite/acorn/acorn.ss.ts: 12 cells, 8 not ok, 0 module errors
+declOf: rejected
+    [unknown-type] L16 unknown type AstNode
+typeClash: rejected (blocked by declOf)
+    [unknown-type] L19 unknown type AstNode
+    [unknown-type] L6 unknown type AstNode
+isTypeStatement: rejected (blocked by declOf)
+    [unknown-type] L28 unknown type AstNode
+declaratorCell: rejected
+    [unknown-type] L34 unknown type AstNode
+    [unknown-type] L8 unknown type FnNode
+    [unknown-type] L8 unknown type AstNode
+moduleLevelRule: rejected
+    [unknown-type] L42 unknown type AstNode
+statementCells: rejected (blocked by declOf, declaratorCell, moduleLevelRule)
+    [inject-unknown] L51 parameter nodeKind names no cell, foreign or capability
+    [unknown-type] L51 unknown type AstNode
+    [untyped-parameter] L58 parameter has no type and no contextual type
+    [untyped-parameter] L59 parameter has no type and no contextual type
+moduleShape: rejected (blocked by typeClash, isTypeStatement, statementCells)
+    [unknown-type] L66 unknown type AstNode
+    [untyped-parameter] L68 parameter has no type and no contextual type
+    [untyped-parameter] L69 parameter has no type and no contextual type
+    [untyped-parameter] L76 parameter has no type and no contextual type
+namedByParent: rejected
+    [unknown-type] L87 unknown type AstNode
+argumentsAsName: rejected
+    [unknown-type] L93 unknown type AstNode
+isAsConst: rejected
+    [unknown-type] L99 unknown type TSAsExpression
+bansAt: rejected (blocked by namedByParent, argumentsAsName, isAsConst)
+    [inject-unknown] L106 parameter reservedName names no cell, foreign or capability
+    [inject-unknown] L106 parameter RESERVED_MSG names no cell, foreign or capability
+    [inject-unknown] L106 parameter viewofInputName names no cell, foreign or capability
+    [inject-unknown] L106 parameter nodeKind names no cell, foreign or capability
+    [unknown-type] L106 unknown type AstNode
+    [unknown-type] L80 unknown type AstNode
+syntaxBans: rejected (blocked by bansAt)
+    [inject-unknown] L120 parameter childrenOf names no cell, foreign or capability
+    [inject-unknown] L120 parameter TYPE_FIELDS names no cell, foreign or capability
+    [unknown-type] L120 unknown type AstNode
+    [unknown-type] L122 unknown type AstNode
+distinctParse: rejected
+    [inject-unknown] L149 parameter parseTree names no cell, foreign or capability
+    [unknown-type] L131 unknown type Parse
+syntaxCheck: rejected (blocked by moduleShape, syntaxBans)
+    [untyped-parameter] L171 parameter has no type and no contextual type
+    [untyped-parameter] L172 parameter has no type and no contextual type
+    [unsupported] L171 callback whose parameter types are not inferred before it
+lite/acorn/syntax.ss.ts: 18 cells, 14 not ok, 0 module errors
+lite/checks.ss.ts: 5 cells, 0 not ok, 0 module errors
+mismatchText: rejected
+    [inject-unknown] L41 parameter want names no cell, foreign or capability
+    [unknown-type] L41 unknown type Shape
+resolveRef: rejected
+    [unknown-type] L47 unknown type Shape
+tagTable: rejected
+    [unknown-type] L54 unknown type Shape
+    [unknown-type] L55 unknown type Shape
+    [untyped-parameter] L57 parameter has no type and no contextual type
+tagDispatch: rejected (blocked by resolveRef, tagTable)
+    [unknown-type] L68 unknown type Shape
+    [unknown-type] L16 unknown type Shape
+    [no-member] L71 property k on Js/unknown; narrow it first
+    [unknown-type] L19 unknown type Shape
+    [no-member] L72 property props on Js/unknown; narrow it first
+memberKinds: rejected
+    [unknown-type] L82 unknown type Shape
+    [unknown-type] L84 unknown type Shape
+memberTakes: rejected (blocked by memberKinds)
+    [unknown-type] L103 unknown type Shape
+soleMembers: rejected (blocked by memberKinds)
+    [unknown-type] L106 unknown type Shape
+    [type] L108 unknown used as a number
+fnPlan: rejected
+    [unknown-type] L24 unknown type Shape
+    [unknown-type] L21 unknown type Shape
+primFits: rejected
+    [unknown-type] L122 unknown type Shape
+elemShape: rejected
+    [unknown-type] L139 unknown type Shape
+lite/cross.ss.ts: 17 cells, 10 not ok, 0 module errors
+lite/events.ss.ts: 43 cells, 0 not ok, 0 module errors
+lite/island.ss.ts: 2 cells, 0 not ok, 0 module errors
+lite/messages.ss.ts: 4 cells, 0 not ok, 0 module errors
+lite/pool.ss.ts: 15 cells, 0 not ok, 0 module errors
+eventOf: rejected
+    [inject-unknown] L40 parameter DOM_EVENTS names no cell, foreign or capability
+    [type] L41 cannot index unknown with 0
+    [type] L42 unknown is not assignable to string | undefined
+propGone: rejected
+    [inject-unknown] L49 parameter PROPS names no cell, foreign or capability
+propSet: rejected
+    [inject-unknown] L57 parameter PROPS names no cell, foreign or capability
+lite/render.ss.ts: 18 cells, 3 not ok, 0 module errors
+lite/runtime.ss.ts: 13 cells, 0 not ok, 0 module errors
+tyText: rejected
+    [unknown-type] L36 unknown type Ty
+    [unknown-type] L37 unknown type Ty
+    [untyped-parameter] L46 parameter has no type and no contextual type
+tyKey: rejected (blocked by tyText)
+    [unknown-type] L54 unknown type Ty
+    [unknown-type] L55 unknown type Ty
+refName: rejected
+    [inject-unknown] L61 parameter show names no cell, foreign or capability
+    [unknown-type] L61 unknown type Ty
+expandFull: rejected
+    [inject-unknown] L73 parameter subst names no cell, foreign or capability
+    [unknown-type] L73 unknown type Named
+    [unknown-type] L73 unknown type Ty
+    [untyped-parameter] L75 parameter has no type and no contextual type
+    [untyped-parameter] L76 parameter has no type and no contextual type
+shapesOf: rejected
+    [unknown-type] L102 unknown type Ty
+    [unknown-type] L33 unknown type Ty
+recShape: rejected
+    [unknown-type] L108 unknown type Rec
+aliasShape: rejected (blocked by tyKey, refName, expandFull)
+    [unknown-type] L118 unknown type Named
+    [unknown-type] L25 unknown type Ty
+    [mut-escape] L120 Mut ctx argument to a parameter not typed Mut<…>
+    [mut-escape] L125 Mut ctx argument to a parameter not typed Mut<…>
+namedShape: rejected (blocked by aliasShape)
+    [inject-unknown] L130 parameter show names no cell, foreign or capability
+    [unknown-type] L130 unknown type Named
+    [mut-escape] L133 Mut ctx argument to a parameter not typed Mut<…>
+shapeIn: rejected (blocked by shapesOf, recShape, namedShape)
+    [inject-unknown] L140 parameter show names no cell, foreign or capability
+    [unknown-type] L140 unknown type Ty
+    [unknown-type] L141 unknown type Ty
+    [mut-escape] L154 Mut c argument to a parameter not typed Mut<…>
+    [mut-escape] L155 Mut c argument to a parameter not typed Mut<…>
+    [mut-escape] L156 Mut c argument to a parameter not typed Mut<…>
+    [mut-escape] L157 Mut c argument to a parameter not typed Mut<…>
+shapeAt: rejected (blocked by shapeIn)
+    [unknown-type] L174 unknown type Ty
+    [mut-escape] L176 Mut near argument to a parameter not typed Mut<…>
+    [mut-escape] L179 Mut far argument to a parameter not typed Mut<…>
+fnShape: rejected (blocked by shapeAt)
+    [unknown-type] L185 unknown type Fn
+    [unknown-type] L187 unknown type Ty
+boundaryShapeAt: rejected (blocked by shapeAt, fnShape)
+    [unknown-type] L196 unknown type Ty
+lite/shape.ss.ts: 15 cells, 12 not ok, 0 module errors
+refPlan: rejected
+    [inject-unknown] L85 parameter same names no cell, foreign or capability
+lite/store.ss.ts: 17 cells, 1 not ok, 0 module errors
+isAliasWith: rejected
+    [inject-unknown] L41 parameter WRAPPERS names no cell, foreign or capability
+    [unknown-type] L26 unknown type Ty
+    [unknown-type] L27 unknown type Rec
+    [unknown-type] L29 unknown type Ty
+builtinNamesOf: rejected
+    [inject-unknown] L51 parameter WRAPPERS names no cell, foreign or capability
+namedMemberWith: rejected
+    [inject-unknown] L55 parameter UNKNOWN names no cell, foreign or capability
+    [inject-unknown] L55 parameter subst names no cell, foreign or capability
+    [unknown-type] L55 unknown type Ty
+    [unknown-type] L55 unknown type Prop
+    [unknown-type] L55 unknown type Named
+    [unknown-type] L60 unknown type Subst
+    [unknown-type] L60 unknown type Ty
+memberWith: rejected (blocked by namedMemberWith)
+    [inject-unknown] L65 parameter STR names no cell, foreign or capability
+    [inject-unknown] L65 parameter NUM names no cell, foreign or capability
+    [inject-unknown] L65 parameter UNDEF names no cell, foreign or capability
+    [inject-unknown] L65 parameter named names no cell, foreign or capability
+    [inject-unknown] L65 parameter union names no cell, foreign or capability
+    [unknown-type] L67 unknown type Ty
+    [unknown-type] L67 unknown type Prop
+    [untyped-parameter] L80 parameter has no type and no contextual type
+callSigsWith: rejected
+    [unknown-type] L88 unknown type Ty
+    [unknown-type] L88 unknown type Fn
+    [unknown-type] L10 unknown type Ty
+    [unknown-type] L12 unknown type Ty
+    [unknown-type] L12 unknown type Prop
+    [unknown-type] L13 unknown type Ty
+    [unknown-type] L14 unknown type Ty
+    [unknown-type] L15 unknown type Ty
+namedElemWith: rejected
+    [inject-unknown] L98 parameter union names no cell, foreign or capability
+    [inject-unknown] L98 parameter STR names no cell, foreign or capability
+    [inject-unknown] L98 parameter NUM names no cell, foreign or capability
+    [inject-unknown] L98 parameter UNDEF names no cell, foreign or capability
+    [unknown-type] L98 unknown type Ty
+    [unknown-type] L98 unknown type Named
+iterElemWith: rejected (blocked by namedElemWith)
+    [inject-unknown] L108 parameter union names no cell, foreign or capability
+    [inject-unknown] L108 parameter STR names no cell, foreign or capability
+    [inject-unknown] L108 parameter ERR names no cell, foreign or capability
+    [unknown-type] L110 unknown type Ty
+    [unknown-type] L120 unknown type Ty
+primSub: rejected
+    [unknown-type] L132 unknown type Ty
+seqSubWith: rejected
+    [unknown-type] L145 unknown type Ty
+    [unknown-type] L33 unknown type Ty
+fnSubWith: rejected
+    [inject-unknown] L160 parameter subst names no cell, foreign or capability
+    [unknown-type] L161 unknown type Fn
+    [unknown-type] L164 unknown type Ty
+    [unknown-type] L165 unknown type Fn
+    [untyped-parameter] L165 parameter has no type and no contextual type
+    [unknown-type] L165 unknown type Ty
+someFnSub: rejected
+    [unknown-type] L184 unknown type Fn
+    [unknown-type] L35 unknown type Fn
+recSubWith: rejected (blocked by someFnSub)
+    [inject-unknown] L190 parameter propT names no cell, foreign or capability
+    [unknown-type] L190 unknown type Ty
+    [unknown-type] L190 unknown type Fn
+    [unknown-type] L190 unknown type Rec
+    [mut-escape] L209 Mut seen argument to a parameter not typed Mut<…>
+namedSubWith: rejected
+    [inject-unknown] L214 parameter UNKNOWN names no cell, foreign or capability
+    [unknown-type] L214 unknown type Ty
+    [unknown-type] L214 unknown type Named
+unwrapsWith: rejected
+    [unknown-type] L231 unknown type Ty
+    [unknown-type] L233 unknown type Ty
+memberOfWith: rejected (blocked by unwrapsWith)
+    [unknown-type] L249 unknown type Ty
+    [unknown-type] L251 unknown type Ty
+    [unknown-type] L252 unknown type Ty
+    [untyped-parameter] L258 parameter has no type and no contextual type
+subWith: rejected (blocked by primSub, seqSubWith, fnSubWith, someFnSub, recSubWith, namedSubWith)
+    [inject-unknown] L264 parameter show names no cell, foreign or capability
+    [inject-unknown] L264 parameter isNamed names no cell, foreign or capability
+    [unknown-type] L264 unknown type Ty
+    [unknown-type] L264 unknown type Fn
+    [unknown-type] L267 unknown type Ty
+    [mut-escape] L280 Mut seen argument to a parameter not typed Mut<…>
+    [mut-escape] L281 Mut seen argument to a parameter not typed Mut<…>
+    [mut-escape] L282 Mut seen argument to a parameter not typed Mut<…>
+    [mut-escape] L283 Mut seen argument to a parameter not typed Mut<…>
+hasAnyTv: rejected
+    [inject-unknown] L291 parameter show names no cell, foreign or capability
+    [unknown-type] L291 unknown type Ty
+    [untyped-parameter] L291 parameter has no type and no contextual type
+unifyUnionWith: rejected (blocked by hasAnyTv)
+    [inject-unknown] L294 parameter members names no cell, foreign or capability
+    [unknown-type] L294 unknown type Ty
+    [unknown-type] L294 unknown type Subst
+    [unknown-type] L37 unknown type Ty
+    [unknown-type] L37 unknown type Subst
+unifyRecWith: rejected
+    [inject-unknown] L307 parameter propT names no cell, foreign or capability
+    [unknown-type] L307 unknown type Rec
+    [unknown-type] L307 unknown type Ty
+    [unknown-type] L307 unknown type Subst
+    [unknown-type] L308 unknown type Ty
+unifyShapeWith: rejected
+    [unknown-type] L315 unknown type Rec
+    [unknown-type] L315 unknown type Ty
+    [unknown-type] L315 unknown type Subst
+    [unknown-type] L315 unknown type Fn
+    [unknown-type] L316 unknown type Ty
+unifyWith: rejected (blocked by unifyUnionWith, unifyRecWith, unifyShapeWith)
+    [inject-unknown] L342 parameter union names no cell, foreign or capability
+    [inject-unknown] L342 parameter isNamed names no cell, foreign or capability
+    [unknown-type] L342 unknown type Ty
+    [unknown-type] L342 unknown type Fn
+    [unknown-type] L344 unknown type Ty
+    [unknown-type] L344 unknown type Subst
+    [mut-escape] L353 Mut m argument to a parameter not typed Mut<…>
+    [mut-escape] L356 Mut m argument to a parameter not typed Mut<…>
+    [unsupported] L347 intrinsic member Mut.get
+    [unsupported] L348 intrinsic member Mut.set
+lite/subtype.ss.ts: 22 cells, 21 not ok, 0 module errors
+tcT: rejected
+    [unknown-type] L4 unknown type TcPart
+tcR: rejected
+    [unknown-type] L6 unknown type TcPart
+tcM: rejected
+    [unknown-type] L8 unknown type TcPart
+tcBuiltOf: rejected
+    [inject-unknown] L11 parameter tcSTATE_VALUE names no cell, foreign or capability
+    [unknown-type] L11 unknown type TcPart
+    [unknown-type] L11 unknown type TcBuilt
+tcRejectedCell: rejected (blocked by tcBuiltOf, tcT, tcR)
+    [inject-unknown] L27 parameter tcVariableName names no cell, foreign or capability
+    [inject-unknown] L27 parameter tcLANG names no cell, foreign or capability
+    [inject-unknown] L27 parameter tcHeader names no cell, foreign or capability
+    [inject-unknown] L27 parameter tcIn names no cell, foreign or capability
+    [unknown-type] L27 unknown type TcBuilt
+tcTypeCell: rejected (blocked by tcBuiltOf, tcT)
+    [inject-unknown] L30 parameter tcVariableName names no cell, foreign or capability
+    [inject-unknown] L30 parameter tcLANG names no cell, foreign or capability
+    [inject-unknown] L30 parameter tcHeader names no cell, foreign or capability
+    [unknown-type] L30 unknown type AstNode
+    [unknown-type] L30 unknown type TcBuilt
+tcDeclOf: rejected
+    [unknown-type] L35 unknown type AstNode
+tcFnOf: rejected
+    [unknown-type] L38 unknown type AstNode
+tcIdName: rejected
+    [unknown-type] L47 unknown type AstNode
+tcDeclaredIn: rejected (blocked by tcIdName)
+    [unknown-type] L49 unknown type AstNode
+tcModifierAt: rejected
+    [inject-unknown] L60 parameter nodeKind names no cell, foreign or capability
+    [unknown-type] L60 unknown type AstNode
+    [untyped-parameter] L61 parameter has no type and no contextual type
+tcErasesToJs: rejected (blocked by tcModifierAt)
+    [inject-unknown] L73 parameter tcJsErrorOf names no cell, foreign or capability
+    [inject-unknown] L73 parameter kidsOf names no cell, foreign or capability
+    [unknown-type] L73 unknown type AstNode
+    [unknown-type] L76 unknown type AstNode
+tcGlobalsInOrder: rejected
+    [inject-unknown] L86 parameter tcGlobalRefStarts names no cell, foreign or capability
+    [unknown-type] L86 unknown type AstNode
+tcArgParts: rejected (blocked by tcT, tcR)
+    [inject-unknown] L90 parameter tcCaps names no cell, foreign or capability
+    [inject-unknown] L90 parameter tcIn names no cell, foreign or capability
+    [unknown-type] L90 unknown type TcParam
+    [unknown-type] L90 unknown type TcPart
+tcArgsParts: rejected (blocked by tcArgParts, tcT)
+    [unknown-type] L101 unknown type TcInfo
+    [unknown-type] L101 unknown type TcPart
+    [untyped-parameter] L102 parameter has no type and no contextual type
+tcExprParts: rejected (blocked by tcArgsParts, tcT, tcR, tcM)
+    [inject-unknown] L105 parameter tcIn names no cell, foreign or capability
+    [unknown-type] L105 unknown type TcInfo
+    [unknown-type] L105 unknown type TcPart
+tcAssemble: rejected (blocked by tcGlobalsInOrder, tcExprParts, tcBuiltOf, tcT, tcR)
+    [inject-unknown] L114 parameter tcPrelude names no cell, foreign or capability
+    [inject-unknown] L114 parameter tcOjsInputGlobals names no cell, foreign or capability
+    [inject-unknown] L114 parameter tcGlobalRefStarts names no cell, foreign or capability
+    [inject-unknown] L114 parameter mdPreludeCalls names no cell, foreign or capability
+    [inject-unknown] L114 parameter tcVariableName names no cell, foreign or capability
+    [inject-unknown] L114 parameter tcLANG names no cell, foreign or capability
+    [inject-unknown] L114 parameter tcHeader names no cell, foreign or capability
+    [inject-unknown] L114 parameter tcIn names no cell, foreign or capability
+    [inject-unknown] L114 parameter tcINPUTS names no cell, foreign or capability
+    [unknown-type] L115 unknown type AstNode
+    [unknown-type] L115 unknown type TcInfo
+    [unknown-type] L115 unknown type TcCtx
+    [unknown-type] L115 unknown type TcBuilt
+    [untyped-parameter] L117 parameter has no type and no contextual type
+    [untyped-parameter] L118 parameter has no type and no contextual type
+    [untyped-parameter] L119 parameter has no type and no contextual type
+    [untyped-parameter] L121 parameter has no type and no contextual type
+    [untyped-parameter] L125 parameter has no type and no contextual type
+tcCompileChecked: rejected (blocked by tcDeclOf, tcFnOf, tcDeclaredIn, tcIdName, tcTypeCell, tcErasesToJs, tcAssemble)
+    [inject-unknown] L131 parameter tcMustParse names no cell, foreign or capability
+    [inject-unknown] L131 parameter nodeKind names no cell, foreign or capability
+    [inject-unknown] L131 parameter tcInfosOf names no cell, foreign or capability
+    [inject-unknown] L131 parameter tcLowered names no cell, foreign or capability
+    [inject-unknown] L131 parameter tcKeepJsx names no cell, foreign or capability
+    [inject-unknown] L131 parameter tcCommentTypes names no cell, foreign or capability
+    [inject-unknown] L131 parameter tcLANG names no cell, foreign or capability
+    [unknown-type] L132 unknown type TcCtx
+    [unknown-type] L132 unknown type TcBuilt
+    [untyped-parameter] L144 parameter has no type and no contextual type
+tcTryCompile: rejected (blocked by tcCompileChecked)
+    [unknown-type] L157 unknown type TcCtx
+    [unknown-type] L157 unknown type TcBuilt
+tcBuild: rejected (blocked by tcCompileChecked, tcTryCompile, tcRejectedCell)
+    [inject-unknown] L162 parameter tcIsDuplicateKey names no cell, foreign or capability
+    [inject-unknown] L162 parameter tcNameOf names no cell, foreign or capability
+    [inject-unknown] L162 parameter tcINPUTS names no cell, foreign or capability
+    [unknown-type] L162 unknown type TcCtx
+    [unknown-type] L162 unknown type TcBuilt
+tcCompileCell: rejected (blocked by tcBuild)
+    [unknown-type] L180 unknown type TcCtx
+    [unknown-type] L180 unknown type TcVar
+tcCompileCellText: rejected (blocked by tcBuild)
+    [unknown-type] L182 unknown type TcCtx
+tcCompileModule: rejected (blocked by tcCompileCell)
+    [inject-unknown] L184 parameter tcSplitCells names no cell, foreign or capability
+    [inject-unknown] L184 parameter tcContextOf names no cell, foreign or capability
+    [unknown-type] L184 unknown type TcVar
+    [untyped-parameter] L187 parameter has no type and no contextual type
+lite/toolchain/tc-build.ss.ts: 24 cells, 23 not ok, 0 module errors
+tcSplitCells: rejected
+    [inject-unknown] L6 parameter tcMustParse names no cell, foreign or capability
+    [inject-unknown] L6 parameter leadingComments names no cell, foreign or capability
+    [untyped-parameter] L23 parameter has no type and no contextual type
+tcContextOfFacts: rejected
+    [unknown-type] L27 unknown type TcInfo
+    [unknown-type] L27 unknown type TcCtx
+    [untyped-parameter] L29 parameter has no type and no contextual type
+tcContextOf: rejected (blocked by tcContextOfFacts)
+    [inject-unknown] L34 parameter tcInfosOf names no cell, foreign or capability
+    [inject-unknown] L34 parameter tcLowered names no cell, foreign or capability
+    [unknown-type] L34 unknown type TcCtx
+    [unknown-type] L35 unknown type TcInfo
+tcAcceptedOf: rejected
+    [unknown-type] L43 unknown type TcCheck
+    [untyped-parameter] L44 parameter has no type and no contextual type
+tcWhyOf: rejected
+    [unknown-type] L47 unknown type TcCheck
+    [unknown-type] L47 unknown type TcCheckCell
+    [untyped-parameter] L50 parameter has no type and no contextual type
+tcContextFromCheck: rejected (blocked by tcAcceptedOf, tcWhyOf, tcContextOfFacts)
+    [unknown-type] L55 unknown type TcCheck
+    [unknown-type] L55 unknown type TcCtx
+    [untyped-parameter] L59 parameter has no type and no contextual type
+tcNotOk: rejected
+    [unknown-type] L64 unknown type TcCellState
+tcCellStates: rejected (blocked by tcAcceptedOf, tcWhyOf, tcNotOk)
+    [unknown-type] L71 unknown type TcCheck
+    [unknown-type] L71 unknown type TcCellState
+    [unknown-type] L73 unknown type TcCellState
+    [untyped-parameter] L74 parameter has no type and no contextual type
+    [untyped-parameter] L77 parameter has no type and no contextual type
+    [untyped-parameter] L82 parameter has no type and no contextual type
+    [mut-escape] L88 Mut out argument to a parameter not typed Mut<…>
+lite/toolchain/tc-ctx.ss.ts: 8 cells, 8 not ok, 0 module errors
+tcWholeType: rejected
+    [inject-unknown] L8 parameter nodeKind names no cell, foreign or capability
+    [unknown-type] L8 unknown type AstNode
+tcAsFrom: rejected
+    [inject-unknown] L16 parameter tcLexed names no cell, foreign or capability
+    [unknown-type] L16 unknown type Ast
+    [untyped-parameter] L19 parameter has no type and no contextual type
+tcAssertionTo: rejected
+    [inject-unknown] L29 parameter tcLexed names no cell, foreign or capability
+    [unknown-type] L29 unknown type Ast
+    [untyped-parameter] L30 parameter has no type and no contextual type
+tcOptionalCut: rejected
+    [inject-unknown] L36 parameter tcLexed names no cell, foreign or capability
+    [unknown-type] L36 unknown type Ast
+    [unknown-type] L36 unknown type TcEdit
+tcCutNode: rejected (blocked by tcWholeType, tcAsFrom, tcAssertionTo, tcOptionalCut)
+    [inject-unknown] L42 parameter childrenOf names no cell, foreign or capability
+    [inject-unknown] L42 parameter TYPE_FIELDS names no cell, foreign or capability
+    [unknown-type] L42 unknown type Ast
+    [unknown-type] L42 unknown type AstNode
+    [unknown-type] L42 unknown type TcEdit
+    [unknown-type] L50 unknown type TcEdit
+    [unknown-type] L51 unknown type AstNode
+tcCuts: rejected (blocked by tcCutNode)
+    [unknown-type] L62 unknown type Ast
+    [unknown-type] L62 unknown type TcEdit
+    [unknown-type] L63 unknown type TcEdit
+    [unknown-type] L64 unknown type AstNode
+    [unknown-type] L70 unknown type TcEdit
+tcMustParse: rejected
+    [inject-unknown] L80 parameter parseTree names no cell, foreign or capability
+    [unknown-type] L80 unknown type Ast
+tcCommentTypes: rejected (blocked by tcMustParse, tcCuts)
+    [inject-unknown] L87 parameter tcApplyEdits names no cell, foreign or capability
+    [inject-unknown] L87 parameter tcEsc names no cell, foreign or capability
+    [inject-unknown] L87 parameter tcOPEN names no cell, foreign or capability
+    [inject-unknown] L87 parameter tcLANG names no cell, foreign or capability
+    [unknown-type] L87 unknown type Ast
+    [untyped-parameter] L90 parameter has no type and no contextual type
+tcErase: rejected (blocked by tcMustParse, tcCuts)
+    [inject-unknown] L94 parameter tcApplyEdits names no cell, foreign or capability
+tcUncommentTypes: rejected
+    [inject-unknown] L97 parameter parseTree names no cell, foreign or capability
+    [inject-unknown] L97 parameter tcApplyEdits names no cell, foreign or capability
+    [inject-unknown] L97 parameter tcUnesc names no cell, foreign or capability
+    [untyped-parameter] L100 parameter has no type and no contextual type
+tcCompileTypes: rejected (blocked by tcCommentTypes)
+    [inject-unknown] L103 parameter tcLANG names no cell, foreign or capability
+tcDecompileTypes: rejected
+    [inject-unknown] L106 parameter tcLangOf names no cell, foreign or capability
+    [inject-unknown] L106 parameter tcLANG names no cell, foreign or capability
+lite/toolchain/tc-cuts.ss.ts: 13 cells, 12 not ok, 0 module errors
+tcRtCall: rejected
+    [inject-unknown] L5 parameter tcIn names no cell, foreign or capability
+    [inject-unknown] L5 parameter tcINPUTS names no cell, foreign or capability
+    [unknown-type] L5 unknown type AstNode
+tcHeaderOf: rejected
+    [unknown-type] L13 unknown type TcHeader
+tcCallAt: rejected
+    [inject-unknown] L24 parameter childrenOf names no cell, foreign or capability
+    [unknown-type] L24 unknown type AstNode
+    [unknown-type] L25 unknown type AstNode
+    [untyped-parameter] L29 parameter has no type and no contextual type
+tcOutside: rejected (blocked by tcRtCall)
+    [inject-unknown] L38 parameter tcRuntimeInputs names no cell, foreign or capability
+    [inject-unknown] L38 parameter childrenOf names no cell, foreign or capability
+    [unknown-type] L38 unknown type AstNode
+    [unknown-type] L41 unknown type AstNode
+tcParseCompiled: rejected (blocked by tcHeaderOf, tcCallAt, tcOutside, tcRtCall)
+    [inject-unknown] L53 parameter parseTree names no cell, foreign or capability
+    [inject-unknown] L53 parameter tcLangOf names no cell, foreign or capability
+    [inject-unknown] L53 parameter tcLANG names no cell, foreign or capability
+    [unknown-type] L53 unknown type TcCompiled
+    [untyped-parameter] L58 parameter has no type and no contextual type
+    [untyped-parameter] L65 parameter has no type and no contextual type
+    [unknown-type] L71 unknown type TcShape
+tcCompiledKind: rejected (blocked by tcParseCompiled)
+    [unknown-type] L80 unknown type TcKind
+tcDecompileVariable: rejected (blocked by tcParseCompiled)
+    [inject-unknown] L86 parameter tcUnesc names no cell, foreign or capability
+    [inject-unknown] L86 parameter tcUnkeep names no cell, foreign or capability
+lite/toolchain/tc-decomp.ss.ts: 9 cells, 7 not ok, 0 module errors
+tcNotARef: rejected
+    [unknown-type] L6 unknown type AstNode
+tcGlobalRefStarts: rejected (blocked by tcNotARef)
+    [inject-unknown] L14 parameter mdRebinds names no cell, foreign or capability
+    [inject-unknown] L14 parameter kidsOf names no cell, foreign or capability
+    [unknown-type] L14 unknown type AstNode
+    [unknown-type] L16 unknown type AstNode
+tcJsxRoots: rejected
+    [inject-unknown] L27 parameter kidsOf names no cell, foreign or capability
+    [unknown-type] L27 unknown type Ast
+    [unknown-type] L27 unknown type AstNode
+    [unknown-type] L28 unknown type AstNode
+    [unknown-type] L29 unknown type AstNode
+tcKeepJsx: rejected (blocked by tcJsxRoots)
+    [inject-unknown] L38 parameter tcMustParse names no cell, foreign or capability
+    [inject-unknown] L38 parameter tcLowered names no cell, foreign or capability
+    [inject-unknown] L38 parameter tcKeep names no cell, foreign or capability
+    [inject-unknown] L38 parameter tcApplyEdits names no cell, foreign or capability
+    [inject-unknown] L38 parameter parseTree names no cell, foreign or capability
+    [untyped-parameter] L40 parameter has no type and no contextual type
+    [untyped-parameter] L44 parameter has no type and no contextual type
+    [untyped-parameter] L46 parameter has no type and no contextual type
+lite/toolchain/tc-free.ss.ts: 4 cells, 4 not ok, 0 module errors
+tcLitStr: rejected
+    [unknown-type] L5 unknown type AstNode
+tcStrings: rejected (blocked by tcLitStr)
+    [unknown-type] L8 unknown type AstNode
+tcPropName: rejected
+    [unknown-type] L15 unknown type AstNode
+tcModuleCall: rejected (blocked by tcLitStr, tcStrings, tcPropName)
+    [unknown-type] L18 unknown type AstNode
+    [unknown-type] L18 unknown type TcModuleVar
+    [unknown-type] L18 unknown type TcModuleImport
+tcModuleJs: rejected (blocked by tcModuleCall)
+    [inject-unknown] L37 parameter parseTree names no cell, foreign or capability
+    [inject-unknown] L37 parameter childrenOf names no cell, foreign or capability
+    [unknown-type] L37 unknown type TcModuleVar
+    [unknown-type] L37 unknown type TcModuleImport
+    [unknown-type] L44 unknown type TcModuleVar
+    [unknown-type] L44 unknown type TcModuleImport
+    [unknown-type] L45 unknown type AstNode
+tcStubMessage: rejected (blocked by tcPropName)
+    [unknown-type] L57 unknown type AstNode
+    [untyped-parameter] L62 parameter has no type and no contextual type
+tcSyntaxStub: rejected (blocked by tcStubMessage)
+    [inject-unknown] L67 parameter parseTree names no cell, foreign or capability
+    [inject-unknown] L67 parameter childrenOf names no cell, foreign or capability
+    [unknown-type] L70 unknown type AstNode
+tcOwnThis: rejected
+    [inject-unknown] L80 parameter childrenOf names no cell, foreign or capability
+    [unknown-type] L80 unknown type AstNode
+    [unknown-type] L81 unknown type AstNode
+tcReturnParens: rejected
+    [inject-unknown] L92 parameter tcLexed names no cell, foreign or capability
+tcReadsBack: rejected
+    [inject-unknown] L109 parameter parseTree names no cell, foreign or capability
+tcObsRefusal: rejected
+    [inject-unknown] L122 parameter tcIdentOk names no cell, foreign or capability
+    [inject-unknown] L122 parameter tcRuntimeInputs names no cell, foreign or capability
+    [inject-unknown] L122 parameter tcCaps names no cell, foreign or capability
+    [inject-unknown] L122 parameter tcIn names no cell, foreign or capability
+    [inject-unknown] L122 parameter tcINPUTS names no cell, foreign or capability
+    [unknown-type] L122 unknown type TcObsVar
+    [no-member] L125 property startsWith on Js/unknown; narrow it first
+    [no-member] L126 property startsWith on Js/unknown; narrow it first
+    [no-member] L127 property startsWith on Js/unknown; narrow it first
+    [untyped-parameter] L132 parameter has no type and no contextual type
+    [untyped-parameter] L134 parameter has no type and no contextual type
+    [untyped-parameter] L136 parameter has no type and no contextual type
+tcFromObservableVariables: rejected (blocked by tcObsRefusal, tcOwnThis)
+    [inject-unknown] L140 parameter tcJsErrorOf names no cell, foreign or capability
+    [inject-unknown] L140 parameter parseTree names no cell, foreign or capability
+    [unknown-type] L140 unknown type TcObsVar
+    [unknown-type] L140 unknown type TcTranslated
+    [untyped-parameter] L152 parameter has no type and no contextual type
+lite/toolchain/tc-modjs.ss.ts: 12 cells, 12 not ok, 0 module errors
+tcLexed: rejected
+    [inject-unknown] L5 parameter tcLex names no cell, foreign or capability
+    [unknown-type] L5 unknown type TcToken
+tcFirstOf: rejected
+    [inject-unknown] L7 parameter tcFirstComment names no cell, foreign or capability
+tcJsErrorOf: rejected
+    [inject-unknown] L9 parameter tcJsError names no cell, foreign or capability
+tcNameOf: rejected
+    [inject-unknown] L11 parameter tcDeclaredName names no cell, foreign or capability
+tcLowered: rejected
+    [inject-unknown] L13 parameter tcLower names no cell, foreign or capability
+tcInfosOf: rejected
+    [inject-unknown] L15 parameter tcCellsOf names no cell, foreign or capability
+    [unknown-type] L15 unknown type TcInfo
+tcIdentOk: rejected
+    [inject-unknown] L17 parameter tcIsIdentifier names no cell, foreign or capability
+tcCaps: rejected
+    [inject-unknown] L19 parameter tcCapNames names no cell, foreign or capability
+tcOjsInputGlobals: rejected
+    [inject-unknown] L21 parameter tcOjsGlobals names no cell, foreign or capability
+tcApplyEdits: rejected
+    [unknown-type] L47 unknown type TcEdit
+tcPrelude: rejected
+    [inject-unknown] L56 parameter tcPreludeFns names no cell, foreign or capability
+lite/toolchain/tc-text.ss.ts: 31 cells, 11 not ok, 0 module errors
+lite/toolchain/tc-types.ss.ts: 0 cells, 0 not ok, 0 module errors
+lite/types.ss.ts: 31 cells, 0 not ok, 0 module errors
+uncloneableWith: rejected
+    [unknown-type] L10 unknown type RegOps
+    [unknown-type] L11 unknown type Ty
+    [unknown-type] L14 unknown type Ty
+cloneProblemWith: rejected
+    [inject-unknown] L32 parameter show names no cell, foreign or capability
+    [unknown-type] L32 unknown type RegOps
+    [unknown-type] L33 unknown type Ty
+    [unknown-type] L35 unknown type Ty
+admitsUndefinedWith: rejected
+    [unknown-type] L56 unknown type RegOps
+    [unknown-type] L57 unknown type Ty
+    [untyped-parameter] L59 parameter has no type and no contextual type
+partsOf: rejected
+    [unknown-type] L65 unknown type Ty
+    [untyped-parameter] L70 parameter has no type and no contextual type
+    [untyped-parameter] L71 parameter has no type and no contextual type
+holdsWith: rejected (blocked by partsOf)
+    [unknown-type] L77 unknown type RegOps
+    [unknown-type] L77 unknown type Ty
+    [unknown-type] L80 unknown type Ty
+hasErrWith: rejected
+    [unknown-type] L97 unknown type RegOps
+    [unknown-type] L98 unknown type Ty
+    [unknown-type] L100 unknown type Ty
+    [untyped-parameter] L107 parameter has no type and no contextual type
+lite/walks.ss.ts: 8 cells, 6 not ok, 0 module errors

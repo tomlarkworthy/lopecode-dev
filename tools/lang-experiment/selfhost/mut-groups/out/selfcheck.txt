@@ -1,0 +1,7 @@
+proto checking proto: 508 cells (40 infer files + 10 sections), module errors 0, not ok 0, 2918 ms
+refac checking refac: 508 cells (40 infer files + 10 sections), module errors 0, not ok 0, 2862 ms
+proto checking refac: 508 cells (40 infer files + 10 sections), module errors 0, not ok 0, 2888 ms
+base checking refac: 508 cells (40 infer files + 10 sections), module errors 0, not ok 2, 2899 ms
+  ixCheckFn rejected [mut-bind] mut(...) must be the initializer of a local const 
+  mdCell rejected [mut-bind] mut(...) must be the initializer of a local const 
+base checking base: 496 cells (39 infer files + 10 sections), module errors 0, not ok 0, 2860 ms
