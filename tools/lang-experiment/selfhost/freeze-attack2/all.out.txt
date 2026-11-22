@@ -116,7 +116,7 @@
 == b4.ts:rk-rec-values: REJECT a:rejected[member-write][mut-await]
 == b4.ts:rk-rec-entries: REJECT a:rejected[member-write][mut-await]
 == b4.ts:rk-rec-param: REJECT a:rejected[type][mut-await]
-== b4.ts:rk-rec-helper-get: REJECT a:rejected[type][mut-await]
+== b4.ts:rk-rec-helper-get: REJECT a:rejected[type][mut-await][mut-await]
 == b4.ts:rk-map-key-nested: REJECT a:rejected[member-write][mut-await]
 == b4.ts:rk-map-key-arr: REJECT a:rejected[member-write][mut-await]
 == b4.ts:rk-map-key-state: REJECT s:rejected[member-write][mut-await]
@@ -215,7 +215,7 @@
 == b8.ts:thc-consumer-push: REJECT a:rejected[mut-capture][type]
 == b8.ts:thc-consumer-typed: REJECT a:rejected[mut-capture][type]
 == b8.ts:thc-consumer-direct-mut: REJECT a:rejected[mut-capture][type]
-== b8.ts:cs-async-cell: ACCEPT
+== b8.ts:cs-async-cell: REJECT a:rejected[mut-await]
 == b8.ts:cs-promise-resolve: REJECT a:rejected[type][mut-await] b:rejected[inject-type]
 == b8.ts:cs-async-gen-ret: REJECT a:rejected[mut-yield][mut-await]
 == b8.ts:cs-gen-after-last-yield: REJECT a:rejected[mut-yield][mut-await]
@@ -267,7 +267,7 @@
 == b9.ts:tdz-done-map: REJECT a:rejected[mut-capture][mut-yield][mut-yield]
 == b9.ts:tdz-done-record-holder: REJECT a:rejected[mut-capture][mut-yield][mut-yield]
 == b9.ts:tdz-done-consumer: REJECT a:rejected[mut-capture][mut-yield][mut-yield]
-== b9.ts:usp-async-cell: ACCEPT
+== b9.ts:usp-async-cell: REJECT a:rejected[mut-await]
 == b9.ts:usp-set: REJECT a:rejected[mut-await]
 == b9.ts:usp-then-cb: REJECT a:rejected[mut-capture]
 == b9.ts:usp-reader-cell: REJECT a:rejected[mut-await]
@@ -310,10 +310,10 @@
 == b10.ts:th-two-consumers: REJECT a:rejected[mut-await][type]
 == b10.ts:th-records-equal: REJECT a:rejected[type]
 == b10.ts:th-messageOf: REJECT a:rejected[mut-await][type]
-== b10.ts:cs-deep-async: ACCEPT
+== b10.ts:cs-deep-async: REJECT a:rejected[mut-await]
 == b10.ts:cs-map-value-arr: REJECT a:rejected[mut-await]
 == b10.ts:cs-arr-of-rec: REJECT a:rejected[mut-await]
 == b11.ts:tdz-exit-only: REJECT a:rejected[mut-capture][mut-yield]
 == b11.ts:tdz-exit-only-rec: REJECT a:rejected[mut-capture][mut-yield]
 == b11.ts:tdz-write-no-republish: REJECT a:rejected[mut-capture][mut-yield]
--- 309 candidates, accepted 11, silent 0
+-- 309 candidates, accepted 8, silent 0

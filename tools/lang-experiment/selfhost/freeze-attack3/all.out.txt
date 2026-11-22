@@ -15,10 +15,10 @@
 == b1.ts:isl-fn-out-captures-local: REJECT y:rejected[mut-capture][mut-capture][mut-await] go:rejected[compile-island][compile-boundary]
 == b1.ts:isl-fn-out-in-rec: REJECT y:rejected[mut-capture][mut-capture][mut-await] go:rejected[compile-island][compile-boundary]
 == b1.ts:isl-fn-out-sync: REJECT y:rejected[mut-capture] go:rejected[compile-island][compile-boundary]
-== b1.ts:isl-arg-captured: REJECT go:rejected[compile-boundary]
-== b1.ts:isl-arg-typed-captured: REJECT go:rejected[compile-boundary]
-== b1.ts:isl-arg-identity: ACCEPT
-== b1.ts:isl-arg-typed-identity: ACCEPT
+== b1.ts:isl-arg-captured: REJECT go:rejected[compile-boundary][mut-await]
+== b1.ts:isl-arg-typed-captured: REJECT go:rejected[compile-boundary][mut-await]
+== b1.ts:isl-arg-identity: REJECT go:rejected[mut-await]
+== b1.ts:isl-arg-typed-identity: REJECT go:rejected[mut-await]
 == b1.ts:isl-between-cells: REJECT y:rejected[mut-await] go:rejected[compile-island][compile-boundary]
 == b1.ts:isl-between-cells-map: REJECT y:rejected[mut-await] go:rejected[compile-island][compile-boundary]
 == b1.ts:isl-between-cells-url: REJECT y:rejected[mut-await] go:rejected[compile-island][compile-boundary]
@@ -27,17 +27,17 @@
 == b1.ts:isl-error-out: REJECT y:rejected[mut-await] go:rejected[compile-island]
 == b1.ts:isl-sync-go: REJECT y:rejected[mut-capture][mut-capture][mut-await] go:rejected[compile-island][compile-boundary] use:blocked
 == b1.ts:isl-ref: REJECT go:rejected[compile-boundary]
-== b2.ts:isl-map-fn-arg: REJECT go:rejected[compile-boundary]
-== b2.ts:isl-set-fn-arg: REJECT go:rejected[compile-boundary]
-== b2.ts:isl-map-fn-arg-typed: REJECT go:rejected[compile-boundary]
-== b2.ts:isl-unknown-fn-arg: REJECT go:rejected[compile-boundary]
-== b2.ts:isl-unknown-rec-fn-arg: REJECT go:rejected[compile-boundary]
-== b2.ts:isl-deep9-fn-arg: REJECT go:rejected[compile-boundary]
-== b2.ts:isl-deep7-fn-arg: REJECT go:rejected[compile-boundary]
+== b2.ts:isl-map-fn-arg: REJECT go:rejected[compile-boundary][mut-await]
+== b2.ts:isl-set-fn-arg: REJECT go:rejected[compile-boundary][mut-await]
+== b2.ts:isl-map-fn-arg-typed: REJECT go:rejected[compile-boundary][mut-await]
+== b2.ts:isl-unknown-fn-arg: REJECT go:rejected[compile-boundary][mut-await]
+== b2.ts:isl-unknown-rec-fn-arg: REJECT go:rejected[compile-boundary][mut-await]
+== b2.ts:isl-deep9-fn-arg: REJECT go:rejected[compile-boundary][mut-await]
+== b2.ts:isl-deep7-fn-arg: REJECT go:rejected[compile-boundary][mut-await]
 == b2.ts:isl-between-map-fn: REJECT y:rejected[mut-await] go:rejected[compile-island][compile-boundary]
 == b2.ts:isl-between-unknown: REJECT y:rejected[mut-await] go:rejected[compile-island][compile-boundary]
 == b2.ts:isl-between-typed-unknown: REJECT y:rejected[mut-await] go:rejected[compile-island][compile-boundary]
-== b2.ts:isl-map-fn-consumer: REJECT go:rejected[compile-boundary] obs:blocked
+== b2.ts:isl-map-fn-consumer: REJECT go:rejected[compile-boundary][mut-await] obs:blocked
 == b2.ts:isl-pool-map-fn: REJECT go:rejected[compile-boundary]
 == b2.ts:isl-pool-typed: ACCEPT
 == b3.ts:hp-typed-iife: REJECT a:rejected[mut-capture][mut-capture][mut-await]
@@ -59,9 +59,7 @@
 == b3.ts:ps-slot-native-map: REJECT a:rejected[mut-capture][mut-await]
 == b3.ts:rej-error-message-slot: REJECT a:rejected[mut-capture][mut-capture][mut-await] obs:rejected[mut-yield]
 == b3.ts:rej-error-message-fn: REJECT a:rejected[mut-capture][mut-capture][mut-capture][mut-await] obs:rejected[mut-yield]
-== b3.ts:rej-error-cell: ACCEPT
-   error a: x
-   late throws: Attempted to assign to readonly property.
+== b3.ts:rej-error-cell: REJECT a:rejected[mut-await]
 == b3.ts:rej-array-thrown: REJECT a:rejected[mut-capture][mut-capture][mut-await] obs:rejected[mut-yield]
 == b3.ts:rej-typed-thrown: REJECT a:rejected[mut-capture][mut-await] obs:rejected[mut-yield]
 == b3.ts:rej-caught-published: REJECT a:rejected[mut-capture][mut-capture][mut-await]
@@ -170,7 +168,7 @@
 == b5.ts:rej-arg-array: REJECT a:rejected[mut-await] obs:rejected[mut-yield]
 == b5.ts:rej-arg-typed: REJECT a:rejected[mut-await] obs:rejected[mut-yield]
 == b5.ts:rej-arg-nmap: REJECT a:rejected[mut-await] obs:rejected[mut-yield]
-== b5.ts:rej-cell-arg-error: REJECT obs:rejected[mut-yield]
+== b5.ts:rej-cell-arg-error: REJECT a:rejected[mut-await] obs:rejected[mut-yield]
 == b5.ts:rej-yield-arg-error: REJECT a:rejected[mut-yield]
 == b5.ts:rej-catch-republish: REJECT a:rejected[mut-await]
 == b6.ts:proto-literal-obj: REJECT a:rejected[banned-member][mut-await]
@@ -385,7 +383,7 @@
    drive -> array true indices true groups true
 -- controls 4, fired 3
 -- accepted with a cell still pending at the end: 0
--- 360 candidates, accepted 15, silent 0
+-- 360 candidates, accepted 12, silent 0
 118 |         // cell facts and text come from the check's parse
 119 |         const byName = new Map([...result.facts!.values()].map((info) => [info.name, { info, text: source.slice(info.span![0], info.span![1]) }] as const));
 120 |         const isl = island([...byName.values()].map(({ info }) => ({ name: info.name, params: info.params.map((p) => p.name), refCell: info.returnsRef })), spec);

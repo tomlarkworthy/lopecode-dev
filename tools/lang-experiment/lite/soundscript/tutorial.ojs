@@ -442,11 +442,11 @@ A local bound to a fresh value (an array or object literal, \`new\` on an intrin
 | rule | |
 |---|---|
 | a value that is not a \`Mut\` is not written | \`[member-write]\`, \`[mutating-method]\` |
-| a cell's value and a cell's inputs never hold a \`Mut\` | \`[mut-cell]\` |
+| a cell's value and a cell's inputs never hold a \`Mut\`, except in a function type's result (the specification's Not specified) | \`[mut-cell]\` |
 | a function that outlives the call that made it does not capture a \`Mut\` or a \`let\`, also only to read it; bind a \`const\` of the plain type first (\`const c: readonly number[] = xs\`) and capture that | \`[mut-capture]\`, \`[let-capture]\` |
 | a generator cell does not yield a typed array or a \`URL\` it can still write; these cannot be frozen, so yield a copy | \`[mut-yield]\` |
-| in a generator, a \`Mut\` or a \`let\` of a non-primitive type declared before a \`yield\` is not used after it; make it in the loop body | \`[mut-yield]\` |
-| the same across an \`await\` in a generator, a function the cell keeps, or an async function such a function or a sync function makes | \`[mut-await]\` |
+| in a generator, a local whose type holds a \`Mut\` anywhere, or a \`let\` of a non-primitive type, declared before a \`yield\` is not used after it; make it in the loop body | \`[mut-yield]\` |
+| the same across an \`await\` in a generator or any function made inside a cell; only an async cell's own body is exempt | \`[mut-await]\` |
 | \`mut\`, \`freeze\` and \`borrow\` were removed; delete the call | \`[removed-call]\` |
 | prelude functions are only called, not used as values or declared again as locals | \`[prelude-value]\`, \`[prelude-shadow]\` |
 

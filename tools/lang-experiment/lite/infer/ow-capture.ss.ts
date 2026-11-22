@@ -66,6 +66,29 @@ export const owMutIn = (show, owTyKids) => {
   }
   return mutIn;
 };
+// rule set R (2026-11-22, r2): where a type holds Mut<…> anywhere, also in a function type's result; R-Y and R-A take a
+// binding whose type this finds, so a Mut in a record field, an element, a type argument or a union is followed. R-K
+// does not: the checker's mdHookOf keeps a hook that must reach a context holding the registry's memo (NOTES r2)
+export const owMutDeep = (show, owTyKids) => (R: IxRegCore, t0: Ty): string | null => {
+  const none: Mut<Map<string, number>> = new Map();
+  function deep(t: Ty, depth: number): string | null {
+    if (depth > 12) return null;
+    const inner = (ts: Ty[]): string | null => { for (const x of ts) { const w = deep(x, depth + 1); if (w) return w; } return null; };
+    if (t.k === "fn") return inner([t.ret]);
+    if (t.k !== "named") return inner(owTyKids(t));
+    if (t.n === "Mut") return show(t);
+    if (!R.isAlias(t.n)) return inner(t.args);
+    const plain = !t.args.length, at = none.get(t.n);
+    if (plain && at !== undefined && at <= depth) return null;
+    const w = deep(R.expand(t), depth + 1);
+    if (!w && plain) none.set(t.n, depth);
+    return w;
+  }
+  return deep(t0, 0);
+};
+// a local whose type holds a Mut (owMutDeep): not a cell input, a global, a prelude name or a function declaration
+export const owLocalHoldsMut = (owMutDeep) => (O: OwCtx, b: IxBinding): boolean =>
+  !b.cellParam && b.kind !== "global" && b.kind !== "prelude" && b.kind !== "fn" && owMutDeep(O.R, b.t) !== null;
 export const owMut = (owMutIn) => (R: IxRegCore, t: Ty): string | null => {
   const none: Mut<Map<string, number>> = new Map();
   return owMutIn(R, t, 0, none);

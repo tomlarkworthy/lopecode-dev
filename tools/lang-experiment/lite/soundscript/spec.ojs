@@ -761,7 +761,7 @@ md`**S4.8** A view of a local buffer (\`subarray\`, \`buffer\`) may be bound and
 // %%
 md`**S4.9** \`Mut<T>\` may be written in any type inside a cell: a parameter, a local, a function's result, a field, a type alias. Only in the type of a cell input is it rejected (S4.4). A function may return a \`Mut<…>\` parameter.`
 // %%
-md`**S4.10** A kept function (S4.5) does not capture a \`Mut\` local of an enclosing function, also only to read it. That is \`[mut-capture]\`. It does not capture a \`let\` of an enclosing function, of any type. That is \`[let-capture]\`. A call of a helper that uses the local counts as a capture of it. A \`const\` annotated with a type that is not \`Mut<…>\` and bound before the function may be captured: \`const c: readonly number[] = out\`, \`const m: Map<string, number> = new Map(…)\`, \`const c = n\` for a \`let n\`. A kept function that captures a local holding a promise is \`[mut-capture]\`. Since 2026-11-22.`
+md`**S4.10** A kept function (S4.5) does not capture a \`Mut\` local of an enclosing function, also only to read it. That is \`[mut-capture]\`. It does not capture a \`let\` of an enclosing function, of any type. That is \`[let-capture]\`. A call of a helper that uses the local counts as a capture of it. A \`const\` annotated with a type that is not \`Mut<…>\`, or a \`const\` of a primitive type, bound before the function may be captured: \`const c: readonly number[] = out\`, \`const m: Map<string, number> = new Map(…)\`, \`const c = n\` for a \`let n\`. Even so, a kept function that captures a local holding a promise is \`[mut-capture]\`. Since 2026-11-22.`
 // %%
 md`The cells of this section. \`s4_blur\` writes a box blur into a local buffer; \`s4_counts\` writes a local map through a helper that is only called (S4.5); \`s4_record\` deletes from a local object.`
 // %%
@@ -922,9 +922,11 @@ md`**S5.4** The reader may use the value after an \`await\`.`
 // %%
 md`**S5.5** \`snapshot(v)\` is a fresh copy of \`v\`, of the same type, and a local bound to it is writable (S4.3). The copy is made by \`slice\` for a typed array and by \`structuredClone\` for anything else, so \`snapshot\` of a function or a \`URL\` is accepted by the checker and throws at run time.`
 // %%
-md`**S5.6** In a generator, a \`Mut\` local, or a \`let\` whose type is not primitive, declared before a \`yield\` is not used after it, to read or to write. That is \`[mut-yield]\`. A use is after the \`yield\` when it is later in the text, when it writes the local in an expression that holds the \`yield\` (\`xs.push(yield 1)\`), or when it is in a loop that holds the \`yield\` and the local is declared outside that loop's body. A local declared in the loop body is a new binding in each iteration. A call of a function that uses the local is a use of it at the call. A \`let\` of a primitive type, such as a loop counter or the previous time, may be used across a \`yield\`. Since 2026-11-22.`
+md`**S5.6** In a generator, a local whose type holds a \`Mut\`, or a \`let\` whose type is not primitive, declared before a \`yield\` is not used after it, to read or to write. That is \`[mut-yield]\`. A use is after the \`yield\` when it is later in the text, when it writes the local in an expression that holds the \`yield\` (\`xs.push(yield 1)\`), or when it is in a loop that holds the \`yield\` and the local is declared outside that loop's body. A local declared in the loop body is a new binding in each iteration. A call of a function that uses the local is a use of it at the call. A \`let\` of a primitive type, such as a loop counter or the previous time, may be used across a \`yield\`. Since 2026-11-22.`
 // %%
-md`**S5.7** S5.6 holds for an \`await\` in a function whose values may be seen before it ends, and the rule is \`[mut-await]\`. Such a function is a generator, a function the cell keeps, an async function made in a function that is not async, or an async function made in one of these. An async cell, and an async function made in an async function that is none of these, may use a \`Mut\` across an \`await\`, whether or not the encloser awaits it (see Not specified). Since 2026-11-22.`
+md`**S5.7** S5.6 holds for an \`await\` in a function whose values may be seen before it ends, and the rule is \`[mut-await]\`. Such a function is a generator, or any function made inside the cell's function, awaited or not. Only the body of an async cell itself may use a \`Mut\` across an \`await\`. Since 2026-11-22.`
+// %%
+md`**S5.8** A type holds a \`Mut\` when it is \`Mut<…>\` or has one in a record field, an array or tuple element, a type argument (\`Map<string, Mut<number[]>>\`), a union member, a type alias's expansion or a function type's result. S5.6 and S5.7 take a local whose type holds a \`Mut\`; a cell input, a global and a function declaration are not taken. Since 2026-11-22.`
 // %%
 md`The cells of this section. \`s5_frames\` makes a buffer for each \`k\` = 1, 2, 3, fills it with \`k * (1, 2, 3)\` and yields a copy; \`s5_total\` sums the frame it is given and \`s5_kept\` keeps a copy.`
 // %%
@@ -939,6 +941,10 @@ spec_rejects_5 = [
   { statement: "S5.6", rule: "mut-yield", source: "const g = function* () {\n  const xs = [1];\n  const add = () => xs.push(2);\n  yield 1;\n  add();\n};" },
   { statement: "S5.7", rule: "mut-await", source: "const bad = () => async () => {\n  const bump = async (m: Mut<{ n: number }>): Promise<void> => {\n    await 0;\n    m.n = 2;\n  };\n  const m = { n: 1 };\n  const p = bump(m);\n  const v = m;\n  await p;\n  return v.n;\n};" },
   { statement: "S5.7", rule: "mut-await", source: "const a = () => {\n  const xs = [0];\n  const h = async () => {\n    await 0;\n    xs.push(1);\n  };\n  h();\n  return 1;\n};" },
+  { statement: "S5.7", rule: "mut-await", source: "const a = async () => {\n  const xs = [0];\n  const h = async () => {\n    await 0;\n    xs.push(1);\n  };\n  await h();\n  return xs.length;\n};" },
+  { statement: "S5.8", rule: "mut-yield", source: "type Box = { readonly t: Mut<number[]> };\nconst g = function* () {\n  const r: Box = { t: [0] };\n  yield 1;\n  r.t.push(1);\n  yield r.t.length;\n};" },
+  { statement: "S5.8", rule: "mut-yield", source: "const g = function* () {\n  const t: readonly [Mut<number[]>, number] = [[0], 1];\n  yield 1;\n  t[0].push(1);\n};" },
+  { statement: "S5.8", rule: "mut-await", source: "const a = async () => {\n  const r: { readonly t: Mut<number[]> } = { t: [0] };\n  const h = async () => {\n    await 0;\n    r.t.push(1);\n  };\n  await h();\n  return 1;\n};" },
   { statement: "S5.7", rule: "mut-await", source: "const g = async function* () {\n  const xs = [0];\n  await 0;\n  xs.push(1);\n  yield xs.length;\n};" },
   { statement: "S5.2", rule: "member-write", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst w = (frames) => {\n  frames[0] = 1;\n  return 1;\n};" },
   { statement: "S5.2", rule: "inject-type", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst w = (frames: string) => frames.length;" }
@@ -996,7 +1002,12 @@ test_spec_S5_6 = {
 // %%
 test_spec_S5_7 = {
   spec_is(spec_okCells("const c = async () => {\n  const m = { n: 1 };\n  await 0;\n  m.n = 2;\n  return m.n;\n};\nconst s = () => async (xs: readonly Promise<number>[]): Promise<number> => {\n  let t = 0;\n  for (const x of xs) t += await x;\n  return t;\n};"), "c:ok,s:ok");
-  return `${spec_rejectsFor("S5.7")}; an async cell's Mut and a kept async function's primitive let across an await are accepted`;
+  return `${spec_rejectsFor("S5.7")}; an async cell's Mut and a kept async function's primitive let across an await are accepted; a nested async function's Mut across an await is rejected, awaited or not`;
+}
+// %%
+test_spec_S5_8 = {
+  spec_is(spec_okCells("const f = function* () {\n  for (let k = 0; k < 2; k++) {\n    const r: { readonly t: Mut<number[]> } = { t: [k] };\n    r.t.push(1);\n    yield r.t.length;\n  }\n};"), "f:ok");
+  return `${spec_rejectsFor("S5.8")}; a local holding a Mut made in the loop body is accepted`;
 }
 // %%
 md`## 6. State cells and actions
@@ -2492,9 +2503,7 @@ md`## Not specified
 
 Behaviour the code has today that this page does not promise. Each item is undecided or unfinished, and none should be relied on.`
 // %%
-md`- An async function made in an async function that is not kept and not a generator is not checked under S5.7, though the encloser may return before it ends: \`const a = async () => { const xs = [0]; const c: readonly number[] = xs; const h = async () => { await null; xs.push(1); }; h(); return () => c.length; };\` is accepted. At run time the write throws: the function's captures are frozen when the cell gives its value. Found 2026-11-22.`
-// %%
-md`- S4.10, S5.6 and S5.7 look at a binding's own type, so a \`Mut\` inside a binding whose own type is not \`Mut<…>\` is not followed: \`const r: { readonly t: Mut<number[]> } = { t: [0] }\` may be captured by a kept function and written after a \`yield\`. At run time the write throws. Found 2026-11-22.`
+md`- S4.10 looks at a binding's own type, so a kept function may capture a local whose type holds a \`Mut\` that is not its own type (S5.8): \`const r: { readonly t: Mut<number[]> } = { t: [0] }; return (): Mut<number[]> => r.t;\` is accepted, and a cell that calls the function may write \`r.t\`. A cell input typed \`() => Mut<number[]>\` is not \`[mut-cell]\` (S4.4 does not look into a function type's result), so such a cell is \`(a: () => Mut<number[]>) => a().push(1)\` and is accepted. At run time the write throws. S5.6 and S5.7 follow such a local. Found 2026-11-22.`
 // %%
 md`- \`DataView\`, \`TextEncoder\`, \`TextDecoder\` and \`Symbol\` were on the first list of allowed intrinsics (the tutorial's rule list), but the checker has no signatures for them: reading one leaves the cell unsupported, and \`new\` on one is \`[new-non-intrinsic]\`.`
 // %%

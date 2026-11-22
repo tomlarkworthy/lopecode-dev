@@ -46,9 +46,9 @@ export const RULES: RuleInfo[] = [
   // Opt-in 1
   // 2026-11-22: what another cell holds is frozen at run time; the static ownership rules below are what is left
   { id: "mut-capture", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a function the cell keeps captures a Mut (R-K: reads too), writes it, or the Mut is written after it" },
-  { id: "mut-yield", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a generator cell yields a Mut typed array that is not a fresh copy; R-Y: a Mut, or a let of a non-primitive type, declared before a yield of a generator is used after it" },
+  { id: "mut-yield", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a generator cell yields a Mut typed array that is not a fresh copy; R-Y: a local whose type holds a Mut anywhere, or a let of a non-primitive type, declared before a yield of a generator is used after it" },
   // 2026-11-22, R-A: [mut-yield] would name a yield where the point is an await
-  { id: "mut-await", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a Mut, or a let of a non-primitive type, declared before an await is used after it, in a function whose values may be seen before it ends" },
+  { id: "mut-await", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a local whose type holds a Mut anywhere, or a let of a non-primitive type, declared before an await is used after it, in a generator or any function nested in a cell (only an async cell's own body is exempt)" },
   { id: "removed-call", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "mut(...), freeze(...) or borrow(...): no longer part of the language" },
   // Opt-in 2
   // State and actions

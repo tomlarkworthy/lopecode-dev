@@ -1,27 +1,20 @@
 // Rule set R (2026-11-22, the owner's decision): code that runs after a function has given a value may not use what the
 // cell can still write. R-Y: in a generator, a Mut-typed local, or a let whose type is not primitive, declared before a
 // yield is not used after it ([mut-yield]). R-A: the same across an await, in a function whose values may be seen before
-// it ends ([mut-await]). R-K, a function the cell keeps captures no Mut and no let, is in owCaptureErrs. "After" is as
+// it ends ([mut-await]); since r2 every nested function, and a binding whose type holds a Mut anywhere. R-K, a function the cell keeps captures no Mut and no let, is in owCaptureErrs. "After" is as
 // selfhost/late-code measured it: later in the text, a write whose expression holds the point, or inside a loop around
 // the point when the binding is not declared in that loop's body; a call of a function whose captures read the binding
 // is a use of it at the call.
 
-// a binding R-Y and R-A follow: a local typed Mut, or a let whose type is not primitive (a cell input, a global, a
-// prelude name and a function declaration are not)
-export const owLateCand = (isNamed, isPrimitive) => (b: IxBinding): boolean =>
-  !b.cellParam && b.kind !== "global" && b.kind !== "prelude" && b.kind !== "fn" && (isNamed(b.t, "Mut") || (b.kind === "let" && !isPrimitive(b.t)));
-// g's values may be seen before g ends: g is a generator or a function the cell keeps; or g is nested and its encloser
-// is not async (it returns before g ends) or is itself visible. A plain async cell is not visible
-export const owVisibleFn = (owEncl, owKept, ixFnParts) => {
-  function visible(O: OwCtx, byFn: Map<number, number>, g: AstNode): boolean {
-    const fp = ixFnParts(g);
-    if (fp !== null && fp.generator) return true;
-    if (g.nid === O.T.fn.nid) return false;
-    if (owKept(O, byFn, g)) return true;
-    const ep = ixFnParts(owEncl(O, g));
-    return ep === null || !ep.async || visible(O, byFn, owEncl(O, g));
-  }
-  return visible;
+// a binding R-Y and R-A follow: a local whose type holds a Mut anywhere (owMutDeep, r2), or a let whose type is not
+// primitive (a cell input, a global, a prelude name and a function declaration are not)
+export const owLateCand = (owLocalHoldsMut, isPrimitive) => (O: OwCtx, b: IxBinding): boolean =>
+  owLocalHoldsMut(O, b) || (!b.cellParam && b.kind === "let" && !isPrimitive(b.t));
+// g's values may be seen before g ends: g is a generator, or g is nested in the cell (r2: every nested function, awaited
+// or not; whether its promise is awaited is not followed). Only a plain async cell's own body is not visible
+export const owVisibleFn = (ixFnParts) => (O: OwCtx, byFn: Map<number, number>, g: AstNode): boolean => {
+  const fp = ixFnParts(g);
+  return (fp !== null && fp.generator) || g.nid !== O.T.fn.nid;
 };
 // the points of g after which its values may have been seen: its yields, and its awaits when g is visible
 export const owLatePoints = (owEncl, owVisibleFn, ixFnParts) => (O: OwCtx, byFn: Map<number, number>, g: AstNode): AstNode[] => {
@@ -82,11 +75,12 @@ export const owAfter = (owWriteAt, owLoopsOut, owLoopBody) => (O: OwCtx, g: AstN
   return l !== undefined && (captured || body === null || !inside(d, body));
 };
 // what to do instead, by what the binding holds
-export const owLateMsg = (show, isNamed, unwrap) => (b: IxBinding, p: AstNode): string => {
-  const what = isNamed(b.t, "Mut") ? `Mut ${b.name}` : `let ${b.name} of type ${show(b.t)}`;
+export const owLateMsg = (show, isNamed, owMutDeep, owStripMut) => (O: OwCtx, b: IxBinding, p: AstNode): string => {
+  const w0 = owMutDeep(O.R, b.t), top = isNamed(b.t, "Mut");
+  const what = top ? `Mut ${b.name}` : w0 !== null ? `${b.name}, whose type holds ${w0},` : `let ${b.name} of type ${show(b.t)}`;
   const at = p.type === "YieldExpression" ? "a yield" : "an await in a function whose values may be seen before it ends";
   const w = p.type === "YieldExpression" ? "yield" : "await";
-  return `${what} is declared before ${at} and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the ${w}, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the ${w} (const c: ${show(unwrap(b.t))} = ...) and read c${isNamed(b.t, "Mut") ? "" : "; a let of a primitive type may be used across it"}`;
+  return `${what} is declared before ${at} and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the ${w}, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the ${w} (const c: ${show(owStripMut(O.R, b.t))} = ...) and read c${w0 !== null ? "" : "; a let of a primitive type may be used across it"}`;
 };
 // R-Y and R-A over every function of the cell with a point, each binding owLateCand takes, declared in g before a
 // point or read by g from an encloser (then only uses inside g count); one report per binding and g, at its first use after
@@ -96,14 +90,14 @@ export const owLateUses = (owLatePoints, owLateCand, owUsesOf, owAfter, owLateMs
     if (!ps.length) continue;
     for (const id of O.T.refs.keys()) {
       const b = O.F.bindings.get(id), d = b === undefined ? undefined : O.T.byNid.get(b.nid);
-      if (b === undefined || d === undefined || !owLateCand(b)) continue;
+      if (b === undefined || d === undefined || !owLateCand(O, b)) continue;
       const captured = owEncl(O, d).nid !== g.nid;
       if (captured && !(caps.get(g.nid)?.read ?? []).includes(b.id)) continue;
       for (const u of owUsesOf(O, caps, byFn, b)) {
         if (u.at.nid === b.nid || (captured && !(u.at.start >= g.start && u.at.end <= g.end))) continue;
         const p = ps.find((x) => owAfter(O, g, d, captured, u, x));
         if (p === undefined) continue;
-        owErr(W, u.at, p.type === "YieldExpression" ? "mut-yield" : "mut-await", owLateMsg(b, p));
+        owErr(W, u.at, p.type === "YieldExpression" ? "mut-yield" : "mut-await", owLateMsg(O, b, p));
         break;
       }
     }

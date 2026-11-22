@@ -138,8 +138,8 @@ test_checker_structured_clone = {
 }
 // %%
 test_checker_mut_across_await = {
-  // R-A (2026-11-22): an async function whose values may be seen before it ends (one the cell keeps, and the async functions
-  // inside it) may not use a Mut across an await; one that uses it only before, and an async cell, may
+  // R-A (2026-11-22): an async function whose values may be seen before it ends (since r2: any function nested in the
+  // cell, awaited or not) may not use a Mut across an await; one that uses it only before, and an async cell's body, may
   const cases = [["const c = () => async (): Promise<number> => { const r = async (m: Mut<{ n: number }>): Promise<number> => { await 0; return m.n; }; const m = { n: 1 }; const p = r(m); m.n = 5; return await p; };",["mut-await"]],
     ["const c = () => async (): Promise<number> => { const f = async (m: Mut<{ n: number }>): Promise<number> => { let t = 0; for (const x of [1, 2]) { t += m.n + x; await 0; } return t; }; const m = { n: 1 }; return await f(m); };",["mut-await"]],
     ["const c = () => async (): Promise<number> => { const f = async (m: Mut<{ n: number }>): Promise<void> => { const g = (): void => { m.n = 9; }; await 0; g(); }; const m = { n: 1 }; const p = f(m); const v = m; await p; return v.n; };",["mut-await"]],

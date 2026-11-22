@@ -295,7 +295,8 @@ async function testsOn(page: Page, label: string, boot = true) {
   await page.waitForFunction(() => document.querySelectorAll("label").length > 0 && [...document.querySelectorAll("label")].some((l) => /run the tests/.test(l.textContent ?? "")), null, { timeout: 60000 });
   if (boot) {
     // the core and tutorial must have computed their example cells before "nothing ran" means anything
-    await page.waitForFunction(() => { const rt = (window as any).__ojs_runtime; const m = rt?.mains?.get("@tomlarkworthy/soundscript"); return m && m._scope.get("doubled")?._value !== undefined; }, null, { timeout: 60000 });
+    // and the soundscript value whose running and pulling the check reads (it may compute after doubled)
+    await page.waitForFunction(() => { const rt = (window as any).__ojs_runtime; const m = rt?.mains?.get("@tomlarkworthy/soundscript"); return m && m._scope.get("doubled")?._value !== undefined && [...rt._variables].some((v: any) => v._name === "soundscript" && v._value?.running); }, null, { timeout: 60000 });
     const idle = await page.evaluate(() => {
       const rt = (window as any).__ojs_runtime;
       const st: Record<string, string> = {};
@@ -304,12 +305,17 @@ async function testsOn(page: Page, label: string, boot = true) {
       const ss = [...rt._variables].find((v: any) => v._name === "soundscript" && v._value?.running)?._value;
       const bm = rt.mains.get("@tomlarkworthy/soundscript-breakout");
       const ball = bm?._scope.get("ballView");
-      return { ran: Object.entries(st).filter(([, x]) => x !== "pending").map(([n]) => n), pending: Object.keys(st).length, running: ss?.running(), pulling: ss?.pulling(), ballRuns: ball ? ball._version : null };
+      // the clocks of the page's own modules (its mains): a spec test that runs at boot (test_spec_S7_4, S7_5) makes a
+      // module of its own (spec_editor, not a main) whose generator it pulls, and ss.pulling() with no argument counts it
+      const own = (v: any) => [...rt.mains.values()].includes(v._module);
+      const hs = ss ? [...rt._variables].filter((v: any) => own(v) && ss.isEvents(v._value)).map((v: any) => v._value) : [];
+      const others = ss ? [...rt._variables].filter((v: any) => !own(v) && ss.isEvents(v._value) && ss.pulling([v._value]) > 0).map((v: any) => v._name) : [];
+      return { ran: Object.entries(st).filter(([, x]) => x !== "pending").map(([n]) => n), pending: Object.keys(st).length, running: ss?.running(hs), pulling: ss?.pulling(hs), others, ballRuns: ball ? ball._version : null };
     });
     bootBallRuns.set(label, idle.ballRuns);
     const runs = await bootRuns(page);
     const ball = runs?.find((c) => c.module === BREAKOUT && c.name === "ballView")?.runs ?? null;
-    report(idle.ran.length === 0 && idle.pulling === 0 && (idle.ballRuns === null || ball === 1), `${label}: at boot ${idle.pending} test cells are pending and none ran (${JSON.stringify(idle.ran)}); listeners attached ${idle.running}, clocks pulled ${idle.pulling}; the page's ballView ran ${ball} times (the runtime computed it ${idle.ballRuns} times)`);
+    report(idle.ran.length === 0 && idle.pulling === 0 && (idle.ballRuns === null || ball === 1), `${label}: at boot ${idle.pending} test cells are pending and none ran (${JSON.stringify(idle.ran)}); the page's modules have ${idle.running} listeners attached and ${idle.pulling} clocks pulled (modules a test made pull ${JSON.stringify(idle.others)}); the page's ballView ran ${ball} times (the runtime computed it ${idle.ballRuns} times)`);
     if (runs) {
       const more = runs.filter((c) => c.runs === null || c.runs > 1).map((c) => `${c.module.split("/")[1]}:${c.name} ${c.runs}`);
       report(runs.length > 0 && !more.length, `${label}: at boot each of the ${runs.length} SoundScript cells that take a runtime cell in the core, the tutorial and Breakout ran at most once (${runs.filter((c) => c.runs === 1).length} once, ${runs.filter((c) => c.runs === 0).length} not read); more than once or not found: ${JSON.stringify(more)}`);
@@ -471,6 +477,10 @@ async function speed() {
   await page.getByRole("button", { name: "pause", exact: true }).first().click();
   report(playOk(p, FRAMES), `breakout: after a click on play, ${playSays(p, FRAMES)}`);
   measure(`Breakout after a click on play: ${p.perSecond} world changes/s in ${p.framesPerSecond} animation frames/s`);
+  // once the specification's streaming tests have their values, the modules they made pull nothing (a race at boot, not a leak)
+  const leak = await page.waitForFunction(() => { const rt = (window as any).__ojs_runtime; const m = rt.mains.get("@tomlarkworthy/soundscript-spec"); return !m || ["test_spec_S7_4", "test_spec_S7_5"].every((n) => { const v = m._scope.get(n); return v && (v._value !== undefined || v._error !== undefined); }); }, null, { timeout: 120000 })
+    .then(() => page.evaluate(() => { const rt = (window as any).__ojs_runtime; const ss = [...rt._variables].find((x: any) => x._name === "soundscript" && x._value?.running)._value; const own = (v: any) => [...rt.mains.values()].includes(v._module); return [...rt._variables].filter((v: any) => !own(v) && ss.isEvents(v._value) && ss.pulling([v._value]) > 0).map((v: any) => v._name); }));
+  report(leak.length === 0, `after test_spec_S7_4 and S7_5 settle, the modules a test made pull nothing (${JSON.stringify(leak)})`);
   // typing in a cell editor with the tutorial open: each lint checks the module once, and nothing runs or is stored
   await page.waitForFunction(() => [...(window as any).__ojs_runtime._variables].find((x: any) => x._name === "soundscript" && x._value)._value.pulling() === 0, null, { timeout: 10000 }).catch(() => {});
   // the specification's tests run their own modules from load (S7.4 streams for many frames); the counts are of typing alone

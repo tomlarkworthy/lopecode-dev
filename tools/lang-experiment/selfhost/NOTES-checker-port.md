@@ -2243,3 +2243,126 @@ Open: the two (b) classes above; the for-of rewrites pass R only syntactically (
 a yield, late-code noted it); late-code's `analyze.ts` hooked `owCheckIn` now also runs `owLateUses` (`.scratch/r1/late-smoke.ts`: the same
 verdicts as `checkSources` on four programs; its tables were not rerun); the brief's ~13 list was late-code's R with primitive lets counted; under R as specified the rejected
 shipped cells are the ones listed above.
+
+## 2026-11-22 21:42–23:12: rule set R, round 2 (logs `lite/soundscript/.scratch/r2/`)
+Two parts, from the coordinator: a browser verify failure that repeated, then the two classes round 1 left open.
+
+### Part 1: "at boot 17 test cells are pending", the cause
+The coordinator's two runs on the round 1 tree (`.scratch/mine9-verify.log`, `mine9-verify2.log`) failed 4 and 3 times,
+always this line; `--quick` on that build failed it 3 of 3 (`r2/q1.log`..`q3.log`). The pending/none-ran half passes;
+the failing clause is `clocks pulled 1`. With the check made to name the pulled cells:
+```
+FAIL original: at boot 17 test cells are pending and none ran ([]); listeners attached 4, clocks pulled 1 ["?:nums"]; ...
+```
+`nums` is the generator of `spec_stream` in spec.ojs, run by test_spec_S7_4 and S7_5 in a module of their own made by
+`spec_editor`, not a main ("?"). The spec module is a main and shown in the boot layout, so its test cells run at load
+(verify.ts already said so: "the specification's tests run their own modules from load (S7.4 streams for many
+frames)"). The check read `ss.pulling()` with no argument, which counts every handle on the page; cells.ts says the
+argument is for this ("other modules on the page, such as tests, pull generators of their own"). Whether a `nums` was
+live at the read depends on how far the spec tests had got: a race, not a leak. Both the unscoped read and the comment
+are in `efa987f1~1` (before R). Why it began to repeat with R is not measured.
+
+Fix in verify.ts, structural: the check counts the handles of the mains' own modules (`ss.running(hs)`,
+`ss.pulling(hs)`), and names what test-made modules pull. A second race in the same check, found when the first was
+fixed (`r2/v1.log`, `core-only reopened`: `undefined listeners`): it read the `soundscript` value without waiting for
+it; the wait now also waits for that value. A new report checks for a leak: once test_spec_S7_4 and S7_5 have a value
+or an error, no test-made module pulls anything. In a full run on the round 1 build with the narrowed check (`r2/v1.log`, ended 22:11, run while the census loaded
+the machine) the four passes that failed before hold with `nums` still pulled by a test module, where the old check
+fails; the leak check was added after it and passed in the 22:30 run, whose log was later deleted with `r2/g/`:
+```
+pass original: at boot 17 test cells are pending and none ran ([]); the page's modules have 3 listeners attached and 0 clocks pulled (modules a test made pull ["nums"]); ...
+pass after test_spec_S7_4 and S7_5 settle, the modules a test made pull nothing ([])
+```
+
+### Part 2: the two classes
+(ii) Every nested function is visible: `owVisibleFn` is now "a generator, or not the cell's function"; whether a promise
+is awaited is not followed. Only an async cell's own body may use a Mut across an await. Census (`r2/census3.ts`,
+every cell of late-code's corpus and the build's sections, 45100, against the round 1 verdicts `r2/base-r1.json`): 0
+shipped cells changed. It also rejects an awaited async helper that writes its own local across an await
+(`r2/p2.txt`, last case); none ships.
+
+(i) A type holds a Mut anywhere: new cell `owMutDeep` (ow-capture.ss.ts, 17 lines: record fields, elements, type
+arguments, unions, aliases, a function type's result) and `owLocalHoldsMut` (3 lines: not a cell input, global,
+prelude name or function declaration). For R-Y and R-A (`owLateCand`): 0 shipped cells changed.
+
+For R-K it stops, as the brief says to when there is no reasonable rewrite. With the nested check in
+`owCaptureErrs` (kept as `r2/ow-capture.with-rk-nested.ss.ts`) the census rejected 15 checker cells, all on one field,
+the registry's per-check memo `IxRegCore.mayHideMemo: Mut<Map<Ty, boolean>>` (ix-types.ss.ts:81):
+- 3 (`ixCheckFn`, `mdCell`, `mdCheckSources`) on a cell input (`ixKnot`, `mdContext`) whose function type returns a
+  context holding the memo. Every curried cell captures its inputs; this was a missing scope filter, now
+  `owLocalHoldsMut`, the same one R-Y and R-A use.
+- 11 (`ixFalsy`, `ixNarrowTypeof`, `ixNarrowEq`, `ixNarrowIn`, `ixNarrowArray`, `ixNarrowByProp`, `ixHides`,
+  `ixReportMissing`, `ixDiscriminant`, `ixNarrowCompare`, `ixCondLeaf`): a callback passed to a cell input (ixFilter,
+  ixNarrow, ixHidden's find) that captures `R` or `K`. Rewritable by passing the context to the callback as an
+  argument; four callee signatures and their callers. Not done, since the next one stops the part.
+- `mdHookOf` (md-cell.ss.ts:13): returns a hook that `withHook` stores in the registry and calls later. It must
+  reach `X`, which holds the memo and is written through it by `mdCompileType`. Bound under a type with no Mut, the
+  memo cannot be written; given to the registry as data, the capture moves into a record, which R does not check.
+  No reasonable rewrite: the example.
+So R-K looks at a binding's own type, as in round 1, and the nested case is in the spec's "Not specified".
+
+Spec: S5.6 says "a local whose type holds a Mut"; new S5.8 defines "holds a Mut" (3 reject rows, test_spec_S5_8);
+S5.7 rewritten ("a generator, or any function made inside the cell's function, awaited or not"; one more reject row,
+an awaited helper); the Not specified item on un-awaited helpers removed and the nested one narrowed to S4.10. Made
+false by r2 and rewritten: S5.7's "An async cell, and an async function made in an async function that is none of
+these, may use a Mut across an await"; Not specified "is not checked under S5.7" and "S4.10, S5.6 and S5.7 look at a
+binding's own type"; the tutorial's two R rows; rules.ts summaries; checker-tests' mut_across_await comment; the
+header comments of ow-late.ss.ts and h9-attacks.ts. Frozen mirror: own.ts `mutDeep`, `cand`, `visible`, the message;
+`diff.ts` SAME 3635 DIFFERENT 0, and with the 70 h9 programs as `--file` sources SAME 3710 DIFFERENT 0
+(`r2/diff-h9.log`).
+
+h9: 24 more programs (h9-r2-*, h9-pr-r2-*), 70 in all: aliases, generics, tuples, a Map type argument (first written as `ReadonlyMap`, an `[unknown-type]`, so it tested nothing; changed to `Map` after the review and rerun, `r2/h9-*-2.txt`, the counts unchanged), unions, a
+function result, inferred records, an `as` cast (`[no-cast]`), async callbacks (forEach, then, IIFE, Promise
+constructor, record method, race, a nested async generator, a cell input), promise chains. (a) accepted 10, silent 0;
+(b) silent 1; (c) silent 1 (`r2/h9-*.txt`, `m/sets-*.txt`).
+
+Measurement, 22:14–22:17 (`r2/measure.sh`, `r2/m/`), modes as in round 1:
+```
+                               programs  accepted  silent (a)  (b)  (c)     round 1 (a/b/c), accepted
+run-sets (13 sets, h9 included)    1945       294           0    4    4      0/19/27, 326 of 1921
+freeze-attack2 run.ts               309         8           0    0    0      0/0/2,   11
+freeze-attack3 run.ts               360        12           0    0    0      0/0/0,   15
+attack1 (main tree)                 246         1           0    0    0      0/2/2,   3
+```
+Controls (`--off`): run-sets 52 / 390 / 825, attack1 0 / 170 / 187, as before.
+
+Every program silent in (b), one mechanism, R-K on a Mut below a binding's own type: a kept function returns
+`Mut<number[]>` taken from a captured local typed `Mut<number[]>[]` or `{ readonly t: Mut<number[]> }`, and a consumer
+cell writes it: `freeze b1:reg-for-of`, `b2:fo-index`, `h6-array-container`, `h9-r2-kept-returns-field`. The same 4 in
+(c). With R-K on nested Mut they would be rejected, which needs the mdHookOf decision above. Registration not deleted.
+
+A first final gate run (22:17–22:47, `r2/g/`) passed every gate to tc.test; its full verify failed 1, `prose`: the
+new Not specified item said "below the top level", which the spec's prose check rejects (reworded "that is not its own
+type"). A second full run was stopped (`verify-2.log`, the same FAIL, then `stopped by an error: cdpSession` from the
+stop).
+
+Fresh review (`/review-notebook`, 22:51, FIX, 6 findings, all confirmed and taken): S5.8's example `ReadonlyMap` is an
+unknown type (now `Map`, and h9-r2-map-arg with it); the tutorial row "a cell's inputs never hold a Mut" is false for
+an input typed `() => Mut<number[]>`, which S4.4 does not look into (the row now says so, and the Not specified item
+gives the example: a gap that predates R, not closed); this section had no gates; S4.10 said "annotated" where its
+example `const c = n` is not (now "or a const of a primitive type"); S4.10's promise sentence overrides the exemption
+without saying so ("Even so"); S5.8 stood before S5.7 (moved, with its test). Not acted on (outside the scope): the
+tutorial's "frozen at run time unless the checker has proved nothing can write it afterwards" against S4.6.
+
+Gates, final tree, 22:58 to 23:11 (`r2/gates.sh`, `r2/verify3.sh`; logs `r2/final/`, summary `r2/final-summary.txt`):
+```
+build.ts --force                exit 0
+bun-verify                      175 pass, 0 fail
+fixtures.ts                     14/14; 52 rules, 52 with a reject case
+diff.ts                         SAME 3635 DIFFERENT 0 REAL CRASH 14
+diff.ts --module-only           SAME 1051 DIFFERENT 0
+tc-diff.ts                      corpus rows DIFFERENT 0; erase (repro) DIFFERENT (by design)
+live.test.ts                    461 pass, 0 fail (1229 programs, silent 0)
+freeze-table.test.ts            441 pass, 0 fail
+browser/run.test.ts / acorn     2 pass / 6 pass, 0 fail (run apart)
+run-sets                        1945 programs, silent 0  (--off: silent 52)
+freeze-attack2 / 3 run-all.sh   silent 0 / silent 0
+tc.test.ts                      11 pass, 0 fail
+verify.ts --quick x3            227 pass, 0 fail; 227 / 0; 227 / 0 (23:05–23:06)
+verify.ts (full, once)          664 pass, 0 fail
+```
+In these runs no test-made module was pulled at the boot read ("modules a test made pull []"), so they do not by
+themselves show the race; `r2/v1.log` does.
+
+Open: R-K on a nested Mut (the mdHookOf decision); the 11 class-A rewrites if R-K is extended; a cell input typed
+with a Mut in a function result (S4.4); why the boot race began to repeat with round 1 (unmeasured).

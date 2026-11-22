@@ -92,6 +92,33 @@ export function mutIn(t: Ty, reg: Registry, depth = 0, none = new Map<string, nu
   }
 }
 
+// DELIBERATE CHANGE (2026-11-22, R r2): where a type holds Mut<…> anywhere, also in a function type's result (the cells' owMutDeep)
+export function mutDeep(t0: Ty, reg: Registry): string | null {
+  const none = new Map<string, number>();
+  const deep = (t: Ty, depth: number): string | null => {
+    if (depth > 12) return null;
+    const inner = (ts: Ty[]) => { for (const x of ts) { const w = deep(x, depth + 1); if (w) return w; } return null; };
+    switch (t.k) {
+      case "fn": return inner([t.ret]);
+      case "arr": return inner([t.el]);
+      case "tup": return inner(t.els);
+      case "union": return inner(t.ts);
+      case "rec": return inner([...[...t.props.values()].map((p) => p.t), ...(t.index ? [t.index] : [])]);
+      case "named": {
+        if (t.n === "Mut") return show(t);
+        if (!reg.isAlias(t.n)) return inner(t.args ?? []);
+        const plain = !t.args?.length, at = none.get(t.n);
+        if (plain && at !== undefined && at <= depth) return null;
+        const w = deep(reg.expand(t), depth + 1);
+        if (!w && plain) none.set(t.n, depth);
+        return w;
+      }
+      default: return null;
+    }
+  };
+  return deep(t0, 0);
+}
+
 export function ownership(cellFn: Node, ch: Checker): Rule[] {
   const F = ch.facts;
   const errs: Rule[] = [];
@@ -366,8 +393,10 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
   {
     const within = (a: Node, b: Node) => a.start >= b.start && a.end <= b.end;
     const LOOPS = /^(ForStatement|ForOfStatement|ForInStatement|WhileStatement|DoWhileStatement)$/;
-    const cand = (b: Binding) => !b.cellParam && b.kind !== "global" && b.kind !== "prelude" && b.kind !== "fn" && (isMutB(b) || (b.kind === "let" && isPrimitive(b.t) === false));
-    const visible = (g: Node): boolean => !!g.generator || (g !== cellFn && (kept(g) || !encl(g).async || visible(encl(g))));
+    // DELIBERATE CHANGE (2026-11-22, R r2): a binding whose type holds a Mut anywhere; every nested function is visible
+    const local = (b: Binding) => !b.cellParam && b.kind !== "global" && b.kind !== "prelude" && b.kind !== "fn";
+    const cand = (b: Binding) => (local(b) && mutDeep(b.t, ch.reg) !== null) || (!b.cellParam && b.kind === "let" && isPrimitive(b.t) === false);
+    const visible = (g: Node): boolean => !!g.generator || g !== cellFn;
     const writeAt = (r: Node): Node | null => {
       for (let cur = r, p = parent.get(r); p; cur = p, p = parent.get(p)) {
         if (/^(CallExpression|AssignmentExpression|UpdateExpression)$/.test(p.type) || (p.type === "UnaryExpression" && p.operator === "delete")) return p;
@@ -388,10 +417,10 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
       return !!l && (captured || !within(d, l.body));
     };
     const lateMsg = (b: Binding, p: Node): string => {
-      const what = isMutB(b) ? `Mut ${b.name}` : `let ${b.name} of type ${show(b.t)}`;
+      const w0 = mutDeep(b.t, ch.reg), what = isMutB(b) ? `Mut ${b.name}` : w0 !== null ? `${b.name}, whose type holds ${w0},` : `let ${b.name} of type ${show(b.t)}`;
       const at = p.type === "YieldExpression" ? "a yield" : "an await in a function whose values may be seen before it ends";
       const w = p.type === "YieldExpression" ? "yield" : "await";
-      return `${what} is declared before ${at} and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the ${w}, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the ${w} (const c: ${show(unwrap(b.t))} = ...) and read c${isMutB(b) ? "" : "; a let of a primitive type may be used across it"}`;
+      return `${what} is declared before ${at} and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the ${w}, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the ${w} (const c: ${show(stripMut(b.t, ch.reg))} = ...) and read c${w0 !== null ? "" : "; a let of a primitive type may be used across it"}`;
     };
     for (const g of fns) {
       if (!g.async && !g.generator) continue;
