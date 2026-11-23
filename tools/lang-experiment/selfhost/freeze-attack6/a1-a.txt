@@ -1,0 +1,207 @@
+== a1.ts:a1-set-arr-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-arr-index: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-arr-pop: ACCEPT
+   drive -> threw at the call: Unable to delete property.
+== a1.ts:a1-set-arr-splice: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-arr-unshift: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-arr-fill: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-arr-reverse: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-arr-sort: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-arr-shift: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-arr-copyWithin: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-arr-length0: ACCEPT
+   drive -> threw at the call: Array length is not writable
+== a1.ts:a1-set-arr-compound: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-arr-incr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-map-set: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-set-map-set-a: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-set-map-delete: ACCEPT
+   drive -> threw at the call: delete on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-set-map-clear: ACCEPT
+   drive -> threw at the call: clear on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-set-set-add: ACCEPT
+   drive -> threw at the call: add on a frozen Set: a value cannot change after its cell returns
+== a1.ts:a1-set-set-delete: ACCEPT
+   drive -> threw at the call: delete on a frozen Set: a value cannot change after its cell returns
+== a1.ts:a1-set-set-clear: ACCEPT
+   drive -> threw at the call: clear on a frozen Set: a value cannot change after its cell returns
+== a1.ts:a1-set-rec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-rec-incr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-rec-compound: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-opt-delete: ACCEPT
+   drive -> threw at the call: Unable to delete property.
+== a1.ts:a1-set-opt-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-err-message: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-nest-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-tuple-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-recmap-set: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-set-arrrec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-set-spreadless-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-update-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-rec-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-method-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-arr-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-decl-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-wrap-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-width-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-mapholder-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-helper-write-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-foreach-write-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-loop-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-nested-fn-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-actarg-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-readback-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-mutparam-arr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-update-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-rec-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-method-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-arr-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-decl-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-wrap-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-width-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-mapholder-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-helper-write-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-foreach-write-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-loop-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-nested-fn-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-actarg-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-readback-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== a1.ts:a1-mutparam-map: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-update-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-rec-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-method-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-arr-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-decl-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-wrap-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-width-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-mapholder-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-helper-write-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-foreach-write-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-loop-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-nested-fn-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-actarg-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-readback-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-mutparam-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-update-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-rec-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-method-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-arr-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-decl-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-wrap-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-width-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-mapholder-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-helper-write-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-foreach-write-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-loop-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-nested-fn-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-actarg-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-readback-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-mutparam-err: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+listener l: action put threw on a value of events tick: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,memo,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return ((s/*ss:: State<() => number>*/, lg/*ss:: State<number>*/) => action((k/*ss:: number*/) => { const xs = [k]; const c/*ss:: readonly number[]*/ = xs; const f = /*ss+*/ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)/*ss-*/; s.set(f); lg.set(f()); xs.push(k); }));
+                                                                                                                                                                                                                                                                                      ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:275)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:172:15)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:68:15)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:79:112)
+      at runCand (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:83:11)
+
+== a1.ts:a1-listener: ACCEPT
+   drive -> same given -1 holds -1
+== a1.ts:a1-data-set-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-ctl-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   CONTROL FIRED
+== a1.ts:a1-ctl-mut-capture [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: Attempted to assign to readonly property.
+   CONTROL DID NOT FIRE
+-- controls 2, ran 2, fired 1
+-- harness crashes 0
+-- 93 candidates, accepted 93, silent 0

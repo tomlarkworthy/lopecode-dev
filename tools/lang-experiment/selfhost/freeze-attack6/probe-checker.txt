@@ -1,0 +1,233 @@
+## q1
+base-readalias: ACCEPT
+give-plain-cb: ACCEPT
+consumer-passes-mut-cb: REJECT b:rejected[type][type]
+    b[type] parameter Mut<number[]> does not accept number[] || b[type] (x: Mut<number[]>) => void is not assignable to (x: number[]) => void
+consumer-method-cb: REJECT b:rejected[type][type][type]
+    b[type] parameter Mut<number[]> does not accept number[] || b[type] (x: Mut<number[]>) => void is not assignable to (x: number[]) => void || b[type] { f: (x: Mut<number[]>) => void } is not assignable to { f: (x: number[]) => void }
+union-seen: REJECT a:rejected[type]
+    a[type] W is not assignable to R
+union-seen2: REJECT a:rejected[type]
+    a[type] W is not assignable to R | { a: R }
+alias-direct: REJECT a:rejected[type]
+    a[type] W is not assignable to R
+unann-cb-param: REJECT b:rejected[mutating-method]
+    b[mutating-method] write to a number[], which is not Mut
+rest-param: REJECT a:rejected[mut-nested][possibly-undefined][mutating-method]
+    a[mut-nested] Mut<…> inside another type or as a function's result; only the whole type of a parameter, of a local or of a type alias may be a Mut: give the inner value its own Mut local or parameter, or drop the Mut (a local bound to a fresh value is writable) || a[possibly-undefined] property push of a value that may be undefined || a[mutating-method] write to a Mut<number[]> | undefined, which is not Mut
+optional-param: REJECT a:rejected[type]
+    a[type] (x?: Mut<number[]> | undefined) => void is not assignable to (x: number[]) => void
+generic-param: REJECT a:rejected[type]
+    a[type] <T>(x: T) => number is not assignable to (x: number[]) => number
+arr-foreach-3rd: REJECT a:rejected[arity][possibly-undefined][type]
+    a[arity] callback takes more parameters than its context provides || a[possibly-undefined] property push of a value that may be undefined || a[type] (v: number, i: number, arr: undefined) => void is not assignable to (v: number, i: number) => void
+arr-foreach-3rd-ann: REJECT a:rejected[type]
+    a[type] (v: number, i: number, arr: Mut<number[]>) => void is not assignable to (v: number, i: number) => void
+reduce-mut-acc: REJECT a:rejected[type][type]
+    a[type] parameter Mut<number[]> does not accept unknown || a[type] number[] is not assignable to Mut<number[]>
+reduce-mut-acc-input: REJECT b:rejected[type][type]
+    b[type] parameter Mut<number[]> does not accept unknown || b[type] number[] is not assignable to Mut<number[]>
+push-call: REJECT a:rejected[banned-member][no-member]
+    a[banned-member] Array.prototype is banned || a[no-member] property push on Js/unknown; narrow it first
+defineProperty: REJECT a:rejected[banned-member]
+    a[banned-member] Object.defineProperty is banned
+setPrototypeOf: REJECT a:rejected[banned-member]
+    a[banned-member] Object.setPrototypeOf is banned
+bind: REJECT a:rejected[no-member]
+    a[no-member] no property bind on (v: number[]) => number
+bind-writer: REJECT a:rejected[no-member]
+    a[no-member] no property bind on (v: Mut<number[]>) => number
+getter: REJECT a:unsupported
+    a{unsupported get accessor}
+computed-method: REJECT a:unsupported
+    a{unsupported computed property}
+action-mutparam-cb: ACCEPT
+state-fn-mutparam: ACCEPT
+## q2
+act-set-then-write: ACCEPT
+act-set-then-write-read: ACCEPT
+act-callact-then-write: ACCEPT
+act-update-then-write: ACCEPT
+act-set-data-then-write: ACCEPT
+memo-obj-param: REJECT f:rejected[memo-pure]
+    f[memo-pure] a parameter of memo's function is object, which may be or hold a function: a function may read a capability, so the stored result could be stale; take data
+memo-unknown-param: REJECT f:rejected[memo-pure]
+    f[memo-pure] a parameter of memo's function is unknown, which may be or hold a function: a function may read a capability, so the stored result could be stale; take data
+memo-rec-param: ACCEPT
+gen-yield-fn-then-write-in-finally: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut xs is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+async-cell-then: REJECT a:rejected[type]
+    a[type] an async function returns Promise<() => number>, a promise: await it, so the function's type says what it resolves to
+## q3
+usp-new: REJECT a:unsupported
+    a{unsupported intrinsic member Mut.append}
+usp-publish: ACCEPT
+usp-alias-capture: REJECT a:rejected[mut-capture]
+    a[mut-capture] c holds a URLSearchParams that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: URLSearchParams = x.slice())
+url-sp: ACCEPT
+weakmap: REJECT a:rejected[new-non-intrinsic]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic
+regexp-compile: REJECT a:unsupported
+    a{unsupported intrinsic member RegExp.compile}
+regexp-lastIndex: REJECT a:rejected[member-write][regexp-state]
+    a[member-write] write to a RegExp, which is not Mut || a[regexp-state] a regexp that may have the g or y flag keeps lastIndex, which test, exec, match and replace write: use it only where it is made, as the receiver of a call or a String method's argument || a{unsupported intrinsic member RegExp.lastIndex}
+error-cause-write: ACCEPT
+date: REJECT a:rejected[new-non-intrinsic]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic
+ta-alias-capture: REJECT a:rejected[mut-capture]
+    a[mut-capture] c holds a Uint8Array that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: Uint8Array = x.slice())
+act-ta: REJECT put:rejected[possibly-undefined][type][mut-capture]
+    put[possibly-undefined] number | undefined is not assignable to number || put[type] () => number | undefined is not assignable to () => number || put[mut-capture] c holds a Uint8Array that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: Uint8Array = x.slice())
+act-usp: REJECT put:rejected[mut-capture]
+    put[mut-capture] c holds a URLSearchParams that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: URLSearchParams = x.slice()) || put{unsupported intrinsic member Mut.append}
+act-usp-data: REJECT put:unsupported
+    put{unsupported intrinsic member Mut.append}
+act-map: REJECT put:rejected[unknown-type]
+    put[unknown-type] unknown type ReadonlyMap
+act-map2: ACCEPT
+act-rec: ACCEPT
+act-delete: ACCEPT
+act-ret-value: ACCEPT
+act-in-act: ACCEPT
+## q4
+gen-apply-cb-first: REJECT a:rejected[type][type]
+    a[type] parameter Mut<number[]> does not accept unknown || a[type] number[] is not assignable to Mut<number[]>
+gen-apply-data-first: REJECT a:rejected[type][type]
+    a[type] parameter Mut<number[]> does not accept number[] || a[type] (y: Mut<number[]>) => void is not assignable to (y: number[]) => void
+gen-apply-unann: REJECT a:rejected[mutating-method]
+    a[mutating-method] write to a number[], which is not Mut
+gen-apply-tuple: REJECT a:rejected[type][type][type]
+    a[type] parameter Mut<number[]> does not accept unknown || a[type] (y: Mut<number[]>) => void is not assignable to (y: unknown) => void || a[type] [number[], (y: Mut<number[]>) => void] is not assignable to [number[] | Mut<number[]>, (y: number[] | Mut<number[]>) => void]
+gen-explicit-mut: REJECT a:rejected[mut-nested][type]
+    a[mut-nested] Mut<…> inside another type or as a function's result; only the whole type of a parameter, of a local or of a type alias may be a Mut: give the inner value its own Mut local or parameter, or drop the Mut (a local bound to a fresh value is writable) || a[type] number[] is not assignable to Mut<number[]>
+gen-ret-fn: REJECT a:rejected[type][type][iterator-capture]
+    a[type] parameter Mut<number[]> does not accept number[] || a[type] (y: Mut<number[]>) => void is not assignable to (y: number[]) => void || a[iterator-capture] x may hold an iterator (the type parameter T), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...x]) and capture the array
+union-param: REJECT a:rejected[mut-nested][type]
+    a[mut-nested] Mut<…> inside another type or as a function's result; only the whole type of a parameter, of a local or of a type alias may be a Mut: give the inner value its own Mut local or parameter, or drop the Mut (a local bound to a fresh value is writable) || a[type] (y: Mut<number[]> | number) => void is not assignable to (y: number[] | number) => void
+union-fn: ACCEPT
+overload-rec: REJECT a:rejected[type]
+    a[type] (y: Mut<number[]>) => void is not assignable to { (y: number[]) => void }
+rec-call-sig-exposed: REJECT b:rejected[inject-type]
+    b[inject-type] a: (y: Mut<number[]>) => number is not assignable to (y: number[]) => number
+unann-consumer-of-mutparam: REJECT b:rejected[type]
+    b[type] number[] is not assignable to Mut<number[]>
+unann-consumer-snapshot: ACCEPT
+param-of-param-mut-ret: REJECT a:rejected[mut-nested]
+    a[mut-nested] Mut<…> inside another type or as a function's result; only the whole type of a parameter, of a local or of a type alias may be a Mut: give the inner value its own Mut local or parameter, or drop the Mut (a local bound to a fresh value is writable)
+param-of-param-inferred-ret: REJECT a:rejected[mut-capture]
+    a[mut-capture] id, whose type holds Mut<number[]>, captured by a function the cell keeps, which can run after the cell has given its value; bind it under a type with no Mut before the function (const c: (x: Mut<number[]>) => number[] = id) and capture that, or make it inside the function
+cb-receives-mut-of-param: REJECT b:rejected[type]
+    b[type] number[] is not assignable to Mut<number[]>
+consumer-unann-cb-mut: ACCEPT
+helper-decl-capture: REJECT a:rejected[mut-capture]
+    a[mut-capture] Mut xs captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: number[] = xs) and capture that, or make it inside the function
+helper-second-name: REJECT a:rejected[mut-capture]
+    a[mut-capture] Mut xs captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: number[] = xs) and capture that, or make it inside the function
+helper-in-array: REJECT a:rejected[type][mut-capture][mut-capture]
+    a[type] call of () => number | undefined || a[mut-capture] Mut xs captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: number[] = xs) and capture that, or make it inside the function || a[mut-capture] Mut gs captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: (() => number)[] = gs) and capture that, or make it inside the function
+helper-map-arg: REJECT a:rejected[mut-capture]
+    a[mut-capture] Mut xs captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: number[] = xs) and capture that, or make it inside the function
+## q5
+union-fn-call: REJECT a:rejected[type]
+    a[type] call of (y: number[]) => void | (y: Mut<number[]>) => void
+union-fn-call2: REJECT a:rejected[type]
+    a[type] call of (y: Mut<number[]>) => void | (y: number[]) => void
+union-fn-cond: REJECT a:rejected[type]
+    a[type] call of (y: Mut<number[]>) => void | (y: number[]) => void
+union-fn-cond-rev: REJECT a:rejected[type]
+    a[type] call of (y: number[]) => void | (y: Mut<number[]>) => void
+union-fn-arr: REJECT a:rejected[type]
+    a[type] call of (y: number[]) => void | (y: Mut<number[]>) => void | undefined
+union-fn-arr-ann: REJECT a:rejected[type]
+    a[type] call of (y: number[]) => void | (y: Mut<number[]>) => void
+union-fn-rec: REJECT a:rejected[type]
+    a[type] call of (y: Mut<number[]>) => void | (y: number[]) => void
+union-fn-or: REJECT a:rejected[type]
+    a[type] call of (y: number[]) => void | (y: Mut<number[]>) => void
+union-fn-nullish: REJECT a:rejected[type]
+    a[type] call of (y: number[]) => void | (y: Mut<number[]>) => void
+union-fn-cross: REJECT b:rejected[type]
+    b[type] number[] is not assignable to Mut<number[]>
+union-fn-cross-arr: REJECT b:rejected[type]
+    b[type] call of (y: number[]) => number | (y: Mut<number[]>) => number | undefined
+union-fn-cross-cond: REJECT b:rejected[type]
+    b[type] call of (y: Mut<number[]>) => number | (y: number[]) => number
+## q6
+memo-width-local: ACCEPT
+memo-width-literal: REJECT a:rejected[excess-property]
+    a[excess-property] property f is not in { n: number }
+memo-width-cross: ACCEPT
+memo-ret-fn-width: ACCEPT
+state-width-fn: ACCEPT
+state-unknown: REJECT s:rejected[state-undefined]
+    s[state-undefined] a state cell's value may not be undefined (its type is unknown): Observable skips an undefined value, so the cell would never have one. Use null
+state-object: ACCEPT
+state-readonly-unknown-arr: ACCEPT
+gen-alias-yield-write-after: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut xs is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+gen-helper-after: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut xs is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+gen-loop-body: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut xs is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+gen-yield-in-arg: REJECT g:rejected[type][mut-yield]
+    g[type] unknown is not assignable to number || g[mut-yield] Mut xs is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+gen-mutparam-helper: REJECT g:unsupported
+    g{unsupported yield*}
+gen-inner-gen-write: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut ys is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c || g{unsupported yield*}
+async-gen-alias: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut xs is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+## q8
+or1-id-capture: REJECT a:rejected[mut-capture]
+    a[mut-capture] id, whose type holds Mut<number[]>, captured by a function the cell keeps, which can run after the cell has given its value; bind it under a type with no Mut before the function (const c: (x: Mut<number[]>) => number[] = id) and capture that, or make it inside the function
+or1-fix: ACCEPT
+or2-usp-fix: REJECT a:rejected[mut-capture]
+    a[mut-capture] c holds a URLSearchParams that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: URLSearchParams = x.slice()) || a{unsupported intrinsic member Mut.slice}
+or2-usp-fix2: ACCEPT
+or2-usp-plain: REJECT a:rejected[mut-capture]
+    a[mut-capture] Mut c (URLSearchParams) captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: URLSearchParams = c.slice())
+or3-deep13: REJECT a:rejected[mut-capture]
+    a[mut-capture] t, whose type holds a part nested more deeply than the checker looks ({ v: number[] }), captured by a function the cell keeps, which can run after the cell has given its value; bind it under a type with no Mut before the function (const c: { v: B<B<B<B<B<B<…>>>>>> } = t) and capture that, or make it inside the function
+or4-record: REJECT a:rejected[mut-capture]
+    a[mut-capture] Mut t captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: { [k: string]: number[] } = t) and capture that, or make it inside the function
+or4-record-fix: REJECT a:rejected[unknown-type]
+    a[unknown-type] unknown type Readonly
+or5-union-same: ACCEPT
+or5-union-ret: REJECT a:rejected[type]
+    a[type] call of (y: number[]) => number | (y: number[]) => string
+or6-events-readonly-rec: REJECT l:rejected[inject-events]
+    l[inject-events] tick is not a sync generator cell yielding { k: number }
+or6-events-rec: REJECT l:rejected[inject-events]
+    l[inject-events] tick is not a sync generator cell yielding { k: number }
+or7-reduce-arr: REJECT a:rejected[no-cast]
+    a[no-cast] as cast || a{unsupported callback whose parameter types are not inferred before it}
+or7-reduce-arr2: REJECT a:rejected[type]
+    a[type] parameter number[] does not accept unknown
+or8-generic-closure: REJECT a:rejected[iterator-capture]
+    a[iterator-capture] x may hold an iterator (the type parameter T), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...x]) and capture the array
+or8-generic-closure-fix: REJECT a:rejected[iterator-capture][mut-capture]
+    a[iterator-capture] c may hold an iterator (the type parameter T), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...c]) and capture the array || a[mut-capture] Mut c captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: T[] = c) and capture that, or make it inside the function
+or9-mut-local-captured-readonly-fix: ACCEPT
+or10-ta-fix: REJECT a:rejected[mut-capture]
+    a[mut-capture] Mut c (Uint8Array) captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: Uint8Array = c.slice())
+## q9
+or4-fix-msg: ACCEPT
+or6-bound: ACCEPT
+or6-ann-gen: ACCEPT
+or7-reduce-num: REJECT a:rejected[type]
+    a[type] parameter number does not accept unknown
+or7-reduce-arr-ann: ACCEPT
+or10-ta-readonly-copy: REJECT a:rejected[mut-capture]
+    a[mut-capture] Mut c (Uint8Array) captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: Uint8Array = c.slice())
+or10-ta-alias-of-copy: REJECT a:rejected[mut-capture]
+    a[mut-capture] c holds a Uint8Array that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: Uint8Array = x.slice())
+usp-set: REJECT a:unsupported
+    a{unsupported intrinsic member Mut.set}
+usp-delete: REJECT a:unsupported
+    a{unsupported intrinsic member Mut.delete}
+usp-sort: REJECT a:unsupported
+    a{unsupported intrinsic member Mut.sort}
+usp-url-sp-set: REJECT a:unsupported
+    a{unsupported intrinsic member URLSearchParams.set}
+usp-state: REJECT put:unsupported
+    put{unsupported intrinsic member Mut.set}

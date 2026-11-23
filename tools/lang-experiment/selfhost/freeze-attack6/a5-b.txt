@@ -1,0 +1,52 @@
+== a5.ts:a5-P-listener-rec: REJECT l:rejected[inject-events]
+== a5.ts:a5-P-listener-two-values: ACCEPT
+   drive -> DIFF given 12 holds 22
+   SILENT
+== a5.ts:a5-P-jsx-onclick: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a5.ts:a5-P-elem-in-state: REJECT s:rejected[no-member] put:rejected[no-member][action-capture]
+== a5.ts:a5-P-action-in-state: REJECT put:rejected[action-capture] fire:rejected[action-capture]
+== a5.ts:a5-P-update-chain: ACCEPT
+   drive -> DIFF [1,2]
+   SILENT
+== a5.ts:a5-P-actarg-rec: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a5.ts:a5-two-calls: ACCEPT
+   drive -> same 1 then 1
+== a5.ts:a5-actarg-data: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a5.ts:a5-actarg-writer: ACCEPT
+   drive -> called
+== a5.ts:a5-state-mutparam-fn: REJECT go:rejected[action-capture]
+== a5.ts:a5-listener-closes-input: ACCEPT
+== a5.ts:a5-listener-closes-alias: REJECT put:rejected[action-capture]
+== a5.ts:a5-events-yield-fn: ACCEPT
+== a5.ts:a5-events-yield-fn-after: REJECT tick:rejected[mut-yield]
+== a5.ts:a5-state-init-alias: ACCEPT
+== a5.ts:a5-island-data: ACCEPT
+   late throws: undefined is not an object (evaluating 'x.length')
+== a5.ts:a5-island-fn-in: REJECT go:rejected[compile-boundary]
+== a5.ts:a5-set-as-value: ACCEPT
+   drive -> DIFF given 1 holds 2
+   late throws: undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length')
+   SILENT
+== a5.ts:a5-read-kept: ACCEPT
+   drive -> DIFF given 0 holds 1
+   SILENT
+== a5.ts:a5-ctl-P-direct-mut [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   CONTROL FIRED
+== a5.ts:a5-ctl-listener-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 9
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 20 candidates, accepted 13, silent 6
+SILENT a5.ts:a5-P-listener-two-values
+SILENT a5.ts:a5-P-jsx-onclick
+SILENT a5.ts:a5-P-update-chain
+SILENT a5.ts:a5-P-actarg-rec
+SILENT a5.ts:a5-set-as-value
+SILENT a5.ts:a5-read-kept

@@ -1,0 +1,17 @@
+export const srcs: [string, string][] = [
+  ["memo-width-local", "const a = () => { const sq = memo((o: { readonly n: number }) => o); const xs = [0]; const c: readonly number[] = xs; const r = { n: 1, f: () => c.length }; const k1 = sq(r).n; xs.push(1); return k1; };"],
+  ["memo-width-literal", "const a = () => { const sq = memo((o: { readonly n: number }) => o); const xs = [0]; const c: readonly number[] = xs; const k1 = sq({ n: 1, f: () => c.length }).n; xs.push(1); return k1; };"],
+  ["memo-width-cross", "const sq = () => memo((o: { readonly n: number }) => o);\nconst a = (sq: (o: { readonly n: number }) => { readonly n: number }) => { const xs = [0]; const c: readonly number[] = xs; const r = { n: 1, f: () => c.length }; sq(r); xs.push(1); return r; };"],
+  ["memo-ret-fn-width", "const sq = () => memo((o: { readonly n: number }) => ({ o }));"],
+  ["state-width-fn", "const s = () => state<{ readonly n: number }>({ n: 0 });\nconst put = (s: State<{ readonly n: number }>) => ({ go: action(() => { const xs = [0]; const c: readonly number[] = xs; const r = { n: 1, f: () => c.length }; s.set(r); xs.push(1); }) });"],
+  ["state-unknown", "const s = () => state<unknown>(0);"],
+  ["state-object", "const s = () => state<object>({});"],
+  ["state-readonly-unknown-arr", "const s = () => state<readonly unknown[]>([]);\nconst put = (s: State<readonly unknown[]>) => ({ go: action(() => { const xs = [0]; const c: readonly number[] = xs; s.set([() => c.length]); xs.push(1); }) });"],
+  ["gen-alias-yield-write-after", "const g = function* () { const xs = [0]; const c: readonly number[] = xs; yield () => c.length; xs.push(1); };"],
+  ["gen-helper-after", "const g = function* () { const xs = [0]; const c: readonly number[] = xs; const w = () => { xs.push(1); }; yield () => c.length; w(); };"],
+  ["gen-loop-body", "const g = function* () { for (let k = 0; k < 2; k++) { const xs = [k]; const c: readonly number[] = xs; yield () => c.length; xs.push(1); } };"],
+  ["gen-yield-in-arg", "const g = function* () { const xs = [0]; const c: readonly number[] = xs; xs.push((yield () => c.length) ?? 1); };"],
+  ["gen-mutparam-helper", "const g = function* () { const mk = function* (ys: Mut<number[]>) { const c: readonly number[] = ys; yield () => c.length; }; const xs = [0]; yield* mk(xs); };"],
+  ["gen-inner-gen-write", "const g = function* () { const inner = function* () { const ys = [0]; const c: readonly number[] = ys; yield () => c.length; ys.push(1); }; yield* inner(); };"],
+  ["async-gen-alias", "const g = async function* () { const xs = [0]; const c: readonly number[] = xs; yield () => c.length; await null; xs.push(1); };"],
+];

@@ -1,0 +1,1266 @@
+### m0-P-action (m0.ts)
+```
+const s = () => state<() => number>(() => -1);
+const put = (s: State<() => number>) => ({ go: action(() => { const xs = [0]; const c: readonly number[] = xs; const f = () => c.length; s.set(f); xs.push(1); }) });
+const v = (s: () => number) => s;
+```
+B: drive -> DIFF written when f() was 1; v's f() is 2
+
+### m0-P-memo (m0.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = (sq: (o: { readonly n: number }) => { readonly n: number }) => { const xs = [0]; const c: readonly number[] = xs; const r = { n: 1, f: () => c.length }; sq(r); const before = r.f(); xs.push(1); return [before, r.f()] as const; };
+```
+B: drive -> DIFF r.f() after the memo took r: 1, after the write: 2
+
+### a1-set-arr-push (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-set-arr-index (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs[0] = 5; }) });
+```
+B: drive -> DIFF given 201 holds 216
+
+### a1-set-arr-pop (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs.pop(); }) });
+```
+B: drive -> DIFF given 201 holds 100
+
+### a1-set-arr-splice (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs.splice(0, 1); }) });
+```
+B: drive -> DIFF given 201 holds 101
+
+### a1-set-arr-unshift (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs.unshift(3); }) });
+```
+B: drive -> DIFF given 201 holds 328
+
+### a1-set-arr-fill (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs.fill(4); }) });
+```
+B: drive -> DIFF given 201 holds 216
+
+### a1-set-arr-reverse (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs.reverse(); }) });
+```
+B: drive -> DIFF given 201 holds 203
+
+### a1-set-arr-sort (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs.sort((p, q) => q - p); }) });
+```
+B: drive -> DIFF given 201 holds 203
+
+### a1-set-arr-shift (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs.shift(); }) });
+```
+B: drive -> DIFF given 201 holds 101
+
+### a1-set-arr-copyWithin (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs.copyWithin(0, 1); }) });
+```
+B: drive -> DIFF given 201 holds 204
+
+### a1-set-arr-length0 (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs.length = 0; }) });
+```
+B: drive -> DIFF given 201 holds 0
+
+### a1-set-arr-compound (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs[1] += 7; }) });
+```
+B: drive -> DIFF given 201 holds 208
+
+### a1-set-arr-incr (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs[0]++; }) });
+```
+B: drive -> DIFF given 201 holds 204
+
+### a1-set-map-set (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); s.set(f); lg.set(f()); m.set('k', 1); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-set-map-set-a (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); s.set(f); lg.set(f()); m.set('a', 5); }) });
+```
+B: drive -> DIFF given 11 holds 15
+
+### a1-set-map-delete (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); s.set(f); lg.set(f()); m.delete('a'); }) });
+```
+B: drive -> DIFF given 11 holds 0
+
+### a1-set-map-clear (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); s.set(f); lg.set(f()); m.clear(); }) });
+```
+B: drive -> DIFF given 11 holds 0
+
+### a1-set-set-add (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const st = new Set<number>([1]); const c: Set<number> = st; const f = () => c.size; s.set(f); lg.set(f()); st.add(2); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a1-set-set-delete (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const st = new Set<number>([1]); const c: Set<number> = st; const f = () => c.size; s.set(f); lg.set(f()); st.delete(1); }) });
+```
+B: drive -> DIFF given 1 holds 0
+
+### a1-set-set-clear (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const st = new Set<number>([1]); const c: Set<number> = st; const f = () => c.size; s.set(f); lg.set(f()); st.clear(); }) });
+```
+B: drive -> DIFF given 1 holds 0
+
+### a1-set-rec-assign (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; s.set(f); lg.set(f()); o.n = 5; }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-set-rec-incr (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; s.set(f); lg.set(f()); o.n++; }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a1-set-rec-compound (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; s.set(f); lg.set(f()); o.n += 2; }) });
+```
+B: drive -> DIFF given 1 holds 3
+
+### a1-set-opt-delete (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const o: { n?: number } = { n: 1 }; const c: { readonly n?: number } = o; const f = () => c.n ?? -1; s.set(f); lg.set(f()); delete o.n; }) });
+```
+B: drive -> DIFF given 1 holds -1
+
+### a1-set-opt-assign (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const o: { n?: number } = { n: 1 }; const c: { readonly n?: number } = o; const f = () => c.n ?? -1; s.set(f); lg.set(f()); o.n = 9; }) });
+```
+B: drive -> DIFF given 1 holds 9
+
+### a1-set-err-message (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const f = () => c.message.length; s.set(f); lg.set(f()); e.message = 'longer'; }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-set-nest-push (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0]; const r = { t: xs }; const c: { readonly t: readonly number[] } = r; const f = () => c.t.length; s.set(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a1-set-tuple-push (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0]; const t = [xs, 1] as const; const c: readonly [readonly number[], 1] = t; const f = () => c[0].length; s.set(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a1-set-recmap-set (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>(); const c: { readonly m: Map<string, number> } = { m }; const f = () => c.m.size; s.set(f); lg.set(f()); m.set('k', 1); }) });
+```
+B: drive -> DIFF given 0 holds 1
+
+### a1-set-arrrec-assign (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: readonly { readonly n: number }[] = [o]; const f = () => c[0]?.n ?? -1; s.set(f); lg.set(f()); o.n = 4; }) });
+```
+B: drive -> DIFF given 1 holds 4
+
+### a1-set-spreadless-push (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0]; const c: readonly number[] = xs; const d: readonly number[] = c; const f = () => d.length; s.set(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a1-update-arr (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.update(() => f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-rec-arr (a1.ts)
+```
+const s = () => state<{ readonly f: () => number }>({ f: () => -1 });
+const lg = () => state(-1);
+const v = (s: { readonly f: () => number }) => s;
+const w = (lg: number) => lg;
+const put = (s: State<{ readonly f: () => number }>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set({ f }); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-method-arr (a1.ts)
+```
+const s = () => state<{ readonly f: () => number }>({ f: () => -1 });
+const lg = () => state(-1);
+const v = (s: { readonly f: () => number }) => s;
+const w = (lg: number) => lg;
+const put = (s: State<{ readonly f: () => number }>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const o2 = { f() { return c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); } }; s.set(o2); lg.set(o2.f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-arr-arr (a1.ts)
+```
+const s = () => state<readonly (() => number)[]>([]);
+const lg = () => state(-1);
+const v = (s: readonly (() => number)[]) => s;
+const w = (lg: number) => lg;
+const put = (s: State<readonly (() => number)[]>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set([f]); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-decl-arr (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; function f() { return c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); } s.set(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-wrap-arr (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); const g = () => f() + 0; s.set(g); lg.set(g()); xs.push(1); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-width-arr (a1.ts)
+```
+const s = () => state<{ readonly n: number }>({ n: 0 });
+const lg = () => state(-1);
+const v = (s: { readonly n: number }) => s;
+const w = (lg: number) => lg;
+const put = (s: State<{ readonly n: number }>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); const r = { n: 0, f }; s.set(r); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-mapholder-arr (a1.ts)
+```
+const s = () => state<Map<string, () => number>>(new Map());
+const lg = () => state(-1);
+const v = (s: Map<string, () => number>) => s;
+const w = (lg: number) => lg;
+const put = (s: State<Map<string, () => number>>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(new Map([['k', f]])); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-helper-write-arr (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const wr = () => { xs.push(1); }; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); wr(); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-foreach-write-arr (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); [1].forEach(() => { xs.push(1); }); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-loop-arr (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); for (let i = 0; i < 2; i++) { if (i === 0) { s.set(f); lg.set(f()); } else { xs.push(1); } } }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-nested-fn-arr (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const mk = () => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); lg.set(f()); xs.push(1); }; mk(); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-actarg-arr (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put0 = (s: State<() => number>) => action((g: () => number) => { s.set(g); });
+const put = (put0: Action<[() => number]>, lg: State<number>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); put0(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 201 holds 304
+
+### a1-readback-arr (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state<readonly number[]>([]);
+const w = (lg: readonly number[]) => lg;
+const put = (s: State<() => number>, lg: State<readonly number[]>) => ({ go: action(() => { const xs = [0, 1]; const c: readonly number[] = xs; const f = () => c.length * 100 + c.reduce((p, q) => p * 3 + q, 0); s.set(f); const before = f(); xs.push(1); lg.set([before, read(s)()]); }) });
+```
+B: drive -> DIFF set-time 201 read(s)() 304
+
+### a1-mutparam-arr (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const mk = (xs: Mut<number[]>) => { const c: readonly number[] = xs; const f = () => c.length; s.set(f); lg.set(f()); xs.push(1); }; mk([0]); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a1-update-map (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); s.update(() => f); lg.set(f()); m.set('k', 1); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-rec-map (a1.ts)
+```
+const s = () => state<{ readonly f: () => number }>({ f: () => -1 });
+const lg = () => state(-1);
+const v = (s: { readonly f: () => number }) => s;
+const w = (lg: number) => lg;
+const put = (s: State<{ readonly f: () => number }>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); s.set({ f }); lg.set(f()); m.set('k', 1); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-method-map (a1.ts)
+```
+const s = () => state<{ readonly f: () => number }>({ f: () => -1 });
+const lg = () => state(-1);
+const v = (s: { readonly f: () => number }) => s;
+const w = (lg: number) => lg;
+const put = (s: State<{ readonly f: () => number }>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const o2 = { f() { return c.size * 10 + (c.get('a') ?? 0); } }; s.set(o2); lg.set(o2.f()); m.set('k', 1); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-arr-map (a1.ts)
+```
+const s = () => state<readonly (() => number)[]>([]);
+const lg = () => state(-1);
+const v = (s: readonly (() => number)[]) => s;
+const w = (lg: number) => lg;
+const put = (s: State<readonly (() => number)[]>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); s.set([f]); lg.set(f()); m.set('k', 1); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-decl-map (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; function f() { return c.size * 10 + (c.get('a') ?? 0); } s.set(f); lg.set(f()); m.set('k', 1); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-wrap-map (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); const g = () => f() + 0; s.set(g); lg.set(g()); m.set('k', 1); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-width-map (a1.ts)
+```
+const s = () => state<{ readonly n: number }>({ n: 0 });
+const lg = () => state(-1);
+const v = (s: { readonly n: number }) => s;
+const w = (lg: number) => lg;
+const put = (s: State<{ readonly n: number }>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); const r = { n: 0, f }; s.set(r); lg.set(f()); m.set('k', 1); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-mapholder-map (a1.ts)
+```
+const s = () => state<Map<string, () => number>>(new Map());
+const lg = () => state(-1);
+const v = (s: Map<string, () => number>) => s;
+const w = (lg: number) => lg;
+const put = (s: State<Map<string, () => number>>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); s.set(new Map([['k', f]])); lg.set(f()); m.set('k', 1); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-helper-write-map (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const wr = () => { m.set('k', 1); }; const f = () => c.size * 10 + (c.get('a') ?? 0); s.set(f); lg.set(f()); wr(); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-foreach-write-map (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); s.set(f); lg.set(f()); [1].forEach(() => { m.set('k', 1); }); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-loop-map (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); for (let i = 0; i < 2; i++) { if (i === 0) { s.set(f); lg.set(f()); } else { m.set('k', 1); } } }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-nested-fn-map (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const mk = () => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); s.set(f); lg.set(f()); m.set('k', 1); }; mk(); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-actarg-map (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put0 = (s: State<() => number>) => action((g: () => number) => { s.set(g); });
+const put = (put0: Action<[() => number]>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); put0(f); lg.set(f()); m.set('k', 1); }) });
+```
+B: drive -> DIFF given 11 holds 21
+
+### a1-readback-map (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state<readonly number[]>([]);
+const w = (lg: readonly number[]) => lg;
+const put = (s: State<() => number>, lg: State<readonly number[]>) => ({ go: action(() => { const m = new Map<string, number>([['a', 1]]); const c: Map<string, number> = m; const f = () => c.size * 10 + (c.get('a') ?? 0); s.set(f); const before = f(); m.set('k', 1); lg.set([before, read(s)()]); }) });
+```
+B: drive -> DIFF set-time 11 read(s)() 21
+
+### a1-mutparam-map (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const mk = (xs: Mut<number[]>) => { const c: readonly number[] = xs; const f = () => c.length; s.set(f); lg.set(f()); xs.push(1); }; mk([0]); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a1-update-rec (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; s.update(() => f); lg.set(f()); o.n = 5; }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-rec-rec (a1.ts)
+```
+const s = () => state<{ readonly f: () => number }>({ f: () => -1 });
+const lg = () => state(-1);
+const v = (s: { readonly f: () => number }) => s;
+const w = (lg: number) => lg;
+const put = (s: State<{ readonly f: () => number }>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; s.set({ f }); lg.set(f()); o.n = 5; }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-method-rec (a1.ts)
+```
+const s = () => state<{ readonly f: () => number }>({ f: () => -1 });
+const lg = () => state(-1);
+const v = (s: { readonly f: () => number }) => s;
+const w = (lg: number) => lg;
+const put = (s: State<{ readonly f: () => number }>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const o2 = { f() { return c.n; } }; s.set(o2); lg.set(o2.f()); o.n = 5; }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-arr-rec (a1.ts)
+```
+const s = () => state<readonly (() => number)[]>([]);
+const lg = () => state(-1);
+const v = (s: readonly (() => number)[]) => s;
+const w = (lg: number) => lg;
+const put = (s: State<readonly (() => number)[]>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; s.set([f]); lg.set(f()); o.n = 5; }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-decl-rec (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; function f() { return c.n; } s.set(f); lg.set(f()); o.n = 5; }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-wrap-rec (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; const g = () => f() + 0; s.set(g); lg.set(g()); o.n = 5; }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-width-rec (a1.ts)
+```
+const s = () => state<{ readonly n: number }>({ n: 0 });
+const lg = () => state(-1);
+const v = (s: { readonly n: number }) => s;
+const w = (lg: number) => lg;
+const put = (s: State<{ readonly n: number }>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; const r = { n: 0, f }; s.set(r); lg.set(f()); o.n = 5; }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-mapholder-rec (a1.ts)
+```
+const s = () => state<Map<string, () => number>>(new Map());
+const lg = () => state(-1);
+const v = (s: Map<string, () => number>) => s;
+const w = (lg: number) => lg;
+const put = (s: State<Map<string, () => number>>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; s.set(new Map([['k', f]])); lg.set(f()); o.n = 5; }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-helper-write-rec (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const wr = () => { o.n = 5; }; const f = () => c.n; s.set(f); lg.set(f()); wr(); }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-foreach-write-rec (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; s.set(f); lg.set(f()); [1].forEach(() => { o.n = 5; }); }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-loop-rec (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; for (let i = 0; i < 2; i++) { if (i === 0) { s.set(f); lg.set(f()); } else { o.n = 5; } } }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-nested-fn-rec (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const mk = () => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; s.set(f); lg.set(f()); o.n = 5; }; mk(); }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-actarg-rec (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put0 = (s: State<() => number>) => action((g: () => number) => { s.set(g); });
+const put = (put0: Action<[() => number]>, lg: State<number>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; put0(f); lg.set(f()); o.n = 5; }) });
+```
+B: drive -> DIFF given 1 holds 5
+
+### a1-readback-rec (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state<readonly number[]>([]);
+const w = (lg: readonly number[]) => lg;
+const put = (s: State<() => number>, lg: State<readonly number[]>) => ({ go: action(() => { const o = { n: 1 }; const c: { readonly n: number } = o; const f = () => c.n; s.set(f); const before = f(); o.n = 5; lg.set([before, read(s)()]); }) });
+```
+B: drive -> DIFF set-time 1 read(s)() 5
+
+### a1-mutparam-rec (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const mk = (xs: Mut<number[]>) => { const c: readonly number[] = xs; const f = () => c.length; s.set(f); lg.set(f()); xs.push(1); }; mk([0]); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a1-update-err (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const f = () => c.message.length; s.update(() => f); lg.set(f()); e.message = 'longer'; }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-rec-err (a1.ts)
+```
+const s = () => state<{ readonly f: () => number }>({ f: () => -1 });
+const lg = () => state(-1);
+const v = (s: { readonly f: () => number }) => s;
+const w = (lg: number) => lg;
+const put = (s: State<{ readonly f: () => number }>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const f = () => c.message.length; s.set({ f }); lg.set(f()); e.message = 'longer'; }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-method-err (a1.ts)
+```
+const s = () => state<{ readonly f: () => number }>({ f: () => -1 });
+const lg = () => state(-1);
+const v = (s: { readonly f: () => number }) => s;
+const w = (lg: number) => lg;
+const put = (s: State<{ readonly f: () => number }>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const o2 = { f() { return c.message.length; } }; s.set(o2); lg.set(o2.f()); e.message = 'longer'; }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-arr-err (a1.ts)
+```
+const s = () => state<readonly (() => number)[]>([]);
+const lg = () => state(-1);
+const v = (s: readonly (() => number)[]) => s;
+const w = (lg: number) => lg;
+const put = (s: State<readonly (() => number)[]>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const f = () => c.message.length; s.set([f]); lg.set(f()); e.message = 'longer'; }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-decl-err (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; function f() { return c.message.length; } s.set(f); lg.set(f()); e.message = 'longer'; }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-wrap-err (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const f = () => c.message.length; const g = () => f() + 0; s.set(g); lg.set(g()); e.message = 'longer'; }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-width-err (a1.ts)
+```
+const s = () => state<{ readonly n: number }>({ n: 0 });
+const lg = () => state(-1);
+const v = (s: { readonly n: number }) => s;
+const w = (lg: number) => lg;
+const put = (s: State<{ readonly n: number }>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const f = () => c.message.length; const r = { n: 0, f }; s.set(r); lg.set(f()); e.message = 'longer'; }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-mapholder-err (a1.ts)
+```
+const s = () => state<Map<string, () => number>>(new Map());
+const lg = () => state(-1);
+const v = (s: Map<string, () => number>) => s;
+const w = (lg: number) => lg;
+const put = (s: State<Map<string, () => number>>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const f = () => c.message.length; s.set(new Map([['k', f]])); lg.set(f()); e.message = 'longer'; }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-helper-write-err (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const wr = () => { e.message = 'longer'; }; const f = () => c.message.length; s.set(f); lg.set(f()); wr(); }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-foreach-write-err (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const f = () => c.message.length; s.set(f); lg.set(f()); [1].forEach(() => { e.message = 'longer'; }); }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-loop-err (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const f = () => c.message.length; for (let i = 0; i < 2; i++) { if (i === 0) { s.set(f); lg.set(f()); } else { e.message = 'longer'; } } }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-nested-fn-err (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const mk = () => { const e = new Error('x'); const c: Error = e; const f = () => c.message.length; s.set(f); lg.set(f()); e.message = 'longer'; }; mk(); }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-actarg-err (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put0 = (s: State<() => number>) => action((g: () => number) => { s.set(g); });
+const put = (put0: Action<[() => number]>, lg: State<number>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const f = () => c.message.length; put0(f); lg.set(f()); e.message = 'longer'; }) });
+```
+B: drive -> DIFF given 1 holds 6
+
+### a1-readback-err (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state<readonly number[]>([]);
+const w = (lg: readonly number[]) => lg;
+const put = (s: State<() => number>, lg: State<readonly number[]>) => ({ go: action(() => { const e = new Error('x'); const c: Error = e; const f = () => c.message.length; s.set(f); const before = f(); e.message = 'longer'; lg.set([before, read(s)()]); }) });
+```
+B: drive -> DIFF set-time 1 read(s)() 6
+
+### a1-mutparam-err (a1.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const mk = (xs: Mut<number[]>) => { const c: readonly number[] = xs; const f = () => c.length; s.set(f); lg.set(f()); xs.push(1); }; mk([0]); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a1-listener (a1.ts)
+```
+const tick = function* () { yield 1; };
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => action((k: number) => { const xs = [k]; const c: readonly number[] = xs; const f = () => c.length; s.set(f); lg.set(f()); xs.push(k); });
+const l = (tick: Events<number>, put: Action<[number]>) => on(tick, put);
+```
+B: drive -> DIFF given 1 holds 2
+
+### a2-prog-arr (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = (sq: (o: { readonly n: number }) => { readonly n: number }) => { const xs = [0]; const c: readonly number[] = xs; const r = { n: 1, f: () => c.length }; sq(r); const before = r.f(); xs.push(1); return [before, r.f()] as const; };
+```
+B: drive -> DIFF after the memo took r: 1, later: 2
+
+### a2-cross-hit-arr (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = (sq: (o: { readonly n: number }) => { readonly n: number }) => { const xs = [0]; const c: readonly number[] = xs; const r = { n: 1, f: () => c.length }; sq(r); const before = r.f(); xs.push(1); return { before, r }; };
+const b = (sq: (o: { readonly n: number }) => { readonly n: number }, a: { readonly before: number; readonly r: { readonly n: number } }) => sq(a.r);
+```
+B: drive -> DIFF given 1 holds 2
+
+### a2-wrap-arr (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => ({ o }));
+const a = (sq: (o: { readonly n: number }) => { readonly o: { readonly n: number } }) => { const xs = [0]; const c: readonly number[] = xs; const r = { n: 1, f: () => c.length }; const res = sq(r); const before = r.f(); xs.push(1); return { before, res }; };
+```
+B: drive -> DIFF given 1 holds 2
+
+### a2-local-arr (a2.ts)
+```
+const a = () => { const sq = memo((o: { readonly n: number }) => o); const xs = [0]; const c: readonly number[] = xs; const r = { n: 1, f: () => c.length }; const got = sq(r); const before = r.f(); xs.push(1); return { before, got, sq }; };
+```
+B: drive -> DIFF given 1 holds 2
+
+### a2-prog-map (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = (sq: (o: { readonly n: number }) => { readonly n: number }) => { const m = new Map<string, number>(); const c: Map<string, number> = m; const r = { n: 1, f: () => c.size }; sq(r); const before = r.f(); m.set('k', 1); return [before, r.f()] as const; };
+```
+B: drive -> DIFF after the memo took r: 0, later: 1
+
+### a2-cross-hit-map (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = (sq: (o: { readonly n: number }) => { readonly n: number }) => { const m = new Map<string, number>(); const c: Map<string, number> = m; const r = { n: 1, f: () => c.size }; sq(r); const before = r.f(); m.set('k', 1); return { before, r }; };
+const b = (sq: (o: { readonly n: number }) => { readonly n: number }, a: { readonly before: number; readonly r: { readonly n: number } }) => sq(a.r);
+```
+B: drive -> DIFF given 0 holds 1
+
+### a2-wrap-map (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => ({ o }));
+const a = (sq: (o: { readonly n: number }) => { readonly o: { readonly n: number } }) => { const m = new Map<string, number>(); const c: Map<string, number> = m; const r = { n: 1, f: () => c.size }; const res = sq(r); const before = r.f(); m.set('k', 1); return { before, res }; };
+```
+B: drive -> DIFF given 0 holds 1
+
+### a2-local-map (a2.ts)
+```
+const a = () => { const sq = memo((o: { readonly n: number }) => o); const m = new Map<string, number>(); const c: Map<string, number> = m; const r = { n: 1, f: () => c.size }; const got = sq(r); const before = r.f(); m.set('k', 1); return { before, got, sq }; };
+```
+B: drive -> DIFF given 0 holds 1
+
+### a2-prog-set (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = (sq: (o: { readonly n: number }) => { readonly n: number }) => { const st = new Set<number>(); const c: Set<number> = st; const r = { n: 1, f: () => c.size }; sq(r); const before = r.f(); st.add(1); return [before, r.f()] as const; };
+```
+B: drive -> DIFF after the memo took r: 0, later: 1
+
+### a2-cross-hit-set (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = (sq: (o: { readonly n: number }) => { readonly n: number }) => { const st = new Set<number>(); const c: Set<number> = st; const r = { n: 1, f: () => c.size }; sq(r); const before = r.f(); st.add(1); return { before, r }; };
+const b = (sq: (o: { readonly n: number }) => { readonly n: number }, a: { readonly before: number; readonly r: { readonly n: number } }) => sq(a.r);
+```
+B: drive -> DIFF given 0 holds 1
+
+### a2-wrap-set (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => ({ o }));
+const a = (sq: (o: { readonly n: number }) => { readonly o: { readonly n: number } }) => { const st = new Set<number>(); const c: Set<number> = st; const r = { n: 1, f: () => c.size }; const res = sq(r); const before = r.f(); st.add(1); return { before, res }; };
+```
+B: drive -> DIFF given 0 holds 1
+
+### a2-local-set (a2.ts)
+```
+const a = () => { const sq = memo((o: { readonly n: number }) => o); const st = new Set<number>(); const c: Set<number> = st; const r = { n: 1, f: () => c.size }; const got = sq(r); const before = r.f(); st.add(1); return { before, got, sq }; };
+```
+B: drive -> DIFF given 0 holds 1
+
+### a2-prog-rec (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = (sq: (o: { readonly n: number }) => { readonly n: number }) => { const o = { n: 1 }; const c: { readonly n: number } = o; const r = { n: 1, f: () => c.n }; sq(r); const before = r.f(); o.n = 7; return [before, r.f()] as const; };
+```
+B: drive -> DIFF after the memo took r: 1, later: 7
+
+### a2-cross-hit-rec (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = (sq: (o: { readonly n: number }) => { readonly n: number }) => { const o = { n: 1 }; const c: { readonly n: number } = o; const r = { n: 1, f: () => c.n }; sq(r); const before = r.f(); o.n = 7; return { before, r }; };
+const b = (sq: (o: { readonly n: number }) => { readonly n: number }, a: { readonly before: number; readonly r: { readonly n: number } }) => sq(a.r);
+```
+B: drive -> DIFF given 1 holds 7
+
+### a2-wrap-rec (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => ({ o }));
+const a = (sq: (o: { readonly n: number }) => { readonly o: { readonly n: number } }) => { const o = { n: 1 }; const c: { readonly n: number } = o; const r = { n: 1, f: () => c.n }; const res = sq(r); const before = r.f(); o.n = 7; return { before, res }; };
+```
+B: drive -> DIFF given 1 holds 7
+
+### a2-local-rec (a2.ts)
+```
+const a = () => { const sq = memo((o: { readonly n: number }) => o); const o = { n: 1 }; const c: { readonly n: number } = o; const r = { n: 1, f: () => c.n }; const got = sq(r); const before = r.f(); o.n = 7; return { before, got, sq }; };
+```
+B: drive -> DIFF given 1 holds 7
+
+### a2-prog-err (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = (sq: (o: { readonly n: number }) => { readonly n: number }) => { const e = new Error('x'); const c: Error = e; const r = { n: 1, f: () => c.message.length }; sq(r); const before = r.f(); e.message = 'longer'; return [before, r.f()] as const; };
+```
+B: drive -> DIFF after the memo took r: 1, later: 6
+
+### a2-cross-hit-err (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = (sq: (o: { readonly n: number }) => { readonly n: number }) => { const e = new Error('x'); const c: Error = e; const r = { n: 1, f: () => c.message.length }; sq(r); const before = r.f(); e.message = 'longer'; return { before, r }; };
+const b = (sq: (o: { readonly n: number }) => { readonly n: number }, a: { readonly before: number; readonly r: { readonly n: number } }) => sq(a.r);
+```
+B: drive -> DIFF given 1 holds 6
+
+### a2-wrap-err (a2.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => ({ o }));
+const a = (sq: (o: { readonly n: number }) => { readonly o: { readonly n: number } }) => { const e = new Error('x'); const c: Error = e; const r = { n: 1, f: () => c.message.length }; const res = sq(r); const before = r.f(); e.message = 'longer'; return { before, res }; };
+```
+B: drive -> DIFF given 1 holds 6
+
+### a2-local-err (a2.ts)
+```
+const a = () => { const sq = memo((o: { readonly n: number }) => o); const e = new Error('x'); const c: Error = e; const r = { n: 1, f: () => c.message.length }; const got = sq(r); const before = r.f(); e.message = 'longer'; return { before, got, sq }; };
+```
+B: drive -> DIFF given 1 holds 6
+
+### a2-in-action (a2.ts)
+```
+const s = () => state<{ readonly n: number }>({ n: 0 });
+const sq = () => memo((o: { readonly n: number }) => o);
+const put = (s: State<{ readonly n: number }>, sq: (o: { readonly n: number }) => { readonly n: number }) => ({ go: action(() => { const xs = [0]; const c: readonly number[] = xs; const r = { n: 1, f: () => c.length }; s.set(sq(r)); xs.push(1); }) });
+const v = (s: { readonly n: number }) => s;
+```
+B: drive -> DIFF given 1 holds 2
+
+### a3-cb-P (a3.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const g = (s: State<() => number>, lg: State<number>) => action((cb: (x: Mut<number[]>) => void) => { const xs = [0]; const c: readonly number[] = xs; const f = () => c.length; s.set(f); lg.set(f()); cb(xs); });
+const put = (g: Action<[(x: Mut<number[]>) => void]>) => ({ go: action(() => { g((x) => { x.push(1); }); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a3-cb-P-writer-cell (a3.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const wr = () => (x: Mut<number[]>) => { x.push(1); };
+const g = (s: State<() => number>, lg: State<number>, wr: (x: Mut<number[]>) => void) => ({ go: action(() => { const xs = [0]; const c: readonly number[] = xs; const f = () => c.length; s.set(f); lg.set(f()); wr(xs); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a3-cb-P-take-reader (a3.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const a = () => ({ take: (x: Mut<number[]>) => { const c: readonly number[] = x; return () => c.length; } });
+const put = (a: { readonly take: (x: Mut<number[]>) => () => number }, s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = [0]; const f = a.take(m); s.set(f); lg.set(f()); m.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a4-P-index-sig (a4.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0]; const t: { [k: string]: readonly number[] } = { a: xs }; const f = () => t['a']?.length ?? 0; s.set(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a4-P-optional-member (a4.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0]; const t: { readonly k?: readonly number[] } = { k: xs }; const f = () => t.k?.length ?? 0; s.set(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a4-P-ternary-ann-readonly (a4.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0]; const t: readonly number[] | null = xs.length ? xs : null; const f = () => t ? t.length : 0; s.set(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a4-P-map-alias (a4.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0]; const m = new Map([['k', xs]]); const c: Map<string, readonly number[]> = m; const f = () => c.get('k')?.length ?? 0; s.set(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a4-P-unknown (a4.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0]; const t: unknown = xs; const f = () => Array.isArray(t) ? t.length : 0; s.set(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a4-P-map-alias-set (a4.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const m = new Map<string, number>(); const c: Map<string, number> = m; const f = () => c.size; s.set(f); lg.set(f()); m.set('z', 1); }) });
+```
+B: drive -> DIFF given 0 holds 1
+
+### a4-P-typeof-readonly (a4.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0]; const c: readonly number[] = xs; const t: typeof c = c; const f = () => t.length; s.set(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a4-P-union-alias (a4.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0]; const t: readonly number[] | null = xs; const f = () => t ? t.length : 0; s.set(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a5-P-listener-two-values (a5.ts)
+```
+const tick = function* () { yield 1; yield 2; };
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => action((k: number) => { const xs = [k]; const c: readonly number[] = xs; const f = () => c.length * 10 + k; s.set(f); lg.set(f()); xs.push(k); });
+const l = (tick: Events<number>, put: Action<[number]>) => on(tick, put);
+```
+B: drive -> DIFF given 12 holds 22
+
+### a5-P-jsx-onclick (a5.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const el = (s: State<() => number>, lg: State<number>) => <button onClick={action(() => { const xs = [0]; const c: readonly number[] = xs; const f = () => c.length; s.set(f); lg.set(f()); xs.push(1); })}>x</button>;
+```
+B: drive -> DIFF given 1 holds 2
+
+### a5-P-update-chain (a5.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state<readonly number[]>([]);
+const w = (lg: readonly number[]) => lg;
+const put = (s: State<() => number>, lg: State<readonly number[]>) => ({ go: action(() => { const xs = [0]; const c: readonly number[] = xs; const f = () => c.length; s.update(() => f); const b = read(s)(); xs.push(1); s.update((g) => { lg.set([b, g()]); return g; }); }) });
+```
+B: drive -> DIFF [1,2]
+
+### a5-P-actarg-rec (a5.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put0 = (s: State<() => number>) => action((r: { readonly f: () => number }) => { s.set(r.f); });
+const put = (put0: Action<[{ readonly f: () => number }]>, lg: State<number>) => ({ go: action(() => { const xs = [0]; const c: readonly number[] = xs; const f = () => c.length; put0({ f }); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a5-set-as-value (a5.ts)
+```
+const s = () => state<() => number>(() => -1);
+const lg = () => state(-1);
+const v = (s: () => number) => s;
+const w = (lg: number) => lg;
+const put = (s: State<() => number>, lg: State<number>) => ({ go: action(() => { const xs = [0]; const c: readonly number[] = xs; const f = () => c.length; const st = s.set; st(f); lg.set(f()); xs.push(1); }) });
+```
+B: drive -> DIFF given 1 holds 2
+
+### a6-async-memo-width (a6.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = async (sq: (o: { readonly n: number }) => { readonly n: number }) => { const xs = [0]; const c: readonly number[] = xs; const f = () => c.length; const r = { n: 1, f }; sq(r); const before = r.f(); await null; xs.push(1); return [before, r.f()] as const; };
+```
+B: drive -> DIFF 1 then 2
+
+### a6-async-memo-width-hit-other (a6.ts)
+```
+const sq = () => memo((o: { readonly n: number }) => o);
+const a = async (sq: (o: { readonly n: number }) => { readonly n: number }) => { const xs = [0]; const c: readonly number[] = xs; const f = () => c.length; const r = { n: 1, f }; const got = sq(r); await null; xs.push(1); return { r, got }; };
+const b = (sq: (o: { readonly n: number }) => { readonly n: number }, a: { readonly r: { readonly n: number } }) => sq(a.r);
+```
+B: drive -> DIFF the memo was given r with f() = 1; it now gives 2
+

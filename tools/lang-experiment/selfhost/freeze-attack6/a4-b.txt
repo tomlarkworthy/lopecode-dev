@@ -1,0 +1,93 @@
+== a4.ts:a4-pred: REJECT a:rejected[mut-nested][mutating-method]
+== a4.ts:a4-pred-input: REJECT a:rejected[mut-nested][mutating-method]
+== a4.ts:a4-assert: REJECT a:rejected[mut-nested][mutating-method]
+== a4.ts:a4-cond-type: REJECT module[mut-nested]
+== a4.ts:a4-mapped: REJECT a:unsupported
+== a4.ts:a4-mapped2: REJECT a:unsupported
+== a4.ts:a4-indexed: REJECT a:unsupported
+== a4.ts:a4-typeof-whole: REJECT a:rejected[mut-capture]
+== a4.ts:a4-returntype: REJECT a:rejected[mut-nested][unknown-type]
+== a4.ts:a4-awaited: REJECT a:rejected[unknown-type]
+== a4.ts:a4-infer: REJECT a:unsupported
+== a4.ts:a4-unknown-narrow: REJECT a:rejected[mutating-method]
+== a4.ts:a4-unknown-narrow-read: ACCEPT
+   drive -> same a() 1 then 1
+== a4.ts:a4-satisfies: REJECT a:unsupported
+== a4.ts:a4-enum: REJECT module[no-enum] a:rejected[free-name]
+== a4.ts:a4-symbol-key: REJECT a:unsupported
+== a4.ts:a4-index-sig: ACCEPT
+   drive -> same a() 1 then 1
+== a4.ts:a4-optional-member: ACCEPT
+   drive -> same a() 1 then 1
+== a4.ts:a4-gen-tnext: REJECT a:rejected[type][mut-yield]
+== a4.ts:a4-gen-treturn: REJECT a:rejected[mut-yield]
+== a4.ts:a4-gen-next-call: REJECT a:unsupported
+== a4.ts:a4-thenable: REJECT a:rejected[no-member][mut-capture]
+== a4.ts:a4-weakref: REJECT a:rejected[new-non-intrinsic]
+== a4.ts:a4-proxy: REJECT a:rejected[new-non-intrinsic]
+== a4.ts:a4-reflect: REJECT a:rejected[free-name]
+== a4.ts:a4-objassign: REJECT a:unsupported
+== a4.ts:a4-json-roundtrip: REJECT a:rejected[no-member][no-member]
+== a4.ts:a4-json-typed: REJECT a:rejected[type]
+== a4.ts:a4-sc: REJECT a:rejected[mut-capture]
+== a4.ts:a4-loop-closure: REJECT a:rejected[no-cast]
+== a4.ts:a4-loop-var-mut: REJECT a:rejected[mut-capture]
+== a4.ts:a4-labelled: REJECT a:unsupported
+== a4.ts:a4-var: REJECT a:rejected[no-var][mut-capture][let-capture]
+== a4.ts:a4-eval: REJECT a:rejected[free-name]
+== a4.ts:a4-Function: REJECT a:rejected[free-name]
+== a4.ts:a4-destr-default: REJECT a:rejected[no-cast]
+== a4.ts:a4-destr-default2: REJECT a:rejected[no-cast]
+== a4.ts:a4-flat: REJECT a:unsupported
+== a4.ts:a4-find: REJECT a:rejected[mut-capture]
+== a4.ts:a4-at: REJECT a:rejected[mut-capture]
+== a4.ts:a4-arrof: REJECT a:rejected[mut-capture]
+== a4.ts:a4-ternary-ann-readonly: ACCEPT
+   drive -> same a() 1 then 1
+== a4.ts:a4-generic-bound: REJECT a:rejected[mut-nested]
+== a4.ts:a4-overload-decl: REJECT a:rejected[no-any]
+== a4.ts:a4-template-lit: REJECT a:unsupported
+== a4.ts:a4-keyof: REJECT a:rejected[mut-nested]
+== a4.ts:a4-iterable-ann: ACCEPT
+   drive -> same a() 0 then 0
+== a4.ts:a4-map-get-mut: REJECT a:rejected[mut-capture]
+== a4.ts:a4-map-get-mut-alias: REJECT a:rejected[unknown-type]
+== a4.ts:a4-map-alias: ACCEPT
+   drive -> same a() 1 then 1
+== a4.ts:a4-P-index-sig: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a4.ts:a4-P-optional-member: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a4.ts:a4-P-ternary-ann-readonly: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a4.ts:a4-P-iterable-ann: REJECT put:rejected[iterator-capture]
+== a4.ts:a4-P-map-alias: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a4.ts:a4-P-unknown: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a4.ts:a4-P-map-alias-set: ACCEPT
+   drive -> DIFF given 0 holds 1
+   SILENT
+== a4.ts:a4-P-typeof-readonly: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a4.ts:a4-P-union-alias: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a4.ts:a4-P-string-key-rec: REJECT put:rejected[mut-capture]
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- 60 candidates, accepted 14, silent 8
+SILENT a4.ts:a4-P-index-sig
+SILENT a4.ts:a4-P-optional-member
+SILENT a4.ts:a4-P-ternary-ann-readonly
+SILENT a4.ts:a4-P-map-alias
+SILENT a4.ts:a4-P-unknown
+SILENT a4.ts:a4-P-map-alias-set
+SILENT a4.ts:a4-P-typeof-readonly
+SILENT a4.ts:a4-P-union-alias

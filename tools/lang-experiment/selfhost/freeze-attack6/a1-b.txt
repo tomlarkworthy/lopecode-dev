@@ -1,0 +1,379 @@
+== a1.ts:a1-set-arr-push: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-set-arr-index: ACCEPT
+   drive -> DIFF given 201 holds 216
+   SILENT
+== a1.ts:a1-set-arr-pop: ACCEPT
+   drive -> DIFF given 201 holds 100
+   SILENT
+== a1.ts:a1-set-arr-splice: ACCEPT
+   drive -> DIFF given 201 holds 101
+   SILENT
+== a1.ts:a1-set-arr-unshift: ACCEPT
+   drive -> DIFF given 201 holds 328
+   SILENT
+== a1.ts:a1-set-arr-fill: ACCEPT
+   drive -> DIFF given 201 holds 216
+   SILENT
+== a1.ts:a1-set-arr-reverse: ACCEPT
+   drive -> DIFF given 201 holds 203
+   SILENT
+== a1.ts:a1-set-arr-sort: ACCEPT
+   drive -> DIFF given 201 holds 203
+   SILENT
+== a1.ts:a1-set-arr-shift: ACCEPT
+   drive -> DIFF given 201 holds 101
+   SILENT
+== a1.ts:a1-set-arr-copyWithin: ACCEPT
+   drive -> DIFF given 201 holds 204
+   SILENT
+== a1.ts:a1-set-arr-length0: ACCEPT
+   drive -> DIFF given 201 holds 0
+   SILENT
+== a1.ts:a1-set-arr-compound: ACCEPT
+   drive -> DIFF given 201 holds 208
+   SILENT
+== a1.ts:a1-set-arr-incr: ACCEPT
+   drive -> DIFF given 201 holds 204
+   SILENT
+== a1.ts:a1-set-map-set: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-set-map-set-a: ACCEPT
+   drive -> DIFF given 11 holds 15
+   SILENT
+== a1.ts:a1-set-map-delete: ACCEPT
+   drive -> DIFF given 11 holds 0
+   SILENT
+== a1.ts:a1-set-map-clear: ACCEPT
+   drive -> DIFF given 11 holds 0
+   SILENT
+== a1.ts:a1-set-set-add: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a1.ts:a1-set-set-delete: ACCEPT
+   drive -> DIFF given 1 holds 0
+   SILENT
+== a1.ts:a1-set-set-clear: ACCEPT
+   drive -> DIFF given 1 holds 0
+   SILENT
+== a1.ts:a1-set-rec-assign: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-set-rec-incr: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a1.ts:a1-set-rec-compound: ACCEPT
+   drive -> DIFF given 1 holds 3
+   SILENT
+== a1.ts:a1-set-opt-delete: ACCEPT
+   drive -> DIFF given 1 holds -1
+   SILENT
+== a1.ts:a1-set-opt-assign: ACCEPT
+   drive -> DIFF given 1 holds 9
+   SILENT
+== a1.ts:a1-set-err-message: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-set-nest-push: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a1.ts:a1-set-tuple-push: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a1.ts:a1-set-recmap-set: ACCEPT
+   drive -> DIFF given 0 holds 1
+   SILENT
+== a1.ts:a1-set-arrrec-assign: ACCEPT
+   drive -> DIFF given 1 holds 4
+   SILENT
+== a1.ts:a1-set-spreadless-push: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a1.ts:a1-update-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-rec-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-method-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-arr-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-decl-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-wrap-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-width-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-mapholder-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-helper-write-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-foreach-write-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-loop-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-nested-fn-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-actarg-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+   SILENT
+== a1.ts:a1-readback-arr: ACCEPT
+   drive -> DIFF set-time 201 read(s)() 304
+   SILENT
+== a1.ts:a1-mutparam-arr: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a1.ts:a1-update-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-rec-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-method-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-arr-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-decl-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-wrap-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-width-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-mapholder-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-helper-write-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-foreach-write-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-loop-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-nested-fn-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-actarg-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+   SILENT
+== a1.ts:a1-readback-map: ACCEPT
+   drive -> DIFF set-time 11 read(s)() 21
+   SILENT
+== a1.ts:a1-mutparam-map: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a1.ts:a1-update-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-rec-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-method-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-arr-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-decl-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-wrap-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-width-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-mapholder-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-helper-write-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-foreach-write-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-loop-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-nested-fn-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-actarg-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+   SILENT
+== a1.ts:a1-readback-rec: ACCEPT
+   drive -> DIFF set-time 1 read(s)() 5
+   SILENT
+== a1.ts:a1-mutparam-rec: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a1.ts:a1-update-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-rec-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-method-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-arr-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-decl-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-wrap-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-width-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-mapholder-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-helper-write-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-foreach-write-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-loop-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-nested-fn-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-actarg-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a1.ts:a1-readback-err: ACCEPT
+   drive -> DIFF set-time 1 read(s)() 6
+   SILENT
+== a1.ts:a1-mutparam-err: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a1.ts:a1-listener: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a1.ts:a1-data-set-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-ctl-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   CONTROL FIRED
+== a1.ts:a1-ctl-mut-capture [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 93 candidates, accepted 93, silent 92
+SILENT a1.ts:a1-set-arr-push
+SILENT a1.ts:a1-set-arr-index
+SILENT a1.ts:a1-set-arr-pop
+SILENT a1.ts:a1-set-arr-splice
+SILENT a1.ts:a1-set-arr-unshift
+SILENT a1.ts:a1-set-arr-fill
+SILENT a1.ts:a1-set-arr-reverse
+SILENT a1.ts:a1-set-arr-sort
+SILENT a1.ts:a1-set-arr-shift
+SILENT a1.ts:a1-set-arr-copyWithin
+SILENT a1.ts:a1-set-arr-length0
+SILENT a1.ts:a1-set-arr-compound
+SILENT a1.ts:a1-set-arr-incr
+SILENT a1.ts:a1-set-map-set
+SILENT a1.ts:a1-set-map-set-a
+SILENT a1.ts:a1-set-map-delete
+SILENT a1.ts:a1-set-map-clear
+SILENT a1.ts:a1-set-set-add
+SILENT a1.ts:a1-set-set-delete
+SILENT a1.ts:a1-set-set-clear
+SILENT a1.ts:a1-set-rec-assign
+SILENT a1.ts:a1-set-rec-incr
+SILENT a1.ts:a1-set-rec-compound
+SILENT a1.ts:a1-set-opt-delete
+SILENT a1.ts:a1-set-opt-assign
+SILENT a1.ts:a1-set-err-message
+SILENT a1.ts:a1-set-nest-push
+SILENT a1.ts:a1-set-tuple-push
+SILENT a1.ts:a1-set-recmap-set
+SILENT a1.ts:a1-set-arrrec-assign
+SILENT a1.ts:a1-set-spreadless-push
+SILENT a1.ts:a1-update-arr
+SILENT a1.ts:a1-rec-arr
+SILENT a1.ts:a1-method-arr
+SILENT a1.ts:a1-arr-arr
+SILENT a1.ts:a1-decl-arr
+SILENT a1.ts:a1-wrap-arr
+SILENT a1.ts:a1-width-arr
+SILENT a1.ts:a1-mapholder-arr
+SILENT a1.ts:a1-helper-write-arr
+SILENT a1.ts:a1-foreach-write-arr
+SILENT a1.ts:a1-loop-arr
+SILENT a1.ts:a1-nested-fn-arr
+SILENT a1.ts:a1-actarg-arr
+SILENT a1.ts:a1-readback-arr
+SILENT a1.ts:a1-mutparam-arr
+SILENT a1.ts:a1-update-map
+SILENT a1.ts:a1-rec-map
+SILENT a1.ts:a1-method-map
+SILENT a1.ts:a1-arr-map
+SILENT a1.ts:a1-decl-map
+SILENT a1.ts:a1-wrap-map
+SILENT a1.ts:a1-width-map
+SILENT a1.ts:a1-mapholder-map
+SILENT a1.ts:a1-helper-write-map
+SILENT a1.ts:a1-foreach-write-map
+SILENT a1.ts:a1-loop-map
+SILENT a1.ts:a1-nested-fn-map
+SILENT a1.ts:a1-actarg-map
+SILENT a1.ts:a1-readback-map
+SILENT a1.ts:a1-mutparam-map
+SILENT a1.ts:a1-update-rec
+SILENT a1.ts:a1-rec-rec
+SILENT a1.ts:a1-method-rec
+SILENT a1.ts:a1-arr-rec
+SILENT a1.ts:a1-decl-rec
+SILENT a1.ts:a1-wrap-rec
+SILENT a1.ts:a1-width-rec
+SILENT a1.ts:a1-mapholder-rec
+SILENT a1.ts:a1-helper-write-rec
+SILENT a1.ts:a1-foreach-write-rec
+SILENT a1.ts:a1-loop-rec
+SILENT a1.ts:a1-nested-fn-rec
+SILENT a1.ts:a1-actarg-rec
+SILENT a1.ts:a1-readback-rec
+SILENT a1.ts:a1-mutparam-rec
+SILENT a1.ts:a1-update-err
+SILENT a1.ts:a1-rec-err
+SILENT a1.ts:a1-method-err
+SILENT a1.ts:a1-arr-err
+SILENT a1.ts:a1-decl-err
+SILENT a1.ts:a1-wrap-err
+SILENT a1.ts:a1-width-err
+SILENT a1.ts:a1-mapholder-err
+SILENT a1.ts:a1-helper-write-err
+SILENT a1.ts:a1-foreach-write-err
+SILENT a1.ts:a1-loop-err
+SILENT a1.ts:a1-nested-fn-err
+SILENT a1.ts:a1-actarg-err
+SILENT a1.ts:a1-readback-err
+SILENT a1.ts:a1-mutparam-err
+SILENT a1.ts:a1-listener

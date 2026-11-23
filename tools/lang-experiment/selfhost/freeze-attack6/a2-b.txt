@@ -1,0 +1,118 @@
+== a2.ts:a2-prog-arr: ACCEPT
+   drive -> DIFF after the memo took r: 1, later: 2
+   SILENT
+== a2.ts:a2-cross-hit-arr: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a2.ts:a2-wrap-arr: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a2.ts:a2-local-arr: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a2.ts:a2-data-arr: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-prog-map: ACCEPT
+   drive -> DIFF after the memo took r: 0, later: 1
+   SILENT
+== a2.ts:a2-cross-hit-map: ACCEPT
+   drive -> DIFF given 0 holds 1
+   SILENT
+== a2.ts:a2-wrap-map: ACCEPT
+   drive -> DIFF given 0 holds 1
+   SILENT
+== a2.ts:a2-local-map: ACCEPT
+   drive -> DIFF given 0 holds 1
+   SILENT
+== a2.ts:a2-data-map: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: set on a frozen Map: a value cannot change after its cell returns
+== a2.ts:a2-prog-set: ACCEPT
+   drive -> DIFF after the memo took r: 0, later: 1
+   SILENT
+== a2.ts:a2-cross-hit-set: ACCEPT
+   drive -> DIFF given 0 holds 1
+   SILENT
+== a2.ts:a2-wrap-set: ACCEPT
+   drive -> DIFF given 0 holds 1
+   SILENT
+== a2.ts:a2-local-set: ACCEPT
+   drive -> DIFF given 0 holds 1
+   SILENT
+== a2.ts:a2-data-set: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: add on a frozen Set: a value cannot change after its cell returns
+== a2.ts:a2-prog-rec: ACCEPT
+   drive -> DIFF after the memo took r: 1, later: 7
+   SILENT
+== a2.ts:a2-cross-hit-rec: ACCEPT
+   drive -> DIFF given 1 holds 7
+   SILENT
+== a2.ts:a2-wrap-rec: ACCEPT
+   drive -> DIFF given 1 holds 7
+   SILENT
+== a2.ts:a2-local-rec: ACCEPT
+   drive -> DIFF given 1 holds 7
+   SILENT
+== a2.ts:a2-data-rec: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-prog-err: ACCEPT
+   drive -> DIFF after the memo took r: 1, later: 6
+   SILENT
+== a2.ts:a2-cross-hit-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a2.ts:a2-wrap-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a2.ts:a2-local-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+   SILENT
+== a2.ts:a2-data-err: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-rm-second-name: ACCEPT
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-rm-field: REJECT a:rejected[mutating-method]
+== a2.ts:a2-rm-input: ACCEPT
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-rm-unann-input: ACCEPT
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-rm-loop: ACCEPT
+== a2.ts:a2-result-fn: ACCEPT
+== a2.ts:a2-in-action: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a2.ts:a2-key-shared: ACCEPT
+== a2.ts:a2-ctl-memo-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 2 holds 4
+   CONTROL FIRED
+== a2.ts:a2-ctl-width-mut [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 33 candidates, accepted 32, silent 21
+SILENT a2.ts:a2-prog-arr
+SILENT a2.ts:a2-cross-hit-arr
+SILENT a2.ts:a2-wrap-arr
+SILENT a2.ts:a2-local-arr
+SILENT a2.ts:a2-prog-map
+SILENT a2.ts:a2-cross-hit-map
+SILENT a2.ts:a2-wrap-map
+SILENT a2.ts:a2-local-map
+SILENT a2.ts:a2-prog-set
+SILENT a2.ts:a2-cross-hit-set
+SILENT a2.ts:a2-wrap-set
+SILENT a2.ts:a2-local-set
+SILENT a2.ts:a2-prog-rec
+SILENT a2.ts:a2-cross-hit-rec
+SILENT a2.ts:a2-wrap-rec
+SILENT a2.ts:a2-local-rec
+SILENT a2.ts:a2-prog-err
+SILENT a2.ts:a2-cross-hit-err
+SILENT a2.ts:a2-wrap-err
+SILENT a2.ts:a2-local-err
+SILENT a2.ts:a2-in-action

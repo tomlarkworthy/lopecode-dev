@@ -1,0 +1,10 @@
+Mon 23 Nov 2026 03:48:27 CET
+## out-a.txt
+-- controls 38, ran 38, fired 11
+-- harness crashes 0
+-- 288 candidates, accepted 195, silent 0
+## out-b.txt
+-- controls 38, ran 38, fired 38
+-- harness crashes 0
+-- 288 candidates, accepted 195, silent 133
+Mon 23 Nov 2026 03:48:37 CET

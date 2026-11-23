@@ -1,0 +1,66 @@
+== a5.ts:a5-P-listener-rec: REJECT l:rejected[inject-events]
+listener l: action put threw on a value of events tick: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,memo,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return ((s/*ss:: State<() => number>*/, lg/*ss:: State<number>*/) => action((k/*ss:: number*/) => { const xs = [k]; const c/*ss:: readonly number[]*/ = xs; const f = /*ss+*/ss_closure(/*ss-*/() => c.length * 10 + k/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : k)/*ss-*/; s.set(f); lg.set(f()); xs.push(k); }));
+                                                                                                                                                                                                                                                                                                             ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:298)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:172:15)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:68:15)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:79:112)
+      at runCand (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:83:11)
+
+listener l: action put threw on a value of events tick: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,memo,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return ((s/*ss:: State<() => number>*/, lg/*ss:: State<number>*/) => action((k/*ss:: number*/) => { const xs = [k]; const c/*ss:: readonly number[]*/ = xs; const f = /*ss+*/ss_closure(/*ss-*/() => c.length * 10 + k/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : k)/*ss-*/; s.set(f); lg.set(f()); xs.push(k); }));
+                                                                                                                                                                                                                                                                                                             ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:298)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:172:15)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:68:15)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:79:112)
+      at async runCand (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:83:11)
+
+== a5.ts:a5-P-listener-two-values: ACCEPT
+   drive -> same given -1 holds -1
+== a5.ts:a5-P-jsx-onclick: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a5.ts:a5-P-elem-in-state: REJECT s:rejected[no-member] put:rejected[no-member][action-capture]
+== a5.ts:a5-P-action-in-state: REJECT put:rejected[action-capture] fire:rejected[action-capture]
+== a5.ts:a5-P-update-chain: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a5.ts:a5-P-actarg-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a5.ts:a5-two-calls: ACCEPT
+   drive -> same 1 then 1
+== a5.ts:a5-actarg-data: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a5.ts:a5-actarg-writer: ACCEPT
+   drive -> called
+== a5.ts:a5-state-mutparam-fn: REJECT go:rejected[action-capture]
+== a5.ts:a5-listener-closes-input: ACCEPT
+== a5.ts:a5-listener-closes-alias: REJECT put:rejected[action-capture]
+== a5.ts:a5-events-yield-fn: ACCEPT
+== a5.ts:a5-events-yield-fn-after: REJECT tick:rejected[mut-yield]
+== a5.ts:a5-state-init-alias: ACCEPT
+== a5.ts:a5-island-data: ACCEPT
+   late throws: undefined is not an object (evaluating 'x.length')
+== a5.ts:a5-island-fn-in: REJECT go:rejected[compile-boundary]
+== a5.ts:a5-set-as-value: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+   late throws: undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length')
+== a5.ts:a5-read-kept: ACCEPT
+   drive -> DIFF given 0 holds 1
+   SILENT
+== a5.ts:a5-ctl-P-direct-mut [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: Attempted to assign to readonly property.
+   CONTROL DID NOT FIRE
+== a5.ts:a5-ctl-listener-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 9
+   CONTROL FIRED
+-- controls 2, ran 2, fired 1
+-- harness crashes 0
+-- 20 candidates, accepted 13, silent 1
+SILENT a5.ts:a5-read-kept

@@ -1,0 +1,26 @@
+f-cb-mut-param: ACCEPT
+f-get-mut-result: ACCEPT
+f-get-mut-result-ann: REJECT a:rejected[mutating-method]
+    a[mutating-method] write to a number[], which is not Mut
+f-rec-mut-field: REJECT a:rejected[mut-cell]
+    a[mut-cell] input lib: Mut<number[]>; an input is never a Mut: the cell it comes from and every other cell that takes it share it
+f-fn-returns-rec-mut: ACCEPT
+f-take-fn-midbody: ACCEPT
+f-take-data-midbody: ACCEPT
+f-take-fn-kept: ACCEPT
+f-each-mut: ACCEPT
+f-generic-id: ACCEPT
+f-generic-id-fn: ACCEPT
+f-union-fn: REJECT a:rejected[type]
+    a[type] call of (x: number[]) => void | (x: Mut<number[]>) => void
+f-method-bivar: ACCEPT
+f-mut-param-from-cell: REJECT a:rejected[type]
+    a[type] number[] is not assignable to Mut<number[]>
+f-mut-param-fresh: ACCEPT
+f-mut-param-alias-kept: ACCEPT
+f-returns-fn-mutparam: ACCEPT
+f-state-of-foreign: ACCEPT
+f-memo-of-foreign: ACCEPT
+f-kept-captures-foreign: REJECT a:rejected[mut-cell]
+    a[mut-cell] input lib: Mut<number[]>; an input is never a Mut: the cell it comes from and every other cell that takes it share it
+f-then-foreign: ACCEPT

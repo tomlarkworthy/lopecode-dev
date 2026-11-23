@@ -1,0 +1,571 @@
+== c0.ts:fa5-fa4-fa3-ctl-typed-input-write: CONTROL (checker skipped)
+   CHANGED t (value #1 of 1): Uint8Array[0,0] | E[] -> Uint8Array[1,0] | E[]
+   CONTROL FIRED
+== c0.ts:fa5-fa4-fa3-ctl-let-reassign: CONTROL (checker skipped)
+   CHANGED a (value #1 of 2): fn(0) | E[] -> fn(1) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-fa4-fa3-ctl-promise-typed: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[1,0]
+   CONTROL FIRED
+== c0.ts:fa5-fa4-fa3-ctl-twice: CONTROL (checker skipped)
+   CHANGED t (value #1 of 1): Uint8Array[0,0] | E[] -> Uint8Array[7,0] | E[]
+   twice obs: #1 [0] | E[] , #1 [7] | E[]
+   CONTROL FIRED
+== c0.ts:fa5-fa4-ctl-let-counter: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-fa4-ctl-let-async: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(0) | E[] -> fn(5) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-fa4-ctl-typed-shared: CONTROL (checker skipped)
+   CHANGED t (value #1 of 1): Uint8Array[0,0] | E[] -> Uint8Array[9,0] | E[]
+   CONTROL FIRED
+== c0.ts:fa5-fa4-k-h9-r2-kept-returns-field: REJECT a:rejected[mut-nested][mut-capture] c:rejected[mut-nested][inject-type]
+== c0.ts:fa5-k5-spec-not-specified-tuple: REJECT a:rejected[mut-capture]
+== c0.ts:fa5-k5-ternary: REJECT a:rejected[mut-capture]
+== c0.ts:fa5-k5-asconst-rec-map: REJECT a:rejected[mut-capture]
+== c0.ts:fa5-ctl-n1-tuple-ret: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-tuple-gen: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-tuple1-method: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-tuple2-ret: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-tuple2-gen: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-tern-method: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-ternrec-ret: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-ternrec-gen: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-box-method: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-pairg-ret: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-pairg-gen: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-alias2-method: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-nested-ret: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-nested-gen: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-maptup-method: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): {m:fn(2)} | E[] -> {m:fn(3)} | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-rectup-ret: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-rectup-gen: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n1-errtup-method: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): {m:fn("xyy")} | E[] -> {m:fn("xyyy")} | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n3-memo-result-fn: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(fn(3)) | E[] -> fn(fn(4)) | E[]
+   CHANGED b (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n3-consumer-holds: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+   CHANGED b (value #1 of 1): {r:fn(3)} | E[] -> {r:fn(6)} | E[]
+   CONTROL FIRED
+== c0.ts:fa5-ctl-n3-to-keyof-record: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== m0.ts:m0-P-action: ACCEPT
+   drive -> DIFF written when f() was 1; v's f() is 2
+== m0.ts:m0-P-memo: ACCEPT
+   drive -> DIFF r.f() after the memo took r: 1, after the write: 2
+== a1.ts:a1-set-arr-push: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-set-arr-index: ACCEPT
+   drive -> DIFF given 201 holds 216
+== a1.ts:a1-set-arr-pop: ACCEPT
+   drive -> DIFF given 201 holds 100
+== a1.ts:a1-set-arr-splice: ACCEPT
+   drive -> DIFF given 201 holds 101
+== a1.ts:a1-set-arr-unshift: ACCEPT
+   drive -> DIFF given 201 holds 328
+== a1.ts:a1-set-arr-fill: ACCEPT
+   drive -> DIFF given 201 holds 216
+== a1.ts:a1-set-arr-reverse: ACCEPT
+   drive -> DIFF given 201 holds 203
+== a1.ts:a1-set-arr-sort: ACCEPT
+   drive -> DIFF given 201 holds 203
+== a1.ts:a1-set-arr-shift: ACCEPT
+   drive -> DIFF given 201 holds 101
+== a1.ts:a1-set-arr-copyWithin: ACCEPT
+   drive -> DIFF given 201 holds 204
+== a1.ts:a1-set-arr-length0: ACCEPT
+   drive -> DIFF given 201 holds 0
+== a1.ts:a1-set-arr-compound: ACCEPT
+   drive -> DIFF given 201 holds 208
+== a1.ts:a1-set-arr-incr: ACCEPT
+   drive -> DIFF given 201 holds 204
+== a1.ts:a1-set-map-set: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-set-map-set-a: ACCEPT
+   drive -> DIFF given 11 holds 15
+== a1.ts:a1-set-map-delete: ACCEPT
+   drive -> DIFF given 11 holds 0
+== a1.ts:a1-set-map-clear: ACCEPT
+   drive -> DIFF given 11 holds 0
+== a1.ts:a1-set-set-add: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a1.ts:a1-set-set-delete: ACCEPT
+   drive -> DIFF given 1 holds 0
+== a1.ts:a1-set-set-clear: ACCEPT
+   drive -> DIFF given 1 holds 0
+== a1.ts:a1-set-rec-assign: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-set-rec-incr: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a1.ts:a1-set-rec-compound: ACCEPT
+   drive -> DIFF given 1 holds 3
+== a1.ts:a1-set-opt-delete: ACCEPT
+   drive -> DIFF given 1 holds -1
+== a1.ts:a1-set-opt-assign: ACCEPT
+   drive -> DIFF given 1 holds 9
+== a1.ts:a1-set-err-message: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-set-nest-push: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a1.ts:a1-set-tuple-push: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a1.ts:a1-set-recmap-set: ACCEPT
+   drive -> DIFF given 0 holds 1
+== a1.ts:a1-set-arrrec-assign: ACCEPT
+   drive -> DIFF given 1 holds 4
+== a1.ts:a1-set-spreadless-push: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a1.ts:a1-update-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-rec-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-method-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-arr-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-decl-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-wrap-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-width-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-mapholder-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-helper-write-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-foreach-write-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-loop-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-nested-fn-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-actarg-arr: ACCEPT
+   drive -> DIFF given 201 holds 304
+== a1.ts:a1-readback-arr: ACCEPT
+   drive -> DIFF set-time 201 read(s)() 304
+== a1.ts:a1-mutparam-arr: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a1.ts:a1-update-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-rec-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-method-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-arr-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-decl-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-wrap-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-width-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-mapholder-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-helper-write-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-foreach-write-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-loop-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-nested-fn-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-actarg-map: ACCEPT
+   drive -> DIFF given 11 holds 21
+== a1.ts:a1-readback-map: ACCEPT
+   drive -> DIFF set-time 11 read(s)() 21
+== a1.ts:a1-mutparam-map: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a1.ts:a1-update-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-rec-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-method-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-arr-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-decl-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-wrap-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-width-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-mapholder-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-helper-write-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-foreach-write-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-loop-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-nested-fn-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-actarg-rec: ACCEPT
+   drive -> DIFF given 1 holds 5
+== a1.ts:a1-readback-rec: ACCEPT
+   drive -> DIFF set-time 1 read(s)() 5
+== a1.ts:a1-mutparam-rec: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a1.ts:a1-update-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-rec-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-method-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-arr-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-decl-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-wrap-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-width-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-mapholder-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-helper-write-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-foreach-write-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-loop-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-nested-fn-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-actarg-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a1.ts:a1-readback-err: ACCEPT
+   drive -> DIFF set-time 1 read(s)() 6
+== a1.ts:a1-mutparam-err: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a1.ts:a1-listener: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a1.ts:a1-data-set-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a1.ts:a1-ctl-let: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   CONTROL DID NOT FIRE
+== a1.ts:a1-ctl-mut-capture: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   CONTROL DID NOT FIRE
+== a2.ts:a2-prog-arr: ACCEPT
+   drive -> DIFF after the memo took r: 1, later: 2
+== a2.ts:a2-cross-hit-arr: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a2.ts:a2-wrap-arr: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a2.ts:a2-local-arr: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a2.ts:a2-data-arr: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-prog-map: ACCEPT
+   drive -> DIFF after the memo took r: 0, later: 1
+== a2.ts:a2-cross-hit-map: ACCEPT
+   drive -> DIFF given 0 holds 1
+== a2.ts:a2-wrap-map: ACCEPT
+   drive -> DIFF given 0 holds 1
+== a2.ts:a2-local-map: ACCEPT
+   drive -> DIFF given 0 holds 1
+== a2.ts:a2-data-map: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: set on a frozen Map: a value cannot change after its cell returns
+== a2.ts:a2-prog-set: ACCEPT
+   drive -> DIFF after the memo took r: 0, later: 1
+== a2.ts:a2-cross-hit-set: ACCEPT
+   drive -> DIFF given 0 holds 1
+== a2.ts:a2-wrap-set: ACCEPT
+   drive -> DIFF given 0 holds 1
+== a2.ts:a2-local-set: ACCEPT
+   drive -> DIFF given 0 holds 1
+== a2.ts:a2-data-set: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: add on a frozen Set: a value cannot change after its cell returns
+== a2.ts:a2-prog-rec: ACCEPT
+   drive -> DIFF after the memo took r: 1, later: 7
+== a2.ts:a2-cross-hit-rec: ACCEPT
+   drive -> DIFF given 1 holds 7
+== a2.ts:a2-wrap-rec: ACCEPT
+   drive -> DIFF given 1 holds 7
+== a2.ts:a2-local-rec: ACCEPT
+   drive -> DIFF given 1 holds 7
+== a2.ts:a2-data-rec: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-prog-err: ACCEPT
+   drive -> DIFF after the memo took r: 1, later: 6
+== a2.ts:a2-cross-hit-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a2.ts:a2-wrap-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a2.ts:a2-local-err: ACCEPT
+   drive -> DIFF given 1 holds 6
+== a2.ts:a2-data-err: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-rm-second-name: ACCEPT
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-rm-field: REJECT a:rejected[mutating-method]
+== a2.ts:a2-rm-input: ACCEPT
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-rm-unann-input: ACCEPT
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-rm-loop: ACCEPT
+== a2.ts:a2-result-fn: ACCEPT
+== a2.ts:a2-in-action: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a2.ts:a2-key-shared: ACCEPT
+== a2.ts:a2-ctl-memo-let: CONTROL (checker skipped)
+   drive -> DIFF given 2 holds 4
+   CONTROL DID NOT FIRE
+== a2.ts:a2-ctl-width-mut: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   CONTROL DID NOT FIRE
+== a3.ts:a3-fresh-cb: ACCEPT
+== a3.ts:a3-fresh-cb-unann: ACCEPT
+== a3.ts:a3-fresh-cb-kept-reader: ACCEPT
+== a3.ts:a3-own-param-cb: ACCEPT
+== a3.ts:a3-own-param-cb-d: REJECT b:rejected[type]
+== a3.ts:a3-own-param-cb-snapshot: ACCEPT
+== a3.ts:a3-consumer-writer-into-producer: ACCEPT
+== a3.ts:a3-consumer-writer-kept: ACCEPT
+== a3.ts:a3-consumer-writer-on-alias: REJECT a:rejected[type]
+== a3.ts:a3-consumer-writer-on-input: REJECT b:rejected[type]
+== a3.ts:a3-consumer-writer-unann-input: REJECT b:rejected[type]
+== a3.ts:a3-method-cb: ACCEPT
+== a3.ts:a3-method-cb-d: REJECT a:rejected[cell-by-name]
+== a3.ts:a3-rest-cb: ACCEPT
+== a3.ts:a3-default-cb: ACCEPT
+== a3.ts:a3-default-cb-captures-d: ACCEPT
+== a3.ts:a3-destructured-cb: ACCEPT
+== a3.ts:a3-generic-v-cb: ACCEPT
+== a3.ts:a3-generic-v-cb-d: REJECT b:rejected[mutating-method]
+== a3.ts:a3-generic-v-cb-d-ann: REJECT b:rejected[type][type]
+== a3.ts:a3-generic-fn-T: ACCEPT
+== a3.ts:a3-generic-fn-T-d: REJECT b:rejected[type]
+== a3.ts:a3-returns-writer: REJECT b:rejected[type]
+== a3.ts:a3-returns-writer-own: ACCEPT
+== a3.ts:a3-take-returns-reader: ACCEPT
+== a3.ts:a3-take-returns-reader-kept: ACCEPT
+== a3.ts:a3-take-returns-mut: REJECT b:rejected[mutating-method]
+== a3.ts:a3-take-returns-mut-d: REJECT b:rejected[mutating-method]
+== a3.ts:a3-this-in-method: REJECT a:rejected[no-this] r:blocked
+== a3.ts:a3-arguments-cb: REJECT a:rejected[no-arguments]
+== a3.ts:a3-state-holds-writer: ACCEPT
+== a3.ts:a3-state-holds-writer-d: REJECT u:rejected[type]
+== a3.ts:a3-action-cb-param: ACCEPT
+   drive -> called
+== a3.ts:a3-cb-P: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a3.ts:a3-cb-P-writer-cell: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a3.ts:a3-cb-P-take-reader: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a3.ts:a3-cb-P-state-writer: REJECT put:rejected[action-capture]
+== a3.ts:a3-cb-P-memo-writer: REJECT wr:rejected[memo-pure]
+== a3.ts:a3-generic-box-fn: REJECT b:rejected[type]
+== a3.ts:a3-generic-box-fn-own: ACCEPT
+== a3.ts:a3-ctl-cb-on-d: CONTROL (checker skipped)
+   CHANGED q (value #1 of 1): {f:fn(1),w:fn(throws cb is not a function. (In 'cb(xs)', 'cb')} | E[] -> {f:fn(2),w:fn(throws cb is not a function. (In 'cb(xs)', 'cb')} | E[]
+   CONTROL FIRED
+== a3.ts:a3-ctl-cb-P-let: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 3
+   CONTROL DID NOT FIRE
+== a4.ts:a4-pred: REJECT a:rejected[mut-nested][mutating-method]
+== a4.ts:a4-pred-input: REJECT a:rejected[mut-nested][mutating-method]
+== a4.ts:a4-assert: REJECT a:rejected[mut-nested][mutating-method]
+== a4.ts:a4-cond-type: REJECT module[mut-nested]
+== a4.ts:a4-mapped: REJECT a:unsupported
+== a4.ts:a4-mapped2: REJECT a:unsupported
+== a4.ts:a4-indexed: REJECT a:unsupported
+== a4.ts:a4-typeof-whole: REJECT a:rejected[mut-capture]
+== a4.ts:a4-returntype: REJECT a:rejected[mut-nested][unknown-type]
+== a4.ts:a4-awaited: REJECT a:rejected[unknown-type]
+== a4.ts:a4-infer: REJECT a:unsupported
+== a4.ts:a4-unknown-narrow: REJECT a:rejected[mutating-method]
+== a4.ts:a4-unknown-narrow-read: ACCEPT
+   drive -> same a() 1 then 1
+== a4.ts:a4-satisfies: REJECT a:unsupported
+== a4.ts:a4-enum: REJECT module[no-enum] a:rejected[free-name]
+== a4.ts:a4-symbol-key: REJECT a:unsupported
+== a4.ts:a4-index-sig: ACCEPT
+   drive -> same a() 1 then 1
+== a4.ts:a4-optional-member: ACCEPT
+   drive -> same a() 1 then 1
+== a4.ts:a4-gen-tnext: REJECT a:rejected[type][mut-yield]
+== a4.ts:a4-gen-treturn: REJECT a:rejected[mut-yield]
+== a4.ts:a4-gen-next-call: REJECT a:unsupported
+== a4.ts:a4-thenable: REJECT a:rejected[no-member][mut-capture]
+== a4.ts:a4-weakref: REJECT a:rejected[new-non-intrinsic]
+== a4.ts:a4-proxy: REJECT a:rejected[new-non-intrinsic]
+== a4.ts:a4-reflect: REJECT a:rejected[free-name]
+== a4.ts:a4-objassign: REJECT a:unsupported
+== a4.ts:a4-json-roundtrip: REJECT a:rejected[no-member][no-member]
+== a4.ts:a4-json-typed: REJECT a:rejected[type]
+== a4.ts:a4-sc: REJECT a:rejected[mut-capture]
+== a4.ts:a4-loop-closure: REJECT a:rejected[no-cast]
+== a4.ts:a4-loop-var-mut: REJECT a:rejected[mut-capture]
+== a4.ts:a4-labelled: REJECT a:unsupported
+== a4.ts:a4-var: REJECT a:rejected[no-var][mut-capture][let-capture]
+== a4.ts:a4-eval: REJECT a:rejected[free-name]
+== a4.ts:a4-Function: REJECT a:rejected[free-name]
+== a4.ts:a4-destr-default: REJECT a:rejected[no-cast]
+== a4.ts:a4-destr-default2: REJECT a:rejected[no-cast]
+== a4.ts:a4-flat: REJECT a:unsupported
+== a4.ts:a4-find: REJECT a:rejected[mut-capture]
+== a4.ts:a4-at: REJECT a:rejected[mut-capture]
+== a4.ts:a4-arrof: REJECT a:rejected[mut-capture]
+== a4.ts:a4-ternary-ann-readonly: ACCEPT
+   drive -> same a() 1 then 1
+== a4.ts:a4-generic-bound: REJECT a:rejected[mut-nested]
+== a4.ts:a4-overload-decl: REJECT a:rejected[no-any]
+== a4.ts:a4-template-lit: REJECT a:unsupported
+== a4.ts:a4-keyof: REJECT a:rejected[mut-nested]
+== a4.ts:a4-iterable-ann: ACCEPT
+   drive -> same a() 0 then 0
+== a4.ts:a4-map-get-mut: REJECT a:rejected[mut-capture]
+== a4.ts:a4-map-get-mut-alias: REJECT a:rejected[unknown-type]
+== a4.ts:a4-map-alias: ACCEPT
+   drive -> same a() 1 then 1
+== a4.ts:a4-P-index-sig: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a4.ts:a4-P-optional-member: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a4.ts:a4-P-ternary-ann-readonly: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a4.ts:a4-P-iterable-ann: REJECT put:rejected[iterator-capture]
+== a4.ts:a4-P-map-alias: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a4.ts:a4-P-unknown: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a4.ts:a4-P-map-alias-set: ACCEPT
+   drive -> DIFF given 0 holds 1
+== a4.ts:a4-P-typeof-readonly: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a4.ts:a4-P-union-alias: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a4.ts:a4-P-string-key-rec: REJECT put:rejected[mut-capture]
+== a5.ts:a5-P-listener-rec: REJECT l:rejected[inject-events]
+== a5.ts:a5-P-listener-two-values: ACCEPT
+   drive -> DIFF given 12 holds 22
+== a5.ts:a5-P-jsx-onclick: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a5.ts:a5-P-elem-in-state: REJECT s:rejected[no-member] put:rejected[no-member][action-capture]
+== a5.ts:a5-P-action-in-state: REJECT put:rejected[action-capture] fire:rejected[action-capture]
+== a5.ts:a5-P-update-chain: ACCEPT
+   drive -> DIFF [1,2]
+== a5.ts:a5-P-actarg-rec: ACCEPT
+   drive -> DIFF given 1 holds 2
+== a5.ts:a5-two-calls: ACCEPT
+   drive -> same 1 then 1
+== a5.ts:a5-actarg-data: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a5.ts:a5-actarg-writer: ACCEPT
+   drive -> called
+== a5.ts:a5-state-mutparam-fn: REJECT go:rejected[action-capture]
+== a5.ts:a5-listener-closes-input: ACCEPT
+== a5.ts:a5-listener-closes-alias: REJECT put:rejected[action-capture]
+== a5.ts:a5-events-yield-fn: ACCEPT
+== a5.ts:a5-events-yield-fn-after: REJECT tick:rejected[mut-yield]
+== a5.ts:a5-state-init-alias: ACCEPT
+== a5.ts:a5-island-data: ACCEPT
+   late throws: undefined is not an object (evaluating 'x.length')
+== a5.ts:a5-island-fn-in: REJECT go:rejected[compile-boundary]
+== a5.ts:a5-set-as-value: ACCEPT
+   drive -> DIFF given 1 holds 2
+   late throws: undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length')
+== a5.ts:a5-read-kept: ACCEPT
+   drive -> same given -1 holds -1
+== a5.ts:a5-ctl-P-direct-mut: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   CONTROL DID NOT FIRE
+== a5.ts:a5-ctl-listener-let: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 9
+   CONTROL DID NOT FIRE
+== a6.ts:a6-gen-yield-then-write: REJECT g:rejected[mut-yield]
+== a6.ts:a6-gen-yield-rec-then-write: REJECT g:rejected[mut-yield]
+== a6.ts:a6-gen-write-in-loop-next-iter: ACCEPT
+== a6.ts:a6-gen-helper-after: REJECT g:rejected[mut-yield]
+== a6.ts:a6-gen-yield-in-write: REJECT g:rejected[type][mut-yield]
+== a6.ts:a6-gen-try-finally: REJECT g:rejected[mut-yield]
+== a6.ts:a6-gen-param-of-helper: REJECT g:rejected[mut-yield]
+== a6.ts:a6-gen-loop-body-local: ACCEPT
+   twice g: #1 fn(2) | E[] , #1 fn(2) | E[] , #1 fn(2) | E[]
+== a6.ts:a6-gen-yield-then-read-only: ACCEPT
+== a6.ts:a6-gen-memo-width-across-yield: REJECT g:rejected[mut-yield]
+== a6.ts:a6-asyncgen-yield-then-write: REJECT g:rejected[mut-yield]
+== a6.ts:a6-async-write-after-await: ACCEPT
+== a6.ts:a6-async-nested-helper: REJECT a:rejected[type][mut-await]
+== a6.ts:a6-async-memo-width: ACCEPT
+   drive -> DIFF 1 then 2
+== a6.ts:a6-async-memo-width-hit-other: ACCEPT
+   drive -> DIFF the memo was given r with f() = 1; it now gives 2
+== a6.ts:a6-async-memo-data: ACCEPT
+   error a: Attempted to assign to readonly property.
+== a6.ts:a6-async-promise-fn: ACCEPT
+== a6.ts:a6-async-then-cb: REJECT a:rejected[type]
+== a6.ts:a6-async-cell-input-fn-called-later: ACCEPT
+== a6.ts:a6-ctl-gen-let: CONTROL (checker skipped)
+   CHANGED g (value #1 of 2): fn(0) | E[] -> fn(1) | E[]
+   twice g: #1 fn(0) | E[] , #1 0 | E[]
+   CONTROL FIRED
+== a6.ts:a6-ctl-async-memo-direct-mut: CONTROL (checker skipped)
+   drive -> DIFF 1 then 2
+   CONTROL DID NOT FIRE
+== a7.ts:a7-written-plain-11: ACCEPT
+== a7.ts:a7-written-plain-captured-11: ACCEPT
+== a7.ts:a7-inferred-box-11: REJECT a:rejected[mut-capture]
+== a7.ts:a7-rebind-11: ACCEPT
+== a7.ts:a7-written-plain-12: ACCEPT
+== a7.ts:a7-written-plain-captured-12: ACCEPT
+== a7.ts:a7-inferred-box-12: REJECT a:rejected[mut-capture]
+== a7.ts:a7-rebind-12: ACCEPT
+== a7.ts:a7-written-plain-13: ACCEPT
+== a7.ts:a7-written-plain-captured-13: REJECT a:rejected[mut-capture]
+== a7.ts:a7-inferred-box-13: REJECT a:rejected[mut-capture]
+== a7.ts:a7-rebind-13: REJECT a:rejected[mut-capture]
+== a7.ts:a7-levels-5: REJECT a:rejected[mut-capture]
+== a7.ts:a7-levels-199: REJECT a:rejected[mut-capture]
+== a7.ts:a7-levels-201: REJECT a:rejected[mut-capture]
+== a7.ts:a7-recursive-alias: ACCEPT
+== a7.ts:a7-recursive-alias-mut-inside: ACCEPT
+-- controls 38, fired 30
+-- accepted with a cell still pending at the end: 0
+-- 288 candidates, accepted 195, silent 0

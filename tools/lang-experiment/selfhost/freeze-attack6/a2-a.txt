@@ -1,0 +1,103 @@
+== a2.ts:a2-prog-arr: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a[0]')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-cross-hit-arr: ACCEPT
+   drive threw: undefined is not an object (evaluating 'p.value("b").f')
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== a2.ts:a2-wrap-arr: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.res')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-local-arr: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.got')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-data-arr: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-prog-map: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a[0]')
+   error a: set on a frozen Map: a value cannot change after its cell returns
+== a2.ts:a2-cross-hit-map: ACCEPT
+   drive threw: undefined is not an object (evaluating 'p.value("b").f')
+   error a: set on a frozen Map: a value cannot change after its cell returns
+   error b: set on a frozen Map: a value cannot change after its cell returns
+== a2.ts:a2-wrap-map: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.res')
+   error a: set on a frozen Map: a value cannot change after its cell returns
+== a2.ts:a2-local-map: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.got')
+   error a: set on a frozen Map: a value cannot change after its cell returns
+== a2.ts:a2-data-map: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: set on a frozen Map: a value cannot change after its cell returns
+== a2.ts:a2-prog-set: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a[0]')
+   error a: add on a frozen Set: a value cannot change after its cell returns
+== a2.ts:a2-cross-hit-set: ACCEPT
+   drive threw: undefined is not an object (evaluating 'p.value("b").f')
+   error a: add on a frozen Set: a value cannot change after its cell returns
+   error b: add on a frozen Set: a value cannot change after its cell returns
+== a2.ts:a2-wrap-set: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.res')
+   error a: add on a frozen Set: a value cannot change after its cell returns
+== a2.ts:a2-local-set: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.got')
+   error a: add on a frozen Set: a value cannot change after its cell returns
+== a2.ts:a2-data-set: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: add on a frozen Set: a value cannot change after its cell returns
+== a2.ts:a2-prog-rec: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a[0]')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-cross-hit-rec: ACCEPT
+   drive threw: undefined is not an object (evaluating 'p.value("b").f')
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== a2.ts:a2-wrap-rec: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.res')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-local-rec: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.got')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-data-rec: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-prog-err: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a[0]')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-cross-hit-err: ACCEPT
+   drive threw: undefined is not an object (evaluating 'p.value("b").f')
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== a2.ts:a2-wrap-err: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.res')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-local-err: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.got')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-data-err: ACCEPT
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-rm-second-name: ACCEPT
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-rm-field: REJECT a:rejected[mutating-method]
+== a2.ts:a2-rm-input: ACCEPT
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-rm-unann-input: ACCEPT
+   error a: Attempted to assign to readonly property.
+== a2.ts:a2-rm-loop: ACCEPT
+== a2.ts:a2-result-fn: ACCEPT
+== a2.ts:a2-in-action: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== a2.ts:a2-key-shared: ACCEPT
+== a2.ts:a2-ctl-memo-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 2 holds 4
+   CONTROL FIRED
+== a2.ts:a2-ctl-width-mut [ctl]: CONTROL (checker skipped)
+   drive threw: undefined is not an object (evaluating 'a.before')
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+   CONTROL DID NOT FIRE
+-- controls 2, ran 2, fired 1
+-- harness crashes 0
+-- 33 candidates, accepted 32, silent 0

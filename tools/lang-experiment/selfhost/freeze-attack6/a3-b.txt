@@ -1,0 +1,59 @@
+== a3.ts:a3-fresh-cb: ACCEPT
+== a3.ts:a3-fresh-cb-unann: ACCEPT
+== a3.ts:a3-fresh-cb-kept-reader: ACCEPT
+== a3.ts:a3-own-param-cb: ACCEPT
+== a3.ts:a3-own-param-cb-d: REJECT b:rejected[type]
+== a3.ts:a3-own-param-cb-snapshot: ACCEPT
+== a3.ts:a3-consumer-writer-into-producer: ACCEPT
+== a3.ts:a3-consumer-writer-kept: ACCEPT
+== a3.ts:a3-consumer-writer-on-alias: REJECT a:rejected[type]
+== a3.ts:a3-consumer-writer-on-input: REJECT b:rejected[type]
+== a3.ts:a3-consumer-writer-unann-input: REJECT b:rejected[type]
+== a3.ts:a3-method-cb: ACCEPT
+== a3.ts:a3-method-cb-d: REJECT a:rejected[cell-by-name]
+== a3.ts:a3-rest-cb: ACCEPT
+== a3.ts:a3-default-cb: ACCEPT
+== a3.ts:a3-default-cb-captures-d: ACCEPT
+== a3.ts:a3-destructured-cb: ACCEPT
+== a3.ts:a3-generic-v-cb: ACCEPT
+== a3.ts:a3-generic-v-cb-d: REJECT b:rejected[mutating-method]
+== a3.ts:a3-generic-v-cb-d-ann: REJECT b:rejected[type][type]
+== a3.ts:a3-generic-fn-T: ACCEPT
+== a3.ts:a3-generic-fn-T-d: REJECT b:rejected[type]
+== a3.ts:a3-returns-writer: REJECT b:rejected[type]
+== a3.ts:a3-returns-writer-own: ACCEPT
+== a3.ts:a3-take-returns-reader: ACCEPT
+== a3.ts:a3-take-returns-reader-kept: ACCEPT
+== a3.ts:a3-take-returns-mut: REJECT b:rejected[mutating-method]
+== a3.ts:a3-take-returns-mut-d: REJECT b:rejected[mutating-method]
+== a3.ts:a3-this-in-method: REJECT a:rejected[no-this] r:blocked
+== a3.ts:a3-arguments-cb: REJECT a:rejected[no-arguments]
+== a3.ts:a3-state-holds-writer: ACCEPT
+== a3.ts:a3-state-holds-writer-d: REJECT u:rejected[type]
+== a3.ts:a3-action-cb-param: ACCEPT
+   drive -> called
+== a3.ts:a3-cb-P: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a3.ts:a3-cb-P-writer-cell: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a3.ts:a3-cb-P-take-reader: ACCEPT
+   drive -> DIFF given 1 holds 2
+   SILENT
+== a3.ts:a3-cb-P-state-writer: REJECT put:rejected[action-capture]
+== a3.ts:a3-cb-P-memo-writer: REJECT wr:rejected[memo-pure]
+== a3.ts:a3-generic-box-fn: REJECT b:rejected[type]
+== a3.ts:a3-generic-box-fn-own: ACCEPT
+== a3.ts:a3-ctl-cb-on-d [ctl]: CONTROL (checker skipped)
+   error b: Attempted to assign to readonly property.
+   CONTROL DID NOT FIRE
+== a3.ts:a3-ctl-cb-P-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 3
+   CONTROL FIRED
+-- controls 2, ran 2, fired 1
+-- harness crashes 0
+-- 40 candidates, accepted 23, silent 3
+SILENT a3.ts:a3-cb-P
+SILENT a3.ts:a3-cb-P-writer-cell
+SILENT a3.ts:a3-cb-P-take-reader
