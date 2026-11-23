@@ -535,10 +535,59 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
             const p = ps.find((x) => after(g, d, captured, u, x));
             if (!p) continue;
             const w = u.at.type === "CallExpression" ? u.at : writeAt(u.at);
-            err(u.at, w && w.type === "CallExpression" ? "mutating-method" : "member-write", `${b.name} is written after a value is published at ${what(p)} in the same run of this function; a function published there may read ${b.name} through a read-only name (S4.10) and would see the write (S4.11); finish every write to ${b.name} before ${what(p)}, or write to a new local declared after it`);
+            err(u.at, w && w.type === "CallExpression" ? "mutating-method" : "member-write", `${b.name} is written after a value is published at ${what(p)} in the same run of this function; a function published there may read ${b.name} through a read-only name (S4.10) and would see the write (S4.11); finish every write to ${b.name} before ${what(p)}`);
             break;
           }
         }
+      }
+    }
+    // DELIBERATE CHANGE (2026-11-23, f1, S4.12): a state's set (or what an update's arrow returns), or an action called,
+    // given at a parameter whose type holds a function a function literal the calling function makes (inline, inside an array, object, conditional or
+    // parenthesised argument, or a const of that function bound to one) is [fn-publish] (ow-late owTyFn, owMadeFn,
+    // owFnPubs). The run-time throw (prelude noBodyFn) is the guarantee; this is the visible case
+    {
+      const isTy = (x: Node, n: string) => { const t = F.types.get(x); return !!t && ch.um(t).some((m) => isNamed(unwrap(m), n)); };
+      const tyFn = (t0: Ty): boolean => {
+        const seen = new Set<string>(), todo: Ty[] = [t0];
+        for (let t = todo.pop(), n = 0; t !== undefined && n < 400; t = todo.pop(), n++) {
+          if (t.k === "fn" || (t.k === "rec" && ((t.calls ?? []).length > 0 || (t.ctors ?? []).length > 0))) return true;
+          if (t.k === "arr") todo.push(t.el); else if (t.k === "tup") todo.push(...t.els); else if (t.k === "union") todo.push(...t.ts);
+          else if (t.k === "rec") todo.push(...[...t.props.values()].map((p) => p.t), ...(t.index ? [t.index] : []));
+          else if (t.k === "named") { if (t.n === "Action") return true; if (!ch.reg.isAlias(t.n)) todo.push(...t.args); else if (!seen.has(typeKey(t))) { seen.add(typeKey(t)); todo.push(ch.reg.expand(t)); } }
+        }
+        return false;
+      };
+      const madeFn = (g: Node, a: Node): Node | null => {
+        const todo: Node[] = [a], seen = new Set<Node>();
+        for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
+          if (seen.has(n)) continue;
+          seen.add(n);
+          if (n.type === "ArrowFunctionExpression" || n.type === "FunctionExpression") return n;
+          if (n.type === "ArrayExpression") { for (const e of n.elements) if (e) todo.push(e.type === "SpreadElement" ? e.argument : e); }
+          else if (n.type === "ObjectExpression") for (const p of n.properties) todo.push(p.type === "SpreadElement" ? p.argument : p.value);
+          else if (n.type === "ConditionalExpression") todo.push(n.consequent, n.alternate);
+          else if (n.type === "ParenthesizedExpression" || n.type === "TSAsExpression" || n.type === "TSSatisfiesExpression" || n.type === "TSNonNullExpression") todo.push(n.expression);
+          else if (n.type === "Identifier") {
+            const b = F.bindingOf.get(n), d = b?.node, v = d && parent.get(d), decl = v && parent.get(v);
+            if (d && v && v.type === "VariableDeclarator" && v.init && decl && decl.type === "VariableDeclaration" && decl.kind === "const" && encl(d) === g) todo.push(v.init);
+          }
+        }
+        return null;
+      };
+      for (const n of all) {
+        if (n.type !== "CallExpression" || !n.arguments.length) continue;
+        const c = n.callee, key = c.type === "MemberExpression" && !c.computed && c.property.type === "Identifier" ? c.property.name : "";
+        const set = (key === "set" || key === "update") && c.type === "MemberExpression" && isTy(c.object, "State");
+        if (!set && !isTy(c, "Action")) continue;
+        const sig = F.calls.get(n)?.sig, d = sig && (sig.decl ?? sig);
+        const st = set ? ch.um(F.types.get(c.object)!).map((m) => unwrap(m)).find((m) => isNamed(m, "State")) : undefined;
+        const what = c.type === "Identifier" ? `${c.name}(…)` : c.type === "MemberExpression" && c.object.type === "Identifier" ? `${c.object.name}.${key}` : "this call";
+        const args = key !== "update" ? (n.arguments as Node[]) : (n.arguments as Node[]).flatMap((a) => (a.type === "ArrowFunctionExpression" && a.body.type !== "BlockStatement" ? [a.body as Node] : []));
+        args.forEach((a, i) => {
+          const dp = st && st.k === "named" ? st.args[0] : d ? (i < d.ps.length ? d.ps[i]?.t : d.rest) : undefined;
+          const m = a.type === "SpreadElement" || !dp || !tyFn(dp) ? null : madeFn(encl(n), a);
+          if (m) err(m, "fn-publish", `a function made in this function is given to ${what} while the function still runs; at run time that throws (S4.12), since the function could still write what it reads. Give data and make the function where the value is read, or make the function in a cell of its own and take that cell as an input`);
+        });
       }
     }
   }

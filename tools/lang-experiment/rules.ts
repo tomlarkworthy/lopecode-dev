@@ -62,6 +62,7 @@ export const RULES: RuleInfo[] = [
   { id: "state-write", section: "State and actions", how: "approx", summary: "State.set/update outside the lexical body of action(...)" },
   { id: "action-call", section: "State and actions", how: "approx", summary: "an Action called outside the lexical body of action(...)" },
   { id: "action-pass", section: "State and actions", how: "approx", summary: "an Action passed to a parameter not typed Action" },
+  { id: "fn-publish", section: "State and actions", how: "approx", summary: "a function the calling function makes given to a state's set or update or an action at a parameter whose type holds a function: it throws at run time (S4.12), the throw is the guarantee" },
   { id: "action-capture", section: "State and actions", how: "approx", summary: "an action body uses a value that depends on state (a state cell's value, an events value, a capability, or a local computed from one), or a let, a Mut, an enclosing function's parameter, or a const computed from one" },
   { id: "read-outside-action", section: "State and actions", how: "exact", summary: "read(s) outside the lexical body of action(...)" },
   // Foreign

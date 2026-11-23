@@ -2880,3 +2880,107 @@ checker ix+ow 5010 / 4835 / 4743 / 4789 / 4642 / 4785 ms
   would be the widen point: 263 checker cells and 398 others.
 - A foreign function as a receiver is not a point (Not specified).
 - The census cannot rank the variants: no corpus function both publishes and writes a Mut-holding local.
+
+## 2026-11-23 05:24–06:28: f1, a function made in a running body does not leave it (S4.12, run-time throw), and bug R (build owner, logs `lite/soundscript/.scratch/f1/`)
+
+Originals of every edited file are in `.scratch/f1/orig/`. "before" means the tree with those originals restored
+(`.scratch/f1/before/tools/lang-experiment`, plus `f1-attacks.ts` and the new `run-sets.ts`). Mode (a) is shipped;
+mode (b) is `SS_MEASURE_REG=0`.
+
+### Bug R
+`ss_methods` (and `ss_closure`) set `f[CAPS]` unconditionally, so a method's registration replaced the registration
+of a function a later key or spread put under the same name. `lite/freeze.ts` `register` now appends: when `f`
+already has a CAPS thunk the new one is the concatenation of both lists. Both registration paths go through it.
+`b6-ctl-dupkey-direct` is kept as `f1-ctl-dupkey-direct`; it fired before f1 in both modes and fires in neither now.
+
+Shipped mode was silent before S4.11 existed. At `bdac05b5` (`git archive`, `.scratch/f1/oldr/`), mode (a):
+`r6-P` threw; `r6-P-spread-R` and `r6-P-dupkey-R` were accepted and read DIFF (given 1, holds 2).
+
+### Step 2: is every silent program a mid-body publish of a function?
+315 programs (133 round 6 silent-programs.txt, 182 round 7 SILENT lines, union of modes), checker skipped,
+publishTap on (`.scratch/f1/s2/`). All 315 publish, before the body ends, a value that reaches a function made in
+that body: 292 by a state write or an action argument, 23 by a memoised call's arguments only. 0 publish only
+published functions, 0 publish data only. The premise held.
+
+### Step 3: the throw (variant ii)
+`prelude.runtime.ts` `noBodyFn` throws when a value written to a state cell or an action call's arguments reach a
+function or a promise not in `PUBLISHED` (`freeze.ts` `madeFnIn`). `PUBLISHED` holds what a finished cell published:
+`out`, `madeStore`, `yielded`, and a promise's copy at the boundary. Census:
+
+| | newly rejected |
+|---|---|
+| static, any parameter type holding a function (variant i), 46,609 cells | 2 (`fixtures/lite-game/accept-action-in-state` useDec, useInc) |
+| static `fn-publish` as built | 0 (6 already-rejected cells gain it) |
+| run time, run-sets 2,111 programs | 22 publishes reaching a function, all in p1-controls (4), f1 (15), f1-controls (2) |
+| run time, live.test and unit tests | 0 |
+| run time, bun-verify --all | 4, all memo calls in test_spec_S2_13 (not checked) |
+
+Variant (i) rejects a fixture that stores another cell's Action, so (ii) was built. Its cost: `madeFnIn` (~20 lines),
+`PUBLISHED`/`published` (3), marking in deepFreeze (2), prelude (~8). It brings registration back for acceptance only:
+`f1-ok-cell-made` (a function the cell made before returning, captured by its action) is stored in (a) and throws in
+(b), since in (b) nothing marks the function published.
+
+Found during f1: a promise in a record given by width deferred its value's freeze past the body's writes
+(`f1-q-promise-width`, silent in both modes before). `madeFnIn` now treats any promise not in `PUBLISHED` as made.
+
+Static early error `[fn-publish]` (`ow-late.ss.ts` owTyFn, owMadeFn, owFnPubs; mirrored in `frozen/own.ts` under
+`DELIBERATE CHANGE (2026-11-23, f1, S4.12)`): a function literal (through arrays, records, conditionals, a const)
+given to set, update's result or an Action call. diff.ts with 391 extra files (f1, freeze-attack7, probes): ownership
+5652 SAME, 0 DIFFERENT; with the mirror block disabled, 104 DIFFERENT.
+
+### Step 4: what S4.11 still does
+`SS_MEASURE_S411=0` (run-sets.ts verdictOf drops `(S4.11)` diagnostics). p1, freeze-attack6 and 7, both modes:
+
+| set | newly accepted without S4.11 | of those, throw at run time | silent |
+|---|---|---|---|
+| run-sets p1+f1 | 6 | 6 | 0 |
+| freeze-attack6 | 17 | 17 | 0 (b: 23, the memo programs, unchanged) |
+| freeze-attack7 | 11 | 11 | 0 |
+
+S4.11 rejects nothing that the throw does not catch. What it buys is ergonomics: the error is at check time. What it
+costs: attack 7's 15 ordinary programs (o1.ts) accept 11 with it (11 before f1, the same 20 verdicts) and 14 without
+it (`form-validate-after`, `undo-stack-local`, `two-states-loop`). Attack 4's 15 (`probe.ts p6.ts`) accept 7 before
+and after, with S4.11 on and off (the output files are identical). Its message no
+longer recommends Q4 (a new local declared after the point).
+
+### Step 6: both modes, before -> after
+
+| suite | programs | accepted | silent (a) | silent (b) |
+|---|---|---|---|---|
+| run-sets (all) | 2111 | 312 -> 312 | 4 -> 0 | 13 -> 0 |
+| f1 | 16 | 16 -> 16 | 4 -> 0 | 13 -> 0 |
+| p1 | 40 | 7 -> 7 | 0 -> 0 | 0 -> 0 |
+| freeze-attack2 | 309 | 7 -> 7 | 0 -> 0 | 0 -> 0 |
+| freeze-attack3 | 360 | 11 -> 11 | 0 -> 0 | 0 -> 0 |
+| freeze-attack4 | 223 | 80 -> 80 | 5 -> 5 | 5 -> 5 |
+| freeze-attack5 | 441 | 12 -> 12 | 0 -> 0 | 0 -> 0 |
+| freeze-attack6 | 288 | 83 -> 80 | 0 -> 0 | 23 -> 23 |
+| freeze-attack7 | 327 | 230 -> 184 | 18 -> 0 | 182 -> 0 |
+
+Checker time (time-sections.ts, 3 runs each): before 4533–4984 ms, after 4767–5151 ms; with owFnPubs stubbed
+4784–4885 ms. Inferred, not measured: the difference is within the run-to-run spread.
+
+In mode (a) no measured program is silent except freeze-attack4's 5 (below). In mode (b) freeze-attack6's 23 memo
+programs are still silent: the claim does not hold there for a memoised call's arguments.
+
+### Gates and review
+build 0; bun-verify 181 (180 + test_spec_S4_12); fixtures 14/14; diff DIFFERENT 0, `--module-only` 1160 SAME;
+tc-diff 56 lines; live.test 461 pass; freeze-table 441 pass; tc 11, run 2, acorn 6; run-sets silent 0 in both modes;
+fa2 and fa3 silent 0; `verify.ts --quick` 233 (232 + S4_12). The full `verify.ts` ran once (06:17–06:22): 675 pass,
+1 fail, the prose rule against "below", which my review fix to the tutorial introduced. After a one-sentence fix and a
+promise case added to test_spec_S4_12, the final tree passed `--quick`, bun-verify, fixtures and that prose check
+(`.scratch/f1/prose-check.ts`, 8 of 8); the full run on the final tree was not repeated.
+
+One fresh-context review (opus) of spec.ojs and tutorial.ojs: BLOCK, 10 findings. Acted on: the f1/file-name tags in
+S4.11, S2.13 and Not specified; S3.1's sentence about object literals (now "is `Mut` (S4.1)"); 430 -> 434; the "Try
+it" note that test_half fails; a link to the specification; S6.15 and S6.17 no longer bold; spec_acceptsFor in
+S3.1, S3.18, S4.2, S4.3, S4.4, S4.8. Not acted on (outside f1): the `tests_on` prose, the "How good is the checker"
+table, `breakout_view`'s ResizeObserver, the "exported function" comment in 01-cells.ts.
+
+### Open
+- freeze-attack6's 23 memo programs in (b): a memoised call's arguments are not checked (S2.13 stores nothing for
+  them, but they reach a made function). Not touched by f1.
+- freeze-attack4's 5 silent programs (`cap-now`, `cap-random`, `cap-now-gen`, `cap-now-in-record`,
+  `cap-random-stored`) are a captured `Date.now`/`Math.random` read again, not a write; unchanged since k1, not f1's.
+- (b) over-rejects `f1-ok-cell-made`.
+- Tutorial "How good is the checker" table predates the 2026-11-22 change (review finding, not re-measured).

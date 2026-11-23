@@ -40,9 +40,20 @@ const MEASURE_ENV = (globalThis as { process?: { env?: Record<string, string | u
 const REG_ON = MEASURE_ENV?.SS_MEASURE_REG !== "0", FREEZE_ON = MEASURE_ENV?.SS_MEASURE_FREEZE !== "0";
 type Caps = (i: number) => unknown;
 const capsOf = (f: object): Caps | undefined => (f as { [CAPS]?: Caps })[CAPS];
-export const closure = <F,>(f: F, t: Caps): F => { if (REG_ON) (f as { [CAPS]?: Caps })[CAPS] = t; return f; };
+// f1 (2026-11-23, cause R of freeze-attack7): a registration never replaces another. methods() tags whatever o.m is
+// after the literal is built, which a later key or a spread may have made another function: a thunk is added to the
+// one there (walking both only freezes more). A frozen function's captures were frozen when it was published; it is
+// left as it is (a write to it would throw)
+const register = (f: unknown, t: Caps): void => {
+  if (typeof f !== "function" || Object.isFrozen(f)) return;
+  const g = f as { [CAPS]?: Caps }, old = g[CAPS];
+  if (old === undefined) { g[CAPS] = t; return; }
+  const n = old(-1) as number;
+  g[CAPS] = (i) => (i < 0 ? n + (t(-1) as number) : i < n ? old(i) : t(i - n));
+};
+export const closure = <F,>(f: F, t: Caps): F => { if (REG_ON) register(f, t); return f; };
 export const methods = <O,>(o: O, ...r: unknown[]): O => {
-  if (REG_ON) for (let i = 0; i < r.length; i += 2) ((o as Record<string, object>)[r[i] as string] as { [CAPS]?: Caps })[CAPS] = r[i + 1] as Caps;
+  if (REG_ON) for (let i = 0; i < r.length; i += 2) register((o as Record<string, unknown>)[r[i] as string], r[i + 1] as Caps);
   return o;
 };
 // SsURL (2026-11-22, cause D): the URL SoundScript code makes (a compiled cell takes it as URL). Object.freeze does not
@@ -90,7 +101,8 @@ const KIND_NAME: Record<number, string> = { 5: "native Map", 6: "native Set", [K
 // a rejection reason is published as a value is (holes8): deep-frozen, then thrown on
 const rethrow = (e: unknown): never => { throw deepFreeze(e); };
 const copyOf = (v: object, k: number): object => {
-  if (k === K_PROMISE) return (v as Promise<unknown>).then(deepFreeze, rethrow);
+  // at a boundary (f1) the copy and what it settles to are published too
+  if (k === K_PROMISE) { if (!marking) return (v as Promise<unknown>).then(deepFreeze, rethrow); const q = (v as Promise<unknown>).then(published, rethrow); PUBLISHED.add(q); return q; }
   if (k === K_URL) { const u = new SsURL((v as URL).href); FROZEN.add(u); Object.freeze(u); DONE.add(u); return u; }
   const c = k === K_TYPED ? (v as Uint8Array).slice() : (v as ArrayBuffer).slice(0);
   COPIES.add(c);
@@ -129,6 +141,7 @@ const eachKid = (n: object, k: number, f: (x: unknown) => void): void => {
 // 2 (only when a leaf was met): containers that reach one, by reverse edges (cycles included). 3: copy and freeze.
 // holes8: a promise no slot can take a replacement for (a function's captures, an Error, a frozen value) throws at publish
 export function deepFreeze<T>(v: T): T {
+  if (marking && typeof v === "function") PUBLISHED.add(v);
   if (!FREEZE_ON || !isObj(v) || DONE.has(v)) return v;
   noThen(v);
   const k0 = kindOf(v);
@@ -140,6 +153,7 @@ export function deepFreeze<T>(v: T): T {
   for (let i = 0; i < order.length; i++) {
     const n = order[i]!, k = kinds.get(n)!, fx = fixed(n, k);
     eachKid(n, k, (x) => {
+      if (marking && typeof x === "function") PUBLISHED.add(x);
       if (!isObj(x) || DONE.has(x) || kinds.has(x)) return;
       noThen(x);
       const kx = kindOf(x);
@@ -187,8 +201,41 @@ export function deepFreeze<T>(v: T): T {
   }
   return rep(v) as T;
 }
+// f1 (2026-11-23, S4.12): a function or a promise made in a body that is still running does not leave it. PUBLISHED
+// holds each function (and each promise copy) a finished body published: a cell's value, a state cell's initial value,
+// a value a generator yields (S5.6, S5.7 cover what a generator writes after a yield), each met by deepFreeze's walk
+// there. A value frozen before (DONE) is not walked again, so a function inside one frozen by freeze(x) or a memo miss
+// is not marked: it then counts as made in a body (fail-closed). No capture thunk is read, so a function made in a body
+// is never taken for a published one with closure registration off; a function a published function captures is
+// marked only through its registration (with registration off it counts as made in a body)
+const PUBLISHED = new WeakSet<object>(), NOFN = new WeakSet<object>();
+let marking = false;
+export const published = <T,>(v: T): T => { const was = marking; marking = true; try { return deepFreeze(v); } finally { marking = was; } };
+// a function or a promise v reaches through data (an array, a plain record's values and accessors, a Map's keys and
+// values, a Set, an Error's own properties) that no finished body published, or null; with any (measurement), any
+// function or promise. Other objects (a handle, a Date) are not entered. A container deepFreeze froze (DONE: all it
+// reaches through data is frozen too) found to reach none is remembered: its graph cannot change, PUBLISHED only grows
+export const madeFnIn = (v: unknown, any = false): object | null => {
+  if (!FREEZE_ON) return null;
+  const seen = new NSet<object>(), todo: unknown[] = [v], fixedOnes: object[] = [];
+  while (todo.length > 0) {
+    const x = todo.pop();
+    if (!isObj(x) || seen.has(x) || (!any && NOFN.has(x))) continue;
+    seen.add(x);
+    // a promise is not entered: what it settles to is frozen only then, after the body may have written it
+    if (typeof x === "function" || x instanceof Promise) { if (any || !PUBLISHED.has(x)) return x; continue; }
+    const p = Object.getPrototypeOf(x);
+    if (p === Array.prototype || p === Object.prototype || p === null || Error.prototype.isPrototypeOf(x)) {
+      if (DONE.has(x)) fixedOnes.push(x);
+      for (const key of Reflect.ownKeys(x)) { const d = Object.getOwnPropertyDescriptor(x, key)!; if ("value" in d) todo.push(d.value); else todo.push(d.get, d.set); }
+    } else if (x instanceof NMap) { if (DONE.has(x)) fixedOnes.push(x); for (const [a, b] of NMap.prototype.entries.call(x)) todo.push(a, b); }
+    else if (x instanceof NSet) { if (DONE.has(x)) fixedOnes.push(x); for (const a of NSet.prototype.values.call(x)) todo.push(a); }
+  }
+  if (!any) for (const x of fixedOnes) NOFN.add(x);
+  return null;
+};
 // a value a generator yields: deep-frozen, unless the generator lends it with borrow(x) (S5) and keeps writing it
-export const yielded = <T,>(v: T): T => (typeof v === "object" && v !== null && LENT.has(v) ? v : deepFreeze(v));
+export const yielded = <T,>(v: T): T => (typeof v === "object" && v !== null && LENT.has(v) ? v : published(v));
 // freeze(x) in SoundScript code: the same deep freeze
 export const freeze = <T,>(v: T): T => deepFreeze(v);
 // borrow(x): x lent by a generator that keeps writing it between yields (S5); yielded() does not freeze it
@@ -196,9 +243,9 @@ export const borrow = <T,>(v: T): T => { if (typeof v === "object" && v !== null
 // a cell's value as the runtime publishes it, at every boundary: deep-frozen; a promise's resolved value; each value a
 // generator yields. (B7's unfrozen quick path was removed 2026-11-22: it failed the freeze attack.)
 export function out<T>(v: T): T {
-  if (v instanceof Promise) return v.then(deepFreeze, rethrow) as T;
+  if (v instanceof Promise) { const q = v.then(published, rethrow); PUBLISHED.add(q); return q as T; }
   const g = v as any;
-  if (!g || typeof g.next !== "function" || typeof g.return !== "function") return deepFreeze(v);
+  if (!g || typeof g.next !== "function" || typeof g.return !== "function") return published(v);
   const fz = (r: any): any => (r instanceof Promise ? r.then(fz, rethrow) : r && typeof r === "object" ? { done: r.done, value: yielded(r.value) } : r);
   const w = { next: (...a: unknown[]) => fz(g.next(...a)), return: (...a: unknown[]) => fz(g.return(...a)), throw: (...a: unknown[]) => fz(g.throw(...a)) };
   return Object.assign(w, typeof g[Symbol.asyncIterator] === "function" ? { [Symbol.asyncIterator]() { return w; } } : { [Symbol.iterator]() { return w; } }) as T;

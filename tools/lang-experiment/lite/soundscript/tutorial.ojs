@@ -2,7 +2,7 @@ md`# SoundScript
 
 SoundScript is TypeScript with things taken out, for writing notebook cells. A checker reads each cell and accepts it only if everything the cell depends on is in its parameter list. For an accepted cell the notebook knows what can change its value, so it runs it again only when an input is computed again, can run it on another thread, and can replay it in a test.
 
-This page is the tutorial. Every example is a live cell of this notebook, except the boxes of mistakes in sections 2 and 8: open its editor, change it, and press Shift-Enter. The first, \`width\`, is under the next heading.`
+This page is the tutorial; the [specification](${linkTo("@tomlarkworthy/soundscript-spec")}) defines the language, and the S-numbers in this tutorial refer to it. Every example is a live cell of this notebook, except the boxes of mistakes in sections 2 and 8: open its editor, change it, and press Shift-Enter. The first, \`width\`, is under the next heading.`
 // %%
 md`## A first cell
 
@@ -14,7 +14,7 @@ sourceListing(tutorial_module, invalidation, { from: "width", to: "area" })
 // %%
 //ss: 01-cells.ts -aspect -scale -half -test_half
 // %%
-md`**Try it.** Open \`width\` and change it to \`() => 800\`, then press Shift-Enter. \`area\`, \`aspect\` and \`half\` update. Now change it to \`() => "800"\`. The edit is stored, and the editor says which cells it breaks: \`area\` and \`aspect\` do arithmetic on \`width\`, so they no longer check. They show the checker's message and stop running. \`half\` reads \`area\`, so it is blocked: it shows the error \`area\` raises, and it does not run until \`area\` does. Change \`width\` back, or change those two cells to use \`Number(width)\`, and they run again.`
+md`**Try it.** Open \`width\` and change it to \`() => 800\`, then press Shift-Enter. \`area\`, \`aspect\` and \`half\` update, and \`test_half\` fails, since it checks that \`half\` is 128000. Now change it to \`() => "800"\`. The edit is stored, and the editor says which cells it breaks: \`area\` and \`aspect\` do arithmetic on \`width\`, so they no longer check. They show the checker's message and stop running. \`half\` reads \`area\`, so it is blocked: it shows the error \`area\` raises, and it does not run until \`area\` does. Change \`width\` back, or change those two cells to use \`Number(width)\`, and they run again.`
 // %%
 md`## Why take things out
 
@@ -348,7 +348,7 @@ For a cell the checker accepts: it reads only its parameters and the allowed bui
 
 Not guaranteed:
 
-- The checker is a prototype. On 2026-11-16 a reference checker built on TypeScript's compiler could judge 149 of the specification's 159 rejected sources (it has 430 on 2026-11-23) and gave the stated rule for 116. The checker here gives the stated rule for each of them ("How good is the checker").
+- The checker is a prototype. On 2026-11-16 a reference checker built on TypeScript's compiler could judge 149 of the specification's 159 rejected sources (it has 434 on 2026-11-23) and gave the stated rule for 116. The checker here gives the stated rule for each of them ("How good is the checker").
 - A cell may take \`now\` or \`random\` and be accepted. It is then not repeatable, and its signature shows it.
 - An events cell that reads state restarts when it sees the state change. Two changes inside one commit are seen as one, so a clock paused and resumed in the same commit does not restart.`
 // %%
@@ -445,7 +445,8 @@ A local bound to a fresh value (an array or object literal, \`new\` on an intrin
 | a cell's value and a cell's inputs never hold a \`Mut\` | \`[mut-cell]\` |
 | \`Mut<…>\` is written only as the whole type of a parameter, a local or a type alias, not in a field, element, type argument, union or result; nor is \`typeof\` there | \`[mut-nested]\` |
 | a function that outlives the call that made it does not capture a \`Mut\`, a local or parameter whose type holds a \`Mut\` anywhere (\`[xs, 1] as const\`), or a \`let\`, also only to read it; bind a \`const\` of a type with no \`Mut\` first (\`const c: readonly number[] = xs\`) and capture that | \`[mut-capture]\`, \`[let-capture]\` |
-| a function does not write a local whose type holds a \`Mut\` after a state write (\`s.set\`, \`s.update\`) or a call of an action with arguments that it makes before it ends; finish the writes first, or write a new local declared after it | \`[member-write]\`, \`[mutating-method]\` |
+| a function does not write a local whose type holds a \`Mut\` after a state write (\`s.set\`, \`s.update\`) or a call of an action with arguments that it makes before it ends; finish the writes first | \`[member-write]\`, \`[mutating-method]\` |
+| a function made while a body runs is not given to a state cell or an action before that body ends; at run time this throws, also where the checker does not see it; give data, or make the function in a cell of its own and take that cell as an input | \`[fn-publish]\` |
 | a generator cell does not yield a typed array or a \`URL\` it can still write; these cannot be frozen, so yield a copy | \`[mut-yield]\` |
 | in a generator, a local whose type holds a \`Mut\` anywhere, or a \`let\` of a non-primitive type, declared before a \`yield\` is not used after it; make it in the loop body | \`[mut-yield]\` |
 | the same across an \`await\` in a generator or any function made inside a cell; only an async cell's own body is exempt | \`[mut-await]\` |

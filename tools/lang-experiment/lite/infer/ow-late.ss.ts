@@ -190,9 +190,68 @@ export const owPubWrites = (owPubPoints, owPubWhat, owLocalHoldsMut, owUsesOf, o
         const p = ps.find((x) => owAfter(O, g, d, captured, u, x));
         if (p === undefined) continue;
         const w = u.at.type === "CallExpression" ? u.at : owWriteAt(O, u.at);
-        owErr(W, u.at, w !== null && w.type === "CallExpression" ? "mutating-method" : "member-write", `${b.name} is written after a value is published at ${owPubWhat(p)} in the same run of this function; a function published there may read ${b.name} through a read-only name (S4.10) and would see the write (S4.11); finish every write to ${b.name} before ${owPubWhat(p)}, or write to a new local declared after it`);
+        owErr(W, u.at, w !== null && w.type === "CallExpression" ? "mutating-method" : "member-write", `${b.name} is written after a value is published at ${owPubWhat(p)} in the same run of this function; a function published there may read ${b.name} through a read-only name (S4.10) and would see the write (S4.11); finish every write to ${b.name} before ${owPubWhat(p)}`);
         break;
       }
     }
+  }
+};
+// f1 (2026-11-23, S4.12): a type that holds a function: a function type, a record with a call or construct signature,
+// an Action, at any depth (an alias expanded once per key; past 400 parts it is taken to hold none: this check is
+// ergonomics, the run-time throw is the guarantee)
+export const owTyFn = (owTyKids, typeKey) => (R: IxRegCore, t0: Ty): boolean => {
+  const seen: Mut<Set<string>> = new Set(), todo: Mut<Ty[]> = [t0];
+  let n = 0;
+  for (let t = todo.pop(); t !== undefined && n < 400; t = todo.pop()) {
+    n++;
+    if (t.k === "fn" || (t.k === "rec" && ((t.calls ?? []).length > 0 || (t.ctors ?? []).length > 0))) return true;
+    if (t.k !== "named") { todo.push(...owTyKids(t)); continue; }
+    if (t.n === "Action") return true;
+    if (!R.isAlias(t.n)) { todo.push(...t.args); continue; }
+    const key = typeKey(t);
+    if (!seen.has(key)) { seen.add(key); todo.push(R.expand(t)); }
+  }
+  return false;
+};
+// f1: a function the argument a makes in g: a function literal, one inside an array, object, conditional or
+// parenthesised argument, or the value of a const of g bound to such an expression
+export const owMadeFn = (owEncl) => (O: OwCtx, g: AstNode, a: AstNode): AstNode | null => {
+  const todo: Mut<AstNode[]> = [a], seen: Mut<Set<number>> = new Set();
+  for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
+    if (seen.has(n.nid)) continue;
+    seen.add(n.nid);
+    if (n.type === "ArrowFunctionExpression" || n.type === "FunctionExpression") return n;
+    if (n.type === "ArrayExpression") for (const e of n.elements) { if (e !== null) todo.push(e.type === "SpreadElement" ? e.argument : e); }
+    else if (n.type === "ObjectExpression") { for (const p of n.properties) if (p.type === "SpreadElement") todo.push(p.argument); else if (p.type === "Property") todo.push(p.value); }
+    else if (n.type === "ConditionalExpression") todo.push(n.consequent, n.alternate);
+    else if (n.type === "ParenthesizedExpression" || n.type === "TSAsExpression" || n.type === "TSSatisfiesExpression" || n.type === "TSNonNullExpression") { const e = n.expression; if (e !== null) todo.push(e); }
+    else if (n.type === "Identifier") {
+      const b = O.F.bindings.get(O.F.bindingOf.get(n.nid) ?? -1), d = b === undefined ? undefined : O.T.byNid.get(b.nid);
+      const v = d === undefined ? undefined : O.T.parent.get(d.nid), decl = v === undefined ? undefined : O.T.parent.get(v.nid);
+      if (d !== undefined && v !== undefined && v.type === "VariableDeclarator" && v.init !== null && decl !== undefined && decl.type === "VariableDeclaration" && decl.kind === "const" && owEncl(O, d).nid === g.nid) todo.push(v.init);
+    }
+  }
+  return null;
+};
+// f1 (S4.12): a state's set, or an action called, given at a parameter whose type holds a function (owTyFn) a function
+// the calling function makes (owMadeFn): the run-time freeze throws there (prelude noBodyFn), so the checker says so
+export const owFnPubs = (owIsState, owMadeFn, owTyFn, owEncl, ixUm, isNamed, unwrap, owErr) => (O: OwCtx, W: OwW): void => {
+  for (const n of O.T.all) {
+    if (n.type !== "CallExpression" || n.arguments.length === 0) continue;
+    const c = n.callee, t = O.F.types.get(c.nid);
+    const key = c.type === "MemberExpression" && !c.computed && c.property.type === "Identifier" ? c.property.name : "";
+    const set = (key === "set" || key === "update") && c.type === "MemberExpression" && owIsState(O, c.object);
+    if (!set && !(t !== undefined && ixUm(O.R, t).some((m) => isNamed(unwrap(m), "Action")))) continue;
+    const sig = O.F.calls.get(n.nid)?.sig ?? null, d = sig === null ? null : sig.decl ?? sig;
+    const ot = set && c.type === "MemberExpression" ? O.F.types.get(c.object.nid) : undefined;
+    const st = ot === undefined ? undefined : ixUm(O.R, ot).map((m) => unwrap(m)).find((m) => isNamed(m, "State"));
+    const what = c.type === "Identifier" ? `${c.name}(…)` : c.type === "MemberExpression" && c.object.type === "Identifier" ? `${c.object.name}.${key}` : "this call";
+    // update's argument is called at once: what it returns is given (an arrow with an expression body)
+    const args = key !== "update" ? n.arguments : n.arguments.flatMap((a) => (a.type === "ArrowFunctionExpression" && a.body.type !== "BlockStatement" ? [a.body] : []));
+    args.forEach((a, i) => {
+      const dp = st !== undefined && st.k === "named" ? st.args[0] : d === null ? undefined : i < d.ps.length ? d.ps[i]?.t : d.rest;
+      const m = a.type === "SpreadElement" || dp === undefined || !owTyFn(O.R, dp) ? null : owMadeFn(O, owEncl(O, n), a);
+      if (m !== null) owErr(W, m, "fn-publish", `a function made in this function is given to ${what} while the function still runs; at run time that throws (S4.12), since the function could still write what it reads. Give data and make the function where the value is read, or make the function in a cell of its own and take that cell as an input`);
+    });
   }
 };

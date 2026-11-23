@@ -3,7 +3,7 @@
 // and what a commit applies, is decided by storeStep and the cells of lite/store.ss.ts (checked SoundScript). This
 // file holds the one StoreState value and each handle's store record, runs the actions' functions between steps,
 // and performs the effects.
-import { deepFreeze, closure, SsMap, SsSet, emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
+import { deepFreeze, published, madeFnIn, closure, SsMap, SsSet, emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
 export { mut, freeze, borrow } from "./lite/runtime-ss.ts";
 
 const STATECELL = Symbol.for("lc.statecell");
@@ -89,11 +89,27 @@ export const isRefHandle = (v: unknown) => !!v && typeof v === "object" && Objec
 // a measurement hook (p1, 2026-11-23): told each value a holder keeps while a body may still run (a state write; a
 // memoised call's arguments and result when they are stored); null outside lite/infer/attack/observe.ts's runs
 export const publishTap: { f: ((where: string, v: unknown) => void) | null } = { f: null };
+// f1 (2026-11-23, S4.12): a state write's value and an action call's arguments are published while the body that gives
+// them still runs, which may write what a function in them reads (no static rule follows every route to that write).
+// One that reaches a function or a promise no finished cell published throws, before anything is frozen or written. A memoised
+// function's arguments on a miss do not: such a call stores nothing (S2.13). A yield is S5.6/S5.7's; a cell's return
+// ends its body.
+// publishSeen: a measurement hook told each such value first (null outside measurement runs). In a bun process
+// SS_MEASURE_BODYFN=0 turns the throw off and =log prints a line for each value that reaches a function (measurement only)
+export const publishSeen: { f: ((where: string, v: unknown) => void) | null } = { f: null };
+const BODYFN = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.SS_MEASURE_BODYFN;
+function noBodyFn(where: string, v: unknown): void {
+  if (publishSeen.f !== null) publishSeen.f(where, v);
+  if (BODYFN === "log" && madeFnIn(v, true) !== null) console.warn(`SS-BODYFN ${madeFnIn(v) !== null ? "made" : "published"}: ${where}`);
+  if (BODYFN === undefined && madeFnIn(v) !== null) throw new TypeError(`${where} reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave it, since the body could still write what the function reads or what the promise settles to (S4.12). Give data and make the function where the value is read, or make the function in a cell of its own and take that cell as an input`);
+}
 // an update function that throws throws here, inside the call, before its write
 function write(h: object, f: (v: unknown) => unknown) {
   notInMemo("a state written");
   const s = recordOf(h)!;
-  const v = deepFreeze(f(seenValue(h, updateSees(storeState, nameOfHandle(h), s))));
+  const x = f(seenValue(h, updateSees(storeState, nameOfHandle(h), s)));
+  noBodyFn(`the value written to ${nameOfHandle(h)}`, x);
+  const v = deepFreeze(x);
   if (publishTap.f !== null) publishTap.f(`write ${nameOfHandle(h)}`, v);
   storeFeed({ t: "write", handle: storeHandleOf(h), name: nameOfHandle(h), store: s, value: v });
 }
@@ -112,7 +128,7 @@ function handleOf(name: string, check: (v: unknown) => unknown = (v) => v): obje
 }
 // a state cell's initial value and each written value are deep-frozen as they go into the store
 const madeStore = (h: object, value: unknown, view: boolean, run: { fid: string; args: unknown[] } | null) =>
-  storeFeed({ t: "made", handle: h, name: nameOfHandle(h), value: deepFreeze(value), view, run });
+  storeFeed({ t: "made", handle: h, name: nameOfHandle(h), value: published(value), view, run });
 
 // Turn the StateCell a cell returned into a handle on a store of its own (the port harness, run.ts).
 export function materialize(cell: { initial: unknown }, name: string) {
@@ -173,7 +189,7 @@ export function action(f: (...args: unknown[]) => unknown) {
     let v: unknown;
     // the arguments are deep-frozen, all of them or none (one scan before anything is frozen, holes8): the caller's
     // values are published to the action's writes and listeners
-    try { v = f(...deepFreeze(args)); } catch (err) { storeFeed({ t: "exit", threw: true, value: undefined }); throw err; }
+    try { noBodyFn(`an argument of the action ${nameOf(a)}`, args); v = f(...deepFreeze(args)); } catch (err) { storeFeed({ t: "exit", threw: true, value: undefined }); throw err; }
     return storeFeed({ t: "exit", threw: false, value: v });
   };
   Object.defineProperty(a, ACTION, { value: true });
@@ -237,6 +253,7 @@ export function memo<A extends unknown[], R>(f: (...a: A) => R): (...a: A) => R 
   const m = (...a: A): R => {
     const hit = path(a, false);
     if (hit?.has) return hit.v as R;
+    if (publishSeen.f !== null) publishSeen.f("an argument of a memoised function", a);
     const fa = deepFreeze(a);
     memoDepth++;
     let r0: R;
