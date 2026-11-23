@@ -4,7 +4,8 @@
 // runtime (98), new (b-attacks.ts, 70), h6 (h6-attacks.ts), freeze2 (selfhost/freeze-attack2 b0-b11, 309), h7
 // (h7-attacks.ts), freeze3 (selfhost/freeze-attack3 b1-b11, 360; its c0 controls run without the checker and are counted
 // apart: each must fire), h8 (h8-attacks.ts), h9 (h9-attacks.ts, attacks on rule set R), m1 (m1-attacks.ts: memo, [mut-nested], R-M; its m1-ctl controls are
-// counted apart and must fire; a `memo` program is also compared with its memoStrip variant). The folders they come from are read, not edited.
+// counted apart and must fire; a `memo` program is also compared with its memoStrip variant), k1 (k1-attacks.ts: the deep R-K
+// test and the strip of what a cell exposes; its k1-ctl controls fire only with SS_MEASURE_REG=0). The folders they come from are read, not edited.
 // --off drops the static capture rules' diagnostics in this runner only (the checker is unchanged).
 import { checkSources } from "../../core.ts";
 import { rewriteSS } from "./strip-calls.ts";
@@ -13,10 +14,11 @@ import type { Verdicts } from "../../browser/run.ts";
 import { RUNTIME_FREEZE } from "./variants.ts";
 import { readdirSync, readFileSync } from "node:fs";
 import * as M1 from "./m1-attacks.ts";
+import * as K1 from "./k1-attacks.ts";
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? null : process.argv[i + 1]!; };
 const OFF = process.argv.includes("--off"), FORCE = process.argv.includes("--force"), ONLY = arg("--only");
-const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1").split(",");
+const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1").split(",");
 export const OFF_RULES = new Set(["mut-capture", "let-capture", "mut-yield", "mut-await", "mut-cell", "member-write", "mutating-method", "regexp-state", "iterator-capture"]);
 type P = Prog & { set: string; name: string; foreign?: string | null; ctl?: boolean };
 const progs: P[] = [];
@@ -46,6 +48,7 @@ if (SETS.includes("freeze3")) for (const f of ["c0", "b1", "b2", "b3", "b4", "b5
 if (SETS.includes("h8")) for (const a of (await import("./h8-attacks.ts")).attacks) progs.push({ set: "h8", ...a });
 if (SETS.includes("h9")) for (const a of (await import("./h9-attacks.ts")).attacks) progs.push({ set: "h9", ...a });
 if (SETS.includes("m1")) for (const a of M1.attacks) progs.push({ set: a.ctl ? "m1-controls" : "m1", ...a });
+if (SETS.includes("k1")) for (const a of K1.attacks) progs.push({ set: a.ctl ? "k1-controls" : "k1", ...a });
 }
 
 // checked: the verdicts as runCells takes them (compile runs an island only on ok cells); under --off, a cell whose only

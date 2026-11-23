@@ -444,7 +444,7 @@ A local bound to a fresh value (an array or object literal, \`new\` on an intrin
 | a value that is not a \`Mut\` is not written | \`[member-write]\`, \`[mutating-method]\` |
 | a cell's value and a cell's inputs never hold a \`Mut\` | \`[mut-cell]\` |
 | \`Mut<…>\` is written only as the whole type of a parameter, a local or a type alias, not in a field, element, type argument, union or result; nor is \`typeof\` there | \`[mut-nested]\` |
-| a function that outlives the call that made it does not capture a \`Mut\` or a \`let\`, also only to read it; bind a \`const\` of the plain type first (\`const c: readonly number[] = xs\`) and capture that | \`[mut-capture]\`, \`[let-capture]\` |
+| a function that outlives the call that made it does not capture a \`Mut\`, a local or parameter whose type holds a \`Mut\` anywhere (\`[xs, 1] as const\`), or a \`let\`, also only to read it; bind a \`const\` of a type with no \`Mut\` first (\`const c: readonly number[] = xs\`) and capture that | \`[mut-capture]\`, \`[let-capture]\` |
 | a generator cell does not yield a typed array or a \`URL\` it can still write; these cannot be frozen, so yield a copy | \`[mut-yield]\` |
 | in a generator, a local whose type holds a \`Mut\` anywhere, or a \`let\` of a non-primitive type, declared before a \`yield\` is not used after it; make it in the loop body | \`[mut-yield]\` |
 | the same across an \`await\` in a generator or any function made inside a cell; only an async cell's own body is exempt | \`[mut-await]\` |

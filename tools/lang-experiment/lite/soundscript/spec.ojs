@@ -800,7 +800,7 @@ md`**S4.2** There is no marker call. \`mut(...)\`, \`freeze(...)\` and \`borrow(
 // %%
 md`**S4.3** A fresh value is a literal, a spread copy, \`new\` on an intrinsic, the result of an intrinsic that returns a new value (\`Array.from\`, \`slice\`, \`map\`, \`structuredClone\`), or \`snapshot(v)\` (S5.5). A cell input, a parameter not typed \`Mut<…>\` and the result of a call whose return type is not \`Mut<…>\` are not fresh. A write through one of these, or through a local bound to one, is \`[member-write]\` or \`[mutating-method]\`, and passing one to a parameter typed \`Mut<…>\` is \`[type]\`.`
 // %%
-md`**S4.4** A \`Mut\` may be bound to a second name, placed in an array or object literal, passed to a parameter typed \`Mut<…>\`, which may write it, and passed to any parameter of its plain type. Every name is the same value, and a write through one is seen through the others. What a cell exposes is read with every \`Mut\` removed: a cell that takes it gets a read-only value, and a write there is \`[member-write]\` or \`[mutating-method]\`. \`Mut\` in the type of a cell input is \`[mut-cell]\`.`
+md`**S4.4** A \`Mut\` may be bound to a second name, placed in an array or object literal, passed to a parameter typed \`Mut<…>\`, which may write it, and passed to any parameter of its plain type. Every name is the same value, and a write through one is seen through the others. What a cell exposes is read with every \`Mut\` removed: a cell that takes it gets a read-only value, and a write there is \`[member-write]\` or \`[mutating-method]\`. The \`Mut\` is removed wherever S5.8 finds one, also in the result of a function the cell exposes. A cell that calls such a function gets a read-only result, even when the function made it fresh. A parameter of an exposed function keeps its \`Mut\`, so a cell that calls it passes a value of its own. \`Mut\` in the type of a cell input is \`[mut-cell]\`. Since 2026-11-23 for a function's result.`
 // %%
 md`**S4.5** A function is kept when it is returned, yielded, stored, or passed to something that may call it later. A helper bound to a local \`const\` or declared with \`function\` and only called (S3.11) is not kept, nor is a callback of an intrinsic that calls it before returning. A kept function does not capture a \`Mut\` or a \`let\` of an enclosing function (S4.10). A capture of a \`Mut\` is \`[mut-capture]\` in every case; the message names the case when the kept function writes the \`Mut\`, returns it or yields it; when the \`Mut\` is written after the function is made, later in the text, in a loop that makes the function, or inside another function; when the \`Mut\` is a typed array or a \`URL\` that a name in the cell can still write; and, in a generator cell or in a nested async or generator function, when any \`Mut\` is written after the function is made.`
 // %%
@@ -812,7 +812,7 @@ md`**S4.8** A view of a local buffer (\`subarray\`, \`buffer\`) may be bound and
 // %%
 md`**S4.9** \`Mut<T>\` may be written only as the whole type of a parameter, of a function or of a function type, as the whole type of a local, or as the whole body of a type alias. An alias whose body is \`Mut<…>\`, or another such alias, stands for a \`Mut\` and follows the same rule. \`Mut\` anywhere else is \`[mut-nested]\`: in a record field, an array or tuple element, a type argument, a union member, a function's result, a type parameter's bound, or the body of an alias that is not \`Mut<…>\` itself. A \`typeof\` type anywhere but those places is \`[mut-nested]\` too, since it may hold a \`Mut\`. In the type of a cell input a \`Mut\` is \`[mut-cell]\` (S4.4). A function may return a \`Mut<…>\` parameter, and its result type is then inferred. Since 2026-11-23.`
 // %%
-md`**S4.10** A kept function (S4.5) does not capture a \`Mut\` local of an enclosing function, also only to read it. That is \`[mut-capture]\`. It does not capture a \`let\` of an enclosing function, of any type. That is \`[let-capture]\`. A call of a helper that uses the local counts as a capture of it. A \`const\` that S4.1 does not make writable, or a \`const\` of a primitive type, bound before the function may be captured: \`const c: readonly number[] = out\`, \`const m: Map<string, number> = made\`, \`const c = n\` for a \`let n\`. A \`const m: Map<string, number> = new Map()\` is writable (S4.1), and capturing it is \`[mut-capture]\`. Even so, a kept function that captures a local holding a promise is \`[mut-capture]\`. Since 2026-11-22.`
+md`**S4.10** A kept function (S4.5) does not capture a \`Mut\` local of an enclosing function, also only to read it. That is \`[mut-capture]\`. It does not capture a local or parameter of an enclosing function whose type holds a \`Mut\` (S5.8), also only to read it. That is \`[mut-capture]\` too. Such a type is inferred: \`[xs, 1] as const\`, \`{ k: xs } as const\`, \`xs.length > 0 ? xs : null\`, or the result of a generic helper called with \`xs\`, for a \`Mut\` local \`xs\`. A \`const\` of the same type with no \`Mut\` bound before the function may be captured: \`const c: [number[], 1] = t\`. It does not capture a \`let\` of an enclosing function, of any type. That is \`[let-capture]\`. A call of a helper that uses the local counts as a capture of it. A \`const\` that S4.1 does not make writable, or a \`const\` of a primitive type, bound before the function may be captured: \`const c: readonly number[] = out\`, \`const m: Map<string, number> = made\`, \`const c = n\` for a \`let n\`. A \`const m: Map<string, number> = new Map()\` is writable (S4.1), and capturing it is \`[mut-capture]\`. Even so, a kept function that captures a local holding a promise is \`[mut-capture]\`. Since 2026-11-22; a local whose type holds a \`Mut\` since 2026-11-23.`
 // %%
 md`The cells of this section. \`s4_blur\` writes a box blur into a local buffer; \`s4_counts\` writes a local map through a helper that is only called (S4.5); \`s4_record\` deletes from a local object.`
 // %%
@@ -848,6 +848,15 @@ spec_rejects_4 = [
   { statement: "S4.1", rule: "member-write", source: "const a = () => {\n  const r: { readonly n: number } = { n: 1 };\n  r.n = 2;\n  return r.n;\n};" },
   { statement: "S4.1", rule: "mutating-method", source: "const xs = () => [1];\nconst a = (xs: readonly number[]) => {\n  const c: number[] = xs;\n  c.push(2);\n  return c.length;\n};" },
   { statement: "S4.10", rule: "mut-capture", source: "const a = () => {\n  const m: Map<string, number> = new Map();\n  return () => m.size;\n};" },
+  // k1 (2026-11-23): a local whose inferred type holds a Mut that is not its own type
+  { statement: "S4.10", rule: "mut-capture", source: "const a = () => {\n  const xs = [0];\n  const t = [xs, 1] as const;\n  return () => t[0].length;\n};" },
+  { statement: "S4.10", rule: "mut-capture", source: "const a = () => {\n  const xs = [0];\n  const t = xs.length > 0 ? xs : null;\n  return () => (t === null ? 0 : t.length);\n};" },
+  { statement: "S4.10", rule: "mut-capture", source: "const a = () => {\n  const xs = [0];\n  const t = { k: xs } as const;\n  return { get: () => t.k.length };\n};" },
+  { statement: "S4.10", rule: "mut-capture", source: "const a = () => {\n  const box = <T,>(v: T) => ({ v });\n  const xs = [0];\n  const t = box(xs);\n  return () => t.v.length;\n};" },
+  { statement: "S4.10", rule: "mut-capture", source: "const a = () => {\n  const xs = [0];\n  const t = [xs] as const;\n  return (y: Mut<number[]> = t[0]) => y.length;\n};" },
+  { statement: "S4.4", rule: "mutating-method", source: "const a = () => () => [0];\nconst b = (a) => {\n  a().push(1);\n  return 0;\n};" },
+  { statement: "S4.4", rule: "mutating-method", source: "const a = () => ({ make: () => new Map<string, number>() });\nconst b = (a) => {\n  a.make().set(\"k\", 1);\n  return 0;\n};" },
+  { statement: "S4.4", rule: "mutating-method", source: "const a = () => (ys: Mut<number[]>) => ys;\nconst b = (a) => {\n  const r = a([0]);\n  r.push(1);\n  return r.length;\n};" },
   { statement: "S4.9", rule: "mut-nested", source: "const a = () => {\n  const r: { readonly t: Mut<number[]> } = { t: [0] };\n  return 1;\n};" },
   { statement: "S4.9", rule: "mut-nested", source: "type Box = { readonly t: Mut<number[]> };\nconst a = () => 1;" },
   { statement: "S4.9", rule: "mut-nested", source: "type M = Mut<number[]>;\nconst a = () => {\n  const f = (m: readonly M[]) => m.length;\n  return 1;\n};" },
@@ -886,7 +895,8 @@ test_spec_S4_4 = {
   spec_is(spec_okCells("const a = () => {\n  const set0 = (m: Mut<number[]>) => {\n    m[0] = 5;\n  };\n  const out = [0, 1];\n  set0(out);\n  const s = JSON.stringify(out);\n  return [out, s];\n};"), "a:ok");
   // an owned group: fields written, lent whole to a parameter declared as the group, a helper that is only called, frozen
   spec_is(spec_okCells("type G = Mut<{ readonly t: readonly number[]; n: number }>;\nconst fill = () => (p: G, k: number): number => {\n  p.n = p.n + k;\n  return p.t.length;\n};\nconst a = (fill: (p: G, k: number) => number) => {\n  const g: G = { t: [1], n: 0 };\n  const put = (k: number) => {\n    g.n = g.n + k;\n  };\n  put(2);\n  fill(g, 3);\n  const f = g;\n  const xs: readonly number[] = f.t;\n  return xs.length + f.n;\n};"), "fill:ok,a:ok");
-  return `${spec_rejectsFor("S4.4")}; a Mut<…> parameter and a read by JSON.stringify are accepted`;
+  spec_is(spec_okCells("const a = () => (ys: Mut<number[]>) => ys.length;\nconst b = (a) => {\n  const r = [0];\n  r.push(1);\n  return a(r);\n};"), "a:ok,b:ok");
+  return `${spec_rejectsFor("S4.4")}; a Mut<…> parameter, a read by JSON.stringify, and a cell passing its own fresh value to another cell's Mut<…> parameter are accepted`;
 }
 // %%
 test_spec_S4_5 = {
@@ -977,7 +987,8 @@ test_spec_S4_9 = {
 // %%
 test_spec_S4_10 = {
   spec_is(spec_okCells("const a = () => {\n  const out = [0];\n  out.push(1);\n  const c: readonly number[] = out;\n  const made = new Map([[\"k\", 1]]);\n  const m: Map<string, number> = made;\n  let n = 2;\n  n += 1;\n  const k = n;\n  return () => c.length + (m.get(\"k\") ?? 0) + k;\n};"), "a:ok");
-  return `${spec_rejectsFor("S4.10")}; a const of a plain type, and a const copy of a let, bound before the kept function are accepted`;
+  spec_is(spec_okCells("const a = () => {\n  const xs = [0];\n  const t = [xs, 1] as const;\n  const c: [number[], 1] = t;\n  return () => c[0].length;\n};"), "a:ok");
+  return `${spec_rejectsFor("S4.10")}; a const of a plain type, a const copy of a let, and a tuple holding a Mut bound under a type with no Mut, before the kept function, are accepted`;
 }
 // %%
 md`## 5. Generator cells and the values they give
@@ -998,7 +1009,7 @@ md`**S5.6** In a generator, a local whose type holds a \`Mut\`, or a \`let\` who
 // %%
 md`**S5.7** S5.6 holds for an \`await\` in a function whose values may be seen before it ends, and the rule is \`[mut-await]\`. Such a function is a generator, or any function made inside the cell's function, awaited or not. Only the body of an async cell itself may use a \`Mut\` across an \`await\`. Since 2026-11-22.`
 // %%
-md`**S5.8** A type holds a \`Mut\` when it is \`Mut<…>\` or has one in a record field, an array or tuple element, a type argument (\`Map<string, Mut<number[]>>\`), a union member, a type alias's expansion or a function type's result. S5.6 and S5.7 take a local whose type holds a \`Mut\`; a cell input, a global and a function declaration are not taken. Since 2026-11-22. Since 2026-11-23 a written type holds a \`Mut\` only as its whole type (S4.9), so a type holds one inside its outermost type only when it is inferred: \`[xs, 1] as const\` for a \`Mut\` local \`xs\`, \`{ t: xs }\`, \`k > 0 ? xs : null\`, or a function whose inferred result is a \`Mut\`.`
+md`**S5.8** A type holds a \`Mut\` when it is \`Mut<…>\` or has one in a record field, an array or tuple element, a type argument (\`Map<string, Mut<number[]>>\`), a union member, a type alias's expansion, a function type's result, or the result of a record's call or construct signature. A \`Mut\` in a function type's parameter is not held: it is what a caller gives. A type nested more deeply than the checker looks is taken to hold a \`Mut\`: more than 12 expansions of a generic alias on one path, or more than 200 levels. S4.10, S5.6 and S5.7 take a local or parameter whose type holds a \`Mut\`; a cell input, a global and a function declaration are not taken. A \`const\` bound under the same written type is as deep, so the rebinding that S4.10 accepts does not clear such a type. S4.4 removes each \`Mut\` that this finds. Since 2026-11-22; S4.10 and the depth since 2026-11-23. Since 2026-11-23 a written type holds a \`Mut\` only as its whole type (S4.9), so a type holds one inside its outermost type only when it is inferred: \`[xs, 1] as const\` for a \`Mut\` local \`xs\`, \`{ t: xs }\`, \`k > 0 ? xs : null\`, or a function whose inferred result is a \`Mut\`.`
 // %%
 md`The cells of this section. \`s5_frames\` makes a buffer for each \`k\` = 1, 2, 3, fills it with \`k * (1, 2, 3)\` and yields a copy; \`s5_total\` sums the frame it is given and \`s5_kept\` keeps a copy.`
 // %%
@@ -1016,6 +1027,10 @@ spec_rejects_5 = [
   { statement: "S5.7", rule: "mut-await", source: "const a = async () => {\n  const xs = [0];\n  const h = async () => {\n    await 0;\n    xs.push(1);\n  };\n  await h();\n  return xs.length;\n};" },
   { statement: "S5.8", rule: "mut-yield", source: "const g = function* () {\n  const xs = [0];\n  const t = [xs, 1] as const;\n  yield 1;\n  t[0].push(1);\n};" },
   { statement: "S5.8", rule: "mut-yield", source: "const g = function* () {\n  const xs = [0];\n  const t = [xs] as const;\n  yield 1;\n  yield t[0].length;\n};" },
+  { statement: "S5.8", rule: "mut-capture", source: "const a = () => {\n  const xs = [0];\n  const g = () => [xs] as const;\n  const t = g();\n  return () => t[0].length;\n};" },
+  // the walk reaches a Mut 13 tuples deep; the next row holds no Mut and is past the limit on generic alias expansions
+  { statement: "S5.8", rule: "mut-capture", source: "const a = () => {\n  const xs = [0];\n  const t = [[[[[[[[[[[[[xs]]]]]]]]]]]]] as const;\n  return () => t.length;\n};" },
+  { statement: "S5.8", rule: "mut-capture", source: "type N<T> = { readonly n: T };\ntype D = N<N<N<N<N<N<N<N<N<N<N<N<N<number>>>>>>>>>>>>>;\nconst a = () => (p: D) => () => p.n;" },
   { statement: "S5.8", rule: "mut-await", source: "const a = async () => {\n  const xs = [0];\n  const t = [xs, 1] as const;\n  const h = async () => {\n    await 0;\n    t[0].push(1);\n  };\n  await h();\n  return 1;\n};" },
   { statement: "S5.7", rule: "mut-await", source: "const g = async function* () {\n  const xs = [0];\n  await 0;\n  xs.push(1);\n  yield xs.length;\n};" },
   { statement: "S5.2", rule: "member-write", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst w = (frames) => {\n  frames[0] = 1;\n  return 1;\n};" },
@@ -2575,7 +2590,7 @@ md`## Not specified
 
 Behaviour the code has today that this page does not promise. Each item is undecided or unfinished, and none should be relied on.`
 // %%
-md`- S4.10 looks at a binding's own type, so a kept function may capture a local whose inferred type holds a \`Mut\` that is not its own type (S5.8). With \`const t = [xs, 1] as const\` for a \`Mut\` local \`xs\`, \`return () => { t[0].push(1); return t[0].length; }\` is accepted, and so is a cell that calls the function. At run time the write throws, since the cell's value is frozen. Before 2026-11-23 the same was written with an annotation, \`const r: { readonly t: Mut<number[]> }\`, which is now \`[mut-nested]\` (S4.9). S5.6 and S5.7 follow such a local. Found 2026-11-22.`
+md`- A \`Mut\` in a parameter of a function's parameter is not removed (S4.4). A cell that takes \`(cb: (x: Mut<number[]>) => void) => void\` from another cell may write what that function passes to \`cb\`. Under S4.10 that value is fresh or one the calling cell gave, since a kept function cannot capture a shared \`Mut\`. Whether S4.4 should remove it is not decided. Found 2026-11-23.`
 // %%
 md`- \`DataView\`, \`TextEncoder\`, \`TextDecoder\` and \`Symbol\` were on the first list of allowed intrinsics (the tutorial's rule list), but the checker has no signatures for them: reading one leaves the cell unsupported, and \`new\` on one is \`[new-non-intrinsic]\`.`
 // %%

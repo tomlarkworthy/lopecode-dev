@@ -1,7 +1,7 @@
 // Rule set R (2026-11-22, the owner's decision): code that runs after a function has given a value may not use what the
 // cell can still write. R-Y: in a generator, a Mut-typed local, or a let whose type is not primitive, declared before a
 // yield is not used after it ([mut-yield]). R-A: the same across an await, in a function whose values may be seen before
-// it ends ([mut-await]); since r2 every nested function, and a binding whose type holds a Mut anywhere. R-K, a function the cell keeps captures no Mut and no let, is in owCaptureErrs. "After" is as
+// it ends ([mut-await]); since r2 every nested function, and a binding whose type holds a Mut anywhere. R-K, a function the cell keeps captures no Mut, no local whose type holds one (k1, 2026-11-23) and no let, is in owCaptureErrs. "After" is as
 // selfhost/late-code measured it: later in the text, a write whose expression holds the point, or inside a loop around
 // the point when the binding is not declared in that loop's body; a call of a function whose captures read the binding
 // is a use of it at the call.

@@ -66,51 +66,70 @@ export const owMutIn = (show, owTyKids) => {
   }
   return mutIn;
 };
-// rule set R (2026-11-22, r2): where a type holds Mut<…> anywhere, also in a function type's result; R-Y and R-A take a
-// binding whose type this finds, so a Mut in a record field, an element, a type argument or a union is followed. R-K
-// does not: the checker's mdHookOf keeps a hook that must reach a context holding the registry's memo (NOTES r2)
-export const owMutDeep = (show, owTyKids) => (R: IxRegCore, t0: Ty): string | null => {
-  const none: Mut<Map<string, number>> = new Map();
-  function deep(t: Ty, depth: number): string | null {
-    if (depth > 12) return null;
-    const inner = (ts: Ty[]): string | null => { for (const x of ts) { const w = deep(x, depth + 1); if (w) return w; } return null; };
+// rule set R (r2; k1, 2026-11-23): where a value of type t lets its holder reach a Mut: record fields, elements, unions,
+// type arguments, aliases, and the result of a function or of a record's call or construct signature, not a parameter
+// (what the holder gives). R-K, R-Y and R-A take a binding whose type this finds. A part already walked, or an alias met
+// again with the same arguments, adds nothing; more than 12 expansions of generic aliases on one path, or more than
+// 200 levels, count as holding one
+export const owMutDeep = (show, typeKey, owTyKids) => (R: IxRegCore, t0: Ty): string | null => {
+  const seen: Mut<Set<string>> = new Set(), done: Mut<Set<Ty>> = new Set();
+  function step(t: Ty, d: number, g: number): string | null {
+    const inner = (ts: Ty[]): string | null => { for (const x of ts) { const w = deep(x, d + 1, g); if (w) return w; } return null; };
     if (t.k === "fn") return inner([t.ret]);
+    if (t.k === "rec") return inner([...owTyKids(t), ...[...(t.calls ?? []), ...(t.ctors ?? [])].map((c) => c.ret)]);
     if (t.k !== "named") return inner(owTyKids(t));
     if (t.n === "Mut") return show(t);
     if (!R.isAlias(t.n)) return inner(t.args);
-    const plain = !t.args.length, at = none.get(t.n);
-    if (plain && at !== undefined && at <= depth) return null;
-    const w = deep(R.expand(t), depth + 1);
-    if (!w && plain) none.set(t.n, depth);
+    const key = typeKey(t);
+    if (seen.has(key)) return null;
+    seen.add(key);
+    return deep(R.expand(t), d + 1, t.args.length ? g + 1 : g);
+  }
+  function deep(t: Ty, d: number, g: number): string | null {
+    if (done.has(t)) return null;
+    if (d > 200 || g > 12) return `a part nested more deeply than the checker looks (${show(t)})`;
+    const w = step(t, d, g);
+    done.add(t);
     return w;
   }
-  return deep(t0, 0);
+  return deep(t0, 0, 0);
 };
-// a local whose type holds a Mut (owMutDeep): not a cell input, a global, a prelude name or a function declaration
+// a local of an enclosing function whose type holds a Mut (owMutDeep): not a cell input, a global, a prelude name or a
+// function declaration, which R-K, R-Y and R-A do not follow
 export const owLocalHoldsMut = (owMutDeep) => (O: OwCtx, b: IxBinding): boolean =>
   !b.cellParam && b.kind !== "global" && b.kind !== "prelude" && b.kind !== "fn" && owMutDeep(O.R, b.t) !== null;
 export const owMut = (owMutIn) => (R: IxRegCore, t: Ty): string | null => {
   const none: Mut<Map<string, number>> = new Map();
   return owMutIn(R, t, 0, none);
 };
-// S4: what a cell exposes is never Mut: t with every Mut<X> read as X, where owMutIn looks (not inside a function
-// type); an alias is expanded only when it holds a Mut
-export const owStripMut = (owMut, union) => {
-  function strip(R: IxRegCore, t: Ty, depth: number): Ty {
-    if (depth > 12) return t;
-    switch (t.k) {
-      case "arr": return { k: "arr", el: strip(R, t.el, depth + 1) };
-      case "tup": return { k: "tup", els: t.els.map((x) => strip(R, x, depth + 1)) };
-      case "union": return union(t.ts.map((x) => strip(R, x, depth + 1)));
-      case "rec": return { ...t, props: new Map([...t.props].map(([k, p]): [string, Prop] => [k, { ...p, t: strip(R, p.t, depth + 1) }])), index: t.index ? strip(R, t.index, depth + 1) : t.index };
-      case "named":
-        if (t.n === "Mut") return strip(R, t.args[0] ?? t, depth + 1);
-        if (!R.isAlias(t.n)) return { k: "named", n: t.n, args: t.args.map((x) => strip(R, x, depth + 1)) };
-        return owMut(R, t) === null ? t : strip(R, R.expand(t), depth + 1);
-      default: return t;
-    }
+// S4.4 (k1, 2026-11-23): what a cell exposes, with every Mut<X> that owMutDeep finds read as X, at any depth (inside a
+// function's result too, not in a parameter). An alias met again inside itself, or a part deeper than owMutDeep looks,
+// that holds a Mut is unknown
+export const owStripMut = (owMutDeep, typeKey, union, UNKNOWN) => (R: IxRegCore, t0: Ty): Ty => {
+  const open: Mut<Set<string>> = new Set(), done: Mut<Map<string, Ty>> = new Map();
+  function named(t: Named, d: number, g: number): Ty {
+    if (t.n === "Mut") return strip(t.args[0] ?? UNKNOWN, d + 1, g);
+    if (!R.isAlias(t.n)) return { k: "named", n: t.n, args: t.args.map((x) => strip(x, d + 1, g)) };
+    const key = typeKey(t), hit = done.get(key);
+    if (hit !== undefined || open.has(key)) return hit ?? UNKNOWN;
+    open.add(key);
+    const r = strip(R.expand(t), d + 1, t.args.length ? g + 1 : g);
+    open.delete(key); done.set(key, r);
+    return r;
   }
-  return (R: IxRegCore, t: Ty): Ty => (owMut(R, t) === null ? t : strip(R, t, 0));
+  function strip(t: Ty, d: number, g: number): Ty {
+    if (owMutDeep(R, t) === null) return t;
+    if (d > 200 || g > 12) return UNKNOWN;
+    const s = (x: Ty): Ty => strip(x, d + 1, g);
+    if (t.k === "arr") return { k: "arr", el: s(t.el) };
+    if (t.k === "tup") return { k: "tup", els: t.els.map((x) => s(x)) };
+    if (t.k === "union") return union(t.ts.map((x) => s(x)));
+    if (t.k === "fn") return { ...t, ret: s(t.ret) };
+    if (t.k === "named") return named(t, d, g);
+    if (t.k !== "rec") return t;
+    return { ...t, props: new Map([...t.props].map(([k, p]): [string, Prop] => [k, { ...p, t: s(p.t) }])), index: t.index ? s(t.index) : t.index, calls: t.calls?.map((c): Fn => ({ ...c, ret: s(c.ret) })), ctors: t.ctors?.map((c): Fn => ({ ...c, ret: s(c.ret) })) };
+  }
+  return strip(t0, 0, 0);
 };
 // r is written: an assignment's or update's target, or a destructuring target
 export const owAssignedRef = () => (O: OwCtx, r: AstNode): boolean => {
@@ -295,10 +314,13 @@ export const owFlowsOut = (owEncl) => (O: OwCtx, r: AstNode, f: AstNode): boolea
 };
 // R-K (2026-11-22): a function the cell keeps can run after the cell has given its value, so it captures no Mut and no
 // let of an enclosing function, reads included; what to bind instead
-export const owKeptReadMsg = (owStripMut, show, isNamed) => (O: OwCtx, b: IxBinding): string => isNamed(b.t, "Mut")
+export const owKeptReadMsg = (owStripMut, show, isNamed, owMutDeep) => (O: OwCtx, b: IxBinding): string => b.kind !== "let" && !isNamed(b.t, "Mut")
+  ? `${b.name}, whose type holds ${owMutDeep(O.R, b.t)}, captured by a function the cell keeps, which can run after the cell has given its value; bind it under a type with no Mut before the function (const c: ${show(owStripMut(O.R, b.t))} = ${b.name}) and capture that, or make it inside the function`
+  : isNamed(b.t, "Mut")
   ? `Mut ${b.name} captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: ${show(owStripMut(O.R, b.t))} = ${b.name}) and capture that, or make it inside the function`
   : `let ${b.name} captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = ${b.name}) and capture that`;
-export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLet, owGenLateWrites, owFlowsOut, owTypedIn, owTypedSafeB, owPromiseIn, owKeptReadMsg, owErr, unwrap, OW_UNFREEZABLE) => (O: OwCtx, W: OwW, caps: Map<number, OwCap>, byFn: Map<number, number>): void => {
+export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLet, owGenLateWrites, owFlowsOut, owTypedIn, owTypedSafeB, owPromiseIn, owKeptReadMsg, owLocalHoldsMut, owErr, unwrap, OW_UNFREEZABLE) => (O: OwCtx, W: OwW, caps: Map<number, OwCap>, byFn: Map<number, number>): void => {
+  const holds: Mut<Map<number, boolean>> = new Map();
   for (const f of O.T.fns) {
     const c = caps.get(f.nid);
     if (f.nid === O.T.fn.nid || c === undefined || !owKept(O, byFn, f)) continue;
@@ -314,6 +336,7 @@ export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLe
     for (const b of c.read.flatMap((id) => O.F.bindings.get(id) ?? [])) {
       owLateLet(O, W, f, b);
       if (b.kind === "let") owErr(W, f, "let-capture", owKeptReadMsg(O, b));
+      else if (!c.mut.includes(b.id) && (holds.get(b.id) ?? holds.set(b.id, owLocalHoldsMut(O, b)).get(b.id))) owErr(W, f, "mut-capture", owKeptReadMsg(O, b));
       const ta = c.mut.includes(b.id) ? null : owTypedIn(O.R, b.t);
       if (owPromiseIn(O.R, b.t)) owErr(W, f, "mut-capture", `${b.name} holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself`);
       if (ta !== null && !owTypedSafeB(O, b)) owErr(W, f, "mut-capture", `${b.name} holds a ${ta} that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: ${ta} = x.slice())`);

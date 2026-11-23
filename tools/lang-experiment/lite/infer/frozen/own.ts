@@ -18,7 +18,7 @@
 //  - state(...) and borrow(...) placement
 import { kids, isFn, type Node } from "./ts/parse.ts";
 import type { Checker, Binding } from "./infer.ts";
-import { isNamed, unwrap, show, ERR, isPrimitive, union, type Ty } from "../../types.ts";
+import { isNamed, unwrap, show, ERR, isPrimitive, union, typeKey, UNKNOWN, type Ty } from "../../types.ts";
 import type { Registry } from "./ts/registry.ts";
 import { PRELUDE_FNS } from "../../intrinsics.ts";
 
@@ -53,22 +53,35 @@ export function iterIn(t: Ty, reg: Registry, depth = 0, none = new Map<string, n
 }
 
 // DELIBERATE CHANGE (2026-11-22, S4 language change): what a cell exposes is never Mut (the cells' owStripMut)
-export function stripMut(t: Ty, reg: Registry): Ty {
-  const go = (t: Ty, depth: number): Ty => {
-    if (depth > 12) return t;
+// DELIBERATE CHANGE (2026-11-23, k1): every Mut that mutDeep finds, inside a function's result too; an alias met again
+// inside itself, or a part deeper than mutDeep looks, that holds one is unknown
+export function stripMut(t0: Ty, reg: Registry): Ty {
+  const open = new Set<string>(), done = new Map<string, Ty>();
+  const named = (t: Ty & { k: "named" }, d: number, g: number): Ty => {
+    if (t.n === "Mut") return go(t.args[0] ?? UNKNOWN, d + 1, g);
+    if (!reg.isAlias(t.n)) return { k: "named", n: t.n, args: (t.args ?? []).map((x) => go(x, d + 1, g)) };
+    const key = typeKey(t), hit = done.get(key);
+    if (hit !== undefined || open.has(key)) return hit ?? UNKNOWN;
+    open.add(key);
+    const r = go(reg.expand(t), d + 1, t.args?.length ? g + 1 : g);
+    open.delete(key); done.set(key, r);
+    return r;
+  };
+  const go = (t: Ty, d: number, g: number): Ty => {
+    if (mutDeep(t, reg) === null) return t;
+    if (d > 200 || g > 12) return UNKNOWN;
+    const s = (x: Ty) => go(x, d + 1, g);
     switch (t.k) {
-      case "arr": return { k: "arr", el: go(t.el, depth + 1) };
-      case "tup": return { k: "tup", els: t.els.map((x) => go(x, depth + 1)) };
-      case "union": return union(t.ts.map((x) => go(x, depth + 1)));
-      case "rec": return { ...t, props: new Map([...t.props].map(([k, p]) => [k, { ...p, t: go(p.t, depth + 1) }])), index: t.index ? go(t.index, depth + 1) : t.index };
-      case "named":
-        if (t.n === "Mut") return go(t.args[0] ?? t, depth + 1);
-        if (!reg.isAlias(t.n)) return { k: "named", n: t.n, args: (t.args ?? []).map((x) => go(x, depth + 1)) };
-        return mutIn(t, reg) === null ? t : go(reg.expand(t), depth + 1);
+      case "arr": return { k: "arr", el: s(t.el) };
+      case "tup": return { k: "tup", els: t.els.map(s) };
+      case "union": return union(t.ts.map(s));
+      case "fn": return { ...t, ret: s(t.ret) };
+      case "rec": return { ...t, props: new Map([...t.props].map(([k, p]) => [k, { ...p, t: s(p.t) }])), index: t.index ? s(t.index) : t.index, calls: t.calls?.map((c) => ({ ...c, ret: s(c.ret) })), ctors: t.ctors?.map((c) => ({ ...c, ret: s(c.ret) })) };
+      case "named": return named(t, d, g);
       default: return t;
     }
   };
-  return mutIn(t, reg) === null ? t : go(t, 0);
+  return go(t0, 0, 0);
 }
 // holes step 2 (2026-11-22): where a type holds Mut<…>, not inside a function type (as the cells' owMutIn)
 export function mutIn(t: Ty, reg: Registry, depth = 0, none = new Map<string, number>()): string | null {
@@ -93,30 +106,38 @@ export function mutIn(t: Ty, reg: Registry, depth = 0, none = new Map<string, nu
 }
 
 // DELIBERATE CHANGE (2026-11-22, R r2): where a type holds Mut<…> anywhere, also in a function type's result (the cells' owMutDeep)
+// DELIBERATE CHANGE (2026-11-23, k1): also a record's call and construct signatures' results; a part already walked, or an
+// alias met again with the same arguments, adds nothing; more than 12 generic alias expansions on a path, or more than
+// 200 levels, count as holding one
 export function mutDeep(t0: Ty, reg: Registry): string | null {
-  const none = new Map<string, number>();
-  const deep = (t: Ty, depth: number): string | null => {
-    if (depth > 12) return null;
-    const inner = (ts: Ty[]) => { for (const x of ts) { const w = deep(x, depth + 1); if (w) return w; } return null; };
+  const seen = new Set<string>(), done = new Set<Ty>();
+  const step = (t: Ty, d: number, g: number): string | null => {
+    const inner = (ts: Ty[]) => { for (const x of ts) { const w = deep(x, d + 1, g); if (w) return w; } return null; };
     switch (t.k) {
       case "fn": return inner([t.ret]);
       case "arr": return inner([t.el]);
       case "tup": return inner(t.els);
       case "union": return inner(t.ts);
-      case "rec": return inner([...[...t.props.values()].map((p) => p.t), ...(t.index ? [t.index] : [])]);
+      case "rec": return inner([...[...t.props.values()].map((p) => p.t), ...(t.index ? [t.index] : []), ...[...(t.calls ?? []), ...(t.ctors ?? [])].map((c) => c.ret)]);
       case "named": {
         if (t.n === "Mut") return show(t);
         if (!reg.isAlias(t.n)) return inner(t.args ?? []);
-        const plain = !t.args?.length, at = none.get(t.n);
-        if (plain && at !== undefined && at <= depth) return null;
-        const w = deep(reg.expand(t), depth + 1);
-        if (!w && plain) none.set(t.n, depth);
-        return w;
+        const key = typeKey(t);
+        if (seen.has(key)) return null;
+        seen.add(key);
+        return deep(reg.expand(t), d + 1, t.args?.length ? g + 1 : g);
       }
       default: return null;
     }
   };
-  return deep(t0, 0);
+  const deep = (t: Ty, d: number, g: number): string | null => {
+    if (done.has(t)) return null;
+    if (d > 200 || g > 12) return `a part nested more deeply than the checker looks (${show(t)})`;
+    const w = step(t, d, g);
+    done.add(t);
+    return w;
+  };
+  return deep(t0, 0, 0);
 }
 
 export function ownership(cellFn: Node, ch: Checker): Rule[] {
@@ -294,7 +315,10 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     return !helper(f);
   };
   // DELIBERATE CHANGE (2026-11-22, R-K): a function the cell keeps captures no Mut and no let, reads included (the cells' owKeptReadMsg)
-  const keptReadMsg = (b: Binding): string => isMutB(b)
+  // DELIBERATE CHANGE (2026-11-23, k1): R-K also takes a local whose type holds a Mut that is not its own type (mutDeep)
+  const keptReadMsg = (b: Binding): string => b.kind !== "let" && !isMutB(b)
+    ? `${b.name}, whose type holds ${mutDeep(b.t, ch.reg)}, captured by a function the cell keeps, which can run after the cell has given its value; bind it under a type with no Mut before the function (const c: ${show(stripMut(b.t, ch.reg))} = ${b.name}) and capture that, or make it inside the function`
+    : isMutB(b)
     ? `Mut ${b.name} captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: ${show(stripMut(b.t, ch.reg))} = ${b.name}) and capture that, or make it inside the function`
     : `let ${b.name} captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = ${b.name}) and capture that`;
   for (const f of fns) {
@@ -311,6 +335,7 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     for (const b of capRead.get(f)!) {
       if (b.kind === "let" || b.kind === "param") for (const r of refs.get(b) ?? []) if ((r.start < f.start || r.start > f.end) && assignedRef(r) && lateWrite(r, f)) err(r, "let-capture", `${b.kind} ${b.name} is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged`);
       if (b.kind === "let") err(f, "let-capture", keptReadMsg(b));
+      else if (!capMut.get(f)!.has(b) && !b.cellParam && b.kind !== "global" && b.kind !== "prelude" && b.kind !== "fn" && mutDeep(b.t, ch.reg) !== null) err(f, "mut-capture", keptReadMsg(b));
       const ta = capMut.get(f)!.has(b) ? null : typedIn(b.t);
       if (promiseIn(b.t)) err(f, "mut-capture", `${b.name} holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself`);
       if (ta !== null && !typedSafeB(b)) err(f, "mut-capture", `${b.name} holds a ${ta} that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: ${ta} = x.slice())`);

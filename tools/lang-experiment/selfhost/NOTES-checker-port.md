@@ -2583,3 +2583,124 @@ three blind spots above (run-time guard only); no nullable `Mut` annotation; `ty
 reassignment from a non-fresh value; a type literal with one readonly member makes every field unwritable;
 `Promise.resolve(xs)` gives `[type] Mut<number[]> is not assignable to Mut<number[]> | Promise<Mut<number[]>>`
 (found by a probe, not investigated).
+
+## 2026-11-23 02:28–03:27: k1, R-K on a type that holds a Mut anywhere, and the strip made total (build owner, logs `lite/soundscript/.scratch/k1/`)
+
+Brief: the two gaps of selfhost/freeze-attack5 (128 accepted programs silent with `SS_MEASURE_REG=0`, one root N; an
+unannotated cell input taking a `Mut` inside a producer's function result). Times are CET. Originals of every edited
+file are in `.scratch/k1/orig/`. Registration was not deleted.
+
+### R-K deep
+`owCaptureErrs` (22 -> 24 lines): in the read loop, a binding that is not in the kept function's Mut list and for which
+`owLocalHoldsMut` holds is `[mut-capture]` with `owKeptReadMsg`'s new first branch ("t, whose type holds Mut<number[]>
+... bind it under a type with no Mut (const c: [number[], 1] = t)"; 3 -> 5 lines). This is r2's saved attempt
+(`.scratch/r2/ow-capture.with-rk-nested.ss.ts`) plus a per-check cache of the test by binding id.
+Recount (`.scratch/r2/census3.ts --against k1/base.json`, 46125 cells: late-code's corpus, the build's sections, the
+checker's own cells): **0 cells newly rejected**, so no cell was rewritten. r2's 15 came from `mayHideMemo`, which m1
+step 1 moved onto `memo`; since m1 step 2 no written type nests a `Mut`, so no checker context type holds one.
+Two controls, to show the census sees the change: dropping the `cellParam` exclusion changed 0 cells (no checker input
+holds a Mut); making the test true for every captured local changed 3335 (`k1/census-control2.txt`), across every
+`ix-`/`ow-`/`md-`/`rg-`/`cp-` section. `statuses.ts` (shipped modules and the checker's own 418 cells): no change.
+
+### owMutDeep (17 -> 23 lines) and owStripMut (16 -> 26)
+- `owMutDeep` now also follows a record's call and construct signatures' results. A part already walked (a `Set` of
+  type objects) and an alias met again with the same `typeKey` add nothing. More than 12 generic alias expansions on
+  one path, or more than 200 levels, return a witness ("a part nested more deeply than the checker looks"): it fails
+  closed. Before, depth 12 returned `null`: `[[[[[[[[[[[[[xs]]]]]]]]]]]]] as const` (13 tuples) was ACCEPT and
+  `deep12` REJECT (`k1/p/q2.ts`).
+- `owStripMut` strips every Mut `owMutDeep` finds, inside a function's result and a call signature's result too. It
+  guards each node with `owMutDeep`, so a part with no Mut is returned as it is. A Mut-holding alias met again inside
+  itself, or a part past the limits, becomes `unknown`.
+- Function parameters are not entered by either. Dead end, measured: a first build followed parameters with the
+  polarity flipped (a callback's parameter is positive). The checker then took 143739 ms against 4596 ms
+  (`time-sections.ts`), and the same with a cut cache 174103 ms. Most of that was the strip expanding aliases into
+  parameter types of every curried cell, not the walk (3853 walks, 1.76M nodes, counted). The first fail-closed cap
+  at plain depth 12 rejected 18488 corpus cells (`k1/census-k1a.txt`, e.g. `subtype.ss.ts isAliasWith`), which is why
+  depth counts generic expansions. The cut is safe for R-K only because a function that hands out a shared Mut has to
+  capture it, and R-K rejects that capture where the function is made. The case is a Not specified item.
+- Two SoundScript rules shaped the cells: `===` on objects is `[strict-eq-object]`, so the walk cannot test "unchanged"
+  by identity; and `xs.map(s)` with a named `s` makes `s` kept, which made `owStripMut` `[mut-capture]` on its own
+  maps until it was written `xs.map((x) => s(x))`.
+- Speed (`time-sections.ts`, final tree): checker 4612 / 4559 / 4586 ms (m1 step 2: median 4613).
+- Frozen mirror, `frozen/own.ts` 757 -> 782 lines, three `DELIBERATE CHANGE (2026-11-23, k1)` blocks: `mutDeep`,
+  `stripMut`, R-K in the `capRead` loop and `keptReadMsg`. `diff.ts` with every freeze-attack5 and k1 program as `--file`
+  (`k1/files.ts`): `ownership: 4380 cells: SAME 4380 DIFFERENT 0`. Control: with the frozen R-K line disabled, the n1
+  files alone give `DIFFERENT 110`.
+
+### The consumer facet
+freeze-attack5's `n7-c-unann-two-hops` is now rejected at the producer (`a:[mut-capture]`) and at the consumer
+(`c:[mutating-method]`). Producers that stay accepted and expose a Mut in a function result, each with `a` ok and the
+consumer rejected (`k1/p/q2.ts`, `q3.ts`): `() => () => [0]`, `() => (ys: Mut<number[]>) => ys`, `() => () => new Map()`,
+`{ mk: () => [0] }`. Not stripped: `(cb: (x: Mut<number[]>) => void) => …`, where the consumer's callback may write the
+value it is passed (`k1-s-callback-param`, accepted, not silent: the producer passes a fresh array).
+
+### Spec
+S4.4 (the Mut is removed in an exposed function's result; a parameter keeps its Mut), S4.10 (a local or parameter
+whose type holds a Mut; the bind-under-a-type fix), S5.8 (call signatures, parameters not held, the two limits,
+rebinding does not clear a type past them), the Not specified S4.10 bullet replaced by the callback-parameter item,
+tutorial rule row, `rules.ts` mut-capture summary, comments in ow-late.ss.ts and h9-attacks.ts. Rows: S4.10 +5, S4.4 +3,
+S5.8 +3; test_spec_S4_4 and S4_10 gain an accept case each. `.scratch/m1/rows.ts`: 425 rows, 0 not exactly their rule;
+37 accept rows, 0 not accepted. Every message fix in the new rows was run through `checkSources` (`k1/p/q4.ts`).
+Sentences made false and rewritten: the Not specified bullet ("S4.10 looks at a binding's own type ... At run time the
+write throws, since the cell's value is frozen", true only with registration on); S5.8 "S5.6 and S5.7 take a local";
+the tutorial row "does not capture a `Mut` or a `let`"; `owMutDeep`'s comment "R-K does not: the checker's mdHookOf";
+the rules.ts summary; h9-attacks' "R-K and R-Y look at the binding's own type".
+Fresh review (`/review-notebook`, FIX, 3 findings, all confirmed and taken): the 13-tuple S5.8 row does not test the
+limit (a Mut-free 13-expansion alias row added, `alias13`, and a comment); rebinding under the same written type does
+not clear a type past the limit (a sentence in S5.8; the message then suggests `const c: … = c`, open); the tutorial
+said "a local" where the rule takes parameters too.
+
+### Measurement (`k1/measure.sh`, outputs `k1/m/`, 2026-11-23 03:12, deep freeze kept in both modes)
+```
+                                   programs  accepted  silent (a)  (b)    before k1 (a/b), accepted
+run-sets (16 sets, k1 included)        2055       292           0    0    0/0, 288 of 1990
+freeze-attack2 run.ts                   309         8           0    0
+freeze-attack3 run.ts                   360        12           0    0    controls fired 3 / 4 of 4
+convert-freeze/attack1 (main tree)      246         1           0    0
+freeze-attack4 (via fa3 run.ts)         223        80           5    5    controls 6 / 7 of 7
+freeze-attack5 (via fa3 run.ts)         441        12           0    0    0/128, 145; controls 6 / 19 of 19
+```
+Silent in (b): freeze-attack4's 5 capability reads (`cap-now`, `cap-random`, `cap-now-gen`, `cap-now-in-record`,
+`cap-random-stored`), the same in (a); nothing is written (its RESULTS.md). freeze-attack5's 133 newly rejected
+programs are its 128 silent ones plus `n3-held-gen-fn`, `n3-held-promise-fn` (N, unreadable by the detector),
+`n5-memo-arg-tuple` (threw in both modes), `n5-op-nullish` (`ys ?? xs`) and `n5-op-tern-mut-readonly` (`k ? xs : ys`),
+the last two read-only captures of a union that holds a Mut: over-rejections, fixed by `const t: readonly number[]`.
+run-sets: the 288 programs accepted under m1 step 2 are all still accepted (`k1/acc-*.txt`).
+
+### k1 attacks
+`lite/infer/attack/k1-attacks.ts`, 65 programs + 3 controls, set `k1` in run-sets and live.test (which asserts
+`k1-controls: 3, fired 0`; with `SS_MEASURE_REG=0` they fire 3). Mode (a) and (b): accepted 4, silent 0. Accepted:
+`k1-u-object` and `k1-u-json` (nothing to write), `k1-s-callback-param` (above), `k1-s-state-fn`. Every depth,
+recursive-alias, generic, default-argument, function-in-field, let, parameter, destructuring and container route is
+`[mut-capture]`. Every strip route is rejected at the consumer. Other verdicts: a conditional type needs a cast
+(`[no-cast]`); `Partial` is `[unknown-type]`; a mapped type `{ readonly [K in keyof T]: T[K] }` crashes the acorn
+port (`typeAnnotation.readonly: expected string or null, found boolean true`), a crash, so rejected.
+
+### Ergonomics
+Shipped corpus: 0 of 46125 cells newly rejected (above). freeze-attack4's 15 ordinary programs (`bun probe.ts p6.ts`):
+7 accepted (e1, e5, e6, e7, e8, e11, e14), the same verdicts on every one of its 30 programs as before k1
+(`k1/erg-before.txt` = `erg-now.txt`).
+
+### Gates, final tree (`k1/gates.sh` 03:14–03:20, then `build.ts --force` after the review fixes and the full verify
+03:21–03:27; logs `k1/final/`)
+```
+build.ts --force                exit 0 (twice; the second after the review fixes)
+bun-verify                      177 pass, 0 fail
+fixtures.ts                     14/14; 54 rules, 54 with a reject case
+diff.ts                         1052 sources: SAME 3750 DIFFERENT 0 REAL CRASH 14; ownership SAME 3750 DIFFERENT 0
+diff.ts --module-only           SAME 1142 DIFFERENT 0
+tc-diff.ts                      corpus DIFFERENT 0; erase (repro) DIFFERENT 1 (by design)
+live.test.ts                    461 pass, 0 fail
+freeze-table.test.ts            441 pass, 0 fail
+tc.test / run.test / acorn      11 / 2 / 6 pass, 0 fail (run apart)
+run-sets                        2055 programs, silent 0
+freeze-attack2 / 3 run-all.sh   309, silent 0 / 360, silent 0
+verify.ts --quick               229 pass, 0 fail (before the review fixes)
+verify.ts (full, once)          668 pass, 0 fail
+```
+The review's spec edits came after `gates.sh`'s build; rows.ts (425 / 0) and the full verify ran on the rebuilt tree.
+
+Open: the message's suggested type for a type past the limits is truncated by `show` or names the binding itself; a
+Mut a producer's function passes to a callback parameter (Not specified); a foreign value's type is not stripped
+(mdInjectForeign) and was not attacked; the mapped-type crash; an interface's type arguments are stripped also where
+the interface uses them as parameters (as before k1).

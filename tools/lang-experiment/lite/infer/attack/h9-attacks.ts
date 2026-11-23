@@ -1,7 +1,7 @@
 // Rule set R (2026-11-22): attacks on R itself, ways for code to run after a cell gave a value that R does not
 // classify as late, each writing what an earlier published value reaches. Run by run-sets.ts (set h9). W: 300 awaits.
 // By name prefix: h9-aa an async function inside an async function, not awaited (R-A takes it as awaited); h9-nm a Mut
-// below the top level of a const of a plain type (R-K and R-Y look at the binding's own type); h9-cb a callback an
+// below the top level of a const of a plain type (R-K and R-Y looked at the binding's own type until r2 and k1); h9-cb a callback an
 // intrinsic stores (then, catch, Map.set, sort); h9-it iterators and generators held or returned; h9-ev actions,
 // listeners and state; h9-fl finally, recursion, default parameters, getters; h9-pr primitive lets and plain consts,
 // which R accepts and which change nothing (controls of the rule, not of the observer). r2 (2026-11-22): h9-r2 aims at
