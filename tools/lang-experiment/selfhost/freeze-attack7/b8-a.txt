@@ -1,0 +1,59 @@
+== b8.ts:b8-local-action: REJECT put:rejected[action-capture]
+== b8.ts:b8-local-action-arg: REJECT put:rejected[mutating-method]
+== b8.ts:b8-on-in-action: REJECT put:rejected[listener-placement][mutating-method]
+== b8.ts:b8-jsx-in-action: REJECT put:rejected[no-member]
+== b8.ts:b8-jsx-in-cell: REJECT a:rejected[no-member]
+== b8.ts:b8-jsx-fn-in-cell: REJECT a:rejected[no-member]
+== b8.ts:b8-throw-caught: ACCEPT
+   drive -> same: the holder was not written (holds its initial value; lg 1)
+== b8.ts:b8-promise-resolve: ACCEPT
+   drive -> same: the holder was not written (holds its initial value; lg 1)
+== b8.ts:b8-promise-then: ACCEPT
+   drive -> same: the holder was not written (holds its initial value; lg 1)
+== b8.ts:b8-promise-cell: ACCEPT
+   show b = 2 | E[]
+== b8.ts:b8-withresolvers: REJECT put:rejected[no-member]
+== b8.ts:b8-read-only: ACCEPT
+   drive -> same: the holder was not written (holds its initial value; lg -1)
+== b8.ts:b8-state-initial: ACCEPT
+   show v = 2 | E[]
+== b8.ts:b8-freeze-mid: REJECT put:rejected[removed-call]
+== b8.ts:b8-snapshot-mid: ACCEPT
+   drive -> same: the holder was not written (holds its initial value; lg 1)
+== b8.ts:b8-memo-in-action: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b8.ts:b8-island-data: ACCEPT
+   show go = fn(Promise) | E[]
+   late throws: undefined is not an object (evaluating 'x.length')
+== b8.ts:b8-island-fn: REJECT go:rejected[compile-boundary]
+== b8.ts:b8-ctl-local-action-P [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: Attempted to assign to readonly property.
+   late throws: undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length')
+   CONTROL DID NOT FIRE
+== b8.ts:b8-ctl-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   CONTROL FIRED
+== b8.ts:b8-memo-ctl-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF hit: stored result read 2, now 7
+   CHANGED b (value #1 of 1): {g:fn(4),bump:fn(undefined)} | E[] -> {g:fn(7),bump:fn(undefined)} | E[]
+   CHANGED a (value #1 of 1): {before:2,r:{g:fn(6),bump:fn(undefined)}} | E[] -> {before:2,r:{g:fn(10),bump:fn(undefined)}} | E[]
+   TAP memo store: [[],{g:fn(undefined),bump:fn(undefined)}] -> [[],{g:fn(null),bump:fn(undefined)}]
+   TAP memo store: [[1],{g:fn(1),bump:fn(undefined)}] -> [[1],{g:fn(13),bump:fn(undefined)}]
+   CONTROL FIRED
+== b8.ts:b8-memo-ctl-alias [ctl]: CONTROL (checker skipped)
+   drive -> no value (a rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   CONTROL DID NOT FIRE
+== b8.ts:b8-memo-helper-c: ACCEPT
+   drive -> same hit: stored result read 1, now 1
+== b8.ts:b8-memo-deep-holder: ACCEPT
+   drive -> same hit: stored result read 1, now 1
+== b8.ts:b8-memo-bump-mutparam: ACCEPT
+   drive -> same hit: stored result read 1, now 1
+-- controls 4, ran 4, fired 2
+-- harness crashes 0
+-- 21 candidates, accepted 12, silent 0 (by the tap alone 0)

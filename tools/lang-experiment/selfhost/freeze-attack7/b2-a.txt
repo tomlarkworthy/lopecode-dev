@@ -1,0 +1,111 @@
+== b2.ts:b2-fn-width-direct: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-fn-width-alias: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-fn-width-getter: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-fn-in-array: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-fn-in-map: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-fn-in-set: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-fn-nested: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-fn-method: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-fn-dupkey: ACCEPT
+   drive -> same: a miss, nothing was stored
+== b2.ts:b2-fn-error-cause: REJECT a:rejected[arity]
+== b2.ts:b2-action-in-key: ACCEPT
+   drive -> same: a miss, nothing was stored
+== b2.ts:b2-memo-in-key: ACCEPT
+   drive -> same: a miss, nothing was stored
+== b2.ts:b2-data-alias: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-data-getter: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-data-forof: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-data-map-alias: ACCEPT
+   drive -> no value (a rejected, b rejected set on a frozen Map: a value cannot change after its cell returns)
+   error a: set on a frozen Map: a value cannot change after its cell returns
+   error b: set on a frozen Map: a value cannot change after its cell returns
+== b2.ts:b2-data-set-alias: ACCEPT
+   drive -> no value (a rejected, b rejected add on a frozen Set: a value cannot change after its cell returns)
+   error a: add on a frozen Set: a value cannot change after its cell returns
+   error b: add on a frozen Set: a value cannot change after its cell returns
+== b2.ts:b2-data-rec-alias: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-data-err-alias: ACCEPT
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b2.ts:b2-regexp: REJECT a:rejected[regexp-state] b:blocked
+== b2.ts:b2-regexp-test: REJECT a:rejected[regexp-state] b:blocked
+== b2.ts:b2-url: ACCEPT
+   drive -> no value (a rejected, b rejected setting pathname on a frozen URL: a value cannot change after its cell returns)
+   error a: setting pathname on a frozen URL: a value cannot change after its cell returns
+   error b: setting pathname on a frozen URL: a value cannot change after its cell returns
+== b2.ts:b2-url-alias: ACCEPT
+   drive -> no value (a rejected, b rejected setting pathname on a frozen URL: a value cannot change after its cell returns)
+   error a: setting pathname on a frozen URL: a value cannot change after its cell returns
+   error b: setting pathname on a frozen URL: a value cannot change after its cell returns
+== b2.ts:b2-typed: ACCEPT
+   drive -> same: a miss, nothing was stored
+== b2.ts:b2-buffer: ACCEPT
+   drive -> same: a miss, nothing was stored
+== b2.ts:b2-match-groups: ACCEPT
+   drive -> same: a hit on a key with no function (data, frozen at the miss)
+== b2.ts:b2-clone-map: ACCEPT
+   drive -> same: a miss, nothing was stored
+== b2.ts:b2-snapshot-set: ACCEPT
+   drive -> same: a miss, nothing was stored
+== b2.ts:b2-promise: ACCEPT
+   drive -> same: a miss, nothing was stored
+== b2.ts:b2-jsx: REJECT a:rejected[no-member] b:blocked
+== b2.ts:b2-iterator: REJECT a:rejected[iterator-cell]
+== b2.ts:b2-groupby: REJECT a:rejected[no-member][untyped-parameter] b:blocked
+== b2.ts:b2-map-groupby: REJECT a:rejected[no-member][untyped-parameter] b:blocked
+== b2.ts:b2-result-fn: ACCEPT
+   drive -> hit, g() 2
+== b2.ts:b2-result-fn-alias: REJECT mk:rejected[memo-pure]
+== b2.ts:b2-action-memo-st: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b2.ts:b2-memo-input-fn: ACCEPT
+   drive -> same: a miss, nothing was stored
+== b2.ts:b2-ctl-P-memo [ctl]: CONTROL (checker skipped)
+   drive -> no value (a rejected, b rejected Attempted to assign to readonly property.)
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+   CONTROL DID NOT FIRE
+== b2.ts:b2-ctl-hit-data [ctl]: CONTROL (checker skipped)
+   drive -> hit seen (detector sanity, not a fire)
+   CONTROL DID NOT FIRE
+-- controls 2, ran 2, fired 0
+-- harness crashes 0
+-- 37 candidates, accepted 29, silent 0 (by the tap alone 0)

@@ -1,0 +1,218 @@
+== b1.ts:b1-st-before-arr-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-before-arr-index: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-before-arr-len0: ACCEPT
+   drive -> threw at the call: Array length is not writable
+== b1.ts:b1-st-before-arr-sort: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-before-map-set: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== b1.ts:b1-st-before-map-delete: ACCEPT
+   drive -> threw at the call: delete on a frozen Map: a value cannot change after its cell returns
+== b1.ts:b1-st-before-set-add: ACCEPT
+   drive -> threw at the call: add on a frozen Set: a value cannot change after its cell returns
+== b1.ts:b1-st-before-rec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-before-rec-incr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-before-opt-delete: ACCEPT
+   drive -> threw at the call: Unable to delete property.
+== b1.ts:b1-st-before-err-message: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-before-nest-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-before-tuple-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-before-arrrec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-up-before-arr-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-up-before-map-set: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== b1.ts:b1-up-before-set-add: ACCEPT
+   drive -> threw at the call: add on a frozen Set: a value cannot change after its cell returns
+== b1.ts:b1-up-before-rec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-up-before-opt-delete: ACCEPT
+   drive -> threw at the call: Unable to delete property.
+== b1.ts:b1-up-before-err-message: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-up-before-nest-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-up-before-tuple-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-up-before-arrrec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-set-arr-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-set-map-set: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== b1.ts:b1-destr-set-set-add: ACCEPT
+   drive -> threw at the call: add on a frozen Set: a value cannot change after its cell returns
+== b1.ts:b1-destr-set-rec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-set-opt-delete: ACCEPT
+   drive -> threw at the call: Unable to delete property.
+== b1.ts:b1-destr-set-err-message: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-set-nest-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-set-tuple-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-set-arrrec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-update-arr-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-update-map-set: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== b1.ts:b1-destr-update-set-add: ACCEPT
+   drive -> threw at the call: add on a frozen Set: a value cannot change after its cell returns
+== b1.ts:b1-destr-update-rec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-update-opt-delete: ACCEPT
+   drive -> threw at the call: Unable to delete property.
+== b1.ts:b1-destr-update-err-message: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-update-nest-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-update-tuple-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-update-arrrec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-rename-arr-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-rename-map-set: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== b1.ts:b1-destr-rename-set-add: ACCEPT
+   drive -> threw at the call: add on a frozen Set: a value cannot change after its cell returns
+== b1.ts:b1-destr-rename-rec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-rename-opt-delete: ACCEPT
+   drive -> threw at the call: Unable to delete property.
+== b1.ts:b1-destr-rename-err-message: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-rename-nest-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-rename-tuple-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-rename-arrrec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-computed-set-arr-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-computed-set-map-set: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== b1.ts:b1-computed-set-set-add: ACCEPT
+   drive -> threw at the call: add on a frozen Set: a value cannot change after its cell returns
+== b1.ts:b1-computed-set-rec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-computed-set-opt-delete: ACCEPT
+   drive -> threw at the call: Unable to delete property.
+== b1.ts:b1-computed-set-err-message: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-computed-set-nest-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-computed-set-tuple-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-computed-set-arrrec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-computed-update-arr-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-computed-update-map-set: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== b1.ts:b1-computed-update-set-add: ACCEPT
+   drive -> threw at the call: add on a frozen Set: a value cannot change after its cell returns
+== b1.ts:b1-computed-update-rec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-computed-update-opt-delete: ACCEPT
+   drive -> threw at the call: Unable to delete property.
+== b1.ts:b1-computed-update-err-message: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-computed-update-nest-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-computed-update-tuple-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-computed-update-arrrec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-before-arr-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-before-map-set: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== b1.ts:b1-destr-before-set-add: ACCEPT
+   drive -> threw at the call: add on a frozen Set: a value cannot change after its cell returns
+== b1.ts:b1-destr-before-rec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-before-opt-delete: ACCEPT
+   drive -> threw at the call: Unable to delete property.
+== b1.ts:b1-destr-before-err-message: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-before-nest-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-before-tuple-push: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-destr-before-arrrec-assign: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-helper-destr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-helper-computed: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-foreach-st: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-foreach-st-ref: REJECT put:rejected[state-write]
+== b1.ts:b1-st-wrapped-fn: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-record: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-width: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-map: REJECT s:rejected[unknown-type] v:rejected[unknown-type] put:rejected[unknown-type]
+== b1.ts:b1-st-method: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-decl: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-generic: REJECT put:rejected[state-write]
+== b1.ts:b1-st-template: REJECT put:rejected[type]
+== b1.ts:b1-st-key-const: REJECT put:rejected[type]
+== b1.ts:b1-st-optional: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-paren: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-loop-later: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b1.ts:b1-st-in-loop-decl: REJECT put:rejected[mutating-method]
+== b1.ts:b1-st-after-xs: REJECT put:rejected[mutating-method]
+== b1.ts:b1-act-annot: REJECT put:rejected[action-pass]
+== b1.ts:b1-act-cast: REJECT put:rejected[no-cast]
+== b1.ts:b1-act-generic-id: REJECT put:rejected[action-pass][mutating-method]
+== b1.ts:b1-act-destr: REJECT put:rejected[mutating-method]
+== b1.ts:b1-act-computed: REJECT put:rejected[mutating-method]
+== b1.ts:b1-act-tuple: REJECT put:rejected[mutating-method]
+== b1.ts:b1-act-map: REJECT put:rejected[mutating-method]
+== b1.ts:b1-act-helper-before: REJECT put:rejected[mutating-method]
+== b1.ts:b1-act-spread-args: REJECT put:rejected[mutating-method]
+== b1.ts:b1-act-spread-before: REJECT put:rejected[mutating-method]
+== b1.ts:b1-act-ternary: REJECT put:rejected[mutating-method]
+== b1.ts:b1-act-optional: REJECT put:rejected[mutating-method]
+== b1.ts:b1-act-nonnull: REJECT put:rejected[no-non-null]
+== b1.ts:b1-act-comma: REJECT put:unsupported
+== b1.ts:b1-act-satisfies: REJECT put:unsupported
+== b1.ts:b1-act-default-param: REJECT put:rejected[action-pass][mutating-method]
+== b1.ts:b1-act-fn-input: REJECT put:rejected[inject-type]
+== b1.ts:b1-act-runner-cell: REJECT put:rejected[action-pass][mutating-method]
+== b1.ts:b1-act-producer-fn: REJECT wrap:rejected[action-pass]
+== b1.ts:b1-act-producer-wrapper: REJECT wrap:rejected[action-call]
+== b1.ts:b1-set-producer-wrapper: REJECT wrap:rejected[state-write]
+== b1.ts:b1-set-producer-action-rec: REJECT put:rejected[inject-type]
+== b1.ts:b1-ctl-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   CONTROL FIRED
+== b1.ts:b1-ctl-P [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: Attempted to assign to readonly property.
+   CONTROL DID NOT FIRE
+-- controls 2, ran 2, fired 1
+-- harness crashes 0
+-- 117 candidates, accepted 88, silent 0 (by the tap alone 0)

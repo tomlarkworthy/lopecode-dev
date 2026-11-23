@@ -1,0 +1,123 @@
+== b6.ts:b6-dupkey-st: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b6.ts:b6-dupkey-destr: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b6.ts:b6-dupkey-alias-after: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b6.ts:b6-dupkey-getter: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b6.ts:b6-dupkey-foreach: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b6.ts:b6-spread-st: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b6.ts:b6-spread-rec-st: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b6.ts:b6-strkey-st: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b6.ts:b6-strmethod-st: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b6.ts:b6-numkey-st: REJECT put:rejected[type]
+== b6.ts:b6-computedkey-st: REJECT put:unsupported
+== b6.ts:b6-method-then-method-st: ACCEPT
+   drive -> same given 1 holds 1
+== b6.ts:b6-field-then-method-st: ACCEPT
+   drive -> same given 1 holds 1
+== b6.ts:b6-dupkey-rec-st: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: {m:fn(1)} -> {m:fn(2)}
+   TAP write s: {m:fn(1)} -> {m:fn(2)}
+   TAP write s: {m:fn(1)} -> {m:fn(2)}
+   TAP write s: {m:fn(1)} -> {m:fn(2)}
+   SILENT
+== b6.ts:b6-dupkey-return: ACCEPT
+   show a = fn(2) | E[]
+   show b = 2 | E[]
+== b6.ts:b6-nocap-method-st: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b6.ts:b6-dupkey-listener: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b6.ts:b6-dupkey-jsx: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b6.ts:b6-ctl-dupkey-direct [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   CONTROL FIRED
+== b6.ts:b6-ctl-P [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: Attempted to assign to readonly property.
+   CONTROL DID NOT FIRE
+-- controls 2, ran 2, fired 1
+-- harness crashes 0
+-- 18 candidates, accepted 16, silent 12 (by the tap alone 0)
+SILENT b6.ts:b6-dupkey-st
+SILENT b6.ts:b6-dupkey-destr
+SILENT b6.ts:b6-dupkey-alias-after
+SILENT b6.ts:b6-dupkey-getter
+SILENT b6.ts:b6-dupkey-foreach
+SILENT b6.ts:b6-spread-st
+SILENT b6.ts:b6-spread-rec-st
+SILENT b6.ts:b6-strkey-st
+SILENT b6.ts:b6-strmethod-st
+SILENT b6.ts:b6-dupkey-rec-st
+SILENT b6.ts:b6-dupkey-listener
+SILENT b6.ts:b6-dupkey-jsx

@@ -1,0 +1,14 @@
+-- viewof s
+function _s(ss_state,ss_ref) { const state = ss_state; return ss_ref(this, "s", [], /*{lang:"ss"}*//*ss^{"h":"const s = ","t":";"}*/() => state/*ss:<() => number>*/(() => -1)); }
+-- s
+(G, _) => G.input(_)
+-- viewof lg
+function _lg(ss_state,ss_ref) { const state = ss_state; return ss_ref(this, "lg", [], /*{lang:"ss"}*//*ss^{"h":"const lg = ","t":";"}*/() => state(-1)); }
+-- lg
+(G, _) => G.input(_)
+-- v
+function _v(ss_out,s) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const v = ","t":";"}*/(s/*ss:: () => number*/) => s)(s)));}
+-- w
+function _w(ss_out,lg) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const w = ","t":";"}*/(lg/*ss:: number*/) => lg)(lg)));}
+-- put
+function _put(ss_action,ss_out,ss_closure,ss_methods,$0,$1) { const action = ss_action; return ss_out((/*{lang:"ss"}*//*ss^{"h":"const put = ","t":";"}*/(s/*ss:: State<() => number>*/, lg/*ss:: State<number>*/) => ({ go: action(() => { const ls = lg.set; const k = 1; const st = s.set; const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const f = /*ss+*/ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)/*ss-*/; const r = { m: f }; const o = /*ss+*/ss_methods(/*ss-*/{ m() { return k; }, ...r }/*ss+*/, "m", (i) => i < 0 ? 1 : k)/*ss-*/; st(o.m); ls(o.m()); xs.push(1); }) }))($0, $1)); }

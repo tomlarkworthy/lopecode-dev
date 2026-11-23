@@ -1,0 +1,32 @@
+== o3.ts:o3-form-validate-after [ctl]: CONTROL (checker skipped)
+   drive -> threw Attempted to assign to readonly property.
+   show form = {name:"",errors:[]} | E[]
+   CONTROL DID NOT FIRE
+== o3.ts:o3-undo-stack-local [ctl]: CONTROL (checker skipped)
+   drive -> threw Attempted to assign to readonly property.
+   show past = [] | E[]
+   CONTROL DID NOT FIRE
+== o3.ts:o3-two-states-loop [ctl]: CONTROL (checker skipped)
+   drive -> ran
+   show a = 2 | E[]
+   show b = [0,1,2] | E[]
+   CONTROL DID NOT FIRE
+-- controls 3, ran 3, fired 0
+-- harness crashes 0
+-- 0 candidates, accepted 0, silent 0 (by the tap alone 0)
+== o3.ts:o3-form-validate-after [ctl]: CONTROL (checker skipped)
+   drive -> threw Attempted to assign to readonly property.
+   show form = {name:"",errors:[]} | E[]
+   CONTROL DID NOT FIRE
+== o3.ts:o3-undo-stack-local [ctl]: CONTROL (checker skipped)
+   drive -> threw Attempted to assign to readonly property.
+   show past = [] | E[]
+   CONTROL DID NOT FIRE
+== o3.ts:o3-two-states-loop [ctl]: CONTROL (checker skipped)
+   drive -> ran
+   show a = 2 | E[]
+   show b = [0,1,2] | E[]
+   CONTROL DID NOT FIRE
+-- controls 3, ran 3, fired 0
+-- harness crashes 0
+-- 0 candidates, accepted 0, silent 0 (by the tap alone 0)

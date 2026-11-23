@@ -1,0 +1,28 @@
+| set | programs | accepted | silent A | silent B | controls | fired A | fired B |
+|---|---|---|---|---|---|---|---|
+| b1 | 117 | 88 | 0 | 88 | 2 | 1 | 2 |
+| b2 | 37 | 29 | 0 | 1 | 2 | 0 | 0 |
+| b4 | 77 | 44 | 0 | 41 | 2 | 1 | 2 |
+| b5 | 32 | 19 | 0 | 17 | 2 | 1 | 2 |
+| b6 | 18 | 16 | 12 | 13 | 2 | 1 | 2 |
+| b7 | 25 | 22 | 6 | 22 | 2 | 1 | 2 |
+| b8 | 21 | 12 | 0 | 0 | 4 | 2 | 4 |
+| total | 327 | 230 | 18 | 182 | 16 | 7 | 14 |
+b1-a: -- harness crashes 0
+b1-b: -- harness crashes 0
+b2-a: -- harness crashes 0
+b2-b: -- harness crashes 0
+b4-a: -- harness crashes 0
+b4-b: -- harness crashes 0
+b5-a: -- harness crashes 0
+b5-b: -- harness crashes 0
+b6-a: -- harness crashes 0
+b6-b: -- harness crashes 0
+b7-a: -- harness crashes 0
+b7-b: -- harness crashes 0
+b8-a: late throws: undefined is not an object (evaluating 'x.length')
+b8-a: late throws: undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (
+b8-a: -- harness crashes 0
+b8-b: late throws: undefined is not an object (evaluating 'x.length')
+b8-b: late throws: undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (
+b8-b: -- harness crashes 0

@@ -1,0 +1,188 @@
+== b5.ts:b5-lis-direct: REJECT put:rejected[mutating-method]
+== b5.ts:b5-lis-st: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-lis-destr: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-lis-alias-after: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-lis-getter: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-lis-foreach: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-lis-event-rec: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-on-cell-alias-after: REJECT l:rejected[listener-placement][action-capture]
+== b5.ts:b5-on-cell-direct: REJECT l:rejected[listener-placement][mutating-method][action-capture]
+== b5.ts:b5-jsx-direct: REJECT el:rejected[mutating-method]
+== b5.ts:b5-jsx-st: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-jsx-alias-after: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-jsx-getter: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-jsx-computed: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-update-alias-after: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-update-old-alias: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-read-after: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-gen-alias-after: REJECT ev:rejected[mut-yield]
+== b5.ts:b5-gen-fn-alias-after: REJECT ev:rejected[mut-yield]
+== b5.ts:b5-gen-fn-getter: REJECT ev:rejected[mut-yield]
+== b5.ts:b5-gen-fn-forof: REJECT ev:rejected[mut-yield]
+== b5.ts:b5-gen-rec-alias-after: REJECT ev:rejected[mut-yield]
+== b5.ts:b5-async-alias: ACCEPT
+   show b = 2 | E[]
+== b5.ts:b5-async-nested-alias: REJECT a:rejected[mut-await]
+== b5.ts:b5-async-memo-alias: ACCEPT
+   drive -> same: a miss, nothing was stored
+== b5.ts:b5-state-initial: REJECT s:rejected[state-placement]
+== b5.ts:b5-throw-caught: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-inner-action-alias: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-inner-action-getter: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-inner-action-foreach: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b5.ts:b5-promise-state: REJECT put:rejected[mut-capture]
+== b5.ts:b5-island-fn: REJECT isl:rejected[free-name]
+== b5.ts:b5-ctl-let-lis [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   CONTROL FIRED
+== b5.ts:b5-ctl-P-lis [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 32 candidates, accepted 19, silent 17 (by the tap alone 0)
+SILENT b5.ts:b5-lis-st
+SILENT b5.ts:b5-lis-destr
+SILENT b5.ts:b5-lis-alias-after
+SILENT b5.ts:b5-lis-getter
+SILENT b5.ts:b5-lis-foreach
+SILENT b5.ts:b5-lis-event-rec
+SILENT b5.ts:b5-jsx-st
+SILENT b5.ts:b5-jsx-alias-after
+SILENT b5.ts:b5-jsx-getter
+SILENT b5.ts:b5-jsx-computed
+SILENT b5.ts:b5-update-alias-after
+SILENT b5.ts:b5-update-old-alias
+SILENT b5.ts:b5-read-after
+SILENT b5.ts:b5-throw-caught
+SILENT b5.ts:b5-inner-action-alias
+SILENT b5.ts:b5-inner-action-getter
+SILENT b5.ts:b5-inner-action-foreach

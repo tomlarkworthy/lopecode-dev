@@ -1,0 +1,96 @@
+== b7.ts:b7-Q1-st-before: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-Q1-up-before: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-Q2-destr-set: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-Q2-destr-update: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-Q3-computed-set: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-Q3-computed-update: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-Q4-alias-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-Q4-destr-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-Q4-forof-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-Q4-cbparam-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-Q4-catch-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-Q5-getter: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-Q6-cb-loop: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-R-dupkey-st: ACCEPT
+   drive -> DIFF v = s() = 2, w = what snap read = 1
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b7.ts:b7-R-spread-rec-st: ACCEPT
+   drive -> DIFF v = s() = 2, w = what snap read = 1
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b7.ts:b7-R-dupkey-alias-after: ACCEPT
+   drive -> DIFF v = s() = 2, w = what snap read = 1
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b7.ts:b7-R-spread-getter: ACCEPT
+   drive -> DIFF v = s() = 2, w = what snap read = 1
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b7.ts:b7-R-spread-cb-loop: ACCEPT
+   drive -> DIFF v = s() = 2, w = what snap read = 1
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+== b7.ts:b7-ctl-P [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: Attempted to assign to readonly property.
+   CONTROL DID NOT FIRE
+== b7.ts:b7-ctl-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF v = s() = 2, w = what snap read = 1
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   CONTROL FIRED
+== b7.ts:b7-min-Q1: REJECT put:rejected[mutating-method]
+== b7.ts:b7-min-Q2: REJECT put:rejected[mutating-method]
+== b7.ts:b7-min-Q3: REJECT put:rejected[mutating-method]
+== b7.ts:b7-min-Q4: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-min-Q5: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-min-Q6: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b7.ts:b7-min-R: ACCEPT
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   SILENT
+-- controls 2, ran 2, fired 1
+-- harness crashes 0
+-- 25 candidates, accepted 22, silent 6 (by the tap alone 0)
+SILENT b7.ts:b7-R-dupkey-st
+SILENT b7.ts:b7-R-spread-rec-st
+SILENT b7.ts:b7-R-dupkey-alias-after
+SILENT b7.ts:b7-R-spread-getter
+SILENT b7.ts:b7-R-spread-cb-loop
+SILENT b7.ts:b7-min-R

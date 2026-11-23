@@ -1,0 +1,155 @@
+== b5.ts:b5-lis-direct: REJECT put:rejected[mutating-method]
+listener l: action put threw on a value of events tick: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,memo,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return ((s/*ss:: State<() => number>*/, lg/*ss:: State<number>*/) => action((q/*ss:: number*/) => { const ls = lg.set; const st = s.set; const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const f = /*ss+*/ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)/*ss-*/; st(f); ls(f()); xs.push(q); }));
+                                                                                                                                                                                                                                                                                                                    ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:305)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:176:15)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:68:15)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:79:112)
+      at runCand (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:83:11)
+
+== b5.ts:b5-lis-st: ACCEPT
+   drive -> same given -1 holds -1
+listener l: action put threw on a value of events tick: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,memo,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return ((s/*ss:: State<() => number>*/, lg/*ss:: State<number>*/) => action((q/*ss:: number*/) => { const ls = lg.set; const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const f = /*ss+*/ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)/*ss-*/; const { set } = s; set(f); ls(f()); xs.push(q); }));
+                                                                                                                                                                                                                                                                                                                      ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:307)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:176:15)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:68:15)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:79:112)
+      at runCand (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:83:11)
+
+== b5.ts:b5-lis-destr: ACCEPT
+   drive -> same given -1 holds -1
+listener l: action put threw on a value of events tick: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,memo,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return ((s/*ss:: State<() => number>*/, lg/*ss:: State<number>*/) => action((q/*ss:: number*/) => { const ls = lg.set; const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const f = /*ss+*/ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)/*ss-*/; s.set(f); ls(f()); const ys = xs; ys.push(q); }));
+                                                                                                                                                                                                                                                                                                                    ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:305)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:176:15)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:68:15)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:79:112)
+      at runCand (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:83:11)
+
+== b5.ts:b5-lis-alias-after: ACCEPT
+   drive -> same given -1 holds -1
+listener l: action put threw on a value of events tick: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,memo,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return ((s/*ss:: State<() => number>*/, lg/*ss:: State<number>*/) => action((q/*ss:: number*/) => { const ls = lg.set; const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const f = /*ss+*/ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)/*ss-*/; const get = /*ss+*/ss_closure(/*ss-*/() => xs/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/; s.set(f); ls(f()); get().push(q); }));
+                                                                                                                                                                                                                                                                                                                                                                                             ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:378)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:176:15)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:68:15)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:79:112)
+      at runCand (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:83:11)
+
+== b5.ts:b5-lis-getter: ACCEPT
+   drive -> same given -1 holds -1
+listener l: action put threw on a value of events tick: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,memo,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return ((s/*ss:: State<() => number>*/, lg/*ss:: State<number>*/) => action((q/*ss:: number*/) => { const ls = lg.set; const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const f = /*ss+*/ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)/*ss-*/; [0, 1].forEach(/*ss+*/ss_closure(/*ss-*/(i) => { if (i === 1) xs.push(q); if (i === 0) { s.set(f); ls(f()); } }/*ss+*/, (i) => i < 0 ? 4 : i === 0 ? f : i === 1 ? ls : i === 2 ? q : xs)/*ss-*/); }));
+                                                                                                                                                                                                                                                                                                                                                ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:333)
+      at forEach (1:11)
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:278)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:176:15)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:68:15)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:79:112)
+      at runCand (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:83:11)
+
+== b5.ts:b5-lis-foreach: ACCEPT
+   drive -> same given -1 holds -1
+listener l: action put threw on a value of events tick: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,memo,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return ((s/*ss:: State<() => number>*/, lg/*ss:: State<number>*/) => action((e/*ss:: { readonly n: number }*/) => { const ls = lg.set; const st = s.set; const xs = [e.n]; const c/*ss:: readonly number[]*/ = xs; const f = /*ss+*/ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)/*ss-*/; st(f); ls(f()); xs.push(e.n); }));
+                                                                                                                                                                                                                                                                                                                                      ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:323)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:176:15)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:68:15)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:79:112)
+      at runCand (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:83:11)
+
+== b5.ts:b5-lis-event-rec: ACCEPT
+   drive -> same given -1 holds -1
+== b5.ts:b5-on-cell-alias-after: REJECT l:rejected[listener-placement][action-capture]
+== b5.ts:b5-on-cell-direct: REJECT l:rejected[listener-placement][mutating-method][action-capture]
+== b5.ts:b5-jsx-direct: REJECT el:rejected[mutating-method]
+== b5.ts:b5-jsx-st: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b5.ts:b5-jsx-alias-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b5.ts:b5-jsx-getter: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b5.ts:b5-jsx-computed: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b5.ts:b5-update-alias-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b5.ts:b5-update-old-alias: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b5.ts:b5-read-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b5.ts:b5-gen-alias-after: REJECT ev:rejected[mut-yield]
+== b5.ts:b5-gen-fn-alias-after: REJECT ev:rejected[mut-yield]
+== b5.ts:b5-gen-fn-getter: REJECT ev:rejected[mut-yield]
+== b5.ts:b5-gen-fn-forof: REJECT ev:rejected[mut-yield]
+== b5.ts:b5-gen-rec-alias-after: REJECT ev:rejected[mut-yield]
+== b5.ts:b5-async-alias: ACCEPT
+   show b = 2 | E[]
+== b5.ts:b5-async-nested-alias: REJECT a:rejected[mut-await]
+== b5.ts:b5-async-memo-alias: ACCEPT
+   drive -> no value
+   error a: Attempted to assign to readonly property.
+   error b: Attempted to assign to readonly property.
+== b5.ts:b5-state-initial: REJECT s:rejected[state-placement]
+== b5.ts:b5-throw-caught: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b5.ts:b5-inner-action-alias: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b5.ts:b5-inner-action-getter: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b5.ts:b5-inner-action-foreach: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b5.ts:b5-promise-state: REJECT put:rejected[mut-capture]
+== b5.ts:b5-island-fn: REJECT isl:rejected[free-name]
+== b5.ts:b5-ctl-let-lis [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   CONTROL FIRED
+listener l: action put threw on a value of events tick: 2 | function anonymous(state,action,snapshot,equals,on,read,messageOf,memo,h,Map,Set,URL,ss_closure,ss_methods
+3 | ) {
+4 | return ((s/*ss:: State<() => number>*/, lg/*ss:: State<number>*/) => action((q/*ss:: number*/) => { const ls = lg.set; const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const f = /*ss+*/ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)/*ss-*/; s.set(f); ls(f()); xs.push(q); }));
+                                                                                                                                                                                                                                                                                                     ^
+TypeError: Attempted to assign to readonly property.
+      at <anonymous> (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:290)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:176:15)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:68:15)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:79:112)
+      at runCand (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:83:11)
+
+== b5.ts:b5-ctl-P-lis [ctl]: CONTROL (checker skipped)
+   drive -> same given -1 holds -1
+   CONTROL DID NOT FIRE
+-- controls 2, ran 2, fired 1
+-- harness crashes 0
+-- 32 candidates, accepted 19, silent 0 (by the tap alone 0)

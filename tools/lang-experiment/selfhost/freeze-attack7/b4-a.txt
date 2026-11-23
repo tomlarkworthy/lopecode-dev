@@ -1,0 +1,134 @@
+== b4.ts:b4-alias-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-alias-after-mut: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-alias-after-block: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-alias-after-index: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-alias-after-len: ACCEPT
+   drive -> threw at the call: Array length is not writable
+== b4.ts:b4-alias-after-chain: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-alias-after-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== b4.ts:b4-alias-after-map-del: ACCEPT
+   drive -> threw at the call: delete on a frozen Map: a value cannot change after its cell returns
+== b4.ts:b4-alias-after-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-alias-after-rec-incr: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-alias-after-let: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-destr-rec-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-destr-arr-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-member-alias-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-elem-alias-after: REJECT put:rejected[mutating-method]
+== b4.ts:b4-forof-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-forof-rows-after: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-foreach-param: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-map-param: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-reduce-acc: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-catch-param: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-getter: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-getter-decl: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-getter-mut-ann: REJECT put:rejected[mut-nested]
+== b4.ts:b4-getter-index: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-getter-map: ACCEPT
+   drive -> threw at the call: set on a frozen Map: a value cannot change after its cell returns
+== b4.ts:b4-getter-rec: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-getter-nested: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-getter-pick: REJECT put:rejected[mutating-method]
+== b4.ts:b4-getter-after-def: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-getter-iife: REJECT put:rejected[mut-capture]
+== b4.ts:b4-getter-ternary-call: REJECT put:rejected[mut-capture]
+== b4.ts:b4-cb-foreach: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-map: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-some: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-every: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-filter: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-find: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-findIndex: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-flatMap: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-reduce: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-from: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-sort: REJECT put:rejected[mutating-method]
+== b4.ts:b4-cb-map-foreach: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-set-foreach: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-nested-helper: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-write-helper: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-two-callbacks: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-cb-update: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== b4.ts:b4-loop-for: REJECT put:rejected[mutating-method]
+== b4.ts:b4-loop-while: REJECT put:rejected[mutating-method]
+== b4.ts:b4-loop-do: REJECT put:rejected[mutating-method]
+== b4.ts:b4-loop-forof: REJECT put:rejected[mutating-method]
+== b4.ts:b4-loop-label: REJECT put:unsupported
+== b4.ts:b4-try-finally: REJECT put:rejected[mutating-method]
+== b4.ts:b4-try-catch: REJECT put:rejected[mutating-method]
+== b4.ts:b4-switch-fall: REJECT put:rejected[switch-fallthrough][mutating-method]
+== b4.ts:b4-comma: REJECT put:unsupported
+== b4.ts:b4-short-or: REJECT put:rejected[mutating-method]
+== b4.ts:b4-short-nullish: REJECT put:rejected[mutating-method]
+== b4.ts:b4-cond-expr: REJECT put:rejected[mutating-method]
+== b4.ts:b4-arg-holds-point: REJECT put:unsupported
+== b4.ts:b4-optional-set: REJECT put:rejected[mutating-method]
+== b4.ts:b4-nested-before: REJECT put:rejected[mutating-method]
+== b4.ts:b4-recursion: REJECT put:rejected[mutating-method]
+== b4.ts:b4-recursion-decl: REJECT put:rejected[mutating-method]
+== b4.ts:b4-mutual-rec: REJECT put:rejected[mutating-method]
+== b4.ts:b4-helper-pub-then-write: REJECT put:rejected[mutating-method]
+== b4.ts:b4-helper-write-then-pub: REJECT put:rejected[mutating-method]
+== b4.ts:b4-mutparam-helper: REJECT put:rejected[mutating-method]
+== b4.ts:b4-elem-method: REJECT put:rejected[mutating-method][mutating-method]
+== b4.ts:b4-compound: REJECT put:rejected[member-write]
+== b4.ts:b4-delete: REJECT put:rejected[member-write]
+== b4.ts:b4-incr: REJECT put:rejected[member-write]
+== b4.ts:b4-spread-copy: ACCEPT
+   drive -> same given 1 holds 1
+== b4.ts:b4-object-assign: REJECT put:unsupported
+== b4.ts:b4-foreach-write-after: REJECT put:rejected[mutating-method]
+== b4.ts:b4-ctl-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given 1 holds 2
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   TAP write s: fn(1) -> fn(2)
+   CONTROL FIRED
+== b4.ts:b4-ctl-P [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: Attempted to assign to readonly property.
+   CONTROL DID NOT FIRE
+-- controls 2, ran 2, fired 1
+-- harness crashes 0
+-- 77 candidates, accepted 44, silent 0 (by the tap alone 0)

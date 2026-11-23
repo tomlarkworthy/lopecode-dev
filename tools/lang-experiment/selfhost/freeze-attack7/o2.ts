@@ -1,0 +1,9 @@
+// o2: the suggested fixes for o1's rejections
+export const srcs: [string, string][] = [
+  ["two-states-loop-fix-after", "const a = () => state(0);\nconst b = () => state<readonly number[]>([]);\nconst run = (a: State<number>, b: State<readonly number[]>) => action(() => { const out: number[] = []; let last = 0; for (let i = 0; i < 3; i++) { out.push(i); last = i; } a.set(last); b.set(out); });"],
+  ["two-states-loop-fix-newlocal", "const a = () => state(0);\nconst b = () => state<readonly number[]>([]);\nconst run = (a: State<number>, b: State<readonly number[]>) => action(() => { for (let i = 0; i < 3; i++) { a.set(i); } const out: number[] = []; for (let i = 0; i < 3; i++) out.push(i); b.set(out); });"],
+  ["map-state-fix-Map", "const counts = () => state<Map<string, number>>(new Map());\nconst bump = (counts: State<Map<string, number>>) => action((k: string) => { const m = new Map(read(counts)); m.set(k, (m.get(k) ?? 0) + 1); counts.set(m); });"],
+  ["map-state-fix-record", "const counts = () => state<{ readonly [k: string]: number }>({});\nconst bump = (counts: State<{ readonly [k: string]: number }>) => action((k: string) => { const m = read(counts); counts.set({ ...m, [k]: (m[k] ?? 0) + 1 }); });"],
+  ["form-validate-after-fix", "type Form = { readonly name: string; readonly errors: readonly string[] };\nconst form = () => state<Form>({ name: '', errors: [] });\nconst submit = (form: State<Form>) => action(() => { const f = read(form); const errors: string[] = []; if (!f.name) errors.push('name required'); form.set({ ...f, errors }); });"],
+  ["undo-stack-local-fix", "const past = () => state<readonly number[]>([]);\nconst push2 = (past: State<readonly number[]>) => action((a: number, b: number) => { const p = [...read(past)]; p.push(a); p.push(b); past.set(p); });"],
+];

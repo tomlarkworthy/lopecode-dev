@@ -1,0 +1,99 @@
+## q0
+set-before: REJECT put:rejected[mutating-method]
+    put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it
+update-before: REJECT put:rejected[mutating-method]
+    put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it
+destr-set: REJECT put:rejected[mutating-method]
+    put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it
+computed-set: REJECT put:rejected[mutating-method]
+    put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it
+act-annot-local: REJECT put:rejected[action-pass][mutating-method]
+    put[action-pass] Action<[() => number]> is not assignable to (h: () => number) => void || put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it
+act-annot-before: REJECT put:rejected[action-pass][mutating-method]
+    put[action-pass] Action<[() => number]> is not assignable to (h: () => number) => void || put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it
+act-rec-local: REJECT put:rejected[action-pass][type][mutating-method]
+    put[action-pass] Action<[() => number]> is not assignable to (h: () => number) => void || put[type] { g: Action<[() => number]> } is not assignable to { g: (h: () => number) => void } || put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it
+act-arr-local: REJECT put:rejected[action-pass][type][mutating-method]
+    put[action-pass] Action<[() => number]> is not assignable to (h: () => number) => void || put[type] Action<[() => number]>[] is not assignable to ((h: () => number) => void)[] || put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it
+act-producer-cell: REJECT wrap:rejected[action-pass][type] put:rejected[mutating-method]
+    wrap[action-pass] Action<[() => number]> is not assignable to (h: () => number) => void || wrap[type] { g: Action<[() => number]> } is not assignable to { g: (h: () => number) => void } || put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it
+act-producer-fn: REJECT wrap:rejected[action-pass] put:rejected[mutating-method]
+    wrap[action-pass] Action<[() => number]> is not assignable to (h: () => number) => void || put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it
+alias-after: ACCEPT
+alias-after-mut: ACCEPT
+getter-after: ACCEPT
+foreach-loop: ACCEPT
+foreach-named: REJECT put:rejected[mutating-method][state-write]
+    put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it || put[state-write] State.set outside action(...): the function it is in was made in an action body and may run after the call, because pub is used other than by a direct call
+opt-call-helper: REJECT put:rejected[mutating-method]
+    put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it
+replace-cb: REJECT put:rejected[type][mutating-method][state-write]
+    put[type] () => string is not assignable to string || put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it || put[state-write] State.set outside action(...): the function it is in was made in an action body and may run after the call, because it is passed to a function that may keep it
+record-helper: REJECT put:rejected[mutating-method][state-write]
+    put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before lg.set, or write to a new local declared after it || put[state-write] State.set outside action(...): the function it is in was made in an action body and may run after the call, because it is kept: returned, stored, or placed where it may be called later
+method-dup: ACCEPT
+method-dupkey: ACCEPT
+## q1
+ls-only: ACCEPT
+set-before: ACCEPT
+update-before: ACCEPT
+destr-set: ACCEPT
+computed-set: ACCEPT
+set-arr-before: REJECT put:rejected[state-write]
+    put[state-write] State.set taken as a value in an action body may write after the call, because it is kept: returned, stored, or placed where it may be called later
+set-rec-before: REJECT put:rejected[state-write]
+    put[state-write] State.set taken as a value in an action body may write after the call, because it is kept: returned, stored, or placed where it may be called later
+set-ternary-before: REJECT put:rejected[state-write]
+    put[state-write] State.set taken as a value in an action body may write after the call, because it is kept: returned, stored, or placed where it may be called later
+set-direct-ctl: REJECT put:rejected[mutating-method]
+    put[mutating-method] xs is written after a value is published at s.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before s.set, or write to a new local declared after it
+## q2
+async-cell-action: REJECT a:rejected[action-call][mutating-method]
+    a[action-call] an Action called outside action(...) || a[mutating-method] xs is written after a value is published at put0(…) in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before put0(…), or write to a new local declared after it
+async-cell-action-noarg: REJECT a:rejected[action-call]
+    a[action-call] an Action called outside action(...)
+cell-destr-set: REJECT a:rejected[state-write]
+    a[state-write] State.set outside action(...)
+foreach-param-write: ACCEPT
+forof-after: ACCEPT
+getset-helper: REJECT put:rejected[mutating-method][state-write]
+    put[mutating-method] xs is written after a value is published at getSet(…) in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before getSet(…), or write to a new local declared after it || put[state-write] State.set taken as a value in an action body may write after the call, because it is kept: returned, stored, or placed where it may be called later
+method-dupkey-set: ACCEPT
+listener: ACCEPT
+jsx: ACCEPT
+iife-mut: REJECT put:rejected[mutating-method]
+    put[mutating-method] xs is written after a value is published at s.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before s.set, or write to a new local declared after it
+alias-in-block: ACCEPT
+alias-before-write-after: REJECT put:rejected[mutating-method]
+    put[mutating-method] ys is written after a value is published at s.set in the same run of this function; a function published there may read ys through a read-only name (S4.10) and would see the write (S4.11); finish every write to ys before s.set, or write to a new local declared after it
+ternary-alias: REJECT put:rejected[mutating-method]
+    put[mutating-method] write to a number[] | Mut<number[]>, which is not Mut
+rec-destr-after: ACCEPT
+## o1
+counter: ACCEPT
+counter-step: ACCEPT
+todo-add: ACCEPT
+todo-toggle: ACCEPT
+todo-remove: ACCEPT
+todo-build-then-set: ACCEPT
+todo-set-then-log: ACCEPT
+form-fields: ACCEPT
+form-validate: ACCEPT
+form-validate-after: REJECT submit:rejected[mutating-method]
+    submit[mutating-method] errors is written after a value is published at form.set in the same run of this function; a function published there may read errors through a read-only name (S4.10) and would see the write (S4.11); finish every write to errors before form.set, or write to a new local declared after it
+undo-push: ACCEPT
+undo-pop: ACCEPT
+undo-stack-local: REJECT push2:rejected[mutating-method]
+    push2[mutating-method] p is written after a value is published at past.set in the same run of this function; a function published there may read p through a read-only name (S4.10) and would see the write (S4.11); finish every write to p before past.set, or write to a new local declared after it
+map-state: REJECT counts:rejected[unknown-type] bump:rejected[unknown-type][type]
+    counts[unknown-type] unknown type ReadonlyMap || bump[unknown-type] unknown type ReadonlyMap || bump[type] unknown used as a number
+two-states-loop: REJECT run:rejected[mutating-method]
+    run[mutating-method] out is written after a value is published at a.set in the same run of this function; a function published there may read out through a read-only name (S4.10) and would see the write (S4.11); finish every write to out before a.set, or write to a new local declared after it
+## o2
+two-states-loop-fix-after: ACCEPT
+two-states-loop-fix-newlocal: ACCEPT
+map-state-fix-Map: ACCEPT
+map-state-fix-record: REJECT bump:rejected[type]
+    bump[type] {  } is not assignable to { [k: string]: number } || bump{unsupported object spread of { [k: string]: number }} || bump{unsupported computed property}
+form-validate-after-fix: ACCEPT
+undo-stack-local-fix: ACCEPT
