@@ -88,6 +88,7 @@ export const isRefHandle = (v: unknown) => !!v && typeof v === "object" && Objec
 
 // an update function that throws throws here, inside the call, before its write
 function write(h: object, f: (v: unknown) => unknown) {
+  notInMemo("a state written");
   const s = recordOf(h)!;
   const v = deepFreeze(f(seenValue(h, updateSees(storeState, nameOfHandle(h), s))));
   storeFeed({ t: "write", handle: storeHandleOf(h), name: nameOfHandle(h), store: s, value: v });
@@ -118,6 +119,7 @@ export function materialize(cell: { initial: unknown }, name: string) {
 
 // read(s) inside an action: the committed value plus every write made earlier in call order
 export function read(handle: object): unknown {
+  notInMemo("read(...) called");
   return seenValue(handle, readSees(storeState, handle && typeof handle === "object" ? recordOf(handle) : null));
 }
 
@@ -162,6 +164,7 @@ export function viewHandle(el: ViewEl, name: string, check: (v: unknown) => unkn
 // throws.
 export function action(f: (...args: unknown[]) => unknown) {
   const a = (...args: unknown[]): unknown => {
+    notInMemo("an action called");
     storeFeed({ t: "enter", evaluating: rt.evalDepth > 0 });
     let v: unknown;
     // the arguments are deep-frozen, all of them or none (one scan before anything is frozen, holes8): the caller's
@@ -172,6 +175,47 @@ export function action(f: (...args: unknown[]) => unknown) {
   Object.defineProperty(a, ACTION, { value: true });
   // an action handle reaches its body: deepFreeze freezes what the body captures when the handle is published
   return closure(a, (i) => (i < 0 ? 1 : f));
+}
+
+// memo(f) (S2.13): f's result for an argument list seen before, else f's. A key is the argument count, then each
+// argument: a primitive by Object.is (so -0 is not 0), an object by identity, held weakly. A miss deep-freezes the
+// arguments in place, as an action's arguments are, so a caller's later write to one throws (S4.6), and the result; it
+// stores only when no argument needed a copy (a typed array, a native Map) and f returned. A frozen copy of each object
+// argument instead (tried 2026-11-23) made the checker 6x slower: its keys are trees made in the same call, never frozen.
+// >0 while a memoised function computes a result: an action call, a write or read(...) then throws, since a later call
+// that gives the stored result would skip it (what the checker cannot see: a function value that calls an action)
+let memoDepth = 0;
+const notInMemo = (what: string) => { if (memoDepth > 0) throw new Error(`${what} while a memoised function computes a result: a call that gives the stored result would skip it (S2.13)`); };
+type MemoNode = { p: Map<unknown, MemoNode> | null; o: WeakMap<object, MemoNode> | null; has: boolean; v: unknown };
+const NEG0 = Symbol("-0");
+const memoNode = (): MemoNode => ({ p: null, o: null, has: false, v: undefined });
+function memoStep(n: MemoNode, k: unknown, add: boolean): MemoNode | undefined {
+  if ((typeof k === "object" && k !== null) || typeof k === "function") {
+    let c = n.o?.get(k);
+    if (c === undefined && add) (n.o ??= new WeakMap()).set(k, (c = memoNode()));
+    return c;
+  }
+  const key = Object.is(k, -0) ? NEG0 : k;
+  let c = n.p?.get(key);
+  if (c === undefined && add) (n.p ??= new Map()).set(key, (c = memoNode()));
+  return c;
+}
+export function memo<A extends unknown[], R>(f: (...a: A) => R): (...a: A) => R {
+  const root = memoNode();
+  const path = (a: unknown[], add: boolean) => { let n = memoStep(root, a.length, add); for (let i = 0; n !== undefined && i < a.length; i++) n = memoStep(n, a[i], add); return n; };
+  const m = (...a: A): R => {
+    const hit = path(a, false);
+    if (hit?.has) return hit.v as R;
+    const fa = deepFreeze(a);
+    memoDepth++;
+    let r0: R;
+    try { r0 = f(...fa); } finally { memoDepth--; }
+    const r = deepFreeze(r0);
+    if (fa === a) { const n = path(a, true)!; n.has = true; n.v = r; }
+    return r;
+  };
+  // the memoised function reaches f: deepFreeze freezes what f captures when it is published
+  return closure(m, (i) => (i < 0 ? 1 : f));
 }
 
 export function snapshot<T>(v: T): T {

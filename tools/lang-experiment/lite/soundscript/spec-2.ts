@@ -26,3 +26,10 @@ const s2_caught = () => {
   };
   return [caught(0), caught(1), caught(2)];
 };
+
+const s2_fib = () => {
+  const fib = memo((n: number): number => (n < 2 ? n : fib(n - 1) + fib(n - 2)));
+  const pair = memo((a: number, b: string): number => a + b.length);
+  const copy = memo((n: number): readonly number[] => [n, n]);
+  return [fib(30), pair(0, "x"), copy(2), pair(2, "x"), pair(3, "abc")];
+};

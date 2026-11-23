@@ -20,6 +20,7 @@ import { CAPABILITIES } from "../../intrinsics.ts";
 import { island, specOf, compileCalls } from "./ts/island.ts";
 import { factsOf, type CellInfo } from "./ts/facts.ts";
 import { captures, opaqueCaptures } from "./capture.ts";
+import { kids, isFn } from "./ts/parse.ts";
 import { boundaryShape, type Shape } from "../../boundary.ts";
 import { messageOf } from "../../../prelude.runtime.ts";
 import { syntaxCheck, type SyntaxDiag } from "../../acorn/index.ts";
@@ -307,6 +308,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       for (const e of ownership(c.fn, ch)) ch.err(e.node, e.rule, e.msg);
       for (const e of actionEscapes(c.fn, ch)) ch.err(e.node, e.rule, e.msg);
       for (const cap of opaqueCaptures(c.fn, ch, tainted, new Set(viaName.map((x) => x.node)))) ch.err(cap.node, "action-capture", captureMessage(cap));
+      for (const e of memoErrs(c.fn, ch, reg, tainted)) ch.err(e.node, "memo-pure", e.msg);
     } catch (e) {
       ch.unsupported(c.fn, `checker crashed: ${messageOf(e)}`);
     }
@@ -414,4 +416,55 @@ function nodeAt(root: Node, start: number, end: number, type: string): Node | nu
     for (const k in n) { const v = n[k]; if (Array.isArray(v)) { for (const x of v) if (x && typeof x.type === "string") todo.push(x); } else if (k !== "loc" && v && typeof v.type === "string") todo.push(v); }
   }
   return null;
+}
+
+// DELIBERATE CHANGE (2026-11-23, m1 step 1): memo(f) (S2.13), the cells' mdMemoSig and mdMemoUses: each parameter of f
+// takes data, its result holds no shared state, and from outside itself f uses only what an action body may, no
+// capability and no state handle or action; a let or a Mut it captures is R-K's
+const MEMO_PARAM_BAD = ["Mut", "Borrowed", "State", "StateCell", "Action", "Events", "Listener", "Promise", "Generator", "AsyncGenerator", "Pool", "Compile", "Elem", "FetchResponse", "URLSearchParams", "DataView"];
+const MEMO_RESULT_BAD = ["Mut", "Borrowed", "State", "StateCell", "Action", "Events", "Listener", "Promise", "Generator", "AsyncGenerator", "Iterator", "IterableIterator", "Pool", "Compile", "FetchResponse"];
+function memoErrs(cellFn: Node, ch: Checker, reg: Registry, tainted: Map<string, string>): { node: Node; msg: string }[] {
+  const out: { node: Node; msg: string }[] = [], holds = holdsWith(reg.ops), F = ch.facts;
+  const tail = "; a memoised function may use from outside itself only inputs that hold no state and the consts and functions made from them, since a stored result would not see a change: pass the value as an argument";
+  const calls: Node[] = [];
+  (function walk(n: Node) { if (n.type === "CallExpression" && F.calls.get(n)?.prelude === "memo") calls.push(n); for (const k of kids(n)) walk(k); })(cellFn);
+  for (const call of calls) {
+    const f = call.arguments?.[0];
+    if (!f || !isFn(f)) continue;
+    const t = F.types.get(f);
+    if (t && t.k === "fn" && !f.async && !f.generator) {
+      t.ps.forEach((p, i) => {
+        const at = f.params?.[i] ?? f, w = holds(p.t, MEMO_PARAM_BAD);
+        if (ch.mayHide(p.t)) out.push({ node: at, msg: `a parameter of memo's function is ${show(p.t)}, which may be or hold a function: a function may read a capability, so the stored result could be stale; take data` });
+        else if (w === "Mut") out.push({ node: at, msg: `a parameter of memo's function is ${show(p.t)}: memo freezes its arguments, so take it under its plain type` });
+        else if (w !== null) out.push({ node: at, msg: `a parameter of memo's function holds a ${w}, which memo cannot freeze or which is state; take data` });
+      });
+      const r = holds(t.ret, MEMO_RESULT_BAD);
+      if (r !== null) out.push({ node: f, msg: `memo's function returns a value that holds a ${r}, which every call would share` });
+      // DELIBERATE CHANGE (2026-11-23, m1 step 1 review): an iterator result, by the [iterator-capture] type test
+      const it = r === null ? iterIn(t.ret, reg) : null;
+      if (it) out.push({ node: f, msg: `memo's function returns a value that may hold an iterator (${it}), which every call would share and reading uses up; return an array` });
+    }
+    const seen = new Set<string>();
+    const rk = (b: any) => b.kind === "let" || b.mutOwned || isNamed(b.t, "Mut");
+    for (const c of opaqueCaptures(cellFn, ch, tainted, new Set(), [f])) {
+      const b = F.bindingOf.get(c.node);
+      seen.add(c.name);
+      const why = c.opaque ? c.why.replace("after the action is made", "after memo's function is made") : c.why.startsWith("capability ") ? "is a capability" : `depends on state (${c.why})`;
+      if (!b || !rk(b)) out.push({ node: c.node, msg: `${c.name} ${why}${tail}` });
+    }
+    const within = (x: Node, y: Node) => x.start >= y.start && x.end <= y.end;
+    const free: any[] = [];
+    (function walk(n: Node) {
+      if (n.type === "Identifier") { const b = F.bindingOf.get(n); if (b && b.kind !== "prelude" && b.kind !== "global" && b.node !== n && !within(b.node, f) && !free.includes(b)) free.push(b); }
+      for (const k of kids(n)) walk(k);
+    })(f);
+    for (const b of free) {
+      if (seen.has(b.name)) continue;
+      seen.add(b.name);
+      const w = b.cellParam && Object.hasOwn(CAPABILITIES, b.name) ? `the capability ${b.name}` : holds(b.t, ["State", "StateCell", "Action", "Events", "Listener"]);
+      if (w !== null) out.push({ node: f, msg: `memo's function uses ${b.name}, which is or holds ${w.startsWith("the ") ? w : (w === "Action" || w === "Events" ? "an " : "a ") + w}: a call that gives a stored result would skip what it does${tail}` });
+    }
+  }
+  return out;
 }

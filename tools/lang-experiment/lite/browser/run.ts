@@ -25,7 +25,7 @@ export type Verdicts = { cells: { name: string; status: string; errors: unknown[
 
 const CAPS = new Set(Object.keys(CAPABILITIES));
 // Map and Set in a cell are the freezable subclasses (freeze.ts), as in a compiled cell
-const PRELUDE_VALUES: Record<string, unknown> = { Map: SsMap, Set: SsSet, URL: SsURL, state: P.state, action: P.action, mut: P.mut, freeze: P.freeze, borrow: P.borrow, snapshot: P.snapshot, equals: P.equals, messageOf: P.messageOf, on, read: P.read, h };
+const PRELUDE_VALUES: Record<string, unknown> = { Map: SsMap, Set: SsSet, URL: SsURL, state: P.state, action: P.action, mut: P.mut, freeze: P.freeze, borrow: P.borrow, snapshot: P.snapshot, equals: P.equals, messageOf: P.messageOf, memo: P.memo, on, read: P.read, h };
 const PRELUDE = [...PRELUDE_FNS, "h", "Map", "Set", "URL"];
 if (PRELUDE.some((n) => !(n in PRELUDE_VALUES))) throw new Error("a prelude function has no runtime value");
 export type Program = ReturnType<typeof runCells>;

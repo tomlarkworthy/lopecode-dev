@@ -2366,3 +2366,101 @@ themselves show the race; `r2/v1.log` does.
 
 Open: R-K on a nested Mut (the mdHookOf decision); the 11 class-A rewrites if R-K is extended; a cell input typed
 with a Mut in a function result (S4.4); why the boot race began to repeat with round 1 (unmeasured).
+
+## 2026-11-23 00:12–01:10: m1 step 1, `memo` in the prelude (build owner, logs `lite/soundscript/.scratch/m1/step1/`)
+
+Owner's brief: a trusted prelude primitive `memo(f)`, its purity rule, the checker's own two memos replaced by it,
+spec S2.13/S2.14. Times are CET. `Mut` stays; the nested-`Mut` ban is step 2 and is not in this tree.
+
+Runtime (`prelude.runtime.ts`, 33 lines from `let memoDepth` to the end of `memo`): a trie per memoised function, a
+`Map` for primitive keys and a `WeakMap` for object keys, the first level keyed by the argument count. A miss deep-freezes
+the arguments in place, as an action's are, and the result; a list whose freeze made a copy (a typed array, a native
+Map) is not stored, since the caller's object is not the frozen one.
+A `Mut` argument (the brief's question): it is frozen in place, so the caller's later write throws a TypeError (S2.13,
+S4.6's list now names memo). The checker does not reject the write; the fresh review found it
+(`const m = [1]; sq(m); m.push(2)` is `f:ok` and throws). Tried instead, 2026-11-23: give f a frozen snapshot of any
+argument not yet deep-frozen and not store the call. The caller's value stayed writable (`bun .scratch/m1/rt.ts`:
+`{"after":2,"calls":2,"mFrozen":false}`), but the checker's own run went from 4373 ms to 27297 ms: its keys are AST
+nodes and types made in the same call, never published, so every call copied and missed. Reverted. Open: a static
+rule that a `Mut` passed to a known memoised local is not written after the call; through a function value it cannot
+be seen. A throw stores nothing. `memoDepth` makes an action call, a state write or
+`read()` throw while `f` runs: a function argument can hide an action the checker cannot see.
+Deviation from the brief: keys use `Object.is`, not SameValueZero. Under SameValueZero `f(-0)` would give `f(0)`'s
+stored result and `Object.is(1 / f(-0), ...)` would show whether the cache was warm. test_spec_S2_13 checks `sq(0)`
+and `sq(-0)` are two misses. Copies of `memo` sit in `lite/stdlib/runtime.ts` (export), `lite/browser/run.ts`
+(PRELUDE_VALUES) and `lite/browser/workers.ts` (an EXEC-string memo that stores only all-primitive lists, keyed by a
+tagged JSON string, since a worker has no `deepFreeze`). Registration: `prelude.d.ts`, `lite/intrinsics.ts`
+PRELUDE_DECLS and PRELUDE_FNS (which also feeds `[prelude-shadow]`/`[prelude-value]` and the frozen checker), S2.6.
+
+Checker (rule `memo-pure`, `approx`, 53 rules now): `ixMemoCall` (ix-prelude) types `memo(arrow)` as the arrow,
+`memo(non-literal)` is unsupported, async/generator is `[memo-pure]`. `ixVarDecl` pre-binds `const f = memo(arrow)`
+through `ixVarFn`, the path an annotated arrow const already takes, so `fib` recursion needs no second primitive; the
+cost is that a recursive memo needs annotated parameters and result, as a recursive arrow does. `mdMemoSig` rejects a
+parameter that may hide a function (`K.reg.mayHide`), holds a `Mut`, or holds a state/promise/kind-0 type, and a result
+that holds a `Mut`, state or a promise, or may hold an iterator by `owIter`, the [iterator-capture] test (added after the review: `memo((n: number) => [n].values())` was accepted and every call threw at publish). `mdMemoUses` reuses the action-body capture check: `owCapturesIn`
+(the body of `owOpaqueCaptures`, split out to take any list of bodies) over the `mdTainted` map, plus capabilities
+(`log` and `invalidation` included, which S6.9 exempts for actions) and inputs holding a state handle or an action.
+A `let`/`Mut` capture is left to R-K (`[let-capture]`/`[mut-capture]`), which already fires because the prelude call
+may keep the arrow. Reusing S6.9's check over-rejects: `(k: number) => memo((n) => k + n)` is `[memo-pure]` though
+`k` is data (spec row S2.14 #12).
+
+The checker's memos: `rgHasTypeQuery` is `memo((x) => ...)` over AST nodes; `IxRegCore.mayHideMemo: Mut<Map>` is now
+`mayHide: (t) => boolean`, built in `rg-registry.ts` `core()` (and `frozen/ts/core.ts` `regCore`) as
+`memo((t) => peek(() => L.rgMayHide(c, t)))`, the walk moved from ix-hides into the new cell `rgMayHide`. Deviation:
+this memo is called from TS glue, not a checked cell, because the walk's inputs are the registry's functions, which
+`[memo-pure]` forbids as captures. The `peek` wrapper is needed: without it the port and live differed on 6 cells
+(`unknown type Event` in selfhost/rt/prelude.ss.ts; an order unsup in a probe).
+
+Speed, `bun .scratch/m1/time-sections.ts` (warm-up, then checkSources over the 8 shipped modules' ss blocks and over
+check-time.ts's with+ix+ow checker source), 3 runs each:
+```
+before                 shipped 43/42/41 ms   checker 4142/4250/4241 ms  median 4241
+after the swap         shipped 43/46/40 ms   checker 4327/4429/4326 ms  median 4327
+memo-pure rule added   shipped 39/43/43 ms   checker 4208/4373/4421 ms  median 4373
+final tree (01:06)     shipped 43/46/51 ms   checker 4505/4497/4507 ms  median 4505
+no memo at all         -                     checker 18169/18705/18419 ms             (memo returning f)
+```
+4241 -> 4505 ms, +6%, inside the 8% spread seen between two runs of one tree (4241 vs 4570); not separated from noise. The no-memo arm shows the two
+caches are 4.3x of the checker's time; instrumented, `mayHide` was 887193 hits to 31250 misses on one run.
+
+Frozen mirror, under `DELIBERATE CHANGE (2026-11-23, m1 step 1)`: `frozen/ts/core.ts` regCore/regAround,
+`frozen/infer.ts` preludeCall `case "memo"` and varDecl pre-binding, `frozen/capture.ts` opaqueCaptures `bodies`,
+`frozen/core.ts` `memoErrs`.
+
+Spec: S2.6 lists `memo`; S2.13 (run-time behaviour, recursion, arity) and S2.14 (`[memo-pure]`), 14 reject rows,
+test_spec_S2_13 (cell `s2_fib` in spec-2.ts; `soundscript.memo` hit, `-0`, frozen key, typed-array key not stored,
+throw stores nothing, the action guard; a memoised function as another cell's input) and test_spec_S2_14 (accepts).
+Tutorial: a `[memo-pure]` row and a recursion example under Local mutation.
+
+Fresh review (`/review-notebook`, FIX, 8 findings, all confirmed): (1) a `Mut` passed to a memoised function and
+written after throws, accepted by the checker: documented in S2.13 and S4.6, not closed (above); (2) an iterator
+result was accepted: now `[memo-pure]`, with a row; (3) a const bound to a `Mut` local is rejected for a reason S2.14
+did not state: S2.14 and the tutorial row now say it; (4) S2.6 named no statement for `[prelude-value]` and
+`[prelude-shadow]` and listed `mut freeze borrow` without saying why: one sentence each, `read` and `on` named with
+their own rules (S6.8, S7.3); (5) test_spec_S2_6 checked 4 of the prelude names: it now reads the list from S2.6 and
+checks each of the 11 is refused as a value, plus a `structuredClone` `[type]` row; (6) the tutorial row left out
+conditions: rewritten; (7) the unannotated recursion and `memo(g)` unsupported outcomes, a 2-argument `[arity]` row and
+the state-write and `read` guards were untested: added; (8) S2.13 said only "typed array" for an uncached argument:
+now "or a `Map` made by JavaScript".
+
+Gates, final tree, 00:58 to 01:08 (`.scratch/m1/gates1.sh`; logs `.scratch/m1/step1/final/`):
+```
+build.ts --force                exit 0
+bun-verify                      177 pass, 0 fail
+fixtures.ts                     14/14; 53 rules, 53 with a reject case (51 in the spec)
+diff.ts                         995 sources: SAME 3674 DIFFERENT 0 REAL CRASH 14
+diff.ts --module-only           SAME 1085 DIFFERENT 0
+tc-diff.ts                      corpus rows DIFFERENT 0; erase (repro) DIFFERENT (by design)
+live.test.ts                    461 pass, 0 fail
+freeze-table.test.ts            441 pass, 0 fail
+tc.test.ts / run.test / acorn   11 / 2 / 6 pass, 0 fail (run apart)
+run-sets                        1945 programs, silent 0
+freeze-attack2 / 3 run-all.sh   309, silent 0 / 360, silent 0
+verify.ts --quick               229 pass, 0 fail (S2_6, S2_13, S2_14 pass)
+verify.ts (full)                668 pass, 0 fail
+```
+The full verify ran twice: at 00:45 on the tree before the review (668 pass), and in the gate run on the final tree.
+
+Open: the `Mut`-argument write (1); `(k: number) => memo((n) => k + n)` is rejected though `k` is data; `holdsWith`
+stops at depth 12; a kind-0 value from another language is stored unfrozen; `log` called through a function value
+is not caught, by the checker or by the run-time guard (log is not an action); cp-probes' prelude name list was not updated.

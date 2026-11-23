@@ -1526,6 +1526,17 @@ export class Checker {
         if (args.length !== 1) this.err(e, "arity", "messageOf takes one argument");
         args.forEach((a) => this.infer(a, env));
         return STR;
+      // DELIBERATE CHANGE (2026-11-23, m1 step 1): memo(f) has f's type; f a function literal, neither async nor a
+      // generator (the cells' ixMemoCall); what f takes and uses is checked in core.ts (memoErrs)
+      case "memo": {
+        const a = one();
+        if (!a) return ERR;
+        if (a.type !== "ArrowFunctionExpression" && a.type !== "FunctionExpression") { this.infer(a, env); this.unsupported(e, "memo(...) of a non-literal function"); return ERR; }
+        if (a.async || a.generator) this.err(a, "memo-pure", `the function given to memo(...) is ${a.async ? "async" : "a generator"}; a stored promise or generator would be shared by every call`);
+        const f = this.check(a, env, expected);
+        this.rec(a, f);
+        return f;
+      }
     }
     return ERR;
   }
@@ -1645,11 +1656,16 @@ export class Checker {
     const declared = ann ? this.reg.convert(ann, this.typeCtx(env), this.parsed) : undefined;
     const init: Node | null = d.init;
     const fnInit = init && (init.type === "ArrowFunctionExpression" || init.type === "FunctionExpression");
-    if (d.id.type === "Identifier" && fnInit && k === "const") {
+    // DELIBERATE CHANGE (2026-11-23, m1 step 1): const f = memo((…): R => …) is bound before the call is checked, under
+    // the annotations of memo's function, and names no function node (the cells' ixVarFn with sig and fnNode)
+    const m = init && init.type === "CallExpression" && init.callee.type === "Identifier" && init.callee.name === "memo" && env.scope.get("memo")?.kind === "prelude" ? init.arguments[0] : undefined;
+    const memoFn = !!m && (m.type === "ArrowFunctionExpression" || m.type === "FunctionExpression");
+    if (d.id.type === "Identifier" && (fnInit || memoFn) && k === "const") {
       // pre-bind so the function can call itself (needs annotations)
-      const pre = declared ?? this.annotatedSig(init, env);
-      const b = this.declare(env, d.id.name, pre ?? ERR, k, d.id, { fnNode: init });
-      if (!pre) b.lazy = () => { this.unsupported(init, "recursive function without a return type"); return ERR; };
+      const sigNode = fnInit ? init : m;
+      const pre = declared ?? this.annotatedSig(sigNode, env);
+      const b = this.declare(env, d.id.name, pre ?? ERR, k, d.id, fnInit ? { fnNode: init } : {});
+      if (!pre) b.lazy = () => { this.unsupported(sigNode, "recursive function without a return type"); return ERR; };
       const t = this.check(init, env, declared);
       b.t = declared ?? t;
       b.lazy = undefined;

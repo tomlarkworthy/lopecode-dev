@@ -49,6 +49,8 @@ export const RULES: RuleInfo[] = [
   { id: "mut-yield", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a generator cell yields a Mut typed array that is not a fresh copy; R-Y: a local whose type holds a Mut anywhere, or a let of a non-primitive type, declared before a yield of a generator is used after it" },
   // 2026-11-22, R-A: [mut-yield] would name a yield where the point is an await
   { id: "mut-await", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a local whose type holds a Mut anywhere, or a let of a non-primitive type, declared before an await is used after it, in a generator or any function nested in a cell (only an async cell's own body is exempt)" },
+  // 2026-11-23, m1 step 1: memo(f), a cache in the prelude (S2.13, S2.14)
+  { id: "memo-pure", section: "Cells and injection", how: "approx", summary: "memo(f) where f is async or a generator, takes a parameter that may hold a function, a Mut or state, returns shared state, or uses from outside itself what an action body may not, a capability, a state handle or an action" },
   { id: "removed-call", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "mut(...), freeze(...) or borrow(...): no longer part of the language" },
   // Opt-in 2
   // State and actions

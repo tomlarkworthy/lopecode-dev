@@ -77,8 +77,8 @@ export type IxRegCore = {
   readonly iterElem: (t: Ty) => Ty | undefined;
   readonly unify: (p: Ty, a: Ty, m: Mut<Map<string, Ty>>, tvs: Set<string>) => void;
   readonly isTypedArray: (t: Ty) => boolean;
-  // Checker.mayHideMemo: one per cell's check
-  readonly mayHideMemo: Mut<Map<Ty, boolean>>;
+  // rgMayHide over this core, memoised (memo) for its checks
+  readonly mayHide: (t: Ty) => boolean;
 };
 export type IxReg = {
   readonly isAlias: (n: string) => boolean;
@@ -89,7 +89,7 @@ export type IxReg = {
   readonly iterElem: (t: Ty) => Ty | undefined;
   readonly unify: (p: Ty, a: Ty, m: Mut<Map<string, Ty>>, tvs: Set<string>) => void;
   readonly isTypedArray: (t: Ty) => boolean;
-  readonly mayHideMemo: Mut<Map<Ty, boolean>>;
+  readonly mayHide: (t: Ty) => boolean;
   readonly quiet: IxRegCore;
   readonly lax: IxRegCore;
   readonly strictIndex: boolean;

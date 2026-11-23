@@ -33,6 +33,7 @@ declare function borrow<T>(m: Mut<T>): Borrowed<T>;
 declare function snapshot<T>(b: Borrowed<T>): T;
 declare function equals(a: unknown, b: unknown): boolean;
 declare function messageOf(e: unknown): string;
+declare function memo<F extends (...args: never[]) => unknown>(f: F): F;
 declare function read<T>(r: State<T>): T;
 
 // Harness-only helpers used by the derived source (check.ts). Not callable from cells.

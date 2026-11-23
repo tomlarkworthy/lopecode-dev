@@ -85,7 +85,10 @@ export const ixVarDecl = (ixAnnOf, ixConvert, ixVarFn, ixDeclare, ixNoExtra, ixL
   const k: IxKind = kind === "const" ? "const" : "let", id = d.id, init = d.init;
   const ann = ixAnnOf(id), declared = ann !== null ? ixConvert(K, V, env, ann) : null;
   const fnInit = init !== null && (init.type === "ArrowFunctionExpression" || init.type === "FunctionExpression");
-  if (id.type === "Identifier" && init !== null && fnInit && k === "const") return ixVarFn(K, T, V, W, C, env, id, init, declared);
+  if (id.type === "Identifier" && init !== null && fnInit && k === "const") return ixVarFn(K, T, V, W, C, env, id, init, declared, init, init.nid);
+  // const f = memo((…): R => …): bound before the call is checked, so the memoised function can call itself (S2.13)
+  const m = init !== null && init.type === "CallExpression" && init.callee.type === "Identifier" && init.callee.name === "memo" && ixLookup(V, env, "memo")?.kind === "prelude" ? init.arguments[0] : undefined;
+  if (id.type === "Identifier" && init !== null && m !== undefined && (m.type === "ArrowFunctionExpression" || m.type === "FunctionExpression") && k === "const") return ixVarFn(K, T, V, W, C, env, id, init, declared, m, -1);
   if (init === null) {
     if (k === "const") ixErr(K, C, d, "type", "const without initializer");
     if (declared === null) ixUnsup(K, C, d, "let without a type or initializer");
@@ -101,10 +104,11 @@ export const ixVarDecl = (ixAnnOf, ixConvert, ixVarFn, ixDeclare, ixNoExtra, ixL
   const b = ixDeclare(V, C, env, id.name, declared ?? (k === "let" && !fresh ? widen(t) : t), k, id, ixNoExtra, { k: "none" }, isMut, fnInit ? init.nid : -1);
   if (k === "let" && declared !== null) ixFlowSet(W, C.cur, "#" + b.id, K.reg.sub(t, declared) ? t : declared);
 };
-// const f = (…) => …: bound before its body is checked, so it can call itself (with annotations)
-export const ixVarFn = (ixAnnotatedSig, ixDeclare, ixNoExtra, ixUpdate, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, id: Identifier, init: AstNode, declared: Ty | null): void => {
-  const pre = declared ?? ixAnnotatedSig(K, V, C, env, init);
-  const b = ixDeclare(V, C, env, id.name, pre ?? ERR, "const", id, ixNoExtra, pre ? { k: "none" } : { k: "unsup", at: init }, false, init.nid);
+// const f = (…) => …: bound before its body is checked, so it can call itself (with annotations); sig: the function
+// whose annotations give the type (init, or the function memo(...) is given); fnNode: the function f names, or -1
+export const ixVarFn = (ixAnnotatedSig, ixDeclare, ixNoExtra, ixUpdate, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, id: Identifier, init: AstNode, declared: Ty | null, sig: AstNode, fnNode: number): void => {
+  const pre = declared ?? ixAnnotatedSig(K, V, C, env, sig);
+  const b = ixDeclare(V, C, env, id.name, pre ?? ERR, "const", id, ixNoExtra, pre ? { k: "none" } : { k: "unsup", at: sig }, false, fnNode);
   const t = K.check(K, T, V, W, C, env, init, declared, false, false);
   ixUpdate(V, C, { ...b, t: declared ?? t, lazy: { k: "none" } });
 };

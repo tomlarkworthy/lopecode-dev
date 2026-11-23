@@ -295,9 +295,10 @@ interface State<T> {
 }
 declare function equals(a: unknown, b: unknown): boolean;
 declare function messageOf(e: unknown): string;
+declare function memo<F>(f: F): F;
 `;
 export const CAPABILITIES: Record<string, string> = { now: "Clock", random: "Random", fetch: "Fetch", log: "Log", invalidation: "Invalidation", compile: "Compile", pool: "Pool" };
-export const PRELUDE_FNS = new Set(["state", "action", "snapshot", "equals", "on", "read", "messageOf"]);
+export const PRELUDE_FNS = new Set(["state", "action", "snapshot", "equals", "on", "read", "messageOf", "memo"]);
 
 // JSX: an element is a value. A renderer outside the checked cells turns it into DOM nodes; event
 // props are Actions and receive data, never DOM Event objects.

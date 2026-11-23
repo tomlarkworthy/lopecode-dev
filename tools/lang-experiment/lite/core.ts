@@ -11,7 +11,7 @@ import { CAPABILITIES, ALLOWED_GLOBALS, PRELUDE_FNS } from "./intrinsics.ts";
 import { parseTree } from "./acorn/index.ts";
 import {
   mdCheckSources, rgFreshCtl, rgConvert, rgExpand, rgIfaceRec, rgSig, rgLiteral, rgQuietGo, rgSub, rgFresh, rgPeekOpen, rgPeekClose, rgLoad, rgTake,
-  rgIsTypedArray, rgOriginOf, rgHasTypeQuery, rgBuiltin, rgGlobals, rgRestOf, rgForeignValues, rgSkip, rgPeekType,
+  rgIsTypedArray, rgOriginOf, rgHasTypeQuery, rgBuiltin, rgGlobals, rgRestOf, rgForeignValues, rgSkip, rgPeekType, rgMayHide,
 } from "./infer-ss.ts";
 import type { CellInfo } from "./facts.ts";
 import type { Shape } from "./boundary.ts";
@@ -51,7 +51,7 @@ export type CheckRun = { result: LiteResult; gap: string | null; rgGap: string |
 // cell replaced, rg.test.ts one whose parser holds an Other node)
 export const RG = {
   parseTree, rgFreshCtl, rgConvert, rgExpand, rgIfaceRec, rgSig, rgLiteral, rgQuietGo, rgSub, rgFresh, rgPeekOpen, rgPeekClose, rgLoad, rgTake,
-  rgIsTypedArray, rgOriginOf, rgHasTypeQuery, rgBuiltin, rgGlobals, rgRestOf, rgForeignValues, rgSkip, rgPeekType,
+  rgIsTypedArray, rgOriginOf, rgHasTypeQuery, rgBuiltin, rgGlobals, rgRestOf, rgForeignValues, rgSkip, rgPeekType, rgMayHide,
 };
 export type { RgCells, RgRegistry };
 
@@ -74,7 +74,7 @@ function regAround(core: IxRegCore, around: <X>(f: () => X) => X): IxRegCore {
   return {
     isAlias: (n) => around(() => core.isAlias(n)), expand: (t) => around(() => core.expand(t)), member: (t, k) => around(() => core.member(t, k)),
     sub: (a, b) => around(() => core.sub(a, b)), callSigs: (t) => around(() => core.callSigs(t)), iterElem: (t) => around(() => core.iterElem(t)),
-    unify: (p, a, m, tvs) => around(() => core.unify(p, a, m, tvs)), isTypedArray: (t) => around(() => core.isTypedArray(t)), mayHideMemo: core.mayHideMemo,
+    unify: (p, a, m, tvs) => around(() => core.unify(p, a, m, tvs)), isTypedArray: (t) => around(() => core.isTypedArray(t)), mayHide: core.mayHide,
   };
 }
 const toDiag = (r: RgReport): IxDiag => ({ start: r.start, end: r.end, rule: r.rule, msg: r.msg });
@@ -100,14 +100,14 @@ export function mdRegistry(strictIndex = true, onCell: (() => void) | null = nul
   const view = (): IxReg & { requeue: (ds: IxDiag[]) => void } => {
     const buf: IxDiag[] = [];
     swap({ diag: buf });
-    const core = R.core(), memo = new Map<number, boolean>();
+    const core = R.core();
     const cloneProblem = cloneProblemWith(R.ops);
     return {
       ...core, quiet: regAround(core, R.peek), lax: regAround(core, R.lax), strictIndex: R.Q.strict, same: (a, b) => a === b,
       origin: (n) => L.rgOriginOf(R.types, n),
       convert: (n, tps, look) => R.convert(n, ctx(tps, look)),
       sig: (params, ret, tps, look) => L.rgSig(R.G, R.types, R.expandMemo, R.ifaceMemo, R.Q, params, ret, null, ctx(tps, look), null),
-      hasTypeQuery: (n) => L.rgHasTypeQuery(memo, n), cloneProblem: (t) => cloneProblem(t, 0),
+      hasTypeQuery: (n) => L.rgHasTypeQuery(n), cloneProblem: (t) => cloneProblem(t, 0),
       drain: () => { flush(); return buf.splice(0); }, compile: null,
       requeue: (ds) => { flush(); buf.push(...ds); },
     };

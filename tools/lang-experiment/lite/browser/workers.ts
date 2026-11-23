@@ -24,14 +24,26 @@ export const EXEC = `(function () {
   const messageOf = (e) => {
     try { return e instanceof Error && typeof e.message === "string" ? e.message : String(e); } catch (x) { return "(a thrown value whose text cannot be read)"; }
   };
+  // memo without a freeze: an argument list holding an object or a symbol is not stored (nothing here freezes it)
+  const memo = (f) => {
+    const m = new Map();
+    return (...a) => {
+      const prim = a.every((x) => x === null || !["object", "function", "symbol"].includes(typeof x));
+      const k = prim ? JSON.stringify(a.map((x) => (Object.is(x, -0) ? "-0" : typeof x === "bigint" ? x + "n" : typeof x + ":" + String(x)))) : null;
+      if (k !== null && m.has(k)) return m.get(k);
+      const r = f(...a);
+      if (k !== null) m.set(k, r);
+      return r;
+    };
+  };
   const modules = new Map();
   return function run(job) {
     if (!modules.has(job.key)) {
       if (modules.size > 16) modules.clear();
       if (!job.js) throw Object.assign(new Error("island " + job.key + " was not sent"), { missing: true });
-      const f = new Function("state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "messageOf", "h",
+      const f = new Function("state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "messageOf", "memo", "h",
         '"use strict";\\n' + job.js + "\\nreturn {" + job.names.join(", ") + "};");
-      modules.set(job.key, f(refuse("state"), refuse("action"), id, id, id, snapshot, equals, messageOf, refuse("h")));
+      modules.set(job.key, f(refuse("state"), refuse("action"), id, id, id, snapshot, equals, messageOf, memo, refuse("h")));
     }
     const fns = modules.get(job.key);
     const vals = Object.assign({}, job.values);

@@ -101,8 +101,10 @@ export function captures(cellFn: Node, tainted: Map<string, string>): Capture[] 
 // The same rule by binding, default-deny: from outside itself an action body may use only a prelude name, a global,
 // a cell input that holds no state, or a const or function whose own free references pass. A let, a catch binding,
 // a Mut, or a parameter of an enclosing function does not (a caller may pass it a state-dependent value).
-export function opaqueCaptures(cellFn: Node, ch: Checker, tainted: Map<string, string>, skip: Set<Node>): Capture[] {
-  if (!ch.actionBodies.size) return [];
+// DELIBERATE CHANGE (2026-11-23, m1 step 1): bodies, the functions checked: the action bodies, or memo's functions
+// (the cells' owCapturesIn)
+export function opaqueCaptures(cellFn: Node, ch: Checker, tainted: Map<string, string>, skip: Set<Node>, bodies: Node[] = [...ch.actionBodies]): Capture[] {
+  if (!bodies.length) return [];
   const F = ch.facts, parent = new Map<Node, Node>(), ids: Node[] = [], comps: Node[] = [];
   (function walk(n: Node, p: Node | null) {
     if (p) parent.set(n, p);
@@ -149,12 +151,12 @@ export function opaqueCaptures(cellFn: Node, ch: Checker, tainted: Map<string, s
   for (const r of ids) {
     const b = F.bindingOf.get(r);
     if (skip.has(r) || !b || !local(b) || b.node === r) continue;
-    const a = [...ch.actionBodies].find((a) => within(r, a) && !within(b.node, a));
+    const a = bodies.find((a) => within(r, a) && !within(b.node, a));
     const w = a && why(b);
     if (!w || seen.has(`${a.start}:${b.id}`)) continue;
     seen.add(`${a.start}:${b.id}`);
     out.push(b.cellParam ? { node: r, name: b.name, why: w } : { node: r, name: b.name, why: w, opaque: true });
   }
-  for (const j of comps) if ([...ch.actionBodies].some((a) => within(j, a))) out.push({ node: j, name: `<${j.name ?? "component"}>`, why: "is a JSX component, which the checker does not follow", opaque: true });
+  for (const j of comps) if (bodies.some((a) => within(j, a))) out.push({ node: j, name: `<${j.name ?? "component"}>`, why: "is a JSX component, which the checker does not follow", opaque: true });
   return out;
 }

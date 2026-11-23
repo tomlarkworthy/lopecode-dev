@@ -101,5 +101,5 @@ export const { mdCheckSources, ixHidden, ixActionIn, owIter } = linkMd();
 export const { cpCompletionsAt, cpMembersOf, cpAnnotationOf, cpAddParameter, cpTypeNames, cpPH, cpCellsOf, cpGlobalRefs, mdFactsOf, mdPreludeCalls } = linkCp();
 export const {
   rgFreshCtl, rgConvert, rgExpand, rgIfaceRec, rgSig, rgLiteral, rgQuietGo, rgSub, rgFresh, rgPeekOpen, rgPeekClose, rgLoad, rgTake,
-  rgIsTypedArray, rgOriginOf, rgHasTypeQuery, rgBuiltin, rgGlobals, rgRestOf, rgForeignValues, rgSkip, rgPeekType,
+  rgIsTypedArray, rgOriginOf, rgHasTypeQuery, rgBuiltin, rgGlobals, rgRestOf, rgForeignValues, rgSkip, rgPeekType, rgMayHide,
 } = linkRg();

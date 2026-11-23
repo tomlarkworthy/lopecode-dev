@@ -14,7 +14,8 @@ import { Registry } from "./registry.ts";
 import { ERR, UNDEF, cloneProblemWith, type Ty } from "../../../types.ts";
 import { CAPABILITIES, ALLOWED_GLOBALS, PRELUDE_FNS } from "../../../intrinsics.ts";
 import { childrenOf } from "../../../acorn/index.ts";
-import { mdCheckSources } from "../../../infer-ss.ts";
+import { mdCheckSources, rgMayHide } from "../../../infer-ss.ts";
+import { memo } from "../../../../prelude.runtime.ts";
 import type { CellInfo } from "./facts.ts";
 import type { Shape } from "../../../boundary.ts";
 import type { AstNode } from "../../../acorn/acorn-types.ss.ts";
@@ -72,18 +73,20 @@ const indexOf = (P: Parsed) => { let idx = pIndex.get(P); if (!idx) pIndex.set(P
 
 export type RegView = IxReg & { restore: () => void; requeue: (ds: IxDiag[]) => void; toP: (n: AstNode) => Node };
 // the Registry's methods the cells call, as a record
+// DELIBERATE CHANGE (2026-11-23, m1 step 1): mayHideMemo is gone; mayHide is rgMayHide over the core inside a peek,
+// memoised (memo), as lite/infer/rg-registry.ts core makes it
 export function regCore(reg: Registry): IxRegCore {
-  return {
-    isAlias: (n) => reg.isAlias(n), expand: (t) => reg.expand(t), member: (t, k) => reg.member(t, k), sub: (a, b) => reg.sub(a, b),
-    callSigs: (t) => reg.callSigs(t), iterElem: (t) => reg.iterElem(t), unify: (p, a, m, tvs) => reg.unify(p, a, m, tvs), isTypedArray: (t) => reg.isTypedArray(t),
-    mayHideMemo: new Map(),
+  const c = {
+    isAlias: (n: string) => reg.isAlias(n), expand: (t: Ty) => reg.expand(t), member: (t: Ty, k: string) => reg.member(t, k), sub: (a: Ty, b: Ty) => reg.sub(a, b),
+    callSigs: (t: Ty) => reg.callSigs(t), iterElem: (t: Ty) => reg.iterElem(t), unify: (p: Ty, a: Ty, m: Map<string, Ty>, tvs: Set<string>) => reg.unify(p, a, m, tvs), isTypedArray: (t: Ty) => reg.isTypedArray(t),
   };
+  return { ...c, mayHide: memo((t: Ty) => reg.peek(() => rgMayHide(c, t))) };
 }
 // core with each method run inside around
 function regAround(core: IxRegCore, around: <X>(f: () => X) => X): IxRegCore {
   return {
     ...(Object.fromEntries(Object.entries(core).flatMap(([k, f]) => typeof f === "function" ? [[k, (...a: unknown[]) => around(() => (f as (...a: unknown[]) => unknown)(...a))]] : [])) as IxRegCore),
-    mayHideMemo: core.mayHideMemo,
+    mayHide: core.mayHide,
   };
 }
 // whether a node holds a typeof type query, remembered by node

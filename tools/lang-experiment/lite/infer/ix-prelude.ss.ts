@@ -32,7 +32,7 @@ export const ixYield = (ixErr, ixUnsup, show, UNDEF, UNKNOWN, ERR) => (K: IxK, T
   C.yields = [...C.yields, t];
   return UNKNOWN;
 };
-export const ixPreludeCall = (ixTypeArgs, ixErr, ixSnapshotCall, ixStateCall, ixActionCall, ixReadCall, ixOnCall, ixFact, BOOL, STR, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, name: string, expected: Ty | null): Ty => {
+export const ixPreludeCall = (ixTypeArgs, ixErr, ixSnapshotCall, ixStateCall, ixActionCall, ixReadCall, ixOnCall, ixMemoCall, ixFact, BOOL, STR, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, name: string, expected: Ty | null): Ty => {
   ixFact(C, { k: "prelude", at: e.nid, name });
   const args = e.arguments, explicit = ixTypeArgs(K, V, env, e.typeArguments);
   if (name === "on") return ixOnCall(K, T, V, W, C, env, e);
@@ -46,9 +46,10 @@ export const ixPreludeCall = (ixTypeArgs, ixErr, ixSnapshotCall, ixStateCall, ix
     for (const a of args) K.infer(K, T, V, W, C, env, a);
     return STR;
   }
-  if (!["snapshot", "state", "action", "read"].includes(name)) return ERR;
+  if (!["snapshot", "state", "action", "read", "memo"].includes(name)) return ERR;
   if (args.length !== 1) ixErr(K, C, e, "arity", `${name} takes one argument`);
   const a = args[0] ?? null;
+  if (name === "memo") return ixMemoCall(K, T, V, W, C, env, e, a, expected);
   if (name === "state") return ixStateCall(K, T, V, W, C, env, a, expected, explicit);
   if (name === "action") return ixActionCall(K, T, V, W, C, env, e, a, expected);
   if (name === "read") return ixReadCall(K, T, V, W, C, env, e, a);
@@ -78,6 +79,18 @@ export const ixActionCall = (ixErr, ixUnsup, ixPromiseIn, ixActionFn, ixFact, na
   if (p) ixErr(K, C, a, "action-async", `the function given to action(...) returns ${p}; an action is synchronous (S6.12)`);
   T.set(a.nid, f);
   return named("Action", { k: "tup", els: f.ps.map((q) => q.t) });
+};
+// memo(f) (S2.13): the type of f, a function literal that is neither async nor a generator; what f may use and take is
+// checked after inference (mdMemoErrs)
+export const ixMemoCall = (ixErr, ixUnsup, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, a: AstNode | null, expected: Ty | null): Ty => {
+  if (a === null) return ERR;
+  if (a.type !== "ArrowFunctionExpression" && a.type !== "FunctionExpression") {
+    K.infer(K, T, V, W, C, env, a);
+    ixUnsup(K, C, e, "memo(...) of a non-literal function");
+    return ERR;
+  }
+  if (a.async || a.generator) ixErr(K, C, a, "memo-pure", `the function given to memo(...) is ${a.async ? "async" : "a generator"}; a stored promise or generator would be shared by every call`);
+  return K.check(K, T, V, W, C, env, a, expected, false, false);
 };
 // read(s): the value as of this point in the call order; only inside an action body
 export const ixReadCall = (ixInActionOnly, ixErr, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, a: AstNode | null): Ty => {

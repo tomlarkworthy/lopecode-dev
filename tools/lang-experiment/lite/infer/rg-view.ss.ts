@@ -22,20 +22,39 @@ export const rgForeignValues = () => (V: RgValues): { name: string; marker: stri
 export const rgRestOf = (nodeKind) => (rest: AstNode[]): { kind: string; line: number }[] => rest.map((st) => ({ kind: nodeKind(st), line: st.line }));
 export const rgOriginOf = () => (Y: RgTypes, n: string): string | null => Y.get(n)?.origin ?? null;
 export const rgIsTypedArray = () => (t: Ty, typed: string[]): boolean => t.k === "named" && typed.includes(t.n);
-// whether a node holds a typeof type query, remembered by nid
-export const rgHasTypeQuery = (childrenOf) => (M: Mut<Map<number, boolean>>, n: AstNode): boolean => {
-  function has(W: Mut<Map<number, boolean>>, x: AstNode): boolean {
-    const hit = W.get(x.nid);
-    if (hit !== undefined) return hit;
-    let r = x.type === "TSTypeQuery";
-    if (!r) for (const k of childrenOf(x)) if (has(W, k.node)) { r = true; break; }
-    W.set(x.nid, r);
-    return r;
-  }
-  return has(M, n);
+// whether a node holds a typeof type query, remembered per node (memo)
+export const rgHasTypeQuery = (childrenOf) => {
+  const has = memo((x: AstNode): boolean => x.type === "TSTypeQuery" || childrenOf(x).some((k) => has(k.node)));
+  return has;
 };
 // core.ts peekType inside its peek: the annotation converted, an alias expanded once
 export const rgPeekType = (rgBareCtx) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, n: AstNode, ast: Ast): Ty => {
   const t = G.convert(G, Y, E, I, Q, n, rgBareCtx(ast, "user"));
   return t.k === "named" && G.isAlias(t.n) ? G.expand(G, Y, E, I, Q, t) : t;
+};
+// t has, somewhere hidden walks, unknown, object, a type parameter or a function; true past a depth of generic aliases.
+// Not memoised here: the registry glue (rg-registry.ts core) memoises it per core with memo, since its key holds functions
+export type RgHideR = { readonly isAlias: (n: string) => boolean; readonly expand: (t: Ty) => Ty };
+export const rgMayHide = () => {
+  function anyHides(R: RgHideR, seen: Mut<Set<string>>, xs: Ty[], d: number): boolean {
+    for (const x of xs) if (go(R, seen, x, d)) return true;
+    return false;
+  }
+  function go(R: RgHideR, seen: Mut<Set<string>>, x: Ty, d: number): boolean {
+    switch (x.k) {
+      case "unknown": case "object": case "tv": case "fn": return true;
+      case "named":
+        if (!R.isAlias(x.n)) return anyHides(R, seen, x.args, d);
+        if (x.args.length) return d > 10 || go(R, seen, R.expand(x), d + 1);
+        if (seen.has(x.n)) return false;
+        seen.add(x.n);
+        return go(R, seen, R.expand(x), d);
+      case "arr": return go(R, seen, x.el, d);
+      case "tup": return anyHides(R, seen, x.els, d);
+      case "union": return anyHides(R, seen, x.ts, d);
+      case "rec": return !!x.calls?.length || !!x.ctors?.length || (!!x.index && go(R, seen, x.index, d)) || anyHides(R, seen, [...x.props.values()].map((p) => p.t), d);
+      default: return false;
+    }
+  }
+  return (R: RgHideR, t: Ty): boolean => go(R, new Set(), t, 0);
 };

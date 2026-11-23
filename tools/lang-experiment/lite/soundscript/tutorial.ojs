@@ -449,8 +449,9 @@ A local bound to a fresh value (an array or object literal, \`new\` on an intrin
 | the same across an \`await\` in a generator or any function made inside a cell; only an async cell's own body is exempt | \`[mut-await]\` |
 | \`mut\`, \`freeze\` and \`borrow\` were removed; delete the call | \`[removed-call]\` |
 | prelude functions are only called, not used as values or declared again as locals | \`[prelude-value]\`, \`[prelude-shadow]\` |
+| \`memo(f)\` gives the stored result for arguments it has seen; \`f\` takes plain data (no function, \`Mut\`, state, promise, generator, element or response), returns no promise, generator, iterator, \`Mut\` or state, and uses from outside itself only what an action body may, no capability, state handle or action, no enclosing function's parameter, and no const bound to a \`Mut\` | \`[memo-pure]\` |
 
-\`snapshot(v)\` gives a copy of \`v\`.`
+\`snapshot(v)\` gives a copy of \`v\`. \`const fib = memo((n: number): number => (n < 2 ? n : fib(n - 1) + fib(n - 2)))\` is a memoised function that calls itself.`
 // %%
 md`### State: \`state\`, \`action\`
 

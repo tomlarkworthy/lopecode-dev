@@ -334,7 +334,7 @@ md`**S2.4** The value type of a cell is its return type \`T\`, except that \`Pro
 // %%
 md`**S2.5** The capabilities are the inputs \`now: Clock\`, \`random: Random\`, \`fetch: Fetch\`, \`log: Log\`, \`invalidation: Invalidation\`, \`compile: Compile\` and \`pool: Pool\`. \`Clock\` and \`Random\` are \`() => number\`. Any other annotation on a capability, such as \`now: number\`, is \`[inject-type]\`. The value of \`pool\` is not part of the core: a module with a cell that takes \`pool\` imports \`ss_pool\` from the add-on \`@tomlarkworthy/soundscript-workers\`.`
 // %%
-md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`state action mut freeze borrow snapshot equals on read messageOf\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`. A call of \`structuredClone\` with an argument whose type is or may hold a function or a symbol, or is \`unknown\`, \`object\` or a type parameter, is \`[type]\`: the call would throw.`
+md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`state action mut freeze borrow snapshot equals on read messageOf memo\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`. A call of \`structuredClone\` with an argument whose type is or may hold a function or a symbol, or is \`unknown\`, \`object\` or a type parameter, is \`[type]\`: the call would throw. A prelude function is only called: naming one as a value is \`[prelude-value]\`, except \`read\`, which is \`[read-outside-action]\` (S6.8), and \`on\`, which is \`[listener-placement]\` (S7.3). Declaring a local or a parameter of the same name is \`[prelude-shadow]\`. \`mut\`, \`freeze\` and \`borrow\` are names so that a call of one, or the name as a value, is \`[removed-call]\` (S4.2).`
 // %%
 md`**S2.7** Reading \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`, also through a local bound to the intrinsic, through destructuring such as \`const { random } = Math\`, and through a computed key such as \`Math["random"]\`. A value with a banned member is not assignable to a type that names it, so passing \`Math\` where \`{ random: () => number }\` is expected is \`[type]\`. A \`__proto__\` key in an object literal, written as a name, a string or a computed literal, is \`[banned-member]\` too: it sets the prototype. \`prototype\` on any other value is rejected by another rule, usually \`[no-member]\`.`
 // %%
@@ -347,6 +347,10 @@ md`**S2.10** \`viewof\`, \`mutable\` and \`$\` followed by digits (\`$0\`, \`$12
 md`**S2.11** The return type of an async function is \`Promise<T>\`, and of a generator function, sync or async, \`Generator<Y>\`; any other annotation is \`[type]\`. Each \`yield\` of a generator annotated \`Generator<Y>\` gives a \`Y\`, and a value of another type is \`[type]\`. A value that an async function returns, annotated or not, may not be a promise: one that may be is \`[type]\`, so \`await\` it. A returned promise is unwrapped at run time, and its type would otherwise be \`Promise<Promise<T>>\`. The result of \`then\` and of \`Promise.resolve\` is typed the same way: a callback that returns a \`Promise<T>\` gives a \`Promise<T>\`.`
 // %%
 md`**S2.12** \`messageOf(e)\` is the text of a caught value \`e\`: the \`message\` of an \`Error\` when it is a string, otherwise \`String(e)\`. It does not throw: when reading the message or making the string throws, it is \`(a thrown value whose text cannot be read)\`. A call with other than one argument is \`[arity]\`.`
+// %%
+md`**S2.13** \`memo(f)\` is a function of the type of \`f\`. For an argument list it has seen, it gives the result it stored for that list. A key is the number of arguments and each argument in turn: a primitive by \`Object.is\`, so \`0\` and \`-0\` are two keys, and any other value by identity. A call that misses deep-freezes its arguments in place and calls \`f\` with them, as a call of an action does. A caller that writes such an argument after the call gets a \`TypeError\` (S4.6). The result is deep-frozen and stored. A call with an argument that freezing replaces by a copy, such as a typed array or a \`Map\` made by JavaScript, is not stored. A call of \`f\` that throws stores nothing. Calling an action, writing a state cell or calling \`read\` while \`f\` computes a result throws. \`f\` is a function literal; \`memo\` of any other value is unsupported. In \`const fib = memo((n: number): number => …)\`, \`fib\` is bound before the call is checked, so \`f\` may call \`fib\` when its parameters and its result are annotated. Without those annotations the cell is unsupported. A call with other than one argument is \`[arity]\`.`
+// %%
+md`**S2.14** \`f\` in \`memo(f)\` computes its result from its arguments only. It is \`[memo-pure]\` when \`f\` is async or a generator. It is \`[memo-pure]\` when a parameter type of \`f\` may be or hold a function, since a function may read a capability. It is \`[memo-pure]\` when a parameter type of \`f\` holds a \`Mut\`, \`State\`, \`StateCell\`, \`Action\`, \`Events\`, \`Listener\`, \`Promise\`, \`Generator\`, \`Elem\`, \`FetchResponse\`, \`URLSearchParams\` or \`DataView\`. It is \`[memo-pure]\` when the result type of \`f\` holds a \`Mut\`, a state type, a \`Promise\` or a \`Generator\`, or may hold an iterator by the test of S3.19, such as what \`[n].values()\` gives. A name that \`f\` uses from outside itself follows the rule for an action's body (S6.9): an input that depends on state, a capability, a parameter of an enclosing function, or a const computed from one of these is \`[memo-pure]\`. So is a const bound to a \`Mut\` local, such as \`c\` in \`const c: readonly number[] = xs\`, though S4.10 lets other functions capture it: the cell may write \`xs\` after a result is stored. A capability, \`log\` and \`invalidation\` included, and a value that holds a \`State\`, \`Action\`, \`Events\` or \`Listener\` are \`[memo-pure]\` as well. A \`let\` or a \`Mut\` that \`f\` captures is \`[let-capture]\` or \`[mut-capture]\` (S4.10). The memoised function may be kept, returned and placed in a record, as a function value may.`
 // %%
 md`The cells of this section. \`s2_answer\` takes \`s2_base\` and the function \`s2_double\` with no annotations; \`s2_read\` takes an async cell, a generator and a state cell by their value types.`
 // %%
@@ -375,6 +379,7 @@ spec_rejects_2 = [
   { statement: "S2.6", rule: "removed-call", source: "const x = () => [1, 2];\nconst y = (x: number[]) => {\n  const mk = mut;\n  const a = mk(x);\n  a.push(3);\n  return a.length;\n};" },
   { statement: "S2.6", rule: "removed-call", source: "const a = () => {\n  const fz: <T>(m: Mut<T>) => T = freeze;\n  const m = [1];\n  const r = fz(m);\n  m.push(2);\n  return r.length;\n};" },
   { statement: "S2.6", rule: "removed-call", source: "const x = () => [1, 2];\nconst c = () => true;\nconst y = (x: number[], c: boolean) => {\n  const a = (c ? mut : mut)(x);\n  return a.length;\n};" },
+  { statement: "S2.6", rule: "type", source: "const f = () => structuredClone({ g: (n: number) => n });" },
   { statement: "S2.6", rule: "prelude-value", source: "const s = () => {\n  const st = state;\n  return st(0);\n};" },
   { statement: "S2.6", rule: "prelude-shadow", source: "const a = () => {\n  const snapshot = (m: Mut<number[]>): number => m.length;\n  const m = [1];\n  return m;\n};" },
   { statement: "S2.6", rule: "prelude-shadow", source: "const x = () => [1, 2];\nconst y = (x: number[]) => {\n  const g = (snapshot: (v: number[]) => number[]) => x.length;\n  return 1;\n};" },
@@ -426,7 +431,23 @@ spec_rejects_2 = [
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  async function g(): Promise<number> {\n    return Promise.resolve(5);\n  }\n  return 1;\n};" },
   { statement: "S2.12", rule: "arity", source: "const f = () => messageOf();" },
   { statement: "S2.12", rule: "arity", source: "const f = () => messageOf(1, 2);" },
-  { statement: "S2.12", rule: "type", source: "const f = (): number => messageOf(1);" }
+  { statement: "S2.12", rule: "type", source: "const f = (): number => messageOf(1);" },
+  { statement: "S2.13", rule: "arity", source: "const f = () => memo();" },
+  { statement: "S2.13", rule: "arity", source: "const f = () => memo((n: number) => n, (n: number) => n);" },
+  { statement: "S2.14", rule: "memo-pure", source: "const f = () => memo((n: number) => [n].values());" },
+  { statement: "S2.14", rule: "memo-pure", source: "const f = () => memo(async (n: number) => n);" },
+  { statement: "S2.14", rule: "memo-pure", source: "const f = () => memo(function* (n: number) {\n  yield n;\n});" },
+  { statement: "S2.14", rule: "memo-pure", source: "const f = () => memo((g: () => number) => g());" },
+  { statement: "S2.14", rule: "memo-pure", source: "const f = () => memo(<T,>(x: T) => x);" },
+  { statement: "S2.14", rule: "memo-pure", source: "const f = () => memo((xs: Mut<number[]>) => xs.length);" },
+  { statement: "S2.14", rule: "memo-pure", source: "const f = () => memo((r: FetchResponse) => r.ok);" },
+  { statement: "S2.14", rule: "memo-pure", source: "const f = () => memo((n: number): Mut<number[]> => [n]);" },
+  { statement: "S2.14", rule: "memo-pure", source: "const f = (now: Clock) => memo((n: number) => now() + n);" },
+  { statement: "S2.14", rule: "memo-pure", source: "const f = (log: Log) => memo((n: number) => {\n  log(n);\n  return n;\n});" },
+  { statement: "S2.14", rule: "memo-pure", source: "const s = (): StateCell<number> => state(0);\nconst f = (s: number) => memo((n: number) => s + n);" },
+  { statement: "S2.14", rule: "memo-pure", source: "const tick = (now: Clock) => () => now();\nconst f = (tick: () => number) => memo((n: number) => tick() + n);" },
+  { statement: "S2.14", rule: "memo-pure", source: "const f = () => (k: number) => memo((n: number) => k + n);" },
+  { statement: "S2.14", rule: "memo-pure", source: "const f = () => {\n  const xs = [1];\n  const c: readonly number[] = xs;\n  return memo((n: number) => c.length + n);\n};" }
 ]
 // %%
 spec_rejects_2_view = spec_rejectsTable(spec_rejects_2)
@@ -463,7 +484,12 @@ test_spec_S2_6 = {
   const bad = names.filter((n) => spec_okCells(`const a = () => ${n};`) !== "a:ok");
   if (bad.length) throw new Error(`not accepted as a value: ${bad.join(", ")}`);
   spec_is(spec_okCells("const n = () => state(0);\nconst a = (n: State<number>) => { const m = [1]; const f = m; return [equals(f, [1]), action(() => n.set(read(n) + 1))]; };"), "n:ok,a:ok");
-  return `${spec_rejectsFor("S2.6")}; ${names.length} intrinsics and the prelude functions accepted`;
+  // each listed prelude name is one the checker treats as a prelude function: as a value it is refused
+  const prelude = /the prelude functions \\`([^`\\]+)\\`/.exec(statement)[1].split(" ");
+  const asValue = (n) => soundscript.check(`const a = () => { const v = ${n}; return 1; };`, true).cells[0].errors.map((e) => e.rule);
+  const notPrelude = prelude.filter((n) => !asValue(n).some((r) => ["prelude-value", "removed-call", "read-outside-action", "listener-placement"].includes(r)));
+  if (notPrelude.length) throw new Error(`listed in S2.6 but not a prelude function: ${notPrelude.join(", ")}`);
+  return `${spec_rejectsFor("S2.6")}; ${names.length} intrinsics accepted as values; ${prelude.length} prelude functions, each refused as a value`;
 }
 // %%
 test_spec_S2_7 = {
@@ -491,6 +517,31 @@ test_spec_S2_12 = {
   const toText = { toString() { throw new Error("toString"); } };
   spec_is([m(new TypeError("t")), m("s"), m(42), m(null), m(getter), m(toText), m(Object.create(null))], ["t", "s", "42", "null", fixed, fixed, fixed]);
   return `${spec_rejectsFor("S2.12")}; s2_caught is ${JSON.stringify(await spec_module.value("s2_caught"))}: an Error's message, a thrown string, a thrown number; a throwing message getter, a throwing toString and an object with no prototype give the fixed text`;
+}
+// %%
+test_spec_S2_13 = {
+  spec_is(await spec_module.value("s2_fib"), [832040, 1, [2, 2], 3, 6]);
+  const m = soundscript.memo;
+  let calls = 0;
+  const sq = m((x) => { calls++; return typeof x === "number" ? x * x : x.length; });
+  const xs = [1, 2], bytes = new Uint8Array(2);
+  const got = [sq(3), sq(3), sq(0), sq(-0), sq(xs), sq(xs), sq(bytes), sq(bytes)];
+  spec_is([got, calls, Object.isFrozen(xs)], [[9, 9, 0, 0, 2, 2, 2, 2], 6, true]);
+  let tries = 0;
+  const flaky = m((n) => { tries++; if (tries === 1) throw new Error("once"); return n; });
+  spec_is([(() => { try { return flaky(1); } catch (e) { return e.message; } })(), flaky(1), flaky(1), tries], ["once", 1, 1, 2]);
+  const st = await spec_module.value("viewof s2_counter"), act = soundscript.action(() => {});
+  const inMemo = (g) => m(() => { try { g(); return "no throw"; } catch (e) { return e.message.split(" while ")[0]; } })();
+  spec_is([inMemo(() => act()), inMemo(() => st.set(1)), inMemo(() => soundscript.read(st))], ["an action called", "a state written", "read(...) called"]);
+  spec_is(spec_okCells("const sq = () => memo((n: number): number => n * n);\nconst twice = (sq: (n: number) => number) => ({ f: sq, v: sq(3) + sq(3) });"), "sq:ok,twice:ok");
+  spec_is(soundscript.check("const f = () => { const g = (n: number) => n; return memo(g); };", true).cells[0].status, "unsupported");
+  spec_is(soundscript.check("const f = () => { const fib = memo((n: number) => (n < 2 ? n : fib(n - 1))); return fib(3); };", true).cells[0].status, "unsupported");
+  return `${spec_rejectsFor("S2.13")}; s2_fib is ${JSON.stringify(await spec_module.value("s2_fib"))}; a hit does not call f, 0 and -0 are two keys, an array argument is frozen, a typed array argument is not stored, a throw stores nothing; an action call, a state write and read inside f throw; a memoised function crosses to another cell; memo of a named function and an unannotated recursive memo are unsupported`;
+}
+// %%
+test_spec_S2_14 = {
+  spec_is(spec_okCells("const sq = () => (n: number) => n * n;\nconst f = (sq: (n: number) => number) => memo((xs: readonly number[], m: Map<string, number>) => sq(xs.length) + m.size);\nconst g = () => memo((n: number) => (k: number) => n + k);"), "sq:ok,f:ok,g:ok");
+  return `${spec_rejectsFor("S2.14")}; data parameters, a pure function input and a function result are accepted`;
 }
 // %%
 test_spec_S2_9 = {
@@ -753,7 +804,7 @@ md`**S4.4** A \`Mut\` may be bound to a second name, placed in an array or objec
 // %%
 md`**S4.5** A function is kept when it is returned, yielded, stored, or passed to something that may call it later. A helper bound to a local \`const\` or declared with \`function\` and only called (S3.11) is not kept, nor is a callback of an intrinsic that calls it before returning. A kept function does not capture a \`Mut\` or a \`let\` of an enclosing function (S4.10). A capture of a \`Mut\` is \`[mut-capture]\` in every case; the message names the case when the kept function writes the \`Mut\`, returns it or yields it; when the \`Mut\` is written after the function is made, later in the text, in a loop that makes the function, or inside another function; when the \`Mut\` is a typed array or a \`URL\` that a name in the cell can still write; and, in a generator cell or in a nested async or generator function, when any \`Mut\` is written after the function is made.`
 // %%
-md`**S4.6** At run time every value a cell publishes is frozen, with everything it reaches, when it is published: the value a cell returns, each value a generator cell yields, the value a returned promise resolves to, a value written to a state cell, the arguments of an action, and the result of a worker. A write to a published value, from any code, throws a \`TypeError\`. Arrays, records, \`Error\`s and JSX elements are frozen. A \`Map\`, \`Set\` or \`URL\` made in a cell is an instance of a subclass whose writing methods throw once it is frozen. The locals a published function uses are frozen with it. A typed array or \`ArrayBuffer\` is published as a copy, and a container that reaches one as a frozen copy; the cell keeps its original. The \`searchParams\` of a \`URL\` is a copy taken when it is read. Publishing throws, and the cell is in error, for: an iterator or a sync generator object (a cell whose value is one is \`[iterator-cell]\` first); a value with a callable \`then\` that is not a promise (as a cell's whole value also \`[type]\`); a function, \`Error\` or already frozen value that reaches a typed array; and a function that uses a binding not yet initialised. A publish that throws changes no value.`
+md`**S4.6** At run time every value a cell publishes is frozen, with everything it reaches, when it is published: the value a cell returns, each value a generator cell yields, the value a returned promise resolves to, a value written to a state cell, the arguments of an action, the arguments of a memoised function on a miss (S2.13), and the result of a worker. A write to a published value, from any code, throws a \`TypeError\`. Arrays, records, \`Error\`s and JSX elements are frozen. A \`Map\`, \`Set\` or \`URL\` made in a cell is an instance of a subclass whose writing methods throw once it is frozen. The locals a published function uses are frozen with it. A typed array or \`ArrayBuffer\` is published as a copy, and a container that reaches one as a frozen copy; the cell keeps its original. The \`searchParams\` of a \`URL\` is a copy taken when it is read. Publishing throws, and the cell is in error, for: an iterator or a sync generator object (a cell whose value is one is \`[iterator-cell]\` first); a value with a callable \`then\` that is not a promise (as a cell's whole value also \`[type]\`); a function, \`Error\` or already frozen value that reaches a typed array; and a function that uses a binding not yet initialised. A publish that throws changes no value.`
 // %%
 md`**S4.7** Only the first level of an inferred \`Mut\` is writable. A write to, or a mutating method of, a value held inside it (\`m.a.b = 2\`, \`m.xs.push(2)\`, \`m.get(k).push(2)\`) is \`[member-write]\` or \`[mutating-method]\`. A local annotated with a nested type, \`Mut<{ t: Mut<number[]> }>\`, is writable at each level the annotation marks.`
 // %%

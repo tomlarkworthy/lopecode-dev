@@ -62,10 +62,11 @@ export const owOpaqueWhy1 = (owSpanOf, owFree, owWithin) => (K: OwWhyB, O: OwCtx
 };
 export const OW_WHY_B = (owOpaqueWhy): OwWhyB => ({ why: owOpaqueWhy });
 // skip: the references the by-name rule already reported
-export const owOpaqueCaptures = (owIdsAndComps, owBindingAt, owIsLocal, owWithin, OW_WHY_B) => (O: OwCtx, tainted: Map<string, string>, skip: Set<number>): OwCapture[] => {
-  if (!O.F.actionBodies.size) return [];
+export const owOpaqueCaptures = (owCapturesIn) => (O: OwCtx, tainted: Map<string, string>, skip: Set<number>): OwCapture[] =>
+  O.F.actionBodies.size ? owCapturesIn(O, tainted, skip, [...O.F.actionBodies].flatMap((id) => O.T.byNid.get(id) ?? [])) : [];
+// the same rule over any functions: action bodies, or the functions given to memo (S2.13)
+export const owCapturesIn = (owIdsAndComps, owBindingAt, owIsLocal, owWithin, OW_WHY_B) => (O: OwCtx, tainted: Map<string, string>, skip: Set<number>, bodies: AstNode[]): OwCapture[] => {
   const Q: OwOpaque = { ...owIdsAndComps(O), tainted }, B: OwB = { bad: new Map(), visiting: new Set() };
-  const bodies = [...O.F.actionBodies].flatMap((id) => O.T.byNid.get(id) ?? []);
   const out: Mut<OwCapture[]> = [], seen: Mut<Set<string>> = new Set();
   for (const r of Q.ids) {
     const b = owBindingAt(O, r), d = b === undefined ? undefined : O.T.byNid.get(b.nid);

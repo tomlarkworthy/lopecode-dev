@@ -45,37 +45,8 @@ export const ixPromiseIn = (show) => {
   }
   return promiseIn;
 };
-// t has, somewhere hidden walks, unknown, object, a type parameter or a function; true past a depth of generic aliases
-export const ixMayHide = () => {
-  function anyHides(R: IxRegCore, seen: Mut<Set<string>>, xs: Ty[], d: number): boolean {
-    for (const x of xs) if (go(R, seen, x, d)) return true;
-    return false;
-  }
-  function go(R: IxRegCore, seen: Mut<Set<string>>, x: Ty, d: number): boolean {
-    switch (x.k) {
-      case "unknown": case "object": case "tv": case "fn": return true;
-      case "named":
-        if (!R.isAlias(x.n)) return anyHides(R, seen, x.args, d);
-        if (x.args.length) return d > 10 || go(R, seen, R.expand(x), d + 1);
-        if (seen.has(x.n)) return false;
-        seen.add(x.n);
-        return go(R, seen, R.expand(x), d);
-      case "arr": return go(R, seen, x.el, d);
-      case "tup": return anyHides(R, seen, x.els, d);
-      case "union": return anyHides(R, seen, x.ts, d);
-      case "rec": return !!x.calls?.length || !!x.ctors?.length || (!!x.index && go(R, seen, x.index, d)) || anyHides(R, seen, [...x.props.values()].map((p) => p.t), d);
-      default: return false;
-    }
-  }
-  return (R: IxRegCore, t: Ty): boolean => {
-    const hit = R.mayHideMemo.get(t);
-    if (hit !== undefined) return hit;
-    const seen: Mut<Set<string>> = new Set();
-    const r = go(R, seen, t, 0);
-    R.mayHideMemo.set(t, r);
-    return r;
-  };
-};
+// t has, somewhere hidden walks, unknown, object, a type parameter or a function (rgMayHide, memoised per registry core)
+export const ixMayHide = () => (R: IxRegCore, t: Ty): boolean => R.mayHide(t);
 // t may be or hold a function, for the fed rule (S11.9): what ixMayHide says, or a record a function is assignable to
 // (one with no required property, as {}) where the same walk reaches
 export const ixMayHoldFn = (ixMayHide) => {

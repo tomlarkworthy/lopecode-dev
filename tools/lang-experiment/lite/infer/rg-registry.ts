@@ -6,12 +6,13 @@ import { isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, unifyWith
 import { INTRINSIC_DECLS, PRELUDE_DECLS, JSX_DECLS, TYPED_ARRAYS } from "../intrinsics.ts";
 import type { Ast, AstNode, Parse } from "../acorn/acorn-types.ss.ts";
 import type { IxRegCore } from "./ix-types.ss.ts";
+import { memo } from "../../prelude.runtime.ts";
 import type { RgK, RgDecl, RgValue, RgCtl, RgCtx, RgReport, RgOrigin, RgPeek } from "./rg-types.ss.ts";
 import type { linkRg } from "../infer-ss.ts";
 
 // the registry cells and the parser of declaration texts
 export type RgCells = Pick<ReturnType<typeof linkRg>, "rgFreshCtl" | "rgConvert" | "rgExpand" | "rgIfaceRec" | "rgSig" | "rgLiteral" | "rgQuietGo" | "rgSub" | "rgFresh" |
-  "rgPeekOpen" | "rgPeekClose" | "rgLoad" | "rgTake" | "rgIsTypedArray" | "rgOriginOf" | "rgHasTypeQuery" | "rgBuiltin" | "rgGlobals" | "rgRestOf" | "rgForeignValues" | "rgSkip" | "rgPeekType">
+  "rgPeekOpen" | "rgPeekClose" | "rgLoad" | "rgTake" | "rgIsTypedArray" | "rgOriginOf" | "rgHasTypeQuery" | "rgBuiltin" | "rgGlobals" | "rgRestOf" | "rgForeignValues" | "rgSkip" | "rgPeekType" | "rgMayHide">
   & { parseTree: (text: string, jsx: boolean) => Parse };
 export type RgRegistry = {
   G: RgK; Q: RgCtl;
@@ -44,7 +45,11 @@ export function rgRegistryOf(L: RgCells, strictIndex: boolean, declTrees: [Ast, 
   const unify = (p: Ty, a: Ty, m: Map<string, Ty>, tvs: Set<string>) => unifyOps(p, a, m, tvs, 0);
   const peek = <X>(f: () => X): X => { const was: RgPeek = L.rgPeekOpen(Q); try { return f(); } finally { L.rgPeekClose(E, I, Q, was); } };
   const lax = <X>(f: () => X): X => { const s = Q.strict; Q.strict = false; try { return f(); } finally { Q.strict = s; } };
-  const core = (): IxRegCore => ({ isAlias, expand, member, sub, callSigs, iterElem, unify, isTypedArray, mayHideMemo: new Map() });
+  // rgMayHide memoised per core (Checker.mayHideMemo); memo here, not in a cell, since the walk's key, the core, holds functions
+  const core = (): IxRegCore => {
+    const c = { isAlias, expand, member, sub, callSigs, iterElem, unify, isTypedArray };
+    return { ...c, mayHide: memo((t: Ty) => peek(() => L.rgMayHide(c, t))) };
+  };
   const load = (ast: Ast, origin: RgOrigin, typesOnly = false, skip: Set<number> = new Set()) => L.rgLoad(G, Y, V, E, I, Q, ast, origin, typesOnly, skip);
   for (const [ast, origin] of declTrees) load(ast, origin);
   L.rgTake(Q);
