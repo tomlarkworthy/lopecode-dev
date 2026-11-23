@@ -2704,3 +2704,179 @@ Open: the message's suggested type for a type past the limits is truncated by `s
 Mut a producer's function passes to a callback parameter (Not specified); a foreign value's type is not stripped
 (mdInjectForeign) and was not attacked; the mapped-type crash; an interface's type arguments are stripped also where
 the interface uses them as parameters (as before k1).
+
+## 2026-11-23 03:57–04:51: p1, a write after a publish inside a running body (R-P, S4.11), and memo stores no argument that reaches a function (build owner, logs `lite/soundscript/.scratch/p1/`)
+
+Brief: selfhost/freeze-attack6's P. With `SS_MEASURE_REG=0` (closure registration off, deep freeze kept) 133 of 195
+accepted programs were silent: a body publishes a function (`s.set`, `s.update`, an action called with arguments, a
+memoised call) and then writes a `Mut` that a read-only const the function captures names (S4.10 allows the capture).
+Times are CET, from `date`. Originals of every edited file are in `.scratch/p1/orig/`. Registration was not deleted.
+
+### Step 1: P breaks the strict claim (ran)
+`.scratch/p1/s1/s1.ts` through `selfhost/freeze-attack6/run.ts`. `v = (s) => s()`, `w = (t) => t`:
+```
+const rec = (s: State<() => number>, t: State<number>) => action((g: () => number) => { s.set(g); t.set(g()); });
+const put = (rec: Action<[() => number]>) => ({ go: action(() => { const xs = [0]; const c: readonly number[] = xs; const f = () => c.length; rec(f); xs.push(1); }) });
+```
+Mode (b): `DIFF v = 2, w = 1`, no cell in error, no throw. Mode (a): `go()` throws `Attempted to assign to readonly
+property.` The same with an inner action `snap` doing `t.set(read(s)())` after `s.set(f)`, and with
+`t.update(() => read(s)())`. Control without the write: `same 1 = 1` in both modes. `v` never held 1: what differs is
+what SoundScript code read from `s` after the publish (recorded in `t`) and what `s` gives after the call commits.
+
+### Step 2: the instrument
+- `prelude.runtime.ts publishTap` (null unless set): told each state write's value and each memo store (arguments and
+  result). `observe.ts tapStart` reads each told value when told and again at the end; a difference is silent. A
+  drive line containing `DIFF` is silent too (freeze-attack6/run.ts's rule). The action-argument tap was dropped
+  after a first version: an argument nobody keeps is not held, and the tap would count it.
+- `lite/infer/attack/p1-attacks.ts`, set `p1` in run-sets and live.test (40 programs, 5 controls).
+  `lite/infer/attack/drive-run.ts`: freeze-attack6/run.ts's check plus the tap, for any folder of `cands`.
+- Before the checker change (`log/p1-before-*.keep.txt`, 39 programs then): (a) accepted 37, silent 0, controls
+  fired 1 of 5 (the let); (b) accepted 37, silent 36, controls 5 of 5. The one accepted non-silent is `p1-d-set` (data,
+  throws in both modes). Tap and drive agree on every p1 program in (b).
+- Attack 6 through drive-run.ts before the change: (b) silent 133, every one with a TAP line; 0 by the tap alone.
+- Older sets through the drive-aware check (`measure-old.sh`, `m-old/`): run-sets (2094 programs), freeze-attack4
+  (223), freeze-attack5 (441), convert-freeze/attack1 (246), both modes: no program newly silent. fa4's 5 silent are
+  its known capability reads (harness CHANGED lines, as in k1). The only TAP lines outside attack 6's P were its
+  `let` controls (mode a, as expected).
+
+### Step 3: publish points and the census (ran)
+Where the run-time freeze runs while a body can still run (prelude.runtime.ts, lite/freeze.ts, browser/cells.ts,
+browser/run.ts): `write` (a state's `set`/`update`), an action's arguments, a memoised call's arguments on a miss,
+`yielded` (a generator's yield, already R-Y), `out` at a cell's return (the body has ended), a worker's result
+(`deepFreeze(await runtime.run(job))`, a structured copy) and `madeStore` (a state cell's initial value, after its body
+returns). `on(...)` and `h(...)` freeze shallowly and publish nothing in the body. A listener or a JSX handler delivers
+by calling an action, whose own body is then the body that publishes.
+Widening, by program (`p1/w/widen.ts`): an action into a plain function type is `[action-pass]` (annotated local,
+generic id, helper parameter, `[f].forEach(put0)`) or `[inject-type]` (a cell input typed as a plain function); an
+array, record, ternary or state holding one keeps the `Action` type. `const st = s.set` and `[f].forEach(s.set)` are
+accepted (before R-P), and `s.set` in a record or a helper parameter is `[state-write]`. A memoised function is a plain
+function type everywhere and arrives as any function-typed input.
+The detector was built as cells in `ow-late.ss.ts` with a variant switch, then census3.ts against `p1/base.json`
+(46153 cells; 902 distinct checker cells, 4632 other cells; a section check includes every checker cell, so the 62
+sections repeat them; new cells of ow-late are not counted):
+```
+variant                                                    checker cells   other cells
+fail-closed (set/update, action calls, local memo calls)               0             0
+type-filtered (the same, argument's own type may hold a fn)            0             0
++ any call of a function-typed input or parameter with a
+  non-primitive argument (the widen point)                            327           462
++ the same, only an argument whose type may hold a function           263           398
+control: every call a point                                     (21868 cells changed)
+control: a write anywhere in a function that has a point              0             0
+```
+The last control says the corpus has no function that both publishes and writes a Mut-holding local, so its 0 is not
+evidence about such code; freeze-attack4's ordinary programs and the spec rows are the ergonomic check. The widen
+points cost the checker's own events/store cells (`ss:lite/events.ss.ts schedulePull`, `deliver`, `onRun`, ...).
+A local memoised call as a point rejects ordinary code: `for (...) out.push(fib(i))` and `m.set(k, sq(k))` (both with
+primitive arguments). Chosen: fail-closed over state writes and action calls; a memoised call is not a point, because
+step 4 makes a miss whose arguments reach a function store nothing, so the memo is not a holder of the function.
+(The 327/462 row was run with local memo calls as points too; the 263/398 row on the chosen rule.)
+
+### Step 4: memo stores no argument that reaches a function (ran)
+`prelude.runtime.ts reachesFn`: a walk of the argument list (arrays, records, `Map`, `Set`, an `Error`'s own
+properties; typed arrays, `ArrayBuffer`, `Date`, `RegExp`, `URL` are leaves; any other kind counts as reaching a
+function). It does not use deepFreeze's walk, which skips a value frozen earlier and, with registration off, never
+enters a function. A frozen object's answer is kept in a WeakMap; an answer read while a part was open on the path
+(a cycle) is not. `p1-m-prefrozen` gives the argument to a first memoised function before the second.
+Checker time (`m1/time-sections.ts`, ms, three runs each): before the change 4638 / 4612 / 4643; after 4642 / 4673 /
+4697; in the final gates 5010 / 4835 / 4743 (another agent was running during those).
+Attack 6's memo programs after the change, mode (a) and (b): 0 stores keyed by the program's `r` (`m/memo-stores-*.txt`,
+`p1/count-stores.ts`); before it, the tap recorded the store (`m-old/fa6-drive-b.txt`, `TAP memo store`).
+
+### Step 5: R-P (S4.11)
+Cells in `lite/infer/ow-late.ss.ts` (wired in `ow-entry.ss.ts owCheckIn` after R-M): `owPubNode` (10 lines with its
+comment), `owPubPoints` (17), `owPubWhat` (9), `owPubWrites` (21). Rule ids are R-M's: `[mutating-method]` when the
+write is a call, else `[member-write]`. Points: a non-computed member `.set`/`.update` on a State-typed object, called
+or read as a value; a call with arguments whose callee's type is an `Action`; an `Action`-typed name or member passed as
+an argument. A point inside a helper bound to a const (or a function declaration) moves to each call of it, and one in a
+callback a built-in calls at once (`owCallsAtOnce`) to that call, repeatedly. Writes and "after" are `owUsesOf` and
+`owAfter` (R-Y's): a direct write, a pass to a `Mut<…>` parameter (`owWriteRef`), a call of a helper that writes it,
+later in the text, in an expression that holds the point, or in a loop around the point when the local is declared
+outside the loop's body. Bindings: not a cell input; `mutOwned`, a `Mut` type, or `owLocalHoldsMut`.
+Message (each fix run through checkSources): "xs is written after a value is published at s.set in the same run of this
+function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11);
+finish every write to xs before s.set, or write to a new local declared after it". Both fixes are accepted
+(`fix1`/`fix2` in the log of chk.ts runs; spec test_spec_S4_11).
+Frozen mirror: `frozen/own.ts` one `DELIBERATE CHANGE (2026-11-23, p1, R-P)` block after R-M. `diff.ts` corpus:
+ownership SAME 3772 DIFFERENT 0; with every p1 and attack-6 program as `--file` (`p1/files.ts`, 370 files): ownership
+SAME 4954 DIFFERENT 0. Control: with the frozen block's points emptied, DIFFERENT 158.
+Spec: S4.11 (new; 5 reject rows, `test_spec_S4_11` with an accept case: writes before `s.set`, a new local after it, a
+Mut written after a memoised call), S4.10 (why the read-only bind is safe only when every write precedes the publish),
+S2.13 (a call whose arguments reach a function is not stored; `test_spec_S2_13` asserts it on a record with a function
+field, a nested one, and a plain record), Not specified: the foreign-result `Mut` (owner's ruling) and a foreign
+function as a receiver. Tutorial: a rule row; rules.ts: the member-write and mutating-method summaries.
+`.scratch/m1/rows.ts`: 430 rows, 0 not exactly their rule; 37 accept rows, 0 not accepted.
+
+### Step 6: measurement (`p1/measure.sh`, outputs `p1/m/`, 04:30–04:32, deep freeze kept in both modes)
+```
+                                         programs  accepted  silent (a)  (b)   k1 accepted / silent (a)/(b)
+run-sets (17 sets, p1 included)              2095       209           0    0   292 of 2055 / 0/0
+  p1                                           40         7           0    0   (before the change: 37, 0/36)
+freeze-attack2 run.ts                         309         7           0    0   8 / 0/0
+freeze-attack3 run.ts                         360        11           0    0   12 / 0/0
+convert-freeze/attack1 (main tree)            246         1           0    0   1 / 0/0
+freeze-attack4 (fa3 run.ts; drive-run.ts)     223        80           5    5   80 / 5/5
+freeze-attack5 (fa3 run.ts; drive-run.ts)     441        12           0    0   12 / 0/0
+freeze-attack6 run.ts (its own check)         288        83           0   23   195 / 0/133
+freeze-attack6 via freeze-attack3/run.ts      288        83           0    0   195 / 0/0
+```
+Attack 6 per set, accepted before -> now, silent (b) before -> now: m0 2->1, 2->1; a1 93->0, 92->0; a2 32->31, 21->20;
+a3 23->20, 3->0; a4 14->6, 8->0; a5 13->7, 5->0; a6 9->9, 2->2; a7 9->9, 0->0; c0 0->0. 112 programs moved from accepted
+to rejected: 110 of the 133 silent, and `a1-data-set-push`, `a5-actarg-data` (data, which threw in both modes). None
+became accepted. Controls: (a) 11 of 38 fire, (b) 38 of 38, as before.
+The 23 still silent in (b) by attack 6's drives are its memo programs (`m0-P-memo`, `a2-prog-*`, `a2-cross-hit-*`,
+`a2-wrap-*`, `a2-local-*` for five holders, `a6-async-memo-width`, `-hit-other`). In each run nothing stored a key
+holding `r` (0 stores, both modes), so no holder was given `r`: the drives compare what the publishing body recorded
+before its own write with `r` now, or with what `b` got on a miss, which is `a`'s own `r` handed back by the identity
+function. They meet the claim's wider wording (a value passed to a memoised function changes after the call, in (b)
+only; in (a) the write throws) and not "a value another cell holds differs from what it was given". A static rule for
+them needs the widen point (263 checker and 398 other cells, above).
+Older programs newly rejected by R-P: `h8-act-partial` (run-sets h8, 5 -> 4), freeze-attack2 `b7:usp-action-set` (8 -> 7)
+and freeze-attack3 `b8:act-partial-freeze` (12 -> 11); none of them was silent before (k1: 0/0).
+Ergonomics: corpus 0 of 46153 cells newly rejected (0 of 902 checker cells, 0 of 4632 others; control above).
+freeze-attack4's 15 ordinary programs (`probe.ts p6.ts`): 7 accepted (e1, e5, e6, e7, e8, e11, e14), the same verdict on
+all 30 of its programs as k1's `erg-now.txt`.
+
+### Review (fresh-context opus agent, reviewer.md, spec.ojs and tutorial.ojs)
+BLOCK on prose older than this round; each finding checked by hand or by checkSources, then fixed:
+- Tutorial intro, "Why take things out" and section 6 promised that a cell with unchanged inputs is skipped; S8.4 and
+  the tutorial's own "What a cell compiles to" say a cell runs whenever an input was computed again. Rewritten
+  (section 6 is now "Running only the cells a change reaches").
+- Section 6: `stamped` re-runs because it reads `doubled`, not because it takes `ss_now`. Fixed.
+- Section 2 counted five rejected cells; `moved` is accepted since 2026-11-22 (S4.1). Text says four;
+  `examples/02-errors.ts` comments corrected (`jitter` is `[banned-member]`).
+- Spec Not specified said a prelude function as a value is accepted; `() => mut` is `[removed-call]`, `() => snapshot`
+  `[prelude-value]`. Item deleted.
+- Listeners end on a rerun only with other events or another action (S7.4). Fixed.
+- Language reference date 2026-11-14 -> 2026-11-23; the prelude list now matches S2.6 and marks the removed calls.
+- Cross-module listener order marked as not promised; the 159-source figure given its date and today's 430.
+- `test_spec_S2_10` and `test_spec_S6_18` added (`spec_rejectsFor`); S6.15/S6.17 (removed statements) left as they are.
+- S4.11 no longer uses the undefined term "closure registration".
+After the fixes: build 0; rows.ts 430 rows, 0 not exactly their rule, 37 accept rows, 0 not accepted; verify --quick
+232 pass, 0 fail.
+
+### Gates on the final tree (`p1/gates.sh` 04:38–04:44, `p1/final/`; full verify 04:44–04:49)
+```
+build 0 | bun-verify 180 pass 0 fail | fixtures 14/14, 54 rules, 54 with a reject case
+diff: 1062 sources, SAME 3772 DIFFERENT 0; ownership SAME 3772 DIFFERENT 0 | --module-only SAME 1152 DIFFERENT 0
+tc-diff 56 DIFFERENT lines (k1's, by design) | live.test 461 pass 0 fail | freeze-table 441 pass 0 fail
+tc 11 / run 2 / acorn 6 pass | run-sets 2095 programs silent 0; with SS_MEASURE_REG=0 silent 0 (p1 accepted 7,
+controls fired 4 of 5) | fa2 309 candidates, accepted 7, silent 0 | fa3 360, accepted 11, silent 0
+verify --quick 232 pass 0 fail | verify (full, once) 674 pass 0 fail, measurements 8
+checker ix+ow 5010 / 4835 / 4743 / 4789 / 4642 / 4785 ms
+```
+
+### Deviations
+- A memoised call is not a static publish point (the brief's list had it); step 4 covers it at run time. The census
+  showed it rejects ordinary loops over a memo with primitive arguments.
+- `publishTap` is a hook in `prelude.runtime.ts` (null in normal runs), for the instrument.
+- fa2/fa3 `run-all.sh` in the copied gates writes `all.out.txt` into those attack folders, as k1's gates did.
+- R-P is fail-closed: a data publish followed by a Mut write is rejected too (`a1-data-set-push`, `a5-actarg-data`,
+  `p1-d-set`).
+- The review's findings were mostly in prose older than this round; all were fixed here.
+
+### Open
+- The 23 attack-6 memo programs read DIFF by its drives in (b) with no store of `r` (step 6). A static rule for them
+  would be the widen point: 263 checker cells and 398 others.
+- A foreign function as a receiver is not a point (Not specified).
+- The census cannot rank the variants: no corpus function both publishes and writes a Mut-holding local.

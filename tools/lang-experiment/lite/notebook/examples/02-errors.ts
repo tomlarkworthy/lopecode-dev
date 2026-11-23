@@ -4,10 +4,10 @@ const label = () => "px";
 // 1. A type error: label is a string.
 const doubled = (label: number) => label * 2;
 
-// 2. A free name: Math.random is not an allowed intrinsic; take the random capability instead.
+// 2. A banned member: Math.random is not an allowed member of Math; take the random capability instead.
 const jitter = (width: number) => width + Math.random();
 
-// 3. A member write: values are immutable by default.
+// 3. Accepted: a member write to an object the function made (writable since 2026-11-22, S4.1).
 const moved = (width: number) => {
   const p = { x: 0, y: 0 };
   p.x = width;

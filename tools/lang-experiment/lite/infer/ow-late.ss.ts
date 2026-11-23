@@ -136,3 +136,63 @@ export const owMemoArgs = (owMemoFns, owEncl, owUsesOf, owAfter, owWriteAt, owEr
     }
   }
 };
+// R-P (p1, 2026-11-23): n publishes a value to a holder while its function still runs (S4.11): a State's set or update,
+// called or read as a value (const st = s.set, [f].forEach(s.set)); an action called with arguments, or passed to a call
+// that may call it. A memoised function is not one: a miss whose arguments reach a function stores nothing (S2.13)
+export const owPubNode = (owIsState, ixUm, isNamed, unwrap, owArgIndex) => (O: OwCtx, n: AstNode): boolean => {
+  const isAct = (x: AstNode) => { const t = O.F.types.get(x.nid); return t !== undefined && ixUm(O.R, t).some((m) => isNamed(unwrap(m), "Action")); };
+  const p = O.T.parent.get(n.nid);
+  if (n.type === "MemberExpression" && !n.computed && n.property.type === "Identifier" && (n.property.name === "set" || n.property.name === "update")) return owIsState(O, n.object);
+  if (n.type === "CallExpression") return n.arguments.length > 0 && isAct(n.callee);
+  return (n.type === "Identifier" || n.type === "MemberExpression") && p !== undefined && (p.type === "CallExpression" || p.type === "NewExpression") && owArgIndex(p.arguments, n) >= 0 && isAct(n);
+};
+// R-P: the points of each function after which a value it published may be seen: a publish (owPubNode) in its own body;
+// a call of a helper bound to a const or declared with function, at each call; a callback a built-in calls at once, at
+// that call. A publish in a kept function is a point of that function only
+export const owPubPoints = (owPubNode, owEnclFn, owCallsAtOnce, owDeclaredBy, owIsCallee) => (O: OwCtx): Map<number, AstNode[]> => {
+  const out: Mut<Map<number, AstNode[]>> = new Map(), seen: Mut<Set<string>> = new Set();
+  const todo: Mut<AstNode[]> = O.T.all.filter((n) => owPubNode(O, n));
+  for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
+    const e = owEnclFn(O, n) ?? O.T.fn, k = `${e.nid}:${n.nid}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.set(e.nid, [...(out.get(e.nid) ?? []), n]);
+    const p = O.T.parent.get(e.nid);
+    if (p === undefined || e.nid === O.T.fn.nid) continue;
+    if (p.type === "CallExpression" && (p.callee.nid === e.nid || owCallsAtOnce(O, p, e))) { todo.push(p); continue; }
+    const b = owDeclaredBy(O, p, e);
+    if (b !== undefined && b.fnNode === e.nid) for (const r of O.T.refs.get(b.id) ?? []) { const c = O.T.parent.get(r.nid); if (c !== undefined && owIsCallee(O, r)) todo.push(c); }
+  }
+  return out;
+};
+// R-P: a point as the message names it: the name called or read (s.set, put0, sq), or the call's callee
+export const owPubWhat = () => (p: AstNode): string => {
+  const n = p.type === "CallExpression" ? p.callee : p;
+  if (n.type === "Identifier") return `${n.name}(…)`;
+  if (n.type === "MemberExpression" && !n.computed && n.property.type === "Identifier") return n.object.type === "Identifier" ? `${n.object.name}.${n.property.name}${p.type === "CallExpression" ? "(…)" : ""}` : `….${n.property.name}(…)`;
+  return "a call";
+};
+// R-P: a local whose type holds a Mut (or a Mut the function owns), declared in g before a point of g or read by g from
+// an encloser, is not written after the point ("after" as owAfter; a call of a helper that writes it, and passing it
+// to a Mut parameter, are writes): a function published there may read it through a read-only name (S4.10)
+export const owPubWrites = (owPubPoints, owPubWhat, owLocalHoldsMut, owUsesOf, owAfter, owWriteAt, owEncl, owErr, isNamed) => (O: OwCtx, W: OwW, caps: Map<number, OwCap>, byFn: Map<number, number>): void => {
+  const pts = owPubPoints(O);
+  for (const g of [O.T.fn, ...O.T.fns]) {
+    const ps = pts.get(g.nid) ?? [];
+    if (!ps.length) continue;
+    for (const id of O.T.refs.keys()) {
+      const b = O.F.bindings.get(id), d = b === undefined ? undefined : O.T.byNid.get(b.nid);
+      if (b === undefined || d === undefined || b.cellParam || !(b.mutOwned || isNamed(b.t, "Mut") || owLocalHoldsMut(O, b))) continue;
+      const captured = owEncl(O, d).nid !== g.nid;
+      if (captured && !(caps.get(g.nid)?.read ?? []).includes(b.id)) continue;
+      for (const u of owUsesOf(O, caps, byFn, b)) {
+        if (!u.write || (captured && !(u.at.start >= g.start && u.at.end <= g.end))) continue;
+        const p = ps.find((x) => owAfter(O, g, d, captured, u, x));
+        if (p === undefined) continue;
+        const w = u.at.type === "CallExpression" ? u.at : owWriteAt(O, u.at);
+        owErr(W, u.at, w !== null && w.type === "CallExpression" ? "mutating-method" : "member-write", `${b.name} is written after a value is published at ${owPubWhat(p)} in the same run of this function; a function published there may read ${b.name} through a read-only name (S4.10) and would see the write (S4.11); finish every write to ${b.name} before ${owPubWhat(p)}, or write to a new local declared after it`);
+        break;
+      }
+    }
+  }
+};

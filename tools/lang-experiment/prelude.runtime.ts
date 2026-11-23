@@ -86,11 +86,15 @@ export const isAction = (v: unknown) => typeof v === "function" && Object.hasOwn
 // own, not inherited: a record whose prototype is a handle is not one
 export const isRefHandle = (v: unknown) => !!v && typeof v === "object" && Object.hasOwn(v, REFHANDLE);
 
+// a measurement hook (p1, 2026-11-23): told each value a holder keeps while a body may still run (a state write; a
+// memoised call's arguments and result when they are stored); null outside lite/infer/attack/observe.ts's runs
+export const publishTap: { f: ((where: string, v: unknown) => void) | null } = { f: null };
 // an update function that throws throws here, inside the call, before its write
 function write(h: object, f: (v: unknown) => unknown) {
   notInMemo("a state written");
   const s = recordOf(h)!;
   const v = deepFreeze(f(seenValue(h, updateSees(storeState, nameOfHandle(h), s))));
+  if (publishTap.f !== null) publishTap.f(`write ${nameOfHandle(h)}`, v);
   storeFeed({ t: "write", handle: storeHandleOf(h), name: nameOfHandle(h), store: s, value: v });
 }
 // A handle is an Observable view: an EventTarget whose value is the committed state, which dispatches
@@ -180,8 +184,9 @@ export function action(f: (...args: unknown[]) => unknown) {
 // memo(f) (S2.13): f's result for an argument list seen before, else f's. A key is the argument count, then each
 // argument: a primitive by Object.is (so -0 is not 0), an object by identity, held weakly. A miss deep-freezes the
 // arguments in place, as an action's arguments are, so a caller's later write to one throws (S4.6), and the result; it
-// stores only when no argument needed a copy (a typed array, a native Map) and f returned. A frozen copy of each object
-// argument instead (tried 2026-11-23) made the checker 6x slower: its keys are trees made in the same call, never frozen.
+// stores only when no argument needed a copy (a typed array, a native Map), no argument reaches a function (p1) and f
+// returned. A frozen copy of each object argument instead (tried 2026-11-23) made the checker 6x slower: its keys are
+// trees made in the same call, never frozen.
 // >0 while a memoised function computes a result: an action call, a write or read(...) then throws, since a later call
 // that gives the stored result would skip it (what the checker cannot see: a function value that calls an action)
 let memoDepth = 0;
@@ -200,6 +205,32 @@ function memoStep(n: MemoNode, k: unknown, add: boolean): MemoNode | undefined {
   if (c === undefined && add) (n.p ??= new Map()).set(key, (c = memoNode()));
   return c;
 }
+// p1 (2026-11-23): an argument list that reaches a function is not stored. With closure registration off nothing
+// freezes what the function captures, so a body that writes such a capture after the call would change a stored key's
+// value; no static rule sees a memoised function that arrives as a cell input. Fail-closed: an object of a kind not
+// walked here counts as reaching one. A frozen object's answer is kept (its graph cannot change); a part met again on
+// the path (a cycle) is not, since it was read as false while open
+const REACH_FN = new WeakMap<object, boolean>();
+const LEAF_PROTOS = new Set<object>([Date.prototype, RegExp.prototype, URL.prototype, ArrayBuffer.prototype]);
+function reachesFn(v: unknown, open: Set<object>, cyc: { hit: boolean }): boolean {
+  if (typeof v === "function") return true;
+  if (typeof v !== "object" || v === null) return false;
+  const known = REACH_FN.get(v);
+  if (known !== undefined) return known;
+  if (open.has(v)) { cyc.hit = true; return false; }
+  const p = Object.getPrototypeOf(v);
+  if (ArrayBuffer.isView(v) || (p !== null && (LEAF_PROTOS.has(p) || p instanceof URL))) return false;
+  const kids: unknown[] = Array.isArray(v) ? v : v instanceof Map ? [...v].flat() : v instanceof Set ? [...v]
+    : p === Object.prototype || p === null || v instanceof Error ? Object.getOwnPropertyNames(v).map((k) => (v as Record<string, unknown>)[k]) : [() => 0];
+  open.add(v);
+  const before = cyc.hit;
+  cyc.hit = false;
+  const r = kids.some((x) => reachesFn(x, open, cyc));
+  open.delete(v);
+  if ((r || !cyc.hit) && Object.isFrozen(v)) REACH_FN.set(v, r);
+  cyc.hit = cyc.hit || before;
+  return r;
+}
 export function memo<A extends unknown[], R>(f: (...a: A) => R): (...a: A) => R {
   const root = memoNode();
   const path = (a: unknown[], add: boolean) => { let n = memoStep(root, a.length, add); for (let i = 0; n !== undefined && i < a.length; i++) n = memoStep(n, a[i], add); return n; };
@@ -211,7 +242,7 @@ export function memo<A extends unknown[], R>(f: (...a: A) => R): (...a: A) => R 
     let r0: R;
     try { r0 = f(...fa); } finally { memoDepth--; }
     const r = deepFreeze(r0);
-    if (fa === a) { const n = path(a, true)!; n.has = true; n.v = r; }
+    if (fa === a && !reachesFn(fa, new Set(), { hit: false })) { const n = path(a, true)!; n.has = true; n.v = r; if (publishTap.f !== null) publishTap.f("memo store", [fa, r]); }
     return r;
   };
   // the memoised function reaches f: deepFreeze freezes what f captures when it is published

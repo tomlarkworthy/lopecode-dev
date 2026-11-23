@@ -60,9 +60,12 @@ test("the programs that need the owner (printed)", () => {
 // holes8: selfhost/freeze-attack3 (islands on the page, promises a kept function captures, rejection reasons) and
 // h8-attacks.ts, read by the observer with promise snapshots, compile islands and two readings per run; rule set R:
 // h9-attacks.ts; m1 step 2: m1-attacks.ts (memo against memoStrip, [mut-nested], R-M), whose 3 controls must fire; k1:
-// k1-attacks.ts (the deep R-K test, the strip), whose 3 controls closure registration stops here (they fire with SS_MEASURE_REG=0)
-test("freeze-attack, h6, freeze-attack2, h7, freeze-attack3, h8, h9, m1 and k1 families: accepted programs change nothing another cell holds, or throw", () => {
-  const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "freeze,h6,freeze2,h7,freeze3,h8,h9,m1,k1"], { stdout: "pipe", stderr: "pipe" });
+// k1-attacks.ts (the deep R-K test, the strip), whose 3 controls closure registration stops here (they fire with SS_MEASURE_REG=0);
+// p1: p1-attacks.ts (a function published before its body ends, then a write; S4.11), read by drives and the publish tap,
+// whose let control fires in both modes (the other 4 only with SS_MEASURE_REG=0, and the memo one not since S2.13 stores
+// no argument that reaches a function)
+test("freeze-attack, h6, freeze-attack2, h7, freeze-attack3, h8, h9, m1, k1 and p1 families: accepted programs change nothing another cell holds, or throw", () => {
+  const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "freeze,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1"], { stdout: "pipe", stderr: "pipe" });
   const out = r.stdout.toString(), lines = out.split("\n");
   console.log(lines.filter((l) => l.startsWith("-- ")).join("\n"));
   expect(lines.filter((l) => l.startsWith("SILENT "))).toEqual([]);
@@ -76,4 +79,6 @@ test("freeze-attack, h6, freeze-attack2, h7, freeze-attack3, h8, h9, m1 and k1 f
   expect(out).toMatch(/^-- m1-controls: 3, fired 3$/m);
   expect(out).toMatch(/^-- k1: 65 programs/m);
   expect(out).toMatch(/^-- k1-controls: 3, fired 0$/m);
+  expect(out).toMatch(/^-- p1: 40 programs/m);
+  expect(out).toMatch(/^-- p1-controls: 5, fired 1$/m);
 }, 300000); // the child run takes about 15 s, over bun's default limit

@@ -228,13 +228,13 @@
 == b6.ts:cw-nested-arr: REJECT w:rejected[member-write]
 == b6.ts:cw-nested-arr2: REJECT w:rejected[member-write]
 == b7.ts:st-init-rej: REJECT s:rejected[mut-await] obs:rejected[mut-yield]
-== b7.ts:st-set-rej: REJECT w:rejected[action-async][mut-capture][mut-await] obs:rejected[mut-yield]
-== b7.ts:st-set-nmap-fn: REJECT w:rejected[action-async][mut-capture][mut-await]
+== b7.ts:st-set-rej: REJECT w:rejected[action-async][mut-capture][mut-await][member-write] obs:rejected[mut-yield]
+== b7.ts:st-set-nmap-fn: REJECT w:rejected[action-async][mut-capture][mut-await][mutating-method]
 == b7.ts:ev-yield-rej: REJECT g:rejected[mut-yield] add:rejected[arity][untyped-parameter][state-write] l:rejected[inject-events]
 == b7.ts:gen-yield-rej: REJECT a:rejected[mut-yield] obs:rejected[mut-yield]
 == b7.ts:gen-return-rej: REJECT a:rejected[mut-yield]
 == b7.ts:async-gen-yield-nmap-fn: REJECT a:rejected[mut-capture][mut-yield]
-== b7.ts:act-arg-rej: REJECT add:rejected[arity][untyped-parameter][state-write] w:rejected[action-async][mut-capture][mut-await]
+== b7.ts:act-arg-rej: REJECT add:rejected[arity][untyped-parameter][state-write] w:rejected[action-async][mut-capture][mut-await][member-write]
 == b7.ts:jsx-fn-prop-rej: REJECT a:rejected[arity][mut-capture][mut-await][action-capture]
 == b7.ts:gen-reyield-written: REJECT a:rejected[mut-yield]
 == b7.ts:gen-reyield-copy-path: REJECT a:rejected[mut-yield][mut-yield]
@@ -258,9 +258,8 @@
 == b8.ts:cyclic-map: REJECT a:rejected[mut-await]
 == b8.ts:deep-2000: REJECT a:rejected[mut-await]
 == b8.ts:same-obj-two-cells: REJECT c:rejected[strict-eq-object]
-== b8.ts:act-partial-freeze: ACCEPT
-   show s = 0 | E[]
-== b8.ts:act-partial-freeze2: REJECT w:rejected[action-call]
+== b8.ts:act-partial-freeze: REJECT w:rejected[mutating-method]
+== b8.ts:act-partial-freeze2: REJECT w:rejected[action-call][mutating-method]
 == b8.ts:publish-throws-then-ok: REJECT a:rejected[iterator-cell]
 == b8.ts:gen-yield-throws-continues: REJECT a:rejected[mut-yield][iterator-cell]
 == b8.ts:state-init-throw: REJECT s:rejected[iterator-cell]
@@ -371,11 +370,11 @@
 == b11.ts:lis-nmap: REJECT g:rejected[mut-capture][mut-yield] l:rejected[inject-events]
 == b11.ts:lis-nmap-sync: REJECT g:rejected[mut-capture][mut-yield] l:rejected[inject-events]
 == b11.ts:act-set-rej: REJECT w:rejected[mut-capture][mut-capture][mut-await][action-capture] obs:rejected[mut-yield]
-== b11.ts:act-set-rej-inner: REJECT w:rejected[mut-capture] obs:rejected[mut-yield]
-== b11.ts:act-arg-rej: REJECT add:rejected[mut-capture] w:rejected[mut-capture] obs:rejected[mut-yield]
-== b11.ts:act-set-nmap: REJECT w:rejected[mut-capture]
-== b11.ts:act-update-nmap: REJECT w:rejected[mut-capture]
-== b11.ts:act-arg-nmap: REJECT w:rejected[mut-capture]
+== b11.ts:act-set-rej-inner: REJECT w:rejected[mut-capture][member-write] obs:rejected[mut-yield]
+== b11.ts:act-arg-rej: REJECT add:rejected[mut-capture] w:rejected[mut-capture][member-write] obs:rejected[mut-yield]
+== b11.ts:act-set-nmap: REJECT w:rejected[mut-capture][mutating-method]
+== b11.ts:act-update-nmap: REJECT w:rejected[mut-capture][mutating-method]
+== b11.ts:act-arg-nmap: REJECT w:rejected[mut-capture][mutating-method]
 == b11.ts:jsx-nmap: REJECT a:rejected[mut-capture][mut-await]
 == b11.ts:isl-pool-typed-show: ACCEPT
    show go = {t:Uint8Array[3,0]} | E[]
@@ -383,7 +382,7 @@
    drive -> array true indices true groups true
 -- controls 4, fired 4
 -- accepted with a cell still pending at the end: 0
--- 360 candidates, accepted 12, silent 0
+-- 360 candidates, accepted 11, silent 0
 118 |         // cell facts and text come from the check's parse
 119 |         const byName = new Map([...result.facts!.values()].map((info) => [info.name, { info, text: source.slice(info.span![0], info.span![1]) }] as const));
 120 |         const isl = island([...byName.values()].map(({ info }) => ({ name: info.name, params: info.params.map((p) => p.name), refCell: info.returnsRef })), spec);

@@ -484,6 +484,63 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
         err(u.at, w && w.type === "CallExpression" ? "mutating-method" : "member-write", `${b.name} is written after it was given to the memoised function ${name}, which froze it in place, so the write would throw; write it before the call, or give ${name} a copy (snapshot(${b.name}))`);
       }
     }
+    // DELIBERATE CHANGE (2026-11-23, p1, R-P): a local whose type holds a Mut (or a Mut it owns), declared before a point
+    // at which the function publishes a value to a holder while it still runs (a State's set or update, called or read as
+    // a value; an action called with arguments or passed to a call), is not written after the point; a point inside a
+    // helper or a callback a built-in calls at once is a point at that call (ow-late owPubNode, owPubPoints, owPubWrites)
+    {
+      const isTy = (x: Node, n: string) => { const t = F.types.get(x); return !!t && ch.um(t).some((m) => isNamed(unwrap(m), n)); };
+      const pubNode = (n: Node): boolean => {
+        const p = parent.get(n);
+        if (n.type === "MemberExpression" && !n.computed && n.property.type === "Identifier" && (n.property.name === "set" || n.property.name === "update")) return isTy(n.object, "State");
+        if (n.type === "CallExpression") return n.arguments.length > 0 && isTy(n.callee, "Action");
+        return (n.type === "Identifier" || n.type === "MemberExpression") && !!p && (p.type === "CallExpression" || p.type === "NewExpression") && (p.arguments as Node[]).includes(n) && isTy(n, "Action");
+      };
+      const atOnce = (p: Node, x: Node): boolean => {
+        const sig = F.calls.get(p)?.sig, fl = sig?.flags, d = sig && (sig.decl ?? sig), i = (p.arguments as Node[]).indexOf(x);
+        const dp = d && (i < d.ps.length ? d.ps[i]?.t : d.rest);
+        if (fl?.intrinsic && !fl.retains && dp && ch.reg.callSigs(dp).length) return true;
+        const c = p.callee;
+        return p.type === "CallExpression" && c.type === "MemberExpression" && !c.computed && c.property.type === "Identifier" && c.property.name === "update" && isTy(c.object, "State");
+      };
+      const pts = new Map<Node, Node[]>(), seen = new Set<string>(), todo = all.filter(pubNode);
+      for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
+        const e = encl(n), k = `${e.start}:${e.end}:${n.start}:${n.end}:${n.type}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        pts.set(e, [...(pts.get(e) ?? []), n]);
+        const p = parent.get(e);
+        if (!p || e === cellFn) continue;
+        if (p.type === "CallExpression" && (p.callee === e || atOnce(p, e))) { todo.push(p); continue; }
+        const id = p.type === "VariableDeclarator" && p.init === e && p.id.type === "Identifier" && parent.get(p)?.type === "VariableDeclaration" && parent.get(p)?.kind === "const" ? p.id : e.type === "FunctionDeclaration" ? e.id : null;
+        const b = id ? F.bindingOf.get(id) : undefined;
+        if (b && b.fnNode === e) for (const r of refs.get(b) ?? []) { const c = parent.get(r); if (c && isCallee(r)) todo.push(c); }
+      }
+      const what = (p: Node): string => {
+        const n = p.type === "CallExpression" ? p.callee : p;
+        if (n.type === "Identifier") return `${n.name}(…)`;
+        if (n.type === "MemberExpression" && !n.computed && n.property.type === "Identifier") return n.object.type === "Identifier" ? `${n.object.name}.${n.property.name}${p.type === "CallExpression" ? "(…)" : ""}` : `….${n.property.name}(…)`;
+        return "a call";
+      };
+      for (const g of [cellFn, ...fns]) {
+        const ps = pts.get(g) ?? [];
+        if (!ps.length) continue;
+        for (const b of refs.keys()) {
+          const d = b.node;
+          if (!d || b.cellParam || !(b.mutOwned || isMutB(b) || (local(b) && mutDeep(b.t, ch.reg) !== null))) continue;
+          const captured = encl(d) !== g;
+          if (captured && !capRead.get(g)?.has(b)) continue;
+          for (const u of usesOf(b)) {
+            if (!u.write || (captured && !within(u.at, g))) continue;
+            const p = ps.find((x) => after(g, d, captured, u, x));
+            if (!p) continue;
+            const w = u.at.type === "CallExpression" ? u.at : writeAt(u.at);
+            err(u.at, w && w.type === "CallExpression" ? "mutating-method" : "member-write", `${b.name} is written after a value is published at ${what(p)} in the same run of this function; a function published there may read ${b.name} through a read-only name (S4.10) and would see the write (S4.11); finish every write to ${b.name} before ${what(p)}, or write to a new local declared after it`);
+            break;
+          }
+        }
+      }
+    }
   }
   function fresh(a: Node): boolean {
     switch (a.type) {

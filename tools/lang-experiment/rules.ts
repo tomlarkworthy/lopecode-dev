@@ -19,9 +19,9 @@ export const RULES: RuleInfo[] = [
   { id: "reserved-name", section: "Cells and injection", how: "exact", summary: "viewof, mutable or $<digits> as a name in code (a cell, a local, a parameter, or $<digits> as a key or member)" },
   { id: "cell-by-name", section: "Cells and injection", how: "exact", summary: "a cell referenced by its module-level name instead of as a parameter" },
   // Immutable by default
-  { id: "member-write", section: "Immutable by default", how: "approx", summary: "assignment, compound assignment or ++/-- on a member of a non-Mut value" },
+  { id: "member-write", section: "Immutable by default", how: "approx", summary: "assignment, compound assignment or ++/-- on a member of a non-Mut value; a Mut written after a state write or an action call earlier in the same run of the function (S4.11)" },
   { id: "no-delete", section: "Immutable by default", how: "exact", summary: "delete" },
-  { id: "mutating-method", section: "Immutable by default", how: "approx", summary: "mutating method on a non-Mut Array/Map/Set/typed array" },
+  { id: "mutating-method", section: "Immutable by default", how: "approx", summary: "mutating method on a non-Mut Array/Map/Set/typed array; a Mut written by a call after a state write or an action call earlier in the same run of the function (S4.11)" },
   { id: "object-assign", section: "Immutable by default", how: "approx", summary: "Object.assign onto an existing (non-literal, non-Mut) value" },
   { id: "object-freeze", section: "Immutable by default", how: "exact", summary: "Object.freeze of anything but an object or array literal" },
   { id: "no-var", section: "Immutable by default", how: "exact", summary: "var" },

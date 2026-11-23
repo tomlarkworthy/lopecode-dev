@@ -7,7 +7,7 @@
 import { runCells, type Verdicts } from "../../browser/run.ts";
 import { scheduler } from "../../browser/cells.ts";
 import { checkSources } from "../../core.ts";
-import { isAction } from "../../../prelude.runtime.ts";
+import { isAction, publishTap } from "../../../prelude.runtime.ts";
 
 export const ser = (v: unknown, seen = new Set<unknown>()): string => {
   // an action is not read by calling it: a call is a write
@@ -64,6 +64,16 @@ const promiseChanges = (v: unknown, out: string[] = [], seen = new Set<unknown>(
   });
   return out;
 };
+// p1 (2026-11-23): each value published while a body still runs (a state write, an action's arguments, a memoised
+// call's arguments on a miss: prelude.runtime.ts publishTap), read when it is published and again when the returned
+// function is called, which also clears the hook. Reading calls functions (not actions), so a function that reads a
+// state or a capability can read differently with nothing written: each line is read by hand
+export const tapStart = (): (() => string[]) => {
+  const got: { where: string; obj: unknown; s: string }[] = [];
+  let busy = false;
+  publishTap.f = (where, v) => { if (busy) return; busy = true; try { got.push({ where, obj: v, s: ser(v) }); } finally { busy = false; } };
+  return () => { publishTap.f = null; return got.flatMap((g) => { const now = ser(g.obj); return now === g.s ? [] : [`${g.where}: ${g.s.slice(0, 120)} -> ${now.slice(0, 120)}`]; }); };
+};
 // the frames events cells wait for, run by pump (set again per run: a harness loaded later may have replaced it)
 const frames: (() => void)[] = [];
 const toFrames = (f: () => void) => void frames.push(f);
@@ -75,11 +85,13 @@ export async function observeProgram(p: Prog, nFrames = 12): Promise<Observed> {
   frames.length = 0;
   scheduler.frame = toFrames;
   const caps = p.fetchBody === undefined ? {} : { fetch: (async () => new Response(p.fetchBody)) as unknown as typeof fetch };
-  const prog = runCells(p.src, { tsx: true, checked: p.checked, caps, onChange: (r) => {
+  let tapStop: (() => string[]) | null = tapStart();
+  const prog = (() => { try { return run(); } catch (x) { tapStop!(); throw x; } })();
+  function run() { return runCells(p.src, { tsx: true, checked: p.checked, caps, onChange: (r) => {
     if (r.status !== "fulfilled") return;
     follow(r.value);
     first.set(r.name, [...(first.get(r.name) ?? []), { obj: r.value, s: ser(r.value), run: r.evals }]);
-  } });
+  } }); }
   const lines: string[] = [];
   const pump = async () => { for (let i = 0; i < nFrames && frames.length; i++) { for (const f of frames.splice(0)) f(); await prog.settle(400); } };
   try {
@@ -104,10 +116,14 @@ export async function observeProgram(p: Prog, nFrames = 12): Promise<Observed> {
       for (const x of first.get(n) ?? []) runs.set(x.run, [...(runs.get(x.run) ?? []), x.s]);
       for (const [k, vs] of runs) if (new Set(vs).size > 1) note(n, `twice ${n} run ${k}: ${vs.join(" , ")}`);
     }
+    // p1: a drive that compares what a value gave when it was published with what it gives now says DIFF
+    for (const l of lines) if (l.startsWith("drive -> ") && l.includes("DIFF")) { silent.push(l); lines.push(`CHANGED ${l}`); break; }
+    for (const l of tapStop()) { silent.push(`published ${l}`); lines.push(`CHANGED published ${l}`); }
+    tapStop = null;
     for (const n of p.show ?? []) lines.push(`show ${n} = ${prog.status(n) === "rejected" ? "ERROR " + prog.error(n) : ser(prog.value(n))}`);
     for (const r of prog.recs.values()) if (r.status === "rejected") lines.push(`error ${r.name}: ${String((r.error as Error)?.message ?? r.error).slice(0, 160)}`);
     return { silent, changed, threw: errored.size > 0, lines };
-  } finally { prog.dispose(); frames.length = 0; }
+  } finally { if (tapStop !== null) tapStop(); prog.dispose(); frames.length = 0; }
 }
 // silent: a cell whose value changed and that is not in error; threw: some cell is in error
 export async function observe(src: string, lent: readonly string[] = []): Promise<{ silent: string[]; threw: boolean }> {

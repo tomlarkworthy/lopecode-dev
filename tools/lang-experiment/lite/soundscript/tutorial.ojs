@@ -1,6 +1,6 @@
 md`# SoundScript
 
-SoundScript is TypeScript with things taken out, for writing notebook cells. A checker reads each cell and accepts it only if everything the cell depends on is in its parameter list. For an accepted cell the notebook knows what can change its value, so it can skip it when nothing changed, run it on another thread, and replay it in a test.
+SoundScript is TypeScript with things taken out, for writing notebook cells. A checker reads each cell and accepts it only if everything the cell depends on is in its parameter list. For an accepted cell the notebook knows what can change its value, so it runs it again only when an input is computed again, can run it on another thread, and can replay it in a test.
 
 This page is the tutorial. Every example is a live cell of this notebook, except the boxes of mistakes in sections 2 and 8: open its editor, change it, and press Shift-Enter. The first, \`width\`, is under the next heading.`
 // %%
@@ -18,7 +18,7 @@ md`**Try it.** Open \`width\` and change it to \`() => 800\`, then press Shift-E
 // %%
 md`## Why take things out
 
-An ordinary notebook cell can do anything JavaScript can. It can read \`document\`, call \`Math.random\`, or change an object that another cell returned. The runtime cannot see any of that, so it has to assume the worst: run every downstream cell again on every change, never reuse a result, and keep everything on the main thread.
+An ordinary notebook cell can do anything JavaScript can. It can read \`document\`, call \`Math.random\`, or change an object that another cell returned. The runtime cannot see any of that: a cell's value may depend on more than its inputs, so it cannot be moved to another thread or replayed in a test, and a value another cell returned may change under it.
 
 In the lopecode notebooks this is common. Of 8,650 cells counted on 2026-11-08 (279 modules, one declared canonical copy of each, from the lopecode and lopebooks notebook collections, each cell parsed and its free names compared with its inputs), 941 read a browser global that is not one of their inputs; \`document\` appears in 347 cells and \`window\` in 291.
 
@@ -47,7 +47,7 @@ depGraph(tutorial_module, invalidation, { only: ["width", "height", "area", "asp
 // %%
 md`## 2. What the checker rejects
 
-Eight cells: five each break one rule, \`width\` and \`label\` are the cells they read, and \`jittered\` is \`jitter\` written correctly. They are shown in a box and checked as you type; they are not run. Each message starts with the name of the rule in brackets.`
+Eight cells: four each break one rule, \`moved\` writes an object it made, which is allowed since 2026-11-22 (S4.1), \`width\` and \`label\` are the cells they read, and \`jittered\` is \`jitter\` written correctly. They are shown in a box and checked as you type; they are not run. Each message starts with the name of the rule in brackets.`
 // %%
 viewof src_errors = sourceBox(examples.errors)
 // %%
@@ -127,9 +127,9 @@ md`The cells are in [@tomlarkworthy/soundscript-reducer](${linkTo("@tomlarkworth
 // %%
 md`**Try it.** Open the reducer module from the link under the table. In \`step\`, change \`- last\` to \`+ last\`. The edit is accepted, because the types still agree, and \`test_undo\` fails: its row in the table reads \`throws: undo left 6\`. The checker proves that a cell depends only on its inputs. It does not prove that the cell is right.`
 // %%
-md`## 6. Skipping cells that did not change
+md`## 6. Running only the cells a change reaches
 
-A cell that depends only on its inputs, and whose inputs are the same values as last time, would return the same value. So the notebook does not run it. The table counts how many times each cell body has run.`
+A cell runs again when one of its inputs was computed again, equal value or not (S8.4). A cell that depends only on its inputs, none of which was computed again, keeps its value and does not run. The table counts how many times each cell body has run.`
 // %%
 model_view = framed(soundscript.mount(model_app, this))
 // %%
@@ -139,7 +139,7 @@ variableTable(model_module, invalidation)
 // %%
 md`The cells are in [@tomlarkworthy/soundscript-model](${linkTo("@tomlarkworthy/soundscript-model")}).`
 // %%
-md`**Try it.** Press **bump** and read the **runs** column. \`doubled\` runs again, because \`count\` changed, and so do \`scale\` and the cells that read \`scale\`: \`area\`, \`areaFn\` and \`areaOf4\`. \`app\`, the view, runs again because it shows \`count\`. \`side\` and \`bump\` keep their old count; neither reads \`count\`. \`stamped\` runs again too, and always would: its **inputs** include \`ss_now\`, the clock, so it is never skipped.`
+md`**Try it.** Press **bump** and read the **runs** column. \`doubled\` runs again, because \`count\` changed, and so do \`scale\` and the cells that read \`scale\`: \`area\`, \`areaFn\` and \`areaOf4\`. \`app\`, the view, runs again because it shows \`count\`. \`side\` and \`bump\` keep their old count; neither reads \`count\`. \`stamped\` runs again too, because it reads \`doubled\`. Its **inputs** also include \`ss_now\`, the clock: that makes it not repeatable, not run more often.`
 // %%
 md`## 7. Running cells on other threads
 
@@ -319,7 +319,7 @@ Measured in headless Chromium over ten page loads on 2026-11-14: section 7's 640
 // %%
 md`### Listeners
 
-A listener cell returns \`on(events, action)\`. While that value is the cell's value, the notebook runs the action once for each value the events cell yields, in order. It asks for the next value only after the action has run, so nothing is skipped or delivered twice. The listener ends when the cell runs again, is deleted, or its module is disposed. Starting and stopping the events themselves is ordinary dataflow: \`ticks\` reads \`playing\`, and the runtime restarts a generator cell when an input changes.`
+A listener cell returns \`on(events, action)\`. While that value is the cell's value, the notebook runs the action once for each value the events cell yields, in order. It asks for the next value only after the action has run, so nothing is skipped or delivered twice. The listener ends when the cell runs again with other events or another action, is deleted, or its module is disposed. Starting and stopping the events themselves is ordinary dataflow: \`ticks\` reads \`playing\`, and the runtime restarts a generator cell when an input changes.`
 // %%
 md`### The renderer
 
@@ -348,13 +348,13 @@ For a cell the checker accepts: it reads only its parameters and the allowed bui
 
 Not guaranteed:
 
-- The checker is a prototype. On 2026-11-16 a reference checker built on TypeScript's compiler could judge 149 of the specification's 159 rejected sources and gave the stated rule for 116. The checker here gives the stated rule for all 159 ("How good is the checker").
+- The checker is a prototype. On 2026-11-16 a reference checker built on TypeScript's compiler could judge 149 of the specification's 159 rejected sources (it has 430 on 2026-11-23) and gave the stated rule for 116. The checker here gives the stated rule for each of them ("How good is the checker").
 - A cell may take \`now\` or \`random\` and be accepted. It is then not repeatable, and its signature shows it.
 - An events cell that reads state restarts when it sees the state change. Two changes inside one commit are seen as one, so a clock paused and resumed in the same commit does not restart.`
 // %%
 md`## Language reference
 
-One entry per construct, as the checker checks it on 2026-11-14. The rules come from the language's v0 rule list; entries marked *lite* are additions made in this checker and are not in that list. The bracketed name is the rule a violation reports, as in the cell tables.`
+One entry per construct, as the checker checks it on 2026-11-23. The rules come from the language's v0 rule list; entries marked *lite* are additions made in this checker and are not in that list. The bracketed name is the rule a violation reports, as in the cell tables.`
 // %%
 md`### Cells
 
@@ -407,7 +407,7 @@ A cell that takes none of these is deterministic.`
 // %%
 md`### Names a body may use
 
-Its parameters, its own locals, the prelude (\`state\`, \`action\`, \`mut\`, \`freeze\`, \`borrow\`, \`snapshot\`, \`equals\`, and \`on\` in *lite*), and these intrinsics: \`Object Array Math JSON Number String Boolean BigInt Symbol Map Set Error TypeError RangeError RegExp Promise\`, the typed arrays, \`ArrayBuffer DataView TextEncoder TextDecoder Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone URL URLSearchParams\`. The v0 rules allow all of these, but the checker has no declarations yet for \`Symbol\`, \`DataView\`, \`TextEncoder\` and \`TextDecoder\`: using one is *unsupported*, and \`new\` on one is \`[new-non-intrinsic]\`; \`new Promise\` is also unsupported. Any other name is \`[free-name]\`. Some members of allowed objects are banned, \`Math.random\` among them (\`[banned-member]\`); a member a declared type does not have is \`[no-member]\`, and any member of an intrinsic that the checker's declarations leave out is reported *unsupported*, not ok.
+Its parameters, its own locals, the prelude (\`state\`, \`action\`, \`snapshot\`, \`equals\`, \`read\`, \`messageOf\`, \`memo\`, and \`on\` in *lite*; \`mut\`, \`freeze\` and \`borrow\` are names of removed calls, \`[removed-call]\`), and these intrinsics: \`Object Array Math JSON Number String Boolean BigInt Symbol Map Set Error TypeError RangeError RegExp Promise\`, the typed arrays, \`ArrayBuffer DataView TextEncoder TextDecoder Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone URL URLSearchParams\`. The v0 rules allow all of these, but the checker has no declarations yet for \`Symbol\`, \`DataView\`, \`TextEncoder\` and \`TextDecoder\`: using one is *unsupported*, and \`new\` on one is \`[new-non-intrinsic]\`; \`new Promise\` is also unsupported. Any other name is \`[free-name]\`. Some members of allowed objects are banned, \`Math.random\` among them (\`[banned-member]\`); a member a declared type does not have is \`[no-member]\`, and any member of an intrinsic that the checker's declarations leave out is reported *unsupported*, not ok.
 
 Not available at all: \`Date\`, \`console\`, \`window\`, \`document\`, \`globalThis\`, \`fetch\` (use the capability), timers, \`eval\`, \`Function\`.
 
@@ -445,6 +445,7 @@ A local bound to a fresh value (an array or object literal, \`new\` on an intrin
 | a cell's value and a cell's inputs never hold a \`Mut\` | \`[mut-cell]\` |
 | \`Mut<…>\` is written only as the whole type of a parameter, a local or a type alias, not in a field, element, type argument, union or result; nor is \`typeof\` there | \`[mut-nested]\` |
 | a function that outlives the call that made it does not capture a \`Mut\`, a local or parameter whose type holds a \`Mut\` anywhere (\`[xs, 1] as const\`), or a \`let\`, also only to read it; bind a \`const\` of a type with no \`Mut\` first (\`const c: readonly number[] = xs\`) and capture that | \`[mut-capture]\`, \`[let-capture]\` |
+| a function does not write a local whose type holds a \`Mut\` after a state write (\`s.set\`, \`s.update\`) or a call of an action with arguments that it makes before it ends; finish the writes first, or write a new local declared after it | \`[member-write]\`, \`[mutating-method]\` |
 | a generator cell does not yield a typed array or a \`URL\` it can still write; these cannot be frozen, so yield a copy | \`[mut-yield]\` |
 | in a generator, a local whose type holds a \`Mut\` anywhere, or a \`let\` of a non-primitive type, declared before a \`yield\` is not used after it; make it in the loop body | \`[mut-yield]\` |
 | the same across an \`await\` in a generator or any function made inside a cell; only an async cell's own body is exempt | \`[mut-await]\` |
@@ -477,7 +478,7 @@ md`### Events and listeners: \`Events\`, \`on\` (*lite*)
 | \`const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick)\` | a listener: \`tick\` runs once for each value of \`ticks\`; the action must accept what \`ticks\` yields (\`[type]\`) |
 | \`flag ? on(a, x) : on(b, y)\` | a listener on one of two events cells |
 
-\`on(...)\` is legal only as the whole value of a sync cell: not in a list or record, a state cell, a function's return, an argument, or a union with another value such as \`null\`, and no cell may take a listener cell (\`[listener-placement]\`). The generator is pulled only while a listener is attached, a sync one once per animation frame. If an action throws, the error is logged to the console as \`listener <cell>: action <action> threw on a value of events <events>\`, the action's writes are discarded, and the next value is still delivered. If the generator throws, the error is logged and it yields nothing more until it runs again. When two listener cells take the same events cell, each value goes to them in the order the cells appear in the module, and listeners in other modules after them, by module name; editing or re-running a listener does not change its place. Section 9.`
+\`on(...)\` is legal only as the whole value of a sync cell: not in a list or record, a state cell, a function's return, an argument, or a union with another value such as \`null\`, and no cell may take a listener cell (\`[listener-placement]\`). The generator is pulled only while a listener is attached, a sync one once per animation frame. If an action throws, the error is logged to the console as \`listener <cell>: action <action> threw on a value of events <events>\`, the action's writes are discarded, and the next value is still delivered. If the generator throws, the error is logged and it yields nothing more until it runs again. When two listener cells take the same events cell, each value goes to them in the order the cells appear in the module, and listeners in other modules after them (their order among modules is not promised, see the specification's Not specified list); editing or re-running a listener does not change its place. Section 9.`
 // %%
 md`### Workers: \`compile\` (*lite*)
 

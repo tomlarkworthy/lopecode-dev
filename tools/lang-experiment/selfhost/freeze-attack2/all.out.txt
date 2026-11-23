@@ -163,9 +163,9 @@
 == b6.ts:kept-alias-map: REJECT a:rejected[mut-capture][mut-capture][mut-await]
 == b6.ts:kept-sep-rec: REJECT a:rejected[mut-capture][mut-capture][mut-await]
 == b6.ts:kept-fn-arr: REJECT a:rejected[mut-capture][mut-await]
-== b6.ts:act-arg-rec: REJECT a:rejected[action-call][mut-await]
+== b6.ts:act-arg-rec: REJECT a:rejected[action-call][mut-await][member-write]
 == b6.ts:act-arg-map: REJECT a:rejected[action-call][mut-await]
-== b6.ts:act-arg-direct: REJECT a:rejected[action-call][mut-await]
+== b6.ts:act-arg-direct: REJECT a:rejected[action-call][mut-await][member-write]
 == b6.ts:pr-cap-typed: REJECT a:rejected[type][mut-capture][mut-await] c:rejected[mut-capture]
 == b6.ts:pr-cap-iife: REJECT a:rejected[mut-capture][mut-capture][mut-await] c:rejected[mut-capture]
 == b6.ts:pr-cap-async-fn: REJECT a:rejected[mut-capture][mut-await] c:rejected[mut-capture]
@@ -208,8 +208,7 @@
 == b7.ts:act-reenter: ACCEPT
    show s = {n:[0]}
 == b7.ts:state-arr-of-typed: REJECT s:rejected[mut-await]
-== b7.ts:usp-action-set: ACCEPT
-   show s = USP(q=1)
+== b7.ts:usp-action-set: REJECT w:rejected[member-write]
 == b7.ts:usp-yield-fresh: REJECT a:rejected[mut-yield][mut-yield]
 == b7.ts:usp-yield-via-helper: REJECT a:rejected[mut-yield][mut-yield]
 == b8.ts:thc-consumer-push: REJECT a:rejected[mut-nested][mut-capture][type] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
@@ -316,4 +315,4 @@
 == b11.ts:tdz-exit-only: REJECT a:rejected[mut-capture][mut-yield]
 == b11.ts:tdz-exit-only-rec: REJECT a:rejected[mut-capture][mut-yield]
 == b11.ts:tdz-write-no-republish: REJECT a:rejected[mut-capture][mut-yield]
--- 309 candidates, accepted 8, silent 0
+-- 309 candidates, accepted 7, silent 0
