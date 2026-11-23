@@ -123,6 +123,11 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     const e = { rule: "no-ts-ignore", line: P.line(cm.start), msg: "@ts-ignore/@ts-expect-error/@ts-nocheck" };
     if (c) out.get(c.name)!.errors.push(e); else moduleErrs.push(e);
   }
+  // DELIBERATE CHANGE (2026-11-23, m1 step 2): [mut-nested], a Mut or typeof type nested in another type (S4.9)
+  for (const m of S.mut) {
+    const c = cellOf(m.at.start), e = { rule: m.rule, line: P.line(m.at.start), msg: m.msg };
+    if (c) out.get(c.name)!.errors.push(e); else moduleErrs.push(e);
+  }
 
   // dependency order; cycles are errors
   const deps = new Map(cells.map((c) => [c.name, c.fn.params.filter((p: Node) => p.type === "Identifier" && cellNames.has(p.name)).map((p: Node) => p.name as string)]));

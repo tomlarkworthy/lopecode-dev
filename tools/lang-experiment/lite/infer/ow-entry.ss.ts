@@ -1,7 +1,7 @@
 // gap: an Other node in the cell's tree, where own.ts reads a node type the typed tree does not give
 export const owCheck = (owIndex, owCheckIn) => (R: IxRegCore, F: IxFacts, fn: AstNode): OwOutput => owCheckIn(R, F, owIndex(F, fn));
 // owCheck over a tree index already made (the module check makes one per cell)
-export const owCheckIn = (owBindingOfFn, owCaptures, owCaptureErrs, owPlacement, owLateUses, owActionEscapes, ixOut) => (R: IxRegCore, F: IxFacts, T: OwTree): OwOutput => {
+export const owCheckIn = (owBindingOfFn, owCaptures, owCaptureErrs, owPlacement, owLateUses, owMemoArgs, owActionEscapes, ixOut) => (R: IxRegCore, F: IxFacts, T: OwTree): OwOutput => {
   const O: OwCtx = { T, F, R };
   const W: OwW = { errs: null, seen: new Set(), unsup: null };
   const caps = owCaptures(O, W);
@@ -9,6 +9,7 @@ export const owCheckIn = (owBindingOfFn, owCaptures, owCaptureErrs, owPlacement,
   owCaptureErrs(O, W, caps, byFn);
   owPlacement(O, W);
   owLateUses(O, W, caps, byFn);
+  owMemoArgs(O, W, caps, byFn);
   return { diags: ixOut(W.errs), actions: owActionEscapes(O), unsup: ixOut(W.unsup), gap: T.other };
 };
 export type OwCaptureOut = { readonly byName: OwCapture[]; readonly opaque: OwCapture[]; readonly gap: string | null };

@@ -1060,7 +1060,9 @@ export class Checker {
     }
     if (b && decl.k !== "err") {
       this.dropRoot(env.flow, b);
-      env.flow.set("#" + b.id, this.reg.sub(v, decl) ? v : decl);
+      // DELIBERATE CHANGE (2026-11-23, m1 step 2): a fresh value assigned to an annotated let that a fresh initializer made writable keeps it writable (S4.1)
+      const fresh = b.kind === "let" && b.mutOwned && e.operator === "=" && v.k !== "err" && !isNamed(decl, "Mut") && this.reg.expand(decl).k !== "union" && !isNamed(v, "Mut") && (e.right.type === "ArrayExpression" || e.right.type === "ObjectExpression" || this.freshAt === e.right);
+      env.flow.set("#" + b.id, fresh ? named("Mut", decl) : this.reg.sub(v, decl) ? v : decl);
     }
     return v;
   }
@@ -1679,11 +1681,14 @@ export class Checker {
     }
     const t0 = this.check(init, env, declared);
     // DELIBERATE CHANGE (2026-11-22, S4): a fresh value bound to a local with no annotation is a Mut
-    const fresh = !declared && t0.k !== "err" && !isNamed(t0, "Mut") && (init.type === "ArrayExpression" || init.type === "ObjectExpression" || this.freshAt === init);
-    const t = fresh ? named("Mut", k === "let" ? widen(t0) : t0) : t0;
+    // DELIBERATE CHANGE (2026-11-23, m1 step 2): and with an array, tuple, type-literal or mutable-intrinsic annotation (S4.1)
+    const names = ["Array", "Map", "Set", "WeakMap", "WeakSet", "Record", "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array", "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array"];
+    const ro = !!ann && !(ann.type === "TSArrayType" || ann.type === "TSTupleType" || (ann.type === "TSTypeLiteral" && ann.members.every((m: Node) => m.type === "TSPropertySignature" && m.readonly !== true)) || (ann.type === "TSTypeReference" && ann.typeName.type === "Identifier" && names.includes(ann.typeName.name)));
+    const fresh = (!declared || (!isNamed(declared, "Mut") && !ro)) && t0.k !== "err" && !isNamed(t0, "Mut") && (init.type === "ArrayExpression" || init.type === "ObjectExpression" || this.freshAt === init);
+    const t = fresh ? named("Mut", declared ?? (k === "let" ? widen(t0) : t0)) : t0;
     const isMut = fresh || (init.type === "CallExpression" && init.callee.type === "Identifier" && init.callee.name === "mut" && env.scope.get("mut")?.kind === "prelude");
     if (d.id.type === "Identifier") {
-      const b = this.declare(env, d.id.name, declared ?? (k === "let" && !fresh ? widen(t) : t), k, d.id, { mutOwned: isMut });
+      const b = this.declare(env, d.id.name, declared ? (fresh && k === "const" ? t : declared) : k === "let" && !fresh ? widen(t) : t, k, d.id, { mutOwned: isMut });
       if (k === "let" && declared) env.flow.set("#" + b.id, this.reg.sub(t, declared) ? t : declared);
       if (fnInit) b.fnNode = init;
     } else this.bindPattern(d.id, declared ?? unwrap(t0), env, k);

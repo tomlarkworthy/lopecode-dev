@@ -45,6 +45,8 @@ export const RULES: RuleInfo[] = [
   { id: "iterator-cell", section: "Immutable by default", how: "approx", summary: "a cell's value (a state cell's content, an events value) whose type may hold an iterator" },
   // Opt-in 1
   // 2026-11-22: what another cell holds is frozen at run time; the static ownership rules below are what is left
+  // 2026-11-23, m1 step 2: no nested Mut (S4.9)
+  { id: "mut-nested", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "Mut<…> (or an alias of it, or a typeof type) other than as the whole type of a parameter, a local or a type alias" },
   { id: "mut-capture", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a function the cell keeps captures a Mut (R-K: reads too), writes it, or the Mut is written after it" },
   { id: "mut-yield", section: "Opt-in 1: Mut<T> locals", how: "exact", summary: "a generator cell yields a Mut typed array that is not a fresh copy; R-Y: a local whose type holds a Mut anywhere, or a let of a non-primitive type, declared before a yield of a generator is used after it" },
   // 2026-11-22, R-A: [mut-yield] would name a yield where the point is an await

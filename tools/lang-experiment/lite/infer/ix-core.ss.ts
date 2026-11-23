@@ -157,8 +157,10 @@ export const ixFilter = (ixUm, union) => (R: IxRegCore, t: Ty, keep: (m: Ty) => 
 // record a function (a callable type with m's members is assignable to it), {} and { a?: number } a string or an array
 // a record admits a function only as a function of no known signature would reach it (holes step 9; any before)
 export const ixAdmits = (STR, NUM, BOOL, BIGINT, SYMBOL, UNDEF, NEVER, UNKNOWN, arr) => {
-  const W: Map<string, Ty> = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["symbol", SYMBOL], ["undefined", UNDEF], ["array", arr(NEVER)],
+  // a fresh Map bound to an annotated const is writable (S4.1), so the kept function captures a plain-typed name for it
+  const W0 = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["symbol", SYMBOL], ["undefined", UNDEF], ["array", arr(NEVER)],
     ["function", { k: "fn", tps: [], ps: [], rest: NEVER, ret: UNKNOWN }]]);
+  const W: Map<string, Ty> = W0;
   return (R: IxRegCore, m: Ty, kinds: string[]): boolean => {
     const x = m.k === "named" ? R.expand(m) : m;
     if (x.k !== "rec" || !!x.calls?.length || !!x.ctors?.length) return false;

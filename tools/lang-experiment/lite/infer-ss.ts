@@ -84,7 +84,7 @@ const GIVEN = {
 };
 // the cells of other sections the md cells take
 export const MD_GIVEN = {
-  ...GIVEN, parseTree: A.parseTree, nameAt: A.nameAt, standIn: A.standIn, moduleShape: A.moduleShape, syntaxBans: A.syntaxBans, lineAt: A.lineAt,
+  ...GIVEN, parseTree: A.parseTree, nameAt: A.nameAt, standIn: A.standIn, moduleShape: A.moduleShape, syntaxBans: A.syntaxBans, mutPlaces: A.mutPlaces, lineAt: A.lineAt,
   hasErrWith: T.hasErrWith, uncloneableWith: T.uncloneableWith, admitsUndefinedWith: T.admitsUndefinedWith, holdsWith: T.holdsWith, islandWith: T.islandWith,
   reservedName: T.reservedName, RESERVED_MSG: T.RESERVED_MSG, captureMessage: T.captureMessage, boundaryShapeAt: linkShape().boundaryShapeAt,
 };

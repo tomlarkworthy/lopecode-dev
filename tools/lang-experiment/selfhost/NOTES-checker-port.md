@@ -2464,3 +2464,122 @@ The full verify ran twice: at 00:45 on the tree before the review (668 pass), an
 Open: the `Mut`-argument write (1); `(k: number) => memo((n) => k + n)` is rejected though `k` is data; `holdsWith`
 stops at depth 12; a kind-0 value from another language is stored unfrozen; `log` called through a function value
 is not caught, by the checker or by the run-time guard (log is not an action); cp-probes' prelude name list was not updated.
+
+## 2026-11-23 01:10–02:10: m1 step 2, no nested `Mut`, annotated fresh locals writable, R-M (build owner, logs `lite/soundscript/.scratch/m1/step2/`)
+
+Owner's brief: `Mut` only as a whole parameter or local type (or an alias whose body is `Mut`); a plain-annotated
+local bound to a fresh value is writable; simplify `owMutDeep`; spec S4.x/S5.8; the three-mode table; 30+ attacks.
+Coordinator's additions: R-M (a `Mut` local passed to a locally known memoised function is not written after the
+call) and `memo` in the cp-probes name list. Times are CET.
+
+The ban, rule `mut-nested` (exact, 54 rules now), a syntax pass shared by live and frozen: `lite/acorn/syntax.ss.ts`
+`mutNames` (14 lines: `Mut` plus every alias whose body is a reference to one, to a fixpoint), `wholeBindingType` (5),
+`mutPlaces` (12); `syntaxCheck` returns `mut`. Live routes each error to its cell in `md-shape.ss.ts` `mdByCell` (9,
+new) from `mdModuleLevel` (9); frozen `core.ts` routes `S.mut` with `cellOf`. Allowed: the whole type of a parameter
+(rest, default and destructured patterns included), of a function type's parameter, of a local, or the body of an
+alias. A `typeof` type elsewhere is also `[mut-nested]` (syntactic; it over-rejects `{ t: typeof k }` for a number
+`k`). Written annotations only: inference still makes nested `Mut` (`{ t: xs }`, `[xs, 1] as const`, `k ? xs : null`,
+`Promise.resolve(xs)`, a generic alias instantiated at a `Mut`), so S4.4/S5.6–S5.8 still see it.
+Scans before building (`.scratch/m1/nested-scan.ts`, `typeof-scan.ts`, AST): the shipped TS sources have 0 nested
+`Mut` and 0 `typeof` types. Not expressible any more: a nullable `Mut` (`Mut<T> | null` is `[mut-nested]`,
+`Mut<T | null>` was and is unsupported: `unsupported intrinsic member Mut.push`).
+
+Writable annotated locals (`ixVarDecl` 24 lines, `ixAssign` 19, frozen `varDecl`/`assign`). First built as "not
+`Mut`, not readonly" with a syntactic readonly test; the fresh review found `const c: ReadonlyArray<number> = [1];
+c.push(1)` accepted with no rule (Ty has no readonly flag; the old protection was only "annotated means not `Mut`").
+An alias to `readonly number[]` and `Readonly<…>` had the same hole, and a union annotation made every read
+unsupported (`const xs: number[] | null = [1]; xs?.length` gave `unsupported intrinsic member Mut.length`, caught by a
+probe). Rebuilt as an allowlist, `ixWritableAnn` (7 lines): an array or tuple type, a type literal with no readonly
+member, or `Array`/`Map`/`Set`/`WeakMap`/`WeakSet`/`Record`/a typed array. Any other annotation keeps the old
+behaviour (not writable), so no other case is loosened. A fresh value assigned to such a `let` keeps it writable;
+gated on `mutOwned`, so `let xs: number[] = b; xs = []; xs.push(1)` stays rejected (approximation).
+Cells rewritten because they flipped to `[mut-capture]` (a kept function captured an annotated fresh `Map`):
+`ix-core.ss.ts` `ixAdmits` (11) and `lite/render.ss.ts` `eventOf` (6), both to bind the fresh `Map` unannotated and
+capture a plain-typed const of it. `statuses.ts` over every shipped module and the checker's own cells: no other
+status changed (`step2/status-s1.txt` vs `status-now.txt` differ only in the 3 new cells). Tests rewritten the same
+way: checker-tests iterator rows (2), spec S3.19, S4.10, S4.6_reach.
+
+R-M (`ow-late.ss.ts` `owMemoFns` 9, `owMemoArgs` 20; `owCheckIn` 11; frozen `own.ts`): only the existing `owAfter`
+and `owUsesOf`, so position after the call in the same function, a later turn of a loop around it, and a call of a
+helper that writes the local. Reported as `[mutating-method]`/`[member-write]`. A name inside `snapshot(…)` in the
+argument is exempt; the first build flagged `sq(snapshot(m))`, the fix its own message suggests (attack m1-rm-snapshot).
+`[...m]` in the argument still counts (over-rejects; an element of `m` may be a `Mut` the freeze reaches). Not seen,
+as stated in S2.13: a second name (`const n = m; sq(m); n.push(2)`), a field of a record passed (`get({ t })` then
+`t.push`), a memoised function that arrives as a cell input. Each throws at run time in modes (a) and (b) and is silent
+in mode (c).
+
+`owMutDeep` (17 lines): nothing removed. Each branch has a witness under the ban, by mutation (branch replaced by
+`return null`, `step2/mutate.py`, probes `step2/q20.ts`, `q21.ts`, `run-sets`):
+```
+fn result         -> freeze b7:fo-gen-helper-after-yield loses its second [mut-yield] (h = () => xs)
+non-alias args    -> B-promise (const p = Promise.resolve(xs)) loses [mut-await]
+alias expand      -> C-box (b = box(xs), box: <T>(v: T) => Box<T>) becomes ACCEPT
+kids (rec/tuple)  -> tuple ([xs, 1] as const, t[0].push after a yield) becomes ACCEPT
+```
+B and C changed nothing in diff.ts (3718 cells) or run-sets (1990 programs); only the probes show them. The depth cap
+and the cycle memo end the walk over a recursive alias and were not mutated.
+
+cp-probes: `lite/infer/cp-probes.ts` name-prelude list has `memo` (11 names, `i % 11`).
+
+Spec: S4.1 (the allowlist, unions, aliases), S4.7's last sentence replaced, S4.9 rewritten (the ban, `typeof`),
+S4.10 (`new Map()` under an annotation is now writable and `[mut-capture]`), S5.8 (written types cannot nest,
+inference can), S2.13 (R-M and its limits), the Not-specified S4.10 bullet re-expressed with an inferred tuple. Rows added:
+11 `mut-nested`, 4 R-M, 5 S4.1, 1 S4.10; S2.14/S3.19/S4.4/S5.8 rows rewritten, one S4.4 row dropped, and five accept
+rows that held a nested annotation dropped (42 -> 37 accept rows). `.scratch/m1/rows.ts`: 414 rows, 0 not exactly
+their rule; 37 accept rows, 0 not accepted. Tutorial: Local mutation text and a `[mut-nested]` row.
+Sentences made false by this step: S4.9 "`Mut<T>` may be written in any type inside a cell"; S4.7 "A local annotated
+with a nested type … is writable at each level"; S4.1 "A local annotated with a type that is not `Mut<…>` is not
+writable"; S4.10's example `const m: Map<string, number> = new Map(…)` as capturable; the Not-specified bullet's
+`const r: { readonly t: Mut<number[]> }`; the tutorial's "except in a function type's result".
+
+Fresh review (`/review-notebook`, BLOCK, 3 findings + 2 minor, all confirmed and fixed): (1) the R-M sentences had
+landed in S2.12 (both S2.12 and S2.13 end in the same `[arity]` sentence): moved; (2) the Not-specified bullet lost
+the accepted write that throws: restored; (3) `ReadonlyArray<T>` push accepted, tutorial silent on unions: the
+allowlist above, two S4.1 rows, tutorial rewritten; minor: S5.8 dates reordered, one row's indent.
+
+Attacks, `lite/infer/attack/m1-attacks.ts` (45 programs + 3 controls; run-sets set `m1`, live.test asserts the set and
+`m1-controls: 3, fired 3`). A `memo: true` program is also run with every `memo(f)` replaced by `(f)` (`memoStrip`, on
+the TypeScript AST) and its cells read; a difference with neither run in error counts as silent. Result, mode (a):
+accepted 17, silent 0, a cell in error 3 (m1-rm-alias, -nested-field, -input: the run-time throw). Controls run
+without the checker: `m1-ctl-memo-let` gives `[2,2]` against stripped `[2,3]`; all 3 fire.
+
+Measurement (`step2/measure.sh`, outputs `step2/m/`, 2026-11-23 01:55):
+```
+                                   programs  accepted  silent (a)  (b)  (c)
+run-sets (15 sets, h9 and m1)          1990       326           0    0    3   m1-rm-alias, -nested-field, -input
+  of which h9                            70         6           0    0    0
+freeze-attack2 run.ts                   309         8           0    0    0
+freeze-attack3 run.ts                   360        12           0    0    0   controls fired 3 / 4 / 4 of 4
+convert-freeze/attack1 (main tree)      246         1           0    0    0
+freeze-attack4 (via fa3 run.ts)         223        81           5    5    5   cap-now, cap-random, cap-now-gen,
+                                                                               cap-now-in-record, cap-random-stored
+```
+freeze-attack4's 5 are a kept function reading a capability; nothing is written (its RESULTS.md, "Detector-counted:
+5"). It was run from its folder through `../freeze-attack3/run.ts` with output written to `step2/m/`; the folder was
+not edited. Against r2 (2026-11-22, a different tree and set list): (b) 19 -> 0 and (c) 27 -> 3 in run-sets; the 10
+nested-`Mut` programs of (b) are now `[mut-nested]` (h9-nm-*) or rejected for an inferred nesting.
+
+Speed (`time-sections.ts`, final tree, 3 runs): checker 4641/4613/4482 ms, median 4613 (step 1 final 4505, +2.4%).
+
+Gates, final tree, 01:55 to 02:06 (`.scratch/m1/gates2.sh`, logs `step2/final/`):
+```
+build.ts --force                exit 0
+bun-verify                      177 pass, 0 fail
+fixtures.ts                     14/14; 54 rules, 54 with a reject case (52 in the spec)
+diff.ts                         1030 sources: SAME 3722 DIFFERENT 0 REAL CRASH 14
+diff.ts --module-only           SAME 1120 DIFFERENT 0
+tc-diff.ts                      corpus DIFFERENT 0; erase (repro) DIFFERENT 1 (by design)
+live.test.ts                    461 pass, 0 fail
+freeze-table.test.ts            441 pass, 0 fail
+tc.test / run.test / acorn      11 / 2 / 6 pass, 0 fail (run apart)
+run-sets                        1990 programs, silent 0
+freeze-attack2 / 3 run-all.sh   309, silent 0 / 360, silent 0
+verify.ts (full)                exit 0; functional 668 pass, 0 fail (one navigation retry)
+```
+
+Open: the step-1 items stand: `(k: number) => memo((n) => k + n)` is `[memo-pure]`; `holdsWith`'s depth cap of 12; a
+kind-0 value from another language is stored unfrozen; `log` through a function value is not caught. New: R-M's
+three blind spots above (run-time guard only); no nullable `Mut` annotation; `typeof` over-rejection; annotated `let`
+reassignment from a non-fresh value; a type literal with one readonly member makes every field unwritable;
+`Promise.resolve(xs)` gives `[type] Mut<number[]> is not assignable to Mut<number[]> | Promise<Mut<number[]>>`
+(found by a probe, not investigated).

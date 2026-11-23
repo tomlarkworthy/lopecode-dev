@@ -440,6 +440,25 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
         }
       }
     }
+    // DELIBERATE CHANGE (2026-11-23, m1 step 2, R-M): a Mut local named in an argument of a call of a memoised function
+    // the cell knows (a const bound to memo(...)) is not written after that call in the same function (ow-late owMemoArgs)
+    const memos = new Set<Binding>();
+    for (const n of all) if (n.type === "VariableDeclarator" && n.init?.type === "CallExpression" && n.id.type === "Identifier" && F.calls.get(n.init)?.prelude === "memo") { const b = F.bindingOf.get(n.id); if (b && b.kind === "const") memos.add(b); }
+    const snaps = all.filter((n) => n.type === "CallExpression" && F.calls.get(n)?.prelude === "snapshot");
+    const given = (r: Node, a: Node) => within(r, a) && !snaps.some((s) => within(r, s) && within(s, a));
+    if (memos.size) for (const c of all) {
+      if (c.type !== "CallExpression" || c.callee.type !== "Identifier" || !memos.has(F.bindingOf.get(c.callee)!)) continue;
+      const g = encl(c), name = c.callee.name;
+      for (const [b, rs] of refs) {
+        const d = b.node;
+        if (!d || b.cellParam || !(b.mutOwned || isMutB(b)) || encl(d) !== g) continue;
+        if (!rs.some((r) => (c.arguments as Node[]).some((a) => given(r, a)) && encl(r) === g)) continue;
+        const u = usesOf(b).find((x) => x.write && after(g, d, false, x, c));
+        if (!u) continue;
+        const w = u.at.type === "CallExpression" ? u.at : writeAt(u.at);
+        err(u.at, w && w.type === "CallExpression" ? "mutating-method" : "member-write", `${b.name} is written after it was given to the memoised function ${name}, which froze it in place, so the write would throw; write it before the call, or give ${name} a copy (snapshot(${b.name}))`);
+      }
+    }
   }
   function fresh(a: Node): boolean {
     switch (a.type) {

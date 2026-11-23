@@ -40,7 +40,7 @@ export const PROBES: { kind: string; tsx: boolean; base: string[]; cells: string
   mod("name-const", rows((p, i) => `const nc${i} = (x: number) => {\n  const value${i} = x + 1;\n  return ${head(`value${i}`, i)}‸\n};`)),
   mod("name-param", rows((p, i) => `const np${i} = (width${i}: number, w: string) => ${head(`width${i}`, i)}‸`)),
   mod("name-global", rows((p, i) => `const ng${i} = (x: number) => ${head(["Math", "JSON", "Object", "Number", "String", "Array", "Map", "Set", "parseInt", "Infinity"][i % 10], i)}‸`)),
-  mod("name-prelude", rows((p, i) => `const nr${i} = (x: number) => ${head(["state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "messageOf", "read"][i % 10], i)}‸`)),
+  mod("name-prelude", rows((p, i) => `const nr${i} = (x: number) => ${head(["state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "messageOf", "read", "memo"][i % 11], i)}‸`)),
   mod("name-loop-catch-block", rows((p, i) => i % 3 === 0 ? `const nb${i} = (xs: number[]) => {\n  let s = 0;\n  for (const item of xs) { s = s + ${head("item", i)}‸; }\n  return s;\n};` : i % 3 === 1 ? `const nb${i} = (t: string) => {\n  try { return JSON.parse(t); } catch (err) { return ${head("err", i)}‸; }\n};` : `const nb${i} = (x: number) => {\n  { const inner = x; return ${head("inner", i)}‸; }\n};`)),
   mod("name-nested-fn", rows((p, i) => `const nn${i} = (xa: number) => (ya: number) => (za: number) => ${["x", "y", "z", "xa", "ya"][i % 5]}‸`)),
   mod("name-in-action", rows((p, i) => `const na${i} = (count: State<number>) => action((n: number) => count.set(${["re", "n", "co", "m", "fr"][i % 5]}‸))`)),

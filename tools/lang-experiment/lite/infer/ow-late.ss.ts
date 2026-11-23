@@ -103,3 +103,36 @@ export const owLateUses = (owLatePoints, owLateCand, owUsesOf, owAfter, owLateMs
     }
   }
 };
+// R-M (2026-11-23, m1 step 2): the const bindings of the cell bound to memo(...), the memoised functions it knows (S2.13)
+export const owMemoFns = () => (O: OwCtx): Set<number> => {
+  const out: Mut<Set<number>> = new Set();
+  for (const n of O.T.all) {
+    if (n.type !== "VariableDeclarator" || n.init === null || n.id.type !== "Identifier" || n.init.type !== "CallExpression" || O.F.calls.get(n.init.nid)?.prelude !== "memo") continue;
+    const b = O.F.bindings.get(O.F.bindingOf.get(n.id.nid) ?? -1);
+    if (b !== undefined && b.kind === "const") out.add(b.id);
+  }
+  return out;
+};
+// R-M: a Mut local, of the function that makes the call, named in an argument of a call of a memoised function the cell
+// knows (owMemoFns) is not written after that call ("after" as owAfter): a miss froze it in place (S2.13). Not seen: the
+// local under a second name, and a memoised function that comes from another cell, where the write throws at run time
+export const owMemoArgs = (owMemoFns, owEncl, owUsesOf, owAfter, owWriteAt, owErr, isNamed) => (O: OwCtx, W: OwW, caps: Map<number, OwCap>, byFn: Map<number, number>): void => {
+  const memos = owMemoFns(O), inside = (a: AstNode, b: AstNode) => a.start >= b.start && a.end <= b.end;
+  if (!memos.size) return;
+  // a name inside snapshot(…) in the argument gives the memoised function a copy
+  const snaps = O.T.all.filter((n) => n.type === "CallExpression" && O.F.calls.get(n.nid)?.prelude === "snapshot");
+  const given = (r: AstNode, a: AstNode) => inside(r, a) && !snaps.some((s) => inside(r, s) && inside(s, a));
+  for (const c of O.T.all) {
+    if (c.type !== "CallExpression" || c.callee.type !== "Identifier" || !memos.has(O.F.bindingOf.get(c.callee.nid) ?? -1)) continue;
+    const g = owEncl(O, c), name = c.callee.name;
+    for (const [id, rs] of O.T.refs) {
+      const b = O.F.bindings.get(id), d = b === undefined ? undefined : O.T.byNid.get(b.nid);
+      if (b === undefined || d === undefined || b.cellParam || !(b.mutOwned || isNamed(b.t, "Mut")) || owEncl(O, d).nid !== g.nid) continue;
+      if (!rs.some((r) => c.arguments.some((a) => given(r, a)) && owEncl(O, r).nid === g.nid)) continue;
+      const u = owUsesOf(O, caps, byFn, b).find((x: OwUse) => x.write && owAfter(O, g, d, false, x, c));
+      if (u === undefined) continue;
+      const w = u.at.type === "CallExpression" ? u.at : owWriteAt(O, u.at);
+      owErr(W, u.at, w !== null && w.type === "CallExpression" ? "mutating-method" : "member-write", `${b.name} is written after it was given to the memoised function ${name}, which froze it in place, so the write would throw; write it before the call, or give ${name} a copy (snapshot(${b.name}))`);
+    }
+  }
+};

@@ -80,7 +80,15 @@ export const ixFnDeclStmt = (ixLookup, ixUpdate, ixCopyFlow) => (K: IxK, T: IxTy
   C.cur = own;
   ixUpdate(V, C, { ...b, checked: true, t: b.t.k === "err" ? f : b.t, lazy: { k: "none" } });
 };
-export const ixVarDecl = (ixAnnOf, ixConvert, ixVarFn, ixDeclare, ixNoExtra, ixLookup, ixFlowSet, ixErr, ixUnsup, widen, named, isNamed, unwrap, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, d: AstNode, kind: string): void => {
+// an annotation under which a fresh value is writable (S4.1): an array or tuple type, a type literal with no readonly
+// member, or one of the mutable intrinsics; any other (readonly, a union, an alias, Readonly<…>, typeof) is not
+export const ixWritableAnn = () => (ann: AstNode): boolean => {
+  if (ann.type === "TSArrayType" || ann.type === "TSTupleType") return true;
+  if (ann.type === "TSTypeLiteral") return ann.members.every((m) => m.type === "TSPropertySignature" && m.readonly !== true);
+  const names = ["Array", "Map", "Set", "WeakMap", "WeakSet", "Record", "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array", "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array"];
+  return ann.type === "TSTypeReference" && ann.typeName.type === "Identifier" && names.includes(ann.typeName.name);
+};
+export const ixVarDecl = (ixAnnOf, ixWritableAnn, ixConvert, ixVarFn, ixDeclare, ixNoExtra, ixLookup, ixFlowSet, ixErr, ixUnsup, widen, named, isNamed, unwrap, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, d: AstNode, kind: string): void => {
   if (d.type !== "VariableDeclarator") { ixUnsup(K, C, d, `declarator ${d.type}`); return; }
   const k: IxKind = kind === "const" ? "const" : "let", id = d.id, init = d.init;
   const ann = ixAnnOf(id), declared = ann !== null ? ixConvert(K, V, env, ann) : null;
@@ -96,12 +104,12 @@ export const ixVarDecl = (ixAnnOf, ixConvert, ixVarFn, ixDeclare, ixNoExtra, ixL
     return;
   }
   const t0 = K.check(K, T, V, W, C, env, init, declared, false, false);
-  // S4: a fresh value bound to a local with no annotation is a Mut (a literal, new or a call of a fresh intrinsic)
-  const fresh = declared === null && t0.k !== "err" && !isNamed(t0, "Mut") && (init.type === "ArrayExpression" || init.type === "ObjectExpression" || C.freshAt === init.nid);
-  const t = fresh ? named("Mut", k === "let" ? widen(t0) : t0) : t0;
+  // S4.1: a fresh value (a literal, new or a call of a fresh intrinsic) bound to a local is a Mut, annotated or not
+  const fresh = (declared === null || ann === null || (!isNamed(declared, "Mut") && ixWritableAnn(ann))) && t0.k !== "err" && !isNamed(t0, "Mut") && (init.type === "ArrayExpression" || init.type === "ObjectExpression" || C.freshAt === init.nid);
+  const t = fresh ? named("Mut", declared ?? (k === "let" ? widen(t0) : t0)) : t0;
   const isMut = fresh || (init.type === "CallExpression" && init.callee.type === "Identifier" && init.callee.name === "mut" && ixLookup(V, env, "mut")?.kind === "prelude");
   if (id.type !== "Identifier") return K.bind(K, T, V, W, C, env, id, declared ?? unwrap(t0), k, ixNoExtra);
-  const b = ixDeclare(V, C, env, id.name, declared ?? (k === "let" && !fresh ? widen(t) : t), k, id, ixNoExtra, { k: "none" }, isMut, fnInit ? init.nid : -1);
+  const b = ixDeclare(V, C, env, id.name, declared !== null ? (fresh && k === "const" ? t : declared) : k === "let" && !fresh ? widen(t) : t, k, id, ixNoExtra, { k: "none" }, isMut, fnInit ? init.nid : -1);
   if (k === "let" && declared !== null) ixFlowSet(W, C.cur, "#" + b.id, K.reg.sub(t, declared) ? t : declared);
 };
 // const f = (…) => …: bound before its body is checked, so it can call itself (with annotations); sig: the function

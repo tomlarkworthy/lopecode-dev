@@ -56,6 +56,16 @@ export const mdIgnores = (mdTsIgnore, MD_NO_TS_IGNORE) => (ast: Ast, defs: MdDef
   }
   return { cell: cell, module: module };
 };
+// errors at positions: each to the cell whose statement holds it, after what cell already has, else to the module
+export const mdByCell = () => (defs: MdDef[], es: { at: number; e: MdErr }[], cell: Map<string, MdErr[]>): { cell: Map<string, MdErr[]>; module: MdErr[] } => {
+  const out: Mut<Map<string, MdErr[]>> = new Map(cell), module: Mut<MdErr[]> = [];
+  for (const x of es) {
+    const d = defs.find((c) => c.stmt.start <= x.at && x.at < c.stmt.end);
+    if (d === undefined) module.push(x.e);
+    else out.set(d.name, [...(out.get(d.name) ?? []), x.e]);
+  }
+  return { cell: out, module };
+};
 // a cell's record before its check: the line of its statement and the errors made before the cell loop
 export const mdFreshRec = () => (d: MdDef, line: number, errors: MdErr[]): MdCellRec => ({
   name: d.name, status: "ok", line, errors, unsupported: [], blockedBy: [], value: null, ch: [], chUnsup: [], at: d.fn.start,
@@ -63,12 +73,12 @@ export const mdFreshRec = () => (d: MdDef, line: number, errors: MdErr[]): MdCel
 export type MdModuleLevel = { readonly defs: MdDef[]; readonly module: MdErr[]; readonly ignores: Map<string, MdErr[]> };
 // the cells and the module's errors, in core.ts's order: foreign.d.ts, built-in type names, the user's declarations,
 // statements that are not cells, duplicates, then the ignore comments with no cell
-export const mdModuleLevel = (moduleShape, mdForeignErrs, mdLoadErr, mdIgnores) => (R: MdReg, ast: Ast, text: string, jsx: boolean, F: MdForeign | null, shellNames: Set<string>, line: (pos: number) => number): MdModuleLevel => {
+export const mdModuleLevel = (moduleShape, mutPlaces, mdForeignErrs, mdLoadErr, mdIgnores, mdByCell) => (R: MdReg, ast: Ast, text: string, jsx: boolean, F: MdForeign | null, shellNames: Set<string>, line: (pos: number) => number): MdModuleLevel => {
   const shape = moduleShape(ast.program, R.builtin, shellNames);
   const modErr = (e: ModErr): MdErr => ({ rule: e.rule, line: line(e.at.start), msg: e.msg });
   const clashes = shape.clashes.map(modErr);
   const user = R.loadUser(ast, jsx, shape.clashes.map((c) => c.at.start)).map(mdLoadErr);
   const defs: MdDef[] = shape.cells.map((c) => ({ name: c.name, fn: c.fn, stmt: c.stmt }));
-  const ig = mdIgnores(ast, defs, line);
-  return { defs, module: [...(F === null ? [] : mdForeignErrs(F)), ...clashes, ...user, ...shape.errors.map(modErr), ...ig.module], ignores: ig.cell };
+  const ig = mdIgnores(ast, defs, line), mut = mdByCell(defs, mutPlaces(ast.program).map((e) => ({ at: e.at.start, e: modErr(e) })), ig.cell);
+  return { defs, module: [...(F === null ? [] : mdForeignErrs(F)), ...clashes, ...user, ...shape.errors.map(modErr), ...ig.module, ...mut.module], ignores: mut.cell };
 };

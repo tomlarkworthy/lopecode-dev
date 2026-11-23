@@ -111,6 +111,42 @@ export const syntaxBans = (childrenOf, bansAt, TYPE_FIELDS) => (root: AstNode): 
   return out;
 };
 
+// S4.9 (2026-11-23, m1 step 2): the type names that mean Mut, Mut and each alias whose whole body names one, to a fixpoint
+export const mutNames = (childrenOf) => (prog: AstNode): Set<string> => {
+  const aliases: Mut<[string, string][]> = [];
+  const walk = (x: AstNode): void => {
+    if (x.type === "TSTypeAliasDeclaration" && x.id.type === "Identifier" && x.typeAnnotation.type === "TSTypeReference" && x.typeAnnotation.typeName.type === "Identifier") aliases.push([x.id.name, x.typeAnnotation.typeName.name]);
+    for (const c of childrenOf(x)) walk(c.node);
+  };
+  walk(prog);
+  const out: Mut<Set<string>> = new Set(["Mut"]);
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const [a, b] of aliases) if (out.has(b) && !out.has(a)) { out.add(a); grew = true; }
+  }
+  return out;
+};
+// x (a type node) is the whole annotation of a binding, a parameter (of a function or a function type) or a local, or
+// the whole body of a type alias; p is its parent and g p's parent
+export const wholeBindingType = () => (x: AstNode, p: AstNode | null, g: AstNode | null): boolean => {
+  if (p !== null && p.type === "TSTypeAliasDeclaration") return p.typeAnnotation.nid === x.nid;
+  if (p === null || p.type !== "TSTypeAnnotation" || g === null) return false;
+  return g.type === "Identifier" || g.type === "ObjectPattern" || g.type === "ArrayPattern" || g.type === "RestElement" || g.type === "AssignmentPattern";
+};
+// [mut-nested]: a Mut, or a typeof type, that is not the whole type of a binding or an alias body (wholeBindingType)
+export const mutPlaces = (childrenOf, mutNames, wholeBindingType) => (prog: AstNode): ModErr[] => {
+  const names = mutNames(prog), out: Mut<ModErr[]> = [];
+  const fix = "only the whole type of a parameter, of a local or of a type alias may be a Mut: give the inner value its own Mut local or parameter, or drop the Mut (a local bound to a fresh value is writable)";
+  const walk = (x: AstNode, p: AstNode | null, g: AstNode | null): void => {
+    const n = x.type === "TSTypeReference" && x.typeName.type === "Identifier" && names.has(x.typeName.name) ? x.typeName.name : null;
+    if (n !== null && !wholeBindingType(x, p, g)) out.push({ at: x, rule: "mut-nested", msg: `${n === "Mut" ? "Mut<…>" : `${n} (a Mut)`} inside another type or as a function's result; ${fix}` });
+    if (x.type === "TSTypeQuery" && !wholeBindingType(x, p, g)) out.push({ at: x, rule: "mut-nested", msg: `a typeof type inside another type or as a function's result, where it may hold a Mut; write the type out` });
+    for (const c of childrenOf(x)) walk(c.node, x, p);
+  };
+  walk(prog, null, null);
+  return out;
+};
+
 // core.ts distinctNames: a name declared twice is parsed again under a stand-in of the same length, up to 40^len
 export type Distinct = { parse: Parse; text: string; dups: [string, string][]; parses: number };
 // the identifier characters [A-Za-z0-9_$] from pos
@@ -140,12 +176,12 @@ export const distinctParse = (parseTree, nameAt, standIn) => (src: string, jsx: 
 };
 // a module's text checked for its shape and, per cell, the syntax pass; acorn's error as a value. A cell's name is
 // given back with any stand-in replaced
-export type SyntaxResult = { ok: true; shape: ModuleShape; names: string[]; diags: SyntaxDiag[][]; parses: number } | { ok: false; message: string; line: number };
-export const syntaxCheck = (distinctParse, moduleShape, syntaxBans) => (text: string, jsx: boolean, builtin: Set<string>, shellNames: Set<string>): SyntaxResult => {
+export type SyntaxResult = { ok: true; shape: ModuleShape; names: string[]; diags: SyntaxDiag[][]; parses: number; mut: ModErr[] } | { ok: false; message: string; line: number };
+export const syntaxCheck = (distinctParse, moduleShape, syntaxBans, mutPlaces) => (text: string, jsx: boolean, builtin: Set<string>, shellNames: Set<string>): SyntaxResult => {
   const d = distinctParse(text, jsx);
   const p = d.parse;
   if (!p.ok) return { ok: false, message: p.message, line: p.line };
   const shape = moduleShape(p.ast.program, builtin, shellNames);
   const names = shape.cells.map((c) => d.dups.reduce((n, [ph, name]) => n.split(ph).join(name), c.name));
-  return { ok: true, shape, names, diags: shape.cells.map((c) => syntaxBans(c.fn)), parses: d.parses };
+  return { ok: true, shape, names, diags: shape.cells.map((c) => syntaxBans(c.fn)), parses: d.parses, mut: mutPlaces(p.ast.program) };
 };

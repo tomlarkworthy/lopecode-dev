@@ -5,8 +5,8 @@
    CHANGED a (value #1 of 2): fn(0) | E[] -> fn(1) | E[]
    CONTROL FIRED
 == c0.ts:ctl-promise-typed: CONTROL (checker skipped)
-   error a: a promise where it cannot be replaced (among a function's captures, in an Error or in an already frozen value): it would settle after its cell publishes it
-   CONTROL DID NOT FIRE
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[1,0]
+   CONTROL FIRED
 == c0.ts:ctl-twice: CONTROL (checker skipped)
    CHANGED t (value #1 of 1): Uint8Array[0,0] | E[] -> Uint8Array[7,0] | E[]
    twice obs: #1 [0] | E[] , #1 [7] | E[]
@@ -193,11 +193,11 @@
 == b6.ts:cw-flatmap: REJECT w:rejected[member-write]
 == b6.ts:cw-concat: REJECT w:rejected[member-write]
 == b6.ts:cw-slice: REJECT w:rejected[member-write]
-== b6.ts:cw-fn-ret-mut: REJECT w:rejected[type]
+== b6.ts:cw-fn-ret-mut: REJECT w:rejected[mut-nested][type]
 == b6.ts:cw-fn-param-mut: REJECT w:rejected[type]
 == b6.ts:cw-generic-id: REJECT w:rejected[member-write]
 == b6.ts:cw-annot-local: REJECT w:rejected[type]
-== b6.ts:cw-as-cast: REJECT w:rejected[no-cast]
+== b6.ts:cw-as-cast: REJECT w:rejected[mut-nested][no-cast]
 == b6.ts:cw-destructure: REJECT w:rejected[member-write]
 == b6.ts:cw-destructure-rec: REJECT w:rejected[member-write]
 == b6.ts:cw-forof-mixed: REJECT w:rejected[member-write]
@@ -214,13 +214,13 @@
 == b6.ts:cw-set-into-fresh: ACCEPT
    twice obs: #1 [0] | E[] , #1 [0] | E[]
 == b6.ts:cw-fill-ret: REJECT w:rejected[mutating-method][member-write]
-== b6.ts:cw-record-mutfield: REJECT w:rejected[type][type]
-== b6.ts:cw-arr-of-mut-annot: REJECT w:rejected[type][type]
-== b6.ts:cw-map-of-mut-annot: REJECT w:rejected[type][type][type]
-== b6.ts:cw-union-param: REJECT w:rejected[type]
+== b6.ts:cw-record-mutfield: REJECT w:rejected[mut-nested][type][type]
+== b6.ts:cw-arr-of-mut-annot: REJECT w:rejected[mut-nested][type][type]
+== b6.ts:cw-map-of-mut-annot: REJECT w:rejected[mut-nested][type][type][type]
+== b6.ts:cw-union-param: REJECT w:rejected[mut-nested][type]
 == b6.ts:cw-optional-param: REJECT w:rejected[type]
 == b6.ts:cw-default-param: REJECT w:rejected[type][member-write]
-== b6.ts:cw-rest-param: REJECT w:rejected[type]
+== b6.ts:cw-rest-param: REJECT w:rejected[mut-nested][type]
 == b6.ts:cw-fn-typed-var: REJECT w:rejected[type][type]
 == b6.ts:cw-callback-in-record: REJECT w:rejected[type]
 == b6.ts:cw-method-shorthand: REJECT w:rejected[type]
@@ -381,7 +381,7 @@
    show go = {t:Uint8Array[3,0]} | E[]
 == b11.ts:re-dflag-probe: ACCEPT
    drive -> array true indices true groups true
--- controls 4, fired 3
+-- controls 4, fired 4
 -- accepted with a cell still pending at the end: 0
 -- 360 candidates, accepted 12, silent 0
 118 |         // cell facts and text come from the check's parse

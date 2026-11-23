@@ -70,14 +70,14 @@ test_checker_iterator_rules = {
   // S3.19: what may hold an iterator is not captured or a cell's value; arrays, strings, Maps, a function returning an iterator, a copy and unknown are
   const cases = [["const y = () => { const it = new Set([1]).keys(); return () => [...it].length; };",["iterator-capture"]],
     ["const y = () => { const its = [[1].values()]; return () => its.length; };",["iterator-capture", "mut-capture"]],
-    ["interface Box { readonly it: Iterable<number> }\nconst y = () => { const b: Box = { it: [1].values() }; return () => [...b.it].length; };",["iterator-capture"]],
+    ["interface Box { readonly it: Iterable<number> }\nconst y = () => { const box = (it: Iterable<number>): Box => ({ it }); const b = box([1].values()); return () => [...b.it].length; };",["iterator-capture"]],
     ["const y = () => { const it = new Float64Array(2).values(); return () => [...it].length; };",["iterator-capture"]],
     ["const y = () => { const gen = function* () { yield 1; }; const it = gen(); return () => it; };",["iterator-capture"]],
     ["const s = () => state(0);\nconst c = (s: State<number>) => { const it = [1, 2].values(); return action(() => s.set([...it].length)); };",["iterator-capture"]],
     ["const a = async () => [1].values();",["iterator-cell"]],
     ["const g = () => { const gen = function* () { yield 1; }; return gen(); };",["iterator-cell"]],
     ["const xs = (): Iterable<number> => [1, 2];",["iterator-cell"]],
-    ["const y = () => { const xs: readonly number[] = [1, 2]; const s = \"ab\"; const m: Map<string, readonly number[]> = new Map([[\"a\", [1]]]); return () => [...xs].length + [...s].length + m.size; };",[]],
+    ["const y = () => { const xs: readonly number[] = [1, 2]; const s = \"ab\"; const made = new Map<string, readonly number[]>([[\"a\", [1]]]); const m: Map<string, readonly number[]> = made; return () => [...xs].length + [...s].length + m.size; };",[]],
     ["const f = () => (xs: readonly number[]) => xs.values();\nconst a = (f: (xs: readonly number[]) => Iterable<number>) => [...f([1])].length;",[]],
     ["const y = () => { const it = [1, 2].values(); const xs: readonly number[] = [...it]; return () => xs.length; };",[]],
     ["const y = () => { const u: unknown = [1].values(); return () => u; };",[]]];

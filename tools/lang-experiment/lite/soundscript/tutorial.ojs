@@ -437,12 +437,13 @@ Not modelled, reported *unsupported*: \`for…in\`, \`instanceof\`, \`??=\` \`&&
 // %%
 md`### Local mutation
 
-A local bound to a fresh value (an array or object literal, \`new\` on an intrinsic, a copy) is a \`Mut<T>\`: the function that made it may write it. \`Mut<T>\` is assignable to \`T\`, not the other way. A helper may take a \`Mut<T>\` parameter and write it. The value a cell returns or yields is frozen at run time unless the checker has proved nothing can write it afterwards.
+A local bound to a fresh value (an array or object literal, \`new\` on an intrinsic, a copy) is a \`Mut<T>\`: the function that made it may write it. An array, tuple or record annotation, or \`Map\`, \`Set\` or a typed array, does not change that (\`const xs: number[] = []\` is writable); any other annotation, such as \`readonly number[]\`, a union or a type alias, makes the local unwritable. \`Mut<T>\` is assignable to \`T\`, not the other way. A helper may take a \`Mut<T>\` parameter and write it. The value a cell returns or yields is frozen at run time unless the checker has proved nothing can write it afterwards.
 
 | rule | |
 |---|---|
 | a value that is not a \`Mut\` is not written | \`[member-write]\`, \`[mutating-method]\` |
-| a cell's value and a cell's inputs never hold a \`Mut\`, except in a function type's result (the specification's Not specified) | \`[mut-cell]\` |
+| a cell's value and a cell's inputs never hold a \`Mut\` | \`[mut-cell]\` |
+| \`Mut<…>\` is written only as the whole type of a parameter, a local or a type alias, not in a field, element, type argument, union or result; nor is \`typeof\` there | \`[mut-nested]\` |
 | a function that outlives the call that made it does not capture a \`Mut\` or a \`let\`, also only to read it; bind a \`const\` of the plain type first (\`const c: readonly number[] = xs\`) and capture that | \`[mut-capture]\`, \`[let-capture]\` |
 | a generator cell does not yield a typed array or a \`URL\` it can still write; these cannot be frozen, so yield a copy | \`[mut-yield]\` |
 | in a generator, a local whose type holds a \`Mut\` anywhere, or a \`let\` of a non-primitive type, declared before a \`yield\` is not used after it; make it in the loop body | \`[mut-yield]\` |

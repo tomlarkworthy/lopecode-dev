@@ -185,7 +185,7 @@ export const ixCompound = (ixUnsup, ixNumeric, STR, NUM, ERR) => (K: IxK, C: IxC
   ixNumeric(K, C, e.left, cur); ixNumeric(K, C, e.right, r);
   return NUM;
 };
-export const ixAssign = (IX_MUTATING_OPS, ixLookup, ixLvalue, ixIdent, ixCompound, ixExpect, ixDropRoot, ixFlowSet, ixUnsup, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AssignmentExpression): Ty => {
+export const ixAssign = (IX_MUTATING_OPS, ixLookup, ixLvalue, ixIdent, ixCompound, ixExpect, ixDropRoot, ixFlowSet, ixUnsup, named, isNamed, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AssignmentExpression): Ty => {
   if (!IX_MUTATING_OPS.has(e.operator)) { ixUnsup(K, C, e, `assignment ${e.operator}`); return ERR; }
   const l = e.left, b = l.type === "Identifier" ? ixLookup(V, env, l.name) : undefined;
   const decl = ixLvalue(K, T, V, W, C, env, l, e);
@@ -198,7 +198,9 @@ export const ixAssign = (IX_MUTATING_OPS, ixLookup, ixLvalue, ixIdent, ixCompoun
   }
   if (b && decl.k !== "err") {
     ixDropRoot(W, C.cur, b);
-    ixFlowSet(W, C.cur, "#" + b.id, K.reg.sub(v, decl) ? v : decl);
+    // S4.1: a fresh value assigned to an annotated let that a fresh initializer made writable keeps it writable
+    const fresh = b.kind === "let" && b.mutOwned && e.operator === "=" && v.k !== "err" && !isNamed(decl, "Mut") && K.reg.expand(decl).k !== "union" && !isNamed(v, "Mut") && (e.right.type === "ArrayExpression" || e.right.type === "ObjectExpression" || C.freshAt === e.right.nid);
+    ixFlowSet(W, C.cur, "#" + b.id, fresh ? named("Mut", decl) : K.reg.sub(v, decl) ? v : decl);
   }
   return v;
 };

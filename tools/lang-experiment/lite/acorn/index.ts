@@ -64,4 +64,4 @@ const given = { acornParse: cross(acornParse, parseTreeShape(), "parseTree.acorn
 export const linkAcorn = (over: Record<string, (...inputs: never[]) => unknown> = {}) => link({ ...kidsCells, ...treeCells, ...messageCells, ...syntaxCells, ...over }, prelude, given);
 const L = linkAcorn();
 export const { parseTree, lineStarts, lineIn, lineAt, leadingComments, nodeKind, isFnNode, TYPE_FIELDS, kidsOf, byNid, parentNids, preorder, childrenOf } = L;
-export const { syntaxCheck, distinctParse, moduleShape, syntaxBans } = L;
+export const { syntaxCheck, distinctParse, moduleShape, syntaxBans, mutPlaces } = L;

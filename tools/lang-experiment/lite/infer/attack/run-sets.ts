@@ -3,7 +3,8 @@
 // Sets: freeze (selfhost/freeze-attack b1-b7, 315), attack2 (252), attack1 (8), oldspec (49), oldvariants (239),
 // runtime (98), new (b-attacks.ts, 70), h6 (h6-attacks.ts), freeze2 (selfhost/freeze-attack2 b0-b11, 309), h7
 // (h7-attacks.ts), freeze3 (selfhost/freeze-attack3 b1-b11, 360; its c0 controls run without the checker and are counted
-// apart: each must fire), h8 (h8-attacks.ts), h9 (h9-attacks.ts, attacks on rule set R). The folders they come from are read, not edited.
+// apart: each must fire), h8 (h8-attacks.ts), h9 (h9-attacks.ts, attacks on rule set R), m1 (m1-attacks.ts: memo, [mut-nested], R-M; its m1-ctl controls are
+// counted apart and must fire; a `memo` program is also compared with its memoStrip variant). The folders they come from are read, not edited.
 // --off drops the static capture rules' diagnostics in this runner only (the checker is unchanged).
 import { checkSources } from "../../core.ts";
 import { rewriteSS } from "./strip-calls.ts";
@@ -11,10 +12,11 @@ import { observeProgram, type Prog } from "./observe.ts";
 import type { Verdicts } from "../../browser/run.ts";
 import { RUNTIME_FREEZE } from "./variants.ts";
 import { readdirSync, readFileSync } from "node:fs";
+import * as M1 from "./m1-attacks.ts";
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? null : process.argv[i + 1]!; };
 const OFF = process.argv.includes("--off"), FORCE = process.argv.includes("--force"), ONLY = arg("--only");
-const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9").split(",");
+const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1").split(",");
 export const OFF_RULES = new Set(["mut-capture", "let-capture", "mut-yield", "mut-await", "mut-cell", "member-write", "mutating-method", "regexp-state", "iterator-capture"]);
 type P = Prog & { set: string; name: string; foreign?: string | null; ctl?: boolean };
 const progs: P[] = [];
@@ -43,6 +45,7 @@ if (SETS.includes("freeze3")) for (const f of ["c0", "b1", "b2", "b3", "b4", "b5
   for (const a of (await import(`${SELF}freeze-attack3/${f}.ts`)).cands) progs.push({ set: a.ctl ? "freeze3-controls" : "freeze3", ...a, name: `${f}:${a.name}` });
 if (SETS.includes("h8")) for (const a of (await import("./h8-attacks.ts")).attacks) progs.push({ set: "h8", ...a });
 if (SETS.includes("h9")) for (const a of (await import("./h9-attacks.ts")).attacks) progs.push({ set: "h9", ...a });
+if (SETS.includes("m1")) for (const a of M1.attacks) progs.push({ set: a.ctl ? "m1-controls" : "m1", ...a });
 }
 
 // checked: the verdicts as runCells takes them (compile runs an island only on ok cells); under --off, a cell whose only
@@ -82,6 +85,14 @@ if (import.meta.main) {
       try {
         const r = await observeProgram({ ...p, src, checked: v.checked });
         lines = r.lines;
+        // memo against memoStrip: the same cells read the same, unless a cell is in error in either run
+        if (p.memo && v.ok && !r.threw) {
+          const bare = M1.memoStrip(src), vb = verdictOf(bare, null, OFF, true), names = (v.checked?.cells ?? []).map((c) => c.name);
+          const [x, y] = [await observeProgram({ src, checked: v.checked, show: names }), await observeProgram({ src: bare, checked: vb.checked, show: names })];
+          const sh = (o: typeof x) => o.lines.filter((l) => l.startsWith("show "));
+          if (!x.threw && !y.threw && sh(x).join("\n") !== sh(y).join("\n")) r.silent.push(`MEMO-DIFF ${sh(x).join(" ")} vs stripped ${sh(y).join(" ")}`);
+          lines.push(...sh(x), ...sh(y).map((l) => `stripped ${l}`));
+        }
         if (r.silent.length && v.ok) { t.silent++; silentList.push(`${p.set} ${p.name}${v.dropped.length ? ` (dropped ${v.dropped.join(", ")})` : ""}`); }
         if (r.threw && v.ok) t.threw++;
       } catch (x) { lines.push(`run crash: ${(x as Error).message}`); }
