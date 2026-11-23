@@ -1,0 +1,26 @@
+== r3.ts:r3-I-snap [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that stil
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that stil
+   skip => not silent (S4.12)
+== r3.ts:r3-SH-snap [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that stil
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that stil
+   skip => not silent (S4.12)
+== r3.ts:r3-I-method-snap [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that stil
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that stil
+   skip => not silent (S4.12)
+== r3.ts:r3-CTL-c-snap [ctl] [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that stil
+   skip => not silent (S4.12)
+ROW {"set":"r3","name":"r3-I-snap","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r3","name":"r3-SH-snap","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r3","name":"r3-I-method-snap","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r3","name":"r3-CTL-c-snap","ctl":true,"acc":true,"base":null,"chk":null,"skip":{"silent":false,"cls":"S4.12","crash":null}}

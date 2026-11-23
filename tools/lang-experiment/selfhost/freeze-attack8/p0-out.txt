@@ -1,0 +1,56 @@
+arrow: ACCEPT
+getter: REJECT put:rejected[mut-capture] v:blocked
+    put[mut-capture] Mut o captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: {  } = o) and capture that, or make it inside the function || put{unsupported get accessor} || put{unsupported intrinsic member Mut.n}
+getter-pub: REJECT put:unsupported v:blocked
+    put{unsupported get accessor}
+computed-method: REJECT put:rejected[type] v:blocked
+    put[type] cannot index {  } with "m" || put{unsupported computed property}
+bind: REJECT put:rejected[no-member] v:blocked
+    put[no-member] no property bind on (a: number[]) => number
+bind-writer: REJECT put:rejected[no-member][no-member] v:blocked
+    put[no-member] no property bind on (a: number[]) => number || put[no-member] no property bind on (a: Mut<number[]>) => void
+this: REJECT put:rejected[no-this] v:blocked
+    put[no-this] ThisExpression
+arguments: REJECT put:rejected[no-arguments] v:blocked
+    put[no-arguments] arguments
+switch-decl: REJECT put:rejected[switch-declaration][free-name] v:blocked
+    put[switch-declaration] a declaration directly in a case is visible to every case of the switch; put the case's statements in a block { … } || put[free-name] free name h
+weakref: REJECT put:rejected[new-non-intrinsic] v:blocked
+    put[new-non-intrinsic] new on something that is not an allowed intrinsic
+weakmap: REJECT put:rejected[new-non-intrinsic][mut-capture] v:blocked
+    put[new-non-intrinsic] new on something that is not an allowed intrinsic || put[mut-capture] Mut k captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: {  } = k) and capture that, or make it inside the function
+class: REJECT put:rejected[no-class][new-non-intrinsic] v:blocked
+    put[no-class] ClassDeclaration || put[new-non-intrinsic] new on something that is not an allowed intrinsic
+fn-decl: ACCEPT
+fn-expr-named: ACCEPT
+method: ACCEPT
+async-method: ACCEPT
+gen-fn: ACCEPT
+iife: ACCEPT
+curry: ACCEPT
+default-param: REJECT put:rejected[untyped-parameter] v:blocked
+    put[untyped-parameter] parameter has no type and no contextual type
+destr-default: REJECT put:rejected[no-cast] v:blocked
+    put[no-cast] as cast
+tagged: REJECT put:rejected[unknown-type] v:blocked
+    put[unknown-type] unknown type TemplateStringsArray || put{unsupported tagged template}
+map-holder: REJECT put:rejected[mut-capture]
+    put[mut-capture] Mut m captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: Map<number, () => number> = m) and capture that, or make it inside the function
+promise-holder: ACCEPT
+memo-closure: ACCEPT
+memo-result-fn: REJECT put:rejected[memo-pure]
+    put[memo-pure] c is computed from xs, which is a Mut, which the cell may change after memo's function is made; a memoised function may use from outside itself only inputs that hold no state and the consts and functions made from them, since a stored result would not see a change: pass the value as an argument
+catch-binding: ACCEPT
+for-of-binding: REJECT put:rejected[type][mut-capture]
+    put[type] () => number is not assignable to never || put[mut-capture] Mut fs captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: never[] = fs) and capture that, or make it inside the function
+label: REJECT put:unsupported v:blocked
+    put{unsupported label}
+obj-assign: REJECT put:unsupported v:blocked
+    put{unsupported Object.assign}
+spread-rec: ACCEPT
+jsx-handler: REJECT put:rejected[type][type]
+    put[type] () => number is not assignable to Action<[]> || put[type] { onClick: () => number; children: "x"[] } is not assignable to ButtonProps
+fn-ctor: REJECT put:rejected[no-cast][new-non-intrinsic] v:blocked
+    put[no-cast] as cast || put[new-non-intrinsic] new on something that is not an allowed intrinsic
+reflect-get: REJECT put:rejected[free-name] v:blocked
+    put[free-name] free name Reflect

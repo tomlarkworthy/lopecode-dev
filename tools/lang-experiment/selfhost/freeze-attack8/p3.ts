@@ -1,0 +1,25 @@
+const ST = (t: string, i: string) => `const s = () => state<${t}>(${i});\nconst lg = () => state(-1);\n`;
+const PUT = (t: string, b: string) => `const put = (s: State<${t}>, lg: State<number>) => ({ go: action(() => { ${b} }) });`;
+export const srcs: [string, string][] = [
+  ["date-local", "const a = () => { const d = new Date(0); d.setTime(5); return d.getTime(); };"],
+  ["date-pub", "const a = () => { const d = new Date(0); return d; };\nconst b = (a: Date) => a.getTime();"],
+  ["date-write-input", "const a = () => new Date(0);\nconst b = (a: Date) => { a.setTime(5); return 1; };"],
+  ["date-alias-after", ST("Date", "new Date(0)") + PUT("Date", "const d = new Date(0); s.set(d); const e = d; e.setTime(5);")],
+  ["date-in-rec-alias-after", ST("{ readonly d: Date }", "{ d: new Date(0) }") + PUT("{ readonly d: Date }", "const d = new Date(0); s.set({ d }); const e = d; e.setTime(5);")],
+  ["date-direct", ST("Date", "new Date(0)") + PUT("Date", "const d = new Date(0); s.set(d); d.setTime(5);")],
+  ["date-setfullyear", "const a = () => { const d = new Date(0); d.setFullYear(2000); return d.getTime(); };"],
+  ["usp-local", "const a = () => { const u = new URLSearchParams('a=1'); u.append('b', '2'); return u.toString(); };"],
+  ["dataview", "const a = () => { const b = new ArrayBuffer(4); const v = new DataView(b); v.setInt8(0, 1); return v.getInt8(0); };"],
+  ["regexp-lastindex", "const a = () => { const r = /a/g; r.exec('aa'); return r.lastIndex; };"],
+  ["shadow-action", "const put = () => { const action = (f: () => void) => f; return { go: action(() => {}) }; };"],
+  ["shadow-state", "const s = () => { const state = (n: number) => n; return state(1); };"],
+  ["shadow-memo", "const g = () => { const memo = <F,>(f: F): F => f; return memo((n: number) => n); };"],
+  ["shadow-read", "const put = (s: State<number>) => ({ go: action(() => { const read = (x: unknown) => 1; read(s); }) });\nconst s = () => state(1);"],
+  ["shadow-ss_methods", "const put = () => { const ss_methods = <O,>(o: O, ...r: unknown[]): O => o; const xs = [0]; const c: readonly number[] = xs; const o = { m() { return c.length; } }; return o; };"],
+  ["shadow-Map", "const a = () => { const Map = 1; return Map; };"],
+  ["param-ss_closure", "const put = () => { const mk = (ss_closure: number) => { const xs = [0]; const c: readonly number[] = xs; return () => c.length + ss_closure; }; return { f: mk(0) }; };"],
+  ["fndecl-ss_closure", "const put = () => { const xs = [0]; const c: readonly number[] = xs; function ss_closure<F,>(f: F, t: (i: number) => unknown): F { return f; } const f = () => c.length; return { f }; };"],
+  ["catch-ss_closure", "const put = () => { const xs = [0]; const c: readonly number[] = xs; try { throw 0; } catch (ss_closure) { const f = () => c.length; return { f }; } return { f: () => 0 }; };"],
+  ["destr-ss_closure", "const put = () => { const { ss_closure } = { ss_closure: <F,>(f: F, t: (i: number) => unknown): F => f }; const xs = [0]; const c: readonly number[] = xs; const f = () => c.length; return { f }; };"],
+  ["cell-named-ss_closure", "const ss_closure = () => 1;\nconst put = (ss_closure: number) => { const xs = [0]; const c: readonly number[] = xs; const f = () => c.length + ss_closure; return { f }; };"],
+];

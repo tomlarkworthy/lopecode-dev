@@ -1,0 +1,402 @@
+[
+ {
+  "file": "fixed/01-orders-total.ts",
+  "id": "01",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "paidTotal,bigCustomers ok",
+  "late": []
+ },
+ {
+  "file": "fixed/02-sort-people.ts",
+  "id": "02",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "names ok",
+  "late": []
+ },
+ {
+  "file": "fixed/03-group-by.ts",
+  "id": "03",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "letterCounts ok",
+  "late": []
+ },
+ {
+  "file": "fixed/04-squares-loop.ts",
+  "id": "04",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "squares,sumSquares ok",
+  "late": []
+ },
+ {
+  "file": "fixed/05-index-by-id.ts",
+  "id": "05",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "nameOfU2 ok",
+  "late": []
+ },
+ {
+  "file": "fixed/06-dedupe-set.ts",
+  "id": "06",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "unique,uniqueSorted,seenTwice ok",
+  "late": []
+ },
+ {
+  "file": "fixed/07-word-count-map.ts",
+  "id": "07",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "top ok",
+  "late": []
+ },
+ {
+  "file": "fixed/08-format-table.ts",
+  "id": "08",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "report ok",
+  "late": []
+ },
+ {
+  "file": "fixed/09-dates.ts",
+  "id": "09",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "daysBetween,endWeekday ok",
+  "late": []
+ },
+ {
+  "file": "fixed/10-chunk-zip.ts",
+  "id": "10",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "chunks,pairs ok",
+  "late": []
+ },
+ {
+  "file": "fixed/11-binary-search.ts",
+  "id": "11",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "found ok",
+  "late": []
+ },
+ {
+  "file": "fixed/12-memo-fib.ts",
+  "id": "12",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "fib50 ok",
+  "late": []
+ },
+ {
+  "file": "fixed/13-tree-walk.ts",
+  "id": "13",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "stats,flatten ok",
+  "late": []
+ },
+ {
+  "file": "fixed/14-matrix-typed.ts",
+  "id": "14",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "AA {\"rows\":2,\"cols\":2,\"data\":[7,10,15,22]} AI [1,2,3,4]",
+  "late": []
+ },
+ {
+  "file": "fixed/15-csv-line.ts",
+  "id": "15",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "parsed ok",
+  "late": []
+ },
+ {
+  "file": "fixed/16-lru-cache.ts",
+  "id": "16",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "lruDemo ok",
+  "late": []
+ },
+ {
+  "file": "fixed/17-counter.tsx",
+  "id": "17",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "label ok | clicked '+' | clicked '+' | label ok | clicked '-' | label ok | clicked 'reset' | label ok",
+  "late": []
+ },
+ {
+  "file": "fixed/18-todos.ts",
+  "id": "18",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "addTodo(\"a\") | addTodo(\"b\") | toggleTodo(1) | remaining ok | removeTodo(2) | remaining ok | todos [{\"id\":1,\"text\":\"a\",\"done\":true}]",
+  "late": []
+ },
+ {
+  "file": "fixed/19-form-validation.tsx",
+  "id": "19",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": false,
+  "note": "errors [\"email needs an @\"]",
+  "late": []
+ },
+ {
+  "file": "fixed/20-undo-stack.ts",
+  "id": "20",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "setValue(1) | setValue(2) | undo() | current ok | redo() | current ok | undo() | undo() | current ok | undo() | current ok",
+  "late": []
+ },
+ {
+  "file": "fixed/21-cart.ts",
+  "id": "21",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "addToCart(\"A\") | addToCart(\"A\") | addToCart(\"C\") | subtotal,tax,total ok",
+  "late": []
+ },
+ {
+  "file": "fixed/22-pagination.ts",
+  "id": "22",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "pageCount,visible ok | nextPage() | nextPage() | nextPage() | nextPage() | nextPage() | page,visible ok | prevPage() | page ok",
+  "late": []
+ },
+ {
+  "file": "fixed/23-selection-set.ts",
+  "id": "23",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "toggle(2) | toggle(4) | toggle(2) | selectedList ok | selectAll() | selectedList ok | clearSel() | selectedList ok",
+  "late": []
+ },
+ {
+  "file": "fixed/24-reducer.ts",
+  "id": "24",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "test_reduce ok | dispatch({\"type\":\"deposit\",\"amount\":5}) | acct {\"balance\":5,\"log\":[\"+5\"]}",
+  "late": []
+ },
+ {
+  "file": "fixed/25-memo-cache.ts",
+  "id": "25",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "results ok | rememberPrice(\"A\",2) | priceCache ok",
+  "late": []
+ },
+ {
+  "file": "fixed/26-timer-tick.ts",
+  "id": "26",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "elapsed 128 -> 128 -> 128, seconds 0.1s",
+  "late": []
+ },
+ {
+  "file": "fixed/27-input-to-state.tsx",
+  "id": "27",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "query,matches ok",
+  "late": []
+ },
+ {
+  "file": "fixed/28-batch-accumulate.ts",
+  "id": "28",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "flushed,buffer ok",
+  "late": []
+ },
+ {
+  "file": "fixed/29-log-clicks.tsx",
+  "id": "29",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": false,
+  "note": "no button 'clicked' in clickView",
+  "late": []
+ },
+ {
+  "file": "fixed/30-fetch-json.ts",
+  "id": "30",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "top {\"name\":\"b\",\"stars\":9,\"language\":\"go\"} langs [\"ts\",\"go\"]",
+  "late": []
+ },
+ {
+  "file": "fixed/31-parallel-fetch.ts",
+  "id": "31",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "cheapest ok",
+  "late": []
+ },
+ {
+  "file": "fixed/32-fetch-errors.ts",
+  "id": "32",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "theme,problem ok",
+  "late": []
+ },
+ {
+  "file": "fixed/33-fetch-into-state.ts",
+  "id": "33",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "seen ok | nextUser() | seen ok",
+  "late": []
+ },
+ {
+  "file": "fixed/34-list-view.tsx",
+  "id": "34",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "items milk,flour",
+  "late": []
+ },
+ {
+  "file": "fixed/35-conditional-view.tsx",
+  "id": "35",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "loading… / 2 spans / failed: timeout",
+  "late": []
+ },
+ {
+  "file": "fixed/36-form-view.tsx",
+  "id": "36",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "messages,draft ok",
+  "late": []
+ },
+ {
+  "file": "fixed/37-components.tsx",
+  "id": "37",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "2 cards, 1 tags",
+  "late": []
+ },
+ {
+  "file": "fixed/38-shared-helpers.ts",
+  "id": "38",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "shown,summary ok",
+  "late": []
+ },
+ {
+  "file": "fixed/39-generic-groupby.ts",
+  "id": "39",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "northTotal ok",
+  "late": []
+ },
+ {
+  "file": "fixed/40-generic-stack.ts",
+  "id": "40",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "demo ok",
+  "late": []
+ }
+]

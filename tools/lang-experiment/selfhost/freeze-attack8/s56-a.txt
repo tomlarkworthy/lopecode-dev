@@ -1,0 +1,97 @@
+== s56.ts:s56-direct [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-alias-after [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-helper-before [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-helper-decl-after [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-getter-before [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-mut-param-helper [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-mut-param-helper-curried [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-capture][mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-record-before [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-closure-made-before-called-after [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-capture]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-callback-after [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-finally [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-yield-star-inner [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-loop-decl-in-body [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-try-finally-yield [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 2, g.f() now = 3
+   skip CHANGED g (value #1 of 1): {f:fn(2)} | E[] -> {f:fn(3)} | E[]
+   skip => SILENT (none)
+== s56.ts:s56-ctl-c-direct [ctl] [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== s56.ts:s56-ctl-i-direct [ctl] [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+ROW {"set":"s56","name":"s56-direct","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-alias-after","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-helper-before","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-helper-decl-after","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-getter-before","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-mut-param-helper","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-mut-param-helper-curried","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-record-before","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-closure-made-before-called-after","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-callback-after","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-finally","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-yield-star-inner","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-loop-decl-in-body","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-try-finally-yield","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"s56","name":"s56-ctl-c-direct","ctl":true,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"s56","name":"s56-ctl-i-direct","ctl":true,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}

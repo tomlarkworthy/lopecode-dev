@@ -1,0 +1,284 @@
+## p0
+arrow: ACCEPT
+getter: REJECT put:rejected[mut-capture] v:blocked
+    put[mut-capture] Mut o captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: {  } = o) and capture that, or make it inside the function || put{unsupported get accessor} || put{unsupported intrinsic member Mut.n}
+getter-pub: REJECT put:unsupported v:blocked
+    put{unsupported get accessor}
+computed-method: REJECT put:rejected[type] v:blocked
+    put[type] cannot index {  } with "m" || put{unsupported computed property}
+bind: REJECT put:rejected[no-member] v:blocked
+    put[no-member] no property bind on (a: number[]) => number
+bind-writer: REJECT put:rejected[no-member][no-member] v:blocked
+    put[no-member] no property bind on (a: number[]) => number || put[no-member] no property bind on (a: Mut<number[]>) => void
+this: REJECT put:rejected[no-this] v:blocked
+    put[no-this] ThisExpression
+arguments: REJECT put:rejected[no-arguments] v:blocked
+    put[no-arguments] arguments
+switch-decl: REJECT put:rejected[switch-declaration][free-name] v:blocked
+    put[switch-declaration] a declaration directly in a case is visible to every case of the switch; put the case's statements in a block { … } || put[free-name] free name h
+weakref: REJECT put:rejected[new-non-intrinsic] v:blocked
+    put[new-non-intrinsic] new on something that is not an allowed intrinsic
+weakmap: REJECT put:rejected[new-non-intrinsic][mut-capture] v:blocked
+    put[new-non-intrinsic] new on something that is not an allowed intrinsic || put[mut-capture] Mut k captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: {  } = k) and capture that, or make it inside the function
+class: REJECT put:rejected[no-class][new-non-intrinsic] v:blocked
+    put[no-class] ClassDeclaration || put[new-non-intrinsic] new on something that is not an allowed intrinsic
+fn-decl: ACCEPT
+fn-expr-named: ACCEPT
+method: ACCEPT
+async-method: ACCEPT
+gen-fn: ACCEPT
+iife: ACCEPT
+curry: ACCEPT
+default-param: REJECT put:rejected[untyped-parameter] v:blocked
+    put[untyped-parameter] parameter has no type and no contextual type
+destr-default: REJECT put:rejected[no-cast] v:blocked
+    put[no-cast] as cast
+tagged: REJECT put:rejected[unknown-type] v:blocked
+    put[unknown-type] unknown type TemplateStringsArray || put{unsupported tagged template}
+map-holder: REJECT put:rejected[mut-capture]
+    put[mut-capture] Mut m captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: Map<number, () => number> = m) and capture that, or make it inside the function
+promise-holder: ACCEPT
+memo-closure: ACCEPT
+memo-result-fn: REJECT put:rejected[memo-pure]
+    put[memo-pure] c is computed from xs, which is a Mut, which the cell may change after memo's function is made; a memoised function may use from outside itself only inputs that hold no state and the consts and functions made from them, since a stored result would not see a change: pass the value as an argument
+catch-binding: ACCEPT
+for-of-binding: REJECT put:rejected[type][mut-capture]
+    put[type] () => number is not assignable to never || put[mut-capture] Mut fs captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: never[] = fs) and capture that, or make it inside the function
+label: REJECT put:unsupported v:blocked
+    put{unsupported label}
+obj-assign: REJECT put:unsupported v:blocked
+    put{unsupported Object.assign}
+spread-rec: ACCEPT
+jsx-handler: REJECT put:rejected[type][type]
+    put[type] () => number is not assignable to Action<[]> || put[type] { onClick: () => number; children: "x"[] } is not assignable to ButtonProps
+fn-ctor: REJECT put:rejected[no-cast][new-non-intrinsic] v:blocked
+    put[no-cast] as cast || put[new-non-intrinsic] new on something that is not an allowed intrinsic
+reflect-get: REJECT put:rejected[free-name] v:blocked
+    put[free-name] free name Reflect
+## p1
+helper-param-assign: REJECT put:rejected[let-capture][let-capture]
+    put[let-capture] param n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param n assigned from a function that escapes
+helper-param-incr: REJECT put:rejected[let-capture][let-capture]
+    put[let-capture] param n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param n assigned from a function that escapes
+helper-param-pluseq: REJECT put:rejected[let-capture][let-capture]
+    put[let-capture] param n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param n assigned from a function that escapes
+helper-param-nullish: REJECT put:rejected[let-capture][let-capture] v:blocked
+    put[let-capture] param n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param n assigned from a function that escapes || put{unsupported logical assignment ??=}
+helper-param-destr: REJECT put:rejected[let-capture][let-capture]
+    put[let-capture] param n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param n assigned from a function that escapes
+helper-param-rest: REJECT put:rejected[let-capture][let-capture]
+    put[let-capture] param ns is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param ns assigned from a function that escapes
+helper-param-arr-destr-assign: REJECT put:rejected[let-capture][let-capture] v:blocked
+    put[let-capture] param n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param n assigned from a function that escapes || put{unsupported destructuring assignment}
+helper-param-obj-destr-assign: REJECT put:rejected[let-capture][let-capture] v:blocked
+    put[let-capture] param n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param n assigned from a function that escapes || put{unsupported destructuring assignment}
+helper-param-forof: REJECT put:unsupported v:blocked
+    put{unsupported for...of over an existing binding}
+helper-param-arr: REJECT put:rejected[let-capture][let-capture]
+    put[let-capture] param a is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param a assigned from a function that escapes
+cell-param-assign: REJECT put:rejected[let-capture][let-capture]
+    put[let-capture] param k is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param k assigned from a function that escapes
+fn-decl-param: REJECT put:rejected[let-capture][let-capture]
+    put[let-capture] param n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param n assigned from a function that escapes
+catch-param: REJECT put:rejected[let-capture][let-capture][let-capture]
+    put[let-capture] let e is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] let e captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = e) and capture that || put[let-capture] let e assigned from a function that escapes
+fn-decl-name: REJECT put:rejected[const-assign]
+    put[const-assign] assignment to fn g
+var: REJECT put:rejected[no-var][let-capture][let-capture][let-capture]
+    put[no-var] var || put[let-capture] let n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] let n captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = n) and capture that || put[let-capture] let n assigned from a function that escapes
+let-control: REJECT put:rejected[let-capture][let-capture][let-capture]
+    put[let-capture] let n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] let n captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = n) and capture that || put[let-capture] let n assigned from a function that escapes
+loop-let: REJECT put:rejected[let-capture][let-capture]
+    put[let-capture] let i is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] let i captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = i) and capture that
+param-in-action: REJECT put:rejected[let-capture][let-capture][action-capture]
+    put[let-capture] param n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param n assigned from a function that escapes || put[action-capture] n is a parameter of an enclosing function, so a caller may pass it a value that depends on state; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+gen-param: REJECT put:rejected[let-capture][let-capture]
+    put[let-capture] param n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] param n assigned from a function that escapes
+param-assign-in-body: REJECT put:rejected[let-capture]
+    put[let-capture] param n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged
+## p2
+pr-cell: REJECT pr:rejected[untyped-parameter][mut-capture]
+    pr[untyped-parameter] parameter has no type and no contextual type || pr[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || pr{unsupported new Promise}
+pr-data-action: REJECT pr:rejected[untyped-parameter][mut-capture] put:rejected[mut-capture][mutating-method] v:blocked
+    pr[untyped-parameter] parameter has no type and no contextual type || pr[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || pr{unsupported new Promise} || put[mut-capture] pr holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself || put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published the
+pr-fn-action: REJECT pr:rejected[untyped-parameter][mut-capture] put:rejected[mut-capture][mutating-method] v:blocked
+    pr[untyped-parameter] parameter has no type and no contextual type || pr[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || pr{unsupported new Promise} || put[mut-capture] pr holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself || put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published the
+pr-data-async-cell: REJECT pr:rejected[untyped-parameter][mut-capture] a:blocked v:blocked
+    pr[untyped-parameter] parameter has no type and no contextual type || pr[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || pr{unsupported new Promise}
+pr-data-cell: REJECT pr:rejected[untyped-parameter][mut-capture] a:blocked v:blocked
+    pr[untyped-parameter] parameter has no type and no contextual type || pr[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || pr{unsupported new Promise}
+pr-data-gen: REJECT pr:rejected[untyped-parameter][mut-capture] a:rejected[mut-yield] v:blocked
+    pr[untyped-parameter] parameter has no type and no contextual type || pr[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || pr{unsupported new Promise} || a[mut-yield] Mut xs is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+pr-resolver-local: REJECT a:rejected[untyped-parameter][mut-capture]
+    a[untyped-parameter] parameter has no type and no contextual type || a[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || a{unsupported new Promise}
+shadow-ss_closure: ACCEPT
+bigint-key: ACCEPT
+memo-result-fn-pub: ACCEPT
+memo-in-cell-result: ACCEPT
+listener-on: ACCEPT
+## p3
+date-local: REJECT a:rejected[new-non-intrinsic]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic
+date-pub: REJECT a:rejected[new-non-intrinsic] b:rejected[unknown-type]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic || b[unknown-type] unknown type Date
+date-write-input: REJECT a:rejected[new-non-intrinsic] b:rejected[unknown-type]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic || b[unknown-type] unknown type Date
+date-alias-after: REJECT s:rejected[unknown-type][new-non-intrinsic] put:rejected[unknown-type][new-non-intrinsic]
+    s[unknown-type] unknown type Date || s[new-non-intrinsic] new on something that is not an allowed intrinsic || put[unknown-type] unknown type Date || put[new-non-intrinsic] new on something that is not an allowed intrinsic
+date-in-rec-alias-after: REJECT s:rejected[unknown-type][new-non-intrinsic] put:rejected[unknown-type][new-non-intrinsic]
+    s[unknown-type] unknown type Date || s[new-non-intrinsic] new on something that is not an allowed intrinsic || put[unknown-type] unknown type Date || put[new-non-intrinsic] new on something that is not an allowed intrinsic
+date-direct: REJECT s:rejected[unknown-type][new-non-intrinsic] put:rejected[unknown-type][new-non-intrinsic]
+    s[unknown-type] unknown type Date || s[new-non-intrinsic] new on something that is not an allowed intrinsic || put[unknown-type] unknown type Date || put[new-non-intrinsic] new on something that is not an allowed intrinsic
+date-setfullyear: REJECT a:rejected[new-non-intrinsic]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic
+usp-local: REJECT a:unsupported
+    a{unsupported intrinsic member Mut.append}
+dataview: REJECT a:rejected[new-non-intrinsic]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic
+regexp-lastindex: REJECT a:rejected[regexp-state]
+    a[regexp-state] a regexp that may have the g or y flag keeps lastIndex, which test, exec, match and replace write: use it only where it is made, as the receiver of a call or a String method's argument || a{unsupported intrinsic member RegExp.lastIndex}
+shadow-action: ACCEPT
+shadow-state: ACCEPT
+shadow-memo: ACCEPT
+shadow-read: REJECT put:rejected[handle-pass]
+    put[handle-pass] State<number> is given the type unknown, which hides its State<number>; a State or Events handle goes only where its own type is expected
+shadow-ss_methods: ACCEPT
+shadow-Map: ACCEPT
+param-ss_closure: ACCEPT
+fndecl-ss_closure: ACCEPT
+catch-ss_closure: ACCEPT
+destr-ss_closure: ACCEPT
+cell-named-ss_closure: ACCEPT
+## p4
+i-capture: ACCEPT
+i-two-captures: ACCEPT
+i-method: ACCEPT
+i-fn-decl: ACCEPT
+i-loop: ACCEPT
+i-generator: ACCEPT
+## p5
+iife-direct: REJECT put:rejected[mut-capture][mut-await]
+    put[mut-capture] Mut xs written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || put[mut-await] Mut xs is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const c: number[] = ...) and read c
+iife-alias-after: REJECT put:rejected[mut-capture][mut-await]
+    put[mut-capture] Mut xs captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: number[] = xs) and capture that, or make it inside the function || put[mut-await] Mut xs is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const
+iife-getter: REJECT put:rejected[mut-capture][mut-await]
+    put[mut-capture] Mut xs captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: number[] = xs) and capture that, or make it inside the function || put[mut-await] Mut xs is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const
+iife-helper-write: REJECT put:rejected[mut-capture][mut-await]
+    put[mut-capture] Mut xs written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || put[mut-await] Mut xs is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const c: number[] = ...) and read c
+iife-cb: REJECT put:rejected[mut-capture][mut-await]
+    put[mut-capture] Mut xs written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || put[mut-await] Mut xs is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const c: number[] = ...) and read c
+iife-mut-param: REJECT put:rejected[mut-await]
+    put[mut-await] Mut ys is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const c: number[] = ...) and read c
+named-async-mut-param: REJECT put:rejected[mut-await]
+    put[mut-await] Mut ys is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const c: number[] = ...) and read c
+named-async-mut-param-decl: REJECT put:rejected[mut-await]
+    put[mut-await] Mut ys is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const c: number[] = ...) and read c
+mut-param-sync-then: REJECT put:rejected[mut-capture]
+    put[mut-capture] Mut ys written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made
+then-cb: REJECT put:rejected[mut-capture]
+    put[mut-capture] Mut xs written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made
+mut-param-async-alias: REJECT put:rejected[mut-await]
+    put[mut-await] Mut ys is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const c: number[] = ...) and read c
+async-gen-helper: REJECT put:rejected[mut-yield] w:blocked
+    put[mut-yield] Mut ys is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c || put{unsupported intrinsic member Generator.next}
+await-in-async-cell: ACCEPT
+## p6
+snapshot-shadow-write: REJECT b:rejected[mutating-method][prelude-shadow]
+    b[mutating-method] write to a number[], which is not Mut || b[prelude-shadow] snapshot names a prelude function; a binding of that name would hide it from the rules of snapshot(...)
+structuredClone-shadow-write: REJECT b:rejected[mutating-method]
+    b[mutating-method] write to a number[], which is not Mut
+array-shadow-from: REJECT b:rejected[mutating-method]
+    b[mutating-method] write to a number[], which is not Mut
+slice-not-shadowable: ACCEPT
+action-shadow-capture-mut: REJECT put:rejected[mut-capture]
+    put[mut-capture] Mut xs written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made
+memo-shadow-capture-mut: REJECT put:rejected[mut-capture]
+    put[mut-capture] Mut xs written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made
+state-shadow: ACCEPT
+map-shadow-new: REJECT a:rejected[new-non-intrinsic]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic
+## s1probe
+s1-finished-arrow: ACCEPT
+s1-finished-record-fn: ACCEPT
+s1-finished-captured-fn: ACCEPT
+s1-finished-captured-fn-i-gap: ACCEPT
+s1-finished-captured-fn-sh-gap: ACCEPT
+s1-state-initial-fn: ACCEPT
+s1-async-cell-fn: ACCEPT
+s1-action-input-stored: ACCEPT
+s1-generator-yield-fn-listener: ACCEPT
+s1-memo-result-fn-cell: ACCEPT
+s1-memo-in-cell-result: ACCEPT
+s1-memo-in-action: ACCEPT
+s1-memo-result-data: ACCEPT
+s1-body-arrow: ACCEPT
+s1-helper-made: ACCEPT
+s1-published-returns-fresh: ACCEPT
+s1-inner-action-returns-fn: REJECT put:rejected[possibly-undefined][type]
+    put[possibly-undefined] void is not assignable to () => number || put[type] void is not callable
+s1-nested-action-arg: ACCEPT
+s1-nested-action-published-arg: ACCEPT
+s1-update-returns-fn: ACCEPT
+s1-update-returns-old: ACCEPT
+s1-fn-in-error-cause: REJECT put:rejected[arity]
+    put[arity] expected at most 1 arguments, got 2
+s1-fn-in-map: ACCEPT
+s1-fn-as-map-key: ACCEPT
+s1-fn-in-set: ACCEPT
+s1-fn-width-record: ACCEPT
+s1-promise-body: REJECT put:rejected[mut-capture]
+    put[mut-capture] s holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself
+s1-promise-finished: REJECT put:rejected[mut-capture]
+    put[mut-capture] s holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself
+s1-async-fn-result: REJECT put:rejected[mut-capture]
+    put[mut-capture] s holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself
+s1-thenable: REJECT s:rejected[type] v:rejected[type] put:rejected[fn-publish]
+    s[type] value { then: (r: (n: number) => void) => void } has a callable then: the runtime would call it and give the cells that take it what then passes on, not this type. Rename then || v[type] value { then: (r: (n: number) => void) => void } has a callable then: the runtime would call it and give the cells that take it what then passes on, not this type. Rename then || put[fn-publish] a function made in this function is given to s.set while the function still runs; at run time that throws (S4.12), since the function could still write what it reads. Give data and make the function where the v
+s1-caught-then-data: ACCEPT
+s1-caught-action-arg: ACCEPT
+s1-caught-update: ACCEPT
+s1-caught-in-update-fn: ACCEPT
+s1-action-in-memo: REJECT g:rejected[action-call][memo-pure]
+    g[action-call] an Action called outside action(...) || g[memo-pure] memo's function uses inner, which is or holds an Action: a call that gives a stored result would skip what it does; a memoised function may use from outside itself only inputs that hold no state and the consts and functions made from them, since a stored result would not see a change: pass the value as an argument
+s1-read-in-memo: REJECT g:rejected[read-outside-action][memo-pure]
+    g[read-outside-action] read(...) is only for an action body; a cell takes the value as a parameter || g[memo-pure] memo's function uses s, which is or holds a State: a call that gives a stored result would skip what it does; a memoised function may use from outside itself only inputs that hold no state and the consts and functions made from them, since a stored result would not see a change: pass the value as an argument
+s1-fn-reads-state: REJECT rd:rejected[read-outside-action]
+    rd[read-outside-action] read(...) is only for an action body; a cell takes the value as a parameter
+s1-ctl-A-c-direct: ACCEPT
+s1-ctl-A-let: REJECT put:rejected[mut-capture][let-capture][let-capture]
+    put[mut-capture] Mut xs captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: number[] = xs) and capture that, or make it inside the function || put[let-capture] let n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || put[let-capture] let n captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = n) and capture that
+## t1probe
+t1-async-cell-write-before-return: ACCEPT
+t1-async-cell-return-then-nothing: ACCEPT
+t1-async-cell-memo-arg: ACCEPT
+t1-async-cell-memo-arg-alias: ACCEPT
+t1-gen-listener-fn: ACCEPT
+t1-gen-listener-data: ACCEPT
+t1-gen-plain-reader-i: ACCEPT
+t1-gen-loop-i: ACCEPT
+t1-state-initial-i: ACCEPT
+t1-state-initial-read-set: ACCEPT
+t1-memo-result-alias-arg: ACCEPT
+t1-memo-result-local-fn-i: ACCEPT
+t1-memo-key-written-after-hit: ACCEPT
+t1-memo-in-action-key-alias: ACCEPT
+t1-read-after-set-then-alias-write: ACCEPT
+t1-thrown-error-data: REJECT inner:rejected[arity] put:rejected[type]
+    inner[arity] expected at most 1 arguments, got 2 || put[type] unknown is not assignable to Error || put{unsupported instanceof}
+t1-thrown-record-to-drive: ACCEPT
+t1-action-return-to-drive: ACCEPT
+t1-jsx-prop-data: ACCEPT
+t1-jsx-handler-i: ACCEPT
+t1-island-data: ACCEPT
+t1-island-fn-out: REJECT go:rejected[compile-boundary]
+    go[compile-boundary] y: () => number cannot cross to a worker (a function)
+t1-island-fn-in: REJECT go:rejected[compile-boundary]
+    go[compile-boundary] x: () => number cannot cross to a worker (a function)
+t1-promise-in-value-i: ACCEPT
+t1-promise-settles-after-write-async: ACCEPT
+t1-fn-capability-clock: ACCEPT
+t1-fn-capability-random: ACCEPT
+t1-ctl-G-c-direct: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut xs is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+t1-ctl-G-let: REJECT g:rejected[let-capture][let-capture]
+    g[let-capture] let n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || g[let-capture] let n captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = n) and capture that

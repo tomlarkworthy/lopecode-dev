@@ -1,0 +1,32 @@
+date-local: REJECT a:rejected[new-non-intrinsic]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic
+date-pub: REJECT a:rejected[new-non-intrinsic] b:rejected[unknown-type]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic || b[unknown-type] unknown type Date
+date-write-input: REJECT a:rejected[new-non-intrinsic] b:rejected[unknown-type]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic || b[unknown-type] unknown type Date
+date-alias-after: REJECT s:rejected[unknown-type][new-non-intrinsic] put:rejected[unknown-type][new-non-intrinsic]
+    s[unknown-type] unknown type Date || s[new-non-intrinsic] new on something that is not an allowed intrinsic || put[unknown-type] unknown type Date || put[new-non-intrinsic] new on something that is not an allowed intrinsic
+date-in-rec-alias-after: REJECT s:rejected[unknown-type][new-non-intrinsic] put:rejected[unknown-type][new-non-intrinsic]
+    s[unknown-type] unknown type Date || s[new-non-intrinsic] new on something that is not an allowed intrinsic || put[unknown-type] unknown type Date || put[new-non-intrinsic] new on something that is not an allowed intrinsic
+date-direct: REJECT s:rejected[unknown-type][new-non-intrinsic] put:rejected[unknown-type][new-non-intrinsic]
+    s[unknown-type] unknown type Date || s[new-non-intrinsic] new on something that is not an allowed intrinsic || put[unknown-type] unknown type Date || put[new-non-intrinsic] new on something that is not an allowed intrinsic
+date-setfullyear: REJECT a:rejected[new-non-intrinsic]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic
+usp-local: REJECT a:unsupported
+    a{unsupported intrinsic member Mut.append}
+dataview: REJECT a:rejected[new-non-intrinsic]
+    a[new-non-intrinsic] new on something that is not an allowed intrinsic
+regexp-lastindex: REJECT a:rejected[regexp-state]
+    a[regexp-state] a regexp that may have the g or y flag keeps lastIndex, which test, exec, match and replace write: use it only where it is made, as the receiver of a call or a String method's argument || a{unsupported intrinsic member RegExp.lastIndex}
+shadow-action: ACCEPT
+shadow-state: ACCEPT
+shadow-memo: ACCEPT
+shadow-read: REJECT put:rejected[handle-pass]
+    put[handle-pass] State<number> is given the type unknown, which hides its State<number>; a State or Events handle goes only where its own type is expected
+shadow-ss_methods: ACCEPT
+shadow-Map: ACCEPT
+param-ss_closure: ACCEPT
+fndecl-ss_closure: ACCEPT
+catch-ss_closure: ACCEPT
+destr-ss_closure: ACCEPT
+cell-named-ss_closure: ACCEPT

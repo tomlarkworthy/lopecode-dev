@@ -1,0 +1,123 @@
+== fixed/01-orders-total.ts [01 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS paidTotal,bigCustomers ok
+== fixed/02-sort-people.ts [02 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS names ok
+== fixed/03-group-by.ts [03 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS letterCounts ok
+== fixed/04-squares-loop.ts [04 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS squares,sumSquares ok
+== fixed/05-index-by-id.ts [05 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS nameOfU2 ok
+== fixed/06-dedupe-set.ts [06 data]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS unique,uniqueSorted,seenTwice ok
+== fixed/07-word-count-map.ts [07 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS top ok
+== fixed/08-format-table.ts [08 data]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS report ok
+== fixed/09-dates.ts [09 data]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS daysBetween,endWeekday ok
+== fixed/10-chunk-zip.ts [10 data]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS chunks,pairs ok
+== fixed/11-binary-search.ts [11 algo]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS found ok
+== fixed/12-memo-fib.ts [12 algo]
+   VERDICT ACCEPT (2/2 cells ok)
+   RUN PASS fib50 ok
+== fixed/13-tree-walk.ts [13 algo]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS stats,flatten ok
+== fixed/14-matrix-typed.ts [14 algo]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS AA {"rows":2,"cols":2,"data":[7,10,15,22]} AI [1,2,3,4]
+== fixed/15-csv-line.ts [15 algo]
+   VERDICT ACCEPT (2/2 cells ok)
+   RUN PASS parsed ok
+== fixed/16-lru-cache.ts [16 algo]
+   VERDICT ACCEPT (2/2 cells ok)
+   RUN PASS lruDemo ok
+== fixed/17-counter.tsx [17 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS label ok | clicked '+' | clicked '+' | label ok | clicked '-' | label ok | clicked 'reset' | label ok
+== fixed/18-todos.ts [18 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS addTodo("a") | addTodo("b") | toggleTodo(1) | remaining ok | removeTodo(2) | remaining ok | todos [{"id":1,"text":"a","done":true}]
+== fixed/19-form-validation.tsx [19 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN FAIL errors ["email needs an @"]
+== fixed/20-undo-stack.ts [20 state]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS setValue(1) | setValue(2) | undo() | current ok | redo() | current ok | undo() | undo() | current ok | undo() | current ok
+== fixed/21-cart.ts [21 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS addToCart("A") | addToCart("A") | addToCart("C") | subtotal,tax,total ok
+== fixed/22-pagination.ts [22 state]
+   VERDICT ACCEPT (7/7 cells ok)
+   RUN PASS pageCount,visible ok | nextPage() | nextPage() | nextPage() | nextPage() | nextPage() | page,visible ok | prevPage() | page ok
+== fixed/23-selection-set.ts [23 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS toggle(2) | toggle(4) | toggle(2) | selectedList ok | selectAll() | selectedList ok | clearSel() | selectedList ok
+== fixed/24-reducer.ts [24 state]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS test_reduce ok | dispatch({"type":"deposit","amount":5}) | acct {"balance":5,"log":["+5"]}
+== fixed/25-memo-cache.ts [25 state]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS results ok | rememberPrice("A",2) | priceCache ok
+== fixed/26-timer-tick.ts [26 events]
+   VERDICT ACCEPT (7/7 cells ok)
+   RUN PASS elapsed 128 -> 128 -> 128, seconds 0.1s
+== fixed/27-input-to-state.tsx [27 events]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS query,matches ok
+== fixed/28-batch-accumulate.ts [28 events]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS flushed,buffer ok
+== fixed/29-log-clicks.tsx [29 events]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN FAIL no button 'clicked' in clickView
+== fixed/30-fetch-json.ts [30 async]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS top {"name":"b","stars":9,"language":"go"} langs ["ts","go"]
+== fixed/31-parallel-fetch.ts [31 async]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS cheapest ok
+== fixed/32-fetch-errors.ts [32 async]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS theme,problem ok
+== fixed/33-fetch-into-state.ts [33 async]
+   VERDICT ACCEPT (7/7 cells ok)
+   RUN PASS seen ok | nextUser() | seen ok
+== fixed/34-list-view.tsx [34 views]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS items milk,flour
+== fixed/35-conditional-view.tsx [35 views]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS loading… / 2 spans / failed: timeout
+== fixed/36-form-view.tsx [36 views]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS messages,draft ok
+== fixed/37-components.tsx [37 views]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS 2 cards, 1 tags
+== fixed/38-shared-helpers.ts [38 helpers]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS shown,summary ok
+== fixed/39-generic-groupby.ts [39 helpers]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS northTotal ok
+== fixed/40-generic-stack.ts [40 helpers]
+   VERDICT ACCEPT (2/2 cells ok)
+   RUN PASS demo ok
+== fixed/29-log-clicks.tsx [29b events]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS count 3 gap 250

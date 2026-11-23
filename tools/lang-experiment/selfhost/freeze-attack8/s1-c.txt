@@ -1,0 +1,280 @@
+== s1.ts:s1-finished-arrow [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 1
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 1
+   skip => not silent (none)
+== s1.ts:s1-finished-record-fn [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 7, holder reads 7
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 7, holder reads 7
+   skip => not silent (none)
+== s1.ts:s1-finished-captured-fn [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 3, holder reads 3
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 3, holder reads 3
+   skip => not silent (none)
+== s1.ts:s1-finished-captured-fn-i-gap [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 3, holder reads 3
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 3, holder reads 3
+   skip => not silent (none)
+== s1.ts:s1-finished-captured-fn-sh-gap [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 3, holder reads 3
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 3, holder reads 3
+   skip => not silent (none)
+== s1.ts:s1-state-initial-fn [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 4, holder reads 4
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 4, holder reads 4
+   skip => not silent (none)
+== s1.ts:s1-async-cell-fn [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 1
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 1
+   skip => not silent (none)
+== s1.ts:s1-action-input-stored [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads undefined
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads undefined
+   skip => not silent (none)
+== s1.ts:s1-generator-yield-fn-listener [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> holder reads 1 lg 1
+   chk  => not silent (none)
+   skip drive -> holder reads 1 lg 1
+   skip => not silent (none)
+== s1.ts:s1-memo-result-fn-cell [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 1
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 1
+   skip => not silent (none)
+== s1.ts:s1-memo-in-cell-result [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 1
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 1
+   skip => not silent (none)
+== s1.ts:s1-memo-in-action [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 2, holder reads 2
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 2, holder reads 2
+   skip => not silent (none)
+== s1.ts:s1-memo-result-data [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 2, holder reads {"n":2}
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 2, holder reads {"n":2}
+   skip => not silent (none)
+== s1.ts:s1-body-arrow [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) -1, holder reads 1
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) -1, holder reads 1
+   skip => not silent (none)
+== s1.ts:s1-helper-made [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 3
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 3
+   skip => not silent (none)
+== s1.ts:s1-published-returns-fresh [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 4, holder reads 4
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 4, holder reads 4
+   skip => not silent (none)
+== s1.ts:s1-inner-action-returns-fn [REG=1 BODYFN=0]
+   verdict: REJECT put:rejected[possibly-undefined][type]
+   skip drive -> stored: lg (a marker or a reading taken in the body) 5, holder reads 5
+   skip => not silent (none)
+== s1.ts:s1-nested-action-arg [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 1
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 1
+   skip => not silent (none)
+== s1.ts:s1-nested-action-published-arg [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 9, holder reads 9
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 9, holder reads 9
+   skip => not silent (none)
+== s1.ts:s1-update-returns-fn [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) -1, holder reads 1
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) -1, holder reads 1
+   skip => not silent (none)
+== s1.ts:s1-update-returns-old [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 6
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 6
+   skip => not silent (none)
+== s1.ts:s1-fn-in-error-cause [REG=1 BODYFN=0]
+   verdict: REJECT put:rejected[arity]
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads {}
+   skip => not silent (none)
+== s1.ts:s1-fn-in-map [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads {}
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads {}
+   skip => not silent (none)
+== s1.ts:s1-fn-as-map-key [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads {}
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads {}
+   skip => not silent (none)
+== s1.ts:s1-fn-in-set [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads {}
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads {}
+   skip => not silent (none)
+== s1.ts:s1-fn-width-record [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads {"n":1}
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads {"n":1}
+   skip => not silent (none)
+== s1.ts:s1-promise-body [REG=1 BODYFN=0]
+   verdict: REJECT put:rejected[mut-capture]
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 1
+   skip => not silent (none)
+== s1.ts:s1-promise-finished [REG=1 BODYFN=0]
+   verdict: REJECT put:rejected[mut-capture]
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 3
+   skip => not silent (none)
+== s1.ts:s1-async-fn-result [REG=1 BODYFN=0]
+   verdict: REJECT put:rejected[mut-capture]
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads 1
+   skip => not silent (none)
+== s1.ts:s1-thenable [REG=1 BODYFN=0]
+   verdict: REJECT s:rejected[type] v:rejected[type] put:rejected[fn-publish]
+   skip drive -> no action (rejected a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what th)
+   skip error s: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   skip error v: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   skip error put: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   skip => not silent (frozen-write)
+== s1.ts:s1-caught-then-data [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) -1, holder reads 2
+   chk  show f2 = fn(1) | E[]
+   chk  show s = 2 | E[]
+   chk  show lg = -1 | E[]
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) -1, holder reads 2
+   skip show f2 = fn(1) | E[]
+   skip show s = 2 | E[]
+   skip show lg = -1 | E[]
+   skip => not silent (none)
+== s1.ts:s1-caught-action-arg [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) -1, holder reads 1
+   chk  show s = 1 | E[]
+   chk  show lg = -1 | E[]
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) -1, holder reads 1
+   skip show s = 1 | E[]
+   skip show lg = -1 | E[]
+   skip => not silent (none)
+== s1.ts:s1-caught-update [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) -1, holder reads 3
+   chk  show s = fn(3) | E[]
+   chk  show lg = -1 | E[]
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) -1, holder reads 3
+   skip show s = fn(3) | E[]
+   skip show lg = -1 | E[]
+   skip => not silent (none)
+== s1.ts:s1-caught-in-update-fn [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads -1
+   chk  show s = -1 | E[]
+   chk  show f2 = fn(1) | E[]
+   chk  => not silent (none)
+   skip drive -> stored: lg (a marker or a reading taken in the body) 1, holder reads -1
+   skip show s = -1 | E[]
+   skip show f2 = fn(1) | E[]
+   skip => not silent (none)
+== s1.ts:s1-action-in-memo [REG=1 BODYFN=0]
+   verdict: REJECT g:rejected[action-call][memo-pure]
+   skip drive -> threw at the call: an action called while a memoised function computes a result: a call that gives the stored result would skip it (S2.13)
+   skip => not silent (other-throw)
+== s1.ts:s1-read-in-memo [REG=1 BODYFN=0]
+   verdict: REJECT g:rejected[read-outside-action][memo-pure]
+   skip drive -> threw at the call: read(...) called while a memoised function computes a result: a call that gives the stored result would skip it (S2.13)
+   skip => not silent (other-throw)
+== s1.ts:s1-fn-reads-state [REG=1 BODYFN=0]
+   verdict: REJECT rd:rejected[read-outside-action]
+   skip drive -> stored: lg (a marker or a reading taken in the body) 2, holder reads "throws read(n0) called outside an action"; after bump holder reads "v() throws read(n0) called outside an action"
+   skip TAP write s: fn(2) -> fn(throws read(n0) called outside an action)
+   skip TAP write s: fn(2) -> fn(throws read(n0) called outside an action)
+   skip TAP write s: fn(2) -> fn(throws read(n0) called outside an action)
+   skip TAP write s: fn(2) -> fn(throws read(n0) called outside an action)
+   skip => SILENT (other-throw)
+== s1.ts:s1-ctl-A-c-direct [ctl] [REG=1 BODYFN=0]
+   verdict: ACCEPT
+   skip drive -> threw at the call: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== s1.ts:s1-ctl-A-let [ctl] [REG=1 BODYFN=0]
+   verdict: REJECT put:rejected[mut-capture][let-capture][let-capture]
+   skip drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip => SILENT (none)
+ROW {"set":"s1","name":"s1-finished-arrow","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-finished-record-fn","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-finished-captured-fn","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-finished-captured-fn-i-gap","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-finished-captured-fn-sh-gap","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-state-initial-fn","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-async-cell-fn","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-action-input-stored","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-generator-yield-fn-listener","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-memo-result-fn-cell","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-memo-in-cell-result","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-memo-in-action","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-memo-result-data","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-body-arrow","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-helper-made","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-published-returns-fresh","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-inner-action-returns-fn","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-nested-action-arg","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-nested-action-published-arg","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-update-returns-fn","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-update-returns-old","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-fn-in-error-cause","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-fn-in-map","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-fn-as-map-key","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-fn-in-set","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-fn-width-record","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-promise-body","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-promise-finished","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-async-fn-result","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-thenable","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"s1","name":"s1-caught-then-data","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-caught-action-arg","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-caught-update","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-caught-in-update-fn","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"s1","name":"s1-action-in-memo","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"s1","name":"s1-read-in-memo","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"s1","name":"s1-fn-reads-state","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"other-throw","crash":null}}
+ROW {"set":"s1","name":"s1-ctl-A-c-direct","ctl":true,"acc":true,"base":null,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"s1","name":"s1-ctl-A-let","ctl":true,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}

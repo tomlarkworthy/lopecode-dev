@@ -1,0 +1,19 @@
+pr-cell: REJECT pr:rejected[untyped-parameter][mut-capture]
+    pr[untyped-parameter] parameter has no type and no contextual type || pr[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || pr{unsupported new Promise}
+pr-data-action: REJECT pr:rejected[untyped-parameter][mut-capture] put:rejected[mut-capture][mutating-method] v:blocked
+    pr[untyped-parameter] parameter has no type and no contextual type || pr[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || pr{unsupported new Promise} || put[mut-capture] pr holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself || put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published the
+pr-fn-action: REJECT pr:rejected[untyped-parameter][mut-capture] put:rejected[mut-capture][mutating-method] v:blocked
+    pr[untyped-parameter] parameter has no type and no contextual type || pr[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || pr{unsupported new Promise} || put[mut-capture] pr holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself || put[mutating-method] xs is written after a value is published at lg.set in the same run of this function; a function published the
+pr-data-async-cell: REJECT pr:rejected[untyped-parameter][mut-capture] a:blocked v:blocked
+    pr[untyped-parameter] parameter has no type and no contextual type || pr[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || pr{unsupported new Promise}
+pr-data-cell: REJECT pr:rejected[untyped-parameter][mut-capture] a:blocked v:blocked
+    pr[untyped-parameter] parameter has no type and no contextual type || pr[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || pr{unsupported new Promise}
+pr-data-gen: REJECT pr:rejected[untyped-parameter][mut-capture] a:rejected[mut-yield] v:blocked
+    pr[untyped-parameter] parameter has no type and no contextual type || pr[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || pr{unsupported new Promise} || a[mut-yield] Mut xs is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+pr-resolver-local: REJECT a:rejected[untyped-parameter][mut-capture]
+    a[untyped-parameter] parameter has no type and no contextual type || a[mut-capture] Mut box written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made || a{unsupported new Promise}
+shadow-ss_closure: ACCEPT
+bigint-key: ACCEPT
+memo-result-fn-pub: ACCEPT
+memo-in-cell-result: ACCEPT
+listener-on: ACCEPT

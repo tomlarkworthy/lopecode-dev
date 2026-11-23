@@ -1,0 +1,19 @@
+== isolate/28-draft-plus-annotation.ts [00]
+   keys: rejected
+      [possibly-undefined] line 5: string | undefined is not assignable to string
+      [type] line 5: { key: string | undefined; t: number } is not assignable to { key: string; t: number }
+   onKey: rejected
+      [mut-capture] line 15: Mut buf captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: string[] = buf) and capture that, or make it inside the function
+   VERDICT REJECT (3/5 cells ok)
+== isolate/28-unannotated-object-yield.ts [00]
+   onEv: rejected
+      [inject-events] line 6: evs is not a sync generator cell yielding { n: number }
+   VERDICT REJECT (3/4 cells ok)
+== isolate/28-unannotated-number-yield.ts [00]
+   VERDICT ACCEPT (4/4 cells ok)
+== isolate/toSorted.ts [00]
+   VERDICT ACCEPT (2/2 cells ok)
+== isolate/34-const-of-positions.tsx [00]
+   VERDICT ACCEPT (3/3 cells ok)
+== isolate/B04b-two-async-cells-race.ts [00]
+   VERDICT ACCEPT (8/8 cells ok)

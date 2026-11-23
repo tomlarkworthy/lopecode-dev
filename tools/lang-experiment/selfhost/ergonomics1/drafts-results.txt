@@ -1,0 +1,198 @@
+== drafts/01-orders-total.ts [01 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS paidTotal,bigCustomers ok
+== drafts/02-sort-people.ts [02 data]
+   byAgeThenName: rejected
+      [mutating-method] line 9: write to a Person[], which is not Mut
+   VERDICT REJECT (2/3 cells ok)
+== drafts/03-group-by.ts [03 data]
+   byLetter: rejected
+      [type] line 6: cannot index { [k: string]: string[] } with string | undefined
+      [type] line 7: cannot index { [k: string]: string[] } with string | undefined
+   VERDICT REJECT (2/3 cells ok)
+== drafts/04-squares-loop.ts [04 data]
+   squares: rejected
+      [type] line 4: number is not assignable to never
+   VERDICT REJECT (2/3 cells ok)
+== drafts/05-index-by-id.ts [05 data]
+   byId: rejected
+      [member-write] line 10: write to a { [k: string]: User }, which is not Mut
+   nameOfU2: rejected
+      [possibly-undefined] line 14: property name of a value that may be undefined
+   VERDICT REJECT (1/3 cells ok)
+== drafts/06-dedupe-set.ts [06 data]
+   uniqueSorted: rejected
+      [mutating-method] line 3: write to a string[], which is not Mut
+   VERDICT REJECT (3/4 cells ok)
+== drafts/07-word-count-map.ts [07 data]
+   top: rejected
+      [mutating-method] line 8: write to a [string, number][], which is not Mut
+   VERDICT REJECT (2/3 cells ok)
+== drafts/08-format-table.ts [08 data]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS report ok
+== drafts/09-dates.ts [09 data]
+   daysBetween: rejected
+      [new-non-intrinsic] line 4: new on something that is not an allowed intrinsic
+   endWeekday: rejected
+      [new-non-intrinsic] line 7: new on something that is not an allowed intrinsic
+   VERDICT REJECT (2/4 cells ok)
+== drafts/10-chunk-zip.ts [10 data]
+   zip: rejected
+      [type] line 6: (A | B | undefined)[][] is not assignable to [A, B][]
+      [iterator-capture] line 6: bs may hold an iterator (the type parameter B), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...bs]) and capture the array
+   VERDICT REJECT (3/4 cells ok)
+== drafts/11-binary-search.ts [11 algo]
+   bsearch: rejected
+      [possibly-undefined] line 8: number | undefined used as a number
+   VERDICT REJECT (2/3 cells ok)
+== drafts/12-memo-fib.ts [12 algo]
+   fib: rejected
+      [mut-capture] line 3: Mut cache written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made
+   VERDICT REJECT (1/2 cells ok)
+== drafts/13-tree-walk.ts [13 algo]
+   flatten: rejected
+      [mut-capture] line 20: Mut out written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made
+      {unsupported} recursive function without a return type
+   VERDICT REJECT (4/5 cells ok)
+== drafts/14-matrix-typed.ts [14 algo]
+   matmul: rejected
+      [possibly-undefined] line 7: number | undefined used as a number
+   VERDICT REJECT (4/5 cells ok)
+== drafts/15-csv-line.ts [15 algo]
+   VERDICT ACCEPT (2/2 cells ok)
+   RUN PASS parsed ok
+== drafts/16-lru-cache.ts [16 algo]
+   makeLru: rejected
+      [iterator-capture] line 5: m may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...m]) and capture the array
+      [iterator-capture] line 6: m may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...m]) and capture the array
+      [iterator-capture] line 10: m may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...m]) and capture the array
+      [iterator-capture] line 11: m may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...m]) and capture the array
+      [iterator-capture] line 12: m may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...m]) and capture the array
+      [iterator-capture] line 14: m may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...m]) and capture the array
+      [mut-capture] line 4: Mut m written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made
+      [mut-capture] line 9: Mut m written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made
+      [mut-capture] line 6: m may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged
+      [mut-capture] line 10: m may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged
+      [mut-capture] line 11: m may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged
+      [mut-capture] line 12: m may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged
+      [mut-capture] line 14: Mut m captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: Map<K, V> = m) and capture that, or make it inside the function
+      {unsupported} intrinsic member Iterable.next
+   lruDemo: blocked by makeLru
+   VERDICT REJECT (0/2 cells ok)
+== drafts/17-counter.tsx [17 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS label ok | clicked '+' | clicked '+' | label ok | clicked '-' | label ok | clicked 'reset' | label ok
+== drafts/18-todos.ts [18 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS addTodo("a") | addTodo("b") | toggleTodo(1) | remaining ok | removeTodo(2) | remaining ok | todos [{"id":1,"text":"a","done":true}]
+== drafts/19-form-validation.tsx [19 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN FAIL errors ["email needs an @"]
+== drafts/20-undo-stack.ts [20 state]
+   undo: rejected
+      [possibly-undefined] line 10: number | undefined is not assignable to number
+      [type] line 10: { past: number[]; present: number | undefined; future: number[] } is not assignable to Hist
+      [type] line 7: (h: Hist) => Hist | { past: number[]; present: number | undefined; future: number[] } is not assignable to (v: Hist) => Hist
+   redo: rejected
+      [possibly-undefined] line 18: number | undefined is not assignable to number
+      [type] line 18: { past: number[]; present: number | undefined; future: number[] } is not assignable to Hist
+      [type] line 15: (h: Hist) => Hist | { past: number[]; present: number | undefined; future: number[] } is not assignable to (v: Hist) => Hist
+   VERDICT REJECT (3/5 cells ok)
+== drafts/21-cart.ts [21 state]
+   subtotal: rejected
+      [no-non-null] line 18: TSNonNullExpression
+   VERDICT REJECT (5/6 cells ok)
+== drafts/22-pagination.ts [22 state]
+   VERDICT ACCEPT (7/7 cells ok)
+   RUN PASS pageCount,visible ok | nextPage() | nextPage() | nextPage() | nextPage() | nextPage() | page,visible ok | prevPage() | page ok
+== drafts/23-selection-set.ts [23 state]
+   selectedList: rejected
+      [mutating-method] line 14: write to a number[], which is not Mut
+   VERDICT REJECT (5/6 cells ok)
+== drafts/24-reducer.ts [24 state]
+   test_reduce: rejected
+      [no-cast] line 18: as cast
+   VERDICT REJECT (3/4 cells ok)
+== drafts/25-memo-cache.ts [25 state]
+   rememberPrice: rejected
+      [type] line 10: {  } is not assignable to { [k: string]: number }
+      [type] line 10: (c: { [k: string]: number }) => {  } is not assignable to (v: { [k: string]: number }) => { [k: string]: number }
+      {unsupported} object spread of { [k: string]: number }
+      {unsupported} computed property
+   VERDICT REJECT (4/5 cells ok)
+== drafts/26-timer-tick.ts [26 events]
+   VERDICT ACCEPT (7/7 cells ok)
+   RUN PASS elapsed 128 -> 128 -> 128, seconds 0.1s
+== drafts/27-input-to-state.tsx [27 events]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS query,matches ok
+== drafts/28-batch-accumulate.ts [28 events]
+   onKey: rejected
+      [mut-capture] line 15: Mut buf captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: string[] = buf) and capture that, or make it inside the function
+   listen: rejected
+      [inject-events] line 19: keys is not a sync generator cell yielding { key: string; t: number }
+   VERDICT REJECT (3/5 cells ok)
+== drafts/29-log-clicks.tsx [29 events]
+   recordClick: rejected
+      [action-capture] line 2: now is a capability, so an action using it would make the stored state depend on something the calls do not record; take the value as an argument of the action
+   lastGap: rejected
+      [possibly-undefined] line 4: number | undefined used as a number
+   VERDICT REJECT (3/5 cells ok)
+== drafts/30-fetch-json.ts [30 async]
+   repos: rejected
+      [type] line 4: unknown is not assignable to Repo[]
+   topRepo: rejected
+      [arity] line 7: expected at least 2 arguments, got 1
+      {unsupported} callback whose parameter types are not inferred before it
+   VERDICT REJECT (1/3 cells ok)
+== drafts/31-parallel-fetch.ts [31 async]
+   prices: rejected
+      [no-cast] line 5: as cast
+   cheapest: rejected by prices
+      [mutating-method] line 7: write to a Price[], which is not Mut
+      [possibly-undefined] line 7: property sku of a value that may be undefined
+   VERDICT REJECT (1/3 cells ok)
+== drafts/32-fetch-errors.ts [32 async]
+   loadConfig: rejected
+      [type] line 6: unknown is not assignable to { theme: string }
+      [type] line 6: { ok: true; value: unknown } is not assignable to Result<{ theme: string }>
+   VERDICT REJECT (2/3 cells ok)
+== drafts/33-fetch-into-state.ts [33 async]
+   profile: rejected
+      [no-cast] line 4: as cast
+   names: blocked by profile
+   VERDICT REJECT (5/7 cells ok)
+== drafts/34-list-view.tsx [34 views]
+   listView: rejected
+      [action-call] line 12: an Action called outside action(...)
+      [type] line 12: () => void is not assignable to Action<[]>
+      [type] line 12: { onClick: () => void; children: "remove"[] } is not assignable to ButtonProps
+   VERDICT REJECT (2/3 cells ok)
+== drafts/35-conditional-view.tsx [35 views]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS loading… / 2 spans / failed: timeout
+== drafts/36-form-view.tsx [36 views]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS messages,draft ok
+== drafts/37-components.tsx [37 views]
+   board: rejected
+      [excess-property] line 15: property key is not in { card: Card }
+   VERDICT REJECT (2/3 cells ok)
+== drafts/38-shared-helpers.ts [38 helpers]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS shown,summary ok
+== drafts/39-generic-groupby.ts [39 helpers]
+   groupBy: rejected
+      [no-cast] line 2: as cast
+      [unknown-type] line 1: unknown type Record
+      {unsupported} logical assignment ??=
+      {unsupported} type parameter constraint/default
+   byRegion: blocked by groupBy
+   northTotal: rejected by byRegion
+      [possibly-undefined] line 16: property reduce of a value that may be undefined
+      [untyped-parameter] line 16: parameter has no type and no contextual type
+   VERDICT REJECT (1/4 cells ok)
+== drafts/40-generic-stack.ts [40 helpers]
+   VERDICT ACCEPT (2/2 cells ok)
+   RUN PASS demo ok

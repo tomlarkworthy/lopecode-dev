@@ -1,0 +1,54 @@
+== r3.ts:r3-I-snap [REG=0 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> DIFF v = s() = 2, w = what snap read = 1
+   chk  TAP write s: fn(1) -> fn(2)
+   chk  TAP write s: fn(1) -> fn(2)
+   chk  TAP write s: fn(1) -> fn(2)
+   chk  TAP write s: fn(1) -> fn(2)
+   chk  => SILENT (none)
+   skip drive -> DIFF v = s() = 2, w = what snap read = 1
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip => SILENT (none)
+== r3.ts:r3-SH-snap [REG=0 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> DIFF v = s() = 2, w = what snap read = 1
+   chk  TAP write s: fn(1) -> fn(2)
+   chk  TAP write s: fn(1) -> fn(2)
+   chk  TAP write s: fn(1) -> fn(2)
+   chk  TAP write s: fn(1) -> fn(2)
+   chk  => SILENT (none)
+   skip drive -> DIFF v = s() = 2, w = what snap read = 1
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip => SILENT (none)
+== r3.ts:r3-I-method-snap [REG=0 BODYFN=0]
+   verdict: ACCEPT
+   chk  drive -> DIFF v = s() = 2, w = what snap read = 1
+   chk  TAP write s: fn(1) -> fn(2)
+   chk  TAP write s: fn(1) -> fn(2)
+   chk  TAP write s: fn(1) -> fn(2)
+   chk  TAP write s: fn(1) -> fn(2)
+   chk  => SILENT (none)
+   skip drive -> DIFF v = s() = 2, w = what snap read = 1
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip => SILENT (none)
+== r3.ts:r3-CTL-c-snap [ctl] [REG=0 BODYFN=0]
+   verdict: ACCEPT
+   skip drive -> DIFF v = s() = 2, w = what snap read = 1
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip TAP write s: fn(1) -> fn(2)
+   skip => SILENT (none)
+ROW {"set":"r3","name":"r3-I-snap","ctl":false,"acc":true,"base":null,"chk":{"silent":true,"cls":"none","crash":null},"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r3","name":"r3-SH-snap","ctl":false,"acc":true,"base":null,"chk":{"silent":true,"cls":"none","crash":null},"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r3","name":"r3-I-method-snap","ctl":false,"acc":true,"base":null,"chk":{"silent":true,"cls":"none","crash":null},"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r3","name":"r3-CTL-c-snap","ctl":true,"acc":true,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}

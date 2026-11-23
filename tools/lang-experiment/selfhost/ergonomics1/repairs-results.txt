@@ -1,0 +1,158 @@
+== repairs/02/a1.ts [02 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS names ok
+== repairs/03/a1.ts [03 data]
+   byLetter: rejected
+      [possibly-undefined] line 7: property push of a value that may be undefined
+      [mutating-method] line 7: write to a string[] | undefined, which is not Mut
+   VERDICT REJECT (2/3 cells ok)
+== repairs/03/a2.ts [03 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS letterCounts ok
+== repairs/04/a1.ts [04 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS squares,sumSquares ok
+== repairs/05/a1.ts [05 data]
+   byId: rejected
+      [member-write] line 9: write to a { [k: string]: User }, which is not Mut
+   VERDICT REJECT (2/3 cells ok)
+== repairs/05/a2.ts [05 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS nameOfU2 ok
+== repairs/05/a3-minimal.ts [05 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS nameOfU2 ok
+== repairs/06/a1.ts [06 data]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS unique,uniqueSorted,seenTwice ok
+== repairs/07/a1.ts [07 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS top ok
+== repairs/09/a1.ts [09 data]
+   dayNumber: rejected
+      [possibly-undefined] line 6: number | undefined used as a number
+      [possibly-undefined] line 7: number | undefined used as a number
+      [possibly-undefined] line 8: number | undefined used as a number
+      [possibly-undefined] line 9: number | undefined used as a number
+   VERDICT REJECT (4/5 cells ok)
+== repairs/09/a2.ts [09 data]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS daysBetween,endWeekday ok
+== repairs/10/a1.ts [10 data]
+   zip: rejected
+      [type] line 8: (A | B | undefined)[][] is not assignable to [A, B | undefined][]
+      [iterator-capture] line 8: copy may hold an iterator (the type parameter B), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...copy]) and capture the array
+   VERDICT REJECT (3/4 cells ok)
+== repairs/10/a2.ts [10 data]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS chunks,pairs ok
+== repairs/11/a1.ts [11 algo]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS found ok
+== repairs/12/a1.ts [12 algo]
+   VERDICT ACCEPT (2/2 cells ok)
+   RUN PASS fib50 ok
+== repairs/13/a1.ts [13 algo]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS stats,flatten ok
+== repairs/14/a1.ts [14 algo]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS AA {"rows":2,"cols":2,"data":[7,10,15,22]} AI [1,2,3,4]
+== repairs/16/a1.ts [16 algo]
+   makeLru: rejected
+      [mutating-method] line 7: write to a Map<K, V>, which is not Mut
+      [mutating-method] line 11: write to a Map<K, V>, which is not Mut
+      [mutating-method] line 12: write to a Map<K, V>, which is not Mut
+      [mutating-method] line 13: write to a Map<K, V>, which is not Mut
+      [iterator-capture] line 6: c may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...c]) and capture the array
+      [iterator-capture] line 7: c may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...c]) and capture the array
+      [iterator-capture] line 11: c may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...c]) and capture the array
+      [iterator-capture] line 12: c may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...c]) and capture the array
+      [iterator-capture] line 13: c may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...c]) and capture the array
+      [iterator-capture] line 15: c may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...c]) and capture the array
+      {unsupported} intrinsic member Iterable.next
+   lruDemo: blocked by makeLru
+   VERDICT REJECT (0/2 cells ok)
+== repairs/16/a2.ts [16 algo]
+   VERDICT ACCEPT (2/2 cells ok)
+   RUN PASS lruDemo ok
+== repairs/20/a1.ts [20 state]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS setValue(1) | setValue(2) | undo() | current ok | redo() | current ok | undo() | undo() | current ok | undo() | current ok
+== repairs/21/a1.ts [21 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS addToCart("A") | addToCart("A") | addToCart("C") | subtotal,tax,total ok
+== repairs/23/a1.ts [23 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS toggle(2) | toggle(4) | toggle(2) | selectedList ok | selectAll() | selectedList ok | clearSel() | selectedList ok
+== repairs/24/a1.ts [24 state]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS test_reduce ok | dispatch({"type":"deposit","amount":5}) | acct {"balance":5,"log":["+5"]}
+== repairs/25/a1.ts [25 state]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS results ok | rememberPrice("A",2) | priceCache ok
+== repairs/28/a1.ts [28 events]
+   listen: rejected
+      [inject-events] line 20: keys is not a sync generator cell yielding { key: string; t: number }
+   VERDICT REJECT (4/5 cells ok)
+== repairs/28/a2.ts [28 events]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS flushed,buffer ok
+== repairs/29/a1.tsx [29b events]
+   clickView: rejected
+      [type] line 9: Action<[number]> is not assignable to Action<[]>
+      [type] line 9: { onClick: Action<[number]>; children: ("clicked " | number)[] } is not assignable to ButtonProps
+   VERDICT REJECT (4/5 cells ok)
+== repairs/29/a2.tsx [29b events]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS count 3 gap 250
+== repairs/30/a1.ts [30 async]
+   toRepos: rejected
+      [no-member] line 6: no property name on object
+      [no-member] line 6: no property stars on object
+      [no-member] line 6: no property language on object
+   VERDICT REJECT (3/4 cells ok)
+== repairs/30/a2.ts [30 async]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS top {"name":"b","stars":9,"language":"go"} langs ["ts","go"]
+== repairs/31/a1.ts [31 async]
+   prices: rejected
+      [type] line 8: an async function returns Promise<Price[]>, a promise: await it, so the function's type says what it resolves to
+   cheapest: rejected
+      [inject-type] line 9: prices: Promise<Price[]> is not assignable to Price[]
+   VERDICT REJECT (2/4 cells ok)
+== repairs/31/a2.ts [31 async]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS cheapest ok
+== repairs/32/a1.ts [32 async]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS theme,problem ok
+== repairs/33/a1.ts [33 async]
+   VERDICT ACCEPT (7/7 cells ok)
+   RUN PASS seen ok | nextUser() | seen ok
+== repairs/34/a1.tsx [34 views]
+   listView: rejected
+      [action-capture] line 12: it is a parameter of an enclosing function, so a caller may pass it a value that depends on state; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+   VERDICT REJECT (2/3 cells ok)
+== repairs/34/a2.tsx [34 views]
+   removers: rejected
+      [action-capture] line 13: k is computed from i, which is a let or a catch binding, so its value is not fixed where it is declared; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+   listView: rejected
+      [possibly-undefined] line 21: Action<[]> | undefined is not assignable to Action<[]>
+   VERDICT REJECT (2/4 cells ok)
+== repairs/34/a3.tsx [34 views]
+   removers: rejected
+      [action-capture] line 8: i is a parameter of an enclosing function, so a caller may pass it a value that depends on state; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+   VERDICT REJECT (3/4 cells ok)
+== repairs/34/a4.tsx [34b views]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS items milk,flour
+== repairs/34/a5-posthoc.tsx [34 views]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS items milk,flour
+== repairs/37/a1.tsx [37 views]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS 2 cards, 1 tags
+== repairs/39/a1.ts [39 helpers]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS northTotal ok

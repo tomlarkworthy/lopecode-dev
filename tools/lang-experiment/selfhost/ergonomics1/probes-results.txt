@@ -1,0 +1,75 @@
+== probes/B01-mutate-after-publish.ts [B01 probe]
+   load: rejected
+      [mutating-method] line 6: arr is written after a value is published at list.set in the same run of this function; a function published there may read arr through a read-only name (S4.10) and would see the write (S4.11); finish every write to arr before list.set
+   VERDICT REJECT (2/3 cells ok)
+== probes/B02-mutate-other-cell.ts [B02 probe]
+   smallest: rejected
+      [mutating-method] line 3: write to a number[], which is not Mut
+   VERDICT REJECT (2/3 cells ok)
+== probes/B03-captured-then-changed.ts [B03 probe]
+   bag: rejected
+      [mut-capture] line 3: items may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged
+      [mut-capture] line 3: Mut items captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: number[] = items) and capture that, or make it inside the function
+      [mut-capture] line 3: Mut items written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made
+   VERDICT REJECT (2/3 cells ok)
+== probes/B04-async-race.ts [B04 probe]
+   winner: rejected
+      [let-capture] line 3: let last assigned from a function that escapes
+      [let-capture] line 4: let last is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged
+      [let-capture] line 4: let last assigned from a function that escapes
+      [let-capture] line 3: let last is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged
+   VERDICT REJECT (0/1 cells ok)
+== probes/B05-state-from-body.ts [B05 probe]
+   doubled: rejected
+      [inject-unknown] line 2: parameter c names no cell, foreign or capability
+      [state-write] line 3: State.set outside action(...)
+   VERDICT REJECT (1/2 cells ok)
+== probes/B06-listener-mutates-event.ts [B06 probe]
+   add: rejected
+      [mutating-method] line 9: write to a string[], which is not Mut
+      [member-write] line 10: write to a Ev, which is not Mut
+   VERDICT REJECT (3/4 cells ok)
+== probes/B07-mutate-memo-result.ts [B07 probe]
+   a: rejected
+      [mutating-method] line 4: write to a number[], which is not Mut
+   VERDICT REJECT (2/3 cells ok)
+== probes/B08-map-set-in-update.ts [B08 probe]
+   score: rejected
+      [mutating-method] line 2: write to a Map<string, number>, which is not Mut
+   VERDICT REJECT (2/3 cells ok)
+== probes/B09-call-action-from-cell.ts [B09 probe]
+   auto: rejected
+      [action-call] line 4: an Action called outside action(...)
+   VERDICT REJECT (2/3 cells ok)
+== probes/B10-async-action.ts [B10 probe]
+   load: rejected
+      [action-capture] line 4: fetch is a capability, so an action using it would make the stored state depend on something the calls do not record; take the value as an argument of the action
+      [action-async] line 3: the function given to action(...) is async; an action is synchronous (S6.12)
+      [action-async] line 4: await in an action body: an action is synchronous; wait in an async cell and give the result to an action (S6.12)
+      [action-async] line 5: await in an action body: an action is synchronous; wait in an async cell and give the result to an action (S6.12)
+   VERDICT REJECT (1/2 cells ok)
+== probes/B11-stale-let-closure.ts [B11 probe]
+   getter: rejected
+      [let-capture] line 4: let n is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged
+      [let-capture] line 3: let n captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = n) and capture that
+   VERDICT REJECT (1/2 cells ok)
+== probes/B12-update-in-place.ts [B12 probe]
+   push: rejected
+      [mutating-method] line 2: write to a number[], which is not Mut
+   VERDICT REJECT (2/3 cells ok)
+== probes/B13-write-from-callback.ts [B13 probe]
+   later: rejected
+      [state-write] line 4: State.set outside action(...): the function it is in was made in an action body and may run after the call, because it is passed to a function that may keep it
+   VERDICT REJECT (1/2 cells ok)
+== probes/B14-global-clock.ts [B14 probe]
+   stamp: rejected
+      [free-name] line 1: free name Date
+   label: blocked by stamp
+   VERDICT REJECT (0/2 cells ok)
+== probes/B15-yield-mutable.ts [B15 probe]
+   batches: rejected
+      [mut-yield] line 4: Mut buf is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+   VERDICT REJECT (3/4 cells ok)
+== probes/B04b-two-async-cells-race.ts [B04b probe]
+   VERDICT ACCEPT (8/8 cells ok)
+   RUN PASS before last="a"(fulfilled) | after last="a"(fulfilled)

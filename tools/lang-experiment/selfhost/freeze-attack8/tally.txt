@@ -1,0 +1,128 @@
+set	mode	programs	controls	accepted	base-accepted	silent(chk on)	silent(chk skipped)	controls fired	throw classes (chk on | skipped)
+r1	shipped	240	2	0	92	0	40	2/2	 | frozen-write 188, none 46, other-throw 6
+r1	REG=0	240	2	0	92	0	226	2/2	 | none 232, frozen-write 2, other-throw 6
+r2	shipped	73	9	24	34	0	40	0/9	S4.12 16, other-throw 8 | none 40, S4.12 21, frozen-write 2, other-throw 10
+r2	REG=0	73	9	24	34	0	42	6/9	S4.12 16, other-throw 8 | none 42, S4.12 21, other-throw 10
+r2	BODYFN=0	73	9	24	34	16	60	0/9	none 16, other-throw 8 | none 60, frozen-write 3, other-throw 10
+r2	REG=0+BODYFN=0	73	9	24	34	16	63	9/9	none 16, other-throw 8 | none 63, other-throw 10
+r3	shipped	3	1	3	0	0	0	0/1	S4.12 3 | S4.12 3
+r3	REG=0	3	1	3	0	0	0	0/1	S4.12 3 | S4.12 3
+r3	BODYFN=0	3	1	3	0	3	3	0/1	none 3 | none 3
+r3	REG=0+BODYFN=0	3	1	3	0	3	3	1/1	none 3 | none 3
+s1	shipped	37	2	28	0	0	1	0/2	none 14, S4.12 14 | none 15, S4.12 18, frozen-write 1, other-throw 3
+s1	REG=0	37	2	28	0	0	1	0/2	none 13, S4.12 15 | none 14, S4.12 19, frozen-write 1, other-throw 3
+s1	BODYFN=0	37	2	28	0	0	1	1/2	none 28 | none 33, frozen-write 1, other-throw 3
+s1	REG=0+BODYFN=0	37	2	28	0	0	1	2/2	none 28 | none 33, frozen-write 1, other-throw 3
+s56	shipped	14	2	0	0	0	14	1/2	 | none 14
+s56	REG=0	14	2	0	0	0	14	2/2	 | none 14
+t1	shipped	27	2	24	0	2	2	1/2	none 15, frozen-write 6, other-throw 3 | none 17, frozen-write 6, other-throw 4
+t1	REG=0	27	2	24	0	2	2	2/2	none 15, frozen-write 6, other-throw 3 | none 17, frozen-write 6, other-throw 4
+
+## r1 shipped chk-on: 0
+
+## r1 shipped chk-skipped: 40
+r1-D-fn-decl-in-switch-case r1-G-fn-decl-in-switch-case r1-D-method-bigint-key r1-G-method-bigint-key r1-D-method-bigint-big r1-G-method-bigint-big r1-D-method-computed r1-G-method-computed r1-D-getter r1-G-getter r1-D-setter-reader r1-G-setter-reader r1-D-class-method r1-G-class-method r1-D-class-static r1-G-class-static r1-D-class-private r1-G-class-private r1-D-class-expr r1-G-class-expr r1-D-bind r1-G-bind r1-D-bind-of-closure r1-G-bind-of-closure r1-D-transitive-weakmap r1-G-transitive-weakmap r1-D-this-capture r1-G-this-capture r1-D-arguments-capture r1-G-arguments-capture r1-D-shadow-ss_closure-const r1-G-shadow-ss_closure-const r1-D-shadow-ss_closure-fndecl r1-G-shadow-ss_closure-fndecl r1-D-shadow-ss_closure-destr r1-G-shadow-ss_closure-destr r1-D-shadow-ss_closure-inner-only r1-G-shadow-ss_closure-inner-only r1-D-shadow-ss_methods-const r1-G-shadow-ss_methods-const
+## r1 shipped controls fired: 2
+r1-ctl-D-let r1-ctl-G-let
+## r1 REG=0 chk-on: 0
+
+## r1 REG=0 chk-skipped: 226
+r1-D-arrow-expr r1-G-arrow-expr r1-D-arrow-block r1-G-arrow-block r1-D-fn-expr r1-G-fn-expr r1-D-fn-expr-named r1-G-fn-expr-named r1-D-fn-expr-named-recursive r1-G-fn-expr-named-recursive r1-D-fn-decl r1-G-fn-decl r1-D-fn-decl-after-use r1-G-fn-decl-after-use r1-D-fn-decl-nested-block r1-G-fn-decl-nested-block r1-D-fn-decl-in-if-block r1-G-fn-decl-in-if-block r1-D-fn-decl-in-loop-block r1-G-fn-decl-in-loop-block r1-D-fn-decl-in-switch-block r1-G-fn-decl-in-switch-block r1-D-fn-decl-in-switch-case r1-G-fn-decl-in-switch-case r1-D-fn-decl-in-switch-case-run r1-G-fn-decl-in-switch-case-run r1-D-method r1-G-method r1-D-method-called r1-G-method-called r1-D-method-string-key r1-G-method-string-key r1-D-method-space-key r1-G-method-space-key r1-D-method-num-key r1-G-method-num-key r1-D-method-num-1.0 r1-G-method-num-1.0 r1-D-method-hex-key r1-G-method-hex-key r1-D-method-1e3-key r1-G-method-1e3-key r1-D-method-1e21-key r1-G-method-1e21-key r1-D-method-frac-key r1-G-method-frac-key r1-D-method-sep-key r1-G-method-sep-key r1-D-method-bigint-key r1-G-method-bigint-key r1-D-method-bigint-big r1-G-method-bigint-big r1-D-method-escape-key r1-G-method-escape-key r1-D-method-proto-key r1-G-method-proto-key r1-D-method-computed r1-G-method-computed r1-D-method-async r1-G-method-async r1-D-method-gen r1-G-method-gen r1-D-method-async-gen-wrapped r1-G-method-async-gen-wrapped r1-D-method-dup-later-method r1-G-method-dup-later-method r1-D-method-two-literals-one-fn r1-G-method-two-literals-one-fn r1-D-getter r1-G-getter r1-D-setter-reader r1-G-setter-reader r1-D-arrow-in-computed-key-value r1-G-arrow-in-computed-key-value r1-D-class-method r1-G-class-method r1-D-class-static r1-G-class-static r1-D-class-field-arrow r1-G-class-field-arrow r1-D-class-private r1-G-class-private r1-D-class-static-block r1-G-class-static-block r1-D-class-expr r1-G-class-expr r1-D-default-param r1-G-default-param r1-D-default-param-typed r1-G-default-param-typed r1-D-destr-default-obj r1-G-destr-default-obj r1-D-destr-default-arr r1-G-destr-default-arr r1-D-destr-param-default r1-G-destr-param-default r1-D-iife r1-G-iife r1-D-iife-fn r1-G-iife-fn r1-D-at-once-map r1-G-at-once-map r1-D-at-once-reduce r1-G-at-once-reduce r1-D-at-once-sort r1-G-at-once-sort r1-D-at-once-from r1-G-at-once-from r1-D-loop-let r1-G-loop-let r1-D-loop-for-of r1-G-loop-for-of r1-D-loop-for-in r1-G-loop-for-in r1-D-loop-while-block r1-G-loop-while-block r1-D-for-init-closure r1-G-for-init-closure r1-D-bind r1-G-bind r1-D-bind-of-closure r1-G-bind-of-closure r1-D-call-returns-closure r1-G-call-returns-closure r1-D-apply-returns-closure r1-G-apply-returns-closure r1-D-helper-returns r1-G-helper-returns r1-D-helper-param-closure r1-G-helper-param-closure r1-D-curry-3 r1-G-curry-3 r1-D-curry-param-only r1-G-curry-param-only r1-D-transitive-3 r1-G-transitive-3 r1-D-transitive-record r1-G-transitive-record r1-D-transitive-array r1-G-transitive-array r1-D-transitive-map r1-G-transitive-map r1-D-transitive-set r1-G-transitive-set r1-D-transitive-map-key r1-G-transitive-map-key r1-D-transitive-tuple r1-G-transitive-tuple r1-D-transitive-error-cause r1-G-transitive-error-cause r1-D-transitive-error-prop r1-G-transitive-error-prop r1-D-transitive-weakmap r1-G-transitive-weakmap r1-D-transitive-promise r1-G-transitive-promise r1-D-transitive-thenable-fn r1-G-transitive-thenable-fn r1-D-transitive-jsx-prop r1-G-transitive-jsx-prop r1-D-transitive-jsx-child-fn r1-G-transitive-jsx-child-fn r1-D-transitive-jsx-component r1-G-transitive-jsx-component r1-D-spread-record r1-G-spread-record r1-D-spread-array r1-G-spread-array r1-D-object-assign r1-G-object-assign r1-D-array-from-copy r1-G-array-from-copy r1-D-structured-holder r1-G-structured-holder r1-D-template-literal r1-G-template-literal r1-D-tagged-template r1-G-tagged-template r1-D-as-const r1-G-as-const r1-D-satisfies r1-G-satisfies r1-D-non-null r1-G-non-null r1-D-generic-arrow r1-G-generic-arrow r1-D-typed-rest-param r1-G-typed-rest-param r1-D-optional-param r1-G-optional-param r1-D-optional-chain-call r1-G-optional-chain-call r1-D-comma-expr r1-G-comma-expr r1-D-label-in-body r1-G-label-in-body r1-D-catch-binding r1-G-catch-binding r1-D-catch-destr r1-G-catch-destr r1-D-this-capture r1-G-this-capture r1-D-arguments-capture r1-G-arguments-capture r1-D-async-arrow r1-G-async-arrow r1-D-async-fn-decl r1-G-async-fn-decl r1-D-gen-decl r1-G-gen-decl r1-D-gen-expr r1-G-gen-expr r1-D-shadow-ss_closure-const r1-G-shadow-ss_closure-const r1-D-shadow-ss_closure-fndecl r1-G-shadow-ss_closure-fndecl r1-D-shadow-ss_closure-destr r1-G-shadow-ss_closure-destr r1-D-shadow-ss_closure-inner-only r1-G-shadow-ss_closure-inner-only r1-D-shadow-ss_methods-const r1-G-shadow-ss_methods-const r1-D-reregister-many r1-G-reregister-many r1-D-reregister-overflow r1-G-reregister-overflow
+## r1 REG=0 controls fired: 2
+r1-ctl-D-let r1-ctl-G-let
+## r2 shipped chk-on: 0
+
+## r2 shipped chk-skipped: 40
+r2-D-I-arrow r2-G-I-arrow r2-D-I-arrow-two r2-G-I-arrow-two r2-D-I-arrow-three r2-G-I-arrow-three r2-D-I-fn-expr r2-G-I-fn-expr r2-D-I-fn-decl r2-G-I-fn-decl r2-D-I-method r2-G-I-method r2-D-I-method-two r2-G-I-method-two r2-D-I-map-param r2-G-I-map-param r2-D-I-map-param-ro r2-G-I-map-param-ro r2-D-I-helper-param r2-G-I-helper-param r2-D-I-for-of r2-G-I-for-of r2-D-I-transitive r2-G-I-transitive r2-D-I-holds-fn r2-G-I-holds-fn r2-D-I-holds-record r2-G-I-holds-record r2-D-I-destr r2-G-I-destr r2-D-SH-const r2-G-SH-const r2-D-SH-fndecl r2-G-SH-fndecl r2-D-SH-destr r2-G-SH-destr r2-D-SH-inner r2-G-SH-inner r2-D-SH-methods r2-G-SH-methods
+## r2 shipped controls fired: 0
+
+## r2 REG=0 chk-on: 0
+
+## r2 REG=0 chk-skipped: 42
+r2-D-I-arrow r2-G-I-arrow r2-D-I-arrow-two r2-G-I-arrow-two r2-D-I-arrow-three r2-G-I-arrow-three r2-D-I-fn-expr r2-G-I-fn-expr r2-D-I-fn-decl r2-G-I-fn-decl r2-D-I-method r2-G-I-method r2-D-I-method-two r2-G-I-method-two r2-D-I-map-param r2-G-I-map-param r2-D-I-map-param-ro r2-G-I-map-param-ro r2-D-I-helper-param r2-G-I-helper-param r2-D-I-for-of r2-G-I-for-of r2-D-I-transitive r2-G-I-transitive r2-D-I-holds-fn r2-G-I-holds-fn r2-D-I-holds-record r2-G-I-holds-record r2-D-I-catch r2-G-I-catch r2-D-I-destr r2-G-I-destr r2-D-SH-const r2-G-SH-const r2-D-SH-fndecl r2-G-SH-fndecl r2-D-SH-destr r2-G-SH-destr r2-D-SH-inner r2-G-SH-inner r2-D-SH-methods r2-G-SH-methods
+## r2 REG=0 controls fired: 6
+r2-D-CTL-c-arrow r2-G-CTL-c-arrow r2-D-CTL-c-method r2-G-CTL-c-method r2-D-CTL-j-arrow r2-G-CTL-j-arrow
+## r2 BODYFN=0 chk-on: 16
+r2-A-I-arrow r2-A-I-arrow-two r2-A-I-arrow-three r2-A-I-fn-expr r2-A-I-fn-decl r2-A-I-method r2-A-I-method-two r2-A-I-helper-param r2-A-I-transitive r2-A-I-holds-fn r2-A-I-destr r2-A-SH-const r2-A-SH-fndecl r2-A-SH-destr r2-A-SH-inner r2-A-SH-methods
+## r2 BODYFN=0 chk-skipped: 60
+r2-D-I-arrow r2-G-I-arrow r2-A-I-arrow r2-D-I-arrow-two r2-G-I-arrow-two r2-A-I-arrow-two r2-D-I-arrow-three r2-G-I-arrow-three r2-A-I-arrow-three r2-D-I-fn-expr r2-G-I-fn-expr r2-A-I-fn-expr r2-D-I-fn-decl r2-G-I-fn-decl r2-A-I-fn-decl r2-D-I-method r2-G-I-method r2-A-I-method r2-D-I-method-two r2-G-I-method-two r2-A-I-method-two r2-D-I-map-param r2-G-I-map-param r2-A-I-map-param r2-D-I-map-param-ro r2-G-I-map-param-ro r2-A-I-map-param-ro r2-D-I-helper-param r2-G-I-helper-param r2-A-I-helper-param r2-D-I-for-of r2-G-I-for-of r2-A-I-for-of r2-D-I-transitive r2-G-I-transitive r2-A-I-transitive r2-D-I-holds-fn r2-G-I-holds-fn r2-A-I-holds-fn r2-D-I-holds-record r2-G-I-holds-record r2-A-I-holds-record r2-D-I-destr r2-G-I-destr r2-A-I-destr r2-D-SH-const r2-G-SH-const r2-A-SH-const r2-D-SH-fndecl r2-G-SH-fndecl r2-A-SH-fndecl r2-D-SH-destr r2-G-SH-destr r2-A-SH-destr r2-D-SH-inner r2-G-SH-inner r2-A-SH-inner r2-D-SH-methods r2-G-SH-methods r2-A-SH-methods
+## r2 BODYFN=0 controls fired: 0
+
+## r2 REG=0+BODYFN=0 chk-on: 16
+r2-A-I-arrow r2-A-I-arrow-two r2-A-I-arrow-three r2-A-I-fn-expr r2-A-I-fn-decl r2-A-I-method r2-A-I-method-two r2-A-I-helper-param r2-A-I-transitive r2-A-I-holds-fn r2-A-I-destr r2-A-SH-const r2-A-SH-fndecl r2-A-SH-destr r2-A-SH-inner r2-A-SH-methods
+## r2 REG=0+BODYFN=0 chk-skipped: 63
+r2-D-I-arrow r2-G-I-arrow r2-A-I-arrow r2-D-I-arrow-two r2-G-I-arrow-two r2-A-I-arrow-two r2-D-I-arrow-three r2-G-I-arrow-three r2-A-I-arrow-three r2-D-I-fn-expr r2-G-I-fn-expr r2-A-I-fn-expr r2-D-I-fn-decl r2-G-I-fn-decl r2-A-I-fn-decl r2-D-I-method r2-G-I-method r2-A-I-method r2-D-I-method-two r2-G-I-method-two r2-A-I-method-two r2-D-I-map-param r2-G-I-map-param r2-A-I-map-param r2-D-I-map-param-ro r2-G-I-map-param-ro r2-A-I-map-param-ro r2-D-I-helper-param r2-G-I-helper-param r2-A-I-helper-param r2-D-I-for-of r2-G-I-for-of r2-A-I-for-of r2-D-I-transitive r2-G-I-transitive r2-A-I-transitive r2-D-I-holds-fn r2-G-I-holds-fn r2-A-I-holds-fn r2-D-I-holds-record r2-G-I-holds-record r2-A-I-holds-record r2-D-I-catch r2-G-I-catch r2-A-I-catch r2-D-I-destr r2-G-I-destr r2-A-I-destr r2-D-SH-const r2-G-SH-const r2-A-SH-const r2-D-SH-fndecl r2-G-SH-fndecl r2-A-SH-fndecl r2-D-SH-destr r2-G-SH-destr r2-A-SH-destr r2-D-SH-inner r2-G-SH-inner r2-A-SH-inner r2-D-SH-methods r2-G-SH-methods r2-A-SH-methods
+## r2 REG=0+BODYFN=0 controls fired: 9
+r2-D-CTL-c-arrow r2-G-CTL-c-arrow r2-A-CTL-c-arrow r2-D-CTL-c-method r2-G-CTL-c-method r2-A-CTL-c-method r2-D-CTL-j-arrow r2-G-CTL-j-arrow r2-A-CTL-j-arrow
+## r3 shipped chk-on: 0
+
+## r3 shipped chk-skipped: 0
+
+## r3 shipped controls fired: 0
+
+## r3 REG=0 chk-on: 0
+
+## r3 REG=0 chk-skipped: 0
+
+## r3 REG=0 controls fired: 0
+
+## r3 BODYFN=0 chk-on: 3
+r3-I-snap r3-SH-snap r3-I-method-snap
+## r3 BODYFN=0 chk-skipped: 3
+r3-I-snap r3-SH-snap r3-I-method-snap
+## r3 BODYFN=0 controls fired: 0
+
+## r3 REG=0+BODYFN=0 chk-on: 3
+r3-I-snap r3-SH-snap r3-I-method-snap
+## r3 REG=0+BODYFN=0 chk-skipped: 3
+r3-I-snap r3-SH-snap r3-I-method-snap
+## r3 REG=0+BODYFN=0 controls fired: 1
+r3-CTL-c-snap
+## s1 shipped chk-on: 0
+
+## s1 shipped chk-skipped: 1
+s1-fn-reads-state
+## s1 shipped controls fired: 0
+
+## s1 REG=0 chk-on: 0
+
+## s1 REG=0 chk-skipped: 1
+s1-fn-reads-state
+## s1 REG=0 controls fired: 0
+
+## s1 BODYFN=0 chk-on: 0
+
+## s1 BODYFN=0 chk-skipped: 1
+s1-fn-reads-state
+## s1 BODYFN=0 controls fired: 1
+s1-ctl-A-let
+## s1 REG=0+BODYFN=0 chk-on: 0
+
+## s1 REG=0+BODYFN=0 chk-skipped: 1
+s1-fn-reads-state
+## s1 REG=0+BODYFN=0 controls fired: 2
+s1-ctl-A-c-direct s1-ctl-A-let
+## s56 shipped chk-on: 0
+
+## s56 shipped chk-skipped: 14
+s56-direct s56-alias-after s56-helper-before s56-helper-decl-after s56-getter-before s56-mut-param-helper s56-mut-param-helper-curried s56-record-before s56-closure-made-before-called-after s56-callback-after s56-finally s56-yield-star-inner s56-loop-decl-in-body s56-try-finally-yield
+## s56 shipped controls fired: 1
+s56-ctl-i-direct
+## s56 REG=0 chk-on: 0
+
+## s56 REG=0 chk-skipped: 14
+s56-direct s56-alias-after s56-helper-before s56-helper-decl-after s56-getter-before s56-mut-param-helper s56-mut-param-helper-curried s56-record-before s56-closure-made-before-called-after s56-callback-after s56-finally s56-yield-star-inner s56-loop-decl-in-body s56-try-finally-yield
+## s56 REG=0 controls fired: 2
+s56-ctl-c-direct s56-ctl-i-direct
+## t1 shipped chk-on: 2
+t1-fn-capability-clock t1-fn-capability-random
+## t1 shipped chk-skipped: 2
+t1-fn-capability-clock t1-fn-capability-random
+## t1 shipped controls fired: 1
+t1-ctl-G-let
+## t1 REG=0 chk-on: 2
+t1-fn-capability-clock t1-fn-capability-random
+## t1 REG=0 chk-skipped: 2
+t1-fn-capability-clock t1-fn-capability-random
+## t1 REG=0 controls fired: 2
+t1-ctl-G-c-direct t1-ctl-G-let

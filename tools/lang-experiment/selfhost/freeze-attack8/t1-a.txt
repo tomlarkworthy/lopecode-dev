@@ -1,0 +1,219 @@
+== t1.ts:t1-async-cell-write-before-return [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> same w 2 a reads 2 (fulfilled)
+   chk  => not silent (none)
+   skip drive -> same w 2 a reads 2 (fulfilled)
+   skip => not silent (none)
+== t1.ts:t1-async-cell-return-then-nothing [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> same w 1 a reads 1 (fulfilled)
+   chk  => not silent (none)
+   skip drive -> same w 1 a reads 1 (fulfilled)
+   skip => not silent (none)
+== t1.ts:t1-async-cell-memo-arg [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  show a = ERROR Attempted to assign to readonly property.
+   chk  error a: Attempted to assign to readonly property.
+   chk  => not silent (frozen-write)
+   skip show a = ERROR Attempted to assign to readonly property.
+   skip error a: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== t1.ts:t1-async-cell-memo-arg-alias [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  show a = ERROR Attempted to assign to readonly property.
+   chk  show b = 1 | E[]
+   chk  error a: Attempted to assign to readonly property.
+   chk  => not silent (frozen-write)
+   skip show a = ERROR Attempted to assign to readonly property.
+   skip show b = 1 | E[]
+   skip error a: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== t1.ts:t1-gen-listener-fn [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> same w 1 v reads 1 (fulfilled)
+   chk  => not silent (none)
+   skip drive -> same w 1 v reads 1 (fulfilled)
+   skip => not silent (none)
+== t1.ts:t1-gen-listener-data [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> v [0] w 1
+   chk  => not silent (none)
+   skip drive -> v [0] w 1
+   skip => not silent (none)
+== t1.ts:t1-gen-plain-reader-i [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> g fulfilled; same w (earlier reading) = 1, g.f() now = 1
+   chk  => not silent (none)
+   skip drive -> g fulfilled; same w (earlier reading) = 1, g.f() now = 1
+   skip => not silent (none)
+== t1.ts:t1-gen-loop-i [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> g fulfilled; same w (earlier reading) = 2, g.f() now = 2
+   chk  twice g: #1 {f:fn(2)} | E[] , #1 {f:fn(2)} | E[]
+   chk  => not silent (none)
+   skip drive -> g fulfilled; same w (earlier reading) = 2, g.f() now = 2
+   skip twice g: #1 {f:fn(2)} | E[] , #1 {f:fn(2)} | E[]
+   skip => not silent (none)
+== t1.ts:t1-state-initial-i [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  show s = {f:fn(1)} | E[]
+   chk  show v = 1 | E[]
+   chk  => not silent (none)
+   skip show s = {f:fn(1)} | E[]
+   skip show v = 1 | E[]
+   skip => not silent (none)
+== t1.ts:t1-state-initial-read-set [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> same w 1 v reads 1 (fulfilled)
+   chk  => not silent (none)
+   skip drive -> same w 1 v reads 1 (fulfilled)
+   skip => not silent (none)
+== t1.ts:t1-memo-result-alias-arg [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  show a = {o:{r:[0]},n:1} | E[]
+   chk  show b = 1 | E[]
+   chk  => not silent (none)
+   skip show a = {o:{r:[0]},n:1} | E[]
+   skip show b = 1 | E[]
+   skip => not silent (none)
+== t1.ts:t1-memo-result-local-fn-i [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  show a = {r:{f:fn(1)},n:1} | E[]
+   chk  show b = 1 | E[]
+   chk  => not silent (none)
+   skip show a = {r:{f:fn(1)},n:1} | E[]
+   skip show b = 1 | E[]
+   skip => not silent (none)
+== t1.ts:t1-memo-key-written-after-hit [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  show a = {k1:1,k2:1,t:"threw"} | E[]
+   chk  => not silent (other-throw)
+   skip show a = {k1:1,k2:1,t:"threw"} | E[]
+   skip => not silent (other-throw)
+== t1.ts:t1-memo-in-action-key-alias [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> call threw: Attempted to assign to readonly property.; s -1 lg -1
+   chk  => not silent (frozen-write)
+   skip drive -> call threw: Attempted to assign to readonly property.; s -1 lg -1
+   skip => not silent (frozen-write)
+== t1.ts:t1-read-after-set-then-alias-write [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> call threw: Attempted to assign to readonly property.; same w -1 v reads [] (fulfilled)
+   chk  => not silent (frozen-write)
+   skip drive -> call threw: Attempted to assign to readonly property.; same w -1 v reads [] (fulfilled)
+   skip => not silent (frozen-write)
+== t1.ts:t1-thrown-error-data [REG=1 BODYFN=on]
+   verdict: REJECT inner:rejected[arity] put:rejected[type]
+   skip drive -> same w 1 v reads {} (fulfilled)
+   skip => not silent (none)
+== t1.ts:t1-thrown-record-to-drive [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> drive caught {"xs":[0]} frozen=false xs frozen=false
+   chk  => not silent (frozen-write)
+   skip drive -> drive caught {"xs":[0]} frozen=false xs frozen=false
+   skip => not silent (frozen-write)
+== t1.ts:t1-action-return-to-drive [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> drive got {} frozen=true xs frozen=true
+   chk  => not silent (frozen-write)
+   skip drive -> drive got {} frozen=true xs frozen=true
+   skip => not silent (frozen-write)
+== t1.ts:t1-jsx-prop-data [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  show a = {tag:"div",props:{title:"1"},children:[1]} | E[]
+   chk  => not silent (none)
+   skip show a = {tag:"div",props:{title:"1"},children:[1]} | E[]
+   skip => not silent (none)
+== t1.ts:t1-jsx-handler-i [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> same w 1 a reads 1 (fulfilled)
+   chk  => not silent (none)
+   skip drive -> same w 1 a reads 1 (fulfilled)
+   skip => not silent (none)
+== t1.ts:t1-island-data [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  show go = fn(Promise) | E[]
+   chk  late throws: undefined is not an object (evaluating 'x.length')
+   chk  => not silent (other-throw)
+   skip show go = fn(Promise) | E[]
+   skip late throws: undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length')
+   skip => not silent (other-throw)
+== t1.ts:t1-island-fn-out [REG=1 BODYFN=on]
+   verdict: REJECT go:rejected[compile-boundary]
+   skip show go = fn(Promise) | E[]
+   skip late throws: undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | The object can not be cloned.
+   skip => not silent (other-throw)
+== t1.ts:t1-island-fn-in [REG=1 BODYFN=on]
+   verdict: REJECT go:rejected[compile-boundary]
+   skip show go = fn(Promise) | E[]
+   skip late throws: The object can not be cloned. | The object can not be cloned. | The object can not be cloned. | The object can not be cloned. | x is not a function. (In 'x()', 'x' is undefined)
+   skip => not silent (other-throw)
+== t1.ts:t1-promise-in-value-i [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  show a = {p:Promise} | E[]
+   chk  late throws: x is not a function. (In 'x()', 'x' is undefined) | x is not a function. (In 'x()', 'x' is undefined) | x is not a function. (In 'x()', 'x' is undefined) | x is not a function. (In 'x()', 'x' is undefined)
+   chk  => not silent (other-throw)
+   skip show a = {p:Promise} | E[]
+   skip => not silent (none)
+== t1.ts:t1-promise-settles-after-write-async [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  show a = {p:Promise,f:fn(1)} | E[]
+   chk  => not silent (none)
+   skip show a = {p:Promise,f:fn(1)} | E[]
+   skip => not silent (none)
+== t1.ts:t1-fn-capability-clock [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> DIFF w 1806.314208 a reads 1817.769125 (fulfilled)
+   chk  CHANGED a (value #1 of 1): {f:fn(1806.300417)} | E[] -> {f:fn(1823.547208)} | E[]
+   chk  => SILENT (none)
+   skip drive -> DIFF w 1825.650458 a reads 1837.105792 (fulfilled)
+   skip CHANGED a (value #1 of 1): {f:fn(1825.647792)} | E[] -> {f:fn(1842.8915)} | E[]
+   skip => SILENT (none)
+== t1.ts:t1-fn-capability-random [REG=1 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> DIFF w 0.2065772634290819 a reads 0.4987848343620819 (fulfilled)
+   chk  CHANGED a (value #1 of 1): {f:fn(0.7993451761943027)} | E[] -> {f:fn(0.6071393060754514)} | E[]
+   chk  => SILENT (none)
+   skip drive -> DIFF w 0.24593764612857638 a reads 0.5232387341574188 (fulfilled)
+   skip CHANGED a (value #1 of 1): {f:fn(0.13452808997883037)} | E[] -> {f:fn(0.780510072600497)} | E[]
+   skip => SILENT (none)
+== t1.ts:t1-ctl-G-c-direct [ctl] [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== t1.ts:t1-ctl-G-let [ctl] [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[let-capture][let-capture]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+ROW {"set":"t1","name":"t1-async-cell-write-before-return","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-async-cell-return-then-nothing","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-async-cell-memo-arg","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"frozen-write","crash":null},"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"t1","name":"t1-async-cell-memo-arg-alias","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"frozen-write","crash":null},"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"t1","name":"t1-gen-listener-fn","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-gen-listener-data","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-gen-plain-reader-i","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-gen-loop-i","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-state-initial-i","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-state-initial-read-set","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-memo-result-alias-arg","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-memo-result-local-fn-i","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-memo-key-written-after-hit","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"other-throw","crash":null},"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"t1","name":"t1-memo-in-action-key-alias","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"frozen-write","crash":null},"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"t1","name":"t1-read-after-set-then-alias-write","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"frozen-write","crash":null},"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"t1","name":"t1-thrown-error-data","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-thrown-record-to-drive","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"frozen-write","crash":null},"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"t1","name":"t1-action-return-to-drive","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"frozen-write","crash":null},"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"t1","name":"t1-jsx-prop-data","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-jsx-handler-i","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-island-data","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"other-throw","crash":null},"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"t1","name":"t1-island-fn-out","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"t1","name":"t1-island-fn-in","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"t1","name":"t1-promise-in-value-i","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"other-throw","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-promise-settles-after-write-async","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"none","crash":null},"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-fn-capability-clock","ctl":false,"acc":true,"base":null,"chk":{"silent":true,"cls":"none","crash":null},"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-fn-capability-random","ctl":false,"acc":true,"base":null,"chk":{"silent":true,"cls":"none","crash":null},"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"t1","name":"t1-ctl-G-c-direct","ctl":true,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"t1","name":"t1-ctl-G-let","ctl":true,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}

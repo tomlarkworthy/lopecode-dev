@@ -1,0 +1,46 @@
+#### r2-D-I-arrow
+-- put
+function _put(ss_out,ss_closure) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const put = ","t":";"}*/() => { const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const i/*ss:: readonly number[]*/ = xs; const F = /*ss+*/ss_closure(/*ss-*/() => i.length/*ss+*/, (i) => i < 0 ? 1 : i)/*ss-*/; const wm = new WeakMap/*ss:<object, () => void>*/(); const k = {}; wm.set(k, /*ss+*/ss_closure(/*ss-*/() => { xs.push(1); }/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/); return { f: F, k, wm }; })()));}
+-- w
+function _w(ss_out,put) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const w = ","t":";"}*/(put/*ss:: { readonly f: () => number }*/) => put.f())(put)));}
+#### r2-D-I-method
+-- put
+function _put(ss_out,ss_closure,ss_methods) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const put = ","t":";"}*/() => { const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const i/*ss:: readonly number[]*/ = xs; const o = /*ss+*/ss_methods(/*ss-*/{ m() { return i.length; } }/*ss+*/, "m", (i) => i < 0 ? 1 : i)/*ss-*/; const F = o.m; const wm = new WeakMap/*ss:<object, () => void>*/(); const k = {}; wm.set(k, /*ss+*/ss_closure(/*ss-*/() => { xs.push(1); }/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/); return { f: F, k, wm }; })()));}
+-- w
+function _w(ss_out,put) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const w = ","t":";"}*/(put/*ss:: { readonly f: () => number }*/) => put.f())(put)));}
+#### r2-D-I-fn-decl
+-- put
+function _put(ss_out,ss_closure) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const put = ","t":";"}*/() => {/*ss+*/ss_closure(F, (i) => i < 0 ? 1 : i);/*ss-*/ const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const i/*ss:: readonly number[]*/ = xs; function F() { return i.length; } const wm = new WeakMap/*ss:<object, () => void>*/(); const k = {}; wm.set(k, /*ss+*/ss_closure(/*ss-*/() => { xs.push(1); }/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/); return { f: F, k, wm }; })()));}
+-- w
+function _w(ss_out,put) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const w = ","t":";"}*/(put/*ss:: { readonly f: () => number }*/) => put.f())(put)));}
+#### r2-D-SH-const
+-- put
+function _put(ss_out,ss_closure) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const put = ","t":";"}*/() => { const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const ss_closure = /*ss:<T,>*/(f/*ss:: T*/, t/*ss:: unknown*/)/*ss:: T*/ => f; const F = /*ss+*/ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)/*ss-*/; const wm = new WeakMap/*ss:<object, () => void>*/(); const k = {}; wm.set(k, /*ss+*/ss_closure(/*ss-*/() => { xs.push(1); }/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/); return { f: F, k, wm }; })()));}
+-- w
+function _w(ss_out,put) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const w = ","t":";"}*/(put/*ss:: { readonly f: () => number }*/) => put.f())(put)));}
+#### r2-D-SH-methods
+-- put
+function _put(ss_out,ss_closure,ss_methods) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const put = ","t":";"}*/() => { const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const ss_methods = /*ss:<O,>*/(o/*ss:: O*/, ...r/*ss:: unknown[]*/)/*ss:: O*/ => o; const o = /*ss+*/ss_methods(/*ss-*/{ m() { return c.length; } }/*ss+*/, "m", (i) => i < 0 ? 1 : c)/*ss-*/; const F = o.m; const wm = new WeakMap/*ss:<object, () => void>*/(); const k = {}; wm.set(k, /*ss+*/ss_closure(/*ss-*/() => { xs.push(1); }/*ss+*/, (i) => i < 0 ? 1 : xs)/*ss-*/); return { f: F, k, wm }; })()));}
+-- w
+function _w(ss_out,put) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const w = ","t":";"}*/(put/*ss:: { readonly f: () => number }*/) => put.f())(put)));}
+#### r2-A-I-arrow
+-- viewof s
+function _s(ss_state,ss_ref) { const state = ss_state; return ss_ref(this, "s", [], /*{lang:"ss"}*//*ss^{"h":"const s = ","t":";"}*/() => state/*ss:<() => number>*/(() => -1)); }
+-- s
+(G, _) => G.input(_)
+-- viewof lg
+function _lg(ss_state,ss_ref) { const state = ss_state; return ss_ref(this, "lg", [], /*{lang:"ss"}*//*ss^{"h":"const lg = ","t":";"}*/() => state(-1)); }
+-- lg
+(G, _) => G.input(_)
+-- v
+function _v(ss_out,s) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const v = ","t":";"}*/(s/*ss:: () => number*/) => s)(s)));}
+-- w
+function _w(ss_out,lg) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const w = ","t":";"}*/(lg/*ss:: number*/) => lg)(lg)));}
+-- put
+function _put(ss_action,ss_out,ss_closure,$0,$1) { const action = ss_action; return ss_out((/*{lang:"ss"}*//*ss^{"h":"const put = ","t":";"}*/(s/*ss:: State<() => number>*/, lg/*ss:: State<number>*/) => ({ go: action(() => { const ls = lg.set; const st = s.set; const xs = [0]; const c/*ss:: readonly number[]*/ = xs; const i/*ss:: readonly number[]*/ = xs; const F = /*ss+*/ss_closure(/*ss-*/() => i.length/*ss+*/, (i) => i < 0 ? 1 : i)/*ss-*/; st(F); ls(F()); xs.push(1); }) }))($0, $1)); }
+#### r2-CR-catch
+-- put
+function _put(ss_out,ss_closure) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const put = ","t":";"}*/() => { const xs = [0]; const c/*ss:: readonly number[]*/ = xs; try { throw 0; } catch (ss_closure) { const f = /*ss+*/ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)/*ss-*/; return { f }; } return { f: () => 0 }; })()));}
+#### r2-CR-fn-decl-hoist
+-- put
+function _put(ss_out,ss_closure) {return (ss_out((/*{lang:"ss"}*//*ss^{"h":"const put = ","t":";"}*/() => {/*ss+*/ss_closure(f, (i) => i < 0 ? 1 : c);/*ss-*/ const xs = [0]; const c/*ss:: readonly number[]*/ = xs; function f() { return c.length; } const ss_closure = /*ss:<T,>*/(g/*ss:: T*/, t/*ss:: unknown*/)/*ss:: T*/ => g; return { f }; })()));}

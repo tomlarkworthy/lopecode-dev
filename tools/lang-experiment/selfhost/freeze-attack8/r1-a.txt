@@ -1,0 +1,1696 @@
+== r1.ts:r1-D-arrow-expr [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-arrow-expr [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-arrow-block [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-arrow-block [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-fn-expr [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-fn-expr [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-fn-expr-named [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-fn-expr-named [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-fn-expr-named-recursive [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-fn-expr-named-recursive [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-fn-decl [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-fn-decl [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-fn-decl-after-use [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-fn-decl-after-use [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-fn-decl-nested-block [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-fn-decl-nested-block [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-fn-decl-in-if-block [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-fn-decl-in-if-block [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-fn-decl-in-loop-block [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null][mut-capture] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-fn-decl-in-loop-block [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-capture][mut-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null][mut-capture] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-fn-decl-in-switch-block [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-fn-decl-in-switch-block [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-fn-decl-in-switch-case [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[free-name][switch-declaration][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[free-name][switch-declaration]
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-fn-decl-in-switch-case [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[free-name][switch-declaration][mut-yield]
+   base verdict: REJECT g:rejected[free-name][switch-declaration]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-fn-decl-in-switch-case-run [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[switch-declaration][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[switch-declaration]
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-fn-decl-in-switch-case-run [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[switch-declaration][mut-yield]
+   base verdict: REJECT g:rejected[switch-declaration]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-called [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[mut-capture]
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-called [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-capture][mut-capture][mut-yield]
+   base verdict: REJECT g:rejected[mut-capture]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-string-key [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-string-key [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-space-key [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-space-key [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-num-key [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[type][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[type] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-num-key [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[type][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[type] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-num-1.0 [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[type][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[type] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-num-1.0 [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[type][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[type] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-hex-key [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[type][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[type] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-hex-key [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[type][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[type] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-1e3-key [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[type][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[type] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-1e3-key [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[type][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[type] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-1e21-key [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-1e21-key [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-frac-key [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-frac-key [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-sep-key [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[type][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[type] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-sep-key [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[type][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[type] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-bigint-key [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[type][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[type] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-method-bigint-key [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[type][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[type] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-method-bigint-big [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:unsupported w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-method-bigint-big [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:blocked
+   base verdict: REJECT g:unsupported w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-method-escape-key [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-escape-key [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-proto-key [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[banned-member][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[banned-member]
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-proto-key [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[banned-member][mut-yield]
+   base verdict: REJECT g:rejected[banned-member]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-computed [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:unsupported w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-method-computed [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:blocked
+   base verdict: REJECT g:unsupported w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-method-async [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT w:rejected[inject-type]
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-async [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:rejected[inject-type]
+   base verdict: REJECT w:rejected[inject-type]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-gen [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][type][new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null][type][mut-capture] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-gen [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][type][mut-capture][mut-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null][type][mut-capture] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-async-gen-wrapped [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:unsupported w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-async-gen-wrapped [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:blocked
+   base verdict: REJECT g:unsupported w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-dup-later-method [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-dup-later-method [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-method-two-literals-one-fn [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-method-two-literals-one-fn [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-getter [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[mut-capture] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-getter [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-capture][mut-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[mut-capture] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-getter-published [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:unsupported w:blocked
+   skip drive -> wrote; same w (earlier reading) = 0, put.f() now = 0
+   skip => not silent (none)
+== r1.ts:r1-G-getter-published [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:blocked
+   base verdict: REJECT g:unsupported w:blocked
+   skip drive -> g fulfilled; same w (earlier reading) = 0, g.f() now = 0
+   skip => not silent (none)
+== r1.ts:r1-D-setter-reader [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[mut-capture] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-setter-reader [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-capture][mut-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[mut-capture] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-arrow-in-computed-key-value [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:unsupported w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-arrow-in-computed-key-value [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:blocked
+   base verdict: REJECT g:unsupported w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-class-method [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-class][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-class][new-non-intrinsic] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-class-method [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-class][new-non-intrinsic][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-class][new-non-intrinsic] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-class-static [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-class][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-class] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-class-static [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-class][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-class] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-class-field-arrow [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-class][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-class][new-non-intrinsic] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-class-field-arrow [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-class][new-non-intrinsic][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-class][new-non-intrinsic] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-class-private [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-class][no-this][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-class][no-this][new-non-intrinsic] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-class-private [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-class][no-this][new-non-intrinsic][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-class][no-this][new-non-intrinsic] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-class-static-block [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-class][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-class]
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-class-static-block [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-class][mut-yield]
+   base verdict: REJECT g:rejected[no-class]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-class-expr [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-class][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-class][new-non-intrinsic] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-class-expr [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-class][new-non-intrinsic][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-class][new-non-intrinsic] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-default-param [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[untyped-parameter][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[untyped-parameter] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-default-param [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[untyped-parameter][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[untyped-parameter] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-default-param-typed [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-default-param-typed [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-destr-default-obj [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-destr-default-obj [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-destr-default-arr [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-destr-default-arr [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-destr-param-default [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-destr-param-default [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-iife [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-iife [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-iife-fn [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-iife-fn [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-at-once-map [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-at-once-map [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-at-once-reduce [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[type][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[type]
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-at-once-reduce [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[type][mut-yield]
+   base verdict: REJECT g:rejected[type]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-at-once-sort [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[mutating-method][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[mutating-method]
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-at-once-sort [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mutating-method][mut-yield]
+   base verdict: REJECT g:rejected[mutating-method]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-at-once-from [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-at-once-from [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-loop-let [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][let-capture][let-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null][let-capture][let-capture] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-loop-let [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][let-capture][let-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null][let-capture][let-capture] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-loop-for-of [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-loop-for-of [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-loop-for-in [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-loop-for-in [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-loop-while-block [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-loop-while-block [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-for-init-closure [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-for-init-closure [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-bind [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-member][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-member] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-bind [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-member][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-member] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-bind-of-closure [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-member][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-member] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-bind-of-closure [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-member][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-member] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-call-returns-closure [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-member][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-member] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-call-returns-closure [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-member][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-member] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-apply-returns-closure [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-member][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-member] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-apply-returns-closure [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-member][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-member] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-helper-returns [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-helper-returns [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-helper-param-closure [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-helper-param-closure [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-curry-3 [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-curry-3 [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-curry-param-only [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-curry-param-only [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-3 [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-3 [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-record [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[mut-capture]
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-record [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-capture][mut-capture][mut-yield]
+   base verdict: REJECT g:rejected[mut-capture]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-array [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null][mut-capture] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-array [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-capture][mut-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null][mut-capture] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-map [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null][mut-capture] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-map [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-capture][mut-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null][mut-capture] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-set [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null][mut-capture] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-set [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-capture][mut-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null][mut-capture] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-map-key [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null][mut-capture] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-map-key [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-capture][mut-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null][mut-capture] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-tuple [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-tuple [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-error-cause [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-cast][arity][new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-cast][arity][mut-capture] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-error-cause [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-cast][arity][mut-capture][mut-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-cast][arity][mut-capture] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-error-prop [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-cast][no-any][new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-cast][no-any][mut-capture] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-error-prop [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-cast][no-any][mut-capture][mut-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-cast][no-any][mut-capture] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-weakmap [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-transitive-weakmap [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][new-non-intrinsic][mut-capture][mut-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-transitive-promise [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[mut-capture] w:rejected[inject-type]
+   skip drive -> no put (rejected a promise where it cannot be replaced (among a function's captures, in an Error or in an already frozen value): it would)
+   skip error put: a promise where it cannot be replaced (among a function's captures, in an Error or in an already frozen value): it would settle after its cell publishes it
+   skip error w: a promise where it cannot be replaced (among a function's captures, in an Error or in an already frozen value): it would settle after its cell publishes it
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-promise [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-capture][mut-yield] w:rejected[inject-type]
+   base verdict: REJECT g:rejected[mut-capture] w:rejected[inject-type]
+   skip drive -> no g (rejected a promise where it cannot be replaced (among a function's captures, in an Error or in an already frozen value): it would)
+   skip error g: a promise where it cannot be replaced (among a function's captures, in an Error or in an already frozen value): it would settle after its cell publishes it
+   skip error w: a promise where it cannot be replaced (among a function's captures, in an Error or in an already frozen value): it would settle after its cell publishes it
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-thenable-fn [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[mut-capture] w:rejected[inject-type]
+   skip drive -> no put (rejected a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what th)
+   skip error put: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   skip error w: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-thenable-fn [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-capture][mut-capture][mut-yield] w:rejected[inject-type]
+   base verdict: REJECT g:rejected[mut-capture] w:rejected[inject-type]
+   skip drive -> no g (rejected a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what th)
+   skip error g: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   skip error w: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-jsx-prop [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-cast][type][type][no-member][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-cast][type][type][no-member] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-jsx-prop [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-cast][type][type][no-member][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-cast][type][type][no-member] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-jsx-child-fn [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-cast][type][type][type][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-cast][type][type][type] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-jsx-child-fn [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-cast][type][type][type][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-cast][type][type][type] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-jsx-component [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-cast][no-member][arity][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-cast][no-member][arity] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-transitive-jsx-component [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-cast][no-member][arity][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-cast][no-member][arity] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-transitive-action-body [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture][action-capture] w:blocked
+   base verdict: REJECT put:rejected[action-capture]
+   skip drive -> wrote; same w (earlier reading) = 0, put.f() now = 0
+   skip => not silent (none)
+== r1.ts:r1-G-transitive-action-body [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield][action-capture]
+   base verdict: REJECT g:rejected[action-capture]
+   skip drive -> g fulfilled; same w (earlier reading) = 0, g.f() now = 0
+   skip => not silent (none)
+== r1.ts:r1-D-closure-over-memo-param [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-closure-over-memo-param [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-spread-record [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-spread-record [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-spread-array [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-spread-array [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-object-assign [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:unsupported w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-object-assign [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:blocked
+   base verdict: REJECT g:unsupported w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-array-from-copy [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-array-from-copy [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-structured-holder [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-structured-holder [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-template-literal [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-template-literal [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-tagged-template [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[unknown-type][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[unknown-type] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-tagged-template [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[unknown-type][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[unknown-type] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-as-const [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-as-const [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-satisfies [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:unsupported w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-satisfies [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:blocked
+   base verdict: REJECT g:unsupported w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-non-null [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-non-null [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-generic-arrow [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT w:rejected[inject-type]
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-generic-arrow [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:rejected[inject-type]
+   base verdict: REJECT w:rejected[inject-type]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-typed-rest-param [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-typed-rest-param [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-optional-param [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-optional-param [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-optional-chain-call [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[mut-capture]
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-optional-chain-call [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-capture][mut-capture][mut-yield]
+   base verdict: REJECT g:rejected[mut-capture]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-comma-expr [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:unsupported w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-comma-expr [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:blocked
+   base verdict: REJECT g:unsupported w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-label-in-body [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:unsupported w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-label-in-body [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:blocked
+   base verdict: REJECT g:unsupported w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-catch-binding [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-cast][new-non-intrinsic][let-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-cast][let-capture] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-catch-binding [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-cast][let-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-cast][let-capture] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-catch-destr [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-cast][no-member][new-non-intrinsic][let-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-cast][no-member][let-capture] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-catch-destr [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-cast][no-member][let-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-cast][no-member][let-capture] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-this-capture [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-this][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-this] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-this-capture [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-this][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-this] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-arguments-capture [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-cast][no-arguments][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-cast][no-arguments] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-arguments-capture [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-cast][no-arguments][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-cast][no-arguments] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-async-arrow [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT w:rejected[inject-type]
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-async-arrow [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:rejected[inject-type]
+   base verdict: REJECT w:rejected[inject-type]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-async-fn-decl [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT w:rejected[inject-type]
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-async-fn-decl [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield] w:rejected[inject-type]
+   base verdict: REJECT w:rejected[inject-type]
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-gen-decl [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][type][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null][type] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-gen-decl [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][type][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null][type] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-gen-expr [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][type][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null][type] w:blocked
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-gen-expr [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][type][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null][type] w:blocked
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-shadow-ss_closure-const [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-shadow-ss_closure-const [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-shadow-ss_closure-param [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> no put (rejected ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c )
+   skip error put: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   skip error w: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   skip => not silent (other-throw)
+== r1.ts:r1-G-shadow-ss_closure-param [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c )
+   skip error g: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   skip error w: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   skip => not silent (other-throw)
+== r1.ts:r1-D-shadow-ss_closure-fndecl [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-shadow-ss_closure-fndecl [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-shadow-ss_closure-catch [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> no put (rejected ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 0))
+   skip error put: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 0)
+   skip error w: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 0)
+   skip => not silent (other-throw)
+== r1.ts:r1-G-shadow-ss_closure-catch [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 0))
+   skip error g: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 0)
+   skip error w: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 0)
+   skip => not silent (other-throw)
+== r1.ts:r1-D-shadow-ss_closure-destr [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-shadow-ss_closure-destr [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-shadow-ss_closure-inner-only [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-shadow-ss_closure-inner-only [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-shadow-ss_methods-const [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-G-shadow-ss_methods-const [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-D-shadow-ss_closure-for-of [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null] w:blocked
+   skip drive -> no put (rejected ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c )
+   skip error put: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   skip error w: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   skip => not silent (other-throw)
+== r1.ts:r1-G-shadow-ss_closure-for-of [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null] w:blocked
+   skip drive -> no g (rejected ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c )
+   skip error g: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   skip error w: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   skip => not silent (other-throw)
+== r1.ts:r1-D-fn-new-function [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[no-cast][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-cast][new-non-intrinsic] w:blocked
+   skip drive -> wrote; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (none)
+== r1.ts:r1-G-fn-new-function [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[no-cast][new-non-intrinsic][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-cast][new-non-intrinsic] w:blocked
+   skip drive -> g fulfilled; same w (earlier reading) = 1, g.f() now = 1
+   skip => not silent (none)
+== r1.ts:r1-D-reregister-many [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-reregister-many [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-D-reregister-overflow [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> write threw: Attempted to assign to readonly property.; same w (earlier reading) = 1, put.f() now = 1
+   skip => not silent (frozen-write)
+== r1.ts:r1-G-reregister-overflow [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Attempted to assign to readonly property.)
+   skip error g: Attempted to assign to readonly property.
+   skip error w: Attempted to assign to readonly property.
+   skip => not silent (frozen-write)
+== r1.ts:r1-ctl-D-let [ctl] [REG=1 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][let-capture][let-capture][let-capture] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r1.ts:r1-ctl-G-let [ctl] [REG=1 BODYFN=on]
+   verdict: REJECT g:rejected[let-capture][let-capture]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+ROW {"set":"r1","name":"r1-D-arrow-expr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-arrow-expr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-arrow-block","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-arrow-block","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-fn-expr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-fn-expr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-fn-expr-named","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-fn-expr-named","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-fn-expr-named-recursive","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-fn-expr-named-recursive","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-fn-decl","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-fn-decl","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-fn-decl-after-use","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-fn-decl-after-use","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-fn-decl-nested-block","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-fn-decl-nested-block","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-fn-decl-in-if-block","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-fn-decl-in-if-block","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-fn-decl-in-loop-block","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-fn-decl-in-loop-block","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-fn-decl-in-switch-block","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-fn-decl-in-switch-block","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-fn-decl-in-switch-case","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-fn-decl-in-switch-case","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-fn-decl-in-switch-case-run","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-fn-decl-in-switch-case-run","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-called","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-called","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-string-key","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-string-key","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-space-key","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-space-key","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-num-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-num-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-num-1.0","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-num-1.0","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-hex-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-hex-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-1e3-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-1e3-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-1e21-key","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-1e21-key","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-frac-key","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-frac-key","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-sep-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-sep-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-bigint-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-bigint-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-bigint-big","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-bigint-big","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-escape-key","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-escape-key","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-proto-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-proto-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-computed","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-computed","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-async","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-async","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-gen","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-gen","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-async-gen-wrapped","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-async-gen-wrapped","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-dup-later-method","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-dup-later-method","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-method-two-literals-one-fn","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-method-two-literals-one-fn","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-getter","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-getter","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-getter-published","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-getter-published","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-setter-reader","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-setter-reader","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-arrow-in-computed-key-value","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-arrow-in-computed-key-value","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-class-method","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-class-method","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-class-static","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-class-static","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-class-field-arrow","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-class-field-arrow","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-class-private","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-class-private","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-class-static-block","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-class-static-block","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-class-expr","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-class-expr","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-default-param","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-default-param","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-default-param-typed","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-default-param-typed","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-destr-default-obj","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-destr-default-obj","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-destr-default-arr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-destr-default-arr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-destr-param-default","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-destr-param-default","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-iife","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-iife","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-iife-fn","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-iife-fn","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-at-once-map","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-at-once-map","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-at-once-reduce","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-at-once-reduce","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-at-once-sort","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-at-once-sort","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-at-once-from","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-at-once-from","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-loop-let","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-loop-let","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-loop-for-of","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-loop-for-of","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-loop-for-in","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-loop-for-in","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-loop-while-block","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-loop-while-block","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-for-init-closure","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-for-init-closure","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-bind","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-bind","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-bind-of-closure","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-bind-of-closure","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-call-returns-closure","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-call-returns-closure","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-apply-returns-closure","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-apply-returns-closure","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-helper-returns","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-helper-returns","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-helper-param-closure","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-helper-param-closure","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-curry-3","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-curry-3","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-curry-param-only","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-curry-param-only","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-3","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-3","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-record","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-record","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-array","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-array","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-map","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-map","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-set","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-set","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-map-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-map-key","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-tuple","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-tuple","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-error-cause","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-error-cause","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-error-prop","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-error-prop","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-weakmap","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-weakmap","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-promise","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-promise","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-thenable-fn","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-thenable-fn","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-jsx-prop","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-jsx-prop","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-jsx-child-fn","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-jsx-child-fn","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-jsx-component","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-jsx-component","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-transitive-action-body","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-transitive-action-body","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-closure-over-memo-param","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-closure-over-memo-param","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-spread-record","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-spread-record","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-spread-array","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-spread-array","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-object-assign","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-object-assign","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-array-from-copy","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-array-from-copy","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-structured-holder","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-structured-holder","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-template-literal","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-template-literal","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-tagged-template","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-tagged-template","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-as-const","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-as-const","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-satisfies","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-satisfies","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-non-null","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-non-null","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-generic-arrow","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-generic-arrow","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-typed-rest-param","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-typed-rest-param","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-optional-param","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-optional-param","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-optional-chain-call","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-optional-chain-call","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-comma-expr","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-comma-expr","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-label-in-body","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-label-in-body","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-catch-binding","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-catch-binding","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-catch-destr","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-catch-destr","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-this-capture","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-this-capture","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-arguments-capture","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-arguments-capture","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-async-arrow","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-async-arrow","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-async-fn-decl","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-async-fn-decl","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-gen-decl","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-gen-decl","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-gen-expr","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-gen-expr","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-shadow-ss_closure-const","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-shadow-ss_closure-const","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-shadow-ss_closure-param","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r1","name":"r1-G-shadow-ss_closure-param","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r1","name":"r1-D-shadow-ss_closure-fndecl","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-shadow-ss_closure-fndecl","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-shadow-ss_closure-catch","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r1","name":"r1-G-shadow-ss_closure-catch","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r1","name":"r1-D-shadow-ss_closure-destr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-shadow-ss_closure-destr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-shadow-ss_closure-inner-only","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-shadow-ss_closure-inner-only","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-shadow-ss_methods-const","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-shadow-ss_methods-const","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-shadow-ss_closure-for-of","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r1","name":"r1-G-shadow-ss_closure-for-of","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r1","name":"r1-D-fn-new-function","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-G-fn-new-function","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":false,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-D-reregister-many","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-reregister-many","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-D-reregister-overflow","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-G-reregister-overflow","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"frozen-write","crash":null}}
+ROW {"set":"r1","name":"r1-ctl-D-let","ctl":true,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r1","name":"r1-ctl-G-let","ctl":true,"acc":false,"base":null,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}

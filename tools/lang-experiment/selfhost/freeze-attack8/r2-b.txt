@@ -1,0 +1,574 @@
+== r2.ts:r2-D-I-arrow [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-arrow [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-arrow [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-arrow-two [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 2, put.f() now = 3
+   skip CHANGED put (value #1 of 1): {f:fn(2),k:{},wm:{}} | E[] -> {f:fn(3),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-arrow-two [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 2, g.f() now = 3
+   skip CHANGED g (value #1 of 1): {f:fn(2)} | E[] -> {f:fn(3)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-arrow-two [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-arrow-three [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 4, put.f() now = 5
+   skip CHANGED put (value #1 of 1): {f:fn(4),k:{},wm:{}} | E[] -> {f:fn(5),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-arrow-three [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 4, g.f() now = 5
+   skip CHANGED g (value #1 of 1): {f:fn(4)} | E[] -> {f:fn(5)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-arrow-three [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-fn-expr [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-fn-expr [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-fn-expr [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-fn-decl [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-fn-decl [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-fn-decl [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-method [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-method [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-method [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-method-two [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 2, put.f() now = 3
+   skip CHANGED put (value #1 of 1): {f:fn(2),k:{},wm:{}} | E[] -> {f:fn(3),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-method-two [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 2, g.f() now = 3
+   skip CHANGED g (value #1 of 1): {f:fn(2)} | E[] -> {f:fn(3)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-method-two [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-map-param [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null][mut-capture] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-map-param [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-capture][mut-capture][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null][mut-capture] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-map-param [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][mut-capture]
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-map-param-ro [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-map-param-ro [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-map-param-ro [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null]
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-helper-param [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-helper-param [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-helper-param [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-for-of [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-non-null] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-for-of [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[no-non-null][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-non-null] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-for-of [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[no-non-null]
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-transitive [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-transitive [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-transitive [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-holds-fn [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-holds-fn [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-holds-fn [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-holds-record [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[mut-capture]
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-holds-record [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-capture][mut-capture][mut-yield]
+   base verdict: REJECT g:rejected[mut-capture]
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-holds-record [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[mut-capture]
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-catch [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[no-cast][new-non-intrinsic][mut-capture] w:blocked
+   base verdict: REJECT put:rejected[no-cast] w:blocked
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-catch [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[no-cast][mut-yield] w:blocked
+   base verdict: REJECT g:rejected[no-cast] w:blocked
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-catch [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[no-cast]
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-I-destr [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-I-destr [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-I-destr [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-SH-const [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-SH-const [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-SH-const [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-SH-fndecl [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-SH-fndecl [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-SH-fndecl [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-SH-destr [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-SH-destr [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-SH-destr [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-SH-inner [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-SH-inner [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-SH-inner [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-SH-methods [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-SH-methods [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-SH-methods [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   chk  => not silent (S4.12)
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-SH-leak-thunk [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> no put (rejected Cannot access 'ss_closure' before initialization.)
+   skip error put: Cannot access 'ss_closure' before initialization.
+   skip error w: Cannot access 'ss_closure' before initialization.
+   skip => not silent (other-throw)
+== r2.ts:r2-G-SH-leak-thunk [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> no g (rejected Cannot access 'ss_closure' before initialization.)
+   skip error g: Cannot access 'ss_closure' before initialization.
+   skip error w: Cannot access 'ss_closure' before initialization.
+   skip => not silent (other-throw)
+== r2.ts:r2-A-SH-leak-thunk [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  drive -> threw at the call: Cannot access 'ss_closure' before initialization.
+   chk  => not silent (other-throw)
+   skip drive -> threw at the call: Cannot access 'ss_closure' before initialization.
+   skip => not silent (other-throw)
+== r2.ts:r2-D-CTL-c-arrow [ctl] [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-CTL-c-arrow [ctl] [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-CTL-c-arrow [ctl] [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-CTL-c-method [ctl] [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-CTL-c-method [ctl] [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-CTL-c-method [ctl] [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-D-CTL-j-arrow [ctl] [REG=0 BODYFN=on]
+   verdict: REJECT put:rejected[new-non-intrinsic][mut-capture] w:blocked
+   base verdict: ACCEPT
+   skip drive -> wrote; DIFF w (earlier reading) = 1, put.f() now = 2
+   skip CHANGED put (value #1 of 1): {f:fn(1),k:{},wm:{}} | E[] -> {f:fn(2),k:{},wm:{}} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-G-CTL-j-arrow [ctl] [REG=0 BODYFN=on]
+   verdict: REJECT g:rejected[mut-yield]
+   base verdict: ACCEPT
+   skip drive -> g fulfilled; DIFF w (earlier reading) = 1, g.f() now = 2
+   skip CHANGED g (value #1 of 1): {f:fn(1)} | E[] -> {f:fn(2)} | E[]
+   skip => SILENT (none)
+== r2.ts:r2-A-CTL-j-arrow [ctl] [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   skip drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   skip => not silent (S4.12)
+== r2.ts:r2-CR-param [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  show put = ERROR ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   chk  error put: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   chk  => not silent (other-throw)
+   skip show put = ERROR ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   skip error put: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   skip => not silent (other-throw)
+== r2.ts:r2-CR-catch [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  show put = ERROR ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 0)
+   chk  error put: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 0)
+   chk  => not silent (other-throw)
+   skip show put = ERROR ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 0)
+   skip error put: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 0)
+   skip => not silent (other-throw)
+== r2.ts:r2-CR-const-number [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  show put = ERROR ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   chk  error put: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   chk  => not silent (other-throw)
+   skip show put = ERROR ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   skip error put: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 2 : i === 0 ? c : ss_closure)', 'ss_closure' is 0)
+   skip => not silent (other-throw)
+== r2.ts:r2-CR-cell-input [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  show put = ERROR ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 1)
+   chk  error put: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 1)
+   chk  => not silent (other-throw)
+   skip show put = ERROR ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 1)
+   skip error put: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => c.length + ss_closure/*ss+*/, (i) => i < 0 ? 1 : c)', 'ss_closure' is 1)
+   skip => not silent (other-throw)
+== r2.ts:r2-CR-methods-number [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  show put = ERROR ss_methods is not a function. (In 'ss_methods(/*ss-*/{ m() { return c.length + ss_methods; } }/*ss+*/, "m", (i) => i < 0 ? 2 : i === 0 ? c : ss_methods)', 'ss_methods' is 0)
+   chk  error put: ss_methods is not a function. (In 'ss_methods(/*ss-*/{ m() { return c.length + ss_methods; } }/*ss+*/, "m", (i) => i < 0 ? 2 : i === 0 ? c : ss_methods)', 'ss_methods' is 0)
+   chk  => not silent (other-throw)
+   skip show put = ERROR ss_methods is not a function. (In 'ss_methods(/*ss-*/{ m() { return c.length + ss_methods; } }/*ss+*/, "m", (i) => i < 0 ? 2 : i === 0 ? c : ss_methods)', 'ss_methods' is 0)
+   skip error put: ss_methods is not a function. (In 'ss_methods(/*ss-*/{ m() { return c.length + ss_methods; } }/*ss+*/, "m", (i) => i < 0 ? 2 : i === 0 ? c : ss_methods)', 'ss_methods' is 0)
+   skip => not silent (other-throw)
+== r2.ts:r2-CR-fn-decl-hoist [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  show put = ERROR Cannot access 'ss_closure' before initialization.
+   chk  error put: Cannot access 'ss_closure' before initialization.
+   chk  => not silent (other-throw)
+   skip show put = ERROR Cannot access 'ss_closure' before initialization.
+   skip error put: Cannot access 'ss_closure' before initialization.
+   skip => not silent (other-throw)
+== r2.ts:r2-CR-generator-param [REG=0 BODYFN=on]
+   verdict: ACCEPT
+   chk  show g = ERROR ss_closure is not a function. (In 'ss_closure(/*ss-*/() => ss_closure/*ss+*/, (i) => i < 0 ? 1 : ss_closure)', 'ss_closure' is 1)
+   chk  error g: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => ss_closure/*ss+*/, (i) => i < 0 ? 1 : ss_closure)', 'ss_closure' is 1)
+   chk  => not silent (other-throw)
+   skip show g = ERROR ss_closure is not a function. (In 'ss_closure(/*ss-*/() => ss_closure/*ss+*/, (i) => i < 0 ? 1 : ss_closure)', 'ss_closure' is 1)
+   skip error g: ss_closure is not a function. (In 'ss_closure(/*ss-*/() => ss_closure/*ss+*/, (i) => i < 0 ? 1 : ss_closure)', 'ss_closure' is 1)
+   skip => not silent (other-throw)
+ROW {"set":"r2","name":"r2-D-I-arrow","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-arrow","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-arrow","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-arrow-two","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-arrow-two","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-arrow-two","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-arrow-three","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-arrow-three","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-arrow-three","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-fn-expr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-fn-expr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-fn-expr","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-fn-decl","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-fn-decl","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-fn-decl","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-method","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-method","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-method","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-method-two","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-method-two","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-method-two","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-map-param","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-map-param","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-map-param","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-map-param-ro","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-map-param-ro","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-map-param-ro","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-helper-param","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-helper-param","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-helper-param","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-for-of","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-for-of","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-for-of","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-transitive","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-transitive","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-transitive","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-holds-fn","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-holds-fn","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-holds-fn","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-holds-record","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-holds-record","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-holds-record","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-catch","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-catch","ctl":false,"acc":false,"base":false,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-catch","ctl":false,"acc":false,"base":null,"chk":null,"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-I-destr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-I-destr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-I-destr","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-SH-const","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-SH-const","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-SH-const","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-SH-fndecl","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-SH-fndecl","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-SH-fndecl","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-SH-destr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-SH-destr","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-SH-destr","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-SH-inner","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-SH-inner","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-SH-inner","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-SH-methods","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-SH-methods","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-SH-methods","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"S4.12","crash":null},"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-SH-leak-thunk","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r2","name":"r2-G-SH-leak-thunk","ctl":false,"acc":false,"base":true,"chk":null,"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r2","name":"r2-A-SH-leak-thunk","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"other-throw","crash":null},"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r2","name":"r2-D-CTL-c-arrow","ctl":true,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-CTL-c-arrow","ctl":true,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-CTL-c-arrow","ctl":true,"acc":true,"base":null,"chk":null,"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-CTL-c-method","ctl":true,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-CTL-c-method","ctl":true,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-CTL-c-method","ctl":true,"acc":true,"base":null,"chk":null,"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-D-CTL-j-arrow","ctl":true,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-G-CTL-j-arrow","ctl":true,"acc":false,"base":true,"chk":null,"skip":{"silent":true,"cls":"none","crash":null}}
+ROW {"set":"r2","name":"r2-A-CTL-j-arrow","ctl":true,"acc":true,"base":null,"chk":null,"skip":{"silent":false,"cls":"S4.12","crash":null}}
+ROW {"set":"r2","name":"r2-CR-param","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"other-throw","crash":null},"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r2","name":"r2-CR-catch","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"other-throw","crash":null},"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r2","name":"r2-CR-const-number","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"other-throw","crash":null},"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r2","name":"r2-CR-cell-input","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"other-throw","crash":null},"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r2","name":"r2-CR-methods-number","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"other-throw","crash":null},"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r2","name":"r2-CR-fn-decl-hoist","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"other-throw","crash":null},"skip":{"silent":false,"cls":"other-throw","crash":null}}
+ROW {"set":"r2","name":"r2-CR-generator-param","ctl":false,"acc":true,"base":null,"chk":{"silent":false,"cls":"other-throw","crash":null},"skip":{"silent":false,"cls":"other-throw","crash":null}}

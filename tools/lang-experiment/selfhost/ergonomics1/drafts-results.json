@@ -1,0 +1,971 @@
+[
+ {
+  "file": "drafts/01-orders-total.ts",
+  "id": "01",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "paidTotal,bigCustomers ok",
+  "late": []
+ },
+ {
+  "file": "drafts/02-sort-people.ts",
+  "id": "02",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "byAgeThenName",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "mutating-method",
+      "line": 9,
+      "msg": "write to a Person[], which is not Mut"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/03-group-by.ts",
+  "id": "03",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "byLetter",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "type",
+      "line": 6,
+      "msg": "cannot index { [k: string]: string[] } with string | undefined"
+     },
+     {
+      "rule": "type",
+      "line": 7,
+      "msg": "cannot index { [k: string]: string[] } with string | undefined"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/04-squares-loop.ts",
+  "id": "04",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "squares",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "type",
+      "line": 4,
+      "msg": "number is not assignable to never"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/05-index-by-id.ts",
+  "id": "05",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "byId",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "member-write",
+      "line": 10,
+      "msg": "write to a { [k: string]: User }, which is not Mut"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   },
+   {
+    "name": "nameOfU2",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "possibly-undefined",
+      "line": 14,
+      "msg": "property name of a value that may be undefined"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/06-dedupe-set.ts",
+  "id": "06",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "uniqueSorted",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "mutating-method",
+      "line": 3,
+      "msg": "write to a string[], which is not Mut"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/07-word-count-map.ts",
+  "id": "07",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "top",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "mutating-method",
+      "line": 8,
+      "msg": "write to a [string, number][], which is not Mut"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/08-format-table.ts",
+  "id": "08",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "report ok",
+  "late": []
+ },
+ {
+  "file": "drafts/09-dates.ts",
+  "id": "09",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "daysBetween",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "new-non-intrinsic",
+      "line": 4,
+      "msg": "new on something that is not an allowed intrinsic"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   },
+   {
+    "name": "endWeekday",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "new-non-intrinsic",
+      "line": 7,
+      "msg": "new on something that is not an allowed intrinsic"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/10-chunk-zip.ts",
+  "id": "10",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "zip",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "type",
+      "line": 6,
+      "msg": "(A | B | undefined)[][] is not assignable to [A, B][]"
+     },
+     {
+      "rule": "iterator-capture",
+      "line": 6,
+      "msg": "bs may hold an iterator (the type parameter B), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...bs]) and capture the array"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/11-binary-search.ts",
+  "id": "11",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "bsearch",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "possibly-undefined",
+      "line": 8,
+      "msg": "number | undefined used as a number"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/12-memo-fib.ts",
+  "id": "12",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "fib",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "mut-capture",
+      "line": 3,
+      "msg": "Mut cache written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/13-tree-walk.ts",
+  "id": "13",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "flatten",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "mut-capture",
+      "line": 20,
+      "msg": "Mut out written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made"
+     }
+    ],
+    "unsupported": [
+     "recursive function without a return type"
+    ],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/14-matrix-typed.ts",
+  "id": "14",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "matmul",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "possibly-undefined",
+      "line": 7,
+      "msg": "number | undefined used as a number"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/15-csv-line.ts",
+  "id": "15",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "parsed ok",
+  "late": []
+ },
+ {
+  "file": "drafts/16-lru-cache.ts",
+  "id": "16",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "makeLru",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "iterator-capture",
+      "line": 5,
+      "msg": "m may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...m]) and capture the array"
+     },
+     {
+      "rule": "iterator-capture",
+      "line": 6,
+      "msg": "m may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...m]) and capture the array"
+     },
+     {
+      "rule": "iterator-capture",
+      "line": 10,
+      "msg": "m may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...m]) and capture the array"
+     },
+     {
+      "rule": "iterator-capture",
+      "line": 11,
+      "msg": "m may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...m]) and capture the array"
+     },
+     {
+      "rule": "iterator-capture",
+      "line": 12,
+      "msg": "m may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...m]) and capture the array"
+     },
+     {
+      "rule": "iterator-capture",
+      "line": 14,
+      "msg": "m may hold an iterator (the type parameter K), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...m]) and capture the array"
+     },
+     {
+      "rule": "mut-capture",
+      "line": 4,
+      "msg": "Mut m written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made"
+     },
+     {
+      "rule": "mut-capture",
+      "line": 9,
+      "msg": "Mut m written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made"
+     },
+     {
+      "rule": "mut-capture",
+      "line": 6,
+      "msg": "m may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged"
+     },
+     {
+      "rule": "mut-capture",
+      "line": 10,
+      "msg": "m may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged"
+     },
+     {
+      "rule": "mut-capture",
+      "line": 11,
+      "msg": "m may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged"
+     },
+     {
+      "rule": "mut-capture",
+      "line": 12,
+      "msg": "m may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged"
+     },
+     {
+      "rule": "mut-capture",
+      "line": 14,
+      "msg": "Mut m captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: Map<K, V> = m) and capture that, or make it inside the function"
+     }
+    ],
+    "unsupported": [
+     "intrinsic member Iterable.next"
+    ],
+    "blockedBy": []
+   },
+   {
+    "name": "lruDemo",
+    "status": "blocked",
+    "errors": [],
+    "unsupported": [],
+    "blockedBy": [
+     "makeLru"
+    ]
+   }
+  ]
+ },
+ {
+  "file": "drafts/17-counter.tsx",
+  "id": "17",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "label ok | clicked '+' | clicked '+' | label ok | clicked '-' | label ok | clicked 'reset' | label ok",
+  "late": []
+ },
+ {
+  "file": "drafts/18-todos.ts",
+  "id": "18",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "addTodo(\"a\") | addTodo(\"b\") | toggleTodo(1) | remaining ok | removeTodo(2) | remaining ok | todos [{\"id\":1,\"text\":\"a\",\"done\":true}]",
+  "late": []
+ },
+ {
+  "file": "drafts/19-form-validation.tsx",
+  "id": "19",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": false,
+  "note": "errors [\"email needs an @\"]",
+  "late": []
+ },
+ {
+  "file": "drafts/20-undo-stack.ts",
+  "id": "20",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "undo",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "possibly-undefined",
+      "line": 10,
+      "msg": "number | undefined is not assignable to number"
+     },
+     {
+      "rule": "type",
+      "line": 10,
+      "msg": "{ past: number[]; present: number | undefined; future: number[] } is not assignable to Hist"
+     },
+     {
+      "rule": "type",
+      "line": 7,
+      "msg": "(h: Hist) => Hist | { past: number[]; present: number | undefined; future: number[] } is not assignable to (v: Hist) => Hist"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   },
+   {
+    "name": "redo",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "possibly-undefined",
+      "line": 18,
+      "msg": "number | undefined is not assignable to number"
+     },
+     {
+      "rule": "type",
+      "line": 18,
+      "msg": "{ past: number[]; present: number | undefined; future: number[] } is not assignable to Hist"
+     },
+     {
+      "rule": "type",
+      "line": 15,
+      "msg": "(h: Hist) => Hist | { past: number[]; present: number | undefined; future: number[] } is not assignable to (v: Hist) => Hist"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/21-cart.ts",
+  "id": "21",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "subtotal",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "no-non-null",
+      "line": 18,
+      "msg": "TSNonNullExpression"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/22-pagination.ts",
+  "id": "22",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "pageCount,visible ok | nextPage() | nextPage() | nextPage() | nextPage() | nextPage() | page,visible ok | prevPage() | page ok",
+  "late": []
+ },
+ {
+  "file": "drafts/23-selection-set.ts",
+  "id": "23",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "selectedList",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "mutating-method",
+      "line": 14,
+      "msg": "write to a number[], which is not Mut"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/24-reducer.ts",
+  "id": "24",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "test_reduce",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "no-cast",
+      "line": 18,
+      "msg": "as cast"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/25-memo-cache.ts",
+  "id": "25",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "rememberPrice",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "type",
+      "line": 10,
+      "msg": "{  } is not assignable to { [k: string]: number }"
+     },
+     {
+      "rule": "type",
+      "line": 10,
+      "msg": "(c: { [k: string]: number }) => {  } is not assignable to (v: { [k: string]: number }) => { [k: string]: number }"
+     }
+    ],
+    "unsupported": [
+     "object spread of { [k: string]: number }",
+     "computed property"
+    ],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/26-timer-tick.ts",
+  "id": "26",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "elapsed 128 -> 128 -> 128, seconds 0.1s",
+  "late": []
+ },
+ {
+  "file": "drafts/27-input-to-state.tsx",
+  "id": "27",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "query,matches ok",
+  "late": []
+ },
+ {
+  "file": "drafts/28-batch-accumulate.ts",
+  "id": "28",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "onKey",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "mut-capture",
+      "line": 15,
+      "msg": "Mut buf captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: string[] = buf) and capture that, or make it inside the function"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   },
+   {
+    "name": "listen",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "inject-events",
+      "line": 19,
+      "msg": "keys is not a sync generator cell yielding { key: string; t: number }"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/29-log-clicks.tsx",
+  "id": "29",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "recordClick",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "action-capture",
+      "line": 2,
+      "msg": "now is a capability, so an action using it would make the stored state depend on something the calls do not record; take the value as an argument of the action"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   },
+   {
+    "name": "lastGap",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "possibly-undefined",
+      "line": 4,
+      "msg": "number | undefined used as a number"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/30-fetch-json.ts",
+  "id": "30",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "repos",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "type",
+      "line": 4,
+      "msg": "unknown is not assignable to Repo[]"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   },
+   {
+    "name": "topRepo",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "arity",
+      "line": 7,
+      "msg": "expected at least 2 arguments, got 1"
+     }
+    ],
+    "unsupported": [
+     "callback whose parameter types are not inferred before it"
+    ],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/31-parallel-fetch.ts",
+  "id": "31",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "prices",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "no-cast",
+      "line": 5,
+      "msg": "as cast"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   },
+   {
+    "name": "cheapest",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "mutating-method",
+      "line": 7,
+      "msg": "write to a Price[], which is not Mut"
+     },
+     {
+      "rule": "possibly-undefined",
+      "line": 7,
+      "msg": "property sku of a value that may be undefined"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": [
+     "prices"
+    ]
+   }
+  ]
+ },
+ {
+  "file": "drafts/32-fetch-errors.ts",
+  "id": "32",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "loadConfig",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "type",
+      "line": 6,
+      "msg": "unknown is not assignable to { theme: string }"
+     },
+     {
+      "rule": "type",
+      "line": 6,
+      "msg": "{ ok: true; value: unknown } is not assignable to Result<{ theme: string }>"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/33-fetch-into-state.ts",
+  "id": "33",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "profile",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "no-cast",
+      "line": 4,
+      "msg": "as cast"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   },
+   {
+    "name": "names",
+    "status": "blocked",
+    "errors": [],
+    "unsupported": [],
+    "blockedBy": [
+     "profile"
+    ]
+   }
+  ]
+ },
+ {
+  "file": "drafts/34-list-view.tsx",
+  "id": "34",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "listView",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "action-call",
+      "line": 12,
+      "msg": "an Action called outside action(...)"
+     },
+     {
+      "rule": "type",
+      "line": 12,
+      "msg": "() => void is not assignable to Action<[]>"
+     },
+     {
+      "rule": "type",
+      "line": 12,
+      "msg": "{ onClick: () => void; children: \"remove\"[] } is not assignable to ButtonProps"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/35-conditional-view.tsx",
+  "id": "35",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "loading… / 2 spans / failed: timeout",
+  "late": []
+ },
+ {
+  "file": "drafts/36-form-view.tsx",
+  "id": "36",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "messages,draft ok",
+  "late": []
+ },
+ {
+  "file": "drafts/37-components.tsx",
+  "id": "37",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "board",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "excess-property",
+      "line": 15,
+      "msg": "property key is not in { card: Card }"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": []
+   }
+  ]
+ },
+ {
+  "file": "drafts/38-shared-helpers.ts",
+  "id": "38",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "shown,summary ok",
+  "late": []
+ },
+ {
+  "file": "drafts/39-generic-groupby.ts",
+  "id": "39",
+  "accepted": false,
+  "module": [],
+  "cells": [
+   {
+    "name": "groupBy",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "no-cast",
+      "line": 2,
+      "msg": "as cast"
+     },
+     {
+      "rule": "unknown-type",
+      "line": 1,
+      "msg": "unknown type Record"
+     }
+    ],
+    "unsupported": [
+     "logical assignment ??=",
+     "type parameter constraint/default"
+    ],
+    "blockedBy": []
+   },
+   {
+    "name": "byRegion",
+    "status": "blocked",
+    "errors": [],
+    "unsupported": [],
+    "blockedBy": [
+     "groupBy"
+    ]
+   },
+   {
+    "name": "northTotal",
+    "status": "rejected",
+    "errors": [
+     {
+      "rule": "possibly-undefined",
+      "line": 16,
+      "msg": "property reduce of a value that may be undefined"
+     },
+     {
+      "rule": "untyped-parameter",
+      "line": 16,
+      "msg": "parameter has no type and no contextual type"
+     }
+    ],
+    "unsupported": [],
+    "blockedBy": [
+     "byRegion"
+    ]
+   }
+  ]
+ },
+ {
+  "file": "drafts/40-generic-stack.ts",
+  "id": "40",
+  "accepted": true,
+  "module": [],
+  "cells": [],
+  "pass": true,
+  "note": "demo ok",
+  "late": []
+ }
+]

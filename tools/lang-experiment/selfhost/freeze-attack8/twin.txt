@@ -1,0 +1,4 @@
+bigint-key: (() => { const xs = [0]; const c = xs; const o = /*ss+*/ss_methods(/*ss-*/{ 1n() { return c.length; } }/*ss+*/, "1", (i) => i < 0 ? 1 : c)/*ss-*/; return o; })
+i-capture: (() => { const xs = [0]; const i = xs; const f = /*ss+*/ss_closure(/*ss-*/() => i.length/*ss+*/, (i) => i < 0 ? 1 : i)/*ss-*/; return { f }; })
+shadow: (() => { const ss_closure = (f, t) => f; const xs = [0]; const c = xs; const f = /*ss+*/ss_closure(/*ss-*/() => c.length/*ss+*/, (i) => i < 0 ? 1 : c)/*ss-*/; return { f }; })
+switch-case-decl: (() => { const xs = [0]; const c = xs; let F = () => 0; switch (c.length) { case 1: F = h; break; case 2: /*ss+*/ss_closure(h, (i) => i < 0 ? 1 : c);/*ss-*/function h() { return c.length; } } return { F }; })
