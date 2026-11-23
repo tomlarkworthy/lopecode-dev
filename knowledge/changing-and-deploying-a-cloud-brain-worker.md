@@ -253,8 +253,8 @@ doc's hook sends a writer to, on any edit that names `localStorage`, would write
 
 The kernel (`brain`), `brain-core` and `brain-db` are deployed by the owner alone. A worker writes, tests and hands such a
 patch, and a reviewer passes it; `deploy.ts` then answers `owner-deploy`, comments his commands and yields with
-`needs-owner`. He runs `bun apply.ts --patch FILE --owner [--dry]` on his laptop, signed with his recovery key, under the
-lock `cb4`, then `bun brain.ts confirm brain-core` (or `brain`, `brain-db`). `apply.ts` refuses such a patch under
+`needs-owner`. He runs `bun apply.ts --patch FILE --owner [--dry]` (in `cloud-brain-dev`) on his laptop, signed with his recovery key, under the
+lock `cb4`, then `bun tools/cloud-brain/brain.ts confirm brain-core` (or `brain`, `brain-db`). `apply.ts` refuses such a patch under
 `DEPLOY_TOKEN` and without `--owner`.
 
 The deployer (`brain-deployer`, which carries `cloudflare-iac`) has two paths.
@@ -264,7 +264,7 @@ The deployer (`brain-deployer`, which carries `cloudflare-iac`) has two paths.
   `unattendedDeployer` on, no hold or sweep, a fresh pass of the same patch, the day's cap
   (`unattendedDeployerDaily`, 3), and no other change running. The answer is `sent` with `self: true`, and the deployer
   DMs the owner the version before and the way back. At its first tick the new deployer checks itself and puts the
-  version before back on a failed check. It then redistils every service; a change outside the hand's `expect:` refs,
+  version before back on a failed check. It then redistils every service; a change outside the `expect:` refs of the worker's hand,
   or of the kernel, core or database, holds the sweep and opens an issue labelled `needs-owner`. A hold stays until he
   clears it, and every unattended deployer or shared send is refused while it stands.
 - **The owner's path.** `deploy-deployer.ts` on his laptop, where the recovery key and the Cloudflare token are: the
@@ -285,11 +285,13 @@ laptop: `--rollback --version previous`, or the version id that the DM and `depl
 A send of a shared module that the page embeds goes by the page's gates: `unattendedShared` on, the day's cap
 (`unattendedSharedDaily`, 3), and no block the kernel, core or database reads. Otherwise it waits for his click on the
 page. Each switch is his to set: he turned `unattendedDeployer` on 2026-11-22 20:23 UTC (`ud-owner-switch-on`);
-`unattendedShared` is off. The own path's first four sends, 2026-11-22 22:04 to 23:17 UTC, were each refused at the
-check before go-live (`deploy.self.refused`, `fix-tests-brain-deployer-7c5b8d67`).
+`unattendedShared` was not set (#54206). The own path's first four sends were each refused at the check before go-live
+(`deploy.self.refused`): `7c5b8d67b064` at 22:04 and 22:07, `477ced2ce312` at 23:16 and 23:17 on 2026-11-22. Expect
+that refusal until `fix-tests-brain-deployer-7c5b8d67` is deployed by the owner's path.
 
-`bun tools/cloud-brain/waiting-deploys.ts` reads only: whether `cloud-brain-dev/deploy/` has the module cb4 runs for each of the
-four. These Workers have no seed, so a difference is a `deploy/` older than what runs, not a deploy that waits. The tool's
+`bun tools/cloud-brain/waiting-deploys.ts` reads only (with `--file <token>` it also closes an open `deploy-waits-<worker>`
+issue of a Worker that is `same`): whether `cloud-brain-dev/deploy/` has the module cb4 runs for the kernel, the core, the
+database and the deployer. These Workers have no seed, so a difference is a `deploy/` older than what runs, not a deploy that waits. The tool's
 header is the reference.
 
 ## A Playwright script in `tools/`
