@@ -33,7 +33,11 @@ export const want = () => {
       case "null": return "null"; case "undef": return "undefined"; case "unknown": return "data";
       case "lit": return JSON.stringify(s.v);
       case "arr": return "an array"; case "tup": return `an array of ${s.els.length}`;
-      case "rec": return "an object";
+      // a9 (2026-11-23): a record names its first members, so two members of a union read apart
+      case "rec": {
+        const inner = (x: Shape): string => (x.k === "rec" ? "{…}" : x.k === "union" ? x.ts.map(inner).join(" | ") : w(x));
+        return s.props.length === 0 ? "an object" : `an object { ${s.props.slice(0, 4).map(([k, p, o]) => `${k}${o ? "?" : ""}: ${inner(p)}`).join(", ")}${s.props.length > 4 ? ", …" : ""} }`;
+      }
       case "union": return s.ts.map(w).join(" or ");
       case "ref": return s.n;
       case "defs": return w(s.body);

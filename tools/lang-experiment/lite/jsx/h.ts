@@ -10,6 +10,7 @@ const madeByH = (e: Elem): Elem => { elementsMade.add(e); return e; };
 
 export function h(tag: string | null | ((p: object) => Elem), props: Record<string, unknown> | null, ...children: unknown[]): Elem {
   if (tag === null) return madeByH(Object.freeze({ tag: "", props: Object.freeze({}), children: Object.freeze(flat(children)) })); // a fragment
-  if (typeof tag === "function") return tag(children.length ? { ...props, children } : { ...props });
+  // a9 (2026-11-23), B-1: key is the renderer's, as in React; a component is not given it (the checker rejects props that declare key)
+  if (typeof tag === "function") { const { key: _key, ...given } = props ?? {}; return tag(children.length ? { ...given, children } : given); }
   return madeByH(Object.freeze({ tag, props: Object.freeze({ ...props }), children: Object.freeze(flat(children)) }));
 }

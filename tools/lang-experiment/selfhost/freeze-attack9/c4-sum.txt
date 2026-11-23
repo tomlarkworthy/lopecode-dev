@@ -1,0 +1,24 @@
+##### mode: []
+-- controls 1, fired 1
+-- harness crashes 0
+-- 44 candidates, accepted 17, silent 2
+SILENT selfhost/freeze-attack9/c4.ts:narrow-reassign-in-fn
+SILENT selfhost/freeze-attack9/c4.ts:narrow-plain-union-helper
+##### mode: [SS_MEASURE_BODYFN=0]
+-- controls 1, fired 1
+-- harness crashes 0
+-- 44 candidates, accepted 17, silent 2
+SILENT selfhost/freeze-attack9/c4.ts:narrow-reassign-in-fn
+SILENT selfhost/freeze-attack9/c4.ts:narrow-plain-union-helper
+##### mode: [SS_MEASURE_REG=0]
+-- controls 1, fired 1
+-- harness crashes 0
+-- 44 candidates, accepted 17, silent 2
+SILENT selfhost/freeze-attack9/c4.ts:narrow-reassign-in-fn
+SILENT selfhost/freeze-attack9/c4.ts:narrow-plain-union-helper
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+-- controls 1, fired 1
+-- harness crashes 0
+-- 44 candidates, accepted 17, silent 2
+SILENT selfhost/freeze-attack9/c4.ts:narrow-reassign-in-fn
+SILENT selfhost/freeze-attack9/c4.ts:narrow-plain-union-helper

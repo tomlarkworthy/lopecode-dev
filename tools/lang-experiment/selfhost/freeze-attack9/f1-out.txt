@@ -1,0 +1,212 @@
+##### mode: []
+== selfhost/freeze-attack9/f1.ts:ab-view-ctor-write: REJECT w:rejected[member-write]
+== selfhost/freeze-attack9/f1.ts:ab-view-ctor-fill: REJECT w:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:setter-literal: REJECT g:rejected[no-member]
+== selfhost/freeze-attack9/f1.ts:getter-literal: REJECT g:rejected[no-member]
+== selfhost/freeze-attack9/f1.ts:spread-then-member-arr: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:concat-outer-write: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:concat-elem-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:flatmap-elem: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:filter-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:filter-elem: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:tospliced-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:with-fresh-write: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:from-arraylike: REJECT g:rejected[type]
+== selfhost/freeze-attack9/f1.ts:splice-removed: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:entries-pair-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:fromentries-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:values-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:map-to-self: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:clone-write: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:snapshot-member: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:set-from-spread: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:map-from-entries-elem: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:delete-fresh: REJECT g:rejected[no-cast][no-delete]
+== selfhost/freeze-attack9/f1.ts:compound-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:update-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:destructure-target-fresh: REJECT g:unsupported
+== selfhost/freeze-attack9/f1.ts:optional-chain-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:nonnull-fresh: REJECT g:rejected[no-non-null]
+== selfhost/freeze-attack9/f1.ts:typed-slice-member: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:cond-fresh-both: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:errors-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:url-fresh-hash: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:usp-fresh-set: REJECT g:unsupported
+== selfhost/freeze-attack9/f1.ts:regexp-fresh-lastindex: REJECT g:unsupported
+== selfhost/freeze-attack9/f1.ts:ctl-direct [ctl]: CONTROL (checker skipped)
+   drive -> DIFF c read 3 before the write and 1 after
+   CONTROL FIRED
+-- controls 1, fired 1
+-- harness crashes 0
+-- 34 candidates, accepted 12, silent 0
+##### mode: [SS_MEASURE_BODYFN=0]
+== selfhost/freeze-attack9/f1.ts:ab-view-ctor-write: REJECT w:rejected[member-write]
+== selfhost/freeze-attack9/f1.ts:ab-view-ctor-fill: REJECT w:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:setter-literal: REJECT g:rejected[no-member]
+== selfhost/freeze-attack9/f1.ts:getter-literal: REJECT g:rejected[no-member]
+== selfhost/freeze-attack9/f1.ts:spread-then-member-arr: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:concat-outer-write: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:concat-elem-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:flatmap-elem: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:filter-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:filter-elem: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:tospliced-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:with-fresh-write: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:from-arraylike: REJECT g:rejected[type]
+== selfhost/freeze-attack9/f1.ts:splice-removed: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:entries-pair-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:fromentries-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:values-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:map-to-self: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:clone-write: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:snapshot-member: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:set-from-spread: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:map-from-entries-elem: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:delete-fresh: REJECT g:rejected[no-cast][no-delete]
+== selfhost/freeze-attack9/f1.ts:compound-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:update-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:destructure-target-fresh: REJECT g:unsupported
+== selfhost/freeze-attack9/f1.ts:optional-chain-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:nonnull-fresh: REJECT g:rejected[no-non-null]
+== selfhost/freeze-attack9/f1.ts:typed-slice-member: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:cond-fresh-both: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:errors-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:url-fresh-hash: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:usp-fresh-set: REJECT g:unsupported
+== selfhost/freeze-attack9/f1.ts:regexp-fresh-lastindex: REJECT g:unsupported
+== selfhost/freeze-attack9/f1.ts:ctl-direct [ctl]: CONTROL (checker skipped)
+   drive -> DIFF c read 3 before the write and 1 after
+   CONTROL FIRED
+-- controls 1, fired 1
+-- harness crashes 0
+-- 34 candidates, accepted 12, silent 0
+##### mode: [SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/f1.ts:ab-view-ctor-write: REJECT w:rejected[member-write]
+== selfhost/freeze-attack9/f1.ts:ab-view-ctor-fill: REJECT w:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:setter-literal: REJECT g:rejected[no-member]
+== selfhost/freeze-attack9/f1.ts:getter-literal: REJECT g:rejected[no-member]
+== selfhost/freeze-attack9/f1.ts:spread-then-member-arr: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:concat-outer-write: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:concat-elem-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:flatmap-elem: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:filter-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:filter-elem: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:tospliced-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:with-fresh-write: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:from-arraylike: REJECT g:rejected[type]
+== selfhost/freeze-attack9/f1.ts:splice-removed: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:entries-pair-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:fromentries-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:values-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:map-to-self: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:clone-write: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:snapshot-member: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:set-from-spread: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:map-from-entries-elem: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:delete-fresh: REJECT g:rejected[no-cast][no-delete]
+== selfhost/freeze-attack9/f1.ts:compound-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:update-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:destructure-target-fresh: REJECT g:unsupported
+== selfhost/freeze-attack9/f1.ts:optional-chain-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:nonnull-fresh: REJECT g:rejected[no-non-null]
+== selfhost/freeze-attack9/f1.ts:typed-slice-member: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:cond-fresh-both: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:errors-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:url-fresh-hash: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:usp-fresh-set: REJECT g:unsupported
+== selfhost/freeze-attack9/f1.ts:regexp-fresh-lastindex: REJECT g:unsupported
+== selfhost/freeze-attack9/f1.ts:ctl-direct [ctl]: CONTROL (checker skipped)
+   drive -> DIFF c read 3 before the write and 1 after
+   CONTROL FIRED
+-- controls 1, fired 1
+-- harness crashes 0
+-- 34 candidates, accepted 12, silent 0
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/f1.ts:ab-view-ctor-write: REJECT w:rejected[member-write]
+== selfhost/freeze-attack9/f1.ts:ab-view-ctor-fill: REJECT w:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:setter-literal: REJECT g:rejected[no-member]
+== selfhost/freeze-attack9/f1.ts:getter-literal: REJECT g:rejected[no-member]
+== selfhost/freeze-attack9/f1.ts:spread-then-member-arr: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:concat-outer-write: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:concat-elem-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:flatmap-elem: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:filter-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:filter-elem: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:tospliced-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:with-fresh-write: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:from-arraylike: REJECT g:rejected[type]
+== selfhost/freeze-attack9/f1.ts:splice-removed: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:entries-pair-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:fromentries-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:values-write: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:map-to-self: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:clone-write: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:snapshot-member: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:set-from-spread: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:map-from-entries-elem: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:delete-fresh: REJECT g:rejected[no-cast][no-delete]
+== selfhost/freeze-attack9/f1.ts:compound-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:update-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:destructure-target-fresh: REJECT g:unsupported
+== selfhost/freeze-attack9/f1.ts:optional-chain-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:nonnull-fresh: REJECT g:rejected[no-non-null]
+== selfhost/freeze-attack9/f1.ts:typed-slice-member: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:cond-fresh-both: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/f1.ts:errors-fresh: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:url-fresh-hash: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/f1.ts:usp-fresh-set: REJECT g:unsupported
+== selfhost/freeze-attack9/f1.ts:regexp-fresh-lastindex: REJECT g:unsupported
+== selfhost/freeze-attack9/f1.ts:ctl-direct [ctl]: CONTROL (checker skipped)
+   drive -> DIFF c read 3 before the write and 1 after
+   CONTROL FIRED
+-- controls 1, fired 1
+-- harness crashes 0
+-- 34 candidates, accepted 12, silent 0

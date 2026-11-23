@@ -1,0 +1,104 @@
+// target 3 (B4): reduce/generic callbacks typed by their own annotations; async returning a promise; key on a
+// component; events cells yielding literals; writable index-signature locals.
+import { tyRow, yRow, isStr, isNum, type Cand } from "./lib9.ts";
+const R: Cand[] = [];
+// --- B4e: a callback with every parameter annotated gives the type variables itself (ix-apply ixFirstArg)
+R.push(tyRow("red-v-wrong", `const g = () => [[1]].reduce((acc: string, v: string) => v, "");`, isStr));
+R.push(tyRow("red-v-wrong-num", `const g = () => [1, 2].reduce((acc: string, v: string) => acc + typeof v, "");`, (v) => v === "stringstring"));
+R.push(tyRow("red-v-record", `const g = () => [1, 2].reduce((acc: number, v: { readonly n: number }) => acc + v.n, 0);`, (v) => isNum(v) && !Number.isNaN(v)));
+R.push(tyRow("red-acc-wrong-init", `const g = () => [1].reduce((acc: string, v: number) => acc, 0);`, isStr));
+R.push(tyRow("red-acc-unknown-init", `const g = () => { const r = [1].reduce((acc: { readonly s: string }, v: number) => acc, { s: "a" }); return typeof r.s; };`, (v) => v === "string"));
+R.push(tyRow("redright-v-wrong", `const g = () => [[1]].reduceRight((acc: string, v: string) => v, "");`, isStr));
+R.push(tyRow("red-i-wrong", `const g = () => ["a"].reduce((acc: string, v: string, i: string) => acc + typeof i, "");`, (v) => v === "string"));
+R.push(tyRow("red-extra-param", `const g = () => ["a"].reduce((acc: string, v: string, i: number, arr: string) => acc + typeof arr, "");`, (v) => v === "string"));
+R.push(tyRow("from-v-wrong", `const g = () => { const r = Array.from(["a"], (v: { readonly n: number }) => v.n); return typeof r[0]; };`, (v) => v === "number"));
+R.push(tyRow("from-v-wrong2", `const g = () => Array.from([[1]], (v: string) => v)[0] ?? "";`, isStr));
+R.push(tyRow("from-len-v", `const g = () => Array.from({ length: 1 }, (v: number, i: number) => v)[0] ?? 0;`, isNum));
+R.push(tyRow("from-typed-v", `const g = () => Float64Array.from([1], (v: string, i: number) => v.length)[0] ?? 0;`, (v) => isNum(v) && !Number.isNaN(v)));
+R.push(tyRow("user-generic-ap", `const ap = () => <A, B>(x: A, f: (a: A) => B): B => f(x);\nconst g = (ap: <A, B>(x: A, f: (a: A) => B) => B) => ap("s", (a: { readonly n: number }) => typeof a.n);`, (v) => v === "number"));
+R.push(tyRow("user-generic-local", `const g = () => { const ap = <A, B>(x: A, f: (a: A) => B): B => f(x); return ap([1], (a: string) => a); };`, isStr));
+R.push(tyRow("user-generic-local2", `const g = () => { const ap = <A,>(x: A, f: (a: A) => number): number => f(x); return ap("s", (a: { readonly n: number }) => a.n); };`, (v) => isNum(v)));
+R.push(tyRow("user-generic-arr", `const g = () => { const each = <T,>(xs: readonly T[], f: (x: T) => string): string => xs.map(f).join(); return each([1, 2], (x: string) => typeof x); };`, (v) => v === "string,string"));
+R.push(tyRow("user-generic-cb-first", `const g = () => { const ap = <A, B>(f: (a: A) => B, x: A): B => f(x); return ap((a: string) => a, 5); };`, isStr));
+R.push(tyRow("map-v-wrong", `const g = () => [1].map((v: string) => v)[0] ?? "";`, isStr));
+R.push(tyRow("then-v-wrong", `const g = async () => await Promise.resolve(1).then((v: string) => v);`, isStr));
+R.push(tyRow("sort-cmp-wrong", `const g = () => { let s = ""; [1, 2].toSorted((a: string, b: string) => { s = typeof a; return 0; }); return s; };`, (v) => v === "string" || v === ""));
+R.push(tyRow("red-ret-mismatch", `const g = () => [1].reduce((acc: number, v: number) => "s", 0);`, isNum));
+R.push(tyRow("red-fn-acc", `const g = () => { const f = [1].reduce((acc: (x: number) => number, v: number) => acc, (x: number) => x); return typeof f; };`, (v) => v === "function"));
+R.push(yRow("red-mut-acc-alias", `[0].reduce((acc: Mut<number[]>, v: number) => { acc[0] = 9; return acc; }, c)`));
+R.push(yRow("red-mut-acc-alias2", `[0].reduce((acc: number[], v: number) => { acc[0] = 9; return acc; }, c)`));
+R.push(yRow("from-mut-v", `Array.from([c], (v: Mut<number[]>) => { v[0] = 9; return 0; })`));
+R.push(yRow("user-generic-mut", `((x: readonly number[], f: (a: Mut<number[]>) => number) => 0)(c, (a: Mut<number[]>) => { a[0] = 9; return 0; })`));
+R.push(yRow("generic-mut-tv", `(<A,>(x: A, f: (a: A) => number): number => f(x))(c, (a: Mut<number[]>) => { a[0] = 9; return 0; })`));
+R.push(yRow("red-mut-init-c", `[0].reduce((acc: Mut<number[]>, v: number) => { acc.push(v); return acc; }, c)`));
+// --- B4d: async returning a promise without await
+R.push(tyRow("async-pp-ann", `const f = () => async (): Promise<Promise<number>> => Promise.resolve(5);\nconst g = async (f: () => Promise<Promise<number>>) => { const x = await f(); return typeof x; };`, (v) => v === "number"));
+R.push(tyRow("async-pp-local", `const g = async () => { const f = async (): Promise<Promise<number>> => Promise.resolve(5); const x = await f(); return typeof x; };`, (v) => v === "number"));
+R.push(tyRow("async-pp-then", `const g = async () => { const f = async (): Promise<Promise<number>> => Promise.resolve(5); const x = await f(); return await x.then((n) => n + 1); };`, isNum));
+R.push(tyRow("async-ret-union", `const g = async () => { const f = async (b: boolean) => (b ? Promise.resolve("s") : 5); return typeof (await f(true)); };`, (v) => v === "string"));
+R.push(tyRow("async-ret-nested", `const g = async () => { const f = async () => Promise.resolve(Promise.resolve(5)); return typeof (await f()); };`, (v) => v === "number"));
+R.push(tyRow("async-ret-all", `const g = async () => { const f = async () => Promise.all([Promise.resolve(1)]); const r = await f(); return typeof r[0]; };`, (v) => v === "number"));
+R.push(tyRow("async-ret-ann-wide", `const g = async () => { const f = async (): Promise<string> => Promise.resolve(5 as unknown as string); return typeof (await f()); };`, isStr));
+R.push(tyRow("async-ann-num-ret-promise-str", `const g = async () => { const f = async (): Promise<number> => Promise.resolve("s"); return typeof (await f()); };`, (v) => v === "number"));
+R.push(tyRow("async-ctx-union-num", `const g = async () => { const f = async (): Promise<number | Promise<number>> => Promise.resolve(5); const x = await f(); return typeof x; };`, (v) => v === "number" || v === "object"));
+R.push(tyRow("async-cell-ret-promise", `const p = async () => 5;\nconst g = async (p: number) => Promise.resolve(p + 1);`, isNum));
+R.push(tyRow("async-ret-fetch", `const g = async (fetch: Fetch) => fetch("x").then((r) => r.text());`, isStr));
+R.push(tyRow("async-ret-promise-of-fn", `const g = async () => { const f = async () => Promise.resolve((x: number) => x); const h = await f(); return typeof h; };`, (v) => v === "function"));
+R.push(yRow("async-ret-promise-mut", `const f = async () => Promise.resolve(xs); void f()`));
+R.push(tyRow("async-ret-generic", `const g = async () => { const f = async <T,>(x: T) => Promise.resolve(x); return typeof (await f("s")); };`, (v) => v === "string"));
+R.push(tyRow("async-ret-cond-promise", `const g = async () => { const f = async (b: boolean): Promise<string> => (b ? Promise.resolve("a") : "b"); return typeof (await f(true)); };`, isStr));
+// --- B4b: key on a component. kids(v): the text children of g's element tree
+const texts = (v: any): string[] => (v === null || typeof v !== "object" ? [String(v)] : Array.isArray(v) ? v.flatMap(texts) : texts(v.children ?? []));
+const only = (...ok: string[]) => (v: unknown) => texts(v).every((t) => ok.includes(t));
+R.push(tyRow("key-comp-optional-key", `const C = () => (p: { readonly key?: { readonly n: number } }) => <div>{p.key === undefined ? "none" : typeof p.key.n}</div>;\nconst g = (C: (p: { readonly key?: { readonly n: number } }) => Elem) => <div><C key={5} /></div>;`, only("none", "number")));
+R.push(tyRow("key-comp-read", `const g = () => { const C = (p: { readonly key?: { readonly n: number } }) => <div>{p.key === undefined ? "none" : typeof p.key.n}</div>; return <div><C key={5} /></div>; };`, only("none", "number")));
+R.push(tyRow("key-comp-typeof", `const g = () => { const C = (p: { readonly key?: boolean }) => <div>{typeof p.key}</div>; return <div><C key={"s"} /></div>; };`, only("boolean", "undefined")));
+R.push(tyRow("key-comp-fn-key", `const g = () => { const C = (p: { readonly key?: () => string }) => <div>{p.key === undefined ? "none" : p.key()}</div>; return <div><C key={1} /></div>; };`, only("none")));
+R.push(tyRow("key-comp-required", `const g = () => { const C = (p: { readonly key: string }) => <div>{p.key}</div>; return <C key={5} />; };`, () => true));
+R.push(tyRow("key-comp-spread", `const g = () => { const C = (p: { readonly key?: number }) => <div>{typeof p.key}</div>; const o = { key: "s" }; return <C {...o} />; };`, only("number", "undefined")));
+R.push(tyRow("key-comp-fn", `const g = () => { const C = (p: { readonly n: number }) => <div>{p.n}</div>; return <C n={1} key={1} />; };`, () => true));
+R.push(tyRow("key-comp-string-key-num", `const g = () => { const C = (p: { readonly key?: number }) => <div>{typeof p.key}</div>; return <C key={"s"} />; };`, only("number", "undefined")));
+R.push(tyRow("key-comp-union-tag", `const g = () => { const C = (p: { readonly key?: "a" }) => <div>{p.key === undefined ? "none" : p.key}</div>; return <C key={"b"} />; };`, only("none", "a")));
+R.push(tyRow("key-comp-elem-child", `const g = () => { const C = (p: { readonly key?: Elem }) => <div>{p.key === undefined ? "none" : p.key.tag}</div>; return <C key={7} />; };`, only("none", "div", "span")));
+R.push(tyRow("key-elem-object", `const g = () => <div key={{ a: 1 } as unknown as string} />;`, () => true));
+R.push(tyRow("async-generic-T-promise", `const g = async () => { const f = async <T,>(x: T): Promise<T> => x; const y = await f(Promise.resolve(5)); return typeof y; };`, (v) => v === "number"));
+R.push(tyRow("async-generic-id-promise", `const g = async () => { const f = async <T,>(x: T) => x; const y = await f(Promise.resolve(5)); return typeof y; };`, (v) => v === "number"));
+R.push(tyRow("async-pp-param", `const f = () => async (): Promise<Promise<string>> => Promise.resolve("s");\nconst g = async (f: () => Promise<Promise<string>>) => { const x = await f(); return typeof x; };`, (v) => v === "string"));
+R.push(tyRow("async-pp-ann-var", `const g = async () => { const f: () => Promise<Promise<number>> = async () => Promise.resolve(5); const x = await f(); return typeof x; };`, (v) => v === "object"));
+R.push(tyRow("async-pp-in-record", `const g = async () => { const f = async (): Promise<{ readonly p: Promise<number> }> => ({ p: Promise.resolve(5) }); const x = await f(); return typeof x.p; };`, (v) => v === "object"));
+R.push(tyRow("async-pp-cell", `const p = async (): Promise<Promise<number>> => Promise.resolve(5);\nconst g = (p: Promise<number>) => typeof p;`, (v) => v === "object"));
+// --- B4c: events cell yielding a literal taken as Events<T>
+R.push(tyRow("ev-lit-wider", `const ev = function* () { yield { n: 1, extra: "x" }; };\nconst st = () => state<number>(0);\nconst l = (ev: Events<{ readonly n: number }>, st: State<number>) => on(ev, action((v: { readonly n: number }) => st.set(v.n)));\nconst g = (st: number) => st;`, isNum));
+R.push(tyRow("ev-union-narrow", `const ev = function* () { yield { k: "a" as const, n: 1 }; };\nconst st = () => state<string>("");\nconst l = (ev: Events<{ readonly k: "a"; readonly n: number } | { readonly k: "b"; readonly s: string }>, st: State<string>) => on(ev, action((v: { readonly k: "a"; readonly n: number } | { readonly k: "b"; readonly s: string }) => st.set(v.k === "b" ? v.s : typeof v.n)));\nconst g = (st: string) => st;`, isStr));
+R.push(tyRow("ev-opt", `const ev = function* () { yield {}; };\nconst st = () => state<string>("");\nconst l = (ev: Events<{ readonly n?: number }>, st: State<string>) => on(ev, action((v: { readonly n?: number }) => st.set(typeof v.n)));\nconst g = (st: string) => st;`, isStr));
+R.push(tyRow("ev-mut", `const ev = function* () { yield [1]; };\nconst st = () => state<number>(0);\nconst l = (ev: Events<Mut<number[]>>, st: State<number>) => on(ev, action((v: Mut<number[]>) => { v.push(1); st.set(v.length); }));\nconst g = (st: number) => st;`, isNum));
+R.push(tyRow("ev-unknown", `const ev = function* () { yield { n: 1 }; };\nconst st = () => state<string>("");\nconst l = (ev: Events<unknown>, st: State<string>) => on(ev, action((v: unknown) => st.set(typeof v)));\nconst g = (st: string) => st;`, isStr));
+R.push(tyRow("ev-as-param-direct", `const ev = function* () { yield { n: 1, f: (x: number) => x }; };\nconst g = (ev: Events<{ readonly n: number }>) => typeof ev;`, () => true));
+R.push(tyRow("ev-state-wide", `const s = () => state({ n: 1 });\nconst g = (s: State<{ readonly n: number }>) => 1;`, () => true));
+R.push(tyRow("ev-state-wide2", `const s = () => state<{ readonly n: number; readonly m: string }>({ n: 1, m: "a" });\nconst w = (s: State<{ readonly n: number }>) => on(undefined as never, action(() => s.set({ n: 2 })));\nconst g = (s: { readonly n: number; readonly m: string }) => typeof s.m;`, isStr));
+R.push(tyRow("ev-fn-member", `const ev = function* () { yield { n: 1 }; };\nconst st = () => state<string>("");\nconst l = (ev: Events<{ readonly n: number; readonly f?: () => string }>, st: State<string>) => on(ev, action((v: { readonly n: number; readonly f?: () => string }) => st.set(v.f === undefined ? "none" : typeof v.f())));\nconst g = (st: string) => st;`, isStr));
+// --- B4a: writable index-signature locals
+R.push(tyRow("idx-from-array", `const g = () => { const m: { [k: string]: number } = [1, 2]; m["0"] = 9; return m; };`, () => true));
+R.push(tyRow("idx-from-map", `const g = () => { const m: { [k: string]: unknown } = new Map<string, number>(); m["get"] = 5; return 1; };`, () => true));
+R.push(tyRow("idx-with-member", `const g = () => { const m: { [k: string]: number; n: number } = { n: 1 }; m["n"] = 2; delete m.n; return typeof m.n; };`, (v) => v === "number"));
+R.push(tyRow("idx-delete-required", `const g = () => { const m: { n: number; [k: string]: number } = { n: 1 }; const k = "n"; delete m[k]; return typeof m.n; };`, (v) => v === "number"));
+R.push(tyRow("idx-fresh-spread-input", `const c = () => ({ a: [1] });\nconst g = (c: { readonly a: readonly number[] }) => { const m: { [k: string]: readonly number[] } = { ...c }; m["a"] = [2]; return c.a[0] ?? 0; };`, (v) => v === 1));
+R.push(yRow("idx-alias-mut", `const m: { [k: string]: readonly number[] } = { a: c }; m["a"] = [9]; const q = m["a"]; void q`));
+R.push(tyRow("idx-union-val", `const g = () => { const m: { [k: string]: number | string } = { a: 1 }; m["a"] = "s"; const n: { readonly [k: string]: number | string } = m; return typeof n["a"]; };`, () => true));
+R.push(tyRow("idx-assign-to-narrower", `const g = () => { const m: { [k: string]: number } = {}; m["a"] = 1; const r: Record<string, number> = m; return r; };`, () => true));
+R.push(tyRow("idx-let-reassign", `const g = () => { let m: { [k: string]: number } = {}; m["a"] = 1; m = { b: 2 }; m["c"] = 3; return m; };`, () => true));
+R.push(tyRow("idx-kept-capture", `const g = () => { const m: { [k: string]: number } = {}; const f = () => m["a"] ?? 0; m["a"] = 1; return f; };`, () => true));
+R.push(tyRow("idx-nested-mut", `const g = () => { const m: { [k: string]: number[] } = { a: [1] }; m["a"]?.push(2); return m; };`, () => true));
+R.push(tyRow("idx-num-key", `const g = () => { const m: { [k: number]: string } = {}; m[1] = "a"; return m; };`, () => true));
+R.push(tyRow("idx-from-input-record", `const c = () => ({ a: 1 });\nconst g = (c: { readonly a: number }) => { const m: { [k: string]: number } = c; m["a"] = 2; return m; };`, () => true));
+R.push(tyRow("idx-from-object-entries-fresh", `const c = () => ({ a: 1 });\nconst g = (c: { readonly [k: string]: number }) => { const m: { [k: string]: number } = Object.fromEntries(Object.entries(c)); m["a"] = 2; return [c["a"], m["a"]]; };`, (v) => Array.isArray(v) && v[0] === 1));
+R.push(tyRow("idx-struct-clone", `const c = () => ({ a: 1 });\nconst g = (c: { readonly [k: string]: number }) => { const m: { [k: string]: number } = structuredClone(c); m["a"] = 2; return c["a"]; };`, (v) => v === 1));
+R.push(tyRow("idx-nested-record-field", `const c = () => ({ a: { n: 1 } });\nconst g = (c: { readonly a: { readonly n: number } }) => { const m: { [k: string]: { n: number } } = { a: c.a }; const x = m["a"]; if (x) x.n = 2; return c.a.n; };`, (v) => v === 1));
+R.push(tyRow("idx-proto-write-literal", `const g = () => { const m: { [k: string]: number } = {}; m["constructor"] = 1; return m; };`, () => true));
+R.push(tyRow("idx-obj-type-value", `const g = () => { const m: { [k: string]: { readonly v: number } } = {}; m["a"] = { v: 1 }; return m; };`, () => true));
+export const cands = R;
+// await flattens every level (pb7.ts), so a local await is consistent; a cell input is not (b4b.ts, pb8.ts)
+// controls (run without the checker): the vehicles see a value outside its type and a write through a second name
+R.push(tyRow("ctl-ty-typeof", `const g = () => typeof (5 as unknown as string);`, (v) => v === "string", true));
+R.push(tyRow("ctl-key-like", `const g = () => { const C = (p: { readonly key?: { readonly n: number } }) => <div>{p.key === undefined ? "none" : typeof p.key.n}</div>; return <div>{C({ key: 5 as unknown as { readonly n: number } })}</div>; };`, (v: any) => !JSON.stringify(v).includes("undefined"), true));
+R.push(yRow("ctl-y-alias", `(c as number[]).sort()`, true));

@@ -1,0 +1,556 @@
+##### mode: []
+== selfhost/freeze-attack9/c3.ts:pair-array: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:pair-array-rev: ACCEPT
+   drive -> same: ["N","R"]
+   show g = ["N","R"]
+== selfhost/freeze-attack9/c3.ts:nested-fn-before: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:fn-decl-after: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:fn-decl-before-use: ACCEPT
+   drive -> same: ["N","R"]
+   show g = ["N","R"]
+== selfhost/freeze-attack9/c3.ts:default-param: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:cond-branches: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:and-short: ACCEPT
+   drive -> same: ["skip","N"]
+   show g = ["skip","N"]
+== selfhost/freeze-attack9/c3.ts:template: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:computed-key: REJECT g:unsupported
+== selfhost/freeze-attack9/c3.ts:iife: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:map-callback: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:from-callback-overload: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:from-len-overload: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:reduce-callback: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:sort-callback: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:nested-cast-arg: ACCEPT
+   drive -> same: ["2","N"]
+   show g = ["2","N"]
+== selfhost/freeze-attack9/c3.ts:cast-in-cast-type-arg-arrow: ACCEPT
+   drive -> same: ["2","R"]
+   show g = ["2","R"]
+== selfhost/freeze-attack9/c3.ts:optional-call: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:trailing-comma: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:comment-paren: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:string-paren: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:parens-callee: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:type-query: REJECT g:unsupported
+== selfhost/freeze-attack9/c3.ts:ann-type-query: REJECT g:rejected[mut-nested][unknown-type]
+== selfhost/freeze-attack9/c3.ts:switch-case: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:loop-body: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:while-body: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:try-catch: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:unused-fn: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:after-return: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:kept-fn: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:memo-fn: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:cast-type-generic-alias: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c3.ts:cast-local-alias-shadow: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c3.ts:ob-lit-value: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:spread-arr: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:cast-arrow-arg: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:many-casts: ACCEPT
+   drive -> same: ["R","N","R","N","R","N"]
+   show g = ["R","N","R","N","R","N"]
+== selfhost/freeze-attack9/c3.ts:jsx-attr-child: ACCEPT
+   drive -> same: {"tag":"div","props":{"title":"R"},"children":["N"]}
+   show g = {tag:"div",props:{title:"R"},children:["N"]}
+== selfhost/freeze-attack9/c3.ts:jsx-child-attr-nested: ACCEPT
+   drive -> same: {"tag":"div","props":{"title":"N"},"children":[{"tag":"span","props":{"title":"R"},"children":["N"]},"R"]}
+   show g = {tag:"div",props:{title:"N"},children:[{tag:"span",props:{title:"R"},children:["N"]},"R"]}
+== selfhost/freeze-attack9/c3.ts:jsx-key-and-prop: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[{"tag":"div","props":{"title":"N"},"children":[]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{title:"N"},children:[]}]}
+== selfhost/freeze-attack9/c3.ts:jsx-key-elem: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[{"tag":"span","props":{"key":"R","title":"N"},"children":[]}]}
+   show g = {tag:"div",props:{},children:[{tag:"span",props:{key:"R",title:"N"},children:[]}]}
+== selfhost/freeze-attack9/c3.ts:jsx-component-children: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack9/c3.ts:jsx-fragment: ACCEPT
+   drive -> same: {"tag":"","props":{},"children":["R","N"]}
+   show g = {tag:"",props:{},children:["R","N"]}
+== selfhost/freeze-attack9/c3.ts:jsx-spread-props: REJECT g:unsupported
+== selfhost/freeze-attack9/c3.ts:jsx-cond-child: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":["R","N"]}
+   show g = {tag:"div",props:{},children:["R","N"]}
+== selfhost/freeze-attack9/c3.ts:jsx-map-child: REJECT g:rejected[type][type][type][type]
+== selfhost/freeze-attack9/c3.ts:jsx-text-paren: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":["(","R",")","N"]}
+   show g = {tag:"div",props:{},children:["(","R",")","N"]}
+== selfhost/freeze-attack9/c3.ts:ctl-marks [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object ["S!number","N"]
+   show g = ["S!number","N"]
+   CONTROL FIRED
+-- controls 1, fired 1
+-- harness crashes 0
+-- 49 candidates, accepted 41, silent 0
+##### mode: [SS_MEASURE_BODYFN=0]
+== selfhost/freeze-attack9/c3.ts:pair-array: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:pair-array-rev: ACCEPT
+   drive -> same: ["N","R"]
+   show g = ["N","R"]
+== selfhost/freeze-attack9/c3.ts:nested-fn-before: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:fn-decl-after: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:fn-decl-before-use: ACCEPT
+   drive -> same: ["N","R"]
+   show g = ["N","R"]
+== selfhost/freeze-attack9/c3.ts:default-param: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:cond-branches: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:and-short: ACCEPT
+   drive -> same: ["skip","N"]
+   show g = ["skip","N"]
+== selfhost/freeze-attack9/c3.ts:template: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:computed-key: REJECT g:unsupported
+== selfhost/freeze-attack9/c3.ts:iife: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:map-callback: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:from-callback-overload: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:from-len-overload: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:reduce-callback: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:sort-callback: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:nested-cast-arg: ACCEPT
+   drive -> same: ["2","N"]
+   show g = ["2","N"]
+== selfhost/freeze-attack9/c3.ts:cast-in-cast-type-arg-arrow: ACCEPT
+   drive -> same: ["2","R"]
+   show g = ["2","R"]
+== selfhost/freeze-attack9/c3.ts:optional-call: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:trailing-comma: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:comment-paren: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:string-paren: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:parens-callee: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:type-query: REJECT g:unsupported
+== selfhost/freeze-attack9/c3.ts:ann-type-query: REJECT g:rejected[mut-nested][unknown-type]
+== selfhost/freeze-attack9/c3.ts:switch-case: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:loop-body: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:while-body: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:try-catch: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:unused-fn: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:after-return: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:kept-fn: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:memo-fn: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:cast-type-generic-alias: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c3.ts:cast-local-alias-shadow: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c3.ts:ob-lit-value: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:spread-arr: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:cast-arrow-arg: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:many-casts: ACCEPT
+   drive -> same: ["R","N","R","N","R","N"]
+   show g = ["R","N","R","N","R","N"]
+== selfhost/freeze-attack9/c3.ts:jsx-attr-child: ACCEPT
+   drive -> same: {"tag":"div","props":{"title":"R"},"children":["N"]}
+   show g = {tag:"div",props:{title:"R"},children:["N"]}
+== selfhost/freeze-attack9/c3.ts:jsx-child-attr-nested: ACCEPT
+   drive -> same: {"tag":"div","props":{"title":"N"},"children":[{"tag":"span","props":{"title":"R"},"children":["N"]},"R"]}
+   show g = {tag:"div",props:{title:"N"},children:[{tag:"span",props:{title:"R"},children:["N"]},"R"]}
+== selfhost/freeze-attack9/c3.ts:jsx-key-and-prop: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[{"tag":"div","props":{"title":"N"},"children":[]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{title:"N"},children:[]}]}
+== selfhost/freeze-attack9/c3.ts:jsx-key-elem: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[{"tag":"span","props":{"key":"R","title":"N"},"children":[]}]}
+   show g = {tag:"div",props:{},children:[{tag:"span",props:{key:"R",title:"N"},children:[]}]}
+== selfhost/freeze-attack9/c3.ts:jsx-component-children: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack9/c3.ts:jsx-fragment: ACCEPT
+   drive -> same: {"tag":"","props":{},"children":["R","N"]}
+   show g = {tag:"",props:{},children:["R","N"]}
+== selfhost/freeze-attack9/c3.ts:jsx-spread-props: REJECT g:unsupported
+== selfhost/freeze-attack9/c3.ts:jsx-cond-child: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":["R","N"]}
+   show g = {tag:"div",props:{},children:["R","N"]}
+== selfhost/freeze-attack9/c3.ts:jsx-map-child: REJECT g:rejected[type][type][type][type]
+== selfhost/freeze-attack9/c3.ts:jsx-text-paren: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":["(","R",")","N"]}
+   show g = {tag:"div",props:{},children:["(","R",")","N"]}
+== selfhost/freeze-attack9/c3.ts:ctl-marks [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object ["S!number","N"]
+   show g = ["S!number","N"]
+   CONTROL FIRED
+-- controls 1, fired 1
+-- harness crashes 0
+-- 49 candidates, accepted 41, silent 0
+##### mode: [SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/c3.ts:pair-array: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:pair-array-rev: ACCEPT
+   drive -> same: ["N","R"]
+   show g = ["N","R"]
+== selfhost/freeze-attack9/c3.ts:nested-fn-before: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:fn-decl-after: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:fn-decl-before-use: ACCEPT
+   drive -> same: ["N","R"]
+   show g = ["N","R"]
+== selfhost/freeze-attack9/c3.ts:default-param: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:cond-branches: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:and-short: ACCEPT
+   drive -> same: ["skip","N"]
+   show g = ["skip","N"]
+== selfhost/freeze-attack9/c3.ts:template: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:computed-key: REJECT g:unsupported
+== selfhost/freeze-attack9/c3.ts:iife: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:map-callback: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:from-callback-overload: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:from-len-overload: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:reduce-callback: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:sort-callback: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:nested-cast-arg: ACCEPT
+   drive -> same: ["2","N"]
+   show g = ["2","N"]
+== selfhost/freeze-attack9/c3.ts:cast-in-cast-type-arg-arrow: ACCEPT
+   drive -> same: ["2","R"]
+   show g = ["2","R"]
+== selfhost/freeze-attack9/c3.ts:optional-call: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:trailing-comma: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:comment-paren: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:string-paren: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:parens-callee: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:type-query: REJECT g:unsupported
+== selfhost/freeze-attack9/c3.ts:ann-type-query: REJECT g:rejected[mut-nested][unknown-type]
+== selfhost/freeze-attack9/c3.ts:switch-case: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:loop-body: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:while-body: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:try-catch: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:unused-fn: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:after-return: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:kept-fn: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:memo-fn: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:cast-type-generic-alias: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c3.ts:cast-local-alias-shadow: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c3.ts:ob-lit-value: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:spread-arr: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:cast-arrow-arg: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:many-casts: ACCEPT
+   drive -> same: ["R","N","R","N","R","N"]
+   show g = ["R","N","R","N","R","N"]
+== selfhost/freeze-attack9/c3.ts:jsx-attr-child: ACCEPT
+   drive -> same: {"tag":"div","props":{"title":"R"},"children":["N"]}
+   show g = {tag:"div",props:{title:"R"},children:["N"]}
+== selfhost/freeze-attack9/c3.ts:jsx-child-attr-nested: ACCEPT
+   drive -> same: {"tag":"div","props":{"title":"N"},"children":[{"tag":"span","props":{"title":"R"},"children":["N"]},"R"]}
+   show g = {tag:"div",props:{title:"N"},children:[{tag:"span",props:{title:"R"},children:["N"]},"R"]}
+== selfhost/freeze-attack9/c3.ts:jsx-key-and-prop: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[{"tag":"div","props":{"title":"N"},"children":[]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{title:"N"},children:[]}]}
+== selfhost/freeze-attack9/c3.ts:jsx-key-elem: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[{"tag":"span","props":{"key":"R","title":"N"},"children":[]}]}
+   show g = {tag:"div",props:{},children:[{tag:"span",props:{key:"R",title:"N"},children:[]}]}
+== selfhost/freeze-attack9/c3.ts:jsx-component-children: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack9/c3.ts:jsx-fragment: ACCEPT
+   drive -> same: {"tag":"","props":{},"children":["R","N"]}
+   show g = {tag:"",props:{},children:["R","N"]}
+== selfhost/freeze-attack9/c3.ts:jsx-spread-props: REJECT g:unsupported
+== selfhost/freeze-attack9/c3.ts:jsx-cond-child: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":["R","N"]}
+   show g = {tag:"div",props:{},children:["R","N"]}
+== selfhost/freeze-attack9/c3.ts:jsx-map-child: REJECT g:rejected[type][type][type][type]
+== selfhost/freeze-attack9/c3.ts:jsx-text-paren: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":["(","R",")","N"]}
+   show g = {tag:"div",props:{},children:["(","R",")","N"]}
+== selfhost/freeze-attack9/c3.ts:ctl-marks [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object ["S!number","N"]
+   show g = ["S!number","N"]
+   CONTROL FIRED
+-- controls 1, fired 1
+-- harness crashes 0
+-- 49 candidates, accepted 41, silent 0
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/c3.ts:pair-array: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:pair-array-rev: ACCEPT
+   drive -> same: ["N","R"]
+   show g = ["N","R"]
+== selfhost/freeze-attack9/c3.ts:nested-fn-before: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:fn-decl-after: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:fn-decl-before-use: ACCEPT
+   drive -> same: ["N","R"]
+   show g = ["N","R"]
+== selfhost/freeze-attack9/c3.ts:default-param: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:cond-branches: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:and-short: ACCEPT
+   drive -> same: ["skip","N"]
+   show g = ["skip","N"]
+== selfhost/freeze-attack9/c3.ts:template: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:computed-key: REJECT g:unsupported
+== selfhost/freeze-attack9/c3.ts:iife: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:map-callback: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:from-callback-overload: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:from-len-overload: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:reduce-callback: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:sort-callback: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:nested-cast-arg: ACCEPT
+   drive -> same: ["2","N"]
+   show g = ["2","N"]
+== selfhost/freeze-attack9/c3.ts:cast-in-cast-type-arg-arrow: ACCEPT
+   drive -> same: ["2","R"]
+   show g = ["2","R"]
+== selfhost/freeze-attack9/c3.ts:optional-call: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:trailing-comma: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:comment-paren: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:string-paren: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:parens-callee: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:type-query: REJECT g:unsupported
+== selfhost/freeze-attack9/c3.ts:ann-type-query: REJECT g:rejected[mut-nested][unknown-type]
+== selfhost/freeze-attack9/c3.ts:switch-case: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:loop-body: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:while-body: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:try-catch: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:unused-fn: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:after-return: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:kept-fn: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:memo-fn: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:cast-type-generic-alias: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c3.ts:cast-local-alias-shadow: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c3.ts:ob-lit-value: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:spread-arr: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:cast-arrow-arg: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c3.ts:many-casts: ACCEPT
+   drive -> same: ["R","N","R","N","R","N"]
+   show g = ["R","N","R","N","R","N"]
+== selfhost/freeze-attack9/c3.ts:jsx-attr-child: ACCEPT
+   drive -> same: {"tag":"div","props":{"title":"R"},"children":["N"]}
+   show g = {tag:"div",props:{title:"R"},children:["N"]}
+== selfhost/freeze-attack9/c3.ts:jsx-child-attr-nested: ACCEPT
+   drive -> same: {"tag":"div","props":{"title":"N"},"children":[{"tag":"span","props":{"title":"R"},"children":["N"]},"R"]}
+   show g = {tag:"div",props:{title:"N"},children:[{tag:"span",props:{title:"R"},children:["N"]},"R"]}
+== selfhost/freeze-attack9/c3.ts:jsx-key-and-prop: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[{"tag":"div","props":{"title":"N"},"children":[]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{title:"N"},children:[]}]}
+== selfhost/freeze-attack9/c3.ts:jsx-key-elem: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[{"tag":"span","props":{"key":"R","title":"N"},"children":[]}]}
+   show g = {tag:"div",props:{},children:[{tag:"span",props:{key:"R",title:"N"},children:[]}]}
+== selfhost/freeze-attack9/c3.ts:jsx-component-children: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack9/c3.ts:jsx-fragment: ACCEPT
+   drive -> same: {"tag":"","props":{},"children":["R","N"]}
+   show g = {tag:"",props:{},children:["R","N"]}
+== selfhost/freeze-attack9/c3.ts:jsx-spread-props: REJECT g:unsupported
+== selfhost/freeze-attack9/c3.ts:jsx-cond-child: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":["R","N"]}
+   show g = {tag:"div",props:{},children:["R","N"]}
+== selfhost/freeze-attack9/c3.ts:jsx-map-child: REJECT g:rejected[type][type][type][type]
+== selfhost/freeze-attack9/c3.ts:jsx-text-paren: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":["(","R",")","N"]}
+   show g = {tag:"div",props:{},children:["(","R",")","N"]}
+== selfhost/freeze-attack9/c3.ts:ctl-marks [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object ["S!number","N"]
+   show g = ["S!number","N"]
+   CONTROL FIRED
+-- controls 1, fired 1
+-- harness crashes 0
+-- 49 candidates, accepted 41, silent 0

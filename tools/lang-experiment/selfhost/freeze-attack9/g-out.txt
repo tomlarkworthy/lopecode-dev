@@ -1,0 +1,232 @@
+##### mode: []
+== selfhost/freeze-attack9/g.ts:ctl-arrow-first [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack9/g.ts:esc-ss_closure-const: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-ss_closure-brace: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-ss_methods: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-ss_i-capture: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-dollar-ss: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-fn-decl: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-param: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:key-1e3: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-1e3-str: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-0b11: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-0x10: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-1_0: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-dot5: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-1e21: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-00: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-string-esc: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-ss-name: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-proto-method: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-dup: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-num-dup: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-num-dup2: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-arrow-prop-num: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:method-shorthand-fn-prop: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:nested-method: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:method-in-array: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:local-h-esc: ACCEPT
+   drive -> same: no cell in error
+== selfhost/freeze-attack9/g.ts:cell-ss-esc: REJECT ss_out:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:cell-invalidation-esc: REJECT invalidation:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:cell-Generators-esc: REJECT Generators:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:ctl-arrow [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack9/g.ts:ctl-g1-let [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   CONTROL DID NOT FIRE
+-- controls 3, fired 0
+-- harness crashes 0
+-- 29 candidates, accepted 11, silent 0
+##### mode: [SS_MEASURE_BODYFN=0]
+== selfhost/freeze-attack9/g.ts:ctl-arrow-first [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: Attempted to assign to readonly property.
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack9/g.ts:esc-ss_closure-const: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-ss_closure-brace: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-ss_methods: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-ss_i-capture: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-dollar-ss: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-fn-decl: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-param: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:key-1e3: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-1e3-str: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== selfhost/freeze-attack9/g.ts:key-0b11: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-0x10: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-1_0: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-dot5: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-1e21: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== selfhost/freeze-attack9/g.ts:key-00: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== selfhost/freeze-attack9/g.ts:key-string-esc: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== selfhost/freeze-attack9/g.ts:key-ss-name: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== selfhost/freeze-attack9/g.ts:key-proto-method: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== selfhost/freeze-attack9/g.ts:key-dup: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== selfhost/freeze-attack9/g.ts:key-num-dup: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-num-dup2: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-arrow-prop-num: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:method-shorthand-fn-prop: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== selfhost/freeze-attack9/g.ts:nested-method: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== selfhost/freeze-attack9/g.ts:method-in-array: ACCEPT
+   drive -> threw at the call: Attempted to assign to readonly property.
+== selfhost/freeze-attack9/g.ts:local-h-esc: ACCEPT
+   drive -> same: no cell in error
+== selfhost/freeze-attack9/g.ts:cell-ss-esc: REJECT ss_out:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:cell-invalidation-esc: REJECT invalidation:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:cell-Generators-esc: REJECT Generators:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:ctl-arrow [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: Attempted to assign to readonly property.
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack9/g.ts:ctl-g1-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   CONTROL FIRED
+-- controls 3, fired 1
+-- harness crashes 0
+-- 29 candidates, accepted 11, silent 0
+##### mode: [SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/g.ts:ctl-arrow-first [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack9/g.ts:esc-ss_closure-const: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-ss_closure-brace: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-ss_methods: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-ss_i-capture: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-dollar-ss: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-fn-decl: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-param: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:key-1e3: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-1e3-str: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-0b11: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-0x10: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-1_0: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-dot5: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-1e21: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-00: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-string-esc: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-ss-name: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-proto-method: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-dup: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:key-num-dup: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-num-dup2: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-arrow-prop-num: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:method-shorthand-fn-prop: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:nested-method: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:method-in-array: ACCEPT
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+== selfhost/freeze-attack9/g.ts:local-h-esc: ACCEPT
+   drive -> same: no cell in error
+== selfhost/freeze-attack9/g.ts:cell-ss-esc: REJECT ss_out:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:cell-invalidation-esc: REJECT invalidation:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:cell-Generators-esc: REJECT Generators:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:ctl-arrow [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack9/g.ts:ctl-g1-let [ctl]: CONTROL (checker skipped)
+   drive -> threw at the call: the value written to s reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave 
+   CONTROL DID NOT FIRE
+-- controls 3, fired 0
+-- harness crashes 0
+-- 29 candidates, accepted 11, silent 0
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/g.ts:ctl-arrow-first [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   CONTROL FIRED
+== selfhost/freeze-attack9/g.ts:esc-ss_closure-const: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-ss_closure-brace: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-ss_methods: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-ss_i-capture: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-dollar-ss: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-fn-decl: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:esc-param: REJECT put:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:key-1e3: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-1e3-str: ACCEPT
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   SILENT
+== selfhost/freeze-attack9/g.ts:key-0b11: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-0x10: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-1_0: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-dot5: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-1e21: ACCEPT
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   SILENT
+== selfhost/freeze-attack9/g.ts:key-00: ACCEPT
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   SILENT
+== selfhost/freeze-attack9/g.ts:key-string-esc: ACCEPT
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   SILENT
+== selfhost/freeze-attack9/g.ts:key-ss-name: ACCEPT
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   SILENT
+== selfhost/freeze-attack9/g.ts:key-proto-method: ACCEPT
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   SILENT
+== selfhost/freeze-attack9/g.ts:key-dup: ACCEPT
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   SILENT
+== selfhost/freeze-attack9/g.ts:key-num-dup: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-num-dup2: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:key-arrow-prop-num: REJECT put:rejected[type]
+== selfhost/freeze-attack9/g.ts:method-shorthand-fn-prop: ACCEPT
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   SILENT
+== selfhost/freeze-attack9/g.ts:nested-method: ACCEPT
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   SILENT
+== selfhost/freeze-attack9/g.ts:method-in-array: ACCEPT
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   SILENT
+== selfhost/freeze-attack9/g.ts:local-h-esc: ACCEPT
+   drive -> same: no cell in error
+== selfhost/freeze-attack9/g.ts:cell-ss-esc: REJECT ss_out:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:cell-invalidation-esc: REJECT invalidation:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:cell-Generators-esc: REJECT Generators:rejected[reserved-name]
+== selfhost/freeze-attack9/g.ts:ctl-arrow [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   CONTROL FIRED
+== selfhost/freeze-attack9/g.ts:ctl-g1-let [ctl]: CONTROL (checker skipped)
+   drive -> DIFF given (lg, recorded in the body) 1 holds 2
+   CONTROL FIRED
+-- controls 3, fired 3
+-- harness crashes 0
+-- 29 candidates, accepted 11, silent 10
+SILENT selfhost/freeze-attack9/g.ts:key-1e3-str
+SILENT selfhost/freeze-attack9/g.ts:key-1e21
+SILENT selfhost/freeze-attack9/g.ts:key-00
+SILENT selfhost/freeze-attack9/g.ts:key-string-esc
+SILENT selfhost/freeze-attack9/g.ts:key-ss-name
+SILENT selfhost/freeze-attack9/g.ts:key-proto-method
+SILENT selfhost/freeze-attack9/g.ts:key-dup
+SILENT selfhost/freeze-attack9/g.ts:method-shorthand-fn-prop
+SILENT selfhost/freeze-attack9/g.ts:nested-method
+SILENT selfhost/freeze-attack9/g.ts:method-in-array

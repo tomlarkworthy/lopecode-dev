@@ -1,0 +1,300 @@
+##### mode: []
+== selfhost/freeze-attack9/c5.ts:lit-infinity: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-rec: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-neg-infinity: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-union-arr: ACCEPT
+   drive -> DIFF g is outside its type: string "number,object"
+   show g = "number,object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-arith: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-refuses-infinity: ACCEPT
+   drive -> DIFF g is outside its type: string "refused"
+   show g = "refused"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-neg-zero: ACCEPT
+   drive -> same: "ok"
+   show g = "ok"
+== selfhost/freeze-attack9/c5.ts:lit-marker: ACCEPT
+   harness crash the cells do not compile, so they cannot run: cell source contains the reserved text /*ss
+== selfhost/freeze-attack9/c5.ts:lit-script: ACCEPT
+   drive -> same: "</script>"
+   show g = "</script>"
+== selfhost/freeze-attack9/c5.ts:lit-u2028: ACCEPT
+   drive -> same: "ok"
+   show g = "ok"
+== selfhost/freeze-attack9/c5.ts:lit-lone-surrogate: ACCEPT
+   drive -> same: "ok"
+   show g = "ok"
+== selfhost/freeze-attack9/c5.ts:lit-proto-prop: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:annexb-cast: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:annexb-cast-block: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:block-shadow-const: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:for-shadow: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:catch-shadow: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:param-shadow-inner: ACCEPT
+   drive -> same: [2,"refused"]
+   show g = [2,"refused"]
+== selfhost/freeze-attack9/c5.ts:local-named-cast: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/c5.ts:local-cast-with-targ: REJECT g:rejected[no-cast]
+== selfhost/freeze-attack9/c5.ts:shadow-type-Cast: REJECT module[builtin-type-name] g:rejected[no-member]
+== selfhost/freeze-attack9/c5.ts:cast-spread-arg: REJECT g:unsupported
+-- controls 0, fired 0
+-- harness crashes 1
+-- 22 candidates, accepted 18, silent 6
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-rec
+SILENT selfhost/freeze-attack9/c5.ts:lit-neg-infinity
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-union-arr
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-arith
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-refuses-infinity
+##### mode: [SS_MEASURE_BODYFN=0]
+== selfhost/freeze-attack9/c5.ts:lit-infinity: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-rec: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-neg-infinity: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-union-arr: ACCEPT
+   drive -> DIFF g is outside its type: string "number,object"
+   show g = "number,object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-arith: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-refuses-infinity: ACCEPT
+   drive -> DIFF g is outside its type: string "refused"
+   show g = "refused"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-neg-zero: ACCEPT
+   drive -> same: "ok"
+   show g = "ok"
+== selfhost/freeze-attack9/c5.ts:lit-marker: ACCEPT
+   harness crash the cells do not compile, so they cannot run: cell source contains the reserved text /*ss
+== selfhost/freeze-attack9/c5.ts:lit-script: ACCEPT
+   drive -> same: "</script>"
+   show g = "</script>"
+== selfhost/freeze-attack9/c5.ts:lit-u2028: ACCEPT
+   drive -> same: "ok"
+   show g = "ok"
+== selfhost/freeze-attack9/c5.ts:lit-lone-surrogate: ACCEPT
+   drive -> same: "ok"
+   show g = "ok"
+== selfhost/freeze-attack9/c5.ts:lit-proto-prop: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:annexb-cast: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:annexb-cast-block: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:block-shadow-const: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:for-shadow: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:catch-shadow: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:param-shadow-inner: ACCEPT
+   drive -> same: [2,"refused"]
+   show g = [2,"refused"]
+== selfhost/freeze-attack9/c5.ts:local-named-cast: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/c5.ts:local-cast-with-targ: REJECT g:rejected[no-cast]
+== selfhost/freeze-attack9/c5.ts:shadow-type-Cast: REJECT module[builtin-type-name] g:rejected[no-member]
+== selfhost/freeze-attack9/c5.ts:cast-spread-arg: REJECT g:unsupported
+-- controls 0, fired 0
+-- harness crashes 1
+-- 22 candidates, accepted 18, silent 6
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-rec
+SILENT selfhost/freeze-attack9/c5.ts:lit-neg-infinity
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-union-arr
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-arith
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-refuses-infinity
+##### mode: [SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/c5.ts:lit-infinity: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-rec: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-neg-infinity: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-union-arr: ACCEPT
+   drive -> DIFF g is outside its type: string "number,object"
+   show g = "number,object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-arith: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-refuses-infinity: ACCEPT
+   drive -> DIFF g is outside its type: string "refused"
+   show g = "refused"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-neg-zero: ACCEPT
+   drive -> same: "ok"
+   show g = "ok"
+== selfhost/freeze-attack9/c5.ts:lit-marker: ACCEPT
+   harness crash the cells do not compile, so they cannot run: cell source contains the reserved text /*ss
+== selfhost/freeze-attack9/c5.ts:lit-script: ACCEPT
+   drive -> same: "</script>"
+   show g = "</script>"
+== selfhost/freeze-attack9/c5.ts:lit-u2028: ACCEPT
+   drive -> same: "ok"
+   show g = "ok"
+== selfhost/freeze-attack9/c5.ts:lit-lone-surrogate: ACCEPT
+   drive -> same: "ok"
+   show g = "ok"
+== selfhost/freeze-attack9/c5.ts:lit-proto-prop: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:annexb-cast: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:annexb-cast-block: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:block-shadow-const: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:for-shadow: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:catch-shadow: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:param-shadow-inner: ACCEPT
+   drive -> same: [2,"refused"]
+   show g = [2,"refused"]
+== selfhost/freeze-attack9/c5.ts:local-named-cast: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/c5.ts:local-cast-with-targ: REJECT g:rejected[no-cast]
+== selfhost/freeze-attack9/c5.ts:shadow-type-Cast: REJECT module[builtin-type-name] g:rejected[no-member]
+== selfhost/freeze-attack9/c5.ts:cast-spread-arg: REJECT g:unsupported
+-- controls 0, fired 0
+-- harness crashes 1
+-- 22 candidates, accepted 18, silent 6
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-rec
+SILENT selfhost/freeze-attack9/c5.ts:lit-neg-infinity
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-union-arr
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-arith
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-refuses-infinity
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/c5.ts:lit-infinity: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-rec: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-neg-infinity: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-union-arr: ACCEPT
+   drive -> DIFF g is outside its type: string "number,object"
+   show g = "number,object"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-arith: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-infinity-refuses-infinity: ACCEPT
+   drive -> DIFF g is outside its type: string "refused"
+   show g = "refused"
+   SILENT
+== selfhost/freeze-attack9/c5.ts:lit-neg-zero: ACCEPT
+   drive -> same: "ok"
+   show g = "ok"
+== selfhost/freeze-attack9/c5.ts:lit-marker: ACCEPT
+   harness crash the cells do not compile, so they cannot run: cell source contains the reserved text /*ss
+== selfhost/freeze-attack9/c5.ts:lit-script: ACCEPT
+   drive -> same: "</script>"
+   show g = "</script>"
+== selfhost/freeze-attack9/c5.ts:lit-u2028: ACCEPT
+   drive -> same: "ok"
+   show g = "ok"
+== selfhost/freeze-attack9/c5.ts:lit-lone-surrogate: ACCEPT
+   drive -> same: "ok"
+   show g = "ok"
+== selfhost/freeze-attack9/c5.ts:lit-proto-prop: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:annexb-cast: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:annexb-cast-block: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:block-shadow-const: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:for-shadow: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:catch-shadow: ACCEPT
+   drive -> same: "refused"
+   show g = "refused"
+== selfhost/freeze-attack9/c5.ts:param-shadow-inner: ACCEPT
+   drive -> same: [2,"refused"]
+   show g = [2,"refused"]
+== selfhost/freeze-attack9/c5.ts:local-named-cast: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/c5.ts:local-cast-with-targ: REJECT g:rejected[no-cast]
+== selfhost/freeze-attack9/c5.ts:shadow-type-Cast: REJECT module[builtin-type-name] g:rejected[no-member]
+== selfhost/freeze-attack9/c5.ts:cast-spread-arg: REJECT g:unsupported
+-- controls 0, fired 0
+-- harness crashes 1
+-- 22 candidates, accepted 18, silent 6
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-rec
+SILENT selfhost/freeze-attack9/c5.ts:lit-neg-infinity
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-union-arr
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-arith
+SILENT selfhost/freeze-attack9/c5.ts:lit-infinity-refuses-infinity

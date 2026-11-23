@@ -1,0 +1,808 @@
+##### mode: []
+== selfhost/freeze-attack9/b4.ts:red-v-wrong: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-v-wrong-num: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-v-record: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-acc-wrong-init: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-acc-unknown-init: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:redright-v-wrong: REJECT g:unsupported
+== selfhost/freeze-attack9/b4.ts:red-i-wrong: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-extra-param: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:from-v-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:from-v-wrong2: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:from-len-v: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:from-typed-v: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-ap: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-local: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-local2: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-arr: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-cb-first: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:map-v-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:then-v-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:sort-cmp-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:red-ret-mismatch: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-fn-acc: ACCEPT
+   drive -> same: "function"
+   show g = "function"
+== selfhost/freeze-attack9/b4.ts:red-mut-acc-alias: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-mut-acc-alias2: REJECT g:rejected[member-write]
+== selfhost/freeze-attack9/b4.ts:from-mut-v: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-mut: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/b4.ts:generic-mut-tv: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:red-mut-init-c: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-pp-ann: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-pp-local: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-pp-then: REJECT g:rejected[untyped-parameter]
+== selfhost/freeze-attack9/b4.ts:async-ret-union: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:async-ret-nested: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-ret-all: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-ret-ann-wide: REJECT g:rejected[no-cast][type]
+== selfhost/freeze-attack9/b4.ts:async-ann-num-ret-promise-str: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-ctx-union-num: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-cell-ret-promise: ACCEPT
+   drive -> same: 6
+   show g = 6
+== selfhost/freeze-attack9/b4.ts:async-ret-fetch: ACCEPT
+   drive -> same: g rejected fetch() URL is invalid
+   show g = ERROR fetch() URL is invalid
+   error g: fetch() URL is invalid
+== selfhost/freeze-attack9/b4.ts:async-ret-promise-of-fn: ACCEPT
+   drive -> same: "function"
+   show g = "function"
+== selfhost/freeze-attack9/b4.ts:async-ret-promise-mut: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-ret-generic: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:async-ret-cond-promise: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:key-comp-optional-key: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["undefined"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["undefined"]}]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-read: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["undefined"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["undefined"]}]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-typeof: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["string"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["string"]}]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-fn-key: ACCEPT
+   drive -> same: g rejected p.key is not a function. (In 'p.key()', 'p.key' is 1)
+   show g = ERROR p.key is not a function. (In 'p.key()', 'p.key' is 1)
+   error g: p.key is not a function. (In 'p.key()', 'p.key' is 1)
+== selfhost/freeze-attack9/b4.ts:key-comp-required: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:key-comp-spread: REJECT g:unsupported
+== selfhost/freeze-attack9/b4.ts:key-comp-fn: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[1]}
+   show g = {tag:"div",props:{},children:[1]}
+== selfhost/freeze-attack9/b4.ts:key-comp-string-key-num: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":["string"]}
+   show g = {tag:"div",props:{},children:["string"]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-union-tag: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":["b"]}
+   show g = {tag:"div",props:{},children:["b"]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-elem-child: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[]}
+   show g = {tag:"div",props:{},children:[]}
+== selfhost/freeze-attack9/b4.ts:key-elem-object: REJECT g:rejected[no-cast]
+== selfhost/freeze-attack9/b4.ts:async-generic-T-promise: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-generic-id-promise: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-pp-param: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:async-pp-ann-var: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-pp-in-record: ACCEPT
+   drive -> same: "object"
+   show g = "object"
+== selfhost/freeze-attack9/b4.ts:async-pp-cell: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4.ts:ev-lit-wider: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/b4.ts:ev-union-narrow: REJECT l:rejected[inject-events]
+== selfhost/freeze-attack9/b4.ts:ev-opt: ACCEPT
+   drive -> same: "undefined"
+   show g = "undefined"
+== selfhost/freeze-attack9/b4.ts:ev-mut: REJECT l:rejected[mut-nested][inject-events][mut-cell]
+== selfhost/freeze-attack9/b4.ts:ev-unknown: ACCEPT
+   drive -> same: "object"
+   show g = "object"
+== selfhost/freeze-attack9/b4.ts:ev-as-param-direct: ACCEPT
+   drive -> same: "object"
+   show g = "object"
+== selfhost/freeze-attack9/b4.ts:ev-state-wide: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/b4.ts:ev-state-wide2: REJECT w:rejected[no-cast][inject-state]
+== selfhost/freeze-attack9/b4.ts:ev-fn-member: ACCEPT
+   drive -> same: "none"
+   show g = "none"
+== selfhost/freeze-attack9/b4.ts:idx-from-array: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-from-map: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-with-member: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/b4.ts:idx-delete-required: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/b4.ts:idx-fresh-spread-input: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-alias-mut: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/b4.ts:idx-union-val: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:idx-assign-to-narrower: ACCEPT
+   drive -> same: {"a":1}
+   show g = {a:1}
+== selfhost/freeze-attack9/b4.ts:idx-let-reassign: ACCEPT
+   drive -> same: {"b":2,"c":3}
+   show g = {b:2,c:3}
+== selfhost/freeze-attack9/b4.ts:idx-kept-capture: REJECT g:rejected[mut-capture][mut-capture]
+== selfhost/freeze-attack9/b4.ts:idx-nested-mut: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/b4.ts:idx-num-key: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-from-input-record: REJECT g:rejected[type][member-write]
+== selfhost/freeze-attack9/b4.ts:idx-from-object-entries-fresh: ACCEPT
+   drive -> same: [1,2]
+   show g = [1,2]
+== selfhost/freeze-attack9/b4.ts:idx-struct-clone: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/b4.ts:idx-nested-record-field: REJECT g:rejected[member-write]
+== selfhost/freeze-attack9/b4.ts:idx-proto-write-literal: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack9/b4.ts:idx-obj-type-value: ACCEPT
+   drive -> same: {"a":{"v":1}}
+   show g = {a:{v:1}}
+== selfhost/freeze-attack9/b4.ts:ctl-ty-typeof [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   CONTROL FIRED
+== selfhost/freeze-attack9/b4.ts:ctl-key-like [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["undefined"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["undefined"]}]}
+   CONTROL FIRED
+== selfhost/freeze-attack9/b4.ts:ctl-y-alias [ctl]: CONTROL (checker skipped)
+   drive -> DIFF c read 3 before the write and 1 after
+   CONTROL FIRED
+-- controls 3, fired 3
+-- harness crashes 0
+-- 87 candidates, accepted 42, silent 8
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-optional-key
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-read
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-typeof
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-string-key-num
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-union-tag
+SILENT selfhost/freeze-attack9/b4.ts:async-pp-cell
+SILENT selfhost/freeze-attack9/b4.ts:idx-with-member
+SILENT selfhost/freeze-attack9/b4.ts:idx-delete-required
+##### mode: [SS_MEASURE_BODYFN=0]
+== selfhost/freeze-attack9/b4.ts:red-v-wrong: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-v-wrong-num: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-v-record: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-acc-wrong-init: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-acc-unknown-init: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:redright-v-wrong: REJECT g:unsupported
+== selfhost/freeze-attack9/b4.ts:red-i-wrong: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-extra-param: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:from-v-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:from-v-wrong2: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:from-len-v: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:from-typed-v: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-ap: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-local: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-local2: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-arr: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-cb-first: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:map-v-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:then-v-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:sort-cmp-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:red-ret-mismatch: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-fn-acc: ACCEPT
+   drive -> same: "function"
+   show g = "function"
+== selfhost/freeze-attack9/b4.ts:red-mut-acc-alias: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-mut-acc-alias2: REJECT g:rejected[member-write]
+== selfhost/freeze-attack9/b4.ts:from-mut-v: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-mut: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/b4.ts:generic-mut-tv: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:red-mut-init-c: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-pp-ann: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-pp-local: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-pp-then: REJECT g:rejected[untyped-parameter]
+== selfhost/freeze-attack9/b4.ts:async-ret-union: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:async-ret-nested: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-ret-all: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-ret-ann-wide: REJECT g:rejected[no-cast][type]
+== selfhost/freeze-attack9/b4.ts:async-ann-num-ret-promise-str: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-ctx-union-num: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-cell-ret-promise: ACCEPT
+   drive -> same: 6
+   show g = 6
+== selfhost/freeze-attack9/b4.ts:async-ret-fetch: ACCEPT
+   drive -> same: g rejected fetch() URL is invalid
+   show g = ERROR fetch() URL is invalid
+   error g: fetch() URL is invalid
+== selfhost/freeze-attack9/b4.ts:async-ret-promise-of-fn: ACCEPT
+   drive -> same: "function"
+   show g = "function"
+== selfhost/freeze-attack9/b4.ts:async-ret-promise-mut: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-ret-generic: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:async-ret-cond-promise: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:key-comp-optional-key: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["undefined"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["undefined"]}]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-read: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["undefined"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["undefined"]}]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-typeof: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["string"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["string"]}]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-fn-key: ACCEPT
+   drive -> same: g rejected p.key is not a function. (In 'p.key()', 'p.key' is 1)
+   show g = ERROR p.key is not a function. (In 'p.key()', 'p.key' is 1)
+   error g: p.key is not a function. (In 'p.key()', 'p.key' is 1)
+== selfhost/freeze-attack9/b4.ts:key-comp-required: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:key-comp-spread: REJECT g:unsupported
+== selfhost/freeze-attack9/b4.ts:key-comp-fn: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[1]}
+   show g = {tag:"div",props:{},children:[1]}
+== selfhost/freeze-attack9/b4.ts:key-comp-string-key-num: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":["string"]}
+   show g = {tag:"div",props:{},children:["string"]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-union-tag: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":["b"]}
+   show g = {tag:"div",props:{},children:["b"]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-elem-child: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[]}
+   show g = {tag:"div",props:{},children:[]}
+== selfhost/freeze-attack9/b4.ts:key-elem-object: REJECT g:rejected[no-cast]
+== selfhost/freeze-attack9/b4.ts:async-generic-T-promise: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-generic-id-promise: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-pp-param: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:async-pp-ann-var: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-pp-in-record: ACCEPT
+   drive -> same: "object"
+   show g = "object"
+== selfhost/freeze-attack9/b4.ts:async-pp-cell: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4.ts:ev-lit-wider: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/b4.ts:ev-union-narrow: REJECT l:rejected[inject-events]
+== selfhost/freeze-attack9/b4.ts:ev-opt: ACCEPT
+   drive -> same: "undefined"
+   show g = "undefined"
+== selfhost/freeze-attack9/b4.ts:ev-mut: REJECT l:rejected[mut-nested][inject-events][mut-cell]
+== selfhost/freeze-attack9/b4.ts:ev-unknown: ACCEPT
+   drive -> same: "object"
+   show g = "object"
+== selfhost/freeze-attack9/b4.ts:ev-as-param-direct: ACCEPT
+   drive -> same: "object"
+   show g = "object"
+== selfhost/freeze-attack9/b4.ts:ev-state-wide: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/b4.ts:ev-state-wide2: REJECT w:rejected[no-cast][inject-state]
+== selfhost/freeze-attack9/b4.ts:ev-fn-member: ACCEPT
+   drive -> same: "none"
+   show g = "none"
+== selfhost/freeze-attack9/b4.ts:idx-from-array: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-from-map: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-with-member: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/b4.ts:idx-delete-required: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/b4.ts:idx-fresh-spread-input: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-alias-mut: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/b4.ts:idx-union-val: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:idx-assign-to-narrower: ACCEPT
+   drive -> same: {"a":1}
+   show g = {a:1}
+== selfhost/freeze-attack9/b4.ts:idx-let-reassign: ACCEPT
+   drive -> same: {"b":2,"c":3}
+   show g = {b:2,c:3}
+== selfhost/freeze-attack9/b4.ts:idx-kept-capture: REJECT g:rejected[mut-capture][mut-capture]
+== selfhost/freeze-attack9/b4.ts:idx-nested-mut: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/b4.ts:idx-num-key: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-from-input-record: REJECT g:rejected[type][member-write]
+== selfhost/freeze-attack9/b4.ts:idx-from-object-entries-fresh: ACCEPT
+   drive -> same: [1,2]
+   show g = [1,2]
+== selfhost/freeze-attack9/b4.ts:idx-struct-clone: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/b4.ts:idx-nested-record-field: REJECT g:rejected[member-write]
+== selfhost/freeze-attack9/b4.ts:idx-proto-write-literal: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack9/b4.ts:idx-obj-type-value: ACCEPT
+   drive -> same: {"a":{"v":1}}
+   show g = {a:{v:1}}
+== selfhost/freeze-attack9/b4.ts:ctl-ty-typeof [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   CONTROL FIRED
+== selfhost/freeze-attack9/b4.ts:ctl-key-like [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["undefined"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["undefined"]}]}
+   CONTROL FIRED
+== selfhost/freeze-attack9/b4.ts:ctl-y-alias [ctl]: CONTROL (checker skipped)
+   drive -> DIFF c read 3 before the write and 1 after
+   CONTROL FIRED
+-- controls 3, fired 3
+-- harness crashes 0
+-- 87 candidates, accepted 42, silent 8
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-optional-key
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-read
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-typeof
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-string-key-num
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-union-tag
+SILENT selfhost/freeze-attack9/b4.ts:async-pp-cell
+SILENT selfhost/freeze-attack9/b4.ts:idx-with-member
+SILENT selfhost/freeze-attack9/b4.ts:idx-delete-required
+##### mode: [SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/b4.ts:red-v-wrong: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-v-wrong-num: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-v-record: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-acc-wrong-init: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-acc-unknown-init: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:redright-v-wrong: REJECT g:unsupported
+== selfhost/freeze-attack9/b4.ts:red-i-wrong: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-extra-param: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:from-v-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:from-v-wrong2: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:from-len-v: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:from-typed-v: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-ap: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-local: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-local2: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-arr: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-cb-first: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:map-v-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:then-v-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:sort-cmp-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:red-ret-mismatch: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-fn-acc: ACCEPT
+   drive -> same: "function"
+   show g = "function"
+== selfhost/freeze-attack9/b4.ts:red-mut-acc-alias: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-mut-acc-alias2: REJECT g:rejected[member-write]
+== selfhost/freeze-attack9/b4.ts:from-mut-v: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-mut: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/b4.ts:generic-mut-tv: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:red-mut-init-c: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-pp-ann: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-pp-local: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-pp-then: REJECT g:rejected[untyped-parameter]
+== selfhost/freeze-attack9/b4.ts:async-ret-union: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:async-ret-nested: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-ret-all: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-ret-ann-wide: REJECT g:rejected[no-cast][type]
+== selfhost/freeze-attack9/b4.ts:async-ann-num-ret-promise-str: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-ctx-union-num: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-cell-ret-promise: ACCEPT
+   drive -> same: 6
+   show g = 6
+== selfhost/freeze-attack9/b4.ts:async-ret-fetch: ACCEPT
+   drive -> same: g rejected fetch() URL is invalid
+   show g = ERROR fetch() URL is invalid
+   error g: fetch() URL is invalid
+== selfhost/freeze-attack9/b4.ts:async-ret-promise-of-fn: ACCEPT
+   drive -> same: "function"
+   show g = "function"
+== selfhost/freeze-attack9/b4.ts:async-ret-promise-mut: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-ret-generic: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:async-ret-cond-promise: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:key-comp-optional-key: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["undefined"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["undefined"]}]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-read: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["undefined"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["undefined"]}]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-typeof: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["string"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["string"]}]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-fn-key: ACCEPT
+   drive -> same: g rejected p.key is not a function. (In 'p.key()', 'p.key' is 1)
+   show g = ERROR p.key is not a function. (In 'p.key()', 'p.key' is 1)
+   error g: p.key is not a function. (In 'p.key()', 'p.key' is 1)
+== selfhost/freeze-attack9/b4.ts:key-comp-required: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:key-comp-spread: REJECT g:unsupported
+== selfhost/freeze-attack9/b4.ts:key-comp-fn: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[1]}
+   show g = {tag:"div",props:{},children:[1]}
+== selfhost/freeze-attack9/b4.ts:key-comp-string-key-num: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":["string"]}
+   show g = {tag:"div",props:{},children:["string"]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-union-tag: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":["b"]}
+   show g = {tag:"div",props:{},children:["b"]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-elem-child: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[]}
+   show g = {tag:"div",props:{},children:[]}
+== selfhost/freeze-attack9/b4.ts:key-elem-object: REJECT g:rejected[no-cast]
+== selfhost/freeze-attack9/b4.ts:async-generic-T-promise: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-generic-id-promise: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-pp-param: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:async-pp-ann-var: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-pp-in-record: ACCEPT
+   drive -> same: "object"
+   show g = "object"
+== selfhost/freeze-attack9/b4.ts:async-pp-cell: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4.ts:ev-lit-wider: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/b4.ts:ev-union-narrow: REJECT l:rejected[inject-events]
+== selfhost/freeze-attack9/b4.ts:ev-opt: ACCEPT
+   drive -> same: "undefined"
+   show g = "undefined"
+== selfhost/freeze-attack9/b4.ts:ev-mut: REJECT l:rejected[mut-nested][inject-events][mut-cell]
+== selfhost/freeze-attack9/b4.ts:ev-unknown: ACCEPT
+   drive -> same: "object"
+   show g = "object"
+== selfhost/freeze-attack9/b4.ts:ev-as-param-direct: ACCEPT
+   drive -> same: "object"
+   show g = "object"
+== selfhost/freeze-attack9/b4.ts:ev-state-wide: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/b4.ts:ev-state-wide2: REJECT w:rejected[no-cast][inject-state]
+== selfhost/freeze-attack9/b4.ts:ev-fn-member: ACCEPT
+   drive -> same: "none"
+   show g = "none"
+== selfhost/freeze-attack9/b4.ts:idx-from-array: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-from-map: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-with-member: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/b4.ts:idx-delete-required: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/b4.ts:idx-fresh-spread-input: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-alias-mut: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/b4.ts:idx-union-val: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:idx-assign-to-narrower: ACCEPT
+   drive -> same: {"a":1}
+   show g = {a:1}
+== selfhost/freeze-attack9/b4.ts:idx-let-reassign: ACCEPT
+   drive -> same: {"b":2,"c":3}
+   show g = {b:2,c:3}
+== selfhost/freeze-attack9/b4.ts:idx-kept-capture: REJECT g:rejected[mut-capture][mut-capture]
+== selfhost/freeze-attack9/b4.ts:idx-nested-mut: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/b4.ts:idx-num-key: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-from-input-record: REJECT g:rejected[type][member-write]
+== selfhost/freeze-attack9/b4.ts:idx-from-object-entries-fresh: ACCEPT
+   drive -> same: [1,2]
+   show g = [1,2]
+== selfhost/freeze-attack9/b4.ts:idx-struct-clone: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/b4.ts:idx-nested-record-field: REJECT g:rejected[member-write]
+== selfhost/freeze-attack9/b4.ts:idx-proto-write-literal: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack9/b4.ts:idx-obj-type-value: ACCEPT
+   drive -> same: {"a":{"v":1}}
+   show g = {a:{v:1}}
+== selfhost/freeze-attack9/b4.ts:ctl-ty-typeof [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   CONTROL FIRED
+== selfhost/freeze-attack9/b4.ts:ctl-key-like [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["undefined"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["undefined"]}]}
+   CONTROL FIRED
+== selfhost/freeze-attack9/b4.ts:ctl-y-alias [ctl]: CONTROL (checker skipped)
+   drive -> DIFF c read 3 before the write and 1 after
+   CONTROL FIRED
+-- controls 3, fired 3
+-- harness crashes 0
+-- 87 candidates, accepted 42, silent 8
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-optional-key
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-read
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-typeof
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-string-key-num
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-union-tag
+SILENT selfhost/freeze-attack9/b4.ts:async-pp-cell
+SILENT selfhost/freeze-attack9/b4.ts:idx-with-member
+SILENT selfhost/freeze-attack9/b4.ts:idx-delete-required
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/b4.ts:red-v-wrong: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-v-wrong-num: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-v-record: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-acc-wrong-init: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-acc-unknown-init: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:redright-v-wrong: REJECT g:unsupported
+== selfhost/freeze-attack9/b4.ts:red-i-wrong: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-extra-param: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:from-v-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:from-v-wrong2: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:from-len-v: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:from-typed-v: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-ap: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-local: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-local2: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-arr: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-cb-first: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:map-v-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:then-v-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:sort-cmp-wrong: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:red-ret-mismatch: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-fn-acc: ACCEPT
+   drive -> same: "function"
+   show g = "function"
+== selfhost/freeze-attack9/b4.ts:red-mut-acc-alias: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:red-mut-acc-alias2: REJECT g:rejected[member-write]
+== selfhost/freeze-attack9/b4.ts:from-mut-v: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:user-generic-mut: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/b4.ts:generic-mut-tv: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4.ts:red-mut-init-c: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-pp-ann: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-pp-local: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-pp-then: REJECT g:rejected[untyped-parameter]
+== selfhost/freeze-attack9/b4.ts:async-ret-union: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:async-ret-nested: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-ret-all: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-ret-ann-wide: REJECT g:rejected[no-cast][type]
+== selfhost/freeze-attack9/b4.ts:async-ann-num-ret-promise-str: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-ctx-union-num: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-cell-ret-promise: ACCEPT
+   drive -> same: 6
+   show g = 6
+== selfhost/freeze-attack9/b4.ts:async-ret-fetch: ACCEPT
+   drive -> same: g rejected fetch() URL is invalid
+   show g = ERROR fetch() URL is invalid
+   error g: fetch() URL is invalid
+== selfhost/freeze-attack9/b4.ts:async-ret-promise-of-fn: ACCEPT
+   drive -> same: "function"
+   show g = "function"
+== selfhost/freeze-attack9/b4.ts:async-ret-promise-mut: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-ret-generic: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:async-ret-cond-promise: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:key-comp-optional-key: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["undefined"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["undefined"]}]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-read: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["undefined"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["undefined"]}]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-typeof: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["string"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["string"]}]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-fn-key: ACCEPT
+   drive -> same: g rejected p.key is not a function. (In 'p.key()', 'p.key' is 1)
+   show g = ERROR p.key is not a function. (In 'p.key()', 'p.key' is 1)
+   error g: p.key is not a function. (In 'p.key()', 'p.key' is 1)
+== selfhost/freeze-attack9/b4.ts:key-comp-required: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:key-comp-spread: REJECT g:unsupported
+== selfhost/freeze-attack9/b4.ts:key-comp-fn: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[1]}
+   show g = {tag:"div",props:{},children:[1]}
+== selfhost/freeze-attack9/b4.ts:key-comp-string-key-num: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":["string"]}
+   show g = {tag:"div",props:{},children:["string"]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-union-tag: ACCEPT
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":["b"]}
+   show g = {tag:"div",props:{},children:["b"]}
+   SILENT
+== selfhost/freeze-attack9/b4.ts:key-comp-elem-child: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":[]}
+   show g = {tag:"div",props:{},children:[]}
+== selfhost/freeze-attack9/b4.ts:key-elem-object: REJECT g:rejected[no-cast]
+== selfhost/freeze-attack9/b4.ts:async-generic-T-promise: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-generic-id-promise: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4.ts:async-pp-param: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:async-pp-ann-var: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:async-pp-in-record: ACCEPT
+   drive -> same: "object"
+   show g = "object"
+== selfhost/freeze-attack9/b4.ts:async-pp-cell: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4.ts:ev-lit-wider: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/b4.ts:ev-union-narrow: REJECT l:rejected[inject-events]
+== selfhost/freeze-attack9/b4.ts:ev-opt: ACCEPT
+   drive -> same: "undefined"
+   show g = "undefined"
+== selfhost/freeze-attack9/b4.ts:ev-mut: REJECT l:rejected[mut-nested][inject-events][mut-cell]
+== selfhost/freeze-attack9/b4.ts:ev-unknown: ACCEPT
+   drive -> same: "object"
+   show g = "object"
+== selfhost/freeze-attack9/b4.ts:ev-as-param-direct: ACCEPT
+   drive -> same: "object"
+   show g = "object"
+== selfhost/freeze-attack9/b4.ts:ev-state-wide: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/b4.ts:ev-state-wide2: REJECT w:rejected[no-cast][inject-state]
+== selfhost/freeze-attack9/b4.ts:ev-fn-member: ACCEPT
+   drive -> same: "none"
+   show g = "none"
+== selfhost/freeze-attack9/b4.ts:idx-from-array: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-from-map: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-with-member: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/b4.ts:idx-delete-required: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/b4.ts:idx-fresh-spread-input: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-alias-mut: ACCEPT
+   drive -> same c read 3 before the write and 3 after
+== selfhost/freeze-attack9/b4.ts:idx-union-val: ACCEPT
+   drive -> same: "string"
+   show g = "string"
+== selfhost/freeze-attack9/b4.ts:idx-assign-to-narrower: ACCEPT
+   drive -> same: {"a":1}
+   show g = {a:1}
+== selfhost/freeze-attack9/b4.ts:idx-let-reassign: ACCEPT
+   drive -> same: {"b":2,"c":3}
+   show g = {b:2,c:3}
+== selfhost/freeze-attack9/b4.ts:idx-kept-capture: REJECT g:rejected[mut-capture][mut-capture]
+== selfhost/freeze-attack9/b4.ts:idx-nested-mut: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/b4.ts:idx-num-key: REJECT g:rejected[type]
+== selfhost/freeze-attack9/b4.ts:idx-from-input-record: REJECT g:rejected[type][member-write]
+== selfhost/freeze-attack9/b4.ts:idx-from-object-entries-fresh: ACCEPT
+   drive -> same: [1,2]
+   show g = [1,2]
+== selfhost/freeze-attack9/b4.ts:idx-struct-clone: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/b4.ts:idx-nested-record-field: REJECT g:rejected[member-write]
+== selfhost/freeze-attack9/b4.ts:idx-proto-write-literal: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack9/b4.ts:idx-obj-type-value: ACCEPT
+   drive -> same: {"a":{"v":1}}
+   show g = {a:{v:1}}
+== selfhost/freeze-attack9/b4.ts:ctl-ty-typeof [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   CONTROL FIRED
+== selfhost/freeze-attack9/b4.ts:ctl-key-like [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object {"tag":"div","props":{},"children":[{"tag":"div","props":{},"children":["undefined"]}]}
+   show g = {tag:"div",props:{},children:[{tag:"div",props:{},children:["undefined"]}]}
+   CONTROL FIRED
+== selfhost/freeze-attack9/b4.ts:ctl-y-alias [ctl]: CONTROL (checker skipped)
+   drive -> DIFF c read 3 before the write and 1 after
+   CONTROL FIRED
+-- controls 3, fired 3
+-- harness crashes 0
+-- 87 candidates, accepted 42, silent 8
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-optional-key
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-read
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-typeof
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-string-key-num
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-union-tag
+SILENT selfhost/freeze-attack9/b4.ts:async-pp-cell
+SILENT selfhost/freeze-attack9/b4.ts:idx-with-member
+SILENT selfhost/freeze-attack9/b4.ts:idx-delete-required

@@ -191,7 +191,9 @@ export class Registry {
           return isNamed(e, "Mut") || isNamed(e, "Borrowed") ? e : t;
         }
         if (name === "ValueOf") { this.onUnsup(n, "ValueOf in checked cells"); return ERR; }
-        this.onErr(n, "unknown-type", `unknown type ${name}`);
+        // DELIBERATE CHANGE (2026-11-23, a9): a use of a user alias not loaded ([type-cycle]) says why; the cell is still rejected
+        const unloaded = origin === "user" && (p.program.body as Node[]).some((st) => { const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st; return d.type === "TSTypeAliasDeclaration" && d.id.name === name; });
+        this.onErr(n, "unknown-type", unloaded ? `type ${name} cannot be used: it is defined by itself ([type-cycle])` : `unknown type ${name}`);
         return ERR;
       }
       default:

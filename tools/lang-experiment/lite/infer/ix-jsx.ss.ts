@@ -41,7 +41,20 @@ export const ixJsxProps = (ixJsxProp, ixAt, ixUnsup, ixGap) => (K: IxK, C: IxCtl
   }
   return out;
 };
-export const ixJsx = (ixJsxChildren, ixJsxProps, ixJsxProp, ixAt, ixUnsup, ixErr, ixGap, named, show, union, STR, NUM, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty => {
+// e1 (2026-11-23), B4: key is the renderer's, as on an element (CommonProps), and is not given to the component; a9
+// (2026-11-23), B-1: h does not pass it (lite/jsx/h.ts), so a component whose props declare key is rejected after the call
+export const ixJsxGiven = (ixAt, union, STR, NUM) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, op: AstNode, all: AstNode[]): AstNode => {
+  const isKey = (x: AstNode): boolean => x.type === "Property" && x.key.type === "Identifier" && x.key.name === "key";
+  for (const k of all.filter(isKey)) if (k.type === "Property") K.check(K, T, V, W, C, env, k.value, union([STR, NUM]), false, false);
+  return { type: "ObjectExpression", ...ixAt(C, op), properties: all.filter((x) => !isKey(x)) };
+};
+export const ixJsxKeyProp = (ixUm, ixErr) => (K: IxK, T: IxTypes, C: IxCtls, e: AstNode, callee: AstNode, name: string): void => {
+  const ct = T.get(callee.nid);
+  if (ct === undefined || ct.k === "err") return;
+  const declares = K.reg.callSigs(ct).some((s) => { const p = s.ps[0]?.t; return p !== undefined && ixUm(K.reg, p).some((m) => m.k !== "err" && K.reg.member(m, "key") !== undefined); });
+  if (declares) ixErr(K, C, e, "type", `component ${name}'s props declare key, which JSX keeps for the renderer and does not pass to a component: rename the prop (for example id) and pass it as id={...}`);
+};
+export const ixJsx = (ixJsxChildren, ixJsxProps, ixJsxProp, ixJsxGiven, ixJsxKeyProp, ixAt, ixUnsup, ixErr, ixGap, named, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty => {
   const ELEM = named("Elem");
   if (e.type !== "JSXElement" && e.type !== "JSXFragment") return ixGap(C, `jsx ${e.type}`);
   const children = ixJsxChildren(K, C, e);
@@ -62,11 +75,8 @@ export const ixJsx = (ixJsxChildren, ixJsxProps, ixJsxProp, ixAt, ixUnsup, ixErr
     return ELEM;
   }
   const callee: AstNode = { type: "Identifier", ...ixAt(C, name), name: name.name, optional: null, typeAnnotation: null };
-  // e1 (2026-11-23), B4: key is the renderer's, as on an element (CommonProps), and is not given to the component
-  const isKey = (x: AstNode): boolean => x.type === "Property" && x.key.type === "Identifier" && x.key.name === "key";
-  for (const k of all.filter(isKey)) if (k.type === "Property") K.check(K, T, V, W, C, env, k.value, union([STR, NUM]), false, false);
-  const given: AstNode = { type: "ObjectExpression", ...ixAt(C, op), properties: all.filter((x) => !isKey(x)) };
-  const t = K.call(K, T, V, W, C, env, { type: "CallExpression", ...ixAt(C, e), optional: false, callee, arguments: [given], typeArguments: null }, ELEM);
+  const t = K.call(K, T, V, W, C, env, { type: "CallExpression", ...ixAt(C, e), optional: false, callee, arguments: [ixJsxGiven(K, T, V, W, C, env, op, all)], typeArguments: null }, ELEM);
   if (t.k !== "err" && !K.reg.sub(t, ELEM)) ixErr(K, C, e, "type", `component ${name.name} returns ${show(t)}, not Elem`);
+  ixJsxKeyProp(K, T, C, e, callee, name.name);
   return ELEM;
 };

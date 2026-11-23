@@ -43,6 +43,18 @@ function checks(S: ReturnType<typeof linkShape>): [string, boolean][] {
   for (let i = 0; i < 17; i++) deep = rec([["x", deep]]);
   ok("a type nested 17 deep that is not recursive is refused", JSON.stringify(at(deep)).includes("a recursive type"));
   ok("a generic alias whose argument grows is refused", JSON.stringify(at(named("G", [NUM]))).includes("a recursive type"));
+  // a9 (2026-11-23), B-2 and B-4
+  ok("Infinity as a literal type is refused (JSON writes it as null)", at({ k: "lit", v: Infinity }).k === "error" && at({ k: "lit", v: -Infinity }).k === "error" && eq(at({ k: "lit", v: 1e300 }), { k: "lit", v: 1e300 }));
+  let expansions = 0;
+  const P: Ty = { k: "named", n: "P", args: [] };
+  const counted = { expand: (t: Ty): Ty => { expansions++; return t.k === "named" && t.n === "P" ? rec([["a", (t.args[0] ?? NUM)], ["b", (t.args[0] ?? NUM)]]) : X.expand(t); }, isAlias: (n: string) => n === "P" || X.isAlias(n) };
+  let p30: Ty = NUM;
+  for (let i = 0; i < 30; i++) p30 = { ...P, args: [p30] };
+  const r30 = S.shapeAt(p30, counted);
+  ok(`a type that branches in two 30 deep is refused after at most two bounded passes (${expansions} expansions)`, r30.k === "error" && expansions <= 2 * 10001);
+  let wide: Ty = NUM;
+  for (let i = 0; i < 7; i++) wide = rec([["m0", wide], ["m1", wide], ["m2", wide], ["m3", wide]]);
+  ok("a record four wide and 7 deep (4^7 leaves) is too large", JSON.stringify(at(wide)).includes("too large"));
   const f = S.boundaryShapeAt({ k: "fn", tps: [], ps: [{ n: "x", t: NUM, opt: true }], ret: named("Promise", [STR]) }, X, true);
   ok("a function annotation: an optional parameter may be undefined, a Promise result is async", eq(f, { k: "fn", ps: [{ k: "union", ts: [{ k: "num" }, { k: "undef" }] }], ret: { k: "str" }, async: true }));
   ok("a function annotation under State is refused", eq(S.boundaryShapeAt({ k: "fn", tps: [], ps: [], ret: NUM }, X, false), { k: "error", error: "a function" }));

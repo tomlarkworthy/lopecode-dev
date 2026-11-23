@@ -15,7 +15,7 @@ import { parse, type Node, type Parsed } from "./ts/parse.ts";
 import { Registry } from "./ts/registry.ts";
 import { Checker } from "./infer.ts";
 import { ownership, actionEscapes, iterIn, mutIn, stripMut } from "./own.ts";
-import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, reservedName, RESERVED_MSG, reservedCellName, RESERVED_CELL_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith } from "../../types.ts";
+import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, union, reservedName, RESERVED_MSG, reservedCellName, RESERVED_CELL_MSG, reservedText, RESERVED_TEXT_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith } from "../../types.ts";
 import { CAPABILITIES } from "../../intrinsics.ts";
 import { island, specOf, compileCalls } from "./ts/island.ts";
 import { factsOf, type CellInfo } from "./ts/facts.ts";
@@ -214,6 +214,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     // DELIBERATE CHANGE (2026-11-23, e1): a cell may not be named Generators or invalidation (inputs compiled cells take
     // from the module); ss_… and $ss$… names reach this file through types.ts reservedName, which it imports
     if (reservedCellName(c.name)) diag(c.fn, "reserved-name", RESERVED_CELL_MSG(c.name));
+    // DELIBERATE CHANGE (2026-11-23, a9): text the compiler reserves (/*ss, its language mark) is refused at check time (5d)
+    const mark = reservedText(P.src.slice(c.stmt.start, c.stmt.end));
+    if (mark !== null) diag(c.fn, "reserved-name", RESERVED_TEXT_MSG(c.name, mark));
     // injection
     const injected: Ty[] = [];
     for (const p of c.fn.params as Node[]) {
@@ -331,6 +334,10 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     let ret = fnT.k === "fn" ? fnT.ret : ERR;
     if (c.fn.async && isNamed(ret, "Promise")) ret = ret.args[0];
     if (c.fn.generator && isNamed(ret, "Generator")) ret = ret.args[0];
+    // DELIBERATE CHANGE (2026-11-23, a9): the runtime awaits a cell's value, so its readers get it with every Promise level off (B-3)
+    const um = (t: Ty): Ty[] => t.k === "union" ? t.ts.flatMap(um) : t.k === "named" && reg.isAlias(t.n) && (reg.expand(t).k === "union" || !["rec", "err"].includes(reg.expand(t).k)) ? um(reg.expand(t)) : t.k === "never" ? [] : [t];
+    const isP = (m: Ty) => isNamed(m, "Promise") && m.k === "named" && m.args[0] !== undefined;
+    const settle = (x: Ty, d: number): Ty => d > 16 || !um(x).some(isP) ? x : union(um(x).map((m) => isP(m) && m.k === "named" ? settle(m.args[0], d + 1) : m));
     // DELIBERATE CHANGE (2026-11-22, S4): what a cell exposes is the read-only view (frozen at run time), not [mut-cell]
     ret = stripMut(ret, reg);
     if (c.fn.generator && !c.fn.async) eventsInner.set(c.name, ret);
@@ -354,8 +361,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     if (isNamed(ret, "Listener") || (ret.k === "union" && ret.ts.every((t) => isNamed(t, "Listener")))) listenerCells.add(c.name);
     else if (holds(ret, ["Listener"])) r.errors.push({ rule: "listener-placement", line: P.line(c.fn.start), msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` });
     const usable = !hasErr(ret) && (r.unsupported.length === 0 || !!c.fn.returnType);
-    value.set(c.name, usable ? ret : null);
-    r.value = show(ret);
+    value.set(c.name, usable ? settle(ret, 0) : null);
+    r.value = show(settle(ret, 0));
     r.status = r.errors.length ? "rejected" : r.unsupported.length ? "unsupported" : r.blockedBy.length ? "blocked" : "ok";
   }
   // a later declaration of a name: reported as "<name> (2)", "<name> (3)", ... and rejected

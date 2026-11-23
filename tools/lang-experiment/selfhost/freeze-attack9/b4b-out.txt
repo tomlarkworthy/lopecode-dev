@@ -1,0 +1,124 @@
+##### mode: []
+== selfhost/freeze-attack9/b4b.ts:pp-cell-input: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:pp-then-callback: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4b.ts:pp-then-callback-ann: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4b.ts:pp-cell-input-unann: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input-nested: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:pp-await-local-consistent: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+-- controls 0, fired 0
+-- harness crashes 0
+-- 7 candidates, accepted 6, silent 4
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input-unann
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input-nested
+##### mode: [SS_MEASURE_BODYFN=0]
+== selfhost/freeze-attack9/b4b.ts:pp-cell-input: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:pp-then-callback: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4b.ts:pp-then-callback-ann: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4b.ts:pp-cell-input-unann: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input-nested: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:pp-await-local-consistent: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+-- controls 0, fired 0
+-- harness crashes 0
+-- 7 candidates, accepted 6, silent 4
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input-unann
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input-nested
+##### mode: [SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/b4b.ts:pp-cell-input: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:pp-then-callback: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4b.ts:pp-then-callback-ann: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4b.ts:pp-cell-input-unann: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input-nested: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:pp-await-local-consistent: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+-- controls 0, fired 0
+-- harness crashes 0
+-- 7 candidates, accepted 6, silent 4
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input-unann
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input-nested
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/b4b.ts:pp-cell-input: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:pp-then-callback: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+== selfhost/freeze-attack9/b4b.ts:pp-then-callback-ann: REJECT g:rejected[type][type]
+== selfhost/freeze-attack9/b4b.ts:pp-cell-input-unann: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input-nested: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack9/b4b.ts:pp-await-local-consistent: ACCEPT
+   drive -> same: "number"
+   show g = "number"
+-- controls 0, fired 0
+-- harness crashes 0
+-- 7 candidates, accepted 6, silent 4
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input-unann
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input-nested

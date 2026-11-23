@@ -199,6 +199,8 @@ export function runCheck(entry: Entry, src: Sources, opts: CheckOpts = {}): Chec
   const result: LiteResult = { port: r.port, file: r.file, ok: r.ok, module: r.module.map((e) => ({ ...e })), cells, ms: performance.now() - t0 };
   const facts = new Map<string, CellInfo>(r.facts.map((f) => [f.name, {
     name: f.name, span: [f.span[0] ?? 0, f.span[1] ?? 0], returnsRef: f.returnsRef, generator: f.generator, compiles: f.compiles.map((c) => ({ ...c })),
+    // DELIBERATE CHANGE (2026-11-23, a9): the shapes of the cell's cast<T> calls, as lite/core.ts gives them since e1
+    ...(f.casts.length ? { casts: [...f.casts] } : {}),
     params: f.params.map((p) => ({ name: p.name, refTyped: p.refTyped, eventsTyped: p.eventsTyped, ...(p.boundary ? { boundary: p.boundary } : {}) })),
   }]));
   Object.defineProperty(result, "facts", { value: facts, enumerable: false });

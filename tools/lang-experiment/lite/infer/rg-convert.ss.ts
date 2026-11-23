@@ -95,7 +95,13 @@ export const rgArgs = (rgGap) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfac
   for (const x of ta.params) out.push(G.convert(G, Y, E, I, Q, x, c));
   return out;
 };
-export const rgTypeRef = (rgOther, rgArgs, rgNamedRef, RG_ONE_ARG, WRAPPERS, UNKNOWN, ERR, arr, named, rgUnsup, rgReport) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, n: AstNode, c: RgCtx): Ty => {
+// a9 (2026-11-23): an alias of the user's that names itself is [type-cycle] once, for the module, and is not loaded; a use
+// of it rejects the cell and says why (it was "unknown type A"); a cell that uses it must not be ok
+export const rgUnloaded = () => (c: RgCtx, name: string): boolean => {
+  const body = c.origin === "user" && c.ast.program.type === "Program" ? c.ast.program.body : [];
+  return body.some((st) => { const d = st.type === "ExportNamedDeclaration" && st.declaration !== null ? st.declaration : st; return d.type === "TSTypeAliasDeclaration" && d.id.type === "Identifier" && d.id.name === name; });
+};
+export const rgTypeRef = (rgOther, rgArgs, rgNamedRef, RG_ONE_ARG, WRAPPERS, UNKNOWN, ERR, arr, named, rgUnsup, rgReport, rgUnloaded) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I: RgIfaceMemo, Q: RgCtls, n: AstNode, c: RgCtx): Ty => {
   if (n.type !== "TSTypeReference") return ERR;
   if (rgOther(Q, n.typeName)) return ERR;
   if (n.typeName.type !== "Identifier") return rgUnsup(Q, n, "qualified type name");
@@ -113,7 +119,7 @@ export const rgTypeRef = (rgOther, rgArgs, rgNamedRef, RG_ONE_ARG, WRAPPERS, UNK
   }
   if (WRAPPERS.has(name) || Y.has(name)) return rgNamedRef(G, Y, E, I, Q, name, args);
   if (name === "ValueOf") return rgUnsup(Q, n, "ValueOf in checked cells");
-  rgReport(Q, n, "unknown-type", `unknown type ${name}`);
+  rgReport(Q, n, "unknown-type", rgUnloaded(c, name) ? `type ${name} cannot be used: it is defined by itself ([type-cycle])` : `unknown type ${name}`);
   return ERR;
 };
 // a declared or wrapper name; an alias of Mut<T> or Borrowed<T> is that type, so the ownership rules see it

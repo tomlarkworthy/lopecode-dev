@@ -2,12 +2,14 @@
 // value rules, its record, and what it gives the cells after it.
 
 // the syntax pass: bans as errors of the record, satisfies as unsupported in the Checker log; then a reserved cell name
-export const mdSyntax = (syntaxBans, mdDiag, ixUnsup, reservedCellName, RESERVED_CELL_MSG) => (K: IxK, C: IxCtls, X: MdCtx, L: MdL, d: MdDef): void => {
+export const mdSyntax = (syntaxBans, mdDiag, ixUnsup, reservedCellName, RESERVED_CELL_MSG, reservedText, RESERVED_TEXT_MSG) => (K: IxK, C: IxCtls, X: MdCtx, L: MdL, d: MdDef): void => {
   for (const s of syntaxBans(d.fn)) {
     if (s.unsup) ixUnsup(K, C, s.at, s.msg);
     else mdDiag(X, L, s.at, s.rule, s.msg);
   }
   if (reservedCellName(d.name)) mdDiag(X, L, d.fn, "reserved-name", RESERVED_CELL_MSG(d.name));
+  const m = reservedText(X.src.slice(d.stmt.start, d.stmt.end));
+  if (m !== null) mdDiag(X, L, d.fn, "reserved-name", RESERVED_TEXT_MSG(d.name, m));
 };
 // the compile hook of this cell's check: the module's tables as they are now, and this cell's errors so far
 export const mdHookOf = (mdCompileType) => (ix: IxReg, X: MdCtx, value: Map<string, Ty | null>, refInner: Map<string, Ty>, out: Map<string, MdCellRec>, me: MdCellRec) =>

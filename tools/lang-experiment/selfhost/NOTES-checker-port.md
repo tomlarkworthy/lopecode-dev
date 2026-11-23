@@ -3154,3 +3154,185 @@ kept for literal keys.
 
 **A cell named `h` read by a JSX cell** is rejected with `[no-member]` (`e1-check/h.ts`): loud, with a message that
 does not say the name is the cause.
+
+## 2026-11-23: a9 (attack 9 fixes) (build owner, 11:18–12:20, logs `lite/soundscript/.scratch/a9/`)
+
+Input: `selfhost/freeze-attack9/RESULTS.md`. Originals of every edited file are in `.scratch/a9/orig/`. Before and
+after runs of every candidate file are in `.scratch/a9/before/` and `.scratch/a9/after/` (`before.sh before|after`:
+drive-run.ts over b4 b4b c2 c3 c4 c5 f1 g, run9.ts over c2 c4 c5 b4 b4b, the pb verdicts, yexp2; `one.ts` runs one g2
+row per process). Checker changes are in the live cells and, under `DELIBERATE CHANGE (2026-11-23, a9)`, in
+`lite/infer/frozen/`. New standing set `lite/infer/attack/a9-attacks.ts` (61 rows; `a9-ok-*` must be accepted), set
+`a9` in run-sets.ts, asserted in live.test.ts (no row silent shipped and with `SS_MEASURE_REG=0`; each row's verdict
+the same in both checkers; four boundary annotations). Corpus census: `r2/census3.ts --against a9/census/base.json`
+(base saved before any edit) after each item.
+
+### B-1, `key` on a component: the runtime drops it, the checker rejects props that declare it
+Chosen over checking `key` against a declared member: that would still leave an undeclared `key` in the props of every
+other component, readable by `Object.keys(p)` (`a9-ok-key-not-given` reads `"n"` now). `lite/jsx/h.ts` calls a
+component with its props minus `key`, as React does. `ixJsxKeyProp` (ix-jsx.ss.ts, after the call) rejects with `[type]`
+a component whose first parameter's type, in any union member, has a `key` member. `ixJsxGiven` holds e1's key check,
+moved out so `ixJsx` is 26 lines (it was 29).
+```
+b4.ts key-comp-read   before: ACCEPT  drive -> DIFF g is outside its type: ... ["undefined"]
+                      after:  REJECT g:rejected[type]  component C's props declare key, which JSX keeps for the renderer ...
+drive-run b4.ts       accepted 42 -> 34, silent 8 -> 2 (the 2 left are 5a, below)
+```
+Lines: h.ts +2 -1, ix-jsx.ss.ts +16 -6, frozen/infer.ts +4. Newly rejected: any props type with `key`, `key?: number`
+included (accepted, and sound for a number, before). Corpus: no verdict changed.
+
+### B-2, a literal type JSON writes as `null`: `[cast-type]`, and `[boundary-type]` at the boundary
+`shapeIn`'s `lit` case refuses a number literal that is not finite. Both the cast edits (`tcCastEdits`) and the
+boundary (`tc-build.ss.ts` line 82, `boundary.ts` `shapeKey`) write shapes with `JSON.stringify`, and both take them
+from `shapeAt`, so one line covers both. The boundary had the defect: `const f = (x: 1e400) => typeof x` with `x`
+from another language is `ok` on the tree before e1 (`before/boundary-inf.txt`), `[boundary-type]` now. `-0` is not
+a lie: the checker treats `-0` and `0` as one type; JSON writes `0`; `primFits` uses `Object.is`, so `cast<0>(-0)` is
+refused (a false refusal, not run). A bigint literal type is unsupported already. NaN has no literal type.
+```
+c5.ts lit-infinity    before: ACCEPT  drive -> DIFF g is outside its type: string "object"
+                      after:  REJECT g:rejected[cast-type]  ... it is or holds Infinity, a literal type JSON cannot write
+drive-run c5.ts       accepted 19 -> 12, silent 6 -> 0
+```
+Lines: shape.ss.ts +2 -1. Newly rejected: `cast<1e400>` and the boundary annotation; `cast<1e400>(1e400)` was refused at
+run time before (the other side of the defect), so nothing that worked is lost.
+
+### B-3, a cell's promise: readers get the value with every `Promise` level off
+`mdSettled` (md-value.ss.ts) takes off every `Promise`, in each union member, from the value `mdValueRules` gives
+readers; the `events` type (what a listener's action gets) and `ref` (`State<T>`, what `read` gets) keep it. Measured
+before choosing that split (`after/m3-measure.txt`, run before the change): a sync generator yielding `Promise.resolve(5)` and a state cell
+holding one both give their readers `5` while the checker said `Promise<number>` (two more silent forms, not in
+RESULTS.md); a listener's action receives the promise object (`"object"`), so `Events<T>` is left as it was. A promise
+in a record is not awaited and keeps its type: `{ q: Promise.resolve(5) }` read as `{ readonly q: Promise<number> }`
+gives `["object", 5]`. The promise is not frozen (`Object.isFrozen(p.q)` is `false` with the checker skipped); it has
+no own data a reader could change, so this is recorded, not changed.
+```
+b4b.ts pp-cell-input        before: ACCEPT  drive -> DIFF g is outside its type: string "number"
+                            after:  REJECT g:rejected[inject-type]
+b4b.ts sync-cell-promise-input  before: ACCEPT (silent)   after: REJECT [inject-type]
+drive-run b4b.ts            accepted 6 -> 3, silent 4 -> 1
+```
+The one left, `pp-cell-input-unann` (`(p) => typeof p`), gives `"number"` and its oracle wants `"object"`: the row's
+oracle is the old type. Lines: md-value.ss.ts +10 -2, frozen/core.ts +5 (a local `settle`) and 2 changed. Newly
+accepted, as the item requires: a reader annotated with the settled type. fa3 `b8.ts:resp-direct` and
+`resp-json-twice` (a sync cell returning `fetch(...)`, read as `FetchResponse`) move from REJECT to ACCEPT; the second
+runs to `Body already used`. That is the FetchResponse-as-a-cell-value hole (out of scope), now reachable from a sync
+cell as it was from an async one. fa2 `pr-top-then`, `pc-typed-top` and `cs-promise-resolve` lose a reader's
+`[inject-type]` and stay rejected. These five rows are the whole difference in both `all.out.txt` files, so they were
+kept, not restored. Corpus census: no verdict changed.
+
+### B-4, a type that branches at each level: bounded
+Instrumented before deciding: a census run's largest shape pass made 1794 parts (a `parseTree` result type crossing
+in the toolchain); setting the bound to 300 made the census throw on that crossing. Memoising by type would leave the
+JSON written into the compiled cell exponential, so the shape is bounded instead: `ShapeCtx.met` counts the parts one
+pass makes, and past `SHAPE_PARTS` (10000) the pass ends with "a type too large to check at run time". Both passes of
+`shapeAt` are bounded, so a cast or boundary annotation costs at most about 20000 parts.
+```
+                     before (2026-11-23, this machine)   after
+yexp2 depth 18       270 ms                              24 ms
+yexp2 depth 22       3865 ms                             26 ms
+yexp2 depth 30       no verdict in 150 s (RESULTS.md)    26 ms
+yexp 25 cast         40869 ms                            25 ms
+```
+The cost is measured in `shape.test.ts` with an expansion counter, not a timer: `P` nested 30 deep takes 3349
+expansions (at most 2 x 10001). A record four wide and 7 deep (4^7 leaves, under the depth limit, accepted before) is
+now refused; three wide and 6 deep is accepted. The refusal of a deep branching type still says "a recursive type": the
+first pass's message is the one reported when the second finds no recursion (`shapeAt`), and `shape.test.ts` and
+`boundary.test.ts` assert that wording, so it was left. Lines: shape.ss.ts +9 -4. Corpus: no verdict changed.
+
+### 5a, `delete` on a required member: not built (changes a spec verdict)
+Built and measured, then reverted (`a9/ix-ops.5a-unbuilt.ss.ts`, `a9/frozen-delete.5a-unbuilt.txt`): `ixDeleteBad`
+rejects a delete of a required member, any delete with a run-time key on a record with a required member, and a delete
+of an array element; `delete m[k]` on a record with only an index signature stays accepted. 13 live lines plus 6 frozen.
+It changes one corpus verdict: spec S4.1's accepted example (`spec.ojs`, about line 920, `const o = { a: 1, b: 2 }; delete
+o.a; ... return [t, m.size, o, r]`) becomes `[no-delete]`. Options for the owner: (1) build it and change S4.1's
+example to an optional member; (2) allow delete only on a fresh unannotated local that is not read again (larger);
+(3) leave S3.4 as it is and record the hole. `b4.ts idx-with-member` and `idx-delete-required` stay silent.
+
+### 5b, narrowing that survives a helper's assignment: not built (more than ~15 lines)
+Prototype (`a9/ix-fn.5b-prototype.ss.ts`, `a9/ix-expr.5b-prototype.ss.ts`, reverted): when a function is checked, each
+`let` or parameter its body assigns, found from the enclosing scope, is marked and its narrowings dropped, and
+`ixPathKey` does not narrow a marked binding. With it the census changed no corpus verdict (`a9/census/proto-5b.txt`;
+the only changes were the prototype's own `as any`). It misses a function declaration checked after the narrowed read
+(`hoisted-after-test` in `a9/p8.ts` stays accepted), because a hoisted body is checked when its statement is reached,
+after the `if`. Closing that needs the names a hoisted body assigns kept per cell and applied when a `let` is
+declared. The whole fix is about 10 live lines plus 8 frozen, over the limit. The "drop at every call" option was not
+built: it would drop the narrowing of every `let` at every call, and an async helper started before the test defeats
+it anyway. Holes recorded, all accepted now (`a9/before/p8-5b.txt`): `narrow-helper-plain`, a reassigned parameter
+(`param-written`), a nullable let read after `bad()` with no test (`nullable-init`), and the hoisted form.
+
+### 5c, a cell named after a prelude name or `h`: not built (changes corpus verdicts)
+Built (`a9/messages.5c-unbuilt.ss.ts`): `reservedCellName` also takes `state action snapshot equals on read messageOf
+memo cast h`, with the message "cell cast: cast is reserved as a cell name: cast is a prelude function, and a cell of
+that name stops the module from running (Cannot declare a const variable twice); rename the cell". The census showed
+verdict changes: `selfhost/rt/prelude.ss.ts` cells `state` (unsupported -> rejected) and `read` (ok -> rejected), the
+runtime's own prelude, where these names are legitimately its cells (`tcInputsIn` does not prefix them in the runtime
+module); spec S11.9 reject rows 446 and 447, whose helper cell `h` went ok -> rejected; and a probe. Measured with the
+checker skipped (`a9/before/m5c-runtime.txt`): a cell named `cast`, `h` or `on`, alone or beside another cell, stops
+the harness's module with "Cannot declare a const variable twice". Options: reserve the names everywhere except the
+runtime module (needs the module's identity in `MdCtx`); reserve them and rename the spec rows' `h`; or leave the
+run-time message.
+
+### 5d, `cast<"/*ss-*/">`: rejected at check time
+`reservedText` (messages.ss.ts) is the compiler's own test (`tcCompileChecked`), run in `mdSyntax` over the cell's
+statement; `[reserved-name]` names the cell and the text. A string, comment, template, JSX text, property key or type
+holding the mark is rejected; `"/" + "*ss-*/"` is accepted. Found by the first gate run (summary line "bun-verify: 14 pass, 168 fail"; that log was replaced by the
+rerun): a comment above `reservedText` that spelled the mark stopped the notebook compiling. Cause inferred, not
+traced: the checker reads the cell's statement, the compiler the whole cell text. Open hole: a mark in a comment
+before a cell's statement still fails at compile time instead of getting `[reserved-name]`. Lines: messages.ss.ts +4,
+md-cell.ss.ts +3 -1, types.ts and infer-ss.ts one changed line each, frozen/core.ts +3. Corpus: no verdict changed.
+
+### 5e, the two misleading messages
+`want` (runtime.ss.ts) names a record's first four members, a nested record as `{…}`; `describeSeen` (cross.ss.ts)
+says "an object whose prototype is not Object.prototype" where it said "a Object object".
+```
+c2.ts union-tag-numlit  before: value: expected an object or an object, found an object
+                        after:  value: expected an object { t: 1, n: number } or an object { t: 2, s: string }, found an object
+c2.ts opt-inherited     after:  value: expected an object { a?: number }, found an object whose prototype is not Object.prototype
+```
+`boundary.test.ts`'s 8 expected strings were updated. Its 3 other failures (`type A = A | number` expected as
+`[boundary-type]`, now `[unknown-type]` after e1's `[type-cycle]`) fail the same with the original test file; not
+touched. Lines: runtime.ss.ts +5 -1, cross.ss.ts +2 -1.
+
+### Spec and messages
+spec.ojs: S2.4 (B-3, two reject rows), S2.10 (5d, one), S6.20 (B-1, one), S9.8 (B-2 and B-4, two), S11.3 (B-2, one).
+message-fixes.ts: `component-key-prop`, `cast-type-infinity`, `reserved-text` (65 rows pass).
+
+### Gates (`.scratch/a9/gates.sh`, logs `a9/gates/`, final tree)
+build 0; bun-verify 182 pass; fixtures 14/14 (57 rules, 57 with a reject case); diff DIFFERENT 0 (1131 sources, 3917
+cells), `--module-only` 1221 SAME; tc-diff 56 lines; live.test 706 pass; message-fixes 65; freeze-table 441; tc 11,
+run 2, acorn 6; run-sets 2346 programs silent 0 shipped and REG=0; a9 61 programs, accepted 19, silent 0; shape.test
+24 pass; boundary.test 127 pass 3 fail (above); fa2 309/9/0, fa3 360/13/0 (11 -> 13 accepted, B-3); run-sets
+BODYFN=0 silent 1 (`f1-q-promise-width`, recorded in f1 and silent in e1's `.scratch/e1/mine/rs-bodyfn0.log`); `verify.ts --quick` 234 pass; full `verify.ts`
+678 pass 0 fail (one run, no stop).
+
+### Attack 9 rows after (`a9/after/`)
+run9: b4 silent 8 -> 2 (5a), b4b 4 -> 1 (oracle, above), c5 6 -> 0, c2 4 -> 4 (RESULTS.md's own wrong oracle for
+`unknown`), c4 2 -> 2 (5b). g2 rows: still accepted and still "Cannot declare a const variable twice" (5c). Product
+lines added, all items: 69 (checker 46, frozen 14, runtime 9), counted with `diff` against `a9/orig/`.
+
+## 2026-11-23 18:50–20:50: owner-session check of a9, and tests outside the gate list
+
+**Tests the gates did not run.** Running every `lite/**/*.test.ts` after a9 found two files failing: `boundary.test.ts`
+(3: `type A = A | number` expected as `[boundary-type]`, got `[unknown-type]`) and `infer/rg.test.ts` (1:
+`e2e.different` 4, expected 0). Both came from e1's `[type-cycle]`, and neither file was in the gate script, so the e1
+commit (07f0f083) went in with them failing. The gate script now runs every test file (`.scratch/a9/gates-mine.sh`,
+33 files). `browser/delivery.test.ts` and `toolchain/ojs-roundtrip.test.ts` print no bun count and take minutes; both
+pass.
+
+**A half-finished change, replaced.** The a9 builder stopped at 13:20 with this in the tree: a use of an alias that
+`[type-cycle]` did not load was `ERR` with no report. The cell that used it then had status `ok` while the module
+carried the error (7 `live.test.ts` rows failed: `expected ["rejected"], received ["ok"]`). `tutorial.ojs` is the only
+caller found that refuses on `result.module.length`; whether every path that compiles a cell does was not established,
+so a cell that uses an unloaded type must not be `ok`. Now, in both checkers: the use is
+`[unknown-type] type A cannot be used: it is defined by itself ([type-cycle])`, and the cell is rejected. The spec row
+`type A = A | number; const a = (): A => 1` (added by a9, expecting `[type-cycle]` alone) was removed.
+
+**Gates on the final tree.** `.scratch/a9/mine2/summary.txt` (run before the spec row was removed): diff DIFFERENT 0
+(3919 cells), `--module-only` 1223 SAME, run-sets 2349 programs silent 0 with registration on and off, fa2 309/9/0,
+fa3 360/13/0, 33 of 33 test files exit 0 (live.test 709). After the row was removed: build 0, bun-verify 182 pass,
+fixtures 14/14, full verify 678 pass 0 fail (`.scratch/a9/mine3/`). Not rerun after the row was removed: diff,
+run-sets, the test files.
+
+**Not built, from a9's list:** `delete` on a required member (the draft rejects spec S4.1's accepted example); a `let`
+narrowed across a call to a helper that reassigns it (about 18 lines, and the draft misses hoisted functions); a cell
+named after a prelude name or `h` (reserving the names changes the runtime's own `read` and `state` cells and two spec
+rows).

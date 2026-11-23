@@ -1,0 +1,364 @@
+##### mode: []
+== selfhost/freeze-attack9/c4.ts:narrow-reassign-let: REJECT g:rejected[no-member]
+== selfhost/freeze-attack9/c4.ts:narrow-reassign-in-fn: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/c4.ts:narrow-reassign-loop: ACCEPT
+   drive -> same: "number,number"
+   show g = "number,number"
+== selfhost/freeze-attack9/c4.ts:narrow-plain-union-reassign-local-type: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c4.ts:narrow-plain-union-helper: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/c4.ts:narrow-nullable-helper: ACCEPT
+   drive -> same: g rejected null is not an object (evaluating 'r.n')
+   show g = ERROR null is not an object (evaluating 'r.n')
+   error g: null is not an object (evaluating 'r.n')
+== selfhost/freeze-attack9/c4.ts:write-cast-value: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/c4.ts:write-cast-value-idx: REJECT g:rejected[member-write]
+== selfhost/freeze-attack9/c4.ts:annot-local-from-cast: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/c4.ts:cast-of-mut-copy: ACCEPT
+   drive -> same: 3
+   show g = 3
+== selfhost/freeze-attack9/c4.ts:cast-of-mut-then-write: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/c4.ts:cast-mut-member: REJECT g:rejected[mut-nested][cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-fn-member: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-map-member: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-date-member: REJECT g:rejected[unknown-type][cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-promise: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-index-sig: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-generic-param: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-no-targ: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-two-targs: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-as-value: REJECT g:rejected[prelude-value]
+== selfhost/freeze-attack9/c4.ts:cast-new: REJECT g:rejected[new-non-intrinsic][prelude-value]
+== selfhost/freeze-attack9/c4.ts:cast-fn-value: ACCEPT
+   drive -> same: false
+   show g = false
+== selfhost/freeze-attack9/c4.ts:cast-bigint-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-object-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-never: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-elem-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-state-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-local: REJECT g:rejected[mut-nested][cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-param: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-cb-param: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-from-overload: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c4.ts:cast-in-action: ACCEPT
+   drive -> same: ""
+   show g = ""
+== selfhost/freeze-attack9/c4.ts:cast-in-action-driven: ACCEPT
+   drive -> same: R
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-generator: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-events-listener: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-island: REJECT k:unsupported g:blocked
+== selfhost/freeze-attack9/c4.ts:cast-in-memo: ACCEPT
+   drive -> same: ["R","R"]
+   show g = ["R","R"]
+== selfhost/freeze-attack9/c4.ts:cast-kept-returned: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-state-init: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-component-prop: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":["R"]}
+   show g = {tag:"div",props:{},children:["R"]}
+== selfhost/freeze-attack9/c4.ts:cast-two-cells: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c4.ts:cast-cell-reorder: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c4.ts:cast-value-aliases-input: REJECT g:rejected[strict-eq-object]
+== selfhost/freeze-attack9/c4.ts:ctl-narrow [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   CONTROL FIRED
+-- controls 1, fired 1
+-- harness crashes 0
+-- 44 candidates, accepted 17, silent 2
+SILENT selfhost/freeze-attack9/c4.ts:narrow-reassign-in-fn
+SILENT selfhost/freeze-attack9/c4.ts:narrow-plain-union-helper
+##### mode: [SS_MEASURE_BODYFN=0]
+== selfhost/freeze-attack9/c4.ts:narrow-reassign-let: REJECT g:rejected[no-member]
+== selfhost/freeze-attack9/c4.ts:narrow-reassign-in-fn: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/c4.ts:narrow-reassign-loop: ACCEPT
+   drive -> same: "number,number"
+   show g = "number,number"
+== selfhost/freeze-attack9/c4.ts:narrow-plain-union-reassign-local-type: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c4.ts:narrow-plain-union-helper: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/c4.ts:narrow-nullable-helper: ACCEPT
+   drive -> same: g rejected null is not an object (evaluating 'r.n')
+   show g = ERROR null is not an object (evaluating 'r.n')
+   error g: null is not an object (evaluating 'r.n')
+== selfhost/freeze-attack9/c4.ts:write-cast-value: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/c4.ts:write-cast-value-idx: REJECT g:rejected[member-write]
+== selfhost/freeze-attack9/c4.ts:annot-local-from-cast: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/c4.ts:cast-of-mut-copy: ACCEPT
+   drive -> same: 3
+   show g = 3
+== selfhost/freeze-attack9/c4.ts:cast-of-mut-then-write: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/c4.ts:cast-mut-member: REJECT g:rejected[mut-nested][cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-fn-member: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-map-member: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-date-member: REJECT g:rejected[unknown-type][cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-promise: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-index-sig: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-generic-param: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-no-targ: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-two-targs: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-as-value: REJECT g:rejected[prelude-value]
+== selfhost/freeze-attack9/c4.ts:cast-new: REJECT g:rejected[new-non-intrinsic][prelude-value]
+== selfhost/freeze-attack9/c4.ts:cast-fn-value: ACCEPT
+   drive -> same: false
+   show g = false
+== selfhost/freeze-attack9/c4.ts:cast-bigint-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-object-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-never: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-elem-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-state-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-local: REJECT g:rejected[mut-nested][cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-param: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-cb-param: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-from-overload: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c4.ts:cast-in-action: ACCEPT
+   drive -> same: ""
+   show g = ""
+== selfhost/freeze-attack9/c4.ts:cast-in-action-driven: ACCEPT
+   drive -> same: R
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-generator: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-events-listener: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-island: REJECT k:unsupported g:blocked
+== selfhost/freeze-attack9/c4.ts:cast-in-memo: ACCEPT
+   drive -> same: ["R","R"]
+   show g = ["R","R"]
+== selfhost/freeze-attack9/c4.ts:cast-kept-returned: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-state-init: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-component-prop: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":["R"]}
+   show g = {tag:"div",props:{},children:["R"]}
+== selfhost/freeze-attack9/c4.ts:cast-two-cells: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c4.ts:cast-cell-reorder: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c4.ts:cast-value-aliases-input: REJECT g:rejected[strict-eq-object]
+== selfhost/freeze-attack9/c4.ts:ctl-narrow [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   CONTROL FIRED
+-- controls 1, fired 1
+-- harness crashes 0
+-- 44 candidates, accepted 17, silent 2
+SILENT selfhost/freeze-attack9/c4.ts:narrow-reassign-in-fn
+SILENT selfhost/freeze-attack9/c4.ts:narrow-plain-union-helper
+##### mode: [SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/c4.ts:narrow-reassign-let: REJECT g:rejected[no-member]
+== selfhost/freeze-attack9/c4.ts:narrow-reassign-in-fn: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/c4.ts:narrow-reassign-loop: ACCEPT
+   drive -> same: "number,number"
+   show g = "number,number"
+== selfhost/freeze-attack9/c4.ts:narrow-plain-union-reassign-local-type: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c4.ts:narrow-plain-union-helper: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/c4.ts:narrow-nullable-helper: ACCEPT
+   drive -> same: g rejected null is not an object (evaluating 'r.n')
+   show g = ERROR null is not an object (evaluating 'r.n')
+   error g: null is not an object (evaluating 'r.n')
+== selfhost/freeze-attack9/c4.ts:write-cast-value: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/c4.ts:write-cast-value-idx: REJECT g:rejected[member-write]
+== selfhost/freeze-attack9/c4.ts:annot-local-from-cast: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/c4.ts:cast-of-mut-copy: ACCEPT
+   drive -> same: 3
+   show g = 3
+== selfhost/freeze-attack9/c4.ts:cast-of-mut-then-write: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/c4.ts:cast-mut-member: REJECT g:rejected[mut-nested][cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-fn-member: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-map-member: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-date-member: REJECT g:rejected[unknown-type][cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-promise: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-index-sig: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-generic-param: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-no-targ: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-two-targs: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-as-value: REJECT g:rejected[prelude-value]
+== selfhost/freeze-attack9/c4.ts:cast-new: REJECT g:rejected[new-non-intrinsic][prelude-value]
+== selfhost/freeze-attack9/c4.ts:cast-fn-value: ACCEPT
+   drive -> same: false
+   show g = false
+== selfhost/freeze-attack9/c4.ts:cast-bigint-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-object-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-never: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-elem-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-state-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-local: REJECT g:rejected[mut-nested][cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-param: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-cb-param: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-from-overload: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c4.ts:cast-in-action: ACCEPT
+   drive -> same: ""
+   show g = ""
+== selfhost/freeze-attack9/c4.ts:cast-in-action-driven: ACCEPT
+   drive -> same: R
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-generator: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-events-listener: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-island: REJECT k:unsupported g:blocked
+== selfhost/freeze-attack9/c4.ts:cast-in-memo: ACCEPT
+   drive -> same: ["R","R"]
+   show g = ["R","R"]
+== selfhost/freeze-attack9/c4.ts:cast-kept-returned: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-state-init: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-component-prop: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":["R"]}
+   show g = {tag:"div",props:{},children:["R"]}
+== selfhost/freeze-attack9/c4.ts:cast-two-cells: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c4.ts:cast-cell-reorder: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c4.ts:cast-value-aliases-input: REJECT g:rejected[strict-eq-object]
+== selfhost/freeze-attack9/c4.ts:ctl-narrow [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   CONTROL FIRED
+-- controls 1, fired 1
+-- harness crashes 0
+-- 44 candidates, accepted 17, silent 2
+SILENT selfhost/freeze-attack9/c4.ts:narrow-reassign-in-fn
+SILENT selfhost/freeze-attack9/c4.ts:narrow-plain-union-helper
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/c4.ts:narrow-reassign-let: REJECT g:rejected[no-member]
+== selfhost/freeze-attack9/c4.ts:narrow-reassign-in-fn: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/c4.ts:narrow-reassign-loop: ACCEPT
+   drive -> same: "number,number"
+   show g = "number,number"
+== selfhost/freeze-attack9/c4.ts:narrow-plain-union-reassign-local-type: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c4.ts:narrow-plain-union-helper: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack9/c4.ts:narrow-nullable-helper: ACCEPT
+   drive -> same: g rejected null is not an object (evaluating 'r.n')
+   show g = ERROR null is not an object (evaluating 'r.n')
+   error g: null is not an object (evaluating 'r.n')
+== selfhost/freeze-attack9/c4.ts:write-cast-value: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/c4.ts:write-cast-value-idx: REJECT g:rejected[member-write]
+== selfhost/freeze-attack9/c4.ts:annot-local-from-cast: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack9/c4.ts:cast-of-mut-copy: ACCEPT
+   drive -> same: 3
+   show g = 3
+== selfhost/freeze-attack9/c4.ts:cast-of-mut-then-write: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack9/c4.ts:cast-mut-member: REJECT g:rejected[mut-nested][cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-fn-member: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-map-member: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-date-member: REJECT g:rejected[unknown-type][cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-promise: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-index-sig: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-generic-param: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-no-targ: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-two-targs: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-as-value: REJECT g:rejected[prelude-value]
+== selfhost/freeze-attack9/c4.ts:cast-new: REJECT g:rejected[new-non-intrinsic][prelude-value]
+== selfhost/freeze-attack9/c4.ts:cast-fn-value: ACCEPT
+   drive -> same: false
+   show g = false
+== selfhost/freeze-attack9/c4.ts:cast-bigint-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-object-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-never: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-elem-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-state-type: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-local: REJECT g:rejected[mut-nested][cast-type]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-param: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-cb-param: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c4.ts:cast-typeof-from-overload: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c4.ts:cast-in-action: ACCEPT
+   drive -> same: ""
+   show g = ""
+== selfhost/freeze-attack9/c4.ts:cast-in-action-driven: ACCEPT
+   drive -> same: R
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-generator: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-events-listener: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-island: REJECT k:unsupported g:blocked
+== selfhost/freeze-attack9/c4.ts:cast-in-memo: ACCEPT
+   drive -> same: ["R","R"]
+   show g = ["R","R"]
+== selfhost/freeze-attack9/c4.ts:cast-kept-returned: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-in-state-init: ACCEPT
+   drive -> same: "R"
+   show g = "R"
+== selfhost/freeze-attack9/c4.ts:cast-component-prop: ACCEPT
+   drive -> same: {"tag":"div","props":{},"children":["R"]}
+   show g = {tag:"div",props:{},children:["R"]}
+== selfhost/freeze-attack9/c4.ts:cast-two-cells: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c4.ts:cast-cell-reorder: ACCEPT
+   drive -> same: ["R","N"]
+   show g = ["R","N"]
+== selfhost/freeze-attack9/c4.ts:cast-value-aliases-input: REJECT g:rejected[strict-eq-object]
+== selfhost/freeze-attack9/c4.ts:ctl-narrow [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined"
+   CONTROL FIRED
+-- controls 1, fired 1
+-- harness crashes 0
+-- 44 candidates, accepted 17, silent 2
+SILENT selfhost/freeze-attack9/c4.ts:narrow-reassign-in-fn
+SILENT selfhost/freeze-attack9/c4.ts:narrow-plain-union-helper

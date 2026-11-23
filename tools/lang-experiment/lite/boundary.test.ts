@@ -26,14 +26,14 @@ const many: Shape = { k: "union", ts: Array.from({ length: 100 }, (_, i) => rec(
   ok(`the last of 100 tagged members: ${reads} property reads (at most 4)`, r === 'ok {"type":"T99","f99":1}' && reads <= 4, { r, reads });
 }
 const two: Shape = { k: "union", ts: [rec(["type", lit("a")], ["x", { k: "num" }]), rec(["type", lit("b")], ["y", { k: "str" }])] };
-const failed = "TypeError: p: expected an object or an object, found";
+const failed = 'TypeError: p: expected an object { type: "a", x: number } or an object { type: "b", y: string }, found';
 const cases: [string, unknown, string][] = [
   ["the member the tag names", { type: "b", y: "s", z: 1 }, 'ok {"type":"b","y":"s"}'],
   ["an unknown tag: the union's message", { type: "c" }, `${failed} an object`],
   ["a missing tag", { x: 1 }, `${failed} an object`],
   ["the right tag and a wrong field: the member's message, at the field", { type: "b", y: 1 }, "TypeError: p.y: expected string, found number 1"],
   ["the right tag and a missing field: the member's message", { type: "a" }, "TypeError: p.x: expected number, found nothing"],
-  ["a tag inherited from a prototype", Object.create({ type: "a", x: 1 }), `${failed} a Object object`],
+  ["a tag inherited from a prototype", Object.create({ type: "a", x: 1 }), `${failed} an object whose prototype is not Object.prototype`],
   ["a number", 3, `${failed} number 3`],
   ["an array", ["a"], `${failed} an array of 1`],
   ["null", null, `${failed} null`],
@@ -50,9 +50,9 @@ for (const [label, v, want] of cases) { const r = res(v, two); ok(label, r === w
   const sole: [string, unknown, Shape, string][] = [
     ["the only array member, an element wrong", ["s", 1], mixed, "TypeError: p[1]: expected string, found number 1"],
     ["the only record member, untagged", { a: "x" }, { k: "union", ts: [rec(["a", { k: "num" }]), { k: "null" }] }, 'TypeError: p.a: expected number, found string "x"'],
-    ["two record members, untagged", { a: true }, { k: "union", ts: [rec(["a", { k: "num" }]), rec(["a", { k: "str" }])] }, "TypeError: p: expected an object or an object, found an object"],
-    ["a record member and unknown", { a: () => 1 }, { k: "union", ts: [rec(["a", { k: "num" }]), { k: "unknown" }] }, "TypeError: p: expected an object or data, found an object"],
-    ["a primitive at the union's place", "s", { k: "union", ts: [{ k: "num" }, rec(["a", { k: "num" }])] }, 'TypeError: p: expected number or an object, found string "s"'],
+    ["two record members, untagged", { a: true }, { k: "union", ts: [rec(["a", { k: "num" }]), rec(["a", { k: "str" }])] }, "TypeError: p: expected an object { a: number } or an object { a: string }, found an object"],
+    ["a record member and unknown", { a: () => 1 }, { k: "union", ts: [rec(["a", { k: "num" }]), { k: "unknown" }] }, "TypeError: p: expected an object { a: number } or data, found an object"],
+    ["a primitive at the union's place", "s", { k: "union", ts: [{ k: "num" }, rec(["a", { k: "num" }])] }, 'TypeError: p: expected number or an object { a: number }, found string "s"'],
     ["a tuple of the wrong length at the union's place", [1], { k: "union", ts: [{ k: "tup", els: [{ k: "num" }, { k: "num" }] }, { k: "null" }] }, "TypeError: p: expected an array of 2 or null, found an array of 1"],
     ["a union inside a union", { a: { b: 1 } }, { k: "union", ts: [{ k: "union", ts: [rec(["a", { k: "union", ts: [rec(["b", { k: "str" }]), { k: "null" }] }]), { k: "num" }] }, { k: "null" }] }, "TypeError: p.a.b: expected string, found number 1"],
   ];
@@ -86,13 +86,18 @@ const shapeOf = (types: string, ann: string): Shape | string => {
   const r = checkSources({ cells: `${types}\nexport const take = (p: ${ann}): number => 1;`, tsx: false, outside: [{ name: "p" }] });
   return r.facts?.get("take")?.params[0]?.boundary?.shape ?? r.cells.find((c) => c.name === "take")!.errors.map((e) => `[${e.rule}] ${e.msg}`).join("; ");
 };
+// every module error and cell error of the program, in order
+const allDiags = (types: string, ann: string): string => {
+  const r = checkSources({ cells: `${types}\nexport const take = (p: ${ann}): number => 1;`, tsx: false, outside: [{ name: "p" }] });
+  return [...r.module.map((m) => `module [${m.rule}] ${m.msg}`), ...r.cells.flatMap((c) => c.errors.map((e) => `${c.name} [${e.rule}] ${e.msg}`))].join("; ");
+};
+const USE = (n: string) => `take [unknown-type] type ${n} cannot be used: it is defined by itself ([type-cycle])`;
+const CYCLE = (n: string) => `module [type-cycle] type ${n} is defined by itself, with no object, array, tuple or function type between (as in type ${n} = ${n}); write out the type it stands for`;
 const TREE = "type Tree = { v: number; kids: Tree[] };", LIST = "type List = { v: number; next: List | null };";
 const tree = shapeOf(TREE, "Tree") as Shape, list = shapeOf(LIST, "List") as Shape;
 ok("a recursive alias is a ref defined once", JSON.stringify(tree) === '{"k":"defs","defs":[["Tree",{"k":"rec","props":[["v",{"k":"num"},false],["kids",{"k":"arr","el":{"k":"ref","n":"Tree"}},false]]}]],"body":{"k":"ref","n":"Tree"}}', tree);
 ok("an alias that is not recursive is expanded in place", JSON.stringify(shapeOf("type P = { x: number };", "P[]")) === '{"k":"arr","el":{"k":"rec","props":[["x",{"k":"num"},false]]}}');
 const refusedAt = [
-  ["type A = A | number;", "A", "[boundary-type] p: A cannot cross from another language: it is or holds A, a recursive type with no object or array between it and itself"],
-  ["type A = B | null; type B = A | string;", "A", "[boundary-type] p: A cannot cross from another language: it is or holds A, a recursive type with no object or array between it and itself"],
   ["type N<T> = { next: N<T[]> | null };", "N<number>", "[boundary-type] p: N<number> cannot cross from another language: it is or holds next: next: next: next: next: next: a recursive type"],
   ["type T = { next: T | null; f: () => void };", "T", "[boundary-type] p: T cannot cross from another language: it is or holds f: a function"],
   ["type T = { kids: T[]; s: State<number> };", "T", "[boundary-type] p: T cannot cross from another language: it is or holds s: State<number>, which the boundary does not check"],
@@ -120,8 +125,13 @@ const refusedAt = [
   ok("an alias that is not recursive, two deep arguments: each checked as its own", typeof w !== "string" && res({ x: { w: dv(1, 6) }, y: { w: dv("s", 6) } }, w).startsWith("ok") && res({ x: { w: dv(1, 6) }, y: { w: dv(1, 6) } }, w) === "TypeError: p.y.w.a.a.a.a.a.a: expected string, found number 1");
   const grows = shapeOf("type N<T> = { v: T; next: N<T[]> | null };", "N<number>");
   ok("a generic alias whose argument grows, the argument used: refused", typeof grows === "string" && grows.endsWith("a recursive type"), grows);
-  const loop = shapeOf("type A<T> = A<T> | number;", `A<${deep("number", 7)}>`);
-  ok("A<T> = A<T> | number with a deep argument: no object or array between", typeof loop === "string" && loop.endsWith("a recursive type with no object or array between it and itself"), loop);
+  const loop = allDiags("type A<T> = A<T> | number;", `A<${deep("number", 7)}>`);
+  ok("A<T> = A<T> | number with a deep argument: [type-cycle] for the module, and the cell that uses A rejected", loop === `${CYCLE("A")}; ${USE("A")}`, loop);
+}
+// since e1 (2026-11-23) an alias that reaches itself with no object, array, tuple or function type between is
+// [type-cycle] for the module and is not loaded; a cell that uses it is rejected and its message names the cycle
+for (const [types, want] of [["type A = A | number;", `${CYCLE("A")}; ${USE("A")}`], ["type A = B | null; type B = A | string;", `${CYCLE("A")}; ${CYCLE("B")}; ${USE("A")}`]] as const) {
+  const r = allDiags(types, "A"); ok(`an alias that names itself, and its use: ${types}`, r === want, r);
 }
 for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(`refused at check time: ${types}`, r === want, r); }
 {
@@ -251,9 +261,9 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
   {
     const cyc: any = { n: 1, tag: "c" }; cyc.self = cyc;
     const results: [string, unknown, string][] = [
-      ["a function", () => 1, "TypeError: f(...): expected an object, found a function"],
-      ["a Promise, declared sync", Promise.resolve({ n: 1, tag: "p" }), "TypeError: f(...): expected an object, found a promise"],
-      ["a class instance", new (class P { n = 1; tag = "k"; })(), "TypeError: f(...): expected an object, found a P object"],
+      ["a function", () => 1, "TypeError: f(...): expected an object { n: number, tag: string }, found a function"],
+      ["a Promise, declared sync", Promise.resolve({ n: 1, tag: "p" }), "TypeError: f(...): expected an object { n: number, tag: string }, found a promise"],
+      ["a class instance", new (class P { n = 1; tag = "k"; })(), "TypeError: f(...): expected an object { n: number, tag: string }, found a P object"],
       ["a wrong shape", { n: "1", tag: "t" }, 'TypeError: f(...).n: expected number, found string "1"'],
       ["extra keys", { n: 1, tag: "t", extra: [1] }, 'value {"n":1,"tag":"t"}'],
       ["a cycle under an undeclared key", cyc, 'value {"n":1,"tag":"c"}'],

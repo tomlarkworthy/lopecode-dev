@@ -21,6 +21,10 @@ export const reservedCellName = (reservedName) => (name: string): boolean => res
 export const RESERVED_CELL_MSG = (reservedName, RESERVED_MSG) => (name: string): string => reservedName(name)
   ? RESERVED_MSG(name)
   : `${name} is reserved as a cell name: compiled cells take ${name} from the module, and a cell of that name would replace it`;
+// a9 (2026-11-23): the compiler refuses a cell whose text holds its insertion mark or its language mark (tc-build.ss.ts
+// tcCompileChecked), so the checker refuses it first; the marks are written split, as there
+export const reservedText = () => (text: string): string | null => ["/*" + "ss", "/*" + '{lang:"ss"}*/'].find((m) => text.includes(m)) ?? null;
+export const RESERVED_TEXT_MSG = () => (cell: string, m: string): string => `cell ${cell} contains the text ${m}, which the compiler reserves for what it inserts into a compiled cell, so the cell would not compile; write it another way (in a string, "/" + "*ss")`;
 
 // e1 (2026-11-23), B5: a syntax ban's message is the node kind, but for x!, which ergonomics1 21 met as the word
 // TSNonNullExpression: it names what the checker accepts in its place

@@ -21,7 +21,7 @@ export const {
 export const { builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, memberOfWith, unifyWith, hasAnyTv } = L;
 export const { uncloneableWith, cloneProblemWith, admitsUndefinedWith, holdsWith, hasErrWith } = L;
 export const { islandWith } = L;
-export const { viewofInputName, reservedName, RESERVED_MSG, reservedCellName, RESERVED_CELL_MSG, captureMessage, banMessage, UNDEF_FIX } = L;
+export const { viewofInputName, reservedName, RESERVED_MSG, reservedCellName, RESERVED_CELL_MSG, reservedText, RESERVED_TEXT_MSG, captureMessage, banMessage, UNDEF_FIX } = L;
 // a SoundScript type has no type predicates (TypePredicate is unsupported); TypeScript callers narrow with this one
 export const isNamed = L.isNamed as (t: Ty, n: string) => t is Named;
 // tpNames reads two fields of a type parameter list node; the parser's Node type has only an index signature

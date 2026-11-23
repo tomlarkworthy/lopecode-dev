@@ -1,0 +1,36 @@
+##### mode: []
+-- controls 0, fired 0
+-- harness crashes 0
+-- 7 candidates, accepted 6, silent 5
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input
+SILENT selfhost/freeze-attack9/b4b.ts:pp-then-callback
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input-unann
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input-nested
+##### mode: [SS_MEASURE_BODYFN=0]
+-- controls 0, fired 0
+-- harness crashes 0
+-- 7 candidates, accepted 6, silent 5
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input
+SILENT selfhost/freeze-attack9/b4b.ts:pp-then-callback
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input-unann
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input-nested
+##### mode: [SS_MEASURE_REG=0]
+-- controls 0, fired 0
+-- harness crashes 0
+-- 7 candidates, accepted 6, silent 5
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input
+SILENT selfhost/freeze-attack9/b4b.ts:pp-then-callback
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input-unann
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input-nested
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+-- controls 0, fired 0
+-- harness crashes 0
+-- 7 candidates, accepted 6, silent 5
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input
+SILENT selfhost/freeze-attack9/b4b.ts:pp-then-callback
+SILENT selfhost/freeze-attack9/b4b.ts:pp-cell-input-unann
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input
+SILENT selfhost/freeze-attack9/b4b.ts:sync-cell-promise-input-nested

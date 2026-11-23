@@ -25,10 +25,11 @@ import * as F1 from "./f1-attacks.ts";
 import * as G1 from "./g1-attacks.ts";
 import * as B2 from "./b2-attacks.ts";
 import * as CAST from "./cast-attacks.ts";
+import * as A9 from "./a9-attacks.ts";
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? null : process.argv[i + 1]!; };
 const OFF = process.argv.includes("--off"), FORCE = process.argv.includes("--force"), ONLY = arg("--only");
-const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1,g1,b2,cast").split(",");
+const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1,g1,b2,cast,a9").split(",");
 export const OFF_RULES = new Set(["mut-capture", "let-capture", "mut-yield", "mut-await", "mut-cell", "member-write", "mutating-method", "regexp-state", "iterator-capture"]);
 type P = Prog & { set: string; name: string; foreign?: string | null; ctl?: boolean };
 const progs: P[] = [];
@@ -64,6 +65,7 @@ if (SETS.includes("f1")) for (const a of F1.attacks) progs.push({ set: a.ctl ? "
 if (SETS.includes("g1")) for (const a of G1.attacks) progs.push({ set: a.ctl ? "g1-controls" : "g1", ...a });
 if (SETS.includes("b2")) for (const a of B2.attacks) progs.push({ set: a.ctl ? "b2-controls" : "b2", ...a });
 if (SETS.includes("cast")) for (const a of CAST.attacks) progs.push({ set: a.ctl ? "cast-controls" : "cast", ...a });
+if (SETS.includes("a9")) for (const a of A9.attacks) progs.push({ set: "a9", ...a });
 }
 
 // checked: the verdicts as runCells takes them (compile runs an island only on ok cells); under --off, a cell whose only

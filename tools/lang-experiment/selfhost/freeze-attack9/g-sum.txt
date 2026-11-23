@@ -1,0 +1,26 @@
+##### mode: []
+-- controls 3, fired 0
+-- harness crashes 0
+-- 29 candidates, accepted 11, silent 0
+##### mode: [SS_MEASURE_BODYFN=0]
+-- controls 3, fired 1
+-- harness crashes 0
+-- 29 candidates, accepted 11, silent 0
+##### mode: [SS_MEASURE_REG=0]
+-- controls 3, fired 0
+-- harness crashes 0
+-- 29 candidates, accepted 11, silent 0
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+-- controls 3, fired 3
+-- harness crashes 0
+-- 29 candidates, accepted 11, silent 10
+SILENT selfhost/freeze-attack9/g.ts:key-1e3-str
+SILENT selfhost/freeze-attack9/g.ts:key-1e21
+SILENT selfhost/freeze-attack9/g.ts:key-00
+SILENT selfhost/freeze-attack9/g.ts:key-string-esc
+SILENT selfhost/freeze-attack9/g.ts:key-ss-name
+SILENT selfhost/freeze-attack9/g.ts:key-proto-method
+SILENT selfhost/freeze-attack9/g.ts:key-dup
+SILENT selfhost/freeze-attack9/g.ts:method-shorthand-fn-prop
+SILENT selfhost/freeze-attack9/g.ts:nested-method
+SILENT selfhost/freeze-attack9/g.ts:method-in-array

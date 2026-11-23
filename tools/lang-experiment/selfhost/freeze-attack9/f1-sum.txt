@@ -1,0 +1,16 @@
+##### mode: []
+-- controls 1, fired 1
+-- harness crashes 0
+-- 34 candidates, accepted 12, silent 0
+##### mode: [SS_MEASURE_BODYFN=0]
+-- controls 1, fired 1
+-- harness crashes 0
+-- 34 candidates, accepted 12, silent 0
+##### mode: [SS_MEASURE_REG=0]
+-- controls 1, fired 1
+-- harness crashes 0
+-- 34 candidates, accepted 12, silent 0
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+-- controls 1, fired 1
+-- harness crashes 0
+-- 34 candidates, accepted 12, silent 0

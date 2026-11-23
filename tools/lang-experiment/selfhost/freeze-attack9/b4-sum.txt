@@ -1,0 +1,48 @@
+##### mode: []
+-- controls 3, fired 3
+-- harness crashes 0
+-- 87 candidates, accepted 42, silent 8
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-optional-key
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-read
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-typeof
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-string-key-num
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-union-tag
+SILENT selfhost/freeze-attack9/b4.ts:async-pp-cell
+SILENT selfhost/freeze-attack9/b4.ts:idx-with-member
+SILENT selfhost/freeze-attack9/b4.ts:idx-delete-required
+##### mode: [SS_MEASURE_BODYFN=0]
+-- controls 3, fired 3
+-- harness crashes 0
+-- 87 candidates, accepted 42, silent 8
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-optional-key
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-read
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-typeof
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-string-key-num
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-union-tag
+SILENT selfhost/freeze-attack9/b4.ts:async-pp-cell
+SILENT selfhost/freeze-attack9/b4.ts:idx-with-member
+SILENT selfhost/freeze-attack9/b4.ts:idx-delete-required
+##### mode: [SS_MEASURE_REG=0]
+-- controls 3, fired 3
+-- harness crashes 0
+-- 87 candidates, accepted 42, silent 8
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-optional-key
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-read
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-typeof
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-string-key-num
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-union-tag
+SILENT selfhost/freeze-attack9/b4.ts:async-pp-cell
+SILENT selfhost/freeze-attack9/b4.ts:idx-with-member
+SILENT selfhost/freeze-attack9/b4.ts:idx-delete-required
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+-- controls 3, fired 3
+-- harness crashes 0
+-- 87 candidates, accepted 42, silent 8
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-optional-key
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-read
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-typeof
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-string-key-num
+SILENT selfhost/freeze-attack9/b4.ts:key-comp-union-tag
+SILENT selfhost/freeze-attack9/b4.ts:async-pp-cell
+SILENT selfhost/freeze-attack9/b4.ts:idx-with-member
+SILENT selfhost/freeze-attack9/b4.ts:idx-delete-required

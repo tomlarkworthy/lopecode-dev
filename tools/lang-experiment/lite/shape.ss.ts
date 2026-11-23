@@ -22,7 +22,10 @@ export type Expansion = { readonly expand: (t: Ty) => Ty; readonly isAlias: (n: 
 // one expansion of an annotation, at most limit deep. open and rec hold tyKey keys: the aliases being expanded, and those
 // met again inside themselves; defs: the definition of each recursive alias by its ref's name; names: per key, that
 // name (show's, unique)
-export type ShapeCtx = Mut<{ open: readonly string[]; rec: Set<string>; defs: Map<string, TypeShape>; names: Map<string, string>; limit: number }>;
+// met: the parts made so far (a9 (2026-11-23), B-4: an alias that is not recursive is expanded at each use, so a type
+// that branches at each level has a shape exponential in its depth; SHAPE_PARTS bounds it)
+export type ShapeCtx = Mut<{ open: readonly string[]; rec: Set<string>; defs: Map<string, TypeShape>; names: Map<string, string>; limit: number; met: number }>;
+export const SHAPE_PARTS = () => 10000;
 // t as a shape, d deep
 export type ShapeSub = (t: Ty, d: number, ctx: ShapeCtx) => ShapeOr;
 
@@ -121,10 +124,12 @@ export const namedShape = (show, aliasShape) => (t: Named, sub: ShapeSub, d: num
   return { k: "error", error: `${show(t)}, which the boundary does not check` };
 };
 // t as a shape within one expansion, depth deep
-export const shapeIn = (show, shapesOf, boolUnion, recShape, namedShape) => (t0: Ty, X: Expansion, ctx: ShapeCtx): ShapeOr => {
+export const shapeIn = (show, shapesOf, boolUnion, recShape, namedShape, SHAPE_PARTS) => (t0: Ty, X: Expansion, ctx: ShapeCtx): ShapeOr => {
   function go(t: Ty, depth: number, c: ShapeCtx): ShapeOr {
     // a generic alias whose arguments grow at each level never repeats
     if (depth > c.limit) return { k: "error", error: "a recursive type" };
+    c.met += 1;
+    if (c.met > SHAPE_PARTS) return { k: "error", error: `a type too large to check at run time (its run-time form has more than ${SHAPE_PARTS} parts)` };
     const d = depth + 1;
     switch (t.k) {
       case "num": return { k: "num" };
@@ -132,7 +137,8 @@ export const shapeIn = (show, shapesOf, boolUnion, recShape, namedShape) => (t0:
       case "null": return { k: "null" };
       case "undef": case "void": return { k: "undef" };
       case "unknown": return { k: "unknown" };
-      case "lit": return { k: "lit", v: t.v };
+      // a9 (2026-11-23), B-2: the shape is written into the compiled cell as JSON, which writes Infinity as null
+      case "lit": return typeof t.v === "number" && !Number.isFinite(t.v) ? { k: "error", error: `${show(t)}, a literal type JSON cannot write` } : { k: "lit", v: t.v };
       case "fn": return { k: "error", error: "a function" };
       case "arr": { const el = go(t.el, d, c); return el.k === "error" ? el : { k: "arr", el }; }
       case "tup": { const els = shapesOf(t.els, go, d, c); return els.k === "error" ? els : { k: "tup", els: els.shapes }; }
@@ -154,10 +160,10 @@ export const withDefs = (unproductive) => (body: ShapeOr, defs: Map<string, Type
 // The shape of an annotation. A type nested deeper than 16 is refused unless it is recursive; a recursive one is expanded
 // again up to 256, as a ring of aliases closes only after each is open
 export const shapeAt = (shapeIn, withDefs) => (t: Ty, X: Expansion): ShapeOr => {
-  const near: ShapeCtx = { open: [], rec: new Set(), defs: new Map(), names: new Map(), limit: 16 };
+  const near: ShapeCtx = { open: [], rec: new Set(), defs: new Map(), names: new Map(), limit: 16, met: 0 };
   const first = shapeIn(t, X, near);
   if (first.k !== "error") return withDefs(first, near.defs);
-  const far: ShapeCtx = { open: [], rec: new Set(), defs: new Map(), names: new Map(), limit: 256 };
+  const far: ShapeCtx = { open: [], rec: new Set(), defs: new Map(), names: new Map(), limit: 256, met: 0 };
   const again = shapeIn(t, X, far);
   return far.rec.size ? withDefs(again, far.defs) : first;
 };

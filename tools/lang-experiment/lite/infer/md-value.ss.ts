@@ -32,9 +32,17 @@ export const mdThenable = () => (t: Ty): boolean => {
   }
   return false;
 };
+// a9 (2026-11-23), B-3: the runtime awaits a cell's value (a sync cell's promise, a promise a generator yields or a
+// state cell holds), so the cells that take it get what it settles to: every Promise level is taken off, in each
+// member of a union. A promise inside a record is not awaited and keeps its type; State<T> and Events<T> keep theirs
+export const mdSettled = (ixUm, union, isNamed) => (R: IxRegCore, t: Ty): Ty => {
+  const isP = (m: Ty): boolean => m.k === "named" && isNamed(m, "Promise") && m.args[0] !== undefined;
+  const go = (x: Ty, d: number): Ty => (d > 16 || !ixUm(R, x).some(isP) ? x : union(ixUm(R, x).map((m) => (isP(m) && m.k === "named" ? go(m.args[0] ?? m, d + 1) : m))));
+  return go(t, 0);
+};
 export type MdValueOut = { readonly errors: MdErr[]; readonly value: Ty; readonly events: Ty | null; readonly ref: Ty | null; readonly listener: boolean; readonly gap: string | null };
 // the rules in core.ts's order: events, state cell, iterator, listener; and what the cell gives the cells after it
-export const mdValueRules = (mdValueType, mdKept, mdStateRules, owIter, owStripMut, holdsWith, isNamed, show, mdThenable) => (R: IxReg, X: MdCtx, d: MdDef, fnT: Ty, fedBy: string | null): MdValueOut => {
+export const mdValueRules = (mdValueType, mdSettled, mdKept, mdStateRules, owIter, owStripMut, holdsWith, isNamed, show, mdThenable) => (R: IxReg, X: MdCtx, d: MdDef, fnT: Ty, fedBy: string | null): MdValueOut => {
   const v = mdValueType(d.fn, fnT);
   const line = X.line(d.fn.start), sync = d.fn.generator && !d.fn.async;
   // S4: a cell's value, each value it yields and a state's value are the read-only view (frozen at run time)
@@ -53,5 +61,5 @@ export const mdValueRules = (mdValueType, mdKept, mdStateRules, owIter, owStripM
   const listener = isL(ret) || (ret.k === "union" && ret.ts.every(isL));
   const held = listener ? null : holdsWith(X.R.ops)(ret, ["Listener"]);
   const place = held ? [{ rule: "listener-placement", line, msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` }] : [];
-  return { errors: [...errs, ...state, ...iter, ...then, ...place], value: ret, events, ref: inner ?? null, listener, gap: v.gap };
+  return { errors: [...errs, ...state, ...iter, ...then, ...place], value: mdSettled(R, ret), events, ref: inner ?? null, listener, gap: v.gap };
 };

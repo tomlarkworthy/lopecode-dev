@@ -1,0 +1,32 @@
+##### mode: []
+-- controls 2, fired 2
+-- harness crashes 0
+-- 88 candidates, accepted 68, silent 4
+SILENT selfhost/freeze-attack9/c2.ts:symbol-value
+SILENT selfhost/freeze-attack9/c2.ts:bigint-under-unknown
+SILENT selfhost/freeze-attack9/c2.ts:bigint-in-arr-unknown
+SILENT selfhost/freeze-attack9/c2.ts:symbol-in-unknown-obj
+##### mode: [SS_MEASURE_BODYFN=0]
+-- controls 2, fired 2
+-- harness crashes 0
+-- 88 candidates, accepted 68, silent 4
+SILENT selfhost/freeze-attack9/c2.ts:symbol-value
+SILENT selfhost/freeze-attack9/c2.ts:bigint-under-unknown
+SILENT selfhost/freeze-attack9/c2.ts:bigint-in-arr-unknown
+SILENT selfhost/freeze-attack9/c2.ts:symbol-in-unknown-obj
+##### mode: [SS_MEASURE_REG=0]
+-- controls 2, fired 2
+-- harness crashes 0
+-- 88 candidates, accepted 68, silent 4
+SILENT selfhost/freeze-attack9/c2.ts:symbol-value
+SILENT selfhost/freeze-attack9/c2.ts:bigint-under-unknown
+SILENT selfhost/freeze-attack9/c2.ts:bigint-in-arr-unknown
+SILENT selfhost/freeze-attack9/c2.ts:symbol-in-unknown-obj
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+-- controls 2, fired 2
+-- harness crashes 0
+-- 88 candidates, accepted 68, silent 4
+SILENT selfhost/freeze-attack9/c2.ts:symbol-value
+SILENT selfhost/freeze-attack9/c2.ts:bigint-under-unknown
+SILENT selfhost/freeze-attack9/c2.ts:bigint-in-arr-unknown
+SILENT selfhost/freeze-attack9/c2.ts:symbol-in-unknown-obj

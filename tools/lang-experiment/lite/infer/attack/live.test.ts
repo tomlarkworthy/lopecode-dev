@@ -18,6 +18,7 @@ import { TOOLCHAIN } from "../../toolchain/ss-toolchain.ts";
 import * as FROZEN_TC from "../frozen/ts/toolchain/ss-toolchain.ts";
 import { attacks as B2_ATTACKS } from "./b2-attacks.ts";
 import { attacks as CAST_ATTACKS } from "./cast-attacks.ts";
+import { attacks as A9_ATTACKS } from "./a9-attacks.ts";
 import { checkSources as frozenCheck } from "../frozen/core.ts";
 
 // a verdict: ACCEPT, or REJECT with each cell that is not ok and its rules
@@ -204,3 +205,27 @@ test("g1: fnreg.ts and tc-reg.ss.ts register the same captures under the same ke
   const regs = (defs: { definition: string }[]) => defs.map((v) => v.definition).join("\n");
   for (const src of [...G1_ATTACKS.map((a) => a.src), ...keys]) expect(regs(TOOLCHAIN.compileModule(src, true, null))).toBe(regs(FROZEN_TC.compileModule(src, true, null)));
 });
+// a9 (2026-11-23): freeze-attack9's breaks (a9-attacks.ts). No row is silent in shipped mode or with registration off;
+// a9-ok-* rows are accepted and every other row is rejected, by both checkers alike. The rows that branch 18 to 40
+// deep each finish inside the test (SHAPE_PARTS); before a9 the depth-30 row gave no verdict in 150 s
+for (const env of [{}, { SS_MEASURE_REG: "0" }])
+  test(`a9: no row of freeze-attack9's breaks is silent${"SS_MEASURE_REG" in env ? " (SS_MEASURE_REG=0)" : ""}`, () => {
+    const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "a9"], { stdout: "pipe", stderr: "pipe", env: { ...process.env, ...env } });
+    const out = r.stdout.toString();
+    expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
+    expect(out).toMatch(/^-- a9: 64 programs, accepted 19, silent 0, with a cell in error 0$/m);
+  }, 300000);
+for (const a of A9_ATTACKS)
+  test(`a9 ${a.name} is ${a.name.startsWith("a9-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
+    const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
+    expect(live.ok).toBe(a.name.startsWith("a9-ok-"));
+    expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
+  });
+// B-2 at the boundary: a parameter that names a cell in another language, annotated with a literal JSON writes as null
+for (const ann of ["1e400", "-1e400", "{ readonly a: 1e400 }", "readonly (1 | 1e400)[]"])
+  test(`a9: a boundary annotation ${ann} is [boundary-type] in both checkers`, () => {
+    const src = { cells: `const f = (x: ${ann}) => 1;`, tsx: true, outside: [{ name: "x" }], foreign: null };
+    const live = rulesOf(checkSources(src as Parameters<typeof checkSources>[0]));
+    expect(live).toEqual({ ok: false, rules: ["boundary-type"] });
+    expect(rulesOf(frozenCheck(src as Parameters<typeof frozenCheck>[0]))).toEqual(live);
+  });

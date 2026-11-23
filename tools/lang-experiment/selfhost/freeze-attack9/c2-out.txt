@@ -1,0 +1,708 @@
+##### mode: []
+== selfhost/freeze-attack9/c2.ts:tree-ok: ACCEPT
+   drive -> same: ok, a T: {"v":1,"kids":[{"v":2,"kids":[]}]}
+== selfhost/freeze-attack9/c2.ts:tree-bad-deep: ACCEPT
+   drive -> same: refused at value.kids[0].kids[0].v: value.kids[0].kids[0].v: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:tree-shared-node: ACCEPT
+   drive -> same: ok, a T: {"v":1,"kids":[{"v":2,"kids":[]},{"v":2,"kids":[]}]}
+== selfhost/freeze-attack9/c2.ts:tree-dag-getter: ACCEPT
+   drive -> same: ok, a T: {"v":1,"kids":[{"v":2,"kids":[]},{"v":2,"kids":[]}]}
+== selfhost/freeze-attack9/c2.ts:tree-cycle: ACCEPT
+   drive -> same: refused at value.kids[0]: value.kids[0]: a cycle
+== selfhost/freeze-attack9/c2.ts:mutual-ok: ACCEPT
+   drive -> same: ok, a T: {"a":1,"b":{"s":"x","a":{"a":2,"b":null}}}
+== selfhost/freeze-attack9/c2.ts:mutual-bad: ACCEPT
+   drive -> same: refused at value.b.a.a: value.b.a.a: expected number, found string "2"
+== selfhost/freeze-attack9/c2.ts:mutual-same-obj-two-types: ACCEPT
+   drive -> same: ok, a T: {"x":{"a":1,"b":null},"y":{"s":"x","b":null}}
+== selfhost/freeze-attack9/c2.ts:dag-two-shapes: ACCEPT
+   drive -> same: ok, a T: {"x":{"a":1,"next":null},"y":{"s":"x","next":null}}
+== selfhost/freeze-attack9/c2.ts:generic-list-two: ACCEPT
+   drive -> same: ok, a T: {"a":{"v":1,"next":null},"b":{"v":"s","next":null}}
+== selfhost/freeze-attack9/c2.ts:generic-list-shared: ACCEPT
+   drive -> same: refused at value.b.v: value.b.v: expected string, found number 1
+== selfhost/freeze-attack9/c2.ts:generic-list-shared-deep: ACCEPT
+   drive -> same: refused at value.b.next.v: value.b.next.v: expected string, found number 1
+== selfhost/freeze-attack9/c2.ts:generic-nested-T-obj: ACCEPT
+   drive -> same: refused at value.next.v.n: value.next.v.n: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:generic-two-aliases-same-show: ACCEPT
+   drive -> same: ok, a T: {"a":{"v":[1],"next":null},"b":{"v":["s"],"next":null}}
+== selfhost/freeze-attack9/c2.ts:deep-generic-args-show: ACCEPT
+   drive -> same: ok, a T: {"a":{"v":[[[[[[1]]]]]],"next":null},"b":{"v":[[[[[["s"]]]]]],"next":null}}
+== selfhost/freeze-attack9/c2.ts:deep-generic-args-swap: ACCEPT
+   drive -> same: refused at value.a.v[0][0][0][0][0][0]: value.a.v[0][0][0][0][0][0]: expected number, found string "s"
+== selfhost/freeze-attack9/c2.ts:rec-union-json: ACCEPT
+   drive -> same: ok, a T: [1,"a",[null,[true]]]
+== selfhost/freeze-attack9/c2.ts:rec-union-json-bad: ACCEPT
+   drive -> same: refused at value[2][0]: value[2][0]: expected null or number or string or an array or boolean, found undefined
+== selfhost/freeze-attack9/c2.ts:rec-tuple: ACCEPT
+   drive -> same: ok, a T: [1,[2,[3,null]]]
+== selfhost/freeze-attack9/c2.ts:rec-through-opt: ACCEPT
+   drive -> same: refused at value.r.n: value.r.n: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:rec-three-ring: ACCEPT
+   drive -> same: ok, a T: {"b":{"c":{"a":{"b":null}}}}
+== selfhost/freeze-attack9/c2.ts:rec-generic-growing: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:union-tag-dup: ACCEPT
+   drive -> same: ok, a T: {"k":"a","n":1}
+== selfhost/freeze-attack9/c2.ts:union-tag-getter: ACCEPT
+   drive -> same: refused at value.k: value.k: expected "a", found string "b"
+== selfhost/freeze-attack9/c2.ts:union-tag-getter-rev: ACCEPT
+   drive -> same: refused at value.k: value.k: expected "b", found string "a"
+== selfhost/freeze-attack9/c2.ts:union-untagged-getter: ACCEPT
+   drive -> same: ok, a T: {"a":"s","c":"x"}
+== selfhost/freeze-attack9/c2.ts:union-tag-bool: ACCEPT
+   drive -> same: refused at value.s: value.s: expected string, found nothing
+== selfhost/freeze-attack9/c2.ts:union-tag-numlit: ACCEPT
+   drive -> same: refused at value: value: expected an object or an object, found an object
+== selfhost/freeze-attack9/c2.ts:union-tag-optional-second: ACCEPT
+   drive -> same: ok, a T: {"s":"x"}
+== selfhost/freeze-attack9/c2.ts:union-arr-or-tuple: ACCEPT
+   drive -> same: ok, a T: ["s"]
+== selfhost/freeze-attack9/c2.ts:union-rec-or-unknown: ACCEPT
+   drive -> same: ok, a T: {"n":"x","f":1}
+== selfhost/freeze-attack9/c2.ts:union-null-undef: ACCEPT
+   drive -> same: ok, a T: undefined
+== selfhost/freeze-attack9/c2.ts:union-proxy-tag: ACCEPT
+   drive -> same: refused at value.k: value.k: expected "a", found string "b"
+== selfhost/freeze-attack9/c2.ts:tuple-optional-el: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-optional-el-num: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-optional-short: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-rest: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-rest-ok: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-named: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-proxy-len: ACCEPT
+   drive -> same: refused at value[2]: value[2]: expected an array of 2, found undefined
+== selfhost/freeze-attack9/c2.ts:tuple-sparse: ACCEPT
+   drive -> same: refused at value[1]: value[1]: expected number, found undefined
+== selfhost/freeze-attack9/c2.ts:opt-undefined-explicit: ACCEPT
+   drive -> same: ok, a T: {}
+== selfhost/freeze-attack9/c2.ts:opt-inherited: ACCEPT
+   drive -> same: refused at value: value: expected an object, found a Object object
+== selfhost/freeze-attack9/c2.ts:opt-getter-undef-then-val: ACCEPT
+   drive -> same: ok, a T: {}
+== selfhost/freeze-attack9/c2.ts:required-undef: ACCEPT
+   drive -> same: refused at value.a: value.a: expected number or undefined, found nothing
+== selfhost/freeze-attack9/c2.ts:proxy-hasown-lies: ACCEPT
+   drive -> same: refused at value.a: value.a: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:neg-zero-lit: ACCEPT
+   drive -> same: refused at value: value: expected 0, found number -0
+== selfhost/freeze-attack9/c2.ts:nan-for-lit: ACCEPT
+   drive -> same: refused at value: value: expected 1, found number NaN
+== selfhost/freeze-attack9/c2.ts:string-object: ACCEPT
+   drive -> same: refused at value: value: expected string, found a String object
+== selfhost/freeze-attack9/c2.ts:symbol-value: ACCEPT
+   drive -> DIFF ok, but not a T: Symbol(s)
+   SILENT
+== selfhost/freeze-attack9/c2.ts:bigint-under-unknown: ACCEPT
+   drive -> DIFF ok, but not a T: ?
+   SILENT
+== selfhost/freeze-attack9/c2.ts:bigint-in-arr-unknown: ACCEPT
+   drive -> DIFF ok, but not a T: ?
+   SILENT
+== selfhost/freeze-attack9/c2.ts:symbol-in-unknown-obj: ACCEPT
+   drive -> DIFF ok, but not a T: {}
+   SILENT
+== selfhost/freeze-attack9/c2.ts:date-under-unknown: ACCEPT
+   drive -> same: refused at value.d: value.d: expected data, found a Date object
+== selfhost/freeze-attack9/c2.ts:map-under-unknown: ACCEPT
+   drive -> same: refused at value[0]: value[0]: expected data, found a Map object
+== selfhost/freeze-attack9/c2.ts:typed-under-unknown: ACCEPT
+   drive -> same: refused at value.t: value.t: expected data, found a Uint8Array object
+== selfhost/freeze-attack9/c2.ts:arraylike-for-array: ACCEPT
+   drive -> same: refused at value: value: expected an array, found an object
+== selfhost/freeze-attack9/c2.ts:arguments-object: ACCEPT
+   drive -> same: refused at value: value: expected an array, found an object
+== selfhost/freeze-attack9/c2.ts:array-subclass: ACCEPT
+   drive -> same: ok, a T: [1]
+== selfhost/freeze-attack9/c2.ts:array-own-proto-field: ACCEPT
+   drive -> same: ok, a T: [{"__proto__":[1]}]
+== selfhost/freeze-attack9/c2.ts:constructor-key: ACCEPT
+   drive -> same: ok, a T: {"constructor":1}
+== selfhost/freeze-attack9/c2.ts:proto-key-declared: ACCEPT
+   drive -> same: refused at value.toString: value.toString: expected string, found nothing
+== selfhost/freeze-attack9/c2.ts:huge-array: ACCEPT
+   drive -> same: ok, a T: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+== selfhost/freeze-attack9/c2.ts:huge-length-sparse: ACCEPT
+   drive -> same: ok, a T: [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null
+== selfhost/freeze-attack9/c2.ts:deep-unknown: ACCEPT
+   drive -> same: ok, a T: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+   late throws: Maximum call stack size exceeded.
+== selfhost/freeze-attack9/c2.ts:deep-rec-chain-arr: ACCEPT
+   drive -> same: ok, a T: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+   late throws: Maximum call stack size exceeded.
+== selfhost/freeze-attack9/c2.ts:revoked-proxy: ACCEPT
+   drive -> same: g not a value (rejected Proxy has already been revoked. No more operations are allowed to be performed on it)
+   error g: Proxy has already been revoked. No more operations are allowed to be performed on it
+== selfhost/freeze-attack9/c2.ts:proxy-ownkeys-dup: ACCEPT
+   drive -> same: refused at value: reading the value threw: Proxy handler's 'ownKeys' trap result must not contain any duplicate names
+== selfhost/freeze-attack9/c2.ts:frozen-input-same-identity: ACCEPT
+   drive -> same: ok, a T: [1,2]
+== selfhost/freeze-attack9/c2.ts:iface-extends: ACCEPT
+   drive -> same: refused at value.a: value.a: expected number, found nothing
+== selfhost/freeze-attack9/c2.ts:intersection: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:readonly-util: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:partial-util: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:record-lit-keys: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:pick-util: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:events-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:listener-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:pool-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:elem-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:pointer-data: ACCEPT
+   drive -> same: ok, a T: {"x":1,"y":2,"t":3,"id":4,"buttons":0}
+== selfhost/freeze-attack9/c2.ts:cast-of-cast: ACCEPT
+   drive -> same: refused at value.value: value.value: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:template-literal-type: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:keyof-type: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:indexed-access: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:typeof-const: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c2.ts:empty-rec: ACCEPT
+   drive -> same: refused at value: value: expected an object, found number 5
+== selfhost/freeze-attack9/c2.ts:void-type: ACCEPT
+   drive -> same: refused at value: value: expected undefined, found number 1
+== selfhost/freeze-attack9/c2.ts:enum-like-union: ACCEPT
+   drive -> same: ok, a T: true
+== selfhost/freeze-attack9/c2.ts:ctl-tree-bad [ctl]: CONTROL (checker skipped)
+   drive -> DIFF the value fetch gave was handed out
+   CONTROL FIRED
+== selfhost/freeze-attack9/c2.ts:ctl-generic-shared [ctl]: CONTROL (checker skipped)
+   drive -> DIFF the value fetch gave was handed out
+   CONTROL FIRED
+-- controls 2, fired 2
+-- harness crashes 0
+-- 88 candidates, accepted 68, silent 4
+SILENT selfhost/freeze-attack9/c2.ts:symbol-value
+SILENT selfhost/freeze-attack9/c2.ts:bigint-under-unknown
+SILENT selfhost/freeze-attack9/c2.ts:bigint-in-arr-unknown
+SILENT selfhost/freeze-attack9/c2.ts:symbol-in-unknown-obj
+##### mode: [SS_MEASURE_BODYFN=0]
+== selfhost/freeze-attack9/c2.ts:tree-ok: ACCEPT
+   drive -> same: ok, a T: {"v":1,"kids":[{"v":2,"kids":[]}]}
+== selfhost/freeze-attack9/c2.ts:tree-bad-deep: ACCEPT
+   drive -> same: refused at value.kids[0].kids[0].v: value.kids[0].kids[0].v: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:tree-shared-node: ACCEPT
+   drive -> same: ok, a T: {"v":1,"kids":[{"v":2,"kids":[]},{"v":2,"kids":[]}]}
+== selfhost/freeze-attack9/c2.ts:tree-dag-getter: ACCEPT
+   drive -> same: ok, a T: {"v":1,"kids":[{"v":2,"kids":[]},{"v":2,"kids":[]}]}
+== selfhost/freeze-attack9/c2.ts:tree-cycle: ACCEPT
+   drive -> same: refused at value.kids[0]: value.kids[0]: a cycle
+== selfhost/freeze-attack9/c2.ts:mutual-ok: ACCEPT
+   drive -> same: ok, a T: {"a":1,"b":{"s":"x","a":{"a":2,"b":null}}}
+== selfhost/freeze-attack9/c2.ts:mutual-bad: ACCEPT
+   drive -> same: refused at value.b.a.a: value.b.a.a: expected number, found string "2"
+== selfhost/freeze-attack9/c2.ts:mutual-same-obj-two-types: ACCEPT
+   drive -> same: ok, a T: {"x":{"a":1,"b":null},"y":{"s":"x","b":null}}
+== selfhost/freeze-attack9/c2.ts:dag-two-shapes: ACCEPT
+   drive -> same: ok, a T: {"x":{"a":1,"next":null},"y":{"s":"x","next":null}}
+== selfhost/freeze-attack9/c2.ts:generic-list-two: ACCEPT
+   drive -> same: ok, a T: {"a":{"v":1,"next":null},"b":{"v":"s","next":null}}
+== selfhost/freeze-attack9/c2.ts:generic-list-shared: ACCEPT
+   drive -> same: refused at value.b.v: value.b.v: expected string, found number 1
+== selfhost/freeze-attack9/c2.ts:generic-list-shared-deep: ACCEPT
+   drive -> same: refused at value.b.next.v: value.b.next.v: expected string, found number 1
+== selfhost/freeze-attack9/c2.ts:generic-nested-T-obj: ACCEPT
+   drive -> same: refused at value.next.v.n: value.next.v.n: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:generic-two-aliases-same-show: ACCEPT
+   drive -> same: ok, a T: {"a":{"v":[1],"next":null},"b":{"v":["s"],"next":null}}
+== selfhost/freeze-attack9/c2.ts:deep-generic-args-show: ACCEPT
+   drive -> same: ok, a T: {"a":{"v":[[[[[[1]]]]]],"next":null},"b":{"v":[[[[[["s"]]]]]],"next":null}}
+== selfhost/freeze-attack9/c2.ts:deep-generic-args-swap: ACCEPT
+   drive -> same: refused at value.a.v[0][0][0][0][0][0]: value.a.v[0][0][0][0][0][0]: expected number, found string "s"
+== selfhost/freeze-attack9/c2.ts:rec-union-json: ACCEPT
+   drive -> same: ok, a T: [1,"a",[null,[true]]]
+== selfhost/freeze-attack9/c2.ts:rec-union-json-bad: ACCEPT
+   drive -> same: refused at value[2][0]: value[2][0]: expected null or number or string or an array or boolean, found undefined
+== selfhost/freeze-attack9/c2.ts:rec-tuple: ACCEPT
+   drive -> same: ok, a T: [1,[2,[3,null]]]
+== selfhost/freeze-attack9/c2.ts:rec-through-opt: ACCEPT
+   drive -> same: refused at value.r.n: value.r.n: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:rec-three-ring: ACCEPT
+   drive -> same: ok, a T: {"b":{"c":{"a":{"b":null}}}}
+== selfhost/freeze-attack9/c2.ts:rec-generic-growing: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:union-tag-dup: ACCEPT
+   drive -> same: ok, a T: {"k":"a","n":1}
+== selfhost/freeze-attack9/c2.ts:union-tag-getter: ACCEPT
+   drive -> same: refused at value.k: value.k: expected "a", found string "b"
+== selfhost/freeze-attack9/c2.ts:union-tag-getter-rev: ACCEPT
+   drive -> same: refused at value.k: value.k: expected "b", found string "a"
+== selfhost/freeze-attack9/c2.ts:union-untagged-getter: ACCEPT
+   drive -> same: ok, a T: {"a":"s","c":"x"}
+== selfhost/freeze-attack9/c2.ts:union-tag-bool: ACCEPT
+   drive -> same: refused at value.s: value.s: expected string, found nothing
+== selfhost/freeze-attack9/c2.ts:union-tag-numlit: ACCEPT
+   drive -> same: refused at value: value: expected an object or an object, found an object
+== selfhost/freeze-attack9/c2.ts:union-tag-optional-second: ACCEPT
+   drive -> same: ok, a T: {"s":"x"}
+== selfhost/freeze-attack9/c2.ts:union-arr-or-tuple: ACCEPT
+   drive -> same: ok, a T: ["s"]
+== selfhost/freeze-attack9/c2.ts:union-rec-or-unknown: ACCEPT
+   drive -> same: ok, a T: {"n":"x","f":1}
+== selfhost/freeze-attack9/c2.ts:union-null-undef: ACCEPT
+   drive -> same: ok, a T: undefined
+== selfhost/freeze-attack9/c2.ts:union-proxy-tag: ACCEPT
+   drive -> same: refused at value.k: value.k: expected "a", found string "b"
+== selfhost/freeze-attack9/c2.ts:tuple-optional-el: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-optional-el-num: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-optional-short: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-rest: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-rest-ok: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-named: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-proxy-len: ACCEPT
+   drive -> same: refused at value[2]: value[2]: expected an array of 2, found undefined
+== selfhost/freeze-attack9/c2.ts:tuple-sparse: ACCEPT
+   drive -> same: refused at value[1]: value[1]: expected number, found undefined
+== selfhost/freeze-attack9/c2.ts:opt-undefined-explicit: ACCEPT
+   drive -> same: ok, a T: {}
+== selfhost/freeze-attack9/c2.ts:opt-inherited: ACCEPT
+   drive -> same: refused at value: value: expected an object, found a Object object
+== selfhost/freeze-attack9/c2.ts:opt-getter-undef-then-val: ACCEPT
+   drive -> same: ok, a T: {}
+== selfhost/freeze-attack9/c2.ts:required-undef: ACCEPT
+   drive -> same: refused at value.a: value.a: expected number or undefined, found nothing
+== selfhost/freeze-attack9/c2.ts:proxy-hasown-lies: ACCEPT
+   drive -> same: refused at value.a: value.a: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:neg-zero-lit: ACCEPT
+   drive -> same: refused at value: value: expected 0, found number -0
+== selfhost/freeze-attack9/c2.ts:nan-for-lit: ACCEPT
+   drive -> same: refused at value: value: expected 1, found number NaN
+== selfhost/freeze-attack9/c2.ts:string-object: ACCEPT
+   drive -> same: refused at value: value: expected string, found a String object
+== selfhost/freeze-attack9/c2.ts:symbol-value: ACCEPT
+   drive -> DIFF ok, but not a T: Symbol(s)
+   SILENT
+== selfhost/freeze-attack9/c2.ts:bigint-under-unknown: ACCEPT
+   drive -> DIFF ok, but not a T: ?
+   SILENT
+== selfhost/freeze-attack9/c2.ts:bigint-in-arr-unknown: ACCEPT
+   drive -> DIFF ok, but not a T: ?
+   SILENT
+== selfhost/freeze-attack9/c2.ts:symbol-in-unknown-obj: ACCEPT
+   drive -> DIFF ok, but not a T: {}
+   SILENT
+== selfhost/freeze-attack9/c2.ts:date-under-unknown: ACCEPT
+   drive -> same: refused at value.d: value.d: expected data, found a Date object
+== selfhost/freeze-attack9/c2.ts:map-under-unknown: ACCEPT
+   drive -> same: refused at value[0]: value[0]: expected data, found a Map object
+== selfhost/freeze-attack9/c2.ts:typed-under-unknown: ACCEPT
+   drive -> same: refused at value.t: value.t: expected data, found a Uint8Array object
+== selfhost/freeze-attack9/c2.ts:arraylike-for-array: ACCEPT
+   drive -> same: refused at value: value: expected an array, found an object
+== selfhost/freeze-attack9/c2.ts:arguments-object: ACCEPT
+   drive -> same: refused at value: value: expected an array, found an object
+== selfhost/freeze-attack9/c2.ts:array-subclass: ACCEPT
+   drive -> same: ok, a T: [1]
+== selfhost/freeze-attack9/c2.ts:array-own-proto-field: ACCEPT
+   drive -> same: ok, a T: [{"__proto__":[1]}]
+== selfhost/freeze-attack9/c2.ts:constructor-key: ACCEPT
+   drive -> same: ok, a T: {"constructor":1}
+== selfhost/freeze-attack9/c2.ts:proto-key-declared: ACCEPT
+   drive -> same: refused at value.toString: value.toString: expected string, found nothing
+== selfhost/freeze-attack9/c2.ts:huge-array: ACCEPT
+   drive -> same: ok, a T: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+== selfhost/freeze-attack9/c2.ts:huge-length-sparse: ACCEPT
+   drive -> same: ok, a T: [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null
+== selfhost/freeze-attack9/c2.ts:deep-unknown: ACCEPT
+   drive -> same: ok, a T: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+   late throws: Maximum call stack size exceeded.
+== selfhost/freeze-attack9/c2.ts:deep-rec-chain-arr: ACCEPT
+   drive -> same: ok, a T: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+   late throws: Maximum call stack size exceeded.
+== selfhost/freeze-attack9/c2.ts:revoked-proxy: ACCEPT
+   drive -> same: g not a value (rejected Proxy has already been revoked. No more operations are allowed to be performed on it)
+   error g: Proxy has already been revoked. No more operations are allowed to be performed on it
+== selfhost/freeze-attack9/c2.ts:proxy-ownkeys-dup: ACCEPT
+   drive -> same: refused at value: reading the value threw: Proxy handler's 'ownKeys' trap result must not contain any duplicate names
+== selfhost/freeze-attack9/c2.ts:frozen-input-same-identity: ACCEPT
+   drive -> same: ok, a T: [1,2]
+== selfhost/freeze-attack9/c2.ts:iface-extends: ACCEPT
+   drive -> same: refused at value.a: value.a: expected number, found nothing
+== selfhost/freeze-attack9/c2.ts:intersection: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:readonly-util: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:partial-util: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:record-lit-keys: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:pick-util: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:events-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:listener-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:pool-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:elem-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:pointer-data: ACCEPT
+   drive -> same: ok, a T: {"x":1,"y":2,"t":3,"id":4,"buttons":0}
+== selfhost/freeze-attack9/c2.ts:cast-of-cast: ACCEPT
+   drive -> same: refused at value.value: value.value: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:template-literal-type: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:keyof-type: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:indexed-access: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:typeof-const: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c2.ts:empty-rec: ACCEPT
+   drive -> same: refused at value: value: expected an object, found number 5
+== selfhost/freeze-attack9/c2.ts:void-type: ACCEPT
+   drive -> same: refused at value: value: expected undefined, found number 1
+== selfhost/freeze-attack9/c2.ts:enum-like-union: ACCEPT
+   drive -> same: ok, a T: true
+== selfhost/freeze-attack9/c2.ts:ctl-tree-bad [ctl]: CONTROL (checker skipped)
+   drive -> DIFF the value fetch gave was handed out
+   CONTROL FIRED
+== selfhost/freeze-attack9/c2.ts:ctl-generic-shared [ctl]: CONTROL (checker skipped)
+   drive -> DIFF the value fetch gave was handed out
+   CONTROL FIRED
+-- controls 2, fired 2
+-- harness crashes 0
+-- 88 candidates, accepted 68, silent 4
+SILENT selfhost/freeze-attack9/c2.ts:symbol-value
+SILENT selfhost/freeze-attack9/c2.ts:bigint-under-unknown
+SILENT selfhost/freeze-attack9/c2.ts:bigint-in-arr-unknown
+SILENT selfhost/freeze-attack9/c2.ts:symbol-in-unknown-obj
+##### mode: [SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/c2.ts:tree-ok: ACCEPT
+   drive -> same: ok, a T: {"v":1,"kids":[{"v":2,"kids":[]}]}
+== selfhost/freeze-attack9/c2.ts:tree-bad-deep: ACCEPT
+   drive -> same: refused at value.kids[0].kids[0].v: value.kids[0].kids[0].v: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:tree-shared-node: ACCEPT
+   drive -> same: ok, a T: {"v":1,"kids":[{"v":2,"kids":[]},{"v":2,"kids":[]}]}
+== selfhost/freeze-attack9/c2.ts:tree-dag-getter: ACCEPT
+   drive -> same: ok, a T: {"v":1,"kids":[{"v":2,"kids":[]},{"v":2,"kids":[]}]}
+== selfhost/freeze-attack9/c2.ts:tree-cycle: ACCEPT
+   drive -> same: refused at value.kids[0]: value.kids[0]: a cycle
+== selfhost/freeze-attack9/c2.ts:mutual-ok: ACCEPT
+   drive -> same: ok, a T: {"a":1,"b":{"s":"x","a":{"a":2,"b":null}}}
+== selfhost/freeze-attack9/c2.ts:mutual-bad: ACCEPT
+   drive -> same: refused at value.b.a.a: value.b.a.a: expected number, found string "2"
+== selfhost/freeze-attack9/c2.ts:mutual-same-obj-two-types: ACCEPT
+   drive -> same: ok, a T: {"x":{"a":1,"b":null},"y":{"s":"x","b":null}}
+== selfhost/freeze-attack9/c2.ts:dag-two-shapes: ACCEPT
+   drive -> same: ok, a T: {"x":{"a":1,"next":null},"y":{"s":"x","next":null}}
+== selfhost/freeze-attack9/c2.ts:generic-list-two: ACCEPT
+   drive -> same: ok, a T: {"a":{"v":1,"next":null},"b":{"v":"s","next":null}}
+== selfhost/freeze-attack9/c2.ts:generic-list-shared: ACCEPT
+   drive -> same: refused at value.b.v: value.b.v: expected string, found number 1
+== selfhost/freeze-attack9/c2.ts:generic-list-shared-deep: ACCEPT
+   drive -> same: refused at value.b.next.v: value.b.next.v: expected string, found number 1
+== selfhost/freeze-attack9/c2.ts:generic-nested-T-obj: ACCEPT
+   drive -> same: refused at value.next.v.n: value.next.v.n: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:generic-two-aliases-same-show: ACCEPT
+   drive -> same: ok, a T: {"a":{"v":[1],"next":null},"b":{"v":["s"],"next":null}}
+== selfhost/freeze-attack9/c2.ts:deep-generic-args-show: ACCEPT
+   drive -> same: ok, a T: {"a":{"v":[[[[[[1]]]]]],"next":null},"b":{"v":[[[[[["s"]]]]]],"next":null}}
+== selfhost/freeze-attack9/c2.ts:deep-generic-args-swap: ACCEPT
+   drive -> same: refused at value.a.v[0][0][0][0][0][0]: value.a.v[0][0][0][0][0][0]: expected number, found string "s"
+== selfhost/freeze-attack9/c2.ts:rec-union-json: ACCEPT
+   drive -> same: ok, a T: [1,"a",[null,[true]]]
+== selfhost/freeze-attack9/c2.ts:rec-union-json-bad: ACCEPT
+   drive -> same: refused at value[2][0]: value[2][0]: expected null or number or string or an array or boolean, found undefined
+== selfhost/freeze-attack9/c2.ts:rec-tuple: ACCEPT
+   drive -> same: ok, a T: [1,[2,[3,null]]]
+== selfhost/freeze-attack9/c2.ts:rec-through-opt: ACCEPT
+   drive -> same: refused at value.r.n: value.r.n: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:rec-three-ring: ACCEPT
+   drive -> same: ok, a T: {"b":{"c":{"a":{"b":null}}}}
+== selfhost/freeze-attack9/c2.ts:rec-generic-growing: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:union-tag-dup: ACCEPT
+   drive -> same: ok, a T: {"k":"a","n":1}
+== selfhost/freeze-attack9/c2.ts:union-tag-getter: ACCEPT
+   drive -> same: refused at value.k: value.k: expected "a", found string "b"
+== selfhost/freeze-attack9/c2.ts:union-tag-getter-rev: ACCEPT
+   drive -> same: refused at value.k: value.k: expected "b", found string "a"
+== selfhost/freeze-attack9/c2.ts:union-untagged-getter: ACCEPT
+   drive -> same: ok, a T: {"a":"s","c":"x"}
+== selfhost/freeze-attack9/c2.ts:union-tag-bool: ACCEPT
+   drive -> same: refused at value.s: value.s: expected string, found nothing
+== selfhost/freeze-attack9/c2.ts:union-tag-numlit: ACCEPT
+   drive -> same: refused at value: value: expected an object or an object, found an object
+== selfhost/freeze-attack9/c2.ts:union-tag-optional-second: ACCEPT
+   drive -> same: ok, a T: {"s":"x"}
+== selfhost/freeze-attack9/c2.ts:union-arr-or-tuple: ACCEPT
+   drive -> same: ok, a T: ["s"]
+== selfhost/freeze-attack9/c2.ts:union-rec-or-unknown: ACCEPT
+   drive -> same: ok, a T: {"n":"x","f":1}
+== selfhost/freeze-attack9/c2.ts:union-null-undef: ACCEPT
+   drive -> same: ok, a T: undefined
+== selfhost/freeze-attack9/c2.ts:union-proxy-tag: ACCEPT
+   drive -> same: refused at value.k: value.k: expected "a", found string "b"
+== selfhost/freeze-attack9/c2.ts:tuple-optional-el: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-optional-el-num: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-optional-short: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-rest: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-rest-ok: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-named: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-proxy-len: ACCEPT
+   drive -> same: refused at value[2]: value[2]: expected an array of 2, found undefined
+== selfhost/freeze-attack9/c2.ts:tuple-sparse: ACCEPT
+   drive -> same: refused at value[1]: value[1]: expected number, found undefined
+== selfhost/freeze-attack9/c2.ts:opt-undefined-explicit: ACCEPT
+   drive -> same: ok, a T: {}
+== selfhost/freeze-attack9/c2.ts:opt-inherited: ACCEPT
+   drive -> same: refused at value: value: expected an object, found a Object object
+== selfhost/freeze-attack9/c2.ts:opt-getter-undef-then-val: ACCEPT
+   drive -> same: ok, a T: {}
+== selfhost/freeze-attack9/c2.ts:required-undef: ACCEPT
+   drive -> same: refused at value.a: value.a: expected number or undefined, found nothing
+== selfhost/freeze-attack9/c2.ts:proxy-hasown-lies: ACCEPT
+   drive -> same: refused at value.a: value.a: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:neg-zero-lit: ACCEPT
+   drive -> same: refused at value: value: expected 0, found number -0
+== selfhost/freeze-attack9/c2.ts:nan-for-lit: ACCEPT
+   drive -> same: refused at value: value: expected 1, found number NaN
+== selfhost/freeze-attack9/c2.ts:string-object: ACCEPT
+   drive -> same: refused at value: value: expected string, found a String object
+== selfhost/freeze-attack9/c2.ts:symbol-value: ACCEPT
+   drive -> DIFF ok, but not a T: Symbol(s)
+   SILENT
+== selfhost/freeze-attack9/c2.ts:bigint-under-unknown: ACCEPT
+   drive -> DIFF ok, but not a T: ?
+   SILENT
+== selfhost/freeze-attack9/c2.ts:bigint-in-arr-unknown: ACCEPT
+   drive -> DIFF ok, but not a T: ?
+   SILENT
+== selfhost/freeze-attack9/c2.ts:symbol-in-unknown-obj: ACCEPT
+   drive -> DIFF ok, but not a T: {}
+   SILENT
+== selfhost/freeze-attack9/c2.ts:date-under-unknown: ACCEPT
+   drive -> same: refused at value.d: value.d: expected data, found a Date object
+== selfhost/freeze-attack9/c2.ts:map-under-unknown: ACCEPT
+   drive -> same: refused at value[0]: value[0]: expected data, found a Map object
+== selfhost/freeze-attack9/c2.ts:typed-under-unknown: ACCEPT
+   drive -> same: refused at value.t: value.t: expected data, found a Uint8Array object
+== selfhost/freeze-attack9/c2.ts:arraylike-for-array: ACCEPT
+   drive -> same: refused at value: value: expected an array, found an object
+== selfhost/freeze-attack9/c2.ts:arguments-object: ACCEPT
+   drive -> same: refused at value: value: expected an array, found an object
+== selfhost/freeze-attack9/c2.ts:array-subclass: ACCEPT
+   drive -> same: ok, a T: [1]
+== selfhost/freeze-attack9/c2.ts:array-own-proto-field: ACCEPT
+   drive -> same: ok, a T: [{"__proto__":[1]}]
+== selfhost/freeze-attack9/c2.ts:constructor-key: ACCEPT
+   drive -> same: ok, a T: {"constructor":1}
+== selfhost/freeze-attack9/c2.ts:proto-key-declared: ACCEPT
+   drive -> same: refused at value.toString: value.toString: expected string, found nothing
+== selfhost/freeze-attack9/c2.ts:huge-array: ACCEPT
+   drive -> same: ok, a T: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+== selfhost/freeze-attack9/c2.ts:huge-length-sparse: ACCEPT
+   drive -> same: ok, a T: [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null
+== selfhost/freeze-attack9/c2.ts:deep-unknown: ACCEPT
+   drive -> same: ok, a T: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+   late throws: Maximum call stack size exceeded.
+== selfhost/freeze-attack9/c2.ts:deep-rec-chain-arr: ACCEPT
+   drive -> same: ok, a T: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+   late throws: Maximum call stack size exceeded.
+== selfhost/freeze-attack9/c2.ts:revoked-proxy: ACCEPT
+   drive -> same: g not a value (rejected Proxy has already been revoked. No more operations are allowed to be performed on it)
+   error g: Proxy has already been revoked. No more operations are allowed to be performed on it
+== selfhost/freeze-attack9/c2.ts:proxy-ownkeys-dup: ACCEPT
+   drive -> same: refused at value: reading the value threw: Proxy handler's 'ownKeys' trap result must not contain any duplicate names
+== selfhost/freeze-attack9/c2.ts:frozen-input-same-identity: ACCEPT
+   drive -> same: ok, a T: [1,2]
+== selfhost/freeze-attack9/c2.ts:iface-extends: ACCEPT
+   drive -> same: refused at value.a: value.a: expected number, found nothing
+== selfhost/freeze-attack9/c2.ts:intersection: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:readonly-util: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:partial-util: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:record-lit-keys: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:pick-util: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:events-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:listener-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:pool-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:elem-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:pointer-data: ACCEPT
+   drive -> same: ok, a T: {"x":1,"y":2,"t":3,"id":4,"buttons":0}
+== selfhost/freeze-attack9/c2.ts:cast-of-cast: ACCEPT
+   drive -> same: refused at value.value: value.value: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:template-literal-type: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:keyof-type: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:indexed-access: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:typeof-const: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c2.ts:empty-rec: ACCEPT
+   drive -> same: refused at value: value: expected an object, found number 5
+== selfhost/freeze-attack9/c2.ts:void-type: ACCEPT
+   drive -> same: refused at value: value: expected undefined, found number 1
+== selfhost/freeze-attack9/c2.ts:enum-like-union: ACCEPT
+   drive -> same: ok, a T: true
+== selfhost/freeze-attack9/c2.ts:ctl-tree-bad [ctl]: CONTROL (checker skipped)
+   drive -> DIFF the value fetch gave was handed out
+   CONTROL FIRED
+== selfhost/freeze-attack9/c2.ts:ctl-generic-shared [ctl]: CONTROL (checker skipped)
+   drive -> DIFF the value fetch gave was handed out
+   CONTROL FIRED
+-- controls 2, fired 2
+-- harness crashes 0
+-- 88 candidates, accepted 68, silent 4
+SILENT selfhost/freeze-attack9/c2.ts:symbol-value
+SILENT selfhost/freeze-attack9/c2.ts:bigint-under-unknown
+SILENT selfhost/freeze-attack9/c2.ts:bigint-in-arr-unknown
+SILENT selfhost/freeze-attack9/c2.ts:symbol-in-unknown-obj
+##### mode: [SS_MEASURE_BODYFN=0 SS_MEASURE_REG=0]
+== selfhost/freeze-attack9/c2.ts:tree-ok: ACCEPT
+   drive -> same: ok, a T: {"v":1,"kids":[{"v":2,"kids":[]}]}
+== selfhost/freeze-attack9/c2.ts:tree-bad-deep: ACCEPT
+   drive -> same: refused at value.kids[0].kids[0].v: value.kids[0].kids[0].v: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:tree-shared-node: ACCEPT
+   drive -> same: ok, a T: {"v":1,"kids":[{"v":2,"kids":[]},{"v":2,"kids":[]}]}
+== selfhost/freeze-attack9/c2.ts:tree-dag-getter: ACCEPT
+   drive -> same: ok, a T: {"v":1,"kids":[{"v":2,"kids":[]},{"v":2,"kids":[]}]}
+== selfhost/freeze-attack9/c2.ts:tree-cycle: ACCEPT
+   drive -> same: refused at value.kids[0]: value.kids[0]: a cycle
+== selfhost/freeze-attack9/c2.ts:mutual-ok: ACCEPT
+   drive -> same: ok, a T: {"a":1,"b":{"s":"x","a":{"a":2,"b":null}}}
+== selfhost/freeze-attack9/c2.ts:mutual-bad: ACCEPT
+   drive -> same: refused at value.b.a.a: value.b.a.a: expected number, found string "2"
+== selfhost/freeze-attack9/c2.ts:mutual-same-obj-two-types: ACCEPT
+   drive -> same: ok, a T: {"x":{"a":1,"b":null},"y":{"s":"x","b":null}}
+== selfhost/freeze-attack9/c2.ts:dag-two-shapes: ACCEPT
+   drive -> same: ok, a T: {"x":{"a":1,"next":null},"y":{"s":"x","next":null}}
+== selfhost/freeze-attack9/c2.ts:generic-list-two: ACCEPT
+   drive -> same: ok, a T: {"a":{"v":1,"next":null},"b":{"v":"s","next":null}}
+== selfhost/freeze-attack9/c2.ts:generic-list-shared: ACCEPT
+   drive -> same: refused at value.b.v: value.b.v: expected string, found number 1
+== selfhost/freeze-attack9/c2.ts:generic-list-shared-deep: ACCEPT
+   drive -> same: refused at value.b.next.v: value.b.next.v: expected string, found number 1
+== selfhost/freeze-attack9/c2.ts:generic-nested-T-obj: ACCEPT
+   drive -> same: refused at value.next.v.n: value.next.v.n: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:generic-two-aliases-same-show: ACCEPT
+   drive -> same: ok, a T: {"a":{"v":[1],"next":null},"b":{"v":["s"],"next":null}}
+== selfhost/freeze-attack9/c2.ts:deep-generic-args-show: ACCEPT
+   drive -> same: ok, a T: {"a":{"v":[[[[[[1]]]]]],"next":null},"b":{"v":[[[[[["s"]]]]]],"next":null}}
+== selfhost/freeze-attack9/c2.ts:deep-generic-args-swap: ACCEPT
+   drive -> same: refused at value.a.v[0][0][0][0][0][0]: value.a.v[0][0][0][0][0][0]: expected number, found string "s"
+== selfhost/freeze-attack9/c2.ts:rec-union-json: ACCEPT
+   drive -> same: ok, a T: [1,"a",[null,[true]]]
+== selfhost/freeze-attack9/c2.ts:rec-union-json-bad: ACCEPT
+   drive -> same: refused at value[2][0]: value[2][0]: expected null or number or string or an array or boolean, found undefined
+== selfhost/freeze-attack9/c2.ts:rec-tuple: ACCEPT
+   drive -> same: ok, a T: [1,[2,[3,null]]]
+== selfhost/freeze-attack9/c2.ts:rec-through-opt: ACCEPT
+   drive -> same: refused at value.r.n: value.r.n: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:rec-three-ring: ACCEPT
+   drive -> same: ok, a T: {"b":{"c":{"a":{"b":null}}}}
+== selfhost/freeze-attack9/c2.ts:rec-generic-growing: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:union-tag-dup: ACCEPT
+   drive -> same: ok, a T: {"k":"a","n":1}
+== selfhost/freeze-attack9/c2.ts:union-tag-getter: ACCEPT
+   drive -> same: refused at value.k: value.k: expected "a", found string "b"
+== selfhost/freeze-attack9/c2.ts:union-tag-getter-rev: ACCEPT
+   drive -> same: refused at value.k: value.k: expected "b", found string "a"
+== selfhost/freeze-attack9/c2.ts:union-untagged-getter: ACCEPT
+   drive -> same: ok, a T: {"a":"s","c":"x"}
+== selfhost/freeze-attack9/c2.ts:union-tag-bool: ACCEPT
+   drive -> same: refused at value.s: value.s: expected string, found nothing
+== selfhost/freeze-attack9/c2.ts:union-tag-numlit: ACCEPT
+   drive -> same: refused at value: value: expected an object or an object, found an object
+== selfhost/freeze-attack9/c2.ts:union-tag-optional-second: ACCEPT
+   drive -> same: ok, a T: {"s":"x"}
+== selfhost/freeze-attack9/c2.ts:union-arr-or-tuple: ACCEPT
+   drive -> same: ok, a T: ["s"]
+== selfhost/freeze-attack9/c2.ts:union-rec-or-unknown: ACCEPT
+   drive -> same: ok, a T: {"n":"x","f":1}
+== selfhost/freeze-attack9/c2.ts:union-null-undef: ACCEPT
+   drive -> same: ok, a T: undefined
+== selfhost/freeze-attack9/c2.ts:union-proxy-tag: ACCEPT
+   drive -> same: refused at value.k: value.k: expected "a", found string "b"
+== selfhost/freeze-attack9/c2.ts:tuple-optional-el: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-optional-el-num: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-optional-short: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-rest: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-rest-ok: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-named: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:tuple-proxy-len: ACCEPT
+   drive -> same: refused at value[2]: value[2]: expected an array of 2, found undefined
+== selfhost/freeze-attack9/c2.ts:tuple-sparse: ACCEPT
+   drive -> same: refused at value[1]: value[1]: expected number, found undefined
+== selfhost/freeze-attack9/c2.ts:opt-undefined-explicit: ACCEPT
+   drive -> same: ok, a T: {}
+== selfhost/freeze-attack9/c2.ts:opt-inherited: ACCEPT
+   drive -> same: refused at value: value: expected an object, found a Object object
+== selfhost/freeze-attack9/c2.ts:opt-getter-undef-then-val: ACCEPT
+   drive -> same: ok, a T: {}
+== selfhost/freeze-attack9/c2.ts:required-undef: ACCEPT
+   drive -> same: refused at value.a: value.a: expected number or undefined, found nothing
+== selfhost/freeze-attack9/c2.ts:proxy-hasown-lies: ACCEPT
+   drive -> same: refused at value.a: value.a: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:neg-zero-lit: ACCEPT
+   drive -> same: refused at value: value: expected 0, found number -0
+== selfhost/freeze-attack9/c2.ts:nan-for-lit: ACCEPT
+   drive -> same: refused at value: value: expected 1, found number NaN
+== selfhost/freeze-attack9/c2.ts:string-object: ACCEPT
+   drive -> same: refused at value: value: expected string, found a String object
+== selfhost/freeze-attack9/c2.ts:symbol-value: ACCEPT
+   drive -> DIFF ok, but not a T: Symbol(s)
+   SILENT
+== selfhost/freeze-attack9/c2.ts:bigint-under-unknown: ACCEPT
+   drive -> DIFF ok, but not a T: ?
+   SILENT
+== selfhost/freeze-attack9/c2.ts:bigint-in-arr-unknown: ACCEPT
+   drive -> DIFF ok, but not a T: ?
+   SILENT
+== selfhost/freeze-attack9/c2.ts:symbol-in-unknown-obj: ACCEPT
+   drive -> DIFF ok, but not a T: {}
+   SILENT
+== selfhost/freeze-attack9/c2.ts:date-under-unknown: ACCEPT
+   drive -> same: refused at value.d: value.d: expected data, found a Date object
+== selfhost/freeze-attack9/c2.ts:map-under-unknown: ACCEPT
+   drive -> same: refused at value[0]: value[0]: expected data, found a Map object
+== selfhost/freeze-attack9/c2.ts:typed-under-unknown: ACCEPT
+   drive -> same: refused at value.t: value.t: expected data, found a Uint8Array object
+== selfhost/freeze-attack9/c2.ts:arraylike-for-array: ACCEPT
+   drive -> same: refused at value: value: expected an array, found an object
+== selfhost/freeze-attack9/c2.ts:arguments-object: ACCEPT
+   drive -> same: refused at value: value: expected an array, found an object
+== selfhost/freeze-attack9/c2.ts:array-subclass: ACCEPT
+   drive -> same: ok, a T: [1]
+== selfhost/freeze-attack9/c2.ts:array-own-proto-field: ACCEPT
+   drive -> same: ok, a T: [{"__proto__":[1]}]
+== selfhost/freeze-attack9/c2.ts:constructor-key: ACCEPT
+   drive -> same: ok, a T: {"constructor":1}
+== selfhost/freeze-attack9/c2.ts:proto-key-declared: ACCEPT
+   drive -> same: refused at value.toString: value.toString: expected string, found nothing
+== selfhost/freeze-attack9/c2.ts:huge-array: ACCEPT
+   drive -> same: ok, a T: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+== selfhost/freeze-attack9/c2.ts:huge-length-sparse: ACCEPT
+   drive -> same: ok, a T: [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null
+== selfhost/freeze-attack9/c2.ts:deep-unknown: ACCEPT
+   drive -> same: ok, a T: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+   late throws: Maximum call stack size exceeded.
+== selfhost/freeze-attack9/c2.ts:deep-rec-chain-arr: ACCEPT
+   drive -> same: ok, a T: [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+   late throws: Maximum call stack size exceeded.
+== selfhost/freeze-attack9/c2.ts:revoked-proxy: ACCEPT
+   drive -> same: g not a value (rejected Proxy has already been revoked. No more operations are allowed to be performed on it)
+   error g: Proxy has already been revoked. No more operations are allowed to be performed on it
+== selfhost/freeze-attack9/c2.ts:proxy-ownkeys-dup: ACCEPT
+   drive -> same: refused at value: reading the value threw: Proxy handler's 'ownKeys' trap result must not contain any duplicate names
+== selfhost/freeze-attack9/c2.ts:frozen-input-same-identity: ACCEPT
+   drive -> same: ok, a T: [1,2]
+== selfhost/freeze-attack9/c2.ts:iface-extends: ACCEPT
+   drive -> same: refused at value.a: value.a: expected number, found nothing
+== selfhost/freeze-attack9/c2.ts:intersection: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:readonly-util: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:partial-util: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:record-lit-keys: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:pick-util: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack9/c2.ts:events-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:listener-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:pool-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:elem-forged: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack9/c2.ts:pointer-data: ACCEPT
+   drive -> same: ok, a T: {"x":1,"y":2,"t":3,"id":4,"buttons":0}
+== selfhost/freeze-attack9/c2.ts:cast-of-cast: ACCEPT
+   drive -> same: refused at value.value: value.value: expected number, found string "x"
+== selfhost/freeze-attack9/c2.ts:template-literal-type: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:keyof-type: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:indexed-access: REJECT g:unsupported
+== selfhost/freeze-attack9/c2.ts:typeof-const: REJECT g:rejected[mut-nested]
+== selfhost/freeze-attack9/c2.ts:empty-rec: ACCEPT
+   drive -> same: refused at value: value: expected an object, found number 5
+== selfhost/freeze-attack9/c2.ts:void-type: ACCEPT
+   drive -> same: refused at value: value: expected undefined, found number 1
+== selfhost/freeze-attack9/c2.ts:enum-like-union: ACCEPT
+   drive -> same: ok, a T: true
+== selfhost/freeze-attack9/c2.ts:ctl-tree-bad [ctl]: CONTROL (checker skipped)
+   drive -> DIFF the value fetch gave was handed out
+   CONTROL FIRED
+== selfhost/freeze-attack9/c2.ts:ctl-generic-shared [ctl]: CONTROL (checker skipped)
+   drive -> DIFF the value fetch gave was handed out
+   CONTROL FIRED
+-- controls 2, fired 2
+-- harness crashes 0
+-- 88 candidates, accepted 68, silent 4
+SILENT selfhost/freeze-attack9/c2.ts:symbol-value
+SILENT selfhost/freeze-attack9/c2.ts:bigint-under-unknown
+SILENT selfhost/freeze-attack9/c2.ts:bigint-in-arr-unknown
+SILENT selfhost/freeze-attack9/c2.ts:symbol-in-unknown-obj

@@ -77,6 +77,10 @@ export const FIXES: MessageFix[] = [
   { id: "undefined-at", site: "ix-ops.ss.ts ixNumeric (UNDEF_FIX)", rule: "possibly-undefined", bad: "const a = () => { const xs = [1, 2]; return xs[xs.length - 1] * 2; };", fix: "const a = () => { const xs = [1, 2]; const l = xs.at(-1); if (l === undefined) return 0; return l * 2; };" },
   { id: "cast-type-arg", site: "ix-prelude.ss.ts ixCastCall", rule: "cast-type", bad: "const a = () => { const v: unknown = JSON.parse(\"1\"); return cast(v).ok; };", fix: "const a = () => { const v: unknown = JSON.parse(\"1\"); return cast<number>(v).ok; };" },
   { id: "cast-type-plain", site: "ix-prelude.ss.ts ixCastCall", rule: "cast-type", bad: "const a = () => { const v: unknown = JSON.parse(\"1\"); const r = cast<{ readonly n: number; readonly f: () => number }>(v); return r.ok ? r.value.f() : 0; };", fix: "const a = () => { const v: unknown = JSON.parse(\"1\"); const r = cast<{ readonly n: number }>(v); const f = (): number => (r.ok ? r.value.n : 0); return f(); };" },
+  // a9 (2026-11-23)
+  { id: "component-key-prop", site: "ix-jsx.ss.ts ixJsxKeyProp", rule: "type", tsx: true, bad: "const g = () => { const C = (p: { readonly key?: number }) => <div>{p.key}</div>; return <C key={5} />; };", fix: "const g = () => { const C = (p: { readonly id?: number }) => <div>{p.id}</div>; return <C id={5} />; };" },
+  { id: "cast-type-infinity", site: "shape.ss.ts shapeIn (lit)", rule: "cast-type", bad: "const a = () => { const v: unknown = JSON.parse(\"1\"); return cast<1e400>(v).ok; };", fix: "const a = () => { const v: unknown = JSON.parse(\"1\"); return cast<number>(v).ok; };" },
+  { id: "reserved-text", site: "messages.ss.ts RESERVED_TEXT_MSG", rule: "reserved-name", bad: "const a = () => \"/*ss-*/\";", fix: "const a = () => \"/\" + \"*ss-*/\";" },
 ];
 // e1 (2026-11-23): async-return (an async function returns a promise: await it) is no longer a message; B4 accepts
 // the return and types it as what the promise resolves to

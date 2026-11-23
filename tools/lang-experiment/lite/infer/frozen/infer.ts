@@ -803,6 +803,10 @@ export class Checker {
     const call = at(e, { type: "CallExpression", optional: false, callee: at(name, { type: "Identifier", name: name.name }), arguments: [at(op, { type: "ObjectExpression", properties: props.filter((x: Node) => !isKey(x)) })] });
     const t = this.call(call, env, ELEM);
     if (t.k !== "err" && !this.reg.sub(t, ELEM)) this.err(e, "type", `component ${name.name} returns ${show(t)}, not Elem`);
+    // DELIBERATE CHANGE (2026-11-23, a9): h does not pass key to a component (B-1), so props that declare key are rejected
+    const ct = this.facts.types.get(call.callee);
+    if (ct && ct.k !== "err" && this.reg.callSigs(ct).some((s) => { const p = s.ps[0]?.t; return p !== undefined && this.um(p).some((m) => m.k !== "err" && this.reg.member(m, "key") !== undefined); }))
+      this.err(e, "type", `component ${name.name}'s props declare key, which JSX keeps for the renderer and does not pass to a component: rename the prop (for example id) and pass it as id={...}`);
     return ELEM;
   }
   conditional(e: Node, env: Env, expected: Ty | undefined): Ty {

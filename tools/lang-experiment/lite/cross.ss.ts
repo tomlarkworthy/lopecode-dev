@@ -28,7 +28,8 @@ export const describeSeen = () => (s: ValueSeen): string => {
     case "function": return "a function";
     case "array": return `an array of ${s.length}`;
     case "promise": return "a promise";
-    case "object": return s.plain ? "an object" : `a ${s.ctor ?? "non-plain"} object`;
+    // a9 (2026-11-23): Object as the constructor means the prototype is another object that inherits from Object.prototype
+    case "object": return s.plain ? "an object" : s.ctor === "Object" ? "an object whose prototype is not Object.prototype" : `a ${s.ctor ?? "non-plain"} object`;
     case "other": return s.type;
   }
 };
