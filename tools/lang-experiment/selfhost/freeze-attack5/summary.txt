@@ -1,0 +1,10 @@
+## out-a.txt
+-- controls 19, fired 6
+-- accepted with a cell still pending at the end: 0
+-- 441 candidates, accepted 145, silent 0
+0
+## out-b.txt
+-- controls 19, fired 19
+-- accepted with a cell still pending at the end: 0
+-- 441 candidates, accepted 145, silent 128
+128

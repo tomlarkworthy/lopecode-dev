@@ -1,0 +1,793 @@
+== c0.ts:fa4-fa3-ctl-typed-input-write: CONTROL (checker skipped)
+   CHANGED t (value #1 of 1): Uint8Array[0,0] | E[] -> Uint8Array[1,0] | E[]
+   CONTROL FIRED
+== c0.ts:fa4-fa3-ctl-let-reassign: CONTROL (checker skipped)
+   CHANGED a (value #1 of 2): fn(0) | E[] -> fn(1) | E[]
+   CONTROL FIRED
+== c0.ts:fa4-fa3-ctl-promise-typed: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(Promise) | E[] -> fn(Promise) | E[] promise Uint8Array[0,0] -> Uint8Array[1,0]
+   CONTROL FIRED
+== c0.ts:fa4-fa3-ctl-twice: CONTROL (checker skipped)
+   CHANGED t (value #1 of 1): Uint8Array[0,0] | E[] -> Uint8Array[7,0] | E[]
+   twice obs: #1 [0] | E[] , #1 [7] | E[]
+   CONTROL FIRED
+== c0.ts:fa4-ctl-let-counter: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+   CONTROL FIRED
+== c0.ts:fa4-ctl-let-async: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(0) | E[] -> fn(5) | E[]
+   CONTROL FIRED
+== c0.ts:fa4-ctl-typed-shared: CONTROL (checker skipped)
+   CHANGED t (value #1 of 1): Uint8Array[0,0] | E[] -> Uint8Array[9,0] | E[]
+   CONTROL FIRED
+== c0.ts:fa4-k-h9-r2-kept-returns-field: REJECT a:rejected[mut-nested] c:rejected[mut-nested]
+== c0.ts:k5-spec-not-specified-tuple: ACCEPT
+   drive -> a() = 4
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(5) | E[]
+== c0.ts:k5-ternary: ACCEPT
+   drive -> a() = 4
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(5) | E[]
+== c0.ts:k5-asconst-rec-map: ACCEPT
+   drive -> a() = 3
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(4) | E[]
+== n1.ts:n1-tuple-ret: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-tuple-rec: ACCEPT
+   CHANGED a (value #1 of 1): {f:fn(3)} | E[] -> {f:fn(4)} | E[]
+== n1.ts:n1-tuple-method: ACCEPT
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+== n1.ts:n1-tuple-decl: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-tuple-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-tuple-two: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+== n1.ts:n1-tuple1-ret: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-tuple1-rec: ACCEPT
+   CHANGED a (value #1 of 1): {f:fn(3)} | E[] -> {f:fn(4)} | E[]
+== n1.ts:n1-tuple1-method: ACCEPT
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+== n1.ts:n1-tuple1-decl: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-tuple1-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-tuple1-two: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+== n1.ts:n1-tuple2-ret: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-tuple2-rec: ACCEPT
+   CHANGED a (value #1 of 1): {f:fn(3)} | E[] -> {f:fn(4)} | E[]
+== n1.ts:n1-tuple2-method: ACCEPT
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+== n1.ts:n1-tuple2-decl: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-tuple2-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-tuple2-two: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+== n1.ts:n1-tern-ret: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-tern-rec: ACCEPT
+   CHANGED a (value #1 of 1): {f:fn(3)} | E[] -> {f:fn(4)} | E[]
+== n1.ts:n1-tern-method: ACCEPT
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+== n1.ts:n1-tern-decl: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-tern-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-tern-two: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+== n1.ts:n1-ternrec-ret: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-ternrec-rec: ACCEPT
+   CHANGED a (value #1 of 1): {f:fn(3)} | E[] -> {f:fn(4)} | E[]
+== n1.ts:n1-ternrec-method: ACCEPT
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+== n1.ts:n1-ternrec-decl: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-ternrec-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-ternrec-two: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+== n1.ts:n1-box-ret: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-box-rec: ACCEPT
+   CHANGED a (value #1 of 1): {f:fn(3)} | E[] -> {f:fn(4)} | E[]
+== n1.ts:n1-box-method: ACCEPT
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+== n1.ts:n1-box-decl: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-box-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-box-two: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+== n1.ts:n1-pairg-ret: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-pairg-rec: ACCEPT
+   CHANGED a (value #1 of 1): {f:fn(3)} | E[] -> {f:fn(4)} | E[]
+== n1.ts:n1-pairg-method: ACCEPT
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+== n1.ts:n1-pairg-decl: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-pairg-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-pairg-two: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+== n1.ts:n1-idg-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-idg-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-idg-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-idg-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-idg-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-idg-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n1.ts:n1-fnres-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-fnres-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-fnres-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-fnres-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-fnres-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-fnres-two: REJECT a:rejected[mut-capture]
+== n1.ts:n1-fnres2-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-fnres2-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-fnres2-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-fnres2-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-fnres2-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-fnres2-two: REJECT a:rejected[mut-capture]
+== n1.ts:n1-iife-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-iife-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-iife-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-iife-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-iife-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-iife-two: REJECT a:rejected[mut-capture]
+== n1.ts:n1-alias2-ret: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-alias2-rec: ACCEPT
+   CHANGED a (value #1 of 1): {f:fn(3)} | E[] -> {f:fn(4)} | E[]
+== n1.ts:n1-alias2-method: ACCEPT
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+== n1.ts:n1-alias2-decl: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-alias2-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-alias2-two: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+== n1.ts:n1-destr-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-destr-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-destr-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-destr-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-destr-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-destr-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n1.ts:n1-destrobj-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-destrobj-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-destrobj-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-destrobj-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-destrobj-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-destrobj-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n1.ts:n1-spread-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-spread-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-spread-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-spread-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-spread-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-spread-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n1.ts:n1-rec-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-rec-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-rec-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-rec-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-rec-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-rec-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n1.ts:n1-entries-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-entries-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-entries-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-entries-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-entries-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-entries-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n1.ts:n1-values-ret: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-values-rec: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-values-method: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-values-decl: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-values-gen: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-values-two: REJECT a:rejected[mutating-method][mut-capture][mut-capture][mut-capture]
+== n1.ts:n1-mapnew-ret: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-mapnew-rec: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-mapnew-method: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-mapnew-decl: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-mapnew-gen: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-mapnew-two: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-setnew-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-setnew-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-setnew-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-setnew-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-setnew-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-setnew-two: REJECT a:rejected[mut-capture]
+== n1.ts:n1-arrmap-ret: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrmap-rec: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrmap-method: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrmap-decl: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrmap-gen: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrmap-two: REJECT a:rejected[mutating-method][mut-capture][mut-capture][mut-capture]
+== n1.ts:n1-arrfilter-ret: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrfilter-rec: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrfilter-method: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrfilter-decl: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrfilter-gen: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrfilter-two: REJECT a:rejected[mutating-method][mut-capture][mut-capture][mut-capture]
+== n1.ts:n1-arrslice-ret: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrslice-rec: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrslice-method: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrslice-decl: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrslice-gen: REJECT a:rejected[mutating-method][mut-capture]
+== n1.ts:n1-arrslice-two: REJECT a:rejected[mutating-method][mut-capture][mut-capture][mut-capture]
+== n1.ts:n1-arrconcat-ret: REJECT a:rejected[no-cast]
+== n1.ts:n1-arrconcat-rec: REJECT a:rejected[no-cast]
+== n1.ts:n1-arrconcat-method: REJECT a:rejected[no-cast]
+== n1.ts:n1-arrconcat-decl: REJECT a:rejected[no-cast]
+== n1.ts:n1-arrconcat-gen: REJECT a:rejected[no-cast]
+== n1.ts:n1-arrconcat-two: REJECT a:rejected[no-cast]
+== n1.ts:n1-nested-ret: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-nested-rec: ACCEPT
+   CHANGED a (value #1 of 1): {f:fn(3)} | E[] -> {f:fn(4)} | E[]
+== n1.ts:n1-nested-method: ACCEPT
+   CHANGED a (value #1 of 1): {m:fn(3)} | E[] -> {m:fn(4)} | E[]
+== n1.ts:n1-nested-decl: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-nested-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n1.ts:n1-nested-two: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+== n1.ts:n1-findres-ret: REJECT a:rejected[mutating-method]
+== n1.ts:n1-findres-rec: REJECT a:rejected[mutating-method]
+== n1.ts:n1-findres-method: REJECT a:rejected[mutating-method]
+== n1.ts:n1-findres-decl: REJECT a:rejected[mutating-method]
+== n1.ts:n1-findres-gen: REJECT a:rejected[mutating-method]
+== n1.ts:n1-findres-two: REJECT a:rejected[mutating-method]
+== n1.ts:n1-atres-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-atres-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-atres-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-atres-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-atres-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-atres-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n1.ts:n1-typedtup-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-typedtup-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-typedtup-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-typedtup-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-typedtup-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-typedtup-two: REJECT a:rejected[mut-capture]
+== n1.ts:n1-maptup-ret: ACCEPT
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+== n1.ts:n1-maptup-rec: ACCEPT
+   CHANGED a (value #1 of 1): {f:fn(2)} | E[] -> {f:fn(3)} | E[]
+== n1.ts:n1-maptup-method: ACCEPT
+   CHANGED a (value #1 of 1): {m:fn(2)} | E[] -> {m:fn(3)} | E[]
+== n1.ts:n1-maptup-decl: ACCEPT
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+== n1.ts:n1-maptup-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+== n1.ts:n1-maptup-two: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(2)} | E[] -> {w:fn(0),r:fn(3)} | E[]
+== n1.ts:n1-urltup-ret: REJECT a:rejected[mut-capture]
+== n1.ts:n1-urltup-rec: REJECT a:rejected[mut-capture]
+== n1.ts:n1-urltup-method: REJECT a:rejected[mut-capture]
+== n1.ts:n1-urltup-decl: REJECT a:rejected[mut-capture]
+== n1.ts:n1-urltup-gen: REJECT a:rejected[mut-capture]
+== n1.ts:n1-urltup-two: REJECT a:rejected[mut-capture]
+== n1.ts:n1-rectup-ret: ACCEPT
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+== n1.ts:n1-rectup-rec: ACCEPT
+   CHANGED a (value #1 of 1): {f:fn(2)} | E[] -> {f:fn(3)} | E[]
+== n1.ts:n1-rectup-method: ACCEPT
+   CHANGED a (value #1 of 1): {m:fn(2)} | E[] -> {m:fn(3)} | E[]
+== n1.ts:n1-rectup-decl: ACCEPT
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+== n1.ts:n1-rectup-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+== n1.ts:n1-rectup-two: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(2)} | E[] -> {w:fn(0),r:fn(3)} | E[]
+== n1.ts:n1-errtup-ret: ACCEPT
+   CHANGED a (value #1 of 1): fn("xyy") | E[] -> fn("xyyy") | E[]
+== n1.ts:n1-errtup-rec: ACCEPT
+   CHANGED a (value #1 of 1): {f:fn("xyy")} | E[] -> {f:fn("xyyy")} | E[]
+== n1.ts:n1-errtup-method: ACCEPT
+   CHANGED a (value #1 of 1): {m:fn("xyy")} | E[] -> {m:fn("xyyy")} | E[]
+== n1.ts:n1-errtup-decl: ACCEPT
+   CHANGED a (value #1 of 1): fn("xyy") | E[] -> fn("xyyy") | E[]
+== n1.ts:n1-errtup-gen: ACCEPT
+   CHANGED a (value #1 of 1): fn("xyy") | E[] -> fn("xyyy") | E[]
+== n1.ts:n1-errtup-two: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn("xyy")} | E[] -> {w:fn(0),r:fn("xyyy")} | E[]
+== n2.ts:n2-v-buffer-ctor: REJECT a:rejected[member-write][mut-capture]
+== n2.ts:n2-v-buffer-ctor-read: REJECT a:rejected[member-write][mut-capture]
+== n2.ts:n2-v-buffer-only: REJECT a:rejected[member-write][mut-capture]
+== n2.ts:n2-v-buffer-two-fns: REJECT a:rejected[member-write][mut-capture]
+== n2.ts:n2-v-buffer-f32: REJECT a:rejected[member-write][mut-capture]
+== n2.ts:n2-v-subarray-buffer: REJECT a:rejected[member-write][mut-capture]
+== n2.ts:n2-v-cross-cell: REJECT b:rejected[member-write]
+== n2.ts:n2-v-cross-cell-typed: REJECT b:rejected[member-write]
+== n2.ts:n2-v-in-cell-write: REJECT a:rejected[member-write][mut-capture]
+== n2.ts:n2-v-buffer-param: REJECT mk:rejected[member-write][mut-capture] a:rejected[inject-type]
+== n2.ts:n2-d-default-mut: REJECT a:rejected[mut-capture]
+== n2.ts:n2-d-default-plain: REJECT a:rejected[mut-capture]
+== n2.ts:n2-d-default-tuple: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n2.ts:n2-p-inner-mut-param: REJECT a:rejected[mut-capture]
+== n2.ts:n2-p-inner-mut-param-read: REJECT a:rejected[mut-capture][mut-capture]
+== n2.ts:n2-p-generic-param: REJECT a:rejected[iterator-capture]
+== n2.ts:n2-p-generic-param-out: REJECT mk:rejected[iterator-capture]
+== n2.ts:n2-p-plain-param-alias: ACCEPT
+== n2.ts:n2-p-cell-param-assigned: REJECT a:rejected[inject-unknown]
+== n2.ts:n2-t-this-method: REJECT a:rejected[no-this]
+== n2.ts:n2-t-arguments: REJECT a:rejected[no-arguments][mut-capture]
+== n2.ts:n2-f-helper-uncalled: REJECT a:rejected[mut-capture]
+== n2.ts:n2-f-helper-in-record: REJECT a:rejected[mut-capture][mut-capture]
+== n2.ts:n2-f-helper-passed: REJECT a:rejected[mut-nested][mut-capture]
+== n2.ts:n2-f-helper-param-fn: REJECT a:rejected[mut-nested][mut-capture]
+== n2.ts:n2-f-fn-typed-local: REJECT a:rejected[mut-nested][mut-capture]
+== n2.ts:n2-a-input-fn: ACCEPT
+== n2.ts:n2-a-return-fn-then-write: ACCEPT
+== n2.ts:n2-a-promise-race: REJECT a:rejected[type]
+== n2.ts:n2-a-gen-plain-alias: REJECT a:rejected[mut-yield]
+== n2.ts:n2-a-gen-plain-prim: REJECT a:rejected[mut-yield]
+== n2.ts:n2-a-asyncgen-alias: REJECT a:rejected[mut-yield]
+== n2.ts:n2-l-let-fresh-alias: ACCEPT
+== n2.ts:n2-l-ann-let-written-after-capture: ACCEPT
+== n2.ts:n2-m-map-alias-async: REJECT a:rejected[unknown-type]
+== n2.ts:n2-m-map-plain-async: REJECT a:rejected[no-cast]
+== n2.ts:n2-s-spread-shares: REJECT a:rejected[mut-capture]
+== n2.ts:n2-s-object-values-alias: REJECT a:rejected[mut-capture]
+== n3.ts:n3-memo-result-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(fn(3)) | E[] -> fn(fn(4)) | E[]
+   CHANGED b (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n3.ts:n3-memo-result-rec: ACCEPT
+   CHANGED a (value #1 of 1): fn({w:fn(0),r:fn(3)}) | E[] -> fn({w:fn(0),r:fn(4)}) | E[]
+   CHANGED b (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+== n3.ts:n3-memo-captures-tuple: REJECT a:rejected[memo-pure]
+== n3.ts:n3-memo-cross-cell-held: ACCEPT
+   CHANGED a (value #1 of 1): fn(fn(3)) | E[] -> fn(fn(4)) | E[]
+   CHANGED c (value #1 of 1): fn(3) | E[] -> fn(6) | E[]
+   CHANGED b (value #1 of 1): fn(5) | E[] -> fn(9) | E[]
+== n3.ts:n3-memo-ternary: ACCEPT
+   CHANGED b (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n3.ts:n3-action-writes-tuple: REJECT a:rejected[action-capture]
+== n3.ts:n3-action-ternary: REJECT a:rejected[action-capture]
+== n3.ts:n3-action-sets-state: REJECT a:rejected[action-capture]
+== n3.ts:n3-state-holds-reader: REJECT put:rejected[action-capture]
+== n3.ts:n3-update-fn: REJECT a:rejected[action-capture]
+== n3.ts:n3-listener: REJECT w:rejected[action-capture]
+== n3.ts:n3-jsx-onclick: REJECT a:rejected[excess-property]
+== n3.ts:n3-jsx-reader: REJECT a:rejected[no-member]
+== n3.ts:n3-consumer-holds: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+   CHANGED b (value #1 of 1): {r:fn(3)} | E[] -> {r:fn(6)} | E[]
+== n3.ts:n3-consumer-wraps: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+   CHANGED b (value #1 of 1): fn(30) | E[] -> fn(60) | E[]
+== n3.ts:n3-consumer-calls-writer: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(5)} | E[]
+   CHANGED c (value #1 of 1): fn(4) | E[] -> fn(7) | E[]
+== n3.ts:n3-held-promise-fn: ACCEPT
+== n3.ts:n3-held-gen-fn: ACCEPT
+== n3.ts:n3-to-typeof-whole: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n3.ts:n3-to-typeof-xs: REJECT a:rejected[mut-capture]
+== n3.ts:n3-to-intersection: REJECT a:unsupported
+== n3.ts:n3-to-conditional: REJECT a:rejected[mut-nested]
+== n3.ts:n3-to-indexed: REJECT a:rejected[mut-nested]
+== n3.ts:n3-to-alias-generic-inst: REJECT box:rejected[inject-unknown][iterator-cell] a:rejected[cell-by-name]
+== n3.ts:n3-to-keyof-record: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n3.ts:n3-rr-plain: REJECT a:rejected[no-non-null][mut-capture] b:blocked
+== n3.ts:n3-rr-tuple: ACCEPT
+   drive -> bump x2
+   CHANGED a (value #1 of 3): fn(3) | E[] -> fn(6) | E[]
+   CHANGED a (value #2 of 3): fn(3) | E[] -> fn(6) | E[]
+   CHANGED a (value #3 of 3): fn(3) | E[] -> fn(6) | E[]
+   CHANGED b (value #1 of 3): {a:fn(5)} | E[] -> {a:fn(9)} | E[]
+   CHANGED b (value #2 of 3): {a:fn(5)} | E[] -> {a:fn(9)} | E[]
+   CHANGED b (value #3 of 3): {a:fn(5)} | E[] -> {a:fn(9)} | E[]
+   twice a: #1 fn(3) | E[] , #2 fn(3) | E[] , #3 fn(3) | E[]
+   twice b: #1 {a:fn(5)} | E[] , #2 {a:fn(5)} | E[] , #3 {a:fn(5)} | E[]
+== n3.ts:n3-rr-memo-shared: ACCEPT
+   drive -> bump x2
+   twice a: #1 fn(2) | E[] , #2 fn(3) | E[] , #3 fn(5) | E[]
+   twice b: #1 {a:fn(2)} | E[] , #2 {a:fn(3)} | E[] , #3 {a:fn(5)} | E[]
+== n3.ts:n3-ctl-rec: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== n3.ts:n3-ctl-mut-capture: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== n3.ts:n3-ctl-buffer-view: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+   CONTROL FIRED
+== n3.ts:n3-ctl-default-mut: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== n3.ts:n3-ctl-fnres: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== n3.ts:n3-ctl-gen-alias: CONTROL (checker skipped)
+   CHANGED a (value #1 of 2): fn(1) | E[] -> fn(2) | E[]
+   CONTROL FIRED
+== n3.ts:n3-ctl-map-capture: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+   CONTROL FIRED
+== n3.ts:n3-ctl-memo-mut: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+   CONTROL FIRED
+== n4.ts:n4-arr-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-arr-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-arr-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-arr-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-arr-generic-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-arr-generic-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-arr-generic-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-arr-generic-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-tuple-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-tuple-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-tuple-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-tuple-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-tuple-arr-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-tuple-arr-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-tuple-arr-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-tuple-arr-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-rec-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-rec-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-rec-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-rec-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-rec-nested-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-rec-nested-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-rec-nested-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-rec-nested-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-map-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-map-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-map-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-map-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-set-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-set-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-set-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-set-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-record-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-record-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-record-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-record-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-u8-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-u8-two: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-u8-readalias: REJECT a:rejected[mut-capture]
+== n4.ts:n4-u8-async-late: REJECT a:rejected[mut-capture][mut-await]
+== n4.ts:n4-destr-arr-ret: REJECT a:rejected[mutating-method]
+== n4.ts:n4-destr-arr-two: REJECT a:rejected[mutating-method]
+== n4.ts:n4-destr-arr-readalias: REJECT a:rejected[mutating-method]
+== n4.ts:n4-destr-arr-async-late: REJECT a:rejected[mutating-method]
+== n4.ts:n4-destr-obj-ret: REJECT a:rejected[mutating-method]
+== n4.ts:n4-destr-obj-two: REJECT a:rejected[mutating-method]
+== n4.ts:n4-destr-obj-readalias: REJECT a:rejected[mutating-method]
+== n4.ts:n4-destr-obj-async-late: REJECT a:rejected[mutating-method]
+== n4.ts:n4-let-arr-ret: REJECT a:rejected[mutating-method][let-capture]
+== n4.ts:n4-let-arr-two: REJECT a:rejected[mutating-method][let-capture]
+== n4.ts:n4-let-arr-readalias: REJECT a:rejected[let-capture]
+== n4.ts:n4-let-arr-async-late: REJECT a:rejected[mutating-method][let-capture][mut-await]
+== n4.ts:n4-snapshot-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-snapshot-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-snapshot-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-snapshot-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-struct-clone-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-struct-clone-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-struct-clone-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-struct-clone-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-from-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-from-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-from-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-from-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-slice-of-plain-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-slice-of-plain-two: REJECT a:rejected[mut-capture][mut-capture][mut-capture]
+== n4.ts:n4-slice-of-plain-readalias: REJECT a:rejected[mut-capture][mut-capture]
+== n4.ts:n4-slice-of-plain-async-late: REJECT a:rejected[mut-capture][mut-capture][mut-await]
+== n4.ts:n4-alias-of-ann-ret: REJECT a:rejected[mut-capture]
+== n4.ts:n4-alias-of-ann-two: REJECT a:rejected[mut-capture]
+== n4.ts:n4-alias-of-ann-readalias: ACCEPT
+== n4.ts:n4-alias-of-ann-async-late: REJECT a:rejected[mut-await]
+== n4.ts:n4-param-default-plain: REJECT a:rejected[mutating-method]
+== n4.ts:n4-param-default-plain-read: REJECT a:rejected[mutating-method]
+== n4.ts:n4-nested-local: REJECT a:rejected[mut-capture]
+== n4.ts:n4-nested-local-tuple: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n4.ts:n4-ann-in-tuple: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n4.ts:n4-ann-map-in-tuple: ACCEPT
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+== n4.ts:n4-ann-in-ternary: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n4.ts:n4-ann-in-as-const-rec: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n5.ts:n5-op-or-null: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n5.ts:n5-op-nullish: ACCEPT
+== n5.ts:n5-op-and: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n5.ts:n5-op-or: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n5.ts:n5-op-paren: REJECT a:rejected[mut-capture]
+== n5.ts:n5-op-comma: REJECT a:unsupported
+== n5.ts:n5-op-tern-two-muts: REJECT a:rejected[mut-capture]
+== n5.ts:n5-op-tern-mut-readonly: ACCEPT
+== n5.ts:n5-op-tern-tuple-of-ann: ACCEPT
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+== n5.ts:n5-op-tern-typed: REJECT a:rejected[mut-capture]
+== n5.ts:n5-op-tern-url: REJECT a:rejected[mut-capture]
+== n5.ts:n5-op-tern-in-loop: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n5.ts:n5-op-tuple-for-of: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n5.ts:n5-op-tuple-destr-in-fn: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n5.ts:n5-op-tuple-spread-in-fn: REJECT a:rejected[mutating-method]
+== n5.ts:n5-op-asconst-nested-rec: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n5.ts:n5-op-asconst-rec-of-map: ACCEPT
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+== n5.ts:n5-op-asconst-rec-of-set: ACCEPT
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+== n5.ts:n5-op-asconst-rec-of-rec: ACCEPT
+   CHANGED a (value #1 of 1): fn(2) | E[] -> fn(3) | E[]
+== n5.ts:n5-op-generic-pick: REJECT pick:rejected[inject-unknown][inject-unknown][iterator-cell] a:rejected[cell-by-name]
+== n5.ts:n5-gen-yield-reader-only: ACCEPT
+   CHANGED a (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+== n5.ts:n5-gen-two-yields-same-t: ACCEPT
+   CHANGED a (value #1 of 2): fn(3) | E[] -> fn(4) | E[]
+   CHANGED a (value #2 of 2): fn(3) | E[] -> fn(4) | E[]
+== n5.ts:n5-async-cell-returns-reader: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n5.ts:n5-held-iter: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n5.ts:n5-isl-fn-out: REJECT go:rejected[compile-boundary]
+== n5.ts:n5-isl-pool-fn-out: REJECT go:rejected[compile-boundary]
+== n5.ts:n5-isl-pool-data: ACCEPT
+== n5.ts:n5-isl-memo-in: ACCEPT
+== n5.ts:n5-isl-memo-fn-out: REJECT go:rejected[compile-boundary]
+== n5.ts:n5-memo-key-fn: ACCEPT
+   CHANGED g (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+   CHANGED a (value #1 of 1): fn(6) | E[] -> fn(12) | E[]
+== n5.ts:n5-memo-arg-tuple: ACCEPT
+== n6.ts:n6-yieldstar-inner-writes: REJECT a:rejected[mut-yield]
+== n6.ts:n6-yieldstar-inner-own: REJECT a:rejected[mut-yield]
+== n6.ts:n6-spread-inner-gen: REJECT a:rejected[type][mut-yield]
+== n6.ts:n6-inner-gen-kept: REJECT a:rejected[mut-yield]
+== n6.ts:n6-inner-gen-object-kept: REJECT a:rejected[iterator-capture][mut-yield]
+== n6.ts:n6-unannotated-consumer-write: ACCEPT
+   CHANGED a (value #1 of 1): fn([0]) | E[] -> fn([0,1]) | E[]
+== n6.ts:n6-unannotated-consumer-tuple: ACCEPT
+   CHANGED a (value #1 of 1): fn([[0]]) | E[] -> fn([[0,1]]) | E[]
+== n6.ts:n6-unannotated-consumer-mutparam: REJECT c:rejected[type]
+== n6.ts:n6-consumer-passes-to-mut-param: REJECT c:rejected[type]
+== n6.ts:n6-jsx-onclick-void: REJECT a:rejected[excess-property]
+== n6.ts:n6-jsx-plain-alias: REJECT a:rejected[excess-property]
+== n6.ts:n6-switch-scope: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n6.ts:n6-label-scope: REJECT a:unsupported
+== n6.ts:n6-map-key-tuple: REJECT a:rejected[mut-capture]
+== n6.ts:n6-kept-returns-holder: ACCEPT
+   CHANGED a (value #1 of 1): {h:fn([[0,1]]),w:fn(0)} | E[] -> {h:fn([[0,1,1]]),w:fn(0)} | E[]
+   CHANGED b (value #1 of 1): fn(3) | E[] -> fn(6) | E[]
+== n6.ts:n6-helper-gen-capture: REJECT a:rejected[type][mut-capture]
+== n6.ts:n6-object-literal-getter-fn: ACCEPT
+   CHANGED a (value #1 of 1): {o:{f:fn(2)},w:fn(0)} | E[] -> {o:{f:fn(3)},w:fn(0)} | E[]
+== n6.ts:n6-async-reader-via-input: ACCEPT
+== n6.ts:n6-async-snapshot-escape: REJECT a:rejected[mut-capture]
+== n6.ts:n6-closure-over-cell-input-fn: ACCEPT
+   CHANGED g (value #1 of 1): {w:fn(0),r:fn(3)} | E[] -> {w:fn(0),r:fn(4)} | E[]
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(6) | E[]
+== n6.ts:n6-ctl-yieldstar: CONTROL (checker skipped)
+   CHANGED a (value #1 of 2): fn(1) | E[] -> fn(2) | E[]
+   CONTROL FIRED
+== n6.ts:n6-ctl-unannotated-consumer: CONTROL (checker skipped)
+   CHANGED a (value #1 of 1): fn([0]) | E[] -> fn([0,1]) | E[]
+   CONTROL FIRED
+== n7.ts:n7-helper-result-bound: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n7.ts:n7-helper-result-rec: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n7.ts:n7-await-resolve: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n7.ts:n7-spread-as-const: REJECT a:unsupported
+== n7.ts:n7-nested-destr: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n7.ts:n7-param-tuple: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n7.ts:n7-param-ternary: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n7.ts:n7-c-unann-writer-reader: ACCEPT
+   CHANGED a (value #1 of 1): {get:fn([0]),n:fn(1)} | E[] -> {get:fn([0,1]),n:fn(2)} | E[]
+   twice r: #1 fn(2) | E[]
+== n7.ts:n7-c-unann-two-hops: ACCEPT
+   CHANGED a (value #1 of 1): fn([0]) | E[] -> fn([0,1]) | E[]
+   CHANGED r (value #1 of 1): fn(1) | E[] -> fn(2) | E[]
+   CHANGED b (value #1 of 1): fn([0]) | E[] -> fn([0,1]) | E[]
+== n7.ts:n7-c-unann-ternary: ACCEPT
+   CHANGED a (value #1 of 1): fn([0]) | E[] -> fn([0,1]) | E[]
+== n7.ts:n7-c-unann-rec-field: ACCEPT
+   CHANGED a (value #1 of 1): {get:fn([0])} | E[] -> {get:fn([0,1])} | E[]
+== n7.ts:n7-c-unann-map: REJECT r:rejected[unknown-type]
+== n7.ts:n7-c-unann-async-writer: ACCEPT
+   CHANGED a (value #1 of 1): fn([0]) | E[] -> fn([0,1]) | E[]
+   CHANGED r (value #1 of 1): fn(1) | E[] -> fn(2) | E[]
+== n8.ts:n8-z-gen-const-after-yield: REJECT a:rejected[free-name]
+== n8.ts:n8-z-gen-readonly-after-yield: REJECT a:rejected[free-name]
+== n8.ts:n8-z-gen-fn-decl-hoisted: REJECT a:rejected[free-name]
+== n8.ts:n8-z-gen-rec-after-yield: REJECT a:rejected[free-name]
+== n8.ts:n8-z-async-const-after-await: REJECT a:rejected[free-name]
+== n8.ts:n8-z-sync-before-init: REJECT a:rejected[free-name]
+== n8.ts:n8-z-sync-decl-hoisted: REJECT a:rejected[free-name]
+== n8.ts:n8-z-ctl-gen-const-after-yield: CONTROL (checker skipped)
+   CHANGED a (value #1 of 2): fn(throws Cannot access 'k' before initialization.) | E[] -> fn(5) | E[]
+   CONTROL FIRED
+== n8.ts:n8-z-ctl-gen-fn-decl: CONTROL (checker skipped)
+   CHANGED a (value #1 of 2): fn(throws Cannot access 'k' before initialization.) | E[] -> fn(5) | E[]
+   CONTROL FIRED
+== n8.ts:n8-y-tuple: REJECT a:rejected[mut-yield]
+== n8.ts:n8-y-ternary: REJECT a:rejected[mut-yield]
+== n8.ts:n8-y-and: REJECT a:rejected[mut-yield]
+== n8.ts:n8-y-or: REJECT a:rejected[mut-yield]
+== n8.ts:n8-y-asconst-rec: REJECT a:rejected[mut-yield]
+== n8.ts:n8-y-box: REJECT a:rejected[mut-yield]
+== n8.ts:n8-y-helper-result: REJECT a:rejected[mut-yield]
+== n8.ts:n8-y-typeof-whole: REJECT a:rejected[mut-yield]
+== n8.ts:n8-y-nested-destr: REJECT a:rejected[mut-yield]
+== n8.ts:n8-y-await: REJECT a:rejected[mut-await]
+== n8.ts:n8-y-mut-param: REJECT a:rejected[mut-yield]
+== n8.ts:n8-o-intersection-ann: REJECT a:unsupported
+== n8.ts:n8-o-conditional-ann: REJECT a:unsupported
+== n8.ts:n8-o-indexed-ann: REJECT a:unsupported
+== n8.ts:n8-o-indexed-captured: REJECT a:unsupported
+== n8.ts:n8-o-conditional-captured: REJECT a:unsupported
+== n8.ts:n8-o-intersection-captured: REJECT a:unsupported
+== n8.ts:n8-o-generic-ret-intersection: REJECT a:rejected[no-cast]
+== n8.ts:n8-o-generic-ret-indexed: CRASH This syntax is reserved in files with the .mts or .cts extension. Add a trailing comma, as in `<T,>() => ...`. (1:32)
+== n8.ts:n8-o-local-box-alias: ACCEPT
+   CHANGED a (value #1 of 1): fn(3) | E[] -> fn(4) | E[]
+== n8.ts:n8-o-concat: REJECT a:rejected[mutating-method]
+== n8.ts:n8-rr-plain: ACCEPT
+   drive -> bump x2
+   twice a: #1 fn(2) | E[] , #2 fn(3) | E[] , #3 fn(5) | E[]
+   twice b: #1 {a:fn(2)} | E[] , #2 {a:fn(3)} | E[] , #3 {a:fn(5)} | E[]
+== n8.ts:n8-c-unann-map: ACCEPT
+   CHANGED a (value #1 of 1): fn(Map{}) | E[] -> fn(Map{"k"=>1}) | E[]
+== n8.ts:n8-m-map-alias-async: ACCEPT
+== n8.ts:n8-jsx-onclick-fn: REJECT a:rejected[type][type]
+== n8.ts:n8-jsx-onclick-action: REJECT inc:rejected[action-capture]
+== n8.ts:n8-state-init-n-fn: ACCEPT
+   CHANGED s (value #1 of 1): fn(3) | E[] -> fn(6) | E[]
+   CHANGED v (value #1 of 1): fn(5) | E[] -> fn(9) | E[]
+== n8.ts:n8-state-set-n-fn: ACCEPT
+   CHANGED mk (value #1 of 1): fn(3) | E[] -> fn(8) | E[]
+   CHANGED s (value #3 of 3): fn(5) | E[] -> fn(11) | E[]
+   CHANGED v (value #3 of 3): fn(7) | E[] -> fn(14) | E[]
+-- controls 19, fired 19
+-- accepted with a cell still pending at the end: 0
+-- 441 candidates, accepted 145, silent 128
+SILENT c0.ts:k5-spec-not-specified-tuple
+SILENT c0.ts:k5-ternary
+SILENT c0.ts:k5-asconst-rec-map
+SILENT n1.ts:n1-tuple-ret
+SILENT n1.ts:n1-tuple-rec
+SILENT n1.ts:n1-tuple-method
+SILENT n1.ts:n1-tuple-decl
+SILENT n1.ts:n1-tuple-gen
+SILENT n1.ts:n1-tuple-two
+SILENT n1.ts:n1-tuple1-ret
+SILENT n1.ts:n1-tuple1-rec
+SILENT n1.ts:n1-tuple1-method
+SILENT n1.ts:n1-tuple1-decl
+SILENT n1.ts:n1-tuple1-gen
+SILENT n1.ts:n1-tuple1-two
+SILENT n1.ts:n1-tuple2-ret
+SILENT n1.ts:n1-tuple2-rec
+SILENT n1.ts:n1-tuple2-method
+SILENT n1.ts:n1-tuple2-decl
+SILENT n1.ts:n1-tuple2-gen
+SILENT n1.ts:n1-tuple2-two
+SILENT n1.ts:n1-tern-ret
+SILENT n1.ts:n1-tern-rec
+SILENT n1.ts:n1-tern-method
+SILENT n1.ts:n1-tern-decl
+SILENT n1.ts:n1-tern-gen
+SILENT n1.ts:n1-tern-two
+SILENT n1.ts:n1-ternrec-ret
+SILENT n1.ts:n1-ternrec-rec
+SILENT n1.ts:n1-ternrec-method
+SILENT n1.ts:n1-ternrec-decl
+SILENT n1.ts:n1-ternrec-gen
+SILENT n1.ts:n1-ternrec-two
+SILENT n1.ts:n1-box-ret
+SILENT n1.ts:n1-box-rec
+SILENT n1.ts:n1-box-method
+SILENT n1.ts:n1-box-decl
+SILENT n1.ts:n1-box-gen
+SILENT n1.ts:n1-box-two
+SILENT n1.ts:n1-pairg-ret
+SILENT n1.ts:n1-pairg-rec
+SILENT n1.ts:n1-pairg-method
+SILENT n1.ts:n1-pairg-decl
+SILENT n1.ts:n1-pairg-gen
+SILENT n1.ts:n1-pairg-two
+SILENT n1.ts:n1-alias2-ret
+SILENT n1.ts:n1-alias2-rec
+SILENT n1.ts:n1-alias2-method
+SILENT n1.ts:n1-alias2-decl
+SILENT n1.ts:n1-alias2-gen
+SILENT n1.ts:n1-alias2-two
+SILENT n1.ts:n1-nested-ret
+SILENT n1.ts:n1-nested-rec
+SILENT n1.ts:n1-nested-method
+SILENT n1.ts:n1-nested-decl
+SILENT n1.ts:n1-nested-gen
+SILENT n1.ts:n1-nested-two
+SILENT n1.ts:n1-maptup-ret
+SILENT n1.ts:n1-maptup-rec
+SILENT n1.ts:n1-maptup-method
+SILENT n1.ts:n1-maptup-decl
+SILENT n1.ts:n1-maptup-gen
+SILENT n1.ts:n1-maptup-two
+SILENT n1.ts:n1-rectup-ret
+SILENT n1.ts:n1-rectup-rec
+SILENT n1.ts:n1-rectup-method
+SILENT n1.ts:n1-rectup-decl
+SILENT n1.ts:n1-rectup-gen
+SILENT n1.ts:n1-rectup-two
+SILENT n1.ts:n1-errtup-ret
+SILENT n1.ts:n1-errtup-rec
+SILENT n1.ts:n1-errtup-method
+SILENT n1.ts:n1-errtup-decl
+SILENT n1.ts:n1-errtup-gen
+SILENT n1.ts:n1-errtup-two
+SILENT n2.ts:n2-d-default-tuple
+SILENT n3.ts:n3-memo-result-fn
+SILENT n3.ts:n3-memo-result-rec
+SILENT n3.ts:n3-memo-cross-cell-held
+SILENT n3.ts:n3-memo-ternary
+SILENT n3.ts:n3-consumer-holds
+SILENT n3.ts:n3-consumer-wraps
+SILENT n3.ts:n3-consumer-calls-writer
+SILENT n3.ts:n3-to-typeof-whole
+SILENT n3.ts:n3-to-keyof-record
+SILENT n3.ts:n3-rr-tuple
+SILENT n4.ts:n4-nested-local-tuple
+SILENT n4.ts:n4-ann-in-tuple
+SILENT n4.ts:n4-ann-map-in-tuple
+SILENT n4.ts:n4-ann-in-ternary
+SILENT n4.ts:n4-ann-in-as-const-rec
+SILENT n5.ts:n5-op-or-null
+SILENT n5.ts:n5-op-and
+SILENT n5.ts:n5-op-or
+SILENT n5.ts:n5-op-tern-tuple-of-ann
+SILENT n5.ts:n5-op-tern-in-loop
+SILENT n5.ts:n5-op-tuple-for-of
+SILENT n5.ts:n5-op-tuple-destr-in-fn
+SILENT n5.ts:n5-op-asconst-nested-rec
+SILENT n5.ts:n5-op-asconst-rec-of-map
+SILENT n5.ts:n5-op-asconst-rec-of-set
+SILENT n5.ts:n5-op-asconst-rec-of-rec
+SILENT n5.ts:n5-gen-yield-reader-only
+SILENT n5.ts:n5-gen-two-yields-same-t
+SILENT n5.ts:n5-async-cell-returns-reader
+SILENT n5.ts:n5-held-iter
+SILENT n5.ts:n5-memo-key-fn
+SILENT n6.ts:n6-unannotated-consumer-write
+SILENT n6.ts:n6-unannotated-consumer-tuple
+SILENT n6.ts:n6-switch-scope
+SILENT n6.ts:n6-kept-returns-holder
+SILENT n6.ts:n6-object-literal-getter-fn
+SILENT n6.ts:n6-closure-over-cell-input-fn
+SILENT n7.ts:n7-helper-result-bound
+SILENT n7.ts:n7-helper-result-rec
+SILENT n7.ts:n7-await-resolve
+SILENT n7.ts:n7-nested-destr
+SILENT n7.ts:n7-param-tuple
+SILENT n7.ts:n7-param-ternary
+SILENT n7.ts:n7-c-unann-writer-reader
+SILENT n7.ts:n7-c-unann-two-hops
+SILENT n7.ts:n7-c-unann-ternary
+SILENT n7.ts:n7-c-unann-rec-field
+SILENT n7.ts:n7-c-unann-async-writer
+SILENT n8.ts:n8-o-local-box-alias
+SILENT n8.ts:n8-c-unann-map
+SILENT n8.ts:n8-state-init-n-fn
+SILENT n8.ts:n8-state-set-n-fn
