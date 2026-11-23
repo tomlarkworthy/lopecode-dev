@@ -1,6 +1,6 @@
 ---
 scope: [local-development]
-topics: Cloud Brain; a service changed as a patch from cloud-brain-dev (run.ts), the one way for a brain-x service since 2026-10-14, when its seed was deleted; a new service's first deploy from a seed and a build.ts entry; changing a seed of the kernel, the core, the database, the deployer or the page; a git worktree for the change (worktree.sh), landed by a push; build.ts; deploying a Worker; brain.ts apply, redistil, saw, confirm; waiting-deploys.ts, which of the kernel, the core, the database and the deployer cb4 runs behind main; the deploy lock; a Playwright script in tools; where a change made on the Brain's page is kept (the address, this browser, a service's rows, the seed); where a service keeps files
+topics: Cloud Brain; a service changed as a patch from cloud-brain-dev (run.ts), the one way for a brain-x service since 2026-10-14, when its seed was deleted; a new service's first deploy from a seed and a build.ts entry; changing a seed of the kernel, the core, the database, the deployer or the page; a git worktree for the change (worktree.sh), landed by a push; build.ts; deploying a Worker; brain.ts apply, redistil, saw, confirm; waiting-deploys.ts, whether cloud-brain-dev/deploy/ has the module cb4 runs for each of the owner's four; the deployer's own path and unattendedDeployer; the deploy lock; a Playwright script in tools; where a change made on the Brain's page is kept (the address, this browser, a service's rows, the seed); where a service keeps files
 triggers:
   - "^(Edit|Write|MultiEdit) .*tools/cloud-brain/.*\.(ojs|ts|js|sh|py)$"
   - "(^Bash |^|[;&|] )bun +tools/cloud-brain/build\.ts( |$)"
@@ -251,41 +251,46 @@ doc's hook sends a writer to, on any edit that names `localStorage`, would write
 
 ## The deploys that wait for the owner
 
-The kernel (`brain`), `brain-core`, `brain-db` and the deployer are deployed by the owner alone, and since 2026-10-13 the
-issue loop lands a fix to one of their seeds on `main` with no deploy (`.claude/skills/brain-maintenance/rules.md`, Never).
-`bun tools/cloud-brain/waiting-deploys.ts` says which of the four cb4 runs behind `main`, and for which issues. It reads
-only, with no token, in about 3 s. Run 2026-10-13 10:31 CEST:
+The kernel (`brain`), `brain-core` and `brain-db` are deployed by the owner alone. A worker writes, tests and hands such a
+patch, and a reviewer passes it; `deploy.ts` then answers `owner-deploy`, comments his commands and yields with
+`needs-owner`. He runs `bun apply.ts --patch FILE --owner [--dry]` on his laptop, signed with his recovery key, under the
+lock `cb4`, then `bun brain.ts confirm brain-core` (or `brain`, `brain-db`). `apply.ts` refuses such a patch under
+`DEPLOY_TOKEN` and without `--owner`.
 
-```
-brain: same
-brain-core: waits. 2 differences (~coreApp +test_llms_txt_says_where_the_rule_of_a_method_is). 1 commit: core-getinfo-line-says-access f7c4801f 2026-10-13.
-brain-db: same
-brain-deployer: waits. 2 differences (~deployerOps +test_apply_unchanged_keeps_the_source_of_what_runs_over_an_older_row). 1 commit: apply-unchanged-keeps-no-newer-source be363d5a 2026-10-13.
-```
+The deployer (`brain-deployer`, which carries `cloudflare-iac`) has two paths.
 
-- It compiles each seed of `origin/main` as `build.ts` does and compares it, cell by cell, with the module cb4 runs
-  (`getSource` of the kernel; the deployer's `infra.getModules` for `brain-deployer` and `cloudflare-iac`; both public).
-  `~name` is a cell both have with another body or other inputs, `+name` one `main` alone has, `-name` one cb4 alone has.
-  The texts are not compared: that day the build of `brain-static.ojs` was 54,766 characters and the text cb4 ran of
-  it 57,429, with other ids for its cells (`_spec_0_0` and `_brainstatic_anon_66b289a9de` for the first), and the tool's
-  comparison found no cell of the two that differed.
-- The commits are those to the Worker's seeds after the newest one that builds to what runs, looked for in the last 40
-  (`--depth N`). An issue is a commit's subject up to its first colon. With no such commit in 40 the line says so.
-- `--file <token>` then keeps one issue a Worker that waits, `deploy-waits-<worker>`, labelled `needs-owner`: opened,
-  given a comment when the list changes, closed when cb4 runs the seed of `main`, opened again at the next change. The
-  owner meets it in "For your attention" of his page. Since `fb-batch-docs-and-tools` (2026-10-13) the list is a
-  comment from the opening on, keyed `deploys/<worker>/list-…`, and the body says so and has no list: the page shows
-  an issue's body and its last comment, and the tracker has no call that changes a body. The list is said again when a
-  comment that is not the tool's stands after it. The two issues opened before that day have their first list as the
-  body. An issue at `rejected`, `done` or `reverted` is left as it is, and the last line names it with its state. `lock.sh release land` runs this after its docs step, as the
-  token of the release, and prints the tool's last line, `deploys (cb4): …`; `LOCK_DEPLOYS=0` leaves it out. So after
-  the owner's deploy the issue stays open until the next landing of anyone, or a run by hand.
-- Not compared: a module's files (`hono.js`, `atcute.js` and the others of `build.ts`). A change to `cloudflare-iac`
-  is said of the deployer alone; its wrapper reaches the other Workers with `redistil --apply` after `install-deployer`.
-- `redistil` is not this read: by step 4 above it distils again the source the deployer keeps, and a seed that was never
-  applied is not that source. Not run for this.
+- **Its own path.** After a pass, `deploy.ts` sends a patch of the deployer's two modules alone to the running deployer.
+  The deployer builds its successor, runs its tests and holds it. The review key approves the hold when each gate holds:
+  `unattendedDeployer` on, no hold or sweep, a fresh pass of the same patch, the day's cap
+  (`unattendedDeployerDaily`, 3), and no other change running. The answer is `sent` with `self: true`, and the deployer
+  DMs the owner the version before and the way back. At its first tick the new deployer checks itself and puts the
+  version before back on a failed check. It then redistils every service; a change outside the hand's `expect:` refs,
+  or of the kernel, core or database, holds the sweep and opens an issue labelled `needs-owner`. A hold stays until he
+  clears it, and every unattended deployer or shared send is refused while it stands.
+- **The owner's path.** `deploy-deployer.ts` on his laptop, where the recovery key and the Cloudflare token are: the
+  bootstrap, a deploy while `unattendedDeployer` is off, and the way back. A gate of the own path that refuses gives
+  `owner-deploy`, with the refusal quoted, and the patch comes to him.
 
-The header of the tool is the reference; `tools/cloud-brain/records/undeployed-seeds-not-shown-to-owner.md` has the runs.
+  ```
+  bun deploy-deployer.ts --patch change.patch --dry                # or --issue ID --dry
+  bun deploy-deployer.ts --patch change.patch                      # uploads once
+  bun deploy-deployer.ts --rollback --version previous             # the version before the last deploy of itself; or --version ID
+  bun deploy-deployer.ts --rollback [--to HASH]                    # the laptop's own last upload, which may be several deploys back
+  bun deploy-deployer.ts --set unattendedDeployer=true [--dry]     # also unattendedShared, unattendedDeployerDaily, unattendedSharedDaily
+  ```
+
+A new deployer that does not run its tick, or that is wrong in a way its checks miss, is put back by nothing but his
+laptop: `--rollback --version previous`, or the version id that the DM and `deploy.self.live` name.
+
+A send of a shared module that the page embeds goes by the page's gates: `unattendedShared` on, the day's cap
+(`unattendedSharedDaily`, 3), and no block the kernel, core or database reads. Otherwise it waits for his click on the
+page. Each switch is his to set: he turned `unattendedDeployer` on 2026-11-22 20:23 UTC (`ud-owner-switch-on`);
+`unattendedShared` is off. The own path's first four sends, 2026-11-22 22:04 to 23:17 UTC, were each refused at the
+check before go-live (`deploy.self.refused`, `fix-tests-brain-deployer-7c5b8d67`).
+
+`bun tools/cloud-brain/waiting-deploys.ts` reads only: whether `cloud-brain-dev/deploy/` has the module cb4 runs for each of the
+four. These Workers have no seed, so a difference is a `deploy/` older than what runs, not a deploy that waits. The tool's
+header is the reference.
 
 ## A Playwright script in `tools/`
 
