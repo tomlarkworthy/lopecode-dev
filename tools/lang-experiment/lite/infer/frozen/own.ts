@@ -17,8 +17,8 @@
 //    a call of a helper is a use of every Mut it captures)
 //  - state(...) and borrow(...) placement
 import { kids, isFn, type Node } from "./ts/parse.ts";
-import type { Checker, Binding } from "./infer.ts";
-import { isNamed, unwrap, show, ERR, isPrimitive, union, typeKey, UNKNOWN, type Ty } from "../../types.ts";
+import { copyText, type Checker, type Binding } from "./infer.ts";
+import { isNamed, unwrap, show, ERR, isPrimitive, union, typeKey, UNKNOWN, hasTv, type Ty } from "../../types.ts";
 import type { Registry } from "./ts/registry.ts";
 import { PRELUDE_FNS } from "../../intrinsics.ts";
 
@@ -29,6 +29,12 @@ export { kids };
 // may be one), Generator, or a type parameter. A function type holds none: a call makes its result anew.
 const PROTO_NAMES = new Set(["__proto__", "constructor", "toString", "toLocaleString", "valueOf", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"]);
 // none: per alias without type arguments, the least depth its walk found nothing from; from as deep it finds nothing again
+// DELIBERATE CHANGE (2026-11-23, e1): a copy keeps a type parameter, so for a type that holds one the fix is not a copy
+function iterMsg(b: Binding, it: string): string {
+  return hasTv(b.t)
+    ? `${b.name} may hold an iterator (${it}: a type parameter may be one), which reading uses up, so a function that captures it may give a different result for the same call; a copy has the same type, so read ${b.name} without a nested function that captures it (a for loop in place of a callback), or give it a type with no type parameter`
+    : `${b.name} may hold an iterator (${it}), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made, under a read-only type, and capture that (const c: readonly T[] = [...${b.name}], T its element type)`;
+}
 export function iterIn(t: Ty, reg: Registry, depth = 0, none = new Map<string, number>()): string | null {
   if (depth > 12) return null;
   const inner = (ts: Ty[]) => { for (const x of ts) { const w = iterIn(x, reg, depth + 1, none); if (w) return w; } return null; };
@@ -225,7 +231,8 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
         if (isMutB(b) && writeRef(r)) capW.get(f)!.add(b);
         if (b.kind !== "global" && b.kind !== "prelude") capRead.get(f)!.add(b);
         const it = b.kind !== "global" && b.kind !== "prelude" && iterIn(b.t, ch.reg);
-        if (it) err(r, "iterator-capture", `${b.name} may hold an iterator (${it}), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...${b.name}]) and capture the array`);
+        // DELIBERATE CHANGE (2026-11-23, e1): the fix each message names is one that is accepted when applied (message-fixes.ts)
+        if (it) err(r, "iterator-capture", iterMsg(b, it));
         const p = parent.get(r)!;
         const assigned = (p.type === "AssignmentExpression" && p.left === r) || (p.type === "UpdateExpression" && p.argument === r)
           || (p.type === "ArrayPattern" || p.type === "Property" && parent.get(p)?.type === "ObjectPattern" || p.type === "AssignmentPattern" && p.left === r);
@@ -321,15 +328,21 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     : isMutB(b)
     ? `Mut ${b.name} captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: ${show(stripMut(b.t, ch.reg))} = ${b.name}) and capture that, or make it inside the function`
     : `let ${b.name} captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = ${b.name}) and capture that`;
+  // DELIBERATE CHANGE (2026-11-23, e1): a typed array or URL cannot be frozen and a copy of one is one too, so the fix is
+  // the data copied out; a Mut returned is bound under its plain type first; a written capture names where to make it
+  const unfreezableFix = (n: string, name: string): string => n === "URL"
+    ? `its text (const c = ${name}.href)`
+    : `its elements as a read-only array (const c: readonly number[] = [...${name}])`;
+  const typedHeldMsg = (b: Binding, ta: string): string => `Mut ${b.name} holds a ${ta}, captured by a function the cell keeps: a typed array or URL cannot be frozen, nor can a copy of one; copy the data out of it before the function and capture that (for the ${ta} x, ${unfreezableFix(ta, "x")})`;
   for (const f of fns) {
     if (f === cellFn || !kept(f)) continue;
     for (const b of capMut.get(f)!) {
       const u = ch.reg.expand(unwrap(b.t));
       if (isBorB(b)) err(f, "borrowed-escape", `Borrowed ${b.name} captured by a nested function`);
-      else if (capW.get(f)!.has(b)) err(f, "mut-capture", `Mut ${b.name} written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made`);
-      else if (u.k === "named" && UNFREEZABLE.has(u.n)) err(f, "mut-capture", `Mut ${b.name} (${u.n}) captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: ${u.n} = ${b.name}.slice())`);
-      else if ((refs.get(b) ?? []).some((r) => r.start > f.start && r.end <= f.end && flowsOut(r, f))) err(f, "mut-capture", `Mut ${b.name} returned or yielded by a function the cell keeps: whoever calls it could write ${b.name}; return a copy`);
-      else { genLateWrites(f, b); for (const r of refs.get(b) ?? []) if ((r.start < f.start || r.start > f.end) && writeRef(r) && lateWrite(r, f)) err(r, "mut-capture", `${b.name} may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged`); err(f, "mut-capture", keptReadMsg(b)); }
+      else if (capW.get(f)!.has(b)) err(f, "mut-capture", `Mut ${b.name} written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made, so the write would throw; make ${b.name} inside the function, or keep it in a state cell that an action writes`);
+      else if (u.k === "named" && UNFREEZABLE.has(u.n)) err(f, "mut-capture", `Mut ${b.name} (${u.n}) captured by a function the cell keeps: a typed array or URL cannot be frozen, nor can a copy of one; capture ${unfreezableFix(u.n, b.name)}`);
+      else if ((refs.get(b) ?? []).some((r) => r.start > f.start && r.end <= f.end && flowsOut(r, f))) err(f, "mut-capture", `Mut ${b.name} returned or yielded by a function the cell keeps: whoever calls it could write ${b.name}; bind it under its plain type before the function (const c: ${show(stripMut(b.t, ch.reg))} = ${b.name}) and return a copy of that (${copyText(ch.reg, stripMut(b.t, ch.reg), "c")})`);
+      else { genLateWrites(f, b); for (const r of refs.get(b) ?? []) if ((r.start < f.start || r.start > f.end) && writeRef(r) && lateWrite(r, f)) err(r, "mut-capture", `${b.name} may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged`); const th = typedIn(b.t); err(f, "mut-capture", th !== null ? typedHeldMsg(b, th) : keptReadMsg(b)); }
     }
     for (const b of capLet.get(f)!) err(f, "let-capture", `${b.kind} ${b.name} assigned from a function that escapes`);
     for (const b of capRead.get(f)!) {
@@ -338,7 +351,7 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
       else if (!capMut.get(f)!.has(b) && !b.cellParam && b.kind !== "global" && b.kind !== "prelude" && b.kind !== "fn" && mutDeep(b.t, ch.reg) !== null) err(f, "mut-capture", keptReadMsg(b));
       const ta = capMut.get(f)!.has(b) ? null : typedIn(b.t);
       if (promiseIn(b.t)) err(f, "mut-capture", `${b.name} holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself`);
-      if (ta !== null && !typedSafeB(b)) err(f, "mut-capture", `${b.name} holds a ${ta} that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: ${ta} = x.slice())`);
+      if (ta !== null && !typedSafeB(b)) err(f, "mut-capture", `${b.name} holds a ${ta} that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen, nor can a copy of one; copy the data out of the ${ta} before the function and capture that (for the ${ta} x, ${unfreezableFix(ta, "x")})`);
     }
   }
 

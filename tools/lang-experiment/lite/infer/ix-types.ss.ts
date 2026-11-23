@@ -34,6 +34,8 @@ export type IxCtl = {
   // freshAt: the last call or new whose value is fresh (an intrinsic marked @fresh, structuredClone, snapshot)
   freshAt: number;
   gap: string | null; facts: IxFactLog | null; probe: IxProbe | null;
+  // e1 (2026-11-23): each cast<T>(v) the cell's checker accepted, by its callee's position, and T's shape
+  casts: [number, TypeShape][];
 };
 // completion's question (lite/complete.ts): the placeholder name, and whether it is asked for as a member
 export type IxProbeAsk = { readonly name: string; readonly member: boolean };

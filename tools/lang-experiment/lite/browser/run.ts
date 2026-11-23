@@ -9,7 +9,8 @@ import { erase } from "./erase.ts";
 import { input as genInput } from "../../../../vendor/observable-stdlib/src/generators/input.js";
 import * as P from "../../prelude.runtime.ts";
 import { SsMap, SsSet, SsURL, out, deepFreeze, closure, methods } from "../freeze.ts";
-import { compileModule, parseCompiled } from "../toolchain/ss-toolchain.ts";
+import { compileModule, compileCell, contextOf, splitCells, parseCompiled } from "../toolchain/ss-toolchain.ts";
+import { cast as castCheck } from "../boundary.ts";
 import { island, type IslandSpec } from "../island.ts";
 import { CAPABILITIES, PRELUDE_FNS } from "../intrinsics.ts";
 import { cellsOf, on, events, listen, nameAction, release, guard, generatorish, type CellInfo } from "./cells.ts";
@@ -25,17 +26,21 @@ export type Verdicts = { cells: { name: string; status: string; errors: unknown[
 
 const CAPS = new Set(Object.keys(CAPABILITIES));
 // Map and Set in a cell are the freezable subclasses (freeze.ts), as in a compiled cell
-const PRELUDE_VALUES: Record<string, unknown> = { Map: SsMap, Set: SsSet, URL: SsURL, state: P.state, action: P.action, mut: P.mut, freeze: P.freeze, borrow: P.borrow, snapshot: P.snapshot, equals: P.equals, messageOf: P.messageOf, memo: P.memo, on, read: P.read, h };
+const PRELUDE_VALUES: Record<string, unknown> = { Map: SsMap, Set: SsSet, URL: SsURL, state: P.state, action: P.action, mut: P.mut, freeze: P.freeze, borrow: P.borrow, snapshot: P.snapshot, equals: P.equals, messageOf: P.messageOf, memo: P.memo, cast: castCheck, on, read: P.read, h };
 const PRELUDE = [...PRELUDE_FNS, "h", "Map", "Set", "URL"];
 if (PRELUDE.some((n) => !(n in PRELUDE_VALUES))) throw new Error("a prelude function has no runtime value");
 export type Program = ReturnType<typeof runCells>;
 const REG_NAMES = ["ss_closure", "ss_methods"];
 // cell name -> the function text of its compiled definition (between the header and the function's end)
-function compiledFunctions(source: string, tsx: boolean): Map<string, string> {
+// facts: the check's (a checkSources result's facts), which give each cast call its shape (e1, 2026-11-23)
+function compiledFunctions(source: string, tsx: boolean, facts: ReadonlyMap<string, CellInfo> | null): Map<string, string> {
   const out = new Map<string, string>();
   let vars: { name: string; definition: string }[];
   // no fallback to the erased text (holes8): it has no closure registrations, so its functions would publish unfrozen
-  try { vars = compileModule(source, tsx, null); } catch (e) { throw new Error(`the cells do not compile, so they cannot run: ${(e as Error)?.message ?? e}`); }
+  try {
+    const texts = splitCells(source, tsx), ctx = { ...contextOf(texts, tsx, null), facts };
+    vars = facts === null ? compileModule(source, tsx, null) : texts.flatMap((t) => compileCell(t, tsx, ctx));
+  } catch (e) { throw new Error(`the cells do not compile, so they cannot run: ${(e as Error)?.message ?? e}`); }
   for (const v of vars) {
     const p = parseCompiled(v.definition);
     if (p === null || !p.hasFn || p.callee === "rejected") continue;
@@ -56,7 +61,8 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
     ...PRELUDE.map((n) => PRELUDE_VALUES[n])) as Record<string, (...a: unknown[]) => unknown>;
   // each cell's function as the notebook runs it: the compiled definition's function text, with the closure
   // registrations the compiler emits (lite/fnreg.ts, toolchain tc-reg); the erased text only for a rejected cell
-  const compiledFns = compiledFunctions(source, !!opts.tsx);
+  const facts = (opts.checked as { facts?: ReadonlyMap<string, CellInfo> } | undefined)?.facts ?? null;
+  const compiledFns = compiledFunctions(source, !!opts.tsx, facts);
   for (const [n, text] of compiledFns) exports[n] = new Function(...PRELUDE, ...REG_NAMES, `"use strict";\nreturn (${text});`)(...PRELUDE.map((x) => PRELUDE_VALUES[x]), closure, methods);
   const byName = new Map(cells.map((c) => [c.name, c]));
   const caps = opts.caps ?? {};

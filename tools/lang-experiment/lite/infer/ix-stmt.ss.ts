@@ -84,7 +84,8 @@ export const ixFnDeclStmt = (ixLookup, ixUpdate, ixCopyFlow) => (K: IxK, T: IxTy
 // member, or one of the mutable intrinsics; any other (readonly, a union, an alias, Readonly<…>, typeof) is not
 export const ixWritableAnn = () => (ann: AstNode): boolean => {
   if (ann.type === "TSArrayType" || ann.type === "TSTupleType") return true;
-  if (ann.type === "TSTypeLiteral") return ann.members.every((m) => m.type === "TSPropertySignature" && m.readonly !== true);
+  // e1 (2026-11-23), B4: an index signature with no readonly is writable as a property is
+  if (ann.type === "TSTypeLiteral") return ann.members.every((m) => (m.type === "TSPropertySignature" || m.type === "TSIndexSignature") && m.readonly !== true);
   const names = ["Array", "Map", "Set", "WeakMap", "WeakSet", "Record", "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array", "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array"];
   return ann.type === "TSTypeReference" && ann.typeName.type === "Identifier" && names.includes(ann.typeName.name);
 };

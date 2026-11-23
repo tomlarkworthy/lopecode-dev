@@ -18,6 +18,46 @@ export const typeClash = (declOf) => (st: AstNode, builtin: Set<string>): ModErr
   if (id.type !== "Identifier" || !builtin.has(id.name)) return [];
   return [{ at: d, rule: "builtin-type-name", msg: `${id.name} is a built-in type; give this ${d.type === "TSInterfaceDeclaration" ? "interface" : "type"} another name` }];
 };
+// e1 (2026-11-23), B5: the alias names a type node is with nothing structural between (names, unions, intersections,
+// parentheses, Mut and Borrowed, and a generic alias that gives back an argument); args: a type parameter's names; path: aliases unfolded
+export const aliasHeads = () => {
+  function aliasHeads(decls: Map<string, AstNode>, n: AstNode, args: Map<string, string[]>, path: Set<string>): string[] {
+    if (n.type === "TSParenthesizedType") return aliasHeads(decls, n.typeAnnotation, args, path);
+    if (n.type === "TSUnionType" || n.type === "TSIntersectionType") return n.types.flatMap((x) => aliasHeads(decls, x, args, path));
+    if (n.type !== "TSTypeReference" || n.typeName.type !== "Identifier") return [];
+    const name = n.typeName.name, given = args.get(name), d = decls.get(name), ta = n.typeArguments;
+    if (given !== undefined) return given;
+    // Mut<T> and Borrowed<T> are T to the registry, so they are no structure either
+    const inner = ta !== null && ta.type === "TSTypeParameterInstantiation" ? ta.params[0] : undefined;
+    if ((name === "Mut" || name === "Borrowed") && inner !== undefined) return aliasHeads(decls, inner, args, path);
+    if (d === undefined || d.type !== "TSTypeAliasDeclaration" || d.typeParameters === null || d.typeParameters.type !== "TSTypeParameterDeclaration" || ta === null || ta.type !== "TSTypeParameterInstantiation" || path.has(name)) return [name];
+    const m: Mut<Map<string, string[]>> = new Map();
+    d.typeParameters.params.forEach((p, i) => { const a = ta.params[i]; if (p.type === "TSTypeParameter") m.set(p.name, a === undefined ? [] : aliasHeads(decls, a, args, path)); });
+    return [name, ...aliasHeads(decls, d.typeAnnotation, m, new Set([...path, name]))];
+  }
+  return aliasHeads;
+};
+// a type alias that reaches itself through its heads alone has no object, array, tuple or function type to stop at
+// (TypeScript's TS2456); expanding one did not return (ergonomics1 28). Each alias is visited once per search.
+export const typeCycles = (declOf, aliasHeads) => (prog: AstNode): ModErr[] => {
+  if (prog.type !== "Program") return [];
+  const decls: Mut<Map<string, AstNode>> = new Map();
+  for (const st of prog.body) { const d = declOf(st); if (d.type === "TSTypeAliasDeclaration" && d.id.type === "Identifier") decls.set(d.id.name, d); }
+  const out: Mut<ModErr[]> = [];
+  for (const [name, d] of decls) {
+    if (d.type !== "TSTypeAliasDeclaration") continue;
+    const seen: Mut<Set<string>> = new Set(), todo = [...aliasHeads(decls, d.typeAnnotation, new Map(), new Set([name]))];
+    for (let x = todo.pop(); x !== undefined; x = todo.pop()) {
+      if (x === name) { out.push({ at: d, rule: "type-cycle", msg: `type ${name} is defined by itself, with no object, array, tuple or function type between (as in type ${name} = ${name}); write out the type it stands for` }); break; }
+      const e = decls.get(x);
+      if (seen.has(x) || e === undefined || e.type !== "TSTypeAliasDeclaration") continue;
+      seen.add(x);
+      const ps = e.typeParameters !== null && e.typeParameters.type === "TSTypeParameterDeclaration" ? e.typeParameters.params : [];
+      todo.push(...aliasHeads(decls, e.typeAnnotation, new Map(ps.flatMap((p): [string, string[]][] => (p.type === "TSTypeParameter" ? [[p.name, []]] : []))), new Set([x])));
+    }
+  }
+  return out;
+};
 // Registry.load(typesOnly): a type or interface, exported or not, is not a statement the cell loop sees
 export const isTypeStatement = (declOf) => (st: AstNode): boolean => {
   const d = declOf(st);
@@ -53,7 +93,7 @@ export const statementCells = (declOf, declaratorCell, moduleLevelRule, nodeKind
   return { cells: [], errors: rule === null ? [] : [{ at: st, rule, msg: `${nodeKind(d)} at module level` }] };
 };
 // the cells of a module and its module-level errors, in the order checkSources reports them
-export const moduleShape = (typeClash, isTypeStatement, statementCells) => (prog: AstNode, builtin: Set<string>, shellNames: Set<string>): ModuleShape => {
+export const moduleShape = (typeClash, typeCycles, isTypeStatement, statementCells) => (prog: AstNode, builtin: Set<string>, shellNames: Set<string>): ModuleShape => {
   if (prog.type !== "Program") return { cells: [], clashes: [], errors: [] };
   const found = prog.body.filter((st) => !isTypeStatement(st)).map((st) => statementCells(st));
   const cells = found.flatMap((f) => f.cells);
@@ -63,7 +103,8 @@ export const moduleShape = (typeClash, isTypeStatement, statementCells) => (prog
     if (seen.has(c.name) || shellNames.has(c.name)) dups.push({ at: c.stmt, rule: "duplicate-cell", msg: `cell ${c.name} defined twice` });
     seen.add(c.name);
   }
-  return { cells, clashes: prog.body.flatMap((st) => typeClash(st, builtin)), errors: [...found.flatMap((f) => f.errors), ...dups] };
+  // a type cycle is a clash too: the alias is not loaded (e1)
+  return { cells, clashes: [...prog.body.flatMap((st) => typeClash(st, builtin)), ...typeCycles(prog)], errors: [...found.flatMap((f) => f.errors), ...dups] };
 };
 
 // syntax pass (core.ts syntaxPass): one list of what the walk reports, unsup for what it calls unsupported
@@ -88,16 +129,18 @@ export const isAsConst = () => (x: TSAsExpression): boolean => {
   return n !== null && n.type === "Identifier" && n.name === "const";
 };
 // what the walk reports at one node, in core.ts's order
-export const bansAt = (SYNTAX_BANS, reservedName, RESERVED_MSG, viewofInputName, namedByParent, argumentsAsName, isAsConst, nodeKind) => (x: AstNode, p: AstNode | null, inType: boolean): SyntaxDiag[] => {
+export const bansAt = (SYNTAX_BANS, reservedName, RESERVED_MSG, viewofInputName, namedByParent, argumentsAsName, isAsConst, nodeKind, banMessage) => (x: AstNode, p: AstNode | null, inType: boolean): SyntaxDiag[] => {
   const r = SYNTAX_BANS.get(nodeKind(x));
   const reserved = x.type === "Identifier" && !inType && reservedName(x.name) && !(namedByParent(x, p) && !viewofInputName(x.name));
   return [
     ...(reserved && x.type === "Identifier" ? [{ at: x, rule: "reserved-name", msg: RESERVED_MSG(x.name), unsup: false }] : []),
-    ...(r !== undefined ? [{ at: x, rule: r, msg: nodeKind(x), unsup: false }] : []),
+    ...(r !== undefined ? [{ at: x, rule: r, msg: banMessage(r, nodeKind(x)), unsup: false }] : []),
     ...(x.type === "TSAsExpression" && !isAsConst(x) ? [{ at: x, rule: "no-cast", msg: "as cast", unsup: false }] : []),
     ...(x.type === "TSSatisfiesExpression" ? [{ at: x, rule: "unsupported", msg: "satisfies", unsup: true }] : []),
     ...(x.type === "VariableDeclaration" && x.kind === "var" ? [{ at: x, rule: "no-var", msg: "var", unsup: false }] : []),
     ...(x.type === "Identifier" && x.name === "arguments" && !argumentsAsName(x, p) ? [{ at: x, rule: "no-arguments", msg: "arguments", unsup: false }] : []),
+    // e1 (2026-11-23): a BigInt literal as a key (TypeScript's TS1539); the checker read its key as "null"
+    ...(x.type === "Literal" && x.bigint !== null && p !== null && p.type === "Property" && !p.computed && p.key.nid === x.nid ? [{ at: x, rule: "unsupported", msg: "a BigInt literal as a property key", unsup: true }] : []),
   ];
 };
 // the walk: every node under root in acorn's key order, with its parent and whether it is in a type position

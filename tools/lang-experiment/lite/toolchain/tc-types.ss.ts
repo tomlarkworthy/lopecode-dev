@@ -13,7 +13,7 @@ export type TcToken = { readonly label: string; readonly start: number; readonly
 // facts.ts CellInfo, the fields the compiler reads
 export type TcBoundary = { readonly shape: unknown; readonly ref: boolean };
 export type TcParam = { readonly name: string; readonly refTyped: boolean; readonly eventsTyped: boolean; readonly boundary: TcBoundary | null };
-export type TcInfo = { readonly name: string; readonly params: TcParam[]; readonly returnsRef: boolean; readonly generator: boolean; readonly compiles: { readonly refs: string[] }[] };
+export type TcInfo = { readonly name: string; readonly params: TcParam[]; readonly returnsRef: boolean; readonly generator: boolean; readonly compiles: { readonly refs: string[] }[]; readonly casts: readonly unknown[] };
 // ss-toolchain.ts Context with its optional fields as null
 export type TcCtx = {
   readonly generators: Set<string>; readonly events: Set<string>; readonly accepted: Set<string> | null;

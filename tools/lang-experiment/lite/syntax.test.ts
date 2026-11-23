@@ -33,7 +33,7 @@ function fromCore(): { distinctNames: (src: string, jsx: boolean) => { P: any; d
   return new Function("parse", `${js}\nreturn { distinctNames };`)(parse);
 }
 const core = fromCore();
-const SHAPE_RULES = new Set(["builtin-type-name", "cell-not-function", "module-level", "no-enum", "no-namespace", "no-class", "no-var", "duplicate-cell"]);
+const SHAPE_RULES = new Set(["builtin-type-name", "type-cycle", "cell-not-function", "module-level", "no-enum", "no-namespace", "no-class", "no-var", "duplicate-cell"]);
 const shellNamesOf = (shell?: string | null) => {
   const out = new Set<string>();
   for (const st of shell ? (parse(shell).program.body as Node[]) : []) {

@@ -34,7 +34,7 @@ type CheckCell = { name: string; status: string; errors: { rule: string; msg: st
 type CheckLike = { cells: CheckCell[]; facts?: ReadonlyMap<string, CellInfo>; unparsed?: ReadonlyMap<string, string> };
 type Translated = { text: string } | { reason: string };
 
-const tcInfo = (c: CellInfo): TcInfo => ({ name: c.name, returnsRef: c.returnsRef, generator: c.generator, compiles: c.compiles.map((s) => ({ refs: s.refs })), params: c.params.map((p) => ({ name: p.name, refTyped: p.refTyped, eventsTyped: p.eventsTyped, boundary: p.boundary ?? null })) });
+const tcInfo = (c: CellInfo): TcInfo => ({ name: c.name, returnsRef: c.returnsRef, generator: c.generator, compiles: c.compiles.map((s) => ({ refs: s.refs })), casts: c.casts ?? [], params: c.params.map((p) => ({ name: p.name, refTyped: p.refTyped, eventsTyped: p.eventsTyped, boundary: p.boundary ?? null })) });
 const toCheckCell = (c: CheckCell) => ({ name: c.name, status: c.status, errors: c.errors, unsupported: c.unsupported ?? [], blockedBy: c.blockedBy ?? [] });
 // a bounded memo: a hit, or f's value remembered
 function remembered<V>(m: Map<string, V>, k: string, f: () => V): V {

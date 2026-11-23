@@ -38,6 +38,8 @@ export type MdCellRec = {
   readonly blockedBy: string[]; readonly value: string | null;
   // the problems the cell's Checker held (ch.diags, ch.unsup), with their spans
   readonly ch: IxDiag[]; readonly chUnsup: IxDiag[];
+  // e1 (2026-11-23): the shapes of the cell's cast calls, in source order
+  readonly casts: TypeShape[];
   // where the cell's function starts (the harness pairs the records with core.ts's Checkers by it)
   readonly at: number;
 };
@@ -45,7 +47,7 @@ export type MdParamInfo = { readonly name: string; readonly refTyped: boolean; r
 // facts.ts CellInfo
 export type MdInfo = {
   readonly name: string; readonly span: number[]; readonly params: MdParamInfo[]; readonly returnsRef: boolean;
-  readonly generator: boolean; readonly compiles: IslandSpec[];
+  readonly generator: boolean; readonly compiles: IslandSpec[]; readonly casts: TypeShape[];
 };
 // gap: what the port does not implement that this module met (its result is NOT COVERED)
 export type MdResult = { readonly port: string; readonly file: string; readonly ok: boolean; readonly module: MdErr[]; readonly cells: MdCellRec[]; readonly facts: MdInfo[]; readonly gap: string | null; readonly probe: IxProbe | null };

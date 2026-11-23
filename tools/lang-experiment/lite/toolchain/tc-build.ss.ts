@@ -95,7 +95,7 @@ export const tcExprParts = (tcArgsParts, tcIn, tcT, tcR, tcM) => (kind: string, 
   return [tcR(tcIn(IN, "out")), tcT("("), ...seen, tcT(`(${inner})(`), ...args, tcT("))")];
 };
 // after the checks and the erasure: the inputs, the kind and the definition
-export const tcAssemble = (tcPrelude, tcOjsInputGlobals, tcGlobalRefStarts, tcGlobalsInOrder, mdPreludeCalls, tcExprParts, tcBuiltOf, tcVariableName, tcLANG, tcHeader, tcIn, tcINPUTS, tcT, tcR, tcFnRegs, tcApplyEdits) =>
+export const tcAssemble = (tcPrelude, tcOjsInputGlobals, tcGlobalRefStarts, tcGlobalsInOrder, mdPreludeCalls, tcExprParts, tcBuiltOf, tcVariableName, tcLANG, tcHeader, tcIn, tcINPUTS, tcT, tcR, tcFnRegs, tcCastEdits, tcApplyEdits) =>
   (text: string, fn: AstNode, info: TcInfo, prog: AstNode, typed: string, ctx: TcCtx): TcBuilt => {
     const IN = ctx.inputs ?? tcINPUTS;
     const used = tcPrelude.filter((n) => tcGlobalRefStarts(prog, n).length > 0);
@@ -107,7 +107,7 @@ export const tcAssemble = (tcPrelude, tcOjsInputGlobals, tcGlobalRefStarts, tcGl
     const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
     // each function the cell makes registers the locals it captures (fnreg.ts), in a re-parse of `(typed)`: prog is of the uncommented text
     const reg = tcFnRegs(typed, { closure: tcIn(IN, "closure"), methods: tcIn(IN, "methods") });
-    const inner = `${tcLANG}${tcHeader({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${tcApplyEdits(typed, reg.edits)}`;
+    const inner = `${tcLANG}${tcHeader({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${tcApplyEdits(typed, [...reg.edits, ...tcCastEdits(typed, info.casts)])}`;
     const expr = tcExprParts(kind, info, refs, IN, JSON.stringify(ctx.module), globals, reg.uses.map((u) => tcIn(IN, u)), inner);
     const block = bound.length > 0;
     const parts = block ? [tcT("{ const "), ...bound.flatMap(([n, c], i) => [tcT(`${i > 0 ? ", " : ""}${n} = `), tcR(tcIn(IN, c))]), tcT("; return "), ...expr, tcT("; }")] : expr;

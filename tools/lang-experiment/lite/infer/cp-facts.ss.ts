@@ -19,7 +19,7 @@ export const cpCellsOf = (parseTree, cpStatementDefs, mdFactsOf) => (src: string
   if (!p.ok) return { ok: false, message: p.message };
   const prog = p.ast.program;
   if (prog.type !== "Program") return { ok: true, cells: [] };
-  return { ok: true, cells: prog.body.flatMap((st) => cpStatementDefs(st).map((d) => mdFactsOf(d.name, d, null))) };
+  return { ok: true, cells: prog.body.flatMap((st) => cpStatementDefs(st).map((d) => mdFactsOf(d.name, d, null, []))) };
 };
 // a key of p that names x rather than reading it: a member's property, a property's or class member's key
 export const cpNamedKey = () => (x: AstNode, p: AstNode): boolean => {

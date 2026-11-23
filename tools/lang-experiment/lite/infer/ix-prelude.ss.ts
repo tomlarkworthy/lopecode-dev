@@ -32,10 +32,11 @@ export const ixYield = (ixErr, ixUnsup, show, UNDEF, UNKNOWN, ERR) => (K: IxK, T
   C.yields = [...C.yields, t];
   return UNKNOWN;
 };
-export const ixPreludeCall = (ixTypeArgs, ixErr, ixSnapshotCall, ixStateCall, ixActionCall, ixReadCall, ixOnCall, ixMemoCall, ixFact, BOOL, STR, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, name: string, expected: Ty | null): Ty => {
+export const ixPreludeCall = (ixTypeArgs, ixErr, ixSnapshotCall, ixStateCall, ixActionCall, ixReadCall, ixOnCall, ixMemoCall, ixCastCall, ixFact, BOOL, STR, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, name: string, expected: Ty | null): Ty => {
   ixFact(C, { k: "prelude", at: e.nid, name });
   const args = e.arguments, explicit = ixTypeArgs(K, V, env, e.typeArguments);
   if (name === "on") return ixOnCall(K, T, V, W, C, env, e);
+  if (name === "cast") return ixCastCall(K, T, V, W, C, env, e, explicit);
   if (name === "equals") {
     if (args.length !== 2) ixErr(K, C, e, "arity", "equals takes two arguments");
     for (const a of args) K.infer(K, T, V, W, C, env, a);
@@ -54,6 +55,19 @@ export const ixPreludeCall = (ixTypeArgs, ixErr, ixSnapshotCall, ixStateCall, ix
   if (name === "action") return ixActionCall(K, T, V, W, C, env, e, a, expected);
   if (name === "read") return ixReadCall(K, T, V, W, C, env, e, a);
   return ixSnapshotCall(K, T, V, W, C, env, e, a);
+};
+// e1 (2026-11-23), S9.8: cast<T>(v) gives a Cast<T>; T is the one type argument and must have a run-time shape
+// (shape.ss.ts shapeAt, the boundary's). The shape of each call is kept by the callee's position, for the compiler
+export const ixCastCall = (ixErr, shapeAt, show, named, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, explicit: Ty[] | null): Ty => {
+  if (e.arguments.length !== 1) ixErr(K, C, e, "arity", "cast takes one argument: cast<T>(v)");
+  for (const a of e.arguments) K.infer(K, T, V, W, C, env, a);
+  const t = explicit !== null && explicit.length === 1 ? explicit[0] : undefined;
+  if (t === undefined) { ixErr(K, C, e, "cast-type", "cast needs the type to check against as its one type argument: cast<T>(v)"); return ERR; }
+  if (t.k === "err") return ERR;
+  const s = shapeAt(t, { expand: K.reg.expand, isAlias: K.reg.isAlias });
+  if (s.k === "error") { ixErr(K, C, e, "cast-type", `cast<${show(t)}> cannot be checked at run time: it is or holds ${s.error}; cast to plain data (numbers, strings, booleans, null, literal types, arrays, tuples and records of them) and make the rest from it`); return ERR; }
+  C.casts = [...C.casts.filter((x) => x[0] !== e.callee.start), [e.callee.start, s]];
+  return named("Cast", t);
 };
 // snapshot(x): a copy of x (structuredClone, or slice for a typed array), so a fresh value: its type is x's with no Mut
 export const ixSnapshotCall = (owStripMut, unwrap, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, a: AstNode | null): Ty => {

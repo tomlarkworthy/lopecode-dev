@@ -45,9 +45,9 @@ export const ixConditional = (ixJoin2, union) => (K: IxK, T: IxTypes, V: IxVars,
   C.cur = ixJoin2(W, C, c.t, c.f);
   return union([a, b]);
 };
-export const ixNumeric = (ixErr, ixNonUndef, ixFilter, show, NUM) => (K: IxK, C: IxCtls, at: AstNode, t: Ty): boolean => {
+export const ixNumeric = (ixErr, ixNonUndef, ixFilter, show, UNDEF_FIX, NUM) => (K: IxK, C: IxCtls, at: AstNode, t: Ty): boolean => {
   if (t.k === "err" || K.reg.sub(t, NUM)) return true;
-  if (K.reg.sub(ixNonUndef(K.reg, ixFilter(K.reg, t, (m) => m.k !== "null")), NUM)) ixErr(K, C, at, "possibly-undefined", `${show(t)} used as a number`);
+  if (K.reg.sub(ixNonUndef(K.reg, ixFilter(K.reg, t, (m) => m.k !== "null")), NUM)) ixErr(K, C, at, "possibly-undefined", `${show(t)} used as a number${UNDEF_FIX}`);
   else ixErr(K, C, at, "type", `${show(t)} used as a number`);
   return false;
 };
@@ -129,10 +129,32 @@ export const ixBinary = (ixErr, ixUnsup, ixNumeric, ixOrder, ixInOp, ixNoOverlap
   }
 };
 // a write to obj.x / obj[i] / obj.method(): obj must have type Mut<T>
-export const ixWriteRule = (ixErr, isNamed, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, obj: AstNode, at: AstNode, rule: string): void => {
+// e1 (2026-11-23): a value made in the same expression (a literal, or a call or new whose value is fresh) has no other
+// name, so it may be written there ([...xs].sort()), as it may once bound to a local (S4.1)
+export const ixWriteRule = (ixErr, ixWriteFix, isNamed, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, obj: AstNode, at: AstNode, rule: string): void => {
   const ot = K.infer(K, T, V, W, C, env, obj);
   if (ot.k === "err" || isNamed(ot, "Mut")) return;
-  ixErr(K, C, at, rule, `write to a ${show(ot)}, which is not Mut`);
+  if (obj.type === "ArrayExpression" || obj.type === "ObjectExpression" || C.freshAt === obj.nid) return;
+  ixErr(K, C, at, rule, `write to a ${show(ot)}, which is not Mut; ${ixWriteFix(K, ot, obj, at)}`);
+};
+// the fix a non-Mut write's message names: the method's twin that returns a new array, or a copy made where it is written
+export const IX_TWINS = () => new Map([["sort", "toSorted"], ["reverse", "toReversed"], ["splice", "toSpliced"]]);
+// a copy of x (of type t) that the function that makes it may write, as a message writes it
+export const ixCopyText = () => (R: IxRegCore, t: Ty, x: string): string => {
+  const u0 = R.expand(t), u = u0.k === "union" ? (u0.ts.find((m) => m.k !== "undef" && m.k !== "null") ?? u0) : u0;
+  if (u.k === "arr" || u.k === "tup") return `[...${x}]`;
+  if (u.k === "named" && (u.n === "Map" || u.n === "Set")) return `new ${u.n}(${x})`;
+  return u.k === "rec" ? `{ ...${x} }` : `snapshot(${x})`;
+};
+export const ixWriteFix = (IX_TWINS, ixCopyText) => (K: IxK, ot: Ty, obj: AstNode, at: AstNode): string => {
+  const twins: Map<string, string> = IX_TWINS, x = obj.type === "Identifier" ? obj.name : "x";
+  const c = at.type === "CallExpression" ? (at.callee.type === "ChainExpression" ? at.callee.expression : at.callee) : null;
+  const name = c !== null && c.type === "MemberExpression" && !c.computed && c.property.type === "Identifier" ? c.property.name : null;
+  const made = ixCopyText(K.reg.quiet, ot, x), twin = name === null ? undefined : twins.get(name);
+  const idx = at.type === "AssignmentExpression" && at.left.type === "MemberExpression" && at.left.computed && ["arr", "tup"].includes(K.reg.expand(ot).k);
+  const copy = `a copy made in the same expression (${made}) or bound to a local (const y = ${made}) is writable`;
+  if (twin !== undefined) return `${name} writes its receiver: ${twin} returns a new array instead (${x}.${twin}(...)), or ${copy}`;
+  return idx ? `${x}.with(i, v) returns a new array with element i replaced, or ${copy}` : copy;
 };
 export const ixPropOf = (ixUm, ixMemberless, ixMemberMissing, ixErr, propT, union, show, ERR) => (K: IxK, C: IxCtls, t: Ty, k: string, at: AstNode): Ty => {
   const out: Mut<Ty[]> = [];

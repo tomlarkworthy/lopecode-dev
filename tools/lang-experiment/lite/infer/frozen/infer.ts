@@ -19,10 +19,11 @@ const PROTO_NAMES_6 = new Set(["__proto__", "constructor", "toString", "toLocale
 // own.ts reads for the ownership rules.
 import { kids, isFn, type Node, type Parsed } from "./ts/parse.ts";
 import type { Registry } from "./ts/registry.ts";
+import { shapeOf } from "../../boundary.ts";
 import {
   type Ty, type Fn, type Rec, type Param, type Subst, type Flags,
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, BOOL, SYMBOL,
-  union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames, cloneProblemWith, inexact,
+  union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames, cloneProblemWith, inexact, UNDEF_FIX,
 } from "../../types.ts";
 import { ALLOWED_GLOBALS, PRELUDE_FNS } from "../../intrinsics.ts";
 import { mutIn, stripMut } from "./own.ts";
@@ -91,6 +92,13 @@ const ADMITS = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean"
 const memberless = (m: Ty) => isNamed(m, "Action") || isNamed(m, "StateCell") || isNamed(m, "Events") || isNamed(m, "Listener");
 const MUTATING_OPS = new Set(["=", "+=", "-=", "*=", "/=", "%=", "**=", "<<=", ">>=", ">>>=", "&=", "|=", "^=", "&&=", "||=", "??="]);
 
+// DELIBERATE CHANGE (2026-11-23, e1): a copy of x (of type t) that the function that makes it may write, as a message writes it
+export function copyText(reg: { expand(t: Ty): Ty }, t: Ty, x: string): string {
+  const u0 = reg.expand(t), u = u0.k === "union" ? (u0.ts.find((m) => m.k !== "undef" && m.k !== "null") ?? u0) : u0;
+  if (u.k === "arr" || u.k === "tup") return `[...${x}]`;
+  if (u.k === "named" && (u.n === "Map" || u.n === "Set")) return `new ${u.n}(${x})`;
+  return u.k === "rec" ? `{ ...${x} }` : `snapshot(${x})`;
+}
 export class Checker {
   facts: Facts = { types: new Map(), bindingOf: new Map(), calls: new Map(), memberFlags: new Map(), fnInfo: new Map() };
   diags: Diag[] = [];
@@ -445,7 +453,7 @@ export class Checker {
     return union(out);
   }
   memberMissing(m: Ty, k: string, at: Node, all: Ty = m) {
-    if (m.k === "null" || m.k === "undef" || m.k === "void") this.err(at, "possibly-undefined", `property ${k} of a value that may be ${show(all)}`);
+    if (m.k === "null" || m.k === "undef" || m.k === "void") this.err(at, "possibly-undefined", `property ${k} of a value that may be ${show(all)}${UNDEF_FIX}`);
     else if (m.k === "unknown") this.err(at, "no-member", `property ${k} on Js/unknown; narrow it first`);
     else if (this.intrinsicName(m)) this.unsupported(at, `intrinsic member ${this.intrinsicName(m)}.${k}`);
     else this.err(at, "no-member", `no property ${k} on ${show(m)}`);
@@ -511,7 +519,8 @@ export class Checker {
     let rule = "type";
     if (this.reg.sub(this.nonUndef(t), expected)) rule = "possibly-undefined";
     else if (members(t).some((m) => isNamed(m, "Action")) && !members(expected).some((m) => isNamed(m, "Action"))) rule = "action-pass";
-    this.err(at, rule, `${show(t)} is not assignable to ${show(expected)}`);
+    // DELIBERATE CHANGE (2026-11-23, e1): the possibly-undefined messages name the usual fixes (UNDEF_FIX)
+    this.err(at, rule, `${show(t)} is not assignable to ${show(expected)}${rule === "possibly-undefined" ? UNDEF_FIX : ""}`);
     return false;
   }
 
@@ -788,7 +797,10 @@ export class Checker {
       this.check(obj, env, p.t);
       return ELEM;
     }
-    const call = at(e, { type: "CallExpression", optional: false, callee: at(name, { type: "Identifier", name: name.name }), arguments: [obj] });
+    // DELIBERATE CHANGE (2026-11-23, e1): key is the renderer's, as on an element, and is not given to the component
+    const isKey = (x: Node) => x.type === "Property" && x.key.type === "Identifier" && x.key.name === "key";
+    for (const k of props.filter(isKey)) this.check(k.value, env, union([STR, NUM]));
+    const call = at(e, { type: "CallExpression", optional: false, callee: at(name, { type: "Identifier", name: name.name }), arguments: [at(op, { type: "ObjectExpression", properties: props.filter((x: Node) => !isKey(x)) })] });
     const t = this.call(call, env, ELEM);
     if (t.k !== "err" && !this.reg.sub(t, ELEM)) this.err(e, "type", `component ${name.name} returns ${show(t)}, not Elem`);
     return ELEM;
@@ -834,7 +846,8 @@ export class Checker {
     const b = env.scope.get(e.name);
     if (!b) {
       if (e.name === "arguments") return ERR; // syntax pass
-      if (this.cellNames.has(e.name)) this.err(e, "cell-by-name", `cell ${e.name} referenced by name; take it as a parameter`);
+      // DELIBERATE CHANGE (2026-11-23, e1): the message says how a function calls itself (the tutorial's fib, ergonomics1 12)
+      if (this.cellNames.has(e.name)) this.err(e, "cell-by-name", `cell ${e.name} referenced by name; take it as a parameter (a cell may not read itself: a function that calls itself is made under a local name inside the cell, const f = memo((n: number): number => … f(n - 1) …); return f)`);
       else if (ALLOWED_GLOBALS.has(e.name)) this.unsupported(e, `intrinsic ${e.name} has no signature in lite/intrinsics.ts`);
       else if (e.name === "mut" || e.name === "freeze" || e.name === "borrow") this.err(e, "removed-call", `${e.name}(...) is no longer part of the language: delete the call and keep its argument (a fresh value bound to a local is writable; a cell's value is frozen when it leaves the cell)`); // DELIBERATE CHANGE (2026-11-22, S4)
       else this.err(e, "free-name", `free name ${e.name}`);
@@ -956,7 +969,7 @@ export class Checker {
   }
   numeric(at: Node, t: Ty): boolean {
     if (t.k === "err" || this.reg.sub(t, NUM)) return true;
-    if (this.reg.sub(this.nonUndef(this.filter(t, (m) => m.k !== "null")), NUM)) { this.err(at, "possibly-undefined", `${show(t)} used as a number`); return false; }
+    if (this.reg.sub(this.nonUndef(this.filter(t, (m) => m.k !== "null")), NUM)) { this.err(at, "possibly-undefined", `${show(t)} used as a number${UNDEF_FIX}`); return false; }
     this.err(at, "type", `${show(t)} used as a number`);
     return false;
   }
@@ -1044,7 +1057,20 @@ export class Checker {
     const ot = this.infer(obj, env);
     if (ot.k === "err" || isNamed(ot, "Mut")) return;
     // DELIBERATE CHANGE (2026-11-22, S4): [mut-deep-write] is gone; a write below a Mut is the plain rule
-    this.err(at, rule, `write to a ${show(ot)}, which is not Mut`);
+    // DELIBERATE CHANGE (2026-11-23, e1): a receiver made in the same expression (a literal, or a fresh call or new) may
+    // be written ([...xs].sort()), and the message names the twin that returns a new array or a copy
+    if (obj.type === "ArrayExpression" || obj.type === "ObjectExpression" || this.freshAt === obj) return;
+    this.err(at, rule, `write to a ${show(ot)}, which is not Mut; ${this.writeFix(ot, obj, at)}`);
+  }
+  writeFix(ot: Ty, obj: Node, at: Node): string {
+    const x = obj.type === "Identifier" ? obj.name : "x";
+    const c = at.type === "CallExpression" ? (at.callee.type === "ChainExpression" ? at.callee.expression : at.callee) : null;
+    const name = c && c.type === "MemberExpression" && !c.computed && c.property.type === "Identifier" ? c.property.name : null;
+    const made = copyText(this.reg, ot, x), twin = name === null ? undefined : ({ sort: "toSorted", reverse: "toReversed", splice: "toSpliced" } as Record<string, string>)[name];
+    const idx = at.type === "AssignmentExpression" && at.left.type === "MemberExpression" && at.left.computed && ["arr", "tup"].includes(this.reg.expand(ot).k);
+    const copy = `a copy made in the same expression (${made}) or bound to a local (const y = ${made}) is writable`;
+    if (twin !== undefined) return `${name} writes its receiver: ${twin} returns a new array instead (${x}.${twin}(...)), or ${copy}`;
+    return idx ? `${x}.with(i, v) returns a new array with element i replaced, or ${copy}` : copy;
   }
   assign(e: Node, env: Env): Ty {
     if (!MUTATING_OPS.has(e.operator)) { this.unsupported(e, `assignment ${e.operator}`); return ERR; }
@@ -1216,10 +1242,12 @@ export class Checker {
   }
   // a returned value, checked against the return context
   returned(e: Node, env: Env): Ty {
-    const t = this.check(e, env, env.fi.retCtx, false, !!env.fi.retFromCtx);
+    // DELIBERATE CHANGE (2026-11-23, e1): an async function may return a promise of its result type
+    const r = env.fi.retCtx, ctx = r && env.fi.isAsync && !env.fi.isGen ? union([r, named("Promise", r)]) : r;
+    const t = this.check(e, env, ctx, false, !!env.fi.retFromCtx);
     // an async function's promise resolves to what a returned promise resolves to, not to the promise
-    if (env.fi.isAsync && !env.fi.isGen && members(this.reg.expand(t)).some((m) => isNamed(this.reg.expand(m), "Promise")))
-      this.err(e, "type", `an async function returns ${show(t)}, a promise: await it, so the function's type says what it resolves to`);
+    // DELIBERATE CHANGE (2026-11-23, e1): a returned promise is awaited, as JavaScript does, in place of [type]
+    if (env.fi.isAsync && !env.fi.isGen && members(this.reg.expand(t)).some((m) => isNamed(this.reg.expand(m), "Promise"))) return this.awaited(t, false);
     return t;
   }
   findBinding(s: Scope | null, id: number): Binding | undefined {
@@ -1358,6 +1386,8 @@ export class Checker {
   }
   cloneCallees = new Set<Node>();
   freshAt: Node | null = null;
+  // DELIBERATE CHANGE (2026-11-23, e1): each cast call's T shape, by the callee's position (the cells' C.casts)
+  casts = new Map<number, unknown>();
   // what structuredClone cannot copy in a value of type t (walks.ss.ts)
   cloneProblem(t: Ty, depth = 0): string | null {
     return cloneProblemWith(this.reg.ops)(t, depth);
@@ -1398,7 +1428,10 @@ export class Checker {
     const args: Node[] = e.arguments;
     const paramAt = (i: number): Ty | undefined => sig.ps[i]?.t ?? sig.rest;
     const required = sig.ps.filter((p) => !p.opt).length;
-    if (args.length < required && !args.some((a) => a.type === "SpreadElement")) this.err(e, "arity", `expected at least ${required} arguments, got ${args.length}`);
+    // DELIBERATE CHANGE (2026-11-23, e1): reduce's message says a start value is required
+    const rc = e.type === "CallExpression" ? e.callee : null, rm = rc && rc.type === "MemberExpression" && !rc.computed && rc.property.type === "Identifier" ? rc.property.name : "";
+    const reduce = rm === "reduce" && args.length === 1 ? "; a start value is required as reduce's second argument (xs.reduce((acc, v) => acc + v, 0)): with none, reduce throws on an empty array" : "";
+    if (args.length < required && !args.some((a) => a.type === "SpreadElement")) this.err(e, "arity", `expected at least ${required} arguments, got ${args.length}${reduce}`);
     if (args.length > sig.ps.length && !sig.rest) this.err(e, "arity", `expected at most ${sig.ps.length} arguments, got ${args.length}`);
     this.facts.calls.set(e, { ...this.facts.calls.get(e), sig: { ...sig, decl: sig0.decl ?? sig0, flags: sig0.flags } });
     const argT: (Ty | undefined)[] = [];
@@ -1426,6 +1459,8 @@ export class Checker {
       // an optional parameter takes undefined; a function argument keeps the parameter's own type as its context
       const fnArg = a.type === "ArrowFunctionExpression" || a.type === "FunctionExpression";
       if (!hasTv(pc, tvSet)) { argT[i] = this.check(a, env, sig.ps[i]?.opt && !fnArg ? union([pc, UNDEF]) : pc); return; }
+      // DELIBERATE CHANGE (2026-11-23, e1): a callback with every parameter annotated gives its parameters' type variables
+      if (fnArg && this.reg.callSigs(pc).some((s) => s.ps.some((q) => hasTv(q.t, tvSet)))) { const t = this.infer(a, env); argT[i] = t; this.reg.unify(p, t, m, tvSet); return; }
       const t = this.check(a, env, this.ctxOnly(ctxSubst(p), tvSet), true);
       argT[i] = t;
       this.reg.unify(p, t, m, tvSet);
@@ -1524,6 +1559,18 @@ export class Checker {
         if (args.length !== 2) this.err(e, "arity", "equals takes two arguments");
         args.forEach((a) => this.infer(a, env));
         return BOOL;
+      // DELIBERATE CHANGE (2026-11-23, e1): cast<T>(v) (S9.8), T's shape as the boundary derives it (boundary.ts shapeOf)
+      case "cast": {
+        if (args.length !== 1) this.err(e, "arity", "cast takes one argument: cast<T>(v)");
+        args.forEach((a) => this.infer(a, env));
+        const t = explicit && explicit.length === 1 ? explicit[0] : undefined;
+        if (!t) { this.err(e, "cast-type", "cast needs the type to check against as its one type argument: cast<T>(v)"); return ERR; }
+        if (t.k === "err") return ERR;
+        const sh = shapeOf(t, (x) => this.reg.expand(x), (n) => this.reg.isAlias(n));
+        if ("error" in sh) { this.err(e, "cast-type", `cast<${show(t)}> cannot be checked at run time: it is or holds ${sh.error}; cast to plain data (numbers, strings, booleans, null, literal types, arrays, tuples and records of them) and make the rest from it`); return ERR; }
+        this.casts.set(e.callee.start, sh);
+        return named("Cast", t);
+      }
       case "messageOf":
         if (args.length !== 1) this.err(e, "arity", "messageOf takes one argument");
         args.forEach((a) => this.infer(a, env));
@@ -1683,7 +1730,7 @@ export class Checker {
     // DELIBERATE CHANGE (2026-11-22, S4): a fresh value bound to a local with no annotation is a Mut
     // DELIBERATE CHANGE (2026-11-23, m1 step 2): and with an array, tuple, type-literal or mutable-intrinsic annotation (S4.1)
     const names = ["Array", "Map", "Set", "WeakMap", "WeakSet", "Record", "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array", "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array"];
-    const ro = !!ann && !(ann.type === "TSArrayType" || ann.type === "TSTupleType" || (ann.type === "TSTypeLiteral" && ann.members.every((m: Node) => m.type === "TSPropertySignature" && m.readonly !== true)) || (ann.type === "TSTypeReference" && ann.typeName.type === "Identifier" && names.includes(ann.typeName.name)));
+    const ro = !!ann && !(ann.type === "TSArrayType" || ann.type === "TSTupleType" || (ann.type === "TSTypeLiteral" && ann.members.every((m: Node) => (m.type === "TSPropertySignature" || m.type === "TSIndexSignature") /* DELIBERATE CHANGE (2026-11-23, e1): an index signature */ && m.readonly !== true)) || (ann.type === "TSTypeReference" && ann.typeName.type === "Identifier" && names.includes(ann.typeName.name)));
     const fresh = (!declared || (!isNamed(declared, "Mut") && !ro)) && t0.k !== "err" && !isNamed(t0, "Mut") && (init.type === "ArrayExpression" || init.type === "ObjectExpression" || this.freshAt === init);
     const t = fresh ? named("Mut", declared ?? (k === "let" ? widen(t0) : t0)) : t0;
     const isMut = fresh || (init.type === "CallExpression" && init.callee.type === "Identifier" && init.callee.name === "mut" && env.scope.get("mut")?.kind === "prelude");

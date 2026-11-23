@@ -60,11 +60,11 @@ export const ixClosureFlow = (ixFlowOf, ixPathOf, ixFindBinding) => (V: IxVars, 
   return out;
 };
 // a returned value, checked against the return context
-export const ixReturned = (ixErr, members, isNamed, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty => {
-  const fi = env.fi;
-  const t = K.check(K, T, V, W, C, env, e, fi.retCtx, false, fi.retFromCtx);
-  if (fi.isAsync && !fi.isGen && members(K.reg.expand(t)).some((m) => isNamed(K.reg.expand(m), "Promise")))
-    ixErr(K, C, e, "type", `an async function returns ${show(t)}, a promise: await it, so the function's type says what it resolves to`);
+// e1 (2026-11-23), B4: an async function that returns a promise resolves to what the promise resolves to, as await does
+export const ixReturned = (ixAwaited, members, isNamed, named, union) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty => {
+  const fi = env.fi, r = fi.retCtx, ctx = r !== null && fi.isAsync && !fi.isGen ? union([r, named("Promise", r)]) : r;
+  const t = K.check(K, T, V, W, C, env, e, ctx, false, fi.retFromCtx);
+  if (fi.isAsync && !fi.isGen && members(K.reg.expand(t)).some((m) => isNamed(K.reg.expand(m), "Promise"))) return ixAwaited(K.reg, t, false);
   return t;
 };
 // Function declarations are hoisted: bound first, their bodies checked in order (or on the first read)

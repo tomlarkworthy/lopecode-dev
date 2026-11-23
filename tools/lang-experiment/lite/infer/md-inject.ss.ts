@@ -23,7 +23,9 @@ export const mdInjectHandle = (mdDiag, isNamed, show, ixGap) => (K: IxK, C: IxCt
   const a0 = want.k === "named" && wrapped ? want.args[0] : undefined;
   // core.ts reads want.args[0] unguarded
   if (wrapped && a0 === undefined) return ixGap(C, "State or Events with no type argument");
-  const ok = inner !== undefined && a0 !== undefined && K.reg.sub(inner, a0) && K.reg.sub(a0, inner);
+  // e1 (2026-11-23), B4: a state cell is written and read, so its type is T both ways; an events cell's values only
+  // reach the listener, so what it yields must be a T (a yielded object literal is exact and not the other way)
+  const ok = inner !== undefined && a0 !== undefined && K.reg.sub(inner, a0) && (!state || K.reg.sub(a0, inner));
   if (!ok) mdDiag(X, L, p, state ? "inject-state" : "inject-events", `${name} is not a ${state ? "state cell" : "sync generator cell"} ${state ? `of ${show(want)}` : `yielding ${show(a0 ?? want)}`}`);
   return want;
 };

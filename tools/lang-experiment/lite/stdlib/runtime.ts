@@ -19,6 +19,8 @@ import { parse } from "../parse.ts";
 import { checkSources, type Outside } from "../core.ts";
 import { checkKey, lruTouch, standIns, refusedCells, islandKey } from "../checks-ss.ts";
 export { cross, crossings } from "../boundary.ts";
+// e1 (2026-11-23): the prelude's cast (S9.8); the compiler adds the shape as a second argument
+export { cast } from "../boundary.ts";
 import { checkShape, type Shape } from "../boundary.ts";
 export { checkSources };
 export { completionWork } from "../complete.ts";

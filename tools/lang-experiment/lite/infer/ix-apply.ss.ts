@@ -20,7 +20,10 @@ export const ixWidenFree = (widen) => (m: Mut<Map<string, Ty>>, fixed: Set<strin
 };
 export const ixArity = (ixErr) => (K: IxK, C: IxCtls, e: AstNode, args: AstNode[], sig: Fn): void => {
   const required = sig.ps.filter((p) => !p.opt).length;
-  if (args.length < required && !args.some((a) => a.type === "SpreadElement")) ixErr(K, C, e, "arity", `expected at least ${required} arguments, got ${args.length}`);
+  // e1 (2026-11-23), B4: reduce takes its start value as a required argument (ergonomics1 30)
+  const c = e.type === "CallExpression" ? e.callee : null, m = c !== null && c.type === "MemberExpression" && !c.computed && c.property.type === "Identifier" ? c.property.name : "";
+  const reduce = m === "reduce" && args.length === 1 ? "; a start value is required as reduce's second argument (xs.reduce((acc, v) => acc + v, 0)): with none, reduce throws on an empty array" : "";
+  if (args.length < required && !args.some((a) => a.type === "SpreadElement")) ixErr(K, C, e, "arity", `expected at least ${required} arguments, got ${args.length}${reduce}`);
   if (args.length > sig.ps.length && !sig.rest) ixErr(K, C, e, "arity", `expected at most ${sig.ps.length} arguments, got ${args.length}`);
 };
 export const ixSpreadArg = (ixErr, ixUnsup, ixHides, subst, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, A: IxApp, a: SpreadElement, i: number, m: Map<string, Ty>): void => {
@@ -39,6 +42,8 @@ export const ixFirstArg = (ixSpreadArg, ixParamAt, ixCtxSubst, ixCtxOnly, ixAnnO
   const lam = (a.type === "ArrowFunctionExpression" || a.type === "FunctionExpression") && a.params.some((q) => ixAnnOf(q) === null);
   const pc = subst(p, new Map(m));
   if (lam && hasTv(pc, A.tvSet)) return "defer";
+  // e1 (2026-11-23), B4: a callback with every parameter annotated gives the type variables of its parameters itself
+  if (fnArg && hasTv(pc, A.tvSet) && K.reg.callSigs(pc).some((s) => s.ps.some((q) => hasTv(q.t, A.tvSet)))) { const t = K.infer(K, T, V, W, C, env, a); K.reg.unify(p, t, m, A.tvSet); return t; }
   if (!hasTv(pc, A.tvSet)) return K.check(K, T, V, W, C, env, a, A.sig.ps[i]?.opt && !fnArg ? union([pc, UNDEF]) : pc, false, false);
   const t = K.check(K, T, V, W, C, env, a, ixCtxOnly(ixCtxSubst(p, new Map(m), fromRet), A.tvSet), true, false);
   K.reg.unify(p, t, m, A.tvSet);

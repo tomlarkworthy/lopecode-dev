@@ -61,11 +61,11 @@ export const mdReturnsRef = (mdPreludeCalls, mdIsRefCall, mdRefName) => (fn: FnN
   return b.type === "BlockStatement" ? b.body.some((s) => s.type === "ReturnStatement" && mdIsRefCall(calls, s.argument)) : mdIsRefCall(calls, b);
 };
 // factsOf with core.ts's boundary shapes
-export const mdFactsOf = (mdReturnsRef, mdCompileCalls, mdSpecOf, mdAnn, mdRefName) => (name: string, d: MdDef, bounds: Map<string, MdBoundary> | null): MdInfo => {
+export const mdFactsOf = (mdReturnsRef, mdCompileCalls, mdSpecOf, mdAnn, mdRefName) => (name: string, d: MdDef, bounds: Map<string, MdBoundary> | null, casts: TypeShape[]): MdInfo => {
   const compiles = mdCompileCalls(d.fn).flatMap((c) => { const sp = mdSpecOf(c); return sp === null ? [] : [{ inputs: sp.inputs, refs: sp.refs, outputs: sp.outputs }]; });
   const params = d.fn.params.map((p) => {
     const ref = mdRefName(mdAnn(p)), pname = p.type === "Identifier" ? p.name : "";
     return { name: pname, refTyped: ref === "State", eventsTyped: ref === "Events", boundary: bounds?.get(pname) ?? null };
   });
-  return { name, span: [d.stmt.start, d.stmt.end], params, returnsRef: mdReturnsRef(d.fn), generator: d.fn.generator, compiles };
+  return { name, span: [d.stmt.start, d.stmt.end], params, returnsRef: mdReturnsRef(d.fn), generator: d.fn.generator, compiles, casts };
 };

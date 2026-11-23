@@ -35,6 +35,8 @@ interface ${N} {
   /** @fresh */ map(f: (v: number, i: number) => number): ${N};
   /** @fresh */ filter(f: (v: number, i: number) => unknown): ${N};
   /** @fresh */ toSorted(f?: (a: number, b: number) => number): ${N};
+  /** @fresh */ toReversed(): ${N};
+  /** @fresh */ with(i: number, v: number): ${N};
   reduce<U>(f: (acc: U, v: number, i: number) => U, init: U): U;
   forEach(f: (v: number, i: number) => void): void;
   every(f: (v: number, i: number) => unknown): boolean;
@@ -64,6 +66,8 @@ interface Array<T> {
   /** @fresh */ concat(...xs: readonly T[][]): T[];
   /** @fresh */ toSorted(f?: (a: T, b: T) => number): T[];
   /** @fresh */ toReversed(): T[];
+  /** @fresh */ toSpliced(start: number, deleteCount?: number, ...xs: T[]): T[];
+  /** @fresh */ with(i: number, v: T): T[];
   reduce<U>(f: (acc: U, v: T, i: number) => U, init: U): U;
   find(f: (v: T, i: number) => unknown): T | undefined;
   findIndex(f: (v: T, i: number) => unknown): number;
@@ -296,9 +300,11 @@ interface State<T> {
 declare function equals(a: unknown, b: unknown): boolean;
 declare function messageOf(e: unknown): string;
 declare function memo<F>(f: F): F;
+// e1 (2026-11-23): cast<T>(v) checks v against T at run time (S9.8); the checker types and refuses each call itself
+type Cast<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly path: string; readonly error: string };
 `;
 export const CAPABILITIES: Record<string, string> = { now: "Clock", random: "Random", fetch: "Fetch", log: "Log", invalidation: "Invalidation", compile: "Compile", pool: "Pool" };
-export const PRELUDE_FNS = new Set(["state", "action", "snapshot", "equals", "on", "read", "messageOf", "memo"]);
+export const PRELUDE_FNS = new Set(["state", "action", "snapshot", "equals", "on", "read", "messageOf", "memo", "cast"]);
 
 // JSX: an element is a value. A renderer outside the checked cells turns it into DOM nodes; event
 // props are Actions and receive data, never DOM Event objects.

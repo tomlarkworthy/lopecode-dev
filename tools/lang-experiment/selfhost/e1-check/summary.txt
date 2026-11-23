@@ -1,0 +1,20 @@
+build 0
+bun-verify 0 bun-verify: 182 pass, 0 fail, 0 timed out, 0 skipped; 8.0 s
+fixtures 0 14/14 fixtures pass; 57 lint/injection rules registered, 57 with a reject case (55 of them in the specification module); 0 failure(s)
+diff 0 1117 sources, 3891 cells: SAME 3877 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14; sources that threw 1 ownership: 3877 cells: SAME 3877 DIFFERENT 0 NOT COVERED 0
+diff --module-only 0 whole module: 1207 sources: SAME 1207 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+tc-diff 0 56 DIFFERENT lines
+./lite/infer/attack/live.test.ts 0  639 pass  0 fail 
+./lite/infer/attack/message-fixes.test.ts 0  62 pass  0 fail 
+./lite/freeze-table.test.ts 0 
+./lite/toolchain/tc.test.ts 0  11 pass  0 fail 
+./lite/browser/run.test.ts 0  2 pass  0 fail 
+./lite/acorn.test.ts 0 6 pass, 0 fail 
+run-sets 0 -- all: 2285 programs, silent 0
+fa2 0 -- 309 candidates, accepted 9, silent 0
+fa3 0 -- 360 candidates, accepted 11, silent 0
+run-sets REG=0 0 -- all: 2285 programs, silent 0
+fa3 REG=0 0 -- 360 candidates, accepted 11, silent 0
+verify --quick 0 QUICK (original page only); power AC Power; functional 234 pass 0 fail; measurements 0
+run-sets BODYFN=0 0 -- all: 2285 programs, silent 1
+verify full 1 power AC Power; functional 631 pass 0 fail; measurements 8

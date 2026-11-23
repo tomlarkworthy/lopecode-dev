@@ -40,6 +40,7 @@ export const RULES: RuleInfo[] = [
   { id: "switch-fallthrough", section: "Immutable by default", how: "exact", summary: "a non-empty case body that can reach its end, followed by another case" },
   { id: "switch-declaration", section: "Immutable by default", how: "exact", summary: "const, let, function or class directly in a case, not in a block" },
   { id: "builtin-type-name", section: "Files", how: "exact", summary: "a top-level type or interface named as one of the checker's own types (Listener, Array, Pool, ...)" },
+  { id: "type-cycle", section: "Files", how: "exact", summary: "a type alias defined by itself with no object, array, tuple or function type between (type Key = Key), since 2026-11-23" },
   { id: "strict-eq-object", section: "Immutable by default", how: "exact", summary: "=== / !== (and ==, !=) on two non-primitive operands" },
   { id: "iterator-capture", section: "Immutable by default", how: "approx", summary: "a nested function uses a binding of an enclosing function whose type may hold an iterator (Iterable, Generator or a type parameter)" },
   { id: "iterator-cell", section: "Immutable by default", how: "approx", summary: "a cell's value (a state cell's content, an events value) whose type may hold an iterator" },
@@ -70,6 +71,7 @@ export const RULES: RuleInfo[] = [
   { id: "foreign-effect", section: "Foreign values and the shell", how: "exact", summary: "a checked cell takes an /** effect */ foreign" },
   // Cells in other languages (lite/boundary.ts)
   { id: "boundary-unannotated", section: "Observable JavaScript and raw cells", how: "exact", summary: "a parameter naming a cell in another language has no type annotation" },
+  { id: "cast-type", section: "Foreign values and the shell", how: "exact", summary: "cast<T>(v) with no type argument, or a T that cannot be checked at run time (a function, Mut, a class, an index signature, a type parameter), since 2026-11-23" },
   { id: "boundary-type", section: "Observable JavaScript and raw cells", how: "exact", summary: "a cell in another language taken as a type the boundary does not check (a function, a promise, a class, Events)" },
   { id: "boundary-state", section: "Observable JavaScript and raw cells", how: "exact", summary: "State<T> on a cell with no viewof, or two State types for one view" },
 ];

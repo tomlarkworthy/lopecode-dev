@@ -231,7 +231,8 @@ test_checker_one_report_per_read = {
   // a property read that fails on several members of a union is reported once for the members that lack it, and once for null and undefined
   const source = "type U = { readonly type: \"A\"; readonly a: number } | { readonly type: \"B\" } | { readonly type: \"C\" } | { readonly type: \"D\" };\nconst c = () => (d: U | null | undefined): number => d.a;";
   const r = soundscript.checkSources({ cells: source, tsx: true });
-  const got = r.cells.flatMap((c) => c.errors).map((e) => `${e.rule}: ${e.msg}`).sort();
+  // e1 (2026-11-23): a possibly-undefined message goes on with the fixes it names, after "; "
+  const got = r.cells.flatMap((c) => c.errors).map((e) => `${e.rule}: ${e.msg.split("; ")[0]}`).sort();
   const want = ["no-member: no property a on { type: \"B\" } | { type: \"C\" } | { type: \"D\" }", "possibly-undefined: property a of a value that may be null | undefined"];
   if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(JSON.stringify(got));
   return `${got.length} messages`;

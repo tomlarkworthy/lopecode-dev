@@ -155,14 +155,23 @@ export const owWriteRef = (owArgIndex, owMutParamArg) => (O: OwCtx, r: AstNode):
   }
   return false;
 };
+// e1 (2026-11-23): a copy keeps a type parameter, so for a type that holds one the fix is not a copy
+export const owIterMsg = (hasTv) => (b: IxBinding, it: string): string => hasTv(b.t)
+  ? `${b.name} may hold an iterator (${it}: a type parameter may be one), which reading uses up, so a function that captures it may give a different result for the same call; a copy has the same type, so read ${b.name} without a nested function that captures it (a for loop in place of a callback), or give it a type with no type parameter`
+  : `${b.name} may hold an iterator (${it}), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made, under a read-only type, and capture that (const c: readonly T[] = [...${b.name}], T its element type)`;
+// e1 (2026-11-23): a typed array or URL cannot be frozen, and a copy of one is one too: what a kept function may capture
+// is the data copied out (S4.10)
+export const owUnfreezableFix = () => (n: string, name: string): string => n === "URL"
+  ? `its text (const c = ${name}.href)`
+  : `its elements as a read-only array (const c: readonly number[] = [...${name}])`;
 export const owAdd = () => (xs: number[], id: number): number[] => (xs.includes(id) ? xs : [...xs, id]);
 // one reference, for each function from the innermost out to the first that declares the binding
-export const owCaptureRef = (owEncl, owInside, owIsMut, owIsBor, owIter, owErr, owAssignedRef, owWriteRef, owIsCallee, owAdd) => (O: OwCtx, W: OwW, caps: OwCaps, b: IxBinding, r: AstNode): void => {
+export const owCaptureRef = (owEncl, owInside, owIsMut, owIsBor, owIter, owIterMsg, owErr, owAssignedRef, owWriteRef, owIsCallee, owAdd) => (O: OwCtx, W: OwW, caps: OwCaps, b: IxBinding, r: AstNode): void => {
   for (let f = owEncl(O, r); f.nid !== O.T.fn.nid; f = owEncl(O, f)) {
     if (owInside(O, b, f)) break;
     const c = caps.get(f.nid) ?? { mut: [], wmut: [], let: [], read: [], calls: [] };
     const it = b.kind !== "global" && b.kind !== "prelude" ? owIter(O.R, b.t) : null;
-    if (it) owErr(W, r, "iterator-capture", `${b.name} may hold an iterator (${it}), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made ([...${b.name}]) and capture the array`);
+    if (it) owErr(W, r, "iterator-capture", owIterMsg(b, it));
     const lets = owAssignedRef(O, r) && (b.kind === "let" || b.kind === "param");
     caps.set(f.nid, {
       mut: owIsMut(b) || owIsBor(b) ? owAdd(c.mut, b.id) : c.mut,
@@ -319,7 +328,7 @@ export const owKeptReadMsg = (owStripMut, show, isNamed, owMutDeep) => (O: OwCtx
   : isNamed(b.t, "Mut")
   ? `Mut ${b.name} captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: ${show(owStripMut(O.R, b.t))} = ${b.name}) and capture that, or make it inside the function`
   : `let ${b.name} captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = ${b.name}) and capture that`;
-export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLet, owGenLateWrites, owFlowsOut, owTypedIn, owTypedSafeB, owPromiseIn, owKeptReadMsg, owLocalHoldsMut, owErr, unwrap, OW_UNFREEZABLE) => (O: OwCtx, W: OwW, caps: Map<number, OwCap>, byFn: Map<number, number>): void => {
+export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLet, owGenLateWrites, owFlowsOut, owTypedIn, owTypedSafeB, owPromiseIn, owKeptReadMsg, owLocalHoldsMut, owUnfreezableFix, owStripMut, ixCopyText, owErr, show, unwrap, OW_UNFREEZABLE) => (O: OwCtx, W: OwW, caps: Map<number, OwCap>, byFn: Map<number, number>): void => {
   const holds: Mut<Map<number, boolean>> = new Map();
   for (const f of O.T.fns) {
     const c = caps.get(f.nid);
@@ -327,10 +336,10 @@ export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLe
     for (const b of c.mut.flatMap((id) => O.F.bindings.get(id) ?? [])) {
       const u = O.R.expand(unwrap(b.t)), U: Set<string> = OW_UNFREEZABLE;
       if (owIsBor(b)) owErr(W, f, "borrowed-escape", `Borrowed ${b.name} captured by a nested function`);
-      else if (c.wmut.includes(b.id)) owErr(W, f, "mut-capture", `Mut ${b.name} written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made`);
-      else if (u.k === "named" && U.has(u.n)) owErr(W, f, "mut-capture", `Mut ${b.name} (${u.n}) captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: ${u.n} = ${b.name}.slice())`);
-      else if ((O.T.refs.get(b.id) ?? []).some((r) => r.start > f.start && r.end <= f.end && owFlowsOut(O, r, f))) owErr(W, f, "mut-capture", `Mut ${b.name} returned or yielded by a function the cell keeps: whoever calls it could write ${b.name}; return a copy`);
-      else { owGenLateWrites(O, W, f, b); for (const r of O.T.refs.get(b.id) ?? []) if ((r.start < f.start || r.start > f.end) && owWriteRef(O, r) && owLateWrite(O, r, f)) owErr(W, r, "mut-capture", `${b.name} may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged`); owErr(W, f, "mut-capture", owKeptReadMsg(O, b)); }
+      else if (c.wmut.includes(b.id)) owErr(W, f, "mut-capture", `Mut ${b.name} written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made, so the write would throw; make ${b.name} inside the function, or keep it in a state cell that an action writes`);
+      else if (u.k === "named" && U.has(u.n)) owErr(W, f, "mut-capture", `Mut ${b.name} (${u.n}) captured by a function the cell keeps: a typed array or URL cannot be frozen, nor can a copy of one; capture ${owUnfreezableFix(u.n, b.name)}`);
+      else if ((O.T.refs.get(b.id) ?? []).some((r) => r.start > f.start && r.end <= f.end && owFlowsOut(O, r, f))) owErr(W, f, "mut-capture", `Mut ${b.name} returned or yielded by a function the cell keeps: whoever calls it could write ${b.name}; bind it under its plain type before the function (const c: ${show(owStripMut(O.R, b.t))} = ${b.name}) and return a copy of that (${ixCopyText(O.R, owStripMut(O.R, b.t), "c")})`);
+      else { owGenLateWrites(O, W, f, b); for (const r of O.T.refs.get(b.id) ?? []) if ((r.start < f.start || r.start > f.end) && owWriteRef(O, r) && owLateWrite(O, r, f)) owErr(W, r, "mut-capture", `${b.name} may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged`); owErr(W, f, "mut-capture", owTypedIn(O.R, b.t) !== null ? `Mut ${b.name} holds a ${owTypedIn(O.R, b.t)}, captured by a function the cell keeps: a typed array or URL cannot be frozen, nor can a copy of one; copy the data out of it before the function and capture that (for the ${owTypedIn(O.R, b.t)} x, ${owUnfreezableFix(owTypedIn(O.R, b.t) ?? "", "x")})` : owKeptReadMsg(O, b)); }
     }
     for (const b of c.let.flatMap((id) => O.F.bindings.get(id) ?? [])) owErr(W, f, "let-capture", `${b.kind} ${b.name} assigned from a function that escapes`);
     for (const b of c.read.flatMap((id) => O.F.bindings.get(id) ?? [])) {
@@ -339,7 +348,7 @@ export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLe
       else if (!c.mut.includes(b.id) && (holds.get(b.id) ?? holds.set(b.id, owLocalHoldsMut(O, b)).get(b.id))) owErr(W, f, "mut-capture", owKeptReadMsg(O, b));
       const ta = c.mut.includes(b.id) ? null : owTypedIn(O.R, b.t);
       if (owPromiseIn(O.R, b.t)) owErr(W, f, "mut-capture", `${b.name} holds a promise, captured by a function the cell keeps: it settles after the function is published, so it cannot be frozen with it; make the promise inside the function, or publish the promise itself`);
-      if (ta !== null && !owTypedSafeB(O, b)) owErr(W, f, "mut-capture", `${b.name} holds a ${ta} that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen; capture a read-only copy (const c: ${ta} = x.slice())`);
+      if (ta !== null && !owTypedSafeB(O, b)) owErr(W, f, "mut-capture", `${b.name} holds a ${ta} that a name in this cell can still write, captured by a function the cell keeps: a typed array or URL cannot be frozen, nor can a copy of one; copy the data out of the ${ta} before the function and capture that (for the ${ta} x, ${owUnfreezableFix(ta, "x")})`);
     }
   }
 };

@@ -41,7 +41,7 @@ export const ixJsxProps = (ixJsxProp, ixAt, ixUnsup, ixGap) => (K: IxK, C: IxCtl
   }
   return out;
 };
-export const ixJsx = (ixJsxChildren, ixJsxProps, ixJsxProp, ixAt, ixUnsup, ixErr, ixGap, named, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty => {
+export const ixJsx = (ixJsxChildren, ixJsxProps, ixJsxProp, ixAt, ixUnsup, ixErr, ixGap, named, show, union, STR, NUM, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode): Ty => {
   const ELEM = named("Elem");
   if (e.type !== "JSXElement" && e.type !== "JSXFragment") return ixGap(C, `jsx ${e.type}`);
   const children = ixJsxChildren(K, C, e);
@@ -62,7 +62,11 @@ export const ixJsx = (ixJsxChildren, ixJsxProps, ixJsxProp, ixAt, ixUnsup, ixErr
     return ELEM;
   }
   const callee: AstNode = { type: "Identifier", ...ixAt(C, name), name: name.name, optional: null, typeAnnotation: null };
-  const t = K.call(K, T, V, W, C, env, { type: "CallExpression", ...ixAt(C, e), optional: false, callee, arguments: [obj], typeArguments: null }, ELEM);
+  // e1 (2026-11-23), B4: key is the renderer's, as on an element (CommonProps), and is not given to the component
+  const isKey = (x: AstNode): boolean => x.type === "Property" && x.key.type === "Identifier" && x.key.name === "key";
+  for (const k of all.filter(isKey)) if (k.type === "Property") K.check(K, T, V, W, C, env, k.value, union([STR, NUM]), false, false);
+  const given: AstNode = { type: "ObjectExpression", ...ixAt(C, op), properties: all.filter((x) => !isKey(x)) };
+  const t = K.call(K, T, V, W, C, env, { type: "CallExpression", ...ixAt(C, e), optional: false, callee, arguments: [given], typeArguments: null }, ELEM);
   if (t.k !== "err" && !K.reg.sub(t, ELEM)) ixErr(K, C, e, "type", `component ${name.name} returns ${show(t)}, not Elem`);
   return ELEM;
 };

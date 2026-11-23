@@ -8,7 +8,9 @@
 // test and the strip of what a cell exposes; its k1-ctl controls fire only with SS_MEASURE_REG=0), p1 (p1-attacks.ts: a function published
 // before its body ends, then a write; read by its drives and by observe.ts's publish tap; p1-ctl-let fires in both modes, the
 // other p1-ctl controls only with SS_MEASURE_REG=0), f1 (f1-attacks.ts: S4.12, freeze-attack7's causes observed by a
-// second cell; controls as that file says). The folders they come from are read, not edited.
+// second cell; controls as that file says), g1 (g1-attacks.ts, e1: closure registration gaps G1-G5 of freeze-attack8,
+// read with SS_MEASURE_BODYFN=0; its g1-ctl controls are counted apart), b2 (b2-attacks.ts, e1: writes on a receiver
+// made in the same expression; b2-ctl controls counted apart). The folders they come from are read, not edited.
 // --off drops the static capture rules' diagnostics in this runner only (the checker is unchanged).
 import { checkSources } from "../../core.ts";
 import { rewriteSS } from "./strip-calls.ts";
@@ -20,10 +22,13 @@ import * as M1 from "./m1-attacks.ts";
 import * as K1 from "./k1-attacks.ts";
 import * as P1 from "./p1-attacks.ts";
 import * as F1 from "./f1-attacks.ts";
+import * as G1 from "./g1-attacks.ts";
+import * as B2 from "./b2-attacks.ts";
+import * as CAST from "./cast-attacks.ts";
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? null : process.argv[i + 1]!; };
 const OFF = process.argv.includes("--off"), FORCE = process.argv.includes("--force"), ONLY = arg("--only");
-const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1").split(",");
+const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1,g1,b2,cast").split(",");
 export const OFF_RULES = new Set(["mut-capture", "let-capture", "mut-yield", "mut-await", "mut-cell", "member-write", "mutating-method", "regexp-state", "iterator-capture"]);
 type P = Prog & { set: string; name: string; foreign?: string | null; ctl?: boolean };
 const progs: P[] = [];
@@ -56,6 +61,9 @@ if (SETS.includes("m1")) for (const a of M1.attacks) progs.push({ set: a.ctl ? "
 if (SETS.includes("k1")) for (const a of K1.attacks) progs.push({ set: a.ctl ? "k1-controls" : "k1", ...a });
 if (SETS.includes("p1")) for (const a of P1.attacks) progs.push({ set: a.ctl ? "p1-controls" : "p1", ...a });
 if (SETS.includes("f1")) for (const a of F1.attacks) progs.push({ set: a.ctl ? "f1-controls" : "f1", ...a });
+if (SETS.includes("g1")) for (const a of G1.attacks) progs.push({ set: a.ctl ? "g1-controls" : "g1", ...a });
+if (SETS.includes("b2")) for (const a of B2.attacks) progs.push({ set: a.ctl ? "b2-controls" : "b2", ...a });
+if (SETS.includes("cast")) for (const a of CAST.attacks) progs.push({ set: a.ctl ? "cast-controls" : "cast", ...a });
 }
 
 // checked: the verdicts as runCells takes them (compile runs an island only on ok cells); under --off, a cell whose only
@@ -63,6 +71,8 @@ if (SETS.includes("f1")) for (const a of F1.attacks) progs.push({ set: a.ctl ? "
 export const verdictOf = (src: string, foreign: string | null, off: boolean, ctl = false): { ok: boolean; text: string; dropped: string[]; checked?: Verdicts } => {
   try {
     let r = checkSources({ cells: src, tsx: true, outside: [], foreign } as any);
+    // the check's facts give each cast call its shape when the program is compiled (e1, 2026-11-23)
+    const facts = (r as { facts?: unknown }).facts;
     // --off also drops holes7's thenable [type] (md-value.ss.ts mdThenable), so the run-time ban is what is measured
     // SS_MEASURE_S411=0 (f1, measurement only): S4.11's diagnostics (R-P, the message names S4.11) are dropped in this runner
     const offRule = (e: any) => OFF_RULES.has(e.rule) || (e.rule === "type" && /callable then/.test(e.msg ?? e.message ?? ""));
@@ -75,7 +85,7 @@ export const verdictOf = (src: string, foreign: string | null, off: boolean, ctl
     const mod = keep(r.module);
     const dropped = off ? [...new Set([...r.module, ...r.cells.flatMap((c: any) => c.errors)].filter(offRule).map((e: any) => e.rule))] : [];
     const text = bad.length || mod.length ? `REJECT ${[...mod.map((m: any) => `module[${m.rule}]`), ...bad.map((c: any) => `${c.name}:${c.status}${keep(c.errors).map((e: any) => `[${e.rule}]`).join("")}`)].join(" ")}` : "ACCEPT";
-    const checked = { cells: r.cells.map((c: any) => ({ name: c.name, status: ctl || okName.has(c.name) ? "ok" : c.status, errors: ctl || okName.has(c.name) ? [] : c.errors })) };
+    const checked = { cells: r.cells.map((c: any) => ({ name: c.name, status: ctl || okName.has(c.name) ? "ok" : c.status, errors: ctl || okName.has(c.name) ? [] : c.errors })), facts };
     if (ctl) return { ok: r.cells.length > 0, text: "CONTROL (checker skipped)", dropped: [], checked };
     return { ok: !bad.length && !mod.length && r.cells.length > 0, text, dropped, checked };
   } catch (x) { return { ok: false, text: `CRASH ${(x as Error).message}`, dropped: [] }; }

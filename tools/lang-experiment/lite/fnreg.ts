@@ -1,9 +1,9 @@
 // Closure registration (2026-11-22, cause A), over an acorn tree: for each function a cell's function makes, the locals
 // of the cell it captures, so freeze.ts deepFreeze can freeze what a published function reaches. Edits to the cell
 // function's text, each bracketed by /*ss+*/ ... /*ss-*/ so decompile drops them:
-//   a function expression or arrow F          -> ss_closure(F, (i) => i < 0 ? 2 : i === 0 ? a : b)
+//   a function expression or arrow F          -> ss_closure(F, (ss_i) => ss_i < 0 ? 2 : ss_i === 0 ? a : b)
 //   a function declaration h                  -> ss_closure(h, ...); at the start of its block
-//   an object literal with methods            -> ss_methods({...}, "m", (i) => ..., ...)
+//   an object literal with methods            -> ss_methods({...}, "m", (ss_i) => ..., ...)
 // A function capturing nothing is not registered. The cell function's own parameters are not captures (other cells'
 // values, frozen at their own boundary, and capabilities) unless the cell assigns one. The TypeScript twin of the
 // cells' tcFnRegs (lite/toolchain/tc-reg.ss.ts); link.ts and the frozen toolchain use this one. Unchecked.
@@ -81,8 +81,11 @@ const freeIn = (root: N): Set<string> => {
   ex(root, new Set());
   return free;
 };
-// (i) => the i-th capture's current value; i < 0: the count
-const thunk = (cs: string[]): string => `(i) => i < 0 ? ${cs.length} : ${cs.slice(0, -1).map((c, i) => `i === ${i} ? ${c} : `).join("")}${cs[cs.length - 1]}`;
+// (ss_i) => the i-th capture's current value; ss_i < 0: the count. e1 (2026-11-23): the parameter was i, which a
+// capture named i read instead of itself; ss_i is a reserved name (messages.ss.ts emittedName), so no capture has it
+const thunk = (cs: string[]): string => `(ss_i) => ss_i < 0 ? ${cs.length} : ${cs.slice(0, -1).map((c, i) => `ss_i === ${i} ? ${c} : `).join("")}${cs[cs.length - 1]}`;
+// a method's key as the object literal makes it: a BigInt literal's value is a bigint, String of which is the key
+const keyOf = (k: N): string => (k.type === "Identifier" ? k.name : String(k.value));
 const wrapOpen = "/*ss+*/", wrapClose = "/*ss-*/";
 // the edits for one cell function (an arrow or function expression node)
 export function fnRegEdits(cellFn: N, names: RegNames): RegEdit[] {
@@ -104,7 +107,7 @@ export function fnRegEdits(cellFn: N, names: RegNames): RegEdit[] {
   for (const { n, parent, depth } of all) {
     if (n === cellFn) continue;
     if (n.type === "ObjectExpression") {
-      const ms = n.properties.filter((p: N) => p.type === "Property" && p.method && !p.computed).map((p: N) => ({ key: p.key.type === "Identifier" ? p.key.name : String(p.key.value), cs: capsOf(p.value), start: p.value.start }));
+      const ms = n.properties.filter((p: N) => p.type === "Property" && p.method && !p.computed).map((p: N) => ({ key: keyOf(p.key), cs: capsOf(p.value), start: p.value.start }));
       const reg = ms.filter((m: { cs: string[] }) => m.cs.length > 0);
       if (!reg.length) continue;
       edits.push({ at: n.start, depth, end: false, text: `${wrapOpen}${names.methods}(${wrapClose}`, use: "methods" });

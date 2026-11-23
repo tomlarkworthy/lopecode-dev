@@ -103,7 +103,7 @@ export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixFact, 
   const b = ixLookup(V, env, e.name);
   if (!b) {
     if (e.name === "arguments") return ERR;
-    if (K.cellNames.has(e.name)) ixErr(K, C, e, "cell-by-name", `cell ${e.name} referenced by name; take it as a parameter`);
+    if (K.cellNames.has(e.name)) ixErr(K, C, e, "cell-by-name", `cell ${e.name} referenced by name; take it as a parameter (a cell may not read itself: a function that calls itself is made under a local name inside the cell, const f = memo((n: number): number => … f(n - 1) …); return f)`);
     else if (K.allowed.has(e.name)) ixUnsup(K, C, e, `intrinsic ${e.name} has no signature in lite/intrinsics.ts`);
     else if (e.name === "mut" || e.name === "freeze" || e.name === "borrow") ixErr(K, C, e, "removed-call", `${e.name}(...) is no longer part of the language: delete the call and keep its argument (a fresh value bound to a local is writable; a cell's value is frozen when it leaves the cell)`);
     else ixErr(K, C, e, "free-name", `free name ${e.name}`);
@@ -166,8 +166,8 @@ export const ixIntrinsicName = (show) => (R: IxReg, m: Ty): string | null => {
   if (e.k === "named") { const o = R.origin(e.n); return o === null || o === "intrinsic" ? e.n : null; }
   return null;
 };
-export const ixMemberMissing = (ixErr, ixUnsup, ixIntrinsicName, show) => (K: IxK, C: IxCtls, m: Ty, k: string, at: AstNode, all: Ty): void => {
-  if (m.k === "null" || m.k === "undef" || m.k === "void") return ixErr(K, C, at, "possibly-undefined", `property ${k} of a value that may be ${show(all)}`);
+export const ixMemberMissing = (ixErr, ixUnsup, ixIntrinsicName, show, UNDEF_FIX) => (K: IxK, C: IxCtls, m: Ty, k: string, at: AstNode, all: Ty): void => {
+  if (m.k === "null" || m.k === "undef" || m.k === "void") return ixErr(K, C, at, "possibly-undefined", `property ${k} of a value that may be ${show(all)}${UNDEF_FIX}`);
   if (m.k === "unknown") return ixErr(K, C, at, "no-member", `property ${k} on Js/unknown; narrow it first`);
   const i = ixIntrinsicName(K.reg, m);
   if (i) ixUnsup(K, C, at, `intrinsic member ${i}.${k}`);
@@ -262,12 +262,12 @@ export const ixIndex = (ixUm, ixErr, unwrap, isNamed, show, NUM, STR, UNDEF, ERR
   }
   return union(out);
 };
-export const ixExpect = (ixHides, ixErr, ixNonUndef, members, isNamed, show) => (K: IxK, C: IxCtls, at: AstNode, t: Ty, expected: Ty, ctx: boolean): boolean => {
+export const ixExpect = (ixHides, ixErr, ixNonUndef, members, isNamed, show, UNDEF_FIX) => (K: IxK, C: IxCtls, at: AstNode, t: Ty, expected: Ty, ctx: boolean): boolean => {
   if (K.reg.sub(t, expected)) return ctx || ixHides(K, C, at, t, expected, null);
   let rule = "type";
   if (K.reg.sub(ixNonUndef(K.reg, t), expected)) rule = "possibly-undefined";
   else if (members(t).some((m) => isNamed(m, "Action")) && !members(expected).some((m) => isNamed(m, "Action"))) rule = "action-pass";
-  ixErr(K, C, at, rule, `${show(t)} is not assignable to ${show(expected)}`);
+  ixErr(K, C, at, rule, `${show(t)} is not assignable to ${show(expected)}${rule === "possibly-undefined" ? UNDEF_FIX : ""}`);
   return false;
 };
 // { __proto__: v } sets the prototype, as the banned Object.setPrototypeOf does; every spelling of the key is refused

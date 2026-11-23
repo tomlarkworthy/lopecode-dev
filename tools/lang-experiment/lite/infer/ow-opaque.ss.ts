@@ -77,6 +77,6 @@ export const owCapturesIn = (owIdsAndComps, owBindingAt, owIsLocal, owWithin, OW
     seen.add(`${a.start}:${b.id}`);
     out.push({ at: r, name: b.name, why: w, opaque: !b.cellParam });
   }
-  for (const j of Q.comps) if (bodies.some((a) => owWithin(j, a))) out.push({ at: j, name: `<${j.type === "JSXIdentifier" ? j.name : "component"}>`, why: "is a JSX component, which the checker does not follow", opaque: true });
+  for (const j of Q.comps) if (bodies.some((a) => owWithin(j, a))) out.push({ at: j, name: `<${j.type === "JSXIdentifier" ? j.name : "component"}>`, why: "is a JSX component, which the checker does not follow", opaque: true, fix: "an action body may not use one; make the element in a cell that reads the state, and let the action change only the state" });
   return out;
 };

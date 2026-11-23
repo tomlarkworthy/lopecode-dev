@@ -41,7 +41,7 @@ md`**S1.8** One \`const\` or \`let\` statement may declare several cells: \`cons
 // %%
 md`**S1.9** A cell that takes itself, or takes a cell that through its own inputs takes it back, is \`[cycle]\` ("dependency cycle a -> b -> a"). Every cell on the cycle is rejected.`
 // %%
-md`**S1.10** A top-level \`type\` or \`interface\` named as one of the checker's own types, \`Array ReadonlyArray Record Js ValueOf String Number Boolean RegExp RegExpMatchArray Map Set Error Promise ArrayBuffer URL URLSearchParams Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array Mut Borrowed State StateCell Action Events Listener Generator Iterable ArrayLike Clock Random Fetch FetchResponse Log Invalidation Compile Pool Elem Child PointerData CommonProps ButtonProps InputProps CanvasProps IntrinsicElements\`, is \`[builtin-type-name]\`. It is not loaded: the cells of the module read the checker's type of that name.`
+md`**S1.10** A top-level \`type\` or \`interface\` named as one of the checker's own types, \`Array ReadonlyArray Record Js ValueOf String Number Boolean RegExp RegExpMatchArray Map Set Error Promise ArrayBuffer URL URLSearchParams Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array Mut Borrowed State StateCell Action Events Listener Generator Iterable ArrayLike Clock Random Fetch FetchResponse Log Invalidation Compile Pool Cast Elem Child PointerData CommonProps ButtonProps InputProps CanvasProps IntrinsicElements\`, is \`[builtin-type-name]\`. It is not loaded: the cells of the module read the checker's type of that name. Since 2026-11-23 a type alias that is defined by itself with no object, array, tuple or function type between, through names, unions, intersections, parentheses and generic aliases that give back an argument (\`type Key = Key\`, \`type A = B | number; type B = A\`), is \`[type-cycle]\` and is not loaded either; \`type Tree = { readonly kids: readonly Tree[] }\` is accepted.`
 // %%
 md`The cells of this section, written in SoundScript. \`s1_exported\` keeps its \`export\` (S1.2), and the editor marks it "export is not needed".`
 // %%
@@ -63,7 +63,10 @@ spec_rejects_1 = [
   { statement: "S1.9", rule: "cycle", source: "const a = (b: number) => b + 1;\nconst b = (a: number) => a + 1;" },
   { statement: "S1.10", rule: "builtin-type-name", source: "type Listener = { readonly n: number };" },
   { statement: "S1.10", rule: "builtin-type-name", source: "interface Array<T> { readonly length: number; push(x: T): number }" },
-  { statement: "S1.10", rule: "builtin-type-name", source: "type Pool = { readonly size: number };\nconst a = (pool: Pool) => pool.size;" }
+  { statement: "S1.10", rule: "builtin-type-name", source: "type Pool = { readonly size: number };\nconst a = (pool: Pool) => pool.size;" },
+  { statement: "S1.10", rule: "type-cycle", source: "type Key = Key;" },
+  { statement: "S1.10", rule: "type-cycle", source: "type A = B | number;\ntype B = A;" },
+  { statement: "S1.10", rule: "type-cycle", source: "type Box<T> = T;\ntype K = Box<K>;" }
 ]
 // %%
 spec_rejects_1_view = spec_rejectsTable(spec_rejects_1)
@@ -96,7 +99,8 @@ spec_rejectsFor = (statement) => {
 }
 // %%
 // sources a deleted ownership rule rejected that are accepted since the 2026-11-22 language change (S4): a cell's value
-// is frozen when it leaves the cell, so what another cell holds cannot change. was: the rule that rejected it
+// is frozen when it leaves the cell, so what another cell holds cannot change; and (2026-11-23, e1) writes on a receiver
+// made in the same expression (S4.3). was: the rule that rejected it
 spec_accepts = [
   { statement: "S3.1", was: "member-write", source: "const w = () => {\n  const l = { a: 1 };\n  l.a = 2;\n  return l;\n};" },
   { statement: "S3.11", was: "let-capture", source: "const passed = () => {\n  let n = 0;\n  [1, 2].forEach((x) => {\n    n += x;\n  });\n  return n;\n};" },
@@ -134,7 +138,17 @@ spec_accepts = [
   { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = (frames) => {\n  let x = frames;\n  return 1;\n};" },
   { statement: "S5.3", was: "borrowed-escape", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = function* (frames) {\n  yield frames;\n};" },
   { statement: "S5.4", was: "borrowed-await", source: "const frames = function* () {\n  for (let k = 0; k < 2; k++) {\n    const buf = new Float32Array(2);\n    buf[0] = k;\n    yield buf.slice();\n  }\n};\nconst bad = async (frames) => {\n  await Promise.resolve();\n  return frames.length;\n};" },
-  { statement: "S5.5", was: "type", source: "const f = () => snapshot([1]);" }
+  { statement: "S5.5", was: "type", source: "const f = () => snapshot([1]);" },
+  { statement: "S2.11", was: "type", source: "const f = () => {\n  const g = async () => Promise.resolve(5);\n  return 1;\n};" },
+  { statement: "S2.11", was: "type", source: "const f = async () => {\n  async function g(): Promise<number> {\n    return Promise.resolve(5);\n  }\n  const n: number = await g();\n  return n;\n};" },
+  { statement: "S7.1", was: "inject-events", source: "const keys = function* (now: Clock) {\n  yield { key: \"a\", t: now() };\n};\nconst onKey = () => action((e: { readonly key: string; readonly t: number }) => {});\nconst l = (keys: Events<{ readonly key: string; readonly t: number }>, onKey: Action<[{ readonly key: string; readonly t: number }]>) => on(keys, onKey);" },
+  { statement: "S4.3", was: "member-write", source: "const a = () => {\n  const m: { [k: string]: number } = {};\n  m[\"a\"] = 1;\n  return m;\n};" },
+  { statement: "S6.20", was: "excess-property", source: "const B = () => (p: { readonly n: number }) => <span>{p.n}</span>;\nconst v = (B: (p: { readonly n: number }) => Elem) => <div>{[1, 2].map((n) => <B key={n} n={n} />)}</div>;" },
+  { statement: "S4.3", was: "mutating-method", source: "const xs = () => [3, 1];\nconst b = (xs: readonly number[]) => [...xs].sort();" },
+  { statement: "S4.3", was: "mutating-method", source: "const xs = () => [3, 1];\nconst b = (xs: readonly number[]) => xs.slice().reverse();" },
+  { statement: "S4.3", was: "member-write", source: "const xs = () => [3, 1];\nconst b = (xs: readonly number[]) => {\n  const ys = [...xs];\n  [...xs][0] = 9;\n  return ys;\n};" },
+  { statement: "S4.3", was: "mutating-method", source: "const xs = () => [3, 1];\nconst b = (xs: readonly number[]) => xs.map((x) => x * 2).sort();" },
+  { statement: "S4.3", was: "mutating-method", source: "const m = () => new Map<string, number>();\nconst b = (m: Map<string, number>) => new Map(m).set(\"a\", 1).size;" }
 ]
 // %%
 spec_acceptsFor = (statement) => {
@@ -329,17 +343,17 @@ md`**S2.4** The value type of a cell is its return type \`T\`, except that \`Pro
 // %%
 md`**S2.5** The capabilities are the inputs \`now: Clock\`, \`random: Random\`, \`fetch: Fetch\`, \`log: Log\`, \`invalidation: Invalidation\`, \`compile: Compile\` and \`pool: Pool\`. \`Clock\` and \`Random\` are \`() => number\`. Any other annotation on a capability, such as \`now: number\`, is \`[inject-type]\`. The value of \`pool\` is not part of the core: a module with a cell that takes \`pool\` imports \`ss_pool\` from the add-on \`@tomlarkworthy/soundscript-workers\`.`
 // %%
-md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`state action mut freeze borrow snapshot equals on read messageOf memo\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`. A call of \`structuredClone\` with an argument whose type is or may hold a function or a symbol, or is \`unknown\`, \`object\` or a type parameter, is \`[type]\`: the call would throw. A prelude function is only called: naming one as a value is \`[prelude-value]\`, except \`read\`, which is \`[read-outside-action]\` (S6.8), and \`on\`, which is \`[listener-placement]\` (S7.3). Declaring a local or a parameter of the same name is \`[prelude-shadow]\`. \`mut\`, \`freeze\` and \`borrow\` are names so that a call of one, or the name as a value, is \`[removed-call]\` (S4.2).`
+md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`state action mut freeze borrow snapshot equals on read messageOf memo cast\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`. A call of \`structuredClone\` with an argument whose type is or may hold a function or a symbol, or is \`unknown\`, \`object\` or a type parameter, is \`[type]\`: the call would throw. A prelude function is only called: naming one as a value is \`[prelude-value]\`, except \`read\`, which is \`[read-outside-action]\` (S6.8), and \`on\`, which is \`[listener-placement]\` (S7.3). Declaring a local or a parameter of the same name is \`[prelude-shadow]\`. \`mut\`, \`freeze\` and \`borrow\` are names so that a call of one, or the name as a value, is \`[removed-call]\` (S4.2).`
 // %%
-md`**S2.7** Reading \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`, also through a local bound to the intrinsic, through destructuring such as \`const { random } = Math\`, and through a computed key such as \`Math["random"]\`. A value with a banned member is not assignable to a type that names it, so passing \`Math\` where \`{ random: () => number }\` is expected is \`[type]\`. A \`__proto__\` key in an object literal, written as a name, a string or a computed literal, is \`[banned-member]\` too: it sets the prototype. \`prototype\` on any other value is rejected by another rule, usually \`[no-member]\`.`
+md`**S2.7** Reading \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`, also through a local bound to the intrinsic, through destructuring such as \`const { random } = Math\`, and through a computed key such as \`Math["random"]\`. A value with a banned member is not assignable to a type that names it, so passing \`Math\` where \`{ random: () => number }\` is expected is \`[type]\`. A \`__proto__\` key in an object literal, written as a name, a string or a computed literal, is \`[banned-member]\` too: the name and string forms set the prototype, and the computed and shorthand forms, which make an own property, are rejected so that no spelling of the key is accepted. \`prototype\` on any other value is rejected by another rule, usually \`[no-member]\`.`
 // %%
 md`**S2.8** A body that uses a cell by its name instead of taking it as a parameter is \`[cell-by-name]\`. That includes a cell calling itself. A local with a cell's name is a local.`
 // %%
 md`**S2.9** A body is type-checked with \`null\` and \`undefined\` kept apart from other types. A mismatch is \`[type]\`, except for five checks with rules of their own: a parameter of a local function with neither an annotation nor a type from where the function is passed is \`[untyped-parameter]\`; a call with too few or too many arguments is \`[arity]\`; a property that an object literal's declared type does not have is \`[excess-property]\`; a value that may be \`undefined\` or \`null\` used as a number, read from, indexed or called is \`[possibly-undefined]\`; an assignment to a \`const\` local is \`[const-assign]\`.`
 // %%
-md`**S2.10** \`viewof\`, \`mutable\` and \`$\` followed by digits (\`$0\`, \`$12\`) are reserved. Using one as the name of a cell, a parameter or a local is \`[reserved-name]\`, and so is \`$0\` as a property key or a member name. \`viewof\` and \`mutable\` may still be a property key or a member name, and a type may use any of them. A compiled cell is Observable JavaScript, which reads \`viewof\` and \`mutable\` as keywords and names a cell's \`viewof\` inputs \`$0\`, \`$1\` and so on.`
+md`**S2.10** \`viewof\`, \`mutable\` and \`$\` followed by digits (\`$0\`, \`$12\`) are reserved. Using one as the name of a cell, a parameter or a local is \`[reserved-name]\`, and so is \`$0\` as a property key or a member name. \`viewof\` and \`mutable\` may still be a property key or a member name, and a type may use any of them. A compiled cell is Observable JavaScript, which reads \`viewof\` and \`mutable\` as keywords and names a cell's \`viewof\` inputs \`$0\`, \`$1\` and so on. Since 2026-11-23 a name that starts with \`ss_\` or \`$ss$\` is reserved in the same places: the compiler names the runtime cells a compiled cell takes \`ss_<name>\`, inserts calls of \`ss_closure\` and \`ss_methods\` with a list whose parameter is \`ss_i\`, and names a duplicate or a type \`$ss$…\`; a binding of such a name would replace what it inserted. A cell may not be named \`Generators\` or \`invalidation\`, which compiled cells take from the module; a parameter named \`invalidation\` is the capability (S2.5). A BigInt literal as a property key (\`{ 1n() {} }\`) is unsupported.`
 // %%
-md`**S2.11** The return type of an async function is \`Promise<T>\`, and of a generator function, sync or async, \`Generator<Y>\`; any other annotation is \`[type]\`. Each \`yield\` of a generator annotated \`Generator<Y>\` gives a \`Y\`, and a value of another type is \`[type]\`. A value that an async function returns, annotated or not, may not be a promise: one that may be is \`[type]\`, so \`await\` it. A returned promise is unwrapped at run time, and its type would otherwise be \`Promise<Promise<T>>\`. The result of \`then\` and of \`Promise.resolve\` is typed the same way: a callback that returns a \`Promise<T>\` gives a \`Promise<T>\`.`
+md`**S2.11** The return type of an async function is \`Promise<T>\`, and of a generator function, sync or async, \`Generator<Y>\`; any other annotation is \`[type]\`. Each \`yield\` of a generator annotated \`Generator<Y>\` gives a \`Y\`, and a value of another type is \`[type]\`. A promise that an async function returns is unwrapped at run time, so the checker types the return as what the promise resolves to, as \`await\` would (since 2026-11-23; it was \`[type]\`). The result of \`then\` and of \`Promise.resolve\` is typed the same way: a callback that returns a \`Promise<T>\` gives a \`Promise<T>\`.`
 // %%
 md`**S2.12** \`messageOf(e)\` is the text of a caught value \`e\`: the \`message\` of an \`Error\` when it is a string, otherwise \`String(e)\`. It does not throw: when reading the message or making the string throws, it is \`(a thrown value whose text cannot be read)\`. A call with other than one argument is \`[arity]\`.`
 // %%
@@ -414,6 +428,11 @@ spec_rejects_2 = [
   { statement: "S2.10", rule: "reserved-name", source: "const mutable = () => 1;" },
   { statement: "S2.10", rule: "reserved-name", source: "const a = () => {\n  const $0 = 1;\n  return $0;\n};" },
   { statement: "S2.10", rule: "reserved-name", source: "const a = () => ({ $1: 2 });" },
+  { statement: "S2.10", rule: "reserved-name", source: "const a = () => {\n  const ss_closure = (f: () => number) => f;\n  const xs = [1];\n  const c: readonly number[] = xs;\n  return { f: () => c.length };\n};" },
+  { statement: "S2.10", rule: "reserved-name", source: "const a = () => {\n  try {\n    throw 0;\n  } catch (ss_methods) {\n    return 1;\n  }\n  return 0;\n};" },
+  { statement: "S2.10", rule: "reserved-name", source: "const ss_out = () => 1;" },
+  { statement: "S2.10", rule: "reserved-name", source: "const invalidation = () => 1;" },
+  { statement: "S2.10", rule: "reserved-name", source: "const Generators = () => 1;" },
   { statement: "S2.9", rule: "const-assign", source: "const g = () => {\n  const x = 1;\n  x = 2;\n  return x;\n};" },
   { statement: "S2.9", rule: "type", source: "const k = () => (p: { b: number; a: string }) => {\n  const q: { b: number } = p;\n  const r: { [k: string]: number } = q;\n  return (r[\"a\"] ?? 0) + 1;\n};" },
   { statement: "S2.9", rule: "type", source: "const k = () => (xs: readonly string[]) => {\n  const r: number = xs[0] ?? 1;\n  return r;\n};" },
@@ -422,8 +441,6 @@ spec_rejects_2 = [
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): number {\n    yield 1;\n  };\n  return 1;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): Generator<number> {\n    yield \"x\";\n  };\n  return g;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = async function* (): number {\n    yield 1;\n  };\n  return 1;\n};" },
-  { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = async () => Promise.resolve(5);\n  return 1;\n};" },
-  { statement: "S2.11", rule: "type", source: "const f = () => {\n  async function g(): Promise<number> {\n    return Promise.resolve(5);\n  }\n  return 1;\n};" },
   { statement: "S2.12", rule: "arity", source: "const f = () => messageOf();" },
   { statement: "S2.12", rule: "arity", source: "const f = () => messageOf(1, 2);" },
   { statement: "S2.12", rule: "type", source: "const f = (): number => messageOf(1);" },
@@ -505,7 +522,7 @@ test_spec_S2_8 = {
 // %%
 test_spec_S2_11 = {
   spec_is(spec_okCells("const f = () => {\n  const g = async (): Promise<number> => 5;\n  return g();\n};\nconst h = () => {\n  async function k(n: number): Promise<number> {\n    return n > 0 ? await k(n - 1) : 1;\n  }\n  return k(2);\n};\nconst gen = () => {\n  const g = function* (): Generator<number> {\n    yield 1;\n  };\n  return g;\n};\nconst agen = () => {\n  const g = async function* (): Generator<number> {\n    yield 1;\n  };\n  return g;\n};"), "f:ok,h:ok,gen:ok,agen:ok");
-  return `${spec_rejectsFor("S2.11")}; Promise<T> on an async function and Generator<Y> on a generator, sync or async, are accepted`;
+  return `${spec_rejectsFor("S2.11")}; ${spec_acceptsFor("S2.11")}; Promise<T> on an async function and Generator<Y> on a generator, sync or async, are accepted`;
 }
 // %%
 test_spec_S2_12 = {
@@ -800,13 +817,13 @@ md`## 4. Local writes
 
 A value is written in place only in the cell that made it. A local bound to a fresh value is writable, and everything a cell publishes is frozen as it leaves the cell (S4.6), so no cell sees a value it holds change. The static rules of this section report the common mistakes at the line that makes them; the freeze at run time is what the guarantee rests on, and a program that passes the rules and still writes a published value stops with a \`TypeError\` at the write.`
 // %%
-md`**S4.1** An unannotated local, \`const\` or \`let\`, whose initializer is a fresh value (S4.3) of type \`T\` has the type \`Mut<T>\`. On a \`Mut\` receiver, member writes, mutating methods and \`delete\` are accepted (S3.1, S3.2, S3.4). A \`Mut<T>\` is assignable to \`T\`; a \`T\` is not assignable to \`Mut<T>\`. A local bound to a fresh value and annotated with an array type, a tuple type, a type literal with no \`readonly\` member, or \`Array\`, \`Map\`, \`Set\`, \`WeakMap\`, \`WeakSet\`, \`Record\` or a typed array, has the type \`Mut<T>\` for its annotation \`T\`, since 2026-11-23. A fresh value assigned to such a \`let\` keeps it writable. Any other annotation leaves the local unwritable: \`readonly T[]\`, \`ReadonlyArray<T>\`, \`Readonly<…>\`, a type literal with a \`readonly\` member, a union, a type alias, \`typeof\`. A local bound to a value that is not fresh is not writable.`
+md`**S4.1** An unannotated local, \`const\` or \`let\`, whose initializer is a fresh value (S4.3) of type \`T\` has the type \`Mut<T>\`. On a \`Mut\` receiver, member writes, mutating methods and \`delete\` are accepted (S3.1, S3.2, S3.4). A \`Mut<T>\` is assignable to \`T\`; a \`T\` is not assignable to \`Mut<T>\`. A local bound to a fresh value and annotated with an array type, a tuple type, a type literal with no \`readonly\` member (an index signature \`{ [k: string]: T }\` included, since 2026-11-23), or \`Array\`, \`Map\`, \`Set\`, \`WeakMap\`, \`WeakSet\`, \`Record\` or a typed array, has the type \`Mut<T>\` for its annotation \`T\`, since 2026-11-23. A fresh value assigned to such a \`let\` keeps it writable. Any other annotation leaves the local unwritable: \`readonly T[]\`, \`ReadonlyArray<T>\`, \`Readonly<…>\`, a type literal with a \`readonly\` member, a union, a type alias, \`typeof\`. A local bound to a value that is not fresh is not writable.`
 // %%
 md`**S4.2** There is no marker call. \`mut(...)\`, \`freeze(...)\` and \`borrow(...)\` were removed from the language on 2026-11-22, and a call to one is \`[removed-call]\`.`
 // %%
-md`**S4.3** A fresh value is a literal, a spread copy, \`new\` on an intrinsic, the result of an intrinsic that returns a new value (\`Array.from\`, \`slice\`, \`map\`, \`structuredClone\`), or \`snapshot(v)\` (S5.5). A cell input, a parameter not typed \`Mut<…>\` and the result of a call whose return type is not \`Mut<…>\` are not fresh. A write through one of these, or through a local bound to one, is \`[member-write]\` or \`[mutating-method]\`, and passing one to a parameter typed \`Mut<…>\` is \`[type]\`.`
+md`**S4.3** A fresh value is a literal, a spread copy, \`new\` on an intrinsic, the result of an intrinsic that returns a new value (\`Array.from\`, \`slice\`, \`map\`, \`structuredClone\`), or \`snapshot(v)\` (S5.5). A cell input, a parameter not typed \`Mut<…>\` and the result of a call whose return type is not \`Mut<…>\` are not fresh. A write through one of these, or through a local bound to one, is \`[member-write]\` or \`[mutating-method]\`, and passing one to a parameter typed \`Mut<…>\` is \`[type]\`. Since 2026-11-23 a member write or a mutating method whose receiver is a fresh value written in the same expression is accepted (\`[...xs].sort()\`, \`xs.slice().reverse()\`, \`[...xs][0] = 1\`): no other name holds that value. Only the fresh value itself is such a receiver; a member of it, a conditional or \`??\` with a fresh branch, the result of a function that returns its argument, and the result of a mutating method (\`[...xs].sort().reverse()\`) are not. \`toSorted\`, \`toReversed\`, \`toSpliced\` and \`with\` (arrays; typed arrays have \`toSorted\`, \`toReversed\` and \`with\`) return a new array, and the message of a write to a value that is not Mut names the one that fits.`
 // %%
-md`**S4.4** A \`Mut\` may be bound to a second name, placed in an array or object literal, passed to a parameter typed \`Mut<…>\`, which may write it, and passed to any parameter of its plain type. Every name is the same value, and a write through one is seen through the others. What a cell exposes is read with every \`Mut\` removed: a cell that takes it gets a read-only value, and a write there is \`[member-write]\` or \`[mutating-method]\`. The \`Mut\` is removed wherever S5.8 finds one, also in the result of a function the cell exposes. A cell that calls such a function gets a read-only result, even when the function made it fresh. A parameter of an exposed function keeps its \`Mut\`, so a cell that calls it passes a value of its own. \`Mut\` in the type of a cell input is \`[mut-cell]\`. Since 2026-11-23 for a function's result.`
+md`**S4.4** A \`Mut\` may be bound to a second name, placed in an array or object literal, passed to a parameter typed \`Mut<…>\`, which may write it, and passed to any parameter of its plain type. Every name is the same value, and a write through one is seen through the others. What a cell exposes is read with every \`Mut\` removed: a cell that takes it gets a read-only value, and a write there is \`[member-write]\` or \`[mutating-method]\`. The \`Mut\` is removed wherever S5.8 finds one, also, since 2026-11-23, in the result of a function the cell exposes. A cell that calls such a function gets a read-only result, even when the function made it fresh. A parameter of an exposed function keeps its \`Mut\`, so a cell that calls it passes a value of its own. \`Mut\` in the type of a cell input is \`[mut-cell]\`.`
 // %%
 md`**S4.5** A function is kept when it is returned, yielded, stored, or passed to something that may call it later. A helper bound to a local \`const\` or declared with \`function\` and only called (S3.11) is not kept, nor is a callback of an intrinsic that calls it before returning. A kept function does not capture a \`Mut\` or a \`let\` of an enclosing function (S4.10). A capture of a \`Mut\` is \`[mut-capture]\` in every case; the message names the case when the kept function writes the \`Mut\`, returns it or yields it; when the \`Mut\` is written after the function is made, later in the text, in a loop that makes the function, or inside another function; when the \`Mut\` is a typed array or a \`URL\` that a name in the cell can still write; and, in a generator cell or in a nested async or generator function, when any \`Mut\` is written after the function is made.`
 // %%
@@ -842,6 +859,12 @@ spec_rejects_4 = [
   { statement: "S4.2", rule: "removed-call", source: "const g = function* () {\n  const b = [1];\n  yield borrow(b);\n};" },
   { statement: "S4.3", rule: "mutating-method", source: "const xs = () => [1];\nconst b = (xs) => {\n  const ys = xs.slice();\n  ys.push(2);\n  xs.push(3);\n  return ys.length;\n};" },
   { statement: "S4.3", rule: "type", source: "const xs = () => [1];\nconst b = (xs) => {\n  const g = (m: Mut<number[]>) => m.length;\n  return g(xs);\n};" },
+  { statement: "S4.3", rule: "mutating-method", source: "const xs = () => [3, 1];\nconst b = (xs: readonly number[]) => (xs.length > 0 ? xs : [...xs]).sort();" },
+  { statement: "S4.3", rule: "mutating-method", source: "const xs = () => [3, 1];\nconst b = (xs: readonly number[]) => ((x: readonly number[]) => x)(xs).sort();" },
+  { statement: "S4.3", rule: "mutating-method", source: "const xs = () => [3, 1];\nconst b = (xs: readonly number[]) => [xs].at(0)?.sort();" },
+  { statement: "S4.3", rule: "mutating-method", source: "const xs = () => [3, 1];\nconst b = (xs: readonly number[]) => ({ v: xs }).v.sort();" },
+  { statement: "S4.3", rule: "mutating-method", source: "const xs = () => [3, 1];\nconst b = (xs: readonly number[]) => [...xs].sort().reverse();" },
+  { statement: "S4.3", rule: "member-write", source: "const xs = () => [3, 1];\nconst b = (xs: readonly number[]) => {\n  ({ v: xs }).v[0] = 9;\n  return 0;\n};" },
   { statement: "S4.4", rule: "mutating-method", source: "const a = () => {\n  const xs = [1];\n  xs.push(2);\n  return xs;\n};\nconst b = (a) => {\n  a.push(3);\n  return 1;\n};" },
   { statement: "S4.4", rule: "mutating-method", source: "const a = () => {\n  const m = new Map<string, number>();\n  m.set(\"k\", 1);\n  return { m };\n};\nconst b = (a) => {\n  a.m.set(\"j\", 2);\n  return 1;\n};" },
   { statement: "S4.4", rule: "member-write", source: "const a = function* () {\n  for (const k of [0, 1]) yield { n: k };\n};\nconst b = (a) => {\n  a.n = 9;\n  return 1;\n};" },
@@ -1278,7 +1301,7 @@ md`**S6.18** The content type of a state cell may not admit \`undefined\`: it ma
 // %%
 md`**S6.19** A function made in the body of an action writes, reads and calls \`Action\`s only where it runs before the action's function returns. It may be called in the body, directly or through a local function that is only called, or passed to an array method that calls it before returning, such as \`forEach\` or \`map\`, or to \`update\`. Returned, stored, placed in a record, an array or a state cell, given to \`.then\`, to a function of the module or to an intrinsic that keeps it, such as \`Map.set\`, or made async or a generator, it may run after the call, and its \`set\`, \`update\`, \`read\` and \`Action\` calls are \`[state-write]\`, \`[read-outside-action]\` and \`[action-call]\` as in S6.5, S6.8 and S6.6. A \`set\` or \`update\` taken as a value is a function that writes and is held to the same rule.`
 // %%
-md`**S6.20** An \`Elem\` is made only by JSX. A record with the fields of an element is not an \`Elem\`, and giving one where an \`Elem\` or a JSX child is expected, or returning one from a component, is \`[type]\`. The renderer draws only elements JSX made: any other value, a record of the same shape included, is drawn as text: a primitive as \`String\` gives it, an object as \`[object Object]\`, \`[object Array]\` or \`[object Function]\`. No function in it is called, its own \`toString\`, \`valueOf\` and event props included.`
+md`**S6.20** A \`key\` attribute on a component's element is the renderer's, as on an intrinsic element: it is a \`string | number\` and is not checked against the component's props (since 2026-11-23; it was \`[excess-property]\`). An \`Elem\` is made only by JSX. A record with the fields of an element is not an \`Elem\`, and giving one where an \`Elem\` or a JSX child is expected, or returning one from a component, is \`[type]\`. The renderer draws only elements JSX made: any other value, a record of the same shape included, is drawn as text: a primitive as \`String\` gives it, an object as \`[object Object]\`, \`[object Array]\` or \`[object Function]\`. No function in it is called, its own \`toString\`, \`valueOf\` and event props included.`
 // %%
 md`The cells of this section. \`s6_copy\` reads \`s6_count\` when it is called; \`s6_bumpThenCopy\` writes \`s6_count\` and calls \`s6_copy\`, which sees that write (S6.8). \`s6_controls\` holds two actions in a record. \`s6_view\` has a button for each of \`s6_increment\` and \`s6_bumpThenCopy\` and shows both counts.`
 // %%
@@ -1461,7 +1484,7 @@ test_spec_S6_20 = {
   const node = soundscript.mount(forged, null);
   node.dispatchEvent(new Event("click"));
   spec_is([node.nodeType, called], [Node.TEXT_NODE, 0]);
-  return `${spec_rejectsFor("S6.20")}; JSX elements are Elem; a forged record is mounted as a text node, and neither its toString nor a click calls anything`;
+  return `${spec_rejectsFor("S6.20")}; ${spec_acceptsFor("S6.20")}; JSX elements are Elem; a forged record is mounted as a text node, and neither its toString nor a click calls anything`;
 }
 // %%
 test_spec_S6_7 = {
@@ -1721,7 +1744,7 @@ md`## 7. Events and listeners
 
 An events cell is a generator whose values are delivered one at a time. A listener is a cell that ties an events cell to an action.`
 // %%
-md`**S7.1** An input \`t: Events<T>\` gets a handle to the sync generator cell \`t\` yielding \`T\`, not its values, and is not a dependency on them. \`Events<T>\` on a cell that is not a sync generator yielding \`T\`, an async generator included, is \`[inject-events]\`. Once a cell takes \`t\` as \`Events\`, an input that reads \`t\` without \`Events\` is \`[inject-events]\`.`
+md`**S7.1** An input \`t: Events<T>\` gets a handle to the sync generator cell \`t\` yielding \`T\`, not its values, and is not a dependency on them. \`Events<T>\` on a cell that is not a sync generator yielding \`T\`, an async generator included, is \`[inject-events]\`. Since 2026-11-23 what the generator yields need only be assignable to \`T\`, since its values only reach the listener (a yielded object literal was \`[inject-events]\` under an annotation with the same members). Once a cell takes \`t\` as \`Events\`, an input that reads \`t\` without \`Events\` is \`[inject-events]\`.`
 // %%
 md`**S7.2** \`on(t, a)\` has type \`Listener\`. \`a\` must be an \`Action\` that accepts what \`t\` yields; otherwise it is \`[type]\`.`
 // %%
@@ -1778,7 +1801,7 @@ spec_stream = (n, { throwEvery = 0 } = {}) => [
 // %%
 test_spec_S7_1 = {
   spec_is(spec_okCells("const ticks = function* () {\n  yield 1;\n};\nconst tick = () => action((n: number) => {});\nconst on1 = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick);\nconst s = (): StateCell<number> => state(0);\nconst t = (s: State<number>, ticks: Events<number>) => action(() => s.set(1));"), "ticks:ok,tick:ok,on1:ok,s:ok,t:ok");
-  return `${spec_rejectsFor("S7.1")}; a handle may also be taken by a cell that is not a listener`;
+  return `${spec_rejectsFor("S7.1")}; ${spec_acceptsFor("S7.1")}; a handle may also be taken by a cell that is not a listener`;
 }
 // %%
 test_spec_S7_2 = spec_rejectsFor("S7.2")
@@ -1908,7 +1931,7 @@ What the notebook does when an edit leaves cells that do not check. The edit is 
 // %%
 md`**S8.1** Every edit is stored, one that does not parse included, unless its text names no cell: no \`const <name>\`, \`let <name>\` or function declaration (S1.1) at its start, after comments and an optional \`export\`. An edit that takes the name of another cell is stored under another name (S1.6).`
 // %%
-md`**S8.2** After each edit every cell is ok, rejected or blocked. A rejected cell breaks a rule of its own, does not parse (\`[parse]\`), or uses a construct the checker has no rule for (\`[unsupported]\`, such as the array method \`with\`); a cell whose check fails because the type of an input changed is rejected with its own message. A blocked cell breaks no rule of its own but takes a cell that is not ok, as a value or as \`State<T>\`.`
+md`**S8.2** After each edit every cell is ok, rejected or blocked. A rejected cell breaks a rule of its own, does not parse (\`[parse]\`), or uses a construct the checker has no rule for (\`[unsupported]\`, such as the array method \`flat\`); a cell whose check fails because the type of an input changed is rejected with its own message. A blocked cell breaks no rule of its own but takes a cell that is not ok, as a value or as \`State<T>\`.`
 // %%
 md`**S8.3** Only ok cells run. An edit and every other cell whose compiled form it changes are defined in one step, so no cell runs in between on a mix of old and new definitions. A rejected cell raises \`<name> does not check: [rule] …\` and its body never runs, at load or after an edit; the body is kept only as source. A blocked cell fails with the error of the input that is not ok.`
 // %%
@@ -1954,11 +1977,11 @@ test_spec_S8_2 = {
     spec_is(E.states(), { width: "ok", height: "ok", area: "rejected", aspect: "rejected", half: "blocked by area", count: "ok", increment: "ok", label: "ok", tall: "ok" });
     await E.edit("tall", "const tall = (height: number) => height *;");
     spec_is(E.states().tall, "rejected");
-    await ss_language.apply("const w = () => [1, 2].with(0, 3);", [], E.at);
+    await ss_language.apply("const w = () => [[1], [2]].flat();", [], E.at);
     spec_is(E.states().w, "rejected");
     const w = (await E.value("w")).error ?? "";
     if (!/^w does not check: \[unsupported\]/.test(w)) throw new Error(`w: ${JSON.stringify(w)}`);
-    return `area and aspect are rejected by their own checks when width became a string; half is blocked by area; tall does not parse and is rejected; w uses with and is rejected: ${w}`;
+    return `area and aspect are rejected by their own checks when width became a string; half is blocked by area; tall does not parse and is rejected; w uses flat and is rejected: ${w}`;
   } finally { E.dispose(); }
 }
 // %%
@@ -2090,6 +2113,8 @@ md`**S9.6** \`typeof v === "function"\` narrows a \`v\` of type \`unknown\`, or 
 // %%
 md`**S9.7** \`await v\`, where \`v\` may be an \`object\`, or a record or interface other than \`Promise\` that declares a \`then\` property, is \`unknown\`: \`await\` calls that \`then\` and gives what it passes on.`
 // %%
+md`**S9.8** \`cast<T>(v)\` checks a value of any type against \`T\` when it runs, with the check a value from another language gets (S11.4, S11.5), and gives a \`Cast<T>\`: \`{ ok: true, value }\`, where \`value\` is a deep-frozen copy of \`v\` that keeps only the properties \`T\` declares, or \`{ ok: false, path, error }\`, where \`path\` names the first part of \`v\` that is not a \`T\`, such as \`value.rows[1].price\`. Each property of \`v\` is read once, so a getter or a proxy cannot give one value to the check and another to the copy; a throw while \`v\` is read gives \`ok: false\`, and \`v\` itself is never handed out. \`T\` is the call's one type argument; a call without one is \`[cast-type]\`. \`T\` may be what S11.3 accepts as an annotation, except a function type: \`number\`, \`string\`, \`boolean\`, \`null\`, \`undefined\`, literal types, \`unknown\`, arrays, tuples, object types with no methods or index signature, unions, and aliases of these, recursive ones as S11.3 allows. Any other \`T\` is \`[cast-type]\`: a function or a method, \`Mut\`, \`Promise\`, \`Map\`, \`Set\` or another class, an index signature, a type parameter, \`object\`, \`never\`, \`bigint\`. \`cast\` is only called (\`[prelude-value]\`). The copy is not \`Mut\`, so a write to it is \`[member-write]\` (S4.3). The compiler adds the run-time form of \`T\` to each call, from the cell's check; a cell compiled without its check gives \`ok: false\` for every value.`
+// %%
 md`The cells of this section. \`s9_raw\` is Observable JavaScript; \`s9_size\` takes it as \`unknown\` and \`s9_decodeSize\` builds a typed \`{ w, h }\` from it.`
 // %%
 s9_raw = ({ w: 3, h: 1.5, extra: true })
@@ -2142,7 +2167,16 @@ spec_rejects_9 = [
   { statement: "S9.6", rule: "type", source: "const f = () => (g: (s: string) => number) => {\n  const x: {} = g;\n  const y: {} | number = x;\n  if (typeof y !== \"function\") return 0;\n  return y(1);\n};" },
   { statement: "S9.6", rule: "type", source: "const f = () => (g: (s: string) => number) => {\n  const x: {} = g;\n  const r: { [k: string]: unknown } = x;\n  const y: { [k: string]: unknown } | ((n: number) => string) = r;\n  return typeof y === \"function\" ? y(3) : \"\";\n};" },
   { statement: "S9.7", rule: "no-member", source: "const f = () => async (u: unknown): Promise<unknown> => {\n  if (typeof u !== \"object\" || u === null || !(\"then\" in u)) return 0;\n  const r = await u;\n  return r.then;\n};" },
-  { statement: "S9.7", rule: "no-member", source: "type T = { readonly then: (f: (v: number) => void) => void; readonly n: number };\nconst f = () => async (t: T): Promise<number> => (await t).n;" }
+  { statement: "S9.7", rule: "no-member", source: "type T = { readonly then: (f: (v: number) => void) => void; readonly n: number };\nconst f = () => async (t: T): Promise<number> => (await t).n;" },
+  { statement: "S9.8", rule: "cast-type", source: "const g = () => {\n  const v: unknown = JSON.parse(\"1\");\n  return cast(v).ok;\n};" },
+  { statement: "S9.8", rule: "cast-type", source: "const g = () => {\n  const v: unknown = JSON.parse(\"1\");\n  return cast<() => number>(v).ok;\n};" },
+  { statement: "S9.8", rule: "cast-type", source: "const g = () => {\n  const v: unknown = JSON.parse(\"1\");\n  return cast<{ readonly m: (x: number) => number }>(v).ok;\n};" },
+  { statement: "S9.8", rule: "cast-type", source: "const g = () => {\n  const v: unknown = JSON.parse(\"1\");\n  return cast<Map<string, number>>(v).ok;\n};" },
+  { statement: "S9.8", rule: "cast-type", source: "const g = () => {\n  const v: unknown = JSON.parse(\"1\");\n  return cast<{ readonly [k: string]: number }>(v).ok;\n};" },
+  { statement: "S9.8", rule: "cast-type", source: "const g = () => {\n  const f = <T,>(v: unknown) => cast<T>(v);\n  return 1;\n};" },
+  { statement: "S9.8", rule: "cast-type", source: "const g = () => {\n  const v: unknown = JSON.parse(\"1\");\n  return cast<Promise<number>>(v).ok;\n};" },
+  { statement: "S9.8", rule: "prelude-value", source: "const g = () => {\n  const c = cast;\n  return 1;\n};" },
+  { statement: "S9.8", rule: "member-write", source: "const g = () => {\n  const r = cast<{ n: number }>(JSON.parse(\"{}\"));\n  if (r.ok) r.value.n = 2;\n  return 1;\n};" },
 ]
 // %%
 spec_rejects_9_view = spec_rejectsTable(spec_rejects_9)
@@ -2193,6 +2227,16 @@ test_spec_S9_6 = {
   return `${spec_rejectsFor("S9.6")}; the runtime's thenable test is accepted; a member with a call signature is called after typeof "function"; a record that takes no string, array or falsy value is narrowed away by typeof "string", Array.isArray and a truth test; a record with a required member holds no function, so a value-or-thunk and typeof "object" narrow; a kept record is the kind tested, with its members under typeof "function"`;
 }
 // %%
+test_spec_S9_8 = {
+  spec_is(spec_okCells("type Row = { readonly name: string; readonly price: number };\nconst g = async (fetch: Fetch) => {\n  const res = await fetch(\"rows.json\");\n  const r = cast<readonly Row[]>(await res.json());\n  return r.ok ? r.value.length : r.path;\n};"), "g:ok");
+  // s9_raw is { w: 3, h: 1.5, extra: true }: the copy keeps w and h, and a wrong type names the place
+  spec_is(await spec_module.value("s9_cast"), { ok: true, value: { w: 3, h: 1.5 } });
+  const bad = await spec_module.value("s9_castWrong");
+  spec_is([bad.ok, bad.path], [false, "value.w"]);
+  if (!Object.isFrozen((await spec_module.value("s9_cast")).value)) throw new Error("the copy is not frozen");
+  return `${spec_rejectsFor("S9.8")}; s9_cast keeps w and h of s9_raw, and s9_castWrong fails at value.w`;
+}
+// %%
 test_spec_S9_7 = {
   spec_is(spec_okCells("const f = () => async (): Promise<number> => {\n  const r = { a: 1 };\n  return (await r).a + (await Promise.resolve(2));\n};"), "f:ok");
   return `${spec_rejectsFor("S9.7")}; await of a record with no then, and of a Promise, keeps the type`;
@@ -2240,7 +2284,7 @@ md`**S11.1** A parameter that names no SoundScript cell, foreign declaration, sh
 // %%
 md`**S11.2** Such a parameter must have a type annotation; without one it is \`[boundary-unannotated]\`.`
 // %%
-md`**S11.3** The annotation may use \`number\`, \`string\`, \`boolean\`, \`null\`, \`undefined\`, literal types, \`unknown\`, arrays, tuples, object types and interfaces with no methods or index signature, unions, and aliases of these. A function type, or an alias of one, may be the whole annotation when it has no type parameters and no rest parameter, and its parameters and its result, or the \`T\` of a \`Promise<T>\` result, are annotations this statement accepts, or \`void\`, read as \`undefined\`; a parameter of it may be optional. Any other annotation is \`[boundary-type]\`: a function type inside an object, array or union, under \`State\`, or as a parameter or result of a function; \`Promise\`, \`Map\`, \`Set\` or another class; \`Events<T>\`. An alias may refer to itself, directly or through other aliases, when an object type, array or tuple lies on every path from the alias back to itself, as in \`type Tree = { v: number; kids: Tree[] }\`; \`type A = A | number\` is \`[boundary-type]\`, and so is a generic alias whose type arguments differ at every level, such as \`type N<T> = { next: N<T[]> | null }\`.`
+md`**S11.3** The annotation may use \`number\`, \`string\`, \`boolean\`, \`null\`, \`undefined\`, literal types, \`unknown\`, arrays, tuples, object types and interfaces with no methods or index signature, unions, and aliases of these. A function type, or an alias of one, may be the whole annotation when it has no type parameters and no rest parameter, and its parameters and its result, or the \`T\` of a \`Promise<T>\` result, are annotations this statement accepts, or \`void\`, read as \`undefined\`; a parameter of it may be optional. Any other annotation is \`[boundary-type]\`: a function type inside an object, array or union, under \`State\`, or as a parameter or result of a function; \`Promise\`, \`Map\`, \`Set\` or another class; \`Events<T>\`. An alias may refer to itself, directly or through other aliases, when an object type, array or tuple lies on every path from the alias back to itself, as in \`type Tree = { v: number; kids: Tree[] }\`; \`type A = A | number\` is \`[type-cycle]\` (S1.10, since 2026-11-23; it was \`[boundary-type]\`), and a generic alias whose type arguments differ at every level, such as \`type N<T> = { next: N<T[]> | null }\`, is \`[boundary-type]\`.`
 // %%
 md`**S11.4** Each value that arrives is checked against the annotation. A value that does not match makes the reading cell throw a \`TypeError\` that names the place, such as \`rows[1].price: expected number, found string "12"\`. A value that reaches itself again at a place the annotation checks does not match, such as \`tree.kids[0]: a cycle\`; a value is checked however deeply it is nested. Cells that do not depend on the reading cell are not affected, and the reading cell runs again on the next value. A function is checked at each call: a result that does not match, a throw from the function, or a throw while its result is read makes the call throw a new \`TypeError\` that names the function, such as \`measure(...).n: expected number, found string "3"\` or \`measure(...) threw: boom\`. With a \`Promise<T>\` result, a mismatch, a rejection or a throw while the result is read rejects the promise the cell receives with that \`TypeError\`; a throw from the call itself is thrown at the call.`
 // %%
@@ -2282,7 +2326,6 @@ spec_rejects_11 = [
   { statement: "S11.3", rule: "boundary-type", source: "const f = (m: Map<string, number>) => 1;", outside: [{ name: "m" }] },
   { statement: "S11.3", rule: "boundary-type", source: "const f = (o: { at: number; get(): number }) => 1;", outside: [{ name: "o" }] },
   { statement: "S11.3", rule: "boundary-type", source: "const f = (e: Events<number>) => 1;", outside: [{ name: "e" }] },
-  { statement: "S11.3", rule: "boundary-type", source: "type A = A | number;\nconst f = (a: A) => 1;", outside: [{ name: "a" }] },
   { statement: "S11.3", rule: "boundary-type", source: "type T = { next: T | null; f: () => number };\nconst f = (t: T) => 1;", outside: [{ name: "t" }] },
   { statement: "S11.3", rule: "boundary-type", source: "const f = (g: (() => number)[]) => 1;", outside: [{ name: "g" }] },
   { statement: "S11.3", rule: "boundary-type", source: "const f = (g: (() => number) | null) => 1;", outside: [{ name: "g" }] },
@@ -2651,7 +2694,7 @@ md`- \`BigInt64Array\` and \`BigUint64Array\` are \`[free-name]\`: the checker m
 // %%
 md`- \`prototype\` read through a value's \`constructor\`, such as \`[].constructor.prototype\`, leaves the cell unsupported: neither \`[banned-member]\` (S2.7) nor another rule rejects it, and in a notebook module the cell is rejected (S8.2).`
 // %%
-md`- \`Object.assign\` onto a fresh literal (\`Object.assign({}, o)\`), \`satisfies\` and the array method \`with\` leave the cell unsupported: the checker neither accepts nor rejects it. In a notebook module such a cell is rejected (S8.2).`
+md`- \`Object.assign\` onto a fresh literal (\`Object.assign({}, o)\`) and \`satisfies\` leave the cell unsupported: the checker neither accepts nor rejects it. In a notebook module such a cell is rejected (S8.2).`
 // %%
 md`- An angle-bracket cast \`<number>e\` is \`[no-cast]\` when the module is checked without JSX; a notebook module is checked with JSX, where it does not parse.`
 // %%
@@ -2684,6 +2727,8 @@ md`- Which requests an async cell makes when its input changes while it is waiti
 md`- A handler that makes several top-level calls, such as \`onClick={() => { begin(); load(); }}\`. An event attribute takes one action, so this is not provided.`
 // %%
 md`- A change the user makes on a view's control while an action call that wrote the view is waiting to commit. Today the commit replaces the user's change.`
+// %%
+md`- Which value a state cell ends with when two async cells each feed a listener that writes it: each writes when its fetch answers, so the state cell keeps the value of the response that arrived last, and that order is not specified.`
 // %%
 md`- An action taken before its state cell went into error, and called while the state cell is in error. Today it writes the state cell's last store, and the write is kept if the state cell is repaired with the same inputs.`
 // %%

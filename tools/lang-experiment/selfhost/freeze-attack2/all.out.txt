@@ -190,14 +190,14 @@
 == b7.ts:computed-str-key: REJECT a:rejected[mut-await]
 == b7.ts:fn-prop: REJECT a:rejected[member-write][no-member][mut-await]
 == b7.ts:pc-typed-param: REJECT a:rejected[mut-capture][mut-await] c:rejected[mut-capture]
-== b7.ts:pc-typed-ret: REJECT a:rejected[mut-nested][mut-capture][mut-await] c:rejected[mut-capture]
+== b7.ts:pc-typed-ret: REJECT a:rejected[mut-nested][type][mut-capture][mut-await] c:rejected[mut-capture]
 == b7.ts:pc-typed-all: REJECT a:rejected[mut-capture][mut-await] c:rejected[mut-capture]
 == b7.ts:pc-typed-top: REJECT a:rejected[mut-await] c:rejected[inject-type]
 == b7.ts:pc-typed-in-rec-yield: REJECT a:rejected[mut-capture][mut-yield] c:rejected[mut-capture]
 == b7.ts:pc-url: REJECT a:rejected[mut-capture][mut-await] c:rejected[mut-capture]
 == b7.ts:pc-usp: REJECT a:rejected[mut-capture][mut-await] c:rejected[mut-capture]
 == b7.ts:th-in-record-field: REJECT a:rejected[mut-await]
-== b7.ts:th-listener-events: REJECT g:rejected[mut-await][type] l:rejected[inject-events]
+== b7.ts:th-listener-events: REJECT g:rejected[mut-await][type]
 == b7.ts:th-action-set: REJECT s:rejected[state-undefined] w:rejected[action-async][mut-await]
 == b7.ts:th-copy-slot: REJECT a:rejected[mut-await][type]
 == b7.ts:th-nested-then: REJECT a:rejected[mut-await][type]
@@ -244,7 +244,7 @@
 == b8.ts:rg-recursive: REJECT a:rejected[mut-nested][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
 == b8.ts:rg-mutual: REJECT a:rejected[mut-nested][free-name][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
 == b8.ts:rg-fn-decl-hoist: REJECT a:rejected[mut-nested][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
-== b8.ts:rg-async-fn: REJECT a:rejected[mut-nested][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
+== b8.ts:rg-async-fn: REJECT a:rejected[mut-nested][type][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
 == b8.ts:rg-gen-fn: REJECT a:rejected[mut-nested][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
 == b8.ts:rg-method-ret: REJECT a:rejected[mut-nested][mut-capture][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
 == b8.ts:rg-method-shorthand-str: REJECT a:rejected[mut-nested][mut-capture][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
@@ -292,8 +292,10 @@
 == b9.ts:ctl-structured-in-rec: REJECT a:rejected[mut-await]
 == b9.ts:ctl-snapshot-typed: REJECT a:rejected[mut-await]
 == b9.ts:ctl-native-map-in-rec-key: REJECT a:rejected[mut-await]
-== b10.ts:ev-rec-typed: REJECT l:rejected[inject-events]
-== b10.ts:ev-usp: REJECT l:rejected[inject-events]
+== b10.ts:ev-rec-typed: ACCEPT
+   show s = [{n:1},{n:2}]
+== b10.ts:ev-usp: ACCEPT
+   show s = "?q=1"
 == b10.ts:ev-listener-writes-arg: ACCEPT
    show s = [0]
 == b10.ts:st-usp-rec: REJECT s:rejected[mut-await]
@@ -315,4 +317,4 @@
 == b11.ts:tdz-exit-only: REJECT a:rejected[mut-capture][mut-yield]
 == b11.ts:tdz-exit-only-rec: REJECT a:rejected[mut-capture][mut-yield]
 == b11.ts:tdz-write-no-republish: REJECT a:rejected[mut-capture][mut-yield]
--- 309 candidates, accepted 7, silent 0
+-- 309 candidates, accepted 9, silent 0

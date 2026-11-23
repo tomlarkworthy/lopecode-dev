@@ -13,6 +13,12 @@ import { attacks as B_ATTACKS } from "./b-attacks.ts";
 import { rewriteSS } from "./strip-calls.ts";
 import { observe } from "./observe.ts";
 import { OWNER } from "./owner.ts";
+import { attacks as G1_ATTACKS, G5, G5_SRC } from "./g1-attacks.ts";
+import { TOOLCHAIN } from "../../toolchain/ss-toolchain.ts";
+import * as FROZEN_TC from "../frozen/ts/toolchain/ss-toolchain.ts";
+import { attacks as B2_ATTACKS } from "./b2-attacks.ts";
+import { attacks as CAST_ATTACKS } from "./cast-attacks.ts";
+import { checkSources as frozenCheck } from "../frozen/core.ts";
 
 // a verdict: ACCEPT, or REJECT with each cell that is not ok and its rules
 export const verdict = (src: string, foreign: string | null = null): string => {
@@ -67,7 +73,7 @@ test("the programs that need the owner (printed)", () => {
 // (S4.12, freeze-attack7's causes observed by a second cell), whose let control fires in both modes and whose R memo
 // control fires with SS_MEASURE_REG=0 (and in shipped mode only if one registration replaces another)
 test("freeze-attack, h6, freeze-attack2, h7, freeze-attack3, h8, h9, m1, k1, p1 and f1 families: accepted programs change nothing another cell holds, or throw", () => {
-  const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "freeze,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1"], { stdout: "pipe", stderr: "pipe" });
+  const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "freeze,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1,g1"], { stdout: "pipe", stderr: "pipe" });
   const out = r.stdout.toString(), lines = out.split("\n");
   console.log(lines.filter((l) => l.startsWith("-- ")).join("\n"));
   expect(lines.filter((l) => l.startsWith("SILENT "))).toEqual([]);
@@ -85,4 +91,116 @@ test("freeze-attack, h6, freeze-attack2, h7, freeze-attack3, h8, h9, m1, k1, p1 
   expect(out).toMatch(/^-- p1-controls: 5, fired 0$/m);
   expect(out).toMatch(/^-- f1: 16 programs, accepted 16, silent 0/m);
   expect(out).toMatch(/^-- f1-controls: 4, fired 1$/m);
+  expect(out).toMatch(/^-- g1: 50 programs, accepted 15, silent 0/m);
+  expect(out).toMatch(/^-- g1-controls: 4, fired 0$/m);
 }, 300000); // the child run takes about 15 s, over bun's default limit
+// e1 (2026-11-23): g1-attacks.ts with S4.12's throw off (SS_MEASURE_BODYFN=0), where only closure registration stops
+// the write: before e1, 32 of its programs were silent here (G1 a capture named i, G2 a binding named ss_closure or
+// ss_methods, G3 accepted cells in error, G4 a BigInt method key); g1-ctl-let fires (a let is not frozen)
+test("g1: with S4.12's throw off, closure registration alone stops every write", () => {
+  const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "g1"], { stdout: "pipe", stderr: "pipe", env: { ...process.env, SS_MEASURE_BODYFN: "0" } });
+  const out = r.stdout.toString();
+  expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
+  expect(out).toMatch(/^-- g1: 50 programs, accepted 15, silent 0/m);
+  expect(out).toMatch(/^-- g1-controls: 4, fired 1$/m);
+}, 300000);
+// e1 (2026-11-23), B2: a write on a receiver made in the same expression is accepted; b2-attacks.ts's other rows try
+// receivers that may be another name for a read-only c. Every row reads the same in shipped mode and with registration
+// off (driveG says DIFF when c changed), and the frozen checker gives every b2 cell the same verdict and rules
+for (const env of [{}, { SS_MEASURE_REG: "0" }])
+  test(`b2: a write accepted on a fresh receiver changes nothing another name reads${"SS_MEASURE_REG" in env ? " (SS_MEASURE_REG=0)" : ""}`, () => {
+    const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "b2"], { stdout: "pipe", stderr: "pipe", env: { ...process.env, ...env } });
+    const out = r.stdout.toString();
+    expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
+    expect(out).toMatch(/^-- b2: 90 programs, accepted 20, silent 0, with a cell in error 0$/m);
+    expect(out).toMatch(/^-- b2-controls: 4, fired 4$/m);
+  }, 300000);
+const rulesOf = (r: { module: readonly { rule: string }[]; cells: readonly { errors: readonly { rule: string }[]; unsupported: readonly unknown[]; status: string }[] }) =>
+  ({ ok: !r.module.length && r.cells.every((c) => c.status === "ok"), rules: [...new Set(r.cells.flatMap((c) => [...c.errors.map((e) => e.rule), ...(c.unsupported.length ? ["unsupported"] : [])]))].sort() });
+for (const a of B2_ATTACKS.filter((x) => !x.ctl))
+  test(`b2 ${a.name} is ${a.name.startsWith("b2-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
+    const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
+    expect(live.ok).toBe(a.name.startsWith("b2-ok-"));
+    expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
+  });
+// e1 (2026-11-23), S9.8: cast<T>(v) on values made in JavaScript (cast-attacks.ts): no row is handed a value that is not
+// a T, is not deep-frozen plain data, or is the value given, in shipped mode, with registration off and with the rules
+// that --off drops off; cast-ok-* rows (a T with extra members, holes typed undefined, NaN, ...) are handed the copy
+for (const args of [[], ["--off"]]) for (const env of [{}, { SS_MEASURE_REG: "0" }])
+  test(`cast: no hostile value passes as a T${args.length ? " (--off)" : ""}${"SS_MEASURE_REG" in env ? " (SS_MEASURE_REG=0)" : ""}`, () => {
+    const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "cast", ...args], { stdout: "pipe", stderr: "pipe", env: { ...process.env, ...env } });
+    const out = r.stdout.toString();
+    expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
+    expect(out).toMatch(/^-- cast: 34 programs, accepted 34, silent 0, with a cell in error 0$/m);
+    expect(out).toMatch(/^-- cast-controls: 4, fired 4$/m);
+  }, 300000);
+// the types cast refuses when the cell is checked, and the calls it refuses; the frozen checker agrees on each
+const CAST_REFUSED: [string, string][] = [
+  ["no type argument", "cast(v)"], ["two type arguments", "cast<number, string>(v)"], ["no argument", "cast<number>()"], ["two arguments", "cast<number>(v, 1)"],
+  ["a function", "cast<() => number>(v)"], ["a record holding a function", "cast<{ readonly f: (x: number) => number }>(v)"], ["a method", "cast<{ m(): void }>(v)"],
+  ["Mut", "cast<Mut<number[]>>(v)"], ["a Promise", "cast<Promise<number>>(v)"], ["Map", "cast<Map<string, number>>(v)"], ["Set", "cast<Set<number>>(v)"],
+  ["a class instance", "cast<RegExp>(v)"], ["a typed array", "cast<Float64Array>(v)"], ["URL", "cast<URL>(v)"], ["an index signature", "cast<{ readonly [k: string]: number }>(v)"],
+  ["an open type parameter", "(<T,>(y: unknown) => cast<T>(y))(v)"], ["never", "cast<never>(v)"], ["object", "cast<object>(v)"], ["Elem", "cast<Elem>(v)"], ["bigint", "cast<bigint>(v)"], ["an Action", "cast<Action<[]>>(v)"], ["State", "cast<State<number>>(v)"],
+];
+for (const [what, call] of CAST_REFUSED)
+  test(`cast: ${what} is refused when the cell is checked, by both checkers alike`, () => {
+    const src = `const g = () => {\n  const v: unknown = JSON.parse("1");\n  const r = ${call};\n  return 1;\n};`;
+    const live = rulesOf(checkSources({ cells: src, tsx: true, outside: [], foreign: null }));
+    expect(live.ok).toBe(false);
+    expect(live.rules.filter((r) => !["cast-type", "arity", "unknown-type", "mut-nested"].includes(r))).toEqual([]);
+    expect(rulesOf(frozenCheck({ cells: src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
+  });
+for (const a of CAST_ATTACKS.filter((x) => !x.ctl))
+  test(`cast ${a.name} is accepted by both checkers alike`, () => {
+    const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
+    expect(live).toEqual({ ok: true, rules: [] });
+    expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
+  });
+// e1 (2026-11-23), B5: ergonomics1's isolate/hang-self-alias.ts (28's program with type Key = Key) did not return from
+// checkSources; the alias is [type-cycle] and is not loaded, so the uses of Key are [unknown-type]
+test("b5: a type alias defined by itself is [type-cycle], and the checker returns", async () => {
+  const src = await Bun.file(new URL("../../../selfhost/ergonomics1/isolate/hang-self-alias.ts", import.meta.url).pathname).text();
+  const r = checkSources({ cells: src, tsx: true, outside: [], foreign: null });
+  expect(r.module.map((e) => e.rule)).toEqual(["type-cycle"]);
+  expect(r.cells.filter((c) => c.status !== "ok").map((c) => c.name)).toEqual(["onKey", "listen"]);
+});
+// each of these did not return from checkSources before e1 (a member read of a value of the alias's type); Mut and
+// Borrowed are no structure, since the registry reads Mut<T> as T
+for (const src of ["type Key = Key;", "type K = Mut<K>;", "type K = Borrowed<K>;", "type A = Mut<B>;\ntype B = A;", "type Id<T> = T;\ntype K = Id<Id<K>>;", "type K = K | { readonly key: number };"])
+  test(`b5: ${JSON.stringify(src)} is [type-cycle] and a member read of it returns`, () => {
+    const r = checkSources({ cells: `${src}\nconst f = () => (e: ${src.includes("type Key") ? "Key" : src.includes("type A") ? "A" : "K"}) => e.key;`, tsx: true, outside: [], foreign: null });
+    expect(r.module.map((e) => e.rule)).toContain("type-cycle");
+    expect(r.cells.map((c) => c.status)).toEqual(["rejected"]);
+  });
+// e1 (2026-11-23), B4: false rejections of ergonomics1 that are accepted since e1, and reduce's message
+const B4_ACCEPTS: [string, string][] = [
+  ["reduce with an annotated callback", "const a = () => [1, 2].reduce((acc: number, v: number) => acc + v, 0);"],
+  ["a local typed { [k: string]: T } is writable", "const a = () => {\n  const m: { [k: string]: number } = {};\n  m[\"a\"] = 1;\n  return m;\n};"],
+  ["key on a component", "const B = () => (p: { n: number }) => <span>{p.n}</span>;\nconst v = (B: (p: { n: number }) => Elem) => <div>{[1, 2].map((n) => <B key={n} n={n} />)}</div>;"],
+  ["a generator yielding an object literal as Events", "const g = function* (now: Clock) { yield { k: 1, t: now() }; };\nconst h = () => action((e: { k: number; t: number }) => {});\nconst l = (g: Events<{ k: number; t: number }>, h: Action<[{ k: number; t: number }]>) => on(g, h);"],
+  ["an async function returning a promise", "const f = async () => {\n  const g = async () => 1;\n  const n: number = await (async () => g())();\n  return n;\n};"],
+];
+for (const [what, src] of B4_ACCEPTS)
+  test(`b4: ${what} is accepted`, () => {
+    const r = checkSources({ cells: src, tsx: true, outside: [], foreign: null });
+    expect([...r.module, ...r.cells.flatMap((c) => c.errors)].map((e) => `[${e.rule}] ${e.msg}`)).toEqual([]);
+  });
+test("b4: reduce without a start value stays rejected, and its message says a start value is required", () => {
+  const r = checkSources({ cells: "const a = () => [1, 2].reduce((x, y) => x + y);", tsx: true, outside: [], foreign: null });
+  expect(r.cells[0]?.errors.find((e) => e.rule === "arity")?.msg).toContain("a start value is required");
+});
+// the registration gaps a checker rule masks (G5): each form is rejected by exactly these rules, so a rule that goes
+// away, or a second rule that starts to mask the form, shows here
+for (const [id, form, rules] of G5)
+  test(`g1 ${id} is rejected by ${rules.join(", ")} only`, () => {
+    const r = checkSources({ cells: G5_SRC(form), tsx: true, outside: [], foreign: null });
+    const got = [...new Set(r.cells.flatMap((c) => [...c.errors.map((e) => e.rule), ...(c.unsupported.length ? ["unsupported"] : [])]))].sort();
+    expect(got).toEqual([...rules].sort());
+  });
+// the two registration twins (fnreg.ts, used by link.ts and the frozen toolchain; tc-reg.ss.ts, the shipped
+// toolchain) emit the same text for every g1 program and every method key spelling
+test("g1: fnreg.ts and tc-reg.ss.ts register the same captures under the same keys", () => {
+  const keys = ["m", "'a-b'", "1", "0x10", "1e21", "0.5", "1n", "0x10n", "1_0n"].map((k) => `const put = () => { const xs = [0]; const c: readonly number[] = xs; const o = { ${k}() { return c.length; } }; return 1; };`);
+  const regs = (defs: { definition: string }[]) => defs.map((v) => v.definition).join("\n");
+  for (const src of [...G1_ATTACKS.map((a) => a.src), ...keys]) expect(regs(TOOLCHAIN.compileModule(src, true, null))).toBe(regs(FROZEN_TC.compileModule(src, true, null)));
+});

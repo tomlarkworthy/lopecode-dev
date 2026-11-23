@@ -68,7 +68,7 @@ export const mdByCell = () => (defs: MdDef[], es: { at: number; e: MdErr }[], ce
 };
 // a cell's record before its check: the line of its statement and the errors made before the cell loop
 export const mdFreshRec = () => (d: MdDef, line: number, errors: MdErr[]): MdCellRec => ({
-  name: d.name, status: "ok", line, errors, unsupported: [], blockedBy: [], value: null, ch: [], chUnsup: [], at: d.fn.start,
+  name: d.name, status: "ok", line, errors, unsupported: [], blockedBy: [], value: null, ch: [], chUnsup: [], casts: [], at: d.fn.start,
 });
 export type MdModuleLevel = { readonly defs: MdDef[]; readonly module: MdErr[]; readonly ignores: Map<string, MdErr[]> };
 // the cells and the module's errors, in core.ts's order: foreign.d.ts, built-in type names, the user's declarations,

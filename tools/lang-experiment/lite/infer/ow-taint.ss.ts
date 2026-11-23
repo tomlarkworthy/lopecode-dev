@@ -1,7 +1,7 @@
 // action-capture by name (lite/capture.ts captures): a local computed from a state-dependent name is tainted too,
 // to a fixpoint, and an action body may use no tainted name that it does not declare itself.
 
-export type OwCapture = { readonly at: AstNode; readonly name: string; readonly why: string; readonly opaque: boolean };
+export type OwCapture = { readonly at: AstNode; readonly name: string; readonly why: string; readonly opaque: boolean; readonly fix?: string };
 // an identifier that does not read a binding: a property or key name, or a label
 export const owNotARef = () => (parent: AstNode | null, key: string): boolean => {
   if (parent === null) return false;

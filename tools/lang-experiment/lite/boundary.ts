@@ -156,13 +156,18 @@ function copyUnion(v: unknown, s: Shape & { k: "union" }, path: string, run: Run
   const miss = unionMiss(sole !== null, run.defs !== null, cycle !== null);
   throw miss === "sole" ? sole! : miss === "cycle" ? cycle! : mismatch(v, s, path);
 }
+// e1 (2026-11-23): a key "__proto__" (JSON.parse makes one) is written as an own property; out[k] = c would set the prototype
+const put = (out: Record<string, unknown>, k: string, c: unknown): void => {
+  if (k === "__proto__") Object.defineProperty(out, k, { value: c, enumerable: true, writable: true, configurable: true });
+  else out[k] = c;
+};
 // the top frame, given the copy of its pending child: its own copy (the frame popped), or WAIT
 function copyResume(f: Frame, r: unknown, run: Run, stack: Frame[]): unknown {
   const s = f.s, v = f.v;
   if (s.k === "union") { stack.pop(); return r; }
   let i = f.i;
   if (s.k === "rec") {
-    if (f.wait) { f.out[s.props[i]![0]] = r; i++; }
+    if (f.wait) { put(f.out, s.props[i]![0], r); i++; }
     // only the properties the type declares are kept
     for (; i < s.props.length; i++) {
       const [n, t, opt] = s.props[i]!;
@@ -173,16 +178,16 @@ function copyResume(f: Frame, r: unknown, run: Run, stack: Frame[]): unknown {
       if (step === "missing") throw new Mismatch(`${f.path}.${n}`, t, "nothing");
       const c = copyEnter(x, t, `${f.path}.${n}`, run, stack);
       if (c === WAIT) { f.i = i; f.wait = true; return WAIT; }
-      f.out[n] = c;
+      put(f.out, n, c);
     }
   } else if (f.keys) {
-    if (f.wait) { f.out[f.keys[i]!] = r; i++; }
+    if (f.wait) { put(f.out, f.keys[i]!, r); i++; }
     for (; i < f.keys.length; i++) {
       const k = f.keys[i]!, x = v[k];
       // a primitive under unknown is its own copy
       const c = x === null || (typeof x !== "object" && typeof x !== "function") ? x : copyEnter(x, s, `${f.path}.${k}`, run, stack);
       if (c === WAIT) { f.i = i; f.wait = true; return WAIT; }
-      f.out[k] = c;
+      put(f.out, k, c);
     }
   } else {
     if (f.wait) { f.out[i] = r; i++; }
@@ -268,6 +273,22 @@ export function checkShape(value: unknown, shape: Shape, path: string): unknown 
   }
 }
 
+// e1 (2026-11-23), S9.8: cast<T>(v), with T's shape added by the compiler: { ok: true, value } with value a deep-frozen
+// copy of v that is a T, or { ok: false, path, error } naming the first part of v that is not. A throw while v is read
+// (a getter, a proxy's trap) is a failure too, and nothing of v is handed out but the copy. With no shape (a cell compiled
+// without its check) every value fails
+export function cast(value: unknown, shape?: Shape | null): unknown {
+  if (shape === undefined || shape === null || typeof shape !== "object") return Object.freeze({ ok: false, path: "value", error: "cast was compiled without the shape of its type" });
+  const run = newRun();
+  try { return Object.freeze({ ok: true, value: copy(value, shape, "value", run) }); } catch (e) {
+    let ours = false;
+    try { ours = e instanceof Mismatch; } catch { /* a proxy's */ }
+    if (ours) { const m = e as Mismatch; return Object.freeze({ ok: false, path: trimPath(m.path, run.defs !== null), error: refusal(m, run).message }); }
+    let msg: string;
+    try { msg = e instanceof Error ? String(e.message) : "a value that is not an Error"; } catch { msg = "a value that could not be read"; }
+    return Object.freeze({ ok: false, path: "value", error: `reading the value threw: ${msg}` });
+  }
+}
 // A function from another language as the checked cell receives it: a frozen function of the boundary's own. Each call
 // hands the function deep-frozen copies of the arguments, calls it with no this, and checks and copies the result with
 // no reuse between calls. A throw, a mismatch or a throw while the result is read is a fresh TypeError naming the

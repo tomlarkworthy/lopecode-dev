@@ -157,6 +157,7 @@ export function opaqueCaptures(cellFn: Node, ch: Checker, tainted: Map<string, s
     seen.add(`${a.start}:${b.id}`);
     out.push(b.cellParam ? { node: r, name: b.name, why: w } : { node: r, name: b.name, why: w, opaque: true });
   }
-  for (const j of comps) if (bodies.some((a) => within(j, a))) out.push({ node: j, name: `<${j.name ?? "component"}>`, why: "is a JSX component, which the checker does not follow", opaque: true });
+  // DELIBERATE CHANGE (2026-11-23, e1): the message names the fix for a component (B1)
+  for (const j of comps) if (bodies.some((a) => within(j, a))) out.push({ node: j, name: `<${j.name ?? "component"}>`, why: "is a JSX component, which the checker does not follow", fix: "an action body may not use one; make the element in a cell that reads the state, and let the action change only the state", opaque: true });
   return out;
 }

@@ -80,13 +80,13 @@ const GIVEN = {
   OBJECT: T.OBJECT, ERR: T.ERR, SYMBOL: T.SYMBOL, BOOL: T.BOOL, lit: T.lit, arr: T.arr, named: T.named, unwrap: T.unwrap,
   propT: T.propT, union: T.union, members: T.members, show: T.show, subst: T.subst, hasTv: T.hasTv, instantiate: T.instantiate,
   widen: T.widen, typeKey: T.typeKey, inexact: T.inexact, isPrimitive: T.isPrimitive, isNamed: T.isNamed, kidsOf: A.kidsOf, nodeKind: A.nodeKind, isFnNode: A.isFnNode, childrenOf: A.childrenOf, TYPE_FIELDS: A.TYPE_FIELDS,
-  WRAPPERS: T.WRAPPERS, builtinNamesOf: T.builtinNamesOf, leadingComments: A.leadingComments,
+  WRAPPERS: T.WRAPPERS, builtinNamesOf: T.builtinNamesOf, leadingComments: A.leadingComments, UNDEF_FIX: T.UNDEF_FIX, shapeAt: linkShape().shapeAt,
 };
 // the cells of other sections the md cells take
 export const MD_GIVEN = {
   ...GIVEN, parseTree: A.parseTree, nameAt: A.nameAt, standIn: A.standIn, moduleShape: A.moduleShape, syntaxBans: A.syntaxBans, mutPlaces: A.mutPlaces, lineAt: A.lineAt,
   hasErrWith: T.hasErrWith, uncloneableWith: T.uncloneableWith, admitsUndefinedWith: T.admitsUndefinedWith, holdsWith: T.holdsWith, islandWith: T.islandWith,
-  reservedName: T.reservedName, RESERVED_MSG: T.RESERVED_MSG, captureMessage: T.captureMessage, boundaryShapeAt: linkShape().boundaryShapeAt,
+  reservedName: T.reservedName, RESERVED_MSG: T.RESERVED_MSG, reservedCellName: T.reservedCellName, RESERVED_CELL_MSG: T.RESERVED_CELL_MSG, captureMessage: T.captureMessage, boundaryShapeAt: linkShape().boundaryShapeAt,
 };
 // over: cells in place of the port's (lite/infer/diff.ts's controls); given: values in place of other sections' cells
 export const linkIx = (over: Record<string, (...inputs: never[]) => unknown> = {}) => link({ ...IX_CELLS, ...over } as typeof IX_CELLS, prelude, GIVEN);

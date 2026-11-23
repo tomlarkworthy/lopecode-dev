@@ -77,14 +77,17 @@ export const tapStart = (): (() => string[]) => {
 // the frames events cells wait for, run by pump (set again per run: a harness loaded later may have replaced it)
 const frames: (() => void)[] = [];
 const toFrames = (f: () => void) => void frames.push(f);
-export type Prog = { src: string; lent?: readonly string[]; show?: readonly string[]; drive?: (p: any) => unknown; twice?: readonly string[]; checked?: Verdicts; fetchBody?: string };
+export type Prog = { src: string; lent?: readonly string[]; show?: readonly string[]; drive?: (p: any) => unknown; twice?: readonly string[]; checked?: Verdicts; fetchBody?: string; fetchValue?: () => unknown };
 export type Observed = { silent: string[]; changed: string[]; threw: boolean; lines: string[] };
 // the program run, nFrames frames pumped after it settles (and again after drive), every fulfilled value read again
 export async function observeProgram(p: Prog, nFrames = 12): Promise<Observed> {
   const first = new Map<string, { obj: unknown; s: string; run: number }[]>();
   frames.length = 0;
   scheduler.frame = toFrames;
-  const caps = p.fetchBody === undefined ? {} : { fetch: (async () => new Response(p.fetchBody)) as unknown as typeof fetch };
+  // fetchValue (e1, 2026-11-23, the cast set): what the response's json() gives, any JavaScript value (a proxy, a getter)
+  const fv = p.fetchValue;
+  const caps = fv !== undefined ? { fetch: (async () => ({ ok: true, status: 200, json: async () => fv(), text: async () => "", arrayBuffer: async () => new ArrayBuffer(0) })) as unknown as typeof fetch }
+    : p.fetchBody === undefined ? {} : { fetch: (async () => new Response(p.fetchBody)) as unknown as typeof fetch };
   let tapStop: (() => string[]) | null = tapStart();
   const prog = (() => { try { return run(); } catch (x) { tapStop!(); throw x; } })();
   function run() { return runCells(p.src, { tsx: true, checked: p.checked, caps, onChange: (r) => {

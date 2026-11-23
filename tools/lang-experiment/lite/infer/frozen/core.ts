@@ -15,7 +15,7 @@ import { parse, type Node, type Parsed } from "./ts/parse.ts";
 import { Registry } from "./ts/registry.ts";
 import { Checker } from "./infer.ts";
 import { ownership, actionEscapes, iterIn, mutIn, stripMut } from "./own.ts";
-import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, reservedName, RESERVED_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith } from "../../types.ts";
+import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, reservedName, RESERVED_MSG, reservedCellName, RESERVED_CELL_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith } from "../../types.ts";
 import { CAPABILITIES } from "../../intrinsics.ts";
 import { island, specOf, compileCalls } from "./ts/island.ts";
 import { factsOf, type CellInfo } from "./ts/facts.ts";
@@ -201,15 +201,19 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   // Cells that take a function from another language, or a cell that does, with how. Such a cell may not keep a value
   // that may be or hold a function in a state cell or yield one, which an action could then call (S11.9).
   const fnFed = new Map<string, string>();
+  const castsOf = new Map<string, Map<number, unknown>>();
   for (const c of order) {
     if (value.has(c.name)) continue;
     const r = out.get(c.name)!;
     const ch = new Checker(reg, cellNames, P);
     ch.compileHook = (e, env) => compileType(e, env, ch);
     opts.onCell?.(c.name, ch, c.fn);
+    castsOf.set(c.name, ch.casts);
     const diag = (n: Node, rule: string, msg: string) => r.errors.push({ rule, line: P.line(n.start), msg });
     for (const d of c.bans) if (d.unsup) ch.unsupported(nodeAt(c.fn, d.at.start, d.at.end, d.at.type)!, d.msg); else r.errors.push({ rule: d.rule, line: P.line(d.at.start), msg: d.msg });
-    if (reservedName(c.name)) diag(c.fn, "reserved-name", RESERVED_MSG(c.name));
+    // DELIBERATE CHANGE (2026-11-23, e1): a cell may not be named Generators or invalidation (inputs compiled cells take
+    // from the module); ss_… and $ss$… names reach this file through types.ts reservedName, which it imports
+    if (reservedCellName(c.name)) diag(c.fn, "reserved-name", RESERVED_CELL_MSG(c.name));
     // injection
     const injected: Ty[] = [];
     for (const p of c.fn.params as Node[]) {
@@ -231,7 +235,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
         if (handle) {
           const inner = handle.inners.get(name);
           const want = reg.convert(ann, { tps: new Set() }, P);
-          if (!inner || !(isNamed(want, wrapper!) && reg.sub(inner, want.args[0]) && reg.sub(want.args[0], inner))) diag(p, handle.rule, `${name} is not a ${handle.what} ${handle.of(want)}`);
+          // DELIBERATE CHANGE (2026-11-23, e1): an events cell's yields need only be a T
+          if (!inner || !(isNamed(want, wrapper!) && reg.sub(inner, want.args[0]) && (wrapper !== "State" || reg.sub(want.args[0], inner)))) diag(p, handle.rule, `${name} is not a ${handle.what} ${handle.of(want)}`);
           injected.push(want);
           continue;
         }
@@ -376,7 +381,10 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   const list = cells.map((c) => out.get(c.name)!);
   const result: LiteResult = { port: dir, file: tsx ? "cells.tsx" : "cells.ts", ok: moduleErrs.length === 0 && list.every((c) => c.status === "ok"), module: moduleErrs, cells: list, ms: performance.now() - t0 };
   const facts = new Map(cells.map((c) => {
-    const f = factsOf(shown.get(c.name) ?? c.name, c.fn, c.stmt);
+    // DELIBERATE CHANGE (2026-11-23, e1): the shapes of the cell's cast calls in source order, before params as the cells' facts
+    const { params, ...head } = factsOf(shown.get(c.name) ?? c.name, c.fn, c.stmt);
+    const casts = [...(castsOf.get(c.name) ?? new Map())].sort((x, y) => x[0] - y[0]).map((x) => x[1]);
+    const f = { ...head, ...(casts.length ? { casts } : {}), params };
     const b = boundaries.get(c.name);
     if (b) f.params = f.params.map((p) => (b.has(p.name) ? { ...p, boundary: b.get(p.name) } : p));
     return [f.name, f] as const;

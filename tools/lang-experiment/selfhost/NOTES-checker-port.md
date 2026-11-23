@@ -2984,3 +2984,173 @@ table, `breakout_view`'s ResizeObserver, the "exported function" comment in 01-c
   `cap-random-stored`) are a captured `Date.now`/`Math.random` read again, not a write; unchanged since k1, not f1's.
 - (b) over-rejects `f1-ok-cell-made`.
 - Tutorial "How good is the checker" table predates the 2026-11-22 change (review finding, not re-measured).
+
+## 2026-11-23 07:25–08:32: e1 Part A, closure registration gaps of freeze-attack8 (build owner, logs `lite/soundscript/.scratch/e1/`)
+
+Originals of every edited file are in `.scratch/e1/orig/`; the whole tree as it was at 07:29 is `.scratch/e1/before/`.
+Modes: (a) shipped, (b) `SS_MEASURE_REG=0`, (c) `SS_MEASURE_BODYFN=0` (S4.12's throw off), (d) both off.
+
+### What the compiler writes into a compiled cell (census, `e1/census/emitted.ts`, 1059 corpus jobs compiled)
+Inputs that are not a cell of the module: `ss_<name>` (every runtime cell and capability: `ss_out` 4263, `ss_closure`
+763, `ss_state` 309, `ss_ref` 302, ...), `Generators` 302 (a state cell's value cell), `invalidation` 83 (events and
+listener cells), `viewof x` and `$<digits>` parameters. Inside the cell's own text: `ss_closure(...)`, `ss_methods(...)`,
+the capture list `(i) => ...`, and, in a TSX cell, `h(...)` for each JSX element. Variable names `$ss$<n>$x` and
+`$ss$type$T` (tcVariableName). Bindings in the corpus with prefix `ss_` or `$ss$`: 0.
+
+### Fixes
+- **G1** the capture list's parameter is `ss_i` in both twins (`fnreg.ts` thunk, `tc-reg.ss.ts` tcThunk). `ss_i` has
+  the reserved prefix, so no capture can be named it.
+- **G2/G3** `messages.ss.ts`: `emittedName` (prefix `ss_` or `$ss$`) is part of `reservedName`, which the syntax pass
+  already applies to every identifier of the code except a property key, a member name and a type; so a const, a
+  function declaration, a destructured name, a parameter, a catch binding, a cell input, a shorthand `{ ss_x }` and a
+  free reference are `[reserved-name]`. `reservedCellName` adds `Generators` and `invalidation` for a cell's name only
+  (`md-cell.ss.ts`; mirrored in `frozen/core.ts` under a DELIBERATE CHANGE block). A cell named `invalidation` made
+  every events cell of the module fail (`g1-G3-CELL-invalidation`: `invalidation?.then is not a function`). The
+  `ss_` names reach `frozen/core.ts` and `syntax.frozen.ts` through `types.ts`, which they import, so no mirror block is
+  needed for them.
+- **G4** the checker typed `{ 1n() {} }` as `{ null: ... }` too. A BigInt literal as a property key is unsupported
+  (`acorn/syntax.ss.ts` bansAt, TypeScript's TS1539; mirrored in `syntax.frozen.ts`). Both twins now register such a
+  key under its value in base 10 (`0x10n` -> "16", `1_0n` -> "10"; `tcRegKey` reads the literal through `BigInt`).
+- Not reserved: `h` in a TSX cell. JSX lowers to `h(...)` inside the cell's text, so a local `h` replaces the element
+  maker (`const h = (...a: unknown[]) => 1; return <div/>` is accepted). Bindings named `h` in the corpus: 102 in TSX
+  jobs, 53 in TS jobs (`e1/census/hbind.ts`; the ssx jobs repeat the ss files). Not a freeze route (the value is the
+  local's result). Lowering JSX to `ss_h` would close it without a corpus cost; not done.
+
+### Standing rows: `lite/infer/attack/g1-attacks.ts` (50 programs, 4 controls), run-sets set `g1`
+G1 x15 and G1 in r3's snap form x2, G2 x7 (+snap), G3 x7 crash forms and 5 cells named like an emitted input, G4 x2,
+G5 x11 (each in vehicle A; live.test.ts asserts each one's exact rules: switch-declaration, unsupported, no-class
+(+new-non-intrinsic), no-this, no-arguments, no-member, new-non-intrinsic). live.test.ts spawns `--sets g1` with
+`SS_MEASURE_BODYFN=0` and compares the two twins' compiled text over every g1 program and 9 method key spellings.
+
+| g1 | accepted | silent (a) | silent (b) | silent (c) | silent (d) | controls fired a/b/c/d |
+|---|---|---|---|---|---|---|
+| before | 38 | 8 | 8 | 32 | 33 | 0/0/1/4 |
+| after | 15 | 0 | 0 | 0 | 15 | 0/0/1/4 |
+
+(a)/(b) before: the 8 G3 rows (7 crashes, the invalidation cell), counted through their drive. (d) after: the 15
+accepted G1 rows with registration off, which is what (d) measures.
+
+freeze-attack8 (`e1/fa8.sh`, outputs in `e1/fa8-before`, `e1/fa8-after-A`; the attack folder's hashes are unchanged):
+the 19 programs silent with S4.12 off and registration on (r2 16, r3 3, checker on) -> 0. r2 accepted 24 -> 11, r3 3
+-> 2 (the G2 rows are now `[reserved-name]`). Checker-skipped silent rows left: r1 36 (G5's 13 forms in D and G, and
+the shadow forms, all rejected by the checker), r2 shipped 10 (the SH forms in D and G).
+
+### Gates (e1/gates-A, 08:24–08:31)
+build 0; bun-verify 181; fixtures 14/14; diff DIFFERENT 0, `--module-only` 1160 SAME; tc-diff 56 lines (both twins
+changed the same way, so the count is unchanged); live.test 474 pass; freeze-table 441; tc 11, run 2, acorn 6;
+run-sets 2161 programs silent 0 in (a) and (b); fa2 and fa3 silent 0; `verify.ts --quick` 233 pass 0 fail; g1 with
+BODYFN=0 silent 0. Census (census3.ts against e1/census/base.json): 0 corpus cells changed verdict; 210 new cells
+are the new checker cells. freeze-attack4-7 both modes unchanged (fa4 5/5, fa6 0/23, others 0; m-after-A/summary.txt).
+
+## 2026-11-23 08:32–10:12: e1 Part B (messages, fresh receivers, type cycles, cast, small false rejections)
+
+Order as the owner set it: B1, B2, B5, cast, B4 (with 6a), B3, item 7. Every checker change is in the live cells and,
+under `DELIBERATE CHANGE (2026-11-23, e1)`, in `lite/infer/frozen/`.
+
+**B1, messages that name a fix.** `lite/infer/attack/message-fixes.ts` holds one row per message that tells the
+reader what to write: the bad program, the program with the fix written as the message says, and the rule.
+`message-fixes.test.ts` asserts the bad program has the rule and the fixed one is accepted. 39 literal messages
+were inventoried, plus the messages B2, B4, 6a and the cast added; 62 rows now. Messages changed because the fix
+they named was rejected when written literally: the iterator-capture fix, the unfreezable-capture fix (URL, typed
+array), the returned-Mut fix, the written-capture fix, the held-typed fix, the capability fix (a canvas handler, not
+a button), the component capture, the non-null message (it printed `TSNonNullExpression`), the self-reading cell
+(`fib`), the mutating-method message (names `toSorted`, `toReversed`, `toSpliced`, `with`, and a copy).
+
+**B2, fresh receivers.** A mutating method or a member write on a receiver made in the same expression
+(`[...xs].sort()`, `c.slice().sort()`, `new Map(c).set(...)`) is accepted (S4.3). `b2-attacks.ts`: 90 programs,
+20 accepted, 0 silent in shipped mode and with `SS_MEASURE_REG=0`; 4 of 4 controls fire. `sort()`'s result is not
+fresh, so `[...c].sort().reverse()` is still rejected.
+
+**B5.** `type Key = Key` made `checkSources` loop: `rgExpand` wrote `named Key` over its own placeholder, and a member
+read of such a value never ended. The bound is in the syntax rule, not the registry: `typeCycles` follows each alias
+through names, unions, intersections, parentheses, `Mut`, `Borrowed` and generic aliases with a seen-set, and a cycle
+is `[type-cycle]` (a module error; the alias is not loaded). The isolated hang file now returns with `["type-cycle"]`.
+
+**cast (S9.8).** `cast<T>(v)` gives `{ ok: true, value }` (a deep-frozen copy keeping T's members) or
+`{ ok: false, path, error }`. The checker derives T's shape with `shapeAt` (the boundary's derivation, one copy) and
+refuses what it cannot check (`[cast-type]`); the shapes go to the compiler in `CellInfo.casts`, by the callee's
+position; `tcCastEdits` adds each as a second argument between `/*ss+*/ … /*ss-*/`. A count that differs from the
+calls throws `tc-gap`; with no shapes (no check) the runtime fails every value. The runtime is `boundary.ts`'s copy,
+which reads each property once. Found while attacking: a key `__proto__` under `unknown` was written with
+`out[k] = c`, which set the copy's prototype; `put` defines it as an own property (this also changes `cross`).
+`cast-attacks.ts`: 34 rows (getters, proxies, prototypes, holes, NaN, extra members, cycles, a 5000-deep chain),
+0 silent with rules on and off, shipped and `SS_MEASURE_REG=0`; 4 of 4 controls fire. Cost: about 85 product lines (checker 25, runtime 25, toolchain 22, frozen 13), 90 lines of attack rows; checker time on 40 cells that cast a fetched record 12.7 ms against 13.7 ms for the same cells with a hand validator (median of 7, this machine).
+Drafts (copies in `.scratch/e1/drafts-cast/`, rewritten only to call cast): 24, 32, 33 accepted and run; 30 still
+`[arity]` (reduce, kept); 31 still `[possibly-undefined]` (index read, kept); 39 `cast<Record<K, T[]>>` is refused
+(type parameter). Before: all six rejected.
+
+**B4.** Accepted since e1: a `{ [k: string]: T }` local is writable; `key` on a component; a generator yielding an
+object literal as `Events<T>` (one direction, since the values only reach the listener); an async function returning
+a promise (typed as what it resolves to); `reduce((acc: number, v: number) => …, 0)`. Reduce without a start value is
+still `[arity]`, and the message says a start value is required. 6a: index reads stay `T | undefined`; the three
+possibly-undefined messages name `?? fallback`, a guard, `for…of` and `at`.
+
+**B3, row handlers.** Not built. `items.map((it) => <button onClick={action(() => remove(it.id))}>)` is rejected by
+S6.9 (`[action-capture]`: `it` comes from a state cell's value), not by a freeze rule, so capturing values with no
+`Mut` would not lift it. Written without `action(...)` it is `[action-call]`/`[type]`, since an event prop takes an
+Action. The accepted form passes the id as the action's argument from an `input`.
+
+**Item 7.** One sentence in the spec's "Not specified": the last fetch to answer decides a state cell written by two
+listeners.
+
+**Found by fa4.** freeze-attack4 silent 5 -> 6 in both modes: `b2.ts:fr-two-readers` (a `FetchResponse` published by
+an async cell and read by two cells; the second read of the body fails). It was rejected only by the "async function
+returns a promise: await it" rule, which B4 removed. The same program with `await` on each return was accepted
+before e1 (checked against the before tree), so the hole is older than B4; B4 makes the fa4 row reach it. Not fixed:
+the owner decides whether a `FetchResponse` may be a cell's value.
+
+**Open.** A cell named `h` is still not reserved (Part A). The frozen toolchain twin has no cast edits (tc-diff
+compares the live toolchain with itself on cast-free sources). `selfhost/freeze-attack3/all.out.txt` is rewritten by
+its `run-all.sh` during the gates; restored from the before copy.
+
+Gates (final tree): build 0; bun-verify 182 pass; fixtures 14/14 (57 rules, 57 with a reject case); diff DIFFERENT 0 (1117
+sources), `--module-only` 1207 SAME; tc-diff 56 lines; live.test 639; message-fixes 62; freeze-table 441; tc 11, run
+2, acorn 6; run-sets 2285 programs silent 0 shipped and REG=0; fa2, fa3 silent 0; g1 BODYFN=0 silent 0;
+`verify.ts --quick` 234; full `verify.ts` 678 pass 0 fail. fa4 6 (was 5, above), fa6 0/23, fa5 and fa7 0; fa8
+unchanged from Part A. Census against base.json: no corpus cell changed verdict; the S2.11 spec source
+`async () => Promise.resolve(5)` moved from rejected to accepted; the rest are new cells and reject-row index shifts.
+
+## 2026-11-23 10:13–11:20: owner-session check of e1 (gates rerun, probes)
+
+Files: `selfhost/e1-check/`. Run from `tools/lang-experiment`.
+
+**Gates, rerun on the builder's final tree** (`e1-check/summary.txt`): the same numbers as the builder's, except the
+full `verify.ts`.
+
+```
+full verify, run 1 (after the other gates)  631 pass, then "Execution context was destroyed" in core-only  exit 1
+full verify, run 2 (alone)                  631 pass, the same stop                                         exit 1
+verify --variant-only (alone)               94 pass 0 fail (the core-only steps included)
+full verify, run 3 (alone)                  678 pass 0 fail                                                 exit 0
+builder's run, 10:11, on battery            678 pass 0 fail
+```
+
+The stop is in `addCell(…, "const tripled = …")` on the core-only page (verify.ts:2332). No file of the product tree
+changed between the runs (`find -newer`), and no crash or navigation line is printed before it. The same stop is
+recorded on 2026-11-21 (line 268 of this file) at the same step. Not found: its cause. 2 of 3 full runs here is more
+often than a rare flake, so it is open, not dismissed.
+
+**fa4 5 → 6 checked.** `.scratch/e1/m-before/fa4-a.txt` has `b3.ts:fr-two-readers` (the same program with `await`)
+accepted on the tree before e1, with `c2 = "used: Body already used"`. So a `FetchResponse` as a cell's value read by
+two cells predates e1, as the builder said.
+
+**Found by probing B4's writable `{ [k: string]: T }` local: a record with a run-time key reads and writes inherited
+members.** Older than e1 (`idx-mut-proto` uses only `Mut<…>`, accepted before); B4 adds one more way to write it.
+
+```
+bun lite/infer/attack/drive-run.ts selfhost/e1-check/proto-run.ts selfhost/e1-check/proto-run2.ts
+idx-local-proto   ACCEPT  c = undefined      (c's type says "undef" | number: m["__proto__"] = [1] made [1] the prototype)
+read-inherited    ACCEPT  c = "function"     (m: { [k: string]: number }; m["toString"] with the key from another cell)
+read-inherited-in ACCEPT  c = "in"           ("toString" in m)
+```
+
+S2.7 rejects only the literal key `__proto__`. Not fixed. Ways to fix it, none built: the compiler guards computed reads
+and writes on an index-signature record with an own-property test (toolchain edits keyed on checker facts); or such
+records are made with no prototype; or the tutorial says to use `Map` for run-time keys and the index signature is
+kept for literal keys.
+
+**First drafts, unchanged (hash checked), rerun:** accepted 13 → 18 of 40, run and pass 12 → 17
+(`e1-check/drafts-after.txt` against `ergonomics1/drafts-results.txt`).
+
+**A cell named `h` read by a JSX cell** is rejected with `[no-member]` (`e1-check/h.ts`): loud, with a message that
+does not say the name is the cause.

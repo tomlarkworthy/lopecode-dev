@@ -179,7 +179,7 @@
 == b6.ts:match-index: ACCEPT
 == b6.ts:cw-foreach-mut: REJECT w:rejected[type][type]
 == b6.ts:cw-map-mut: REJECT w:rejected[type][type]
-== b6.ts:cw-reduce-init-fresh: REJECT w:rejected[type][type][member-write]
+== b6.ts:cw-reduce-init-fresh: REJECT w:rejected[type][member-write]
 == b6.ts:cw-reduce-noann: REJECT w:rejected[member-write]
 == b6.ts:cw-find-mixed: REJECT w:rejected[strict-eq-object][member-write]
 == b6.ts:cw-arr-mixed-index: REJECT w:rejected[member-write]
@@ -203,7 +203,7 @@
 == b6.ts:cw-forof-mixed: REJECT w:rejected[member-write]
 == b6.ts:cw-spread-rec: REJECT w:rejected[member-write]
 == b6.ts:cw-then-mut: REJECT w:rejected[type][type]
-== b6.ts:cw-sort-cb: REJECT w:rejected[mutating-method][type][type]
+== b6.ts:cw-sort-cb: REJECT w:rejected[type][type]
 == b6.ts:cw-set-of: REJECT w:rejected[type][type]
 == b6.ts:cw-structured-identity: ACCEPT
    twice obs: #1 [0] | E[] , #1 [0] | E[]
@@ -213,7 +213,7 @@
    twice obs: #1 [0] | E[] , #1 [0] | E[]
 == b6.ts:cw-set-into-fresh: ACCEPT
    twice obs: #1 [0] | E[] , #1 [0] | E[]
-== b6.ts:cw-fill-ret: REJECT w:rejected[mutating-method][member-write]
+== b6.ts:cw-fill-ret: REJECT w:rejected[member-write]
 == b6.ts:cw-record-mutfield: REJECT w:rejected[mut-nested][type][type]
 == b6.ts:cw-arr-of-mut-annot: REJECT w:rejected[mut-nested][type][type]
 == b6.ts:cw-map-of-mut-annot: REJECT w:rejected[mut-nested][type][type][type]
@@ -366,9 +366,9 @@
 == b10.ts:bi-tagged-template: REJECT a:unsupported
 == b10.ts:bi-sparse-array: REJECT a:unsupported
 == b11.ts:lis-rej: REJECT g:rejected[mut-yield] add:rejected[mut-capture] l:rejected[inject-events] obs:rejected[mut-yield]
-== b11.ts:lis-rej-sync: REJECT g:rejected[mut-yield] add:rejected[mut-capture] l:rejected[inject-events] obs:rejected[mut-yield]
+== b11.ts:lis-rej-sync: REJECT g:rejected[mut-yield] add:rejected[mut-capture] obs:rejected[mut-yield]
 == b11.ts:lis-nmap: REJECT g:rejected[mut-capture][mut-yield] l:rejected[inject-events]
-== b11.ts:lis-nmap-sync: REJECT g:rejected[mut-capture][mut-yield] l:rejected[inject-events]
+== b11.ts:lis-nmap-sync: REJECT g:rejected[mut-capture][mut-yield]
 == b11.ts:act-set-rej: REJECT w:rejected[mut-capture][mut-capture][mut-await][action-capture] obs:rejected[mut-yield]
 == b11.ts:act-set-rej-inner: REJECT w:rejected[mut-capture][member-write] obs:rejected[mut-yield]
 == b11.ts:act-arg-rej: REJECT add:rejected[mut-capture] w:rejected[mut-capture][member-write] obs:rejected[mut-yield]
@@ -383,15 +383,15 @@
 -- controls 4, fired 4
 -- accepted with a cell still pending at the end: 0
 -- 360 candidates, accepted 11, silent 0
-118 |         // cell facts and text come from the check's parse
-119 |         const byName = new Map([...result.facts!.values()].map((info) => [info.name, { info, text: source.slice(info.span![0], info.span![1]) }] as const));
-120 |         const isl = island([...byName.values()].map(({ info }) => ({ name: info.name, params: info.params.map((p) => p.name), refCell: info.returnsRef })), spec);
-121 |         if (isl.problems.length) throw new Error(isl.problems.map((p) => p.msg).join("; "));
-122 |         const notOk = refusedCells(result.cells.map((c) => ({ name: c.name, ok: c.status === "ok" && !c.errors.length })), caller, isl.order);
-123 |         if (notOk.length) throw new Error(`compile refused: ${notOk.join(", ")} not ok by the checker`);
+120 |         // cell facts and text come from the check's parse
+121 |         const byName = new Map([...result.facts!.values()].map((info) => [info.name, { info, text: source.slice(info.span![0], info.span![1]) }] as const));
+122 |         const isl = island([...byName.values()].map(({ info }) => ({ name: info.name, params: info.params.map((p) => p.name), refCell: info.returnsRef })), spec);
+123 |         if (isl.problems.length) throw new Error(isl.problems.map((p) => p.msg).join("; "));
+124 |         const notOk = refusedCells(result.cells.map((c) => ({ name: c.name, ok: c.status === "ok" && !c.errors.length })), caller, isl.order);
+125 |         if (notOk.length) throw new Error(`compile refused: ${notOk.join(", ")} not ok by the checker`);
                                           ^
 error: compile refused: go not ok by the checker
-      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/stdlib/runtime.ts:123:37)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/stdlib/runtime.ts:125:37)
       at /Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/nb-island.ts:4:13
 
 Bun v1.4.0 (macOS arm64)

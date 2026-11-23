@@ -116,9 +116,14 @@ export const tcFreeIn = (tcFreeStep) => (root: AstNode): string[] => {
 // the cell locals a function captures, sorted
 export const tcRegCaps = (tcFreeIn) => (f: AstNode, locals: Set<string>): string[] =>
   tcFreeIn(f).filter((x) => locals.has(x)).toSorted((a, b) => (a < b ? -1 : a > b ? 1 : 0));
-// (i) => the i-th capture's current value; i < 0: the count
+// (ss_i) => the i-th capture's current value; ss_i < 0: the count. e1 (2026-11-23): the parameter was i, which a
+// capture named i read instead of itself; ss_i is a reserved name (messages.ss.ts emittedName), so no capture has it
 export const tcThunk = () => (cs: string[]): string =>
-  `(i) => i < 0 ? ${cs.length} : ${cs.slice(0, -1).map((c, i) => `i === ${i} ? ${c} : `).join("")}${cs[cs.length - 1] ?? ""}`;
+  `(ss_i) => ss_i < 0 ? ${cs.length} : ${cs.slice(0, -1).map((c, i) => `ss_i === ${i} ? ${c} : `).join("")}${cs[cs.length - 1] ?? ""}`;
+// a method's key as the object literal makes it (fnreg.ts keyOf): a BigInt literal's key is its value's digits in
+// base 10, which the tree keeps as written (0x10n is "0x10"), so it is read through BigInt
+export const tcRegKey = () => (k: AstNode): string =>
+  k.type === "Identifier" ? k.name : k.type === "Literal" ? (k.bigint !== null ? String(BigInt(k.bigint)) : String(k.value)) : "";
 // the names a node binds: a function's parameters and name, a declarator's, a catch clause's parameter
 export const tcBindsAt = (tcPatNames) => (n: AstNode): string[] => {
   if (n.type === "ArrowFunctionExpression" || n.type === "FunctionExpression" || n.type === "FunctionDeclaration") return [...n.params.flatMap((p) => tcPatNames(p)), ...tcPatNames(n.id)];
@@ -143,10 +148,10 @@ export const tcRegWalk = (tcBindsAt, tcPatNames, kidsOf) => (cellFn: AstNode): {
   return { all, locals };
 };
 // an object literal whose methods capture: ss_methods(obj, "m", thunk, ...)
-export const tcRegMethods = (tcRegCaps, tcThunk, tcREG_OPEN, tcREG_CLOSE) => (n: AstNode, depth: number, locals: Set<string>, names: TcRegNames): TcRegHit => {
+export const tcRegMethods = (tcRegCaps, tcThunk, tcRegKey, tcREG_OPEN, tcREG_CLOSE) => (n: AstNode, depth: number, locals: Set<string>, names: TcRegNames): TcRegHit => {
   if (n.type !== "ObjectExpression") return { edits: [] };
   const ms = n.properties.flatMap((p) => (p.type === "Property" && p.method && !p.computed
-    ? [{ key: p.key.type === "Identifier" ? p.key.name : p.key.type === "Literal" ? String(p.key.value) : "", cs: tcRegCaps(p.value, locals), start: p.value.start }] : []));
+    ? [{ key: tcRegKey(p.key), cs: tcRegCaps(p.value, locals), start: p.value.start }] : []));
   const reg = ms.filter((m) => m.cs.length > 0);
   if (reg.length === 0) return { edits: [] };
   const list = reg.map((m) => `${JSON.stringify(m.key)}, ${tcThunk(m.cs)}`).join(", ");
@@ -172,6 +177,26 @@ export const tcRegAt = (tcRegMethods, tcRegCaps, tcThunk, tcREG_OPEN, tcREG_CLOS
   }
   const open: TcRegEdit = { at: n.start, depth, end: false, text: `${tcREG_OPEN}${names.closure}(${tcREG_CLOSE}`, use: "closure" };
   return { edits: [open, { at: n.end, depth, end: true, text: `${tcREG_OPEN}, ${tcThunk(cs)})${tcREG_CLOSE}`, use: null }] };
+};
+// e1 (2026-11-23), S9.8: each call of the prelude's cast gets its type's shape as a second argument, the shapes the
+// check kept in source order. With no shapes (a cell compiled without its check) there is no edit, and cast fails each
+// value; a count that differs from the calls is a gap, so no call is given another call's shape
+export const tcCastEdits = (parseTree, tcGlobalRefStarts, kidsOf, tcREG_OPEN, tcREG_CLOSE) => (typed: string, shapes: readonly unknown[]): TcEdit[] => {
+  if (shapes.length === 0) return [];
+  const p = parseTree(`(${typed})`, false);
+  if (!p.ok) throw new Error(`tc-gap: a typed cell function that does not parse: ${p.message}`);
+  const free = new Set(tcGlobalRefStarts(p.ast.program, "cast"));
+  const calls: Mut<AstNode[]> = [];
+  const todo: Mut<AstNode[]> = [p.ast.program];
+  for (let n = todo.pop(); n !== undefined; n = todo.pop()) {
+    if (n.type === "CallExpression" && n.callee.type === "Identifier" && free.has(n.callee.start)) calls.push(n);
+    for (const k of kidsOf(n)) todo.push(k);
+  }
+  if (calls.length !== free.size || calls.length !== shapes.length) throw new Error(`tc-gap: ${free.size} references to cast, ${calls.length} of them calls, and ${shapes.length} shapes from the check`);
+  return calls.toSorted((a, b) => (a.type === "CallExpression" && b.type === "CallExpression" ? a.callee.start - b.callee.start : 0)).map((c, i) => {
+    const end = c.type === "CallExpression" ? (c.arguments.at(-1) ?? c.callee).end : c.end;
+    return { from: end - 1, to: end - 1, text: `${tcREG_OPEN}, ${JSON.stringify(shapes[i])}${tcREG_CLOSE}` };
+  });
 };
 // the registrations of a typed cell function, as edits to its text in their final order (at one position: ends deepest
 // first, then starts outermost first), and the runtime cells they call, in the order closure, methods

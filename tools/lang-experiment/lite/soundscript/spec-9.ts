@@ -8,3 +8,6 @@ const s9_decodeSize = () => (x: unknown): S9Size => {
 };
 
 const s9_size = (s9_raw: unknown, s9_decodeSize: (x: unknown) => S9Size) => s9_decodeSize(s9_raw);
+// S9.8: s9_raw checked as an S9Size, and as a type it is not
+const s9_cast = (s9_raw: unknown) => cast<S9Size>(s9_raw);
+const s9_castWrong = (s9_raw: unknown) => cast<{ readonly w: string }>(s9_raw);
