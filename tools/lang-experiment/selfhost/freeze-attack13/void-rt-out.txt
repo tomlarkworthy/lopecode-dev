@@ -1,0 +1,206 @@
+== selfhost/freeze-attack13/void.ts:v-act-str-nullish: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-str-or: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-str-plus: ACCEPT
+   drive -> DIFF g is outside its type: string "s1"
+   CHANGED drive -> DIFF g is outside its type: string "s1"
+   show g = "s1"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-fn: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-arr: ACCEPT
+   drive -> DIFF g is outside its type: string "x"
+   CHANGED drive -> DIFF g is outside its type: string "x"
+   show g = "x"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-rec: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-action: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-arg-echo: ACCEPT
+   drive -> DIFF g is outside its type: string "4"
+   CHANGED drive -> DIFF g is outside its type: string "4"
+   show g = "4"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-tuple: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-map-site: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-narrow-never: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-typeof-held: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/void.ts:v-act-string-state: ACCEPT
+   drive -> DIFF g is outside its type: number 5
+   CHANGED drive -> DIFF g is outside its type: number 5
+   show g = 5
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-bool: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack13/void.ts:v-act-update: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-mut-arr: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack13/void.ts:v-act-launder-action-state: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack13/void.ts:v-act-launder-handle: ACCEPT
+   drive -> DIFF g is outside its type: string "[object EventTarget]1"
+   CHANGED drive -> DIFF g is outside its type: string "[object EventTarget]1"
+   show g = "[object EventTarget]1"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-launder-mut: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-chain: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-forEach: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-array-from: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-reduce: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-sort: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-generic: REJECT b:rejected[type][possibly-undefined]
+== selfhost/freeze-attack13/void.ts:v-act-record: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-act-listener: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack13/void.ts:v-ctl-act-direct [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   CONTROL FIRED
+== selfhost/freeze-attack13/void.ts:v-ctl-act-void-annot [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   CONTROL FIRED
+== selfhost/freeze-attack13/void.ts:v-held-void-union: ACCEPT
+   drive -> same: 3
+   show g = 3
+== selfhost/freeze-attack13/void.ts:v-held-void-union-num: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack13/void.ts:v-held-void-expr: ACCEPT
+   drive -> same: 3
+   show g = 3
+== selfhost/freeze-attack13/void.ts:v-held-undef-ret: ACCEPT
+   drive -> same: 3
+   show g = 3
+== selfhost/freeze-attack13/void.ts:v-held-block-assign: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack13/void.ts:v-held-gen-return: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack13/void.ts:v-held-gen-return-val: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack13/void.ts:v-held-promise-void: ACCEPT
+   drive -> same: 3
+   show g = 3
+== selfhost/freeze-attack13/void.ts:v-held-promise-void-ret: ACCEPT
+   drive -> same: 3
+   show g = 3
+== selfhost/freeze-attack13/void.ts:v-held-then-void: ACCEPT
+   drive -> same: 4
+   show g = 4
+== selfhost/freeze-attack13/void.ts:v-held-foreach-set-fn: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/void.ts:v-held-foreach-map-res: REJECT g:rejected[handle-pass][iterator-capture]
+== selfhost/freeze-attack13/void.ts:v-held-foreach-arr-res: REJECT g:rejected[handle-pass][iterator-capture]
+== selfhost/freeze-attack13/void.ts:v-held-log-fn: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/void.ts:v-held-log-res: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/void.ts:v-held-rec-void-member: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack13/void.ts:v-held-cs-void-member: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack13/void.ts:v-held-memo-void: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack13/void.ts:v-held-events-return: ACCEPT
+   drive -> same: 1
+   show g = 1
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 46 candidates, accepted 40, silent 22
+SILENT selfhost/freeze-attack13/void.ts:v-act-str-nullish
+SILENT selfhost/freeze-attack13/void.ts:v-act-str-or
+SILENT selfhost/freeze-attack13/void.ts:v-act-str-plus
+SILENT selfhost/freeze-attack13/void.ts:v-act-fn
+SILENT selfhost/freeze-attack13/void.ts:v-act-arr
+SILENT selfhost/freeze-attack13/void.ts:v-act-rec
+SILENT selfhost/freeze-attack13/void.ts:v-act-action
+SILENT selfhost/freeze-attack13/void.ts:v-act-arg-echo
+SILENT selfhost/freeze-attack13/void.ts:v-act-tuple
+SILENT selfhost/freeze-attack13/void.ts:v-act-map-site
+SILENT selfhost/freeze-attack13/void.ts:v-act-narrow-never
+SILENT selfhost/freeze-attack13/void.ts:v-act-string-state
+SILENT selfhost/freeze-attack13/void.ts:v-act-update
+SILENT selfhost/freeze-attack13/void.ts:v-act-launder-handle
+SILENT selfhost/freeze-attack13/void.ts:v-act-launder-mut
+SILENT selfhost/freeze-attack13/void.ts:v-act-chain
+SILENT selfhost/freeze-attack13/void.ts:v-act-forEach
+SILENT selfhost/freeze-attack13/void.ts:v-act-array-from
+SILENT selfhost/freeze-attack13/void.ts:v-act-reduce
+SILENT selfhost/freeze-attack13/void.ts:v-act-sort
+SILENT selfhost/freeze-attack13/void.ts:v-act-record
+SILENT selfhost/freeze-attack13/void.ts:v-act-listener
+-- checker throws 0 (parse errors 0)

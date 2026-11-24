@@ -1,0 +1,18 @@
+catch: REJECT g:unsupported
+    g{unsupported intrinsic member Promise.catch}
+new-promise: REJECT g:rejected[untyped-parameter]
+    g[untyped-parameter] parameter has no type and no contextual type || g{unsupported new Promise}
+queueMicrotask: REJECT g:rejected[free-name]
+    g[free-name] free name queueMicrotask
+thenable-literal: REJECT g:rejected[banned-member]
+    g[banned-member] then may not be a member's name: it is a member of Object.prototype or one a conversion calls (a template string, +, ==, String(), JSON.stringify, join, sort and await call toString, valueOf, toJSON and then), so a conversion would run a value's own then or read the inherited one; give the member another name
+then-spread: REJECT g:unsupported
+    g{unsupported spread argument to a non-rest parameter}
+then-bind: REJECT g:rejected[no-member]
+    g[no-member] no property bind on { <U>(f: (v: number) => Promise<U>) => Promise<U>; <U>(f: (v: number) => U) => Promise<U> }
+memo-async: REJECT g:rejected[memo-pure]
+    g[memo-pure] the function given to memo(...) is async; a stored promise or generator would be shared by every call
+agen-finally: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter x names no cell, foreign or capability
+obj-async-method: ACCEPT
+fetch-then: ACCEPT

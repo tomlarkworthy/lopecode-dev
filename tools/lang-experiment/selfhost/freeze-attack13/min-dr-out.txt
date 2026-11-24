@@ -1,0 +1,56 @@
+== selfhost/freeze-attack13/min.ts:min-va-action-result: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/min.ts:min-va-handle: ACCEPT
+   drive -> DIFF g is outside its type: string "[object EventTarget]1"
+   show g = "[object EventTarget]1" | E[]
+   SILENT
+== selfhost/freeze-attack13/min.ts:min-u-promise: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/min.ts:min-u-resp: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}] | E[]
+   SILENT
+== selfhost/freeze-attack13/min.ts:min-u-action: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack13/min.ts:min-t-narrow: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/min.ts:min-l-arraylike: ACCEPT
+   drive -> DIFF g is outside its type: object ["s"]
+   show g = ["s"] | E[]
+   SILENT
+== selfhost/freeze-attack13/min.ts:min-e-extra-arg: ACCEPT
+   drive -> DIFF g is outside its type: object ["51"]
+   show g = ["51"] | E[]
+   SILENT
+== selfhost/freeze-attack13/min.ts:min-ctl-state-string [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/min.ts:min-ctl-object-promise [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/min.ts:min-ctl-resp [ctl]: CONTROL (checker skipped)
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}] | E[]
+   CONTROL FIRED
+-- controls 3, ran 3, fired 3
+-- harness crashes 0
+-- 8 candidates, accepted 8, silent 8 (by the tap alone 0)
+SILENT selfhost/freeze-attack13/min.ts:min-va-action-result
+SILENT selfhost/freeze-attack13/min.ts:min-va-handle
+SILENT selfhost/freeze-attack13/min.ts:min-u-promise
+SILENT selfhost/freeze-attack13/min.ts:min-u-resp
+SILENT selfhost/freeze-attack13/min.ts:min-u-action
+SILENT selfhost/freeze-attack13/min.ts:min-t-narrow
+SILENT selfhost/freeze-attack13/min.ts:min-l-arraylike
+SILENT selfhost/freeze-attack13/min.ts:min-e-extra-arg
+-- checker throws 0 (parse errors 0)

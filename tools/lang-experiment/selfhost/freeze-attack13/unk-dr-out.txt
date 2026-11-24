@@ -1,0 +1,457 @@
+== selfhost/freeze-attack13/unk.ts:u-arrlit-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-arrlit-gen-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-arrlit-resp-unknown: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}] | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-arrlit-action-tojson: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-with-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-with-gen-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-with-resp-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:u-with-action-tojson: REJECT b:rejected[action-pass]
+== selfhost/freeze-attack13/unk.ts:u-map-ternary-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-map-ternary-gen-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-map-ternary-resp-unknown: REJECT g:rejected[iterator-capture]
+== selfhost/freeze-attack13/unk.ts:u-map-ternary-action-tojson: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-two-returns-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-two-returns-gen-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-two-returns-resp-unknown: REJECT g:rejected[iterator-capture]
+== selfhost/freeze-attack13/unk.ts:u-two-returns-action-tojson: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-find-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-find-gen-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-find-resp-unknown: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}] | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-find-action-tojson: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-flatmap-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-flatmap-gen-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-flatmap-resp-unknown: REJECT g:rejected[iterator-capture]
+== selfhost/freeze-attack13/unk.ts:u-flatmap-action-tojson: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-arrfrom-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-arrfrom-gen-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-arrfrom-resp-unknown: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}] | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-arrfrom-action-tojson: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-spread-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-spread-gen-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-spread-resp-unknown: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}] | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-spread-action-tojson: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-ternary-local-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-ternary-local-gen-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-ternary-local-resp-unknown: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}] | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-ternary-local-action-tojson: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-nullish-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-nullish-gen-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-nullish-resp-unknown: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}] | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-nullish-action-tojson: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-at-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-at-gen-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-at-resp-unknown: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}] | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-at-action-tojson: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-slice-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-slice-gen-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-slice-resp-unknown: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}] | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-slice-action-tojson: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:u-arrlit-action-tostring-sync: ACCEPT
+   drive -> same: g rejected action called during a cell evaluation
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/unk.ts:u-arrlit-action-tostring-await: ACCEPT
+   drive -> same: g rejected action called during a cell evaluation
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/unk.ts:t-narrow-promise: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:t-narrow-gen: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:t-narrow-agen: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:t-narrow-fn-promise: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/unk.ts:t-narrow-resp: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:t-narrow-cell-input: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:t-narrow-reader: ACCEPT
+   drive -> DIFF g is outside its type: number 99
+   show g = 99 | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:t-narrow-in-record: ACCEPT
+   drive -> same: {"o":{}}
+   show g = {o:Promise} | E[]
+== selfhost/freeze-attack13/unk.ts:u-narrow-object-plain-held: ACCEPT
+   drive -> same: {"a":1}
+   show g = {a:1} | E[]
+== selfhost/freeze-attack13/unk.ts:u-ctl-promise-object [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/unk.ts:u-ctl-gen-object [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/unk.ts:u-ctl-resp [ctl]: CONTROL (checker skipped)
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}] | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/unk.ts:u-ctl-action-tojson [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/unk.ts:x-String-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-String-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-String-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-String-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-String-resp: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:x-Number-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-Number-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-Number-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-Number-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-Number-resp: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:x-Boolean-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-Boolean-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-Boolean-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-Boolean-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-Boolean-resp: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:x-isArray-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isArray-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-isArray-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isArray-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isArray-resp: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:x-isInteger-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isInteger-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-isInteger-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isInteger-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isInteger-resp: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:x-isFinite-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isFinite-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-isFinite-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isFinite-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isFinite-resp: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:x-isNaN-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isNaN-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-isNaN-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isNaN-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isNaN-resp: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:x-isSafe-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isSafe-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-isSafe-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isSafe-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-isSafe-resp: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:x-stringify-rec-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-stringify-rec-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-stringify-rec-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-stringify-rec-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-stringify-rec-resp: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:x-keys-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-keys-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-keys-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-keys-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-keys-resp: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:x-is-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-is-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-is-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-is-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-is-resp: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack13/unk.ts:x-template-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-template-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-template-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-template-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-template-resp: ACCEPT
+   drive -> same: "body"
+   show g = "body" | E[]
+== selfhost/freeze-attack13/unk.ts:x-messageOf-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-messageOf-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-messageOf-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-messageOf-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-messageOf-resp: ACCEPT
+   drive -> same: "body"
+   show g = "body" | E[]
+== selfhost/freeze-attack13/unk.ts:x-equals-fn: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/unk.ts:x-equals-gen: REJECT g:rejected[type]
+== selfhost/freeze-attack13/unk.ts:x-equals-iter: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack13/unk.ts:x-equals-map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk.ts:x-equals-resp: ACCEPT
+   drive -> same: "body"
+   show g = "body" | E[]
+== selfhost/freeze-attack13/unk.ts:x-equals-promises: ACCEPT
+   drive -> DIFF g is outside its type: boolean true
+   show g = true | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:x-equals-gens: ACCEPT
+   drive -> same: false
+   show g = false | E[]
+== selfhost/freeze-attack13/unk.ts:x-equals-resps: ACCEPT
+   drive -> DIFF g is outside its type: string "body"
+   show g = "body" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk.ts:x-equals-maps-held: ACCEPT
+   drive -> same: false
+   show g = false | E[]
+-- controls 4, ran 4, fired 4
+-- harness crashes 0
+-- 133 candidates, accepted 101, silent 50 (by the tap alone 0)
+SILENT selfhost/freeze-attack13/unk.ts:u-arrlit-promise-object
+SILENT selfhost/freeze-attack13/unk.ts:u-arrlit-gen-object
+SILENT selfhost/freeze-attack13/unk.ts:u-arrlit-resp-unknown
+SILENT selfhost/freeze-attack13/unk.ts:u-arrlit-action-tojson
+SILENT selfhost/freeze-attack13/unk.ts:u-with-promise-object
+SILENT selfhost/freeze-attack13/unk.ts:u-with-gen-object
+SILENT selfhost/freeze-attack13/unk.ts:u-map-ternary-promise-object
+SILENT selfhost/freeze-attack13/unk.ts:u-map-ternary-gen-object
+SILENT selfhost/freeze-attack13/unk.ts:u-map-ternary-action-tojson
+SILENT selfhost/freeze-attack13/unk.ts:u-two-returns-promise-object
+SILENT selfhost/freeze-attack13/unk.ts:u-two-returns-gen-object
+SILENT selfhost/freeze-attack13/unk.ts:u-two-returns-action-tojson
+SILENT selfhost/freeze-attack13/unk.ts:u-find-promise-object
+SILENT selfhost/freeze-attack13/unk.ts:u-find-gen-object
+SILENT selfhost/freeze-attack13/unk.ts:u-find-resp-unknown
+SILENT selfhost/freeze-attack13/unk.ts:u-find-action-tojson
+SILENT selfhost/freeze-attack13/unk.ts:u-flatmap-promise-object
+SILENT selfhost/freeze-attack13/unk.ts:u-flatmap-gen-object
+SILENT selfhost/freeze-attack13/unk.ts:u-flatmap-action-tojson
+SILENT selfhost/freeze-attack13/unk.ts:u-arrfrom-promise-object
+SILENT selfhost/freeze-attack13/unk.ts:u-arrfrom-gen-object
+SILENT selfhost/freeze-attack13/unk.ts:u-arrfrom-resp-unknown
+SILENT selfhost/freeze-attack13/unk.ts:u-arrfrom-action-tojson
+SILENT selfhost/freeze-attack13/unk.ts:u-spread-promise-object
+SILENT selfhost/freeze-attack13/unk.ts:u-spread-gen-object
+SILENT selfhost/freeze-attack13/unk.ts:u-spread-resp-unknown
+SILENT selfhost/freeze-attack13/unk.ts:u-spread-action-tojson
+SILENT selfhost/freeze-attack13/unk.ts:u-ternary-local-promise-object
+SILENT selfhost/freeze-attack13/unk.ts:u-ternary-local-gen-object
+SILENT selfhost/freeze-attack13/unk.ts:u-ternary-local-resp-unknown
+SILENT selfhost/freeze-attack13/unk.ts:u-ternary-local-action-tojson
+SILENT selfhost/freeze-attack13/unk.ts:u-nullish-promise-object
+SILENT selfhost/freeze-attack13/unk.ts:u-nullish-gen-object
+SILENT selfhost/freeze-attack13/unk.ts:u-nullish-resp-unknown
+SILENT selfhost/freeze-attack13/unk.ts:u-nullish-action-tojson
+SILENT selfhost/freeze-attack13/unk.ts:u-at-promise-object
+SILENT selfhost/freeze-attack13/unk.ts:u-at-gen-object
+SILENT selfhost/freeze-attack13/unk.ts:u-at-resp-unknown
+SILENT selfhost/freeze-attack13/unk.ts:u-at-action-tojson
+SILENT selfhost/freeze-attack13/unk.ts:u-slice-promise-object
+SILENT selfhost/freeze-attack13/unk.ts:u-slice-gen-object
+SILENT selfhost/freeze-attack13/unk.ts:u-slice-resp-unknown
+SILENT selfhost/freeze-attack13/unk.ts:u-slice-action-tojson
+SILENT selfhost/freeze-attack13/unk.ts:t-narrow-promise
+SILENT selfhost/freeze-attack13/unk.ts:t-narrow-gen
+SILENT selfhost/freeze-attack13/unk.ts:t-narrow-agen
+SILENT selfhost/freeze-attack13/unk.ts:t-narrow-cell-input
+SILENT selfhost/freeze-attack13/unk.ts:t-narrow-reader
+SILENT selfhost/freeze-attack13/unk.ts:x-equals-promises
+SILENT selfhost/freeze-attack13/unk.ts:x-equals-resps
+-- checker throws 0 (parse errors 0)

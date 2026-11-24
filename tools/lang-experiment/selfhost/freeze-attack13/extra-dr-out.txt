@@ -1,0 +1,141 @@
+== selfhost/freeze-attack13/extra.ts:v-extra-map-str: ACCEPT
+   drive -> DIFF g is outside its type: object [[5]]
+   show g = [[5]] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-map-num: ACCEPT
+   drive -> DIFF g is outside its type: object ["51"]
+   show g = ["51"] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-map-req-i: ACCEPT
+   drive -> DIFF g is outside its type: object ["50"]
+   show g = ["50"] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-filter: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/extra.ts:v-extra-filter-str: ACCEPT
+   drive -> DIFF g is outside its type: object [5]
+   show g = [5] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-reduce: ACCEPT
+   drive -> DIFF g is outside its type: string "05"
+   show g = "05" | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-reduce-str: ACCEPT
+   drive -> DIFF g is outside its type: object [5]
+   show g = [5] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-foreach: ACCEPT
+   drive -> DIFF g is outside its type: string "05"
+   show g = "05" | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-find: ACCEPT
+   drive -> DIFF g is outside its type: object [5]
+   show g = [5] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-findIndex: ACCEPT
+   drive -> DIFF g is outside its type: object [5]
+   show g = [5] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-findLast: ACCEPT
+   drive -> DIFF g is outside its type: object [5]
+   show g = [5] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-some: ACCEPT
+   drive -> DIFF g is outside its type: object [5]
+   show g = [5] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-every: ACCEPT
+   drive -> DIFF g is outside its type: object [5]
+   show g = [5] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-flatMap: ACCEPT
+   drive -> DIFF g is outside its type: object [[5]]
+   show g = [[5]] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-map-forEach: ACCEPT
+   drive -> DIFF g is outside its type: object {}
+   show g = Map{"k"=>1} | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-set-forEach: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-set-forEach3: ACCEPT
+   drive -> DIFF g is outside its type: object {}
+   show g = Set{1} | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-u8-forEach: ACCEPT
+   drive -> DIFF g is outside its type: object {"0":7}
+   show g = Uint8Array[7] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-map-fn-type: ACCEPT
+   drive -> DIFF g is outside its type: object [[5]]
+   show g = [[5]] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-map-elem-type: ACCEPT
+   drive -> DIFF g is outside its type: object [[1,2]]
+   show g = [[1,2]] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-from-held: ACCEPT
+   drive -> same: ["none"]
+   show g = ["none"] | E[]
+== selfhost/freeze-attack13/extra.ts:v-extra-sort-held: ACCEPT
+   drive -> same: [1,2]
+   show g = [1,2] | E[]
+== selfhost/freeze-attack13/extra.ts:v-extra-then-held: ACCEPT
+   drive -> same: "none"
+   show g = "none" | E[]
+== selfhost/freeze-attack13/extra.ts:v-extra-memo-held: ACCEPT
+   drive -> same: "none"
+   show g = "none" | E[]
+== selfhost/freeze-attack13/extra.ts:v-extra-update-held: ACCEPT
+   drive -> same: "none"
+   show g = "none" | E[]
+== selfhost/freeze-attack13/extra.ts:v-extra-mut-alias-forEach: ACCEPT
+   drive -> DIFF readonly c changed: [3,9]
+   show g = [3,9] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-mut-alias-map: ACCEPT
+   drive -> same: [3,3] fulfilled 
+   show g = [3,3] | E[]
+== selfhost/freeze-attack13/extra.ts:v-extra-mut-alias-reduce: ACCEPT
+   drive -> DIFF readonly c changed: [3,9]
+   show g = [3,9] | E[]
+   SILENT
+== selfhost/freeze-attack13/extra.ts:v-extra-mut-alias-sort: ACCEPT
+   drive -> same: [3,3] fulfilled 
+   show g = [3,3] | E[]
+== selfhost/freeze-attack13/extra.ts:v-extra-ctl-mut-alias [ctl]: CONTROL (checker skipped)
+   drive -> DIFF readonly c changed: [3,9]
+   show g = [3,9] | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/extra.ts:v-extra-ctl-map [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object [5]
+   show g = [5] | E[]
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 29 candidates, accepted 29, silent 21 (by the tap alone 0)
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-map-str
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-map-num
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-map-req-i
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-filter-str
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-reduce
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-reduce-str
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-foreach
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-find
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-findIndex
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-findLast
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-some
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-every
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-flatMap
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-map-forEach
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-set-forEach
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-set-forEach3
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-u8-forEach
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-map-fn-type
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-map-elem-type
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-mut-alias-forEach
+SILENT selfhost/freeze-attack13/extra.ts:v-extra-mut-alias-reduce
+-- checker throws 0 (parse errors 0)

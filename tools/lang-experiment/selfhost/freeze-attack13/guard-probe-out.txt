@@ -1,0 +1,54 @@
+g-sync: ACCEPT
+g-after-await: ACCEPT
+g-then-cb: ACCEPT
+g-then-direct: ACCEPT
+g-then-computed: ACCEPT
+g-then-after-all: ACCEPT
+g-obj-async-method: ACCEPT
+g-async-component: REJECT g:rejected[type]
+    g[type] component B returns Promise<Elem>, not Elem
+g-agen-yield-await: ACCEPT
+g-agen-after-await: ACCEPT
+g-gen-between: ACCEPT
+g-nested-helper: ACCEPT
+g-try-finally: ACCEPT
+g-rejected-await: ACCEPT
+g-sort-after-await: ACCEPT
+g-map-after-await: ACCEPT
+g-expr-body: ACCEPT
+g-kept-async: ACCEPT
+g-kept-sync-then: ACCEPT
+g-agen-finally-return: ACCEPT
+g-agen-finally-await-return: ACCEPT
+g-gen-finally-return: ACCEPT
+g-invalidation-then: ACCEPT
+g-invalidation-await: ACCEPT
+g-agen-invalidation: ACCEPT
+g-events-agen-finally: REJECT l:rejected[inject-events]
+    l[inject-events] t is not a sync generator cell yielding number
+g-events-gen-finally: ACCEPT
+g-memo-wrap: REJECT g:rejected[memo-pure]
+    g[memo-pure] s depends on state (the value of the state cell s); a memoised function may use from outside itself only inputs that hold no state and the consts and functions made from them, since a stored result would not see a change: pass the value as an argument
+f-await-inv: ACCEPT
+f-await-inv-dep: ACCEPT
+f-await-inv-dep-twice: ACCEPT
+f-await-inv-dep-sync2: ACCEPT
+f-await-inv-dep-micro: ACCEPT
+f-await-inv-dep-then: ACCEPT
+f-try-finally: ACCEPT
+f-loop: ACCEPT
+f-nested-helper: ACCEPT
+f-expr-body: ACCEPT
+f-agen: ACCEPT
+f-agen-finally: ACCEPT
+f-then-pending: ACCEPT
+f-all-pending: ACCEPT
+f-kept-async: ACCEPT
+f-two-slow: ACCEPT
+f-rejected-then-wait: ACCEPT
+f-bound-then-pending: ACCEPT
+f-listener: ACCEPT
+f-listener-3: ACCEPT
+f-listener-and-call: ACCEPT
+f-handler: ACCEPT
+f-events-wait: ACCEPT

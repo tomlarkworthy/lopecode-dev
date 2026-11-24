@@ -1,0 +1,62 @@
+P1-annot: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P2-ternary: REJECT g:rejected[forgets]
+    g[forgets] () => number | 1 is given the type unknown, which does not say what () => number | 1 holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P3-nullish: REJECT g:rejected[forgets]
+    g[forgets] number | () => number is given the type unknown, which does not say what number | () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P4-or: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P5-arrlit: REJECT g:rejected[forgets]
+    g[forgets] Mut<unknown[]> is given the type unknown, which does not say what Mut<unknown[]> holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P5b-arrlit-ann: REJECT g:rejected[forgets][forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it || g[forgets] (1 | () => number)[] is given the type unknown[], which does not say what 1 | () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P6-two-returns: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P6b-two-returns-infer: ACCEPT
+P7-generic-infer: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P7b-generic-explicit: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P8-arrayof: ACCEPT
+P9-concat: REJECT g:rejected[forgets][forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it || g[forgets] (() => number)[] is given the type unknown[], which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P10-with: ACCEPT
+P10b-push: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P11-reduce: REJECT g:rejected[forgets]
+    g[forgets] (acc: unknown, x: number) => () => number is given the type (acc: unknown, v: number, i: number) => unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P12-map-ctor: REJECT g:rejected[forgets][forgets][forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it || g[forgets] ["k", () => number] is given the type [string, unknown], which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it || g[forgets] ["k", () => number][] is given the type Iterable<[string, unknown]>, which doe
+P13-map-set: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P15-object: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type object, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P16-object-null: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type object | null, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P17-member: REJECT g:rejected[forgets][forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it || g[forgets] { v: () => number } is given the type { v: unknown }, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P18-let-assign: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P19-default: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P21-narrow-tv: ACCEPT
+P22-narrow-tv-fn: ACCEPT
+P23-spread: REJECT g:rejected[forgets]
+    g[forgets] (() => number)[] is given the type unknown[], which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P24-tuple: REJECT g:rejected[forgets][forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it || g[forgets] [() => number] is given the type [unknown], which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P26-union-index: ACCEPT
+P28-sc: REJECT g:rejected[type]
+    g[type] structuredClone of () => number, which is or holds a function: the clone would throw or lose it
+P30-values: ACCEPT
+P31-unk-array-from: ACCEPT
+P32-flatmap: ACCEPT
+P33-map-cb: ACCEPT
+P34-find: ACCEPT
+P36-cast-arg: ACCEPT
+P37-promise-unk: ACCEPT
+P38-generic-ret: REJECT g:rejected[forgets]
+    g[forgets] T is given the type unknown, which does not say what T holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P39-generic-rec: REJECT g:rejected[forgets]
+    g[forgets] { v: () => number } is given the type { v: unknown }, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+P40-arr-of-unk-ann-elem: ACCEPT

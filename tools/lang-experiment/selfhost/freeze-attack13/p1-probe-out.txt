@@ -1,0 +1,118 @@
+a-union-call: ACCEPT
+a-fn-type: REJECT g:rejected[action-pass]
+    g[action-pass] Action<[]> is not assignable to () => void
+a-memo: REJECT g:unsupported
+    g{unsupported memo(...) of a non-literal function}
+a-call: REJECT g:rejected[type]
+    g[type] Action<[]> has no members
+a-bind: REJECT g:rejected[type]
+    g[type] Action<[]> has no members
+a-apply: REJECT g:rejected[type]
+    g[type] Action<[]> has no members
+a-name: REJECT g:rejected[type]
+    g[type] Action<[]> has no members
+a-length: REJECT g:rejected[type]
+    g[type] Action<[]> has no members
+a-catch-inaction: REJECT a:rejected[no-member][action-call]
+    a[no-member] no property reject on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> } || a[action-call] an Action called outside action(...): the function it is in was made in an action body and may run after the call, because it is passed to a function that may keep it
+a-then-inaction: REJECT a:rejected[action-call]
+    a[action-call] an Action called outside action(...): the function it is in was made in an action body and may run after the call, because it is passed to a function that may keep it
+a-arrayfrom-inaction: ACCEPT
+a-sort-inaction: ACCEPT
+a-replace-inaction: REJECT a:rejected[type][action-call]
+    a[type] () => string is not assignable to string || a[action-call] an Action called outside action(...): the function it is in was made in an action body and may run after the call, because it is passed to a function that may keep it
+a-jsonparse-inaction: REJECT a:rejected[arity][untyped-parameter][action-call]
+    a[arity] expected at most 1 arguments, got 2 || a[untyped-parameter] parameter has no type and no contextual type || a[action-call] an Action called outside action(...): the function it is in was made in an action body and may run after the call, because it is passed to a function that may keep it
+a-mapset-inaction: ACCEPT
+a-catch-cell: REJECT g:rejected[no-member][untyped-parameter]
+    g[no-member] no property reject on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> } || g[untyped-parameter] parameter has no type and no contextual type
+a-await-inv: ACCEPT
+a-inv-then: ACCEPT
+v-union: ACCEPT
+v-promise-void: REJECT g:rejected[type][type]
+    g[type] 1 is not assignable to void | Promise<void> || g[type] () => Promise<1> is not assignable to () => Promise<void>
+v-promise-void-resp: REJECT g:rejected[type][type]
+    g[type] Mut<FetchResponse> is not assignable to void | Promise<void> || g[type] () => Promise<Mut<FetchResponse>> is not assignable to () => Promise<void>
+v-undef-ret: ACCEPT
+v-opt-ret: ACCEPT
+v-assign-expr: ACCEPT
+v-assign-ret: REJECT g:rejected[type]
+    g[type] 2 is not assignable to void
+v-void-expr: ACCEPT
+v-comma: REJECT g:unsupported
+    g{unsupported comma expression}
+v-gen-ret: ACCEPT
+v-foreach-set: ACCEPT
+v-foreach-map: ACCEPT
+v-foreach-u8: ACCEPT
+v-then-ret-fn: ACCEPT
+v-finally-ret: REJECT g:unsupported
+    g{unsupported intrinsic member Promise.finally}
+v-finally-ret-promise: REJECT g:rejected[no-member]
+    g[no-member] no property reject on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> } || g{unsupported intrinsic member Promise.finally}
+v-update-void: ACCEPT
+v-jsx-handler: ACCEPT
+v-jsx-handler-fn: REJECT g:rejected[type][type]
+    g[type] () => number is not assignable to Action<[]> || g[type] { onClick: () => number; children: "x"[] } is not assignable to ButtonProps
+u-catch-e: ACCEPT
+u-throw-fn: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+u-reject-fn: REJECT g:rejected[no-member]
+    g[no-member] no property reject on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> }
+u-string-fn: ACCEPT
+u-keys-fn: ACCEPT
+u-keys-promise: ACCEPT
+u-isarray-fn: ACCEPT
+u-template-fn: ACCEPT
+u-number-fn: ACCEPT
+u-objectis-fn: ACCEPT
+u-json-fn: REJECT g:rejected[type]
+    g[type] JSON.stringify gives undefined, not a string, for undefined or a function, and its argument () => number may be a function (() => number): give it a value that is neither (JSON.stringify(x ?? null) when x may be undefined)
+u-json-arrfn: ACCEPT
+u-json-recfn: ACCEPT
+u-sc-fn: ACCEPT
+u-equals: ACCEPT
+u-messageOf: ACCEPT
+u-snapshot: ACCEPT
+u-map-key-fn: ACCEPT
+u-set-fn: ACCEPT
+u-all: REJECT g:rejected[type][type]
+    g[type] 1 is not assignable to Promise<unknown> || g[type] (1 | Promise<number>)[] is not assignable to Promise<unknown>[]
+u-all-fn: REJECT g:rejected[type][type]
+    g[type] () => number is not assignable to Promise<unknown> || g[type] (() => number)[] is not assignable to Promise<unknown>[]
+u-race-fn: REJECT g:rejected[no-member]
+    g[no-member] no property race on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> }
+u-allsettled: REJECT g:rejected[no-member][no-member]
+    g[no-member] no property allSettled on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> } || g[no-member] no property reject on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> }
+u-any: REJECT g:rejected[no-member]
+    g[no-member] no property any on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> }
+u-await-nonpromise: ACCEPT
+u-empty-push: REJECT g:rejected[type]
+    g[type] 1 is not assignable to never
+u-empty-unk: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+u-never: ACCEPT
+u-instanceof: REJECT g:rejected[no-member]
+    g[no-member] property message on Js/unknown; narrow it first || g{unsupported instanceof}
+u-in: ACCEPT
+u-generic-unk: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+u-default-targ: REJECT g:unsupported
+    g{unsupported type parameter constraint/default}
+k-fe-fn: REJECT g:rejected[type]
+    g[type] this call builds { [k: string]: () => number }, a record whose keys come from run-time data: a key may be then, toJSON or toString, which the run time calls, so the values must be plain data (no function, Action, handle, Mut, promise, iterator or response): to keep a function, write the record as an object literal
+k-fe-length: ACCEPT
+k-fe-num: ACCEPT
+k-fe-proto: ACCEPT
+k-assign: REJECT g:unsupported
+    g{unsupported Object.assign}
+k-assign-idx: REJECT g:unsupported
+    g{unsupported Object.assign}
+k-spread-idx: REJECT g:unsupported
+    g{unsupported object spread of { [k: string]: number }}
+k-entries-rt: ACCEPT
+k-jsonparse: ACCEPT
+k-cast: REJECT g:rejected[cast-type]
+    g[cast-type] cast<{ [k: string]: number }> cannot be checked at run time: it is or holds an index signature; cast to plain data (numbers, strings, booleans, null, literal types, arrays, tuples and records of them) and make the rest from it
+k-map-rec: ACCEPT
+k-sc-idx: ACCEPT

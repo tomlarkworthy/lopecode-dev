@@ -1,0 +1,220 @@
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-length: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-name: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-prototype: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-arguments: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-caller: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-apply: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-bind: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-call: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-tag: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-preconnect: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-displayName: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-0: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-islands: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-arrow-description: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-length: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-name: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-prototype: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-arguments: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-caller: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-apply: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-bind: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-call: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-tag: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-preconnect: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-displayName: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-0: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-islands: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-fnexpr-description: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-memo-length: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-memo-name: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-memo-prototype: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-memo-arguments: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-memo-caller: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-memo-apply: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-memo-bind: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-memo-call: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-memo-tag: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-memo-preconnect: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-memo-displayName: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-memo-0: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-memo-islands: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-memo-description: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-async-length: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-async-name: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-async-prototype: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-async-arguments: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-async-caller: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-async-apply: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-async-bind: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-async-call: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-async-tag: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-async-preconnect: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-async-displayName: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-async-0: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-async-islands: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-async-description: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-now-length: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-now-name: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-now-prototype: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-now-arguments: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-now-caller: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-now-apply: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-now-bind: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-now-call: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-now-tag: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-now-preconnect: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-now-displayName: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-now-0: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-now-islands: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-now-description: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-random-length: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-random-name: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-random-prototype: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-random-arguments: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-random-caller: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-random-apply: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-random-bind: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-random-call: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-random-tag: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-random-preconnect: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-random-displayName: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-random-0: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-random-islands: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-random-description: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-log-length: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-log-name: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-log-prototype: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-log-arguments: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-log-caller: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-log-apply: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-log-bind: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-log-call: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-log-tag: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-log-preconnect: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-log-displayName: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-log-0: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-log-islands: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-log-description: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-alias: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-alias-tag: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack13/callsig.ts:cs-param: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-kept: REJECT k:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-member: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-array: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-union: REJECT g:rejected[type]
+== selfhost/freeze-attack13/callsig.ts:cs-ternary: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-map-value: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack13/callsig.ts:cs-generic: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-default: REJECT g:rejected[forgets][no-member]
+== selfhost/freeze-attack13/callsig.ts:cs-return: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/callsig.ts:cs-absorb-unknown: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack13/callsig.ts:cs-own-declared-held: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack13/callsig.ts:cs-ctl-name [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "f"
+   CHANGED drive -> DIFF g is outside its type: string "f"
+   show g = "f"
+   CONTROL FIRED
+== selfhost/freeze-attack13/callsig.ts:cs-ctl-apply [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: function function apply() {
+    [native code]
+}
+   CHANGED drive -> DIFF g is outside its type: function function apply() {
+    [native code]
+}
+   show g = fn(throws undefined is not a function)
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 112 candidates, accepted 45, silent 0
+-- checker throws 0 (parse errors 0)

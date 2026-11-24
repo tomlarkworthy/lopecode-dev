@@ -1,0 +1,165 @@
+u-arrlit-promise-object: ACCEPT
+u-arrlit-gen-object: ACCEPT
+u-arrlit-resp-unknown: ACCEPT
+u-arrlit-action-tojson: ACCEPT
+u-with-promise-object: ACCEPT
+u-with-gen-object: ACCEPT
+u-with-resp-unknown: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+u-with-action-tojson: REJECT b:rejected[action-pass]
+    b[action-pass] Action<[number]> is given the type unknown, which hides its Action<[number]>; an Action goes only where an Action is expected
+u-map-ternary-promise-object: ACCEPT
+u-map-ternary-gen-object: ACCEPT
+u-map-ternary-resp-unknown: REJECT g:rejected[iterator-capture]
+    g[iterator-capture] r holds a FetchResponse, captured by a nested function: a response's body can be read once, so the function may find it used up; read what the function needs before it (const ok = r.ok, or const data = await r.json()) and capture that
+u-map-ternary-action-tojson: ACCEPT
+u-two-returns-promise-object: ACCEPT
+u-two-returns-gen-object: ACCEPT
+u-two-returns-resp-unknown: REJECT g:rejected[iterator-capture]
+    g[iterator-capture] r holds a FetchResponse, captured by a nested function: a response's body can be read once, so the function may find it used up; read what the function needs before it (const ok = r.ok, or const data = await r.json()) and capture that
+u-two-returns-action-tojson: ACCEPT
+u-find-promise-object: ACCEPT
+u-find-gen-object: ACCEPT
+u-find-resp-unknown: ACCEPT
+u-find-action-tojson: ACCEPT
+u-flatmap-promise-object: ACCEPT
+u-flatmap-gen-object: ACCEPT
+u-flatmap-resp-unknown: REJECT g:rejected[iterator-capture]
+    g[iterator-capture] r holds a FetchResponse, captured by a nested function: a response's body can be read once, so the function may find it used up; read what the function needs before it (const ok = r.ok, or const data = await r.json()) and capture that
+u-flatmap-action-tojson: ACCEPT
+u-arrfrom-promise-object: ACCEPT
+u-arrfrom-gen-object: ACCEPT
+u-arrfrom-resp-unknown: ACCEPT
+u-arrfrom-action-tojson: ACCEPT
+u-spread-promise-object: ACCEPT
+u-spread-gen-object: ACCEPT
+u-spread-resp-unknown: ACCEPT
+u-spread-action-tojson: ACCEPT
+u-ternary-local-promise-object: ACCEPT
+u-ternary-local-gen-object: ACCEPT
+u-ternary-local-resp-unknown: ACCEPT
+u-ternary-local-action-tojson: ACCEPT
+u-nullish-promise-object: ACCEPT
+u-nullish-gen-object: ACCEPT
+u-nullish-resp-unknown: ACCEPT
+u-nullish-action-tojson: ACCEPT
+u-at-promise-object: ACCEPT
+u-at-gen-object: ACCEPT
+u-at-resp-unknown: ACCEPT
+u-at-action-tojson: ACCEPT
+u-slice-promise-object: ACCEPT
+u-slice-gen-object: ACCEPT
+u-slice-resp-unknown: ACCEPT
+u-slice-action-tojson: ACCEPT
+u-arrlit-action-tostring-sync: ACCEPT
+u-arrlit-action-tostring-await: ACCEPT
+t-narrow-promise: ACCEPT
+t-narrow-gen: ACCEPT
+t-narrow-agen: ACCEPT
+t-narrow-fn-promise: REJECT g:rejected[forgets]
+    g[forgets] Promise<string> is given the type object, which does not say what Promise<string> holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+t-narrow-resp: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type T'1000001, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+t-narrow-cell-input: ACCEPT
+t-narrow-reader: ACCEPT
+t-narrow-in-record: ACCEPT
+u-narrow-object-plain-held: ACCEPT
+x-String-fn: ACCEPT
+x-String-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-String-iter: ACCEPT
+x-String-map: ACCEPT
+x-String-resp: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+x-Number-fn: ACCEPT
+x-Number-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-Number-iter: ACCEPT
+x-Number-map: ACCEPT
+x-Number-resp: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+x-Boolean-fn: ACCEPT
+x-Boolean-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-Boolean-iter: ACCEPT
+x-Boolean-map: ACCEPT
+x-Boolean-resp: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+x-isArray-fn: ACCEPT
+x-isArray-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-isArray-iter: ACCEPT
+x-isArray-map: ACCEPT
+x-isArray-resp: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+x-isInteger-fn: ACCEPT
+x-isInteger-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-isInteger-iter: ACCEPT
+x-isInteger-map: ACCEPT
+x-isInteger-resp: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+x-isFinite-fn: ACCEPT
+x-isFinite-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-isFinite-iter: ACCEPT
+x-isFinite-map: ACCEPT
+x-isFinite-resp: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+x-isNaN-fn: ACCEPT
+x-isNaN-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-isNaN-iter: ACCEPT
+x-isNaN-map: ACCEPT
+x-isNaN-resp: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+x-isSafe-fn: ACCEPT
+x-isSafe-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-isSafe-iter: ACCEPT
+x-isSafe-map: ACCEPT
+x-isSafe-resp: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+x-stringify-rec-fn: ACCEPT
+x-stringify-rec-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-stringify-rec-iter: ACCEPT
+x-stringify-rec-map: ACCEPT
+x-stringify-rec-resp: REJECT g:rejected[handle-pass]
+    g[handle-pass] { k: Mut<FetchResponse> } is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+x-keys-fn: ACCEPT
+x-keys-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-keys-iter: ACCEPT
+x-keys-map: ACCEPT
+x-keys-resp: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type object, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+x-is-fn: ACCEPT
+x-is-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-is-iter: ACCEPT
+x-is-map: ACCEPT
+x-is-resp: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+x-template-fn: ACCEPT
+x-template-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-template-iter: ACCEPT
+x-template-map: ACCEPT
+x-template-resp: ACCEPT
+x-messageOf-fn: ACCEPT
+x-messageOf-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-messageOf-iter: ACCEPT
+x-messageOf-map: ACCEPT
+x-messageOf-resp: ACCEPT
+x-equals-fn: ACCEPT
+x-equals-gen: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+x-equals-iter: ACCEPT
+x-equals-map: ACCEPT
+x-equals-resp: ACCEPT
+x-equals-promises: ACCEPT
+x-equals-gens: ACCEPT
+x-equals-resps: ACCEPT
+x-equals-maps-held: ACCEPT

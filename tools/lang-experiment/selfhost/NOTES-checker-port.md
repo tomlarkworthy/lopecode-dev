@@ -3875,3 +3875,19 @@ One gate run on the tree committed (`selfhost/x1-check/gates-summary.txt`): buil
 compiled, `SS_MEASURE_REG=0` and `SS_MEASURE_BODYFN=0`; fa2 309/8/0, fa3 360/9/0; verify --quick 234 pass; full verify
 678 pass 0 fail; 34 of 34 test files exit 0. Not run by me: an attack on the x1 rules. Attacks 10, 11 and 12 each
 found breaks, so "no known silent program" here means the standing sets, not the language.
+
+## 2026-11-24 15:40: attack 13 received; fix rounds stopped
+
+Attack 13 (`selfhost/freeze-attack13/RESULTS.md`, `min.ts`; 483 programs under both runners, 248 probe sources), scoped
+to x1's rules. Four breaks, all silent under both runners, none fixed:
+- VA: an `Action` call is typed `void` and at run time gives back what the function given to `action(...)` returned.
+  `c.set(a() ?? 7)` puts a string in a number state. 22 of 40 accepted rows silent.
+- U: a value joined with one typed `unknown` (array literal, ternary, `??`, two returns, `find`, `at`, spread, …) becomes
+  `unknown`, and `plainWith` counts `unknown` as plain, so the value is never tested. A response leaves its cell; a
+  promise reaches `object`. 43 of 48 rows silent.
+- T: `typeof x === "object"` on a type parameter gives `object`; same clause as U.
+- L: `Array.from({ length: 1, 0: "s" })` is typed `undefined[]` and gives `["s"]`.
+The guard held: 35 accepted programs calling a laundered Action through about 30 paths were all refused under both
+runners; 23 interleaving programs gave 0 false refusals.
+Four attacks in one day (10, 11, 12, 13) each found a forgetting break at a new place. Per the rule set before w1, no
+fifth patch round is started; the question goes to Tom.

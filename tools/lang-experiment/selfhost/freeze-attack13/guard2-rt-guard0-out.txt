@@ -1,0 +1,115 @@
+== selfhost/freeze-attack13/guard2.ts:g2-then-optional: ACCEPT
+   drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   CHANGED drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   show c = 1
+   SILENT
+== selfhost/freeze-attack13/guard2.ts:g2-then-paren: ACCEPT
+   drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   CHANGED drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   show c = 1
+   SILENT
+== selfhost/freeze-attack13/guard2.ts:g2-state-init: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard2.ts:g2-state-init-then: ACCEPT
+   drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   CHANGED drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   show c = 1
+   SILENT
+events t threw; it yields nothing more until it runs again: 48 |   for (const e of r.effects) if (e.fx === "return") returned = e.value; else performStore(e);
+49 |   return returned;
+50 | }
+51 | function performStore(e: StoreEffect) {
+52 |   switch (e.fx) {
+53 |     case "throw": throw new Error(e.msg);
+                                 ^
+error: action called during a cell evaluation
+      at performStore (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:53:29)
+      at storeFeed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:48:78)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:190:5)
+      at t (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/infer/attack/drive-rt.ts:1:221)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:16:17)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:56:38)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/infer/attack/drive-rt.ts:80:117)
+      at observeCompiled (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/infer/attack/drive-rt.ts:102:230)
+      at async <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/infer/attack/drive-rt.ts:182:54)
+
+== selfhost/freeze-attack13/guard2.ts:g2-events-body: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0
+== selfhost/freeze-attack13/guard2.ts:g2-events-then: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 1
+events t threw; it yields nothing more until it runs again: 48 |   for (const e of r.effects) if (e.fx === "return") returned = e.value; else performStore(e);
+49 |   return returned;
+50 | }
+51 | function performStore(e: StoreEffect) {
+52 |   switch (e.fx) {
+53 |     case "throw": throw new Error(e.msg);
+                                 ^
+error: action called during a cell evaluation
+      at performStore (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:53:29)
+      at storeFeed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:48:78)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:190:5)
+      at t (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/infer/attack/drive-rt.ts:1:230)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:16:17)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:56:38)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/infer/attack/drive-rt.ts:80:117)
+      at async observeCompiled (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/infer/attack/drive-rt.ts:102:230)
+      at async <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/infer/attack/drive-rt.ts:182:54)
+
+== selfhost/freeze-attack13/guard2.ts:g2-events-between: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0
+== selfhost/freeze-attack13/guard2.ts:g2-listener-body: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0
+   error l: action called during a cell evaluation
+== selfhost/freeze-attack13/guard2.ts:g2-listener-then: ACCEPT
+   drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   CHANGED drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   show c = 1
+   SILENT
+== selfhost/freeze-attack13/guard2.ts:g2-jsx-child-then: ACCEPT
+   drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   CHANGED drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   show c = 1
+   SILENT
+== selfhost/freeze-attack13/guard2.ts:g2-ctl-state-init-then [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   CHANGED drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   show c = 1
+   CONTROL FIRED
+== selfhost/freeze-attack13/guard2.ts:g2-ctl-events-then [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   CHANGED drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   show c = 1
+   CONTROL FIRED
+== selfhost/freeze-attack13/guard2.ts:g2-ctl-listener-then [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   CHANGED drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   show c = 1
+   CONTROL FIRED
+== selfhost/freeze-attack13/guard2.ts:g2-ctl-events-agen-await [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   CHANGED drive -> DIFF STATE c is 1: the laundered action ran (put ok)
+   show c = 1
+   CONTROL FIRED
+== selfhost/freeze-attack13/guard2.ts:f-ctl-depth-raised [ctl]: CONTROL (checker skipped)
+   drive -> DIFF guard false positive? calls [THREW action called during a cell evaluation] seen=0
+   CHANGED drive -> DIFF guard false positive? calls [THREW action called during a cell evaluation] seen=0
+   show seen = 0
+   PENDING slow
+   CONTROL FIRED
+-- controls 5, ran 5, fired 5
+-- harness crashes 0
+-- 10 candidates, accepted 10, silent 5
+SILENT selfhost/freeze-attack13/guard2.ts:g2-then-optional
+SILENT selfhost/freeze-attack13/guard2.ts:g2-then-paren
+SILENT selfhost/freeze-attack13/guard2.ts:g2-state-init-then
+SILENT selfhost/freeze-attack13/guard2.ts:g2-listener-then
+SILENT selfhost/freeze-attack13/guard2.ts:g2-jsx-child-then
+-- checker throws 0 (parse errors 0)

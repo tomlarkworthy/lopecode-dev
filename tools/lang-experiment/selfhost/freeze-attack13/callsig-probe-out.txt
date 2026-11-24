@@ -1,0 +1,179 @@
+cs-arrow-length: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own length, and the type declares length of its own: leave length out of the type, or name the member differently
+cs-arrow-name: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-arrow-prototype: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own prototype, and the type declares prototype of its own: leave prototype out of the type, or name the member differently
+cs-arrow-arguments: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own arguments, and the type declares arguments of its own: leave arguments out of the type, or name the member differently
+cs-arrow-caller: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own caller, and the type declares caller of its own: leave caller out of the type, or name the member differently
+cs-arrow-apply: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own apply, and the type declares apply of its own: leave apply out of the type, or name the member differently
+cs-arrow-bind: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own bind, and the type declares bind of its own: leave bind out of the type, or name the member differently
+cs-arrow-call: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own call, and the type declares call of its own: leave call out of the type, or name the member differently
+cs-arrow-tag: ACCEPT
+cs-arrow-preconnect: ACCEPT
+cs-arrow-displayName: ACCEPT
+cs-arrow-0: ACCEPT
+cs-arrow-islands: ACCEPT
+cs-arrow-description: ACCEPT
+cs-fnexpr-length: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own length, and the type declares length of its own: leave length out of the type, or name the member differently
+cs-fnexpr-name: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-fnexpr-prototype: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own prototype, and the type declares prototype of its own: leave prototype out of the type, or name the member differently
+cs-fnexpr-arguments: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own arguments, and the type declares arguments of its own: leave arguments out of the type, or name the member differently
+cs-fnexpr-caller: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own caller, and the type declares caller of its own: leave caller out of the type, or name the member differently
+cs-fnexpr-apply: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own apply, and the type declares apply of its own: leave apply out of the type, or name the member differently
+cs-fnexpr-bind: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own bind, and the type declares bind of its own: leave bind out of the type, or name the member differently
+cs-fnexpr-call: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own call, and the type declares call of its own: leave call out of the type, or name the member differently
+cs-fnexpr-tag: ACCEPT
+cs-fnexpr-preconnect: ACCEPT
+cs-fnexpr-displayName: ACCEPT
+cs-fnexpr-0: ACCEPT
+cs-fnexpr-islands: ACCEPT
+cs-fnexpr-description: ACCEPT
+cs-memo-length: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own length, and the type declares length of its own: leave length out of the type, or name the member differently
+cs-memo-name: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-memo-prototype: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own prototype, and the type declares prototype of its own: leave prototype out of the type, or name the member differently
+cs-memo-arguments: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own arguments, and the type declares arguments of its own: leave arguments out of the type, or name the member differently
+cs-memo-caller: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own caller, and the type declares caller of its own: leave caller out of the type, or name the member differently
+cs-memo-apply: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own apply, and the type declares apply of its own: leave apply out of the type, or name the member differently
+cs-memo-bind: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own bind, and the type declares bind of its own: leave bind out of the type, or name the member differently
+cs-memo-call: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own call, and the type declares call of its own: leave call out of the type, or name the member differently
+cs-memo-tag: ACCEPT
+cs-memo-preconnect: ACCEPT
+cs-memo-displayName: ACCEPT
+cs-memo-0: ACCEPT
+cs-memo-islands: ACCEPT
+cs-memo-description: ACCEPT
+cs-async-length: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => Promise<number> is not assignable to F: every function has its own length, and the type declares length of its own: leave length out of the type, or name the member differently
+cs-async-name: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => Promise<number> is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-async-prototype: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => Promise<number> is not assignable to F: every function has its own prototype, and the type declares prototype of its own: leave prototype out of the type, or name the member differently
+cs-async-arguments: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => Promise<number> is not assignable to F: every function has its own arguments, and the type declares arguments of its own: leave arguments out of the type, or name the member differently
+cs-async-caller: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => Promise<number> is not assignable to F: every function has its own caller, and the type declares caller of its own: leave caller out of the type, or name the member differently
+cs-async-apply: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => Promise<number> is not assignable to F: every function has its own apply, and the type declares apply of its own: leave apply out of the type, or name the member differently
+cs-async-bind: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => Promise<number> is not assignable to F: every function has its own bind, and the type declares bind of its own: leave bind out of the type, or name the member differently
+cs-async-call: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => Promise<number> is not assignable to F: every function has its own call, and the type declares call of its own: leave call out of the type, or name the member differently
+cs-async-tag: ACCEPT
+cs-async-preconnect: ACCEPT
+cs-async-displayName: ACCEPT
+cs-async-0: ACCEPT
+cs-async-islands: ACCEPT
+cs-async-description: ACCEPT
+cs-now-length: REJECT g:rejected[forgets]
+    g[forgets] Clock is not assignable to F: every function has its own length, and the type declares length of its own: leave length out of the type, or name the member differently
+cs-now-name: REJECT g:rejected[forgets]
+    g[forgets] Clock is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-now-prototype: REJECT g:rejected[forgets]
+    g[forgets] Clock is not assignable to F: every function has its own prototype, and the type declares prototype of its own: leave prototype out of the type, or name the member differently
+cs-now-arguments: REJECT g:rejected[forgets]
+    g[forgets] Clock is not assignable to F: every function has its own arguments, and the type declares arguments of its own: leave arguments out of the type, or name the member differently
+cs-now-caller: REJECT g:rejected[forgets]
+    g[forgets] Clock is not assignable to F: every function has its own caller, and the type declares caller of its own: leave caller out of the type, or name the member differently
+cs-now-apply: REJECT g:rejected[forgets]
+    g[forgets] Clock is not assignable to F: every function has its own apply, and the type declares apply of its own: leave apply out of the type, or name the member differently
+cs-now-bind: REJECT g:rejected[forgets]
+    g[forgets] Clock is not assignable to F: every function has its own bind, and the type declares bind of its own: leave bind out of the type, or name the member differently
+cs-now-call: REJECT g:rejected[forgets]
+    g[forgets] Clock is not assignable to F: every function has its own call, and the type declares call of its own: leave call out of the type, or name the member differently
+cs-now-tag: ACCEPT
+cs-now-preconnect: ACCEPT
+cs-now-displayName: ACCEPT
+cs-now-0: ACCEPT
+cs-now-islands: ACCEPT
+cs-now-description: ACCEPT
+cs-random-length: REJECT g:rejected[forgets]
+    g[forgets] Random is not assignable to F: every function has its own length, and the type declares length of its own: leave length out of the type, or name the member differently
+cs-random-name: REJECT g:rejected[forgets]
+    g[forgets] Random is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-random-prototype: REJECT g:rejected[forgets]
+    g[forgets] Random is not assignable to F: every function has its own prototype, and the type declares prototype of its own: leave prototype out of the type, or name the member differently
+cs-random-arguments: REJECT g:rejected[forgets]
+    g[forgets] Random is not assignable to F: every function has its own arguments, and the type declares arguments of its own: leave arguments out of the type, or name the member differently
+cs-random-caller: REJECT g:rejected[forgets]
+    g[forgets] Random is not assignable to F: every function has its own caller, and the type declares caller of its own: leave caller out of the type, or name the member differently
+cs-random-apply: REJECT g:rejected[forgets]
+    g[forgets] Random is not assignable to F: every function has its own apply, and the type declares apply of its own: leave apply out of the type, or name the member differently
+cs-random-bind: REJECT g:rejected[forgets]
+    g[forgets] Random is not assignable to F: every function has its own bind, and the type declares bind of its own: leave bind out of the type, or name the member differently
+cs-random-call: REJECT g:rejected[forgets]
+    g[forgets] Random is not assignable to F: every function has its own call, and the type declares call of its own: leave call out of the type, or name the member differently
+cs-random-tag: ACCEPT
+cs-random-preconnect: ACCEPT
+cs-random-displayName: ACCEPT
+cs-random-0: ACCEPT
+cs-random-islands: ACCEPT
+cs-random-description: ACCEPT
+cs-log-length: REJECT g:rejected[forgets]
+    g[forgets] Log is not assignable to F: every function has its own length, and the type declares length of its own: leave length out of the type, or name the member differently
+cs-log-name: REJECT g:rejected[forgets]
+    g[forgets] Log is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-log-prototype: REJECT g:rejected[forgets]
+    g[forgets] Log is not assignable to F: every function has its own prototype, and the type declares prototype of its own: leave prototype out of the type, or name the member differently
+cs-log-arguments: REJECT g:rejected[forgets]
+    g[forgets] Log is not assignable to F: every function has its own arguments, and the type declares arguments of its own: leave arguments out of the type, or name the member differently
+cs-log-caller: REJECT g:rejected[forgets]
+    g[forgets] Log is not assignable to F: every function has its own caller, and the type declares caller of its own: leave caller out of the type, or name the member differently
+cs-log-apply: REJECT g:rejected[forgets]
+    g[forgets] Log is not assignable to F: every function has its own apply, and the type declares apply of its own: leave apply out of the type, or name the member differently
+cs-log-bind: REJECT g:rejected[forgets]
+    g[forgets] Log is not assignable to F: every function has its own bind, and the type declares bind of its own: leave bind out of the type, or name the member differently
+cs-log-call: REJECT g:rejected[forgets]
+    g[forgets] Log is not assignable to F: every function has its own call, and the type declares call of its own: leave call out of the type, or name the member differently
+cs-log-tag: ACCEPT
+cs-log-preconnect: ACCEPT
+cs-log-displayName: ACCEPT
+cs-log-0: ACCEPT
+cs-log-islands: ACCEPT
+cs-log-description: ACCEPT
+cs-alias: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-alias-tag: ACCEPT
+cs-param: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-kept: REJECT k:rejected[forgets]
+    k[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-member: REJECT g:rejected[forgets][forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently || g[forgets] { f: (x: number) => number } is not assignable to { f: F }: f: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-array: REJECT g:rejected[forgets][forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently || g[forgets] ((x: number) => number)[] is not assignable to F[]: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-union: REJECT g:rejected[type]
+    g[type] (x: number) => number is not assignable to F | number
+cs-ternary: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-map-value: REJECT g:rejected[forgets][type][type]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently || g[type] ["a", (x: number) => number] is not assignable to [string, F] || g[type] ["a", (x: number) => number][] is not assignable to Iterable<[string, F]>
+cs-generic: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-default: REJECT g:rejected[forgets][no-member]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently || g[no-member] no property name on (x: number) => number
+cs-return: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own name, and the type declares name of its own: leave name out of the type, or name the member differently
+cs-absorb-unknown: ACCEPT
+cs-own-declared-held: ACCEPT

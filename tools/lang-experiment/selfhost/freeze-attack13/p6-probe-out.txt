@@ -1,0 +1,27 @@
+abs-arr-type: ACCEPT
+abs-promise-top: ACCEPT
+abs-resp-top: ACCEPT
+abs-action: ACCEPT
+abs-action-inaction: ACCEPT
+abs-state: ACCEPT
+abs-arrayof-action: REJECT g:rejected[action-pass]
+    g[action-pass] Action<[number]> is given the type unknown, which hides its Action<[number]>; an Action goes only where an Action is expected
+abs-with-promise: ACCEPT
+abs-map-cb: ACCEPT
+abs-two-returns: ACCEPT
+abs-find: ACCEPT
+abs-flatmap: ACCEPT
+abs-values: REJECT g:rejected[forgets]
+    g[forgets] Promise<string> is given the type object, which does not say what Promise<string> holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+abs-values-type: REJECT g:rejected[forgets]
+    g[forgets] () => number | undefined is given the type unknown, which does not say what () => number | undefined holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+abs-cast: ACCEPT
+abs-then-unk: REJECT g:rejected[forgets]
+    g[forgets] Promise<string> is given the type object, which does not say what Promise<string> holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+abs-arrfrom: ACCEPT
+abs-spread-unk: ACCEPT
+tv-narrow-promise: ACCEPT
+tv-narrow-gen: ACCEPT
+tv-narrow-action: REJECT g:rejected[action-pass]
+    g[action-pass] Action<[number]> is given the type T'1000001, which hides its Action<[number]>; an Action goes only where an Action is expected
+unk-narrow-object: ACCEPT

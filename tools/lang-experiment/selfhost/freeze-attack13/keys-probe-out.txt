@@ -1,0 +1,164 @@
+l-literal-local: ACCEPT
+l-literal-annot: ACCEPT
+l-literal-map-cb: ACCEPT
+l-param: ACCEPT
+l-cell-input: ACCEPT
+l-cell-input-cb: ACCEPT
+l-nested-key: ACCEPT
+l-string-key: REJECT g:unsupported
+    g{unsupported computed property}
+l-fe-length: ACCEPT
+l-cast: ACCEPT
+l-array-given: REJECT g:rejected[forgets]
+    g[forgets] string[] is not assignable to { length: number }: string[] is not a record, so a record type does not take it: give it its own type (string[])
+l-string-given: REJECT g:rejected[forgets]
+    g[forgets] "s" is not assignable to { length: number }: "s" is not a record, so a record type does not take it: give it its own type ("s")
+l-u8-given: REJECT g:rejected[forgets]
+    g[forgets] Uint8Array is not assignable to { length: number }: Uint8Array is not a record, so a record type does not take it: give it its own type (Uint8Array)
+k-fe-toString-json: ACCEPT
+k-fe-toString-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-fe-toString-equals: ACCEPT
+k-fe-valueOf-json: ACCEPT
+k-fe-valueOf-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-fe-valueOf-equals: ACCEPT
+k-fe-toJSON-json: ACCEPT
+k-fe-toJSON-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-fe-toJSON-equals: ACCEPT
+k-fe-then-json: ACCEPT
+k-fe-then-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-fe-then-equals: ACCEPT
+k-fe-constructor-json: ACCEPT
+k-fe-constructor-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-fe-constructor-equals: ACCEPT
+k-fe-__proto__-json: ACCEPT
+k-fe-__proto__-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-fe-__proto__-equals: ACCEPT
+k-fe-length-json: ACCEPT
+k-fe-length-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-fe-length-equals: ACCEPT
+k-fe-0-json: ACCEPT
+k-fe-0-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-fe-0-equals: ACCEPT
+k-fe-hasOwnProperty-json: ACCEPT
+k-fe-hasOwnProperty-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-fe-hasOwnProperty-equals: ACCEPT
+k-fe-next-json: ACCEPT
+k-fe-next-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-fe-next-equals: ACCEPT
+k-fe-return-json: ACCEPT
+k-fe-return-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-fe-return-equals: ACCEPT
+k-fe-size-json: ACCEPT
+k-fe-size-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-fe-size-equals: ACCEPT
+k-map-toString-json: ACCEPT
+k-map-toString-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-map-toString-equals: ACCEPT
+k-map-valueOf-json: ACCEPT
+k-map-valueOf-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-map-valueOf-equals: ACCEPT
+k-map-toJSON-json: ACCEPT
+k-map-toJSON-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-map-toJSON-equals: ACCEPT
+k-map-then-json: ACCEPT
+k-map-then-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-map-then-equals: ACCEPT
+k-map-constructor-json: ACCEPT
+k-map-constructor-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-map-constructor-equals: ACCEPT
+k-map-__proto__-json: ACCEPT
+k-map-__proto__-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-map-__proto__-equals: ACCEPT
+k-map-length-json: ACCEPT
+k-map-length-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-map-length-equals: ACCEPT
+k-map-0-json: ACCEPT
+k-map-0-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-map-0-equals: ACCEPT
+k-map-hasOwnProperty-json: ACCEPT
+k-map-hasOwnProperty-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-map-hasOwnProperty-equals: ACCEPT
+k-map-next-json: ACCEPT
+k-map-next-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-map-next-equals: ACCEPT
+k-map-return-json: ACCEPT
+k-map-return-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-map-return-equals: ACCEPT
+k-map-size-json: ACCEPT
+k-map-size-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-map-size-equals: ACCEPT
+k-entries-toString-json: ACCEPT
+k-entries-toString-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-entries-toString-equals: ACCEPT
+k-entries-valueOf-json: ACCEPT
+k-entries-valueOf-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-entries-valueOf-equals: ACCEPT
+k-entries-toJSON-json: ACCEPT
+k-entries-toJSON-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-entries-toJSON-equals: ACCEPT
+k-entries-then-json: ACCEPT
+k-entries-then-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-entries-then-equals: ACCEPT
+k-entries-constructor-json: ACCEPT
+k-entries-constructor-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-entries-constructor-equals: ACCEPT
+k-entries-__proto__-json: ACCEPT
+k-entries-__proto__-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-entries-__proto__-equals: ACCEPT
+k-entries-length-json: ACCEPT
+k-entries-length-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-entries-length-equals: ACCEPT
+k-entries-0-json: ACCEPT
+k-entries-0-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-entries-0-equals: ACCEPT
+k-entries-hasOwnProperty-json: ACCEPT
+k-entries-hasOwnProperty-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-entries-hasOwnProperty-equals: ACCEPT
+k-entries-next-json: ACCEPT
+k-entries-next-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-entries-next-equals: ACCEPT
+k-entries-return-json: ACCEPT
+k-entries-return-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-entries-return-equals: ACCEPT
+k-entries-size-json: ACCEPT
+k-entries-size-await: REJECT g:rejected[type][type]
+    g[type] Mut<{ [k: string]: number }> is not assignable to Mut<{ [k: string]: number }> | Promise<Mut<{ [k: string]: number }>> || g[type] unknown is not assignable to object
+k-entries-size-equals: ACCEPT
+k-jsonparse-proto-cast: ACCEPT
+k-sc-proto: ACCEPT
+k-usp: ACCEPT

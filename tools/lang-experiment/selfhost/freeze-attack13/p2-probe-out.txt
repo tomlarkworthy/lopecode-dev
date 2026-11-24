@@ -1,0 +1,76 @@
+act-ret-type: ACCEPT
+act-ret-type2: REJECT b:rejected[possibly-undefined]
+    b[possibly-undefined] void is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+act-ret-type3: ACCEPT
+act-opt-arg: REJECT g:rejected[inject-type]
+    g[inject-type] a: Action<[number | undefined]> is not assignable to Action<[]>
+act-foreach-extra: REJECT b:rejected[action-pass]
+    b[action-pass] Action<err> is not assignable to (v: number, i: number) => unknown || b{unsupported TSOptionalType}
+map-extra-param: ACCEPT
+map-extra-param2: ACCEPT
+filter-extra: ACCEPT
+arrayfrom-extra: ACCEPT
+reduce-extra: ACCEPT
+sort-extra: ACCEPT
+then-extra: ACCEPT
+update-extra: ACCEPT
+memo-extra: ACCEPT
+iface-method-void: REJECT g:rejected[type]
+    g[type] 5 is not assignable to void
+rec-member-void: REJECT g:rejected[type]
+    g[type] 5 is not assignable to void
+gen-ret-checked: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number, void>
+gen-next: ACCEPT
+gen-next2: REJECT g:unsupported
+    g{unsupported intrinsic member Generator.next}
+gen-ret-fn: REJECT g:rejected[type]
+    g[type] spread of non-iterable Generator<number>
+err-cause-fn: REJECT g:rejected[arity]
+    g[arity] expected at most 1 arguments, got 2
+err-cause-res: REJECT g:rejected[arity]
+    g[arity] expected at most 1 arguments, got 2
+map-unk-set: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+array-fill: REJECT g:unsupported
+    g{unsupported new Array}
+array-ctor: REJECT g:unsupported
+    g{unsupported new Array}
+bind-partial: REJECT g:rejected[no-member]
+    g[no-member] no property bind on (x: number, y: string) => string
+fn-length: REJECT g:rejected[no-member]
+    g[no-member] no property length on (x: number) => number
+fn-name: REJECT g:rejected[no-member]
+    g[no-member] no property name on (x: number) => number
+fn-call: REJECT g:rejected[no-member]
+    g[no-member] no property call on (x: number) => number
+fn-apply: REJECT g:rejected[no-member]
+    g[no-member] no property apply on (x: number) => number
+fn-tostring: REJECT g:rejected[no-member]
+    g[no-member] no property toString on (x: number) => number
+fn-prop-assign: REJECT g:rejected[member-write][no-member]
+    g[member-write] write to a (x: number) => number, which is not Mut; a copy made in the same expression (snapshot(f)) or bound to a local (const y = snapshot(f)) is writable || g[no-member] no property tag on (x: number) => number
+cs-overload: REJECT g:rejected[type]
+    g[type] (x: number) => number is not assignable to F
+cs-overload2: REJECT g:rejected[type][type]
+    g[type] number | string is not assignable to number || g[type] (x: number | string) => number | string is not assignable to F
+cs-intersect: REJECT g:unsupported
+    g{unsupported IntersectionType type}
+cs-intersect2: REJECT g:unsupported
+    g{unsupported IntersectionType type}
+cs-prototype: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => number is not assignable to F: every function has its own prototype, and the type declares prototype of its own: leave prototype out of the type, or name the member differently
+cs-tag-opt: ACCEPT
+cs-fnexpr: ACCEPT
+cs-memo: ACCEPT
+cs-callable-rec-src: REJECT g:rejected[type]
+    g[type] H is not assignable to F
+cs-generic-fn: REJECT g:rejected[type]
+    g[type] <T>(x: T) => T is not assignable to F
+cs-action: REJECT g:rejected[action-pass]
+    g[action-pass] Action<[number]> is not assignable to F
+cs-symbol: ACCEPT
+cs-num-key: ACCEPT
+cs-idx: REJECT g:rejected[type]
+    g[type] (x: number) => number is not assignable to F
+cs-ctor: ACCEPT

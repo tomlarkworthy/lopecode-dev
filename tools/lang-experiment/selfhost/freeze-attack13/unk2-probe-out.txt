@@ -1,0 +1,4 @@
+t-narrow-in-record-await: ACCEPT
+u-arrlit-in-record-await: ACCEPT
+u-arrlit-in-array-unknown: ACCEPT
+u-arrlit-in-state: ACCEPT

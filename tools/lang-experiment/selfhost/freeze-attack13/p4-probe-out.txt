@@ -1,0 +1,23 @@
+then-template: REJECT g:rejected[type]
+    g[type] cannot index Promise<number> with "then"
+then-const-key: REJECT g:rejected[type]
+    g[type] cannot index Promise<number> with "then"
+then-concat-key: REJECT g:rejected[type]
+    g[type] cannot index Promise<number> with string
+then-optional: ACCEPT
+then-paren: ACCEPT
+state-init: ACCEPT
+state-init-then: ACCEPT
+events-body: ACCEPT
+events-then: ACCEPT
+listener-body: ACCEPT
+listener-then: ACCEPT
+union-call: REJECT g:rejected[action-call]
+    g[action-call] an Action called outside action(...)
+union-call-narrow: ACCEPT
+union-store: REJECT h:rejected[reserved-name][action-call]
+    h[reserved-name] h is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named h clashes with that binding; give the cell another name || h[action-call] an Action called outside action(...)
+catch-only: REJECT g:unsupported
+    g{unsupported intrinsic member Promise.catch}
+finally-only: REJECT g:unsupported
+    g{unsupported intrinsic member Promise.finally}

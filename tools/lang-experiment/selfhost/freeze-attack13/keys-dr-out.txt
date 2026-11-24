@@ -1,0 +1,312 @@
+== selfhost/freeze-attack13/keys.ts:l-literal-local: ACCEPT
+   drive -> DIFF g is outside its type: object ["s","t"]
+   show g = ["s","t"] | E[]
+   SILENT
+== selfhost/freeze-attack13/keys.ts:l-literal-annot: ACCEPT
+   drive -> same: [null]
+   show g = [undefined] | E[]
+== selfhost/freeze-attack13/keys.ts:l-literal-map-cb: ACCEPT
+   drive -> DIFF g is outside its type: object ["s"]
+   show g = ["s"] | E[]
+   SILENT
+== selfhost/freeze-attack13/keys.ts:l-param: ACCEPT
+   drive -> DIFF g is outside its type: object ["s"]
+   show g = ["s"] | E[]
+   SILENT
+== selfhost/freeze-attack13/keys.ts:l-cell-input: ACCEPT
+   drive -> DIFF g is outside its type: object ["s"]
+   show g = ["s"] | E[]
+   SILENT
+== selfhost/freeze-attack13/keys.ts:l-cell-input-cb: ACCEPT
+   drive -> DIFF g is outside its type: object ["s"]
+   show g = ["s"] | E[]
+   SILENT
+== selfhost/freeze-attack13/keys.ts:l-nested-key: ACCEPT
+   drive -> DIFF g is outside its type: object [{"x":1}]
+   show g = [{x:1}] | E[]
+   SILENT
+== selfhost/freeze-attack13/keys.ts:l-string-key: REJECT g:unsupported
+== selfhost/freeze-attack13/keys.ts:l-fe-length: ACCEPT
+   drive -> same: [null]
+   show g = [undefined] | E[]
+== selfhost/freeze-attack13/keys.ts:l-cast: ACCEPT
+   drive -> same: [null]
+   show g = [undefined] | E[]
+== selfhost/freeze-attack13/keys.ts:l-array-given: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/keys.ts:l-string-given: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/keys.ts:l-u8-given: REJECT g:rejected[forgets]
+== selfhost/freeze-attack13/keys.ts:l-ctl [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object ["s"]
+   show g = ["s"] | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/keys.ts:k-fe-toString-json: ACCEPT
+   drive -> same: 20
+   show g = 20 | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-toString-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-fe-toString-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-valueOf-json: ACCEPT
+   drive -> same: 19
+   show g = 19 | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-valueOf-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-fe-valueOf-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-toJSON-json: ACCEPT
+   drive -> same: 18
+   show g = 18 | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-toJSON-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-fe-toJSON-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-then-json: ACCEPT
+   drive -> same: 16
+   show g = 16 | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-then-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-fe-then-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-constructor-json: ACCEPT
+   drive -> same: 23
+   show g = 23 | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-constructor-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-fe-constructor-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-__proto__-json: ACCEPT
+   drive -> same: 21
+   show g = 21 | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-__proto__-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-fe-__proto__-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-length-json: ACCEPT
+   drive -> same: 18
+   show g = 18 | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-length-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-fe-length-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-0-json: ACCEPT
+   drive -> same: 13
+   show g = 13 | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-0-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-fe-0-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-hasOwnProperty-json: ACCEPT
+   drive -> same: 26
+   show g = 26 | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-hasOwnProperty-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-fe-hasOwnProperty-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-next-json: ACCEPT
+   drive -> same: 16
+   show g = 16 | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-next-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-fe-next-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-return-json: ACCEPT
+   drive -> same: 18
+   show g = 18 | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-return-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-fe-return-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-size-json: ACCEPT
+   drive -> same: 16
+   show g = 16 | E[]
+== selfhost/freeze-attack13/keys.ts:k-fe-size-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-fe-size-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-toString-json: ACCEPT
+   drive -> same: 20
+   show g = 20 | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-toString-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-map-toString-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-valueOf-json: ACCEPT
+   drive -> same: 19
+   show g = 19 | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-valueOf-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-map-valueOf-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-toJSON-json: ACCEPT
+   drive -> same: 18
+   show g = 18 | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-toJSON-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-map-toJSON-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-then-json: ACCEPT
+   drive -> same: 16
+   show g = 16 | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-then-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-map-then-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-constructor-json: ACCEPT
+   drive -> same: 23
+   show g = 23 | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-constructor-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-map-constructor-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-__proto__-json: ACCEPT
+   drive -> same: 21
+   show g = 21 | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-__proto__-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-map-__proto__-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-length-json: ACCEPT
+   drive -> same: 18
+   show g = 18 | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-length-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-map-length-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-0-json: ACCEPT
+   drive -> same: 13
+   show g = 13 | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-0-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-map-0-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-hasOwnProperty-json: ACCEPT
+   drive -> same: 26
+   show g = 26 | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-hasOwnProperty-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-map-hasOwnProperty-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-next-json: ACCEPT
+   drive -> same: 16
+   show g = 16 | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-next-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-map-next-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-return-json: ACCEPT
+   drive -> same: 18
+   show g = 18 | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-return-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-map-return-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-size-json: ACCEPT
+   drive -> same: 16
+   show g = 16 | E[]
+== selfhost/freeze-attack13/keys.ts:k-map-size-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-map-size-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-toString-json: ACCEPT
+   drive -> same: 20
+   show g = 20 | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-toString-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-entries-toString-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-valueOf-json: ACCEPT
+   drive -> same: 19
+   show g = 19 | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-valueOf-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-entries-valueOf-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-toJSON-json: ACCEPT
+   drive -> same: 18
+   show g = 18 | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-toJSON-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-entries-toJSON-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-then-json: ACCEPT
+   drive -> same: 16
+   show g = 16 | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-then-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-entries-then-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-constructor-json: ACCEPT
+   drive -> same: 23
+   show g = 23 | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-constructor-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-entries-constructor-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-__proto__-json: ACCEPT
+   drive -> same: 21
+   show g = 21 | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-__proto__-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-entries-__proto__-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-length-json: ACCEPT
+   drive -> same: 18
+   show g = 18 | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-length-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-entries-length-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-0-json: ACCEPT
+   drive -> same: 13
+   show g = 13 | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-0-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-entries-0-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-hasOwnProperty-json: ACCEPT
+   drive -> same: 26
+   show g = 26 | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-hasOwnProperty-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-entries-hasOwnProperty-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-next-json: ACCEPT
+   drive -> same: 16
+   show g = 16 | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-next-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-entries-next-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-return-json: ACCEPT
+   drive -> same: 18
+   show g = 18 | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-return-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-entries-return-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-size-json: ACCEPT
+   drive -> same: 16
+   show g = 16 | E[]
+== selfhost/freeze-attack13/keys.ts:k-entries-size-await: REJECT g:rejected[type][type]
+== selfhost/freeze-attack13/keys.ts:k-entries-size-equals: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack13/keys.ts:k-jsonparse-proto-cast: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack13/keys.ts:k-sc-proto: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/keys.ts:k-usp: ACCEPT
+   drive -> same: "toString=a&then=b"
+   show g = "toString=a&then=b" | E[]
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 124 candidates, accepted 84, silent 6 (by the tap alone 0)
+SILENT selfhost/freeze-attack13/keys.ts:l-literal-local
+SILENT selfhost/freeze-attack13/keys.ts:l-literal-map-cb
+SILENT selfhost/freeze-attack13/keys.ts:l-param
+SILENT selfhost/freeze-attack13/keys.ts:l-cell-input
+SILENT selfhost/freeze-attack13/keys.ts:l-cell-input-cb
+SILENT selfhost/freeze-attack13/keys.ts:l-nested-key
+-- checker throws 0 (parse errors 0)

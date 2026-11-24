@@ -1,0 +1,52 @@
+v-act-str-nullish: ACCEPT
+v-act-str-or: ACCEPT
+v-act-str-plus: ACCEPT
+v-act-fn: ACCEPT
+v-act-arr: ACCEPT
+v-act-rec: ACCEPT
+v-act-action: ACCEPT
+v-act-arg-echo: ACCEPT
+v-act-tuple: ACCEPT
+v-act-map-site: ACCEPT
+v-act-narrow-never: ACCEPT
+v-act-typeof-held: ACCEPT
+v-act-string-state: ACCEPT
+v-act-bool: ACCEPT
+v-act-update: ACCEPT
+v-act-mut-arr: ACCEPT
+v-act-launder-action-state: ACCEPT
+v-act-launder-handle: ACCEPT
+v-act-launder-mut: ACCEPT
+v-act-chain: ACCEPT
+v-act-forEach: ACCEPT
+v-act-array-from: ACCEPT
+v-act-reduce: ACCEPT
+v-act-sort: ACCEPT
+v-act-generic: REJECT b:rejected[type][possibly-undefined]
+    b[type] 7 is not assignable to void || b[possibly-undefined] void is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+v-act-record: ACCEPT
+v-act-listener: ACCEPT
+v-held-void-union: ACCEPT
+v-held-void-union-num: ACCEPT
+v-held-void-expr: ACCEPT
+v-held-undef-ret: ACCEPT
+v-held-block-assign: ACCEPT
+v-held-gen-return: ACCEPT
+v-held-gen-return-val: ACCEPT
+v-held-promise-void: ACCEPT
+v-held-promise-void-ret: ACCEPT
+v-held-then-void: ACCEPT
+v-held-foreach-set-fn: REJECT g:rejected[forgets]
+    g[forgets] (x: number) => () => number is given the type (v: number) => unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+v-held-foreach-map-res: REJECT g:rejected[handle-pass][iterator-capture]
+    g[handle-pass] () => Mut<FetchResponse> is given the type (v: number, k: number) => unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected || g[iterator-capture] r holds a FetchResponse, captured by a nested function: a response's body can be read once, so the function may find it used up; read what the function needs before it (const ok = r.ok, or const data = await r.json()) and capture that
+v-held-foreach-arr-res: REJECT g:rejected[handle-pass][iterator-capture]
+    g[handle-pass] () => Mut<FetchResponse> is given the type (v: number, i: number) => unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected || g[iterator-capture] r holds a FetchResponse, captured by a nested function: a response's body can be read once, so the function may find it used up; read what the function needs before it (const ok = r.ok, or const data = await r.json()) and capture that
+v-held-log-fn: REJECT g:rejected[forgets]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+v-held-log-res: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+v-held-rec-void-member: ACCEPT
+v-held-cs-void-member: ACCEPT
+v-held-memo-void: ACCEPT
+v-held-events-return: ACCEPT

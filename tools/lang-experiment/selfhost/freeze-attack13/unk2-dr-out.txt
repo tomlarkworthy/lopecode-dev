@@ -1,0 +1,24 @@
+== selfhost/freeze-attack13/unk2.ts:t-narrow-in-record-await: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk2.ts:u-arrlit-in-record-await: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack13/unk2.ts:u-arrlit-in-array-unknown: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk2.ts:u-arrlit-in-state: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack13/unk2.ts:t-narrow-in-record-ctl [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 4 candidates, accepted 4, silent 2 (by the tap alone 0)
+SILENT selfhost/freeze-attack13/unk2.ts:t-narrow-in-record-await
+SILENT selfhost/freeze-attack13/unk2.ts:u-arrlit-in-record-await
+-- checker throws 0 (parse errors 0)

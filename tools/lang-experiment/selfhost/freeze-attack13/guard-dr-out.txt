@@ -1,0 +1,363 @@
+== selfhost/freeze-attack13/guard.ts:g-sync: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-after-await: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-then-cb: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-then-direct: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-then-computed: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-then-after-all: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-obj-async-method: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-async-component: REJECT g:rejected[type]
+== selfhost/freeze-attack13/guard.ts:g-agen-yield-await: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-agen-after-await: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-gen-between: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-nested-helper: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-try-finally: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-rejected-await: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-sort-after-await: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-map-after-await: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-expr-body: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-kept-async: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-kept-sync-then: ACCEPT
+   drive -> same: c=0 (put ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-agen-finally-return: ACCEPT
+   drive -> same: c=0 (put ok, bx ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-agen-finally-await-return: ACCEPT
+   drive -> same: c=0 (put ok, bx ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-gen-finally-return: ACCEPT
+   drive -> same: c=0 (put ok, bx ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-invalidation-then: ACCEPT
+   drive -> same: c=0 (put ok, bx ok); g fulfilled 
+   show c = 0 | E[]
+   show g = 1 | E[]
+   late throws: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-invalidation-await: ACCEPT
+   drive -> same: c=0 (put ok, bx ok); g pending 
+   show c = 0 | E[]
+   show g = undefined | E[]
+   PENDING g
+   late throws: action called during a cell evaluation
+== selfhost/freeze-attack13/guard.ts:g-agen-invalidation: ACCEPT
+   drive -> same: c=0 (put ok, bx ok); g fulfilled 
+   show c = 0 | E[]
+   show g = 1 | E[]
+== selfhost/freeze-attack13/guard.ts:g-events-agen-finally: REJECT l:rejected[inject-events]
+events t threw; it yields nothing more until it runs again: 48 |   for (const e of r.effects) if (e.fx === "return") returned = e.value; else performStore(e);
+49 |   return returned;
+50 | }
+51 | function performStore(e: StoreEffect) {
+52 |   switch (e.fx) {
+53 |     case "throw": throw new Error(e.msg);
+                                 ^
+error: action called during a cell evaluation
+      at performStore (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:53:29)
+      at storeFeed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:48:78)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:190:5)
+      at t (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:141)
+      at next (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:251:47)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:16:17)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:16:17)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:56:38)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:82:112)
+      at async runCand (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:87:238)
+
+== selfhost/freeze-attack13/guard.ts:g-events-gen-finally: ACCEPT
+   drive -> same: c=0 (put ok, bx ok); g fulfilled 
+   show c = 0 | E[]
+   show g = 1 | E[]
+== selfhost/freeze-attack13/guard.ts:g-memo-wrap: REJECT g:rejected[memo-pure]
+== selfhost/freeze-attack13/guard.ts:g-ctl-catch-cb [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1 | E[]
+   show g = 1 | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/guard.ts:g-ctl-new-promise-then [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard.ts:g-ctl-new-promise-exec-later [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 g pending 
+   show c = 0 | E[]
+   show g = undefined | E[]
+   PENDING g
+   late throws: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard.ts:g-ctl-queueMicrotask [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1 | E[]
+   show g = 1 | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/guard.ts:g-ctl-thenable-await [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1 | E[]
+   show g = 1 | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/guard.ts:g-ctl-thenable-resolve [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1 | E[]
+   show g = 1 | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/guard.ts:g-ctl-then-spread [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1 | E[]
+   show g = 1 | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/guard.ts:g-ctl-then-alias [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1 | E[]
+   show g = 1 | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack13/guard.ts:g-ctl-memo-async [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard.ts:g-ctl-agen-finally-return [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 (bx ok); g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard.ts:g-ctl-agen-after-await [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard.ts:g-ctl-async-component [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 g rejected a promise where it cannot be replaced (among a function's captures, in an Error or in an already fro
+   show c = 0 | E[]
+   show g = ERROR a promise where it cannot be replaced (among a function's captures, in an Error or in an already frozen value): it would settle after its cell publishes it
+   error g: a promise where it cannot be replaced (among a function's captures, in an Error or in an already frozen value): it would settle after its cell publishes it
+   late throws: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard.ts:g-ctl-obj-async-method [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard.ts:g-ctl-fetch-then [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard.ts:g-ctl-await-fetch [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard.ts:g-ctl-text-then [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard.ts:g-ctl-outside-async [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 g rejected ext is not defined
+   show c = 0 | E[]
+   show g = ERROR ext is not defined
+   error g: ext is not defined
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard.ts:f-await-inv: ACCEPT
+   drive -> same: calls [ok] seen=1 (want 1) slow pending
+   show seen = 1 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-await-inv-dep: ACCEPT
+   drive -> same: calls [ok] seen=1 (want 1) slow pending
+   show seen = 1 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-await-inv-dep-twice: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-await-inv-dep-sync2: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-await-inv-dep-micro: ACCEPT
+   drive -> same: calls [ok; ok; ok] seen=3 (want 3) slow pending
+   show seen = 3 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-await-inv-dep-then: ACCEPT
+   drive -> same: calls [ok; ok; ok] seen=3 (want 3) slow pending
+   show seen = 3 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-try-finally: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-loop: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-nested-helper: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-expr-body: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-agen: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow fulfilled
+   show seen = 2 | E[]
+   show slow = 1 | E[]
+== selfhost/freeze-attack13/guard.ts:f-agen-finally: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow fulfilled
+   show seen = 2 | E[]
+   show slow = 2 | E[]
+== selfhost/freeze-attack13/guard.ts:f-then-pending: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-all-pending: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-kept-async: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-two-slow: ACCEPT
+   drive -> same: calls [ok; ok; ok] seen=3 (want 3) slow pending
+   show seen = 3 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+   PENDING slow2
+== selfhost/freeze-attack13/guard.ts:f-rejected-then-wait: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-bound-then-pending: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow fulfilled
+   show seen = 2 | E[]
+   show slow = 3 | E[]
+== selfhost/freeze-attack13/guard.ts:f-listener: ACCEPT
+   drive -> same: calls [] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-listener-3: ACCEPT
+   drive -> same: calls [] seen=3 (want 3) slow pending
+   show seen = 3 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-listener-and-call: ACCEPT
+   drive -> same: calls [ok; ok] seen=3 (want 3) slow pending
+   show seen = 3 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-handler: ACCEPT
+   drive -> same: calls [ok; ok] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+== selfhost/freeze-attack13/guard.ts:f-events-wait: ACCEPT
+   drive -> same: calls [ok] seen=2 (want 2) slow pending
+   show seen = 2 | E[]
+   show slow = undefined | E[]
+   PENDING slow
+   PENDING slow2
+-- controls 17, ran 17, fired 6
+-- harness crashes 0
+-- 51 candidates, accepted 48, silent 0 (by the tap alone 0)
+-- checker throws 0 (parse errors 0)

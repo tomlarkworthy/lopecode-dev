@@ -1,0 +1,52 @@
+state-fn: ACCEPT
+state-fn-async: ACCEPT
+then-spread: REJECT g:unsupported
+    g{unsupported spread argument to a non-rest parameter}
+then-computed: ACCEPT
+then-2args: REJECT g:rejected[arity][untyped-parameter]
+    g[arity] expected at most 1 arguments, got 2 || g[untyped-parameter] parameter has no type and no contextual type
+state-handle-launder: ACCEPT
+arrfrom-len: REJECT g:rejected[arity][excess-property]
+    g[arity] expected at least 2 arguments, got 1 || g[excess-property] property 0 is not in { length: number }
+arrfrom-len-map: REJECT g:rejected[excess-property]
+    g[excess-property] property 0 is not in { length: number }
+arrfrom-fe: REJECT g:rejected[arity][type]
+    g[arity] expected at least 2 arguments, got 1 || g[type] { [k: string]: number } is not assignable to { length: number }
+u8-ctor-rec: REJECT g:rejected[type]
+    g[type] { length: 1; 0: 5 } is not assignable to ArrayBuffer
+equals-promise: ACCEPT
+equals-gen: ACCEPT
+equals-res: ACCEPT
+string-gen: ACCEPT
+keys-res: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type object, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+isarray-res: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+template-res: ACCEPT
+number-res: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+json-res: REJECT g:rejected[handle-pass]
+    g[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+json-rec-res: REJECT g:rejected[handle-pass]
+    g[handle-pass] { r: Mut<FetchResponse> } is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+msg-res: ACCEPT
+snap-res: REJECT g:rejected[iterator-cell]
+    g[iterator-cell] value FetchResponse holds a FetchResponse: a response's body can be read once, so the cells that take it would find it used up, depending on the order they run in; read the body in this cell and give the data (const data = async (fetch: Fetch) => (await fetch(url)).json())
+sc-res: REJECT g:rejected[type][iterator-cell]
+    g[type] structuredClone of Mut<FetchResponse>, which is or holds a FetchResponse: the clone would throw or lose it || g[iterator-cell] value FetchResponse holds a FetchResponse: a response's body can be read once, so the cells that take it would find it used up, depending on the order they run in; read the body in this cell and give the data (const data = async (fetch: Fetch) => (await fetch(url)).json())
+equals-act: ACCEPT
+catch-unk-rec: ACCEPT
+arrof-unk: ACCEPT
+unk-param-cb: REJECT g:rejected[forgets]
+    g[forgets] (x: unknown) => string is given the type (v: () => number, i: number) => string, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+memo-unk: REJECT g:rejected[forgets][memo-pure]
+    g[forgets] () => number is given the type unknown, which does not say what () => number holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it || g[memo-pure] a parameter of memo's function is unknown, which may be or hold a function: a function may read a capability, so the stored result could be stale; take data
+cs-hasinstance: REJECT g:unsupported
+    g{unsupported computed property signature} || g{unsupported intrinsic Symbol has no signature in lite/intrinsics.ts}
+fetch-preconnect: REJECT module[mut-nested]
+    module[mut-nested] Mut<…> inside another type or as a function's result; only the whole type of a parameter, of a local or of a type alias may be a Mut: give the inner value its own Mut local or parameter, or drop the Mut (a local bound to a fresh value is writable)
+agen-cell: ACCEPT
+async-comp: ACCEPT
+obj-async-method: ACCEPT
+memo-async: REJECT g:rejected[memo-pure]
+    g[memo-pure] the function given to memo(...) is async; a stored promise or generator would be shared by every call

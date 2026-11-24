@@ -1,0 +1,10 @@
+g2-then-optional: ACCEPT
+g2-then-paren: ACCEPT
+g2-state-init: ACCEPT
+g2-state-init-then: ACCEPT
+g2-events-body: ACCEPT
+g2-events-then: ACCEPT
+g2-events-between: ACCEPT
+g2-listener-body: ACCEPT
+g2-listener-then: ACCEPT
+g2-jsx-child-then: ACCEPT

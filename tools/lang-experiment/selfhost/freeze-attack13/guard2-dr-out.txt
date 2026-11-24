@@ -1,0 +1,118 @@
+== selfhost/freeze-attack13/guard2.ts:g2-then-optional: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard2.ts:g2-then-paren: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard2.ts:g2-state-init: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack13/guard2.ts:g2-state-init-then: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+   late throws: action called during a cell evaluation
+events t threw; it yields nothing more until it runs again: 48 |   for (const e of r.effects) if (e.fx === "return") returned = e.value; else performStore(e);
+49 |   return returned;
+50 | }
+51 | function performStore(e: StoreEffect) {
+52 |   switch (e.fx) {
+53 |     case "throw": throw new Error(e.msg);
+                                 ^
+error: action called during a cell evaluation
+      at performStore (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:53:29)
+      at storeFeed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:48:78)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:190:5)
+      at t (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:96)
+      at next (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:251:47)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:16:17)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:16:17)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:56:38)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:82:112)
+
+== selfhost/freeze-attack13/guard2.ts:g2-events-body: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+== selfhost/freeze-attack13/guard2.ts:g2-events-then: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+   late throws: action called during a cell evaluation
+events t threw; it yields nothing more until it runs again: 48 |   for (const e of r.effects) if (e.fx === "return") returned = e.value; else performStore(e);
+49 |   return returned;
+50 | }
+51 | function performStore(e: StoreEffect) {
+52 |   switch (e.fx) {
+53 |     case "throw": throw new Error(e.msg);
+                                 ^
+error: action called during a cell evaluation
+      at performStore (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:53:29)
+      at storeFeed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:48:78)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:190:5)
+      at t (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:105)
+      at next (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/freeze.ts:251:47)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:16:17)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:16:17)
+      at perform (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:56:38)
+      at feed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/cells.ts:44:35)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:82:112)
+      at async runCand (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/harness.ts:87:238)
+
+== selfhost/freeze-attack13/guard2.ts:g2-events-between: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+== selfhost/freeze-attack13/guard2.ts:g2-listener-body: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+   error l: action called during a cell evaluation
+== selfhost/freeze-attack13/guard2.ts:g2-listener-then: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+   late throws: action called during a cell evaluation
+== selfhost/freeze-attack13/guard2.ts:g2-jsx-child-then: ACCEPT
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+   late throws: action called during a cell evaluation
+== selfhost/freeze-attack13/guard2.ts:g2-ctl-state-init-then [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+   late throws: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard2.ts:g2-ctl-events-then [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+   late throws: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard2.ts:g2-ctl-listener-then [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+   late throws: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+events t threw; it yields nothing more until it runs again: 48 |   for (const e of r.effects) if (e.fx === "return") returned = e.value; else performStore(e);
+49 |   return returned;
+50 | }
+51 | function performStore(e: StoreEffect) {
+52 |   switch (e.fx) {
+53 |     case "throw": throw new Error(e.msg);
+                                 ^
+error: action called during a cell evaluation
+      at performStore (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:53:29)
+      at storeFeed (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:48:78)
+      at a (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/prelude.runtime.ts:190:5)
+      at t (file:///Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/browser/run.ts:4:356)
+
+== selfhost/freeze-attack13/guard2.ts:g2-ctl-events-agen-await [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 (put ok)
+   show c = 0 | E[]
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack13/guard2.ts:f-ctl-depth-raised [ctl]: CONTROL (checker skipped)
+   drive -> DIFF guard false positive? calls [THREW action called during a cell evaluation] seen=0
+   show seen = 0 | E[]
+   PENDING slow
+   CONTROL FIRED
+-- controls 5, ran 5, fired 1
+-- harness crashes 0
+-- 10 candidates, accepted 10, silent 0 (by the tap alone 0)
+-- checker throws 0 (parse errors 0)

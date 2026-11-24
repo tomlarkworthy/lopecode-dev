@@ -1,0 +1,17 @@
+== selfhost/freeze-attack13/outside.ts:o-outside-async-action: REJECT g:rejected[boundary-type]
+== selfhost/freeze-attack13/outside.ts:o-outside-async-unknown: ACCEPT
+   drive -> same: c=0 g rejected ext: expected data, found a function
+   show c = 0
+   show g = ERROR ext: expected data, found a function
+   error g: ext: expected data, found a function
+== selfhost/freeze-attack13/outside.ts:o-outside-sync-action: REJECT g:rejected[boundary-type]
+== selfhost/freeze-attack13/outside.ts:o-ctl-outside-async [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = 1
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 3 candidates, accepted 1, silent 0
+-- checker throws 0 (parse errors 0)

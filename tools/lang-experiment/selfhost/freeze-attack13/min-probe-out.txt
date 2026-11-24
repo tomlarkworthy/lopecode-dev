@@ -1,0 +1,14 @@
+min-va-action-result: ACCEPT
+min-va-handle: ACCEPT
+min-u-promise: ACCEPT
+min-u-resp: ACCEPT
+min-u-action: ACCEPT
+min-t-narrow: ACCEPT
+min-l-arraylike: ACCEPT
+min-e-extra-arg: ACCEPT
+min-ctl-state-string: REJECT b:rejected[type]
+    b[type] "s" is not assignable to number
+min-ctl-object-promise: REJECT g:rejected[forgets]
+    g[forgets] Promise<string> is given the type object, which does not say what Promise<string> holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it
+min-ctl-resp: REJECT g:rejected[iterator-cell]
+    g[iterator-cell] value FetchResponse[] holds a FetchResponse: a response's body can be read once, so the cells that take it would find it used up, depending on the order they run in; read the body in this cell and give the data (const data = async (fetch: Fetch) => (await fetch(url)).json())
