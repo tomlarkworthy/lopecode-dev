@@ -263,13 +263,15 @@ The deployer (`brain-deployer`, which carries `cloudflare-iac`) has two paths.
   The deployer builds its successor, runs its tests and holds it. The review key approves the hold when each gate holds:
   `unattendedDeployer` on, no hold or sweep, a fresh pass of the same patch, the day's cap
   (`unattendedDeployerDaily`, 3), and no other change running. The answer is `sent` with `self: true`, and the deployer
-  DMs the owner the version before and the way back. At its first tick the new deployer checks itself and puts the
+  DMs the owner the version before and the way back once `config.ownerDm` is set (unset on 2026-11-23: each own-path
+  deploy logged `deploy.dm.none`). At its first tick the new deployer checks itself and puts the
   version before back on a failed check. It then redistils every service; a change outside the `expect:` refs of the worker's hand,
   or of the kernel, core or database, holds the sweep and opens an issue labelled `needs-owner`. A hold stays until he
   clears it, and every unattended deployer or shared send is refused while it stands.
 - **The owner's path.** `deploy-deployer.ts` on his laptop, where the recovery key and the Cloudflare token are: the
   bootstrap, a deploy while `unattendedDeployer` is off, and the way back. A gate of the own path that refuses gives
-  `owner-deploy`, with the refusal quoted, and the patch comes to him.
+  `owner-deploy`, with the refusal quoted, and the patch comes to him. The day's cap is the exception (since 2026-11-24):
+  `later`, and the issue goes back to the worker under a hold to 00:10 UTC, three times an issue, then to him.
 
   ```
   bun deploy-deployer.ts --patch change.patch --dry                # or --issue ID --dry
