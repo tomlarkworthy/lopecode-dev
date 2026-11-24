@@ -1,0 +1,48 @@
+build 0
+bun-verify 0 bun-verify: 182 pass, 0 fail, 0 timed out, 0 skipped; 6.8 s
+fixtures 0 14/14 fixtures pass; 57 lint/injection rules registered, 57 with a reject case (55 of them in the specification module); 0 failure(s)
+diff 0 1187 sources, 3993 cells: SAME 3979 DIFFERENT 0 NOT COVERED 0 REAL CRASH 14; sources that threw 1 ownership: 3979 cells: SAME 3979 DIFFERENT 0 NOT COVERED 0
+diff --module-only 0 whole module: 1277 sources: SAME 1277 DIFFERENT 0 NOT COVERED 0 BOTH THREW 0
+tc-diff 0 56 DIFFERENT lines
+run-sets 0 -- all: 2535 programs, silent 0
+run-sets --rt 0 -- all: 2535 programs, silent 0
+fa2 0 -- 309 candidates, accepted 9, silent 0
+fa3 0 -- 360 candidates, accepted 10, silent 0
+run-sets REG=0 0 -- all: 2535 programs, silent 0
+fa3 REG=0 0 -- 360 candidates, accepted 10, silent 0
+verify --quick 0 QUICK (original page only); power AC Power; functional 234 pass 0 fail; measurements 0
+run-sets BODYFN=0 0 -- all: 2535 programs, silent 1
+verify full 0 power AC Power; functional 678 pass 0 fail; measurements 8
+TEST lite/acorn.test.ts exit 0 6 pass, 0 fail 
+TEST lite/boundary.test.ts exit 0 130 pass, 0 fail 
+TEST lite/browser/delivery.test.ts exit 0 
+TEST lite/browser/erase.test.ts exit 0 6 pass, 0 fail  0 pass  0 fail 
+TEST lite/browser/run.test.ts exit 0  2 pass  0 fail 
+TEST lite/browser/workers.test.ts exit 0 8 pass, 0 fail 
+TEST lite/checks.test.ts exit 0 14 pass, 0 fail 
+TEST lite/complete.test.ts exit 0 58 pass, 0 fail 
+TEST lite/cross.test.ts exit 0 24 pass, 0 fail 
+TEST lite/events.test.ts exit 0 29 pass, 0 fail 
+TEST lite/freeze-table.test.ts exit 0 freeze-table: 385 programs; late writes that threw: 0; 441 pass, 0 fail 
+TEST lite/freeze.test.ts exit 0 47 pass, 0 fail 
+TEST lite/infer/attack/live.test.ts exit 0  899 pass  0 fail 
+TEST lite/infer/attack/message-fixes.test.ts exit 0  83 pass  0 fail 
+TEST lite/infer/cp.test.ts exit 0  7 pass  0 fail 
+TEST lite/infer/infer.test.ts exit 0  5 pass  0 fail 
+TEST lite/infer/narrow-kinds.test.ts exit 0 49 pass, 0 fail 
+TEST lite/infer/rg.test.ts exit 0  7 pass  0 fail 
+TEST lite/pool.test.ts exit 0 25 pass, 0 fail 
+TEST lite/render.test.ts exit 0 25 pass, 0 fail 
+TEST lite/shape.test.ts exit 0 24 pass, 0 fail 
+TEST lite/soundscript/raw-cells.test.ts exit 0 18 pass, 0 fail 
+TEST lite/soundscript/ts-cells.test.ts exit 0 9 pass, 0 fail 
+TEST lite/stdlib/runtime.test.ts exit 0 86 pass, 0 fail 
+TEST lite/store.test.ts exit 0 38 pass, 0 fail  0 pass  0 fail 
+TEST lite/syntax.test.ts exit 0 14 pass, 0 fail 
+TEST lite/toolchain/comment-types.test.ts exit 0 37 pass, 0 fail of 37  0 pass  0 fail 
+TEST lite/toolchain/ojs-roundtrip.test.ts exit 0 all pass 
+TEST lite/toolchain/roundtrip-edge.test.ts exit 0  0 pass  0 fail 
+TEST lite/toolchain/ss-toolchain.test.ts exit 0  0 pass  0 fail 
+TEST lite/toolchain/tc.test.ts exit 0  11 pass  0 fail 
+TEST lite/toolchain/translate.test.ts exit 0  0 pass  0 fail 
+TEST lite/walks.test.ts exit 0 13 pass, 0 fail 

@@ -5,15 +5,65 @@
 // d1 (2026-11-24): a cell named after a prelude name a compiled cell binds from the runtime module (X.bound, core.ts)
 export const RESERVED_PRELUDE_MSG = () => (name: string): string =>
   `${name} is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named ${name} clashes with that binding; give the cell another name`;
-export const mdSyntax = (syntaxBans, mdDiag, ixUnsup, reservedCellName, RESERVED_CELL_MSG, RESERVED_PRELUDE_MSG, reservedText, RESERVED_TEXT_MSG) => (K: IxK, C: IxCtls, X: MdCtx, L: MdL, d: MdDef): void => {
+// t1 (2026-11-24), F-1/F-2: a cell named after a capability or a global a compiled cell takes by name; F-3: a $ in a
+// cell name (runCells names a state cell's handle x$ref), and a binding h in a cell with JSX (JSX lowers to h(...))
+export const RESERVED_INPUT_MSG = () => (name: string): string =>
+  `${name} is reserved as a cell name: a compiled cell takes ${name} (a capability or a global) by that name from outside the module, so a reader of a cell named ${name} gets that and not the cell; give the cell another name`;
+export const RESERVED_DOLLAR_MSG = () => (name: string): string =>
+  `${name} is reserved as a cell name: a cell name may not hold $, which the runners use in the names they make (a state cell x has a handle x$ref); give the cell another name`;
+export const RESERVED_JSX_H_MSG = () => "h is reserved in a cell with JSX: each JSX element is a call h(...), which a local or parameter named h would take; give it another name";
+export const PROTO_MEMBER_MSG = () => (name: string, opt: boolean): string => opt
+  ? `${name}?: an optional member may not be named after an Object.prototype member: a value without its own ${name} reads the inherited one (Object.prototype.${name}), which is not the member's type; give the member another name`
+  : `__proto__ may not be declared as a member: it is the object's prototype, not a member; give the member another name`;
+export const mdSyntax = (syntaxBans, mdDiag, ixUnsup, reservedCellName, RESERVED_CELL_MSG, RESERVED_PRELUDE_MSG, reservedText, RESERVED_TEXT_MSG, RESERVED_INPUT_MSG, RESERVED_DOLLAR_MSG, RESERVED_JSX_H_MSG, mdJsxH, mdProtoMembers, PROTO_MEMBER_MSG) => (K: IxK, C: IxCtls, X: MdCtx, L: MdL, d: MdDef): void => {
   for (const s of syntaxBans(d.fn)) {
     if (s.unsup) ixUnsup(K, C, s.at, s.msg);
     else mdDiag(X, L, s.at, s.rule, s.msg);
   }
   if (reservedCellName(d.name)) mdDiag(X, L, d.fn, "reserved-name", RESERVED_CELL_MSG(d.name));
   else if (X.bound.includes(d.name)) mdDiag(X, L, d.fn, "reserved-name", RESERVED_PRELUDE_MSG(d.name));
+  else if (X.R.inputs.has(d.name)) mdDiag(X, L, d.fn, "reserved-name", RESERVED_INPUT_MSG(d.name));
+  else if (d.name.includes("$")) mdDiag(X, L, d.fn, "reserved-name", RESERVED_DOLLAR_MSG(d.name));
+  const h = mdJsxH(d.stmt);
+  if (h !== null) mdDiag(X, L, h, "reserved-name", RESERVED_JSX_H_MSG);
+  for (const p of mdProtoMembers(d.stmt, X.R.proto)) mdDiag(X, L, p.at, "banned-member", PROTO_MEMBER_MSG(p.name, p.opt));
   const m = reservedText(X.src.slice(d.stmt.start, d.stmt.end));
   if (m !== null) mdDiag(X, L, d.fn, "reserved-name", RESERVED_TEXT_MSG(d.name, m));
+};
+// F-3: the first binding named h (a declarator, parameter, function name or catch parameter, in any pattern) of a
+// statement that holds JSX, or null
+export const mdJsxH = (kidsOf) => (n: AstNode): AstNode | null => {
+  const st: Mut<{ jsx: boolean; at: AstNode | null }> = { jsx: false, at: null };
+  const pat = (p: AstNode | null): void => {
+    if (p === null || st.at !== null) return;
+    if (p.type === "Identifier") { if (p.name === "h") st.at = p; }
+    else if (p.type === "ArrayPattern") for (const x of p.elements) pat(x);
+    else if (p.type === "ObjectPattern") for (const x of p.properties) pat(x.type === "RestElement" ? x.argument : x.type === "Property" ? x.value : null);
+    else if (p.type === "AssignmentPattern") pat(p.left);
+    else if (p.type === "RestElement") pat(p.argument);
+  };
+  const walk = (x: AstNode): void => {
+    if (x.type === "JSXElement" || x.type === "JSXFragment") st.jsx = true;
+    if (x.type === "VariableDeclarator") pat(x.id);
+    if (x.type === "ArrowFunctionExpression" || x.type === "FunctionExpression" || x.type === "FunctionDeclaration") { pat(x.id); for (const p of x.params) pat(p); }
+    if (x.type === "CatchClause") pat(x.param);
+    for (const k of kidsOf(x)) walk(k);
+  };
+  walk(n);
+  return st.jsx ? st.at : null;
+};
+// B-1: each member signature under n (in type positions too) named after an Object.prototype member and optional, or named __proto__
+export const mdProtoMembers = (childrenOf) => (n: AstNode, proto: Set<string>): { at: AstNode; name: string; opt: boolean }[] => {
+  const out: Mut<{ at: AstNode; name: string; opt: boolean }[]> = [];
+  const walk = (x: AstNode): void => {
+    if (x.type === "TSPropertySignature" || x.type === "TSMethodSignature") {
+      const k = x.key, name = k.type === "Identifier" ? k.name : k.type === "Literal" && typeof k.value === "string" ? k.value : null;
+      if (name !== null && (name === "__proto__" || (x.optional === true && proto.has(name)))) out.push({ at: x, name, opt: name !== "__proto__" });
+    }
+    for (const k of childrenOf(x)) walk(k.node);
+  };
+  walk(n);
+  return out;
 };
 // the compile hook of this cell's check: the module's tables as they are now, and this cell's errors so far
 export const mdHookOf = (mdCompileType) => (ix: IxReg, X: MdCtx, value: Map<string, Ty | null>, refInner: Map<string, Ty>, out: Map<string, MdCellRec>, me: MdCellRec) =>

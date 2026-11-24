@@ -26,6 +26,10 @@ export type MdReg = {
   readonly allowed: Set<string>;
   // CAPABILITIES' names and types
   readonly capabilities: Map<string, string>;
+  // t1 (2026-11-24): Object.prototype's own names, read when the checker loads (core.ts PROTO_MEMBERS); the names a
+  // compiled cell takes from outside the module by name, a capability or a global (core.ts RESERVED_INPUTS)
+  readonly proto: Set<string>;
+  readonly inputs: Set<string>;
 };
 export type MdOutside = { readonly name: string; readonly view: boolean };
 export type MdSources = {

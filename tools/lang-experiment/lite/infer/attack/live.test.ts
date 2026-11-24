@@ -20,6 +20,7 @@ import { attacks as B2_ATTACKS } from "./b2-attacks.ts";
 import { attacks as CAST_ATTACKS } from "./cast-attacks.ts";
 import { attacks as A9_ATTACKS } from "./a9-attacks.ts";
 import { attacks as D1_ATTACKS } from "./d1-attacks.ts";
+import { attacks as T1_ATTACKS } from "./t1-attacks.ts";
 import { checkSources as frozenCheck } from "../frozen/core.ts";
 
 // a verdict: ACCEPT, or REJECT with each cell that is not ok and its rules
@@ -246,5 +247,24 @@ for (const a of D1_ROWS)
   test(`d1 ${a.name} is ${a.name.startsWith("d1-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
     const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
     expect(live.ok).toBe(a.name.startsWith("d1-ok-"));
+    expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
+  });
+// t1 (2026-11-24): the fixes of freeze-attack10 (t1-attacks.ts). No row is silent under runCells or the compiled runner
+// (--rt); each control fires under the compiled runner, and under runCells except the -rt- ones, which only the compiled
+// runner shows; t1-ok-* rows are accepted and every other row is rejected, by both checkers alike
+const T1_ROWS = T1_ATTACKS.filter((a) => !a.ctl), T1_OK = T1_ROWS.filter((a) => a.name.startsWith("t1-ok-")).length;
+for (const rt of [false, true])
+  test(`t1: no row of the attack 10 fixes is silent${rt ? " (compiled runner)" : ""}`, () => {
+    const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "t1", ...(rt ? ["--rt"] : [])], { stdout: "pipe", stderr: "pipe" });
+    const out = r.stdout.toString();
+    expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
+    expect(out).toContain(`-- t1: ${T1_ROWS.length} programs, accepted ${T1_OK}, silent 0, with a cell in error 0`);
+    const ctl = T1_ATTACKS.filter((a) => a.ctl && (rt || !a.name.includes("-rt-"))).length;
+    expect(out).toContain(`-- t1-controls: ${T1_ATTACKS.length - T1_ROWS.length}, fired ${ctl}`);
+  }, 300000);
+for (const a of T1_ROWS)
+  test(`t1 ${a.name} is ${a.name.startsWith("t1-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
+    const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
+    expect(live.ok).toBe(a.name.startsWith("t1-ok-"));
     expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
   });

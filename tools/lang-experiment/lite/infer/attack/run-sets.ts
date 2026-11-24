@@ -11,11 +11,15 @@
 // second cell; controls as that file says), g1 (g1-attacks.ts, e1: closure registration gaps G1-G5 of freeze-attack8,
 // read with SS_MEASURE_BODYFN=0; its g1-ctl controls are counted apart), b2 (b2-attacks.ts, e1: writes on a receiver
 // made in the same expression; b2-ctl controls counted apart), d1 (d1-attacks.ts, 2026-11-24: the owner's
-// decisions A to F; d1-ctl controls counted apart). The folders they come from are read, not edited.
+// decisions A to F; d1-ctl controls counted apart), t1 (t1-attacks.ts, 2026-11-24: freeze-attack10's breaks; t1-ctl
+// controls counted apart, run under both runners). The folders they come from are read, not edited.
 // --off drops the static capture rules' diagnostics in this runner only (the checker is unchanged).
+// --rt (t1, 2026-11-24): an accepted program is run compiled, in a real Observable Runtime (drive-rt.ts observeCompiled),
+// in place of runCells. --both: run by both; a DIFFER line where they differ (drive-rt.ts differences), counted per set.
 import { checkSources } from "../../core.ts";
 import { rewriteSS } from "./strip-calls.ts";
 import { observeProgram, type Prog } from "./observe.ts";
+import { observeCompiled, differences } from "./drive-rt.ts";
 import type { Verdicts } from "../../browser/run.ts";
 import { RUNTIME_FREEZE } from "./variants.ts";
 import { readdirSync, readFileSync } from "node:fs";
@@ -28,10 +32,15 @@ import * as B2 from "./b2-attacks.ts";
 import * as CAST from "./cast-attacks.ts";
 import * as A9 from "./a9-attacks.ts";
 import * as D1 from "./d1-attacks.ts";
+import * as T1 from "./t1-attacks.ts";
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? null : process.argv[i + 1]!; };
+const RT = process.argv.includes("--rt"), BOTH = process.argv.includes("--both");
+const runProg = RT ? observeCompiled : observeProgram;
+// a compiled program's late rejections (rt10 kept them the same way); without a handler bun ends the run
+if (RT || BOTH) { process.on("unhandledRejection", () => {}); process.on("uncaughtException", () => {}); }
 const OFF = process.argv.includes("--off"), FORCE = process.argv.includes("--force"), ONLY = arg("--only");
-const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1,g1,b2,cast,a9,d1").split(",");
+const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1,g1,b2,cast,a9,d1,t1").split(",");
 export const OFF_RULES = new Set(["mut-capture", "let-capture", "mut-yield", "mut-await", "mut-cell", "member-write", "mutating-method", "regexp-state", "iterator-capture"]);
 type P = Prog & { set: string; name: string; foreign?: string | null; ctl?: boolean };
 const progs: P[] = [];
@@ -69,6 +78,7 @@ if (SETS.includes("b2")) for (const a of B2.attacks) progs.push({ set: a.ctl ? "
 if (SETS.includes("cast")) for (const a of CAST.attacks) progs.push({ set: a.ctl ? "cast-controls" : "cast", ...a });
 if (SETS.includes("a9")) for (const a of A9.attacks) progs.push({ set: "a9", ...a });
 if (SETS.includes("d1")) for (const a of D1.attacks) progs.push({ set: a.ctl ? "d1-controls" : "d1", ...a });
+if (SETS.includes("t1")) for (const a of T1.attacks) progs.push({ set: a.ctl ? "t1-controls" : "t1", ...a });
 }
 
 // checked: the verdicts as runCells takes them (compile runs an island only on ok cells); under --off, a cell whose only
@@ -97,26 +107,38 @@ export const verdictOf = (src: string, foreign: string | null, off: boolean, ctl
 };
 
 if (import.meta.main) {
-  const tally: Record<string, { n: number; acc: number; silent: number; threw: number }> = {};
+  const tally: Record<string, { n: number; acc: number; silent: number; threw: number; differ: number }> = {};
   const silentList: string[] = [];
   for (const p of progs) {
     if (ONLY && !p.name.includes(ONLY)) continue;
     // a source too deep for the TypeScript parser (freeze3 deep-2000) is run as written
     let src = p.src;
     try { src = rewriteSS(p.src, true, p.name)?.out ?? p.src; } catch {}
-    const t = (tally[p.set] ??= { n: 0, acc: 0, silent: 0, threw: 0 });
+    const t = (tally[p.set] ??= { n: 0, acc: 0, silent: 0, threw: 0, differ: 0 });
     t.n++;
     const v = verdictOf(src, p.foreign ?? null, OFF, !!p.ctl);
     if (v.ok) t.acc++;
     let lines: string[] = [];
     if ((v.ok || FORCE) && !p.foreign) {
       try {
-        const r = await observeProgram({ ...p, src, checked: v.checked });
+        // --both: every cell's value shown by both runners, so a value that differs with no error is a difference
+        const show = BOTH ? [...new Set([...(p.show ?? []), ...(v.checked?.cells ?? []).map((c) => c.name)])] : p.show;
+        const r = await runProg({ ...p, src, show, checked: v.checked });
         lines = r.lines;
+        if (BOTH && v.ok) {
+          const crashed = (x: unknown) => ({ silent: [], changed: [], threw: true, lines: [`run crash: ${(x as Error)?.message ?? x}`] });
+          const rt = async () => { try { return await observeCompiled({ ...p, src, show, checked: v.checked }); } catch (x) { return crashed(x); } };
+          const b = await rt(), d = differences(r, b);
+          if (d.what.length) {
+            const nd = differences(r, await observeProgram({ ...p, src, show, checked: v.checked })).what.length > 0 ? "runCells" : differences(b, await rt()).what.length > 0 ? "compiled" : null;
+            t.differ++;
+            lines.push(`DIFFER ${d.what.join("; ")}${nd ? ` (${nd} differs from itself: not deterministic)` : ""}`, ...b.lines.map((l) => `compiled| ${l}`));
+          }
+        }
         // memo against memoStrip: the same cells read the same, unless a cell is in error in either run
         if (p.memo && v.ok && !r.threw) {
           const bare = M1.memoStrip(src), vb = verdictOf(bare, null, OFF, true), names = (v.checked?.cells ?? []).map((c) => c.name);
-          const [x, y] = [await observeProgram({ src, checked: v.checked, show: names }), await observeProgram({ src: bare, checked: vb.checked, show: names })];
+          const [x, y] = [await runProg({ src, checked: v.checked, show: names }), await runProg({ src: bare, checked: vb.checked, show: names })];
           const sh = (o: typeof x) => o.lines.filter((l) => l.startsWith("show "));
           if (!x.threw && !y.threw && sh(x).join("\n") !== sh(y).join("\n")) r.silent.push(`MEMO-DIFF ${sh(x).join(" ")} vs stripped ${sh(y).join(" ")}`);
           lines.push(...sh(x), ...sh(y).map((l) => `stripped ${l}`));
@@ -128,10 +150,10 @@ if (import.meta.main) {
     console.log(`== ${p.set} ${p.name}: ${v.text.slice(0, 200)}${v.dropped.length ? ` (dropped ${v.dropped.join(", ")})` : ""}`);
     for (const l of lines) console.log(`   ${l}`);
   }
-  console.log(`-- mode rules ${OFF ? `OFF (${[...OFF_RULES].join(", ")} dropped)` : "ON"}${FORCE ? ", forced" : ""}`);
+  console.log(`-- mode rules ${OFF ? `OFF (${[...OFF_RULES].join(", ")} dropped)` : "ON"}${FORCE ? ", forced" : ""}${RT ? ", compiled runner" : ""}${BOTH ? ", both runners" : ""}`);
   let n = 0, s = 0;
   // a control is meant to change silently: it is counted as fired, not as silent
-  for (const [k, t] of Object.entries(tally)) { if (k.endsWith("-controls")) { console.log(`-- ${k}: ${t.n}, fired ${t.silent}`); continue; } n += t.n; s += t.silent; console.log(`-- ${k}: ${t.n} programs, accepted ${t.acc}, silent ${t.silent}, with a cell in error ${t.threw}`); }
+  for (const [k, t] of Object.entries(tally)) { if (k.endsWith("-controls")) { console.log(`-- ${k}: ${t.n}, fired ${t.silent}`); continue; } n += t.n; s += t.silent; console.log(`-- ${k}: ${t.n} programs, accepted ${t.acc}, silent ${t.silent}, with a cell in error ${t.threw}${BOTH ? `, differ ${t.differ}` : ""}`); }
   console.log(`-- all: ${n} programs, silent ${s}`);
   for (const x of silentList) if (!x.includes("-controls ")) console.log(`SILENT ${x}`);
   process.exit(0);

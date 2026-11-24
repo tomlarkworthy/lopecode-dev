@@ -21,6 +21,8 @@ export type IxFnCtx = {
   retCtx: Ty | null; retFromCtx: boolean; yieldCtx: Ty | null; tps: string[];
   // d1 (2026-11-24): the names assigned inside a function nested in this one (ixNestedAssigned)
   writes: Set<string>;
+  // t1 (2026-11-24, E-1): the names assigned anywhere in this one's body (ixAssignedNames), for ixFnWritten
+  assigns: Set<string>;
 };
 // Env without its flow: the flow of the environment in use is IxCtl.cur
 export type IxEnv = { scope: number; up: IxChain | null; fi: IxFnCtx; dead: boolean };
@@ -83,8 +85,9 @@ export type IxRegCore = {
   readonly iterElem: (t: Ty) => Ty | undefined;
   readonly unify: (p: Ty, a: Ty, m: Mut<Map<string, Ty>>, tvs: Set<string>) => void;
   readonly isTypedArray: (t: Ty) => boolean;
-  // rgMayHide over this core, memoised (memo) for its checks
+  // rgMayHide over this core, memoised (memo) for its checks; t1: mayHideAny also counts a record that takes any object
   readonly mayHide: (t: Ty) => boolean;
+  readonly mayHideAny: (t: Ty) => boolean;
 };
 export type IxReg = {
   readonly isAlias: (n: string) => boolean;
@@ -96,6 +99,7 @@ export type IxReg = {
   readonly unify: (p: Ty, a: Ty, m: Mut<Map<string, Ty>>, tvs: Set<string>) => void;
   readonly isTypedArray: (t: Ty) => boolean;
   readonly mayHide: (t: Ty) => boolean;
+  readonly mayHideAny: (t: Ty) => boolean;
   readonly quiet: IxRegCore;
   readonly lax: IxRegCore;
   readonly strictIndex: boolean;

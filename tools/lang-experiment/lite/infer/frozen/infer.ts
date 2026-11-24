@@ -142,7 +142,7 @@ export class Checker {
 
   // DELIBERATE CHANGE (2026-11-24, d1): a use of a binding a nested function assigns says why a check does not hold (E)
   fnw = new Map<number, string>();
-  err(node: Node, rule: string, msg: string) { const w = this.fnw.get(node.start); this.diags.push({ node, rule, msg: w === undefined ? msg : `${msg}; ${w} is assigned in a function nested in the one that declares it, so a check on it does not carry to this use: copy it to a const first (const y = ${w}; if (y !== null) …)` }); }
+  err(node: Node, rule: string, msg: string) { const w = this.fnw.get(node.start); this.diags.push({ node, rule, msg: w === undefined ? msg : `${msg}; ${w} is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = ${w}; if (y !== null) …)` }); }
   // a use that only an action body may make
   inActionOnly(env: Env, node: Node, rule: string, msg: string) {
     if (!env.fi.inAction) this.err(node, rule, msg);
@@ -273,7 +273,7 @@ export class Checker {
     if (n.type === "Identifier") {
       const b = env.scope.get(n.name);
       // DELIBERATE CHANGE (2026-11-24, d1): not a let or parameter that a function nested in its own assigns (E)
-      if (!b || b.kind === "global" || b.kind === "prelude" || isNamed(b.t, "Mut") || this.fnWritten(b)) return null;
+      if (!b || b.kind === "global" || b.kind === "prelude" || isNamed(b.t, "Mut") || this.fnWritten(b, env)) return null;
       return "#" + b.id;
     }
     if (n.type === "MemberExpression" && (!n.optional || links)) {
@@ -565,6 +565,14 @@ export class Checker {
     if (t.k === "named" && this.reg.isAlias(t.n)) return H(s, this.reg.expand(t));
     if (s.k === "union") { for (const m of s.ts) { const w = H(m, t); if (w) return w; } return null; }
     if (s.k === "named" && (s.n === "Mut" || s.n === "Borrowed") && !isNamed(t, s.n)) return H(s.args[0], t);
+    // DELIBERATE CHANGE (2026-11-24, t1, A-1): a record type that takes any object hides all of a non-record and each member
+    // of a record it does not declare (live ix-hides.ss.ts ixAnyObject, ixExtraHidden)
+    { const x = t.k === "named" && !["Mut", "Borrowed", "State", "Events", "Action"].includes(t.n) ? this.reg.expand(t) : t;
+      if (x.k === "rec" && x.index === undefined && (x.calls ?? []).length === 0 && x.exact !== true && [...x.props.values()].every((p) => p.opt)) {
+        const sx = this.reg.expand(s);
+        if (sx.k !== "rec") return find(s);
+        for (const [k, p] of sx.props) if (!x.props.has(k)) { const w = find(propT(p)); if (w) return w; }
+      } }
     if (t.k === "union") {
       // s goes to a member it is assignable to; it is hidden only when every such member hides it
       let w: string | null = null;
@@ -637,7 +645,8 @@ export class Checker {
         case "arr": return go(x.el, d);
         case "tup": return x.els.some((e) => go(e, d));
         case "union": return x.ts.some((m) => go(m, d));
-        case "rec": return !!x.calls?.length || !!x.ctors?.length || (!!x.index && go(x.index, d)) || [...x.props.values()].some((p) => go(p.t, d));
+        // DELIBERATE CHANGE (2026-11-24, t1, A-1): a record that takes any object (live rg-view.ss.ts rgMayHide)
+        case "rec": return !!x.calls?.length || !!x.ctors?.length || (!x.index && x.exact !== true && [...x.props.values()].every((p) => p.opt)) || (!!x.index && go(x.index, d)) || [...x.props.values()].some((p) => go(p.t, d));
         default: return false;
       }
     };
@@ -867,7 +876,7 @@ export class Checker {
     if (b.kind === "global" && e.name === "structuredClone" && !this.cloneCallees.has(e)) return { k: "fn", tps: [], ps: [{ n: "v", t: NEVER, opt: false }], ret: UNKNOWN };
     const k = "#" + b.id;
     // DELIBERATE CHANGE (2026-11-24, d1): a binding a nested function assigns is read at its declared type (E)
-    const fw = this.fnWritten(b);
+    const fw = this.fnWritten(b, env);
     if (fw) this.fnw.set(e.start, b.name);
     const nt = fw ? undefined : env.flow.get(k);
     if (nt) return nt;
@@ -1306,7 +1315,16 @@ export class Checker {
   // DELIBERATE CHANGE (2026-11-24, d1): the names assigned inside a function nested in b's own (as ixNestedAssigned,
   // ixFnWritten), memoised by function node
   nestedWrites = new Map<Node, Set<string>>();
-  fnWritten(b: Binding): boolean {
+  // DELIBERATE CHANGE (2026-11-24, t1, E-1): env given: used from a function nested in b's, a binding b's function
+  // assigns other than at its declaration (live ixFnWritten, IxFnCtx.assigns)
+  ownAssigns = new Map<Node, Set<string>>();
+  fnWritten(b: Binding, env?: Env): boolean {
+    if (env && (b.kind === "let" || b.kind === "param") && b.fi && env.fi.node !== b.fi.node) {
+      const f = b.fi.node;
+      let a = this.ownAssigns.get(f);
+      if (!a) this.ownAssigns.set(f, (a = this.assignedNames(f.body)));
+      if (a.has(b.name)) return true;
+    }
     if ((b.kind !== "let" && b.kind !== "param") || !b.fi) return false;
     const f = b.fi.node, isF = (x: Node) => x.type === "ArrowFunctionExpression" || x.type === "FunctionExpression" || x.type === "FunctionDeclaration";
     let w = this.nestedWrites.get(f);

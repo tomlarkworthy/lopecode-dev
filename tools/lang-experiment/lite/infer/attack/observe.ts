@@ -49,11 +49,11 @@ const reach = (v: unknown, f: (p: Promise<unknown>) => void, seen = new Set<unkn
 };
 // a promise's settled value (or reason) and its reading then
 const settled = new WeakMap<Promise<unknown>, { v: unknown; s: string }>();
-const follow = (v: unknown): void => reach(v, (p) => {
+export const follow = (v: unknown): void => reach(v, (p) => {
   if (!settled.has(p)) p.then((x) => { settled.set(p, { v: x, s: ser(x) }); follow(x); }, (e) => { settled.set(p, { v: e, s: `REJ ${ser(e)}` }); follow(e); });
 });
 // the promises v reaches whose value now reads differently from when it settled
-const promiseChanges = (v: unknown, out: string[] = [], seen = new Set<unknown>()): string[] => {
+export const promiseChanges = (v: unknown, out: string[] = [], seen = new Set<unknown>()): string[] => {
   reach(v, (p) => {
     const r = settled.get(p);
     if (!r || seen.has(p)) return;

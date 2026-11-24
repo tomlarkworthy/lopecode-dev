@@ -73,11 +73,25 @@ export const mdFreshRec = () => (d: MdDef, line: number, errors: MdErr[]): MdCel
 export type MdModuleLevel = { readonly defs: MdDef[]; readonly module: MdErr[]; readonly ignores: Map<string, MdErr[]> };
 // the cells and the module's errors, in core.ts's order: foreign.d.ts, built-in type names, the user's declarations,
 // statements that are not cells, duplicates, then the ignore comments with no cell
-export const mdModuleLevel = (moduleShape, mutPlaces, mdForeignErrs, mdLoadErr, mdIgnores, mdByCell) => (R: MdReg, ast: Ast, text: string, jsx: boolean, F: MdForeign | null, shellNames: Set<string>, line: (pos: number) => number): MdModuleLevel => {
+// t1 (B-1): each top-level type or interface statement that declares a member mdProtoMembers finds, once, at the statement
+export const mdTypeProto = (mdProtoMembers, PROTO_MEMBER_MSG) => (prog: AstNode, proto: Set<string>): ModErr[] => {
+  if (prog.type !== "Program") return [];
+  const out: Mut<ModErr[]> = [];
+  for (const st of prog.body) {
+    const d = st.type === "ExportNamedDeclaration" && st.declaration !== null ? st.declaration : st;
+    if (d.type !== "TSTypeAliasDeclaration" && d.type !== "TSInterfaceDeclaration") continue;
+    const m = mdProtoMembers(d, proto)[0];
+    if (m !== undefined) out.push({ at: d, rule: "banned-member", msg: PROTO_MEMBER_MSG(m.name, m.opt) });
+  }
+  return out;
+};
+export const mdModuleLevel = (moduleShape, mutPlaces, mdForeignErrs, mdLoadErr, mdIgnores, mdByCell, mdTypeProto) => (R: MdReg, ast: Ast, text: string, jsx: boolean, F: MdForeign | null, shellNames: Set<string>, line: (pos: number) => number): MdModuleLevel => {
   const shape = moduleShape(ast.program, R.builtin, shellNames);
   const modErr = (e: ModErr): MdErr => ({ rule: e.rule, line: line(e.at.start), msg: e.msg });
-  const clashes = shape.clashes.map(modErr);
-  const user = R.loadUser(ast, jsx, shape.clashes.map((c) => c.at.start)).map(mdLoadErr);
+  // t1 (B-1): a type or interface declaring a banned member is a clash too: it is not loaded, so a cell that uses it is rejected
+  const bad: ModErr[] = [...shape.clashes, ...mdTypeProto(ast.program, R.proto)];
+  const clashes = bad.map(modErr);
+  const user = R.loadUser(ast, jsx, bad.map((c) => c.at.start)).map(mdLoadErr);
   const defs: MdDef[] = shape.cells.map((c) => ({ name: c.name, fn: c.fn, stmt: c.stmt }));
   const ig = mdIgnores(ast, defs, line), mut = mdByCell(defs, mutPlaces(ast.program).map((e) => ({ at: e.at.start, e: modErr(e) })), ig.cell);
   return { defs, module: [...(F === null ? [] : mdForeignErrs(F)), ...clashes, ...user, ...shape.errors.map(modErr), ...ig.module, ...mut.module], ignores: mut.cell };

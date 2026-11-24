@@ -1,0 +1,133 @@
+== ../learner1/drafts/01-orders-total.ts [01 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS paidTotal,bigCustomers ok
+== ../learner1/drafts/02-sort-people.ts [02 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS names ok
+== ../learner1/drafts/03-group-by.ts [03 data]
+   VERDICT ACCEPT (2/2 cells ok)
+   RUN PASS letterCounts ok
+== ../learner1/drafts/04-squares-loop.ts [04 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS squares,sumSquares ok
+== ../learner1/drafts/05-index-by-id.ts [05 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS nameOfU2 ok
+== ../learner1/drafts/06-dedupe-set.ts [06 data]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS unique,uniqueSorted,seenTwice ok
+== ../learner1/drafts/07-word-count-map.ts [07 data]
+   VERDICT ACCEPT (2/2 cells ok)
+   RUN PASS top ok
+== ../learner1/drafts/08-format-table.ts [08 data]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS report ok
+== ../learner1/drafts/09-dates.ts [09 data]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS daysBetween,endWeekday ok
+== ../learner1/drafts/10-chunk-zip.ts [10 data]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS chunks,pairs ok
+== ../learner1/drafts/11-binary-search.ts [11 algo]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS found ok
+== ../learner1/drafts/12-memo-fib.ts [12 algo]
+   VERDICT ACCEPT (2/2 cells ok)
+   RUN PASS fib50 ok
+== ../learner1/drafts/13-tree-walk.ts [13 algo]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS stats,flatten ok
+== ../learner1/drafts/14-matrix-typed.ts [14 algo]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS AA {"rows":2,"cols":2,"data":[7,10,15,22]} AI [1,2,3,4]
+== ../learner1/drafts/15-csv-line.ts [15 algo]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS parsed ok
+== ../learner1/drafts/16-lru-cache.ts [16 algo]
+   lru: rejected
+      [strict-eq-object] line 7: !== on two non-primitive operands; use equals(a, b)
+      [strict-eq-object] line 14: === on two non-primitive operands; use equals(a, b)
+      [iterator-capture] line 7: e may hold an iterator (the type parameter K: a type parameter may be one), which reading uses up, so a function that captures it may give a different result for the same call; a copy has the same type, so read e without a nested function that captures it (a for loop in place of a callback), or give it a type with no type parameter
+      [iterator-capture] line 14: key may hold an iterator (the type parameter K: a type parameter may be one), which reading uses up, so a function that captures it may give a different result for the same call; a copy has the same type, so read key without a nested function that captures it (a for loop in place of a callback), or give it a type with no type parameter
+      {unsupported} type parameter constraint/default
+   lruDemo: blocked by lru
+   VERDICT REJECT (0/2 cells ok)
+== ../learner1/drafts/18-todos.ts [18 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS addTodo("a") | addTodo("b") | toggleTodo(1) | remaining ok | removeTodo(2) | remaining ok | todos [{"id":1,"text":"a","done":true}]
+== ../learner1/drafts/20-undo-stack.ts [20 state]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS setValue(1) | setValue(2) | undo() | current ok | redo() | current ok | undo() | undo() | current ok | undo() | current ok
+== ../learner1/drafts/21-cart.ts [21 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS addToCart("A") | addToCart("A") | addToCart("C") | subtotal,tax,total ok
+== ../learner1/drafts/22-pagination.ts [22 state]
+   VERDICT ACCEPT (7/7 cells ok)
+   RUN PASS pageCount,visible ok | nextPage() | nextPage() | nextPage() | nextPage() | nextPage() | page,visible ok | prevPage() | page ok
+== ../learner1/drafts/23-selection-set.ts [23 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS toggle(2) | toggle(4) | toggle(2) | selectedList ok | selectAll() | selectedList ok | clearSel() | selectedList ok
+== ../learner1/drafts/24-reducer.ts [24 state]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS test_reduce ok | dispatch({"type":"deposit","amount":5}) | acct {"balance":5,"log":["+5"]}
+== ../learner1/drafts/25-memo-cache.ts [25 state]
+   rememberPrice: rejected
+      [type] line 17: {  } is not assignable to Prices
+      [type] line 17: (p: Prices) => {  } is not assignable to (v: Prices) => Prices
+      {unsupported} object spread of { [k: string]: number }
+      {unsupported} computed property
+   VERDICT REJECT (4/5 cells ok)
+== ../learner1/drafts/26-timer-tick.ts [26 events]
+   VERDICT ACCEPT (7/7 cells ok)
+   RUN PASS elapsed 128 -> 128 -> 128, seconds 0.1s
+== ../learner1/drafts/28-batch-accumulate.ts [28 events]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS flushed,buffer ok
+== ../learner1/drafts/30-fetch-json.ts [30 async]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS top {"name":"b","stars":9,"language":"go"} langs ["ts","go"]
+== ../learner1/drafts/31-parallel-fetch.ts [31 async]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS cheapest ok
+== ../learner1/drafts/32-fetch-errors.ts [32 async]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS theme,problem ok
+== ../learner1/drafts/33-fetch-into-state.ts [33 async]
+   VERDICT ACCEPT (7/7 cells ok)
+   RUN PASS seen ok | nextUser() | seen ok
+== ../learner1/drafts/38-shared-helpers.ts [38 helpers]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS shown,summary ok
+== ../learner1/drafts/39-generic-groupby.ts [39 helpers]
+   groupBy: rejected
+      [banned-member] line 8: a key known only at run time, on a record with an index signature, can name an inherited member such as toString or __proto__, which is not an entry; keep the entries in a Map<string, T> (m.get(k), m.set(k, v), m.has(k), m.delete(k)), or use a literal key
+      [banned-member] line 9: a key known only at run time, on a record with an index signature, can name an inherited member such as toString or __proto__, which is not an entry; keep the entries in a Map<string, T> (m.get(k), m.set(k, v), m.has(k), m.delete(k)), or use a literal key
+   VERDICT REJECT (3/4 cells ok)
+== ../learner1/drafts/40-generic-stack.ts [40 helpers]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS demo ok
+== ../learner1/drafts/17-counter.tsx [17 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS label ok | clicked '+' | clicked '+' | label ok | clicked '-' | label ok | clicked 'reset' | label ok
+== ../learner1/drafts/19-form-validation.tsx [19 state]
+   VERDICT ACCEPT (6/6 cells ok)
+   RUN PASS errors ["email needs an @","age must be a whole number 0-150"] | setEmail("a@b") | setAge("30") | valid ok | setAge("x") | errors ok
+== ../learner1/drafts/27-input-to-state.tsx [27 events]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS query,matches ok
+== ../learner1/drafts/29-log-clicks.tsx [29 events]
+   VERDICT ACCEPT (9/9 cells ok)
+   RUN PASS clicked 'clicked' | clicked 'clicked' | clicked 'clicked' | count 3 gap 0
+== ../learner1/drafts/34-list-view.tsx [34 views]
+   removers: rejected
+      [action-capture] line 17: it is a parameter of an enclosing function, so a caller may pass it a value that depends on state; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+   VERDICT REJECT (4/5 cells ok)
+== ../learner1/drafts/35-conditional-view.tsx [35 views]
+   VERDICT ACCEPT (4/4 cells ok)
+   RUN PASS loading… / 2 spans / failed: timeout
+== ../learner1/drafts/36-form-view.tsx [36 views]
+   VERDICT ACCEPT (5/5 cells ok)
+   RUN PASS messages,draft ok
+== ../learner1/drafts/37-components.tsx [37 views]
+   VERDICT ACCEPT (3/3 cells ok)
+   RUN PASS 2 cards, 1 tags

@@ -36,25 +36,26 @@ export const rgPeekType = (rgBareCtx) => (G: RgK, Y: RgTypes, E: RgExpandMemo, I
 // Not memoised here: the registry glue (rg-registry.ts core) memoises it per core with memo, since its key holds functions
 export type RgHideR = { readonly isAlias: (n: string) => boolean; readonly expand: (t: Ty) => Ty };
 export const rgMayHide = () => {
-  function anyHides(R: RgHideR, seen: Mut<Set<string>>, xs: Ty[], d: number): boolean {
-    for (const x of xs) if (go(R, seen, x, d)) return true;
+  function anyHides(R: RgHideR, seen: Mut<Set<string>>, xs: Ty[], d: number, any: boolean): boolean {
+    for (const x of xs) if (go(R, seen, x, d, any)) return true;
     return false;
   }
-  function go(R: RgHideR, seen: Mut<Set<string>>, x: Ty, d: number): boolean {
+  function go(R: RgHideR, seen: Mut<Set<string>>, x: Ty, d: number, any: boolean): boolean {
     switch (x.k) {
       case "unknown": case "object": case "tv": case "fn": return true;
       case "named":
-        if (!R.isAlias(x.n)) return anyHides(R, seen, x.args, d);
-        if (x.args.length) return d > 10 || go(R, seen, R.expand(x), d + 1);
+        if (!R.isAlias(x.n)) return anyHides(R, seen, x.args, d, any);
+        if (x.args.length) return d > 10 || go(R, seen, R.expand(x), d + 1, any);
         if (seen.has(x.n)) return false;
         seen.add(x.n);
-        return go(R, seen, R.expand(x), d);
-      case "arr": return go(R, seen, x.el, d);
-      case "tup": return anyHides(R, seen, x.els, d);
-      case "union": return anyHides(R, seen, x.ts, d);
-      case "rec": return !!x.calls?.length || !!x.ctors?.length || (!!x.index && go(R, seen, x.index, d)) || anyHides(R, seen, [...x.props.values()].map((p) => p.t), d);
+        return go(R, seen, R.expand(x), d, any);
+      case "arr": return go(R, seen, x.el, d, any);
+      case "tup": return anyHides(R, seen, x.els, d, any);
+      case "union": return anyHides(R, seen, x.ts, d, any);
+      // t1 (2026-11-24, A-1), with any: a record with no required member, no index and no call signature takes any object
+      case "rec": return !!x.calls?.length || !!x.ctors?.length || (any && !x.index && x.exact !== true && [...x.props.values()].every((p) => p.opt)) || (!!x.index && go(R, seen, x.index, d, any)) || anyHides(R, seen, [...x.props.values()].map((p) => p.t), d, any);
       default: return false;
     }
   }
-  return (R: RgHideR, t: Ty): boolean => go(R, new Set(), t, 0);
+  return (R: RgHideR, t: Ty, any: boolean): boolean => go(R, new Set(), t, 0, any);
 };

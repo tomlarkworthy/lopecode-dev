@@ -15,6 +15,9 @@ import { ERR, UNDEF, cloneProblemWith, type Ty } from "../../../types.ts";
 import { CAPABILITIES, ALLOWED_GLOBALS, PRELUDE_FNS, PRELUDE_HOME } from "../../../intrinsics.ts";
 // DELIBERATE CHANGE (2026-11-24, d1): the md cells take the prelude names a compiled cell binds (F)
 import { tcPrelude } from "../../../toolchain/tc-index.ts";
+// DELIBERATE CHANGE (2026-11-24, t1): the registry record carries Object.prototype's names and the reserved input names (live core.ts)
+import { PROTO_MEMBERS, RESERVED_INPUTS } from "../../../core.ts";
+import { protoMembersT1, protoMsgT1 } from "../core.ts";
 import { childrenOf } from "../../../acorn/index.ts";
 import { mdCheckSources, rgMayHide } from "../../../infer-ss.ts";
 import { memo } from "../../../../prelude.runtime.ts";
@@ -82,13 +85,14 @@ export function regCore(reg: Registry): IxRegCore {
     isAlias: (n: string) => reg.isAlias(n), expand: (t: Ty) => reg.expand(t), member: (t: Ty, k: string) => reg.member(t, k), sub: (a: Ty, b: Ty) => reg.sub(a, b),
     callSigs: (t: Ty) => reg.callSigs(t), iterElem: (t: Ty) => reg.iterElem(t), unify: (p: Ty, a: Ty, m: Map<string, Ty>, tvs: Set<string>) => reg.unify(p, a, m, tvs), isTypedArray: (t: Ty) => reg.isTypedArray(t),
   };
-  return { ...c, mayHide: memo((t: Ty) => reg.peek(() => rgMayHide(c, t))) };
+  // DELIBERATE CHANGE (2026-11-24, t1): mayHideAny as well (live rg-registry.ts core)
+  return { ...c, mayHide: memo((t: Ty) => reg.peek(() => rgMayHide(c, t, false))), mayHideAny: memo((t: Ty) => reg.peek(() => rgMayHide(c, t, true))) };
 }
 // core with each method run inside around
 function regAround(core: IxRegCore, around: <X>(f: () => X) => X): IxRegCore {
   return {
     ...(Object.fromEntries(Object.entries(core).flatMap(([k, f]) => typeof f === "function" ? [[k, (...a: unknown[]) => around(() => (f as (...a: unknown[]) => unknown)(...a))]] : [])) as IxRegCore),
-    mayHide: core.mayHide,
+    mayHide: core.mayHide, mayHideAny: core.mayHideAny,
   };
 }
 // whether a node holds a typeof type query, remembered by node
@@ -149,7 +153,9 @@ function loadForeign(reg: Registry, got: MdReport[], text: string): MdForeign {
   got.length = 0;
   const rest = reg.load(FP, "foreign");
   const values = [...reg.values].filter(([, v]) => v.origin === "foreign").map(([name, v]) => ({ name, marker: v.marker || null, line: FP.line(v.node.start), t: v.t }));
-  return { reports: got.splice(0), rest: rest.map((st) => ({ kind: st.type as string, line: FP.line(st.start) })), values };
+  // DELIBERATE CHANGE (2026-11-24, t1, B-1): a banned member declared in foreign.d.ts (live core.ts loadForeign)
+  const proto = protoMembersT1(FP.program).map((m) => ({ rule: "banned-member", line: FP.line(m.at.start), msg: `foreign.d.ts: ${protoMsgT1(m.name, m.opt)}` }));
+  return { reports: [...got.splice(0), ...proto], rest: rest.map((st) => ({ kind: st.type as string, line: FP.line(st.start) })), values };
 }
 // the user's declarations loaded into reg, the statements at clash (a cell's name taken again) left out
 function loadUser(reg: Registry, got: MdReport[], text: string, jsx: boolean, clash: number[]): { P: Parsed; reports: MdReport[] } {
@@ -179,6 +185,7 @@ export function mdRegistry(strictIndex = true, onCell: (() => void) | null = nul
   };
   return {
     reg, builtin: reg.builtinTypeNames(), ops: reg.ops, globals: globalsOf(reg), allowed: ALLOWED_GLOBALS, capabilities: new Map(Object.entries(CAPABILITIES)),
+    proto: new Set(PROTO_MEMBERS), inputs: new Set(RESERVED_INPUTS),
     loadForeign: (text) => loadForeign(reg, got, text),
     loadUser: (ast, jsx, clash) => { const u = loadUser(reg, got, ast.src, jsx, clash); P = u.P; return u.reports; },
     cell,

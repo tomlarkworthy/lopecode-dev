@@ -403,43 +403,44 @@ async function editable(texts: string[], o: { reverse?: boolean; order?: boolean
 // Two listeners on one events cell run, for each value, in their cells' source order: on a fresh
 // load, after the first is edited and attaches again (now after the second), and when the module's
 // variables are defined in reverse.
+// t1 (2026-11-24): the state cell was log, which is now [reserved-name] (log is a capability)
 const ORDER = [
-  "const log = (): StateCell<readonly string[]> => state<readonly string[]>([]);",
+  "const trail = (): StateCell<readonly string[]> => state<readonly string[]>([]);",
   "const beats = function* () { let i = 0; while (true) yield i++; };",
-  "const addFirst = (log: State<readonly string[]>) => action((v: number) => log.update((l) => [...l, \"first\"]));",
-  "const addSecond = (log: State<readonly string[]>) => action((v: number) => log.update((l) => [...l, \"second\"]));",
+  "const addFirst = (trail: State<readonly string[]>) => action((v: number) => trail.update((l) => [...l, \"first\"]));",
+  "const addSecond = (trail: State<readonly string[]>) => action((v: number) => trail.update((l) => [...l, \"second\"]));",
   "const first = (beats: Events<number>, addFirst: Action<[number]>) => on(beats, addFirst);",
   "const second = (beats: Events<number>, addSecond: Action<[number]>) => on(beats, addSecond);",
 ];
 const pairs = (l: readonly string[]) => { const out: string[] = []; for (let i = 0; i + 1 < l.length; i += 2) out.push(`${l[i]},${l[i + 1]}`); return [...new Set(out)]; };
 await run("o1_listener_order_is_source_order", async () => {
   const L = await editable(ORDER, { order: true });
-  await frameUntil(() => (L.value("log")?.length ?? 0) >= 6);
-  const fresh = pairs(L.value("log"));
-  ok("o1_fresh_load", fresh.length === 1 && fresh[0] === "first,second", JSON.stringify(L.value("log").slice(0, 8)));
+  await frameUntil(() => (L.value("trail")?.length ?? 0) >= 6);
+  const fresh = pairs(L.value("trail"));
+  ok("o1_fresh_load", fresh.length === 1 && fresh[0] === "first,second", JSON.stringify(L.value("trail").slice(0, 8)));
   // first edited: its new listener attaches after second's, and still runs first
   await L.edit("first", "const first = (addFirst: Action<[number]>, beats: Events<number>) => on(beats, addFirst);");
-  const n0 = L.value("log").length + (L.value("log").length % 2);
-  await frameUntil(() => L.value("log").length >= n0 + 6);
-  const edited = pairs(L.value("log").slice(n0));
-  ok("o1_after_first_reattaches", edited.length === 1 && edited[0] === "first,second", JSON.stringify(L.value("log").slice(n0, n0 + 8)));
+  const n0 = L.value("trail").length + (L.value("trail").length % 2);
+  await frameUntil(() => L.value("trail").length >= n0 + 6);
+  const edited = pairs(L.value("trail").slice(n0));
+  ok("o1_after_first_reattaches", edited.length === 1 && edited[0] === "first,second", JSON.stringify(L.value("trail").slice(n0, n0 + 8)));
   for (const v of L.vars.values()) { ss.release(v._value); v.delete(); }
   await L.settle();
   const R = await editable(ORDER, { order: true, reverse: true });
-  await frameUntil(() => (R.value("log")?.length ?? 0) >= 6);
-  const rev = pairs(R.value("log"));
-  ok("o1_defined_in_reverse", rev.length === 1 && rev[0] === "first,second", JSON.stringify(R.value("log").slice(0, 8)));
+  await frameUntil(() => (R.value("trail")?.length ?? 0) >= 6);
+  const rev = pairs(R.value("trail"));
+  ok("o1_defined_in_reverse", rev.length === 1 && rev[0] === "first,second", JSON.stringify(R.value("trail").slice(0, 8)));
   // without a host to place them, the order is attach order: defined in reverse, second runs first
   ss.setListenerOrder(null);
   for (const v of R.vars.values()) { ss.release(v._value); v.delete(); }
   await R.settle();
   const U = await editable(ORDER, { reverse: true });
-  await frameUntil(() => (U.value("log")?.length ?? 0) >= 6);
-  const unplacedReverse = pairs(U.value("log"));
+  await frameUntil(() => (U.value("trail")?.length ?? 0) >= 6);
+  const unplacedReverse = pairs(U.value("trail"));
   await U.edit("first", "const first = (addFirst: Action<[number]>, beats: Events<number>) => on(beats, addFirst);");
-  const m0 = U.value("log").length + (U.value("log").length % 2);
-  await frameUntil(() => U.value("log").length >= m0 + 6);
-  console.log(`  o1: with no host order (attach order): defined in reverse ${JSON.stringify(unplacedReverse)}; after first is edited ${JSON.stringify(pairs(U.value("log").slice(m0)))}`);
+  const m0 = U.value("trail").length + (U.value("trail").length % 2);
+  await frameUntil(() => U.value("trail").length >= m0 + 6);
+  console.log(`  o1: with no host order (attach order): defined in reverse ${JSON.stringify(unplacedReverse)}; after first is edited ${JSON.stringify(pairs(U.value("trail").slice(m0)))}`);
   for (const v of U.vars.values()) { ss.release(v._value); v.delete(); }
   await U.settle();
 });

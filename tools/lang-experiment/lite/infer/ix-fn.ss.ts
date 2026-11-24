@@ -102,7 +102,7 @@ export const ixFnExpr = (ixFnParts, ixClosureFlow, ixNewFlow, ixSelfName, ixTpBo
   const f = ixFnParts(e);
   if (f === null) return ixGap(C, `function node ${e.type}`);
   const ctxSig = expected === null ? undefined : K.reg.callSigs(expected).filter((s) => !s.tps.length)[0];
-  const fi0: IxFnCtx = { fid: e.nid, parent: env?.fi ?? null, isAsync: f.async, isGen: f.generator, isCell: injected !== null, inAction: !!env?.fi.inAction, retCtx: null, retFromCtx: false, yieldCtx: null, tps: ixTpNames(f.typeParameters), writes: ixNestedAssigned(f.body) };
+  const fi0: IxFnCtx = { fid: e.nid, parent: env?.fi ?? null, isAsync: f.async, isGen: f.generator, isCell: injected !== null, inAction: !!env?.fi.inAction, retCtx: null, retFromCtx: false, yieldCtx: null, tps: ixTpNames(f.typeParameters), writes: ixNestedAssigned(f.body), assigns: ixAssignedNames(f.body) };
   const own = C.cur, rets = C.rets, yields = C.yields;
   C.cur = ixNewFlow(W, C, env === null ? new Map() : ixClosureFlow(V, W, C, env));
   C.rets = [];

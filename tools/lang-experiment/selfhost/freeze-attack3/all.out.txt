@@ -235,7 +235,7 @@
 == b7.ts:gen-return-rej: REJECT a:rejected[mut-yield]
 == b7.ts:async-gen-yield-nmap-fn: REJECT a:rejected[mut-capture][mut-yield]
 == b7.ts:act-arg-rej: REJECT add:rejected[arity][untyped-parameter][state-write] w:rejected[action-async][mut-capture][mut-await][member-write]
-== b7.ts:jsx-fn-prop-rej: REJECT a:rejected[arity][mut-capture][mut-await][action-capture]
+== b7.ts:jsx-fn-prop-rej: REJECT a:rejected[reserved-name][arity][mut-capture][mut-await][action-capture]
 == b7.ts:gen-reyield-written: REJECT a:rejected[mut-yield]
 == b7.ts:gen-reyield-copy-path: REJECT a:rejected[mut-yield][mut-yield]
 == b7.ts:gen-reyield-copy-path-inner: REJECT a:rejected[mut-yield][mut-yield]
@@ -372,7 +372,7 @@
 == b11.ts:act-set-nmap: REJECT w:rejected[mut-capture][mutating-method][fn-publish]
 == b11.ts:act-update-nmap: REJECT w:rejected[mut-capture][mutating-method][fn-publish]
 == b11.ts:act-arg-nmap: REJECT w:rejected[mut-capture][mutating-method][fn-publish]
-== b11.ts:jsx-nmap: REJECT a:rejected[mut-capture][mut-await]
+== b11.ts:jsx-nmap: REJECT a:rejected[reserved-name][mut-capture][mut-await]
 == b11.ts:isl-pool-typed-show: ACCEPT
    show go = {t:Uint8Array[3,0]} | E[]
 == b11.ts:re-dflag-probe: ACCEPT

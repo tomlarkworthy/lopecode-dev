@@ -135,7 +135,8 @@ export const ixScopeNames = (ixFlowOf) => (V: IxVars, W: IxFlows, C: IxCtls, env
 // d1 (2026-11-24): a let or parameter that a function nested in the one declaring it assigns (S3.11)
 export const ixFnWritten = () => (env: IxEnv, b: IxBinding): boolean => {
   if (b.kind !== "let" && b.kind !== "param") return false;
-  for (let f: IxFnCtx | null = env.fi; f !== null; f = f.parent) if (f.fid === b.fi) return f.writes.has(b.name);
+  // t1 (E-1): or, used from a nested function, one its declaring function assigns other than at its declaration
+  for (let f: IxFnCtx | null = env.fi; f !== null; f = f.parent) if (f.fid === b.fi) return f.writes.has(b.name) || (f.fid !== env.fi.fid && f.assigns.has(b.name));
   return false;
 };
 // a path (identifier or chain of non-computed members) as a narrowing key; links: a ?. member is one too; not a binding

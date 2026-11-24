@@ -3472,3 +3472,125 @@ held (25 of 25 rejected). Not yet fixed in this commit:
 - F-3: a local or parameter `h` in a JSX cell takes the JSX calls.
 The harness finding: `drive-run.ts` runs `runCells`, which does not run what the compiler emits; F-1 and F-2 show only
 in the attacker's `rt10.ts`, which compiles each cell and runs it in an Observable Runtime.
+
+## 2026-11-24: t1 (attack 10 fixes; compiled runner) (builder, 02:02–06:03, logs `lite/soundscript/.scratch/t1/`)
+
+**Harness.** `lite/infer/attack/drive-rt.ts` is a standing compiled runner built from the attacker's `selfhost/freeze-attack10/rt10.ts`: each
+cell goes through `T.compileCell` over `T.contextFromCheck` and is defined in an Observable `Runtime`, with
+`ss_now`, `ss_random`, `ss_log`, `ss_fetch` (the row's `fetchBody` or a fake), `ss_compile` and `ss_pool`
+(`browser/workers.ts` pagePool, so `compile` and `pool` run under bun). It reads the same candidate files and prints
+the same lines as `drive-run.ts`. Two choices were measured, not assumed: definitions are evaluated in strict mode,
+since runtime-sdk `realize()` uses module scripts (sloppy eval hid a frozen-object write, `p1-m-hit-rec`; that run is
+kept in `diff-sloppy/`); and actions are named through `actionNamer` as `core.ojs` does (unnamed, three messages
+said "(anonymous)"; `diff-strict-nonames/`). What it cannot provide: a DOM (JSX rows render to the stdlib's `h`
+records, not elements), the notebook's inspector, real workers (pagePool runs the jobs on the page), and timing
+equal to a browser frame. `run-sets.ts --rt` runs every standing set compiled; `--both` runs both runners, shows
+every cell's value and reruns a differing pair on each side to mark it not deterministic.
+
+**Differential before the fixes** (`differential.txt`, 02:20–02:24): standing sets 2445 programs (426 accepted, 35
+controls) and freeze-attack4–10's 58 candidate files (2372 candidates, 753 accepted, 124 controls). 72 differences:
+35 artefact (now/random/timing values, a drive that mutates its own fixture, `after`/`outside` rows that `runCells`
+cannot define), 17 F-1 (one a control), 6 F-2, and 14 real differences where `runCells` crashes (a cell named
+`Map`, `Set`, `URL`, `state` or `h`, or `x$ref`). Both runners ship: `runCells` in the lite notebook, compiled in
+the main one. No difference was a soundness break beyond F-1 and F-2. After the fixes (`diff-final/`, 05:13–05:17): 26 differences, 20 artefact and 6 controls run with the checker skipped (three of them `-rt-` or F-1 controls that are meant to differ); no accepted program differs otherwise.
+
+**The six breaks, before → after** (fa10 candidate files; `before/`, `after/`):
+```
+            drive-rt silent   drive-run silent   accepted (drive-rt)
+a.ts  A-1        21 -> 0          20 -> 0            44 -> 21
+b.ts  B-1         7 -> 0           7 -> 0            10 -> 3
+e.ts  E-1         4 -> 0           4 -> 0             8 -> 1
+f.ts  F-1..3     21 -> 0           2 -> 0            88 -> 36
+d.ts  (delete)    0 -> 0           0 -> 0             0 -> 0
+```
+All 49 rows `rt10.ts` found silent are rejected by both runners (`after/fa10-silent49.txt`): `[handle-pass]` 21,
+`[reserved-name]` 17, `[banned-member]` 7, `[type]` 4. drive-rt found 4 more silent than rt10
+before (`f-cap-compile`, `f-cap-pool` and their `-rec` rows), since rt10 has no `compile` or `pool`.
+
+- **A-1** (`ix-hides.ss.ts`, `rg-view.ss.ts`). A record type with no required member and no index or call signature
+  (`{}`, `interface E {}`, `{ a?: number }`) takes any object, and `ixHidden` now treats it as `object`: all of a
+  non-record source is hidden, and of a record source the members the type does not declare. The first form of the
+  fix hid every member (`CanvasProps` then rejected the `action-capture-capability` fix, an Action in a declared
+  `onPointerDown`). `rgMayHide` takes a flag; `mayHide` keeps its answer for its other users (memo's parameter rule)
+  and a second memo, `mayHideAny`, gates `ixHidden`. Other Mut values: a `Mut<number[]>`, `Mut<{n}>` or Map given
+  `{}` is accepted exactly as when given `unknown` (probe `probes/adv.ts`), so `{}` now matches `unknown` there.
+- **B-1** (`md-cell.ss.ts` `mdProtoMembers`, `md-shape.ss.ts` `mdTypeProto`, `core.ts`). An optional member named
+  after a member of `Object.prototype` (names from `Object.getOwnPropertyNames(Object.prototype)` when `core.ts`
+  loads, `PROTO_MEMBERS`) or any member named `__proto__` is `[banned-member]`: in a cell's annotations, in a
+  top-level type or interface (once, for the module; the declaration is not loaded, so a use is `[unknown-type]`
+  saying why), and in `foreign.d.ts` (found by the advisor's probe: an interface there was accepted). Required
+  proto-named members were already safe: only a value with its own member is assignable (`probes/b1.ts`).
+  `Partial<…>` is not a type the checker knows, so it cannot make one optional.
+- **E-1** (`ix-expr.ss.ts` `ixFnWritten`, `IxFnCtx.assigns`). A let or parameter that its declaring function assigns
+  anywhere other than its declaration is read at its declared type, and has no narrowing key, in any function nested
+  in that one. The first form counted names read in nested functions; it was name-based and rejected
+  `ow-late.ss.ts owPubPoints`, whose arrow `(n) => …` has its own `n`. The rule now asks at the use whether the use
+  sits in a nested function, so shadowing does not count. In the declaring function the binding narrows as before.
+  The message keeps "copy it to a const first".
+- **F-1, F-2** (`md-cell.ss.ts` `mdSyntax`, `core.ts RESERVED_INPUTS`). A cell named after a name a compiled cell
+  takes from outside the module is `[reserved-name]`: `tcCaps` (now, random, fetch, log, invalidation, compile,
+  pool), `tcOjsInputGlobals` (structuredClone, URLSearchParams) and `ALLOWED_GLOBALS`, all read from the compiler
+  and the intrinsics table. The emitter's other inputs were measured (`probes/emit-globals.ts`): Generators,
+  invalidation and `ss_*`, already reserved.
+- **F-3.** A binding named `h` (declarator, parameter, function name, catch parameter, any pattern) in a cell with
+  JSX is `[reserved-name]` (`mdJsxH`). Rejecting was chosen over a hygienic lowering: lowering touches `lowerJsx`,
+  the `runCells` prelude, decompile and `tc-diff`; rejecting is one cell. A cell name holding `$` is rejected too
+  (the census has none). `state`, `h`, `Map`, `Set` and `URL` as cell names are all rejected (rows in `t1`).
+
+**A hang, found by the coordinator** (03:25). `ts-cells.test.ts` and census3 did not return. A-1's first gate walked
+each target for an all-optional record, expanding an alias at every member with only a depth bound; on
+`acorn-kids.ss.ts`'s AstNode union that does not finish. A 30-variant recursive union reproduces it: 39616 ms
+before, 90 ms after the first fix (`progress.txt` 03:25), 22 ms on the final tree (`probes/wide.ts`) (`t1-ok-a-wide-recursive-union`, in `t1` and `live.test.ts`). A seen set still cost the ix
+section group 94 s (9 s without the walk); moving the clause into `rgMayHide`'s memoised walk cost 33 s, because
+`Flags` (all optional) sits in every `Ty`, so every `Ty` target walked. The same argument-less alias on both
+sides now returns at once, and at depth 0, when only the new clause asks, a source with no member to hide returns at once.
+`time-sections.ts`, checker ix+ow: d1 5.0–5.2 s, t1 6.5–6.8 s (`gates/speed.txt`), so the self-check is about 30% slower.
+
+**t1 set** (`t1-attacks.ts`, 90 programs + 6 controls): A 19 reject / 7 accept, B 13 / 3, E 10 / 3, F 30 / 5, one
+control each and three for F (two fire compiled only, `-rt-`). Before the fixes (87 programs then; `before/t1-rt.txt`): 48 silent compiled, 33 under
+runCells; after: 0 and 0, 18 accepted; controls 6 of 6 compiled, 4 of 6 under runCells.
+
+**Corpus** (census3, `census/final.json`, 49021 cells after the review's two rows against `base.json`, 48427, spec-reject indices removed from
+the key): no status changed. Three copies of `bad_unknown_attr` (the tutorial, `08-reject-jsx.tsx`, the
+`lite-jsx` fixture), already rejected for `[excess-property]`, also get `[action-pass]`. Test programs that named a
+cell `log` or `now` were renamed: `spec.ojs` S7.7 and S11.1 tests, `stdlib/runtime.test.ts` o1, message fix
+`action-capture-capability`. Spec: S2.7, S2.10, S3.11, S6.6, S9.6 sentences and 12 reject rows (two added after review: a required `__proto__`, and an `Action` in an undeclared member given `{ readonly n?: number }`); the width-subtyping case is now under "Not specified"; 8 message-fix rows.
+
+**Gates** (`gates/summary.txt`, 05:28–06:03, the third run, after the review's edits to `spec.ojs`; the first, on a tree
+before the speed fix, found the spec and runtime tests with cells named `log`/`now`; the second, 04:38–05:13, is in
+`gates-prereview/` with the same results but 8 fewer diff cells): build 0; bun-verify 182/0; fixtures 14/14; diff
+DIFFERENT 0 (3993 cells, REAL CRASH 14 as in d1), `--module-only` 1277 SAME; tc-diff 56 DIFFERENT (by design); run-sets 2535
+programs silent 0 with `--rt`, registration on and off; `BODYFN=0` silent 1 (`f1-q-promise-width`, by design); fa2
+309/9/0, fa3 360/10/0 on and off; verify `--quick` 234/0; full verify 678/0 on its first run (no "Execution context
+was destroyed"); 33 of 33 test files exit 0 (live.test 899, message-fixes 83).
+
+**Product lines** (live checker, against `orig/`, comments excluded): A-1 about 22 (with the mayHideAny plumbing), B-1 about 37, E-1 4, F about 30.
+Frozen mirrors (under `lite/infer/`): `frozen/core.ts`, `frozen/infer.ts`, `frozen/ts/core.ts`, `frozen/ts/registry.ts`, each change
+marked `DELIBERATE CHANGE (2026-11-24, t1)`.
+
+**Left open.** A value given a record type with required members keeps hidden extras: `const r = { go: a, n: 1 };
+const o: { readonly n: number } = r;` is accepted, and `o` then reaches `unknown` with no `[action-pass]`
+(probe, 2026-11-24). This is width subtyping in general, not A-1's empty-record case. The slowdown of the
+checker's own check (24.4 s in the first gate run) was cut to 6.6 s, not removed.
+
+## 2026-11-24 06:04–06:45: owner-session check of t1; a learner writes the 40 tasks from the tutorial alone
+
+**Gates, one run on the tree committed** (`selfhost/t1-check/gates-summary.txt`): build 0; bun-verify 182 pass;
+fixtures 14/14; diff DIFFERENT 0 (3993 cells), `--module-only` 1277 SAME; run-sets 2535 programs silent 0 under
+`runCells`, under the compiled runner (`--rt`) and with registration off; fa2 309/9/0, fa3 360/10/0; verify --quick
+234 pass; full verify 678 pass 0 fail; 33 of 33 test files exit 0.
+
+**Learner** (`selfhost/learner1/`). An agent given only `tutorial.ojs`, the `examples/` folder and task statements
+(`tasks.md`, reconstructed from `ergonomics1/manifest.ts` and the drafts by another agent, with no solution code)
+wrote each of the 40 programs once, without the checker.
+
+```
+bun run.ts ../learner1/drafts/*.ts ../learner1/drafts/*.tsx      (in selfhost/ergonomics1)
+accepted 36 of 40, run and pass 36 of 36
+ergonomics1 drafts (TypeScript habits, no tutorial), same checker: accepted 18 of 40, run and pass 17
+```
+
+One run; the task statements are not the ones the first study used; the learner knew the language's name and that it
+was being measured. The four rejected: 16 LRU cache (private writable state), a computed property in an object
+literal, 39 a run-time key on a record (`[banned-member]`, the d1 rule), 34 a per-row handler (`[action-capture]`).
+The learner's 21 unanswered questions are at the end of `learner1/learner-notes.md`.

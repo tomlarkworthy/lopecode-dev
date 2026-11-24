@@ -8,11 +8,12 @@
 // LiteResult.
 import { cloneProblemWith, type Ty } from "./types.ts";
 import { CAPABILITIES, ALLOWED_GLOBALS, PRELUDE_FNS, PRELUDE_HOME } from "./intrinsics.ts";
-import { tcPrelude } from "./toolchain/tc-index.ts";
+import { tcPrelude, tcCaps, tcOjsInputGlobals } from "./toolchain/tc-index.ts";
 import { parseTree } from "./acorn/index.ts";
 import {
   mdCheckSources, rgFreshCtl, rgConvert, rgExpand, rgIfaceRec, rgSig, rgLiteral, rgQuietGo, rgSub, rgFresh, rgPeekOpen, rgPeekClose, rgLoad, rgTake,
   rgIsTypedArray, rgOriginOf, rgHasTypeQuery, rgBuiltin, rgGlobals, rgRestOf, rgForeignValues, rgSkip, rgPeekType, rgMayHide,
+  mdProtoMembers, PROTO_MEMBER_MSG,
 } from "./infer-ss.ts";
 import type { CellInfo } from "./facts.ts";
 import type { Shape } from "./boundary.ts";
@@ -22,6 +23,12 @@ import type { MdReg, MdResult, MdReport, MdCompiled, MdForeign, MdSources } from
 import type { RgCtx, RgReport, RgOrigin } from "./infer/rg-types.ss.ts";
 import { rgRegistryOf, declTreesOf, type RgCells, type RgRegistry } from "./infer/rg-registry.ts";
 
+// t1 (2026-11-24): the names a compiled cell takes from outside its module by name, so no cell may have one (F-1, F-2):
+// each capability a parameter of that name is (the compiler's tcCaps), each global it takes as an input
+// (tcOjsInputGlobals), and each global an intrinsic is declared for (ALLOWED_GLOBALS); and Object.prototype's own
+// names, read here, for the members no optional member may be named after (B-1)
+export const RESERVED_INPUTS: ReadonlySet<string> = new Set([...tcCaps, ...tcOjsInputGlobals, ...ALLOWED_GLOBALS]);
+export const PROTO_MEMBERS: ReadonlySet<string> = new Set(Object.getOwnPropertyNames(Object.prototype));
 export type LiteError = { rule: string; line: number; msg: string };
 export type LiteCell = {
   name: string; status: "ok" | "rejected" | "unsupported" | "blocked"; line: number;
@@ -76,7 +83,7 @@ function regAround(core: IxRegCore, around: <X>(f: () => X) => X): IxRegCore {
   return {
     isAlias: (n) => around(() => core.isAlias(n)), expand: (t) => around(() => core.expand(t)), member: (t, k) => around(() => core.member(t, k)),
     sub: (a, b) => around(() => core.sub(a, b)), callSigs: (t) => around(() => core.callSigs(t)), iterElem: (t) => around(() => core.iterElem(t)),
-    unify: (p, a, m, tvs) => around(() => core.unify(p, a, m, tvs)), isTypedArray: (t) => around(() => core.isTypedArray(t)), mayHide: core.mayHide,
+    unify: (p, a, m, tvs) => around(() => core.unify(p, a, m, tvs)), isTypedArray: (t) => around(() => core.isTypedArray(t)), mayHide: core.mayHide, mayHideAny: core.mayHideAny,
   };
 }
 const toDiag = (r: RgReport): IxDiag => ({ start: r.start, end: r.end, rule: r.rule, msg: r.msg });
@@ -117,11 +124,14 @@ export function mdRegistry(strictIndex = true, onCell: (() => void) | null = nul
   const loadInto = (f: () => void): RgReport[] => { swap(null); cur = null; const got: RgReport[] = []; sink = { load: got }; f(); flush(); sink = { load: [] }; return got; };
   return {
     R, gaps, order, builtin: L.rgBuiltin(R.types), ops: R.ops, globals: L.rgGlobals(R.values, PRELUDE_FNS, ALLOWED_GLOBALS), allowed: ALLOWED_GLOBALS, capabilities: new Map(Object.entries(CAPABILITIES)),
+    proto: new Set(PROTO_MEMBERS), inputs: new Set(RESERVED_INPUTS),
     loadForeign: (text): MdForeign => {
       const ast = mustParse(L.parseTree(text, false));
       let rest: AstNode[] = [];
       const reports = loadInto(() => { rest = R.load(ast, "foreign"); });
-      return { reports: reports.map(toReport), rest: L.rgRestOf(rest), values: L.rgForeignValues(R.values) };
+      // t1 (B-1): a banned member declared in foreign.d.ts rejects the module
+      const proto = mdProtoMembers(ast.program, PROTO_MEMBERS).map((m) => ({ rule: "banned-member", line: m.at.line, msg: PROTO_MEMBER_MSG(m.name, m.opt) }));
+      return { reports: [...reports.map(toReport), ...proto], rest: L.rgRestOf(rest), values: L.rgForeignValues(R.values) };
     },
     loadUser: (ast, _jsx, clash) => {
       user = ast;

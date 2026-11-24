@@ -192,8 +192,9 @@ export class Registry {
         }
         if (name === "ValueOf") { this.onUnsup(n, "ValueOf in checked cells"); return ERR; }
         // DELIBERATE CHANGE (2026-11-23, a9): a use of a user alias not loaded ([type-cycle]) says why; the cell is still rejected
-        const unloaded = origin === "user" && (p.program.body as Node[]).some((st) => { const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st; return d.type === "TSTypeAliasDeclaration" && d.id.name === name; });
-        this.onErr(n, "unknown-type", unloaded ? `type ${name} cannot be used: it is defined by itself ([type-cycle])` : `unknown type ${name}`);
+        const unloaded = origin === "user" && (p.program.body as Node[]).some((st) => { const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st; return (d.type === "TSTypeAliasDeclaration" || d.type === "TSInterfaceDeclaration") && d.id.name === name; });
+        // DELIBERATE CHANGE (2026-11-24, t1): an interface too, and the message names [banned-member] (live rg-convert.ss.ts)
+        this.onErr(n, "unknown-type", unloaded ? `type ${name} cannot be used: it is not loaded: it is defined by itself ([type-cycle]) or declares a member no type may declare ([banned-member])` : `unknown type ${name}`);
         return ERR;
       }
       default:

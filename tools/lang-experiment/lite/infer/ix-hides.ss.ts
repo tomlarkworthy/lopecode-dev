@@ -75,19 +75,37 @@ export const ixMayHoldFn = (ixMayHide) => {
     return go(R, seen, t, 0);
   };
 };
+// t1 (2026-11-24, A-1): a record type with no required member, no index signature and no call signature takes any object
+// (an alias or interface expanded), as unknown and object do: {}, interface E {}, { a?: number }
+export const ixAnyObject = () => (R: IxRegCore, t: Ty): boolean => {
+  const x = t.k === "named" && !["Mut", "Borrowed", "State", "Events", "Action"].includes(t.n) ? R.expand(t) : t;
+  return x.k === "rec" && x.index === undefined && (x.calls ?? []).length === 0 && x.exact !== true && [...x.props.values()].every((p) => p.opt);
+};
+// what such a record type t hides of s: all of s unless s is a record, else each member of s that t does not declare
+export const ixExtraHidden = (propT) => (H: IxHide, s: Ty, t: Ty): string | null => {
+  const sx = H.R.expand(s), tx = H.R.expand(t);
+  if (sx.k !== "rec" || tx.k !== "rec") return H.find(s);
+  for (const [k, p] of sx.props) if (!tx.props.has(k)) { const w = H.find(propT(p)); if (w) return w; }
+  return null;
+};
 export type IxHide = { R: IxRegCore; opaque: Set<string> | null; find: (x: Ty) => string | null };
-// the first Action (or handle, by find) in s that a position of t of type unknown, object or an opaque type
-// parameter would take
-export const ixHidden = (ixMayHide, ixHiddenIn, isNamed) => {
+// the first Action (or handle, by find) in s that a position of t of type unknown, object, an opaque type parameter or
+// (t1) a record type that takes any object would take
+export const ixHidden = (ixMayHide, ixHiddenIn, isNamed, ixAnyObject, ixExtraHidden) => {
   function hidden(H: IxHide, s: Ty, t: Ty, depth: number): string | null {
     if (depth > 10 || s.k === "err" || t.k === "err" || s.k === "never") return null;
-    if (!ixMayHide(H.R, t)) return null;
     const R = H.R;
+    // t1 (A-1): asked once, at the top: if only a record that takes any object asks to walk, an s find finds nothing in hides nothing
+    if (!R.mayHideAny(t) || (depth === 0 && !ixMayHide(R, t) && H.find(s) === null)) return null;
+    // the same alias, with no arguments, on both sides: t keeps all s says (Ty to Ty walked every Flags member)
+    if (s.k === "named" && t.k === "named" && s.n === t.n && !s.args.length && !t.args.length && R.isAlias(s.n)) return null;
     if (t.k === "unknown" || t.k === "object" || (t.k === "tv" && H.opaque?.has(t.n))) return H.find(s);
     if (s.k === "named" && R.isAlias(s.n)) return hidden(H, R.expand(s), t, depth + 1);
     if (t.k === "named" && R.isAlias(t.n)) return hidden(H, s, R.expand(t), depth + 1);
     if (s.k === "union") { for (const m of s.ts) { const w = hidden(H, m, t, depth + 1); if (w) return w; } return null; }
     if (s.k === "named" && (s.n === "Mut" || s.n === "Borrowed") && !isNamed(t, s.n)) return hidden(H, s.args[0] ?? s, t, depth + 1);
+    const w = ixAnyObject(R, t) ? ixExtraHidden(H, s, t) : null;
+    if (w) return w;
     if (t.k === "union") {
       // s goes to a member it is assignable to; it is hidden only when every such member hides it
       let w: string | null = null;

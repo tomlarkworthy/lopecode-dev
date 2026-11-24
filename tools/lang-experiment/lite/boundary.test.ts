@@ -91,7 +91,7 @@ const allDiags = (types: string, ann: string): string => {
   const r = checkSources({ cells: `${types}\nexport const take = (p: ${ann}): number => 1;`, tsx: false, outside: [{ name: "p" }] });
   return [...r.module.map((m) => `module [${m.rule}] ${m.msg}`), ...r.cells.flatMap((c) => c.errors.map((e) => `${c.name} [${e.rule}] ${e.msg}`))].join("; ");
 };
-const USE = (n: string) => `take [unknown-type] type ${n} cannot be used: it is defined by itself ([type-cycle])`;
+const USE = (n: string) => `take [unknown-type] type ${n} cannot be used: it is not loaded: it is defined by itself ([type-cycle]) or declares a member no type may declare ([banned-member])`;
 const CYCLE = (n: string) => `module [type-cycle] type ${n} is defined by itself, with no object, array, tuple or function type between (as in type ${n} = ${n}); write out the type it stands for`;
 const TREE = "type Tree = { v: number; kids: Tree[] };", LIST = "type List = { v: number; next: List | null };";
 const tree = shapeOf(TREE, "Tree") as Shape, list = shapeOf(LIST, "List") as Shape;

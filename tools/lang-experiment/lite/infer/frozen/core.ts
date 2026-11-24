@@ -27,6 +27,44 @@ import { kids, isFn } from "./ts/parse.ts";
 import { boundaryShape, type Shape } from "../../boundary.ts";
 import { messageOf } from "../../../prelude.runtime.ts";
 import { syntaxCheck, type SyntaxDiag } from "../../acorn/index.ts";
+// DELIBERATE CHANGE (2026-11-24, t1): the live checker's md-cell.ss.ts mdJsxH, mdProtoMembers and PROTO_MEMBER_MSG, over this parse
+import { RESERVED_INPUTS, PROTO_MEMBERS } from "../../core.ts";
+const everyKid = (n: Node): Node[] => { const out: Node[] = []; for (const k in n) { if (k === "loc") continue; const v = n[k]; for (const x of Array.isArray(v) ? v : [v]) if (x && typeof x === "object" && typeof x.type === "string") out.push(x); } return out; };
+function jsxHT1(n: Node): Node | null {
+  let jsx = false, at: Node | null = null;
+  const pat = (p: Node | null | undefined): void => {
+    if (!p || at) return;
+    if (p.type === "Identifier") { if (p.name === "h") at = p; }
+    else if (p.type === "ArrayPattern") for (const x of p.elements) pat(x);
+    else if (p.type === "ObjectPattern") for (const x of p.properties) pat(x.type === "RestElement" ? x.argument : x.value);
+    else if (p.type === "AssignmentPattern") pat(p.left);
+    else if (p.type === "RestElement") pat(p.argument);
+  };
+  const walk = (x: Node): void => {
+    if (x.type === "JSXElement" || x.type === "JSXFragment") jsx = true;
+    if (x.type === "VariableDeclarator") pat(x.id);
+    if (isFn(x)) { pat(x.id); for (const p of x.params) pat(p); }
+    if (x.type === "CatchClause") pat(x.param);
+    for (const k of kids(x)) walk(k);
+  };
+  walk(n);
+  return jsx ? at : null;
+}
+export function protoMembersT1(n: Node): { at: Node; name: string; opt: boolean }[] {
+  const out: { at: Node; name: string; opt: boolean }[] = [];
+  const walk = (x: Node): void => {
+    if (x.type === "TSPropertySignature" || x.type === "TSMethodSignature") {
+      const k = x.key, name = k.type === "Identifier" ? k.name : k.type === "Literal" && typeof k.value === "string" ? k.value : null;
+      if (name !== null && (name === "__proto__" || (x.optional === true && PROTO_MEMBERS.has(name)))) out.push({ at: x, name, opt: name !== "__proto__" });
+    }
+    for (const k of everyKid(x)) walk(k);
+  };
+  walk(n);
+  return out;
+}
+export const protoMsgT1 = (name: string, opt: boolean) => opt
+  ? `${name}?: an optional member may not be named after an Object.prototype member: a value without its own ${name} reads the inherited one (Object.prototype.${name}), which is not the member's type; give the member another name`
+  : `__proto__ may not be declared as a member: it is the object's prototype, not a member; give the member another name`;
 
 export type LiteError = { rule: string; line: number; msg: string };
 export type LiteCell = {
@@ -74,6 +112,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     const FP = parse(foreignSrc);
     const rest = reg.load(FP, "foreign");
     for (const st of rest) mod(FP, st, "module-level", `foreign.d.ts: ${st.type} is not a declaration`);
+    // DELIBERATE CHANGE (2026-11-24, t1, B-1): a banned member declared in foreign.d.ts (live core.ts loadForeign)
+    for (const m of protoMembersT1(FP.program)) mod(FP, m.at, "banned-member", `foreign.d.ts: ${protoMsgT1(m.name, m.opt)}`);
     for (const [name, v] of reg.values) if (v.origin === "foreign") {
       foreignNames.add(name);
       if (!v.marker) mod(FP, v.node, "foreign-unmarked", `foreign ${name} has no /** pure */ or /** effect */`);
@@ -101,6 +141,13 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     const st = top(e.at);
     clash.add(st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st);
     moduleErrs.push({ rule: e.rule, line: P.line(e.at.start), msg: e.msg });
+  }
+  // DELIBERATE CHANGE (2026-11-24, t1, B-1): a type or interface declaring a banned member is a clash too (live md-shape.ss.ts mdTypeProto)
+  for (const st of P.program.body as Node[]) {
+    const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st;
+    if (d.type !== "TSTypeAliasDeclaration" && d.type !== "TSInterfaceDeclaration") continue;
+    const m = protoMembersT1(d)[0];
+    if (m) { clash.add(d); moduleErrs.push({ rule: "banned-member", line: P.line(d.start), msg: protoMsgT1(m.name, m.opt) }); }
   }
   reg.load(P, "user", true, clash);
   for (const e of S.shape.errors) moduleErrs.push({ rule: e.rule, line: P.line(e.at.start), msg: e.msg });
@@ -220,6 +267,13 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     // DELIBERATE CHANGE (2026-11-24, d1): and a prelude name, outside the module that defines the prelude (F)
     if (reservedCellName(c.name)) diag(c.fn, "reserved-name", RESERVED_CELL_MSG(c.name));
     else if (src.home !== PRELUDE_HOME && tcPrelude.includes(c.name)) diag(c.fn, "reserved-name", `${c.name} is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named ${c.name} clashes with that binding; give the cell another name`);
+    // DELIBERATE CHANGE (2026-11-24, t1): a capability or global taken by name (F-1, F-2), a $ in the name, a binding h in a
+    // cell with JSX (F-3), and an optional member named after an Object.prototype member or a __proto__ member (B-1)
+    else if (RESERVED_INPUTS.has(c.name)) diag(c.fn, "reserved-name", `${c.name} is reserved as a cell name: a compiled cell takes ${c.name} (a capability or a global) by that name from outside the module, so a reader of a cell named ${c.name} gets that and not the cell; give the cell another name`);
+    else if (c.name.includes("$")) diag(c.fn, "reserved-name", `${c.name} is reserved as a cell name: a cell name may not hold $, which the runners use in the names they make (a state cell x has a handle x$ref); give the cell another name`);
+    const hT1 = jsxHT1(c.stmt);
+    if (hT1) diag(hT1, "reserved-name", "h is reserved in a cell with JSX: each JSX element is a call h(...), which a local or parameter named h would take; give it another name");
+    for (const m of protoMembersT1(c.stmt)) diag(m.at, "banned-member", protoMsgT1(m.name, m.opt));
     // DELIBERATE CHANGE (2026-11-23, a9): text the compiler reserves (/*ss, its language mark) is refused at check time (5d)
     const mark = reservedText(P.src.slice(c.stmt.start, c.stmt.end));
     if (mark !== null) diag(c.fn, "reserved-name", RESERVED_TEXT_MSG(c.name, mark));

@@ -97,7 +97,7 @@ export const linkRg = (over: Record<string, (...inputs: never[]) => unknown> = {
 // the completion and facts cells, with the ix and md cells they take (over: lite/infer/cp-diff.ts's controls)
 export const linkCp = (over: Record<string, (...inputs: never[]) => unknown> = {}) =>
   link({ ...IX_CELLS, ...MD_CELLS, ...CP_CELLS, ...over } as typeof IX_CELLS & typeof MD_CELLS & typeof CP_CELLS, prelude, MD_GIVEN);
-export const { mdCheckSources, ixHidden, ixActionIn, owIter } = linkMd();
+export const { mdCheckSources, ixHidden, ixActionIn, owIter, mdProtoMembers, PROTO_MEMBER_MSG } = linkMd();
 export const { cpCompletionsAt, cpMembersOf, cpAnnotationOf, cpAddParameter, cpTypeNames, cpPH, cpCellsOf, cpGlobalRefs, mdFactsOf, mdPreludeCalls } = linkCp();
 export const {
   rgFreshCtl, rgConvert, rgExpand, rgIfaceRec, rgSig, rgLiteral, rgQuietGo, rgSub, rgFresh, rgPeekOpen, rgPeekClose, rgLoad, rgTake,

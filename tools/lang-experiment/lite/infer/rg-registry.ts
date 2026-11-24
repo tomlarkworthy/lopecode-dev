@@ -48,7 +48,8 @@ export function rgRegistryOf(L: RgCells, strictIndex: boolean, declTrees: [Ast, 
   // rgMayHide memoised per core (Checker.mayHideMemo); memo here, not in a cell, since the walk's key, the core, holds functions
   const core = (): IxRegCore => {
     const c = { isAlias, expand, member, sub, callSigs, iterElem, unify, isTypedArray };
-    return { ...c, mayHide: memo((t: Ty) => peek(() => L.rgMayHide(c, t))) };
+    // t1 (2026-11-24): mayHideAny also counts a record that takes any object (A-1); a separate memo, so mayHide's users keep its answer
+    return { ...c, mayHide: memo((t: Ty) => peek(() => L.rgMayHide(c, t, false))), mayHideAny: memo((t: Ty) => peek(() => L.rgMayHide(c, t, true))) };
   };
   const load = (ast: Ast, origin: RgOrigin, typesOnly = false, skip: Set<number> = new Set()) => L.rgLoad(G, Y, V, E, I, Q, ast, origin, typesOnly, skip);
   for (const [ast, origin] of declTrees) load(ast, origin);
