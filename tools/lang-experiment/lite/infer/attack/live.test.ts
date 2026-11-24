@@ -19,6 +19,7 @@ import * as FROZEN_TC from "../frozen/ts/toolchain/ss-toolchain.ts";
 import { attacks as B2_ATTACKS } from "./b2-attacks.ts";
 import { attacks as CAST_ATTACKS } from "./cast-attacks.ts";
 import { attacks as A9_ATTACKS } from "./a9-attacks.ts";
+import { attacks as D1_ATTACKS } from "./d1-attacks.ts";
 import { checkSources as frozenCheck } from "../frozen/core.ts";
 
 // a verdict: ACCEPT, or REJECT with each cell that is not ok and its rules
@@ -178,7 +179,7 @@ const B4_ACCEPTS: [string, string][] = [
   ["reduce with an annotated callback", "const a = () => [1, 2].reduce((acc: number, v: number) => acc + v, 0);"],
   ["a local typed { [k: string]: T } is writable", "const a = () => {\n  const m: { [k: string]: number } = {};\n  m[\"a\"] = 1;\n  return m;\n};"],
   ["key on a component", "const B = () => (p: { n: number }) => <span>{p.n}</span>;\nconst v = (B: (p: { n: number }) => Elem) => <div>{[1, 2].map((n) => <B key={n} n={n} />)}</div>;"],
-  ["a generator yielding an object literal as Events", "const g = function* (now: Clock) { yield { k: 1, t: now() }; };\nconst h = () => action((e: { k: number; t: number }) => {});\nconst l = (g: Events<{ k: number; t: number }>, h: Action<[{ k: number; t: number }]>) => on(g, h);"],
+  ["a generator yielding an object literal as Events", "const g = function* (now: Clock) { yield { k: 1, t: now() }; };\nconst hk = () => action((e: { k: number; t: number }) => {});\nconst l = (g: Events<{ k: number; t: number }>, hk: Action<[{ k: number; t: number }]>) => on(g, hk);"],
   ["an async function returning a promise", "const f = async () => {\n  const g = async () => 1;\n  const n: number = await (async () => g())();\n  return n;\n};"],
 ];
 for (const [what, src] of B4_ACCEPTS)
@@ -228,4 +229,22 @@ for (const ann of ["1e400", "-1e400", "{ readonly a: 1e400 }", "readonly (1 | 1e
     const live = rulesOf(checkSources(src as Parameters<typeof checkSources>[0]));
     expect(live).toEqual({ ok: false, rules: ["boundary-type"] });
     expect(rulesOf(frozenCheck(src as Parameters<typeof frozenCheck>[0]))).toEqual(live);
+  });
+// d1 (2026-11-24): the owner's decisions A to F (d1-attacks.ts). No row is silent in shipped mode or with registration off,
+// each control fires; d1-ok-* rows are accepted and every other row is rejected, by both checkers alike
+const D1_ROWS = D1_ATTACKS.filter((a) => !a.ctl), D1_OK = D1_ROWS.filter((a) => a.name.startsWith("d1-ok-")).length;
+for (const env of [{}, { SS_MEASURE_REG: "0" }])
+  test(`d1: no row of the owner's decisions is silent${"SS_MEASURE_REG" in env ? " (SS_MEASURE_REG=0)" : ""}`, () => {
+    const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "d1"], { stdout: "pipe", stderr: "pipe", env: { ...process.env, ...env } });
+    const out = r.stdout.toString();
+    expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
+    expect(out).toContain(`-- d1: ${D1_ROWS.length} programs, accepted ${D1_OK}, silent 0, with a cell in error 0`);
+    const ctl = D1_ATTACKS.length - D1_ROWS.length;
+    if (!("SS_MEASURE_REG" in env)) expect(out).toContain(`-- d1-controls: ${ctl}, fired ${ctl}`);
+  }, 300000);
+for (const a of D1_ROWS)
+  test(`d1 ${a.name} is ${a.name.startsWith("d1-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
+    const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
+    expect(live.ok).toBe(a.name.startsWith("d1-ok-"));
+    expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
   });

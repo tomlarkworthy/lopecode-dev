@@ -87,11 +87,22 @@ export const ixTpBounds = (ixUnsup) => (K: IxK, C: IxCtls, f: IxFnParts): void =
   if (tp === null || tp.type !== "TSTypeParameterDeclaration") return;
   for (const x of tp.params) if (x.type === "TSTypeParameter" && (x.constraint !== null || x.default !== null)) ixUnsup(K, C, x, "type parameter constraint/default");
 };
-export const ixFnExpr = (ixFnParts, ixClosureFlow, ixNewFlow, ixSelfName, ixTpBounds, ixAssignedNames, ixParams, ixRetCtx, ixFnBody, ixFnRet, ixTpNames, ixGap) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv | null, e: AstNode, expected: Ty | null, injected: Ty[] | null): Ty => {
+// d1 (2026-11-24): the names assigned inside the functions nested anywhere in n (hoisted declarations, functions in
+// initialisers, object-literal methods, at any depth): a let or parameter of that name is not narrowed (S3.11)
+export const ixNestedAssigned = (ixAssignedNames, kidsOf) => (n: AstNode): Set<string> => {
+  const out: Mut<Set<string>> = new Set();
+  const walk = (x: AstNode): void => {
+    if (x.type === "ArrowFunctionExpression" || x.type === "FunctionExpression" || x.type === "FunctionDeclaration") { for (const s of ixAssignedNames(x)) out.add(s); return; }
+    for (const k of kidsOf(x)) walk(k);
+  };
+  walk(n);
+  return out;
+};
+export const ixFnExpr = (ixFnParts, ixClosureFlow, ixNewFlow, ixSelfName, ixTpBounds, ixAssignedNames, ixNestedAssigned, ixParams, ixRetCtx, ixFnBody, ixFnRet, ixTpNames, ixGap) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv | null, e: AstNode, expected: Ty | null, injected: Ty[] | null): Ty => {
   const f = ixFnParts(e);
   if (f === null) return ixGap(C, `function node ${e.type}`);
   const ctxSig = expected === null ? undefined : K.reg.callSigs(expected).filter((s) => !s.tps.length)[0];
-  const fi0: IxFnCtx = { fid: e.nid, parent: env?.fi ?? null, isAsync: f.async, isGen: f.generator, isCell: injected !== null, inAction: !!env?.fi.inAction, retCtx: null, retFromCtx: false, yieldCtx: null, tps: ixTpNames(f.typeParameters) };
+  const fi0: IxFnCtx = { fid: e.nid, parent: env?.fi ?? null, isAsync: f.async, isGen: f.generator, isCell: injected !== null, inAction: !!env?.fi.inAction, retCtx: null, retFromCtx: false, yieldCtx: null, tps: ixTpNames(f.typeParameters), writes: ixNestedAssigned(f.body) };
   const own = C.cur, rets = C.rets, yields = C.yields;
   C.cur = ixNewFlow(W, C, env === null ? new Map() : ixClosureFlow(V, W, C, env));
   C.rets = [];

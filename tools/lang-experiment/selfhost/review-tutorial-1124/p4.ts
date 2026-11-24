@@ -1,0 +1,20 @@
+const X = `const xs = () => [1, 2, 3];\n`;
+export const srcs: [string, string][] = [
+  ["L448 xs[0]*2", X + `const s = (xs: readonly number[]) => xs[0] * 2;`],
+  ["L448 xs[0]??0", X + `const s = (xs: readonly number[]) => (xs[0] ?? 0) * 2;`],
+  ["L448 check first", X + `const s = (xs: readonly number[]) => { const x = xs[0]; if (x === undefined) return 0; return x * 2; };`],
+  ["L448 at(-1)", X + `const s = (xs: readonly number[]) => { const x = xs.at(-1); if (x === undefined) return 0; return x * 2; };`],
+  ["L454 sort fresh", X + `const s = (xs: readonly number[]) => [...xs].sort();`],
+  ["L454 toSorted etc", X + `const s = (xs: readonly number[]) => xs.toSorted().toReversed().with(0, 1).toSpliced(0, 1);`],
+  ["L461 capture number[] alias", `const s = () => { const xs = [1]; xs.push(2); const c: number[] = xs; return () => c.length; };`],
+  ["L461 capture number[] alias then push", `const s = () => { const xs = [1]; const c: number[] = xs; c.push(2); return () => c.length; };`],
+  ["L438 delete", X + `const s = () => { const o: { a?: number } = { a: 1 }; delete o.a; return o; };`],
+  ["L440 freeze", X + `const s = (xs: readonly number[]) => Object.freeze(xs);`],
+  ["L442 regexp g", `const s = () => /a/g;`],
+  ["L463 fn-publish", `const st = (): StateCell<number> => state(0);\nconst a = (st: State<number>) => action(() => st.set(1));\nconst s = (a: Action<[]>) => { const f = () => 1; return 1; };`],
+  ["L485 action-call", `const st = (): StateCell<number> => state(0);\nconst a = (st: State<number>) => action(() => st.set(1));\nconst s = (a: Action<[]>) => { a(); return 1; };`],
+  ["L477 state-undefined", `const st = (): StateCell<number | undefined> => state<number | undefined>(undefined);`],
+  ["L388 inject-pattern", `const a = () => ({ x: 1 });\nconst s = ({ x }) => x;`],
+  ["L388 listener taken", `const t = function* () { yield 1; };\nconst n = (): StateCell<number> => state(0);\nconst x = (n: State<number>) => action((v: number) => n.set(v));\nconst l = (t: Events<number>, x: Action<[number]>) => on(t, x);\nconst m = (l) => 1;`],
+  ["L388 events as value", `const t = function* () { yield 1; };\nconst n = (): StateCell<number> => state(0);\nconst x = (n: State<number>) => action((v: number) => n.set(v));\nconst l = (t: Events<number>, x: Action<[number]>) => on(t, x);\nconst m = (t: number) => t;`],
+];

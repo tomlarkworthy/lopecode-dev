@@ -98,7 +98,7 @@ export const ixLazyRead = (ixUnsup, ixUpdate, ixNewFlow, ERR) => (K: IxK, T: IxT
   ixUpdate(V, C, { ...b, t: f, checked: true, lazy: { k: "none" } });
   return f;
 };
-export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixFact, ixScopeNames, NEVER, UNKNOWN, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: Identifier): Ty => {
+export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixFnWritten, ixErr, ixUnsup, ixFact, ixScopeNames, NEVER, UNKNOWN, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: Identifier): Ty => {
   if (K.probe !== null && !K.probe.member && C.probe === null && e.name === K.probe.name) C.probe = { k: "name", names: ixScopeNames(V, W, C, env), inAction: env.fi.inAction };
   const b = ixLookup(V, env, e.name);
   if (!b) {
@@ -113,7 +113,10 @@ export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixErr, ixUnsup, ixFact, 
   if (b.kind === "prelude") return b.t;
   // its argument is checked where it is called, so the value takes no argument (S2.6 lets a body name it)
   if (b.kind === "global" && e.name === "structuredClone" && !C.clones.has(e.nid)) return { k: "fn", tps: [], ps: [{ n: "v", t: NEVER, opt: false }], ret: UNKNOWN };
-  const nt = ixFlowOf(W, C.cur).get("#" + b.id);
+  // d1: a binding a nested function assigns is read at its declared type
+  const fw = ixFnWritten(env, b);
+  if (fw && !C.fnw.has(e.start)) C.fnw = new Map([...C.fnw, [e.start, b.name]]);
+  const nt = fw ? undefined : ixFlowOf(W, C.cur).get("#" + b.id);
   if (nt) return nt;
   return b.checked ? b.t : ixLazyRead(K, T, V, W, C, b);
 };
@@ -129,12 +132,19 @@ export const ixScopeNames = (ixFlowOf) => (V: IxVars, W: IxFlows, C: IxCtls, env
   }
   return out;
 };
-// a path (identifier or chain of non-computed members) as a narrowing key; links: a ?. member is one too
-export const ixPathKey = (ixLookup, isNamed) => {
+// d1 (2026-11-24): a let or parameter that a function nested in the one declaring it assigns (S3.11)
+export const ixFnWritten = () => (env: IxEnv, b: IxBinding): boolean => {
+  if (b.kind !== "let" && b.kind !== "param") return false;
+  for (let f: IxFnCtx | null = env.fi; f !== null; f = f.parent) if (f.fid === b.fi) return f.writes.has(b.name);
+  return false;
+};
+// a path (identifier or chain of non-computed members) as a narrowing key; links: a ?. member is one too; not a binding
+// a nested function assigns (d1)
+export const ixPathKey = (ixLookup, ixFnWritten, isNamed) => {
   function pathKey(V: IxVars, env: IxEnv, n: AstNode, links: boolean): string | null {
     if (n.type === "Identifier") {
       const b = ixLookup(V, env, n.name);
-      if (!b || b.kind === "global" || b.kind === "prelude" || isNamed(b.t, "Mut")) return null;
+      if (!b || b.kind === "global" || b.kind === "prelude" || isNamed(b.t, "Mut") || ixFnWritten(env, b)) return null;
       return "#" + b.id;
     }
     if (n.type !== "MemberExpression" || (n.optional && !links)) return null;
@@ -182,6 +192,9 @@ export const ixNumStr = (ixUm, unwrap) => (R: IxReg, e: MemberExpression, ot: Ty
 };
 export const ixMember = (ixPathKey, ixFlowOf, ixCollapseArrays, ixNonNullish, ixNumStr, ixIndex, ixNamedMember, ixGap, nodeKind, lit, UNKNOWN) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: MemberExpression): Ty => {
   const ot0 = K.infer(K, T, V, W, C, env, e.object);
+  // d1: a member error is reported at the property, so the note of a binding a nested function assigns goes there too
+  const fwn = e.object.type === "Identifier" ? C.fnw.get(e.object.start) : undefined;
+  if (fwn !== undefined) C.fnw = new Map([...C.fnw, [e.property.start, fwn]]);
   const k = ixPathKey(V, env, e, false);
   const nt = k ? ixFlowOf(W, C.cur).get(k) : undefined;
   const isShort = e.optional || C.short.has(e.object.nid);

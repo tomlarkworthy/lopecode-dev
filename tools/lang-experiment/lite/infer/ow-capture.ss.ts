@@ -19,7 +19,8 @@ export const owIterIn = (show, owTyKids) => {
       case "tv": return `the type parameter ${show(t)}`;
       case "arr": case "tup": case "union": case "rec": return inner(R, owTyKids(t), depth, none);
       case "named": {
-        if (t.n === "Iterable" || t.n === "Generator") return show(t);
+        // d1 (2026-11-24): a FetchResponse's body can be read once, so it is one-shot as an iterator is
+        if (t.n === "Iterable" || t.n === "Generator" || t.n === "FetchResponse") return show(t);
         if (t.n === "Action" || t.n === "State" || t.n === "Events") return null;
         if (!R.isAlias(t.n)) return inner(R, t.args, depth, none);
         const plain = !t.args.length, at = none.get(t.n);
@@ -156,7 +157,9 @@ export const owWriteRef = (owArgIndex, owMutParamArg) => (O: OwCtx, r: AstNode):
   return false;
 };
 // e1 (2026-11-23): a copy keeps a type parameter, so for a type that holds one the fix is not a copy
-export const owIterMsg = (hasTv) => (b: IxBinding, it: string): string => hasTv(b.t)
+export const owIterMsg = (hasTv) => (b: IxBinding, it: string): string => it === "FetchResponse"
+  ? `${b.name} holds a FetchResponse, captured by a nested function: a response's body can be read once, so the function may find it used up; read what the function needs before it (const ok = ${b.name}.ok, or const data = await ${b.name}.json()) and capture that`
+  : hasTv(b.t)
   ? `${b.name} may hold an iterator (${it}: a type parameter may be one), which reading uses up, so a function that captures it may give a different result for the same call; a copy has the same type, so read ${b.name} without a nested function that captures it (a for loop in place of a callback), or give it a type with no type parameter`
   : `${b.name} may hold an iterator (${it}), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made, under a read-only type, and capture that (const c: readonly T[] = [...${b.name}], T its element type)`;
 // e1 (2026-11-23): a typed array or URL cannot be frozen, and a copy of one is one too: what a kept function may capture
@@ -328,12 +331,12 @@ export const owKeptReadMsg = (owStripMut, show, isNamed, owMutDeep) => (O: OwCtx
   : isNamed(b.t, "Mut")
   ? `Mut ${b.name} captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: ${show(owStripMut(O.R, b.t))} = ${b.name}) and capture that, or make it inside the function`
   : `let ${b.name} captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = ${b.name}) and capture that`;
-export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLet, owGenLateWrites, owFlowsOut, owTypedIn, owTypedSafeB, owPromiseIn, owKeptReadMsg, owLocalHoldsMut, owUnfreezableFix, owStripMut, ixCopyText, owErr, show, unwrap, OW_UNFREEZABLE) => (O: OwCtx, W: OwW, caps: Map<number, OwCap>, byFn: Map<number, number>): void => {
+export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLet, owGenLateWrites, owFlowsOut, owTypedIn, owTypedSafeB, owPromiseIn, owKeptReadMsg, owLocalHoldsMut, owUnfreezableFix, owStripMut, ixCopyText, owErr, show, unwrap, OW_UNFREEZABLE, owIter) => (O: OwCtx, W: OwW, caps: Map<number, OwCap>, byFn: Map<number, number>): void => {
   const holds: Mut<Map<number, boolean>> = new Map();
   for (const f of O.T.fns) {
     const c = caps.get(f.nid);
     if (f.nid === O.T.fn.nid || c === undefined || !owKept(O, byFn, f)) continue;
-    for (const b of c.mut.flatMap((id) => O.F.bindings.get(id) ?? [])) {
+    for (const b of c.mut.flatMap((id) => O.F.bindings.get(id) ?? []).filter((x) => owIter(O.R, x.t) !== "FetchResponse")) {
       const u = O.R.expand(unwrap(b.t)), U: Set<string> = OW_UNFREEZABLE;
       if (owIsBor(b)) owErr(W, f, "borrowed-escape", `Borrowed ${b.name} captured by a nested function`);
       else if (c.wmut.includes(b.id)) owErr(W, f, "mut-capture", `Mut ${b.name} written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made, so the write would throw; make ${b.name} inside the function, or keep it in a state cell that an action writes`);
@@ -342,7 +345,7 @@ export const owCaptureErrs = (owKept, owIsBor, owWriteRef, owLateWrite, owLateLe
       else { owGenLateWrites(O, W, f, b); for (const r of O.T.refs.get(b.id) ?? []) if ((r.start < f.start || r.start > f.end) && owWriteRef(O, r) && owLateWrite(O, r, f)) owErr(W, r, "mut-capture", `${b.name} may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged`); owErr(W, f, "mut-capture", owTypedIn(O.R, b.t) !== null ? `Mut ${b.name} holds a ${owTypedIn(O.R, b.t)}, captured by a function the cell keeps: a typed array or URL cannot be frozen, nor can a copy of one; copy the data out of it before the function and capture that (for the ${owTypedIn(O.R, b.t)} x, ${owUnfreezableFix(owTypedIn(O.R, b.t) ?? "", "x")})` : owKeptReadMsg(O, b)); }
     }
     for (const b of c.let.flatMap((id) => O.F.bindings.get(id) ?? [])) owErr(W, f, "let-capture", `${b.kind} ${b.name} assigned from a function that escapes`);
-    for (const b of c.read.flatMap((id) => O.F.bindings.get(id) ?? [])) {
+    for (const b of c.read.flatMap((id) => O.F.bindings.get(id) ?? []).filter((x) => owIter(O.R, x.t) !== "FetchResponse")) {
       owLateLet(O, W, f, b);
       if (b.kind === "let") owErr(W, f, "let-capture", owKeptReadMsg(O, b));
       else if (!c.mut.includes(b.id) && (holds.get(b.id) ?? holds.set(b.id, owLocalHoldsMut(O, b)).get(b.id))) owErr(W, f, "mut-capture", owKeptReadMsg(O, b));

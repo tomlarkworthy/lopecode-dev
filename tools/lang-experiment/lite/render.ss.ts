@@ -57,7 +57,9 @@ export const propSet = (eventOf, PROPS, removesAttribute, propGone, sameAttribut
 export const propOps = (propSet, propGone) => (old: Props, now: Props, listening: Set<string>): readonly PropOp[] => {
   const still = new Set(Object.keys(now));
   const gone = Object.keys(old).filter((k) => !still.has(k) && k !== "key" && k !== "children");
-  const set = Object.entries(now).flatMap(([k, v]) => propSet(k, v, old[k], listening));
+  // d1 (2026-11-24): old's own entries through a Map: a run-time key on a record may name an inherited member
+  const was = new Map(Object.entries(old));
+  const set = Object.entries(now).flatMap(([k, v]) => propSet(k, v, was.get(k), listening));
   const unset = gone.flatMap((k) => propGone(k));
   return [...set, ...unset];
 };

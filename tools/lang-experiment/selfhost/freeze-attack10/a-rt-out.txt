@@ -1,0 +1,456 @@
+== selfhost/freeze-attack10/a.ts:a-empty-rec: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = {c:{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-direct: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = {}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-arr: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = [{}]
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-then: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = {c:{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-cond: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = {c:{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-kept: ACCEPT
+   drive -> DIFF USED o2: used: Body already used
+   show r = UNDEFINED VARIABLE
+   show k = fn({})
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-map: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = Map{"c"=>{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-set: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = Set{{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-tuple: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = [{},1]
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-nested: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = {a:{b:[{}]}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-promise: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show r = {p:Promise}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-generator: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = {c:{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-param-fn: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = {x:{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-ternary: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = {c:{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-or: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show r = {c:{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-optional: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = {c:{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-state: REJECT a:rejected[state-write]
+== selfhost/freeze-attack10/a.ts:a-empty-state-action: REJECT a:rejected[action-capture]
+== selfhost/freeze-attack10/a.ts:a-empty-undef: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show r = {c:{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-arr-type: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show r = [{}]
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-generic: REJECT r:rejected[type][handle-pass]{unsup}
+== selfhost/freeze-attack10/a.ts:a-empty-fn-return: REJECT r:rejected[iterator-capture]
+== selfhost/freeze-attack10/a.ts:a-empty-record-type: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show r = {c:{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-index: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show r = {c:{}}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-two-ss: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show r = {c:{}}
+   show k = UNDEFINED VARIABLE
+   show b = "object"
+   show c = "{}"
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-object-type: REJECT r:rejected[unknown-type]
+== selfhost/freeze-attack10/a.ts:a-cast-ok: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = null
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "used: null is not an object (evaluating 'r.v')"
+   show o2 = "used: null is not an object (evaluating 'r.v')"
+== selfhost/freeze-attack10/a.ts:a-cast-empty: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = null
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "used: null is not an object (evaluating 'r.v')"
+   show o2 = "used: null is not an object (evaluating 'r.v')"
+== selfhost/freeze-attack10/a.ts:a-cast-status: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = []
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "used: undefined is not an object (evaluating 'get(await r).text')"
+   show o2 = "used: undefined is not an object (evaluating 'get(await r).text')"
+== selfhost/freeze-attack10/a.ts:a-cast-whole: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = {ok:false,path:"value",error:"value: expected an object { ok: boolean }, found a Response object"}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "used: undefined is not an object (evaluating 'get(await r).text')"
+   show o2 = "used: undefined is not an object (evaluating 'get(await r).text')"
+== selfhost/freeze-attack10/a.ts:a-cast-kept: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:-,k:fulfilled,b:-,c:-
+   show r = UNDEFINED VARIABLE
+   show k = fn({ok:false,path:"value",error:"value: expected an object { ok: boolean }, found a Response object"})
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-unbound-text: ACCEPT
+   drive -> same: b=undefined c="used: Expected this to be instanceof Response, but received an instance of Object" st=r:fulfilled,k:-,b:rejected(Expected this to be instanceof Response, but received an instance of Object),c:fulfilled
+   show r = {t:fn(throws Expected this to be instanceof Response)}
+   show k = UNDEFINED VARIABLE
+   show b = ERROR Expected this to be instanceof Response, but received an instance of Object
+   show c = "used: Expected this to be instanceof Response, but received an instance of Object"
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+   error b: Expected this to be instanceof Response, but received an instance of Object
+   LOUD (read by hand)
+== selfhost/freeze-attack10/a.ts:a-unbound-json: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = {j:fn(throws Expected this to be instanceof Response)}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-unbound-local: ACCEPT
+   drive -> same: b="threw: Expected this to be instanceof Response" c=undefined st=r:fulfilled,k:-,b:fulfilled,c:-
+   show r = {t:fn(throws Expected this to be instanceof Response)}
+   show k = UNDEFINED VARIABLE
+   show b = "threw: Expected this to be instanceof Response"
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-struct-ok: REJECT r:rejected[type]
+== selfhost/freeze-attack10/a.ts:a-struct-method: REJECT r:rejected[type]
+== selfhost/freeze-attack10/a.ts:a-generic-id: REJECT r:rejected[handle-pass][iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-generic-keep: REJECT r:rejected[handle-pass][iterator-capture]
+== selfhost/freeze-attack10/a.ts:a-generic-extends: REJECT r:rejected[handle-pass][iterator-cell]{unsup}
+== selfhost/freeze-attack10/a.ts:a-then-id: REJECT r:rejected[type][iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-then-rec: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-then-fn: REJECT k:rejected[iterator-capture]
+== selfhost/freeze-attack10/a.ts:a-then-ok: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = true
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-all: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-all-destructure: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-map: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-set: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-tuple: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-arr-map: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-arr-filter: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = 1
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-arr-at: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-destructure: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = {ok:true,status:200}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-destructure-arr: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-ternary: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-nullish: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-comma: REJECT r:unsupported{unsup}
+== selfhost/freeze-attack10/a.ts:a-unawaited-arr: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-unawaited-kept: REJECT k:rejected[iterator-capture]
+== selfhost/freeze-attack10/a.ts:a-json-unawaited: ACCEPT
+   drive -> same: b=[1] c=[1] st=r:fulfilled,k:-,b:fulfilled,c:fulfilled
+   show r = {j:Promise}
+   show k = UNDEFINED VARIABLE
+   show b = [1]
+   show c = [1]
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-async-gen-yield: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-gen-fn-value: REJECT r:rejected[iterator-capture]
+== selfhost/freeze-attack10/a.ts:a-snapshot: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-sc: REJECT r:rejected[type][iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-memo-fetch: REJECT k:rejected[memo-pure][memo-pure]
+== selfhost/freeze-attack10/a.ts:a-memo-sync: REJECT k:rejected[memo-pure][memo-pure]
+== selfhost/freeze-attack10/a.ts:a-action-arg: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:-,k:-,b:-,c:-
+   show r = UNDEFINED VARIABLE
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-component-prop: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = {tag:"div",props:{},children:[{tag:"div",props:{},children:["y"]}]}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-component-empty: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = {tag:"div",props:{},children:[{tag:"div",props:{},children:["object"]}]}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-component-keep-prop: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = {tag:"div",props:{title:"a"},children:[200]}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-component-key: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = {tag:"div",props:{},children:[{tag:"div",props:{},children:[1]}]}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-intrinsic-prop: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = {tag:"div",props:{title:"a"},children:[]}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-action-param-state: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:-,k:-,b:-,c:-
+   show r = UNDEFINED VARIABLE
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-object-method: REJECT r:rejected[iterator-capture]
+== selfhost/freeze-attack10/a.ts:a-mut-local: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:fulfilled,k:-,b:-,c:-
+   show r = 1
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-mut-local-expose: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-let-cell: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-helper-returns: REJECT r:rejected[iterator-cell]
+== selfhost/freeze-attack10/a.ts:a-nested-async-return: ACCEPT
+   drive -> same: b="body" c="body" st=r:-,k:fulfilled,b:fulfilled,c:fulfilled
+   show r = UNDEFINED VARIABLE
+   show k = fn(Promise)
+   show b = "body"
+   show c = "body"
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+== selfhost/freeze-attack10/a.ts:a-nested-async-shared: REJECT k:rejected[iterator-capture]
+== selfhost/freeze-attack10/a.ts:a-outside-resp: REJECT b:rejected[boundary-type] c:rejected[boundary-type]
+== selfhost/freeze-attack10/a.ts:a-outside-resp-empty: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:-,k:-,b:rejected(o: expected an object, found a Response object),c:-
+   show r = UNDEFINED VARIABLE
+   show k = UNDEFINED VARIABLE
+   show b = ERROR o: expected an object, found a Response object
+   show c = UNDEFINED VARIABLE
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+   error b: o: expected an object, found a Response object
+   LOUD (read by hand)
+== selfhost/freeze-attack10/a.ts:a-outside-resp-rec: REJECT b:rejected[boundary-type]
+== selfhost/freeze-attack10/a.ts:a-outside-unknown: ACCEPT
+   drive -> same: b=undefined c=undefined st=r:-,k:-,b:rejected(o: expected data, found a Response object),c:-
+   show r = UNDEFINED VARIABLE
+   show k = UNDEFINED VARIABLE
+   show b = ERROR o: expected data, found a Response object
+   show c = UNDEFINED VARIABLE
+   show o1 = ERROR o: expected data, found a Response object
+   show o2 = ERROR o: expected data, found a Response object
+   error b: o: expected data, found a Response object
+   error o2: o: expected data, found a Response object
+   error o1: o: expected data, found a Response object
+   LOUD (read by hand)
+== selfhost/freeze-attack10/a.ts:a-ctl-two-readers [ctl]: REJECT r:rejected[iterator-cell]
+   drive -> DIFF RESP r holds a Response; USED c read the body after b: used: Body already used
+   show b = "body"
+   show c = "used: Body already used"
+   CONTROL FIRED
+== selfhost/freeze-attack10/a.ts:a-ctl-ojs-readers [ctl]: REJECT r:rejected[iterator-cell]
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   CONTROL FIRED
+-- controls 2, fired 2
+-- 83 candidates, accepted 44, silent 21, accepted-and-loud 3
+SILENT selfhost/freeze-attack10/a.ts:a-empty-rec
+SILENT selfhost/freeze-attack10/a.ts:a-empty-direct
+SILENT selfhost/freeze-attack10/a.ts:a-empty-arr
+SILENT selfhost/freeze-attack10/a.ts:a-empty-then
+SILENT selfhost/freeze-attack10/a.ts:a-empty-cond
+SILENT selfhost/freeze-attack10/a.ts:a-empty-kept
+SILENT selfhost/freeze-attack10/a.ts:a-empty-map
+SILENT selfhost/freeze-attack10/a.ts:a-empty-set
+SILENT selfhost/freeze-attack10/a.ts:a-empty-tuple
+SILENT selfhost/freeze-attack10/a.ts:a-empty-nested
+SILENT selfhost/freeze-attack10/a.ts:a-empty-promise
+SILENT selfhost/freeze-attack10/a.ts:a-empty-generator
+SILENT selfhost/freeze-attack10/a.ts:a-empty-param-fn
+SILENT selfhost/freeze-attack10/a.ts:a-empty-ternary
+SILENT selfhost/freeze-attack10/a.ts:a-empty-or
+SILENT selfhost/freeze-attack10/a.ts:a-empty-optional
+SILENT selfhost/freeze-attack10/a.ts:a-empty-undef
+SILENT selfhost/freeze-attack10/a.ts:a-empty-arr-type
+SILENT selfhost/freeze-attack10/a.ts:a-empty-record-type
+SILENT selfhost/freeze-attack10/a.ts:a-empty-index
+SILENT selfhost/freeze-attack10/a.ts:a-empty-two-ss
+LOUD selfhost/freeze-attack10/a.ts:a-unbound-text
+LOUD selfhost/freeze-attack10/a.ts:a-outside-resp-empty
+LOUD selfhost/freeze-attack10/a.ts:a-outside-unknown

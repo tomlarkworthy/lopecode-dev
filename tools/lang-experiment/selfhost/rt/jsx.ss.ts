@@ -1,5 +1,5 @@
 // Port attempt (2026-11-20): jsx/h.ts and the parts of jsx/render.ts the runtime module holds.
-// bun selfhost/rt/check.ts selfhost/rt/jsx.ss.ts
+// bun selfhost/rt/check.ts selfhost/rt/jsx.ss.ts --home @tomlarkworthy/soundscript-runtime (d1: its cells may take prelude names)
 type Elem = { readonly tag: string; readonly props: Readonly<Record<string, unknown>>; readonly children: readonly unknown[] };
 type Ptr = { readonly x: number; readonly y: number; readonly t: number; readonly id: number; readonly buttons: number };
 type PointerLike = { readonly offsetX?: number; readonly clientX?: number; readonly offsetY?: number; readonly clientY?: number; readonly timeStamp?: number; readonly pointerId?: number; readonly buttons?: number };

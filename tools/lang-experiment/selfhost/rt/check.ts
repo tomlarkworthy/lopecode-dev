@@ -1,18 +1,21 @@
 // The real checker on a SoundScript file, as selfhost/check.ts, with cells in another language named by
 // --outside a,b (core.ts Outside), so a parameter naming one gets the boundary rules (S11) and not
 // [inject-unknown]. --compile also prints each accepted cell's compiled inputs (does it take ss?).
-// Run: bun selfhost/rt/check.ts <file> [--tsx] [--outside a,b] [--compile]
+// --home <module> names the module the cells are in (core.ts Sources.home): the runtime module's cells may take the
+// prelude's names (d1). Run: bun selfhost/rt/check.ts <file> [--tsx] [--outside a,b] [--home m] [--compile]
 import { readFileSync } from "node:fs";
 import { splitCells, compileCell, contextFromCheck, declaredName } from "../../lite/toolchain/ss-toolchain.ts";
-import { checkCells } from "../../lite/stdlib/runtime.ts";
+import { checkCells, checkSources } from "../../lite/stdlib/runtime.ts";
 
 const args = process.argv.slice(2);
 const TSX = args.includes("--tsx");
 const at = args.indexOf("--outside");
 const outside = at >= 0 ? args[at + 1].split(",").map((name) => ({ name })) : null;
-const path = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--outside")!;
+const hi = args.indexOf("--home");
+const home = hi >= 0 ? args[hi + 1] : null;
+const path = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--outside" && args[i - 1] !== "--home")!;
 const texts = splitCells(readFileSync(path, "utf8"), TSX);
-const { result } = checkCells(texts, TSX, outside);
+const { result } = home !== null ? { result: checkSources({ cells: texts.join("\n\n"), tsx: TSX, outside, home }) } : checkCells(texts, TSX, outside);
 const ctx = args.includes("--compile") ? contextFromCheck(result) : null;
 let bad = 0;
 for (const e of result.module) console.log(`module [${e.rule}] L${e.line} ${e.msg}`);

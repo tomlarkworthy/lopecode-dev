@@ -7,9 +7,10 @@
 // is a use of it at the call.
 
 // a binding R-Y and R-A follow: a local whose type holds a Mut anywhere (owMutDeep, r2), or a let whose type is not
-// primitive (a cell input, a global, a prelude name and a function declaration are not)
-export const owLateCand = (owLocalHoldsMut, isPrimitive) => (O: OwCtx, b: IxBinding): boolean =>
-  owLocalHoldsMut(O, b) || (!b.cellParam && b.kind === "let" && !isPrimitive(b.t));
+// primitive (a cell input, a global, a prelude name and a function declaration are not). d1 (2026-11-24): not one that
+// holds a FetchResponse, which no other code can reach (S3.19), so reading its body after a point changes nothing seen
+export const owLateCand = (owLocalHoldsMut, isPrimitive, owIter) => (O: OwCtx, b: IxBinding): boolean =>
+  owIter(O.R, b.t) !== "FetchResponse" && (owLocalHoldsMut(O, b) || (!b.cellParam && b.kind === "let" && !isPrimitive(b.t)));
 // g's values may be seen before g ends: g is a generator, or g is nested in the cell (r2: every nested function, awaited
 // or not; whether its promise is awaited is not followed). Only a plain async cell's own body is not visible
 export const owVisibleFn = (ixFnParts) => (O: OwCtx, byFn: Map<number, number>, g: AstNode): boolean => {

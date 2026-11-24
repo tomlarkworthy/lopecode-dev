@@ -31,6 +31,8 @@ const PROTO_NAMES = new Set(["__proto__", "constructor", "toString", "toLocaleSt
 // none: per alias without type arguments, the least depth its walk found nothing from; from as deep it finds nothing again
 // DELIBERATE CHANGE (2026-11-23, e1): a copy keeps a type parameter, so for a type that holds one the fix is not a copy
 function iterMsg(b: Binding, it: string): string {
+  // DELIBERATE CHANGE (2026-11-24, d1): the message for a FetchResponse
+  if (it === "FetchResponse") return `${b.name} holds a FetchResponse, captured by a nested function: a response's body can be read once, so the function may find it used up; read what the function needs before it (const ok = ${b.name}.ok, or const data = await ${b.name}.json()) and capture that`;
   return hasTv(b.t)
     ? `${b.name} may hold an iterator (${it}: a type parameter may be one), which reading uses up, so a function that captures it may give a different result for the same call; a copy has the same type, so read ${b.name} without a nested function that captures it (a for loop in place of a callback), or give it a type with no type parameter`
     : `${b.name} may hold an iterator (${it}), which reading uses up, so a function that captures it may give a different result for the same call; copy it into an array where it is made, under a read-only type, and capture that (const c: readonly T[] = [...${b.name}], T its element type)`;
@@ -45,7 +47,8 @@ export function iterIn(t: Ty, reg: Registry, depth = 0, none = new Map<string, n
     case "union": return inner(t.ts);
     case "rec": return inner([...[...t.props.values()].map((p) => p.t), ...(t.index ? [t.index] : [])]);
     case "named": {
-      if (t.n === "Iterable" || t.n === "Generator") return show(t);
+      // DELIBERATE CHANGE (2026-11-24, d1): a FetchResponse's body can be read once, so it is one-shot as an iterator is
+      if (t.n === "Iterable" || t.n === "Generator" || t.n === "FetchResponse") return show(t);
       if (t.n === "Action" || t.n === "State" || t.n === "Events") return null;
       if (!reg.isAlias(t.n)) return inner(t.args ?? []);
       const plain = !t.args?.length, at = none.get(t.n);
@@ -336,7 +339,9 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
   const typedHeldMsg = (b: Binding, ta: string): string => `Mut ${b.name} holds a ${ta}, captured by a function the cell keeps: a typed array or URL cannot be frozen, nor can a copy of one; copy the data out of it before the function and capture that (for the ${ta} x, ${unfreezableFix(ta, "x")})`;
   for (const f of fns) {
     if (f === cellFn || !kept(f)) continue;
-    for (const b of capMut.get(f)!) {
+    // DELIBERATE CHANGE (2026-11-24, d1): a binding that holds a FetchResponse is [iterator-capture] alone
+    const notResp = (b: Binding) => iterIn(b.t, ch.reg) !== "FetchResponse";
+    for (const b of [...capMut.get(f)!].filter(notResp)) {
       const u = ch.reg.expand(unwrap(b.t));
       if (isBorB(b)) err(f, "borrowed-escape", `Borrowed ${b.name} captured by a nested function`);
       else if (capW.get(f)!.has(b)) err(f, "mut-capture", `Mut ${b.name} written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made, so the write would throw; make ${b.name} inside the function, or keep it in a state cell that an action writes`);
@@ -345,7 +350,7 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
       else { genLateWrites(f, b); for (const r of refs.get(b) ?? []) if ((r.start < f.start || r.start > f.end) && writeRef(r) && lateWrite(r, f)) err(r, "mut-capture", `${b.name} may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged`); const th = typedIn(b.t); err(f, "mut-capture", th !== null ? typedHeldMsg(b, th) : keptReadMsg(b)); }
     }
     for (const b of capLet.get(f)!) err(f, "let-capture", `${b.kind} ${b.name} assigned from a function that escapes`);
-    for (const b of capRead.get(f)!) {
+    for (const b of [...capRead.get(f)!].filter(notResp)) {
       if (b.kind === "let" || b.kind === "param") for (const r of refs.get(b) ?? []) if ((r.start < f.start || r.start > f.end) && assignedRef(r) && lateWrite(r, f)) err(r, "let-capture", `${b.kind} ${b.name} is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged`);
       if (b.kind === "let") err(f, "let-capture", keptReadMsg(b));
       else if (!capMut.get(f)!.has(b) && !b.cellParam && b.kind !== "global" && b.kind !== "prelude" && b.kind !== "fn" && mutDeep(b.t, ch.reg) !== null) err(f, "mut-capture", keptReadMsg(b));
@@ -400,6 +405,8 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
         const kt = typeOf(at.k);
         const names = !at.c && at.k.type === "Identifier" ? [at.k.name] : at.k.type === "Literal" ? (typeof at.k.value === "string" ? [at.k.value] : [])
           : kt && ch.um(kt).every((m) => m.k === "num" || m.k === "lit") ? ch.um(kt).flatMap((m) => (m.k === "lit" && typeof m.v === "string" ? [m.v] : [])) : null;
+        // DELIBERATE CHANGE (2026-11-24, d1): a key that may be any string is refused (B)
+        if (names === null) err(n, "banned-member", "a key known only at run time, on a record with an index signature, can name an inherited member such as toString or __proto__, which is not an entry; keep the entries in a Map<string, T> (m.get(k), m.set(k, v), m.has(k), m.delete(k)), or use a literal key");
         const k = names?.find((x) => PROTO_NAMES.has(x));
         if (k !== undefined) err(n, "banned-member", `${k} on a record with an index signature is Object.prototype's ${k}, not an entry`);
       }
@@ -433,7 +440,8 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
     const LOOPS = /^(ForStatement|ForOfStatement|ForInStatement|WhileStatement|DoWhileStatement)$/;
     // DELIBERATE CHANGE (2026-11-22, R r2): a binding whose type holds a Mut anywhere; every nested function is visible
     const local = (b: Binding) => !b.cellParam && b.kind !== "global" && b.kind !== "prelude" && b.kind !== "fn";
-    const cand = (b: Binding) => (local(b) && mutDeep(b.t, ch.reg) !== null) || (!b.cellParam && b.kind === "let" && isPrimitive(b.t) === false);
+    // DELIBERATE CHANGE (2026-11-24, d1): not a binding that holds a FetchResponse, which no other code can reach
+    const cand = (b: Binding) => iterIn(b.t, ch.reg) !== "FetchResponse" && ((local(b) && mutDeep(b.t, ch.reg) !== null) || (!b.cellParam && b.kind === "let" && isPrimitive(b.t) === false));
     const visible = (g: Node): boolean => !!g.generator || g !== cellFn;
     const writeAt = (r: Node): Node | null => {
       for (let cur = r, p = parent.get(r); p; cur = p, p = parent.get(p)) {

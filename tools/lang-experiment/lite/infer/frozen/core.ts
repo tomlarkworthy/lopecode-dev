@@ -16,6 +16,9 @@ import { Registry } from "./ts/registry.ts";
 import { Checker } from "./infer.ts";
 import { ownership, actionEscapes, iterIn, mutIn, stripMut } from "./own.ts";
 import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, union, reservedName, RESERVED_MSG, reservedCellName, RESERVED_CELL_MSG, reservedText, RESERVED_TEXT_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith } from "../../types.ts";
+// DELIBERATE CHANGE (2026-11-24, d1): the prelude names a compiled cell binds, from the toolchain's own cell (F)
+import { PRELUDE_HOME } from "../../intrinsics.ts";
+import { tcPrelude } from "../../toolchain/tc-index.ts";
 import { CAPABILITIES } from "../../intrinsics.ts";
 import { island, specOf, compileCalls } from "./ts/island.ts";
 import { factsOf, type CellInfo } from "./ts/facts.ts";
@@ -40,7 +43,8 @@ type CellDef = { name: string; fn: Node; stmt: Node; bans: readonly SyntaxDiag[]
 // module also has `viewof <name>` (an Observable JavaScript view, or a SoundScript state cell imported with its
 // viewof). A SoundScript cell takes one through an annotated parameter (boundary.ts).
 export type Outside = { name: string; view?: boolean };
-export type Sources = { cells: string; tsx?: boolean; foreign?: string | null; shell?: string | null; name?: string; outside?: readonly Outside[] | null };
+// DELIBERATE CHANGE (2026-11-24, d1): home, the identity of the module the cells are in (F)
+export type Sources = { cells: string; tsx?: boolean; foreign?: string | null; shell?: string | null; name?: string; outside?: readonly Outside[] | null; home?: string | null };
 // per parameter that names an outside cell: its value's shape, and whether it is taken as State (its viewof)
 export type Boundary = { shape: Shape; ref: boolean };
 
@@ -213,7 +217,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     for (const d of c.bans) if (d.unsup) ch.unsupported(nodeAt(c.fn, d.at.start, d.at.end, d.at.type)!, d.msg); else r.errors.push({ rule: d.rule, line: P.line(d.at.start), msg: d.msg });
     // DELIBERATE CHANGE (2026-11-23, e1): a cell may not be named Generators or invalidation (inputs compiled cells take
     // from the module); ss_… and $ss$… names reach this file through types.ts reservedName, which it imports
+    // DELIBERATE CHANGE (2026-11-24, d1): and a prelude name, outside the module that defines the prelude (F)
     if (reservedCellName(c.name)) diag(c.fn, "reserved-name", RESERVED_CELL_MSG(c.name));
+    else if (src.home !== PRELUDE_HOME && tcPrelude.includes(c.name)) diag(c.fn, "reserved-name", `${c.name} is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named ${c.name} clashes with that binding; give the cell another name`);
     // DELIBERATE CHANGE (2026-11-23, a9): text the compiler reserves (/*ss, its language mark) is refused at check time (5d)
     const mark = reservedText(P.src.slice(c.stmt.start, c.stmt.end));
     if (mark !== null) diag(c.fn, "reserved-name", RESERVED_TEXT_MSG(c.name, mark));
@@ -353,7 +359,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       stateful.set(c.name, "is a state cell");
     }
     const it = iterIn(ret, reg);
-    if (it) r.errors.push({ rule: "iterator-cell", line: P.line(c.fn.start), msg: `value ${show(ret)} may hold an iterator (${it}); every cell that takes it would use up the same one, so what each computes would depend on the order the cells run in. Make it an array` });
+    // DELIBERATE CHANGE (2026-11-24, d1): the message for a FetchResponse
+    if (it === "FetchResponse") r.errors.push({ rule: "iterator-cell", line: P.line(c.fn.start), msg: `value ${show(ret)} holds a FetchResponse: a response's body can be read once, so the cells that take it would find it used up, depending on the order they run in; read the body in this cell and give the data (const data = async (fetch: Fetch) => (await fetch(url)).json())` });
+    else if (it) r.errors.push({ rule: "iterator-cell", line: P.line(c.fn.start), msg: `value ${show(ret)} may hold an iterator (${it}); every cell that takes it would use up the same one, so what each computes would depend on the order the cells run in. Make it an array` });
     // DELIBERATE CHANGE (2026-11-22, holes7): a value with a callable then is a type error (md-value.ss.ts mdThenable)
     const thenable = (t: Ty): boolean => t.k === "union" ? t.ts.some(thenable) : t.k === "rec" && t.props.get("then")?.t.k === "fn";
     if (thenable(ret)) r.errors.push({ rule: "type", line: P.line(c.fn.start), msg: `value ${show(ret)} has a callable then: the runtime would call it and give the cells that take it what then passes on, not this type. Rename then` });

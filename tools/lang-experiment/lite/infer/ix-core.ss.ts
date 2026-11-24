@@ -21,7 +21,9 @@ export const ixDrain = (ixPush) => (K: IxK, C: IxCtls): void => {
 };
 export const ixErr = (ixDrain, ixPush) => (K: IxK, C: IxCtls, at: AstNode, rule: string, msg: string): void => {
   ixDrain(K, C);
-  C.diags = ixPush(C.diags, { start: at.start, end: at.end, rule, msg });
+  // d1: a use of a binding a nested function assigns says why a check before it does not hold
+  const w = C.fnw.get(at.start);
+  C.diags = ixPush(C.diags, { start: at.start, end: at.end, rule, msg: w === undefined ? msg : `${msg}; ${w} is assigned in a function nested in the one that declares it, so a check on it does not carry to this use: copy it to a const first (const y = ${w}; if (y !== null) …)` });
 };
 export const ixUnsup = (ixDrain, ixPush) => (K: IxK, C: IxCtls, at: AstNode, what: string): void => {
   ixDrain(K, C);

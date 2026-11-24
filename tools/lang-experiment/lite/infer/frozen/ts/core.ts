@@ -12,7 +12,9 @@
 import { parse, type Node, type Parsed } from "./parse.ts";
 import { Registry } from "./registry.ts";
 import { ERR, UNDEF, cloneProblemWith, type Ty } from "../../../types.ts";
-import { CAPABILITIES, ALLOWED_GLOBALS, PRELUDE_FNS } from "../../../intrinsics.ts";
+import { CAPABILITIES, ALLOWED_GLOBALS, PRELUDE_FNS, PRELUDE_HOME } from "../../../intrinsics.ts";
+// DELIBERATE CHANGE (2026-11-24, d1): the md cells take the prelude names a compiled cell binds (F)
+import { tcPrelude } from "../../../toolchain/tc-index.ts";
 import { childrenOf } from "../../../acorn/index.ts";
 import { mdCheckSources, rgMayHide } from "../../../infer-ss.ts";
 import { memo } from "../../../../prelude.runtime.ts";
@@ -38,7 +40,7 @@ export type LiteResult = {
 // module also has `viewof <name>` (an Observable JavaScript view, or a SoundScript state cell imported with its
 // viewof). A SoundScript cell takes one through an annotated parameter (boundary.ts).
 export type Outside = { name: string; view?: boolean };
-export type Sources = { cells: string; tsx?: boolean; foreign?: string | null; shell?: string | null; name?: string; outside?: readonly Outside[] | null };
+export type Sources = { cells: string; tsx?: boolean; foreign?: string | null; shell?: string | null; name?: string; outside?: readonly Outside[] | null; home?: string | null };
 // per parameter that names an outside cell: its value's shape, and whether it is taken as State (its viewof)
 export type Boundary = { shape: Shape; ref: boolean };
 // strictIndex: an index read may be undefined. onCell: called once per cell checked. probe: completion's question, a
@@ -193,7 +195,7 @@ export function runCheck(entry: Entry, src: Sources, opts: CheckOpts = {}): Chec
   const R = mdRegistry(opts.strictIndex ?? true, opts.onCell ?? null);
   let r: MdResult;
   try {
-    r = entry(R, { cells: src.cells, tsx: !!src.tsx, foreign: src.foreign ?? null, shell: src.shell ?? null, name: src.name ?? null, outside: (src.outside ?? []).map((o) => ({ name: o.name, view: !!o.view })), probe: opts.probe ?? null });
+    r = entry(R, { cells: src.cells, tsx: !!src.tsx, foreign: src.foreign ?? null, shell: src.shell ?? null, name: src.name ?? null, outside: (src.outside ?? []).map((o) => ({ name: o.name, view: !!o.view })), probe: opts.probe ?? null, bound: src.home === PRELUDE_HOME ? [] : tcPrelude });
   } finally { R.finish(); }
   const cells: LiteCell[] = r.cells.map((c) => ({ name: c.name, status: c.status, line: c.line, errors: c.errors.map((e) => ({ ...e })), unsupported: c.unsupported.map((e) => ({ ...e })), blockedBy: [...c.blockedBy], ...(c.value === null ? {} : { value: c.value }) }));
   const result: LiteResult = { port: r.port, file: r.file, ok: r.ok, module: r.module.map((e) => ({ ...e })), cells, ms: performance.now() - t0 };

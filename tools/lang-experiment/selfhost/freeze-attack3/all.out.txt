@@ -242,17 +242,9 @@
 == b7.ts:gen-yield-fn-then-write: REJECT a:rejected[mut-capture][mut-capture][mut-yield]
 == b7.ts:invalidation-write: REJECT a:rejected[mut-capture]
 == b7.ts:handler-arg-host: ACCEPT
-== b8.ts:resp-shared: ACCEPT
-   show b = ERROR Body already used
-   show c = ["hello"] | E[]
-   error b: Body already used
-== b8.ts:resp-direct: ACCEPT
-   show b = ["hello"] | E[]
-   show c = [true,200] | E[]
-== b8.ts:resp-json-twice: ACCEPT
-   show b = ERROR Body already used
-   show c = ["[1]"] | E[]
-   error b: Body already used
+== b8.ts:resp-shared: REJECT r:rejected[iterator-cell]
+== b8.ts:resp-direct: REJECT r:rejected[iterator-cell]
+== b8.ts:resp-json-twice: REJECT r:rejected[iterator-cell]
 == b8.ts:resp-arraybuffer: REJECT r:rejected[mutating-method]
 == b8.ts:re-sticky-test: REJECT a:rejected[regexp-state]
 == b8.ts:re-global-match: REJECT a:rejected[regexp-state]
@@ -387,7 +379,7 @@
    drive -> array true indices true groups true
 -- controls 4, fired 4
 -- accepted with a cell still pending at the end: 0
--- 360 candidates, accepted 13, silent 0
+-- 360 candidates, accepted 10, silent 0
 120 |         // cell facts and text come from the check's parse
 121 |         const byName = new Map([...result.facts!.values()].map((info) => [info.name, { info, text: source.slice(info.span![0], info.span![1]) }] as const));
 122 |         const isl = island([...byName.values()].map(({ info }) => ({ name: info.name, params: info.params.map((p) => p.name), refCell: info.returnsRef })), spec);

@@ -19,6 +19,8 @@ export type IxBinding = {
 export type IxFnCtx = {
   fid: number; parent: IxFnCtx | null; isAsync: boolean; isGen: boolean; isCell: boolean; inAction: boolean;
   retCtx: Ty | null; retFromCtx: boolean; yieldCtx: Ty | null; tps: string[];
+  // d1 (2026-11-24): the names assigned inside a function nested in this one (ixNestedAssigned)
+  writes: Set<string>;
 };
 // Env without its flow: the flow of the environment in use is IxCtl.cur
 export type IxEnv = { scope: number; up: IxChain | null; fi: IxFnCtx; dead: boolean };
@@ -36,6 +38,8 @@ export type IxCtl = {
   gap: string | null; facts: IxFactLog | null; probe: IxProbe | null;
   // e1 (2026-11-23): each cast<T>(v) the cell's checker accepted, by its callee's position, and T's shape
   casts: [number, TypeShape][];
+  // d1 (2026-11-24): where a binding a nested function assigns was read at its declared type, by position, its name
+  fnw: Map<number, string>;
 };
 // completion's question (lite/complete.ts): the placeholder name, and whether it is asked for as a member
 export type IxProbeAsk = { readonly name: string; readonly member: boolean };

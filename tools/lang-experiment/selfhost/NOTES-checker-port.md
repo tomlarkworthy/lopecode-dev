@@ -3336,3 +3336,139 @@ run-sets, the test files.
 narrowed across a call to a helper that reassigns it (about 18 lines, and the draft misses hoisted functions); a cell
 named after a prelude name or `h` (reserving the names changes the runtime's own `read` and `state` cells and two spec
 rows).
+
+## 2026-11-24: d1 (owner decisions: response is Mut, literal keys on records, delete, narrowing, reserved cell names)
+
+Build owner, 2026-11-23 23:27 to 2026-11-24 (clock times in `lite/soundscript/.scratch/d1/progress.txt`). Originals of
+every edited file in `.scratch/d1/orig/`; drive-run outputs before and after in `.scratch/d1/before/` and `after/`;
+censuses in `.scratch/d1/census/` (census3, about 48k cells, each step against the one before). New standing set `d1`
+(`lite/infer/attack/d1-attacks.ts`, 96 programs, 27 accepted `d1-ok-*`, 4 controls, silent 0), registered in
+`run-sets.ts` and `live.test.ts`. Product lines are the lines added to the live checker (`lite/**/*.ss.ts`, `core.ts`,
+`intrinsics.ts`, `ts-cells.ts`, `tc-index.ts`), comments included; frozen mirrors are under
+`DELIBERATE CHANGE (2026-11-24, d1)`.
+
+**A. `fetch` gives `Promise<Mut<FetchResponse>>`.** Program: `const r = async (fetch: Fetch) => await fetch(u);`
+with two cells that read `r.text()` (fa4 b2/b3 `fr-*`, fa3 b8 `resp-*`). Before: all ACCEPT. After: a response is a
+one-shot value (`owIterIn`), so a cell that gives one, directly, nested or in a promise, is `[iterator-cell]`; a kept
+function, action or generator that captures one is `[iterator-capture]` (and not also `[mut-capture]`); passing one
+where another type is expected is `[handle-pass]`; a write or `delete` on one is `[member-write]` (`ixRespMut`); R-Y/R-A
+do not follow it (`owLateCand`). Accepted still: the one-cell form and a local `res` read with `.ok`, `.status`,
+`.json()`, `.text()`, `.arrayBuffer()` (9 `d1-ok-resp-*` rows). fa4 `fr-ok-status` (a response given by a cell, read
+by two others for `.ok` and `.text()`) is now rejected too, as a response exposed by a cell. `res.headers` was
+`[no-member]` and is now `unsupported` (intrinsic member `Mut.headers`). About 23 product lines. Census: 0 cells
+changed verdict. Spec S3.19: one sentence and 5 rows; tutorial: the `fetch` row and one sentence.
+
+**B. A run-time key on an index-signature record.** Program: `e1-check/proto-run.ts` and `proto-run2.ts`
+(`o[k]` with `k = "toString"` or `"__proto__"`). Before: 5 ACCEPT. After: a computed read or write, `delete` or `in`
+whose key is a string known only at run time is `[banned-member]`, and the message names `Map<string, T>`. A number
+key passes (none names an `Object.prototype` member; `m[n]` on a string-index record is already `[type]`).
+`Object.keys`, `Object.values`, `Object.entries` and `Object.fromEntries` stay accepted: they read and make own entries
+only (measured: `Object.fromEntries([["__proto__", 1]])` makes an own property, the prototype stays
+`Object.prototype`). `for…in`, spread of an index record and computed destructuring were already unsupported. About
+4 product lines. Census: 3 cells ok to rejected, under 0.01%: `lite/runtime.ss.ts` `deepEqual` and `lite/render.ss.ts`
+`propOps` (both rewritten to read through a `Map`, 7 lines), `selfhost/rt/probe1.ss.ts` `recObj` (a port probe, left);
+2 rejected cells gained the rule (`selfhost/rt/boundary.ss.ts` `copy`, `probe2.ss.ts` `mutRecord`). Spec S2.7: one
+sentence and 3 rows.
+
+**C.** Checked only: the tutorial shows the accepted row-handler form (an input's `value` with `onInput={remove}`)
+once. No change.
+
+**D. `delete` only on an optional member or an index-signature entry.** Program: fa9 b4 `idx-with-member`,
+`idx-delete-required` (`delete o.b` where `b` is required). Before: ACCEPT. After: `[no-delete]`, with three messages:
+a required member ("make b optional in the type (b?: …), or build a new record without it
+(const { b: _, ...rest } = o)"), an array element (filter, toSpliced), and a value that is not a record. A computed
+literal key counts as that member. About 22 product lines (`ixDeleteBad`, `ixDeleteMsg`). Census: 0 corpus cells. The
+spec's own examples changed: the S4.1 accepted example now deletes an optional member
+(`{ a?: number; b: number }`), `spec-4.ts` `s4_record` the same, and the S4.2 accepted row `mut-field-assign` writes
+`g.t = [2]` in place of `delete g.t`. Spec S3.4: new text and 3 rows; tutorial: the `delete` row.
+
+**E. A `let` or parameter that a nested function assigns is never narrowed.** Program: fa9 c4
+`narrow-reassign-in-fn`, `narrow-plain-union-helper`, `narrow-nullable-helper` (check `r !== null`, call a helper that
+sets `r = null`, read `r.n`). Before: ACCEPT. After: `ixNestedAssigned` collects, per function, the names assigned in any
+function nested in it (helpers, `function` declarations before or after the use, arrows in initialisers, object-literal
+methods, any depth); `ixFnWritten` makes such a binding no narrowing key and makes its reads ignore the flow, so its
+declared type is used. The use is rejected by the rule that type gives (`[possibly-undefined]`, `[no-member]`,
+`[type]`) and the message ends "r is assigned in a function nested in the one that declares it, so a check on it does
+not carry to this use: copy it to a const first (const y = r; if (y !== null) …)" (a member error is reported at the
+property, so the note is carried there; `r++` in a nested function is `[type]` without the note). Writable lets lose
+nothing: an annotated fresh `let xs: number[]` that a helper reassigns is still `[let-capture]` or `[mut-capture]` when
+a kept function captures it, and a write to it is now `[mutating-method]` (it was accepted with the flow's `Mut`). A
+helper in a parameter default is `[let-capture]`; `for (r of …)` over an existing binding is unsupported. About 40
+product lines. Census: 0
+cells changed verdict (`selfhost/rt/workers.ss.ts` `pagePool`, already rejected, gains `[type]`). Spec S3.11: one
+sentence and 3 rows.
+
+**F. A cell named after a prelude name is `[reserved-name]`.** Program: fa9 g2 (`cell-cast`, `cell-cast-with-user`,
+`cell-state`, `cell-h-esc`), `e1-check/h.ts`, fa4 b3 `nm-cell-named-h`. Before: g2 ACCEPT 4 (`cell-state` crashed the
+run: "Cannot declare a const variable twice: 'state'"). After: all `[reserved-name]`. The list is the toolchain's own
+`tcPrelude` (tc-text.ss.ts, `PRELUDE_FNS` and `h`), read by `core.ts` from `tc-index.ts`, not written again. The
+exemption is by module identity: `Sources.home` names the module, and `PRELUDE_HOME`
+(`@tomlarkworthy/soundscript-runtime`, now also `ts-cells.ts` `RUNTIME`) gets no reserved prelude names;
+`ts-cells.ts` passes each section's home, and `selfhost/rt/check.ts` takes `--home`. With `--home`, `prelude.ss.ts`
+checks as before (40 cells, 28 not ok; `read` ok, `state` unsupported). About 24 product lines. Census (which passes no
+home): the runtime port cells `prelude.ss.ts` `read`, `state`, `cells.ss.ts` `on` change ok/unsupported to rejected,
+and `action`, `snapshot`, `equals`, `jsx.ss.ts` `h`, `lite/browser` `on` gain the rule; with `--home` none change. A
+scratch probe `mapnoargs.ss.ts` `h` is rejected. Spec cells renamed: S11.9 rows 446 and 447 (`h` to `hk`), four accepted
+examples (`h` to `j`; spec.ojs lines 530, 577, 1131, 2245), and the S3.19 row added by A (`read` to `load`). Spec S2.10: one
+sentence and 2 rows. Side effect in other sets: fa4 b2 `ev-action-in-state` names a cell `h` and is now rejected
+`[reserved-name]`, and `lite/boundary.test.ts` had two rows with a cell `h` (renamed `hk`). The shipped runtime
+module's SoundScript sections (`runtime`, `events`, `store`, `render`, `cross`) have no cell named after a prelude name
+(listed by AST), so the page's own check, which passes no home, is not affected.
+
+**Found by the unit tests before the gate, and fixed.** `lite/infer/frozen/ts/core.ts` (the copy `cp-diff.ts` and
+`rg.test.ts` compare against) and `lite/infer/module-time.ts` build their own `MdSources` and did not pass `bound`, so
+`cp.test.ts` saw 1916 completion differences and `rg.test.ts` 1241; both now pass `tcPrelude` (frozen copy under
+`DELIBERATE CHANGE`). `live.test.ts` b4 had a cell `h` (renamed `hk`). The first gate's verify runs failed one prose
+check: the S3.19 sentence said "the two rules above" (now "the same two rules as an iterator").
+
+**Gates** (`.scratch/d1/gates/summary.txt`, 2026-11-24 00:48 to 01:19, run as one background job because the harness
+moves any foreground call over 180 s to the background): build 0; bun-verify 182 pass; fixtures 14/14; diff 3957
+cells SAME 3943 DIFFERENT 0 REAL CRASH 14 (14 before d1 too); `--module-only` 1253 SAME; tc-diff 56 DIFFERENT lines;
+run-sets 2445 programs silent 0, the same with registration off; BODYFN=0 silent 1; fa2 309/9/0; fa3 360/10/0 (13
+accepted before d1); 33 of 33 test files exit 0 (live.test 807, message-fixes 75). verify `--quick` 233 pass 1 fail
+and full 677 pass 1 fail, both the prose check; after the rewording and a rebuild, `--quick` 234 pass 0 fail and full
+678 pass 0 fail (`quick-r2.log`, `verify-full-r2.log`). Neither verify run stopped with "Execution context was
+destroyed". The other gate steps were not rerun after the rewording, which changed one sentence of an md cell. Final
+census3 (`census/final.json`, 48427 cells, against the census after F) shows no verdict change outside the shifted
+spec-row keys. Live product lines added, all items: 119.
+
+**What is left.** E's narrowing is per function, not per call site: a `let` assigned only by a helper that is never
+called between check and use still loses its narrowing (accepted programs of that shape: none found in the corpus).
+B leaves number keys and the `Object.*` readers open by decision above. F does not reserve the other runtime cell names
+(`ref`, `events`, …), which compile to `ss_` inputs and do not clash. Open: a cell named `Map` or `Set` is accepted and
+crashes the run the same way ("Cannot declare a const variable twice: 'Map'", `.scratch/d1/g3.ts`), since
+`tcAssemble` binds `Map`, `Set` and `URL` as consts in a cell that uses them; not reserved, as the owner's list did not
+name them. Census3 reads the `selfhost/rt` ports with no
+home; it was not changed.
+
+## 2026-11-24 01:20–02:10: owner-session check of d1, tutorial review applied, attack 10 received
+
+**Gates, one run on the tree committed** (`selfhost/d1-check/gates-summary.txt`, 01:28 start): build 0; bun-verify 182
+pass; fixtures 14/14; diff DIFFERENT 0 (3957 cells), `--module-only` 1253 SAME; run-sets 2445 programs silent 0,
+registration on and off; fa2 309/9/0, fa3 360/10/0; 33 of 33 test files exit 0 (live.test 807, message-fixes 75);
+verify --quick 234 pass; full verify 678 pass 0 fail. Breakout 60.1 frames/s with its pane open, 45.7 after play
+(a9: 60.1 and 45.6), so moving `propOps` and `deepEqual` to `Map` did not show in the measurements.
+
+**B probed** (`selfhost/d1-check/b-probe.ts`, 16 programs): `m["toString"]`, `m.constructor`, `m.toString`,
+`"valueOf" in m`, `const { toString } = m`, `m?.[k]`, a template key, a literal-typed const key and
+`Record<string, number>` with a run-time key are all rejected; `m["x"]` and `m.x` are accepted and give a number.
+
+**First drafts, unchanged, under d1:** 18 of 40 accepted, 17 run and pass, the same as after e1
+(`d1-check/drafts-after-d1.txt`); `[banned-member]` now appears in 3 drafts that were already rejected.
+
+**Tutorial, fresh-context review** (`selfhost/review-tutorial-1124/FINDINGS.md`, 12 findings): 1–9 and 11 applied in
+`tutorial.ojs` and the comment of `09-breakout.tsx`. The first Try-it told the reader to repair `area` with
+`Number(width)`, which leaves it `[inject-type]`; three places said a view cell does not run again when its input is
+equal, which the runtime section of the same page contradicts. Not applied: 10 (where edit mode is switched on: not
+known to me from the source) and 12 (tests read private runtime fields).
+
+**Attack 10** (`selfhost/freeze-attack10/RESULTS.md`): 332 programs, 150 accepted, 49 silent in six breaks; `delete`
+held (25 of 25 rejected). Not yet fixed in this commit:
+- A-1: a response annotated `const c: {} = res` is a cell's value in 21 shapes (`unknown` and `object` are rejected).
+- B-1: a record read as `{ readonly toString?: number }` gives `Object.prototype.toString`, typed number.
+- E-1: a nested async function narrows a captured `let`, awaits, and the declaring function assigns it meanwhile.
+- F-1: a cell named `now`, `random`, `fetch` or `log` is bound by the checker, and the compiled cell takes the capability.
+- F-2: a cell named `structuredClone` or `URLSearchParams` replaces the global in every compiled cell.
+- F-3: a local or parameter `h` in a JSX cell takes the JSX calls.
+The harness finding: `drive-run.ts` runs `runCells`, which does not run what the compiler emits; F-1 and F-2 show only
+in the attacker's `rt10.ts`, which compiles each cell and runs it in an Observable Runtime.

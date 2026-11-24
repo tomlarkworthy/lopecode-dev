@@ -140,7 +140,9 @@ export class Checker {
     }
   }
 
-  err(node: Node, rule: string, msg: string) { this.diags.push({ node, rule, msg }); }
+  // DELIBERATE CHANGE (2026-11-24, d1): a use of a binding a nested function assigns says why a check does not hold (E)
+  fnw = new Map<number, string>();
+  err(node: Node, rule: string, msg: string) { const w = this.fnw.get(node.start); this.diags.push({ node, rule, msg: w === undefined ? msg : `${msg}; ${w} is assigned in a function nested in the one that declares it, so a check on it does not carry to this use: copy it to a const first (const y = ${w}; if (y !== null) …)` }); }
   // a use that only an action body may make
   inActionOnly(env: Env, node: Node, rule: string, msg: string) {
     if (!env.fi.inAction) this.err(node, rule, msg);
@@ -270,7 +272,8 @@ export class Checker {
   pathKey(n: Node, env: Env, links = false): string | null {
     if (n.type === "Identifier") {
       const b = env.scope.get(n.name);
-      if (!b || b.kind === "global" || b.kind === "prelude" || isNamed(b.t, "Mut")) return null;
+      // DELIBERATE CHANGE (2026-11-24, d1): not a let or parameter that a function nested in its own assigns (E)
+      if (!b || b.kind === "global" || b.kind === "prelude" || isNamed(b.t, "Mut") || this.fnWritten(b)) return null;
       return "#" + b.id;
     }
     if (n.type === "MemberExpression" && (!n.optional || links)) {
@@ -530,7 +533,7 @@ export class Checker {
     const w = t === expected ? null : this.reg.peek(() => this.hidden(t, expected, opaque));
     if (w) this.err(at, "action-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${w}; an Action goes only where an Action is expected`);
     const h = w || t === expected ? null : this.reg.peek(() => this.hidden(t, expected, opaque, 0, (x) => this.handleIn(x, 0)));
-    if (h) this.err(at, "handle-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${h}; a State or Events handle goes only where its own type is expected`);
+    if (h) this.err(at, "handle-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${h}; a State or Events handle, or a FetchResponse, goes only where its own type is expected`);
     return !w && !h;
   }
   // the first State or Events handle held anywhere in s, as actionIn finds an Action
@@ -540,7 +543,8 @@ export class Checker {
     const first = (xs: Ty[]) => { for (const x of xs) { const w = A(x); if (w) return w; } return null; };
     switch (s.k) {
       case "named":
-        if (s.n === "State" || s.n === "Events") return show(s);
+        // DELIBERATE CHANGE (2026-11-24, d1): a FetchResponse, whose body can be read once, is held as a handle is
+        if (s.n === "State" || s.n === "Events" || s.n === "FetchResponse") return show(s);
         if (this.reg.isAlias(s.n)) return A(this.reg.expand(s));
         return first(s.args);
       case "arr": return A(s.el);
@@ -862,7 +866,10 @@ export class Checker {
     // its argument is checked where it is called, so the value takes no argument (S2.6 lets a body name it)
     if (b.kind === "global" && e.name === "structuredClone" && !this.cloneCallees.has(e)) return { k: "fn", tps: [], ps: [{ n: "v", t: NEVER, opt: false }], ret: UNKNOWN };
     const k = "#" + b.id;
-    const nt = env.flow.get(k);
+    // DELIBERATE CHANGE (2026-11-24, d1): a binding a nested function assigns is read at its declared type (E)
+    const fw = this.fnWritten(b);
+    if (fw) this.fnw.set(e.start, b.name);
+    const nt = fw ? undefined : env.flow.get(k);
     if (nt) return nt;
     if (b.lazy && !b.checked) return b.lazy();
     return b.t;
@@ -871,6 +878,9 @@ export class Checker {
   short = new Set<Node>(); // members/calls of an optional chain after a ?. link: they see the non-nullish value
   member(e: Node, env: Env): Ty {
     const ot0 = this.infer(e.object, env);
+    // DELIBERATE CHANGE (2026-11-24, d1): a member error is reported at the property; the E note goes there too
+    const fwn = e.object.type === "Identifier" ? this.fnw.get(e.object.start) : undefined;
+    if (fwn !== undefined) this.fnw.set(e.property.start, fwn);
     const k = this.pathKey(e, env);
     const nt = k ? env.flow.get(k) : undefined;
     const isShort = e.optional || this.short.has(e.object);
@@ -951,9 +961,27 @@ export class Checker {
     if (e.operator === "delete") {
       if (e.argument.type !== "MemberExpression") { this.err(e, "no-delete", "delete"); return BOOL; }
       const ot = this.infer(e.argument.object, env);
-      if (!isNamed(ot, "Mut")) this.err(e, "no-delete", "delete on a value that is not Mut");
+      // DELIBERATE CHANGE (2026-11-24, d1): fetch gives a Mut<FetchResponse>, whose members are not written
+      const resp = ot.k === "named" && ot.n === "Mut" && ot.args.length === 1 && isNamed(ot.args[0]!, "FetchResponse");
+      if (!isNamed(ot, "Mut") || resp) { this.err(e, "no-delete", "delete on a value that is not Mut"); return BOOL; }
       // the property read too, so a name that is not a property is reported and completion sees the member
-      else this.infer(e.argument, env);
+      this.infer(e.argument, env);
+      // DELIBERATE CHANGE (2026-11-24, d1): delete takes only an optional member or an index-signature entry (D)
+      const a = e.argument, p = a.property, lit = p.type === "Literal" && (typeof p.value === "string" || typeof p.value === "number");
+      const key = !a.computed && p.type === "Identifier" ? p.name : a.computed && lit ? String(p.value) : null;
+      let bad: string | null = null;
+      for (const u of this.um(unwrap(ot))) {
+        const m = this.reg.expand(u);
+        if (m.k === "arr" || m.k === "tup") { bad = "an element"; break; }
+        if (m.k !== "rec") { bad = "a member of a value that is not a record"; break; }
+        const q = key === null ? undefined : m.props.get(key);
+        const req = key === null ? [...m.props].find(([, x]) => !x.opt)?.[0] : q !== undefined ? (q.opt ? undefined : key) : m.index ? undefined : key;
+        if (req !== undefined) { bad = req; break; }
+      }
+      const o = a.object.type === "Identifier" ? a.object.name : "o";
+      if (bad === "an element") this.err(e, "no-delete", "delete on an array element leaves a hole that reads undefined; build a new array without it (filter, toSpliced)");
+      else if (bad !== null && bad.includes(" ")) this.err(e, "no-delete", "delete takes only an optional member of a record or an entry of an index signature");
+      else if (bad !== null) this.err(e, "no-delete", `delete removes ${bad}, which the type requires, so a later read finds undefined; make ${bad} optional in the type (${bad}?: …), or build a new record without it (const { ${bad}: _, ...rest } = ${o})`);
       return BOOL;
     }
     if (e.operator === "!") { this.cond(e.argument, env); return BOOL; }
@@ -1059,6 +1087,8 @@ export class Checker {
   // A write to obj.x / obj[i] / obj.method(): obj must have type Mut<T>.
   writeRule(obj: Node, env: Env, at: Node, rule: string) {
     const ot = this.infer(obj, env);
+    // DELIBERATE CHANGE (2026-11-24, d1): fetch gives a Mut<FetchResponse>, whose members are not written
+    if (ot.k === "named" && ot.n === "Mut" && ot.args.length === 1 && isNamed(ot.args[0]!, "FetchResponse")) { this.err(at, rule, "write to a FetchResponse: its members are the response's, not data; read them"); return; }
     if (ot.k === "err" || isNamed(ot, "Mut")) return;
     // DELIBERATE CHANGE (2026-11-22, S4): [mut-deep-write] is gone; a write below a Mut is the plain rule
     // DELIBERATE CHANGE (2026-11-23, e1): a receiver made in the same expression (a literal, or a fresh call or new) may
@@ -1272,6 +1302,21 @@ export class Checker {
     this.diags.length = save; this.unsup.length = saveU;
     if (e.async && !e.generator && !isNamed(this.reg.expand(f.ret), "Promise")) f.ret = named("Promise", f.ret);
     return f;
+  }
+  // DELIBERATE CHANGE (2026-11-24, d1): the names assigned inside a function nested in b's own (as ixNestedAssigned,
+  // ixFnWritten), memoised by function node
+  nestedWrites = new Map<Node, Set<string>>();
+  fnWritten(b: Binding): boolean {
+    if ((b.kind !== "let" && b.kind !== "param") || !b.fi) return false;
+    const f = b.fi.node, isF = (x: Node) => x.type === "ArrowFunctionExpression" || x.type === "FunctionExpression" || x.type === "FunctionDeclaration";
+    let w = this.nestedWrites.get(f);
+    if (!w) {
+      const out = new Set<string>();
+      const walk = (x: Node) => { if (isF(x)) { for (const s of this.assignedNames(x)) out.add(s); return; } kids(x).forEach(walk); };
+      walk(f.body);
+      this.nestedWrites.set(f, (w = out));
+    }
+    return w.has(b.name);
   }
   assignedNames(n: Node): Set<string> {
     const out = new Set<string>();

@@ -1,0 +1,349 @@
+== selfhost/freeze-attack10/f.ts:f-cap-now: ACCEPT
+   drive -> DIFF g is outside its type: string "() => 71"
+   show g = "() => 71"
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-now-rec: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-random: ACCEPT
+   drive -> DIFF g is outside its type: string "() => 0.51"
+   show g = "() => 0.51"
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-random-rec: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-fetch: ACCEPT
+   drive -> DIFF g is outside its type: string "async () => new Response(c.fetchBody ?? \"body\")1"
+   show g = "async () => new Response(c.fetchBody ?? \"body\")1"
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-fetch-rec: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-log: ACCEPT
+   drive -> DIFF g is outside its type: string "(...a) => void lines.push(`log ${a.map(String).join(\" \")}`)1"
+   show g = "(...a) => void lines.push(`log ${a.map(String).join(\" \")}`)1"
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-log-rec: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-compile: ACCEPT
+   drive -> same: g rejected ss_compile is not defined
+   show g = ERROR ss_compile is not defined
+   error g: ss_compile is not defined
+   LOUD (read by hand)
+== selfhost/freeze-attack10/f.ts:f-cap-compile-rec: ACCEPT
+   drive -> same: g rejected ss_compile is not defined
+   show g = ERROR ss_compile is not defined
+   error g: ss_compile is not defined
+   LOUD (read by hand)
+== selfhost/freeze-attack10/f.ts:f-cap-pool: ACCEPT
+   drive -> same: g rejected ss_pool is not defined
+   show g = ERROR ss_pool is not defined
+   error g: ss_pool is not defined
+   LOUD (read by hand)
+== selfhost/freeze-attack10/f.ts:f-cap-pool-rec: ACCEPT
+   drive -> same: g rejected ss_pool is not defined
+   show g = ERROR ss_pool is not defined
+   error g: ss_pool is not defined
+   LOUD (read by hand)
+== selfhost/freeze-attack10/f.ts:f-sc-replace: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-sc-number: ACCEPT
+   drive -> same: g rejected structuredClone is not a function. (In 'structuredClone({ n: 1 })', 'structuredClone' is 5)
+   show g = ERROR structuredClone is not a function. (In 'structuredClone({ n: 1 })', 'structuredClone' is 5)
+   error g: structuredClone is not a function. (In 'structuredClone({ n: 1 })', 'structuredClone' is 5)
+   LOUD (read by hand)
+== selfhost/freeze-attack10/f.ts:f-usp-replace: ACCEPT
+   drive -> same: g rejected 7 is not a constructor (evaluating 'new URLSearchParams("a=1")')
+   show g = ERROR 7 is not a constructor (evaluating 'new URLSearchParams("a=1")')
+   error g: 7 is not a constructor (evaluating 'new URLSearchParams("a=1")')
+   LOUD (read by hand)
+== selfhost/freeze-attack10/f.ts:f-sc-typed-same: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-cls-Map-param: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-cls-Map-only: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack10/f.ts:f-cls-Set-param: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-cls-Set-only: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack10/f.ts:f-cls-URL-param: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-cls-URL-only: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack10/f.ts:f-cls-URL-use: ACCEPT
+   drive -> same: 6
+   show g = 6
+== selfhost/freeze-attack10/f.ts:f-cls-Map-use: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack10/f.ts:f-cls-Map-body: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack10/f.ts:f-cls-param-local: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-cls-local-Map: ACCEPT
+   drive -> same: 4
+   show g = 4
+== selfhost/freeze-attack10/f.ts:f-rt-out: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-closure: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-methods: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-ref: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-events: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-listen: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-cross: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-viewRef: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-compileFor: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-rejected: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-release: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-SsMap: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-SsURL: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-mut: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-freeze: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-rt-borrow: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-gl-Object: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-gl-JSON: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-gl-Math: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-gl-Array: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-gl-Promise: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-gl-Number: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-gl-String: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-gl-Error: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-gl-Symbol: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-gl-console: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-gl-JSON-use: ACCEPT
+   drive -> same: 3
+   show g = 3
+== selfhost/freeze-attack10/f.ts:f-gl-Math-use: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-ob-width: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-ob-md: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-ob-html: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-ob-DOM: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-ob-Inputs: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-ob-require: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-ob-Mutable: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-ob-FileAttachment: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-ob-Promises: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-ob-visibility: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-esc-URL: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-esc-now: ACCEPT
+   drive -> DIFF g is outside its type: string "() => 71"
+   show g = "() => 71"
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-esc-structuredClone: ACCEPT
+   drive -> same: g rejected structuredClone is not a function. (In 'structuredClone({ n: 1 })', 'structuredClone' is 5)
+   show g = ERROR structuredClone is not a function. (In 'structuredClone({ n: 1 })', 'structuredClone' is 5)
+   error g: structuredClone is not a function. (In 'structuredClone({ n: 1 })', 'structuredClone' is 5)
+   LOUD (read by hand)
+== selfhost/freeze-attack10/f.ts:f-local-h-jsx: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-local-h-jsx-same-scope: ACCEPT
+   drive -> DIFF g is outside its type: number 3
+   show g = 3
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-local-h-jsx-min: ACCEPT
+   drive -> DIFF g is outside its type: number 7
+   show g = 7
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-param-h-jsx: ACCEPT
+   drive -> same: g rejected h is not a function. (In 'h("div", {}, h)', 'h' is 1)
+   show g = ERROR h is not a function. (In 'h("div", {}, h)', 'h' is 1)
+   error g: h is not a function. (In 'h("div", {}, h)', 'h' is 1)
+   LOUD (read by hand)
+== selfhost/freeze-attack10/f.ts:f-local-cast-nested: ACCEPT
+   drive -> same: 6
+   show g = 6
+== selfhost/freeze-attack10/f.ts:f-local-cast-shadow-call: ACCEPT
+   drive -> same: 42
+   show g = 42
+== selfhost/freeze-attack10/f.ts:f-local-cast: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-param-state-uses: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-local-structuredClone: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-sc-type: ACCEPT
+   drive -> DIFF g is outside its type: string "abc"
+   show g = "abc"
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-sc-record: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number"
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-now-value: ACCEPT
+   drive -> DIFF g is outside its type: number 7
+   show g = 7
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-now-clock: REJECT g:rejected[inject-type]
+== selfhost/freeze-attack10/f.ts:f-cap-fetch-fake: ACCEPT
+   drive -> DIFF g is outside its type: number 200
+   show g = 200
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-random-arr: ACCEPT
+   drive -> DIFF g is outside its type: number 0
+   show g = 0
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-log-str: ACCEPT
+   drive -> same: g rejected log.toUpperCase is not a function. (In 'log.toUpperCase()', 'log.toUpperCase' is undefined)
+   show g = ERROR log.toUpperCase is not a function. (In 'log.toUpperCase()', 'log.toUpperCase' is undefined)
+   error g: log.toUpperCase is not a function. (In 'log.toUpperCase()', 'log.toUpperCase' is undefined)
+   LOUD (read by hand)
+== selfhost/freeze-attack10/f.ts:f-type-Map: REJECT module[builtin-type-name]
+== selfhost/freeze-attack10/f.ts:f-type-state: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack10/f.ts:f-comp-Map: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack10/f.ts:f-comp-h: ACCEPT
+   drive -> same: g rejected h is not a function. (In 'h(C, {})', 'h' is 3)
+   show g = ERROR h is not a function. (In 'h(C, {})', 'h' is 3)
+   error g: h is not a function. (In 'h(C, {})', 'h' is 3)
+   LOUD (read by hand)
+== selfhost/freeze-attack10/f.ts:f-dollar-name: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-dollar-ref: ACCEPT
+   drive -> same: 6
+   show g = 6
+== selfhost/freeze-attack10/f.ts:f-enum: REJECT module[no-enum] g:rejected[free-name]
+== selfhost/freeze-attack10/f.ts:f-ctl-state [ctl]: REJECT state:rejected[reserved-name]
+   drive -> same: 2
+   show g = 2
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack10/f.ts:f-ctl-state-use [ctl]: REJECT state:rejected[reserved-name] g:rejected[state-placement]
+   drive -> same: 1
+   show g = 1
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack10/f.ts:f-ctl-h [ctl]: REJECT h:rejected[reserved-name]
+   drive -> same: 6
+   show g = 6
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack10/f.ts:f-ctl-cap-now [ctl]: ACCEPT
+   drive -> DIFF g is outside its type: string "() => 71"
+   show g = "() => 71"
+   CONTROL FIRED
+-- controls 4, fired 1
+-- 91 candidates, accepted 88, silent 17, accepted-and-loud 10
+SILENT selfhost/freeze-attack10/f.ts:f-cap-now
+SILENT selfhost/freeze-attack10/f.ts:f-cap-now-rec
+SILENT selfhost/freeze-attack10/f.ts:f-cap-random
+SILENT selfhost/freeze-attack10/f.ts:f-cap-random-rec
+SILENT selfhost/freeze-attack10/f.ts:f-cap-fetch
+SILENT selfhost/freeze-attack10/f.ts:f-cap-fetch-rec
+SILENT selfhost/freeze-attack10/f.ts:f-cap-log
+SILENT selfhost/freeze-attack10/f.ts:f-cap-log-rec
+SILENT selfhost/freeze-attack10/f.ts:f-sc-replace
+SILENT selfhost/freeze-attack10/f.ts:f-esc-now
+SILENT selfhost/freeze-attack10/f.ts:f-local-h-jsx-same-scope
+SILENT selfhost/freeze-attack10/f.ts:f-local-h-jsx-min
+SILENT selfhost/freeze-attack10/f.ts:f-sc-type
+SILENT selfhost/freeze-attack10/f.ts:f-sc-record
+SILENT selfhost/freeze-attack10/f.ts:f-cap-now-value
+SILENT selfhost/freeze-attack10/f.ts:f-cap-fetch-fake
+SILENT selfhost/freeze-attack10/f.ts:f-cap-random-arr
+LOUD selfhost/freeze-attack10/f.ts:f-cap-compile
+LOUD selfhost/freeze-attack10/f.ts:f-cap-compile-rec
+LOUD selfhost/freeze-attack10/f.ts:f-cap-pool
+LOUD selfhost/freeze-attack10/f.ts:f-cap-pool-rec
+LOUD selfhost/freeze-attack10/f.ts:f-sc-number
+LOUD selfhost/freeze-attack10/f.ts:f-usp-replace
+LOUD selfhost/freeze-attack10/f.ts:f-esc-structuredClone
+LOUD selfhost/freeze-attack10/f.ts:f-param-h-jsx
+LOUD selfhost/freeze-attack10/f.ts:f-cap-log-str
+LOUD selfhost/freeze-attack10/f.ts:f-comp-h

@@ -1,0 +1,138 @@
+== selfhost/freeze-attack10/b.ts:b-lit-toString: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-dot-toString: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-lit-toLocaleString: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-dot-toLocaleString: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-lit-valueOf: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-dot-valueOf: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-lit-hasOwnProperty: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-dot-hasOwnProperty: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-lit-propertyIsEnumerable: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-dot-propertyIsEnumerable: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-lit-isPrototypeOf: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-dot-isPrototypeOf: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-lit-__defineGetter__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-dot-__defineGetter__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-lit-__defineSetter__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-dot-__defineSetter__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-lit-__lookupGetter__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-dot-__lookupGetter__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-lit-__lookupSetter__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-dot-__lookupSetter__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-lit-__proto__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-dot-__proto__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-lit-constructor: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-dot-constructor: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-opt-toString: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-in-toString: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-write-toString: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-del-toString: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-pdestr-toString: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-opt-__proto__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-in-__proto__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-write-__proto__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-del-__proto__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-pdestr-__proto__: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-opt-constructor: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-in-constructor: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-write-constructor: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-del-constructor: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-pdestr-constructor: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-opt-valueOf: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-in-valueOf: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-write-valueOf: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-del-valueOf: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-pdestr-valueOf: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-key-param-union: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-key-cond-const: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-key-other-cell: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-key-cast: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-key-concat: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-key-number: REJECT g:rejected[excess-property][type][type][type]
+== selfhost/freeze-attack10/b.ts:b-key-str-num: ACCEPT
+   drive -> same: "number"
+   show g = "number" | E[]
+== selfhost/freeze-attack10/b.ts:b-key-generic-T: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-key-generic-K: REJECT g:rejected[type][banned-member]
+== selfhost/freeze-attack10/b.ts:b-key-generic-M: REJECT g:rejected[no-member]
+== selfhost/freeze-attack10/b.ts:b-iface: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-alias-union: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-nested-index: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-array-elem: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-call-return: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-method-call: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-compound-lit: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/b.ts:b-fromEntries-read: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack10/b.ts:b-entries-proto: REJECT g:rejected[no-cast]
+== selfhost/freeze-attack10/b.ts:b-map-to-rec: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-spread-new: REJECT g:rejected[type]
+== selfhost/freeze-attack10/b.ts:b-assign: REJECT g:unsupported
+== selfhost/freeze-attack10/b.ts:b-widen-optional-toString: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   SILENT
+== selfhost/freeze-attack10/b.ts:b-plain-optional-toString: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   SILENT
+== selfhost/freeze-attack10/b.ts:b-plain-optional-constructor: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   SILENT
+== selfhost/freeze-attack10/b.ts:b-plain-optional-valueOf-num: ACCEPT
+   drive -> DIFF g is outside its type: string "function valueOf() {\n    [native code]\n}1"
+   show g = "function valueOf() {\n    [native code]\n}1" | E[]
+   SILENT
+== selfhost/freeze-attack10/b.ts:b-stale-member-key: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-via-structuredClone: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-via-structuredClone-lit: REJECT g:rejected[type]
+== selfhost/freeze-attack10/b.ts:b-out-proto-x: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack10/b.ts:b-out-proto-x-num: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack10/b.ts:b-out-null-proto: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack10/b.ts:b-out-array: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack10/b.ts:b-out-array-map: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack10/b.ts:b-out-map: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack10/b.ts:b-out-class: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack10/b.ts:b-out-getter: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack10/b.ts:b-out-own-proto-key: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack10/b.ts:b-out-plain-rec-proto: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack10/b.ts:b-out-nested: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack10/b.ts:b-x-widen-param: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   SILENT
+== selfhost/freeze-attack10/b.ts:b-x-widen-fn-call: REJECT g:rejected[type]
+== selfhost/freeze-attack10/b.ts:b-x-widen-cell: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   SILENT
+== selfhost/freeze-attack10/b.ts:b-x-widen-proto: ACCEPT
+   drive -> DIFF g is outside its type: string "object"
+   show g = "object" | E[]
+   SILENT
+== selfhost/freeze-attack10/b.ts:b-x-widen-hasOwn: REJECT g:rejected[type]
+== selfhost/freeze-attack10/b.ts:b-x-sc-lit: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack10/b.ts:b-x-num-zero: REJECT g:rejected[type]
+== selfhost/freeze-attack10/b.ts:b-x-num-neg0: REJECT g:rejected[type]
+== selfhost/freeze-attack10/b.ts:b-x-num-nan: REJECT g:rejected[type]
+== selfhost/freeze-attack10/b.ts:b-x-num-1e21: REJECT g:rejected[type]
+== selfhost/freeze-attack10/b.ts:b-x-num-var: REJECT g:rejected[excess-property][type]
+== selfhost/freeze-attack10/b.ts:b-ctl-runtime-key [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack10/b.ts:b-ctl-inherited-lit [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 95 candidates, accepted 9, silent 7 (by the tap alone 0)
+SILENT selfhost/freeze-attack10/b.ts:b-widen-optional-toString
+SILENT selfhost/freeze-attack10/b.ts:b-plain-optional-toString
+SILENT selfhost/freeze-attack10/b.ts:b-plain-optional-constructor
+SILENT selfhost/freeze-attack10/b.ts:b-plain-optional-valueOf-num
+SILENT selfhost/freeze-attack10/b.ts:b-x-widen-param
+SILENT selfhost/freeze-attack10/b.ts:b-x-widen-cell
+SILENT selfhost/freeze-attack10/b.ts:b-x-widen-proto

@@ -1,5 +1,5 @@
 // Port attempt (2026-11-20): the declarations of lite/browser/cells.ts the runtime module holds.
-// bun selfhost/rt/check.ts selfhost/rt/cells.ss.ts
+// bun selfhost/rt/check.ts selfhost/rt/cells.ss.ts --home @tomlarkworthy/soundscript-runtime (d1: its cells may take prelude names)
 type Gen = { next(): unknown; return(): unknown };
 type Lst = { readonly listener: true; readonly events: unknown; readonly action: (x: unknown) => void };
 type Handle = { readonly events: true; readonly name: string };

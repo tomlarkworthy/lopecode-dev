@@ -31,6 +31,8 @@ export type MdOutside = { readonly name: string; readonly view: boolean };
 export type MdSources = {
   readonly cells: string; readonly tsx: boolean; readonly foreign: string | null; readonly shell: string | null;
   readonly name: string | null; readonly outside: MdOutside[]; readonly probe: IxProbeAsk | null;
+  // d1 (2026-11-24): the prelude names a compiled cell of this module binds from the runtime module (none in it)
+  readonly bound: string[];
 };
 export type MdBoundary = { readonly shape: TypeShape; readonly ref: boolean };
 export type MdCellRec = {
@@ -61,6 +63,7 @@ export type MdCtx = {
   readonly R: MdReg; readonly src: string; readonly count: number; readonly line: (pos: number) => number;
   readonly defs: MdDef[]; readonly byName: Map<string, MdDef>; readonly cellNames: Set<string>; readonly shellNames: Set<string>;
   readonly foreign: Map<string, MdForeignValue>; readonly outside: Map<string, MdOutside>; readonly takenAsEvents: Set<string>; readonly probe: IxProbeAsk | null;
+  readonly bound: string[];
 };
 // the tables core.ts's cell loop writes and later cells read
 export type MdTables = {

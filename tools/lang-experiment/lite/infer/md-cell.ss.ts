@@ -2,12 +2,16 @@
 // value rules, its record, and what it gives the cells after it.
 
 // the syntax pass: bans as errors of the record, satisfies as unsupported in the Checker log; then a reserved cell name
-export const mdSyntax = (syntaxBans, mdDiag, ixUnsup, reservedCellName, RESERVED_CELL_MSG, reservedText, RESERVED_TEXT_MSG) => (K: IxK, C: IxCtls, X: MdCtx, L: MdL, d: MdDef): void => {
+// d1 (2026-11-24): a cell named after a prelude name a compiled cell binds from the runtime module (X.bound, core.ts)
+export const RESERVED_PRELUDE_MSG = () => (name: string): string =>
+  `${name} is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named ${name} clashes with that binding; give the cell another name`;
+export const mdSyntax = (syntaxBans, mdDiag, ixUnsup, reservedCellName, RESERVED_CELL_MSG, RESERVED_PRELUDE_MSG, reservedText, RESERVED_TEXT_MSG) => (K: IxK, C: IxCtls, X: MdCtx, L: MdL, d: MdDef): void => {
   for (const s of syntaxBans(d.fn)) {
     if (s.unsup) ixUnsup(K, C, s.at, s.msg);
     else mdDiag(X, L, s.at, s.rule, s.msg);
   }
   if (reservedCellName(d.name)) mdDiag(X, L, d.fn, "reserved-name", RESERVED_CELL_MSG(d.name));
+  else if (X.bound.includes(d.name)) mdDiag(X, L, d.fn, "reserved-name", RESERVED_PRELUDE_MSG(d.name));
   const m = reservedText(X.src.slice(d.stmt.start, d.stmt.end));
   if (m !== null) mdDiag(X, L, d.fn, "reserved-name", RESERVED_TEXT_MSG(d.name, m));
 };

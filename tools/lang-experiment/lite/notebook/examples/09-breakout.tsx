@@ -70,9 +70,9 @@ const onTick = (ticks: Events<number>, tick: Action<[number]>) => on(ticks, tick
 const box = () => (x: number, y: number, w: number, h: number, colour: string) =>
   `position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:${colour}`;
 
-// Components are cells. Each reads only the part of the world it draws, and a cell whose value is
-// the same as last time (Object.is) does not re-run its readers: step keeps the bricks array when no
-// brick was hit, so bricksView runs once per broken brick, not once per frame.
+// Components are cells. Each reads only the part of the world it draws. Every one runs again on each
+// frame, since world was computed again; step keeps the bricks array when no brick was hit, so
+// bricksView returns an equal description and the renderer leaves the brick nodes as they are.
 const bricks = (world) => world.bricks;
 const ball = (world) => world.ball;
 const paddle = (world) => world.paddle;

@@ -20,7 +20,7 @@ const s4_counts = () => {
 };
 
 const s4_record = () => {
-  const r = { a: 1, b: 2 };
+  const r: { a?: number; b: number } = { a: 1, b: 2 };
   delete r.a;
   r.b += 1;
   return r;

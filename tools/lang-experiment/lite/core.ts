@@ -7,7 +7,8 @@
 // or cell each report goes to; a form the registry cells do not read (a gap) as a rejection; and the result as
 // LiteResult.
 import { cloneProblemWith, type Ty } from "./types.ts";
-import { CAPABILITIES, ALLOWED_GLOBALS, PRELUDE_FNS } from "./intrinsics.ts";
+import { CAPABILITIES, ALLOWED_GLOBALS, PRELUDE_FNS, PRELUDE_HOME } from "./intrinsics.ts";
+import { tcPrelude } from "./toolchain/tc-index.ts";
 import { parseTree } from "./acorn/index.ts";
 import {
   mdCheckSources, rgFreshCtl, rgConvert, rgExpand, rgIfaceRec, rgSig, rgLiteral, rgQuietGo, rgSub, rgFresh, rgPeekOpen, rgPeekClose, rgLoad, rgTake,
@@ -37,7 +38,8 @@ export type LiteResult = {
 // module also has `viewof <name>` (an Observable JavaScript view, or a SoundScript state cell imported with its
 // viewof). A SoundScript cell takes one through an annotated parameter (boundary.ts).
 export type Outside = { name: string; view?: boolean };
-export type Sources = { cells: string; tsx?: boolean; foreign?: string | null; shell?: string | null; name?: string; outside?: readonly Outside[] | null };
+// home (d1): the identity of the module the cells are in (PRELUDE_HOME's cells may take the prelude's names)
+export type Sources = { cells: string; tsx?: boolean; foreign?: string | null; shell?: string | null; name?: string; outside?: readonly Outside[] | null; home?: string | null };
 // per parameter that names an outside cell: its value's shape, and whether it is taken as State (its viewof)
 export type Boundary = { shape: Shape; ref: boolean };
 // strictIndex: an index read may be undefined. onCell: called once per cell checked. probe: completion's question, a
@@ -169,7 +171,9 @@ export function runCheck(entry: Entry, src: Sources, opts: CheckOpts = {}, L: Rg
   const t0 = performance.now();
   const R = mdRegistry(opts.strictIndex ?? true, opts.onCell ?? null, L);
   let r: MdResult;
-  const S: MdSources = { cells: src.cells, tsx: !!src.tsx, foreign: src.foreign ?? null, shell: src.shell ?? null, name: src.name ?? null, outside: (src.outside ?? []).map((o) => ({ name: o.name, view: !!o.view })), probe: opts.probe ?? null };
+  const S: MdSources = { cells: src.cells, tsx: !!src.tsx, foreign: src.foreign ?? null, shell: src.shell ?? null, name: src.name ?? null, outside: (src.outside ?? []).map((o) => ({ name: o.name, view: !!o.view })), probe: opts.probe ?? null,
+    // d1: the toolchain's prelude names, which the module that defines the prelude keeps as its own cells
+    bound: src.home === PRELUDE_HOME ? [] : tcPrelude };
   try { r = entry(R, S); } finally { R.finish(); }
   const cells: LiteCell[] = r.cells.map((c) => ({ name: c.name, status: c.status, line: c.line, errors: c.errors.map((e) => ({ ...e })), unsupported: c.unsupported.map((e) => ({ ...e })), blockedBy: [...c.blockedBy], ...(c.value === null ? {} : { value: c.value }) }));
   const module = r.module.map((e) => ({ ...e }));

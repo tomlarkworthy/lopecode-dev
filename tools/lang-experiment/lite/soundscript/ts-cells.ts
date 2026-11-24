@@ -19,13 +19,14 @@ import { parse, type Node } from "../parse.ts";
 import { erase } from "../browser/erase.ts";
 import { splitCells, compileCell, compileCellText, contextFromCheck, acceptedOf, inputsIn, INPUTS, RUNTIME_CELLS } from "../toolchain/ss-toolchain.ts";
 import { checkSources } from "../core.ts";
+import { PRELUDE_HOME } from "../intrinsics.ts";
 import { IX_FILES, OW_FILES, MD_FILES, RG_FILES, CP_FILES } from "../infer-ss.ts";
 import { TC_FILES } from "../toolchain/tc-index.ts";
 
 type Compile = (src: string) => { _name?: string | null; _inputs?: string[]; _definition: unknown }[];
 const LITE = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const ENTRY = join(LITE, "soundscript/entry.ts");
-export const RUNTIME = "@tomlarkworthy/soundscript-runtime";
+export const RUNTIME = PRELUDE_HOME;
 export const CHECKER = "@tomlarkworthy/soundscript-checker";
 export const WORKERS = "@tomlarkworthy/soundscript-workers";
 // the add-on's roots: ss_pool = pagePool()
@@ -185,7 +186,7 @@ export function sectionCheck(file: string): ReturnType<typeof checkSources> {
   const hit = group && groupChecks.get(group);
   if (hit) return hit;
   const withTexts = (SS_CHECKED_WITH[file] ?? []).flatMap(ssCellTexts);
-  const r = checkSources({ cells: [...withTexts, ...(group ?? [file]).flatMap(ssCellTexts)].join("\n\n"), tsx: true, shell: SS_SHELL[file] ? SS_SHELL[file].map((f) => readFileSync(join(LITE, f), "utf8")).join("\n") : null });
+  const r = checkSources({ cells: [...withTexts, ...(group ?? [file]).flatMap(ssCellTexts)].join("\n\n"), tsx: true, home: SS_HOME[file] ?? null, shell: SS_SHELL[file] ? SS_SHELL[file].map((f) => readFileSync(join(LITE, f), "utf8")).join("\n") : null });
   if (group) groupChecks.set(group, r);
   return r;
 }

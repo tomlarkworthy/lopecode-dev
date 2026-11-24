@@ -51,13 +51,34 @@ export const ixNumeric = (ixErr, ixNonUndef, ixFilter, show, UNDEF_FIX, NUM) => 
   else ixErr(K, C, at, "type", `${show(t)} used as a number`);
   return false;
 };
-export const ixUnary = (ixNumeric, ixUnsup, ixErr, isNamed, lit, BOOL, STR, UNDEF, NUM, BIGINT, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: UnaryExpression): Ty => {
+// d1 (2026-11-24): a deleted member reads undefined, so delete takes only an optional member or an index-signature entry:
+// what else it would remove (an element, a member the type requires, a member of a value that is not a record), or null
+export const ixDeleteBad = (ixUm, unwrap) => (R: IxRegCore, ot: Ty, a: MemberExpression): string | null => {
+  const p = a.property;
+  const key = !a.computed && p.type === "Identifier" ? p.name : a.computed && p.type === "Literal" && (typeof p.value === "string" || typeof p.value === "number") ? String(p.value) : null;
+  for (const u of ixUm(R, unwrap(ot))) {
+    const m = R.expand(u);
+    if (m.k === "arr" || m.k === "tup") return "an element";
+    if (m.k !== "rec") return "a member of a value that is not a record";
+    const q = key === null ? undefined : m.props.get(key);
+    const req = key === null ? [...m.props].find(([, x]) => !x.opt)?.[0] : q !== undefined ? (q.opt ? undefined : key) : m.index ? undefined : key;
+    if (req !== undefined) return req;
+  }
+  return null;
+};
+export const ixDeleteMsg = () => (bad: string, o: string): string => bad === "an element"
+  ? "delete on an array element leaves a hole that reads undefined; build a new array without it (filter, toSpliced)"
+  : bad.includes(" ") ? "delete takes only an optional member of a record or an entry of an index signature"
+  : `delete removes ${bad}, which the type requires, so a later read finds undefined; make ${bad} optional in the type (${bad}?: …), or build a new record without it (const { ${bad}: _, ...rest } = ${o})`;
+export const ixUnary = (ixNumeric, ixRespMut, ixDeleteBad, ixDeleteMsg, ixUnsup, ixErr, isNamed, lit, BOOL, STR, UNDEF, NUM, BIGINT, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: UnaryExpression): Ty => {
   const a = e.argument;
   if (e.operator === "delete") {
     if (a.type !== "MemberExpression") { ixErr(K, C, e, "no-delete", "delete"); return BOOL; }
     const ot = K.infer(K, T, V, W, C, env, a.object);
-    if (!isNamed(ot, "Mut")) ixErr(K, C, e, "no-delete", "delete on a value that is not Mut");
-    else K.infer(K, T, V, W, C, env, a);
+    if (!isNamed(ot, "Mut") || ixRespMut(ot)) { ixErr(K, C, e, "no-delete", "delete on a value that is not Mut"); return BOOL; }
+    K.infer(K, T, V, W, C, env, a);
+    const bad = ixDeleteBad(K.reg, ot, a);
+    if (bad !== null) ixErr(K, C, e, "no-delete", ixDeleteMsg(bad, a.object.type === "Identifier" ? a.object.name : "o"));
     return BOOL;
   }
   if (e.operator === "!") { K.cond(K, T, V, W, C, env, a); return BOOL; }
@@ -128,11 +149,14 @@ export const ixBinary = (ixErr, ixUnsup, ixNumeric, ixOrder, ixInOp, ixNoOverlap
       return NUM;
   }
 };
+// d1 (2026-11-24): fetch gives a Mut<FetchResponse> (its body can be read once), whose members are not written
+export const ixRespMut = () => (t: Ty): boolean => t.k === "named" && t.n === "Mut" && t.args.length === 1 && t.args[0]?.k === "named" && t.args[0]?.n === "FetchResponse";
 // a write to obj.x / obj[i] / obj.method(): obj must have type Mut<T>
 // e1 (2026-11-23): a value made in the same expression (a literal, or a call or new whose value is fresh) has no other
 // name, so it may be written there ([...xs].sort()), as it may once bound to a local (S4.1)
-export const ixWriteRule = (ixErr, ixWriteFix, isNamed, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, obj: AstNode, at: AstNode, rule: string): void => {
+export const ixWriteRule = (ixErr, ixWriteFix, ixRespMut, isNamed, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, obj: AstNode, at: AstNode, rule: string): void => {
   const ot = K.infer(K, T, V, W, C, env, obj);
+  if (ixRespMut(ot)) { ixErr(K, C, at, rule, "write to a FetchResponse: its members are the response's, not data; read them"); return; }
   if (ot.k === "err" || isNamed(ot, "Mut")) return;
   if (obj.type === "ArrayExpression" || obj.type === "ObjectExpression" || C.freshAt === obj.nid) return;
   ixErr(K, C, at, rule, `write to a ${show(ot)}, which is not Mut; ${ixWriteFix(K, ot, obj, at)}`);

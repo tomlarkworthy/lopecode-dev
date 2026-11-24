@@ -87,14 +87,16 @@ export const owKeyNames = (ixUm) => (O: OwCtx, k: AstNode, computed: boolean): s
   return ms.flatMap((m) => (m.k === "lit" && typeof m.v === "string" ? [m.v] : []));
 };
 // a record with an index signature types every key it is read at by the signature; a key that names a member of
-// Object.prototype reads that member instead (a function, or the prototype). A key of type string is not checked
+// Object.prototype reads that member instead (a function, or the prototype). d1 (2026-11-24): a key that may be any
+// string (not a literal, a union of literals or a number) is refused, since it may name one
 export const owProtoRead = (owKeyNames, PROTO_NAMES, ixUm, unwrap, owErr) => (O: OwCtx, W: OwW, n: AstNode): void => {
   const at = n.type === "MemberExpression" ? { o: n.object, k: n.property, c: n.computed } : n.type === "BinaryExpression" && n.operator === "in" ? { o: n.right, k: n.left, c: true } : null;
   if (at === null) return;
   const t = O.F.types.get(at.o.nid);
   if (t === undefined || !ixUm(O.R, t).some((m) => { const x = O.R.expand(unwrap(m)); return x.k === "rec" && x.index !== undefined; })) return;
   const names = owKeyNames(O, at.k, at.c), P: Set<string> = PROTO_NAMES;
-  const k = names === null ? undefined : names.find((x) => P.has(x));
+  if (names === null) return owErr(W, n, "banned-member", "a key known only at run time, on a record with an index signature, can name an inherited member such as toString or __proto__, which is not an entry; keep the entries in a Map<string, T> (m.get(k), m.set(k, v), m.has(k), m.delete(k)), or use a literal key");
+  const k = names.find((x) => P.has(x));
   if (k !== undefined) owErr(W, n, "banned-member", `${k} on a record with an index signature is Object.prototype's ${k}, not an entry`);
 };
 // a type that may hold an object, which === compares by identity

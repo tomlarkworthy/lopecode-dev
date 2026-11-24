@@ -23,8 +23,8 @@ export const ixHeldIn = (show) => {
 };
 // actionIn: the first Action held anywhere in s
 export const ixActionIn = (ixHeldIn) => (R: IxRegCore, s: Ty): string | null => ixHeldIn(R, s, 0, (x) => x.k === "named" && x.n === "Action", true);
-// handleIn: the first State or Events handle
-export const ixHandleIn = (ixHeldIn) => (R: IxRegCore, s: Ty): string | null => ixHeldIn(R, s, 0, (x) => x.k === "named" && (x.n === "State" || x.n === "Events"), true);
+// handleIn: the first State or Events handle, or (d1, 2026-11-24) a FetchResponse, whose body can be read once
+export const ixHandleIn = (ixHeldIn) => (R: IxRegCore, s: Ty): string | null => ixHeldIn(R, s, 0, (x) => x.k === "named" && (x.n === "State" || x.n === "Events" || x.n === "FetchResponse"), true);
 // promiseIn: the first promise-like, a Promise, a type with a then member, or object
 export const ixPromiseIn = (show) => {
   function promiseIn(R: IxRegCore, s: Ty, depth: number): string | null {
@@ -142,6 +142,6 @@ export const ixHides = (ixHidden, ixActionIn, ixHandleIn, ixErr, show) => (K: Ix
   const w = same ? null : ixHidden({ R, opaque, find: (x: Ty) => ixActionIn(R, x) }, t, expected, 0);
   if (w) ixErr(K, C, at, "action-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${w}; an Action goes only where an Action is expected`);
   const h = w || same ? null : ixHidden({ R, opaque, find: (x: Ty) => ixHandleIn(R, x) }, t, expected, 0);
-  if (h) ixErr(K, C, at, "handle-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${h}; a State or Events handle goes only where its own type is expected`);
+  if (h) ixErr(K, C, at, "handle-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${h}; a State or Events handle, or a FetchResponse, goes only where its own type is expected`);
   return !w && !h;
 };

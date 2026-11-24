@@ -50,8 +50,8 @@ export const mdRenamed = (mdShownNames, mdUnPh, mdDupErrs) => (X: MdCtx, dups: M
   return { module: errs.module, out: renamed, shown };
 };
 // the module's context for its cells' checks
-export const mdContext = (mdAnn, mdRefName) => (R: MdReg, src: string, count: number, line: (pos: number) => number, defs: MdDef[], shellNames: Set<string>, F: MdForeign | null, outside: MdOutside[], probe: IxProbeAsk | null): MdCtx => ({
-  R, src, count, line, defs, shellNames, probe,
+export const mdContext = (mdAnn, mdRefName) => (R: MdReg, src: string, count: number, line: (pos: number) => number, defs: MdDef[], shellNames: Set<string>, F: MdForeign | null, outside: MdOutside[], probe: IxProbeAsk | null, bound: string[]): MdCtx => ({
+  R, src, count, line, defs, shellNames, probe, bound,
   byName: new Map(defs.map((d): [string, MdDef] => [d.name, d])), cellNames: new Set(defs.map((d) => d.name)),
   foreign: new Map((F?.values ?? []).map((v): [string, MdForeignValue] => [v.name, v])),
   outside: new Map(outside.map((o): [string, MdOutside] => [o.name, o])),
@@ -66,7 +66,7 @@ export const mdCheckSources = (mdDistinct, mdShellNames, lineAt, mdModuleLevel, 
   const shellNames = S.shell !== null && S.shell !== "" ? mdShellNames(S.shell) : new Set<string>();
   const line = lineAt(dist.text);
   const ml = mdModuleLevel(R, p.ast, dist.text, S.tsx, F, shellNames, line);
-  const X = mdContext(R, dist.text, p.ast.count, line, ml.defs, shellNames, F, S.outside, S.probe);
+  const X = mdContext(R, dist.text, p.ast.count, line, ml.defs, shellNames, F, S.outside, S.probe, S.bound);
   const lines = new Map(ml.defs.map((d): [string, number] => [d.name, line(d.stmt.start)]));
   const { order, cycles } = mdOrder(ml.defs, X.byName, X.cellNames, lines);
   const fresh = ml.defs.map((d): [string, MdCellRec] => [d.name, mdFreshRec(d, lines.get(d.name) ?? 0, [...(ml.ignores.get(d.name) ?? []), ...(cycles.get(d.name) ?? [])])]);

@@ -283,7 +283,7 @@ interface FetchResponse {
 }
 type Clock = () => number;
 type Random = () => number;
-type Fetch = (url: string, init?: { readonly method?: string; readonly headers?: { readonly [k: string]: string }; readonly body?: string }) => Promise<FetchResponse>;
+type Fetch = (url: string, init?: { readonly method?: string; readonly headers?: { readonly [k: string]: string }; readonly body?: string }) => Promise<Mut<FetchResponse>>;
 type Log = (...args: unknown[]) => void;
 type Invalidation = Promise<void>;
 // compile's type depends on the cell names it is given; core.ts types each call.
@@ -304,6 +304,8 @@ declare function memo<F>(f: F): F;
 type Cast<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly path: string; readonly error: string };
 `;
 export const CAPABILITIES: Record<string, string> = { now: "Clock", random: "Random", fetch: "Fetch", log: "Log", invalidation: "Invalidation", compile: "Compile", pool: "Pool" };
+// d1 (2026-11-24): the module that defines the prelude functions as its own cells (a cell there may take their names)
+export const PRELUDE_HOME = "@tomlarkworthy/soundscript-runtime";
 export const PRELUDE_FNS = new Set(["state", "action", "snapshot", "equals", "on", "read", "messageOf", "memo", "cast"]);
 
 // JSX: an element is a value. A renderer outside the checked cells turns it into DOM nodes; event

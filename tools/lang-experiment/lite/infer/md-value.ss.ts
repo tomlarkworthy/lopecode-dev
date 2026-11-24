@@ -55,7 +55,7 @@ export const mdValueRules = (mdValueType, mdSettled, mdKept, mdStateRules, owIte
   const state = inner === undefined ? [] : mdStateRules(R, X, d.name, fedBy, line, inner);
   if (inner !== undefined) ret = inner;
   const it = owIter(R, ret);
-  const iter = it === null ? [] : [{ rule: "iterator-cell", line, msg: `value ${show(ret)} may hold an iterator (${it}); every cell that takes it would use up the same one, so what each computes would depend on the order the cells run in. Make it an array` }];
+  const iter = it === null ? [] : it === "FetchResponse" ? [{ rule: "iterator-cell", line, msg: `value ${show(ret)} holds a FetchResponse: a response's body can be read once, so the cells that take it would find it used up, depending on the order they run in; read the body in this cell and give the data (const data = async (fetch: Fetch) => (await fetch(url)).json())` }] : [{ rule: "iterator-cell", line, msg: `value ${show(ret)} may hold an iterator (${it}); every cell that takes it would use up the same one, so what each computes would depend on the order the cells run in. Make it an array` }];
   const then = mdThenable(ret) ? [{ rule: "type", line, msg: `value ${show(ret)} has a callable then: the runtime would call it and give the cells that take it what then passes on, not this type. Rename then` }] : [];
   const isL = (t: Ty): boolean => t.k === "named" && isNamed(t, "Listener");
   const listener = isL(ret) || (ret.k === "union" && ret.ts.every(isL));

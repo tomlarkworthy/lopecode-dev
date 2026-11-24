@@ -42,7 +42,7 @@ export const linkTc = (over: Record<string, (...inputs: never[]) => unknown> = {
 export type TcLinked = ReturnType<typeof linkTc>;
 // the cells the glue calls, by name
 export const {
-  tcLANG, tcSTATE_VALUE, tcRuntimeCells, tcINPUTS, tcInputsIn, tcSplitCells, tcContextOf, tcAcceptedOf, tcWhyOf, tcContextFromCheck, tcCellStates,
+  tcLANG, tcSTATE_VALUE, tcPrelude, tcRuntimeCells, tcINPUTS, tcInputsIn, tcSplitCells, tcContextOf, tcAcceptedOf, tcWhyOf, tcContextFromCheck, tcCellStates,
   tcVariableName, tcKeyOfVariable, tcIsDuplicateKey, tcHandleName, tcCellOfVariable, tcCompileCell, tcCompileCellText, tcCompileModule, tcLangOf,
   tcParseCompiled, tcKinds, tcDecompileVariable, tcDecompileModule, tcEsc, tcUnesc, tcCommentTypes, tcUncommentTypes, tcCompileTypes, tcDecompileTypes,
   tcErase, tcModuleJs, tcSyntaxStub, tcFromObservableVariables,

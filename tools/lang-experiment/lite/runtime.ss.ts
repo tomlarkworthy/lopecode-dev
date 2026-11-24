@@ -54,7 +54,10 @@ export const deepEqual = () => {
     const ka = Object.keys(a), kb = new Set(Object.keys(b));
     if (ka.length !== kb.size || !ka.every((k) => kb.has(k))) return false;
     if (Array.isArray(a)) return Array.isArray(b) && ka.every((k) => eq(a[Number(k)], b[Number(k)]));
-    return !Array.isArray(b) && ka.every((k) => eq(a[k], b[k]));
+    // d1 (2026-11-24): own entries through a Map, since a run-time key on a record may name an inherited member
+    if (Array.isArray(b)) return false;
+    const mb = new Map(Object.entries(b));
+    return Object.entries(a).every(([k, v]) => mb.has(k) && eq(v, mb.get(k)));
   };
   return eq;
 };

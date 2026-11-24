@@ -1,0 +1,75 @@
+== selfhost/freeze-attack10/e.ts:e-nested-nullish-assign: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-nested-or-assign: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-nested-and-assign: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-nested-destr-arr: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-nested-destr-obj: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-nested-for-of: REJECT g:unsupported
+== selfhost/freeze-attack10/e.ts:e-default-param: REJECT g:rejected[untyped-parameter][possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-iife: REJECT g:rejected[possibly-undefined][let-capture]
+== selfhost/freeze-attack10/e.ts:e-foreach-cb: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-map-cb: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-sort-cb: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-generator-body: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-object-method-shorthand: REJECT g:rejected[possibly-undefined][let-capture]
+== selfhost/freeze-attack10/e.ts:e-captured-narrow-in-nested: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-await-outer-write: REJECT g:rejected[mut-await]
+== selfhost/freeze-attack10/e.ts:e-await-outer-write-typeof: ACCEPT
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1" | E[]
+   SILENT
+== selfhost/freeze-attack10/e.ts:e-await-outer-write-tag: REJECT g:rejected[mut-await]
+== selfhost/freeze-attack10/e.ts:e-await-outer-write-truthy: REJECT g:rejected[mut-await]
+== selfhost/freeze-attack10/e.ts:e-await-param-outer: ACCEPT
+   drive -> same: g rejected null is not an object (evaluating 'r.n')
+   show g = ERROR null is not an object (evaluating 'r.n')
+   error g: null is not an object (evaluating 'r.n')
+== selfhost/freeze-attack10/e.ts:e-gen-outer-write: REJECT g:rejected[mut-yield]
+== selfhost/freeze-attack10/e.ts:e-await-nested-write: REJECT g:rejected[possibly-undefined][mut-await]
+== selfhost/freeze-attack10/e.ts:e-member-helper: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-member-helper-param: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-member-typeof: REJECT g:rejected[type]
+== selfhost/freeze-attack10/e.ts:e-member-tag: REJECT g:rejected[no-member]
+== selfhost/freeze-attack10/e.ts:e-member-await: REJECT g:rejected[possibly-undefined][mut-await]
+== selfhost/freeze-attack10/e.ts:e-member-nested-narrow: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-element-helper: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/e.ts:e-element-direct: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack10/e.ts:e-in-narrow: REJECT g:rejected[no-member]
+== selfhost/freeze-attack10/e.ts:e-isarray: REJECT g:unsupported
+== selfhost/freeze-attack10/e.ts:e-kept-fn-later: REJECT k:rejected[possibly-undefined][let-capture][let-capture][let-capture][action-capture] g:blocked
+== selfhost/freeze-attack10/e.ts:e-x-await-param-prim: ACCEPT
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1" | E[]
+   SILENT
+== selfhost/freeze-attack10/e.ts:e-x-await-null-prim: ACCEPT
+   drive -> same: g rejected null is not an object (evaluating 'r.length')
+   show g = ERROR null is not an object (evaluating 'r.length')
+   error g: null is not an object (evaluating 'r.length')
+== selfhost/freeze-attack10/e.ts:e-x-gen-outer-prim: REJECT g:unsupported
+== selfhost/freeze-attack10/e.ts:e-x-await-then-cb: ACCEPT
+   drive -> same: null
+   show g = null | E[]
+== selfhost/freeze-attack10/e.ts:e-x-await-loop: ACCEPT
+   drive -> DIFF g is outside its type: string "0ss"
+   show g = "0ss" | E[]
+   SILENT
+== selfhost/freeze-attack10/e.ts:e-x-two-nested: ACCEPT
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1" | E[]
+   SILENT
+== selfhost/freeze-attack10/e.ts:e-ctl-member-helper [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "null"
+   show g = "null" | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack10/e.ts:e-ctl-await-outer [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "null"
+   show g = "null" | E[]
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 38 candidates, accepted 8, silent 4 (by the tap alone 0)
+SILENT selfhost/freeze-attack10/e.ts:e-await-outer-write-typeof
+SILENT selfhost/freeze-attack10/e.ts:e-x-await-param-prim
+SILENT selfhost/freeze-attack10/e.ts:e-x-await-loop
+SILENT selfhost/freeze-attack10/e.ts:e-x-two-nested

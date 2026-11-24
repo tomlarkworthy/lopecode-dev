@@ -1,5 +1,6 @@
 // Port attempt (2026-11-20): every declaration of prelude.runtime.ts that the runtime module holds, written as
-// a SoundScript cell with types. Not linked, not built. bun selfhost/rt/check.ts selfhost/rt/prelude.ss.ts
+// a SoundScript cell with types. Not linked, not built. Its cells are the runtime module's, which defines the prelude
+// (d1: read and state may keep their names there): bun selfhost/rt/check.ts selfhost/rt/prelude.ss.ts --home @tomlarkworthy/soundscript-runtime
 type ViewEl = { value: unknown; dispatchEvent(e: Event): boolean };
 type Store = { name: string; value: unknown; handle?: object; el?: ViewEl; check?: (v: unknown) => unknown };
 type Call = Map<Store, unknown>;

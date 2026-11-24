@@ -1,0 +1,31 @@
+== selfhost/freeze-attack10/d.ts:d-opt-param-required-arg: REJECT g:rejected[type]
+== selfhost/freeze-attack10/d.ts:d-opt-param-fresh: REJECT g:rejected[type]
+== selfhost/freeze-attack10/d.ts:d-opt-alias: REJECT g:rejected[type]
+== selfhost/freeze-attack10/d.ts:d-opt-alias-fresh: REJECT g:rejected[type]
+== selfhost/freeze-attack10/d.ts:d-opt-alias-plain: REJECT g:rejected[no-delete]
+== selfhost/freeze-attack10/d.ts:d-index-view: REJECT g:rejected[type]
+== selfhost/freeze-attack10/d.ts:d-index-view-plain: REJECT g:rejected[no-delete]
+== selfhost/freeze-attack10/d.ts:d-index-view-annotated: REJECT g:rejected[type][no-delete]
+== selfhost/freeze-attack10/d.ts:d-index-param: REJECT g:rejected[type]
+== selfhost/freeze-attack10/d.ts:d-index-param-mut: REJECT g:rejected[type]
+== selfhost/freeze-attack10/d.ts:d-index-to-required: REJECT g:rejected[type]
+== selfhost/freeze-attack10/d.ts:d-index-member-literal: REJECT g:rejected[no-delete]
+== selfhost/freeze-attack10/d.ts:d-nested-path: REJECT g:rejected[no-delete]
+== selfhost/freeze-attack10/d.ts:d-nested-index: REJECT g:rejected[no-delete]
+== selfhost/freeze-attack10/d.ts:d-optional-chain: REJECT g:rejected[no-delete]
+== selfhost/freeze-attack10/d.ts:d-optional-chain-opt: REJECT g:rejected[no-delete]
+== selfhost/freeze-attack10/d.ts:d-union-index: REJECT g:rejected[no-delete]{unsup}
+== selfhost/freeze-attack10/d.ts:d-tuple-optional: REJECT g:rejected[type][no-delete]{unsup}
+== selfhost/freeze-attack10/d.ts:d-generic: REJECT g:rejected[no-delete]{unsup}
+== selfhost/freeze-attack10/d.ts:d-readonly-opt: REJECT g:rejected[no-delete]
+== selfhost/freeze-attack10/d.ts:d-method-record: REJECT g:rejected[no-delete]
+== selfhost/freeze-attack10/d.ts:d-index-fn-values: REJECT g:rejected[no-delete]
+== selfhost/freeze-attack10/d.ts:d-delete-in-helper-captured: REJECT g:rejected[no-delete]
+== selfhost/freeze-attack10/d.ts:d-delete-computed-const: REJECT g:rejected[no-delete][banned-member]
+== selfhost/freeze-attack10/d.ts:d-across-cells: REJECT g:rejected[type][no-delete]
+== selfhost/freeze-attack10/d.ts:d-ctl-index-view [ctl]: REJECT g:rejected[no-delete]
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   CONTROL FIRED
+-- controls 1, fired 1
+-- 25 candidates, accepted 0, silent 0, accepted-and-loud 0

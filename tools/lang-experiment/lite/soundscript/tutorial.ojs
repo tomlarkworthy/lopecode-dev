@@ -14,7 +14,7 @@ sourceListing(tutorial_module, invalidation, { from: "width", to: "area" })
 // %%
 //ss: 01-cells.ts -aspect -scale -half -test_half
 // %%
-md`**Try it.** Open \`width\` and change it to \`() => 800\`, then press Shift-Enter. \`area\`, \`aspect\` and \`half\` update, and \`test_half\` fails, since it checks that \`half\` is 128000. Now change it to \`() => "800"\`. The edit is stored, and the editor says which cells it breaks: \`area\` and \`aspect\` do arithmetic on \`width\`, so they no longer check. They show the checker's message and stop running. \`half\` reads \`area\`, so it is blocked: it shows the error \`area\` raises, and it does not run until \`area\` does. Change \`width\` back, or change those two cells to use \`Number(width)\`, and they run again.`
+md`**Try it.** Open \`width\` and change it to \`() => 800\`, then press Shift-Enter. \`area\`, \`aspect\` and \`half\` update, and \`test_half\` fails, since it checks that \`half\` is 128000. Now change it to \`() => "800"\`. The edit is stored, and the editor says which cells it breaks: \`area\` and \`aspect\` do arithmetic on \`width\`, so they no longer check. They show the checker's message and stop running. \`half\` reads \`area\`, so it is blocked: it shows the error \`area\` raises, and it does not run until \`area\` does. Change \`width\` back and they run again. To keep the string, both cells need two edits: the parameter becomes \`width: string\`, and the arithmetic uses \`Number(width)\`.`
 // %%
 md`## Why take things out
 
@@ -31,7 +31,7 @@ md`## The four rules
 3. **Values do not change after they are returned.** A cell may build a value with local writes; once returned, it is read-only everywhere.
 4. **State changes only in actions.** State is a state cell, made by \`state(...)\`. A write to it must be inside \`action(...)\`, and a cell never calls an action. The page calls it, when a button is clicked or a frame arrives.
 
-Sections 1 to 5 teach these rules. Sections 6 to 9 show what they pay for.`
+Sections 1 to 5 teach these rules. Sections 6 to 10 show what they pay for.`
 // %%
 md`## 1. Cells and their inputs
 
@@ -53,7 +53,7 @@ viewof src_errors = sourceBox(examples.errors)
 // %%
 checkBox(src_errors)
 // %%
-md`\`jittered\` is how \`jitter\` should be written. It takes \`random\` as a parameter, so the dependency graph shows that this cell can differ between two runs.
+md`\`jittered\` is how \`jitter\` should be written. It takes \`random\` as a parameter, so its signature shows that this cell can differ between two runs.
 
 **Try it.** In the box, change \`label: number\` to \`label: string\` in \`doubled\`. The message changes from an input type error to a type error on \`label * 2\`.`
 // %%
@@ -75,7 +75,7 @@ State is a state cell: a cell that returns \`state(initial)\`. Other cells use i
 
 A write must be inside \`action(...)\`. An action reads state with \`read(count)\`, not through a value parameter, so it always sees the current value. \`increment\`, \`clear\` and \`save\` are actions. A cell cannot call them; the page does, when a button is clicked.
 
-The view is a cell too. \`app\` returns JSX: a description of the page that is built again whenever \`count\` changes. An event attribute such as \`onClick\` must be given an action.`
+The view is a cell too. \`app\` returns JSX: a description of the page that is built again whenever one of its inputs (here \`count\` and \`saved\`) changes. An event attribute such as \`onClick\` must be given an action.`
 // %%
 sourceListing(tutorial_module, invalidation, { from: "count", to: "app" })
 // %%
@@ -139,7 +139,7 @@ variableTable(model_module, invalidation)
 // %%
 md`The cells are in [@tomlarkworthy/soundscript-model](${linkTo("@tomlarkworthy/soundscript-model")}).`
 // %%
-md`**Try it.** Press **bump** and read the **runs** column. \`doubled\` runs again, because \`count\` changed, and so do \`scale\` and the cells that read \`scale\`: \`area\`, \`areaFn\` and \`areaOf4\`. \`app\`, the view, runs again because it shows \`count\`. \`side\` and \`bump\` keep their old count; neither reads \`count\`. \`stamped\` runs again too, because it reads \`doubled\`. Its **inputs** also include \`ss_now\`, the clock: that makes it not repeatable, not run more often.`
+md`**Try it.** Press **bump** and read the **runs** column. \`doubled\` runs again, because \`count\` changed, and so do \`scale\`, the cells that read \`scale\` (\`area\` and \`areaFn\`), and \`areaOf4\`, which reads \`areaFn\`. \`app\`, the view, runs again because it shows \`count\`. \`side\` and \`bump\` keep their old count; neither reads \`count\`. \`stamped\` runs again too, because it reads \`doubled\`. Its **inputs** also include \`ss_now\`, the clock: that makes it not repeatable, not run more often.`
 // %%
 md`## 7. Running cells on other threads
 
@@ -203,9 +203,9 @@ checkBox(src_free_component, { tsx: true })
 // %%
 md`## 9. A game
 
-Breakout, written with the pieces from the earlier sections. \`step(world, event)\` is the whole game, as in section 5. The world is one state cell. The view is JSX, split into cells so that the bricks are not rebuilt while only the ball moves, as in section 6.
+Breakout, written with the pieces from the earlier sections. \`step(world, event)\` is the whole game, as in section 5. The world is one state cell. The view is JSX, split into cells that each read one part of the world. Every view cell runs again on each frame, because \`world\` was computed again; the renderer then reuses the page's nodes for whatever did not change ("The renderer").
 
-One piece is new. A game needs a clock, and a cell cannot call an action. \`ticks\` is a generator cell. It yields the time since the last frame while the game is playing, and yields nothing once \`playing\` is false. \`onTick\` returns \`on(ticks, tick)\`, a *listener*: the notebook runs the action \`tick\` once for each value of \`ticks\`. A parameter typed \`Events<number>\` is a handle to the generator and not its latest value, so \`onTick\` does not run again on every frame.`
+One piece is new. A game needs a clock, and a cell cannot call an action. \`ticks\` is a generator cell. It yields the time since the last frame while the game is playing, and yields nothing once \`playing\` is false or the game is over. \`onTick\` returns \`on(ticks, tick)\`, a *listener*: the notebook runs the action \`tick\` once for each value of \`ticks\`. A parameter typed \`Events<number>\` is a handle to the generator and not its latest value, so \`onTick\` does not run again on every frame.`
 // %%
 breakout_view = {
   // the game's own view, with its state (press play, paused, game over) drawn over the board
@@ -313,7 +313,7 @@ The *island* is every cell upstream of the outputs, stopping at the inputs and r
 
 **The reactive link.** Each name in \`refs\` is a hidden input of the cell that calls \`compile\`, after its parameters; section 6's \`areaFn\` takes \`scale\` this way. Moving section 7's slider changes \`maxIter\`, \`inPool\` runs again and returns a new function with the new value inside it, and \`image\` recomputes because its input changed. Work still queued for the old function is dropped.
 
-**The rules**, each a rejection the checker's fixtures exercise: a name must be a cell; an island cell must be accepted, synchronous, and take no capability and no state cell (put the state cell in \`refs\`); inputs, refs and outputs must survive \`structuredClone\` (no functions, refs or actions); \`options.runtime\` must be a \`Pool\`; and a call must match the computed argument type. \`compile\` refuses to run unless the checker accepts the calling cell and every island cell (\`test_compile_refuses_unchecked\`). That refusal is the only guard: the island's code runs in the worker unsandboxed, and keeping it to its inputs is the checker's job.
+**The rules**, each a rejection the checker's fixtures exercise: a name must be a cell; an island cell must be accepted, synchronous, and take no capability and no state cell (put the state cell in \`refs\`); inputs, refs and outputs must survive \`structuredClone\` (no functions, state handles or actions); \`options.runtime\` must be a \`Pool\`; and a call must match the computed argument type. \`compile\` refuses to run unless the checker accepts the calling cell and every island cell (\`test_compile_refuses_unchecked\`). That refusal is the only guard: the island's code runs in the worker unsandboxed, and keeping it to its inputs is the checker's job.
 
 Measured in headless Chromium over ten page loads on 2026-11-14: section 7's 640×420 image takes about 64 ms on the main thread and about 10 ms on a pool of 8 workers, and both give the same bytes (\`test_compile_pool_matches_main\`).`)
 // %%
@@ -338,7 +338,7 @@ Shift-Enter always stores the edit. The module is checked again, and each cell i
 // %%
 md`### Why four sections are modules
 
-A module is one namespace, and the example sources are shared with the checker's test fixtures, so they keep their names; \`app\` is in four of them. Two ways to make every section live were possible: rename the cells of each section (\`reducer_step\`, \`game_step\`), which changes the text the reader edits and the fixtures check, or give each colliding section its own module. This notebook does the second. The cost: sections 5, 6, 7 and 9 are edited in their own modules, opened by the link under each table, and this page imports each section's \`app\` under another name (\`reducer_app\`, \`breakout_app\`).
+A module is one namespace, and the example sources are shared with the checker's test fixtures, so they keep their names; \`app\` is in five of them. Two ways to make every section live were possible: rename the cells of each section (\`reducer_step\`, \`game_step\`), which changes the text the reader edits and the fixtures check, or give each colliding section its own module. This notebook does the second. The cost: sections 5, 6, 7 and 9 are edited in their own modules, opened by the link under each table, and this page imports each section's \`app\` under another name (\`reducer_app\`, \`breakout_app\`).
 
 Section 2's mistakes stay in a box because \`width\` and \`area\` are section 1's names; \`bad_free_component\` stays in a box because, live, it would name a variable that does not exist.`
 // %%
@@ -348,7 +348,7 @@ For a cell the checker accepts: it reads only its parameters and the allowed bui
 
 Not guaranteed:
 
-- The checker is a prototype. On 2026-11-16 a reference checker built on TypeScript's compiler could judge 149 of the specification's 159 rejected sources (it has 434 on 2026-11-23) and gave the stated rule for 116. The checker here gives the stated rule for each of them ("How good is the checker").
+- The checker is a prototype. On 2026-11-16 a reference checker built on TypeScript's compiler could judge 149 of the 159 rejected sources the specification had that day, and gave the stated rule for 116. The specification has more rejected sources since (434 on 2026-11-23), and the checker here gives the stated rule for every one ("How good is the checker").
 - A cell may take \`now\` or \`random\` and be accepted. It is then not repeatable, and its signature shows it.
 - An events cell that reads state restarts when it sees the state change. Two changes inside one commit are seen as one, so a clock paused and resumed in the same commit does not restart.`
 // %%
@@ -397,7 +397,7 @@ Reserved parameter names; the host supplies one per cell that asks.
 |---|---|---|
 | \`now\` | \`Clock = () => number\` | the time in ms |
 | \`random\` | \`Random = () => number\` | a random number |
-| \`fetch\` | \`Fetch\` | network: \`(url, init?) => Promise<FetchResponse>\` |
+| \`fetch\` | \`Fetch\` | network: \`(url, init?) => Promise<Mut<FetchResponse>>\` |
 | \`log\` | \`Log = (...args) => void\` | a line in the program's log |
 | \`invalidation\` | \`Promise<void>\` | resolves when this run of the cell is replaced |
 | \`compile\` | \`Compile\` (*lite*) | turns a group of cells into a function (section 7) |
@@ -405,7 +405,7 @@ Reserved parameter names; the host supplies one per cell that asks.
 
 A cell that takes none of these is deterministic.
 
-What \`res.json()\` gives is \`unknown\`. To use it as data of a known type, check it with \`cast<T>(v)\` (S9.8):
+A response's body can be read once, so a response stays in the function that fetched it: a cell's value, a state cell and a nested function may not hold one (S3.19). Read the body there and give the data, as \`rows\` does in the next example. What \`res.json()\` gives is \`unknown\`. To use it as data of a known type, check it with \`cast<T>(v)\` (S9.8):
 
 \`\`\`ts
 type Row = { readonly name: string; readonly price: number };
@@ -435,7 +435,7 @@ Values are read-only. Rejected:
 |---|---|
 | \`a.b = …\`, \`a[i] = …\`, \`++\`/\`--\`/\`+=\` on a member | \`[member-write]\` |
 | \`push pop shift unshift splice sort reverse fill copyWithin set add delete clear\` on an array, map, set or typed array | \`[mutating-method]\` |
-| \`delete a.b\` (allowed on a \`Mut\`) | \`[no-delete]\` |
+| \`delete a.b\` (allowed on a \`Mut\` when \`b\` is optional or an index-signature entry) | \`[no-delete]\` |
 | \`Object.assign(existing, …)\`; \`Object.assign({}, …)\` is reported unsupported, use a spread | \`[object-assign]\` |
 | \`Object.freeze(x)\` where \`x\` is not an object or array literal | \`[object-freeze]\` |
 | \`===\`, \`!==\`, \`==\`, \`!=\` on two non-primitive values; use \`equals(a, b)\` | \`[strict-eq-object]\` |
@@ -504,7 +504,7 @@ When the cell calling \`compile\` runs again (a ref it names changed), the old f
 | rule | |
 |---|---|
 | island cells accepted, synchronous, no capability, no state cell (name it in \`refs\`) | \`[compile-island]\` |
-| inputs, refs and outputs survive \`structuredClone\`: no functions, state handles, actions or borrowed values | \`[compile-boundary]\` |
+| inputs, refs and outputs survive \`structuredClone\`: no functions, state handles or actions | \`[compile-boundary]\` |
 | \`options.runtime\` is a \`Pool\` | \`[compile-options]\` |
 
 Each name in \`refs\` is a hidden input of the calling cell, so a change gives a new function. \`compile\` refuses to run it unless the checker accepts the calling cell and every island cell. Section 7.`
@@ -562,7 +562,7 @@ Discussed on 2026-11-14; none of these exists in the checker or in this page.
 // %%
 md`## Tests
 
-The tests are off until **run the tests** is on, so reading the page costs nothing for them. Each test of this module takes \`tests_on\`, which stays pending until then. The Breakout tests play a copy of section 9's cells (\`ss_instance\`), not the game on this page, and \`test_ss_counter\` presses **add one** and **clear** on a copy of section 4's counter, so the counter on the page keeps its count. The section modules' own tests (\`test_undo\`, \`test_replay\`) are cheap and always run. The core's tests are in the core tab, behind its own switch.`
+The tests are off until **run the tests** is on, so reading the page costs nothing for them. Each test of this module takes \`tests_on\`, which stays pending until then, except \`test_half\` and \`test_shop_total\`: they belong to the examples of sections 1 and 8 and run when the page loads. The Breakout tests play a copy of section 9's cells (\`ss_instance\`), not the game on this page, and \`test_ss_counter\` presses **add one** and **clear** on a copy of section 4's counter, so the counter on the page keeps its count. The section modules' own tests (\`test_undo\`, \`test_replay\`) are cheap and always run. The core's tests are in the core tab, behind its own switch.`
 // %%
 viewof run_tests = {
   const toggle = Inputs.toggle({ label: "run the tests" });

@@ -1,6 +1,8 @@
 // bun lite/infer/module-time.ts [--rounds R] [--reps N]: checkSources against the md cells' entry, end to end, on the
 // whole-module corpus of diff.ts (without the lite/infer module) and on the 47-cell tutorial module; and the port's
 // time by pass, from wrappers around the cells and the glue that do each pass. Run from tools/lang-experiment.
+// d1: the prelude names a compiled cell binds (core.ts MdSources.bound)
+import { tcPrelude } from "../toolchain/tc-index.ts";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { execSync } from "node:child_process";
@@ -32,7 +34,7 @@ const LP = linkMd();
 function portRun(L: typeof LP, src: Sources, opts: { strictIndex?: boolean }, time: boolean) {
   const R = mdRegistry(opts.strictIndex ?? true);
   const R2 = time ? { ...R, loadUser: timed("loadUser", R.loadUser), loadForeign: timed("loadForeign", R.loadForeign) } : R;
-  try { return L.mdCheckSources(R2, { cells: src.cells, tsx: !!src.tsx, foreign: src.foreign ?? null, shell: src.shell ?? null, name: src.name ?? null, outside: (src.outside ?? []).map((o) => ({ name: o.name, view: !!o.view })), probe: null }); } finally { R.finish(); }
+  try { return L.mdCheckSources(R2, { cells: src.cells, tsx: !!src.tsx, foreign: src.foreign ?? null, shell: src.shell ?? null, name: src.name ?? null, outside: (src.outside ?? []).map((o) => ({ name: o.name, view: !!o.view })), probe: null, bound: tcPrelude }); } finally { R.finish(); }
 }
 // the corpus: diff.ts's module jobs as its last full --module run wrote them
 const corpus: { key: string; src: Sources; opts: { strictIndex?: boolean } }[] = JSON.parse(readFileSync(join(ROOT, "lite/soundscript/.scratch/infer-port/module-sources.json"), "utf8"));

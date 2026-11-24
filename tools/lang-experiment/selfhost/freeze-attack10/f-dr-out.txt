@@ -1,0 +1,282 @@
+== selfhost/freeze-attack10/f.ts:f-cap-now: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-now-rec: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-random: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-random-rec: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-fetch: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-fetch-rec: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-log: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-log-rec: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-compile: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-compile-rec: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-pool: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-pool-rec: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-sc-replace: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-sc-number: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-usp-replace: ACCEPT
+   drive -> same: "1"
+   show g = "1" | E[]
+== selfhost/freeze-attack10/f.ts:f-sc-typed-same: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cls-Map-param: ACCEPT
+   run crash: Cannot declare a const variable twice: 'Map'.
+== selfhost/freeze-attack10/f.ts:f-cls-Map-only: ACCEPT
+   run crash: Cannot declare a const variable twice: 'Map'.
+== selfhost/freeze-attack10/f.ts:f-cls-Set-param: ACCEPT
+   run crash: Cannot declare a const variable twice: 'Set'.
+== selfhost/freeze-attack10/f.ts:f-cls-Set-only: ACCEPT
+   run crash: Cannot declare a const variable twice: 'Set'.
+== selfhost/freeze-attack10/f.ts:f-cls-URL-param: ACCEPT
+   run crash: Cannot declare a const variable twice: 'URL'.
+== selfhost/freeze-attack10/f.ts:f-cls-URL-only: ACCEPT
+   run crash: Cannot declare a const variable twice: 'URL'.
+== selfhost/freeze-attack10/f.ts:f-cls-URL-use: ACCEPT
+   run crash: Cannot declare a const variable twice: 'URL'.
+== selfhost/freeze-attack10/f.ts:f-cls-Map-use: ACCEPT
+   run crash: Cannot declare a const variable twice: 'Map'.
+== selfhost/freeze-attack10/f.ts:f-cls-Map-body: ACCEPT
+   run crash: Cannot declare a const variable twice: 'Map'.
+== selfhost/freeze-attack10/f.ts:f-cls-param-local: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-cls-local-Map: ACCEPT
+   drive -> same: 4
+   show g = 4 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-out: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-closure: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-methods: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-ref: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-events: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-listen: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-cross: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-viewRef: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-compileFor: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-rejected: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-release: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-SsMap: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-SsURL: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-mut: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-freeze: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-rt-borrow: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-gl-Object: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-gl-JSON: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-gl-Math: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-gl-Array: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-gl-Promise: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-gl-Number: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-gl-String: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-gl-Error: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-gl-Symbol: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-gl-console: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-gl-JSON-use: ACCEPT
+   drive -> same: 3
+   show g = 3 | E[]
+== selfhost/freeze-attack10/f.ts:f-gl-Math-use: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-ob-width: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-ob-md: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-ob-html: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-ob-DOM: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-ob-Inputs: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-ob-require: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-ob-Mutable: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-ob-FileAttachment: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-ob-Promises: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-ob-visibility: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-esc-URL: ACCEPT
+   run crash: Cannot declare a const variable twice: 'URL'.
+== selfhost/freeze-attack10/f.ts:f-esc-now: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-esc-structuredClone: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-local-h-jsx: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-local-h-jsx-same-scope: ACCEPT
+   drive -> DIFF g is outside its type: number 3
+   show g = 3 | E[]
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-local-h-jsx-min: ACCEPT
+   drive -> DIFF g is outside its type: number 7
+   show g = 7 | E[]
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-param-h-jsx: ACCEPT
+   drive -> same: g rejected h is not a function. (In 'h("div", {}, h)', 'h' is 1)
+   show g = ERROR h is not a function. (In 'h("div", {}, h)', 'h' is 1)
+   error g: h is not a function. (In 'h("div", {}, h)', 'h' is 1)
+== selfhost/freeze-attack10/f.ts:f-local-cast-nested: ACCEPT
+   drive -> same: 6
+   show g = 6 | E[]
+== selfhost/freeze-attack10/f.ts:f-local-cast-shadow-call: ACCEPT
+   drive -> same: 42
+   show g = 42 | E[]
+== selfhost/freeze-attack10/f.ts:f-local-cast: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-param-state-uses: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-local-structuredClone: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-sc-type: ACCEPT
+   drive -> same: [1,2]
+   show g = [1,2] | E[]
+== selfhost/freeze-attack10/f.ts:f-sc-record: ACCEPT
+   drive -> same: "object"
+   show g = "object" | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-now-value: ACCEPT
+   drive -> same: 99
+   show g = 99 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-now-clock: REJECT g:rejected[inject-type]
+== selfhost/freeze-attack10/f.ts:f-cap-fetch-fake: ACCEPT
+   drive -> same: 7
+   show g = 7 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-random-arr: ACCEPT
+   drive -> same: 3
+   show g = 3 | E[]
+== selfhost/freeze-attack10/f.ts:f-cap-log-str: ACCEPT
+   drive -> same: "HELLO"
+   show g = "HELLO" | E[]
+== selfhost/freeze-attack10/f.ts:f-type-Map: REJECT module[builtin-type-name]
+== selfhost/freeze-attack10/f.ts:f-type-state: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack10/f.ts:f-comp-Map: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack10/f.ts:f-comp-h: ACCEPT
+   drive -> same: g rejected h is not a function. (In 'h(C, {})', 'h' is 3)
+   show g = ERROR h is not a function. (In 'h(C, {})', 'h' is 3)
+   error g: h is not a function. (In 'h(C, {})', 'h' is 3)
+== selfhost/freeze-attack10/f.ts:f-dollar-name: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack10/f.ts:f-dollar-ref: ACCEPT
+   drive -> same: g rejected x$ref is defined more than once
+   show g = ERROR x$ref is defined more than once
+   error x: x$ref is defined more than once
+   error x$ref: x$ref is defined more than once
+   error g: x$ref is defined more than once
+== selfhost/freeze-attack10/f.ts:f-enum: REJECT module[no-enum] g:rejected[free-name]
+== selfhost/freeze-attack10/f.ts:f-ctl-state [ctl]: CONTROL (checker skipped)
+   run crash: Cannot declare a const variable twice: 'state'.
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack10/f.ts:f-ctl-state-use [ctl]: CONTROL (checker skipped)
+   run crash: Cannot declare a const variable twice: 'state'.
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack10/f.ts:f-ctl-h [ctl]: CONTROL (checker skipped)
+   run crash: Cannot declare a const variable twice: 'h'.
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack10/f.ts:f-ctl-cap-now [ctl]: CONTROL (checker skipped)
+   drive -> same: 2
+   show g = 2 | E[]
+   CONTROL DID NOT FIRE
+-- controls 4, ran 4, fired 0
+-- harness crashes 0
+-- 91 candidates, accepted 88, silent 2 (by the tap alone 0)
+SILENT selfhost/freeze-attack10/f.ts:f-local-h-jsx-same-scope
+SILENT selfhost/freeze-attack10/f.ts:f-local-h-jsx-min

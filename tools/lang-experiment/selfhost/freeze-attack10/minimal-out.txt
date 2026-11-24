@@ -1,0 +1,67 @@
+== selfhost/freeze-attack10/a.ts:a-empty-direct: ACCEPT
+   drive -> DIFF RESP r holds a Response; USED o2: used: Body already used
+   show r = {}
+   show k = UNDEFINED VARIABLE
+   show b = UNDEFINED VARIABLE
+   show c = UNDEFINED VARIABLE
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack10/a.ts:a-empty-two-ss: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show r = {c:{}}
+   show k = UNDEFINED VARIABLE
+   show b = "object"
+   show c = "{}"
+   show o1 = UNDEFINED VARIABLE
+   show o2 = UNDEFINED VARIABLE
+   SILENT
+== selfhost/freeze-attack10/b.ts:b-widen-optional-toString: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function"
+   SILENT
+== selfhost/freeze-attack10/b.ts:b-x-widen-cell: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function"
+   SILENT
+== selfhost/freeze-attack10/e.ts:e-await-outer-write-typeof: ACCEPT
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1"
+   SILENT
+== selfhost/freeze-attack10/e.ts:e-x-await-null-prim: ACCEPT
+   drive -> same: g rejected null is not an object (evaluating 'r.length')
+   show g = ERROR null is not an object (evaluating 'r.length')
+   error g: null is not an object (evaluating 'r.length')
+   LOUD (read by hand)
+== selfhost/freeze-attack10/f.ts:f-cap-now: ACCEPT
+   drive -> DIFF g is outside its type: string "() => 71"
+   show g = "() => 71"
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-now-rec: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-cap-now-value: ACCEPT
+   drive -> DIFF g is outside its type: number 7
+   show g = 7
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-sc-typed-same: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack10/f.ts:f-sc-type: ACCEPT
+   drive -> DIFF g is outside its type: string "abc"
+   show g = "abc"
+   SILENT
+== selfhost/freeze-attack10/f.ts:f-local-h-jsx-min: ACCEPT
+   drive -> DIFF g is outside its type: number 7
+   show g = 7
+   SILENT
+-- controls 0, fired 0
+-- 1 candidates, accepted 1, silent 1, accepted-and-loud 0
+== selfhost/freeze-attack10/f.ts:f-local-h-jsx-min: ACCEPT
+   drive -> DIFF g is outside its type: number 7
+   show g = 7 | E[]
+   SILENT
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- 1 candidates, accepted 1, silent 1 (by the tap alone 0)
