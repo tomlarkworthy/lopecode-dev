@@ -387,7 +387,7 @@ Each parameter of a cell names what it reads. What it receives depends on the na
 
 Once any cell takes a generator as \`Events\`, a parameter reading it without \`Events\` is \`[inject-events]\`, because it would receive the handle. No cell may take a listener cell (\`[listener-placement]\`). A name that is another variable of the module, in any language, is read through the checked boundary (section 10). Any other name is \`[inject-unknown]\`; a destructuring pattern is \`[inject-pattern]\`. A body may not use a cell's name without taking it as a parameter (\`[cell-by-name]\`).
 
-Types: a parameter needs a type from an annotation or from its context (\`[untyped-parameter]\`); a type name that is not declared is \`[unknown-type]\`. Most other mismatches, such as a \`string\` where a \`number\` is wanted, are \`[type]\`; a call with the wrong number of arguments is \`[arity]\`.`
+Types: a parameter needs a type from an annotation or from its context (\`[untyped-parameter]\`); a type name that is not declared is \`[unknown-type]\`. Most other mismatches, such as a \`string\` where a \`number\` is wanted, are \`[type]\`; a call with the wrong number of arguments is \`[arity]\`. A callback declared \`(x: T) => void\` must return nothing, so \`(x) => x + 1\` is \`[type]\` there, and a block body that returns nothing, such as \`(x) => { const y = x + 1; }\`, is accepted. \`forEach\` declares its callback's result \`unknown\`, so \`xs.forEach((x) => out.push(x))\` is accepted; a result that is a function or a promise is \`[forgets]\`.`
 // %%
 md`### Capabilities
 

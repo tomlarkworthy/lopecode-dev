@@ -84,6 +84,8 @@ export function regCore(reg: Registry): IxRegCore {
   const c = {
     isAlias: (n: string) => reg.isAlias(n), expand: (t: Ty) => reg.expand(t), member: (t: Ty, k: string) => reg.member(t, k), sub: (a: Ty, b: Ty) => reg.sub(a, b),
     callSigs: (t: Ty) => reg.callSigs(t), iterElem: (t: Ty) => reg.iterElem(t), unify: (p: Ty, a: Ty, m: Map<string, Ty>, tvs: Set<string>) => reg.unify(p, a, m, tvs), isTypedArray: (t: Ty) => reg.isTypedArray(t),
+    // DELIBERATE CHANGE (2026-11-24, x1, C): a member every function value has (live rg-registry.ts core)
+    fnOwn: (n: string) => reg.fnOwn(n),
   };
   // DELIBERATE CHANGE (2026-11-24, w1): t1's mayHideAny is gone (live rg-registry.ts core)
   return { ...c, mayHide: memo((t: Ty) => reg.peek(() => rgMayHide(c, t))) };

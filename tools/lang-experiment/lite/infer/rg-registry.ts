@@ -3,7 +3,7 @@
 // The cells come in as a record, so ../core.ts (the shipped cells) and ../acorn/index.ts (the cells linked with a
 // parser that has not crossed the boundary yet, for parseTree's own shape) make one the same way.
 import { plainWith, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, unifyWith, memberOfWith, type Ty, type Rec, type RegOps, type DeclOps, type Fn, type Prop } from "../types.ts";
-import { INTRINSIC_DECLS, PRELUDE_DECLS, JSX_DECLS, TYPED_ARRAYS } from "../intrinsics.ts";
+import { INTRINSIC_DECLS, PRELUDE_DECLS, JSX_DECLS, TYPED_ARRAYS, FN_OWN_MEMBERS } from "../intrinsics.ts";
 import type { Ast, AstNode, Parse } from "../acorn/acorn-types.ss.ts";
 import type { IxRegCore } from "./ix-types.ss.ts";
 import { memo } from "../../prelude.runtime.ts";
@@ -44,7 +44,8 @@ export function rgRegistryOf(L: RgCells, strictIndex: boolean, declTrees: [Ast, 
     if (v !== undefined) return v;
     const r = plainOf(t); plainMemo.set(t, r); return r;
   };
-  const ops: RegOps = { expand, isAlias, member, isTypedArray, same: (a, b) => a === b, at, fresh: () => L.rgFresh(Q), plain };
+  const fnOwn = (n: string) => FN_OWN_MEMBERS.has(n);
+  const ops: RegOps = { expand, isAlias, member, isTypedArray, same: (a, b) => a === b, at, fresh: () => L.rgFresh(Q), plain, fnOwn };
   const callSigs = callSigsWith(ops), iterElem = iterElemWith(ops), subOps = subWith(ops, iterElem, callSigs);
   const unifyOps = unifyWith(ops, subOps, iterElem, callSigs), memberOf = memberOfWith(ops);
   const G: RgK = { convert: L.rgConvert, expand: L.rgExpand, ifaceRec: L.rgIfaceRec, sig: L.rgSig, literal: L.rgLiteral, quietGo: L.rgQuietGo, isAlias, memberOf, subOps, at };
@@ -54,7 +55,7 @@ export function rgRegistryOf(L: RgCells, strictIndex: boolean, declTrees: [Ast, 
   const lax = <X>(f: () => X): X => { const s = Q.strict; Q.strict = false; try { return f(); } finally { Q.strict = s; } };
   // rgMayHide memoised per core (Checker.mayHideMemo); memo here, not in a cell, since the walk's key, the core, holds functions
   const core = (): IxRegCore => {
-    const c = { isAlias, expand, member, sub, callSigs, iterElem, unify, isTypedArray };
+    const c = { isAlias, expand, member, sub, callSigs, iterElem, unify, isTypedArray, fnOwn };
     return { ...c, mayHide: memo((t: Ty) => peek(() => L.rgMayHide(c, t))) };
   };
   const load = (ast: Ast, origin: RgOrigin, typesOnly = false, skip: Set<number> = new Set()) => L.rgLoad(G, Y, V, E, I, Q, ast, origin, typesOnly, skip);

@@ -391,7 +391,8 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
     ["a closure over it", "const box = (g: () => number) => state(() => g());", "box: rejected [action-capture]"],
     ["through a checked cell that returns it", "const hk = (g: () => number) => ({ run: g });\nconst box = (hk: { run: () => number }) => state([hk]);", "hk: ok,box: rejected [action-capture]"],
     ["a checked function's result, the function made in another cell", "const mk = (g: () => number) => (k: number) => () => g() + k;\nconst box = (mk: (k: number) => () => number) => state(mk(1));", "mk: ok,box: rejected [action-capture]"],
-    ["as object", "const box = (g: () => number): StateCell<object> => state(g);", "box: rejected [action-capture]"],
+    // x1 (2026-11-24): a function given object is [forgets] (S2.9) before the state-cell rule
+    ["as object", "const box = (g: () => number): StateCell<object> => state(g);", "box: rejected [forgets]"],
     ["yielded by an events cell", "function* ev(g: () => number) { yield { f: g }; }", "ev: rejected [action-capture]"],
     ["its result in state (data)", "const d = (g: () => number) => g();\nconst box = (d: number) => state(d);\nconst box2 = (g: () => number) => state(g());", "d: ok,box: ok,box2: ok"],
     ["its result yielded (data)", "function* ev(g: () => number) { yield g(); }", "ev: ok"],

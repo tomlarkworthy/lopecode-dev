@@ -86,7 +86,7 @@ function regAround(core: IxRegCore, around: <X>(f: () => X) => X): IxRegCore {
   return {
     isAlias: (n) => around(() => core.isAlias(n)), expand: (t) => around(() => core.expand(t)), member: (t, k) => around(() => core.member(t, k)),
     sub: (a, b) => around(() => core.sub(a, b)), callSigs: (t) => around(() => core.callSigs(t)), iterElem: (t) => around(() => core.iterElem(t)),
-    unify: (p, a, m, tvs) => around(() => core.unify(p, a, m, tvs)), isTypedArray: (t) => around(() => core.isTypedArray(t)), mayHide: core.mayHide,
+    unify: (p, a, m, tvs) => around(() => core.unify(p, a, m, tvs)), isTypedArray: (t) => around(() => core.isTypedArray(t)), mayHide: core.mayHide, fnOwn: core.fnOwn,
   };
 }
 const toDiag = (r: RgReport): IxDiag => ({ start: r.start, end: r.end, rule: r.rule, msg: r.msg });

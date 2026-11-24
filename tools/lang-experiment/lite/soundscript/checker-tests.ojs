@@ -67,7 +67,7 @@ test_checker_action_capture_by_binding = {
 }
 // %%
 test_checker_iterator_rules = {
-  // S3.19: what may hold an iterator is not captured or a cell's value; arrays, strings, Maps, a function returning an iterator, a copy and unknown are
+  // S3.19: what may hold an iterator is not captured or a cell's value; arrays, strings, Maps, a function returning an iterator and a copy are
   const cases = [["const y = () => { const it = new Set([1]).keys(); return () => [...it].length; };",["iterator-capture"]],
     ["const y = () => { const its = [[1].values()]; return () => its.length; };",["iterator-capture", "mut-capture"]],
     ["interface Box { readonly it: Iterable<number> }\nconst y = () => { const box = (it: Iterable<number>): Box => ({ it }); const b = box([1].values()); return () => [...b.it].length; };",["iterator-capture"]],
@@ -80,7 +80,8 @@ test_checker_iterator_rules = {
     ["const y = () => { const xs: readonly number[] = [1, 2]; const s = \"ab\"; const made = new Map<string, readonly number[]>([[\"a\", [1]]]); const m: Map<string, readonly number[]> = made; return () => [...xs].length + [...s].length + m.size; };",[]],
     ["const f = () => (xs: readonly number[]) => xs.values();\nconst a = (f: (xs: readonly number[]) => Iterable<number>) => [...f([1])].length;",[]],
     ["const y = () => { const it = [1, 2].values(); const xs: readonly number[] = [...it]; return () => xs.length; };",[]],
-    ["const y = () => { const u: unknown = [1].values(); return () => u; };",[]]];
+    // x1 (2026-11-24): an iterator given the type unknown is [forgets]
+    ["const y = () => { const u: unknown = [1].values(); return () => u; };",["forgets"]]];
   const bad = [];
   for (const [source, want] of cases) {
     const r = soundscript.checkSources({ cells: source, tsx: true });
@@ -123,7 +124,7 @@ test_checker_structured_clone = {
     ["const c = () => (): string => structuredClone(new URL(\"http://a.b/\")).href;",["type"]],
     ["const c = () => (): number => structuredClone(new Map([[\"k\", () => 1]])).size;",["type"]],
     ["const c = () => (): number => { const g = <T,>(x: T): T => structuredClone(x); return g(() => 1)(); };",["type"]],
-    ["const c = () => (): number => { const u: unknown = () => 1; structuredClone(u); return 1; };",["type"]],
+    ["const c = () => (u: unknown): number => { structuredClone(u); return 1; };",["type"]],
     ["const c = () => (): number => { const sc = structuredClone; return sc(() => 1)(); };",["type"]],
     ["const c = () => (): number => structuredClone({ a: [1, 2], m: new Map([[\"k\", 1]]) }).a.length;",[]],
     ["const c = () => (): string => structuredClone(new Error(\"e\")).message;",[]],

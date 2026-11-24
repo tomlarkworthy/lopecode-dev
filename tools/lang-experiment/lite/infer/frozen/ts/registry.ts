@@ -11,14 +11,15 @@ import {
   union, show, subst, named, arr, WRAPPERS, isNamed, tpNames, typeKey,
   type RegOps, type DeclOps, plainWith, builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, memberOfWith, unifyWith,
 } from "../../../types.ts";
-import { INTRINSIC_DECLS, PRELUDE_DECLS, TYPED_ARRAYS, JSX_DECLS } from "../../../intrinsics.ts";
+import { INTRINSIC_DECLS, PRELUDE_DECLS, TYPED_ARRAYS, JSX_DECLS, FN_OWN_MEMBERS } from "../../../intrinsics.ts";
 
 export type Origin = "intrinsic" | "prelude" | "jsx" | "foreign" | "user";
 type Decl = { kind: "alias" | "iface"; tps: string[]; nodes: Node[]; origin: Origin; parsed: Parsed };
 export type ValueDecl = { t: Ty; origin: Origin; node: Node; marker: "pure" | "effect" | null; flags?: Flags };
 export type TypeCtx = { tps: Set<string>; typeofLookup?: (name: string, node: Node) => Ty | undefined };
 
-const FLAG_NAMES = ["mutates", "fresh", "view", "retains", "banned"] as const;
+// DELIBERATE CHANGE (2026-11-24, x1, H): @plain, a built-in whose result must be plain data (live rg-sig.ss.ts)
+const FLAG_NAMES = ["mutates", "fresh", "view", "retains", "banned", "plain"] as const;
 function flagsOf(p: Parsed, n: Node, origin: Origin): Flags | undefined {
   const f: Flags = {};
   for (const c of p.leading(n)) for (const k of FLAG_NAMES) if (c.text.includes("@" + k)) f[k] = true;
@@ -286,7 +287,9 @@ export class Registry {
 
   // ---- subtyping, call signatures, iteration, unification (subtype.ss.ts) ----
   // what the SoundScript cells take from the Registry: its declarations, and object identity
-  ops: RegOps = { expand: (t) => this.expand(t), isAlias: (n) => this.isAlias(n), member: (t, n) => this.member(t, n), isTypedArray: (t) => this.isTypedArray(t), same: (a, b) => a === b, at: (ts, i) => ts[i], fresh: () => ++alphaNames, plain: (t) => this.plain(t) };
+  ops: RegOps = { expand: (t) => this.expand(t), isAlias: (n) => this.isAlias(n), member: (t, n) => this.member(t, n), isTypedArray: (t) => this.isTypedArray(t), same: (a, b) => a === b, at: (ts, i) => ts[i], fresh: () => ++alphaNames, plain: (t) => this.plain(t), fnOwn: (n) => this.fnOwn(n) };
+  // DELIBERATE CHANGE (2026-11-24, x1, C): a member every function value has (live rg-registry.ts fnOwn)
+  fnOwn(n: string): boolean { return FN_OWN_MEMBERS.has(n); }
   // DELIBERATE CHANGE (2026-11-24, w1): the forgetting rule's plain walk, its whole answers kept by the type's identity
   plainMemo = new WeakMap<Ty, boolean>();
   plainOf = plainWith({ isAlias: (n) => this.isAlias(n), expand: (t) => this.expand(t), member: (t, n) => this.member(t, n) });

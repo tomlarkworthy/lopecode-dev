@@ -22,6 +22,7 @@ import { attacks as A9_ATTACKS } from "./a9-attacks.ts";
 import { attacks as D1_ATTACKS } from "./d1-attacks.ts";
 import { attacks as T1_ATTACKS } from "./t1-attacks.ts";
 import { attacks as W1_ATTACKS } from "./w1-attacks.ts";
+import { attacks as X1_ATTACKS } from "./x1-attacks.ts";
 import { checkSources as frozenCheck } from "../frozen/core.ts";
 
 // a verdict: ACCEPT, or REJECT with each cell that is not ok and its rules
@@ -289,5 +290,32 @@ for (const a of W1_ROWS)
   test(`w1 ${a.name} is ${a.name.startsWith("w1-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
     const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
     expect(live.ok).toBe(a.name.startsWith("w1-ok-"));
+    expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
+  });
+
+// x1 (2026-11-24): freeze-attack12 by x1 step (x1-attacks.ts). No row is silent under runCells or the compiled runner;
+// the x1-guard-* controls (an action called after an await, in a then callback or in an async generator while a cell
+// computes) fire under neither, and each one this round added, and attack 12's that fired before, fires under both
+// with SS_MEASURE_GUARD=0; every other control fires; x1-ok-* rows are accepted and every other row is rejected, by
+// both checkers alike
+const X1_ROWS = X1_ATTACKS.filter((a) => !a.ctl), X1_OK = X1_ROWS.filter((a) => a.name.startsWith("x1-ok-")).length;
+const X1_FIRE = X1_ATTACKS.filter((a) => a.ctl && !a.name.startsWith("x1-guard-")).length;
+// attack 12's guard controls that the guard of a cell's synchronous part already refused before x1
+const X1_A12_HELD = ["sync", "gen-between", "agen-between", "kept-sync-caller", "invalidation", "component", "memo", "memo-async", "map-callback", "set-callback", "set-callback-async"];
+for (const [rt, off] of [[false, false], [true, false], [false, true], [true, true]])
+  test(`x1: no row of the x1 fixes is silent${rt ? " (compiled runner)" : ""}${off ? " (SS_MEASURE_GUARD=0)" : ""}`, () => {
+    const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "x1", ...(rt ? ["--rt"] : [])], { stdout: "pipe", stderr: "pipe", env: { ...process.env, ...(off ? { SS_MEASURE_GUARD: "0" } : {}) } });
+    const out = r.stdout.toString();
+    expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
+    expect(out).toContain(`-- x1: ${X1_ROWS.length} programs, accepted ${X1_OK}, silent 0, with a cell in error 0`);
+    const guardOff = X1_ATTACKS.filter((a) => a.name.startsWith("x1-guard-") && !X1_A12_HELD.some((n) => a.name === `x1-guard-a12-${n}`)).length;
+    expect(out).toContain(`-- x1-controls: ${X1_ATTACKS.length - X1_ROWS.length}, fired ${X1_FIRE + (off ? guardOff : 0)}`);
+    expect(out).toContain("-- guard depth left above 0 by 0 programs");
+    expect(r.exitCode).toBe(0);
+  }, 300000);
+for (const a of X1_ROWS)
+  test(`x1 ${a.name} is ${a.name.startsWith("x1-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
+    const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
+    expect(live.ok).toBe(a.name.startsWith("x1-ok-"));
     expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
   });

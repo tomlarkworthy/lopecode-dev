@@ -37,7 +37,8 @@ const CAPS = Symbol("ss captures");
 // measurement switches (2026-11-22, rule set R, selfhost/NOTES-checker-port.md): with SS_MEASURE_REG=0 in a bun process
 // closure() and methods() register nothing; with SS_MEASURE_FREEZE=0 deepFreeze returns its argument. Off in a browser
 const MEASURE_ENV = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
-const REG_ON = MEASURE_ENV?.SS_MEASURE_REG !== "0", FREEZE_ON = MEASURE_ENV?.SS_MEASURE_FREEZE !== "0";
+// x1 (2026-11-24): with SS_MEASURE_GUARD=0 the async guard (guardAsync) holds nothing, as before x1
+const REG_ON = MEASURE_ENV?.SS_MEASURE_REG !== "0", FREEZE_ON = MEASURE_ENV?.SS_MEASURE_FREEZE !== "0", GUARD_ON = MEASURE_ENV?.SS_MEASURE_GUARD !== "0";
 type Caps = (i: number) => unknown;
 const capsOf = (f: object): Caps | undefined => (f as { [CAPS]?: Caps })[CAPS];
 // f1 (2026-11-23, cause R of freeze-attack7): a registration never replaces another. methods() tags whatever o.m is
@@ -260,6 +261,21 @@ const guardSteps = (g: any): any => {
   return Object.assign(w, typeof g[Symbol.asyncIterator] === "function" ? { [Symbol.asyncIterator]() { return w; } } : { [Symbol.iterator]() { return w; } });
 };
 const outRun = <T,>(f: () => T): T => { const v: any = underEval(f); return v && typeof v.next === "function" && typeof v.return === "function" ? guardSteps(v) : v; };
+// x1 (2026-11-24): an async function's body is part of the evaluation that called it. The compiled text (fnreg.ts
+// guardEdits) brackets it: g = enter() at its start, exit(g) at its end, away(g, x) and back(g, r) around each await,
+// left and resumed around each yield of an async generator. g.on: it was called under the guard; g.in: it holds one
+// count of depth. While suspended it holds none. A callback given to then while depth > 0 runs under the guard (bind)
+type Gd = { on: boolean; in: boolean };
+const leave = (g: Gd) => { if (g.in) { g.in = false; evaluating.depth--; } };
+const resume = (g: Gd) => { if (g.on && !g.in) { g.in = true; evaluating.depth++; } };
+const guardAsync = {
+  enter: (): Gd => ({ on: GUARD_ON && evaluating.depth > 0, in: false }), exit: leave,
+  away: (g: Gd, x: unknown) => { leave(g); return g.on ? Promise.resolve(x).then((v) => ({ v }), (e) => ({ e, err: true })) : x; },
+  back: (g: Gd, r: any) => { resume(g); if (!g.on) return r; if (r.err) throw r.e; return r.v; },
+  left: <T,>(g: Gd, v: T): T => { leave(g); return v; },
+  resumed: <T,>(g: Gd, v: T): T => { resume(g); return v; },
+  bind: (f: unknown) => (typeof f === "function" && GUARD_ON && evaluating.depth > 0 ? (...a: unknown[]) => underEval(() => f(...a)) : f),
+};
 // out(v): v published. out.cell(f): a plain cell, f its body applied to its inputs, guarded then published. out.run(f): a
 // listener cell's body, guarded only
-export const out = Object.assign(publishOut, { cell: <T,>(f: () => T): T => publishOut(outRun(f)), run: outRun });
+export const out = Object.assign(publishOut, { cell: <T,>(f: () => T): T => publishOut(outRun(f)), run: outRun }, guardAsync);

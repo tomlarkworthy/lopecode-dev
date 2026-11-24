@@ -44,6 +44,8 @@ export type IxCtl = {
   casts: [number, TypeShape][];
   // d1 (2026-11-24): where a binding a nested function assigns was read at its declared type, by position, its name
   fnw: Map<number, string>;
+  // x1 (2026-11-24): the arguments given a built-in's unknown or object parameter that keeps nothing, by position
+  inspects: Set<number>;
 };
 // completion's question (lite/complete.ts): the placeholder name, and whether it is asked for as a member
 export type IxProbeAsk = { readonly name: string; readonly member: boolean };
@@ -89,6 +91,8 @@ export type IxRegCore = {
   readonly isTypedArray: (t: Ty) => boolean;
   // rgMayHide over this core, memoised (memo) for its checks
   readonly mayHide: (t: Ty) => boolean;
+  // x1 (2026-11-24, C): a member every function value has
+  readonly fnOwn?: (n: string) => boolean;
   // w1 (2026-11-24, the forgetting rule): what an IxReg has that a core may hold too, declared so that an IxReg is a core
   readonly quiet?: IxRegCore;
   readonly lax?: IxRegCore;
@@ -112,6 +116,7 @@ export type IxReg = {
   readonly unify: (p: Ty, a: Ty, m: Mut<Map<string, Ty>>, tvs: Set<string>) => void;
   readonly isTypedArray: (t: Ty) => boolean;
   readonly mayHide: (t: Ty) => boolean;
+  readonly fnOwn?: (n: string) => boolean;
   readonly quiet: IxRegCore;
   readonly lax: IxRegCore;
   readonly strictIndex: boolean;

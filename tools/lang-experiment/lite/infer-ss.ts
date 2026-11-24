@@ -80,7 +80,7 @@ const GIVEN = {
   OBJECT: T.OBJECT, ERR: T.ERR, SYMBOL: T.SYMBOL, BOOL: T.BOOL, lit: T.lit, arr: T.arr, named: T.named, unwrap: T.unwrap,
   propT: T.propT, union: T.union, members: T.members, show: T.show, subst: T.subst, hasTv: T.hasTv, instantiate: T.instantiate,
   widen: T.widen, typeKey: T.typeKey, inexact: T.inexact, isPrimitive: T.isPrimitive, isNamed: T.isNamed, kidsOf: A.kidsOf, nodeKind: A.nodeKind, isFnNode: A.isFnNode, childrenOf: A.childrenOf, TYPE_FIELDS: A.TYPE_FIELDS,
-  WRAPPERS: T.WRAPPERS, builtinNamesOf: T.builtinNamesOf, leadingComments: A.leadingComments, UNDEF_FIX: T.UNDEF_FIX, shapeAt: linkShape().shapeAt, forgotWith: T.forgotWith, jsonGapWith: T.jsonGapWith,
+  WRAPPERS: T.WRAPPERS, builtinNamesOf: T.builtinNamesOf, leadingComments: A.leadingComments, UNDEF_FIX: T.UNDEF_FIX, shapeAt: linkShape().shapeAt, forgotWith: T.forgotWith, jsonGapWith: T.jsonGapWith, plainWith: T.plainWith,
 };
 // the cells of other sections the md cells take
 export const MD_GIVEN = {

@@ -5,6 +5,11 @@
 export type MessageFix = { id: string; site: string; rule: string; bad: string; fix: string; tsx?: boolean; was?: string; note?: string; outside?: string[] };
 const ACT = "const s = () => state(0);\n";
 export const FIXES: MessageFix[] = [
+  // x1 (2026-11-24): the forgetting rule at unknown, object and a call signature; a record built from run-time keys
+  { id: "forgets-unknown-fn", site: "ix-hides.ss.ts ixHides (ixNotPlainIn)", rule: "forgets", bad: "const a = () => { const f = () => 2; const u: unknown = f; return 1; };", fix: "const a = () => { const f = () => 2; const u: () => number = f; return 1; };" },
+  { id: "forgets-object-promise", site: "ix-hides.ss.ts ixHides (ixNotPlainIn)", rule: "forgets", bad: "const a = () => { const p: object = Promise.resolve(1); return 1; };", fix: "const a = () => { const p: Promise<number> = Promise.resolve(1); return 1; };" },
+  { id: "forgets-callsig-own-member", site: "subtype.ss.ts forgotWith (fnOwn)", rule: "forgets", bad: "interface F { (x: number): number; readonly name?: number }\nconst a = () => { const f: F = (x: number) => x; return f(1); };", fix: "interface F { (x: number): number }\nconst a = () => { const f: F = (x: number) => x; return f(1); };" },
+  { id: "plain-from-entries", site: "ix-apply.ss.ts ixPlainResult", rule: "type", bad: "const a = () => { const o = Object.fromEntries([[\"f\", () => 1]]); return 1; };", fix: "const a = () => { const o = { f: () => 1 }; return 1; };" },
   { id: "memo-param-fn", site: "md-run.ss.ts mdMemoErrs (MEMO_PARAM_BAD fn)", rule: "memo-pure", bad: "const f = () => memo((g: () => number) => g() + 1);", fix: "const f = () => memo((g: number) => g + 1);" },
   { id: "memo-param-mut", site: "md-run.ss.ts (plain type)", rule: "memo-pure", bad: "const f = () => memo((xs: Mut<number[]>) => xs.length);", fix: "const f = () => memo((xs: number[]) => xs.length);" },
   { id: "memo-param-unfreezable", site: "md-run.ss.ts (cannot freeze or state)", rule: "memo-pure", bad: ACT + "const f = () => memo((h: State<number>) => 1);", fix: ACT + "const f = () => memo((h: number) => 1);" },

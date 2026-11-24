@@ -8,8 +8,8 @@
 // values, frozen at their own boundary, and capabilities) unless the cell assigns one. The TypeScript twin of the
 // cells' tcFnRegs (lite/toolchain/tc-reg.ss.ts); link.ts and the frozen toolchain use this one. Unchecked.
 type N = any;
-export type RegEdit = { at: number; depth: number; end: boolean; text: string; use: "closure" | "methods" | null };
-export type RegNames = { closure: string; methods: string };
+export type RegEdit = { at: number; depth: number; end: boolean; text: string; use: "closure" | "methods" | "out" | null };
+export type RegNames = { closure: string; methods: string; out?: string };
 const FNS = new Set(["ArrowFunctionExpression", "FunctionExpression", "FunctionDeclaration"]);
 const isNode = (x: unknown): x is N => !!x && typeof (x as N).type === "string";
 const kids = (n: N): N[] => {
@@ -127,7 +127,34 @@ export function fnRegEdits(cellFn: N, names: RegNames): RegEdit[] {
       edits.push({ at: n.end, depth, end: true, text: `${wrapOpen}, ${thunk(cs)})${wrapClose}`, use: null });
     }
   }
-  return edits;
+  return names.out === undefined ? edits : [...edits, ...guardEdits(cellFn, names.out)];
+}
+// the promise members whose callback the run time calls later (x1)
+const PROMISE_CBS = new Set(["then", "finally"]);
+// x1 (2026-11-24): the async guard (freeze.ts guardAsync). Each async function's body declares ss_g (an expression body
+// becomes an async arrow called at once); each await, and each yield of an async generator, leaves and resumes it; each
+// argument of a call of a member named then or finally is bound. A depth of k + 0.5 sits between a node and its children, so an
+// edit here encloses the edits fnRegEdits makes at the same position
+function guardEdits(cellFn: N, o: string): RegEdit[] {
+  const ed: RegEdit[] = [];
+  const wrap = (a: N, depth: number, open: string, close: string) => ed.push({ at: a.start, depth, end: false, text: wrapOpen + open + wrapClose, use: "out" }, { at: a.end, depth, end: true, text: wrapOpen + close + wrapClose, use: null });
+  const walk = (n: N, fn: N, depth: number): void => {
+    const b = n.body;
+    if (FNS.has(n.type) && n.async && b.type !== "BlockStatement") wrap(b, depth + 0.5, `(async () => { const ss_g = ${o}.enter(); try { return (`, `); } finally { ${o}.exit(ss_g); } })()`);
+    else if (FNS.has(n.type) && n.async && b.body.length > 0)
+      ed.push({ at: b.start + 1, depth: depth + 0.5, end: false, text: `${wrapOpen}const ss_g = ${o}.enter(); try {${wrapClose}`, use: "out" }, { at: b.end - 1, depth: depth + 0.5, end: true, text: `${wrapOpen}} finally { ${o}.exit(ss_g); }${wrapClose}`, use: null });
+    if (n.type === "AwaitExpression") { wrap(n, depth, `${o}.back(ss_g, `, ")"); wrap(n.argument, depth + 0.5, `${o}.away(ss_g, `, ")"); }
+    if (n.type === "YieldExpression" && fn.async) {
+      if (n.argument) { wrap(n, depth, `${o}.resumed(ss_g, `, ")"); wrap(n.argument, depth + 0.5, `${o}.left(ss_g, ${o}.back(ss_g, await ${o}.away(ss_g, `, ")))"); }
+      else wrap(n, depth, `${o}.resumed(ss_g, `, ` ${o}.left(ss_g, void 0))`);
+    }
+    const m = n.type === "CallExpression" && n.callee.type === "MemberExpression" ? n.callee : null;
+    if (m && PROMISE_CBS.has(m.computed ? (m.property.type === "Literal" ? m.property.value : null) : m.property.name))
+      for (const a of n.arguments) if (a.type !== "SpreadElement") wrap(a, depth + 0.5, `${o}.bind(`, ")");
+    for (const k of kids(n)) walk(k, FNS.has(n.type) ? n : fn, depth + 1);
+  };
+  walk(cellFn, cellFn, 0);
+  return ed;
 }
 // text with the edits applied; positions are text's. At one position: ends (deepest first), then starts (outermost first)
 export function applyRegEdits(text: string, edits: RegEdit[], offset = 0): string {
@@ -137,4 +164,4 @@ export function applyRegEdits(text: string, edits: RegEdit[], offset = 0): strin
   return out + text.slice(at);
 }
 // the runtime cells the edits call, in the order closure, methods
-export const regUses = (edits: RegEdit[]): ("closure" | "methods")[] => (["closure", "methods"] as const).filter((u) => edits.some((e) => e.use === u));
+export const regUses = (edits: RegEdit[]): ("closure" | "methods" | "out")[] => (["closure", "methods", "out"] as const).filter((u) => edits.some((e) => e.use === u));

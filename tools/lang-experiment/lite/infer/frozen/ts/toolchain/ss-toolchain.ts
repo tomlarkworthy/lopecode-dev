@@ -287,7 +287,8 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   const loweredFn = parse(`(${lowered})`).program;
   const IN = ctx.inputs ?? INPUTS;
   // DELIBERATE CHANGE (2026-11-22, cause A): each function the cell makes registers the locals it captures (fnreg.ts)
-  const regEdits = fnRegEdits(acorn.parseExpressionAt(`(${typed})`, 0, { ecmaVersion: "latest" }), { closure: IN.closure, methods: IN.methods });
+  // DELIBERATE CHANGE (2026-11-24, x1, G): and each async function, await, async generator yield and then callback is guarded (fnreg.ts guardEdits)
+  const regEdits = fnRegEdits(acorn.parseExpressionAt(`(${typed})`, 0, { ecmaVersion: "latest" }), { closure: IN.closure, methods: IN.methods, out: IN.out });
   // DELIBERATE CHANGE (2026-11-22, holes7): no ;ss_tdz(); edit after a declaration
   const regTyped = applyRegEdits(typed, regEdits, 1), regIns = regUses(regEdits).map((u) => IN[u]);
   // the built-ins the body calls or reads: free references only, not a property, a key or a local of that name.

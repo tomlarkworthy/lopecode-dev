@@ -17,6 +17,8 @@ export type RegOps = {
   readonly fresh: () => number;
   // w1: plainWith over these ops, memoised by the registry (a cell may not memoise over functions it is given)
   readonly plain?: (t: Ty) => boolean;
+  // x1 (2026-11-24, C): n is a member every function value has (intrinsics.ts FN_OWN_MEMBERS)
+  readonly fnOwn?: (n: string) => boolean;
 };
 // a declared type name as the Registry holds it: an alias or an interface, where it was declared, its type parameters
 export type DeclInfo = { readonly kind: "alias" | "iface"; readonly origin: string; readonly tps: string[] };
@@ -149,8 +151,10 @@ export const seqSubWith = () => (R: RegOps, sub: Sub) => (s: Ty, t: { k: "arr"; 
   return true;
 };
 
-// a function type: parameters contravariant, the result covariant unless t returns void. Generic on both sides
-// with as many type parameters: compared with both renamed to the same fresh names
+// a function type: parameters contravariant, the result covariant. Generic on both sides with as many type
+// parameters: compared with both renamed to the same fresh names. x1 (2026-11-24, V): a void result is compared as
+// any other (void takes undefined only), so a call typed void holds undefined; a callback whose result is dropped is
+// typed unknown (intrinsics.ts forEach), where the forgetting rule's plain test applies
 export const fnSubWith = (subst) => (R: RegOps, sub: Sub) => {
   function fnSub(s: Fn, t: Fn, seen: Mut<Set<string>>): boolean {
     if (s.tps.length || t.tps.length) {
@@ -169,7 +173,7 @@ export const fnSubWith = (subst) => (R: RegOps, sub: Sub) => {
       if (!sub(tp, sp.t, seen)) return false;
     }
     if (tRest && sRest && !sub(tRest, sRest, seen)) return false;
-    return t.ret.k === "void" || sub(s.ret, t.ret, seen);
+    return sub(s.ret, t.ret, seen);
   }
   return fnSub;
 };
@@ -189,12 +193,15 @@ export const NOT_PLAIN = () => new Set(["Action", "State", "StateCell", "Events"
 // object or a type parameter, which may hold one; a named type with a then or next member is a promise or an iterator.
 // An alias met again on the walk counts as plain (what it adds is walked where it was first met)
 // the reads plain takes, which a RegOps and the checker's registry core both give
-export type PlainR = { readonly isAlias: (n: string) => boolean; readonly expand: (t: Ty) => Ty; readonly member: (t: Ty, name: string) => Prop | undefined };
+// x1 (2026-11-24): opaque, a part already typed unknown or object counts as plain: it was checked when it was given that
+// type (ix-hides.ss.ts ixNotPlainIn); a type parameter never does
+export type PlainR = { readonly isAlias: (n: string) => boolean; readonly expand: (t: Ty) => Ty; readonly member: (t: Ty, name: string) => Prop | undefined; readonly opaque?: boolean; readonly fnOwn?: (n: string) => boolean };
 export const plainWith = (typeKey, NOT_PLAIN) => (R: PlainR) => (t0: Ty): boolean => {
   const seen: Mut<Set<string>> = new Set();
   function plain(t: Ty): boolean {
     switch (t.k) {
-      case "unknown": case "object": case "tv": case "fn": return false;
+      case "unknown": case "object": return R.opaque === true;
+      case "tv": case "fn": return false;
       case "arr": return plain(t.el);
       case "tup": return t.els.every((x) => plain(x));
       case "union": return t.ts.every((x) => plain(x));
@@ -213,12 +220,15 @@ export const plainWith = (typeKey, NOT_PLAIN) => (R: PlainR) => (t0: Ty): boolea
 };
 // w1: a record type t with no call or construct signature takes only a record s with none (not a function, array,
 // tuple, primitive, unknown, object, type parameter or a value of a named type such as Error, Map or Promise), and
-// what t does not declare of s (a member, s's index signature, when t has none) must be plain data
+// what t does not declare of s (a member, s's index signature, when t has none) must be plain data. x1 (2026-11-24, C):
+// t with a call or construct signature: a record s with one too keeps that rule (a function s has only members of
+// its own, which recSubWith compares by name); any other s is left to recSubWith's signature check
 export const takesRecord = (plainWith) => (R: RegOps) => {
   const plain: (t: Ty) => boolean = R.plain ?? plainWith({ isAlias: R.isAlias, expand: R.expand, member: R.member });
   return (se: Ty, t: Rec): boolean => {
-    if (t.calls?.length || t.ctors?.length) return true;
-    if (se.k !== "rec" || se.calls?.length || se.ctors?.length) return false;
+    const callable = !!t.calls?.length || !!t.ctors?.length;
+    if (callable && (se.k !== "rec" || (!se.calls?.length && !se.ctors?.length))) return true;
+    if (se.k !== "rec" || (!callable && (se.calls?.length || se.ctors?.length))) return false;
     if (t.index !== undefined) return true;
     for (const [k, p] of se.props) if (!t.props.has(k) && !plain(p.t)) return false;
     return se.index === undefined || plain(se.index);
@@ -233,8 +243,12 @@ export const forgotWith = (show, plainWith) => (R: PlainR) => {
     const s = R.expand(s0.k === "named" && (s0.n === "Mut" || s0.n === "Borrowed") ? s0.args[0] ?? s0 : s0), t = R.expand(t0);
     if (d > 6) return null;
     if (s.k === "arr" && t.k === "arr") return why(s.el, t.el, d + 1);
-    if (t.k !== "rec" || t.calls?.length || t.ctors?.length) return null;
-    if (s.k === "fn" || (s.k === "rec" && (s.calls?.length || s.ctors?.length))) return `a function is not a record, so a record type does not take it: give it a function type (${show(s)})`;
+    // x1 (2026-11-24, C): a member every function has, which the type gives another type
+    const fnLike = s.k === "fn" || (s.k === "rec" && (!!s.calls?.length || !!s.ctors?.length));
+    if (fnLike && t.k === "rec") for (const k of t.props.keys()) if (R.fnOwn?.(k) === true && R.member(s, k) === undefined)
+      return `every function has its own ${k}, and the type declares ${k} of its own: leave ${k} out of the type, or name the member differently`;
+    if (t.k !== "rec" || ((t.calls?.length || t.ctors?.length) && !(s.k === "rec" && fnLike))) return null;
+    if (fnLike && !t.calls?.length && !t.ctors?.length) return `a function is not a record, so a record type does not take it: give it a function type (${show(s)})`;
     if (s.k !== "rec") return ["null", "undef", "void", "never", "err", "union", "unknown", "object", "tv"].includes(s.k) ? null : `${show(s)} is not a record, so a record type does not take it: give it its own type (${show(s)})`;
     if (t.index === undefined) for (const [k, p] of s.props) if (!t.props.has(k) && !plain(p.t))
       return `the type leaves out ${k}, which holds ${show(p.t)}; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): declare ${k} in the type, or build a record without it`;
@@ -268,8 +282,11 @@ export const recSubWith = (propT, someFnSub, takesRecord, UNKNOWN) => (R: RegOps
   const closed = !["object", "unknown", "tv"].includes(se.k) && (se.k !== "rec" || se.exact === true || [...se.props.values()].some((p) => p.flags?.intrinsic));
   // a closed record type holds only closed values: what is assigned to it must be one, with no other member
   if (t.exact === true && !(se.k === "rec" && se.exact === true && [...se.props.keys()].every((k) => t.props.has(k)))) return false;
+  // x1 (2026-11-24, C): a function has its own name, length, call...: t may not declare one the source does not
+  const fnLike = se.k === "fn" || (se.k === "rec" && (!!se.calls?.length || !!se.ctors?.length));
   for (const [k, p] of t.props) {
     const sp = R.member(se, k);
+    if (!sp && fnLike && R.fnOwn?.(k) === true) return false;
     if (!sp) { if (p.opt && (closed || (se.k === "rec" && se.without?.includes(k) === true) || sub(UNKNOWN, propT(p), seen))) continue; return false; }
     if (sp.flags?.banned || (!p.opt && sp.opt)) return false;
     // a spread, rest or clone copies only own enumerable properties; a member from a prototype is not one

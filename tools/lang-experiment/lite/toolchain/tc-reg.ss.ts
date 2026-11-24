@@ -198,9 +198,34 @@ export const tcCastEdits = (parseTree, tcGlobalRefStarts, kidsOf, tcREG_OPEN, tc
     return { from: end - 1, to: end - 1, text: `${tcREG_OPEN}, ${JSON.stringify([shapes[i]]).slice(1, -1)}${tcREG_CLOSE}` };
   });
 };
+// x1 (2026-11-24): fnreg.ts guardEdits over the typed tree, the async guard (freeze.ts guardAsync): each async
+// function's body declares ss_g; each await, and each yield of an async generator, leaves and resumes it; each argument
+// of a call of a member named then or finally is bound. Depth k + 0.5 encloses the edits tcRegAt makes at the same position
+export const tcGuardEdits = (kidsOf, tcREG_OPEN, tcREG_CLOSE) => (cellFn: AstNode, o: string): TcRegEdit[] => {
+  const wrap = (a: AstNode, depth: number, open: string, close: string): TcRegEdit[] =>
+    [{ at: a.start, depth, end: false, text: tcREG_OPEN + open + tcREG_CLOSE, use: "out" }, { at: a.end, depth, end: true, text: tcREG_OPEN + close + tcREG_CLOSE, use: null }];
+  const ed: Mut<TcRegEdit[]> = [];
+  const todo: Mut<{ readonly n: AstNode; readonly inAsync: boolean; readonly depth: number }[]> = [{ n: cellFn, inAsync: false, depth: 0 }];
+  for (let e = todo.pop(); e !== undefined; e = todo.pop()) {
+    const n = e.n, d = e.depth;
+    const fn = n.type === "ArrowFunctionExpression" || n.type === "FunctionExpression" || n.type === "FunctionDeclaration" ? n : null;
+    if (fn !== null && fn.async && fn.body.type !== "BlockStatement") ed.push(...wrap(fn.body, d + 0.5, `(async () => { const ss_g = ${o}.enter(); try { return (`, `); } finally { ${o}.exit(ss_g); } })()`));
+    else if (fn !== null && fn.async && fn.body.type === "BlockStatement" && fn.body.body.length > 0)
+      ed.push({ at: fn.body.start + 1, depth: d + 0.5, end: false, text: `${tcREG_OPEN}const ss_g = ${o}.enter(); try {${tcREG_CLOSE}`, use: "out" }, { at: fn.body.end - 1, depth: d + 0.5, end: true, text: `${tcREG_OPEN}} finally { ${o}.exit(ss_g); }${tcREG_CLOSE}`, use: null });
+    if (n.type === "AwaitExpression") ed.push(...wrap(n, d, `${o}.back(ss_g, `, ")"), ...wrap(n.argument, d + 0.5, `${o}.away(ss_g, `, ")"));
+    if (n.type === "YieldExpression" && e.inAsync) ed.push(...wrap(n, d, `${o}.resumed(ss_g, `, ")"), ...wrap(n.argument, d + 0.5, `${o}.left(ss_g, ${o}.back(ss_g, await ${o}.away(ss_g, `, ")))"));
+    // a yield with no operand is an Other node of the tree
+    if (n.type === "Other" && n.kind === "YieldExpression" && e.inAsync) ed.push(...wrap(n, d, `${o}.resumed(ss_g, `, ` ${o}.left(ss_g, void 0))`));
+    const m = n.type === "CallExpression" && n.callee.type === "MemberExpression" ? n.callee : null, key = m === null ? null : m.property;
+    if (n.type === "CallExpression" && m !== null && key !== null && (m.computed ? key.type === "Literal" && (key.value === "then" || key.value === "finally") : key.type === "Identifier" && (key.name === "then" || key.name === "finally")))
+      for (const a of n.arguments) if (a.type !== "SpreadElement") ed.push(...wrap(a, d + 0.5, `${o}.bind(`, ")"));
+    for (const k of kidsOf(n).toReversed()) todo.push({ n: k, inAsync: fn !== null ? fn.async : e.inAsync, depth: d + 1 });
+  }
+  return ed;
+};
 // the registrations of a typed cell function, as edits to its text in their final order (at one position: ends deepest
 // first, then starts outermost first), and the runtime cells they call, in the order closure, methods
-export const tcFnRegs = (parseTree, tcRegWalk, tcRegAt) => (typed: string, names: TcRegNames): TcRegs => {
+export const tcFnRegs = (parseTree, tcRegWalk, tcRegAt, tcGuardEdits) => (typed: string, names: TcRegNames): TcRegs => {
   const p = parseTree(`(${typed})`, false);
   if (!p.ok) throw new Error(`tc-gap: a typed cell function that does not parse: ${p.message}`);
   const prog = p.ast.program;
@@ -208,8 +233,9 @@ export const tcFnRegs = (parseTree, tcRegWalk, tcRegAt) => (typed: string, names
   if (st === undefined || st.type !== "ExpressionStatement") throw new Error("tc-gap: a typed cell function that is not one expression");
   const w = tcRegWalk(st.expression);
   const hits = w.all.map((e) => tcRegAt(e, w.locals, names));
-  const es = hits.flatMap((h) => h.edits)
+  const guard = names.out === undefined ? [] : tcGuardEdits(st.expression, names.out);
+  const es = [...hits.flatMap((h) => h.edits), ...guard]
     .toSorted((a, b) => a.at - b.at || (a.end === b.end ? (a.end ? b.depth - a.depth : a.depth - b.depth) : a.end ? -1 : 1));
-  const uses = ["closure", "methods"].filter((u) => es.some((e) => e.use === u));
+  const uses = ["closure", "methods", "out"].filter((u) => es.some((e) => e.use === u));
   return { edits: es.map((e) => ({ from: e.at - 1, to: e.at - 1, text: e.text })), uses };
 };

@@ -13,11 +13,13 @@
 // made in the same expression; b2-ctl controls counted apart), d1 (d1-attacks.ts, 2026-11-24: the owner's
 // decisions A to F; d1-ctl controls counted apart), t1 (t1-attacks.ts, 2026-11-24: freeze-attack10's breaks; t1-ctl
 // controls counted apart, run under both runners), w1 (w1-attacks.ts, 2026-11-24: freeze-attack10 and 11 by w1 step;
-// w1-controls counted apart; the w1-guard-* controls must not fire). The folders they come from are read, not edited.
+// w1-controls counted apart; the w1-guard-* controls must not fire), x1 (x1-attacks.ts, 2026-11-24: freeze-attack12 by x1
+// step; x1-controls counted apart; the x1-guard-* controls must not fire). The folders they come from are read, not edited.
 // --off drops the static capture rules' diagnostics in this runner only (the checker is unchanged).
 // --rt (t1, 2026-11-24): an accepted program is run compiled, in a real Observable Runtime (drive-rt.ts observeCompiled),
 // in place of runCells. --both: run by both; a DIFFER line where they differ (drive-rt.ts differences), counted per set.
 import { checkSources } from "../../core.ts";
+import { evaluating } from "../../freeze.ts";
 import { noteThrow, reportThrows } from "./throws.ts";
 import { rewriteSS } from "./strip-calls.ts";
 import { observeProgram, type Prog } from "./observe.ts";
@@ -36,6 +38,7 @@ import * as A9 from "./a9-attacks.ts";
 import * as D1 from "./d1-attacks.ts";
 import * as T1 from "./t1-attacks.ts";
 import * as W1 from "./w1-attacks.ts";
+import * as X1 from "./x1-attacks.ts";
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? null : process.argv[i + 1]!; };
 const RT = process.argv.includes("--rt"), BOTH = process.argv.includes("--both");
@@ -43,7 +46,7 @@ const runProg = RT ? observeCompiled : observeProgram;
 // a compiled program's late rejections (rt10 kept them the same way); without a handler bun ends the run
 if (RT || BOTH) { process.on("unhandledRejection", () => {}); process.on("uncaughtException", () => {}); }
 const OFF = process.argv.includes("--off"), FORCE = process.argv.includes("--force"), ONLY = arg("--only");
-const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1,g1,b2,cast,a9,d1,t1,w1").split(",");
+const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1,g1,b2,cast,a9,d1,t1,w1,x1").split(",");
 export const OFF_RULES = new Set(["mut-capture", "let-capture", "mut-yield", "mut-await", "mut-cell", "member-write", "mutating-method", "regexp-state", "iterator-capture"]);
 type P = Prog & { set: string; name: string; foreign?: string | null; ctl?: boolean };
 export const progs: P[] = [];
@@ -84,6 +87,7 @@ if (SETS.includes("a9")) for (const a of A9.attacks) progs.push({ set: "a9", ...
 if (SETS.includes("d1")) for (const a of D1.attacks) progs.push({ set: a.ctl ? "d1-controls" : "d1", ...a });
 if (SETS.includes("t1")) for (const a of T1.attacks) progs.push({ set: a.ctl ? "t1-controls" : "t1", ...a });
 if (SETS.includes("w1")) for (const a of W1.attacks) progs.push({ set: a.ctl ? "w1-controls" : "w1", ...a });
+if (SETS.includes("x1")) for (const a of X1.attacks) progs.push({ set: a.ctl ? "x1-controls" : "x1", ...a });
 }
 if (import.meta.main) await loadProgs();
 
@@ -114,7 +118,7 @@ export const verdictOf = (src: string, foreign: string | null, off: boolean, ctl
 
 if (import.meta.main) {
   const tally: Record<string, { n: number; acc: number; silent: number; threw: number; differ: number }> = {};
-  const silentList: string[] = [];
+  const silentList: string[] = [], depthLeft: string[] = [];
   for (const p of progs) {
     if (ONLY && !p.name.includes(ONLY)) continue;
     // a source too deep for the TypeScript parser (freeze3 deep-2000) is run as written
@@ -155,12 +159,15 @@ if (import.meta.main) {
     }
     console.log(`== ${p.set} ${p.name}: ${v.text.slice(0, 200)}${v.dropped.length ? ` (dropped ${v.dropped.join(", ")})` : ""}`);
     for (const l of lines) console.log(`   ${l}`);
+    // x1 (2026-11-24): the guard's depth is 0 once a program has settled; a program that leaves it above 0 is listed
+    if (evaluating.depth !== 0) { depthLeft.push(`${p.name} ${evaluating.depth}`); evaluating.depth = 0; }
   }
   console.log(`-- mode rules ${OFF ? `OFF (${[...OFF_RULES].join(", ")} dropped)` : "ON"}${FORCE ? ", forced" : ""}${RT ? ", compiled runner" : ""}${BOTH ? ", both runners" : ""}`);
   let n = 0, s = 0;
   // a control is meant to change silently: it is counted as fired, not as silent
   for (const [k, t] of Object.entries(tally)) { if (k.endsWith("-controls")) { console.log(`-- ${k}: ${t.n}, fired ${t.silent}`); continue; } n += t.n; s += t.silent; console.log(`-- ${k}: ${t.n} programs, accepted ${t.acc}, silent ${t.silent}, with a cell in error ${t.threw}${BOTH ? `, differ ${t.differ}` : ""}`); }
   console.log(`-- all: ${n} programs, silent ${s}`);
+  console.log(`-- guard depth left above 0 by ${depthLeft.length} programs${depthLeft.length ? `: ${depthLeft.join(", ")}` : ""}`);
   for (const x of silentList) if (!x.includes("-controls ")) console.log(`SILENT ${x}`);
   process.exit(reportThrows());
 }

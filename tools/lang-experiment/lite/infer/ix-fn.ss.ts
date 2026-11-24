@@ -201,7 +201,8 @@ export const ixRetCtx = (ixConvert, ixErr, ixAwaited, hasTv, isNamed, named, sho
   }
   const ctxRet = retAnn === null && ctxSig && !hasTv(ctxSig.ret) ? ctxSig.ret : null;
   const declared = retAnn ?? ctxRet;
-  const retCtx = declared !== null && !fi.isGen ? (fi.isAsync ? ixAwaited(K.reg, declared, true) : declared.k === "void" ? null : declared) : null;
+  // x1 (2026-11-24, V): a void result, declared or from the context, checks each return: void takes undefined only
+  const retCtx = declared !== null && !fi.isGen ? (fi.isAsync ? ixAwaited(K.reg, declared, true) : declared) : null;
   return { fi: { ...fi, retCtx, yieldCtx, retFromCtx: retAnn === null && ctxRet !== null }, retAnn, ctxRet, declared };
 };
 // the function's return type: its annotation, or what its returns and yields give

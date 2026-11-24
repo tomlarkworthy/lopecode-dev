@@ -25,6 +25,10 @@ export const ixHeldIn = (show) => {
 export const ixActionIn = (ixHeldIn) => (R: IxRegCore, s: Ty): string | null => ixHeldIn(R, s, 0, (x) => x.k === "named" && x.n === "Action", true);
 // handleIn: the first State or Events handle, or (d1, 2026-11-24) a FetchResponse, whose body can be read once
 export const ixHandleIn = (ixHeldIn) => (R: IxRegCore, s: Ty): string | null => ixHeldIn(R, s, 0, (x) => x.k === "named" && (x.n === "State" || x.n === "Events" || x.n === "FetchResponse"), true);
+// x1 (2026-11-24, O): notPlainIn: s itself when its type says it holds a part that is not plain data (subtype.ss.ts
+// plainWith, a part already typed unknown or object counted as plain), for a target of type unknown or object
+export const ixNotPlainIn = (plainWith, show) => (R: IxRegCore, s: Ty): string | null =>
+  plainWith({ isAlias: R.isAlias, expand: R.expand, member: R.member, opaque: true })(s) ? null : show(s);
 // promiseIn: the first promise-like, a Promise, a type with a then member, or object
 export const ixPromiseIn = (show) => {
   function promiseIn(R: IxRegCore, s: Ty, depth: number): string | null {
@@ -86,8 +90,10 @@ export const ixHiddenIn = (ixHiddenFn, propT, NEVER) => (H: IxHide, hidden: IxHi
     case "tup": return sx.k !== "tup" ? null : each(t.els.flatMap((x, i): [Ty, Ty][] => { const y = sx.els[i]; return y ? [[y, x]] : []; }));
     case "rec": {
       for (const [k, p] of t.props) { const sp = R.member(sx, k); const w = sp && hidden(H, propT(sp), propT(p), depth + 1); if (w) return w; }
-      const index = t.index;
+      const index = t.index, sIndex = sx.k === "rec" ? sx.index : undefined;
       if (index && sx.k === "rec") for (const p of sx.props.values()) { const w = hidden(H, propT(p), index, depth + 1); if (w) return w; }
+      // x1 (2026-11-24): and s's own index signature, which Object.fromEntries and a spread fill
+      if (index && sIndex) { const w = hidden(H, sIndex, index, depth + 1); if (w) return w; }
       for (const c of t.calls ?? []) { const w = ixHiddenFn(H, hidden, s, c, depth); if (w) return w; }
       return null;
     }
@@ -115,11 +121,15 @@ export const ixHiddenFn = () => (H: IxHide, hidden: IxHiddenFn, s: Ty, t: Fn, de
   return null;
 };
 // hides: an Action or a handle placed where its type becomes unknown, object or an opaque type parameter (S6.6)
-export const ixHides = (ixHidden, ixActionIn, ixHandleIn, ixErr, show) => (K: IxK, C: IxCtls, at: AstNode, t: Ty, expected: Ty, opaque: Set<string> | null): boolean => {
+// x1 (2026-11-24, O): then any other part that is not plain data placed where its type becomes unknown or object
+// ([forgets]; a type parameter's caller gets back the type it gave, so there only Actions and handles are looked for)
+export const ixHides = (ixHidden, ixActionIn, ixHandleIn, ixNotPlainIn, ixErr, show) => (K: IxK, C: IxCtls, at: AstNode, t: Ty, expected: Ty, opaque: Set<string> | null): boolean => {
   const R = K.reg.quiet, same = K.reg.same(t, expected);
   const w = same ? null : ixHidden({ R, opaque, find: (x: Ty) => ixActionIn(R, x) }, t, expected, 0);
   if (w) ixErr(K, C, at, "action-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${w}; an Action goes only where an Action is expected`);
   const h = w || same ? null : ixHidden({ R, opaque, find: (x: Ty) => ixHandleIn(R, x) }, t, expected, 0);
   if (h) ixErr(K, C, at, "handle-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${h}; a State or Events handle, or a FetchResponse, goes only where its own type is expected`);
-  return !w && !h;
+  const f = w || h || same || C.inspects.has(at.nid) ? null : ixHidden({ R, opaque: null, find: (x: Ty) => ixNotPlainIn(R, x) }, t, expected, 0);
+  if (f) ixErr(K, C, at, "forgets", `${show(t)} is given the type ${show(expected)}, which does not say what ${f} holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it`);
+  return !w && !h && !f;
 };

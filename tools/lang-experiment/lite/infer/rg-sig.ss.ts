@@ -1,7 +1,7 @@
 // Registry.sig and Registry.literal over the typed tree: signatures, their parameters, and the members of a type
 // literal or interface body, with the @-flags of their leading comments.
 
-export const RG_FLAG_NAMES = () => ["mutates", "fresh", "view", "retains", "banned"];
+export const RG_FLAG_NAMES = () => ["mutates", "fresh", "view", "retains", "banned", "plain"];
 // flagsOf: the flags a declaration's leading comments name, and intrinsic for the intrinsics; null for none
 export const rgFlags = (RG_FLAG_NAMES, leadingComments) => (ast: Ast, n: AstNode, origin: RgOrigin): Flags | null => {
   const f: Mut<Flags> = {};
@@ -9,7 +9,7 @@ export const rgFlags = (RG_FLAG_NAMES, leadingComments) => (ast: Ast, n: AstNode
   for (const c of leadingComments(ast, n.start)) for (const k of RG_FLAG_NAMES) {
     if (!c.text.includes("@" + k)) continue;
     any = true;
-    if (k === "mutates") f.mutates = true; else if (k === "fresh") f.fresh = true; else if (k === "view") f.view = true; else if (k === "retains") f.retains = true; else f.banned = true;
+    if (k === "mutates") f.mutates = true; else if (k === "fresh") f.fresh = true; else if (k === "view") f.view = true; else if (k === "retains") f.retains = true; else if (k === "plain") f.plain = true; else f.banned = true;
   }
   if (origin === "intrinsic") { f.intrinsic = true; any = true; }
   return any ? f : null;

@@ -3702,3 +3702,176 @@ names and the compiled guard; 1104 programs under both runners. Record width hel
 Exact record types would not have stopped V or O (no record type is involved), so the choice between exact records
 and data-only forgetting is not what these turn on: the same principle is not yet applied to `void` results, to
 `object`/`unknown` given a promise or a generator, and to keys made at run time.
+
+## 2026-11-24: x1 (the forgetting rule at every forgetting type; run-time names; guard after await) (builder, 11:20–14:00, logs `lite/soundscript/.scratch/x1/`)
+
+Attack 12 (`freeze-attack12/RESULTS.md`) found five breaks: V (a `void` result holds a value), O (`object`/`unknown`
+take a promise, iterator, response or function), C (a function given a call-signature interface that declares one of
+a function's own members), H (`Object.fromEntries` puts a function under `then`/`toString`/`toJSON`), G (an action
+called after a cell's first `await`, in a `then` callback, or in an async generator, ran). Reproduced first, both
+runners (`before/`), equal to RESULTS:
+
+```
+file      accepted  silent  (drive-rt; drive-run equal except hooks accepted 47)
+min          10        9
+forget       60        1
+forget2      20       17
+forget3      21       11
+hooks        49       20
+guard        26       12
+sweep       208        0
+```
+
+After (`after/`, 13:59, both runners): silent 0 in every file; accepted min 0, forget 6, forget2 0, forget3 1, hooks 2
+under drive-rt and 0 under drive-run, guard 0, sweep 57 (of 877). Hooks before was 49 under drive-rt and 47 under
+drive-run.
+
+**Step 1, the forgetters table** (`forgetters.txt`). Every `Ty` kind as a target, the function that decides
+assignability, and whether it applied the plain test. Three rows did not:
+
+- `void` as a function result: `fnSubWith` took any result (`t.ret.k === "void" ||`), and `ix-fn.ss.ts` `ixRetCtx`
+  left returns under a `void` result unchecked. `probe-void.ts`: `const f: () => void = () => 1; f() ?? "s"` was typed
+  `string` and held `1`.
+- `unknown`/`object`: `ixHides` refused Actions and handles only.
+- a record with a call signature: `takesRecord` returned true for any function source.
+
+V, two options. R: a `void` result takes `undefined` only, and `forEach` declares its callback result `unknown`. O: a
+value under `void` stays but no reader may observe it, which needs `void` to stop being nullish at about 10 sites in
+each checker. R changed 0 of 49425 cells in the census (`census/s1v.txt`); O cannot cost less than 0. Built R. The
+census missed one inline spec cell, S4.9's `(x) => x.push(1)` given `(x: Mut<number[]>) => void`, which bun-verify
+caught; it is now `(x) => { x.push(1); }`.
+
+O: `ix-hides.ss.ts` `ixHides` has a third pass, `ixNotPlainIn`: a value given `unknown` or `object` is `[forgets]`
+unless `plainWith` holds for it. A part already typed `unknown` or `object` counts as plain. The first build rejected
+16 cells, product `render.ss.ts` among them (`Object.keys`/`Object.is` on props) and fixture `ok_reads`
+(`JSON.stringify` of a Mut array). The exemption: an argument of an intrinsic signature without `@retains` (ix-apply
+`inspects`). `inspects.ts` walks the registry for those signatures with an `unknown`/`object` parameter: 14
+(`inspects.txt`); the 3 whose result can hold the argument (`Object.defineProperty`, `defineProperties`,
+`setPrototypeOf`) are `[banned-member]` (S2.7). `ixHiddenIn` also walks a source's own index signature (fromEntries'
+result type).
+
+C: `FN_OWN_MEMBERS` (`intrinsics.ts`) is `Object.getOwnPropertyNames` of `Function.prototype`, a function and an arrow,
+read when the checker loads. A callable record source keeps the width test; a target member in that set that the
+source does not declare is `[forgets]` with forgotWith's message. `tag?: string` is accepted, `name?: number` is not.
+
+Found in the Step 1 gates (`qg1.txt`): `d1-ok-resp-then`, `fetch(u).then((r) => r.json())`, became `[forgets]`. The
+callback's declared result `U | Promise<U>` unifies `U` with `Promise<unknown>` and the union collapses to `unknown`.
+`Promise.then` is now two overloads, `(v) => Promise<U>` first, then `(v) => U`.
+
+Census after Step 1 (`census/s1c.txt`), ok -> rejected: 3 distinct corpus cells, all `[forgets]`:
+`ports/glpk-canonicalization:multiplyOut` (a `(v?: unknown) => boolean` given RuleFns), `selfhost/rt/cells.ss.ts`
+`listen` and `release` (`Lst` given `unknown`). Spec and tutorial verdicts: 0 by the census; rewritten after bun-verify:
+S4.9 (above), S7.3 `on1` (its `g: (x: unknown) => number` took a Listener; now a local `(x: Listener) => 1`), S4.6
+holes8 `k2` (a promise typed `unknown`, which threw at publish, is now `[forgets]` at check time), and two
+`checker-tests.ojs` rows (an iterator typed `unknown` is `[forgets]`; the structuredClone row takes `u: unknown` as a
+parameter). Drafts unchanged.
+
+**Step 2, H.** `names-rt.ts` (`names-rt.txt`) puts each of 4 plain values (5, "s", {x: 1}, null) under each
+`Object.prototype` name, `toJSON`, `then` and `__proto__` in a `fromEntries` record, and compares 20 conversions and
+copiers (template, String, join, Number, ==, <, JSON, sort, Map key, keys, spread, structuredClone, deepFreeze,
+publish, snapshot, cross, equals) against the same value under another key:
+
+```
+toString = any plain value   template/String/concat/join/Number/==/<: TypeError "No default value"   (loud)
+then = any plain value       await gives the record
+every other name             same as under another key
+```
+
+The `cast` column measured nothing (`cast(v, null)` fails every value). No plain value changes a result silently, so
+no run-time refusal of a key was added. `builders.ts` walks the registry for built-ins whose result holds an index
+signature: `Object.fromEntries` only. The other ways to put a run-time key on a record were already closed: a computed
+key `{ [k]: v }` and a spread of an index record are unsupported, `o[k] = v` is `[banned-member]` (w1). The rule: a
+signature flagged `@plain` (`rg-sig.ss.ts` and frozen `registry.ts` parse it; `fromEntries` carries it) must give a
+result `plainWith` accepts (`ix-apply.ss.ts` `ixPlainResult`, frozen `apply`), else `[type]`. A generic helper
+`<T,>(xs) => Object.fromEntries(xs)` is rejected inside its body (`T` is not plain). Census after Step 2
+(`census/s2.txt`): 0 further changes.
+
+**Step 3, G.** One mechanism, in the compiled text, so both runners get it: `fnreg.ts` `guardEdits` (the frozen
+toolchain) and its cell twin `tc-reg.ss.ts` `tcGuardEdits` (live), bracketed `/*ss+*/ … /*ss-*/` as the closure
+registrations are; the run time is `freeze.ts` `guardAsync`, on `ss_out`.
+
+```
+async function body      { const ss_g = ss_out.enter(); try { BODY } finally { ss_out.exit(ss_g); } }
+async arrow, expression  (async () => { const ss_g = ss_out.enter(); try { return (E); } finally { … } })()
+await X                  ss_out.back(ss_g, await ss_out.away(ss_g, X))
+yield X (async gen)      ss_out.resumed(ss_g, yield ss_out.left(ss_g, ss_out.back(ss_g, await ss_out.away(ss_g, X))))
+p.then(f), p["then"](f)  p.then(ss_out.bind(f)), and the same for finally
+```
+
+`enter` records whether depth was above 0 when the function was called (`on`). While suspended the function holds no
+count; `back` and `resumed` take one again when `on`, `away`, `left` and `exit` give it back. `away` boxes the awaited
+value so a rejection is rethrown after the count is taken. When `on` is false nothing is boxed and the text behaves as
+before. `bind` wraps `f` only when depth is above 0 where `then` is called. The expression-body form exists because an
+arrow body's parentheses are not tree nodes, so a block cannot be opened at the body's start. A first pass bound only
+`.then`; `p["then"](cb)` is accepted by the checker, so the computed form is bound too. The fresh review found
+`.finally(cb)` accepted and unbound; it is bound since 13:12 (`PROMISE_CBS`, control `x1-guard-finally`). A callback
+bound while a cell computes is guarded whenever it runs, after its cell has finished too (`invalidation.then(cb)`).
+
+Covered, each by an `x1-guard-*` control that fires with `SS_MEASURE_GUARD=0` and not without it, under both runners:
+after one or more awaits, in a loop of awaits, after a caught rejection, in an expression body, in a nested async
+helper, in `finally` after an await, in a `then` callback (chained, after `Promise.all`, async), in a `finally` callback, in an async generator
+after an await and after a yield then an await, in a kept async function another cell calls after an await. Attack
+12's 29 rows that reached an action through the H hook in an async path, run with the checker skipped, fire 29/29 with
+the switch off and 0/29 on (`g-ctl-*.txt`).
+
+Not covered: a kept async function an event handler or a listener calls (it is not part of an evaluation, and its
+actions run, by design: `x1-ok-3-event-while-async-waits`); a callback given to anything other than `then` or `finally`
+that the run time calls later; an async function from a module in another language (only a SoundScript cell's
+compiled text is rewritten); a `then` callback given by spread (`p.then(...fs)`); an async generator's `finally` run by the
+consumer's `return()` from outside the guard; `for await` and `yield*`, which the checker marks unsupported. An accepted
+program cannot call an action in a cell body (`[action-call]`); each uncovered path needs a function the checker cannot
+see into calling one, which attack 12 found only through H.
+
+Depth leak check: `run-sets.ts` lists any program after which the guard's depth is not 0; `x1` and `w1`, both runners,
+guard on and off: 0. `delivery.test.ts` gives the same ordering counts with the guard on and off.
+
+Costs, Step 3: a guarded await takes more microtask turns than before, for the box (`away`'s `Promise.resolve(x).then`, freeze.ts); read from the code, not counted; an unguarded one none.
+
+**Step 4, S-1** (`const f = () => g(); const g = () => 1;`): left. It is already rejected (`[free-name]` in a block,
+`[cell-by-name]` across cells); accepting it needs a lazy type for a later function-valued const and a TDZ check (w1).
+
+**Standing set `x1`** (`lite/infer/attack/x1-attacks.ts`, run-sets `x1`, live.test.ts): 94 programs (13 accepted ok rows, 81 attack
+rows, every one rejected) and 63 controls with the checker skipped: 14 + 1 (`finally`) new guard controls, 15 attack-12
+`g-ctl-*`, 29 `x1-guard-a12h-*`, and Steps 1 and 2's controls. Gates run, both runners: accepted 13, silent 0, fired 4
+(Steps 1 and 2's controls: `x1-1-ctl-void-holds-number`, `x1-1-f3-ctl-callsig-name`, `x1-1-gobj-ctl-generator-own-type`,
+`x1-2-h-ctl-literal-then`); with `SS_MEASURE_GUARD=0` fired 52: those 4 and every guard control except the 11 attack-12
+ones that the w1 guard already refused (`X1_A12_HELD`: sync code, a generator between steps, invalidation and the like). `live.test.ts` asserts both counts.
+
+**Measurements.** Ergonomics drafts 18 of 40 accepted, 17 pass, before and after
+(`erg-*.txt`); learner drafts 36 of 40 accepted, 36 pass, before and after (`learn-*.txt`). Self-check (`.scratch/m1/time-sections.ts`,
+checker ix+ow): before 5424 / 5224 ms; after 5449 / 5407 ms on a quiet machine (13:05), 5688 / 5796 / 5679 ms inside the
+gates run. `verify.ts` full, before (`verify-before.log`): 676 pass 2 fail (no-raw and core-not-main, a build throw at
+`link.ts:36`, on the morning's tree; not looked into); after (`gates/verify-full.log`): 678 pass 0 fail. Measurements
+before -> after: title 495 -> 501 ms, first verdict 495 -> 501 ms, lint keystroke median 7.5 -> 7.7 ms, Mandelbrot main
+70.5 -> 70.6 ms and pool 40.0 -> 46.7 ms, 32 keys 1 long task [50] -> [59], completion median 10.7 -> 10.0 ms. Before was
+on AC power, after on battery. `delivery.test.ts`: 50469 orderings, 0 fail, guard on and off; 18.6 min each when run
+side by side.
+
+Gates (`gates/summary.txt`, 13:19–13:58): build, bun-verify 182/0, fixtures 14/14, diff SAME 4003 DIFFERENT 0, diff
+--module-only SAME 1295, tc-diff 56 DIFFERENT lines (by design), run-sets and --rt 2785 programs silent 0, fa2 309
+accepted 8 silent 0, fa3 360 accepted 9 silent 0, REG=0 and BODYFN=0 silent 0, verify --quick 234/0, verify full 678/0;
+33 of 34 test files exit 0. `lite/boundary.test.ts` failed one row: a function given `StateCell<object>` expected
+`[action-capture]` and got `[forgets]` (still rejected). The census does not read that file's inline sources. The row now
+expects `[forgets]`; `boundary.test.ts` alone after: 130/0. Two earlier gate runs were stopped: one for the review's fixes,
+one at verify --quick, where my S2.9 text had used a banned word.
+
+Final census against the base (`census/final.txt`): corpus cells ok -> rejected are the 3 of Step 1; 4 cells already
+rejected gained `[forgets]` (`cells.ss.ts` `sweep`, `prelude.ss.ts` `viewHandle` and `action`, each in ss and ssx).
+Spec reject rows are keyed by position, so the rows added in S2.9 renumber the later ones; every reject row is still
+rejected (bun-verify).
+
+**Product lines** (diff against `orig/`): product files (not tests, spec or tutorial) 201 added, 56 deleted. Step 3 alone:
+`freeze.ts` 18/2, `tc-reg.ss.ts` 29/3, `run.ts` 3/2, `tc-build`/`tc-types` 2/2 (live, 52 added), `fnreg.ts` 31/4 and
+`ss-toolchain.ts` 2/1 (the frozen twin). That is over the brief's 60 when both twins are counted, and under it for
+either alone.
+
+**Left.** Step 4 (S-1). The guard's uncovered paths listed in Step 3. The cost of a guarded await (the extra
+microtask turns, paid only when depth was above 0 at the call) was not measured against an alternative.
+
+## 2026-11-24 14:10–14:50: owner-session check of x1
+
+One gate run on the tree committed (`selfhost/x1-check/gates-summary.txt`): build 0; bun-verify 182 pass; fixtures
+14/14; diff DIFFERENT 0 (4017 cells), `--module-only` 1295 SAME; run-sets 2785 programs silent 0 under runCells,
+compiled, `SS_MEASURE_REG=0` and `SS_MEASURE_BODYFN=0`; fa2 309/8/0, fa3 360/9/0; verify --quick 234 pass; full verify
+678 pass 0 fail; 34 of 34 test files exit 0. Not run by me: an attack on the x1 rules. Attacks 10, 11 and 12 each
+found breaks, so "no known silent program" here means the standing sets, not the language.

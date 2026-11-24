@@ -285,7 +285,7 @@ export const ixExpect = (ixHides, ixErr, ixNonUndef, members, isNamed, show, UND
   if (K.reg.sub(ixNonUndef(K.reg, t), expected)) rule = "possibly-undefined";
   else if (members(t).some((m) => isNamed(m, "Action")) && !members(expected).some((m) => isNamed(m, "Action"))) rule = "action-pass";
   // w1 (2026-11-24): a failure by the forgetting rule (subtype.ss.ts takesRecord) says what was left out and the fix
-  const why = rule === "type" ? forgotWith({ isAlias: K.reg.quiet.isAlias, expand: K.reg.quiet.expand, member: K.reg.quiet.member })(t, expected) : null;
+  const why = rule === "type" ? forgotWith({ isAlias: K.reg.quiet.isAlias, expand: K.reg.quiet.expand, member: K.reg.quiet.member, fnOwn: (n: string) => K.reg.quiet.fnOwn?.(n) === true })(t, expected) : null;
   if (why !== null) rule = "forgets";
   ixErr(K, C, at, rule, `${show(t)} is not assignable to ${show(expected)}${rule === "possibly-undefined" ? UNDEF_FIX : why !== null ? `: ${why}` : ""}`);
   return false;

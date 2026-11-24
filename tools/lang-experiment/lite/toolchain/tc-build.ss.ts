@@ -107,7 +107,7 @@ export const tcAssemble = (tcPrelude, tcOjsInputGlobals, tcGlobalRefStarts, tcGl
     const kind = info.returnsRef ? "ref" : info.generator && ctx.events.has(info.name) ? "events" : mdPreludeCalls(fn, "on").size > 0 ? "listener" : "cell";
     const refs = [...new Set(info.compiles.flatMap((s) => s.refs))];
     // each function the cell makes registers the locals it captures (fnreg.ts), in a re-parse of `(typed)`: prog is of the uncommented text
-    const reg = tcFnRegs(typed, { closure: tcIn(IN, "closure"), methods: tcIn(IN, "methods") });
+    const reg = tcFnRegs(typed, { closure: tcIn(IN, "closure"), methods: tcIn(IN, "methods"), out: tcIn(IN, "out") });
     const inner = `${tcLANG}${tcHeader({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${tcApplyEdits(typed, [...reg.edits, ...tcCastEdits(typed, info.casts)])}`;
     const expr = tcExprParts(kind, info, refs, IN, JSON.stringify(ctx.module), globals, reg.uses.map((u) => tcIn(IN, u)), inner);
     const block = bound.length > 0;

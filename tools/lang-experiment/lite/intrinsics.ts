@@ -7,7 +7,11 @@
 //   @banned   reading the member is an error (Math.random, Object.defineProperty)
 // A method absent from this text is `unsupported`, not an error: the file is the coverage boundary.
 // Callback parameters omit the third `array` argument on purpose: it would alias a Mut receiver.
+// x1 (2026-11-24): forEach drops its callback's result, so that result is unknown (plain data, by the forgetting rule);
+// a void result takes undefined only (subtype.ss.ts fnSubWith).
 
+// x1 (2026-11-24, C): the members every function value has, own or from Function.prototype, read from the run time
+export const FN_OWN_MEMBERS: ReadonlySet<string> = new Set([...Object.getOwnPropertyNames(Function.prototype), ...Object.getOwnPropertyNames(function () {}), ...Object.getOwnPropertyNames(() => 0)]);
 export const TYPED_ARRAYS = "Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array".split(" ");
 export const ALLOWED_GLOBALS = new Set(
   ("Object Array Math JSON Number String Boolean BigInt Symbol Map Set Error TypeError RangeError RegExp Promise " +
@@ -38,7 +42,7 @@ interface ${N} {
   /** @fresh */ toReversed(): ${N};
   /** @fresh */ with(i: number, v: number): ${N};
   reduce<U>(f: (acc: U, v: number, i: number) => U, init: U): U;
-  forEach(f: (v: number, i: number) => void): void;
+  forEach(f: (v: number, i: number) => unknown): void;
   every(f: (v: number, i: number) => unknown): boolean;
   some(f: (v: number, i: number) => unknown): boolean;
   indexOf(v: number): number;
@@ -74,7 +78,7 @@ interface Array<T> {
   findLast(f: (v: T, i: number) => unknown): T | undefined;
   some(f: (v: T, i: number) => unknown): boolean;
   every(f: (v: T, i: number) => unknown): boolean;
-  forEach(f: (v: T, i: number) => void): void;
+  forEach(f: (v: T, i: number) => unknown): void;
   includes(v: T): boolean;
   indexOf(v: T): number;
   lastIndexOf(v: T): number;
@@ -186,7 +190,8 @@ declare const Object: {
   /** @fresh */ entries<T>(o: { readonly [k: string]: T }): [string, T][];
   /** @fresh */ keys(o: object): string[];
   /** @fresh */ values<T>(o: { readonly [k: string]: T }): T[];
-  /** @fresh */ fromEntries<T>(entries: Iterable<readonly [string, T]>): { [k: string]: T };
+  // x1 (2026-11-24): @plain, the record's keys come from run-time data, so its values must be plain (S9.9)
+  /** @fresh @plain */ fromEntries<T>(entries: Iterable<readonly [string, T]>): { [k: string]: T };
   is(a: unknown, b: unknown): boolean;
   /** @banned */ defineProperty(o: unknown, k: unknown, d: unknown): unknown;
   /** @banned */ setPrototypeOf(o: unknown, p: unknown): unknown;
@@ -197,7 +202,7 @@ interface Map<K, V> {
   readonly size: number;
   get(k: K): V | undefined;
   has(k: K): boolean;
-  forEach(f: (v: V, k: K) => void): void;
+  forEach(f: (v: V, k: K) => unknown): void;
   /** @view */ keys(): Iterable<K>;
   /** @view */ values(): Iterable<V>;
   /** @view */ entries(): Iterable<[K, V]>;
@@ -212,7 +217,7 @@ declare const Map: {
 interface Set<T> {
   readonly size: number;
   has(v: T): boolean;
-  forEach(f: (v: T) => void): void;
+  forEach(f: (v: T) => unknown): void;
   /** @view */ keys(): Iterable<T>;
   /** @view */ values(): Iterable<T>;
   /** @view */ entries(): Iterable<[T, T]>;
@@ -230,7 +235,10 @@ declare const TypeError: { /** @fresh */ new (message?: string): Error };
 declare const RangeError: { /** @fresh */ new (message?: string): Error };
 declare const RegExp: { /** @fresh */ new (source: string, flags?: string): RegExp };
 interface Promise<T> {
-  /** @retains */ then<U>(f: (v: T) => U | Promise<U>): Promise<U>;
+  // x1 (2026-11-24): a callback that returns a promise first, so that U is that promise's type and the callback's
+  // result is not compared with unknown | Promise<unknown>, which is unknown (the forgetting rule's unknown row)
+  /** @retains */ then<U>(f: (v: T) => Promise<U>): Promise<U>;
+  /** @retains */ then<U>(f: (v: T) => U): Promise<U>;
 }
 declare const Promise: {
   resolve(): Promise<void>;

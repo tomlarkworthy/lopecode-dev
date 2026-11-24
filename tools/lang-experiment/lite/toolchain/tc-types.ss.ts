@@ -42,5 +42,5 @@ export type TcRegNode = { readonly n: AstNode; readonly parent: AstNode | null; 
 export type TcFreeItem = { readonly n: AstNode | null; readonly b: Set<string>; readonly pat: boolean };
 export type TcRegEdit = { readonly at: number; readonly depth: number; readonly end: boolean; readonly text: string; readonly use: string | null };
 export type TcRegHit = { readonly edits: TcRegEdit[] };
-export type TcRegNames = { readonly closure: string; readonly methods: string };
+export type TcRegNames = { readonly closure: string; readonly methods: string; readonly out?: string };
 export type TcRegs = { readonly edits: TcEdit[]; readonly uses: string[] };
