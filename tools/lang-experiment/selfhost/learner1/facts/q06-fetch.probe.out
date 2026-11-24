@@ -1,0 +1,34 @@
+accept-ok-boolean: ACCEPT
+reject-ok-not-string: REJECT r:rejected[type]
+    r[type] boolean is not assignable to string
+accept-status-number: ACCEPT
+reject-status-not-string: REJECT r:rejected[type]
+    r[type] number is not assignable to string
+accept-json-unknown: ACCEPT
+reject-json-not-record: REJECT r:rejected[type]
+    r[type] unknown is not assignable to { a: number }
+accept-text-string: ACCEPT
+accept-arrayBuffer: ACCEPT
+member-headers: REJECT r:unsupported
+    r{unsupported intrinsic member Mut.headers}
+member-statusText: REJECT r:unsupported
+    r{unsupported intrinsic member Mut.statusText}
+member-blob: REJECT r:unsupported
+    r{unsupported intrinsic member Mut.blob}
+member-clone: REJECT r:unsupported
+    r{unsupported intrinsic member Mut.clone}
+member-body: REJECT r:unsupported
+    r{unsupported intrinsic member Mut.body}
+member-url: REJECT r:unsupported
+    r{unsupported intrinsic member Mut.url}
+reject-response-as-cell-value: REJECT r:rejected[iterator-cell]
+    r[iterator-cell] value FetchResponse holds a FetchResponse: a response's body can be read once, so the cells that take it would find it used up, depending on the order they run in; read the body in this cell and give the data (const data = async (fetch: Fetch) => (await fetch(url)).json())
+reject-response-in-record: REJECT r:rejected[iterator-cell]
+    r[iterator-cell] value { res: FetchResponse } holds a FetchResponse: a response's body can be read once, so the cells that take it would find it used up, depending on the order they run in; read the body in this cell and give the data (const data = async (fetch: Fetch) => (await fetch(url)).json())
+read-body-twice: ACCEPT
+reject-response-passed-to-other-cell: REJECT r:rejected[iterator-cell]
+    r[iterator-cell] value FetchResponse holds a FetchResponse: a response's body can be read once, so the cells that take it would find it used up, depending on the order they run in; read the body in this cell and give the data (const data = async (fetch: Fetch) => (await fetch(url)).json())
+reject-nested-fn-captures-response: REJECT r:rejected[iterator-capture]
+    r[iterator-capture] res holds a FetchResponse, captured by a nested function: a response's body can be read once, so the function may find it used up; read what the function needs before it (const ok = res.ok, or const data = await res.json()) and capture that
+accept-cast-json: ACCEPT
+accept-init-method-headers: ACCEPT

@@ -1,0 +1,41 @@
+== selfhost/learner1/facts/q21-children.ts:accept-child-elem-or-array: ACCEPT
+   show v = {tag:"div",props:{},children:[{tag:"span",props:{},children:["one"]}]}
+   show flag = true
+   show xs = fn(["a","b"])
+== selfhost/learner1/facts/q21-children.ts:accept-child-and-and: ACCEPT
+   show v = {tag:"div",props:{},children:[{tag:"span",props:{},children:["shown"]}]}
+   show flag = true
+   show xs = fn(["a","b"])
+== selfhost/learner1/facts/q21-children.ts:accept-child-null-undefined: ACCEPT
+   show v = {tag:"div",props:{},children:[{tag:"span",props:{},children:["x"]}]}
+   show flag = true
+   show xs = fn(["a","b"])
+== selfhost/learner1/facts/q21-children.ts:accept-child-conditional-null: ACCEPT
+   show v = {tag:"div",props:{},children:[]}
+   show flag = true
+   show xs = fn(["a","b"])
+== selfhost/learner1/facts/q21-children.ts:reject-child-array-of-strings: REJECT v:rejected[type][type][type]
+== selfhost/learner1/facts/q21-children.ts:accept-child-array-of-strings-wrapped: ACCEPT
+   show v = {tag:"div",props:{},children:[{tag:"span",props:{key:"a"},children:["a"]},{tag:"span",props:{key:"b"},children:["b"]}]}
+   show flag = true
+   show xs = fn(["a","b"])
+== selfhost/learner1/facts/q21-children.ts:reject-child-array-with-null: REJECT v:rejected[type][type][type][type]
+== selfhost/learner1/facts/q21-children.ts:accept-child-filter-then-map: ACCEPT
+   show v = {tag:"div",props:{},children:[{tag:"span",props:{key:"b"},children:["b"]}]}
+   show flag = true
+   show xs = fn(["a","b"])
+== selfhost/learner1/facts/q21-children.ts:accept-text-and-holes: ACCEPT
+   show v = {tag:"span",props:{},children:["n = ",2," of ","many"," "]}
+   show flag = true
+   show xs = fn(["a","b"])
+== selfhost/learner1/facts/q21-children.ts:reject-nested-array-child: REJECT v:rejected[type][type][type][type]
+== selfhost/learner1/facts/q21-children.ts:accept-if-branches-return-different-jsx: ACCEPT
+   show v = {tag:"span",props:{},children:["yes"]}
+   show flag = true
+== selfhost/learner1/facts/q21-children.ts:accept-elem-local-then-child: ACCEPT
+   show v = {tag:"div",props:{},children:[{tag:"span",props:{},children:["x"]}]}
+   show flag = false
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 12 candidates, accepted 9, silent 0

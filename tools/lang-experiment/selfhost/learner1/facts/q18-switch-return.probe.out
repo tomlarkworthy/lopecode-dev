@@ -1,0 +1,11 @@
+accept-exhaustive-switch-returns: ACCEPT
+reject-non-exhaustive-switch: REJECT step:rejected[type]
+    step[type] function lacks an ending return statement and its return type number does not include undefined
+accept-switch-default-throw: ACCEPT
+reject-switch-fallthrough: REJECT f:rejected[switch-fallthrough]
+    f[switch-fallthrough] this case falls through into the next one; end it with break, return, throw or continue
+reject-switch-case-declaration: REJECT f:rejected[switch-declaration]
+    f[switch-declaration] a declaration directly in a case is visible to every case of the switch; put the case's statements in a block { … }
+accept-if-chain-narrowing: ACCEPT
+accept-early-return-in-action-taken: ACCEPT
+accept-early-return-in-action-not-taken: ACCEPT

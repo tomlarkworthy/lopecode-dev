@@ -1,0 +1,148 @@
+== selfhost/freeze-attack11/x.ts:x-events-sum: ACCEPT
+   show e = {name:"e"}
+   show s = 6
+   show add = action
+   show l = {events:{name:"e"},action:action}
+   show g = 60
+== selfhost/freeze-attack11/x.ts:x-events-record: ACCEPT
+   show e = {name:"e"}
+   show s = ["a1","b2"]
+   show add = action
+   show l = {events:{name:"e"},action:action}
+   show g = "a1,b2"
+== selfhost/freeze-attack11/x.ts:x-two-listeners: ACCEPT
+   show e = {name:"e"}
+   show s = 6
+   show t = 5
+   show mul = action
+   show add = action
+   show l1 = {events:{name:"e"},action:action}
+   show l2 = {events:{name:"e"},action:action}
+   show g = [6,5]
+== selfhost/freeze-attack11/x.ts:x-action-args: ACCEPT
+   drive ->  s=fulfilled:"yy22" g=fulfilled:4
+   show s = "yy22"
+   show put = action
+   show g = 4
+== selfhost/freeze-attack11/x.ts:x-action-nested: ACCEPT
+   drive ->  s=fulfilled:4 g=fulfilled:4
+   show s = 4
+   show inc = action
+   show twice = action
+   show g = 4
+== selfhost/freeze-attack11/x.ts:x-action-throw-rollback: ACCEPT
+   drive -> threw no s=fulfilled:0 g=fulfilled:0
+   show s = 0
+   show bad = action
+   show g = 0
+== selfhost/freeze-attack11/x.ts:x-action-read: ACCEPT
+   drive ->  s=fulfilled:12 g=fulfilled:12
+   show s = 12
+   show dbl = action
+   show g = 12
+== selfhost/freeze-attack11/x.ts:x-action-record-arg: ACCEPT
+   drive ->  s=fulfilled:{"n":4} g=fulfilled:5
+   show s = {n:4}
+   show put = action
+   show g = 5
+== selfhost/freeze-attack11/x.ts:x-memo-fib: ACCEPT
+   show fib = fn(throws Maximum call stack size exceeded.)
+   show g = 6765
+== selfhost/freeze-attack11/x.ts:x-memo-args: ACCEPT
+   show m = fn(throws undefined is not an object (evaluating ')
+   show g = ["xx","xx","yyy"]
+== selfhost/freeze-attack11/x.ts:x-memo-record: ACCEPT
+   show m = fn(throws undefined is not an object (evaluating ')
+   show g = 12
+== selfhost/freeze-attack11/x.ts:x-cast-ok: ACCEPT
+   show g = 2
+== selfhost/freeze-attack11/x.ts:x-cast-fail: ACCEPT
+   show g = "fail"
+== selfhost/freeze-attack11/x.ts:x-cast-union: ACCEPT
+   show g = 3
+== selfhost/freeze-attack11/x.ts:x-cast-optional: ACCEPT
+   show g = 9
+== selfhost/freeze-attack11/x.ts:x-jsx-children: ACCEPT
+   show g = {tag:"div",props:{},children:[{tag:"strong",props:{},children:["t"]},{tag:"span",props:{},children:["x"]},{tag:"p",props:{},children:["y"]}]}
+== selfhost/freeze-attack11/x.ts:x-jsx-list: ACCEPT
+   show g = {tag:"div",props:{},children:[{tag:"span",props:{key:"a"},children:["a"]},{tag:"span",props:{key:"b"},children:["b"]},{tag:"span",props:{key:"c"},children:["c"]}]}
+== selfhost/freeze-attack11/x.ts:x-jsx-action-prop: ACCEPT
+   drive ->  s=fulfilled:1 g=fulfilled:{"tag":"button","props":{"onClick":"fn"},"children":[1]}
+   show s = 1
+   show inc = action
+   show g = {tag:"button",props:{onClick:action},children:[1]}
+== selfhost/freeze-attack11/x.ts:x-jsx-fragment: ACCEPT
+   show g = {tag:"",props:{},children:[{tag:"span",props:{},children:["1"]},2,"three"]}
+== selfhost/freeze-attack11/x.ts:x-jsx-nested-comp: ACCEPT
+   show g = {tag:"p",props:{},children:[{tag:"span",props:{},children:[2]}]}
+== selfhost/freeze-attack11/x.ts:x-async-chain: ACCEPT
+   show a = 2
+   show b = 6
+   show g = 7
+== selfhost/freeze-attack11/x.ts:x-async-all: ACCEPT
+   show g = 14
+== selfhost/freeze-attack11/x.ts:x-async-reject: ACCEPT
+   show a = ERROR boom
+   show g = ERROR boom
+   error a: boom
+   error g: boom
+== selfhost/freeze-attack11/x.ts:x-async-try: ACCEPT
+   show g = "e1"
+== selfhost/freeze-attack11/x.ts:x-fetch-json: ACCEPT
+   show g = 5
+== selfhost/freeze-attack11/x.ts:x-fetch-text: ACCEPT
+   show g = "HI200"
+== selfhost/freeze-attack11/x.ts:x-gen-values: ACCEPT
+   show g = 2
+   show h2 = 200
+== selfhost/freeze-attack11/x.ts:x-gen-async: ACCEPT
+   show g = "b"
+   show k = "b!"
+== selfhost/freeze-attack11/x.ts:x-gen-record: ACCEPT
+   show g = {i:2,sq:4}
+   show k = 4
+== selfhost/freeze-attack11/x.ts:x-state-record: ACCEPT
+   show s = {a:1,b:[1,2]}
+   show g = 3
+== selfhost/freeze-attack11/x.ts:x-state-from-cell: ACCEPT
+   show n = 4
+   show s = 8
+   show g = 8
+== selfhost/freeze-attack11/x.ts:x-kept-fn: ACCEPT
+   show k = fn(-1)
+   show g = [1,3,-1]
+== selfhost/freeze-attack11/x.ts:x-methods: ACCEPT
+   show o = {n:2,dbl:fn(null)}
+   show g = 4
+== selfhost/freeze-attack11/x.ts:x-map-set: ACCEPT
+   show g = {m:Map{"a"=>1,"b"=>2},s:Set{1,2},n:4}
+   show k = 2
+== selfhost/freeze-attack11/x.ts:x-url: ACCEPT
+   show g = "/c2"
+== selfhost/freeze-attack11/x.ts:x-regexp: ACCEPT
+   show g = "a#b#"
+== selfhost/freeze-attack11/x.ts:x-json-roundtrip: ACCEPT
+   show g = 17
+== selfhost/freeze-attack11/x.ts:x-snapshot: ACCEPT
+   show g = [2,3]
+== selfhost/freeze-attack11/x.ts:x-equals: ACCEPT
+   show g = [true,false,true]
+== selfhost/freeze-attack11/x.ts:x-compile: ACCEPT
+   show x = [1,2]
+   show y = 2
+   show go = fn(Promise)
+   show g = 4
+   late throws: undefined is not an object (evaluating 'x.length')
+== selfhost/freeze-attack11/x.ts:x-typed-arrays: ACCEPT
+   show g = [1.5,7,2]
+   late throws: undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length')
+== selfhost/freeze-attack11/x.ts:x-bigint: ACCEPT
+   show g = "100"
+== selfhost/freeze-attack11/x.ts:x-string-methods: ACCEPT
+   show g = ["--abc",["a","b"],"xxx","t","ab"]
+== selfhost/freeze-attack11/x.ts:x-error-cause: ACCEPT
+   show g = "bad"
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 44 candidates, accepted 44, silent 0

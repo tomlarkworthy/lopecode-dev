@@ -1,0 +1,29 @@
+replace-with-function: REJECT a:rejected[type]
+    a[type] (m: string) => string is not assignable to string
+accept-object-freeze-literal: ACCEPT
+reject-object-freeze-existing: REJECT a:rejected[object-freeze]
+    a[object-freeze] Object.freeze takes one object or array literal
+object-assign-empty: REJECT a:unsupported
+    a{unsupported Object.assign}
+accept-pad-fixed-locale: ACCEPT
+accept-regexp-test-match: ACCEPT
+accept-toSorted-stable: ACCEPT
+accept-flatMap-includes-charAt: ACCEPT
+accept-big-number: ACCEPT
+accept-global-functions: ACCEPT
+accept-typed-array-Float32Array: ACCEPT
+accept-typed-array-Int8Array: ACCEPT
+accept-typed-array-Uint8Array: ACCEPT
+accept-typed-array-Uint8ClampedArray: ACCEPT
+accept-typed-array-Int16Array: ACCEPT
+accept-typed-array-Uint16Array: ACCEPT
+accept-typed-array-Int32Array: ACCEPT
+accept-typed-array-Uint32Array: ACCEPT
+absent-String-fromCharCode: REJECT a:rejected[no-member]
+    a[no-member] no property fromCharCode on (v?: unknown) => string
+absent-new-Array-n: REJECT a:unsupported
+    a{unsupported new Array}
+absent-toLocaleUpperCase: REJECT a:unsupported
+    a{unsupported intrinsic member String.toLocaleUpperCase}
+absent-Number-toLocaleString-call: REJECT a:unsupported
+    a{unsupported intrinsic member Number.toLocaleString}

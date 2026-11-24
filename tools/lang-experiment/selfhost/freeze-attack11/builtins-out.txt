@@ -1,0 +1,13 @@
+md: ACCEPT; ss reader g=6; same-module JS reader=5; other-module JS reader="builtin-md"
+width: ACCEPT; ss reader g=6; same-module JS reader=5; other-module JS reader="builtin-width"
+html: ACCEPT; ss reader g=6; same-module JS reader=5; other-module JS reader="builtin-html"
+Inputs: ACCEPT; ss reader g=6; same-module JS reader=5; other-module JS reader="builtin-Inputs"
+require: ACCEPT; ss reader g=6; same-module JS reader=5; other-module JS reader="builtin-require"
+FileAttachment: ACCEPT; ss reader g=6; same-module JS reader=5; other-module JS reader="builtin-FileAttachment"
+Promises: ACCEPT; ss reader g=6; same-module JS reader=5; other-module JS reader="builtin-Promises"
+DOM: ACCEPT; ss reader g=6; same-module JS reader=5; other-module JS reader="builtin-DOM"
+Mutable: ACCEPT; ss reader g=6; same-module JS reader=5; other-module JS reader="builtin-Mutable"
+visibility: ACCEPT; ss reader g=6; same-module JS reader=5; other-module JS reader=undefined
+now: REJECT reserved-name
+invalidation: REJECT reserved-name
+Generators: REJECT reserved-name

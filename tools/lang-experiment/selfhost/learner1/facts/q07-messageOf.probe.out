@@ -1,0 +1,10 @@
+accept-messageOf-caught-error: ACCEPT
+accept-messageOf-thrown-error: ACCEPT
+accept-messageOf-thrown-string: ACCEPT
+accept-messageOf-number: ACCEPT
+accept-messageOf-record-with-message: ACCEPT
+accept-messageOf-undefined: ACCEPT
+reject-e-message-on-unknown: REJECT m:rejected[no-member]
+    m[no-member] property message on Js/unknown; narrow it first
+reject-messageOf-as-value: REJECT m:rejected[prelude-value]
+    m[prelude-value] messageOf is only called, as messageOf(...); as a value its calls would skip the rules of messageOf

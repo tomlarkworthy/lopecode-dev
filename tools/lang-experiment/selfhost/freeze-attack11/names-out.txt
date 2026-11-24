@@ -1,0 +1,227 @@
+files 127, programs 4021, accepted 1058, cells compiled 2696, compile failures 0, parse failures 0
+(i) inputs from outside: Generators URLSearchParams invalidation ss_SsMap ss_SsSet ss_SsURL ss_action ss_cast ss_closure ss_compile ss_compileFor ss_equals ss_events ss_fetch ss_h ss_listen ss_log ss_memo ss_messageOf ss_methods ss_now ss_on ss_out ss_pool ss_random ss_read ss_ref ss_snapshot ss_state structuredClone
+(i) free identifiers of definitions: Array(7) Error(22) Float32Array(1) Float64Array(3) JSON(15) Math(1) NaN(1) Number(3) Object(7) Promise(47) String(14) Uint8Array(8) undefined(9)
+inserted references (name:binding, count): C:USER(8) F:header(1) Map:USER(1) Object:free(1) String:free(2) a1:USER(1) a:USER(1) action:header(4) add:USER(1) c0:USER(2) c:USER(286) c:inserted(6) cast:header(18) email:USER(1) f:USER(56) f:header(5) f:inserted(5) fib:USER(1) g:USER(2) g:header(1) go:USER(1) h:USER(1) h:header(47) i:USER(41) inc:USER(1) j:USER(3) k1:USER(2) k:USER(32) k:inserted(2) len:USER(1) lg:USER(3) ls:USER(20) ls:inserted(3) mn:USER(9) ms:USER(21) n:USER(27) n:inserted(1) name:USER(1) o:USER(9) o:inserted(2) ok:USER(1) p:USER(10) pub:USER(1) q:USER(1) r:USER(5) res:USER(4) row:USER(3) s:USER(5) ss_closure:header(449) ss_i:inserted(549) ss_methods:header(43) st:USER(1) st:inserted(2) t:USER(7) text:USER(1) u:USER(1) v:USER(3) w:USER(1) wr:USER(1) x:USER(4) xs:USER(37) xs:inserted(6) y:USER(2) ys:USER(1) z1:USER(1)
+  USER-BOUND put: z1 (USER) at ... /*ss+*/ss_closure(/*ss-*/() => i.length + a1 + z1/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? a1 : ss_i === 1 ? i : z1)/*ss-*/; st(F); ls(F()); xs.push(1); }) }))($0, $1)); }
+  USER-BOUND g: k (USER) at ...s_out((/*{lang:"ss"}*//*ss^{"h":"const g = ","t":";"}*/() => { const k = 1; return /*ss<"<div>{k}</div>"*/h("div", {}, k)/*ss>*/; })()); }
+  USER-BOUND g: Object (free) at ...*/() => { const C = (p/*ss:: { readonly n: number }*/) => /*ss<"<div>{Object.keys(p).join(\",\")}</div>"*/h("div", {}, Object.keys(p).join(","))/*ss>*/; return /*ss<"<C n={1} key={
+  USER-BOUND g: p (USER) at ...nst C = (p/*ss:: { readonly n: number }*/) => /*ss<"<div>{Object.keys(p).join(\",\")}</div>"*/h("div", {}, Object.keys(p).join(","))/*ss>*/; return /*ss<"<C n={1} key={2} />"*/h(C,
+  USER-BOUND g: p (USER) at ...const g = ","t":";"}*/() => { const C = (p/*ss:: { readonly id?: number }*/) => /*ss<"<div>{p.id}</div>"*/h("div", {}, p.id)/*ss>*/; return /*ss<"<div><C id={5} key={5} /></div>"*/
+  USER-BOUND view: inc (USER) at ...";"}*/(n/*ss:: number*/, inc/*ss:: Action<[]>*/) => /*ss<"<button onClick={inc}>{n}</button>"*/h("button", {"onClick": inc}, n)/*ss>*/)(n, inc)); }
+  USER-BOUND view: n (USER) at ...(n/*ss:: number*/, inc/*ss:: Action<[]>*/) => /*ss<"<button onClick={inc}>{n}</button>"*/h("button", {"onClick": inc}, n)/*ss>*/)(n, inc)); }
+  USER-BOUND a: xs (USER) at ..."}*/() => { const xs = [/*ss<"<span>a</span>"*/h("span", {}, "a")/*ss>*/]; return /*ss<"<div>{xs}</div>"*/h("div", {}, xs)/*ss>*/; })()); }
+  USER-BOUND a: xs (USER) at ...() => { const xs = [/*ss<"<span>a</span>"*/h("span", {}, "a")/*ss>*/]; const el = /*ss<"<div>{xs}</div>"*/h("div", {}, xs)/*ss>*/; xs.push(/*ss<"<span>b</span>"*/h("span", {}, "b")
+  USER-BOUND a: s (USER) at ...>*/) => /*ss<"<button onClick={action(() => s.update((n) => n + 1))}>+</button>"*/h("button", {"onClick": action(() => s.update((n) => n + 1))}, "+")/*ss>*/)($0)); }
+  USER-BOUND a: k (USER) at ...s"}*//*ss^{"h":"const a = ","t":";"}*/function* () { for (const k of [0, 1]) yield /*ss<"<div>{k}</div>"*/h("div", {}, k)/*ss>*/; })()); }
+  USER-BOUND el: lg (USER) at ...nst f = () => c.length; st(f); ls(f()); xs.push(1); })}>x</button>"*/h("button", {"onClick": action(() => { const ls = lg.set; const st = s.set; const xs = [0]; const c/*ss:: reado
+  USER-BOUND el: s (USER) at ...gth; st(f); ls(f()); xs.push(1); })}>x</button>"*/h("button", {"onClick": action(() => { const ls = lg.set; const st = s.set; const xs = [0]; const c/*ss:: readonly number[]*/ = xs
+  USER-BOUND put: xs (USER) at ...push(1); if (i === 0) { s.set(o.m); ls(o.m()); } }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? ls : ss_i === 1 ? o : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND el: lg (USER) at ...eturn k; }, m: f }; st(o.m); ls(o.m()); xs.push(1); })}>x</button>"*/h("button", {"onClick": action(() => { const ls = lg.set; const st = s.set; const k = 1; const xs = [0]; const 
+  USER-BOUND el: s (USER) at ... st(o.m); ls(o.m()); xs.push(1); })}>x</button>"*/h("button", {"onClick": action(() => { const ls = lg.set; const st = s.set; const k = 1; const xs = [0]; const c/*ss:: readonly nu
+  USER-BOUND put: xs (USER) at ...i === 0) { s.set(f); ls(f()); } }/*ss+*/, (ss_i) => ss_i < 0 ? 4 : ss_i === 0 ? f : ss_i === 1 ? ls : ss_i === 2 ? q : xs)/*ss-*/); }))($0, $1)); }
+  USER-BOUND el: lg (USER) at ...= () => c.length; s['set'](f); ls(f()); xs.push(1); })}>x</button>"*/h("button", {"onClick": action(() => { const ls = lg.set; const xs = [0]; const c/*ss:: readonly number[]*/ = x
+  USER-BOUND put: xs (USER) at ...) xs.push(1); if (i === 0) { put0(f); ls(f()); } }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))(put0, $0)); }
+  USER-BOUND put: xs (USER) at ... xs.push(1); if (i === 0) { s.set(f); ls(f()); } }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ...); if (i === 0) { s.set(f); ls(f()); } return i; }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ...f (i === 0) { s.set(f); ls(f()); } return false; }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ...if (i === 0) { s.set(f); ls(f()); } return true; }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ...if (i === 0) { s.set(f); ls(f()); } return true; }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ...f (i === 0) { s.set(f); ls(f()); } return false; }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ...f (i === 0) { s.set(f); ls(f()); } return false; }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ... if (i === 0) { s.set(f); ls(f()); } return [i]; }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ...f (i === 0) { s.set(f); ls(f()); } return a + i; }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/, 0); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ...); if (i === 0) { s.set(f); ls(f()); } return i; }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ...; ls(f()); } k++; return p - q; }/*ss+*/, (ss_i) => ss_i < 0 ? 4 : ss_i === 0 ? f : ss_i === 1 ? k : ss_i === 2 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ... xs.push(1); if (i === 0) { s.set(f); ls(f()); } }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ... xs.push(1); if (i === 0) { s.set(f); ls(f()); } }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: wr (USER) at ...=== 1) wr(); if (i === 0) { s.set(f); ls(f()); } }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : wr)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ...xs)/*ss-*/); if (i === 0) { s.set(f); ls(f()); } }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND put: xs (USER) at ... (ss_i) => ss_i < 0 ? 1 : f)/*ss-*/); ls(f()); } }/*ss+*/, (ss_i) => ss_i < 0 ? 3 : ss_i === 0 ? f : ss_i === 1 ? ls : xs)/*ss-*/); }) }))($0, $1)); }
+  USER-BOUND a: String (free) at ...":";"}*/() => { const xs = [0]; const el = /*ss<"<div title={String(xs.length)}>{xs.length}</div>"*/h("div", {"title": String(xs.length)}, xs.length)/*ss>*/; return el; })()); }
+  USER-BOUND a: xs (USER) at .../() => { const xs = [0]; const el = /*ss<"<div title={String(xs.length)}>{xs.length}</div>"*/h("div", {"title": String(xs.length)}, xs.length)/*ss>*/; return el; })()); }
+  USER-BOUND a: xs (USER) at ...t xs = [0]; const el = /*ss<"<div title={String(xs.length)}>{xs.length}</div>"*/h("div", {"title": String(xs.length)}, xs.length)/*ss>*/; return el; })()); }
+  USER-BOUND a: go (USER) at .../*ss:: readonly number[]*/ = xs; return { el: /*ss<"<button onClick={go}>{i.length}</button>"*/h("button", {"onClick": go}, i.length)/*ss>*/, f: /*ss+*/ss_closure(/*ss-*/() => i.le
+  USER-BOUND a: i (USER) at ...: readonly number[]*/ = xs; return { el: /*ss<"<button onClick={go}>{i.length}</button>"*/h("button", {"onClick": go}, i.length)/*ss>*/, f: /*ss+*/ss_closure(/*ss-*/() => i.length/
+(ii) intrinsics: Array ArrayBuffer BigInt Boolean DataView Error Float32Array Float64Array Infinity Int16Array Int32Array Int8Array JSON Map Math NaN Number Object Promise RangeError RegExp Set String Symbol TextDecoder TextEncoder TypeError URL URLSearchParams Uint16Array Uint32Array Uint8Array Uint8ClampedArray action atob btoa cast compile decodeURI decodeURIComponent encodeURI encodeURIComponent equals fetch invalidation isFinite isNaN log memo messageOf now on parseFloat parseInt pool random read snapshot state structuredClone undefined
+
+names in (i) or (ii) the checker ACCEPTS as a cell name:
+
+Observable/JS names accepted as a cell name (not in (i)/(ii)): AbortController AggregateError Arrow Atomics BigInt64Array BigUint64Array Blob DOM Date DuckDBClient EvalError Event EventTarget File FileAttachment Files Float16Array FormData Function Headers Inputs Intl Iterator L Mutable Plot Promises Proxy ReferenceError Reflect Request Response SQLite SQLiteDatabaseClient SharedArrayBuffer SsMap SsSet SsURL SyntaxError URIError WeakMap WeakRef WeakSet Worker XLSX ZipArchive _ aq closure compileFor console cross crypto d3 document dot escape events globalThis htl html listen location md mermaid methods navigator out performance queueMicrotask ref rejected release require self setTimeout svg tex this topojson unescape viewRef visibility vl width window
+
+verdicts:
+  AbortController        ACCEPT obs/js
+  AggregateError         ACCEPT obs/js
+  Array                  REJECT reserved-name body:7 intrinsic
+  ArrayBuffer            REJECT reserved-name intrinsic
+  Arrow                  ACCEPT obs/js
+  Atomics                ACCEPT obs/js
+  BigInt                 REJECT reserved-name intrinsic
+  BigInt64Array          ACCEPT obs/js
+  BigUint64Array         ACCEPT obs/js
+  Blob                   ACCEPT obs/js
+  Boolean                REJECT reserved-name intrinsic
+  DOM                    ACCEPT obs/js
+  DataView               REJECT reserved-name intrinsic
+  Date                   ACCEPT obs/js
+  DuckDBClient           ACCEPT obs/js
+  Error                  REJECT reserved-name body:22 intrinsic
+  EvalError              ACCEPT obs/js
+  Event                  ACCEPT obs/js
+  EventTarget            ACCEPT obs/js
+  File                   ACCEPT obs/js
+  FileAttachment         ACCEPT obs/js
+  Files                  ACCEPT obs/js
+  Float16Array           ACCEPT obs/js
+  Float32Array           REJECT reserved-name body:1 intrinsic
+  Float64Array           REJECT reserved-name body:3 intrinsic
+  FormData               ACCEPT obs/js
+  Function               ACCEPT obs/js
+  Generators             REJECT reserved-name input:564 obs/js
+  Headers                ACCEPT obs/js
+  Infinity               REJECT reserved-name intrinsic
+  Inputs                 ACCEPT obs/js
+  Int16Array             REJECT reserved-name intrinsic
+  Int32Array             REJECT reserved-name intrinsic
+  Int8Array              REJECT reserved-name intrinsic
+  Intl                   ACCEPT obs/js
+  Iterator               ACCEPT obs/js
+  JSON                   REJECT reserved-name body:15 intrinsic
+  L                      ACCEPT obs/js
+  Map                    REJECT reserved-name intrinsic
+  Math                   REJECT reserved-name body:1 intrinsic
+  Mutable                ACCEPT obs/js
+  NaN                    REJECT reserved-name body:1 intrinsic
+  Number                 REJECT reserved-name body:3 intrinsic
+  Object                 REJECT reserved-name body:7 intrinsic
+  Plot                   ACCEPT obs/js
+  Promise                REJECT reserved-name body:47 intrinsic
+  Promises               ACCEPT obs/js
+  Proxy                  ACCEPT obs/js
+  RangeError             REJECT reserved-name intrinsic
+  ReferenceError         ACCEPT obs/js
+  Reflect                ACCEPT obs/js
+  RegExp                 REJECT reserved-name intrinsic
+  Request                ACCEPT obs/js
+  Response               ACCEPT obs/js
+  SQLite                 ACCEPT obs/js
+  SQLiteDatabaseClient   ACCEPT obs/js
+  Set                    REJECT reserved-name intrinsic
+  SharedArrayBuffer      ACCEPT obs/js
+  SsMap                  ACCEPT obs/js runtime-cell
+  SsSet                  ACCEPT obs/js runtime-cell
+  SsURL                  ACCEPT obs/js runtime-cell
+  String                 REJECT reserved-name body:14 intrinsic
+  Symbol                 REJECT reserved-name intrinsic
+  SyntaxError            ACCEPT obs/js
+  TextDecoder            REJECT reserved-name intrinsic
+  TextEncoder            REJECT reserved-name intrinsic
+  TypeError              REJECT reserved-name intrinsic
+  URIError               ACCEPT obs/js
+  URL                    REJECT reserved-name intrinsic
+  URLSearchParams        REJECT reserved-name input:4 intrinsic
+  Uint16Array            REJECT reserved-name intrinsic
+  Uint32Array            REJECT reserved-name intrinsic
+  Uint8Array             REJECT reserved-name body:8 intrinsic
+  Uint8ClampedArray      REJECT reserved-name intrinsic
+  WeakMap                ACCEPT obs/js
+  WeakRef                ACCEPT obs/js
+  WeakSet                ACCEPT obs/js
+  Worker                 ACCEPT obs/js
+  XLSX                   ACCEPT obs/js
+  ZipArchive             ACCEPT obs/js
+  _                      ACCEPT obs/js
+  action                 REJECT reserved-name intrinsic runtime-cell
+  aq                     ACCEPT obs/js
+  atob                   REJECT reserved-name intrinsic
+  btoa                   REJECT reserved-name intrinsic
+  cast                   REJECT reserved-name intrinsic runtime-cell
+  closure                ACCEPT runtime-cell
+  compile                REJECT reserved-name intrinsic
+  compileFor             ACCEPT runtime-cell
+  console                ACCEPT obs/js
+  cross                  ACCEPT runtime-cell
+  crypto                 ACCEPT obs/js
+  d3                     ACCEPT obs/js
+  decodeURI              REJECT reserved-name intrinsic
+  decodeURIComponent     REJECT reserved-name intrinsic
+  document               ACCEPT obs/js
+  dot                    ACCEPT obs/js
+  encodeURI              REJECT reserved-name intrinsic
+  encodeURIComponent     REJECT reserved-name intrinsic
+  equals                 REJECT reserved-name intrinsic runtime-cell
+  escape                 ACCEPT obs/js
+  eval                   CRASH Binding eval in strict mode (1:6) obs/js
+  events                 ACCEPT runtime-cell
+  fetch                  REJECT reserved-name intrinsic obs/js
+  globalThis             ACCEPT obs/js
+  h                      REJECT reserved-name runtime-cell
+  htl                    ACCEPT obs/js
+  html                   ACCEPT obs/js
+  invalidation           REJECT reserved-name input:49 intrinsic obs/js
+  isFinite               REJECT reserved-name intrinsic
+  isNaN                  REJECT reserved-name intrinsic
+  listen                 ACCEPT runtime-cell
+  location               ACCEPT obs/js
+  log                    REJECT reserved-name intrinsic
+  md                     ACCEPT obs/js
+  memo                   REJECT reserved-name intrinsic runtime-cell
+  mermaid                ACCEPT obs/js
+  messageOf              REJECT reserved-name intrinsic runtime-cell
+  methods                ACCEPT runtime-cell
+  navigator              ACCEPT obs/js
+  now                    REJECT reserved-name intrinsic obs/js
+  on                     REJECT reserved-name intrinsic runtime-cell
+  out                    ACCEPT runtime-cell
+  parseFloat             REJECT reserved-name intrinsic
+  parseInt               REJECT reserved-name intrinsic
+  performance            ACCEPT obs/js
+  pool                   REJECT reserved-name intrinsic
+  queueMicrotask         ACCEPT obs/js
+  random                 REJECT reserved-name intrinsic
+  read                   REJECT reserved-name intrinsic runtime-cell
+  ref                    ACCEPT runtime-cell
+  rejected               ACCEPT runtime-cell
+  release                ACCEPT runtime-cell
+  require                ACCEPT obs/js
+  self                   ACCEPT obs/js
+  setTimeout             ACCEPT obs/js
+  snapshot               REJECT reserved-name intrinsic runtime-cell
+  ss_SsMap               REJECT reserved-name input:41
+  ss_SsSet               REJECT reserved-name input:23
+  ss_SsURL               REJECT reserved-name input:8
+  ss_action              REJECT reserved-name input:355
+  ss_cast                REJECT reserved-name input:135
+  ss_closure             REJECT reserved-name input:369
+  ss_compile             REJECT reserved-name input:5
+  ss_compileFor          REJECT reserved-name input:5
+  ss_equals              REJECT reserved-name input:2
+  ss_events              REJECT reserved-name input:26
+  ss_fetch               REJECT reserved-name input:120
+  ss_h                   REJECT reserved-name input:29
+  ss_listen              REJECT reserved-name input:23
+  ss_log                 REJECT reserved-name input:1
+  ss_memo                REJECT reserved-name input:114
+  ss_messageOf           REJECT reserved-name input:9
+  ss_methods             REJECT reserved-name input:43
+  ss_now                 REJECT reserved-name input:10
+  ss_on                  REJECT reserved-name input:23
+  ss_out                 REJECT reserved-name input:2022
+  ss_pool                REJECT reserved-name input:2
+  ss_random              REJECT reserved-name input:3
+  ss_read                REJECT reserved-name input:35
+  ss_ref                 REJECT reserved-name input:564
+  ss_snapshot            REJECT reserved-name input:9
+  ss_state               REJECT reserved-name input:564
+  state                  REJECT reserved-name intrinsic runtime-cell
+  structuredClone        REJECT reserved-name input:6 intrinsic
+  svg                    ACCEPT obs/js
+  tex                    ACCEPT obs/js
+  this                   ACCEPT obs/js
+  topojson               ACCEPT obs/js
+  undefined              REJECT reserved-name body:9 intrinsic
+  unescape               ACCEPT obs/js
+  viewRef                ACCEPT runtime-cell
+  visibility             ACCEPT obs/js
+  vl                     ACCEPT obs/js
+  width                  ACCEPT obs/js
+  window                 ACCEPT obs/js

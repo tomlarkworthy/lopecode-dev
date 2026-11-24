@@ -1,0 +1,84 @@
+== selfhost/freeze-attack11/e.ts:e-w-plus-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-nullish-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-or-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-and-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-array-destr: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-object-destr: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-object-destr-rename: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-array-destr-default: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-array-rest: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-for-of: REJECT g:unsupported
+== selfhost/freeze-attack11/e.ts:e-w-for-in: REJECT g:unsupported
+== selfhost/freeze-attack11/e.ts:e-w-ternary-in-expr: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-comma: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-call-arg: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-if-test: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-template: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-short-circuit: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-array-literal: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-object-literal: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-after-label: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-switch: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-try: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-catch: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-while: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-do: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-for-update: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-w-in-for-init: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-b-param-destr: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-b-param-arr-destr: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-b-param-default: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-b-let-destr: REJECT g:rejected[no-cast]
+== selfhost/freeze-attack11/e.ts:e-b-let-destr-typed: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-b-let-arr-destr: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-b-catch-param: REJECT g:rejected[type][mut-await]
+== selfhost/freeze-attack11/e.ts:e-b-for-let: REJECT g:rejected[type][let-capture][let-capture]
+== selfhost/freeze-attack11/e.ts:e-b-for-of-let: REJECT g:rejected[no-cast][let-capture][let-capture]
+== selfhost/freeze-attack11/e.ts:e-b-fn-decl: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-b-fn-expr-named: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-b-method: REJECT g:rejected[type][let-capture][let-capture]
+== selfhost/freeze-attack11/e.ts:e-b-getter: REJECT g:unsupported
+== selfhost/freeze-attack11/e.ts:e-b-map-promise-all: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-b-cell-param: REJECT r:rejected[no-cast] g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-b-default-reads-later: REJECT g:rejected[no-cast][untyped-parameter][let-capture][let-capture]
+== selfhost/freeze-attack11/e.ts:e-d-loop-backedge: ACCEPT
+   drive -> same: 101
+   show g = 101 | E[]
+== selfhost/freeze-attack11/e.ts:e-d-while-narrow-write: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-d-do-narrow-write: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-d-for-narrow-write: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-d-for-of-narrow-write: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-d-continue: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack11/e.ts:e-d-label-break: REJECT g:unsupported
+== selfhost/freeze-attack11/e.ts:e-d-switch-fall: REJECT g:rejected[no-cast][switch-fallthrough][type]
+== selfhost/freeze-attack11/e.ts:e-d-try-finally: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-d-try-catch: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-d-gen-yield: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack11/e.ts:e-d-await-in-cond: REJECT g:unsupported
+== selfhost/freeze-attack11/e.ts:e-d-short-circuit-write: REJECT g:unsupported
+== selfhost/freeze-attack11/e.ts:e-d-assign-in-cond-call: ACCEPT
+   drive -> same: -1
+   show g = -1 | E[]
+== selfhost/freeze-attack11/e.ts:e-d-narrow-in-arg: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack11/e.ts:e-d-narrow-then-write-in-arg: REJECT g:rejected[type]
+== selfhost/freeze-attack11/e.ts:e-d-destr-narrow: REJECT g:unsupported
+== selfhost/freeze-attack11/e.ts:e-d-forof-narrow: REJECT g:unsupported
+== selfhost/freeze-attack11/e.ts:e-d-obj-destr-narrow: REJECT g:unsupported
+== selfhost/freeze-attack11/e.ts:e-d-logical-narrow: REJECT g:unsupported
+== selfhost/freeze-attack11/e.ts:e-d-nested-call-narrow: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack11/e.ts:e-d-update-expr: REJECT g:rejected[type][type]
+== selfhost/freeze-attack11/e.ts:e-ctl-w-array-destr [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1" | E[]
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 65 candidates, accepted 6, silent 0 (by the tap alone 0)

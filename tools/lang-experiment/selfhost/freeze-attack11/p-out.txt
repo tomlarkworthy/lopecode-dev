@@ -1,0 +1,292 @@
+### p0
+w-opt-num-str: REJECT g:rejected[type]
+    g[type] { n: number } is not assignable to { n: number; go?: string }
+w-values: REJECT g:rejected[type]
+    g[type] { n: number } is not assignable to { [k: string]: number }
+w-entries: REJECT g:rejected[type]
+    g[type] { n: number } is not assignable to { [k: string]: number }
+w-spread: ACCEPT
+act-opt-fn: REJECT g:rejected[type]
+    g[type] { n: number } is not assignable to { n: number; go?: () => void }
+act-unknown: REJECT g:rejected[excess-property]
+    g[excess-property] property go is not in { n: number }
+act-ret: REJECT k:rejected[inject-type]
+    k[inject-type] g: { n: number } is not assignable to { n: number; go?: () => void }
+state-hide: ACCEPT
+json: ACCEPT
+### p1
+resp-extra: ACCEPT
+resp-extra-lit: REJECT r:rejected[excess-property]
+    r[excess-property] property res is not in { n: number }
+resp-ok: REJECT r:rejected[type]
+    r[type] Mut<FetchResponse> is not assignable to { ok: boolean }
+resp-ok-rec: REJECT r:rejected[type]
+    r[type] Mut<FetchResponse> is not assignable to { ok: boolean }
+resp-status: REJECT r:rejected[type]
+    r[type] Mut<FetchResponse> is not assignable to { status: number }
+resp-ok-unknown: REJECT r:rejected[type]
+    r[type] Mut<FetchResponse> is not assignable to { ok: boolean }
+resp-generic-ok: CRASH This syntax is reserved in files with the .mts or .cts extension. Add a trailing comma, as in `<T,>() => ...`. (1:91)
+resp-generic-ok2: CRASH This syntax is reserved in files with the .mts or .cts extension. Add a trailing comma, as in `<T,>() => ...`. (1:91)
+resp-inter: REJECT r:unsupported
+    r{unsupported IntersectionType type}
+resp-union: REJECT r:rejected[type]
+    r[type] Mut<FetchResponse> is not assignable to { ok: boolean } | number
+resp-arr-ok: REJECT r:rejected[type][type]
+    r[type] Mut<FetchResponse> is not assignable to { ok: boolean } || r[type] Mut<FetchResponse>[] is not assignable to { ok: boolean }[]
+resp-unknown-arr: REJECT r:rejected[handle-pass][handle-pass]
+    r[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected || r[handle-pass] Mut<FetchResponse>[] is given the type unknown[], which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+resp-extra-unknown: ACCEPT
+resp-extra-arr: ACCEPT
+resp-extra-map: ACCEPT
+resp-extra-param: REJECT r:rejected[excess-property]
+    r[excess-property] property res is not in { n: number }
+resp-extra-param2: ACCEPT
+resp-extra-ret: REJECT r:rejected[iterator-capture]
+    r[iterator-capture] res holds a FetchResponse, captured by a nested function: a response's body can be read once, so the function may find it used up; read what the function needs before it (const ok = res.ok, or const data = await res.json()) and capture that
+resp-extra-kept: ACCEPT
+resp-extra-spread: ACCEPT
+resp-rest: REJECT r:rejected[iterator-cell]
+    r[iterator-cell] value { res: FetchResponse } holds a FetchResponse: a response's body can be read once, so the cells that take it would find it used up, depending on the order they run in; read the body in this cell and give the data (const data = async (fetch: Fetch) => (await fetch(url)).json())
+resp-rest2: ACCEPT
+resp-assign: REJECT r:unsupported
+    r{unsupported Object.assign}
+resp-sc: ACCEPT
+resp-snap: ACCEPT
+resp-promise: ACCEPT
+resp-gen: ACCEPT
+resp-then: ACCEPT
+resp-tuple: REJECT r:rejected[type][type]
+    r[type] Mut<FetchResponse> is not assignable to { ok: boolean } || r[type] [1, Mut<FetchResponse>] is not assignable to [number, { ok: boolean }]
+resp-cast: ACCEPT
+resp-cast-unk: ACCEPT
+resp-memo: REJECT r:rejected[no-cast]
+    r[no-cast] as cast
+act-extra: ACCEPT
+act-extra-unknown: ACCEPT
+act-extra-arr: REJECT g:rejected[action-pass][action-pass]
+    g[action-pass] { n: 1; go: Action<[]> } is given the type unknown, which hides its Action<[]>; an Action goes only where an Action is expected || g[action-pass] { n: 1; go: Action<[]> }[] is given the type unknown[], which hides its Action<[]>; an Action goes only where an Action is expected
+act-extra-kept: ACCEPT
+act-name: ACCEPT
+state-extra: ACCEPT
+state-extra-unk: ACCEPT
+state-direct-unk: ACCEPT
+state-get: REJECT g:rejected[type]
+    g[type] State<number> is not assignable to { get: () => number }
+mut-len: REJECT g:rejected[type]
+    g[type] Mut<number[]> is not assignable to { length: number }
+mut-len-ret: REJECT g:rejected[type]
+    g[type] Mut<number[]> is not assignable to { length: number }
+mut-extra: ACCEPT
+mut-extra-kept: ACCEPT
+mut-map-size: REJECT g:rejected[type]
+    g[type] Mut<Map<number, number>> is not assignable to { size: number }
+### p2
+json-tojson-act: ACCEPT
+json-tojson-fn-undef: ACCEPT
+json-tojson-fn-undef-hidden: ACCEPT
+json-fn: ACCEPT
+json-undef: ACCEPT
+tmpl-rec: ACCEPT
+string-rec: ACCEPT
+join-rec: ACCEPT
+sort-rec: ACCEPT
+number-rec: ACCEPT
+then-act: ACCEPT
+then-act-async: ACCEPT
+then-act-await: ACCEPT
+then-act-resolve: ACCEPT
+then-fn-plain: REJECT g:rejected[type]
+    g[type] value { n: number; then: (r: (v: number) => void) => void } has a callable then: the runtime would call it and give the cells that take it what then passes on, not this type. Rename then
+then-fn-plain-async: REJECT g:rejected[type]
+    g[type] value { n: number; then: (r: (v: number) => void) => void } has a callable then: the runtime would call it and give the cells that take it what then passes on, not this type. Rename then
+then-fn-hidden: ACCEPT
+then-fn-hidden-async: ACCEPT
+then-fn-hidden-await: ACCEPT
+then-member-type: ACCEPT
+tojson-own: ACCEPT
+eq-hidden: ACCEPT
+tostring-key: ACCEPT
+### p3
+tmpl-inline: ACCEPT
+arr-map: REJECT g:rejected[type]
+    g[type] number[] is not assignable to { map?: number }
+arr-push: REJECT g:rejected[type]
+    g[type] number[] is not assignable to { push?: string }
+arr-at: REJECT g:rejected[type]
+    g[type] number[] is not assignable to { at?: number }
+fn-call: ACCEPT
+fn-name: ACCEPT
+fn-bind: ACCEPT
+map-get: REJECT g:rejected[type]
+    g[type] Map<number, number> is not assignable to { get?: number }
+map-size: REJECT g:rejected[type]
+    g[type] Map<number, number> is not assignable to { size?: string }
+set-has: REJECT g:rejected[type]
+    g[type] Set<number> is not assignable to { has?: number }
+str-len: REJECT g:rejected[type]
+    g[type] "abc" is not assignable to { length?: string }
+num-toFixed: REJECT g:rejected[type]
+    g[type] 5 is not assignable to { toFixed?: number }
+str-at: REJECT g:rejected[type]
+    g[type] "abc" is not assignable to { at?: number }
+url-href: REJECT g:rejected[type]
+    g[type] URL is not assignable to { href?: number }
+re-source: REJECT g:rejected[type]
+    g[type] RegExp is not assignable to { source?: number }
+err-message: REJECT g:rejected[type]
+    g[type] Error is not assignable to { message?: number }
+err-stack: ACCEPT
+promise-then: REJECT g:rejected[type]
+    g[type] Promise<number> is not assignable to { then?: number }
+u8-buffer: REJECT g:rejected[type]
+    g[type] Uint8Array is not assignable to { buffer?: number }
+iface-merge: REJECT module[banned-member] g:rejected[no-member]
+    module[banned-member] toString?: an optional member may not be named after an Object.prototype member: a value without its own toString reads the inherited one (Object.prototype.toString), which is not the member's type; give the member another name || g[no-member] no property toString on A
+iface-extends: REJECT module[banned-member] g:rejected[no-member]
+    module[banned-member] toString?: an optional member may not be named after an Object.prototype member: a value without its own toString reads the inherited one (Object.prototype.toString), which is not the member's type; give the member another name || g[no-member] no property toString on B || g{unsupported interface extends a non-object type}
+generic-alias: REJECT module[banned-member] g:rejected[unknown-type]
+    module[banned-member] toString?: an optional member may not be named after an Object.prototype member: a value without its own toString reads the inherited one (Object.prototype.toString), which is not the member's type; give the member another name || g[unknown-type] type W cannot be used: it is not loaded: it is defined by itself ([type-cycle]) or declares a member no type may declare ([banned-member])
+generic-param-key: CRASH acornParse(...).ast.program.body[0].typeAnnotation.readonly: expected string or null, found boolean true
+mapped: CRASH acornParse(...).ast.program.body[0].typeAnnotation.readonly: expected string or null, found boolean true
+default-tp: REJECT g:rejected[banned-member]
+    g[banned-member] toString?: an optional member may not be named after an Object.prototype member: a value without its own toString reads the inherited one (Object.prototype.toString), which is not the member's type; give the member another name || g{unsupported type parameter constraint/default}
+method-opt: REJECT g:rejected[banned-member]
+    g[banned-member] toString?: an optional member may not be named after an Object.prototype member: a value without its own toString reads the inherited one (Object.prototype.toString), which is not the member's type; give the member another name
+method-req: ACCEPT
+method-req-width: REJECT g:rejected[type]
+    g[type] Mut<{ n: number }> is not assignable to { n: number; toString: () => string }
+req-width: REJECT g:rejected[type]
+    g[type] Mut<{ n: number }> is not assignable to { n: number; toString: () => string }
+req-width-num: REJECT g:rejected[type]
+    g[type] Mut<{ n: number }> is not assignable to { n: number; valueOf: () => number }
+req-width-proto-arr: REJECT g:rejected[type]
+    g[type] number[] is not assignable to { toString: () => string }
+req-width-fn: REJECT g:rejected[type]
+    g[type] () => number is not assignable to { toString: () => string }
+index-and-member: REJECT g:rejected[banned-member][banned-member]
+    g[banned-member] toString?: an optional member may not be named after an Object.prototype member: a value without its own toString reads the inherited one (Object.prototype.toString), which is not the member's type; give the member another name || g[banned-member] toString on a record with an index signature is Object.prototype's toString, not an entry
+string-key: REJECT g:rejected[banned-member]
+    g[banned-member] toString?: an optional member may not be named after an Object.prototype member: a value without its own toString reads the inherited one (Object.prototype.toString), which is not the member's type; give the member another name
+string-key-proto: REJECT g:rejected[banned-member]
+    g[banned-member] __proto__ may not be declared as a member: it is the object's prototype, not a member; give the member another name
+union-opt: REJECT g:rejected[banned-member]
+    g[banned-member] toString?: an optional member may not be named after an Object.prototype member: a value without its own toString reads the inherited one (Object.prototype.toString), which is not the member's type; give the member another name
+union-narrow-in: ACCEPT
+opt-chain-unknown: ACCEPT
+tuple-member: REJECT g:rejected[type]
+    g[type] number[] is not assignable to { length?: string }
+fn-length: ACCEPT
+opt-Symbol: REJECT g:unsupported
+    g{unsupported intrinsic Symbol has no signature in lite/intrinsics.ts}
+### p4
+z1: ACCEPT
+this: ACCEPT
+### p5
+kw-this: ACCEPT
+kw-super: CRASH Unexpected keyword 'super' (1:6)
+kw-null: CRASH Unexpected keyword 'null' (1:6)
+kw-true: CRASH Unexpected keyword 'true' (1:6)
+kw-false: CRASH Unexpected keyword 'false' (1:6)
+kw-new: CRASH Unexpected keyword 'new' (1:6)
+kw-typeof: CRASH Unexpected keyword 'typeof' (1:6)
+kw-void: CRASH Unexpected keyword 'void' (1:6)
+kw-delete: CRASH Unexpected keyword 'delete' (1:6)
+kw-in: CRASH Unexpected keyword 'in' (1:6)
+kw-instanceof: CRASH Unexpected keyword 'instanceof' (1:6)
+kw-class: CRASH Unexpected keyword 'class' (1:6)
+kw-enum: CRASH Unexpected token (1:11)
+kw-export: CRASH Unexpected keyword 'export' (1:6)
+kw-extends: CRASH Unexpected keyword 'extends' (1:6)
+kw-import: CRASH Unexpected keyword 'import' (1:6)
+kw-return: CRASH Unexpected keyword 'return' (1:6)
+kw-switch: CRASH Unexpected keyword 'switch' (1:6)
+kw-case: CRASH Unexpected keyword 'case' (1:6)
+kw-default: CRASH Unexpected keyword 'default' (1:6)
+kw-break: CRASH Unexpected keyword 'break' (1:6)
+kw-continue: CRASH Unexpected keyword 'continue' (1:6)
+kw-do: CRASH Unexpected keyword 'do' (1:6)
+kw-while: CRASH Unexpected keyword 'while' (1:6)
+kw-for: CRASH Unexpected keyword 'for' (1:6)
+kw-if: CRASH Unexpected keyword 'if' (1:6)
+kw-else: CRASH Unexpected keyword 'else' (1:6)
+kw-try: CRASH Unexpected keyword 'try' (1:6)
+kw-catch: CRASH Unexpected keyword 'catch' (1:6)
+kw-finally: CRASH Unexpected keyword 'finally' (1:6)
+kw-throw: CRASH Unexpected keyword 'throw' (1:6)
+kw-var: CRASH Unexpected keyword 'var' (1:6)
+kw-let: CRASH The keyword 'let' is reserved (1:6)
+kw-const: CRASH Unexpected keyword 'const' (1:6)
+kw-function: CRASH Unexpected keyword 'function' (1:6)
+kw-with: CRASH Unexpected keyword 'with' (1:6)
+kw-debugger: CRASH Unexpected keyword 'debugger' (1:6)
+kw-yield: CRASH The keyword 'yield' is reserved (1:6)
+kw-await: CRASH Cannot use keyword 'await' outside an async function (1:6)
+kw-static: CRASH The keyword 'static' is reserved (1:6)
+kw-implements: CRASH The keyword 'implements' is reserved (1:6)
+kw-interface: CRASH The keyword 'interface' is reserved (1:6)
+kw-package: CRASH The keyword 'package' is reserved (1:6)
+kw-private: CRASH The keyword 'private' is reserved (1:6)
+kw-protected: CRASH The keyword 'protected' is reserved (1:6)
+kw-public: CRASH The keyword 'public' is reserved (1:6)
+kw-arguments: CRASH Binding arguments in strict mode (1:6)
+kw-eval: CRASH Binding eval in strict mode (1:6)
+kw-async: ACCEPT
+kw-of: ACCEPT
+kw-get: ACCEPT
+kw-set: ACCEPT
+kw-type: ACCEPT
+kw-declare: ACCEPT
+kw-namespace: ACCEPT
+kw-module: ACCEPT
+kw-abstract: ACCEPT
+kw-readonly: ACCEPT
+kw-keyof: ACCEPT
+kw-infer: ACCEPT
+kw-is: ACCEPT
+kw-asserts: ACCEPT
+kw-unique: ACCEPT
+kw-never: ACCEPT
+kw-unknown: ACCEPT
+kw-any: ACCEPT
+kw-symbol: ACCEPT
+kw-object: ACCEPT
+kw-string: ACCEPT
+kw-number: ACCEPT
+kw-boolean: ACCEPT
+kw-bigint: ACCEPT
+kw-undefined: REJECT undefined:rejected[reserved-name]
+    undefined[reserved-name] undefined is reserved as a cell name: a compiled cell takes undefined (a capability or a global) by that name from outside the module, so a reader of a cell named undefined gets that and not the cell; give the cell another name
+kw-NaN: REJECT NaN:rejected[reserved-name]
+    NaN[reserved-name] NaN is reserved as a cell name: a compiled cell takes NaN (a capability or a global) by that name from outside the module, so a reader of a cell named NaN gets that and not the cell; give the cell another name
+kw-Infinity: REJECT Infinity:rejected[reserved-name]
+    Infinity[reserved-name] Infinity is reserved as a cell name: a compiled cell takes Infinity (a capability or a global) by that name from outside the module, so a reader of a cell named Infinity gets that and not the cell; give the cell another name
+this-param: CRASH Assigning to rvalue (1:11)
+this-param-fn: ACCEPT
+mapped-annot-cell: CRASH acornParse(...).ast.program.body[0].declarations[0].init.body.body[0].declarations[0].id.typeAnnotation.typeAnnotation.readonly: expected string or null, found boolean true
+mapped-annot-cell-opt: CRASH acornParse(...).ast.program.body[0].declarations[0].init.body.body[0].declarations[0].id.typeAnnotation.typeAnnotation.optional: expected string or null, found boolean true
+mapped-req-use: REJECT g:unsupported
+    g{unsupported MappedType type}
+mapped-req-use2: REJECT g:unsupported
+    g{unsupported MappedType type}
+mapped-keyof: REJECT g:unsupported
+    g{unsupported MappedType type}
+viewof-cell: REJECT viewof:rejected[reserved-name]
+    viewof[reserved-name] viewof is reserved: Observable JavaScript reads it as a keyword
+mutable-cell: REJECT mutable:rejected[reserved-name]
+    mutable[reserved-name] mutable is reserved: Observable JavaScript reads it as a keyword
+viewof-x: CRASH Unexpected token (1:7)
+mutable-x: CRASH Unexpected token (1:8)
+viewof-param: REJECT g:rejected[reserved-name][inject-unknown]
+    g[reserved-name] viewof is reserved: Observable JavaScript reads it as a keyword || g[inject-unknown] parameter viewof names no cell, foreign or capability
+x-viewof-key: ACCEPT
+### p6
+min-action-template: ACCEPT
+min-then-async: ACCEPT
+min-fn-name: ACCEPT
+min-scope: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter x names no cell, foreign or capability
+min-json: ACCEPT
+min-resp: ACCEPT
+min-mapped: CRASH acornParse(...).ast.program.body[0].typeAnnotation.readonly: expected string or null, found boolean true
+min-this: ACCEPT

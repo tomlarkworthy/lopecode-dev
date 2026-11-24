@@ -1,0 +1,39 @@
+== selfhost/learner1/facts/q04-generics.ts:literal-inference-generic-fn-cell: REJECT a:rejected[type]
+== selfhost/learner1/facts/q04-generics.ts:generic-fn-cell-no-comma: CRASH This syntax is reserved in files with the .mts or .cts extension. Add a trailing comma, as in `<T,>() => ...`. (1:22)
+== selfhost/learner1/facts/q04-generics.ts:literal-inference-untyped-param: REJECT a:rejected[type]
+== selfhost/learner1/facts/q04-generics.ts:reject-generic-inferred-wrong-use: REJECT a:rejected[type][type]
+== selfhost/learner1/facts/q04-generics.ts:reject-as-in-generic-alias-use: REJECT s:rejected[no-cast]
+== selfhost/learner1/facts/q04-generics.ts:accept-generic-alias-annotated-empty: ACCEPT
+   show s = [2]
+   show empty = fn({items:[]})
+   show push = fn(throws undefined is not an object (evaluating ')
+== selfhost/learner1/facts/q04-generics.ts:explicit-type-argument: ACCEPT
+   show s = 0
+   show empty = fn({items:[]})
+== selfhost/learner1/facts/q04-generics.ts:extends-bound: REJECT eqKey:rejected[strict-eq-object] s:blocked
+== selfhost/learner1/facts/q04-generics.ts:strict-eq-on-type-param: REJECT same:rejected[strict-eq-object]
+== selfhost/learner1/facts/q04-generics.ts:eq-undefined-on-type-param: ACCEPT
+   show s = false
+   show isNone = fn(true)
+== selfhost/learner1/facts/q04-generics.ts:accept-groupBy-inferred: ACCEPT
+   show byRegion = "n:2,s:1"
+   show sales = fn([{region:"n",amount:1},{region:"s",amount:2},{region:"n",amount:3}])
+   show groupBy = fn(throws undefined is not an object (evaluating ')
+== selfhost/learner1/facts/q04-generics.ts:generic-function-declaration-cell: ACCEPT
+   show s = "x"
+   show pairOf = fn([undefined,undefined])
+== selfhost/learner1/facts/q04-generics.ts:generic-local-helper: ACCEPT
+   show s = 4
+== selfhost/learner1/facts/q04-generics.ts:accept-generic-fn-cell-explicit-arg: ACCEPT
+   show a = 4
+   show firstOr = fn(throws undefined is not an object (evaluating ')
+== selfhost/learner1/facts/q04-generics.ts:accept-generic-fn-cell-typed-arg: ACCEPT
+   show a = 4
+   show firstOr = fn(throws undefined is not an object (evaluating ')
+== selfhost/learner1/facts/q04-generics.ts:accept-generic-alias-push: ACCEPT
+   show s = [1,2]
+   show push = fn(throws undefined is not an object (evaluating ')
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 16 candidates, accepted 9, silent 0

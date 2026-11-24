@@ -1,0 +1,62 @@
+interface Array: length map[fresh] filter[fresh] flatMap[fresh] slice[fresh] concat[fresh] toSorted[fresh] toReversed[fresh] toSpliced[fresh] with[fresh] reduce find findIndex findLast some every forEach includes indexOf lastIndexOf join at toString entries[view] keys[view] values[view] push[mutates,retains] unshift[mutates,retains] pop[mutates] shift[mutates] splice[mutates,retains,fresh] sort[mutates,view] reverse[mutates,view] fill[mutates,view,retains] copyWithin[mutates,view]
+static Array: isArray from[fresh] of[fresh] prototype[banned]
+interface String: length startsWith endsWith includes indexOf lastIndexOf slice substring split trim trimStart trimEnd toUpperCase toLowerCase replace replaceAll match localeCompare padStart padEnd repeat charAt charCodeAt at toString
+function String: 
+interface RegExpMatchArray: length index groups
+interface RegExp: source flags test exec
+interface Number: toFixed toExponential toPrecision toString
+static Number: (call) MAX_VALUE MIN_VALUE EPSILON MAX_SAFE_INTEGER MIN_SAFE_INTEGER POSITIVE_INFINITY NEGATIVE_INFINITY NaN isInteger isFinite isNaN isSafeInteger parseFloat parseInt
+interface Boolean: toString
+function Boolean: 
+static Math: PI E LN2 LN10 SQRT2 abs floor ceil round trunc sign sqrt cbrt exp log log2 log10 sin cos tan asin acos atan atan2 pow min max hypot fround random[banned]
+static JSON: stringify parse
+static Object: entries[fresh] keys[fresh] values[fresh] fromEntries[fresh] is defineProperty[banned] setPrototypeOf[banned] defineProperties[banned] prototype[banned]
+interface Map: size get has forEach keys[view] values[view] entries[view] set[mutates,retains,view] delete[mutates] clear[mutates]
+static Map: new[fresh]
+interface Set: size has forEach keys[view] values[view] entries[view] add[mutates,retains,view] delete[mutates] clear[mutates]
+static Set: new[fresh]
+interface Error: message name
+static Error: new[fresh]
+static TypeError: new[fresh]
+static RangeError: new[fresh]
+static RegExp: new[fresh]
+interface Promise: then[retains]
+static Promise: resolve[retains] all[fresh]
+interface ArrayBuffer: byteLength slice[fresh]
+static ArrayBuffer: new[fresh]
+interface URLSearchParams: get has toString
+static URLSearchParams: new[fresh]
+interface URL: href hash search pathname host hostname origin protocol port searchParams toString
+static URL: new[fresh]
+global Infinity: 
+global NaN: 
+function isNaN: 
+function isFinite: 
+function parseInt: 
+function parseFloat: 
+function encodeURIComponent: 
+function decodeURIComponent: 
+function encodeURI: 
+function decodeURI: 
+function atob: 
+function btoa: 
+function structuredClone: 
+function BigInt: 
+interface Float32Array: length buffer[view] set[mutates] fill[mutates,view] sort[mutates,view] reverse[mutates,view] copyWithin[mutates,view] subarray[view] values[view] keys[view] entries[view] slice[fresh] map[fresh] filter[fresh] toSorted[fresh] toReversed[fresh] with[fresh] reduce forEach every some indexOf includes join at toString
+static Float32Array: new[fresh,view,retains] from[fresh] of[fresh]
+interface Float64Array: length buffer[view] set[mutates] fill[mutates,view] sort[mutates,view] reverse[mutates,view] copyWithin[mutates,view] subarray[view] values[view] keys[view] entries[view] slice[fresh] map[fresh] filter[fresh] toSorted[fresh] toReversed[fresh] with[fresh] reduce forEach every some indexOf includes join at toString
+static Float64Array: new[fresh,view,retains] from[fresh] of[fresh]
+interface Int8Array: length buffer[view] set[mutates] fill[mutates,view] sort[mutates,view] reverse[mutates,view] copyWithin[mutates,view] subarray[view] values[view] keys[view] entries[view] slice[fresh] map[fresh] filter[fresh] toSorted[fresh] toReversed[fresh] with[fresh] reduce forEach every some indexOf includes join at toString
+static Int8Array: new[fresh,view,retains] from[fresh] of[fresh]
+interface Uint8Array: length buffer[view] set[mutates] fill[mutates,view] sort[mutates,view] reverse[mutates,view] copyWithin[mutates,view] subarray[view] values[view] keys[view] entries[view] slice[fresh] map[fresh] filter[fresh] toSorted[fresh] toReversed[fresh] with[fresh] reduce forEach every some indexOf includes join at toString
+static Uint8Array: new[fresh,view,retains] from[fresh] of[fresh]
+interface Uint8ClampedArray: length buffer[view] set[mutates] fill[mutates,view] sort[mutates,view] reverse[mutates,view] copyWithin[mutates,view] subarray[view] values[view] keys[view] entries[view] slice[fresh] map[fresh] filter[fresh] toSorted[fresh] toReversed[fresh] with[fresh] reduce forEach every some indexOf includes join at toString
+static Uint8ClampedArray: new[fresh,view,retains] from[fresh] of[fresh]
+interface Int16Array: length buffer[view] set[mutates] fill[mutates,view] sort[mutates,view] reverse[mutates,view] copyWithin[mutates,view] subarray[view] values[view] keys[view] entries[view] slice[fresh] map[fresh] filter[fresh] toSorted[fresh] toReversed[fresh] with[fresh] reduce forEach every some indexOf includes join at toString
+static Int16Array: new[fresh,view,retains] from[fresh] of[fresh]
+interface Uint16Array: length buffer[view] set[mutates] fill[mutates,view] sort[mutates,view] reverse[mutates,view] copyWithin[mutates,view] subarray[view] values[view] keys[view] entries[view] slice[fresh] map[fresh] filter[fresh] toSorted[fresh] toReversed[fresh] with[fresh] reduce forEach every some indexOf includes join at toString
+static Uint16Array: new[fresh,view,retains] from[fresh] of[fresh]
+interface Int32Array: length buffer[view] set[mutates] fill[mutates,view] sort[mutates,view] reverse[mutates,view] copyWithin[mutates,view] subarray[view] values[view] keys[view] entries[view] slice[fresh] map[fresh] filter[fresh] toSorted[fresh] toReversed[fresh] with[fresh] reduce forEach every some indexOf includes join at toString
+static Int32Array: new[fresh,view,retains] from[fresh] of[fresh]
+interface Uint32Array: length buffer[view] set[mutates] fill[mutates,view] sort[mutates,view] reverse[mutates,view] copyWithin[mutates,view] subarray[view] values[view] keys[view] entries[view] slice[fresh] map[fresh] filter[fresh] toSorted[fresh] toReversed[fresh] with[fresh] reduce forEach every some indexOf includes join at toString
+static Uint32Array: new[fresh,view,retains] from[fresh] of[fresh]

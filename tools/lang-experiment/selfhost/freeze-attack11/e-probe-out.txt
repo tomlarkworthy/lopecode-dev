@@ -1,0 +1,126 @@
+e-w-plain: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-plus-assign: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-nullish-assign: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g{unsupported logical assignment ??=}
+e-w-or-assign: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g{unsupported logical assignment ||=}
+e-w-and-assign: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g{unsupported logical assignment &&=}
+e-w-array-destr: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g{unsupported destructuring assignment}
+e-w-object-destr: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g{unsupported destructuring assignment}
+e-w-object-destr-rename: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g{unsupported destructuring assignment}
+e-w-array-destr-default: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g{unsupported destructuring assignment}
+e-w-array-rest: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g{unsupported assignment target RestElement} || g{unsupported destructuring assignment}
+e-w-for-of: REJECT g:unsupported
+    g{unsupported for...of over an existing binding}
+e-w-for-in: REJECT g:unsupported
+    g{unsupported for...in}
+e-w-ternary-in-expr: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-comma: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g{unsupported comma expression}
+e-w-in-call-arg: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-in-if-test: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-in-template: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-in-short-circuit: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-in-array-literal: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-in-object-literal: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-after-label: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g{unsupported label}
+e-w-in-switch: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-in-try: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-in-catch: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-in-while: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-in-do: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-w-in-for-update: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g{unsupported comma expression}
+e-w-in-for-init: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-b-param-destr: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-b-param-arr-destr: REJECT g:rejected[type]
+    g[type] number | string | undefined used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-b-param-default: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-b-let-destr: REJECT g:rejected[no-cast]
+    g[no-cast] as cast
+e-b-let-destr-typed: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-b-let-arr-destr: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-b-catch-param: REJECT g:rejected[type][mut-await]
+    g[type] unknown used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g[mut-await] let r of type unknown is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it 
+e-b-for-let: REJECT g:rejected[type][let-capture][let-capture]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g[let-capture] let r is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || g[let-capture] let r captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = r) a
+e-b-for-of-let: REJECT g:rejected[no-cast][let-capture][let-capture]
+    g[no-cast] as cast || g[let-capture] let r is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || g[let-capture] let r captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = r) and capture that
+e-b-fn-decl: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-b-fn-expr-named: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-b-method: REJECT g:rejected[type][let-capture][let-capture]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …) || g[let-capture] let r is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || g[let-capture] let r captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = r) a
+e-b-getter: REJECT g:unsupported
+    g{unsupported get accessor} || g{unsupported intrinsic member Mut.v}
+e-b-map-promise-all: REJECT g:rejected[type]
+    g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-b-cell-param: REJECT r:rejected[no-cast] g:rejected[type]
+    r[no-cast] as cast || g[type] number | string used as a number; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+e-b-default-reads-later: REJECT g:rejected[no-cast][untyped-parameter][let-capture][let-capture]
+    g[no-cast] as cast || g[untyped-parameter] parameter has no type and no contextual type || g[let-capture] let r is assigned where it may run after a function the cell keeps read it: that function sees its captures unchanged || g[let-capture] let r captured by a function the cell keeps, which can run after the cell has given its value; bind its value to a const before the function (const c = r) and capture that
+e-d-loop-backedge: ACCEPT
+e-d-while-narrow-write: REJECT g:rejected[type]
+    g[type] number | string used as a number
+e-d-do-narrow-write: REJECT g:rejected[type]
+    g[type] number | string used as a number
+e-d-for-narrow-write: REJECT g:rejected[type]
+    g[type] number | string used as a number
+e-d-for-of-narrow-write: REJECT g:rejected[type]
+    g[type] number | string used as a number
+e-d-continue: ACCEPT
+e-d-label-break: REJECT g:unsupported
+    g{unsupported label}
+e-d-switch-fall: REJECT g:rejected[no-cast][switch-fallthrough][type]
+    g[no-cast] as cast || g[switch-fallthrough] this case falls through into the next one; end it with break, return, throw or continue || g[type] "s" | 1 used as a number
+e-d-try-finally: REJECT g:rejected[type]
+    g[type] number | string used as a number
+e-d-try-catch: REJECT g:rejected[type]
+    g[type] number | string used as a number
+e-d-gen-yield: ACCEPT
+e-d-await-in-cond: REJECT g:unsupported
+    g{unsupported comma expression}
+e-d-short-circuit-write: REJECT g:unsupported
+    g{unsupported comma expression}
+e-d-assign-in-cond-call: ACCEPT
+e-d-narrow-in-arg: ACCEPT
+e-d-narrow-then-write-in-arg: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+e-d-destr-narrow: REJECT g:unsupported
+    g{unsupported destructuring assignment}
+e-d-forof-narrow: REJECT g:unsupported
+    g{unsupported for...of over an existing binding}
+e-d-obj-destr-narrow: REJECT g:unsupported
+    g{unsupported destructuring assignment}
+e-d-logical-narrow: REJECT g:unsupported
+    g{unsupported logical assignment ||=} || g{unsupported logical assignment &&=}
+e-d-nested-call-narrow: ACCEPT
+e-d-update-expr: REJECT g:rejected[type][type]
+    g[type] ++ on number | string || g[type] number | string used as a number

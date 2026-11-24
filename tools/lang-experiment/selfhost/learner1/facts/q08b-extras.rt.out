@@ -1,0 +1,41 @@
+== selfhost/learner1/facts/q08b-extras.ts:replace-with-function: REJECT a:rejected[type]
+== selfhost/learner1/facts/q08b-extras.ts:accept-object-freeze-literal: ACCEPT
+   show a = 1
+== selfhost/learner1/facts/q08b-extras.ts:reject-object-freeze-existing: REJECT a:rejected[object-freeze]
+== selfhost/learner1/facts/q08b-extras.ts:object-assign-empty: REJECT a:unsupported
+== selfhost/learner1/facts/q08b-extras.ts:accept-pad-fixed-locale: ACCEPT
+   show a = "....3.14|x--|ab"
+== selfhost/learner1/facts/q08b-extras.ts:accept-regexp-test-match: ACCEPT
+   show a = [true,3,true]
+== selfhost/learner1/facts/q08b-extras.ts:accept-toSorted-stable: ACCEPT
+   show a = "bdac"
+== selfhost/learner1/facts/q08b-extras.ts:accept-flatMap-includes-charAt: ACCEPT
+   show a = true
+== selfhost/learner1/facts/q08b-extras.ts:accept-big-number: ACCEPT
+   show a = 12586269025
+== selfhost/learner1/facts/q08b-extras.ts:accept-global-functions: ACCEPT
+   show a = "1,2,false,false,true,7,1.5,a%20b,a b,a%20b,a b,aGk=,hi,1,bigint"
+== selfhost/learner1/facts/q08b-extras.ts:accept-typed-array-Float32Array: ACCEPT
+   show a = [3,2,"2,3,4",1,1]
+== selfhost/learner1/facts/q08b-extras.ts:accept-typed-array-Int8Array: ACCEPT
+   show a = [3,2,"2,3,4",1,1]
+== selfhost/learner1/facts/q08b-extras.ts:accept-typed-array-Uint8Array: ACCEPT
+   show a = [3,2,"2,3,4",1,1]
+== selfhost/learner1/facts/q08b-extras.ts:accept-typed-array-Uint8ClampedArray: ACCEPT
+   show a = [3,2,"2,3,4",1,1]
+== selfhost/learner1/facts/q08b-extras.ts:accept-typed-array-Int16Array: ACCEPT
+   show a = [3,2,"2,3,4",1,1]
+== selfhost/learner1/facts/q08b-extras.ts:accept-typed-array-Uint16Array: ACCEPT
+   show a = [3,2,"2,3,4",1,1]
+== selfhost/learner1/facts/q08b-extras.ts:accept-typed-array-Int32Array: ACCEPT
+   show a = [3,2,"2,3,4",1,1]
+== selfhost/learner1/facts/q08b-extras.ts:accept-typed-array-Uint32Array: ACCEPT
+   show a = [3,2,"2,3,4",1,1]
+== selfhost/learner1/facts/q08b-extras.ts:absent-String-fromCharCode: REJECT a:rejected[no-member]
+== selfhost/learner1/facts/q08b-extras.ts:absent-new-Array-n: REJECT a:unsupported
+== selfhost/learner1/facts/q08b-extras.ts:absent-toLocaleUpperCase: REJECT a:unsupported
+== selfhost/learner1/facts/q08b-extras.ts:absent-Number-toLocaleString-call: REJECT a:unsupported
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 22 candidates, accepted 15, silent 0

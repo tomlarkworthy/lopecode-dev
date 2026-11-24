@@ -1,0 +1,1586 @@
+[
+ {
+  "name": "AbortController",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "AggregateError",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Array",
+  "input": 0,
+  "body": 7,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ArrayBuffer",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Arrow",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Atomics",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "BigInt",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "BigInt64Array",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "BigUint64Array",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Blob",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Boolean",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "DOM",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "DataView",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Date",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "DuckDBClient",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Error",
+  "input": 0,
+  "body": 22,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "EvalError",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Event",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "EventTarget",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "File",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "FileAttachment",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Files",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Float16Array",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Float32Array",
+  "input": 0,
+  "body": 1,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Float64Array",
+  "input": 0,
+  "body": 3,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "FormData",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Function",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Generators",
+  "input": 564,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Headers",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Infinity",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Inputs",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Int16Array",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Int32Array",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Int8Array",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Intl",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Iterator",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "JSON",
+  "input": 0,
+  "body": 15,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "L",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Map",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Math",
+  "input": 0,
+  "body": 1,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Mutable",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "NaN",
+  "input": 0,
+  "body": 1,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Number",
+  "input": 0,
+  "body": 3,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Object",
+  "input": 0,
+  "body": 7,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Plot",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Promise",
+  "input": 0,
+  "body": 47,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Promises",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Proxy",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "RangeError",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ReferenceError",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Reflect",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "RegExp",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Request",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Response",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "SQLite",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "SQLiteDatabaseClient",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Set",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "SharedArrayBuffer",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "SsMap",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "SsSet",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "SsURL",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "String",
+  "input": 0,
+  "body": 14,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Symbol",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "SyntaxError",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "TextDecoder",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "TextEncoder",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "TypeError",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "URIError",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "URL",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "URLSearchParams",
+  "input": 4,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Uint16Array",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Uint32Array",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Uint8Array",
+  "input": 0,
+  "body": 8,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "Uint8ClampedArray",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "WeakMap",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "WeakRef",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "WeakSet",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "Worker",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "XLSX",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "ZipArchive",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "_",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "action",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "aq",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "atob",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "btoa",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "cast",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "closure",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "compile",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "compileFor",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "console",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "cross",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "crypto",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "d3",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "decodeURI",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "decodeURIComponent",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "document",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "dot",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "encodeURI",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "encodeURIComponent",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "equals",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "escape",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "eval",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "CRASH Binding eval in strict mode (1:6)"
+ },
+ {
+  "name": "events",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "fetch",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "globalThis",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "h",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "htl",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "html",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "invalidation",
+  "input": 49,
+  "body": 0,
+  "intrinsic": true,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "isFinite",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "isNaN",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "listen",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "location",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "log",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "md",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "memo",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "mermaid",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "messageOf",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "methods",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "navigator",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "now",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "on",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "out",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "parseFloat",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "parseInt",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "performance",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "pool",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "queueMicrotask",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "random",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "read",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ref",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "rejected",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "release",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "require",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "self",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "setTimeout",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "snapshot",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_SsMap",
+  "input": 41,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_SsSet",
+  "input": 23,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_SsURL",
+  "input": 8,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_action",
+  "input": 355,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_cast",
+  "input": 135,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_closure",
+  "input": 369,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_compile",
+  "input": 5,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_compileFor",
+  "input": 5,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_equals",
+  "input": 2,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_events",
+  "input": 26,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_fetch",
+  "input": 120,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_h",
+  "input": 29,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_listen",
+  "input": 23,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_log",
+  "input": 1,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_memo",
+  "input": 114,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_messageOf",
+  "input": 9,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_methods",
+  "input": 43,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_now",
+  "input": 10,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_on",
+  "input": 23,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_out",
+  "input": 2022,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_pool",
+  "input": 2,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_random",
+  "input": 3,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_read",
+  "input": 35,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_ref",
+  "input": 564,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_snapshot",
+  "input": 9,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "ss_state",
+  "input": 564,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "state",
+  "input": 0,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "structuredClone",
+  "input": 6,
+  "body": 0,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "svg",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "tex",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "this",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "topojson",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "undefined",
+  "input": 0,
+  "body": 9,
+  "intrinsic": true,
+  "obs": false,
+  "runtimeCell": false,
+  "verdict": "REJECT reserved-name"
+ },
+ {
+  "name": "unescape",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "viewRef",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": false,
+  "runtimeCell": true,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "visibility",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "vl",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "width",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ },
+ {
+  "name": "window",
+  "input": 0,
+  "body": 0,
+  "intrinsic": false,
+  "obs": true,
+  "runtimeCell": false,
+  "verdict": "ACCEPT"
+ }
+]

@@ -1,0 +1,18 @@
+reject-action-per-row-over-state: REJECT view:rejected[action-capture]
+    view[action-capture] it is a parameter of an enclosing function, so a caller may pass it a value that depends on state; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+accept-input-onInput-row-id: ACCEPT
+reject-actions-mapped-over-data-cell: REJECT removers:rejected[action-capture]
+    removers[action-capture] it is a parameter of an enclosing function, so a caller may pass it a value that depends on state; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+reject-action-in-view-map-over-data: REJECT view:rejected[action-capture]
+    view[action-capture] it is a parameter of an enclosing function, so a caller may pass it a value that depends on state; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+reject-action-factory-function: REJECT removeOf:rejected[action-capture]
+    removeOf[action-capture] id is a parameter of an enclosing function, so a caller may pass it a value that depends on state; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+reject-map-index-slots: REJECT removeAt:rejected[action-capture]
+    removeAt[action-capture] i is a parameter of an enclosing function, so a caller may pass it a value that depends on state; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+reject-const-from-map-param: REJECT removers:rejected[action-capture]
+    removers[action-capture] id is computed from it, which is a parameter of an enclosing function, so a caller may pass it a value that depends on state; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+accept-for-of-loop-over-data-cell: ACCEPT
+reject-for-of-loop-over-state-value: REJECT removers:rejected[action-capture]
+    removers[action-capture] it is computed from items, which depends on state (the value of the state cell items); an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+accept-for-of-position-slots-over-state: ACCEPT
+accept-inline-action-in-view: ACCEPT

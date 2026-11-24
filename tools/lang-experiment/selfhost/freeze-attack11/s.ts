@@ -1,0 +1,40 @@
+// freeze-attack11 S (found under target 4): a name a closure reads, declared again later in the same block. JavaScript
+// binds the closure's name to the later declaration (block scope, hoisted); the rows test what the checker binds it to.
+import { tyRow, type Cand } from "../freeze-attack9/lib9.ts";
+const R: Cand[] = [];
+const num = (v: unknown) => typeof v === "number" && !Number.isNaN(v);
+const str = (v: unknown) => typeof v === "string";
+R.push(tyRow("s-param-block", `const g = (x: number) => { { const f = () => x + 1; const x = "s"; return f(); } };\nconst x = () => 1;`, num));
+R.push(tyRow("s-param-block-min", `const g = () => { const h2 = (x: number) => { { const f = () => x + 1; const x = "s"; return f(); } }; return h2(1); };`, num));
+R.push(tyRow("s-cell-param-block", `const n = () => 1;\nconst g = (n: number) => { { const f = () => n * 2; const n = "s"; return f(); } };`, num));
+R.push(tyRow("s-outer-local", `const g = () => { const x = 1; { const f = () => x + 1; const x = "s"; return f(); } };`, num));
+R.push(tyRow("s-outer-local-str", `const g = () => { const x = "a"; { const f = () => x.length; const x = 5; return f(); } };`, num));
+R.push(tyRow("s-outer-let", `const g = () => { let x = 1; { const f = () => x + 1; const x = "s"; return f(); } };`, num));
+R.push(tyRow("s-Math", `const g = () => { const f = () => Math.max(1, 2); const Math = { max: (a: number, b: number) => "s" }; return f(); };`, num));
+R.push(tyRow("s-JSON", `const g = () => { const f = () => JSON.stringify(1); const JSON = { stringify: (v: number) => 7 }; return f(); };`, str));
+R.push(tyRow("s-Number", `const g = () => { const f = () => Number("3"); const Number = (s: string) => s; return f(); };`, num));
+R.push(tyRow("s-String", `const g = () => { const f = () => String(3); const String = (n: number) => n; return f(); };`, str));
+R.push(tyRow("s-parseInt", `const g = () => { const f = () => parseInt("3"); const parseInt = (s: string) => s; return f(); };`, num));
+R.push(tyRow("s-structuredClone", `const g = () => { const f = () => structuredClone([1]); const structuredClone = (v: readonly number[]) => "s"; return f(); };`, (v) => Array.isArray(v)));
+R.push(tyRow("s-Map", `const g = () => { const f = () => new Map([[1, 2]]).size; const Map = 5; return f(); };`, num));
+R.push(tyRow("s-undefined", `const g = () => { const f = () => (undefined === undefined ? 1 : 0); const undefined = 5; return f(); };`, num));
+R.push(tyRow("s-fn-decl", `const g = () => { const x = 1; { const f = () => x + 1; function x() { return "s"; } return f(); } };`, num));
+R.push(tyRow("s-nested-fn", `const g = () => { const x = 1; const k = () => { const f = () => x + 1; const x = "s"; return f(); }; return k(); };`, num));
+R.push(tyRow("s-arrow-param-default", `const g = () => { const x = 1; const k = (a = () => x + 1) => { const x = "s"; return a(); }; return k(); };`, num));
+R.push(tyRow("s-for-body", `const g = () => { const x = 1; let t = 0; for (let i = 0; i < 1; i++) { const f = () => x + 1; const x = "s"; t = f(); } return t; };`, num));
+R.push(tyRow("s-switch-case", `const g = () => { const x = 1; switch (1 as number) { case 1: { const f = () => x + 1; const x = "s"; return f(); } } return 0; };`, num));
+R.push(tyRow("s-catch", `const g = () => { const x = 1; try { throw 0; } catch { const f = () => x + 1; const x = "s"; return f(); } };`, num));
+R.push(tyRow("s-tdz-read", `const g = () => { const x = 1; { const f = () => x + 1; const v = f(); const x = 2; return v; } };`, num));
+R.push(tyRow("s-cell-name-shadow", `const k = () => 1;\nconst g = (k: number) => { const f = () => k + 1; { } return f(); };`, num));
+R.push(tyRow("s-action-in-later", `const s = () => state(0);\nconst a = (s: State<number>) => action(() => { const f = () => s.set(2); const s2 = 1; f(); });\nconst g = (s: number) => s;`, num));
+R.push(tyRow("s-ctl-param-block", `const g = (x: number) => { { const f = () => x + 1; const x = "s"; return f(); } };\nconst x = () => 1;`, num, true));
+// the same binding error giving an Action to a call the checker reads as a plain function's, and a Mut array to a kept function
+const ACT = `const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\n`;
+const stateDrive = (p: any) => (p.status("c") === "fulfilled" && p.value("c") !== 0 ? `DIFF STATE c is ${p.value("c")} with no event; g ${p.status("g")} ${String(p.error("g") ?? "").slice(0, 80)}` : `same: c=${p.value("c")} g ${p.status("g")} ${String(p.error("g") ?? "").slice(0, 80)}`);
+R.push({ name: "s-action-call", src: ACT + `const g = (a: Action<[]>) => { const x = () => 0; { const f = () => x(); const x = a; f(); return 1; } };`, show: ["c", "g"], drive: stateDrive });
+R.push({ name: "s-action-kept", src: ACT + `const g = (a: Action<[]>) => { const x = () => 0; { const f = () => x(); const x = a; return f; } };\nconst k = (g: () => number) => g();`, show: ["c", "g", "k"], drive: stateDrive });
+R.push({ name: "s-action-unknown", src: ACT + `const g = (a: Action<[]>) => { const x = 1; { const f = () => { const u: unknown = x; return u; }; const x = a; return { u: f() }; } };`, show: ["c", "g"], drive: stateDrive });
+R.push(tyRow("s-mut-kept", `const g = () => { const c = 0; { const f = () => c; const c = [1]; c.push(2); return { f }; } };\nconst k = (g: { readonly f: () => number }) => g.f() + 1;`, () => true));
+R.push({ name: "s-mut-kept-write", src: `const g = () => { const c = 0; { const f = () => c; const c = [1]; return { f, w: () => 0 }; } };\nconst k = (g: { readonly f: () => number }) => g.f() + 1;`, show: ["g", "k"], drive: (p: any) => (typeof p.value("k") !== "number" || Number.isNaN(p.value("k")) ? `DIFF k is outside its type: ${typeof p.value("k")} ${JSON.stringify(p.value("k"))}` : "same") });
+R.push({ name: "s-ctl-action-call", src: ACT + `const g = (a: Action<[]>) => { a(); return 1; };`, show: ["c", "g"], drive: stateDrive, ctl: true });
+export const cands = R;

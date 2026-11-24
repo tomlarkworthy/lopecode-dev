@@ -1,0 +1,8 @@
+== selfhost/learner1/facts/q02c-harness-control.ts:control-counter-view-holds-action: ACCEPT
+   drive -> clicks=1831
+== selfhost/learner1/facts/q02c-harness-control.ts:control-counter-no-view: ACCEPT
+   drive -> clicks=4
+== selfhost/learner1/facts/q02c-harness-control.ts:control-action-with-arg-in-view: REJECT view:rejected[inject-type][type]
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- 3 candidates, accepted 2, silent 0 (by the tap alone 0)

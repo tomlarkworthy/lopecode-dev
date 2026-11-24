@@ -1,0 +1,9 @@
+local-read-function: ACCEPT
+local-state-number: ACCEPT
+local-memo: ACCEPT
+local-equals: ACCEPT
+local-snapshot: REJECT a:rejected[prelude-shadow]
+    a[prelude-shadow] snapshot names a prelude function; a binding of that name would hide it from the rules of snapshot(...)
+param-event-state: ACCEPT
+local-action-in-state-cell-module: ACCEPT
+local-mut: ACCEPT

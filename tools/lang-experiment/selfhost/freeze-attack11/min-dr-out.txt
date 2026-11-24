@@ -1,0 +1,57 @@
+== selfhost/freeze-attack11/min.ts:min-action-template: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g rejected=undefined action called during a cell evaluation
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-action-hidden-json: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g rejected=undefined action called during a cell evaluation
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-then-async: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-fn-name: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-scope: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-scope-action: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g rejected=undefined action called during a cell evaluation
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-json-undefined: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-this: ACCEPT
+   run crash: Cannot use the keyword 'this' as a lexical variable name.
+== selfhost/freeze-attack11/min.ts:min-resp-race: ACCEPT
+   drive -> same: o1=undefined o2=undefined
+   show r = {n:1,res:{}} | E[]
+   show o1 = undefined | E[]
+   show o2 = undefined | E[]
+== selfhost/freeze-attack11/min.ts:min-ctl-action-call [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event; g rejected=undefined action called during a cell evaluation
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 9 candidates, accepted 9, silent 7 (by the tap alone 0)
+SILENT selfhost/freeze-attack11/min.ts:min-action-template
+SILENT selfhost/freeze-attack11/min.ts:min-action-hidden-json
+SILENT selfhost/freeze-attack11/min.ts:min-then-async
+SILENT selfhost/freeze-attack11/min.ts:min-fn-name
+SILENT selfhost/freeze-attack11/min.ts:min-scope
+SILENT selfhost/freeze-attack11/min.ts:min-scope-action
+SILENT selfhost/freeze-attack11/min.ts:min-json-undefined

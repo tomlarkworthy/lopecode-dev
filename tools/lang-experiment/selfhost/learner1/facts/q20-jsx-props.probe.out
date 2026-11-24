@@ -1,0 +1,27 @@
+accept-input-type-number-onInput-string: ACCEPT
+accept-input-value-number: ACCEPT
+reject-input-onInput-number-action: REJECT w:rejected[type][type]
+    w[type] Action<[number]> is not assignable to Action<[string]> || w[type] { type: "number"; onInput: Action<[number]> } is not assignable to InputProps
+accept-button-without-onClick: ACCEPT
+accept-button-disabled: ACCEPT
+reject-button-value: REJECT v:rejected[excess-property]
+    v[excess-property] property value is not in ButtonProps
+accept-checkbox-checked: ACCEPT
+reject-checked-string: REJECT v:rejected[type][type]
+    v[type] "yes" is not assignable to boolean || v[type] { type: "checkbox"; checked: "yes" } is not assignable to InputProps
+accept-style-string-class: ACCEPT
+reject-style-object: REJECT v:rejected[type][type]
+    v[type] { color: "red" } is not assignable to string || v[type] { style: { color: "red" }; children: "x"[] } is not assignable to CommonProps
+reject-className: REJECT v:rejected[excess-property]
+    v[excess-property] property className is not in CommonProps
+reject-data-attr: REJECT v:rejected[excess-property]
+    v[excess-property] property data-x is not in CommonProps
+reject-tag-a: REJECT v:rejected[no-member]
+    v[no-member] <a> is not a declared element
+reject-tag-ul: REJECT v:rejected[no-member]
+    v[no-member] <ul> is not a declared element
+accept-canvas-size: ACCEPT
+reject-onClick-on-div: REJECT w:rejected[excess-property][action-pass]
+    w[excess-property] property onClick is not in CommonProps || w[action-pass] { onClick: Action<[]>; children: "x"[] } is given the type CommonProps, which hides its Action<[]>; an Action goes only where an Action is expected
+accept-fragment: ACCEPT
+accept-label-strong-fieldset-legend-output-p: ACCEPT

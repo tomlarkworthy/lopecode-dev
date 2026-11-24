@@ -1,0 +1,52 @@
+== selfhost/learner1/facts/q12-state-contents.ts:accept-set: ACCEPT
+   drive -> shown="1,2"
+   show s = Set{1,2}
+   show toggle = action
+   show shown = "1,2"
+== selfhost/learner1/facts/q12-state-contents.ts:accept-map: ACCEPT
+   drive -> shown="a=2"
+   show s = Map{"a"=>2}
+   show put = action
+   show shown = "a=2"
+== selfhost/learner1/facts/q12-state-contents.ts:reject-write-state-set-in-place: REJECT add:rejected[mutating-method]
+== selfhost/learner1/facts/q12-state-contents.ts:accept-record-literal-keys: ACCEPT
+   show s = {a:1,b:"x"}
+== selfhost/learner1/facts/q12-state-contents.ts:index-signature-record-spread-unsupported: REJECT put:rejected[type][type]
+== selfhost/learner1/facts/q12-state-contents.ts:accept-index-signature-record: ACCEPT
+   drive -> shown="x"
+   show s = {x:1}
+   show put = action
+   show shown = "x"
+== selfhost/learner1/facts/q12-state-contents.ts:accept-array: ACCEPT
+   show s = []
+== selfhost/learner1/facts/q12-state-contents.ts:accept-mutable-array-type: ACCEPT
+   drive -> shown=2
+   show s = [1,1]
+   show push1 = action
+   show shown = 2
+== selfhost/learner1/facts/q12-state-contents.ts:state-function: ACCEPT
+   drive -> r=2 fulfilled
+   show s = fn(null)
+   show r = 2
+== selfhost/learner1/facts/q12-state-contents.ts:accept-number-or-null: ACCEPT
+   show s = null
+== selfhost/learner1/facts/q12-state-contents.ts:reject-undefined-content: REJECT s:rejected[state-undefined]
+== selfhost/learner1/facts/q12-state-contents.ts:reject-optional-field-content: ACCEPT
+   show s = {}
+== selfhost/learner1/facts/q12-state-contents.ts:state-in-state: REJECT s:rejected[type][type][state-in-state]
+== selfhost/learner1/facts/q12-state-contents.ts:state-elem: ACCEPT
+   show s = {tag:"span",props:{},children:["x"]}
+== selfhost/learner1/facts/q12-state-contents.ts:state-typed-array: ACCEPT
+   show s = Float64Array[0,0]
+== selfhost/learner1/facts/q12-state-contents.ts:state-url: ACCEPT
+   show s = URL(https://x.org/)
+== selfhost/learner1/facts/q12-state-contents.ts:state-of-action: ACCEPT
+   drive -> n=1
+   show n = 1
+   show inc = action
+   show s = action
+   show view = {tag:"button",props:{onClick:action},children:["x"]}
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 17 candidates, accepted 13, silent 0

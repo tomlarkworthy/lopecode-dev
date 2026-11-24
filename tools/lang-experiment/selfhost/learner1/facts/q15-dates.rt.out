@@ -1,0 +1,25 @@
+== selfhost/learner1/facts/q15-dates.ts:reject-Date-now: REJECT t:rejected[free-name]
+== selfhost/learner1/facts/q15-dates.ts:reject-new-Date: REJECT t:rejected[new-non-intrinsic]
+== selfhost/learner1/facts/q15-dates.ts:accept-now-is-ms-since-page-load: ACCEPT
+   show t = 463.887666
+   DIFFER show (runCells differs from itself: not deterministic)
+   runCells| show t = 466.401125
+== selfhost/learner1/facts/q15-dates.ts:accept-date-from-ordinary-cell: ACCEPT
+   show year = 2026
+   DIFFER show; cells in error [year] vs []
+   runCells| show year = ERROR today is not defined
+   runCells| error year: today is not defined
+== selfhost/learner1/facts/q15-dates.ts:accept-epoch-ms-from-ordinary-cell: ACCEPT
+   show days = 20781
+   DIFFER show; cells in error [days] vs []
+   runCells| show days = ERROR epochMs is not defined
+   runCells| error days: epochMs is not defined
+== selfhost/learner1/facts/q15-dates.ts:reject-ordinary-cell-without-type: REJECT year:rejected[boundary-unannotated]
+== selfhost/learner1/facts/q15-dates.ts:reject-Intl: REJECT f:rejected[new-non-intrinsic]
+== selfhost/learner1/facts/q15-dates.ts:accept-format-by-hand: ACCEPT
+   show s = "2026-03-07"
+   show fmt = fn("undefined-undefined-undefined")
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 3
+-- 8 candidates, accepted 4, silent 0

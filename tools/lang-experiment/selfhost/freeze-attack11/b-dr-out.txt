@@ -1,0 +1,196 @@
+== selfhost/freeze-attack11/b.ts:b-fn-call-number: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-apply-number: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-bind-number: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-name-number: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-length-number: ACCEPT
+   drive -> same: "number"
+   show g = "number" | E[]
+== selfhost/freeze-attack11/b.ts:b-fn-arguments-number: REJECT g:rejected[no-arguments]
+== selfhost/freeze-attack11/b.ts:b-fn-caller-number: ACCEPT
+   drive -> same: g rejected 'arguments', 'callee', and 'caller' cannot be accessed in this context.
+   show g = ERROR 'arguments', 'callee', and 'caller' cannot be accessed in this context.
+   error g: 'arguments', 'callee', and 'caller' cannot be accessed in this context.
+== selfhost/freeze-attack11/b.ts:b-fn-prototype-number: ACCEPT
+   drive -> same: "undefined"
+   show g = "undefined" | E[]
+== selfhost/freeze-attack11/b.ts:b-fn-name-boolean: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-length-string: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-call-arith: ACCEPT
+   drive -> DIFF g is outside its type: string "function call() {\n    [native code]\n}1"
+   show g = "function call() {\n    [native code]\n}1" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-name-arith: ACCEPT
+   drive -> DIFF g is outside its type: string "f1"
+   show g = "f1" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-length-str: ACCEPT
+   drive -> same: g rejected (v.length ?? "").toUpperCase is not a function. (In '(v.length ?? "").toUpperCase()', '(v.length ?? "").toUpperCase' is undefined)
+   show g = ERROR (v.length ?? "").toUpperCase is not a function. (In '(v.length ?? "").toUpperCase()', '(v.length ?? "").toUpperCase' is undefined)
+   error g: (v.length ?? "").toUpperCase is not a function. (In '(v.length ?? "").toUpperCase()', '(v.length ?? "").toUpperCase' is undefined)
+== selfhost/freeze-attack11/b.ts:b-fn-call-as-fn: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-bind-as-fn: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-kept-fn-name-cell: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-kept-fn-call-cell: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-method-name: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-param: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-array: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-union: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-alias: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-iface: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-generic: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-fn-memo: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-action-name: REJECT g:rejected[inject-type]
+== selfhost/freeze-attack11/b.ts:b-action-call-fn: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack11/b.ts:b-err-stack: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-err-name: REJECT g:rejected[type]
+== selfhost/freeze-attack11/b.ts:b-err-cause: REJECT g:rejected[arity]
+== selfhost/freeze-attack11/b.ts:b-err-stack-arith: ACCEPT
+   drive -> DIFF g is outside its type: number null
+   show g = null | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-caught-stack: REJECT g:rejected[type]
+== selfhost/freeze-attack11/b.ts:b-re-lastIndex: REJECT g:rejected[regexp-state]
+== selfhost/freeze-attack11/b.ts:b-re-flags: REJECT g:rejected[type][regexp-state]
+== selfhost/freeze-attack11/b.ts:b-date: ACCEPT
+   drive -> same: "undefined"
+   show g = "undefined" | E[]
+== selfhost/freeze-attack11/b.ts:b-u8-byteLength: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-ab-slice: REJECT g:rejected[type]
+== selfhost/freeze-attack11/b.ts:b-url-search: REJECT g:rejected[type]
+== selfhost/freeze-attack11/b.ts:b-usp-size: ACCEPT
+   drive -> DIFF g is outside its type: string "number"
+   show g = "number" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-promise-catch: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-map-entries: REJECT g:rejected[type]
+== selfhost/freeze-attack11/b.ts:b-iter-next: ACCEPT
+   drive -> DIFF g is outside its type: string "function"
+   show g = "function" | E[]
+   SILENT
+== selfhost/freeze-attack11/b.ts:b-gen-return: ACCEPT
+   drive -> same: "undefined"
+   show g = "undefined" | E[]
+== selfhost/freeze-attack11/b.ts:b-arr-hidden-then-wide: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack11/b.ts:b-mapped-readonly: CRASH acornParse(...).ast.program.body[0].typeAnnotation.readonly: expected string or null, found boolean true
+== selfhost/freeze-attack11/b.ts:b-mapped-plain: CRASH acornParse(...).ast.program.body[0].typeAnnotation.optional: expected string or null, found boolean true
+== selfhost/freeze-attack11/b.ts:b-mapped-req: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack11/b.ts:b-mapped-other: CRASH acornParse(...).ast.program.body[0].typeAnnotation.readonly: expected string or null, found boolean true
+== selfhost/freeze-attack11/b.ts:b-iface-merge: REJECT module[banned-member] g:rejected[no-member]
+== selfhost/freeze-attack11/b.ts:b-iface-merge-unused: ACCEPT
+   drive -> same: "undefined"
+   show g = "undefined" | E[]
+== selfhost/freeze-attack11/b.ts:b-cell-annot-generic: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack11/b.ts:b-ctor-req-own: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack11/b.ts:b-ctor-req-spread: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack11/b.ts:b-ctor-req-cast: REJECT g:rejected[no-member]
+== selfhost/freeze-attack11/b.ts:b-tostring-req-cast: REJECT g:rejected[no-member]
+== selfhost/freeze-attack11/b.ts:b-valueof-req-cast-unknown: REJECT g:rejected[no-member]
+== selfhost/freeze-attack11/b.ts:b-json-proto: REJECT g:rejected[no-member]
+== selfhost/freeze-attack11/b.ts:b-json-proto2: REJECT g:rejected[no-member]
+== selfhost/freeze-attack11/b.ts:b-fromEntries-proto: REJECT g:rejected[no-member]
+== selfhost/freeze-attack11/b.ts:b-ctl-fn-name [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "string"
+   show g = "string" | E[]
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 59 candidates, accepted 38, silent 26 (by the tap alone 0)
+SILENT selfhost/freeze-attack11/b.ts:b-fn-call-number
+SILENT selfhost/freeze-attack11/b.ts:b-fn-apply-number
+SILENT selfhost/freeze-attack11/b.ts:b-fn-bind-number
+SILENT selfhost/freeze-attack11/b.ts:b-fn-name-number
+SILENT selfhost/freeze-attack11/b.ts:b-fn-name-boolean
+SILENT selfhost/freeze-attack11/b.ts:b-fn-length-string
+SILENT selfhost/freeze-attack11/b.ts:b-fn-call-arith
+SILENT selfhost/freeze-attack11/b.ts:b-fn-name-arith
+SILENT selfhost/freeze-attack11/b.ts:b-fn-call-as-fn
+SILENT selfhost/freeze-attack11/b.ts:b-fn-bind-as-fn
+SILENT selfhost/freeze-attack11/b.ts:b-kept-fn-name-cell
+SILENT selfhost/freeze-attack11/b.ts:b-kept-fn-call-cell
+SILENT selfhost/freeze-attack11/b.ts:b-method-name
+SILENT selfhost/freeze-attack11/b.ts:b-fn-param
+SILENT selfhost/freeze-attack11/b.ts:b-fn-array
+SILENT selfhost/freeze-attack11/b.ts:b-fn-union
+SILENT selfhost/freeze-attack11/b.ts:b-fn-alias
+SILENT selfhost/freeze-attack11/b.ts:b-fn-iface
+SILENT selfhost/freeze-attack11/b.ts:b-fn-generic
+SILENT selfhost/freeze-attack11/b.ts:b-fn-memo
+SILENT selfhost/freeze-attack11/b.ts:b-err-stack
+SILENT selfhost/freeze-attack11/b.ts:b-err-stack-arith
+SILENT selfhost/freeze-attack11/b.ts:b-u8-byteLength
+SILENT selfhost/freeze-attack11/b.ts:b-usp-size
+SILENT selfhost/freeze-attack11/b.ts:b-promise-catch
+SILENT selfhost/freeze-attack11/b.ts:b-iter-next

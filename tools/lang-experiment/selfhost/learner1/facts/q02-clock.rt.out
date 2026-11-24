@@ -1,0 +1,79 @@
+== selfhost/learner1/facts/q02-clock.ts:reject-now-in-action: REJECT recordClick:rejected[action-capture]
+== selfhost/learner1/facts/q02-clock.ts:accept-click-stamps-listener: ACCEPT
+   drive -> clicks=3 ; times=[496.3405,529.769833,562.035583]
+   show times = [496.3405,529.769833,562.035583]
+   show clicks = 3
+   show recordClick = action
+   show stamps = {name:"stamps"}
+   show store = action
+   show onStamp = {events:{name:"stamps"},action:action}
+   show view = {tag:"div",props:{},children:[{tag:"button",props:{onClick:action},children:["click"]},{tag:"span",props:{},children:[3]}]}
+   DIFFER show; drive (runCells differs from itself: not deterministic)
+   runCells| drive -> clicks=3 ; times=[]
+   runCells| show times = [760.495041]
+   runCells| show clicks = 3
+   runCells| show recordClick = action
+   runCells| show stamps = {name:"stamps"}
+   runCells| show store = action
+   runCells| show onStamp = {events:{name:"stamps"},action:action}
+   runCells| show view = {tag:"div",props:{},children:[{tag:"button",props:{onClick:action},children:["click"]},{tag:"span",props:{},children:[1]}]}
+== selfhost/learner1/facts/q02-clock.ts:accept-canvas-pointer-t: ACCEPT
+   drive -> times=[123.5,123.5]
+   show times = [123.5,123.5]
+   show record = action
+   show view = {tag:"canvas",props:{width:40,height:20,onPointerDown:action},children:[]}
+== selfhost/learner1/facts/q02-clock.ts:reject-button-pointerdown: REJECT view:rejected[excess-property][action-pass]
+== selfhost/learner1/facts/q02-clock.ts:accept-learner-clock-into-state: ACCEPT
+   drive -> lastNow=1159.9165 ; times=[1159.9165,1159.9165]
+   show times = [1159.9165,1159.9165]
+   show lastNow = 1237.260541
+   show clock = {name:"clock"}
+   show setNow = action
+   show onClock = {events:{name:"clock"},action:action}
+   show recordClick = action
+   DIFFER show; drive (runCells differs from itself: not deterministic)
+   runCells| drive -> lastNow=1327.916958 ; times=[1327.916958,1327.916958]
+   runCells| show times = [1327.916958,1327.916958]
+   runCells| show lastNow = 1504.18975
+   runCells| show clock = {name:"clock"}
+   runCells| show setNow = action
+   runCells| show onClock = {events:{name:"clock"},action:action}
+   runCells| show recordClick = action
+== selfhost/learner1/facts/q02-clock.ts:click-stamps-three-clicks-no-frame-between: ACCEPT
+   drive -> called 3 times in one turn
+   show clicks = 3
+   show times = [1803.076291]
+   show recordClick = action
+   show stamps = {name:"stamps"}
+   show store = action
+   show onStamp = {events:{name:"stamps"},action:action}
+   show view = {tag:"div",props:{},children:[{tag:"button",props:{onClick:action},children:["click"]},{tag:"span",props:{},children:[1]}]}
+   DIFFER show (runCells differs from itself: not deterministic)
+   runCells| drive -> called 3 times in one turn
+   runCells| show clicks = 3
+   runCells| show times = [1836.972458]
+   runCells| show recordClick = action
+   runCells| show stamps = {name:"stamps"}
+   runCells| show store = action
+   runCells| show onStamp = {events:{name:"stamps"},action:action}
+   runCells| show view = {tag:"div",props:{},children:[{tag:"button",props:{onClick:action},children:["click"]},{tag:"span",props:{},children:[1]}]}
+== selfhost/learner1/facts/q02-clock.ts:learner-clock-three-clicks-no-frame-between: ACCEPT
+   drive -> called 3 times in one turn
+   show times = [1910.793666,1910.793666,1910.793666]
+   show lastNow = 1926.261333
+   show clock = {name:"clock"}
+   show setNow = action
+   show onClock = {events:{name:"clock"},action:action}
+   show recordClick = action
+   DIFFER show (runCells differs from itself: not deterministic)
+   runCells| drive -> called 3 times in one turn
+   runCells| show times = [2016.110416,2016.110416,2016.110416]
+   runCells| show lastNow = 2111.875541
+   runCells| show clock = {name:"clock"}
+   runCells| show setNow = action
+   runCells| show onClock = {events:{name:"clock"},action:action}
+   runCells| show recordClick = action
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 4
+-- 7 candidates, accepted 5, silent 0

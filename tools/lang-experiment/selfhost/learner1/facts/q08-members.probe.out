@@ -1,0 +1,319 @@
+interface Array.length: ACCEPT
+interface Array.map: ACCEPT
+interface Array.filter: ACCEPT
+interface Array.flatMap: ACCEPT
+interface Array.slice: ACCEPT
+interface Array.concat: ACCEPT
+interface Array.toSorted: ACCEPT
+interface Array.toReversed: ACCEPT
+interface Array.toSpliced: ACCEPT
+interface Array.with: ACCEPT
+interface Array.reduce: ACCEPT
+interface Array.find: ACCEPT
+interface Array.findIndex: ACCEPT
+interface Array.findLast: ACCEPT
+interface Array.some: ACCEPT
+interface Array.every: ACCEPT
+interface Array.forEach: ACCEPT
+interface Array.includes: ACCEPT
+interface Array.indexOf: ACCEPT
+interface Array.lastIndexOf: ACCEPT
+interface Array.join: ACCEPT
+interface Array.at: ACCEPT
+interface Array.toString: ACCEPT
+interface Array.entries: ACCEPT
+interface Array.keys: ACCEPT
+interface Array.values: ACCEPT
+interface Array.push: ACCEPT
+interface Array.unshift: ACCEPT
+interface Array.pop: ACCEPT
+interface Array.shift: ACCEPT
+interface Array.splice: ACCEPT
+interface Array.sort: ACCEPT
+interface Array.reverse: ACCEPT
+interface Array.fill: ACCEPT
+interface Array.copyWithin: ACCEPT
+ABSENT interface Array.flat: REJECT a:unsupported
+    a{unsupported intrinsic member Array.flat}
+ABSENT interface Array.findLastIndex: REJECT a:unsupported
+    a{unsupported intrinsic member Array.findLastIndex}
+ABSENT interface Array.reduceRight: REJECT a:unsupported
+    a{unsupported intrinsic member Array.reduceRight}
+ABSENT interface Array.toLocaleString: REJECT a:unsupported
+    a{unsupported intrinsic member Array.toLocaleString}
+static Array.isArray: ACCEPT
+static Array.from: ACCEPT
+static Array.of: ACCEPT
+static Array.prototype: REJECT a:rejected[banned-member]
+    a[banned-member] Array.prototype is banned
+interface String.length: ACCEPT
+interface String.startsWith: ACCEPT
+interface String.endsWith: ACCEPT
+interface String.includes: ACCEPT
+interface String.indexOf: ACCEPT
+interface String.lastIndexOf: ACCEPT
+interface String.slice: ACCEPT
+interface String.substring: ACCEPT
+interface String.split: ACCEPT
+interface String.trim: ACCEPT
+interface String.trimStart: ACCEPT
+interface String.trimEnd: ACCEPT
+interface String.toUpperCase: ACCEPT
+interface String.toLowerCase: ACCEPT
+interface String.replace: ACCEPT
+interface String.replaceAll: ACCEPT
+interface String.match: ACCEPT
+interface String.localeCompare: ACCEPT
+interface String.padStart: ACCEPT
+interface String.padEnd: ACCEPT
+interface String.repeat: ACCEPT
+interface String.charAt: ACCEPT
+interface String.charCodeAt: ACCEPT
+interface String.at: ACCEPT
+interface String.toString: ACCEPT
+ABSENT interface String.codePointAt: REJECT a:unsupported
+    a{unsupported intrinsic member String.codePointAt}
+ABSENT interface String.normalize: REJECT a:unsupported
+    a{unsupported intrinsic member String.normalize}
+ABSENT interface String.search: REJECT a:unsupported
+    a{unsupported intrinsic member String.search}
+ABSENT interface String.matchAll: REJECT a:unsupported
+    a{unsupported intrinsic member String.matchAll}
+ABSENT interface String.concat: REJECT a:unsupported
+    a{unsupported intrinsic member String.concat}
+ABSENT interface String.substr: REJECT a:unsupported
+    a{unsupported intrinsic member String.substr}
+ABSENT interface String.localeUpperCase: REJECT a:unsupported
+    a{unsupported intrinsic member String.localeUpperCase}
+ABSENT interface String.trimLeft: REJECT a:unsupported
+    a{unsupported intrinsic member String.trimLeft}
+interface RegExpMatchArray.length: ACCEPT
+interface RegExpMatchArray.index: ACCEPT
+interface RegExpMatchArray.groups: ACCEPT
+interface RegExp.source: ACCEPT
+interface RegExp.flags: ACCEPT
+interface RegExp.test: ACCEPT
+interface RegExp.exec: ACCEPT
+ABSENT interface RegExp.lastIndex: REJECT a:unsupported
+    a{unsupported intrinsic member RegExp.lastIndex}
+ABSENT interface RegExp.global: REJECT a:unsupported
+    a{unsupported intrinsic member RegExp.global}
+interface Number.toFixed: ACCEPT
+interface Number.toExponential: ACCEPT
+interface Number.toPrecision: ACCEPT
+interface Number.toString: ACCEPT
+ABSENT interface Number.toLocaleString: REJECT a:unsupported
+    a{unsupported intrinsic member Number.toLocaleString}
+ABSENT interface Number.valueOf: REJECT a:unsupported
+    a{unsupported intrinsic member Number.valueOf}
+static Number.MAX_VALUE: ACCEPT
+static Number.MIN_VALUE: ACCEPT
+static Number.EPSILON: ACCEPT
+static Number.MAX_SAFE_INTEGER: ACCEPT
+static Number.MIN_SAFE_INTEGER: ACCEPT
+static Number.POSITIVE_INFINITY: ACCEPT
+static Number.NEGATIVE_INFINITY: ACCEPT
+static Number.NaN: ACCEPT
+static Number.isInteger: ACCEPT
+static Number.isFinite: ACCEPT
+static Number.isNaN: ACCEPT
+static Number.isSafeInteger: ACCEPT
+static Number.parseFloat: ACCEPT
+static Number.parseInt: ACCEPT
+interface Boolean.toString: ACCEPT
+static Math.PI: ACCEPT
+static Math.E: ACCEPT
+static Math.LN2: ACCEPT
+static Math.LN10: ACCEPT
+static Math.SQRT2: ACCEPT
+static Math.abs: ACCEPT
+static Math.floor: ACCEPT
+static Math.ceil: ACCEPT
+static Math.round: ACCEPT
+static Math.trunc: ACCEPT
+static Math.sign: ACCEPT
+static Math.sqrt: ACCEPT
+static Math.cbrt: ACCEPT
+static Math.exp: ACCEPT
+static Math.log: ACCEPT
+static Math.log2: ACCEPT
+static Math.log10: ACCEPT
+static Math.sin: ACCEPT
+static Math.cos: ACCEPT
+static Math.tan: ACCEPT
+static Math.asin: ACCEPT
+static Math.acos: ACCEPT
+static Math.atan: ACCEPT
+static Math.atan2: ACCEPT
+static Math.pow: ACCEPT
+static Math.min: ACCEPT
+static Math.max: ACCEPT
+static Math.hypot: ACCEPT
+static Math.fround: ACCEPT
+static Math.random: REJECT a:rejected[banned-member]
+    a[banned-member] Math.random is banned
+ABSENT static Math.clz32: REJECT a:rejected[no-member]
+    a[no-member] no property clz32 on { PI: number; E: number; LN2: number; LN10: number; SQRT2: number; abs: (x: number) => number; floor: (x: number) => number; ceil: (x: number) => number; round: (x: number) => number; trunc: (x: number) => number; sign: (x: number) => number; sqrt: (x: number) => number; cbrt: (x: number) => number; exp: (x: number) => number; log: (x: number) => number; log2: (x: number) => number; log10: (x: number) => number; sin: (x: number) => number; cos: (x: number) => number; tan: (x: number) => number; asin: (x: number) => number; acos: (x: number) => number; atan: (x
+ABSENT static Math.imul: REJECT a:rejected[no-member]
+    a[no-member] no property imul on { PI: number; E: number; LN2: number; LN10: number; SQRT2: number; abs: (x: number) => number; floor: (x: number) => number; ceil: (x: number) => number; round: (x: number) => number; trunc: (x: number) => number; sign: (x: number) => number; sqrt: (x: number) => number; cbrt: (x: number) => number; exp: (x: number) => number; log: (x: number) => number; log2: (x: number) => number; log10: (x: number) => number; sin: (x: number) => number; cos: (x: number) => number; tan: (x: number) => number; asin: (x: number) => number; acos: (x: number) => number; atan: (x:
+ABSENT static Math.log1p: REJECT a:rejected[no-member]
+    a[no-member] no property log1p on { PI: number; E: number; LN2: number; LN10: number; SQRT2: number; abs: (x: number) => number; floor: (x: number) => number; ceil: (x: number) => number; round: (x: number) => number; trunc: (x: number) => number; sign: (x: number) => number; sqrt: (x: number) => number; cbrt: (x: number) => number; exp: (x: number) => number; log: (x: number) => number; log2: (x: number) => number; log10: (x: number) => number; sin: (x: number) => number; cos: (x: number) => number; tan: (x: number) => number; asin: (x: number) => number; acos: (x: number) => number; atan: (x
+ABSENT static Math.expm1: REJECT a:rejected[no-member]
+    a[no-member] no property expm1 on { PI: number; E: number; LN2: number; LN10: number; SQRT2: number; abs: (x: number) => number; floor: (x: number) => number; ceil: (x: number) => number; round: (x: number) => number; trunc: (x: number) => number; sign: (x: number) => number; sqrt: (x: number) => number; cbrt: (x: number) => number; exp: (x: number) => number; log: (x: number) => number; log2: (x: number) => number; log10: (x: number) => number; sin: (x: number) => number; cos: (x: number) => number; tan: (x: number) => number; asin: (x: number) => number; acos: (x: number) => number; atan: (x
+ABSENT static Math.sinh: REJECT a:rejected[no-member]
+    a[no-member] no property sinh on { PI: number; E: number; LN2: number; LN10: number; SQRT2: number; abs: (x: number) => number; floor: (x: number) => number; ceil: (x: number) => number; round: (x: number) => number; trunc: (x: number) => number; sign: (x: number) => number; sqrt: (x: number) => number; cbrt: (x: number) => number; exp: (x: number) => number; log: (x: number) => number; log2: (x: number) => number; log10: (x: number) => number; sin: (x: number) => number; cos: (x: number) => number; tan: (x: number) => number; asin: (x: number) => number; acos: (x: number) => number; atan: (x:
+ABSENT static Math.cosh: REJECT a:rejected[no-member]
+    a[no-member] no property cosh on { PI: number; E: number; LN2: number; LN10: number; SQRT2: number; abs: (x: number) => number; floor: (x: number) => number; ceil: (x: number) => number; round: (x: number) => number; trunc: (x: number) => number; sign: (x: number) => number; sqrt: (x: number) => number; cbrt: (x: number) => number; exp: (x: number) => number; log: (x: number) => number; log2: (x: number) => number; log10: (x: number) => number; sin: (x: number) => number; cos: (x: number) => number; tan: (x: number) => number; asin: (x: number) => number; acos: (x: number) => number; atan: (x:
+ABSENT static Math.tanh: REJECT a:rejected[no-member]
+    a[no-member] no property tanh on { PI: number; E: number; LN2: number; LN10: number; SQRT2: number; abs: (x: number) => number; floor: (x: number) => number; ceil: (x: number) => number; round: (x: number) => number; trunc: (x: number) => number; sign: (x: number) => number; sqrt: (x: number) => number; cbrt: (x: number) => number; exp: (x: number) => number; log: (x: number) => number; log2: (x: number) => number; log10: (x: number) => number; sin: (x: number) => number; cos: (x: number) => number; tan: (x: number) => number; asin: (x: number) => number; acos: (x: number) => number; atan: (x:
+static JSON.stringify: ACCEPT
+static JSON.parse: ACCEPT
+static Object.entries: ACCEPT
+static Object.keys: ACCEPT
+static Object.values: ACCEPT
+static Object.fromEntries: ACCEPT
+static Object.is: ACCEPT
+static Object.defineProperty: REJECT a:rejected[banned-member]
+    a[banned-member] Object.defineProperty is banned
+static Object.setPrototypeOf: REJECT a:rejected[banned-member]
+    a[banned-member] Object.setPrototypeOf is banned
+static Object.defineProperties: REJECT a:rejected[banned-member]
+    a[banned-member] Object.defineProperties is banned
+static Object.prototype: REJECT a:rejected[banned-member]
+    a[banned-member] Object.prototype is banned
+ABSENT static Object.assign: REJECT a:rejected[no-member]
+    a[no-member] no property assign on { entries: <T>(o: { [k: string]: T }) => [string, T][]; keys: (o: object) => string[]; values: <T>(o: { [k: string]: T }) => T[]; fromEntries: <T>(entries: Iterable<[string, T]>) => { [k: string]: T }; is: (a: unknown, b: unknown) => boolean; defineProperty: (o: unknown, k: unknown, d: unknown) => unknown; setPrototypeOf: (o: unknown, p: unknown) => unknown; defineProperties: (o: unknown, d: unknown) => unknown; prototype: unknown }
+ABSENT static Object.freeze: REJECT a:rejected[no-member]
+    a[no-member] no property freeze on { entries: <T>(o: { [k: string]: T }) => [string, T][]; keys: (o: object) => string[]; values: <T>(o: { [k: string]: T }) => T[]; fromEntries: <T>(entries: Iterable<[string, T]>) => { [k: string]: T }; is: (a: unknown, b: unknown) => boolean; defineProperty: (o: unknown, k: unknown, d: unknown) => unknown; setPrototypeOf: (o: unknown, p: unknown) => unknown; defineProperties: (o: unknown, d: unknown) => unknown; prototype: unknown }
+ABSENT static Object.create: REJECT a:rejected[no-member]
+    a[no-member] no property create on { entries: <T>(o: { [k: string]: T }) => [string, T][]; keys: (o: object) => string[]; values: <T>(o: { [k: string]: T }) => T[]; fromEntries: <T>(entries: Iterable<[string, T]>) => { [k: string]: T }; is: (a: unknown, b: unknown) => boolean; defineProperty: (o: unknown, k: unknown, d: unknown) => unknown; setPrototypeOf: (o: unknown, p: unknown) => unknown; defineProperties: (o: unknown, d: unknown) => unknown; prototype: unknown }
+ABSENT static Object.getOwnPropertyNames: REJECT a:rejected[no-member]
+    a[no-member] no property getOwnPropertyNames on { entries: <T>(o: { [k: string]: T }) => [string, T][]; keys: (o: object) => string[]; values: <T>(o: { [k: string]: T }) => T[]; fromEntries: <T>(entries: Iterable<[string, T]>) => { [k: string]: T }; is: (a: unknown, b: unknown) => boolean; defineProperty: (o: unknown, k: unknown, d: unknown) => unknown; setPrototypeOf: (o: unknown, p: unknown) => unknown; defineProperties: (o: unknown, d: unknown) => unknown; prototype: unknown }
+ABSENT static Object.hasOwn: REJECT a:rejected[no-member]
+    a[no-member] no property hasOwn on { entries: <T>(o: { [k: string]: T }) => [string, T][]; keys: (o: object) => string[]; values: <T>(o: { [k: string]: T }) => T[]; fromEntries: <T>(entries: Iterable<[string, T]>) => { [k: string]: T }; is: (a: unknown, b: unknown) => boolean; defineProperty: (o: unknown, k: unknown, d: unknown) => unknown; setPrototypeOf: (o: unknown, p: unknown) => unknown; defineProperties: (o: unknown, d: unknown) => unknown; prototype: unknown }
+ABSENT static Object.groupBy: REJECT a:rejected[no-member]
+    a[no-member] no property groupBy on { entries: <T>(o: { [k: string]: T }) => [string, T][]; keys: (o: object) => string[]; values: <T>(o: { [k: string]: T }) => T[]; fromEntries: <T>(entries: Iterable<[string, T]>) => { [k: string]: T }; is: (a: unknown, b: unknown) => boolean; defineProperty: (o: unknown, k: unknown, d: unknown) => unknown; setPrototypeOf: (o: unknown, p: unknown) => unknown; defineProperties: (o: unknown, d: unknown) => unknown; prototype: unknown }
+ABSENT static Object.isFrozen: REJECT a:rejected[no-member]
+    a[no-member] no property isFrozen on { entries: <T>(o: { [k: string]: T }) => [string, T][]; keys: (o: object) => string[]; values: <T>(o: { [k: string]: T }) => T[]; fromEntries: <T>(entries: Iterable<[string, T]>) => { [k: string]: T }; is: (a: unknown, b: unknown) => boolean; defineProperty: (o: unknown, k: unknown, d: unknown) => unknown; setPrototypeOf: (o: unknown, p: unknown) => unknown; defineProperties: (o: unknown, d: unknown) => unknown; prototype: unknown }
+interface Map.size: ACCEPT
+interface Map.get: ACCEPT
+interface Map.has: ACCEPT
+interface Map.forEach: ACCEPT
+interface Map.keys: ACCEPT
+interface Map.values: ACCEPT
+interface Map.entries: ACCEPT
+interface Map.set: ACCEPT
+interface Map.delete: ACCEPT
+interface Map.clear: ACCEPT
+ABSENT interface Map.getOrInsert: REJECT a:unsupported
+    a{unsupported intrinsic member Map.getOrInsert}
+ABSENT static Map.groupBy: REJECT a:rejected[no-member]
+    a[no-member] no property groupBy on {  }
+interface Set.size: ACCEPT
+interface Set.has: ACCEPT
+interface Set.forEach: ACCEPT
+interface Set.keys: ACCEPT
+interface Set.values: ACCEPT
+interface Set.entries: ACCEPT
+interface Set.add: ACCEPT
+interface Set.delete: ACCEPT
+interface Set.clear: ACCEPT
+ABSENT interface Set.union: REJECT a:unsupported
+    a{unsupported intrinsic member Set.union}
+ABSENT interface Set.intersection: REJECT a:unsupported
+    a{unsupported intrinsic member Set.intersection}
+ABSENT interface Set.difference: REJECT a:unsupported
+    a{unsupported intrinsic member Set.difference}
+ABSENT interface Set.isSubsetOf: REJECT a:unsupported
+    a{unsupported intrinsic member Set.isSubsetOf}
+interface Error.message: ACCEPT
+interface Error.name: ACCEPT
+ABSENT interface Error.stack: REJECT a:unsupported
+    a{unsupported intrinsic member Error.stack}
+ABSENT interface Error.cause: REJECT a:unsupported
+    a{unsupported intrinsic member Error.cause}
+interface Promise.then: ACCEPT
+ABSENT interface Promise.catch: REJECT a:unsupported
+    a{unsupported intrinsic member Promise.catch}
+ABSENT interface Promise.finally: REJECT a:unsupported
+    a{unsupported intrinsic member Promise.finally}
+static Promise.resolve: ACCEPT
+static Promise.all: ACCEPT
+ABSENT static Promise.race: REJECT a:rejected[no-member]
+    a[no-member] no property race on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> }
+ABSENT static Promise.allSettled: REJECT a:rejected[no-member]
+    a[no-member] no property allSettled on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> }
+ABSENT static Promise.any: REJECT a:rejected[no-member]
+    a[no-member] no property any on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> }
+ABSENT static Promise.reject: REJECT a:rejected[no-member]
+    a[no-member] no property reject on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> }
+ABSENT static Promise.withResolvers: REJECT a:rejected[no-member]
+    a[no-member] no property withResolvers on { resolve: { () => Promise<void>; <T>(v: T | Promise<T>) => Promise<T> }; all: <T>(ps: Promise<T>[]) => Promise<T[]> }
+interface ArrayBuffer.byteLength: ACCEPT
+interface ArrayBuffer.slice: ACCEPT
+interface URLSearchParams.get: ACCEPT
+interface URLSearchParams.has: ACCEPT
+interface URLSearchParams.toString: ACCEPT
+ABSENT interface URLSearchParams.set: REJECT a:unsupported
+    a{unsupported intrinsic member URLSearchParams.set}
+ABSENT interface URLSearchParams.append: REJECT a:unsupported
+    a{unsupported intrinsic member URLSearchParams.append}
+ABSENT interface URLSearchParams.getAll: REJECT a:unsupported
+    a{unsupported intrinsic member URLSearchParams.getAll}
+ABSENT interface URLSearchParams.entries: REJECT a:unsupported
+    a{unsupported intrinsic member URLSearchParams.entries}
+interface URL.href: ACCEPT
+interface URL.hash: ACCEPT
+interface URL.search: ACCEPT
+interface URL.pathname: ACCEPT
+interface URL.host: ACCEPT
+interface URL.hostname: ACCEPT
+interface URL.origin: ACCEPT
+interface URL.protocol: ACCEPT
+interface URL.port: ACCEPT
+interface URL.searchParams: ACCEPT
+interface URL.toString: ACCEPT
+static Float32Array.from: ACCEPT
+static Float32Array.of: ACCEPT
+interface Float64Array.length: ACCEPT
+interface Float64Array.buffer: ACCEPT
+interface Float64Array.set: ACCEPT
+interface Float64Array.fill: ACCEPT
+interface Float64Array.sort: ACCEPT
+interface Float64Array.reverse: ACCEPT
+interface Float64Array.copyWithin: ACCEPT
+interface Float64Array.subarray: ACCEPT
+interface Float64Array.values: ACCEPT
+interface Float64Array.keys: ACCEPT
+interface Float64Array.entries: ACCEPT
+interface Float64Array.slice: ACCEPT
+interface Float64Array.map: ACCEPT
+interface Float64Array.filter: ACCEPT
+interface Float64Array.toSorted: ACCEPT
+interface Float64Array.toReversed: ACCEPT
+interface Float64Array.with: ACCEPT
+interface Float64Array.reduce: ACCEPT
+interface Float64Array.forEach: ACCEPT
+interface Float64Array.every: ACCEPT
+interface Float64Array.some: ACCEPT
+interface Float64Array.indexOf: ACCEPT
+interface Float64Array.includes: ACCEPT
+interface Float64Array.join: ACCEPT
+interface Float64Array.at: ACCEPT
+interface Float64Array.toString: ACCEPT
+static Float64Array.from: ACCEPT
+static Float64Array.of: ACCEPT
+static Int8Array.from: ACCEPT
+static Int8Array.of: ACCEPT
+static Uint8Array.from: ACCEPT
+static Uint8Array.of: ACCEPT
+static Uint8ClampedArray.from: ACCEPT
+static Uint8ClampedArray.of: ACCEPT
+static Int16Array.from: ACCEPT
+static Int16Array.of: ACCEPT
+static Uint16Array.from: ACCEPT
+static Uint16Array.of: ACCEPT
+static Int32Array.from: ACCEPT
+static Int32Array.of: ACCEPT
+static Uint32Array.from: ACCEPT
+static Uint32Array.of: ACCEPT

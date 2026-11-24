@@ -1,0 +1,8 @@
+accept-nested-helper-fetches-and-reads: ACCEPT
+accept-nested-helper-checks-ok-then-reads: ACCEPT
+accept-nested-helper-returns-response: ACCEPT
+accept-nested-helper-response-across-two-awaits: ACCEPT
+nested-helper-mut-array-written-after-await: REJECT n:rejected[mut-await]
+    n[mut-await] Mut xs is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const c: number[] = ...) and read c
+nested-helper-mut-array-read-after-await: REJECT n:rejected[mut-await]
+    n[mut-await] Mut xs is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const c: number[] = ...) and read c

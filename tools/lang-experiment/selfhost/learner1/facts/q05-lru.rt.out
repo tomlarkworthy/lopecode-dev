@@ -1,0 +1,18 @@
+== selfhost/learner1/facts/q05-lru.ts:reject-closure-over-mut-map: REJECT cache:rejected[mut-capture][mut-capture][mut-capture]
+== selfhost/learner1/facts/q05-lru.ts:reject-closure-over-let: REJECT counter:rejected[let-capture]
+== selfhost/learner1/facts/q05-lru.ts:accept-immutable-lru: ACCEPT
+   show demo = "a,c"
+   show lruPut = fn(throws undefined is not an object (evaluating ')
+   show lruGet = fn(throws undefined is not an object (evaluating ')
+== selfhost/learner1/facts/q05-lru.ts:accept-state-cell-lru: ACCEPT
+   drive -> keys=a,c
+   show lruPut = fn(throws undefined is not an object (evaluating ')
+   show lruGet = fn(throws undefined is not an object (evaluating ')
+   show cache = {cap:2,entries:[["a",1],["c",3]]}
+   show put = action
+   show touch = action
+   show keys = "a,c"
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 4 candidates, accepted 2, silent 0

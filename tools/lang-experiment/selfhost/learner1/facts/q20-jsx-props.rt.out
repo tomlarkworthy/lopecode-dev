@@ -1,0 +1,35 @@
+== selfhost/learner1/facts/q20-jsx-props.ts:accept-input-type-number-onInput-string: ACCEPT
+   drive -> age="42" ; n=42
+   show age = "42"
+   show setAge = action
+   show v = {tag:"input",props:{type:"number",min:0,max:130,step:1,value:"42",onInput:action},children:[]}
+   show n = 42
+== selfhost/learner1/facts/q20-jsx-props.ts:accept-input-value-number: ACCEPT
+   show v = {tag:"input",props:{type:"range",value:3},children:[]}
+== selfhost/learner1/facts/q20-jsx-props.ts:reject-input-onInput-number-action: REJECT w:rejected[type][type]
+== selfhost/learner1/facts/q20-jsx-props.ts:accept-button-without-onClick: ACCEPT
+   show v = {tag:"button",props:{},children:["plain"]}
+== selfhost/learner1/facts/q20-jsx-props.ts:accept-button-disabled: ACCEPT
+   show v = {tag:"button",props:{disabled:true},children:["x"]}
+== selfhost/learner1/facts/q20-jsx-props.ts:reject-button-value: REJECT v:rejected[excess-property]
+== selfhost/learner1/facts/q20-jsx-props.ts:accept-checkbox-checked: ACCEPT
+   show v = {tag:"input",props:{type:"checkbox",checked:false},children:[]}
+== selfhost/learner1/facts/q20-jsx-props.ts:reject-checked-string: REJECT v:rejected[type][type]
+== selfhost/learner1/facts/q20-jsx-props.ts:accept-style-string-class: ACCEPT
+   show v = {tag:"div",props:{class:"c",style:"color: red",title:"t",id:"i"},children:["x"]}
+== selfhost/learner1/facts/q20-jsx-props.ts:reject-style-object: REJECT v:rejected[type][type]
+== selfhost/learner1/facts/q20-jsx-props.ts:reject-className: REJECT v:rejected[excess-property]
+== selfhost/learner1/facts/q20-jsx-props.ts:reject-data-attr: REJECT v:rejected[excess-property]
+== selfhost/learner1/facts/q20-jsx-props.ts:reject-tag-a: REJECT v:rejected[no-member]
+== selfhost/learner1/facts/q20-jsx-props.ts:reject-tag-ul: REJECT v:rejected[no-member]
+== selfhost/learner1/facts/q20-jsx-props.ts:accept-canvas-size: ACCEPT
+   show v = {tag:"canvas",props:{width:10,height:10},children:[]}
+== selfhost/learner1/facts/q20-jsx-props.ts:reject-onClick-on-div: REJECT w:rejected[excess-property][action-pass]
+== selfhost/learner1/facts/q20-jsx-props.ts:accept-fragment: ACCEPT
+   show v = {tag:"",props:{},children:[{tag:"span",props:{},children:["a"]},{tag:"span",props:{},children:["b"]}]}
+== selfhost/learner1/facts/q20-jsx-props.ts:accept-label-strong-fieldset-legend-output-p: ACCEPT
+   show v = {tag:"fieldset",props:{},children:[{tag:"legend",props:{},children:["l"]},{tag:"label",props:{},children:["a",{tag:"strong",props:{},children:["b"]}]},{tag:"output",props:{},children:["o"]},{tag:"p",props:{},children:["p"]}]}
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 18 candidates, accepted 9, silent 0

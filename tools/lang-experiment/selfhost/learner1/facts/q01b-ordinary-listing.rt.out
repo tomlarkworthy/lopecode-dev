@@ -1,0 +1,6 @@
+== selfhost/learner1/facts/q01b-ordinary-listing.ts:tutorial-ordinary.tsx: ACCEPT
+   drive -> shopTotal 9 -> 7.5
+   show shopTotal = 7.5
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- 1 candidates, accepted 1, silent 0

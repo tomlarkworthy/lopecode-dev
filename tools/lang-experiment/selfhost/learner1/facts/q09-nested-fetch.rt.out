@@ -1,0 +1,14 @@
+== selfhost/learner1/facts/q09-nested-fetch.ts:accept-nested-helper-fetches-and-reads: ACCEPT
+   show both = "hi,hi"
+== selfhost/learner1/facts/q09-nested-fetch.ts:accept-nested-helper-checks-ok-then-reads: ACCEPT
+   show both = 5
+== selfhost/learner1/facts/q09-nested-fetch.ts:accept-nested-helper-returns-response: ACCEPT
+   show both = "hi"
+== selfhost/learner1/facts/q09-nested-fetch.ts:accept-nested-helper-response-across-two-awaits: ACCEPT
+   show both = "hi"
+== selfhost/learner1/facts/q09-nested-fetch.ts:nested-helper-mut-array-written-after-await: REJECT n:rejected[mut-await]
+== selfhost/learner1/facts/q09-nested-fetch.ts:nested-helper-mut-array-read-after-await: REJECT n:rejected[mut-await]
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 6 candidates, accepted 4, silent 0

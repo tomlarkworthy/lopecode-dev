@@ -1,0 +1,27 @@
+const ACT = `const c = (): StateCell<number> => state(0);\nconst a = (c: State<number>) => action(() => c.set(1));\n`;
+const H = (k: string, v = "a") => `const x = { n: 1, ${k}: ${v} }; const o: { readonly n: number } = x;`;
+export const srcs: [string, string][] = [
+  ["json-tojson-act", ACT + `const g = (a: Action<[]>) => { ${H("toJSON")} return JSON.stringify(o); };`],
+  ["json-tojson-fn-undef", `const g = () => { const x = { n: 1, toJSON: () => undefined }; return JSON.stringify(x); };`],
+  ["json-tojson-fn-undef-hidden", `const g = () => { ${H("toJSON", "() => undefined")} return JSON.stringify(o); };`],
+  ["json-fn", `const g = () => JSON.stringify(() => 1);`],
+  ["json-undef", `const g = () => JSON.stringify(undefined);`],
+  ["tmpl-rec", ACT + `const g = (a: Action<[]>) => { ${H("toString")} return \`\${o}\`; };`],
+  ["string-rec", ACT + `const g = (a: Action<[]>) => { ${H("toString")} return String(o); };`],
+  ["join-rec", ACT + `const g = (a: Action<[]>) => { ${H("toString")} return [o].join(","); };`],
+  ["sort-rec", ACT + `const g = (a: Action<[]>) => { ${H("toString")} return [o, o].toSorted().length; };`],
+  ["number-rec", ACT + `const g = (a: Action<[]>) => { ${H("valueOf")} return Number(o); };`],
+  ["then-act", ACT + `const g = (a: Action<[]>) => { ${H("then")} return o; };`],
+  ["then-act-async", ACT + `const g = async (a: Action<[]>) => { ${H("then")} return o; };`],
+  ["then-act-await", ACT + `const g = async (a: Action<[]>) => { ${H("then")} await o; return 1; };`],
+  ["then-act-resolve", ACT + `const g = (a: Action<[]>) => { ${H("then")} return Promise.resolve(o); };`],
+  ["then-fn-plain", `const g = () => ({ n: 1, then: (r: (v: number) => void) => r(5) });`],
+  ["then-fn-plain-async", `const g = async () => { const x = { n: 1, then: (r: (v: number) => void) => r(5) }; return x; };`],
+  ["then-fn-hidden", `const g = () => { ${H("then", "(r: (v: string) => void) => r(\"s\")")} return o; };`],
+  ["then-fn-hidden-async", `const g = async () => { ${H("then", "(r: (v: string) => void) => r(\"s\")")} return o; };`],
+  ["then-fn-hidden-await", `const g = async () => { ${H("then", "(r: (v: string) => void) => r(\"s\")")} const v = await o; return v.n; };`],
+  ["then-member-type", `const g = () => { const o: { readonly n: number; readonly then: number } = { n: 1, then: 2 }; return o; };`],
+  ["tojson-own", `const g = () => { const x = { n: 1, toJSON: () => "z" }; const o: { readonly n: number } = x; return JSON.parse(JSON.stringify(o)); };`],
+  ["eq-hidden", ACT + `const g = (a: Action<[]>) => { ${H("toString")} return equals(o, { n: 1 }); };`],
+  ["tostring-key", `const g = () => { const x = { n: 1, toString: () => "q" }; return x.toString(); };`],
+];

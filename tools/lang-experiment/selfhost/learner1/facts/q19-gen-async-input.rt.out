@@ -1,0 +1,16 @@
+== selfhost/learner1/facts/q19-gen-async-input.ts:accept-generator-takes-async-value: ACCEPT
+   show profile = {name:"ada"}
+   show stored = "ada"
+   show names = {name:"names"}
+   show store = action
+   show onName = {events:{name:"names"},action:action}
+== selfhost/learner1/facts/q19-gen-async-input.ts:reject-generator-param-typed-promise: REJECT g:rejected[inject-type]
+== selfhost/learner1/facts/q19-gen-async-input.ts:accept-finite-generator-with-listener: ACCEPT
+   show total = 55
+   show tenAndOne = {name:"tenAndOne"}
+   show addTo = action
+   show onN = {events:{name:"tenAndOne"},action:action}
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 3 candidates, accepted 2, silent 0

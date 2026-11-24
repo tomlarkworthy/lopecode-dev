@@ -1,0 +1,21 @@
+array-index-is-T-or-undefined: REJECT a:rejected[possibly-undefined]
+    a[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+accept-array-index-fallback: ACCEPT
+string-index: REJECT a:rejected[possibly-undefined]
+    a[possibly-undefined] string | undefined is not assignable to string; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+accept-string-index-fallback: ACCEPT
+typed-array-index: REJECT a:rejected[possibly-undefined]
+    a[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+typed-array-index-plus-assign: ACCEPT
+tuple-literal-index: ACCEPT
+tuple-out-of-range-index: REJECT a:rejected[type]
+    a[type] tuple [number, string] has no element 2
+map-entry-tuple-index: ACCEPT
+regexp-match-index: REJECT a:rejected[possibly-undefined]
+    a[possibly-undefined] string | undefined is not assignable to string; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+index-signature-literal-key-read: REJECT a:rejected[possibly-undefined]
+    a[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+index-signature-dot-read: REJECT a:rejected[possibly-undefined]
+    a[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+accept-at-minus-one: ACCEPT
+string-charAt-is-string: ACCEPT

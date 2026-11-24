@@ -1,0 +1,30 @@
+== selfhost/learner1/facts/q03-row-handlers.ts:reject-action-per-row-over-state: REJECT view:rejected[action-capture]
+== selfhost/learner1/facts/q03-row-handlers.ts:accept-input-onInput-row-id: ACCEPT
+   drive -> items=[{"id":1,"label":"a"},{"id":3,"label":"c"}]
+   show items = [{id:1,label:"a"},{id:3,label:"c"}]
+   show remove = action
+   show view = {tag:"div",props:{},children:[{tag:"label",props:{key:1},children:["a",{tag:"input",props:{type:"checkbox",value:"1",onInput:action},children:[]}]},{tag:"label",props:{key:3},children:["c",{tag:"input",props:{type:"checkbox",value:"3",onInput:action},children:[]}]}]}
+== selfhost/learner1/facts/q03-row-handlers.ts:reject-actions-mapped-over-data-cell: REJECT removers:rejected[action-capture]
+== selfhost/learner1/facts/q03-row-handlers.ts:reject-action-in-view-map-over-data: REJECT view:rejected[action-capture]
+== selfhost/learner1/facts/q03-row-handlers.ts:reject-action-factory-function: REJECT removeOf:rejected[action-capture]
+== selfhost/learner1/facts/q03-row-handlers.ts:reject-map-index-slots: REJECT removeAt:rejected[action-capture]
+== selfhost/learner1/facts/q03-row-handlers.ts:reject-const-from-map-param: REJECT removers:rejected[action-capture]
+== selfhost/learner1/facts/q03-row-handlers.ts:accept-for-of-loop-over-data-cell: ACCEPT
+   drive -> items=[{"id":1,"label":"a"},{"id":3,"label":"c"}]
+   show initialItems = [{id:1,label:"a"},{id:2,label:"b"},{id:3,label:"c"}]
+   show items = [{id:1,label:"a"},{id:3,label:"c"}]
+   show removers = [{id:1,remove:action},{id:2,remove:action},{id:3,remove:action}]
+   show view = {tag:"div",props:{},children:[{tag:"button",props:{key:1,onClick:action},children:["a"]},{tag:"button",props:{key:3,onClick:action},children:["c"]}]}
+== selfhost/learner1/facts/q03-row-handlers.ts:reject-for-of-loop-over-state-value: REJECT removers:rejected[action-capture]
+== selfhost/learner1/facts/q03-row-handlers.ts:accept-for-of-position-slots-over-state: ACCEPT
+   drive -> items=[{"id":3,"label":"c"}]
+   show items = [{id:3,label:"c"}]
+   show removeAt = [action,action,action,action,action,action,action,action]
+   show view = {tag:"div",props:{},children:[{tag:"button",props:{key:3,onClick:action},children:["c"]}]}
+== selfhost/learner1/facts/q03-row-handlers.ts:accept-inline-action-in-view: ACCEPT
+   show items = [{id:1,label:"a"},{id:2,label:"b"},{id:3,label:"c"}]
+   show view = {tag:"button",props:{onClick:action},children:["drop first"]}
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 11 candidates, accepted 4, silent 0

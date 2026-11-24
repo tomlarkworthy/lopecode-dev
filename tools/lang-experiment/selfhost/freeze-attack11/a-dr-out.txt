@@ -1,0 +1,778 @@
+== selfhost/freeze-attack11/a.ts:a-r-extra: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {n:1,res:{}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-unknown: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {u:{n:1,res:{}}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-arr: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = [{n:1,res:{}}] | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-map: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = Map{"k"=>{n:1,res:{}}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-set: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = Set{{n:1,res:{}}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-param: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {o:{n:1,res:{}}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-kept: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = fn({n:1,res:{}}) | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-spread: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {n:1,res:{}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-rest: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {res:{}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-snapshot: ACCEPT
+   drive -> same: c:-=undefined g:-=undefined r:rejected(The object can not be cloned.)=undefined
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = ERROR The object can not be cloned.
+   error r: The object can not be cloned.
+== selfhost/freeze-attack11/a.ts:a-r-extra-promise: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {n:1,res:{}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-gen: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {n:1,res:{}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-then: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {n:1,res:{}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-cast: ACCEPT
+   drive -> same: c:-=undefined g:-=undefined r:fulfilled={"ok":true,"value":{"n":1}}
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {ok:true,value:{n:1}} | E[]
+== selfhost/freeze-attack11/a.ts:a-r-extra-cast-unknown: ACCEPT
+   drive -> same: c:-=undefined g:-=undefined r:fulfilled={"ok":true,"value":{"n":1}}
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {ok:true,value:{n:1}} | E[]
+== selfhost/freeze-attack11/a.ts:a-r-extra-name: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {name:"n",res:{}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-ok: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = [{ok:true,res:{}}] | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-nested: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {o:{n:1,inner:{res:{}}}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-union: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {u:{n:1,res:{}}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-opt-union: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {n:1,res:{}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-generic: REJECT r:unsupported
+== selfhost/freeze-attack11/a.ts:a-r-extra-generic-ret: REJECT r:rejected[type][handle-pass]
+== selfhost/freeze-attack11/a.ts:a-r-extra-alias: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {n:1,res:{}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-iface: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {n:1,res:{}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-ternary: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {n:1,res:{}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-extra-map-cb: REJECT r:rejected[iterator-capture]
+== selfhost/freeze-attack11/a.ts:a-r-extra-state: REJECT r:rejected[state-write]
+== selfhost/freeze-attack11/a.ts:a-r-two-ss: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {n:1,res:{}} | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-r-cast-back: REJECT g:rejected[inject-type][no-member]
+== selfhost/freeze-attack11/a.ts:a-r-sc: ACCEPT
+   drive -> same: c:-=undefined g:-=undefined r:rejected(The object can not be cloned.)=undefined
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = ERROR The object can not be cloned.
+   error r: The object can not be cloned.
+== selfhost/freeze-attack11/a.ts:a-r-ctl-direct [ctl]: CONTROL (checker skipped)
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = {} | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack11/a.ts:a-h-tojson-action: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-tostring-template: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-tostring-String: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-tostring-join: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-tostring-sort: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-valueof-Number: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-then-action: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   show r = undefined | E[]
+   error g: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-then-action-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR an argument of the action a reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave it, since the body could still write what the function reads or what the promise settles to (S4.12). Give data and make the function where the value is read, or make the function in a cell of its own and take that cell as an input
+   show r = undefined | E[]
+   error g: an argument of the action a reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave it, since the body could still write what the function 
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-then-action-await: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR an argument of the action a reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave it, since the body could still write what the function reads or what the promise settles to (S4.12). Give data and make the function where the value is read, or make the function in a cell of its own and take that cell as an input
+   show r = undefined | E[]
+   error g: an argument of the action a reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave it, since the body could still write what the function 
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-then-action-resolve: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = {p:Promise} | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-then-action-args: ACCEPT
+   drive -> DIFF STATE c is 7 with no event
+   show c = 7 | E[]
+   show g = ERROR a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   show r = undefined | E[]
+   error g: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-then-action-rec: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   show r = undefined | E[]
+   error g: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-then-fn: ACCEPT
+   drive -> same: c:-=undefined g:rejected(a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the)=undefined r:-=undefined
+   show c = undefined | E[]
+   show g = ERROR a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   show r = undefined | E[]
+   error g: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+== selfhost/freeze-attack11/a.ts:a-h-then-fn-async: ACCEPT
+   drive -> DIFF TYPE g is outside its type: string "s"
+   show c = undefined | E[]
+   show g = "s" | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-then-fn-await: ACCEPT
+   drive -> DIFF TYPE g is outside its type: undefined undefined
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-then-fn-reader: ACCEPT
+   drive -> same: c:-=undefined g:rejected(a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the)=undefined r:-=undefined
+   show c = undefined | E[]
+   show g = ERROR a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   show r = undefined | E[]
+   error k: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   error g: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+== selfhost/freeze-attack11/a.ts:a-h-then-fn-param: ACCEPT
+   drive -> DIFF TYPE g is outside its type: undefined undefined
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-then-gen: ACCEPT
+   drive -> DIFF TYPE g is outside its type: string "s"
+   show c = undefined | E[]
+   show g = "s" | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-then-number: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled={"n":1,"then":2} r:-=undefined
+   show c = undefined | E[]
+   show g = {n:1,then:2} | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-h-then-hidden-num-to-fn: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled={"n":1,"then":2} r:-=undefined
+   show c = undefined | E[]
+   show g = {n:1,then:2} | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-h-then-state: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled=0 r:-=undefined
+   show c = undefined | E[]
+   show g = 0 | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-h-tojson-undef: ACCEPT
+   drive -> same: c:-=undefined g:rejected(undefined is not an object (evaluating 'JSON.stringify(o).length'))=undefined r:-=undefined
+   show c = undefined | E[]
+   show g = ERROR undefined is not an object (evaluating 'JSON.stringify(o).length')
+   show r = undefined | E[]
+   error g: undefined is not an object (evaluating 'JSON.stringify(o).length')
+== selfhost/freeze-attack11/a.ts:a-h-tojson-direct-undef: ACCEPT
+   drive -> DIFF TYPE g is outside its type: undefined undefined
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-json-undefined: ACCEPT
+   drive -> DIFF TYPE g is outside its type: undefined undefined
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-json-fn: ACCEPT
+   drive -> DIFF TYPE g is outside its type: undefined undefined
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h-json-undef-length: ACCEPT
+   drive -> same: c:-=undefined g:rejected(undefined is not an object (evaluating 'JSON.stringify(u).length'))=undefined r:-=undefined
+   show c = undefined | E[]
+   show g = ERROR undefined is not an object (evaluating 'JSON.stringify(u).length')
+   show r = undefined | E[]
+   error g: undefined is not an object (evaluating 'JSON.stringify(u).length')
+== selfhost/freeze-attack11/a.ts:a-h-tojson-value: REJECT g:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-h-tostring-type: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled=1 r:-=undefined
+   show c = undefined | E[]
+   show g = 1 | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-h-valueof-type: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled=null r:-=undefined
+   show c = undefined | E[]
+   show g = null | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-h-tostring-action-arr: REJECT g:rejected[no-cast]
+== selfhost/freeze-attack11/a.ts:a-h-ctl-then-action [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   show r = undefined | E[]
+   error g: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   CONTROL FIRED
+== selfhost/freeze-attack11/a.ts:a-m-extra-state-handle: ACCEPT
+   drive -> same: c:fulfilled=0 g:fulfilled={"s":{},"n":1} r:-=undefined
+   show c = 0 | E[]
+   show g = {s:{},n:1} | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-m-extra-state-unknown: ACCEPT
+   drive -> same: c:fulfilled=0 g:fulfilled={"u":{"s":{},"n":1}} r:-=undefined
+   show c = 0 | E[]
+   show g = {u:{s:{},n:1}} | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-m-extra-action: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = {go:action,n:1} | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-m-extra-action-unknown: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = {u:{go:action,n:1}} | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-m-extra-mut-arr: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled={"o":{"n":1,"xs":[1,2]},"len":2} r:-=undefined
+   show c = undefined | E[]
+   show g = {o:{n:1,xs:[1,2]},len:2} | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-m-extra-mut-gen: REJECT g:rejected[mut-yield]
+== selfhost/freeze-attack11/a.ts:a-m-extra-u8-gen: REJECT g:rejected[mut-yield]
+== selfhost/freeze-attack11/a.ts:a-m-extra-u8-kept: ACCEPT
+   drive -> same: c:-=undefined g:rejected(a typed array where it cannot be replaced by a copy (among a function's captures, in an Er)=undefined r:-=undefined
+   show c = undefined | E[]
+   show g = ERROR a typed array where it cannot be replaced by a copy (among a function's captures, in an Error or in an already frozen value): a value cannot change after its cell publishes it
+   show r = undefined | E[]
+   error g: a typed array where it cannot be replaced by a copy (among a function's captures, in an Error or in an already frozen value): a value cannot change after its cell publishes it
+== selfhost/freeze-attack11/a.ts:a-m-extra-u8-action: REJECT a:rejected[member-write]
+== selfhost/freeze-attack11/a.ts:a-m-extra-map: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled={"o":{"n":1,"m":{}}} r:-=undefined
+   show c = undefined | E[]
+   show g = {o:{n:1,m:Map{1=>2,3=>4}}} | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-m-extra-async: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled={"n":1,"xs":[1,2]} r:-=undefined
+   show c = undefined | E[]
+   show g = {n:1,xs:[1,2]} | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-loop: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-messageOf: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = "(a thrown value whose text cannot be read)" | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-throw: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = "(a thrown value whose text cannot be read)" | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-jsx-child: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-nested-arr: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-other-cell: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-other-cell-arr: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-kept: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-memo: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR an action called while a memoised function computes a result: a call that gives the stored result would skip it (S2.13)
+   show r = undefined | E[]
+   error g: an action called while a memoised function computes a result: a call that gives the stored result would skip it (S2.13)
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-action-arg: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = 1 | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-unknown-String: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-valueof-compare: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-search: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tojson-nested: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tojson-map-entries: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-generic: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-fn-arg: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-direct: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-direct-template: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-tostring-optional: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack11/a.ts:a-h2-then-promise-all: REJECT g:rejected[type][type][no-member]
+== selfhost/freeze-attack11/a.ts:a-h2-then-array-ret: ACCEPT
+   drive -> DIFF TYPE g is outside its type: string "s"
+   show c = undefined | E[]
+   show g = "s" | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-h2-then-other-cell: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled=null r:-=undefined
+   show c = undefined | E[]
+   show g = null | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-h2-then-reject: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled=-1 r:-=undefined
+   show c = undefined | E[]
+   show g = -1 | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-h2-then-async-kept: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled=fn r:-=undefined
+   show c = undefined | E[]
+   show g = fn(Promise) | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-h2-ctl-action-call [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   CONTROL FIRED
+== selfhost/freeze-attack11/a.ts:a-h2-ctl-then-plain-async [ctl]: CONTROL (checker skipped)
+   drive -> DIFF TYPE g is outside its type: string "s"
+   show c = undefined | E[]
+   show g = "s" | E[]
+   show r = undefined | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack11/a.ts:a-g-partial: REJECT r:rejected[unknown-type]
+== selfhost/freeze-attack11/a.ts:a-g-readonly: REJECT r:rejected[unknown-type]
+== selfhost/freeze-attack11/a.ts:a-g-pick: REJECT r:rejected[unknown-type]
+== selfhost/freeze-attack11/a.ts:a-g-T-extends-empty: REJECT r:rejected[handle-pass][iterator-cell]
+== selfhost/freeze-attack11/a.ts:a-g-T-extends-ok: REJECT r:rejected[handle-pass][iterator-cell]
+== selfhost/freeze-attack11/a.ts:a-g-T-default: REJECT r:rejected[handle-pass][iterator-cell]
+== selfhost/freeze-attack11/a.ts:a-g-unknown-arr-extra: ACCEPT
+   drive -> DIFF RESP r holds a Response
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = [{n:1,res:{}}] | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-g-obj-values: REJECT r:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-g-obj-entries-extra: REJECT r:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-g-obj-keys-extra: ACCEPT
+   drive -> same: c:-=undefined g:-=undefined r:fulfilled=["n","res"]
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = ["n","res"] | E[]
+== selfhost/freeze-attack11/a.ts:a-g-json-extra: ACCEPT
+   drive -> same: c:-=undefined g:-=undefined r:fulfilled="{\"n\":1,\"res\":{}}"
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = "{\"n\":1,\"res\":{}}" | E[]
+== selfhost/freeze-attack11/a.ts:a-g-template-extra: ACCEPT
+   drive -> same: c:-=undefined g:-=undefined r:fulfilled="[object Object]"
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = "[object Object]" | E[]
+== selfhost/freeze-attack11/a.ts:a-g-fn-param-type: REJECT r:rejected[iterator-capture]
+== selfhost/freeze-attack11/a.ts:a-g-index-rec: REJECT r:rejected[handle-pass]
+== selfhost/freeze-attack11/a.ts:a-g-index-num: REJECT r:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-g-intersection: REJECT r:unsupported
+== selfhost/freeze-attack11/a.ts:a-g-component-prop: REJECT C:rejected[inject-unknown] r:unsupported
+== selfhost/freeze-attack11/a.ts:a-g-component-spread-hidden: REJECT C:rejected[inject-unknown] r:unsupported
+== selfhost/freeze-attack11/a.ts:a-g-action-arg: ACCEPT
+   drive -> same: c:-=undefined g:-=undefined r:fulfilled=1
+   show c = undefined | E[]
+   show g = undefined | E[]
+   show r = 1 | E[]
+== selfhost/freeze-attack11/a.ts:a-g-events-yield: REJECT l:rejected[inject-events]
+== selfhost/freeze-attack11/a.ts:a-g-hidden-events-handle: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled={"n":1,"e":{"name":"e"}} r:-=undefined
+   show c = undefined | E[]
+   show g = {n:1,e:{name:"e"}} | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-g-hidden-events-unknown: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled={"u":{"n":1,"e":{"name":"e"}}} r:-=undefined
+   show c = undefined | E[]
+   show g = {u:{n:1,e:{name:"e"}}} | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-d-toString-_x_: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-d-toString-_x: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-d-toString-_x_join_: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-d-toString-String_x_: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack11/a.ts:a-d-toString-x_x: REJECT g:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-d-valueOf-_x: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-d-valueOf-x_: REJECT g:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-d-valueOf-x_: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-d-toString-_x_toSorted_length: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = 1 | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-d-toJSON-JSON_stringify_x_: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack11/a.ts:a-d-toJSON-JSON_stringify_x_: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack11/a.ts:a-d-toString-messageOf_x_: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = "(a thrown value whose text cannot be read)" | E[]
+   show r = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-d-toString-_x_: ACCEPT
+   drive -> DIFF STATE c is 1 with no event
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   show r = undefined | E[]
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/a.ts:a-d-valueOf-Math_max_x_: REJECT g:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-d-toString-encodeURIComponent_x_: REJECT g:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-d-toString-parseInt_x_: REJECT g:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-d-toString-new_URL_x_: REJECT g:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-d-toString-_abc_includes_x_: REJECT g:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-d-toString-_x_: REJECT g:unsupported
+== selfhost/freeze-attack11/a.ts:a-d-toString-x_in_a_: REJECT g:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-d-toString-new_Map_has_x_: REJECT g:rejected[type]
+== selfhost/freeze-attack11/a.ts:a-d-toString-_x_includes_x_: REJECT g:rejected[strict-eq-object]
+== selfhost/freeze-attack11/a.ts:a-d-tostring-plain-fn: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled="5" r:-=undefined
+   show c = undefined | E[]
+   show g = "5" | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-d-tostring-returns-obj: ACCEPT
+   drive -> same: c:-=undefined g:rejected(No default value)=undefined r:-=undefined
+   show c = undefined | E[]
+   show g = ERROR No default value
+   show r = undefined | E[]
+   error g: No default value
+== selfhost/freeze-attack11/a.ts:a-d-valueof-plain-str: ACCEPT
+   drive -> same: c:-=undefined g:fulfilled=null r:-=undefined
+   show c = undefined | E[]
+   show g = null | E[]
+   show r = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-o-extra-direct: ACCEPT
+   drive -> same: o1=undefined o2=undefined
+   show r = {n:1,res:{}} | E[]
+   show o1 = undefined | E[]
+   show o2 = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-o-extra-unknown: ACCEPT
+   drive -> same: o1=undefined o2=undefined
+   show r = {u:{n:1,res:{}}} | E[]
+   show o1 = undefined | E[]
+   show o2 = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-o-extra-spread: ACCEPT
+   drive -> same: o1=undefined o2=undefined
+   show r = {n:1,res:{}} | E[]
+   show o1 = undefined | E[]
+   show o2 = undefined | E[]
+== selfhost/freeze-attack11/a.ts:a-sc-hidden-fn: ACCEPT
+   drive -> same: c:-=undefined g:rejected(The object can not be cloned.)=undefined r:-=undefined
+   show c = undefined | E[]
+   show g = ERROR The object can not be cloned.
+   show r = undefined | E[]
+   error g: The object can not be cloned.
+== selfhost/freeze-attack11/a.ts:a-snap-hidden-fn: ACCEPT
+   drive -> same: c:-=undefined g:rejected(The object can not be cloned.)=undefined r:-=undefined
+   show c = undefined | E[]
+   show g = ERROR The object can not be cloned.
+   show r = undefined | E[]
+   error g: The object can not be cloned.
+== selfhost/freeze-attack11/a.ts:a-sc-direct-fn: REJECT g:rejected[type]
+-- controls 4, ran 4, fired 4
+-- harness crashes 0
+-- 149 candidates, accepted 105, silent 69 (by the tap alone 0)
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-unknown
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-arr
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-map
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-set
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-param
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-kept
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-spread
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-rest
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-promise
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-gen
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-then
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-name
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-ok
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-nested
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-union
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-opt-union
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-alias
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-iface
+SILENT selfhost/freeze-attack11/a.ts:a-r-extra-ternary
+SILENT selfhost/freeze-attack11/a.ts:a-r-two-ss
+SILENT selfhost/freeze-attack11/a.ts:a-h-tojson-action
+SILENT selfhost/freeze-attack11/a.ts:a-h-tostring-template
+SILENT selfhost/freeze-attack11/a.ts:a-h-tostring-String
+SILENT selfhost/freeze-attack11/a.ts:a-h-tostring-join
+SILENT selfhost/freeze-attack11/a.ts:a-h-tostring-sort
+SILENT selfhost/freeze-attack11/a.ts:a-h-valueof-Number
+SILENT selfhost/freeze-attack11/a.ts:a-h-then-action
+SILENT selfhost/freeze-attack11/a.ts:a-h-then-action-async
+SILENT selfhost/freeze-attack11/a.ts:a-h-then-action-await
+SILENT selfhost/freeze-attack11/a.ts:a-h-then-action-resolve
+SILENT selfhost/freeze-attack11/a.ts:a-h-then-action-args
+SILENT selfhost/freeze-attack11/a.ts:a-h-then-action-rec
+SILENT selfhost/freeze-attack11/a.ts:a-h-then-fn-async
+SILENT selfhost/freeze-attack11/a.ts:a-h-then-fn-await
+SILENT selfhost/freeze-attack11/a.ts:a-h-then-fn-param
+SILENT selfhost/freeze-attack11/a.ts:a-h-then-gen
+SILENT selfhost/freeze-attack11/a.ts:a-h-tojson-direct-undef
+SILENT selfhost/freeze-attack11/a.ts:a-h-json-undefined
+SILENT selfhost/freeze-attack11/a.ts:a-h-json-fn
+SILENT selfhost/freeze-attack11/a.ts:a-m-extra-action
+SILENT selfhost/freeze-attack11/a.ts:a-m-extra-action-unknown
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-loop
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-messageOf
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-throw
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-jsx-child
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-nested-arr
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-other-cell
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-other-cell-arr
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-kept
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-memo
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-action-arg
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-unknown-String
+SILENT selfhost/freeze-attack11/a.ts:a-h2-valueof-compare
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-search
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tojson-nested
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tojson-map-entries
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-fn-arg
+SILENT selfhost/freeze-attack11/a.ts:a-h2-tostring-direct-template
+SILENT selfhost/freeze-attack11/a.ts:a-h2-then-array-ret
+SILENT selfhost/freeze-attack11/a.ts:a-g-unknown-arr-extra
+SILENT selfhost/freeze-attack11/a.ts:a-d-toString-_x_
+SILENT selfhost/freeze-attack11/a.ts:a-d-toString-_x
+SILENT selfhost/freeze-attack11/a.ts:a-d-toString-_x_join_
+SILENT selfhost/freeze-attack11/a.ts:a-d-valueOf-_x
+SILENT selfhost/freeze-attack11/a.ts:a-d-valueOf-x_
+SILENT selfhost/freeze-attack11/a.ts:a-d-toString-_x_toSorted_length
+SILENT selfhost/freeze-attack11/a.ts:a-d-toString-messageOf_x_
+SILENT selfhost/freeze-attack11/a.ts:a-d-toString-_x_

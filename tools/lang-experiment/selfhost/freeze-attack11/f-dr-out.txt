@@ -1,0 +1,585 @@
+== selfhost/freeze-attack11/f.ts:f-name-closure: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-methods: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-out: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-ref: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-events: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-listen: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-cross: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-viewRef: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-compileFor: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-rejected: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-release: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-SsMap: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-SsSet: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-SsURL: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-md: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-html: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-svg: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-width: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-Inputs: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-Plot: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-d3: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-require: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-FileAttachment: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-Promises: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-DOM: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-Files: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-Mutable: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-visibility: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-htl: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-tex: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-Date: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-Reflect: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-Proxy: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-WeakMap: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-WeakSet: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-globalThis: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-window: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-self: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-document: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-console: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-Function: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-setTimeout: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-queueMicrotask: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-performance: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-Iterator: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-AggregateError: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-SyntaxError: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-ReferenceError: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-EvalError: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-URIError: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-WeakRef: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-Float16Array: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-BigInt64Array: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-escape: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-unescape: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-_: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-L: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-aq: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-name-vl: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-closure-used: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-out-used: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-SsMap-used: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-events-used: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-listen-used: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-ref-state: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-rejected-with-bad: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-this: ACCEPT
+   run crash: Cannot use the keyword 'this' as a lexical variable name.
+== selfhost/freeze-attack11/f.ts:f-local-md: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-md: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-width: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-width: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-Date: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-Date: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-globalThis: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-globalThis: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-closure: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-closure: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-out: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-out: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-ref: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-ref: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-events: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-events: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-SsMap: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-SsMap: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-Generators: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-Generators: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-invalidation: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-invalidation: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-Promise: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-Promise: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-Object: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-Object: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-JSON: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-JSON: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-Map: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-Map: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-structuredClone: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-structuredClone: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-URLSearchParams: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-URLSearchParams: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-now: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-now: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-fetch: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-fetch: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-undefined: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-undefined: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-NaN: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-param-NaN: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-sc-and-use: ACCEPT
+   drive -> DIFF g=undefined (rejected structuredClone is not a function. (In 'structuredClone([1, 2, 3])', 'structured)
+   show g = ERROR structuredClone is not a function. (In 'structuredClone([1, 2, 3])', 'structuredClone' is 3)
+   error g: structuredClone is not a function. (In 'structuredClone([1, 2, 3])', 'structuredClone' is 3)
+   SILENT
+== selfhost/freeze-attack11/f.ts:f-local-Map-and-new: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+== selfhost/freeze-attack11/f.ts:f-local-usp-and-use: REJECT g:unsupported
+== selfhost/freeze-attack11/f.ts:f-ctl-Map-cell [ctl]: CONTROL (checker skipped)
+   run crash: Cannot declare a const variable twice: 'Map'.
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack11/f.ts:f-kw-async: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-of: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-get: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-set: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-type: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-declare: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-namespace: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-module: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-abstract: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-readonly: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-keyof: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-infer: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-is: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-asserts: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-unique: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-never: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-unknown: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-any: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-symbol: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-object: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-string: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-number: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-boolean: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-kw-bigint: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6 | E[]
+   show q = 1 | E[]
+   show z = 1 | E[]
+== selfhost/freeze-attack11/f.ts:f-this-param-fn: REJECT g:rejected[no-this][arity]
+== selfhost/freeze-attack11/f.ts:f-this-param-str: REJECT g:rejected[no-this][arity]
+-- controls 1, ran 1, fired 0
+-- harness crashes 0
+-- 138 candidates, accepted 135, silent 1 (by the tap alone 0)
+SILENT selfhost/freeze-attack11/f.ts:f-local-sc-and-use

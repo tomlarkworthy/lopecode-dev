@@ -1,0 +1,14 @@
+reject-Date-now (.ts): REJECT t:rejected[free-name]
+    t[free-name] free name Date
+reject-new-Date (.ts): REJECT t:rejected[new-non-intrinsic]
+    t[new-non-intrinsic] new on something that is not an allowed intrinsic
+accept-now-is-ms-since-page-load (.ts): ACCEPT
+accept-date-from-ordinary-cell (.ts): REJECT year:rejected[inject-unknown]
+    year[inject-unknown] parameter today names no cell, foreign or capability
+accept-epoch-ms-from-ordinary-cell (.ts): REJECT days:rejected[inject-unknown]
+    days[inject-unknown] parameter epochMs names no cell, foreign or capability
+reject-ordinary-cell-without-type (.ts): REJECT year:rejected[inject-unknown]
+    year[inject-unknown] parameter today names no cell, foreign or capability
+reject-Intl (.ts): REJECT f:rejected[new-non-intrinsic]
+    f[new-non-intrinsic] new on something that is not an allowed intrinsic
+accept-format-by-hand (.ts): ACCEPT

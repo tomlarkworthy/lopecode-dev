@@ -1,0 +1,17 @@
+== selfhost/learner1/facts/q11-read-in-update.ts:accept-read-value-used-in-update: ACCEPT
+   drive -> todos=[{"id":1,"text":"milk"},{"id":2,"text":"milk"},{"id":3,"text":"milk"}] ; nextId=4
+   show todos = [{id:1,text:"milk"},{id:2,text:"milk"},{id:3,text:"milk"}]
+   show nextId = 4
+   show draft = "milk"
+   show add = action
+== selfhost/learner1/facts/q11-read-in-update.ts:reject-value-param-used-in-update: REJECT add:rejected[action-capture]
+== selfhost/learner1/facts/q11-read-in-update.ts:accept-read-sees-earlier-write-same-call: ACCEPT
+   drive -> todos=[{"id":2,"text":"t"}] ; nextId=2
+   show todos = [{id:2,text:"t"}]
+   show nextId = 2
+   show draft = "milk"
+   show twice = action
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 3 candidates, accepted 2, silent 0

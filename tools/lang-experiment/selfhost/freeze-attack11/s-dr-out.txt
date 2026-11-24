@@ -1,0 +1,138 @@
+== selfhost/freeze-attack11/s.ts:s-param-block: ACCEPT
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1" | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-param-block-min: ACCEPT
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1" | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-cell-param-block: ACCEPT
+   drive -> DIFF g is outside its type: number null
+   show g = null | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-outer-local: ACCEPT
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1" | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-outer-local-str: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-outer-let: ACCEPT
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1" | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-Math: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-JSON: ACCEPT
+   drive -> DIFF g is outside its type: number 7
+   show g = 7 | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-Number: ACCEPT
+   drive -> DIFF g is outside its type: string "3"
+   show g = "3" | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-String: ACCEPT
+   drive -> DIFF g is outside its type: number 3
+   show g = 3 | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-parseInt: ACCEPT
+   drive -> DIFF g is outside its type: string "3"
+   show g = "3" | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-structuredClone: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-Map: ACCEPT
+   drive -> same: g rejected 5 is not a constructor (evaluating 'new Map([[1, 2]])')
+   show g = ERROR 5 is not a constructor (evaluating 'new Map([[1, 2]])')
+   error g: 5 is not a constructor (evaluating 'new Map([[1, 2]])')
+== selfhost/freeze-attack11/s.ts:s-undefined: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack11/s.ts:s-fn-decl: REJECT g:rejected[type]
+== selfhost/freeze-attack11/s.ts:s-nested-fn: ACCEPT
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1" | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-arrow-param-default: REJECT g:rejected[untyped-parameter]
+== selfhost/freeze-attack11/s.ts:s-for-body: ACCEPT
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1" | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-switch-case: REJECT g:rejected[no-cast]
+== selfhost/freeze-attack11/s.ts:s-catch: ACCEPT
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1" | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-tdz-read: ACCEPT
+   drive -> same: g rejected Cannot access 'x' before initialization.
+   show g = ERROR Cannot access 'x' before initialization.
+   error g: Cannot access 'x' before initialization.
+== selfhost/freeze-attack11/s.ts:s-cell-name-shadow: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack11/s.ts:s-action-in-later: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack11/s.ts:s-ctl-param-block [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s1"
+   show g = "s1" | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack11/s.ts:s-action-call: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g rejected action called during a cell evaluation
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-action-kept: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1 | E[]
+   show g = fn(undefined) | E[]
+   show k = ERROR action called during a cell evaluation
+   error k: action called during a cell evaluation
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-action-unknown: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1 | E[]
+   show g = {u:action} | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-mut-kept: ACCEPT
+   drive -> same: {}
+   show g = {f:fn([1,2])} | E[]
+== selfhost/freeze-attack11/s.ts:s-mut-kept-write: ACCEPT
+   drive -> DIFF k is outside its type: string "11"
+   show g = {f:fn([1]),w:fn(0)} | E[]
+   show k = "11" | E[]
+   SILENT
+== selfhost/freeze-attack11/s.ts:s-ctl-action-call [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event; g rejected action called during a cell evaluation
+   show c = 1 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 28 candidates, accepted 25, silent 19 (by the tap alone 0)
+SILENT selfhost/freeze-attack11/s.ts:s-param-block
+SILENT selfhost/freeze-attack11/s.ts:s-param-block-min
+SILENT selfhost/freeze-attack11/s.ts:s-cell-param-block
+SILENT selfhost/freeze-attack11/s.ts:s-outer-local
+SILENT selfhost/freeze-attack11/s.ts:s-outer-local-str
+SILENT selfhost/freeze-attack11/s.ts:s-outer-let
+SILENT selfhost/freeze-attack11/s.ts:s-Math
+SILENT selfhost/freeze-attack11/s.ts:s-JSON
+SILENT selfhost/freeze-attack11/s.ts:s-Number
+SILENT selfhost/freeze-attack11/s.ts:s-String
+SILENT selfhost/freeze-attack11/s.ts:s-parseInt
+SILENT selfhost/freeze-attack11/s.ts:s-structuredClone
+SILENT selfhost/freeze-attack11/s.ts:s-nested-fn
+SILENT selfhost/freeze-attack11/s.ts:s-for-body
+SILENT selfhost/freeze-attack11/s.ts:s-catch
+SILENT selfhost/freeze-attack11/s.ts:s-action-call
+SILENT selfhost/freeze-attack11/s.ts:s-action-kept
+SILENT selfhost/freeze-attack11/s.ts:s-action-unknown
+SILENT selfhost/freeze-attack11/s.ts:s-mut-kept-write

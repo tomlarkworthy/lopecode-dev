@@ -1,0 +1,13 @@
+type Child = Elem | string | number | boolean | null | undefined | readonly Elem[]
+type PointerData = { readonly x: number; readonly y: number; readonly t: number; readonly id: number; readonly buttons: number }
+<div> (CommonProps): children?: readonly Child[]; key?: string | number; class?: string; style?: string; title?: string; id?: string
+<span> (CommonProps): children?: readonly Child[]; key?: string | number; class?: string; style?: string; title?: string; id?: string
+<p> (CommonProps): children?: readonly Child[]; key?: string | number; class?: string; style?: string; title?: string; id?: string
+<label> (CommonProps): children?: readonly Child[]; key?: string | number; class?: string; style?: string; title?: string; id?: string
+<strong> (CommonProps): children?: readonly Child[]; key?: string | number; class?: string; style?: string; title?: string; id?: string
+<fieldset> (CommonProps): children?: readonly Child[]; key?: string | number; class?: string; style?: string; title?: string; id?: string
+<legend> (CommonProps): children?: readonly Child[]; key?: string | number; class?: string; style?: string; title?: string; id?: string
+<output> (CommonProps): children?: readonly Child[]; key?: string | number; class?: string; style?: string; title?: string; id?: string
+<button> (ButtonProps): children?: readonly Child[]; key?: string | number; class?: string; style?: string; title?: string; id?: string; onClick?: Action<[]>; disabled?: boolean
+<input> (InputProps): children?: readonly Child[]; key?: string | number; class?: string; style?: string; title?: string; id?: string; type?: string; name?: string; value?: string | number; min?: number; max?: number; step?: number; checked?: boolean; disabled?: boolean; onInput?: Action<[string]>; onClick?: Action<[]>
+<canvas> (CanvasProps): children?: readonly Child[]; key?: string | number; class?: string; style?: string; title?: string; id?: string; width?: number; height?: number; onPointerDown?: Action<[PointerData]>; onPointerMove?: Action<[PointerData]>; onPointerUp?: Action<[PointerData]>; onPointerCancel?: Action<[PointerData]>

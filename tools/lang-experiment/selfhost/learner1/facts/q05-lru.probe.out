@@ -1,0 +1,6 @@
+reject-closure-over-mut-map: REJECT cache:rejected[mut-capture][mut-capture][mut-capture]
+    cache[mut-capture] m may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged || cache[mut-capture] Mut m captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: Map<string, number> = m) and capture that, or make it inside the function || cache[mut-capture] Mut m written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is 
+reject-closure-over-let: REJECT counter:rejected[let-capture]
+    counter[let-capture] let n assigned from a function that escapes
+accept-immutable-lru: ACCEPT
+accept-state-cell-lru: ACCEPT

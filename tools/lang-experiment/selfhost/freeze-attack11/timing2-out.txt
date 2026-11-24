@@ -1,0 +1,6 @@
+U-to-V-only: n=20 55ms ACCEPT | n=40 204ms ACCEPT | n=80 1723ms ACCEPT
+U-to-empty-only: n=20 30ms ACCEPT | n=40 210ms ACCEPT | n=80 1831ms ACCEPT
+U-declared-only: n=20 2ms ACCEPT | n=40 2ms ACCEPT | n=80 3ms ACCEPT
+U-to-V-required: n=20 3ms ACCEPT | n=40 4ms ACCEPT | n=80 9ms ACCEPT
+U-nonrecursive-to-V: n=20 2ms ACCEPT | n=40 2ms ACCEPT | n=80 6ms ACCEPT
+U-to-empty-only: n=10 24ms ACCEPT | n=20 31ms ACCEPT | n=40 182ms ACCEPT | n=80 1602ms ACCEPT | n=120 6224ms ACCEPT | n=160 17095ms ACCEPT

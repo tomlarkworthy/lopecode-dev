@@ -1,0 +1,22 @@
+accept-array-annotation: ACCEPT
+reject-readonly-array-annotation: REJECT a:rejected[mutating-method]
+    a[mutating-method] write to a number[], which is not Mut; a copy made in the same expression ([...xs]) or bound to a local (const y = [...xs]) is writable
+accept-tuple-annotation: ACCEPT
+accept-record-annotation: ACCEPT
+index-signature-annotation-literal-key: ACCEPT
+index-signature-annotation-runtime-key: REJECT a:rejected[banned-member]
+    a[banned-member] a key known only at run time, on a record with an index signature, can name an inherited member such as toString or __proto__, which is not an entry; keep the entries in a Map<string, T> (m.get(k), m.set(k, v), m.has(k), m.delete(k)), or use a literal key
+Record-annotation: ACCEPT
+reject-type-alias-annotation: REJECT a:rejected[mutating-method]
+    a[mutating-method] write to a Nums, which is not Mut; a copy made in the same expression ([...xs]) or bound to a local (const y = [...xs]) is writable
+reject-union-annotation: REJECT a:rejected[mutating-method]
+    a[mutating-method] write to a number[] | string[], which is not Mut; a copy made in the same expression ([...xs]) or bound to a local (const y = [...xs]) is writable
+accept-map-annotation: ACCEPT
+accept-typed-array-annotation: ACCEPT
+accept-unannotated-literal-top-field: ACCEPT
+reject-nested-array-of-fresh-literal: REJECT a:rejected[mutating-method]
+    a[mutating-method] write to a number[], which is not Mut; a copy made in the same expression ([...x]) or bound to a local (const y = [...x]) is writable
+accept-let-fresh-reassigned: ACCEPT
+reject-non-fresh-binding: REJECT a:rejected[mutating-method]
+    a[mutating-method] write to a number[], which is not Mut; a copy made in the same expression ([...xs]) or bound to a local (const y = [...xs]) is writable
+accept-structuredClone-copy: ACCEPT

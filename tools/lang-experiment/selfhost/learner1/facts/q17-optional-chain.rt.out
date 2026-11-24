@@ -1,0 +1,18 @@
+== selfhost/learner1/facts/q17-optional-chain.ts:accept-optional-member: ACCEPT
+   show a = "-,x"
+   show people = fn([{name:"a"},{name:"b",tag:{label:"x"}}])
+== selfhost/learner1/facts/q17-optional-chain.ts:accept-find-then-optional: ACCEPT
+   show a = "none"
+   show people = fn([{name:"a"},{name:"b",tag:{label:"x"}}])
+== selfhost/learner1/facts/q17-optional-chain.ts:accept-optional-index: ACCEPT
+   show a = 1
+== selfhost/learner1/facts/q17-optional-chain.ts:accept-optional-call: ACCEPT
+   show a = 2
+== selfhost/learner1/facts/q17-optional-chain.ts:reject-member-without-optional: REJECT a:rejected[possibly-undefined]
+== selfhost/learner1/facts/q17-optional-chain.ts:nullish-assign: REJECT a:unsupported
+== selfhost/learner1/facts/q17-optional-chain.ts:and-assign: REJECT a:unsupported
+== selfhost/learner1/facts/q17-optional-chain.ts:or-assign: REJECT a:unsupported
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 8 candidates, accepted 4, silent 0

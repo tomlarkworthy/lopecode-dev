@@ -1,0 +1,364 @@
+cell now: REJECT now:rejected[reserved-name]
+    now[reserved-name] now is reserved as a cell name: a compiled cell takes now (a capability or a global) by that name from outside the module, so a reader of a cell named now gets that and not the cell; give the cell another name
+local now: ACCEPT
+cell random: REJECT random:rejected[reserved-name]
+    random[reserved-name] random is reserved as a cell name: a compiled cell takes random (a capability or a global) by that name from outside the module, so a reader of a cell named random gets that and not the cell; give the cell another name
+local random: ACCEPT
+cell fetch: REJECT fetch:rejected[reserved-name]
+    fetch[reserved-name] fetch is reserved as a cell name: a compiled cell takes fetch (a capability or a global) by that name from outside the module, so a reader of a cell named fetch gets that and not the cell; give the cell another name
+local fetch: ACCEPT
+cell log: REJECT log:rejected[reserved-name]
+    log[reserved-name] log is reserved as a cell name: a compiled cell takes log (a capability or a global) by that name from outside the module, so a reader of a cell named log gets that and not the cell; give the cell another name
+local log: ACCEPT
+cell invalidation: REJECT invalidation:rejected[reserved-name]
+    invalidation[reserved-name] invalidation is reserved as a cell name: compiled cells take invalidation from the module, and a cell of that name would replace it
+local invalidation: ACCEPT
+cell compile: REJECT compile:rejected[reserved-name]
+    compile[reserved-name] compile is reserved as a cell name: a compiled cell takes compile (a capability or a global) by that name from outside the module, so a reader of a cell named compile gets that and not the cell; give the cell another name
+local compile: ACCEPT
+cell pool: REJECT pool:rejected[reserved-name]
+    pool[reserved-name] pool is reserved as a cell name: a compiled cell takes pool (a capability or a global) by that name from outside the module, so a reader of a cell named pool gets that and not the cell; give the cell another name
+local pool: ACCEPT
+cell structuredClone: REJECT structuredClone:rejected[reserved-name]
+    structuredClone[reserved-name] structuredClone is reserved as a cell name: a compiled cell takes structuredClone (a capability or a global) by that name from outside the module, so a reader of a cell named structuredClone gets that and not the cell; give the cell another name
+local structuredClone: ACCEPT
+cell URLSearchParams: REJECT URLSearchParams:rejected[reserved-name]
+    URLSearchParams[reserved-name] URLSearchParams is reserved as a cell name: a compiled cell takes URLSearchParams (a capability or a global) by that name from outside the module, so a reader of a cell named URLSearchParams gets that and not the cell; give the cell another name
+local URLSearchParams: ACCEPT
+cell Object: REJECT Object:rejected[reserved-name]
+    Object[reserved-name] Object is reserved as a cell name: a compiled cell takes Object (a capability or a global) by that name from outside the module, so a reader of a cell named Object gets that and not the cell; give the cell another name
+local Object: ACCEPT
+cell Array: REJECT Array:rejected[reserved-name]
+    Array[reserved-name] Array is reserved as a cell name: a compiled cell takes Array (a capability or a global) by that name from outside the module, so a reader of a cell named Array gets that and not the cell; give the cell another name
+local Array: ACCEPT
+cell Math: REJECT Math:rejected[reserved-name]
+    Math[reserved-name] Math is reserved as a cell name: a compiled cell takes Math (a capability or a global) by that name from outside the module, so a reader of a cell named Math gets that and not the cell; give the cell another name
+local Math: ACCEPT
+cell JSON: REJECT JSON:rejected[reserved-name]
+    JSON[reserved-name] JSON is reserved as a cell name: a compiled cell takes JSON (a capability or a global) by that name from outside the module, so a reader of a cell named JSON gets that and not the cell; give the cell another name
+local JSON: ACCEPT
+cell Number: REJECT Number:rejected[reserved-name]
+    Number[reserved-name] Number is reserved as a cell name: a compiled cell takes Number (a capability or a global) by that name from outside the module, so a reader of a cell named Number gets that and not the cell; give the cell another name
+local Number: ACCEPT
+cell String: REJECT String:rejected[reserved-name]
+    String[reserved-name] String is reserved as a cell name: a compiled cell takes String (a capability or a global) by that name from outside the module, so a reader of a cell named String gets that and not the cell; give the cell another name
+local String: ACCEPT
+cell Boolean: REJECT Boolean:rejected[reserved-name]
+    Boolean[reserved-name] Boolean is reserved as a cell name: a compiled cell takes Boolean (a capability or a global) by that name from outside the module, so a reader of a cell named Boolean gets that and not the cell; give the cell another name
+local Boolean: ACCEPT
+cell BigInt: REJECT BigInt:rejected[reserved-name]
+    BigInt[reserved-name] BigInt is reserved as a cell name: a compiled cell takes BigInt (a capability or a global) by that name from outside the module, so a reader of a cell named BigInt gets that and not the cell; give the cell another name
+local BigInt: ACCEPT
+cell Symbol: REJECT Symbol:rejected[reserved-name]
+    Symbol[reserved-name] Symbol is reserved as a cell name: a compiled cell takes Symbol (a capability or a global) by that name from outside the module, so a reader of a cell named Symbol gets that and not the cell; give the cell another name
+local Symbol: ACCEPT
+cell Map: REJECT Map:rejected[reserved-name]
+    Map[reserved-name] Map is reserved as a cell name: a compiled cell takes Map (a capability or a global) by that name from outside the module, so a reader of a cell named Map gets that and not the cell; give the cell another name
+local Map: ACCEPT
+cell Set: REJECT Set:rejected[reserved-name]
+    Set[reserved-name] Set is reserved as a cell name: a compiled cell takes Set (a capability or a global) by that name from outside the module, so a reader of a cell named Set gets that and not the cell; give the cell another name
+local Set: ACCEPT
+cell Error: REJECT Error:rejected[reserved-name]
+    Error[reserved-name] Error is reserved as a cell name: a compiled cell takes Error (a capability or a global) by that name from outside the module, so a reader of a cell named Error gets that and not the cell; give the cell another name
+local Error: ACCEPT
+cell TypeError: REJECT TypeError:rejected[reserved-name]
+    TypeError[reserved-name] TypeError is reserved as a cell name: a compiled cell takes TypeError (a capability or a global) by that name from outside the module, so a reader of a cell named TypeError gets that and not the cell; give the cell another name
+local TypeError: ACCEPT
+cell RangeError: REJECT RangeError:rejected[reserved-name]
+    RangeError[reserved-name] RangeError is reserved as a cell name: a compiled cell takes RangeError (a capability or a global) by that name from outside the module, so a reader of a cell named RangeError gets that and not the cell; give the cell another name
+local RangeError: ACCEPT
+cell RegExp: REJECT RegExp:rejected[reserved-name]
+    RegExp[reserved-name] RegExp is reserved as a cell name: a compiled cell takes RegExp (a capability or a global) by that name from outside the module, so a reader of a cell named RegExp gets that and not the cell; give the cell another name
+local RegExp: ACCEPT
+cell Promise: REJECT Promise:rejected[reserved-name]
+    Promise[reserved-name] Promise is reserved as a cell name: a compiled cell takes Promise (a capability or a global) by that name from outside the module, so a reader of a cell named Promise gets that and not the cell; give the cell another name
+local Promise: ACCEPT
+cell ArrayBuffer: REJECT ArrayBuffer:rejected[reserved-name]
+    ArrayBuffer[reserved-name] ArrayBuffer is reserved as a cell name: a compiled cell takes ArrayBuffer (a capability or a global) by that name from outside the module, so a reader of a cell named ArrayBuffer gets that and not the cell; give the cell another name
+local ArrayBuffer: ACCEPT
+cell DataView: REJECT DataView:rejected[reserved-name]
+    DataView[reserved-name] DataView is reserved as a cell name: a compiled cell takes DataView (a capability or a global) by that name from outside the module, so a reader of a cell named DataView gets that and not the cell; give the cell another name
+local DataView: ACCEPT
+cell TextEncoder: REJECT TextEncoder:rejected[reserved-name]
+    TextEncoder[reserved-name] TextEncoder is reserved as a cell name: a compiled cell takes TextEncoder (a capability or a global) by that name from outside the module, so a reader of a cell named TextEncoder gets that and not the cell; give the cell another name
+local TextEncoder: ACCEPT
+cell TextDecoder: REJECT TextDecoder:rejected[reserved-name]
+    TextDecoder[reserved-name] TextDecoder is reserved as a cell name: a compiled cell takes TextDecoder (a capability or a global) by that name from outside the module, so a reader of a cell named TextDecoder gets that and not the cell; give the cell another name
+local TextDecoder: ACCEPT
+cell Infinity: REJECT Infinity:rejected[reserved-name]
+    Infinity[reserved-name] Infinity is reserved as a cell name: a compiled cell takes Infinity (a capability or a global) by that name from outside the module, so a reader of a cell named Infinity gets that and not the cell; give the cell another name
+local Infinity: ACCEPT
+cell NaN: REJECT NaN:rejected[reserved-name]
+    NaN[reserved-name] NaN is reserved as a cell name: a compiled cell takes NaN (a capability or a global) by that name from outside the module, so a reader of a cell named NaN gets that and not the cell; give the cell another name
+local NaN: ACCEPT
+cell undefined: REJECT undefined:rejected[reserved-name]
+    undefined[reserved-name] undefined is reserved as a cell name: a compiled cell takes undefined (a capability or a global) by that name from outside the module, so a reader of a cell named undefined gets that and not the cell; give the cell another name
+local undefined: ACCEPT
+cell isNaN: REJECT isNaN:rejected[reserved-name]
+    isNaN[reserved-name] isNaN is reserved as a cell name: a compiled cell takes isNaN (a capability or a global) by that name from outside the module, so a reader of a cell named isNaN gets that and not the cell; give the cell another name
+local isNaN: ACCEPT
+cell isFinite: REJECT isFinite:rejected[reserved-name]
+    isFinite[reserved-name] isFinite is reserved as a cell name: a compiled cell takes isFinite (a capability or a global) by that name from outside the module, so a reader of a cell named isFinite gets that and not the cell; give the cell another name
+local isFinite: ACCEPT
+cell parseInt: REJECT parseInt:rejected[reserved-name]
+    parseInt[reserved-name] parseInt is reserved as a cell name: a compiled cell takes parseInt (a capability or a global) by that name from outside the module, so a reader of a cell named parseInt gets that and not the cell; give the cell another name
+local parseInt: ACCEPT
+cell parseFloat: REJECT parseFloat:rejected[reserved-name]
+    parseFloat[reserved-name] parseFloat is reserved as a cell name: a compiled cell takes parseFloat (a capability or a global) by that name from outside the module, so a reader of a cell named parseFloat gets that and not the cell; give the cell another name
+local parseFloat: ACCEPT
+cell encodeURIComponent: REJECT encodeURIComponent:rejected[reserved-name]
+    encodeURIComponent[reserved-name] encodeURIComponent is reserved as a cell name: a compiled cell takes encodeURIComponent (a capability or a global) by that name from outside the module, so a reader of a cell named encodeURIComponent gets that and not the cell; give the cell another name
+local encodeURIComponent: ACCEPT
+cell decodeURIComponent: REJECT decodeURIComponent:rejected[reserved-name]
+    decodeURIComponent[reserved-name] decodeURIComponent is reserved as a cell name: a compiled cell takes decodeURIComponent (a capability or a global) by that name from outside the module, so a reader of a cell named decodeURIComponent gets that and not the cell; give the cell another name
+local decodeURIComponent: ACCEPT
+cell encodeURI: REJECT encodeURI:rejected[reserved-name]
+    encodeURI[reserved-name] encodeURI is reserved as a cell name: a compiled cell takes encodeURI (a capability or a global) by that name from outside the module, so a reader of a cell named encodeURI gets that and not the cell; give the cell another name
+local encodeURI: ACCEPT
+cell decodeURI: REJECT decodeURI:rejected[reserved-name]
+    decodeURI[reserved-name] decodeURI is reserved as a cell name: a compiled cell takes decodeURI (a capability or a global) by that name from outside the module, so a reader of a cell named decodeURI gets that and not the cell; give the cell another name
+local decodeURI: ACCEPT
+cell atob: REJECT atob:rejected[reserved-name]
+    atob[reserved-name] atob is reserved as a cell name: a compiled cell takes atob (a capability or a global) by that name from outside the module, so a reader of a cell named atob gets that and not the cell; give the cell another name
+local atob: ACCEPT
+cell btoa: REJECT btoa:rejected[reserved-name]
+    btoa[reserved-name] btoa is reserved as a cell name: a compiled cell takes btoa (a capability or a global) by that name from outside the module, so a reader of a cell named btoa gets that and not the cell; give the cell another name
+local btoa: ACCEPT
+cell URL: REJECT URL:rejected[reserved-name]
+    URL[reserved-name] URL is reserved as a cell name: a compiled cell takes URL (a capability or a global) by that name from outside the module, so a reader of a cell named URL gets that and not the cell; give the cell another name
+local URL: ACCEPT
+cell Float32Array: REJECT Float32Array:rejected[reserved-name]
+    Float32Array[reserved-name] Float32Array is reserved as a cell name: a compiled cell takes Float32Array (a capability or a global) by that name from outside the module, so a reader of a cell named Float32Array gets that and not the cell; give the cell another name
+local Float32Array: ACCEPT
+cell Float64Array: REJECT Float64Array:rejected[reserved-name]
+    Float64Array[reserved-name] Float64Array is reserved as a cell name: a compiled cell takes Float64Array (a capability or a global) by that name from outside the module, so a reader of a cell named Float64Array gets that and not the cell; give the cell another name
+local Float64Array: ACCEPT
+cell Int8Array: REJECT Int8Array:rejected[reserved-name]
+    Int8Array[reserved-name] Int8Array is reserved as a cell name: a compiled cell takes Int8Array (a capability or a global) by that name from outside the module, so a reader of a cell named Int8Array gets that and not the cell; give the cell another name
+local Int8Array: ACCEPT
+cell Uint8Array: REJECT Uint8Array:rejected[reserved-name]
+    Uint8Array[reserved-name] Uint8Array is reserved as a cell name: a compiled cell takes Uint8Array (a capability or a global) by that name from outside the module, so a reader of a cell named Uint8Array gets that and not the cell; give the cell another name
+local Uint8Array: ACCEPT
+cell Uint8ClampedArray: REJECT Uint8ClampedArray:rejected[reserved-name]
+    Uint8ClampedArray[reserved-name] Uint8ClampedArray is reserved as a cell name: a compiled cell takes Uint8ClampedArray (a capability or a global) by that name from outside the module, so a reader of a cell named Uint8ClampedArray gets that and not the cell; give the cell another name
+local Uint8ClampedArray: ACCEPT
+cell Int16Array: REJECT Int16Array:rejected[reserved-name]
+    Int16Array[reserved-name] Int16Array is reserved as a cell name: a compiled cell takes Int16Array (a capability or a global) by that name from outside the module, so a reader of a cell named Int16Array gets that and not the cell; give the cell another name
+local Int16Array: ACCEPT
+cell Uint16Array: REJECT Uint16Array:rejected[reserved-name]
+    Uint16Array[reserved-name] Uint16Array is reserved as a cell name: a compiled cell takes Uint16Array (a capability or a global) by that name from outside the module, so a reader of a cell named Uint16Array gets that and not the cell; give the cell another name
+local Uint16Array: ACCEPT
+cell Int32Array: REJECT Int32Array:rejected[reserved-name]
+    Int32Array[reserved-name] Int32Array is reserved as a cell name: a compiled cell takes Int32Array (a capability or a global) by that name from outside the module, so a reader of a cell named Int32Array gets that and not the cell; give the cell another name
+local Int32Array: ACCEPT
+cell Uint32Array: REJECT Uint32Array:rejected[reserved-name]
+    Uint32Array[reserved-name] Uint32Array is reserved as a cell name: a compiled cell takes Uint32Array (a capability or a global) by that name from outside the module, so a reader of a cell named Uint32Array gets that and not the cell; give the cell another name
+local Uint32Array: ACCEPT
+cell state: REJECT state:rejected[reserved-name]
+    state[reserved-name] state is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named state clashes with that binding; give the cell another name
+local state: ACCEPT
+cell action: REJECT action:rejected[reserved-name]
+    action[reserved-name] action is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named action clashes with that binding; give the cell another name
+local action: ACCEPT
+cell snapshot: REJECT snapshot:rejected[reserved-name]
+    snapshot[reserved-name] snapshot is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named snapshot clashes with that binding; give the cell another name
+local snapshot: REJECT a:rejected[prelude-shadow]
+    a[prelude-shadow] snapshot names a prelude function; a binding of that name would hide it from the rules of snapshot(...)
+cell equals: REJECT equals:rejected[reserved-name]
+    equals[reserved-name] equals is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named equals clashes with that binding; give the cell another name
+local equals: ACCEPT
+cell on: REJECT on:rejected[reserved-name]
+    on[reserved-name] on is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named on clashes with that binding; give the cell another name
+local on: ACCEPT
+cell read: REJECT read:rejected[reserved-name]
+    read[reserved-name] read is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named read clashes with that binding; give the cell another name
+local read: ACCEPT
+cell messageOf: REJECT messageOf:rejected[reserved-name]
+    messageOf[reserved-name] messageOf is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named messageOf clashes with that binding; give the cell another name
+local messageOf: ACCEPT
+cell memo: REJECT memo:rejected[reserved-name]
+    memo[reserved-name] memo is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named memo clashes with that binding; give the cell another name
+local memo: ACCEPT
+cell cast: REJECT cast:rejected[reserved-name]
+    cast[reserved-name] cast is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named cast clashes with that binding; give the cell another name
+local cast: ACCEPT
+cell viewof: REJECT viewof:rejected[reserved-name]
+    viewof[reserved-name] viewof is reserved: Observable JavaScript reads it as a keyword
+local viewof: REJECT a:rejected[reserved-name]
+    a[reserved-name] viewof is reserved: Observable JavaScript reads it as a keyword
+cell mutable: REJECT mutable:rejected[reserved-name]
+    mutable[reserved-name] mutable is reserved: Observable JavaScript reads it as a keyword
+local mutable: REJECT a:rejected[reserved-name]
+    a[reserved-name] mutable is reserved: Observable JavaScript reads it as a keyword
+cell $1: REJECT $1:rejected[reserved-name]
+    $1[reserved-name] $1 is reserved: Observable JavaScript names a cell's viewof inputs $0, $1, …
+local $1: REJECT a:rejected[reserved-name]
+    a[reserved-name] $1 is reserved: Observable JavaScript names a cell's viewof inputs $0, $1, …
+cell listen: ACCEPT
+local listen: ACCEPT
+cell reduce: ACCEPT
+local reduce: ACCEPT
+cell push: ACCEPT
+local push: ACCEPT
+cell pop: ACCEPT
+local pop: ACCEPT
+cell History: ACCEPT
+local History: ACCEPT
+cell Result: ACCEPT
+local Result: ACCEPT
+cell Event: ACCEPT
+local Event: ACCEPT
+cell Card: ACCEPT
+local Card: ACCEPT
+cell Date: ACCEPT
+local Date: ACCEPT
+cell console: ACCEPT
+local console: ACCEPT
+cell window: ACCEPT
+local window: ACCEPT
+cell document: ACCEPT
+local document: ACCEPT
+cell self: ACCEPT
+local self: ACCEPT
+cell Generators: REJECT Generators:rejected[reserved-name]
+    Generators[reserved-name] Generators is reserved as a cell name: compiled cells take Generators from the module, and a cell of that name would replace it
+local Generators: ACCEPT
+cell Inputs: ACCEPT
+local Inputs: ACCEPT
+cell html: ACCEPT
+local html: ACCEPT
+cell md: ACCEPT
+local md: ACCEPT
+cell require: ACCEPT
+local require: ACCEPT
+cell visibility: ACCEPT
+local visibility: ACCEPT
+cell width: ACCEPT
+local width: ACCEPT
+cell h: REJECT h:rejected[reserved-name]
+    h[reserved-name] h is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named h clashes with that binding; give the cell another name
+local h: ACCEPT
+cell ss_x: REJECT ss_x:rejected[reserved-name]
+    ss_x[reserved-name] ss_x is reserved: the compiler names what it inserts into a compiled cell ss_… and $ss$…, so a name with either prefix would replace it; rename it
+local ss_x: REJECT a:rejected[reserved-name]
+    a[reserved-name] ss_x is reserved: the compiler names what it inserts into a compiled cell ss_… and $ss$…, so a name with either prefix would replace it; rename it
+cell $ss$x: REJECT $ss$x:rejected[reserved-name]
+    $ss$x[reserved-name] $ss$x is reserved: the compiler names what it inserts into a compiled cell ss_… and $ss$…, so a name with either prefix would replace it; rename it
+local $ss$x: REJECT a:rejected[reserved-name]
+    a[reserved-name] $ss$x is reserved: the compiler names what it inserts into a compiled cell ss_… and $ss$…, so a name with either prefix would replace it; rename it
+type Action: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Action is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Action<[]>
+type Array: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Array is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to unknown[]
+type ArrayBuffer: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] ArrayBuffer is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to ArrayBuffer
+type ArrayLike: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] ArrayLike is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to ArrayLike
+type Boolean: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Boolean is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Boolean
+type Borrowed: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Borrowed is a built-in type; give this type another name || a[type] Borrowed takes one type argument, as Borrowed<T>
+type ButtonProps: REJECT module[builtin-type-name] a:rejected[excess-property]
+    module[builtin-type-name] ButtonProps is a built-in type; give this type another name || a[excess-property] property v is not in ButtonProps
+type CanvasProps: REJECT module[builtin-type-name] a:rejected[excess-property]
+    module[builtin-type-name] CanvasProps is a built-in type; give this type another name || a[excess-property] property v is not in CanvasProps
+type Cast: REJECT module[builtin-type-name] a:unsupported
+    module[builtin-type-name] Cast is a built-in type; give this type another name || a{unsupported generic type Cast used with 0 arguments}
+type Child: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Child is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Child
+type Clock: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Clock is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Clock
+type CommonProps: REJECT module[builtin-type-name] a:rejected[excess-property]
+    module[builtin-type-name] CommonProps is a built-in type; give this type another name || a[excess-property] property v is not in CommonProps
+type Compile: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Compile is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Compile
+type Elem: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Elem is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Elem
+type Error: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Error is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Error
+type Events: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Events is a built-in type; give this type another name || a[type] Events takes one type argument, as Events<T>
+type Fetch: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Fetch is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Fetch
+type FetchResponse: REJECT module[builtin-type-name] a:rejected[type][iterator-cell]
+    module[builtin-type-name] FetchResponse is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to FetchResponse || a[iterator-cell] value FetchResponse holds a FetchResponse: a response's body can be read once, so the cells that take it would find it used up, depending on the order they run in; read the body in this cell and give the data (const data = async (fetch: Fetch) => (await fetch(url)).json())
+type Float32Array: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Float32Array is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Float32Array
+type Float64Array: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Float64Array is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Float64Array
+type Generator: REJECT module[builtin-type-name] a:rejected[type][iterator-cell]
+    module[builtin-type-name] Generator is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Generator || a[iterator-cell] value Generator may hold an iterator (Generator); every cell that takes it would use up the same one, so what each computes would depend on the order the cells run in. Make it an array
+type InputProps: REJECT module[builtin-type-name] a:rejected[excess-property]
+    module[builtin-type-name] InputProps is a built-in type; give this type another name || a[excess-property] property v is not in InputProps
+type Int16Array: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Int16Array is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Int16Array
+type Int32Array: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Int32Array is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Int32Array
+type Int8Array: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Int8Array is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Int8Array
+type IntrinsicElements: REJECT module[builtin-type-name] a:rejected[excess-property][type]
+    module[builtin-type-name] IntrinsicElements is a built-in type; give this type another name || a[excess-property] property v is not in IntrinsicElements || a[type] { v: 1 } is not assignable to IntrinsicElements
+type Invalidation: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Invalidation is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Invalidation
+type Iterable: REJECT module[builtin-type-name] a:rejected[type][iterator-cell]
+    module[builtin-type-name] Iterable is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Iterable || a[iterator-cell] value Iterable may hold an iterator (Iterable); every cell that takes it would use up the same one, so what each computes would depend on the order the cells run in. Make it an array
+type Js: REJECT module[builtin-type-name]
+    module[builtin-type-name] Js is a built-in type; give this type another name
+type Listener: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Listener is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Listener
+type Log: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Log is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Log
+type Map: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Map is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Map
+type Mut: REJECT module[builtin-type-name] a:rejected[mut-nested][type]
+    module[builtin-type-name] Mut is a built-in type; give this type another name || a[mut-nested] Mut<…> inside another type or as a function's result; only the whole type of a parameter, of a local or of a type alias may be a Mut: give the inner value its own Mut local or parameter, or drop the Mut (a local bound to a fresh value is writable) || a[type] Mut takes one type argument, as Mut<T>
+type Number: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Number is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Number
+type PointerData: REJECT module[builtin-type-name] a:rejected[excess-property][type]
+    module[builtin-type-name] PointerData is a built-in type; give this type another name || a[excess-property] property v is not in PointerData || a[type] { v: 1 } is not assignable to PointerData
+type Pool: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Pool is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Pool
+type Promise: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Promise is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Promise
+type Random: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Random is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Random
+type ReadonlyArray: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] ReadonlyArray is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to unknown[]
+type Record: REJECT module[builtin-type-name] a:rejected[unknown-type]
+    module[builtin-type-name] Record is a built-in type; give this type another name || a[unknown-type] type Record cannot be used: it is not loaded: it is defined by itself ([type-cycle]) or declares a member no type may declare ([banned-member])
+type RegExp: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] RegExp is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to RegExp
+type RegExpMatchArray: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] RegExpMatchArray is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to RegExpMatchArray
+type Set: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Set is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Set
+type State: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] State is a built-in type; give this type another name || a[type] State takes one type argument, as State<T>
+type StateCell: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] StateCell is a built-in type; give this type another name || a[type] StateCell takes one type argument, as StateCell<T>
+type String: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] String is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to String
+type URL: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] URL is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to URL
+type URLSearchParams: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] URLSearchParams is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to URLSearchParams
+type Uint16Array: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Uint16Array is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Uint16Array
+type Uint32Array: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Uint32Array is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Uint32Array
+type Uint8Array: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Uint8Array is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Uint8Array
+type Uint8ClampedArray: REJECT module[builtin-type-name] a:rejected[type]
+    module[builtin-type-name] Uint8ClampedArray is a built-in type; give this type another name || a[type] { v: 1 } is not assignable to Uint8ClampedArray
+type ValueOf: REJECT module[builtin-type-name] a:unsupported
+    module[builtin-type-name] ValueOf is a built-in type; give this type another name || a{unsupported ValueOf in checked cells}
+type History: ACCEPT
+type Result: ACCEPT
+type Event: ACCEPT
+type Card: ACCEPT
+type Stack: ACCEPT
+type Row: ACCEPT
+type Todo: ACCEPT
+type-and-cell-same-name: ACCEPT
+type-and-cell-same-name-plain: ACCEPT
+param-named-like-prelude: ACCEPT

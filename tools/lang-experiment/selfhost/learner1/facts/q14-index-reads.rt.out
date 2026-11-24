@@ -1,0 +1,25 @@
+== selfhost/learner1/facts/q14-index-reads.ts:array-index-is-T-or-undefined: REJECT a:rejected[possibly-undefined]
+== selfhost/learner1/facts/q14-index-reads.ts:accept-array-index-fallback: ACCEPT
+   show a = 1
+== selfhost/learner1/facts/q14-index-reads.ts:string-index: REJECT a:rejected[possibly-undefined]
+== selfhost/learner1/facts/q14-index-reads.ts:accept-string-index-fallback: ACCEPT
+   show a = "none"
+== selfhost/learner1/facts/q14-index-reads.ts:typed-array-index: REJECT a:rejected[possibly-undefined]
+== selfhost/learner1/facts/q14-index-reads.ts:typed-array-index-plus-assign: ACCEPT
+   show a = 1
+== selfhost/learner1/facts/q14-index-reads.ts:tuple-literal-index: ACCEPT
+   show a = "x"
+== selfhost/learner1/facts/q14-index-reads.ts:tuple-out-of-range-index: REJECT a:rejected[type]
+== selfhost/learner1/facts/q14-index-reads.ts:map-entry-tuple-index: ACCEPT
+   show a = 1
+== selfhost/learner1/facts/q14-index-reads.ts:regexp-match-index: REJECT a:rejected[possibly-undefined]
+== selfhost/learner1/facts/q14-index-reads.ts:index-signature-literal-key-read: REJECT a:rejected[possibly-undefined]
+== selfhost/learner1/facts/q14-index-reads.ts:index-signature-dot-read: REJECT a:rejected[possibly-undefined]
+== selfhost/learner1/facts/q14-index-reads.ts:accept-at-minus-one: ACCEPT
+   show a = 2
+== selfhost/learner1/facts/q14-index-reads.ts:string-charAt-is-string: ACCEPT
+   show a = 0
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 14 candidates, accepted 7, silent 0

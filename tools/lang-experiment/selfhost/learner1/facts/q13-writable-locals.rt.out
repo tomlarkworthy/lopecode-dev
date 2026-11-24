@@ -1,0 +1,30 @@
+== selfhost/learner1/facts/q13-writable-locals.ts:accept-array-annotation: ACCEPT
+   show a = [1]
+== selfhost/learner1/facts/q13-writable-locals.ts:reject-readonly-array-annotation: REJECT a:rejected[mutating-method]
+== selfhost/learner1/facts/q13-writable-locals.ts:accept-tuple-annotation: ACCEPT
+   show a = [5,0]
+== selfhost/learner1/facts/q13-writable-locals.ts:accept-record-annotation: ACCEPT
+   show a = {n:2}
+== selfhost/learner1/facts/q13-writable-locals.ts:index-signature-annotation-literal-key: ACCEPT
+   show a = ["x"]
+== selfhost/learner1/facts/q13-writable-locals.ts:index-signature-annotation-runtime-key: REJECT a:rejected[banned-member]
+== selfhost/learner1/facts/q13-writable-locals.ts:Record-annotation: ACCEPT
+   show a = ["x"]
+== selfhost/learner1/facts/q13-writable-locals.ts:reject-type-alias-annotation: REJECT a:rejected[mutating-method]
+== selfhost/learner1/facts/q13-writable-locals.ts:reject-union-annotation: REJECT a:rejected[mutating-method]
+== selfhost/learner1/facts/q13-writable-locals.ts:accept-map-annotation: ACCEPT
+   show a = 1
+== selfhost/learner1/facts/q13-writable-locals.ts:accept-typed-array-annotation: ACCEPT
+   show a = 3
+== selfhost/learner1/facts/q13-writable-locals.ts:accept-unannotated-literal-top-field: ACCEPT
+   show a = {n:1,xs:[1]}
+== selfhost/learner1/facts/q13-writable-locals.ts:reject-nested-array-of-fresh-literal: REJECT a:rejected[mutating-method]
+== selfhost/learner1/facts/q13-writable-locals.ts:accept-let-fresh-reassigned: ACCEPT
+   show a = [1,2,3]
+== selfhost/learner1/facts/q13-writable-locals.ts:reject-non-fresh-binding: REJECT a:rejected[mutating-method]
+== selfhost/learner1/facts/q13-writable-locals.ts:accept-structuredClone-copy: ACCEPT
+   show a = [1,2]
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 16 candidates, accepted 10, silent 0

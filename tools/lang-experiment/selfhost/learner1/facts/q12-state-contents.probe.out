@@ -1,0 +1,21 @@
+accept-set: ACCEPT
+accept-map: ACCEPT
+reject-write-state-set-in-place: REJECT add:rejected[mutating-method]
+    add[mutating-method] write to a Set<number>, which is not Mut; a copy made in the same expression (new Set(old)) or bound to a local (const y = new Set(old)) is writable
+accept-record-literal-keys: ACCEPT
+index-signature-record-spread-unsupported: REJECT put:rejected[type][type]
+    put[type] { x: 1 } is not assignable to { [k: string]: number } || put[type] (o: { [k: string]: number }) => { x: 1 } is not assignable to (v: { [k: string]: number }) => { [k: string]: number } || put{unsupported object spread of { [k: string]: number }}
+accept-index-signature-record: ACCEPT
+accept-array: ACCEPT
+accept-mutable-array-type: ACCEPT
+state-function: ACCEPT
+accept-number-or-null: ACCEPT
+reject-undefined-content: REJECT s:rejected[state-undefined]
+    s[state-undefined] a state cell's value may not be undefined (its type is number | undefined): Observable skips an undefined value, so the cell would never have one. Use null
+reject-optional-field-content: ACCEPT
+state-in-state: REJECT s:rejected[type][type][state-in-state]
+    s[type] null is not assignable to State<number> || s[type] { inner: null } is not assignable to { inner: State<number> } || s[state-in-state] a state cell holds { inner: State<number> }, which contains State; a state cell's content may not contain a State or StateCell
+state-elem: ACCEPT
+state-typed-array: ACCEPT
+state-url: ACCEPT
+state-of-action: ACCEPT

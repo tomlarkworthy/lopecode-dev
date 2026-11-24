@@ -1,0 +1,33 @@
+reject-runtime-key-read: REJECT a:rejected[banned-member]
+    a[banned-member] a key known only at run time, on a record with an index signature, can name an inherited member such as toString or __proto__, which is not an entry; keep the entries in a Map<string, T> (m.get(k), m.set(k, v), m.has(k), m.delete(k)), or use a literal key
+reject-runtime-key-in: REJECT a:rejected[banned-member]
+    a[banned-member] a key known only at run time, on a record with an index signature, can name an inherited member such as toString or __proto__, which is not an entry; keep the entries in a Map<string, T> (m.get(k), m.set(k, v), m.has(k), m.delete(k)), or use a literal key
+accept-literal-key-read: ACCEPT
+accept-const-literal-key-read: ACCEPT
+accept-map-runtime-key: ACCEPT
+accept-object-entries-of-index-record: ACCEPT
+reject-runtime-key-on-Record: REJECT a:rejected[banned-member]
+    a[banned-member] a key known only at run time, on a record with an index signature, can name an inherited member such as toString or __proto__, which is not an entry; keep the entries in a Map<string, T> (m.get(k), m.set(k, v), m.has(k), m.delete(k)), or use a literal key
+accept-delete-optional-member: ACCEPT
+reject-delete-required-member: REJECT a:rejected[no-delete]
+    a[no-delete] delete removes a, which the type requires, so a later read finds undefined; make a optional in the type (a?: …), or build a new record without it (const { a: _, ...rest } = o)
+accept-delete-index-entry-literal-key: ACCEPT
+reject-delete-index-entry-runtime-key: REJECT a:rejected[banned-member]
+    a[banned-member] a key known only at run time, on a record with an index signature, can name an inherited member such as toString or __proto__, which is not an entry; keep the entries in a Map<string, T> (m.get(k), m.set(k, v), m.has(k), m.delete(k)), or use a literal key
+reject-delete-array-element: REJECT a:rejected[no-delete]
+    a[no-delete] delete on an array element leaves a hole that reads undefined; build a new array without it (filter, toSpliced)
+reject-delete-on-non-mut: REJECT a:rejected[no-delete]
+    a[no-delete] delete on a value that is not Mut
+reject-let-assigned-in-helper-narrowed: REJECT a:rejected[possibly-undefined]
+    a[possibly-undefined] number | null used as a number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+accept-copy-to-const-then-narrow: ACCEPT
+accept-let-not-assigned-in-nested-is-narrowed: ACCEPT
+reject-param-narrowed-in-nested: REJECT a:rejected[possibly-undefined]
+    a[possibly-undefined] number | null used as a number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that; r is assigned in a function nested in the one that declares it, or is assigned other than at its declaration and read here in a nested function, so a check on it does not carry to this use: copy it to a const first (const y = r; if (y !== null) …)
+reject-response-as-cell-value: REJECT r:rejected[iterator-cell]
+    r[iterator-cell] value FetchResponse holds a FetchResponse: a response's body can be read once, so the cells that take it would find it used up, depending on the order they run in; read the body in this cell and give the data (const data = async (fetch: Fetch) => (await fetch(url)).json())
+accept-json-as-cell-value: ACCEPT
+reject-response-as-unknown: REJECT r:rejected[handle-pass]
+    r[handle-pass] Mut<FetchResponse> is given the type unknown, which hides its FetchResponse; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+reject-write-response-member: REJECT r:rejected[member-write]
+    r[member-write] write to a FetchResponse: its members are the response's, not data; read them

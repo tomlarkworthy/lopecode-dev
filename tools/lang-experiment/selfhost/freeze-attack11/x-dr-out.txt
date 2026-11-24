@@ -1,0 +1,57 @@
+== selfhost/freeze-attack11/x.ts:x-events-sum: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-events-record: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-two-listeners: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-action-args: ACCEPT
+   drive ->  s=fulfilled:"yy22" g=fulfilled:4
+== selfhost/freeze-attack11/x.ts:x-action-nested: ACCEPT
+   drive ->  s=fulfilled:7 g=fulfilled:7
+== selfhost/freeze-attack11/x.ts:x-action-throw-rollback: ACCEPT
+   drive -> threw no s=fulfilled:0 g=fulfilled:0
+== selfhost/freeze-attack11/x.ts:x-action-read: ACCEPT
+   drive ->  s=fulfilled:24 g=fulfilled:24
+== selfhost/freeze-attack11/x.ts:x-action-record-arg: ACCEPT
+   drive ->  s=fulfilled:{"n":4} g=fulfilled:5
+== selfhost/freeze-attack11/x.ts:x-memo-fib: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-memo-args: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-memo-record: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-cast-ok: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-cast-fail: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-cast-union: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-cast-optional: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-jsx-children: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-jsx-list: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-jsx-action-prop: ACCEPT
+   drive ->  s=fulfilled:934 g=fulfilled:{"tag":"button","props":{"onClick":"fn"},"children":[934]}
+== selfhost/freeze-attack11/x.ts:x-jsx-fragment: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-jsx-nested-comp: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-async-chain: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-async-all: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-async-reject: ACCEPT
+   error a: boom
+   error g: boom
+== selfhost/freeze-attack11/x.ts:x-async-try: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-fetch-json: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-fetch-text: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-gen-values: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-gen-async: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-gen-record: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-state-record: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-state-from-cell: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-kept-fn: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-methods: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-map-set: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-url: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-regexp: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-json-roundtrip: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-snapshot: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-equals: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-compile: ACCEPT
+   late throws: undefined is not an object (evaluating 'x.length')
+== selfhost/freeze-attack11/x.ts:x-typed-arrays: ACCEPT
+   late throws: undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length') | undefined is not an object (evaluating 'x.length')
+== selfhost/freeze-attack11/x.ts:x-bigint: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-string-methods: ACCEPT
+== selfhost/freeze-attack11/x.ts:x-error-cause: ACCEPT
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- 44 candidates, accepted 44, silent 0 (by the tap alone 0)

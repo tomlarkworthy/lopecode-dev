@@ -1,0 +1,12 @@
+accept-optional-member: ACCEPT
+accept-find-then-optional: ACCEPT
+accept-optional-index: ACCEPT
+accept-optional-call: ACCEPT
+reject-member-without-optional: REJECT a:rejected[possibly-undefined]
+    a[possibly-undefined] property label of a value that may be undefined; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+nullish-assign: REJECT a:unsupported
+    a{unsupported logical assignment ??=}
+and-assign: REJECT a:unsupported
+    a{unsupported logical assignment &&=}
+or-assign: REJECT a:unsupported
+    a{unsupported logical assignment ||=}

@@ -1,0 +1,1468 @@
+== selfhost/freeze-attack11/f.ts:f-name-closure: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show closure = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-methods: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show methods = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-out: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show out = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-ref: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show ref = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-events: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show events = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-listen: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show listen = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-cross: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show cross = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-viewRef: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show viewRef = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-compileFor: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show compileFor = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-rejected: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show rejected = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-release: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show release = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-SsMap: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show SsMap = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-SsSet: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show SsSet = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-SsURL: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show SsURL = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-md: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show md = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-html: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show html = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-svg: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show svg = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-width: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show width = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-Inputs: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show Inputs = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-Plot: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show Plot = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-d3: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show d3 = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-require: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show require = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-FileAttachment: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show FileAttachment = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-Promises: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show Promises = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-DOM: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show DOM = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-Files: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show Files = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-Mutable: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show Mutable = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-visibility: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show visibility = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-htl: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show htl = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-tex: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show tex = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-Date: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show Date = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-Reflect: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show Reflect = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-Proxy: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show Proxy = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-WeakMap: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show WeakMap = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-WeakSet: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show WeakSet = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-globalThis: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show globalThis = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-window: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show window = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-self: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show self = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-document: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show document = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-console: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show console = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-Function: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show Function = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-setTimeout: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show setTimeout = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-queueMicrotask: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show queueMicrotask = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-performance: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show performance = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-Iterator: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show Iterator = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-AggregateError: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show AggregateError = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-SyntaxError: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show SyntaxError = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-ReferenceError: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show ReferenceError = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-EvalError: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show EvalError = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-URIError: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show URIError = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-WeakRef: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show WeakRef = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-Float16Array: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show Float16Array = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-BigInt64Array: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show BigInt64Array = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-escape: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show escape = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-unescape: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show unescape = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-_: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show _ = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-L: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show L = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-aq: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show aq = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-name-vl: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show vl = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-closure-used: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show closure = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-out-used: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show out = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-SsMap-used: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show SsMap = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-events-used: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show events = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-listen-used: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show listen = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-ref-state: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show ref = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-rejected-with-bad: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show rejected = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-this: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show this = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+   DIFFER show; drive; run crash
+   runCells| run crash: Cannot use the keyword 'this' as a lexical variable name.
+== selfhost/freeze-attack11/f.ts:f-local-md: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-md: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-width: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-width: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-Date: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-Date: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-globalThis: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-globalThis: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-closure: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-closure: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-out: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-out: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-ref: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-ref: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-events: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-events: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-SsMap: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-SsMap: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-Generators: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-Generators: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-invalidation: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-invalidation: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-Promise: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-Promise: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-Object: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-Object: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-JSON: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-JSON: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-Map: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-Map: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-structuredClone: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-structuredClone: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-URLSearchParams: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-URLSearchParams: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-now: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-now: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-fetch: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-fetch: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-undefined: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-undefined: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-NaN: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-param-NaN: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-sc-and-use: ACCEPT
+   drive -> DIFF g=undefined (rejected structuredClone is not a function. (In 'structuredClone([1, 2, 3])', 'structured)
+   CHANGED drive -> DIFF g=undefined (rejected structuredClone is not a function. (In 'structuredClone([1, 2, 3])', 'structured)
+   show g = ERROR structuredClone is not a function. (In 'structuredClone([1, 2, 3])', 'structuredClone' is 3)
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+   error g: structuredClone is not a function. (In 'structuredClone([1, 2, 3])', 'structuredClone' is 3)
+   SILENT
+== selfhost/freeze-attack11/f.ts:f-local-Map-and-new: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+== selfhost/freeze-attack11/f.ts:f-local-usp-and-use: REJECT g:unsupported
+== selfhost/freeze-attack11/f.ts:f-ctl-Map-cell [ctl]: CONTROL (checker skipped)
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show Map = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+   show q = 1
+   show z = 1
+   DIFFER show; drive; run crash
+   runCells| run crash: Cannot declare a const variable twice: 'Map'.
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack11/f.ts:f-kw-async: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show async = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-of: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show of = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-get: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show get = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-set: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show set = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-type: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show type = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-declare: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show declare = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-namespace: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show namespace = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-module: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show module = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-abstract: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show abstract = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-readonly: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show readonly = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-keyof: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show keyof = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-infer: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show infer = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-is: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show is = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-asserts: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show asserts = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-unique: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show unique = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-never: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show never = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-unknown: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show unknown = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-any: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show any = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-symbol: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show symbol = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-object: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show object = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-string: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show string = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-number: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show number = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-boolean: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show boolean = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-kw-bigint: ACCEPT
+   drive -> same: g=6 q=1 k ok z=1
+   show g = 6
+   show q = 1
+   show z = 1
+   show bigint = 5
+   show k = {f:fn(1),o:{m:fn(1)},e:{tag:"div",props:{},children:[1]}}
+   show s = 1
+   show a = action
+   show e = {name:"e"}
+   show l = {events:{name:"e"},action:action}
+== selfhost/freeze-attack11/f.ts:f-this-param-fn: REJECT g:rejected[no-this][arity]
+== selfhost/freeze-attack11/f.ts:f-this-param-str: REJECT g:rejected[no-this][arity]
+-- controls 1, ran 1, fired 0
+-- harness crashes 0
+-- differ 2
+-- 138 candidates, accepted 135, silent 1
+SILENT selfhost/freeze-attack11/f.ts:f-local-sc-and-use

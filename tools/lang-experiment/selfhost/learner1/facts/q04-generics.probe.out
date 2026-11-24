@@ -1,0 +1,22 @@
+literal-inference-generic-fn-cell: REJECT a:rejected[type]
+    a[type] 0 is not assignable to 3 | 4
+generic-fn-cell-no-comma: CRASH This syntax is reserved in files with the .mts or .cts extension. Add a trailing comma, as in `<T,>() => ...`. (1:22)
+literal-inference-untyped-param: REJECT a:rejected[type]
+    a[type] "y" is not assignable to "x"
+reject-generic-inferred-wrong-use: REJECT a:rejected[type][type]
+    a[type] "y" is not assignable to "x" || a[type] string used as a number
+reject-as-in-generic-alias-use: REJECT s:rejected[no-cast]
+    s[no-cast] as cast
+accept-generic-alias-annotated-empty: ACCEPT
+explicit-type-argument: ACCEPT
+extends-bound: REJECT eqKey:rejected[strict-eq-object] s:blocked
+    eqKey[strict-eq-object] === on two non-primitive operands; use equals(a, b) || eqKey{unsupported type parameter constraint/default}
+strict-eq-on-type-param: REJECT same:rejected[strict-eq-object]
+    same[strict-eq-object] === on two non-primitive operands; use equals(a, b)
+eq-undefined-on-type-param: ACCEPT
+accept-groupBy-inferred: ACCEPT
+generic-function-declaration-cell: ACCEPT
+generic-local-helper: ACCEPT
+accept-generic-fn-cell-explicit-arg: ACCEPT
+accept-generic-fn-cell-typed-arg: ACCEPT
+accept-generic-alias-push: ACCEPT

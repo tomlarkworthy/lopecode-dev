@@ -1,0 +1,10 @@
+== selfhost/learner1/facts/q16c-shadow-attack.ts:local-action-shadow-write-from-cell: REJECT a:rejected[state-write]
+== selfhost/learner1/facts/q16c-shadow-attack.ts:local-read-shadow-outside-action: ACCEPT
+   show a = 1
+   show n = 5
+== selfhost/learner1/facts/q16c-shadow-attack.ts:local-state-shadow-placement: ACCEPT
+   show a = 1
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 3 candidates, accepted 2, silent 0

@@ -1,0 +1,24 @@
+== selfhost/learner1/facts/q18-switch-return.ts:accept-exhaustive-switch-returns: ACCEPT
+   show r = 12
+   show step = fn(throws undefined is not an object (evaluating ')
+== selfhost/learner1/facts/q18-switch-return.ts:reject-non-exhaustive-switch: REJECT step:rejected[type]
+== selfhost/learner1/facts/q18-switch-return.ts:accept-switch-default-throw: ACCEPT
+   show step = fn(throws undefined is not an object (evaluating ')
+== selfhost/learner1/facts/q18-switch-return.ts:reject-switch-fallthrough: REJECT f:rejected[switch-fallthrough]
+== selfhost/learner1/facts/q18-switch-return.ts:reject-switch-case-declaration: REJECT f:rejected[switch-declaration]
+== selfhost/learner1/facts/q18-switch-return.ts:accept-if-chain-narrowing: ACCEPT
+   show step = fn(throws undefined is not an object (evaluating ')
+== selfhost/learner1/facts/q18-switch-return.ts:accept-early-return-in-action-taken: ACCEPT
+   drive -> n=0
+   show n = 0
+   show draft = ""
+   show add = action
+== selfhost/learner1/facts/q18-switch-return.ts:accept-early-return-in-action-not-taken: ACCEPT
+   drive -> n=2
+   show n = 2
+   show draft = "x"
+   show add = action
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 8 candidates, accepted 5, silent 0

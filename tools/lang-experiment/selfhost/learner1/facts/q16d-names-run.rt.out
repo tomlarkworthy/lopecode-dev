@@ -1,0 +1,45 @@
+== selfhost/learner1/facts/q16d-names-run.ts:cell-name-with-dollar: REJECT x$ref:rejected[reserved-name]
+== selfhost/learner1/facts/q16d-names-run.ts:h-local-in-jsx-cell: REJECT v:rejected[reserved-name]
+== selfhost/learner1/facts/q16d-names-run.ts:h-local-in-non-jsx-cell: ACCEPT
+   show v = 2
+== selfhost/learner1/facts/q16d-names-run.ts:reserved-text-in-string: REJECT a:rejected[reserved-name]
+== selfhost/learner1/facts/q16d-names-run.ts:run-cell-named-Date: ACCEPT
+   show reader = 6
+   show Date = 5
+== selfhost/learner1/facts/q16d-names-run.ts:run-cell-named-window: ACCEPT
+   show reader = 6
+   show window = 5
+== selfhost/learner1/facts/q16d-names-run.ts:run-cell-named-document: ACCEPT
+   show reader = 6
+   show document = 5
+== selfhost/learner1/facts/q16d-names-run.ts:run-cell-named-console: ACCEPT
+   show reader = 6
+   show console = 5
+== selfhost/learner1/facts/q16d-names-run.ts:run-cell-named-width: ACCEPT
+   show reader = 6
+   show width = 5
+== selfhost/learner1/facts/q16d-names-run.ts:run-cell-named-md: ACCEPT
+   show reader = 6
+   show md = 5
+== selfhost/learner1/facts/q16d-names-run.ts:run-cell-named-self: ACCEPT
+   show reader = 6
+   show self = 5
+== selfhost/learner1/facts/q16d-names-run.ts:run-cell-named-require: ACCEPT
+   show reader = 6
+   show require = 5
+== selfhost/learner1/facts/q16d-names-run.ts:run-cell-named-Inputs: ACCEPT
+   show reader = 6
+   show Inputs = 5
+== selfhost/learner1/facts/q16d-names-run.ts:run-cell-named-listen: ACCEPT
+   show reader = 6
+   show listen = 5
+== selfhost/learner1/facts/q16d-names-run.ts:run-cell-named-reduce: ACCEPT
+   show reader = 6
+   show reduce = 5
+== selfhost/learner1/facts/q16d-names-run.ts:run-type-and-cell-same-name: ACCEPT
+   show page = {tag:"div",props:{},children:[{tag:"div",props:{},children:["t"]}]}
+   show Card = fn(throws undefined is not an object (evaluating ')
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 16 candidates, accepted 13, silent 0

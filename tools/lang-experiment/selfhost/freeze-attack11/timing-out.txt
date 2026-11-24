@@ -1,0 +1,5 @@
+generic-optional-chain: n=5 20ms ACCEPT | n=10 3ms ACCEPT | n=20 3ms ACCEPT | n=40 4ms ACCEPT | n=80 6ms ACCEPT
+equal-recursive-pairs: n=5 3ms ACCEPT | n=10 7ms ACCEPT | n=20 7ms ACCEPT | n=40 14ms ACCEPT | n=80 24ms ACCEPT
+wide-optional-union: n=5 7ms ACCEPT | n=10 21ms ACCEPT | n=20 122ms ACCEPT | n=40 890ms ACCEPT | n=80 8297ms ACCEPT
+deep-record-to-empty: n=5 2ms ACCEPT | n=10 1ms ACCEPT | n=20 1ms ACCEPT | n=40 3ms ACCEPT | n=80 2ms ACCEPT
+generic-extends-empty: n=5 3ms REJECT unsupported | n=10 3ms REJECT unsupported | n=20 8ms REJECT unsupported | n=40 24ms REJECT unsupported | n=80 84ms REJECT unsupported

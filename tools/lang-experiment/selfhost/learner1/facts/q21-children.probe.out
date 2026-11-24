@@ -1,0 +1,15 @@
+accept-child-elem-or-array: ACCEPT
+accept-child-and-and: ACCEPT
+accept-child-null-undefined: ACCEPT
+accept-child-conditional-null: ACCEPT
+reject-child-array-of-strings: REJECT v:rejected[type][type][type]
+    v[type] string[] is not assignable to Child || v[type] string[][] is not assignable to Child[] || v[type] { children: string[][] } is not assignable to CommonProps
+accept-child-array-of-strings-wrapped: ACCEPT
+reject-child-array-with-null: REJECT v:rejected[type][type][type][type]
+    v[type] null is not assignable to Elem || v[type] (null | Elem)[] is not assignable to Child || v[type] (null | Elem)[][] is not assignable to Child[] || v[type] { children: (null | Elem)[][] } is not assignable to CommonProps
+accept-child-filter-then-map: ACCEPT
+accept-text-and-holes: ACCEPT
+reject-nested-array-child: REJECT v:rejected[type][type][type][type]
+    v[type] Elem[] is not assignable to Elem || v[type] Elem[][] is not assignable to Child || v[type] Elem[][][] is not assignable to Child[] || v[type] { children: Elem[][][] } is not assignable to CommonProps
+accept-if-branches-return-different-jsx: ACCEPT
+accept-elem-local-then-child: ACCEPT

@@ -1,0 +1,18 @@
+== selfhost/learner1/facts/q07-messageOf.ts:accept-messageOf-caught-error: ACCEPT
+   show m = "JSON Parse error: Expected '}'"
+== selfhost/learner1/facts/q07-messageOf.ts:accept-messageOf-thrown-error: ACCEPT
+   show m = "boom"
+== selfhost/learner1/facts/q07-messageOf.ts:accept-messageOf-thrown-string: ACCEPT
+   show m = "plain"
+== selfhost/learner1/facts/q07-messageOf.ts:accept-messageOf-number: ACCEPT
+   show m = "42"
+== selfhost/learner1/facts/q07-messageOf.ts:accept-messageOf-record-with-message: ACCEPT
+   show m = "[object Object]"
+== selfhost/learner1/facts/q07-messageOf.ts:accept-messageOf-undefined: ACCEPT
+   show m = "undefined"
+== selfhost/learner1/facts/q07-messageOf.ts:reject-e-message-on-unknown: REJECT m:rejected[no-member]
+== selfhost/learner1/facts/q07-messageOf.ts:reject-messageOf-as-value: REJECT m:rejected[prelude-value]
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 8 candidates, accepted 6, silent 0

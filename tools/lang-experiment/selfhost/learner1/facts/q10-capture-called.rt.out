@@ -1,0 +1,17 @@
+== selfhost/learner1/facts/q10-capture-called.ts:accept-local-helper-writes-captured-array: ACCEPT
+   show a = [1,2]
+== selfhost/learner1/facts/q10-capture-called.ts:accept-forEach-callback-writes-map: ACCEPT
+   show a = [["a",2],["b",1]]
+== selfhost/learner1/facts/q10-capture-called.ts:accept-map-callback-writes-captured: ACCEPT
+   show a = [3,2]
+== selfhost/learner1/facts/q10-capture-called.ts:accept-recursive-walk-writes-captured: ACCEPT
+   show a = [1,2,3,4]
+== selfhost/learner1/facts/q10-capture-called.ts:accept-let-assigned-by-called-helper: ACCEPT
+   show a = 2
+== selfhost/learner1/facts/q10-capture-called.ts:reject-helper-passed-on: REJECT a:rejected[mut-capture]
+== selfhost/learner1/facts/q10-capture-called.ts:reject-helper-returned: REJECT a:rejected[mut-capture]
+== selfhost/learner1/facts/q10-capture-called.ts:reject-let-helper-passed-on: REJECT a:rejected[let-capture]
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 8 candidates, accepted 5, silent 0

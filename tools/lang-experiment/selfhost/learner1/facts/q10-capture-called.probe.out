@@ -1,0 +1,11 @@
+accept-local-helper-writes-captured-array: ACCEPT
+accept-forEach-callback-writes-map: ACCEPT
+accept-map-callback-writes-captured: ACCEPT
+accept-recursive-walk-writes-captured: ACCEPT
+accept-let-assigned-by-called-helper: ACCEPT
+reject-helper-passed-on: REJECT a:rejected[mut-capture]
+    a[mut-capture] Mut xs written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made, so the write would throw; make xs inside the function, or keep it in a state cell that an action writes
+reject-helper-returned: REJECT a:rejected[mut-capture]
+    a[mut-capture] Mut xs written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made, so the write would throw; make xs inside the function, or keep it in a state cell that an action writes
+reject-let-helper-passed-on: REJECT a:rejected[let-capture]
+    a[let-capture] let n assigned from a function that escapes

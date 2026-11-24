@@ -1,0 +1,4 @@
+local-action-shadow-write-from-cell: REJECT a:rejected[state-write]
+    a[state-write] State.set outside action(...)
+local-read-shadow-outside-action: ACCEPT
+local-state-shadow-placement: ACCEPT

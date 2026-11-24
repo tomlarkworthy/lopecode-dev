@@ -1,0 +1,9 @@
+reject-now-in-action: REJECT recordClick:rejected[action-capture]
+    recordClick[action-capture] now is a capability, so an action using it would make the stored state depend on something the calls do not record; take the value as an argument of the action (a handler is called with values only by a canvas's onPointerDown, onPointerMove, onPointerUp and onPointerCancel, which give { x, y, t, id, buttons }, and an input's onInput, which gives its text; onClick gives none)
+accept-click-stamps-listener: ACCEPT
+accept-canvas-pointer-t: ACCEPT
+reject-button-pointerdown: REJECT view:rejected[excess-property][action-pass]
+    view[excess-property] property onPointerDown is not in ButtonProps || view[action-pass] { onPointerDown: Action<[PointerData]>; children: "x"[] } is given the type ButtonProps, which hides its Action<[PointerData]>; an Action goes only where an Action is expected
+accept-learner-clock-into-state: ACCEPT
+click-stamps-three-clicks-no-frame-between: ACCEPT
+learner-clock-three-clicks-no-frame-between: ACCEPT

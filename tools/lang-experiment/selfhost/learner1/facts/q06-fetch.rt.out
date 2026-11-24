@@ -1,0 +1,34 @@
+== selfhost/learner1/facts/q06-fetch.ts:accept-ok-boolean: ACCEPT
+   show r = true
+== selfhost/learner1/facts/q06-fetch.ts:reject-ok-not-string: REJECT r:rejected[type]
+== selfhost/learner1/facts/q06-fetch.ts:accept-status-number: ACCEPT
+   show r = 200
+== selfhost/learner1/facts/q06-fetch.ts:reject-status-not-string: REJECT r:rejected[type]
+== selfhost/learner1/facts/q06-fetch.ts:accept-json-unknown: ACCEPT
+   show r = "object"
+== selfhost/learner1/facts/q06-fetch.ts:reject-json-not-record: REJECT r:rejected[type]
+== selfhost/learner1/facts/q06-fetch.ts:accept-text-string: ACCEPT
+   show r = 7
+== selfhost/learner1/facts/q06-fetch.ts:accept-arrayBuffer: ACCEPT
+   show r = 7
+== selfhost/learner1/facts/q06-fetch.ts:member-headers: REJECT r:unsupported
+== selfhost/learner1/facts/q06-fetch.ts:member-statusText: REJECT r:unsupported
+== selfhost/learner1/facts/q06-fetch.ts:member-blob: REJECT r:unsupported
+== selfhost/learner1/facts/q06-fetch.ts:member-clone: REJECT r:unsupported
+== selfhost/learner1/facts/q06-fetch.ts:member-body: REJECT r:unsupported
+== selfhost/learner1/facts/q06-fetch.ts:member-url: REJECT r:unsupported
+== selfhost/learner1/facts/q06-fetch.ts:reject-response-as-cell-value: REJECT r:rejected[iterator-cell]
+== selfhost/learner1/facts/q06-fetch.ts:reject-response-in-record: REJECT r:rejected[iterator-cell]
+== selfhost/learner1/facts/q06-fetch.ts:read-body-twice: ACCEPT
+   show r = ERROR Body already used
+   error r: Body already used
+== selfhost/learner1/facts/q06-fetch.ts:reject-response-passed-to-other-cell: REJECT r:rejected[iterator-cell]
+== selfhost/learner1/facts/q06-fetch.ts:reject-nested-fn-captures-response: REJECT r:rejected[iterator-capture]
+== selfhost/learner1/facts/q06-fetch.ts:accept-cast-json: ACCEPT
+   show r = 1
+== selfhost/learner1/facts/q06-fetch.ts:accept-init-method-headers: ACCEPT
+   show r = 200
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 21 candidates, accepted 8, silent 0

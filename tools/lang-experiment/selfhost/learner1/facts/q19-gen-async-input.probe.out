@@ -1,0 +1,4 @@
+accept-generator-takes-async-value: ACCEPT
+reject-generator-param-typed-promise: REJECT g:rejected[inject-type]
+    g[inject-type] profile: number is not assignable to Promise<number>
+accept-finite-generator-with-listener: ACCEPT

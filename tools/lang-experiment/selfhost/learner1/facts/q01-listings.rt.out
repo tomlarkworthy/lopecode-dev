@@ -1,0 +1,28 @@
+== selfhost/learner1/facts/q01-listings.ts:tutorial-async.tsx: ACCEPT
+   drive -> measureAsked=1 ; measured=11 ; wordSize=11
+   show measure = fn(throws undefined is not an object (evaluating ')
+   show word = "soundscript"
+   show wordSize = 11
+   show measureAsked = 1
+   show measureWord = action
+   show measured = 11
+   show wordSizes = {name:"wordSizes"}
+   show storeSize = action
+   show onSize = {events:{name:"wordSizes"},action:action}
+   show measureView = {tag:"div",props:{},children:[{tag:"button",props:{onClick:action},children:["measure"]}," ",{tag:"output",props:{},children:["soundscript"," has ",11," letters"]}]}
+   DIFFER drive
+   runCells| drive -> measureAsked=1 ; measured=11 ; wordSize=0
+   runCells| show measure = fn(throws undefined is not an object (evaluating ')
+   runCells| show word = "soundscript"
+   runCells| show wordSize = 11
+   runCells| show measureAsked = 1
+   runCells| show measureWord = action
+   runCells| show measured = 11
+   runCells| show wordSizes = {name:"wordSizes"}
+   runCells| show storeSize = action
+   runCells| show onSize = {events:{name:"wordSizes"},action:action}
+   runCells| show measureView = {tag:"div",props:{},children:[{tag:"button",props:{onClick:action},children:["measure"]}," ",{tag:"output",props:{},children:["soundscript"," has ",11," letters"]}]}
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 1
+-- 1 candidates, accepted 1, silent 0

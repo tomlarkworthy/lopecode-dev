@@ -1,0 +1,65 @@
+== selfhost/freeze-attack11/min.ts:min-action-template: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled="undefined" 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled="undefined" 
+   show c = 1
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-action-hidden-json: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled=undefined 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled=undefined 
+   show c = 1
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-then-async: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-fn-name: ACCEPT
+   drive -> DIFF g is outside its type: string "string"
+   CHANGED drive -> DIFF g is outside its type: string "string"
+   show g = "string"
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-scope: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-scope-action: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled=1 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled=1 
+   show c = 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-json-undefined: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-this: ACCEPT
+   drive -> g fulfilled 6
+   show g = 6
+== selfhost/freeze-attack11/min.ts:min-resp-race: ACCEPT
+   drive -> DIFF USED o2: used: Body already used
+   CHANGED drive -> DIFF USED o2: used: Body already used
+   show r = {n:1,res:{}}
+   show o1 = "body"
+   show o2 = "used: Body already used"
+   SILENT
+== selfhost/freeze-attack11/min.ts:min-ctl-action-call [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event; g fulfilled=1 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled=1 
+   show c = 1
+   show g = 1
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 9 candidates, accepted 9, silent 8
+SILENT selfhost/freeze-attack11/min.ts:min-action-template
+SILENT selfhost/freeze-attack11/min.ts:min-action-hidden-json
+SILENT selfhost/freeze-attack11/min.ts:min-then-async
+SILENT selfhost/freeze-attack11/min.ts:min-fn-name
+SILENT selfhost/freeze-attack11/min.ts:min-scope
+SILENT selfhost/freeze-attack11/min.ts:min-scope-action
+SILENT selfhost/freeze-attack11/min.ts:min-json-undefined
+SILENT selfhost/freeze-attack11/min.ts:min-resp-race

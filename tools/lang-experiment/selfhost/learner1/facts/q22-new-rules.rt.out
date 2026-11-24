@@ -1,0 +1,34 @@
+== selfhost/learner1/facts/q22-new-rules.ts:reject-runtime-key-read: REJECT a:rejected[banned-member]
+== selfhost/learner1/facts/q22-new-rules.ts:reject-runtime-key-in: REJECT a:rejected[banned-member]
+== selfhost/learner1/facts/q22-new-rules.ts:accept-literal-key-read: ACCEPT
+   show a = 1
+== selfhost/learner1/facts/q22-new-rules.ts:accept-const-literal-key-read: ACCEPT
+   show a = 1
+== selfhost/learner1/facts/q22-new-rules.ts:accept-map-runtime-key: ACCEPT
+   show a = 1
+== selfhost/learner1/facts/q22-new-rules.ts:accept-object-entries-of-index-record: ACCEPT
+   show a = "x1,y2"
+== selfhost/learner1/facts/q22-new-rules.ts:reject-runtime-key-on-Record: REJECT a:rejected[banned-member]
+== selfhost/learner1/facts/q22-new-rules.ts:accept-delete-optional-member: ACCEPT
+   show a = ["a"]
+== selfhost/learner1/facts/q22-new-rules.ts:reject-delete-required-member: REJECT a:rejected[no-delete]
+== selfhost/learner1/facts/q22-new-rules.ts:accept-delete-index-entry-literal-key: ACCEPT
+   show a = ["y"]
+== selfhost/learner1/facts/q22-new-rules.ts:reject-delete-index-entry-runtime-key: REJECT a:rejected[banned-member]
+== selfhost/learner1/facts/q22-new-rules.ts:reject-delete-array-element: REJECT a:rejected[no-delete]
+== selfhost/learner1/facts/q22-new-rules.ts:reject-delete-on-non-mut: REJECT a:rejected[no-delete]
+== selfhost/learner1/facts/q22-new-rules.ts:reject-let-assigned-in-helper-narrowed: REJECT a:rejected[possibly-undefined]
+== selfhost/learner1/facts/q22-new-rules.ts:accept-copy-to-const-then-narrow: ACCEPT
+   show a = 4
+== selfhost/learner1/facts/q22-new-rules.ts:accept-let-not-assigned-in-nested-is-narrowed: ACCEPT
+   show a = 4
+== selfhost/learner1/facts/q22-new-rules.ts:reject-param-narrowed-in-nested: REJECT a:rejected[possibly-undefined]
+== selfhost/learner1/facts/q22-new-rules.ts:reject-response-as-cell-value: REJECT r:rejected[iterator-cell]
+== selfhost/learner1/facts/q22-new-rules.ts:accept-json-as-cell-value: ACCEPT
+   show data = {a:1}
+== selfhost/learner1/facts/q22-new-rules.ts:reject-response-as-unknown: REJECT r:rejected[handle-pass]
+== selfhost/learner1/facts/q22-new-rules.ts:reject-write-response-member: REJECT r:rejected[member-write]
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- differ 0
+-- 21 candidates, accepted 9, silent 0

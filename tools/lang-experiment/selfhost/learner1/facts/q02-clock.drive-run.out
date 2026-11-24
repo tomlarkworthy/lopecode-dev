@@ -1,0 +1,11 @@
+== selfhost/learner1/facts/q02-clock.ts:accept-click-stamps-listener: ACCEPT
+   drive -> clicks=4083 ; times=[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,nu
+   PENDING stamps
+   PENDING onStamp
+   PENDING view
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- 1 candidates, accepted 1, silent 0 (by the tap alone 0)
+s 0, ran 0, fired 0
+-- harness crashes 0
+-- 1 candidates, accepted 1, silent 0 (by the tap alone 0)

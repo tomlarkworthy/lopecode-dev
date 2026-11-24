@@ -1,0 +1,4 @@
+accept-read-value-used-in-update: ACCEPT
+reject-value-param-used-in-update: REJECT add:rejected[action-capture]
+    add[action-capture] nextId depends on state (the value of the state cell nextId), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+accept-read-sees-earlier-write-same-call: ACCEPT

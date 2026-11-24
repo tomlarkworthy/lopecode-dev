@@ -1,0 +1,19 @@
+cell-name-with-dollar: REJECT x$ref:rejected[reserved-name]
+    x$ref[reserved-name] x$ref is reserved as a cell name: a cell name may not hold $, which the runners use in the names they make (a state cell x has a handle x$ref); give the cell another name
+h-local-in-jsx-cell: REJECT v:rejected[reserved-name]
+    v[reserved-name] h is reserved in a cell with JSX: each JSX element is a call h(...), which a local or parameter named h would take; give it another name
+h-local-in-non-jsx-cell: ACCEPT
+reserved-text-in-string: REJECT a:rejected[reserved-name]
+    a[reserved-name] cell a contains the text /*ss, which the compiler reserves for what it inserts into a compiled cell, so the cell would not compile; write it another way (in a string, "/" + "*ss")
+run-cell-named-Date: ACCEPT
+run-cell-named-window: ACCEPT
+run-cell-named-document: ACCEPT
+run-cell-named-console: ACCEPT
+run-cell-named-width: ACCEPT
+run-cell-named-md: ACCEPT
+run-cell-named-self: ACCEPT
+run-cell-named-require: ACCEPT
+run-cell-named-Inputs: ACCEPT
+run-cell-named-listen: ACCEPT
+run-cell-named-reduce: ACCEPT
+run-type-and-cell-same-name: ACCEPT
