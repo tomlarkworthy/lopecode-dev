@@ -5,12 +5,9 @@ import json,subprocess,sys,os,time
 S=os.environ.get("S","/tmp/retro"); os.makedirs(S,exist_ok=True)
 after=0; events=[]
 while True:
-    # 2026-11-24: one page answered 200 with an empty body and the same call answered whole a minute later
-    for tries in range(3):
-        r=subprocess.run(["bun","tools/cloud-brain/brain.ts","curl",f"/xrpc/com.lopecode.brain.issue.sync?after={after}&limit=500","--owner"],capture_output=True,text=True)
-        try: d=json.loads(r.stdout); break
-        except Exception: time.sleep(5)
-    else: sys.exit(f"pull-sync.py: issue.sync answered no JSON after seq {after}, 3 tries: {r.stdout[:200]} {r.stderr[:200]}")
+    r=subprocess.run(["bun","tools/cloud-brain/brain.ts","curl",f"/xrpc/com.lopecode.brain.issue.sync?after={after}&limit=500","--owner"],capture_output=True,text=True)
+    try: d=json.loads(r.stdout)
+    except Exception: sys.exit(f"pull-sync.py: issue.sync answered no JSON after seq {after}: {r.stdout[:200]} {r.stderr[:200]}")
     if d.get("error"): sys.exit(f"pull-sync.py: issue.sync answered {d['error']}: {d.get('message','')}. An ended owner session: bun tools/cloud-brain/brain.ts session")
     ev=d.get("events") or []
     if not ev: 
