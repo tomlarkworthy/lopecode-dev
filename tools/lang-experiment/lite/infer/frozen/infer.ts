@@ -23,7 +23,7 @@ import { shapeOf } from "../../boundary.ts";
 import {
   type Ty, type Fn, type Rec, type Param, type Subst, type Flags,
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, BOOL, SYMBOL,
-  union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames, cloneProblemWith, inexact, UNDEF_FIX,
+  union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames, cloneProblemWith, inexact, UNDEF_FIX, forgotWith, jsonGapWith,
 } from "../../types.ts";
 import { ALLOWED_GLOBALS, PRELUDE_FNS } from "../../intrinsics.ts";
 import { mutIn, stripMut } from "./own.ts";
@@ -47,6 +47,8 @@ export type BKind = "const" | "let" | "param" | "fn" | "global" | "prelude";
 export type Binding = {
   id: number; name: string; t: Ty; kind: BKind; node: Node; fi: FnInfo | null;
   mutOwned?: boolean; fnNode?: Node; lazy?: () => Ty; assigned?: boolean; checked?: boolean; cellParam?: boolean;
+  // DELIBERATE CHANGE (2026-11-24, w1, S-1): a const or let of the block not yet declared (live IxLazy later)
+  later?: boolean;
 };
 export type FnInfo = {
   node: Node; parent: FnInfo | null; isAsync: boolean; isGen: boolean; isCell: boolean; inAction: boolean;
@@ -81,7 +83,6 @@ let nextId = 0;
 // type variables made by instantiate so far, page-wide, so two instantiations never share a name
 let fresh = 0;
 // Action<[A, B]> called as (a0: A, a1: B) => void
-const ANY_FN: Fn = { k: "fn", tps: [], ps: [], ret: NEVER };
 const actionFn = (args: Ty): Fn => ({ k: "fn", tps: [], ps: (args.k === "tup" ? args.els : []).map((t, i) => ({ n: "a" + i, t, opt: false })), ret: VOID });
 // what typeof x === tag says of an unknown x: "function" proves an object, not a signature, so it is not callable
 const TYPEOF = new Map<string, Ty>([["string", STR], ["number", NUM], ["boolean", BOOL], ["bigint", BIGINT], ["undefined", UNDEF],
@@ -522,8 +523,11 @@ export class Checker {
     let rule = "type";
     if (this.reg.sub(this.nonUndef(t), expected)) rule = "possibly-undefined";
     else if (members(t).some((m) => isNamed(m, "Action")) && !members(expected).some((m) => isNamed(m, "Action"))) rule = "action-pass";
+    // DELIBERATE CHANGE (2026-11-24, w1): a failure by the forgetting rule says what was left out and the fix (forgotWith)
+    const why = rule === "type" ? this.reg.peek(() => forgotWith(this.reg)(t, expected)) : null;
+    if (why !== null) rule = "forgets";
     // DELIBERATE CHANGE (2026-11-23, e1): the possibly-undefined messages name the usual fixes (UNDEF_FIX)
-    this.err(at, rule, `${show(t)} is not assignable to ${show(expected)}${rule === "possibly-undefined" ? UNDEF_FIX : ""}`);
+    this.err(at, rule, `${show(t)} is not assignable to ${show(expected)}${rule === "possibly-undefined" ? UNDEF_FIX : why !== null ? `: ${why}` : ""}`);
     return false;
   }
 
@@ -565,14 +569,8 @@ export class Checker {
     if (t.k === "named" && this.reg.isAlias(t.n)) return H(s, this.reg.expand(t));
     if (s.k === "union") { for (const m of s.ts) { const w = H(m, t); if (w) return w; } return null; }
     if (s.k === "named" && (s.n === "Mut" || s.n === "Borrowed") && !isNamed(t, s.n)) return H(s.args[0], t);
-    // DELIBERATE CHANGE (2026-11-24, t1, A-1): a record type that takes any object hides all of a non-record and each member
-    // of a record it does not declare (live ix-hides.ss.ts ixAnyObject, ixExtraHidden)
-    { const x = t.k === "named" && !["Mut", "Borrowed", "State", "Events", "Action"].includes(t.n) ? this.reg.expand(t) : t;
-      if (x.k === "rec" && x.index === undefined && (x.calls ?? []).length === 0 && x.exact !== true && [...x.props.values()].every((p) => p.opt)) {
-        const sx = this.reg.expand(s);
-        if (sx.k !== "rec") return find(s);
-        for (const [k, p] of sx.props) if (!x.props.has(k)) { const w = find(propT(p)); if (w) return w; }
-      } }
+    // DELIBERATE CHANGE (2026-11-24, w1): t1's record-that-takes-any-object case is gone; what a record type leaves out of
+    // a value must be plain data (subtype.ss.ts takesRecord, shared)
     if (t.k === "union") {
       // s goes to a member it is assignable to; it is hidden only when every such member hides it
       let w: string | null = null;
@@ -609,25 +607,8 @@ export class Checker {
   // t has, somewhere hidden walks (aliases expanded once each), unknown, object, a type parameter or a function: what
   // makes hidden call find or hiddenFn; also true past a depth of generic aliases, where hidden stops looking
   // mayHide, or a record a function is assignable to (one with no required property) where the same walk reaches
-  mayHoldFn(t: Ty): boolean {
-    const seen = new Set<string>();
-    const go = (x: Ty, d: number): boolean => {
-      switch (x.k) {
-        case "named":
-          if (!this.reg.isAlias(x.n)) return x.args.some((a) => go(a, d));
-          if (x.args.length) return d <= 10 && go(this.reg.expand(x), d + 1);
-          if (seen.has(x.n)) return false;
-          seen.add(x.n);
-          return go(this.reg.expand(x), d);
-        case "arr": return go(x.el, d);
-        case "tup": return x.els.some((e) => go(e, d));
-        case "union": return x.ts.some((m) => go(m, d));
-        case "rec": return (!x.index && [...x.props.values()].every((p) => p.opt) && this.reg.sub(ANY_FN, x)) || (!!x.index && go(x.index, d)) || [...x.props.values()].some((p) => go(p.t, d));
-        default: return false;
-      }
-    };
-    return this.mayHide(t) || go(t, 0);
-  }
+  // DELIBERATE CHANGE (2026-11-24, w1): a function reaches no record type (subtype.ss.ts takesRecord), so the record clause is gone
+  mayHoldFn(t: Ty): boolean { return this.mayHide(t); }
   mayHideMemo = new WeakMap<Ty, boolean>();
   mayHide(t: Ty): boolean {
     const hit = this.mayHideMemo.get(t);
@@ -645,8 +626,8 @@ export class Checker {
         case "arr": return go(x.el, d);
         case "tup": return x.els.some((e) => go(e, d));
         case "union": return x.ts.some((m) => go(m, d));
-        // DELIBERATE CHANGE (2026-11-24, t1, A-1): a record that takes any object (live rg-view.ss.ts rgMayHide)
-        case "rec": return !!x.calls?.length || !!x.ctors?.length || (!x.index && x.exact !== true && [...x.props.values()].every((p) => p.opt)) || (!!x.index && go(x.index, d)) || [...x.props.values()].some((p) => go(p.t, d));
+        // DELIBERATE CHANGE (2026-11-24, w1): t1's record-that-takes-any-object clause is gone (live rg-view.ss.ts rgMayHide)
+        case "rec": return !!x.calls?.length || !!x.ctors?.length || (!!x.index && go(x.index, d)) || [...x.props.values()].some((p) => go(p.t, d));
         default: return false;
       }
     };
@@ -870,6 +851,8 @@ export class Checker {
       else this.err(e, "free-name", `free name ${e.name}`);
       return ERR;
     }
+    // DELIBERATE CHANGE (2026-11-24, w1, S-1): a const or let of an enclosing block read before its declaration runs
+    if (b.later) { this.err(e, "free-name", `${e.name} is read before its declaration in the same block: a const or let is in scope for its whole block, so this reads that declaration, not a binding outside it; move the declaration above this read, or give one of the two another name`); return ERR; }
     this.facts.bindingOf.set(e, b);
     if (b.kind === "prelude") return b.t;
     // its argument is checked where it is called, so the value takes no argument (S2.6 lets a body name it)
@@ -1357,6 +1340,16 @@ export class Checker {
 
   // Function declarations are hoisted: bind them first, check their bodies in order.
   hoist(body: Node[], env: Env) {
+    // DELIBERATE CHANGE (2026-11-24, w1, S-1): each name a const or let of the block declares is bound first, as later
+    const pat = (p: Node | null | undefined): void => {
+      if (!p) return;
+      if (p.type === "Identifier") this.declare(env, p.name, ERR, "const", p, { later: true });
+      else if (p.type === "ObjectPattern") { for (const x of p.properties) pat(x.type === "Property" ? x.value : x.type === "RestElement" ? x.argument : null); }
+      else if (p.type === "ArrayPattern") { for (const x of p.elements) pat(x); }
+      else if (p.type === "AssignmentPattern") pat(p.left);
+      else if (p.type === "RestElement") pat(p.argument);
+    };
+    for (const s of body) if (s.type === "VariableDeclaration" && s.kind !== "var") for (const d of s.declarations) pat(d.id);
     for (const s of body) {
       if (s.type !== "FunctionDeclaration") continue;
       const sig = this.annotatedSig(s, env);
@@ -1375,7 +1368,17 @@ export class Checker {
   }
 
   // ---- calls ----
+  // DELIBERATE CHANGE (2026-11-24, w1, A-4): JSON.stringify of a value that may be undefined or a function is refused (live ixJsonArg)
   call(e: Node, env: Env, expected: Ty | undefined): Ty {
+    const t = this.call0(e, env, expected);
+    const c = e.callee, a = e.arguments?.[0];
+    if (e.type === "CallExpression" && c.type === "MemberExpression" && !c.computed && c.object.type === "Identifier" && c.object.name === "JSON" && c.property.type === "Identifier" && c.property.name === "stringify" && env.scope.get("JSON")?.kind === "global") {
+      const at = a && this.facts.types.get(a), w = at ? this.reg.peek(() => jsonGapWith(this.reg)(at)) : null;
+      if (a && at && w !== null) this.err(a, "type", `JSON.stringify gives undefined, not a string, for undefined or a function, and its argument ${show(at)} may be ${w}: give it a value that is neither (JSON.stringify(x ?? null) when x may be undefined)`);
+    }
+    return t;
+  }
+  call0(e: Node, env: Env, expected: Ty | undefined): Ty {
     const callee = e.callee;
     if (e.type === "CallExpression" && callee.type === "Identifier") {
       const b = env.scope.get(callee.name);

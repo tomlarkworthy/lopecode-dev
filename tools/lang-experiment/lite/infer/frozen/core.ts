@@ -15,7 +15,7 @@ import { parse, type Node, type Parsed } from "./ts/parse.ts";
 import { Registry } from "./ts/registry.ts";
 import { Checker } from "./infer.ts";
 import { ownership, actionEscapes, iterIn, mutIn, stripMut } from "./own.ts";
-import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, union, reservedName, RESERVED_MSG, reservedCellName, RESERVED_CELL_MSG, reservedText, RESERVED_TEXT_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith } from "../../types.ts";
+import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, union, reservedName, RESERVED_MSG, reservedCellName, RESERVED_CELL_MSG, reservedText, RESERVED_TEXT_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith, forgotWith } from "../../types.ts";
 // DELIBERATE CHANGE (2026-11-24, d1): the prelude names a compiled cell binds, from the toolchain's own cell (F)
 import { PRELUDE_HOME } from "../../intrinsics.ts";
 import { tcPrelude } from "../../toolchain/tc-index.ts";
@@ -50,20 +50,48 @@ function jsxHT1(n: Node): Node | null {
   walk(n);
   return jsx ? at : null;
 }
+// w1 (F-4): each name bound under n (declarator, function name or parameter, catch parameter) that, parsed alone as an
+// expression, is not an Identifier
+export function keywordNamesW1(n: Node): Node[] {
+  const out: Node[] = [];
+  const keyword = (name: string): boolean => { try { const b = parse(`(${name});`).program.body[0]; return b?.type !== "ExpressionStatement" || b.expression.type !== "Identifier"; } catch { return true; } };
+  const pat = (p: any): void => {
+    if (!p) return;
+    if (p.type === "Identifier") { if (keyword(p.name)) out.push(p); }
+    else if (p.type === "ObjectPattern") { for (const x of p.properties) pat(x.type === "Property" ? x.value : x.type === "RestElement" ? x.argument : null); }
+    else if (p.type === "ArrayPattern") { for (const x of p.elements) pat(x); }
+    else if (p.type === "AssignmentPattern") pat(p.left);
+    else if (p.type === "RestElement") pat(p.argument);
+  };
+  const walk = (x: any): void => {
+    if (!x || typeof x !== "object") return;
+    if (Array.isArray(x)) { for (const y of x) walk(y); return; }
+    if (typeof x.type !== "string") return;
+    if (x.type === "VariableDeclarator") pat(x.id);
+    if (x.type === "CatchClause") pat(x.param);
+    if (x.type === "FunctionDeclaration" || x.type === "FunctionExpression" || x.type === "ArrowFunctionExpression") { pat(x.id); for (const q of x.params) pat(q); }
+    for (const k of Object.keys(x)) if (k !== "loc") walk(x[k]);
+  };
+  walk(n);
+  return out;
+}
+// DELIBERATE CHANGE (2026-11-24, w1, Step 2): any member so named, optional or not, and an object literal's key (live mdProtoMembers)
 export function protoMembersT1(n: Node): { at: Node; name: string; opt: boolean }[] {
   const out: { at: Node; name: string; opt: boolean }[] = [];
+  const nameOf = (k: Node): string | null => (k.type === "Identifier" ? k.name : k.type === "Literal" && typeof k.value === "string" ? k.value : null);
   const walk = (x: Node): void => {
     if (x.type === "TSPropertySignature" || x.type === "TSMethodSignature") {
-      const k = x.key, name = k.type === "Identifier" ? k.name : k.type === "Literal" && typeof k.value === "string" ? k.value : null;
-      if (name !== null && (name === "__proto__" || (x.optional === true && PROTO_MEMBERS.has(name)))) out.push({ at: x, name, opt: name !== "__proto__" });
+      const name = x.computed === true ? null : nameOf(x.key);
+      if (name !== null && (name === "__proto__" || PROTO_MEMBERS.has(name))) out.push({ at: x, name, opt: name !== "__proto__" });
     }
+    if (x.type === "ObjectExpression") for (const p of x.properties) if (p.type === "Property" && !p.computed) { const name = nameOf(p.key); if (name !== null && name !== "__proto__" && PROTO_MEMBERS.has(name)) out.push({ at: p, name, opt: true }); }
     for (const k of everyKid(x)) walk(k);
   };
   walk(n);
   return out;
 }
 export const protoMsgT1 = (name: string, opt: boolean) => opt
-  ? `${name}?: an optional member may not be named after an Object.prototype member: a value without its own ${name} reads the inherited one (Object.prototype.${name}), which is not the member's type; give the member another name`
+  ? `${name} may not be a member's name: it is a member of Object.prototype or one a conversion calls (a template string, +, ==, String(), JSON.stringify, join, sort and await call toString, valueOf, toJSON and then), so a conversion would run a value's own ${name} or read the inherited one; give the member another name`
   : `__proto__ may not be declared as a member: it is the object's prototype, not a member; give the member another name`;
 
 export type LiteError = { rule: string; line: number; msg: string };
@@ -274,6 +302,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     const hT1 = jsxHT1(c.stmt);
     if (hT1) diag(hT1, "reserved-name", "h is reserved in a cell with JSX: each JSX element is a call h(...), which a local or parameter named h would take; give it another name");
     for (const m of protoMembersT1(c.stmt)) diag(m.at, "banned-member", protoMsgT1(m.name, m.opt));
+    // DELIBERATE CHANGE (2026-11-24, w1, F-4): a name the parser bound that JavaScript reads as a keyword (live mdKeywordNames)
+    for (const k of keywordNamesW1(c.stmt)) diag(k, "reserved-name", `${k.name} is reserved: JavaScript reads it as a keyword, so the compiled cell would not parse; give it another name`);
     // DELIBERATE CHANGE (2026-11-23, a9): text the compiler reserves (/*ss, its language mark) is refused at check time (5d)
     const mark = reservedText(P.src.slice(c.stmt.start, c.stmt.end));
     if (mark !== null) diag(c.fn, "reserved-name", RESERVED_TEXT_MSG(c.name, mark));
@@ -339,7 +369,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       if (ann) {
         const want = reg.convert(ann, { tps: new Set() }, P);
         const widenBorrow = isNamed(vt, "Borrowed") && !isNamed(want, "Borrowed");
-        if (widenBorrow || !reg.sub(vt, want)) diag(p, "inject-type", `${name}: ${show(vt)} is not assignable to ${show(want)}`);
+        // DELIBERATE CHANGE (2026-11-24, w1): a failure by the forgetting rule says what was left out (forgotWith)
+        const why = widenBorrow || reg.sub(vt, want) ? null : reg.peek(() => forgotWith(reg)(vt, want));
+        if (widenBorrow || why !== null || !reg.sub(vt, want)) diag(p, "inject-type", `${name}: ${show(vt)} is not assignable to ${show(want)}${why !== null ? `: ${why}` : ""}`);
         else ch.hides(p, vt, want);
         injected.push(want);
       } else injected.push(vt);

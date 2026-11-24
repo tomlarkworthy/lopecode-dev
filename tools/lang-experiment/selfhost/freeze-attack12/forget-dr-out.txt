@@ -1,0 +1,268 @@
+== selfhost/freeze-attack12/forget.ts:f-iter-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-object: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-rec-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-rec-object: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-rec-opt-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-arr-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-tuple-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-index-unknown-width: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-record-unknown-width: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-index-plus-width: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-map-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-generic-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-entries: REJECT g:rejected[iterator-cell]
+== selfhost/freeze-attack12/forget.ts:f-iter-values: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-fromEntries: REJECT g:rejected[iterator-cell]
+== selfhost/freeze-attack12/forget.ts:f-iter-catch: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-void-param: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-iter-cast-unknown: ACCEPT
+   drive -> same: not one-shot: number 0 / not one-shot: number 0
+   show g = 0 | E[]
+== selfhost/freeze-attack12/forget.ts:f-iter-union-num-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-object: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-rec-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-rec-object: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-rec-opt-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-arr-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-tuple-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-index-unknown-width: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-record-unknown-width: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-index-plus-width: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-map-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-generic-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-entries: REJECT g:rejected[iterator-cell]
+== selfhost/freeze-attack12/forget.ts:f-map-iter-values: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-fromEntries: REJECT g:rejected[iterator-cell]
+== selfhost/freeze-attack12/forget.ts:f-map-iter-catch: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-void-param: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-map-iter-cast-unknown: ACCEPT
+   drive -> same: not one-shot: number 0 / not one-shot: number 0
+   show g = 0 | E[]
+== selfhost/freeze-attack12/forget.ts:f-map-iter-union-num-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-gen-unknown: ACCEPT
+   drive -> same: not one-shot: number 2 / not one-shot: number 2
+   show g = 2 | E[]
+== selfhost/freeze-attack12/forget.ts:f-gen-object: ACCEPT
+   drive -> same: not one-shot: number 2 / not one-shot: number 2
+   show g = 2 | E[]
+== selfhost/freeze-attack12/forget.ts:f-gen-rec-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-gen-rec-object: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-gen-rec-opt-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-gen-arr-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-gen-tuple-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-gen-index-unknown-width: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-gen-record-unknown-width: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-gen-index-plus-width: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-gen-map-unknown: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-gen-generic-unknown: ACCEPT
+   drive -> same: not one-shot: number 2 / not one-shot: number 2
+   show g = 2 | E[]
+== selfhost/freeze-attack12/forget.ts:f-gen-entries: REJECT g:rejected[iterator-cell]
+== selfhost/freeze-attack12/forget.ts:f-gen-values: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget.ts:f-gen-fromEntries: REJECT g:rejected[iterator-cell]
+== selfhost/freeze-attack12/forget.ts:f-gen-catch: ACCEPT
+   drive -> same: not one-shot: number 2 / not one-shot: number 2
+   show g = 2 | E[]
+== selfhost/freeze-attack12/forget.ts:f-gen-void-param: ACCEPT
+   drive -> same: not one-shot: number 2 / not one-shot: number 2
+   show g = 2 | E[]
+== selfhost/freeze-attack12/forget.ts:f-gen-cast-unknown: ACCEPT
+   drive -> same: not one-shot: number 0 / not one-shot: number 0
+   show g = 0 | E[]
+== selfhost/freeze-attack12/forget.ts:f-gen-union-num-unknown: ACCEPT
+   drive -> same: not one-shot: number 2 / not one-shot: number 2
+   show g = 2 | E[]
+== selfhost/freeze-attack12/forget.ts:f-resp-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-object: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-rec-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-rec-object: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-rec-opt-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-arr-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-tuple-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-index-unknown-width: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-record-unknown-width: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-index-plus-width: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-map-unknown: REJECT g:rejected[handle-pass][handle-pass][handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-generic-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-entries: REJECT g:rejected[type][iterator-cell]
+== selfhost/freeze-attack12/forget.ts:f-resp-values: REJECT g:rejected[type][handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-fromEntries: REJECT g:rejected[iterator-cell]
+== selfhost/freeze-attack12/forget.ts:f-resp-catch: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-resp-void-param: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = {} | E[]
+   SILENT
+== selfhost/freeze-attack12/forget.ts:f-resp-cast-unknown: ACCEPT
+   drive -> same: not one-shot: number 0 / not one-shot: number 0
+   show g = 0 | E[]
+== selfhost/freeze-attack12/forget.ts:f-resp-union-num-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/forget.ts:f-ctl-iter-own-type [ctl]: CONTROL (checker skipped)
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack12/forget.ts:f-ctl-resp-own-type [ctl]: CONTROL (checker skipped)
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = {} | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack12/forget.ts:f-ctl-gen-own-type [ctl]: CONTROL (checker skipped)
+   drive -> same: not one-shot: number 2 / not one-shot: number 2
+   show g = 2 | E[]
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack12/forget.ts:f-plain-array-unknown: ACCEPT
+   drive -> same: [1,2] / [1,2]
+   show g = [1,2] | E[]
+== selfhost/freeze-attack12/forget.ts:f-action-void-leaves: ACCEPT
+   drive -> same: c=0 g fulfilled 
+   show c = 0 | E[]
+   show g = action | E[]
+== selfhost/freeze-attack12/forget.ts:f-action-cast-leaves: ACCEPT
+   drive -> same: c=0 g fulfilled 
+   show c = 0 | E[]
+   show g = 0 | E[]
+== selfhost/freeze-attack12/forget.ts:f-action-void-record: ACCEPT
+   drive -> same: c=0 g fulfilled 
+   show c = 0 | E[]
+   show g = {u:{n:1,go:action}} | E[]
+== selfhost/freeze-attack12/forget.ts:f-state-void-leaves: ACCEPT
+   drive -> same: c=0 g fulfilled 
+   show c = 0 | E[]
+   show g = {} | E[]
+== selfhost/freeze-attack12/forget.ts:f-mut-unknown-write-after: ACCEPT
+   drive -> same: [1,2]
+   show g = [1,2] | E[]
+== selfhost/freeze-attack12/forget.ts:f-mut-void-write-after: ACCEPT
+   drive -> same: {"u":[1,2],"n":2}
+   show g = {u:[1,2],n:2} | E[]
+-- controls 3, ran 3, fired 1
+-- harness crashes 0
+-- 83 candidates, accepted 60, silent 1 (by the tap alone 0)
+SILENT selfhost/freeze-attack12/forget.ts:f-resp-void-param
+-- checker throws 0 (parse errors 0)

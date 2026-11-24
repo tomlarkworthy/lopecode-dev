@@ -2597,10 +2597,12 @@
      "node"
     ],
     "readonly": [
+     "boolean",
      "string",
      "absent"
     ],
     "optional": [
+     "boolean",
      "string",
      "absent"
     ]

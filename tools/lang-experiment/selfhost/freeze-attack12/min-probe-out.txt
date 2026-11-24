@@ -1,0 +1,12 @@
+min-void-resp: ACCEPT
+min-object-promise: ACCEPT
+min-object-generator: ACCEPT
+min-fe-tojson: ACCEPT
+min-fe-then: ACCEPT
+min-fe-action-after-await: ACCEPT
+min-fe-action-sync: ACCEPT
+min-fe-action-then-callback: ACCEPT
+min-ctl-action-after-await: REJECT g:rejected[action-call]
+    g[action-call] an Action called outside action(...)
+min-callsig-name: ACCEPT
+min-void-cell: ACCEPT

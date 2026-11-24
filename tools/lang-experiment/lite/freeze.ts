@@ -242,7 +242,7 @@ export const freeze = <T,>(v: T): T => deepFreeze(v);
 export const borrow = <T,>(v: T): T => { if (typeof v === "object" && v !== null) LENT.add(v); return v; };
 // a cell's value as the runtime publishes it, at every boundary: deep-frozen; a promise's resolved value; each value a
 // generator yields. (B7's unfrozen quick path was removed 2026-11-22: it failed the freeze attack.)
-export function out<T>(v: T): T {
+function publishOut<T>(v: T): T {
   if (v instanceof Promise) { const q = v.then(published, rethrow); PUBLISHED.add(q); return q as T; }
   const g = v as any;
   if (!g || typeof g.next !== "function" || typeof g.return !== "function") return published(v);
@@ -250,3 +250,16 @@ export function out<T>(v: T): T {
   const w = { next: (...a: unknown[]) => fz(g.next(...a)), return: (...a: unknown[]) => fz(g.return(...a)), throw: (...a: unknown[]) => fz(g.throw(...a)) };
   return Object.assign(w, typeof g[Symbol.asyncIterator] === "function" ? { [Symbol.asyncIterator]() { return w; } } : { [Symbol.iterator]() { return w; } }) as T;
 }
+// w1 (2026-11-24): a compiled cell's body runs under the guard runCells puts around each cell (run.ts counted). depth is
+// prelude.runtime.ts rt.evalDepth: while it is above 0 an action call is refused ("action called during a cell evaluation")
+export const evaluating = { depth: 0 };
+const underEval = <T,>(f: () => T): T => { evaluating.depth++; try { return f(); } finally { evaluating.depth--; } };
+// each step of a generator a cell gives runs under the guard too, as cells.ts guard does for runCells
+const guardSteps = (g: any): any => {
+  const w = { next: (...a: unknown[]) => underEval(() => g.next(...a)), return: (...a: unknown[]) => underEval(() => g.return(...a)), throw: (...a: unknown[]) => underEval(() => g.throw(...a)) };
+  return Object.assign(w, typeof g[Symbol.asyncIterator] === "function" ? { [Symbol.asyncIterator]() { return w; } } : { [Symbol.iterator]() { return w; } });
+};
+const outRun = <T,>(f: () => T): T => { const v: any = underEval(f); return v && typeof v.next === "function" && typeof v.return === "function" ? guardSteps(v) : v; };
+// out(v): v published. out.cell(f): a plain cell, f its body applied to its inputs, guarded then published. out.run(f): a
+// listener cell's body, guarded only
+export const out = Object.assign(publishOut, { cell: <T,>(f: () => T): T => publishOut(outRun(f)), run: outRun });

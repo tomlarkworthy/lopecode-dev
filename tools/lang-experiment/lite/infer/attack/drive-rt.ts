@@ -10,6 +10,7 @@
 // module (a variable of another notebook module), Observable's stdlib beyond Generators.input.
 // Settling waits on setImmediate turns (the Runtime's own frame under bun), no timer; frames are pumped as observe.ts does.
 import { Runtime } from "@observablehq/runtime";
+import { noteThrow, reportThrows } from "./throws.ts";
 import * as T from "../../toolchain/ss-toolchain.ts";
 import * as ss from "../../stdlib/runtime.ts";
 import * as P from "../../../prelude.runtime.ts";
@@ -148,7 +149,7 @@ export const differences = (a: Observed, b: Observed): { what: string[]; msgOnly
 export const verdictRt = (c: RtProg & { name?: string }) => {
   const outside = Object.keys(c.outside ?? {}).filter((n) => !n.startsWith("viewof ")).map((n) => ({ name: n, view: !!c.outside?.[`viewof ${n}`] }));
   let r: any;
-  try { r = checkSources({ cells: c.src, tsx: true, outside, foreign: null, home: c.home ?? null } as never); } catch (x) { return { ok: false, text: `CRASH ${(x as Error).message}`, checked: undefined }; }
+  try { r = checkSources({ cells: c.src, tsx: true, outside, foreign: null, home: c.home ?? null } as never); } catch (x) { return { ok: false, text: `CRASH ${noteThrow(c.name ?? "?", x, c.src)}`, checked: undefined }; }
   const bad = r.cells.filter((x: any) => x.status !== "ok" || x.errors.length || x.unsupported.length);
   const text = bad.length || r.module.length ? `REJECT ${[...r.module.map((e: any) => `module[${e.rule}]`), ...bad.map((x: any) => `${x.name}:${x.status}${x.errors.map((e: any) => `[${e.rule}]`).join("")}`)].join(" ")}` : "ACCEPT";
   const checked = { cells: r.cells.map((x: any) => ({ name: x.name, status: c.ctl ? "ok" : x.status, errors: c.ctl ? [] : x.errors })), facts: r.facts };
@@ -205,5 +206,5 @@ if (import.meta.main) {
   if (BOTH) console.log(`-- differ ${differ}`);
   console.log(`-- ${n} candidates, accepted ${acc}, silent ${sil}`);
   for (const s of silent) console.log(`SILENT ${s}`);
-  process.exit(0);
+  process.exit(reportThrows());
 }

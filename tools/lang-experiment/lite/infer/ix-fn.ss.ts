@@ -68,7 +68,23 @@ export const ixReturned = (ixAwaited, members, isNamed, named, union) => (K: IxK
   return t;
 };
 // Function declarations are hoisted: bound first, their bodies checked in order (or on the first read)
-export const ixHoist = (ixAnnotatedSig, ixDeclare, ixNoExtra, ERR) => (K: IxK, V: IxVars, C: IxCtls, env: IxEnv, body: AstNode[]): void => {
+// w1 (2026-11-24, S-1): each name a const or let of the block declares is bound first too, as a later binding, so a
+// read before its declaration (in the block or in a function made there) is that binding and not one outside
+export const ixLaterNames = () => (s: AstNode): Identifier[] => {
+  const out: Mut<Identifier[]> = [];
+  const pat = (p: AstNode | null): void => {
+    if (p === null) return;
+    if (p.type === "Identifier") out.push(p);
+    else if (p.type === "ObjectPattern") { for (const x of p.properties) pat(x.type === "Property" ? x.value : x.type === "RestElement" ? x.argument : null); }
+    else if (p.type === "ArrayPattern") { for (const x of p.elements) pat(x); }
+    else if (p.type === "AssignmentPattern") pat(p.left);
+    else if (p.type === "RestElement") pat(p.argument);
+  };
+  if (s.type === "VariableDeclaration" && s.kind !== "var") for (const d of s.declarations) if (d.type === "VariableDeclarator") pat(d.id);
+  return out;
+};
+export const ixHoist = (ixAnnotatedSig, ixDeclare, ixNoExtra, ixLaterNames, ERR) => (K: IxK, V: IxVars, C: IxCtls, env: IxEnv, body: AstNode[]): void => {
+  for (const s of body) for (const id of ixLaterNames(s)) ixDeclare(V, C, env, id.name, ERR, "const", id, ixNoExtra, { k: "later", at: id }, false, -1);
   for (const s of body) {
     if (s.type !== "FunctionDeclaration" || s.id.type !== "Identifier") continue;
     const sig = ixAnnotatedSig(K, V, C, env, s);

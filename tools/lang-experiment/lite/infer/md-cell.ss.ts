@@ -13,9 +13,36 @@ export const RESERVED_DOLLAR_MSG = () => (name: string): string =>
   `${name} is reserved as a cell name: a cell name may not hold $, which the runners use in the names they make (a state cell x has a handle x$ref); give the cell another name`;
 export const RESERVED_JSX_H_MSG = () => "h is reserved in a cell with JSX: each JSX element is a call h(...), which a local or parameter named h would take; give it another name";
 export const PROTO_MEMBER_MSG = () => (name: string, opt: boolean): string => opt
-  ? `${name}?: an optional member may not be named after an Object.prototype member: a value without its own ${name} reads the inherited one (Object.prototype.${name}), which is not the member's type; give the member another name`
+  ? `${name} may not be a member's name: it is a member of Object.prototype or one a conversion calls (a template string, +, ==, String(), JSON.stringify, join, sort and await call toString, valueOf, toJSON and then), so a conversion would run a value's own ${name} or read the inherited one; give the member another name`
   : `__proto__ may not be declared as a member: it is the object's prototype, not a member; give the member another name`;
-export const mdSyntax = (syntaxBans, mdDiag, ixUnsup, reservedCellName, RESERVED_CELL_MSG, RESERVED_PRELUDE_MSG, reservedText, RESERVED_TEXT_MSG, RESERVED_INPUT_MSG, RESERVED_DOLLAR_MSG, RESERVED_JSX_H_MSG, mdJsxH, mdProtoMembers, PROTO_MEMBER_MSG) => (K: IxK, C: IxCtls, X: MdCtx, L: MdL, d: MdDef): void => {
+// w1 (2026-11-24, F-4): each name bound under n (a declarator, a function's name or parameters, a catch parameter) that
+// JavaScript reads as a keyword although the parser bound it (the TS plugin takes const this = …): parsed alone as an
+// expression, the name is not an Identifier
+export const mdKeywordNames = (parseTree, childrenOf) => (n: AstNode): Identifier[] => {
+  const out: Mut<Identifier[]> = [];
+  const keyword = (name: string): boolean => {
+    const p = parseTree(`(${name});`, false), s = p.ok && p.ast.program.type === "Program" ? p.ast.program.body[0] : undefined;
+    return s === undefined || s.type !== "ExpressionStatement" || s.expression.type !== "Identifier";
+  };
+  const pat = (p: AstNode | null): void => {
+    if (p === null) return;
+    if (p.type === "Identifier") { if (keyword(p.name)) out.push(p); }
+    else if (p.type === "ObjectPattern") { for (const x of p.properties) pat(x.type === "Property" ? x.value : x.type === "RestElement" ? x.argument : null); }
+    else if (p.type === "ArrayPattern") { for (const x of p.elements) pat(x); }
+    else if (p.type === "AssignmentPattern") pat(p.left);
+    else if (p.type === "RestElement") pat(p.argument);
+  };
+  const walk = (x: AstNode): void => {
+    if (x.type === "VariableDeclarator") pat(x.id);
+    if (x.type === "CatchClause") pat(x.param);
+    if (x.type === "FunctionDeclaration" || x.type === "FunctionExpression" || x.type === "ArrowFunctionExpression") { pat(x.id); for (const q of x.params) pat(q); }
+    for (const c of childrenOf(x)) walk(c.node);
+  };
+  walk(n);
+  return out;
+};
+export const KEYWORD_NAME_MSG = () => (name: string): string => `${name} is reserved: JavaScript reads it as a keyword, so the compiled cell would not parse; give it another name`;
+export const mdSyntax = (syntaxBans, mdDiag, ixUnsup, reservedCellName, RESERVED_CELL_MSG, RESERVED_PRELUDE_MSG, reservedText, RESERVED_TEXT_MSG, RESERVED_INPUT_MSG, RESERVED_DOLLAR_MSG, RESERVED_JSX_H_MSG, mdJsxH, mdProtoMembers, PROTO_MEMBER_MSG, mdKeywordNames, KEYWORD_NAME_MSG) => (K: IxK, C: IxCtls, X: MdCtx, L: MdL, d: MdDef): void => {
   for (const s of syntaxBans(d.fn)) {
     if (s.unsup) ixUnsup(K, C, s.at, s.msg);
     else mdDiag(X, L, s.at, s.rule, s.msg);
@@ -27,6 +54,7 @@ export const mdSyntax = (syntaxBans, mdDiag, ixUnsup, reservedCellName, RESERVED
   const h = mdJsxH(d.stmt);
   if (h !== null) mdDiag(X, L, h, "reserved-name", RESERVED_JSX_H_MSG);
   for (const p of mdProtoMembers(d.stmt, X.R.proto)) mdDiag(X, L, p.at, "banned-member", PROTO_MEMBER_MSG(p.name, p.opt));
+  for (const k of mdKeywordNames(d.stmt)) mdDiag(X, L, k, "reserved-name", KEYWORD_NAME_MSG(k.name));
   const m = reservedText(X.src.slice(d.stmt.start, d.stmt.end));
   if (m !== null) mdDiag(X, L, d.fn, "reserved-name", RESERVED_TEXT_MSG(d.name, m));
 };
@@ -52,14 +80,18 @@ export const mdJsxH = (kidsOf) => (n: AstNode): AstNode | null => {
   walk(n);
   return st.jsx ? st.at : null;
 };
-// B-1: each member signature under n (in type positions too) named after an Object.prototype member and optional, or named __proto__
+// B-1: each member signature under n (in type positions too) named __proto__ or, w1 (2026-11-24, Step 2), named in
+// proto (Object.prototype's names and the conversion members, core.ts PROTO_MEMBERS), optional or not; and each key of
+// an object literal named in proto (__proto__ as a key is ix-expr.ss.ts ixProtoKey's)
 export const mdProtoMembers = (childrenOf) => (n: AstNode, proto: Set<string>): { at: AstNode; name: string; opt: boolean }[] => {
   const out: Mut<{ at: AstNode; name: string; opt: boolean }[]> = [];
+  const nameOf = (k: AstNode): string | null => (k.type === "Identifier" ? k.name : k.type === "Literal" && typeof k.value === "string" ? k.value : null);
   const walk = (x: AstNode): void => {
     if (x.type === "TSPropertySignature" || x.type === "TSMethodSignature") {
-      const k = x.key, name = k.type === "Identifier" ? k.name : k.type === "Literal" && typeof k.value === "string" ? k.value : null;
-      if (name !== null && (name === "__proto__" || (x.optional === true && proto.has(name)))) out.push({ at: x, name, opt: name !== "__proto__" });
+      const name = x.computed === true ? null : nameOf(x.key);
+      if (name !== null && (name === "__proto__" || proto.has(name))) out.push({ at: x, name, opt: name !== "__proto__" });
     }
+    if (x.type === "ObjectExpression") for (const p of x.properties) if (p.type === "Property" && !p.computed) { const name = nameOf(p.key); if (name !== null && name !== "__proto__" && proto.has(name)) out.push({ at: p, name, opt: true }); }
     for (const k of childrenOf(x)) walk(k.node);
   };
   walk(n);

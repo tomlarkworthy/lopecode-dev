@@ -195,7 +195,7 @@ export const tcCastEdits = (parseTree, tcGlobalRefStarts, kidsOf, tcREG_OPEN, tc
   if (calls.length !== free.size || calls.length !== shapes.length) throw new Error(`tc-gap: ${free.size} references to cast, ${calls.length} of them calls, and ${shapes.length} shapes from the check`);
   return calls.toSorted((a, b) => (a.type === "CallExpression" && b.type === "CallExpression" ? a.callee.start - b.callee.start : 0)).map((c, i) => {
     const end = c.type === "CallExpression" ? (c.arguments.at(-1) ?? c.callee).end : c.end;
-    return { from: end - 1, to: end - 1, text: `${tcREG_OPEN}, ${JSON.stringify(shapes[i])}${tcREG_CLOSE}` };
+    return { from: end - 1, to: end - 1, text: `${tcREG_OPEN}, ${JSON.stringify([shapes[i]]).slice(1, -1)}${tcREG_CLOSE}` };
   });
 };
 // the registrations of a typed cell function, as edits to its text in their final order (at one position: ends deepest

@@ -3594,3 +3594,111 @@ One run; the task statements are not the ones the first study used; the learner 
 was being measured. The four rejected: 16 LRU cache (private writable state), a computed property in an object
 literal, 39 a run-time key on a record (`[banned-member]`, the d1 rule), 34 a per-row handler (`[action-capture]`).
 The learner's 21 unanswered questions are at the end of `learner1/learner-notes.md`.
+
+## 2026-11-24: w1 (one forgetting rule; harness; compiled guard) (builder, 07:15–10:50, logs `lite/soundscript/.scratch/w1/`)
+
+**Step 0a, harness.** drive-run's follower called the program's Actions while it followed values (`follow`,
+`promiseLines`, `again` in `freeze-attack3/harness.ts`); it now skips any value that is an Action. Rerun on the
+unchanged product (snapshot `before/` -> `before-h/`, `harness-diff.txt`): 45 named drive-run rows changed (fa11 a 38, min 4,
+s 3), every one from silent or fired to loud or quiet; 0 rows became silent. `harness-diff.txt` keys rows by name, and
+three fa11 a.ts rows share the name `a-d-toString-_x_`, so one more silent row that went loud is not listed in it. SILENT
+lines: fa11 a.ts 69 -> 31, min 7 -> 4, s 19 -> 17: those breaks were the harness calling the action, not the program.
+
+**Step 0b, controls by runner** (`controls-before.txt`, `controls.ts`, before any product change):
+
+```
+runCells / compiled  controls
+fired / fired        63
+loud / fired          5     <- 3 of them: an action called while a cell computes (R-1)
+loud / loud          24
+loud / quiet          4     <- runCells crashes on a cell named state, h or Map ("Cannot declare a const variable twice")
+quiet / fired         3     <- performance.now / a closure: compiled shows the type break, runCells does not
+quiet / quiet        76
+```
+
+R-1 fix: a compiled cell's body runs as `ss_out.cell(() => ...)` and a listener as `ss_out.run(...)` (`freeze.ts`
+`underEval`/`outRun`/`guardSteps`; each generator step is guarded too). An action called inside throws "action called
+during a cell evaluation", as runCells does. Cost (`.scratch/w1/guardcost.ts`, bun, 3 runs): `out.run(f)` 11–13 ns per
+call against 0.5–3 ns for `f()`; `out.cell(f)` 25 ns against `out(1)` 12–15 ns. The 12 `w1-guard-*` rows fire under
+compiled on the snapshot and under neither runner now.
+
+**Step 1, one rule.** `sites.txt`: all 180 assignability calls reach `subWith`'s `sub`; the hide check (`ixHides`) ran
+at 6 of them, which is how attack 10/11 bypassed it. The rule now lives in `subtype.ss.ts` `takesRecord`/`plainWith`,
+called from `recSubWith`: a value given a type that does not declare a part of it is `[forgets]` unless that part is
+plain data; a non-record given a record type is `[forgets]`. `forgotWith` writes the message. Deleted, the t1 special cases:
+`ix-hides.ss.ts` `ixAnyObject` and `ixExtraHidden` and `ixMayHoldFn`'s record clause (48 lines out, 8 in), the `any`
+flag of `rg-view.ss.ts`'s hide walk (its optional-only record case), and `subtype.ss.ts` `callableToPlain`. `ixHides`
+keeps only `unknown`, `object` and type-parameter targets; `forgotWith` returns null for those, so they still give
+`[action-pass]`/`[handle-pass]` (agreement: message-fixes rows `forgets-*`, spec S6.6/S9.6 rows).
+Cost: the walk over the checker's own sources took 87.7M `plain` steps on `acorn-kids` and the self-check passed 5 min;
+a WeakMap memo in the registries (`rg-registry.ts`, `frozen/ts/registry.ts`; a cell may not memoise, `[memo-pure]`)
+brought it to 0.2M. The self-check then rejected 47 distinct cells (2715 of 44355 section cells, 6.1%, over the 1%
+clause), mostly `IxReg` given where `IxRegCore` was declared (39); fixed by declaring the members optional. After:
+0 rejected; `m1/time-sections.ts` ix+ow 7402/7471 ms (snapshot) -> 5523/5622 ms.
+
+**Step 2.** A member (required or optional) or an object-literal key named after an `Object.prototype` member,
+`toJSON` or `then` is `[banned-member]` (`core.ts` `CONVERSION_MEMBERS`, `md-cell.ss.ts` `mdProtoMembers`). Three
+earlier must-accept rows used such names and are now must-reject (`t1-b-required-own-w1`, `t1-b-member-key-w1`,
+`d1-key-entries-w1`); `checker-tests.ojs` lost its two thenable cases.
+
+**Step 3.** S-1: a block's later `const`/`let` is declared first as `{k: "later"}` (`ix-fn.ss.ts` `ixLaterNames`), and
+a read of it is `[free-name]`. The brief's must-accept `const f = () => g(); const g = () => 1;` was already rejected
+on the snapshot ([free-name] in a block, [cell-by-name] across cells); the change makes the shadowed case reject the
+same way. Accepting it would need a lazy type for a later function-valued const and a TDZ check; not done.
+A-4: `JSON.stringify(v)` with `v` possibly undefined, a function, `unknown`, `object` or a type parameter is `[type]`.
+Two options were censused: widening its result to `string | undefined` rejected 9 distinct section cells and 23 others
+(mostly possibly-undefined); restricting the argument rejected 1 user cell (`repro-unknown-class jsonOf`) and 3 checker
+cells (fixed). Chose restrict. C-1: `census.json` gains `boolean` for `TSMappedType.readonly`/`optional`; a mapped type
+is now unsupported where used. `attack/never-throws.test.ts` runs 2576 set programs and 2998 candidates and fails on
+fa11/b.ts `b-mapped-*` with the old schema. F-4: a binding the parser does not read back as an Identifier
+(`(${name});`) is `[reserved-name]`. C-2: steps are quadratic (512 / 1822 / 6842 / 26482 / 104162 at n = 10..160); n=160
+went 17 s (t1) -> 14 ms with the plain memo.
+
+**Census** (`census/`): after Step 1, 2550 ok->rejected, all the checker's own sources (2510 section, 40 module), 0
+user cells; final, 49293 cells, 529 differ, ok->rejected 2 (`jsonOf` A-4, `recordThenAwait` Step 2). Drafts unchanged:
+ergonomics accepted 18 of 40 (pass 17), learner 36 of 40 (pass 36).
+
+**Standing set w1** (`attack/w1-attacks.ts`, 156 candidates, 18 controls, 24 must-accept): snapshot accepted 145, silent
+67 (runCells) / 91 (compiled); now accepted 24, silent 0, controls fired 6 under both.
+
+**Gates** (`.scratch/w1/gates.sh`, 10:03–10:36, `gates/summary.txt`). A first run (`gates-aborted1/`) failed
+bun-verify 3 (`test_spec_S4_12`, `S4_6_host`, `S9_6`: programs w1 now refuses) and verify --quick's reference check
+(`[forgets]` produced, not named in the tutorial); those were fixed and the gates run again:
+
+```
+build 0; bun-verify 182 pass; fixtures 14/14 (58 rules, 58 with a reject case)
+diff SAME 3995 DIFFERENT 0 (REAL CRASH 14, as t1); --module-only 1285 SAME; tc-diff 56 lines (as t1)
+run-sets 2691 programs silent 0; --rt silent 0; REG=0 silent 0; BODYFN=0 silent 0 (t1: 1, f1-q-promise-width, now [forgets])
+fa2 309/8/0; fa3 360/9/0, REG=0 the same; verify --quick 234 pass 0 fail
+verify full 631 pass, then "Execution context was destroyed" in core-only, exit 1 (the stop recorded at d1, line 3121)
+verify full, run 2 alone (gates/verify-full-2.log, on battery): 678 pass 0 fail, exit 0
+34 of 34 test files exit 0 (live.test 1057, message-fixes 92, never-throws 1)
+```
+
+Guard cost in the browser, verify-full measurements t1 -> w1: Breakout after play 43.1 -> 40.5 world changes/s, one
+keystroke's lint median 6.2 -> 7.4 ms, load 459 -> 470 ms; one run each, so not separated from noise.
+
+**Left open.** An unused mapped alias gives no message (as any unused alias). S-1's must-accept forward reference.
+
+## 2026-11-24 10:45–11:40: owner-session check of w1; attack 12 received
+
+**Gates, one run on the tree committed** (`selfhost/w1-check/gates-summary.txt`): build 0; bun-verify 182 pass;
+fixtures 14/14 (58 rules); diff DIFFERENT 0 (4009 cells), `--module-only` 1285 SAME; run-sets 2691 programs silent 0
+under runCells, compiled (`--rt`), `SS_MEASURE_REG=0` and `SS_MEASURE_BODYFN=0`; fa2 309/8/0, fa3 360/9/0;
+verify --quick 234 pass; full verify 678 pass 0 fail (no stop in this run; the builder's run stopped once at the
+core-only step and passed when rerun); 34 of 34 test files exit 0.
+
+**Attack 12** (`selfhost/freeze-attack12/RESULTS.md`, `min.ts`): scoped to the forgetting rule, the banned member
+names and the compiled guard; 1104 programs under both runners. Record width held: for 10 kinds of non-plain value at
+88 sites, every program was rejected. Five breaks, all silent under both runners, none fixed in this commit:
+- V: a function typed as returning `void` may return anything (`fnSubWith` accepts any result for a `void` target), so
+  `const f: (y: FetchResponse) => void = (y) => y` hands a response out of its cell. 11 variants.
+- O: `(): object => Promise.resolve("s")` at a cell's top; readers get the string. The same with a generator.
+- H: `Object.fromEntries([["toJSON", f]])` makes a banned member at run time; the ban reads declared members and
+  literal keys only.
+- G: both runners' guard counts depth only while the body runs synchronously; after an `await` or in a `.then`
+  callback an action call is not refused. An accepted program reaches it only through H.
+- C: `interface F { (x: number): number; readonly name?: number }` takes a function; `f.name` is a string typed number.
+Exact record types would not have stopped V or O (no record type is involved), so the choice between exact records
+and data-only forgetting is not what these turn on: the same principle is not yet applied to `void` results, to
+`object`/`unknown` given a promise or a generator, and to keys made at run time.

@@ -8,6 +8,9 @@ import { ser } from "../../lite/infer/attack/observe.ts";
 import { runCells } from "../../lite/browser/run.ts";
 import { scheduler } from "../../lite/browser/cells.ts";
 import { checkSources } from "../../lite/core.ts";
+import { noteThrow } from "../../lite/infer/attack/throws.ts";
+// w1 (2026-11-24): an Action is never called by the follower (a call is a write); plain functions still are
+import { isAction } from "../../prelude.runtime.ts";
 
 export type Cand = { name: string; src: string; show?: string[]; twice?: string[]; ctl?: boolean; drive?: (p: any) => unknown; fetchBody?: string };
 export const W = "for (let i = 0; i < 300; i++) await null; ";
@@ -28,7 +31,7 @@ const follow = (v: unknown, seen = new Set<unknown>(), depth = 0): void => {
     return;
   }
   try {
-    if (typeof v === "function") { follow((v as () => unknown)(), seen, depth + 1); return; }
+    if (typeof v === "function") { if (!isAction(v)) follow((v as () => unknown)(), seen, depth + 1); return; }
     if (v instanceof Map) { for (const [a, b] of v) { follow(a, seen, depth + 1); follow(b, seen, depth + 1); } return; }
     if (v instanceof Set) { for (const a of v) follow(a, seen, depth + 1); return; }
     for (const k of Object.keys(v)) follow((v as any)[k], seen, depth + 1);
@@ -44,7 +47,7 @@ const promiseLines = (v: unknown, seen = new Set<unknown>(), depth = 0, out: str
   seen.add(v);
   if (v instanceof Promise) { const r = pv.get(v); if (r) { out.push(r.s); promiseLines(r.v, new Set(), depth + 1, out); } return out; }
   try {
-    if (typeof v === "function") { promiseLines((v as () => unknown)(), seen, depth + 1, out); return out; }
+    if (typeof v === "function") { if (!isAction(v)) promiseLines((v as () => unknown)(), seen, depth + 1, out); return out; }
     if (v instanceof Map) { for (const [a, b] of v) { promiseLines(a, seen, depth + 1, out); promiseLines(b, seen, depth + 1, out); } return out; }
     if (v instanceof Set) { for (const a of v) promiseLines(a, seen, depth + 1, out); return out; }
     for (const k of Object.keys(v)) promiseLines((v as any)[k], seen, depth + 1, out);
@@ -65,7 +68,7 @@ export async function runCand(p: Cand): Promise<Result> {
   const v = p.ctl ? { ok: true, text: "CONTROL (checker skipped)" } : verdictOf(p.src, null, false);
   if (!v.ok) return { verdict: v.text, ok: false, silent: [], lines: [] };
   let checked: any;
-  try { checked = checkSources({ cells: p.src, tsx: true, outside: [], foreign: null } as any); } catch {}
+  try { checked = checkSources({ cells: p.src, tsx: true, outside: [], foreign: null } as any); } catch (x) { noteThrow(p.name, x, p.src); }
   if (p.ctl && checked) checked = { cells: checked.cells.map((c: any) => ({ ...c, status: "ok", errors: [] })) };
   const first = new Map<string, { obj: unknown; s: string; run: number }[]>();
   frames.length = 0;
@@ -93,7 +96,7 @@ export async function runCand(p: Cand): Promise<Result> {
       const again = (v: unknown, seen = new Set<unknown>(), d = 0) => {
         if (d > 6 || v === null || (typeof v !== "object" && typeof v !== "function") || seen.has(v)) return; seen.add(v);
         if (v instanceof Promise) { const r = pv.get(v); if (r) { const s2 = r.err ? "REJ " + sser(r.v) : sser(r.v); if (s2 !== r.s) pnow.push(`promise ${r.s} -> ${s2}`); again(r.v, new Set(), d + 1); } return; }
-        try { if (typeof v === "function") { again((v as () => unknown)(), seen, d + 1); return; } if (v instanceof Map) { for (const [a, b] of v) { again(a, seen, d + 1); again(b, seen, d + 1); } return; } if (v instanceof Set) { for (const a of v) again(a, seen, d + 1); return; } for (const k of Object.keys(v)) again((v as any)[k], seen, d + 1); } catch {}
+        try { if (typeof v === "function") { if (!isAction(v)) again((v as () => unknown)(), seen, d + 1); return; } if (v instanceof Map) { for (const [a, b] of v) { again(a, seen, d + 1); again(b, seen, d + 1); } return; } if (v instanceof Set) { for (const a of v) again(a, seen, d + 1); return; } for (const k of Object.keys(v)) again((v as any)[k], seen, d + 1); } catch {}
       };
       again(x.obj);
       void pl;

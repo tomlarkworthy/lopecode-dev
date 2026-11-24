@@ -77,7 +77,7 @@ for (const f of ["05-reducer.tsx", "07-workers.tsx", "09-breakout.tsx"]) {
   expect(toolchain.compiledKind(g.get("ticks")!.definition)?.callee === "events" && !g.has("viewof ticks"), "a generator taken as Events is one handle variable");
   expect(passesModule(g.get("ticks")!.definition, "ticks"), "an events cell's definition is a function that passes its module name: " + g.get("ticks")!.definition.slice(0, 40));
   expect(JSON.stringify(g.get("ticks")?.inputs) === JSON.stringify(["ss_events", "ss_now", "playing", "over", "invalidation"]), "an events cell takes invalidation: " + g.get("ticks")?.inputs);
-  expect(JSON.stringify(g.get("onTick")?.inputs) === JSON.stringify(["ss_on", "ss_listen", "ticks", "tick", "invalidation"]) && toolchain.compiledKind(g.get("onTick")!.definition)?.callee === "listen", "on(...) makes a listener that takes invalidation: " + g.get("onTick")?.inputs);
+  expect(JSON.stringify(g.get("onTick")?.inputs) === JSON.stringify(["ss_on", "ss_out", "ss_listen", "ticks", "tick", "invalidation"]) && toolchain.compiledKind(g.get("onTick")!.definition)?.callee === "listen", "on(...) makes a listener that takes invalidation (w1: and ss_out, whose run guards the body): " + g.get("onTick")?.inputs + " " + toolchain.compiledKind(g.get("onTick")!.definition)?.callee);
   const w = by(await Bun.file(root + "lite/notebook/examples/07-workers.tsx").text());
   expect(JSON.stringify(w.get("inPool")?.inputs) === JSON.stringify(["ss_out", "ss_compileFor", "ss_compile", "width", "height", "maxIter", "ss_pool"]), "compile refs are inputs, in the order the definition reads them: " + w.get("inPool")?.inputs);
   const m = by(await Bun.file(root + "lite/notebook/examples/06-model.tsx").text());

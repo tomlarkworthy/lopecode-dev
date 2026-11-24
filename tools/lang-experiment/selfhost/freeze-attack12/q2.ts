@@ -1,0 +1,23 @@
+const C = `const count = () => state(0);\nconst bump = (count: State<number>) => action(() => count.update((c) => c + 1));\n`;
+export const srcs: [string, string][] = [
+  ["kept-calls-action", C + `const k = (bump: Action<[]>) => () => bump();`],
+  ["kept-action-ref", C + `const k = (bump: Action<[]>) => () => bump;`],
+  ["jsx-handler-arrow", C + `const v = (bump: Action<[]>) => <button onClick={() => bump()}>x</button>;`],
+  ["jsx-handler-direct", C + `const v = (bump: Action<[]>) => <button onClick={bump}>x</button>;`],
+  ["component-calls", C + `const v = (bump: Action<[]>) => { const B = (p: { readonly go: Action<[]> }) => { p.go(); return <b>x</b>; }; return <B go={bump} />; };`],
+  ["action-wraps-action", C + `const w = (bump: Action<[]>) => action(() => bump());`],
+  ["action-returns-fn", C + `const w = (bump: Action<[]>) => action(() => () => bump());`],
+  ["getter", `const g = () => { const o = { get x() { return 1; } }; return o.x; };`],
+  ["setter", `const g = () => { const o = { set x(v: number) {} }; return 1; };`],
+  ["method-short", `const g = () => { const o = { m() { return 1; } }; return o.m(); };`],
+  ["computed-key-sym", `const g = () => { const o = { [Symbol.iterator]: () => 1 }; return 1; };`],
+  ["symbol-ref", `const g = () => typeof Symbol;`],
+  ["async-after-await-direct", C + `const g = async (bump: Action<[]>) => { await null; bump(); return 1; };`],
+  ["on-listener", C + `function* t() { yield 1; }\nconst l = (t: Events<number>, add: Action<[number]>) => on(t, add);\nconst add = (count: State<number>) => action((n: number) => count.update((c) => c + n));`],
+  ["memo-action", C + `const m = (bump: Action<[]>) => memo((x: number) => { bump(); return x; });`],
+  ["catch-action", C + `const g = (bump: Action<[]>) => { try { throw { go: bump }; } catch (e) { return 1; } };`],
+  ["throw-in-record", C + `const g = (bump: Action<[]>) => { const r = { go: bump }; throw r; };`],
+  ["listener-in-js", C + `const g = (bump: Action<[]>) => [bump].map((f) => 1);`],
+  ["promise-then-action", C + `const g = (bump: Action<[]>) => Promise.resolve(1).then(bump);`],
+  ["promise-then-arrow", C + `const g = (bump: Action<[]>) => Promise.resolve(1).then(() => bump());`],
+];

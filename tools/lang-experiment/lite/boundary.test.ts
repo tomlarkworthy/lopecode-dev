@@ -327,8 +327,9 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
     });
     const u = await A.value("use");
     if (u.ok) await stop;
-    // what the checker cannot see: an action called from inside the function runs the calling cell again
-    ok("fn: re-entrancy: an action called from inside the function runs the calling cell again (trusted, not checked)", A.verdicts.join() === "count: ok,bump: ok,use: ok" && calls === 20 && (await A.seen("use")) === "value 19", [A.verdicts, calls]);
+    // what the checker cannot see: an action called from inside the function. w1 (2026-11-24): a compiled cell's body runs
+    // under the guard runCells puts around a cell, so the call is refused while use computes (it ran use again 19 times)
+    ok("fn: re-entrancy: an action called from inside the function while the cell computes is refused (trusted, not checked)", A.verdicts.join() === "count: ok,bump: ok,use: ok" && calls === 1 && String(await A.seen("use")).includes("action called during a cell evaluation"), [A.verdicts, calls, await A.seen("use")]);
   }
   {
     const fixed = (s: string) => ({ n: s.length, tag: s });
@@ -395,13 +396,14 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
     ["its result in state (data)", "const d = (g: () => number) => g();\nconst box = (d: number) => state(d);\nconst box2 = (g: () => number) => state(g());", "d: ok,box: ok,box2: ok"],
     ["its result yielded (data)", "function* ev(g: () => number) { yield g(); }", "ev: ok"],
     ["three cells away", "const hk = (g: () => number) => () => g();\nconst h2 = (hk: () => number) => () => hk();\nconst h3 = (h2: () => number) => () => h2();\nconst box = (h3: () => number) => state(h3);", "hk: ok,h2: ok,h3: ok,box: rejected [action-capture]"],
-    ["as {}, which a function is assignable to", "const box = (g: () => number) => state<{}>(g);", "box: rejected [action-capture]"],
-    ["as a record of optional properties", "const box = (g: () => number): StateCell<{ a?: number }> => state(g);", "box: rejected [action-capture]"],
-    ["as an empty interface", "interface I {}\nconst box = (g: () => number) => state<I>(g);", "box: rejected [action-capture]"],
-    ["yielded as {}", "function* ev(g: () => number): Generator<{}> { yield g; }", "ev: rejected [action-capture]"],
+    ["as {}, which a function is assignable to", "const box = (g: () => number) => state<{}>(g);", "box: rejected [forgets]"],
+    ["as a record of optional properties", "const box = (g: () => number): StateCell<{ a?: number }> => state(g);", "box: rejected [forgets]"],
+    ["as an empty interface", "interface I {}\nconst box = (g: () => number) => state<I>(g);", "box: rejected [forgets]"],
+    // w1: the forgetting rule refuses a function given a record type, before the capture rule
+    ["yielded as {}", "function* ev(g: () => number): Generator<{}> { yield g; }", "ev: rejected [forgets]"],
     ["its result in a record with a required property (data)", "const box = (g: () => number) => state<{ n: number }>({ n: g() });", "box: ok"],
   ];
-  for (const [what, src, want] of routes) { const got = verdictsOf(src, [{ name: "g" }]).map((v) => v.replace(/ \[action-capture\] .*/, " [action-capture]")).join(); ok(`fn: state or events, ${what}: ${want}`, got === want, got); }
+  for (const [what, src, want] of routes) { const got = verdictsOf(src, [{ name: "g" }]).map((v) => v.replace(/ \[(action-capture|forgets)\] .*/, " [$1]")).join(); ok(`fn: state or events, ${what}: ${want}`, got === want, got); }
   // a shell cell typed as a function crosses as one from another language; any other annotation is as before (S9.1)
   const shellOf = (src: string) => checkSources({ cells: src, tsx: false, shell: "export const sh = (s) => s.length;" }).cells.map((c) => `${c.name}: ${c.status}${c.errors.map((e) => ` [${e.rule}] ${e.msg}`).join("")}`).join(" | ");
   const shells: [string, string, string][] = [

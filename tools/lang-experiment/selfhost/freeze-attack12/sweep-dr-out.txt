@@ -1,0 +1,1505 @@
+== selfhost/freeze-attack12/sweep.ts:sw-fn-ann: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-ann-lit: REJECT g:rejected[excess-property][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-ret: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-elem: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-tuple: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-tuple-to-arr: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-nested: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-union-null: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-union-two: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-union-prim: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-alias: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-iface: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-iface-extends: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-iface-merge: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-intersection: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-fn-opt-other-type: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-opt-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-req-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-req-object: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-req-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-index-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-index-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-index-plus: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-record-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-record-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-partial: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-readonly-t: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-gen-explicit: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-gen-inner: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-gen-first: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-gen-two: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-map-arg: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-set-arg: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-promise-arg: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-fn-param-var: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-fn-ret-var: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-fn-ret-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-fn-ret-void-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-fn-ret-void-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-cb-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-ternary: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-ternary-infer: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-nullish: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-or: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-and: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-spread: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-spread-over: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-rest: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-rest-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-assign: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-fn-values: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-values-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-entries: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-fromEntries: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-fromEntries-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-array-from: REJECT g:rejected[arity][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-flatMap: REJECT g:rejected[forgets][type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-concat: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-map-cb: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-filter: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-find: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-reduce: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-memo-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-cast: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-cast-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-snapshot: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-clone: REJECT g:rejected[type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-throw: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 2 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-throw-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 2 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-let-assign: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-default-param: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-destr-annot: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-forof: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-object: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-opt: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-arr-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-tuple-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-rec-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-map-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-gen-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-union-num: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-msg: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-string: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-template: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-fn-whole-typeof-call: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-action-ann: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-ann-lit: REJECT g:rejected[excess-property][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-ret: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-elem: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-tuple: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-tuple-to-arr: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-nested: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-union-null: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-union-two: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-union-prim: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-alias: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-iface: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-iface-extends: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-iface-merge: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-intersection: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-action-opt-other-type: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-opt-unknown: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-req-unknown: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-req-object: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-req-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-index-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-index-unknown: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-index-plus: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-record-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-record-unknown: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-partial: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-readonly-t: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-gen-explicit: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-gen-inner: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-gen-first: REJECT g:rejected[forgets][action-pass][type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-gen-two: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-map-arg: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-set-arg: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-promise-arg: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-fn-param-var: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-fn-ret-var: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-fn-ret-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-action-fn-ret-void-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-action-fn-ret-void-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-action-cb-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-action-ternary: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-ternary-infer: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-nullish: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-or: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-and: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-spread: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-spread-over: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-rest: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-rest-param: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-assign: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-action-values: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-values-unknown: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-entries: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-fromEntries: REJECT g:rejected[action-pass][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-fromEntries-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-action-array-from: REJECT g:rejected[arity][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-flatMap: REJECT g:rejected[forgets][type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-concat: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-map-cb: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-filter: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-find: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-reduce: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-action-memo-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-cast: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-action-cast-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-action-snapshot: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-clone: REJECT g:rejected[type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-throw: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-throw-whole: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-let-assign: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-default-param: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-destr-annot: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-forof: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-unknown: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-object: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-empty: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-opt: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-arr-unknown: REJECT g:rejected[action-pass][action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-tuple-unknown: REJECT g:rejected[action-pass][action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-rec-unknown: REJECT g:rejected[action-pass][action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-map-unknown: REJECT g:rejected[action-pass][action-pass][action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-gen-unknown: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-union-num: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-msg: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-string: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-template: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-action-whole-typeof-call: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-state-ann: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-ann-lit: REJECT g:rejected[excess-property][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-ret: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-elem: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-tuple: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-tuple-to-arr: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-nested: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-union-null: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-union-two: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-union-prim: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-alias: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-iface: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-iface-extends: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-iface-merge: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-intersection: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-state-opt-other-type: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-opt-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-req-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-req-object: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-req-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-index-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-index-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-index-plus: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-record-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-record-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-partial: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-readonly-t: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-gen-explicit: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-gen-inner: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-gen-first: REJECT g:rejected[forgets][handle-pass][type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-gen-two: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-map-arg: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-set-arg: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-promise-arg: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-fn-param-var: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-fn-ret-var: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-fn-ret-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-state-fn-ret-void-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-state-fn-ret-void-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-state-cb-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-state-ternary: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-ternary-infer: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-nullish: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-or: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-and: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-spread: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-spread-over: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-rest: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-rest-param: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-assign: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-state-values: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-values-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-entries: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-fromEntries: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-fromEntries-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-state-array-from: REJECT g:rejected[arity][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-flatMap: REJECT g:rejected[forgets][type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-concat: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-map-cb: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-filter: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-find: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-reduce: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-state-memo-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-cast: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-state-cast-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-state-snapshot: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-clone: REJECT g:rejected[type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-throw: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-throw-whole: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-let-assign: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-default-param: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-destr-annot: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-forof: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-object: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-opt: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-arr-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-tuple-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-rec-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-map-unknown: REJECT g:rejected[handle-pass][handle-pass][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-gen-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-union-num: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-msg: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-string: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-template: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-state-whole-typeof-call: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-events-ann: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-ann-lit: REJECT g:rejected[excess-property][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-ret: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-elem: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-tuple: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-tuple-to-arr: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-nested: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-union-null: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-union-two: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-union-prim: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-alias: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-iface: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-iface-extends: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-iface-merge: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-intersection: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-events-opt-other-type: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-opt-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-req-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-req-object: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-req-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-index-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-index-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-index-plus: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-record-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-record-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-partial: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-readonly-t: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-gen-explicit: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-gen-inner: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-gen-first: REJECT g:rejected[forgets][handle-pass][type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-gen-two: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-map-arg: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-set-arg: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-promise-arg: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-fn-param-var: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-fn-ret-var: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-fn-ret-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-events-fn-ret-void-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-events-fn-ret-void-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-events-cb-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-events-ternary: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-ternary-infer: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-nullish: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-or: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-and: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-spread: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-spread-over: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-rest: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-rest-param: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-assign: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-events-values: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-values-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-entries: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-fromEntries: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-fromEntries-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-events-array-from: REJECT g:rejected[arity][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-flatMap: REJECT g:rejected[forgets][type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-concat: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-map-cb: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-filter: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-find: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-reduce: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-events-memo-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-cast: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-events-cast-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-events-snapshot: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-clone: REJECT g:rejected[type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-throw: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-throw-whole: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-let-assign: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-default-param: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-destr-annot: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-forof: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-object: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-opt: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-arr-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-tuple-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-rec-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-map-unknown: REJECT g:rejected[handle-pass][handle-pass][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-gen-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-union-num: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-msg: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-string: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-template: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-events-whole-typeof-call: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-ann: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-ann-lit: REJECT g:rejected[excess-property][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-ret: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-elem: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-tuple: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-tuple-to-arr: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-nested: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-union-null: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-union-two: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-union-prim: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-alias: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-iface: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-iface-extends: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-iface-merge: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-intersection: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-promise-opt-other-type: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-opt-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-req-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-req-object: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-req-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-index-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-index-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-index-plus: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-record-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-record-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-partial: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-readonly-t: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-gen-explicit: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-gen-inner: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-gen-first: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-gen-two: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-map-arg: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-set-arg: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-promise-arg: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-fn-param-var: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-fn-ret-var: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-fn-ret-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-fn-ret-void-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-fn-ret-void-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-cb-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-ternary: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-ternary-infer: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-nullish: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-or: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-and: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-spread: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-spread-over: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-rest: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-rest-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-assign: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-promise-values: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-values-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-entries: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-fromEntries: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-fromEntries-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-array-from: REJECT g:rejected[arity][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-flatMap: REJECT g:rejected[forgets][type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-concat: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-map-cb: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-filter: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-find: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-reduce: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-memo-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-cast: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-cast-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-snapshot: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-clone: REJECT g:rejected[type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-throw: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 2 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-throw-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 2 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-let-assign: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-default-param: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-destr-annot: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-forof: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-object: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-opt: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-arr-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-tuple-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-rec-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-map-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-gen-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-union-num: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-msg: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-string: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-template: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-promise-whole-typeof-call: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-ann: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-ann-lit: REJECT g:rejected[excess-property][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-ret: REJECT g:rejected[forgets][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-elem: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-tuple: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-tuple-to-arr: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-nested: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-union-null: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-union-two: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-union-prim: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-alias: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-iface: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-iface-extends: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-iface-merge: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-intersection: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-iter-opt-other-type: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-opt-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-req-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-req-object: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-req-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-index-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-index-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-index-plus: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-record-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-record-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-partial: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-readonly-t: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-gen-explicit: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-gen-inner: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-gen-first: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-gen-two: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-map-arg: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-set-arg: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-promise-arg: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-fn-param-var: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-fn-ret-var: REJECT g:rejected[forgets][type][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-fn-ret-void: REJECT g:rejected[iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-fn-ret-void-whole: REJECT g:rejected[iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-fn-ret-void-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-cb-void: REJECT g:rejected[iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-ternary: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-ternary-infer: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-nullish: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-or: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-and: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-spread: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-spread-over: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-rest: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-rest-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-assign: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-iter-values: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-values-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-entries: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-fromEntries: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-fromEntries-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-array-from: REJECT g:rejected[arity][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-flatMap: REJECT g:rejected[forgets][type][forgets][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-concat: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-map-cb: REJECT g:rejected[forgets][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-filter: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-find: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-reduce: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-memo-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-cast: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-cast-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-snapshot: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-clone: REJECT g:rejected[type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-throw: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 2 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-throw-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 2 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-let-assign: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-default-param: REJECT g:rejected[forgets][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-destr-annot: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-forof: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-object: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-opt: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-arr-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-tuple-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-rec-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-map-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-gen-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-union-num: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-msg: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-string: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-template: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-iter-whole-typeof-call: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-ann: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-ann-lit: REJECT g:rejected[excess-property][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-ret: REJECT g:rejected[forgets][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-elem: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-tuple: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-tuple-to-arr: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-nested: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-union-null: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-union-two: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-union-prim: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-alias: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-iface: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-iface-extends: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-iface-merge: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-intersection: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-gen-opt-other-type: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-opt-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-req-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-req-object: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-req-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-index-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-index-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-index-plus: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-record-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-record-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-partial: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-readonly-t: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-gen-explicit: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-gen-inner: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-gen-first: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-gen-two: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-map-arg: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-set-arg: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-promise-arg: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-fn-param-var: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-fn-ret-var: REJECT g:rejected[forgets][type][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-fn-ret-void: REJECT g:rejected[iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-fn-ret-void-whole: REJECT g:rejected[iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-fn-ret-void-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-cb-void: REJECT g:rejected[iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-ternary: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-ternary-infer: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-nullish: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-or: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-and: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-spread: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-spread-over: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-rest: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-rest-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-assign: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-gen-values: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-values-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-entries: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-fromEntries: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-fromEntries-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-array-from: REJECT g:rejected[arity][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-flatMap: REJECT g:rejected[forgets][type][forgets][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-concat: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-map-cb: REJECT g:rejected[forgets][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-filter: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-find: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-reduce: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-memo-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-cast: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-cast-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-snapshot: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-clone: REJECT g:rejected[type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-throw: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 2 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-throw-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 2 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-let-assign: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-default-param: REJECT g:rejected[forgets][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-destr-annot: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-forof: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-object: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-opt: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-arr-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-tuple-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-rec-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-map-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-gen-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-union-num: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-msg: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-string: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-template: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-gen-whole-typeof-call: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-ann: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-ann-lit: REJECT g:rejected[excess-property][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-ret: REJECT g:rejected[forgets][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-elem: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-tuple: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-tuple-to-arr: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-nested: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-union-null: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-union-two: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-union-prim: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-alias: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-iface: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-iface-extends: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-iface-merge: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-intersection: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-resp-opt-other-type: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-opt-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-req-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-req-object: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-req-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-index-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-index-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-index-plus: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-record-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-record-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-partial: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-readonly-t: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-gen-explicit: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-gen-inner: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-gen-first: REJECT g:rejected[forgets][handle-pass][type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-gen-two: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-map-arg: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-set-arg: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-promise-arg: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-fn-param-var: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-fn-ret-var: REJECT g:rejected[forgets][type][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-fn-ret-void: REJECT g:rejected[iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-fn-ret-void-whole: REJECT g:rejected[iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-fn-ret-void-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-cb-void: REJECT g:rejected[iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-ternary: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-ternary-infer: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-nullish: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-or: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-and: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-spread: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-spread-over: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-rest: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-rest-param: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-assign: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-resp-values: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-values-unknown: REJECT g:rejected[type][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-entries: REJECT g:rejected[type][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-fromEntries: REJECT g:rejected[type][type][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-fromEntries-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-array-from: REJECT g:rejected[arity][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-flatMap: REJECT g:rejected[forgets][type][forgets][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-concat: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-map-cb: REJECT g:rejected[forgets][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-filter: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-find: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-reduce: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-memo-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-cast: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-cast-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-snapshot: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-clone: REJECT g:rejected[type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-throw: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-throw-whole: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-let-assign: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-default-param: REJECT g:rejected[forgets][iterator-capture]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-destr-annot: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-forof: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-object: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-opt: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-arr-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-tuple-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-rec-unknown: REJECT g:rejected[handle-pass][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-map-unknown: REJECT g:rejected[handle-pass][handle-pass][handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-gen-unknown: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-union-num: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-msg: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-string: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-template: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-resp-whole-typeof-call: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-ann: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-ann-lit: REJECT g:rejected[excess-property][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-ret: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-elem: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-tuple: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-tuple-to-arr: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-nested: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-union-null: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-union-two: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-union-prim: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-alias: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-iface: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-iface-merge: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-intersection: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-mut-opt-other-type: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-opt-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-req-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-req-object: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-req-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-index-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-index-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-index-plus: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-record-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-record-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-partial: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-readonly-t: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-gen-explicit: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-gen-inner: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-gen-first: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-gen-two: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-map-arg: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-set-arg: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-promise-arg: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-fn-ret-var: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-fn-ret-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-fn-ret-void-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-cb-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-ternary: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-ternary-infer: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-nullish: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-or: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-and: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-spread: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-spread-over: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-rest: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-rest-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-assign: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-mut-values: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-values-unknown: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-entries: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-fromEntries: REJECT g:rejected[type][type][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-fromEntries-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-array-from: REJECT g:rejected[arity][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-flatMap: REJECT g:rejected[forgets][type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-concat: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-map-cb: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-filter: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-find: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-reduce: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-memo-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-cast: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-cast-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-snapshot: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-clone: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-throw: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 2 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-throw-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 2 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-let-assign: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-default-param: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-destr-annot: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-forof: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-object: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-opt: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-arr-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-tuple-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-rec-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-map-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-gen-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-union-num: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-msg: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-string: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-template: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-mut-whole-typeof-call: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-ann: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-ann-lit: REJECT g:rejected[excess-property][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-arg: REJECT g:rejected[reserved-name][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-ret: REJECT g:rejected[reserved-name][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-elem: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-tuple: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-tuple-to-arr: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-nested: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-union-null: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-union-two: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-union-prim: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-alias: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-iface: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-iface-extends: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-iface-merge: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-intersection: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-elem-opt-other-type: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-opt-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-req-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-req-object: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-req-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-index-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-index-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-index-plus: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-record-num: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-record-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-partial: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-readonly-t: REJECT g:rejected[unknown-type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-gen-explicit: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-gen-inner: REJECT g:rejected[reserved-name][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-gen-first: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-gen-two: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-map-arg: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-set-arg: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-promise-arg: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-fn-param-var: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-fn-ret-var: REJECT g:rejected[forgets][type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-fn-ret-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-fn-ret-void-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-fn-ret-void-param: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-cb-void: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-ternary: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-ternary-infer: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-nullish: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-or: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-and: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-spread: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-spread-over: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-rest: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-rest-param: REJECT g:rejected[reserved-name]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-assign: REJECT g:unsupported
+== selfhost/freeze-attack12/sweep.ts:sw-elem-values: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-values-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-entries: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-fromEntries: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-fromEntries-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-array-from: REJECT g:rejected[arity][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-flatMap: REJECT g:rejected[forgets][type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-concat: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-map-cb: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-filter: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-find: REJECT g:rejected[type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-reduce: REJECT g:rejected[forgets][type][type]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-memo-arg: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-cast: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-cast-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-snapshot: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-clone: REJECT g:rejected[type][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-throw: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 2 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-throw-whole: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 2 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-let-assign: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-default-param: REJECT g:rejected[reserved-name][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-destr-annot: REJECT g:rejected[forgets][forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-forof: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-object: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-empty: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-opt: REJECT g:rejected[forgets]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-arr-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-tuple-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-rec-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-map-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-gen-unknown: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-union-num: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-msg: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-string: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-template: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+== selfhost/freeze-attack12/sweep.ts:sw-elem-whole-typeof-call: ACCEPT
+   drive -> same: g fulfilled 
+   show g = 1 | E[]
+   show c = 0 | E[]
+-- controls 0, ran 0, fired 0
+-- harness crashes 0
+-- 877 candidates, accepted 208, silent 0 (by the tap alone 0)
+-- checker throws 0 (parse errors 0)

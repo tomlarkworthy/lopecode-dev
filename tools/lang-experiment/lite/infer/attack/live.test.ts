@@ -21,6 +21,7 @@ import { attacks as CAST_ATTACKS } from "./cast-attacks.ts";
 import { attacks as A9_ATTACKS } from "./a9-attacks.ts";
 import { attacks as D1_ATTACKS } from "./d1-attacks.ts";
 import { attacks as T1_ATTACKS } from "./t1-attacks.ts";
+import { attacks as W1_ATTACKS } from "./w1-attacks.ts";
 import { checkSources as frozenCheck } from "../frozen/core.ts";
 
 // a verdict: ACCEPT, or REJECT with each cell that is not ok and its rules
@@ -92,7 +93,8 @@ test("freeze-attack, h6, freeze-attack2, h7, freeze-attack3, h8, h9, m1, k1, p1 
   expect(out).toMatch(/^-- k1-controls: 3, fired 0$/m);
   expect(out).toMatch(/^-- p1: 40 programs/m);
   expect(out).toMatch(/^-- p1-controls: 5, fired 0$/m);
-  expect(out).toMatch(/^-- f1: 16 programs, accepted 16, silent 0/m);
+  // w1 (2026-11-24): f1-ok-mut-alias-plain-read hid its Mut member behind a type that leaves it out; the forgetting rule refuses it
+  expect(out).toMatch(/^-- f1: 16 programs, accepted 15, silent 0/m);
   expect(out).toMatch(/^-- f1-controls: 4, fired 1$/m);
   expect(out).toMatch(/^-- g1: 50 programs, accepted 15, silent 0/m);
   expect(out).toMatch(/^-- g1-controls: 4, fired 0$/m);
@@ -266,5 +268,26 @@ for (const a of T1_ROWS)
   test(`t1 ${a.name} is ${a.name.startsWith("t1-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
     const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
     expect(live.ok).toBe(a.name.startsWith("t1-ok-"));
+    expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
+  });
+
+// w1 (2026-11-24): freeze-attack10 and 11 by w1 step (w1-attacks.ts). No row is silent under runCells or the compiled
+// runner; the w1-guard-* controls (an action called while a cell computes) fire under neither, every other control fires
+// under both; w1-ok-* rows are accepted and every other row is rejected, by both checkers alike
+const W1_ROWS = W1_ATTACKS.filter((a) => !a.ctl), W1_OK = W1_ROWS.filter((a) => a.name.startsWith("w1-ok-")).length;
+for (const rt of [false, true])
+  test(`w1: no row of the w1 fixes is silent${rt ? " (compiled runner)" : ""}`, () => {
+    const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "w1", ...(rt ? ["--rt"] : [])], { stdout: "pipe", stderr: "pipe" });
+    const out = r.stdout.toString();
+    expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
+    expect(out).toContain(`-- w1: ${W1_ROWS.length} programs, accepted ${W1_OK}, silent 0, with a cell in error 0`);
+    const fire = W1_ATTACKS.filter((a) => a.ctl && !a.name.startsWith("w1-guard-")).length;
+    expect(out).toContain(`-- w1-controls: ${W1_ATTACKS.length - W1_ROWS.length}, fired ${fire}`);
+    expect(r.exitCode).toBe(0);
+  }, 300000);
+for (const a of W1_ROWS)
+  test(`w1 ${a.name} is ${a.name.startsWith("w1-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
+    const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
+    expect(live.ok).toBe(a.name.startsWith("w1-ok-"));
     expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
   });

@@ -28,7 +28,10 @@ import { rgRegistryOf, declTreesOf, type RgCells, type RgRegistry } from "./infe
 // (tcOjsInputGlobals), and each global an intrinsic is declared for (ALLOWED_GLOBALS); and Object.prototype's own
 // names, read here, for the members no optional member may be named after (B-1)
 export const RESERVED_INPUTS: ReadonlySet<string> = new Set([...tcCaps, ...tcOjsInputGlobals, ...ALLOWED_GLOBALS]);
-export const PROTO_MEMBERS: ReadonlySet<string> = new Set(Object.getOwnPropertyNames(Object.prototype));
+// w1 (2026-11-24, Step 2): and the members a conversion calls that are not Object.prototype's: toJSON (JSON.stringify)
+// and then (await, Promise.resolve). No declared member and no object literal key may have one of these names
+export const CONVERSION_MEMBERS = ["toJSON", "then"];
+export const PROTO_MEMBERS: ReadonlySet<string> = new Set([...Object.getOwnPropertyNames(Object.prototype), ...CONVERSION_MEMBERS]);
 export type LiteError = { rule: string; line: number; msg: string };
 export type LiteCell = {
   name: string; status: "ok" | "rejected" | "unsupported" | "blocked"; line: number;
@@ -83,7 +86,7 @@ function regAround(core: IxRegCore, around: <X>(f: () => X) => X): IxRegCore {
   return {
     isAlias: (n) => around(() => core.isAlias(n)), expand: (t) => around(() => core.expand(t)), member: (t, k) => around(() => core.member(t, k)),
     sub: (a, b) => around(() => core.sub(a, b)), callSigs: (t) => around(() => core.callSigs(t)), iterElem: (t) => around(() => core.iterElem(t)),
-    unify: (p, a, m, tvs) => around(() => core.unify(p, a, m, tvs)), isTypedArray: (t) => around(() => core.isTypedArray(t)), mayHide: core.mayHide, mayHideAny: core.mayHideAny,
+    unify: (p, a, m, tvs) => around(() => core.unify(p, a, m, tvs)), isTypedArray: (t) => around(() => core.isTypedArray(t)), mayHide: core.mayHide,
   };
 }
 const toDiag = (r: RgReport): IxDiag => ({ start: r.start, end: r.end, rule: r.rule, msg: r.msg });

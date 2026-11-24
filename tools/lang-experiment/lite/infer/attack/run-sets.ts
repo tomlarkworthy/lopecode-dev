@@ -12,11 +12,13 @@
 // read with SS_MEASURE_BODYFN=0; its g1-ctl controls are counted apart), b2 (b2-attacks.ts, e1: writes on a receiver
 // made in the same expression; b2-ctl controls counted apart), d1 (d1-attacks.ts, 2026-11-24: the owner's
 // decisions A to F; d1-ctl controls counted apart), t1 (t1-attacks.ts, 2026-11-24: freeze-attack10's breaks; t1-ctl
-// controls counted apart, run under both runners). The folders they come from are read, not edited.
+// controls counted apart, run under both runners), w1 (w1-attacks.ts, 2026-11-24: freeze-attack10 and 11 by w1 step;
+// w1-controls counted apart; the w1-guard-* controls must not fire). The folders they come from are read, not edited.
 // --off drops the static capture rules' diagnostics in this runner only (the checker is unchanged).
 // --rt (t1, 2026-11-24): an accepted program is run compiled, in a real Observable Runtime (drive-rt.ts observeCompiled),
 // in place of runCells. --both: run by both; a DIFFER line where they differ (drive-rt.ts differences), counted per set.
 import { checkSources } from "../../core.ts";
+import { noteThrow, reportThrows } from "./throws.ts";
 import { rewriteSS } from "./strip-calls.ts";
 import { observeProgram, type Prog } from "./observe.ts";
 import { observeCompiled, differences } from "./drive-rt.ts";
@@ -33,6 +35,7 @@ import * as CAST from "./cast-attacks.ts";
 import * as A9 from "./a9-attacks.ts";
 import * as D1 from "./d1-attacks.ts";
 import * as T1 from "./t1-attacks.ts";
+import * as W1 from "./w1-attacks.ts";
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i < 0 ? null : process.argv[i + 1]!; };
 const RT = process.argv.includes("--rt"), BOTH = process.argv.includes("--both");
@@ -40,14 +43,15 @@ const runProg = RT ? observeCompiled : observeProgram;
 // a compiled program's late rejections (rt10 kept them the same way); without a handler bun ends the run
 if (RT || BOTH) { process.on("unhandledRejection", () => {}); process.on("uncaughtException", () => {}); }
 const OFF = process.argv.includes("--off"), FORCE = process.argv.includes("--force"), ONLY = arg("--only");
-const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1,g1,b2,cast,a9,d1,t1").split(",");
+const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1,g1,b2,cast,a9,d1,t1,w1").split(",");
 export const OFF_RULES = new Set(["mut-capture", "let-capture", "mut-yield", "mut-await", "mut-cell", "member-write", "mutating-method", "regexp-state", "iterator-capture"]);
 type P = Prog & { set: string; name: string; foreign?: string | null; ctl?: boolean };
-const progs: P[] = [];
+export const progs: P[] = [];
 const SELF = new URL("../../../selfhost/", import.meta.url).pathname, H5 = new URL("../../soundscript/.scratch/holes5/", import.meta.url).pathname;
 // the sets are loaded only when this file runs: freeze-attack3's harness imports verdictOf from here, and its batches
-// import that harness, so loading them on import would be a cycle through top-level await
-if (import.meta.main) {
+// import that harness, so loading them on import would be a cycle through top-level await; never-throws.test.ts calls
+// loadProgs once its imports are done
+export async function loadProgs(): Promise<void> {
 if (SETS.includes("freeze")) for (const f of ["b1", "b2", "b3", "b4", "b5", "b6", "b7"])
   for (const a of (await import(`${SELF}freeze-attack/${f}.ts`)).attacks) progs.push({ set: "freeze", ...a, name: `${f}:${a.name}` });
 if (SETS.includes("attack2")) for (const f of readdirSync(SELF + "mut-groups-attack2/").filter((f) => /^(b\d+|breaks)\.ts$/.test(f)))
@@ -79,7 +83,9 @@ if (SETS.includes("cast")) for (const a of CAST.attacks) progs.push({ set: a.ctl
 if (SETS.includes("a9")) for (const a of A9.attacks) progs.push({ set: "a9", ...a });
 if (SETS.includes("d1")) for (const a of D1.attacks) progs.push({ set: a.ctl ? "d1-controls" : "d1", ...a });
 if (SETS.includes("t1")) for (const a of T1.attacks) progs.push({ set: a.ctl ? "t1-controls" : "t1", ...a });
+if (SETS.includes("w1")) for (const a of W1.attacks) progs.push({ set: a.ctl ? "w1-controls" : "w1", ...a });
 }
+if (import.meta.main) await loadProgs();
 
 // checked: the verdicts as runCells takes them (compile runs an island only on ok cells); under --off, a cell whose only
 // errors are dropped rules counts as ok
@@ -103,7 +109,7 @@ export const verdictOf = (src: string, foreign: string | null, off: boolean, ctl
     const checked = { cells: r.cells.map((c: any) => ({ name: c.name, status: ctl || okName.has(c.name) ? "ok" : c.status, errors: ctl || okName.has(c.name) ? [] : c.errors })), facts };
     if (ctl) return { ok: r.cells.length > 0, text: "CONTROL (checker skipped)", dropped: [], checked };
     return { ok: !bad.length && !mod.length && r.cells.length > 0, text, dropped, checked };
-  } catch (x) { return { ok: false, text: `CRASH ${(x as Error).message}`, dropped: [] }; }
+  } catch (x) { return { ok: false, text: `CRASH ${noteThrow(src.slice(0, 60).replace(/\s+/g, " "), x, src)}`, dropped: [] }; }
 };
 
 if (import.meta.main) {
@@ -156,5 +162,5 @@ if (import.meta.main) {
   for (const [k, t] of Object.entries(tally)) { if (k.endsWith("-controls")) { console.log(`-- ${k}: ${t.n}, fired ${t.silent}`); continue; } n += t.n; s += t.silent; console.log(`-- ${k}: ${t.n} programs, accepted ${t.acc}, silent ${t.silent}, with a cell in error ${t.threw}${BOTH ? `, differ ${t.differ}` : ""}`); }
   console.log(`-- all: ${n} programs, silent ${s}`);
   for (const x of silentList) if (!x.includes("-controls ")) console.log(`SILENT ${x}`);
-  process.exit(0);
+  process.exit(reportThrows());
 }

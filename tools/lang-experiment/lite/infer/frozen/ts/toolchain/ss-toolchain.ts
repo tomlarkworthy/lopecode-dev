@@ -326,12 +326,12 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
       globals.forEach(r); regIns.forEach(r);
       return `${head}${inner}${kind === "events" ? `, ${r("invalidation")}` : ""})`;
     }
-    const listen = kind === "listener" ? `${r(IN.listen)}(` : "";
-    if (listen) { globals.forEach(r); regIns.forEach(r); return `${listen}(${inner})(${args(r)}), ${name}, ${r("invalidation")}, ${mod})`; }
+    // DELIBERATE CHANGE (2026-11-24, w1): the body runs under the guard runCells puts around a cell (freeze.ts out.run, out.cell)
+    if (kind === "listener") { const o = r(IN.out), listen = r(IN.listen); globals.forEach(r); regIns.forEach(r); return `${o}.run(() => ${listen}((${inner})(${args(r)}), ${name}, ${r("invalidation")}, ${mod}))`; }
     // DELIBERATE CHANGE (2026-11-22, stage A): a plain cell's value is deep-frozen as it leaves the cell (freeze.ts out)
     const o = r(IN.out);
     globals.forEach(r); regIns.forEach(r);
-    return `${o}((${inner})(${args(r)}))`;
+    return `${o}.cell(() => (${inner})(${args(r)}))`;
   };
   const block = bound.length > 0;
   const out = ojsCell(variableName(info.name), kind === "ref", block, (r) => block ? `{ const ${bound.map(([n, c]) => `${n} = ${r(IN[c])}`).join(", ")}; return ${expr(r)}; }` : expr(r));

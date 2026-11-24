@@ -13,6 +13,8 @@ export const RULES: RuleInfo[] = [
   { id: "inject-unknown", section: "Cells and injection", how: "exact", summary: "parameter names no cell, foreign declaration or capability" },
   { id: "inject-type", section: "Cells and injection", how: "exact", summary: "typed parameter not assignable from the named cell's value type" },
   { id: "inject-state", section: "Cells and injection", how: "approx", summary: "parameter typed State<X> must name a cell returning StateCell<X>" },
+  // w1 (2026-11-24): the forgetting rule (subtype.ss.ts takesRecord, message forgotWith)
+  { id: "forgets", section: "Cells and injection", how: "exact", summary: "a value given a type that leaves out a part that is not plain data, or a non-record given a record type" },
   { id: "inject-pattern", section: "Cells and injection", how: "exact", summary: "injected parameter must be a plain identifier (no destructuring, default, rest)" },
   { id: "free-name", section: "Cells and injection", how: "exact", summary: "free name that is not a parameter, local, prelude name or allowed intrinsic" },
   { id: "banned-member", section: "Cells and injection", how: "exact", summary: "Math.random" },

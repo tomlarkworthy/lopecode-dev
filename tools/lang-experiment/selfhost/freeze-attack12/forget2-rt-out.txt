@@ -1,0 +1,130 @@
+== selfhost/freeze-attack12/forget2.ts:v-param-mut: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   CHANGED drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = {}
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:v-param-plain: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   CHANGED drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = {}
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:v-annotated-void: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   CHANGED drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = {}
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:v-in-record: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   CHANGED drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = {}
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:v-into-record: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   CHANGED drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = {n:1,u:{}}
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:v-void-typed-member: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   CHANGED drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = {v:{}}
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:v-return-void: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   CHANGED drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = {}
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:v-array: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   CHANGED drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}]
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:v-async-fn: REJECT g:rejected[type]
+== selfhost/freeze-attack12/forget2.ts:v-generic-helper: REJECT g:rejected[handle-pass]
+== selfhost/freeze-attack12/forget2.ts:v-map-void: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   CHANGED drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}]
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:v-map-cb-void-type: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   CHANGED drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}]
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:v-two-cells: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   CHANGED drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = {v:{}}
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:v-ctl-direct-unknown [ctl]: CONTROL (checker skipped)
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   CHANGED drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = {}
+   CONTROL FIRED
+== selfhost/freeze-attack12/forget2.ts:gobj-object: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:gobj-object-async: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:gobj-object-union: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   CHANGED drive -> DIFF g is outside its type: number 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:gobj-object-ret: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   CHANGED drive -> DIFF g is outside its type: number 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:gobj-consumer-typeof: ACCEPT
+   drive -> DIFF k2 is outside its type: string "number"
+   CHANGED drive -> DIFF k2 is outside its type: string "number"
+   show k2 = "number"
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:gobj-consumer-keys: ACCEPT
+   drive -> DIFF k2 is outside its type: number 99
+   CHANGED drive -> DIFF k2 is outside its type: number 99
+   show k2 = 99
+   SILENT
+== selfhost/freeze-attack12/forget2.ts:gobj-yield-action: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/forget2.ts:gobj-catch: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack12/forget2.ts:gobj-iter-object: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget2.ts:gobj-mapiter-object: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget2.ts:gobj-ctl-generator-own-type [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 23 candidates, accepted 20, silent 17
+SILENT selfhost/freeze-attack12/forget2.ts:v-param-mut
+SILENT selfhost/freeze-attack12/forget2.ts:v-param-plain
+SILENT selfhost/freeze-attack12/forget2.ts:v-annotated-void
+SILENT selfhost/freeze-attack12/forget2.ts:v-in-record
+SILENT selfhost/freeze-attack12/forget2.ts:v-into-record
+SILENT selfhost/freeze-attack12/forget2.ts:v-void-typed-member
+SILENT selfhost/freeze-attack12/forget2.ts:v-return-void
+SILENT selfhost/freeze-attack12/forget2.ts:v-array
+SILENT selfhost/freeze-attack12/forget2.ts:v-map-void
+SILENT selfhost/freeze-attack12/forget2.ts:v-map-cb-void-type
+SILENT selfhost/freeze-attack12/forget2.ts:v-two-cells
+SILENT selfhost/freeze-attack12/forget2.ts:gobj-object
+SILENT selfhost/freeze-attack12/forget2.ts:gobj-object-async
+SILENT selfhost/freeze-attack12/forget2.ts:gobj-object-union
+SILENT selfhost/freeze-attack12/forget2.ts:gobj-object-ret
+SILENT selfhost/freeze-attack12/forget2.ts:gobj-consumer-typeof
+SILENT selfhost/freeze-attack12/forget2.ts:gobj-consumer-keys
+-- checker throws 0 (parse errors 0)

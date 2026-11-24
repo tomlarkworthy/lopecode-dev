@@ -19,7 +19,8 @@ export const tcSTATE_VALUE = () => "(G, _) => G.input(_)";
 // esc adds one backslash to every "*", backslashes, "/" run, so a comment's text never holds "*/"; unesc inverts it
 export const tcEsc = () => (s: string): string => s.replace(/\*(\\*)\//g, "*\\$1/");
 export const tcUnesc = () => (s: string): string => s.replace(/\*\\(\\*)\//g, "*$1/");
-export const tcHeader = () => (o: unknown): string => `/*${"ss"}^${JSON.stringify(o).replaceAll("*/", "*\\/")}*/`;
+// w1: o in a one-element array, since JSON.stringify of undefined or a function gives undefined (A-4)
+export const tcHeader = () => (o: unknown): string => `/*${"ss"}^${JSON.stringify([o]).slice(1, -1).replaceAll("*/", "*\\/")}*/`;
 // a kept JSX original: a JSON string (no line terminator, so no ASI after return), escaped for a comment
 export const tcKeep = (tcEsc) => (s: string): string => tcEsc(JSON.stringify(s).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029"));
 export const tcUnkeep = (tcUnesc) => (s: string): string => {

@@ -1,0 +1,61 @@
+== selfhost/freeze-attack12/min.ts:min-void-resp: ACCEPT
+   drive -> DIFF one-shot: first read body, second read threw Body already used
+   show g = [{}] | E[]
+   SILENT
+== selfhost/freeze-attack12/min.ts:min-object-promise: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack12/min.ts:min-object-generator: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack12/min.ts:min-fe-tojson: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack12/min.ts:min-fe-then: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack12/min.ts:min-fe-action-after-await: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1 | E[]
+   show g = "undefined" | E[]
+   SILENT
+== selfhost/freeze-attack12/min.ts:min-fe-action-sync: ACCEPT
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0 | E[]
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack12/min.ts:min-fe-action-then-callback: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1 | E[]
+   show g = "undefined" | E[]
+   SILENT
+== selfhost/freeze-attack12/min.ts:min-ctl-action-after-await [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1 | E[]
+   show g = 1 | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack12/min.ts:min-callsig-name: ACCEPT
+   drive -> DIFF g is outside its type: string "f"
+   show g = "f" | E[]
+   SILENT
+== selfhost/freeze-attack12/min.ts:min-void-cell: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 10 candidates, accepted 10, silent 9 (by the tap alone 0)
+SILENT selfhost/freeze-attack12/min.ts:min-void-resp
+SILENT selfhost/freeze-attack12/min.ts:min-object-promise
+SILENT selfhost/freeze-attack12/min.ts:min-object-generator
+SILENT selfhost/freeze-attack12/min.ts:min-fe-tojson
+SILENT selfhost/freeze-attack12/min.ts:min-fe-then
+SILENT selfhost/freeze-attack12/min.ts:min-fe-action-after-await
+SILENT selfhost/freeze-attack12/min.ts:min-fe-action-then-callback
+SILENT selfhost/freeze-attack12/min.ts:min-callsig-name
+SILENT selfhost/freeze-attack12/min.ts:min-void-cell
+-- checker throws 0 (parse errors 0)

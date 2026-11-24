@@ -1,0 +1,275 @@
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-template-sync: ACCEPT
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-template-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-template-arr-sync: ACCEPT
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-template-arr-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-join-sync: ACCEPT
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-join-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-concat-str-sync: ACCEPT
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-concat-str-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-messageOf-sync: ACCEPT
+   drive -> same: c=0 g fulfilled 
+   show c = 0
+   show g = "(a thrown value whose text cannot be read)"
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-messageOf-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-toSorted-sync: ACCEPT
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-toSorted-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = 2
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-valueOf-eq-num-sync: ACCEPT
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack12/hooks.ts:h-act-valueOf-eq-num-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = false
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-valueOf-eq-str-sync: ACCEPT
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack12/hooks.ts:h-act-valueOf-eq-str-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = false
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-map-key-sync: ACCEPT
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+== selfhost/freeze-attack12/hooks.ts:h-act-toString-map-key-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-key-const-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-key-join-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-key-map-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-key-entries-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-nested-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-arr-join-async: ACCEPT
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = "undefined"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-act-then-async-return: ACCEPT
+   drive -> same: c=0 g rejected an argument of the action a reaches a function or a promise that no finished cell has published: one
+   show c = 0
+   show g = ERROR an argument of the action a reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave it, since the body could still write what the function reads or what the promise settles to (S4.12). Give data and make the function where the value is read, or make the function in a cell of its own and take that cell as an input
+   error g: an argument of the action a reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave it, since the b
+== selfhost/freeze-attack12/hooks.ts:h-act-then-sync-return: ACCEPT
+   drive -> same: c=0 g rejected a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime w
+   show c = 0
+   show g = ERROR a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   error g: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+== selfhost/freeze-attack12/hooks.ts:h-act-then-await: ACCEPT
+   drive -> same: c=0 g rejected an argument of the action a reaches a function or a promise that no finished cell has published: one
+   show c = 0
+   show g = ERROR an argument of the action a reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave it, since the body could still write what the function reads or what the promise settles to (S4.12). Give data and make the function where the value is read, or make the function in a cell of its own and take that cell as an input
+   error g: an argument of the action a reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave it, since the b
+== selfhost/freeze-attack12/hooks.ts:h-act-then-resolve: ACCEPT
+   drive -> same: c=0 g rejected an argument of the action a reaches a function or a promise that no finished cell has published: one
+   show c = 0
+   show g = ERROR an argument of the action a reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave it, since the body could still write what the function reads or what the promise settles to (S4.12). Give data and make the function where the value is read, or make the function in a cell of its own and take that cell as an input
+   error g: an argument of the action a reaches a function or a promise that no finished cell has published: one made in a body that still runs cannot leave it, since the b
+== selfhost/freeze-attack12/hooks.ts:h-act-then-in-rec: ACCEPT
+   drive -> same: c=0 g rejected a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime w
+   show c = 0
+   show g = ERROR a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   error g: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+== selfhost/freeze-attack12/hooks.ts:h-then-async-return: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-then-sync-return: ACCEPT
+   drive -> same: g rejected a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfroz
+   show g = ERROR a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+   error g: a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen
+== selfhost/freeze-attack12/hooks.ts:h-then-await: ACCEPT
+   drive -> same: HOOK RAN g="s"
+   show g = "s"
+== selfhost/freeze-attack12/hooks.ts:h-then-await-typed: REJECT g:rejected[type]
+== selfhost/freeze-attack12/hooks.ts:h-then-resolve: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-then-all: REJECT g:rejected[type][type]
+== selfhost/freeze-attack12/hooks.ts:h-then-helper: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-then-gen: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-then-number: ACCEPT
+   drive -> same: HOOK RAN g=5
+   show g = 5
+== selfhost/freeze-attack12/hooks.ts:h-tojson-undefined: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack12/hooks.ts:h-tojson-number: ACCEPT
+   drive -> same: HOOK RAN g=5
+   show g = 5
+== selfhost/freeze-attack12/hooks.ts:h-tojson-cast: REJECT g:rejected[cast-type]
+== selfhost/freeze-attack12/hooks.ts:h-valueof-number: ACCEPT
+   drive -> same: HOOK RAN g=42
+   show g = 42
+== selfhost/freeze-attack12/hooks.ts:h-tostring-template: ACCEPT
+   drive -> same: HOOK RAN g="hooked"
+   show g = "hooked"
+== selfhost/freeze-attack12/hooks.ts:h-tostring-String: ACCEPT
+   drive -> same: HOOK RAN g="hooked"
+   show g = "hooked"
+== selfhost/freeze-attack12/hooks.ts:h-tostring-messageOf: ACCEPT
+   drive -> same: HOOK RAN g="hooked"
+   show g = "hooked"
+== selfhost/freeze-attack12/hooks.ts:h-tostring-join: ACCEPT
+   drive -> same: HOOK RAN g="hooked"
+   show g = "hooked"
+== selfhost/freeze-attack12/hooks.ts:h-valueof-eq: ACCEPT
+   drive -> same: HOOK RAN g=true
+   show g = true
+== selfhost/freeze-attack12/hooks.ts:h-tojson-shape: ACCEPT
+   drive -> same: HOOK RAN g="[1,2]"
+   show g = "[1,2]"
+== selfhost/freeze-attack12/hooks.ts:h-then-await-ran: ACCEPT
+   drive -> same: HOOK RAN g="string"
+   show g = "string"
+== selfhost/freeze-attack12/hooks.ts:h-tostring-sort: ACCEPT
+   drive -> same: [1,1]
+   show g = [1,1]
+== selfhost/freeze-attack12/hooks.ts:h-outside-declared: ACCEPT
+   drive -> same: g="[object Object]" fulfilled js toString calls 0
+   show g = "[object Object]"
+== selfhost/freeze-attack12/hooks.ts:h-outside-unknown: ACCEPT
+   drive -> same: g=undefined rejected js toString calls 0 (JavaScript is trusted, S11.11)
+   show g = ERROR ext.toString: expected data, found a function
+   error g: ext.toString: expected data, found a function
+== selfhost/freeze-attack12/hooks.ts:h-ctl-literal-toString-async [ctl]: CONTROL (checker skipped)
+   drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   CHANGED drive -> DIFF STATE c is 1 with no event; g fulfilled 
+   show c = 1
+   show g = "undefined"
+   CONTROL FIRED
+== selfhost/freeze-attack12/hooks.ts:h-ctl-literal-toString-sync [ctl]: CONTROL (checker skipped)
+   drive -> same: c=0 g rejected action called during a cell evaluation
+   show c = 0
+   show g = ERROR action called during a cell evaluation
+   error g: action called during a cell evaluation
+   CONTROL DID NOT FIRE
+== selfhost/freeze-attack12/hooks.ts:h-ctl-literal-then [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   CONTROL FIRED
+-- controls 3, ran 3, fired 2
+-- harness crashes 0
+-- 52 candidates, accepted 49, silent 20
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-toString-template-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-toString-template-arr-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-toString-join-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-toString-concat-str-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-toString-messageOf-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-toString-toSorted-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-valueOf-eq-num-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-valueOf-eq-str-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-toString-map-key-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-key-const-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-key-join-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-key-map-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-key-entries-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-nested-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-act-arr-join-async
+SILENT selfhost/freeze-attack12/hooks.ts:h-then-async-return
+SILENT selfhost/freeze-attack12/hooks.ts:h-then-resolve
+SILENT selfhost/freeze-attack12/hooks.ts:h-then-helper
+SILENT selfhost/freeze-attack12/hooks.ts:h-then-gen
+SILENT selfhost/freeze-attack12/hooks.ts:h-tojson-undefined
+-- checker throws 0 (parse errors 0)

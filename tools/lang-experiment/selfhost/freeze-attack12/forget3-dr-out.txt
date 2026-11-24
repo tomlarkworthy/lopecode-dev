@@ -1,0 +1,101 @@
+== selfhost/freeze-attack12/forget3.ts:f3-state-void-iter: ACCEPT
+   drive -> same: no value (undefined is not an object (evaluating 'p.value("s").v'))
+   show s = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error s: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget3.ts:f3-update-void-iter: ACCEPT
+   drive -> same: w threw an iterator or generator object cannot leave its cell: next() changes it
+   show s = {v:undefined} | E[]
+== selfhost/freeze-attack12/forget3.ts:f3-action-arg-void-iter: ACCEPT
+   drive -> same: x threw an iterator or generator object cannot leave its cell: next() changes it
+   show s = 0 | E[]
+== selfhost/freeze-attack12/forget3.ts:f3-events-yield-void-iter: ACCEPT
+   drive -> same: not an iterator (undefined)  
+   show t = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   show k3 = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error t: an iterator or generator object cannot leave its cell: next() changes it
+   error k3: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget3.ts:f3-memo-void-iter: ACCEPT
+   drive -> same: g rejected an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget3.ts:f3-jsx-prop-void-iter: ACCEPT
+   drive -> same: g fulfilled 
+   show g = {tag:"span",props:{},children:["x"]} | E[]
+== selfhost/freeze-attack12/forget3.ts:f3-void-cell-iter: ACCEPT
+   drive -> same: not an iterator (undefined)  an iterator or generator object cannot leave its cell: next() changes it
+   show g = ERROR an iterator or generator object cannot leave its cell: next() changes it
+   error g: an iterator or generator object cannot leave its cell: next() changes it
+== selfhost/freeze-attack12/forget3.ts:f3-void-cell-number: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack12/forget3.ts:f3-promise-object: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack12/forget3.ts:f3-promise-object-ret: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack12/forget3.ts:f3-promise-object-consumer: ACCEPT
+   drive -> DIFF k2 is outside its type: string "string"
+   show k2 = "string" | E[]
+   SILENT
+== selfhost/freeze-attack12/forget3.ts:f3-promise-object-union: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack12/forget3.ts:f3-fn-object-ret: ACCEPT
+   drive -> same: (x/*ss:: number*/) => x
+   show g = fn(undefined) | E[]
+== selfhost/freeze-attack12/forget3.ts:f3-callsig-name: ACCEPT
+   drive -> DIFF g is outside its type: string "f"
+   show g = "f" | E[]
+   SILENT
+== selfhost/freeze-attack12/forget3.ts:f3-callsig-length: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack12/forget3.ts:f3-callsig-call: ACCEPT
+   drive -> same: g rejected undefined is not a function
+   show g = ERROR undefined is not a function
+   error g: undefined is not a function
+== selfhost/freeze-attack12/forget3.ts:f3-callsig-bind: ACCEPT
+   drive -> DIFF g is outside its type: string "function bind() {\n    [native code]\n}1"
+   show g = "function bind() {\n    [native code]\n}1" | E[]
+   SILENT
+== selfhost/freeze-attack12/forget3.ts:f3-callsig-alias: ACCEPT
+   drive -> DIFF g is outside its type: string "f"
+   show g = "f" | E[]
+   SILENT
+== selfhost/freeze-attack12/forget3.ts:f3-callsig-param: ACCEPT
+   drive -> DIFF g is outside its type: string ""
+   show g = "" | E[]
+   SILENT
+== selfhost/freeze-attack12/forget3.ts:f3-callsig-kept: ACCEPT
+   drive -> DIFF g is outside its type: string ""
+   show g = "" | E[]
+   SILENT
+== selfhost/freeze-attack12/forget3.ts:f3-callsig-action: REJECT g:rejected[action-pass]
+== selfhost/freeze-attack12/forget3.ts:f3-callsig-width-fnrec: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack12/forget3.ts:f3-ctl-callsig-name [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "f"
+   show g = "f" | E[]
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 22 candidates, accepted 21, silent 11 (by the tap alone 0)
+SILENT selfhost/freeze-attack12/forget3.ts:f3-void-cell-number
+SILENT selfhost/freeze-attack12/forget3.ts:f3-promise-object
+SILENT selfhost/freeze-attack12/forget3.ts:f3-promise-object-ret
+SILENT selfhost/freeze-attack12/forget3.ts:f3-promise-object-consumer
+SILENT selfhost/freeze-attack12/forget3.ts:f3-promise-object-union
+SILENT selfhost/freeze-attack12/forget3.ts:f3-callsig-name
+SILENT selfhost/freeze-attack12/forget3.ts:f3-callsig-length
+SILENT selfhost/freeze-attack12/forget3.ts:f3-callsig-bind
+SILENT selfhost/freeze-attack12/forget3.ts:f3-callsig-alias
+SILENT selfhost/freeze-attack12/forget3.ts:f3-callsig-param
+SILENT selfhost/freeze-attack12/forget3.ts:f3-callsig-kept
+-- checker throws 0 (parse errors 0)

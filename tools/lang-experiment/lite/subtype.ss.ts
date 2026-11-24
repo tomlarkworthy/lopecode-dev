@@ -15,6 +15,8 @@ export type RegOps = {
   readonly at: (ts: Ty[], i: number) => Ty;
   // a new number each call, for type variable names no other comparison uses: alias expansion memoises by name
   readonly fresh: () => number;
+  // w1: plainWith over these ops, memoised by the registry (a cell may not memoise over functions it is given)
+  readonly plain?: (t: Ty) => boolean;
 };
 // a declared type name as the Registry holds it: an alias or an interface, where it was declared, its type parameters
 export type DeclInfo = { readonly kind: "alias" | "iface"; readonly origin: string; readonly tps: string[] };
@@ -180,12 +182,88 @@ export const someFnSub = () => (fnSub: FnSub) => (fs: Fn[], c: Fn, seen: Mut<Set
 
 // a value with a call or construct signature reaches a record type with none only where a function of no known
 // signature would: no index and every member optional (holes step 9; a call-less record held any function before)
-export const callableToPlain = () => (callable: boolean, t: Rec): boolean => callable && !t.calls?.length && !t.ctors?.length && (t.index !== undefined || [...t.props.values()].some((p) => !p.opt));
+// w1 (2026-11-24, the forgetting rule): the named types that are not plain data: the handles, Mut, a response, an
+// element, the pool, a promise, a generator or an iterable
+export const NOT_PLAIN = () => new Set(["Action", "State", "StateCell", "Events", "Listener", "Mut", "Borrowed", "FetchResponse", "Elem", "Pool", "Promise", "Generator", "AsyncGenerator", "Iterator", "IterableIterator", "Iterable"]);
+// t is plain data: it holds no function, Action, State or Events handle, Mut, promise, iterator or response, nor unknown,
+// object or a type parameter, which may hold one; a named type with a then or next member is a promise or an iterator.
+// An alias met again on the walk counts as plain (what it adds is walked where it was first met)
+// the reads plain takes, which a RegOps and the checker's registry core both give
+export type PlainR = { readonly isAlias: (n: string) => boolean; readonly expand: (t: Ty) => Ty; readonly member: (t: Ty, name: string) => Prop | undefined };
+export const plainWith = (typeKey, NOT_PLAIN) => (R: PlainR) => (t0: Ty): boolean => {
+  const seen: Mut<Set<string>> = new Set();
+  function plain(t: Ty): boolean {
+    switch (t.k) {
+      case "unknown": case "object": case "tv": case "fn": return false;
+      case "arr": return plain(t.el);
+      case "tup": return t.els.every((x) => plain(x));
+      case "union": return t.ts.every((x) => plain(x));
+      case "rec": return !t.calls?.length && !t.ctors?.length && [...t.props.values()].every((p) => plain(p.t)) && (t.index === undefined || plain(t.index));
+      case "named": {
+        if (!R.isAlias(t.n)) return !NOT_PLAIN.has(t.n) && R.member(t, "then") === undefined && R.member(t, "next") === undefined && t.args.every((x) => plain(x));
+        const key = typeKey(t);
+        if (seen.has(key)) return true;
+        seen.add(key);
+        return plain(R.expand(t));
+      }
+      default: return true;
+    }
+  }
+  return plain(t0);
+};
+// w1: a record type t with no call or construct signature takes only a record s with none (not a function, array,
+// tuple, primitive, unknown, object, type parameter or a value of a named type such as Error, Map or Promise), and
+// what t does not declare of s (a member, s's index signature, when t has none) must be plain data
+export const takesRecord = (plainWith) => (R: RegOps) => {
+  const plain: (t: Ty) => boolean = R.plain ?? plainWith({ isAlias: R.isAlias, expand: R.expand, member: R.member });
+  return (se: Ty, t: Rec): boolean => {
+    if (t.calls?.length || t.ctors?.length) return true;
+    if (se.k !== "rec" || se.calls?.length || se.ctors?.length) return false;
+    if (t.index !== undefined) return true;
+    for (const [k, p] of se.props) if (!t.props.has(k) && !plain(p.t)) return false;
+    return se.index === undefined || plain(se.index);
+  };
+};
+// w1: why s is not assignable to t by the forgetting rule, as a message ending in a fix, or null: s or a part of s
+// (by t's members, array elements and an alias or Mut expanded) is a non-record given a record type, or a record whose
+// member that t leaves out is not plain data
+export const forgotWith = (show, plainWith) => (R: PlainR) => {
+  const plain = plainWith(R);
+  function why(s0: Ty, t0: Ty, d: number): string | null {
+    const s = R.expand(s0.k === "named" && (s0.n === "Mut" || s0.n === "Borrowed") ? s0.args[0] ?? s0 : s0), t = R.expand(t0);
+    if (d > 6) return null;
+    if (s.k === "arr" && t.k === "arr") return why(s.el, t.el, d + 1);
+    if (t.k !== "rec" || t.calls?.length || t.ctors?.length) return null;
+    if (s.k === "fn" || (s.k === "rec" && (s.calls?.length || s.ctors?.length))) return `a function is not a record, so a record type does not take it: give it a function type (${show(s)})`;
+    if (s.k !== "rec") return ["null", "undef", "void", "never", "err", "union", "unknown", "object", "tv"].includes(s.k) ? null : `${show(s)} is not a record, so a record type does not take it: give it its own type (${show(s)})`;
+    if (t.index === undefined) for (const [k, p] of s.props) if (!t.props.has(k) && !plain(p.t))
+      return `the type leaves out ${k}, which holds ${show(p.t)}; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): declare ${k} in the type, or build a record without it`;
+    for (const [k, p] of t.props) { const sp = s.props.get(k); const w = sp ? why(sp.t, p.t, d + 1) : null; if (w) return `${k}: ${w}`; }
+    return null;
+  }
+  return (s: Ty, t: Ty): string | null => why(s, t, 0);
+};
+// w1 (2026-11-24, A-4): what in t JSON.stringify gives undefined for (undefined, a function), or a type that may hold one
+// (unknown, object, a type parameter), or null: aliases expanded, Mut unwrapped, union members each
+export const jsonGapWith = (show) => (R: PlainR) => (t0: Ty): string | null => {
+  const go = (t: Ty, d: number): string | null => {
+    if (d > 10) return null;
+    if (t.k === "named" && (t.n === "Mut" || t.n === "Borrowed")) return go(t.args[0] ?? t, d + 1);
+    if (t.k === "named" && R.isAlias(t.n)) return go(R.expand(t), d + 1);
+    if (t.k === "union") { for (const m of t.ts) { const w = go(m, d + 1); if (w) return w; } return null; }
+    if (t.k === "undef" || t.k === "void") return "undefined";
+    if (t.k === "fn" || (t.k === "rec" && (!!t.calls?.length || !!t.ctors?.length))) return `a function (${show(t)})`;
+    return t.k === "unknown" || t.k === "object" || t.k === "tv" ? `${show(t)}, which may be either` : null;
+  };
+  return go(t0, 0);
+};
 // a record type t: each of its properties, its index signature and its call signatures
-export const recSubWith = (propT, someFnSub, callableToPlain, UNKNOWN) => (R: RegOps, sub: Sub, fnSub: FnSub, callSigs: (t: Ty) => Fn[]) => (s: Ty, t: Rec, seen: Mut<Set<string>>): boolean => {
+export const recSubWith = (propT, someFnSub, takesRecord, UNKNOWN) => (R: RegOps, sub: Sub, fnSub: FnSub, callSigs: (t: Ty) => Fn[]) => {
+  const takes = takesRecord(R);
+  return (s: Ty, t: Rec, seen: Mut<Set<string>>): boolean => {
   if (["null", "undef", "void"].includes(s.k) || (s.k === "named" && ["State", "StateCell", "Action"].includes(s.n))) return false; // State...: nominal
   const se = R.expand(s), some = someFnSub(fnSub);
-  if (callableToPlain(callSigs(se).length > 0 || (se.k === "rec" && !!se.ctors?.length), t)) return false;
+  if (!takes(se, t)) return false;
   // a record type may stand for a value with more members (width); only a literal's type and the intrinsics are closed
   const closed = !["object", "unknown", "tv"].includes(se.k) && (se.k !== "rec" || se.exact === true || [...se.props.values()].some((p) => p.flags?.intrinsic));
   // a closed record type holds only closed values: what is assigned to it must be one, with no other member
@@ -207,6 +285,7 @@ export const recSubWith = (propT, someFnSub, callableToPlain, UNKNOWN) => (R: Re
   }
   for (const c of t.calls ?? []) if (!some(callSigs(se), c, seen)) return false;
   return true;
+  };
 };
 
 // a named type t: Iterable and ArrayLike by element, Mut and State invariant, Action contravariant, the rest covariant

@@ -49,8 +49,9 @@ R.push(resp("t1-a-empty-ternary", P(`const c: {} = res.ok ? res : 1; return { c 
 R.push(resp("t1-a-empty-then", `const r = (fetch: Fetch) => fetch(${U}).then((res): {} => res);`));
 R.push(resp("t1-ok-a-status", P(`const c = res.status; return { c };`)));
 R.push(resp("t1-ok-a-text", P(`return await res.text();`)));
-R.push(tyRow("t1-ok-a-empty-number", `const g = () => { const c: {} = 1; return [c]; };`, any));
-R.push(tyRow("t1-ok-a-empty-array-of-mut", `const g = () => { const xs = [1]; const c: {} = xs; xs.push(2); return { c, n: xs.length }; };`, (v: any) => v?.n === 2));
+// w1 (2026-11-24): a number and an array are not records, so {} takes neither (the forgetting rule); now must be rejected
+R.push(tyRow("t1-a-empty-number-w1", `const g = () => { const c: {} = 1; return [c]; };`, any));
+R.push(tyRow("t1-a-empty-array-of-mut-w1", `const g = () => { const xs = [1]; const c: {} = xs; xs.push(2); return { c, n: xs.length }; };`, (v: any) => v?.n === 2));
 R.push(tyRow("t1-ok-a-optional-record", `const g = () => { const o = { a: 1 }; const c: { readonly a?: number } = o; return c.a ?? 0; };`, num));
 R.push(tyRow("t1-a-empty-array-kept-writer", `const g = () => { const xs = [1]; const c: {} = xs; return { c, f: () => xs.push(2) }; };`, any));
 // A-1 narrowed: such a type keeps the members it declares (an Action there is accepted) and hides the others
@@ -79,8 +80,9 @@ R.push(tyRow("t1-b-cell-param-optional", `const m = () => ({ x: 1 });\nconst g =
 R.push(tyRow("t1-b-required-proto", `const g = () => { const v: { readonly __proto__: number } = { __proto__: 1 }; return typeof v.__proto__; };`, num));
 R.push(tyRow("t1-b-proto-lookup-getter", `const g = () => { const v: { readonly __lookupGetter__?: number } = {}; return typeof v.__lookupGetter__; };`, tof));
 R.push(tyRow("t1-ok-b-optional-other", `const g = () => { const v: { readonly a?: number } = {}; return typeof v.a; };`, tof));
-R.push(tyRow("t1-ok-b-required-own", `const g = () => { const v: { readonly toString: number } = { toString: 1 }; return typeof v.toString; };`, (v) => v === "number"));
-R.push(tyRow("t1-ok-b-member-key", `const g = () => { const v = { valueOf: 2 }; return v.valueOf + 1; };`, num));
+// w1 (2026-11-24, Step 2): a required member and a literal key named after an Object.prototype member are refused now
+R.push(tyRow("t1-b-required-own-w1", `const g = () => { const v: { readonly toString: number } = { toString: 1 }; return typeof v.toString; };`, (v) => v === "number"));
+R.push(tyRow("t1-b-member-key-w1", `const g = () => { const v = { valueOf: 2 }; return v.valueOf + 1; };`, num));
 R.push(ctl(tyRow("t1-b-ctl-plain-optional", `const g = () => { const v: { readonly toString?: number } = {}; return typeof v.toString; };`, tof)));
 
 // E-1: a nested function narrows a captured let or parameter that the declaring function assigns

@@ -3,6 +3,7 @@
 // a CHANGED line of the harness, a drive line containing DIFF, or a value a state write or a memo store kept that reads
 // differently at the end (TAP lines; read each by hand, see tapStart). Sets load relative to the working directory.
 import { runCand } from "../../../selfhost/freeze-attack3/harness.ts";
+import { reportThrows } from "./throws.ts";
 import { tapStart } from "./observe.ts";
 const late: string[] = [];
 process.on("unhandledRejection", (e: any) => { late.push(String(e?.message ?? e).slice(0, 140)); });
@@ -35,4 +36,4 @@ console.log(`-- controls ${ctl}, ran ${ctlAcc}, fired ${ctlFired}`);
 console.log(`-- harness crashes ${crash}`);
 console.log(`-- ${n} candidates, accepted ${acc}, silent ${sil} (by the tap alone ${byTap})`);
 for (const s of silent) console.log(`SILENT ${s}`);
-process.exit(0);
+process.exit(reportThrows());

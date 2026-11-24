@@ -28,6 +28,8 @@ export const SYNTHETIC: { id: string; src: string; tsx: boolean }[] = [
       `function* gen<T extends string = "a">(...r: T[]): Generator<T> { yield* r; }`,
       `const u: unknown = null, nv = (x: never) => x, sy: symbol = Symbol(), ob: object = {}, an: any = 1, bi: bigint = big;`,
       `type Tup = [a: number, b?: string, ...c: boolean[]];`,
+      // w1 (2026-11-24, C-1): a mapped type's readonly and ? are true when written without + or -
+      `type Mp = { readonly [K in "a"]?: number }; type Mq = { -readonly [K in "a"]-?: number }; type Mr = { [K in "a"]: number };`,
       `type Opt = [number?, ...string[]]; type QN = N.z; type Fn = <T>(x: T) => T; type Ctor = new () => object;`,
       `type Ix = Tup[0]; type Kq = keyof Tup; type Un = string & number | undefined | void;`,
       `export default 1;`,

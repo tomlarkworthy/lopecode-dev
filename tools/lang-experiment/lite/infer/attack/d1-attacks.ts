@@ -75,7 +75,8 @@ R.push(tyRow("d1-key-param-helper", `const g = () => { const put = (m: Mut<{ [k:
 R.push(tyRow("d1-ok-key-literal", `const g = () => { const m: ${IX} = { x: 1 }; m["y"] = 2; return [m["x"] ?? 0, m.y ?? 0, "x" in m]; };`, is([1, 2, true])));
 R.push(tyRow("d1-ok-key-const-literal", `const g = () => { const k = "x"; const m: ${IX} = { x: 1 }; return m[k] ?? 0; };`, is(1)));
 R.push(tyRow("d1-ok-key-literal-union", `const g = () => { const f = (k: "x" | "y") => { const m: ${IX} = { x: 1, y: 2 }; return m[k] ?? 0; }; return [f("x"), f("y")]; };`, is([1, 2])));
-R.push(tyRow("d1-ok-key-entries", `const g = () => { const m: ${IX} = { x: 1, toString: 2 }; return [Object.keys(m), Object.values(m), Object.entries(m).map(([k, v]) => k + v)]; };`, is([["x", "toString"], [1, 2], ["x1", "toString2"]])));
+// w1 (2026-11-24, Step 2): a literal key named toString is refused now
+R.push(tyRow("d1-key-entries-w1", `const g = () => { const m: ${IX} = { x: 1, toString: 2 }; return [Object.keys(m), Object.values(m), Object.entries(m).map(([k, v]) => k + v)]; };`, is([["x", "toString"], [1, 2], ["x1", "toString2"]])));
 R.push(tyRow("d1-ok-key-map", `${K()}const g = (k: string) => { const m = new Map<string, number>([["x", 1]]); m.set(k, 2); return [m.get(k) ?? 0, m.has("toString"), m.size]; };`, is([2, true, 2])));
 R.push(tyRow("d1-ok-key-from-entries", `${K("__proto__")}const g = (k: string) => { const m: { [k: string]: number } = Object.fromEntries([[k, 1]]); return Object.entries(m).length; };`, is(1)));
 R.push({ name: "d1-ctl-key-inherited", ctl: true, show: ["g"], src: `${K()}const g = (k: string) => { const m: ${IX} = { x: 1 }; return typeof m[k]; };`,

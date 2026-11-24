@@ -2,7 +2,7 @@
 // records of functions the subtype cells take, peek and lax as try/finally, and the three declaration texts loaded.
 // The cells come in as a record, so ../core.ts (the shipped cells) and ../acorn/index.ts (the cells linked with a
 // parser that has not crossed the boundary yet, for parseTree's own shape) make one the same way.
-import { isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, unifyWith, memberOfWith, type Ty, type Rec, type RegOps, type DeclOps, type Fn, type Prop } from "../types.ts";
+import { plainWith, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, unifyWith, memberOfWith, type Ty, type Rec, type RegOps, type DeclOps, type Fn, type Prop } from "../types.ts";
 import { INTRINSIC_DECLS, PRELUDE_DECLS, JSX_DECLS, TYPED_ARRAYS } from "../intrinsics.ts";
 import type { Ast, AstNode, Parse } from "../acorn/acorn-types.ss.ts";
 import type { IxRegCore } from "./ix-types.ss.ts";
@@ -37,7 +37,14 @@ export function rgRegistryOf(L: RgCells, strictIndex: boolean, declTrees: [Ast, 
   const decls: DeclOps = { decl: (n) => Y.get(n), expand, ifaceRec, strictIndex: () => Q.strict, at };
   const isAlias = isAliasWith(decls), member = memberWith(decls);
   const isTypedArray = (t: Ty) => L.rgIsTypedArray(t, TYPED_ARRAYS);
-  const ops: RegOps = { expand, isAlias, member, isTypedArray, same: (a, b) => a === b, at, fresh: () => L.rgFresh(Q) };
+  // w1: a whole plain walk's answer, by the type's identity (an alias by its expansion, which the expand memo keeps)
+  const plainMemo = new WeakMap<Ty, boolean>(), plainOf = plainWith({ isAlias, expand, member });
+  const plain = (t0: Ty): boolean => {
+    const t = t0.k === "named" && isAlias(t0.n) ? expand(t0) : t0, v = plainMemo.get(t);
+    if (v !== undefined) return v;
+    const r = plainOf(t); plainMemo.set(t, r); return r;
+  };
+  const ops: RegOps = { expand, isAlias, member, isTypedArray, same: (a, b) => a === b, at, fresh: () => L.rgFresh(Q), plain };
   const callSigs = callSigsWith(ops), iterElem = iterElemWith(ops), subOps = subWith(ops, iterElem, callSigs);
   const unifyOps = unifyWith(ops, subOps, iterElem, callSigs), memberOf = memberOfWith(ops);
   const G: RgK = { convert: L.rgConvert, expand: L.rgExpand, ifaceRec: L.rgIfaceRec, sig: L.rgSig, literal: L.rgLiteral, quietGo: L.rgQuietGo, isAlias, memberOf, subOps, at };
@@ -48,8 +55,7 @@ export function rgRegistryOf(L: RgCells, strictIndex: boolean, declTrees: [Ast, 
   // rgMayHide memoised per core (Checker.mayHideMemo); memo here, not in a cell, since the walk's key, the core, holds functions
   const core = (): IxRegCore => {
     const c = { isAlias, expand, member, sub, callSigs, iterElem, unify, isTypedArray };
-    // t1 (2026-11-24): mayHideAny also counts a record that takes any object (A-1); a separate memo, so mayHide's users keep its answer
-    return { ...c, mayHide: memo((t: Ty) => peek(() => L.rgMayHide(c, t, false))), mayHideAny: memo((t: Ty) => peek(() => L.rgMayHide(c, t, true))) };
+    return { ...c, mayHide: memo((t: Ty) => peek(() => L.rgMayHide(c, t))) };
   };
   const load = (ast: Ast, origin: RgOrigin, typesOnly = false, skip: Set<number> = new Set()) => L.rgLoad(G, Y, V, E, I, Q, ast, origin, typesOnly, skip);
   for (const [ast, origin] of declTrees) load(ast, origin);

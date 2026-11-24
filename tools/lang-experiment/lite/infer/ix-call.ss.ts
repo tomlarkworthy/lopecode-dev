@@ -11,7 +11,7 @@ export const ixTypeArgs = (ixConvert) => (K: IxK, V: IxVars, env: IxEnv, n: AstN
   for (const t of n.params) out.push(ixConvert(K, V, env, t));
   return out;
 };
-export const ixCall = (ixLookup, ixPreludeCall, ixCompileCall, ixNewSigs, ixCallSigs, ixApplyAll, ixFact, ixGap) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null): Ty => {
+export const ixCall = (ixLookup, ixPreludeCall, ixCompileCall, ixNewSigs, ixCallSigs, ixApplyAll, ixFact, ixGap, ixJsonArg) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null): Ty => {
   if (e.type !== "CallExpression" && e.type !== "NewExpression") return ixGap(C, `call node ${e.type}`);
   const callee = e.callee;
   if (e.type === "CallExpression" && callee.type === "Identifier") {
@@ -22,7 +22,19 @@ export const ixCall = (ixLookup, ixPreludeCall, ixCompileCall, ixNewSigs, ixCall
   }
   const found = e.type === "NewExpression" ? ixNewSigs(K, T, V, W, C, env, e) : ixCallSigs(K, T, V, W, C, env, e, expected);
   if (found.k === "done") return found.t;
-  return ixApplyAll(K, T, V, W, C, env, e, found.sigs, expected, found.view);
+  const t = ixApplyAll(K, T, V, W, C, env, e, found.sigs, expected, found.view);
+  ixJsonArg(K, T, V, C, env, e);
+  return t;
+};
+// w1 (2026-11-24, A-4): JSON.stringify of undefined or a function gives undefined, not the string it is typed as; an
+// argument that may be one is refused
+export const ixJsonArg = (ixLookup, ixErr, show, jsonGapWith) => (K: IxK, T: IxTypes, V: IxVars, C: IxCtls, env: IxEnv, e: AstNode): void => {
+  if (e.type !== "CallExpression") return;
+  const c = e.callee, a = e.arguments[0];
+  if (c.type !== "MemberExpression" || c.computed || c.object.type !== "Identifier" || c.object.name !== "JSON" || c.property.type !== "Identifier" || c.property.name !== "stringify" || ixLookup(V, env, "JSON")?.kind !== "global") return;
+  const at = a === undefined ? undefined : T.get(a.nid);
+  const w = at === undefined ? null : jsonGapWith({ isAlias: K.reg.quiet.isAlias, expand: K.reg.quiet.expand, member: K.reg.quiet.member })(at);
+  if (a !== undefined && at !== undefined && w !== null) ixErr(K, C, a, "type", `JSON.stringify gives undefined, not a string, for undefined or a function, and its argument ${show(at)} may be ${w}: give it a value that is neither (JSON.stringify(x ?? null) when x may be undefined)`);
 };
 export type IxSigs = { k: "done"; t: Ty } | { k: "sigs"; sigs: Fn[]; view: boolean };
 export const ixNewSigs = (ixLookup, ixErr, ixUnsup, ixBail) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: NewExpression): IxSigs => {

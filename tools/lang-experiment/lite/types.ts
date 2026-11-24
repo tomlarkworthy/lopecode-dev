@@ -11,14 +11,15 @@ import { link } from "./link.ts";
 import * as prelude from "../prelude.runtime.ts";
 export type { Flags, Param, Fn, Prop, Rec, Named, Ty, Subst } from "./types.ss.ts";
 export type { IslandCell, IslandSpec, Island } from "./island.ss.ts";
-export type { RegOps, DeclOps, DeclInfo, Sub, FnSub, Unify } from "./subtype.ss.ts";
+export type { RegOps, DeclOps, DeclInfo, Sub, FnSub, Unify, PlainR } from "./subtype.ss.ts";
 
 const L = link({ ...cells, ...subtypeCells, ...walkCells, ...messageCells, ...islandCells }, prelude);
 export const {
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, SYMBOL, TRUE, FALSE, BOOL,
   lit, arr, named, rec, WRAPPERS, unwrap, propT, union, members, show, subst, hasTv, instantiate, widen, isPrimitive, typeKey, inexact,
 } = L;
-export const { builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, memberOfWith, unifyWith, hasAnyTv } = L;
+export const { builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, memberOfWith, unifyWith, hasAnyTv, forgotWith, plainWith } = L;
+export const { jsonGapWith } = L;
 export const { uncloneableWith, cloneProblemWith, admitsUndefinedWith, holdsWith, hasErrWith } = L;
 export const { islandWith } = L;
 export const { viewofInputName, reservedName, RESERVED_MSG, reservedCellName, RESERVED_CELL_MSG, reservedText, RESERVED_TEXT_MSG, captureMessage, banMessage, UNDEF_FIX } = L;

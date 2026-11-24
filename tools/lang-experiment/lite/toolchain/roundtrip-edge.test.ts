@@ -80,7 +80,7 @@ expect(!("idOf" in toolchain) && !("withId" in toolchain), "C4 ss-toolchain has 
   const ctx = contextFromCheck(checkSources({ cells: texts.join("\n\n"), tsx: true }));
   const by = new Map(texts.map((t) => [t, compileCell(t, true, ctx)]));
   const area = by.get(texts[2])!;
-  expect(toolchain.compileCellText(texts[2], true, ctx) === `area = ss_out((/*{lang:"ss"}*//*ss^{"h":"const area = ","t":";"}*/(width/*ss:: number*/, height/*ss:: number*/) => width * height)(width, height))`, "C4 a plain cell's text (its value deep-frozen by ss_out; B7's ss_out(v, 1) removed 2026-11-22): " + toolchain.compileCellText(texts[2], true, ctx));
+  expect(toolchain.compileCellText(texts[2], true, ctx) === `area = ss_out.cell(() => (/*{lang:"ss"}*//*ss^{"h":"const area = ","t":";"}*/(width/*ss:: number*/, height/*ss:: number*/) => width * height)(width, height))`, "C4 a plain cell's text (its value deep-frozen by ss_out; B7's ss_out(v, 1) removed 2026-11-22): " + toolchain.compileCellText(texts[2], true, ctx));
   expect(area.length === 1 && JSON.stringify(area[0].inputs) === JSON.stringify(["ss_out", "width", "height"]) && toolchain.compiledKind(area[0].definition)?.callee === "plain", "C4 a plain cell takes its inputs and no ss but ss_out: " + JSON.stringify(area[0].inputs));
   expect(decompileVariable(area[0].definition) === texts[2] && run(area[0].definition, 3, 4) === 12, "C4 a plain cell decompiles to its source and runs with ss_out only");
   expect(toolchain.compiledKind(by.get(texts[3])![0].definition)?.callee === "plain", "C4 a property named like a built-in (r.h) leaves a cell plain");

@@ -42,7 +42,8 @@ const N = "type N = { readonly n: number };\n";
 expect("control: N | string, typeof string", `${N}const k = () => (v: N | string): number => (typeof v === "string" ? v.length : v.n);`, "ok");
 expect("control: N | number[], Array.isArray", `${N}const k = () => (v: N | number[]): number => (Array.isArray(v) ? v.length : v.n);`, "ok");
 expect("control: N | null, truth test", `${N}const k = () => (v: N | null): number => (v ? v.n : 0);`, "ok");
-expect("control: {} | fn, else of === function", `const k = (f: (s: string) => number) => { const x: {} = f; const y: {} | ${FN} = x; return typeof y !== "function" ? 0 : 1; };`, "ok");
+// w1 (2026-11-24): {} no longer takes a function (the forgetting rule), so this control is refused where x is bound
+expect("control: {} | fn, else of === function", `const k = (f: (s: string) => number) => { const x: {} = f; const y: {} | ${FN} = x; return typeof y !== "function" ? 0 : 1; };`, "rejected [forgets]");
 expect("control: G | number, === function", `interface G { (x: number): number }\nconst k = () => (g: G | number): number => (typeof g === "function" ? g(1) : g);`, "ok");
 // holes step 9: a callable reaches a call-less record only if it has no required member and no index, so N holds no
 // function and the value-or-thunk idiom checks again (it was the cost row, rejected)

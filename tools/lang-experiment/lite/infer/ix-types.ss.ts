@@ -9,7 +9,9 @@ export type IxLog = { readonly d: IxDiag; readonly n: number; readonly next: IxL
 export type IxChain = { readonly id: number; readonly up: IxChain | null };
 export type IxKind = "const" | "let" | "param" | "fn" | "global" | "prelude";
 // what a read of a binding with no type yet does (Binding.lazy): report, or check its hoisted declaration
-export type IxLazy = { k: "none" } | { k: "unsup"; at: AstNode } | { k: "hoist"; fn: AstNode; env: IxEnv; busy: boolean };
+// w1 (2026-11-24, S-1): later, a const or let of the block not yet declared: a read of it is refused, as JavaScript would
+// read this binding and not one outside
+export type IxLazy = { k: "none" } | { k: "unsup"; at: AstNode } | { k: "hoist"; fn: AstNode; env: IxEnv; busy: boolean } | { k: "later"; at: AstNode };
 // fi: the nid of the function declaring it (Binding.fi.node); fnNode: the nid of the function it names; -1 for none
 export type IxBinding = {
   id: number; scope: number; name: string; t: Ty; kind: IxKind; nid: number; fi: number; fnNode: number;
@@ -85,9 +87,20 @@ export type IxRegCore = {
   readonly iterElem: (t: Ty) => Ty | undefined;
   readonly unify: (p: Ty, a: Ty, m: Mut<Map<string, Ty>>, tvs: Set<string>) => void;
   readonly isTypedArray: (t: Ty) => boolean;
-  // rgMayHide over this core, memoised (memo) for its checks; t1: mayHideAny also counts a record that takes any object
+  // rgMayHide over this core, memoised (memo) for its checks
   readonly mayHide: (t: Ty) => boolean;
-  readonly mayHideAny: (t: Ty) => boolean;
+  // w1 (2026-11-24, the forgetting rule): what an IxReg has that a core may hold too, declared so that an IxReg is a core
+  readonly quiet?: IxRegCore;
+  readonly lax?: IxRegCore;
+  readonly strictIndex?: boolean;
+  readonly same?: (a: Ty, b: Ty) => boolean;
+  readonly origin?: (n: string) => string | null;
+  readonly convert?: (n: AstNode, tps: string[], look: Map<string, Ty> | null) => Ty;
+  readonly sig?: (params: AstNode[], ret: AstNode, tps: string[], look: Map<string, Ty> | null) => Fn;
+  readonly hasTypeQuery?: (n: AstNode) => boolean;
+  readonly cloneProblem?: (t: Ty) => string | null;
+  readonly drain?: () => IxDiag[];
+  readonly compile?: ((e: AstNode, options: Ty | null) => IxCompile) | null;
 };
 export type IxReg = {
   readonly isAlias: (n: string) => boolean;
@@ -99,7 +112,6 @@ export type IxReg = {
   readonly unify: (p: Ty, a: Ty, m: Mut<Map<string, Ty>>, tvs: Set<string>) => void;
   readonly isTypedArray: (t: Ty) => boolean;
   readonly mayHide: (t: Ty) => boolean;
-  readonly mayHideAny: (t: Ty) => boolean;
   readonly quiet: IxRegCore;
   readonly lax: IxRegCore;
   readonly strictIndex: boolean;

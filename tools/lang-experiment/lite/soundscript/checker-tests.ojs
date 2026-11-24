@@ -92,16 +92,17 @@ test_checker_iterator_rules = {
 }
 // %%
 test_checker_spread_copies_own_properties = {
+  // w1 (2026-11-24): an array, string, URL or Math given a record type is [forgets] before the spread is reached
   // a spread or rest copies own enumerable properties: of a built-in object, or of an array, string or built-in instance taken as a record, the copy would lack the members the type names
   const cases = [["const c = () => (): number => { const { ...r } = Math; return r.floor(1.5); };",["type"]],
     ["const c = () => (): number => { const { PI, ...r } = Math; return r.abs(-PI); };",["type"]],
     ["const c = () => (): string => ({ ...JSON }).stringify(1);",["type"]],
     ["const c = () => (b: boolean): number => { const m = b ? Math : null; return ({ ...m }).PI; };",["type"]],
-    ["const c = () => (): number => { const a: { readonly length: number } = [1, 2]; return ({ ...a }).length; };",["type"]],
-    ["const c = () => (): number => { const f = (o: { readonly length: number }) => ({ ...o }).length; return f(\"ab\"); };",["type"]],
-    ["const c = () => (): string => { const u: { readonly href: string } = new URL(\"http://a.b/\"); return ({ ...u }).href; };",["type"]],
-    ["const c = () => (): number => { const f = (o: { readonly floor: (x: number) => number }) => o.floor(1.5); return f(Math); };",["type"]],
-    ["const c = () => (): number => { const o: { readonly length?: number } = [1, 2]; return ({ ...o }).length ?? -1; };",[]],
+    ["const c = () => (): number => { const a: { readonly length: number } = [1, 2]; return ({ ...a }).length; };",["forgets"]],
+    ["const c = () => (): number => { const f = (o: { readonly length: number }) => ({ ...o }).length; return f(\"ab\"); };",["forgets"]],
+    ["const c = () => (): string => { const u: { readonly href: string } = new URL(\"http://a.b/\"); return ({ ...u }).href; };",["forgets"]],
+    ["const c = () => (): number => { const f = (o: { readonly floor: (x: number) => number }) => o.floor(1.5); return f(Math); };",["forgets"]],
+    ["const c = () => (): number => { const o: { readonly length?: number } = [1, 2]; return ({ ...o }).length ?? -1; };",["forgets"]],
     ["const c = () => (): number => Array.from({ length: 3 }).length;",[]],
     ["const c = () => (): number => { const o = { a: 1, b: 2 }; const { a, ...r } = o; return a + ({ ...r }).b; };",[]]];
   const bad = [];
@@ -158,24 +159,24 @@ test_checker_mut_across_await = {
 // %%
 test_checker_promise_flattens = {
   // a promise never fulfils with a promise-like: then and Promise.resolve given one have the type of what it settles to, unknown for a thenable that is not a Promise
-  const source = ["type Th = { readonly then: (f: (v: number) => void) => void };",
+  // w1 (2026-11-24): a member named then is [banned-member], so the thenable cases c and d (type Th) are removed
+  const source = [
     "const a = () => () => Promise.resolve(1).then((x) => Promise.resolve(x + 1));",
     "const b = () => () => Promise.resolve(Promise.resolve(Promise.resolve(9)));",
-    "const c = () => (t: Th) => Promise.resolve(1).then(() => t);",
-    "const d = () => (t: Th) => Promise.resolve(t);",
     "const e = () => () => Promise.resolve(1).then((x) => (x > 0 ? Promise.resolve(\"s\") : 0));",
     "const f = () => async (): Promise<number> => { const p: Promise<number> = Promise.resolve(1).then((x) => Promise.resolve(x + 1)); return (await p) + 1; };"].join("\n");
-  const want = { a: "() => Promise<number>", b: "() => Promise<number>", c: "(t: Th) => Promise<unknown>", d: "(t: Th) => Promise<unknown>", e: "() => Promise<string | number>", f: "() => Promise<number>" };
+  const want = { a: "() => Promise<number>", b: "() => Promise<number>", e: "() => Promise<string | number>", f: "() => Promise<number>" };
   const r = soundscript.checkSources({ cells: source, tsx: true });
   const bad = r.cells.filter((c) => c.status !== "ok" || c.value !== want[c.name]).map((c) => `${c.name}: ${c.status} ${c.value} ${JSON.stringify(c.errors)}`);
-  if (bad.length || r.cells.length !== 6) throw new Error(bad.join("; "));
+  if (bad.length || r.cells.length !== 4) throw new Error(bad.join("; "));
   return `${r.cells.length} cells have the settled type`;
 }
 // %%
 test_checker_in_keeps_members = {
+  // w1 (2026-11-24): a member named toString is [banned-member] even when required
   // "k" in v keeps the members of v that do not declare k, with k of type unknown: a value of one may carry k as an extra property or an inherited one
   const cases = [["const c = () => (v: { readonly k: string } | { readonly b: number }): string => (\"k\" in v ? v.k.toUpperCase() : \"B\");",["no-member"]],
-    ["const c = () => (v: { readonly toString: () => string; readonly c: number } | { readonly d: number }): number => (\"toString\" in v ? v.c : v.d);",["no-member"]],
+    ["const c = () => (v: { readonly toString: () => string; readonly c: number } | { readonly d: number }): number => (\"toString\" in v ? v.c : v.d);",["banned-member","no-member"]],
     ["const c = () => (v: { readonly a: number } | { readonly b: number }): number => (\"b\" in v ? v.b : v.a);",["type"]],
     ["const c = () => (v: { readonly a: number } | { readonly b: number }): number => (!(\"b\" in v) ? v.a : 0);",[]],
     ["const c = () => (v: { readonly a: number } | { readonly b: string }): number => (\"a\" in v && typeof v.a === \"number\" ? v.a : 0);",[]],

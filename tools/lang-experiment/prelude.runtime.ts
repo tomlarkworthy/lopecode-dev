@@ -3,7 +3,7 @@
 // and what a commit applies, is decided by storeStep and the cells of lite/store.ss.ts (checked SoundScript). This
 // file holds the one StoreState value and each handle's store record, runs the actions' functions between steps,
 // and performs the effects.
-import { deepFreeze, published, madeFnIn, closure, SsMap, SsSet, emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
+import { deepFreeze, published, madeFnIn, closure, SsMap, SsSet, evaluating, emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
 export { mut, freeze, borrow } from "./lite/runtime-ss.ts";
 
 const STATECELL = Symbol.for("lc.statecell");
@@ -23,7 +23,9 @@ let storeState: StoreState = emptyStore;
 // evalDepth: >0 while a cell definition (or a generator step) runs synchronously; other modules step it.
 // commits counts commits; the rest is read from the state
 export const rt = {
-  evalDepth: 0,
+  // w1 (2026-11-24): the count freeze.ts out.cell steps around a compiled cell's body, so both runners share one guard
+  get evalDepth() { return evaluating.depth; },
+  set evalDepth(n: number) { evaluating.depth = n; },
   commits: 0,
   get actionDepth() { return storeState.depth; },
   get call() { return storeState.call; },

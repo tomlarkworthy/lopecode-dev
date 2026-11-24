@@ -79,7 +79,7 @@ export const tcArgParts = (tcCaps, tcIn, tcT, tcR) => (p: TcParam, cell: string,
     return [tcR(tcIn(IN, "compileFor")), tcT("("), tcR(input), tcT(`, ${JSON.stringify(cell)}, {`), ...refs.flatMap((x, i) => [tcT(`${i > 0 ? ", " : ""}${JSON.stringify(x)}: `), tcR(x)]), tcT("})")];
   const b = p.boundary;
   if (b === null) return [tcR(input)];
-  const shape = JSON.stringify(b.shape);
+  const shape = JSON.stringify([b.shape]).slice(1, -1);
   if (b.ref) return [tcR(tcIn(IN, "viewRef")), tcT("("), tcR(input), tcT(`, ${shape}, ${JSON.stringify(p.name)})`)];
   return [tcR(tcIn(IN, "cross")), tcT("("), tcR(input), tcT(`, ${shape}, ${JSON.stringify(`${cell}.${p.name}`)}, ${mod})`)];
 };
@@ -90,9 +90,10 @@ export const tcExprParts = (tcArgsParts, tcIn, tcT, tcR, tcM) => (kind: string, 
   const args = tcArgsParts(info, refs, IN, mod), name = JSON.stringify(info.name), seen = [...globals, ...regs].map(tcM);
   if (kind === "ref" || kind === "events")
     return [tcR(tcIn(IN, kind)), tcT(`(${kind === "ref" ? "this" : mod}, ${name}, [`), ...args, tcT("], "), ...seen, tcT(inner), ...(kind === "events" ? [tcT(", "), tcR("invalidation")] : []), tcT(")")];
-  if (kind === "listener") return [tcR(tcIn(IN, "listen")), tcT("("), ...seen, tcT(`(${inner})(`), ...args, tcT(`), ${name}, `), tcR("invalidation"), tcT(`, ${mod})`)];
+  // w1 (2026-11-24): the body runs under the guard runCells puts around a cell (freeze.ts out.run, out.cell)
+  if (kind === "listener") return [tcR(tcIn(IN, "out")), tcT(".run(() => "), tcR(tcIn(IN, "listen")), tcT("("), ...seen, tcT(`(${inner})(`), ...args, tcT(`), ${name}, `), tcR("invalidation"), tcT(`, ${mod}))`)];
   // a plain cell's value is deep-frozen as it leaves the cell (freeze.ts out)
-  return [tcR(tcIn(IN, "out")), tcT("("), ...seen, tcT(`(${inner})(`), ...args, tcT("))")];
+  return [tcR(tcIn(IN, "out")), tcT(".cell(() => "), ...seen, tcT(`(${inner})(`), ...args, tcT("))")];
 };
 // after the checks and the erasure: the inputs, the kind and the definition
 export const tcAssemble = (tcPrelude, tcOjsInputGlobals, tcGlobalRefStarts, tcGlobalsInOrder, mdPreludeCalls, tcExprParts, tcBuiltOf, tcVariableName, tcLANG, tcHeader, tcIn, tcINPUTS, tcT, tcR, tcFnRegs, tcCastEdits, tcApplyEdits) =>

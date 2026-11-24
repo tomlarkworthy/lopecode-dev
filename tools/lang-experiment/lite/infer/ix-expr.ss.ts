@@ -89,6 +89,7 @@ export const ixLazyRead = (ixUnsup, ixUpdate, ixNewFlow, ERR) => (K: IxK, T: IxT
   const z = b.lazy;
   if (z.k === "none") return b.t;
   if (z.k === "unsup") { ixUnsup(K, C, z.at, "recursive function without a return type"); return ERR; }
+  if (z.k === "later") return ERR;
   if (z.busy) { ixUnsup(K, C, z.fn, "recursive function without a return type"); return ERR; }
   ixUpdate(V, C, { ...b, lazy: { ...z, busy: true } });
   const own = C.cur;
@@ -109,6 +110,8 @@ export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixFnWritten, ixErr, ixUn
     else ixErr(K, C, e, "free-name", `free name ${e.name}`);
     return ERR;
   }
+  // w1 (S-1): a const or let of an enclosing block read before its declaration runs
+  if (b.lazy.k === "later") { ixErr(K, C, e, "free-name", `${e.name} is read before its declaration in the same block: a const or let is in scope for its whole block, so this reads that declaration, not a binding outside it; move the declaration above this read, or give one of the two another name`); return ERR; }
   ixFact(C, { k: "bind", at: e.nid, id: b.id });
   if (b.kind === "prelude") return b.t;
   // its argument is checked where it is called, so the value takes no argument (S2.6 lets a body name it)
@@ -276,12 +279,15 @@ export const ixIndex = (ixUm, ixErr, unwrap, isNamed, show, NUM, STR, UNDEF, ERR
   }
   return union(out);
 };
-export const ixExpect = (ixHides, ixErr, ixNonUndef, members, isNamed, show, UNDEF_FIX) => (K: IxK, C: IxCtls, at: AstNode, t: Ty, expected: Ty, ctx: boolean): boolean => {
+export const ixExpect = (ixHides, ixErr, ixNonUndef, members, isNamed, show, UNDEF_FIX, forgotWith) => (K: IxK, C: IxCtls, at: AstNode, t: Ty, expected: Ty, ctx: boolean): boolean => {
   if (K.reg.sub(t, expected)) return ctx || ixHides(K, C, at, t, expected, null);
   let rule = "type";
   if (K.reg.sub(ixNonUndef(K.reg, t), expected)) rule = "possibly-undefined";
   else if (members(t).some((m) => isNamed(m, "Action")) && !members(expected).some((m) => isNamed(m, "Action"))) rule = "action-pass";
-  ixErr(K, C, at, rule, `${show(t)} is not assignable to ${show(expected)}${rule === "possibly-undefined" ? UNDEF_FIX : ""}`);
+  // w1 (2026-11-24): a failure by the forgetting rule (subtype.ss.ts takesRecord) says what was left out and the fix
+  const why = rule === "type" ? forgotWith({ isAlias: K.reg.quiet.isAlias, expand: K.reg.quiet.expand, member: K.reg.quiet.member })(t, expected) : null;
+  if (why !== null) rule = "forgets";
+  ixErr(K, C, at, rule, `${show(t)} is not assignable to ${show(expected)}${rule === "possibly-undefined" ? UNDEF_FIX : why !== null ? `: ${why}` : ""}`);
   return false;
 };
 // { __proto__: v } sets the prototype, as the banned Object.setPrototypeOf does; every spelling of the key is refused

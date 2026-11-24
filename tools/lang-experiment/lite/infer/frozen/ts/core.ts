@@ -85,14 +85,14 @@ export function regCore(reg: Registry): IxRegCore {
     isAlias: (n: string) => reg.isAlias(n), expand: (t: Ty) => reg.expand(t), member: (t: Ty, k: string) => reg.member(t, k), sub: (a: Ty, b: Ty) => reg.sub(a, b),
     callSigs: (t: Ty) => reg.callSigs(t), iterElem: (t: Ty) => reg.iterElem(t), unify: (p: Ty, a: Ty, m: Map<string, Ty>, tvs: Set<string>) => reg.unify(p, a, m, tvs), isTypedArray: (t: Ty) => reg.isTypedArray(t),
   };
-  // DELIBERATE CHANGE (2026-11-24, t1): mayHideAny as well (live rg-registry.ts core)
-  return { ...c, mayHide: memo((t: Ty) => reg.peek(() => rgMayHide(c, t, false))), mayHideAny: memo((t: Ty) => reg.peek(() => rgMayHide(c, t, true))) };
+  // DELIBERATE CHANGE (2026-11-24, w1): t1's mayHideAny is gone (live rg-registry.ts core)
+  return { ...c, mayHide: memo((t: Ty) => reg.peek(() => rgMayHide(c, t))) };
 }
 // core with each method run inside around
 function regAround(core: IxRegCore, around: <X>(f: () => X) => X): IxRegCore {
   return {
     ...(Object.fromEntries(Object.entries(core).flatMap(([k, f]) => typeof f === "function" ? [[k, (...a: unknown[]) => around(() => (f as (...a: unknown[]) => unknown)(...a))]] : [])) as IxRegCore),
-    mayHide: core.mayHide, mayHideAny: core.mayHideAny,
+    mayHide: core.mayHide,
   };
 }
 // whether a node holds a typeof type query, remembered by node
@@ -154,7 +154,7 @@ function loadForeign(reg: Registry, got: MdReport[], text: string): MdForeign {
   const rest = reg.load(FP, "foreign");
   const values = [...reg.values].filter(([, v]) => v.origin === "foreign").map(([name, v]) => ({ name, marker: v.marker || null, line: FP.line(v.node.start), t: v.t }));
   // DELIBERATE CHANGE (2026-11-24, t1, B-1): a banned member declared in foreign.d.ts (live core.ts loadForeign)
-  const proto = protoMembersT1(FP.program).map((m) => ({ rule: "banned-member", line: FP.line(m.at.start), msg: `foreign.d.ts: ${protoMsgT1(m.name, m.opt)}` }));
+  const proto = protoMembersT1(FP.program).map((m) => ({ rule: "banned-member", line: FP.line(m.at.start), msg: protoMsgT1(m.name, m.opt) })); // DELIBERATE CHANGE (2026-11-24, w1): mdLoadErr adds the foreign.d.ts: prefix (it was given twice)
   return { reports: [...got.splice(0), ...proto], rest: rest.map((st) => ({ kind: st.type as string, line: FP.line(st.start) })), values };
 }
 // the user's declarations loaded into reg, the statements at clash (a cell's name taken again) left out
