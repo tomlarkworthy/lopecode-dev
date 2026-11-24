@@ -44,8 +44,6 @@ export type IxCtl = {
   casts: [number, TypeShape][];
   // d1 (2026-11-24): where a binding a nested function assigns was read at its declared type, by position, its name
   fnw: Map<number, string>;
-  // x1 (2026-11-24): the arguments given a built-in's unknown or object parameter that keeps nothing, by position
-  inspects: Set<number>;
 };
 // completion's question (lite/complete.ts): the placeholder name, and whether it is asked for as a member
 export type IxProbeAsk = { readonly name: string; readonly member: boolean };

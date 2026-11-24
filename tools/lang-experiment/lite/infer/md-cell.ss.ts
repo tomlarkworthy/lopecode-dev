@@ -122,7 +122,7 @@ export const mdKeep = (hasErrWith, show) => (X: MdCtx, M: MdMod, d: MdDef, rec: 
   }
   if (v.listener) M.listeners = new Set([...M.listeners, d.name]);
   const status: MdStatus = errors.length ? "rejected" : rec.unsupported.length ? "unsupported" : rec.blockedBy.length ? "blocked" : "ok";
-  return { ...rec, errors, value: show(v.value), status };
+  return { ...rec, errors, value: show(v.value), status, promises: v.promises };
 };
 // one cell's check; the first thing the port does not implement, or null
 export const mdCell = (ixKnot, ixFreshCtl, ixDrain, mdSyntax, mdInject, mdTainted, mdFedBy, mdMarkStateful, owTaintCaptures, captureMessage, mdDiag, mdHookOf, mdRunChecks, ixOut, mdRecord, mdValueRules, mdKeep) => (X: MdCtx, M: MdMod, d: MdDef): string | null => {

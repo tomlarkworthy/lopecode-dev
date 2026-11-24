@@ -86,14 +86,14 @@ export const tcArgParts = (tcCaps, tcIn, tcT, tcR) => (p: TcParam, cell: string,
 export const tcArgsParts = (tcArgParts, tcT) => (info: TcInfo, refs: string[], IN: Map<string, string>, mod: string): TcPart[] =>
   info.params.flatMap((p, i) => [...(i > 0 ? [tcT(", ")] : []), ...tcArgParts(p, info.name, refs, IN, mod)]);
 // the cell's expression, in text order: ref/events(this|module, name, [args], fn[, invalidation]), listen((fn)(args), …), or (fn)(args)
-export const tcExprParts = (tcArgsParts, tcIn, tcT, tcR, tcM) => (kind: string, info: TcInfo, refs: string[], IN: Map<string, string>, mod: string, globals: string[], regs: string[], inner: string): TcPart[] => {
+export const tcExprParts = (tcArgsParts, tcIn, tcT, tcR, tcM) => (kind: string, info: TcInfo, refs: string[], IN: Map<string, string>, mod: string, globals: string[], regs: string[], inner: string, mode: string): TcPart[] => {
   const args = tcArgsParts(info, refs, IN, mod), name = JSON.stringify(info.name), seen = [...globals, ...regs].map(tcM);
   if (kind === "ref" || kind === "events")
     return [tcR(tcIn(IN, kind)), tcT(`(${kind === "ref" ? "this" : mod}, ${name}, [`), ...args, tcT("], "), ...seen, tcT(inner), ...(kind === "events" ? [tcT(", "), tcR("invalidation")] : []), tcT(")")];
   // w1 (2026-11-24): the body runs under the guard runCells puts around a cell (freeze.ts out.run, out.cell)
   if (kind === "listener") return [tcR(tcIn(IN, "out")), tcT(".run(() => "), tcR(tcIn(IN, "listen")), tcT("("), ...seen, tcT(`(${inner})(`), ...args, tcT(`), ${name}, `), tcR("invalidation"), tcT(`, ${mod}))`)];
-  // a plain cell's value is deep-frozen as it leaves the cell (freeze.ts out)
-  return [tcR(tcIn(IN, "out")), tcT(".cell(() => "), ...seen, tcT(`(${inner})(`), ...args, tcT("))")];
+  // a plain cell's value is deep-frozen as it leaves the cell (freeze.ts out), y1: named, and with its mode (tcAssemble)
+  return [tcR(tcIn(IN, "out")), tcT(".cell(() => "), ...seen, tcT(`(${inner})(`), ...args, tcT(`), ${name}${mode})`)];
 };
 // after the checks and the erasure: the inputs, the kind and the definition
 export const tcAssemble = (tcPrelude, tcOjsInputGlobals, tcGlobalRefStarts, tcGlobalsInOrder, mdPreludeCalls, tcExprParts, tcBuiltOf, tcVariableName, tcLANG, tcHeader, tcIn, tcINPUTS, tcT, tcR, tcFnRegs, tcCastEdits, tcApplyEdits) =>
@@ -109,7 +109,10 @@ export const tcAssemble = (tcPrelude, tcOjsInputGlobals, tcGlobalRefStarts, tcGl
     // each function the cell makes registers the locals it captures (fnreg.ts), in a re-parse of `(typed)`: prog is of the uncommented text
     const reg = tcFnRegs(typed, { closure: tcIn(IN, "closure"), methods: tcIn(IN, "methods"), out: tcIn(IN, "out") });
     const inner = `${tcLANG}${tcHeader({ h: text.slice(0, fn.start), t: text.slice(fn.end) })}${tcApplyEdits(typed, [...reg.edits, ...tcCastEdits(typed, info.casts)])}`;
-    const expr = tcExprParts(kind, info, refs, IN, JSON.stringify(ctx.module), globals, reg.uses.map((u) => tcIn(IN, u)), inner);
+    // y1 (2026-11-24): freeze.ts publishOut's mode when the check says the value type names no promise: 1, +2 async, +4 generator
+    const mode = info.strict === true && (fn.type === "ArrowFunctionExpression" || fn.type === "FunctionExpression" || fn.type === "FunctionDeclaration")
+      ? `, ${1 + (fn.async ? 2 : 0) + (fn.generator ? 4 : 0)}` : "";
+    const expr = tcExprParts(kind, info, refs, IN, JSON.stringify(ctx.module), globals, reg.uses.map((u) => tcIn(IN, u)), inner, mode);
     const block = bound.length > 0;
     const parts = block ? [tcT("{ const "), ...bound.flatMap(([n, c], i) => [tcT(`${i > 0 ? ", " : ""}${n} = `), tcR(tcIn(IN, c))]), tcT("; return "), ...expr, tcT("; }")] : expr;
     const b = tcBuiltOf(tcVariableName(info.name), kind === "ref", block, parts);

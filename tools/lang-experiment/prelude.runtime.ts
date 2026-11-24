@@ -3,7 +3,7 @@
 // and what a commit applies, is decided by storeStep and the cells of lite/store.ss.ts (checked SoundScript). This
 // file holds the one StoreState value and each handle's store record, runs the actions' functions between steps,
 // and performs the effects.
-import { deepFreeze, published, madeFnIn, closure, SsMap, SsSet, evaluating, emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
+import { deepFreeze, published, freezeAt, publishedAt, madeFnIn, closure, SsMap, SsSet, evaluating, emptyStore, storeStep, isIdle, committedOf, updateSees, readSees, refPlan, type StoreState, type StoreEvent, type StoreEffect, type StoreRecord, type Seen } from "./lite/runtime-ss.ts";
 export { mut, freeze, borrow } from "./lite/runtime-ss.ts";
 
 const STATECELL = Symbol.for("lc.statecell");
@@ -41,12 +41,10 @@ const recordOf = (h: object) => records.get(storeHandleOf(h)) ?? null;
 const nameOfHandle = (h: object) => (h as Record<symbol, string>)[REFHANDLE];
 
 // the new state is kept before the effects run; a throw from the step leaves the old one
-function storeFeed(ev: StoreEvent): unknown {
+function storeFeed(ev: StoreEvent): void {
   const r = storeStep(storeState, ev);
   storeState = r.state;
-  let returned: unknown;
-  for (const e of r.effects) if (e.fx === "return") returned = e.value; else performStore(e);
-  return returned;
+  for (const e of r.effects) performStore(e);
 }
 function performStore(e: StoreEffect) {
   switch (e.fx) {
@@ -110,8 +108,9 @@ function write(h: object, f: (v: unknown) => unknown) {
   notInMemo("a state written");
   const s = recordOf(h)!;
   const x = f(seenValue(h, updateSees(storeState, nameOfHandle(h), s)));
-  noBodyFn(`the value written to ${nameOfHandle(h)}`, x);
-  const v = deepFreeze(x);
+  const where = `the value written to ${nameOfHandle(h)}`;
+  noBodyFn(where, x);
+  const v = freezeAt(x, where);
   if (publishTap.f !== null) publishTap.f(`write ${nameOfHandle(h)}`, v);
   storeFeed({ t: "write", handle: storeHandleOf(h), name: nameOfHandle(h), store: s, value: v });
 }
@@ -130,7 +129,7 @@ function handleOf(name: string, check: (v: unknown) => unknown = (v) => v): obje
 }
 // a state cell's initial value and each written value are deep-frozen as they go into the store
 const madeStore = (h: object, value: unknown, view: boolean, run: { fid: string; args: unknown[] } | null) =>
-  storeFeed({ t: "made", handle: h, name: nameOfHandle(h), value: published(value), view, run });
+  storeFeed({ t: "made", handle: h, name: nameOfHandle(h), value: publishedAt(value, `the initial value of ${nameOfHandle(h)}`), view, run });
 
 // Turn the StateCell a cell returned into a handle on a store of its own (the port harness, run.ts).
 export function materialize(cell: { initial: unknown }, name: string) {
@@ -179,20 +178,19 @@ export function viewHandle(el: ViewEl, name: string, check: (v: unknown) => unkn
   return handle;
 }
 
-// An action (S6.12): called inside an action's function it is part of that call and returns what its function
-// returns; called anywhere else (an event handler, a listener, JavaScript) it is a top-level call, which runs to
-// completion now and keeps its writes only if it does not throw (S6.10, S6.13). What the function returns is not
-// waited for: a write it makes later, from a promise callback or a kept function, finds no action on the stack and
-// throws.
+// An action (S6.12): called inside an action's function it is part of that call; called anywhere else (an event handler, a listener, JavaScript) it is a top-level call, which runs to
+// completion now and keeps its writes only if it does not throw (S6.10, S6.13). A call gives back undefined, whatever the
+// function returns (y1, 2026-11-24: the call is typed void, attack 13 VA), and that value is not waited for: a write it
+// makes later, from a promise callback or a kept function, finds no action on the stack and throws.
 export function action(f: (...args: unknown[]) => unknown) {
   const a = (...args: unknown[]): unknown => {
     notInMemo("an action called");
     storeFeed({ t: "enter", evaluating: rt.evalDepth > 0 });
-    let v: unknown;
     // the arguments are deep-frozen, all of them or none (one scan before anything is frozen, holes8): the caller's
     // values are published to the action's writes and listeners
-    try { noBodyFn(`an argument of the action ${nameOf(a)}`, args); v = f(...deepFreeze(args)); } catch (err) { storeFeed({ t: "exit", threw: true, value: undefined }); throw err; }
-    return storeFeed({ t: "exit", threw: false, value: v });
+    try { const where = `an argument of the action ${nameOf(a)}`; noBodyFn(where, args); f(...freezeAt(args, where)); } catch (err) { storeFeed({ t: "exit", threw: true }); throw err; }
+    storeFeed({ t: "exit", threw: false });
+    return undefined;
   };
   Object.defineProperty(a, ACTION, { value: true });
   // an action handle reaches its body: deepFreeze freezes what the body captures when the handle is published

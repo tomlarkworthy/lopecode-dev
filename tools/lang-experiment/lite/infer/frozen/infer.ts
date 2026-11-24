@@ -538,12 +538,28 @@ export class Checker {
     if (w) this.err(at, "action-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${w}; an Action goes only where an Action is expected`);
     const h = w || t === expected ? null : this.reg.peek(() => this.hidden(t, expected, opaque, 0, (x) => this.handleIn(x, 0)));
     if (h) this.err(at, "handle-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${h}; a State or Events handle, or a FetchResponse, goes only where its own type is expected`);
-    // DELIBERATE CHANGE (2026-11-24, x1, O): any other part that is not plain data, where its type becomes unknown or object,
-    // unless a built-in that keeps nothing is given it (live ixHides, ixNotPlainIn)
-    const notPlain = (x: Ty) => (plainWith({ isAlias: (n: string) => this.reg.isAlias(n), expand: (y: Ty) => this.reg.expand(y), member: (y: Ty, k: string) => this.reg.member(y, k), opaque: true })(x) ? null : show(x));
-    const f = w || h || t === expected || this.inspects.has(at) ? null : this.reg.peek(() => this.hidden(t, expected, null, 0, notPlain));
-    if (f) this.err(at, "forgets", `${show(t)} is given the type ${show(expected)}, which does not say what ${f} holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it`);
+    // DELIBERATE CHANGE (2026-11-24, y1): x1's third pass narrowed to a promise, generator or iterator whose own type is
+    // given unknown or object (live ixHides, ixPendingIn)
+    const f = w || h || t === expected ? null : this.reg.peek(() => this.hidden(t, expected, null, 0, (x) => this.pendingIn(x, 0)));
+    if (f) this.err(at, "forgets", `${show(t)} is given the type ${show(expected)}, which hides its ${f}; a promise, generator or iterator goes only where a type names it (the run time refuses one it finds anywhere else)`);
     return !w && !h && !f;
+  }
+  // DELIBERATE CHANGE (2026-11-24, y1): the first Promise, generator or iterator held in s, not in a function's result (live ixPendingIn)
+  pendingIn(s: Ty, depth: number): string | null {
+    if (depth > 10) return null;
+    const A = (x: Ty) => this.pendingIn(x, depth + 1);
+    const first = (xs: Ty[]) => { for (const x of xs) { const w = A(x); if (w) return w; } return null; };
+    switch (s.k) {
+      case "named":
+        if (["Promise", "Generator", "AsyncGenerator", "Iterable", "Iterator", "IterableIterator", "AsyncIterator", "AsyncIterableIterator"].includes(s.n)) return show(s);
+        if (this.reg.isAlias(s.n)) return A(this.reg.expand(s));
+        return first(s.args);
+      case "arr": return A(s.el);
+      case "tup": return first(s.els);
+      case "union": return first(s.ts);
+      case "rec": return first([...[...s.props.values()].map((p) => p.t), ...(s.index ? [s.index] : [])]);
+      default: return null;
+    }
   }
   // the first State or Events handle held anywhere in s, as actionIn finds an Action
   handleIn(s: Ty, depth: number): string | null {
@@ -1464,8 +1480,6 @@ export class Checker {
   }
   cloneCallees = new Set<Node>();
   freshAt: Node | null = null;
-  // DELIBERATE CHANGE (2026-11-24, x1): the arguments given a built-in's unknown or object parameter that keeps nothing (live IxCtl inspects)
-  inspects = new Set<Node>();
   // DELIBERATE CHANGE (2026-11-23, e1): each cast call's T shape, by the callee's position (the cells' C.casts)
   casts = new Map<number, unknown>();
   // what structuredClone cannot copy in a value of type t (walks.ss.ts)
@@ -1538,8 +1552,6 @@ export class Checker {
       const pc = cur(p);
       // an optional parameter takes undefined; a function argument keeps the parameter's own type as its context
       const fnArg = a.type === "ArrowFunctionExpression" || a.type === "FunctionExpression";
-      // DELIBERATE CHANGE (2026-11-24, x1): a built-in's unknown or object parameter that keeps nothing does not forget (live ixFirstArg)
-      if (sig0.flags?.intrinsic && !sig0.flags.retains && (pc.k === "unknown" || pc.k === "object")) this.inspects.add(a);
       if (!hasTv(pc, tvSet)) { argT[i] = this.check(a, env, sig.ps[i]?.opt && !fnArg ? union([pc, UNDEF]) : pc); return; }
       // DELIBERATE CHANGE (2026-11-23, e1): a callback with every parameter annotated gives its parameters' type variables
       if (fnArg && this.reg.callSigs(pc).some((s) => s.ps.some((q) => hasTv(q.t, tvSet)))) { const t = this.infer(a, env); argT[i] = t; this.reg.unify(p, t, m, tvSet); return; }
@@ -1573,9 +1585,9 @@ export class Checker {
       const pc = subst(p, m);
       if ((hasTv(p, tvSet) || deferred.includes(i)) && this.expect(a, t, pc) && opaque && hasTv(p, tvSet)) this.hides(a, t, p, opaque);
     });
-    // DELIBERATE CHANGE (2026-11-24, x1, H): a built-in flagged @plain gives plain data (live ixPlainResult)
+    // DELIBERATE CHANGE (2026-11-24, x1, H): a built-in flagged @plain gives plain data (live ixPlainResult); y1: unknown and object are not
     const r = this.settled(subst(sig.ret, m));
-    if (sig0.flags?.plain && !plainWith({ isAlias: (n: string) => this.reg.isAlias(n), expand: (y: Ty) => this.reg.expand(y), member: (y: Ty, k: string) => this.reg.member(y, k), opaque: true })(r))
+    if (sig0.flags?.plain && !plainWith({ isAlias: (n: string) => this.reg.isAlias(n), expand: (y: Ty) => this.reg.expand(y), member: (y: Ty, k: string) => this.reg.member(y, k) })(r))
       this.err(e, "type", `this call builds ${show(r)}, a record whose keys come from run-time data: a key may be then, toJSON or toString, which the run time calls, so the values must be plain data (no function, Action, handle, Mut, promise, iterator or response): to keep a function, write the record as an object literal`);
     return r;
   }

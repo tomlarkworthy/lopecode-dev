@@ -41,7 +41,9 @@ for (const f of files) {
       }
       cells++;
       if (fromCheck) {
-        const again = JSON.stringify(compileCell(t, tsx, fromCheck));
+        // y1 (2026-11-24): the check's strict bit adds the run-time mode (tc-build.ss.ts), which parsing cannot give; the rest is the same
+        const noMode = { ...fromCheck, facts: new Map([...(fromCheck.facts ?? new Map())].map(([k, f]) => [k, { ...f, strict: undefined }])) };
+        const again = JSON.stringify(compileCell(t, tsx, noMode));
         if (again !== JSON.stringify(vs)) throw new Error(`a cell compiles differently with the check's facts:\n${again}\n${JSON.stringify(vs)}`);
         factsCompared++;
       }

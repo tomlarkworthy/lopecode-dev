@@ -3891,3 +3891,207 @@ The guard held: 35 accepted programs calling a laundered Action through about 30
 runners; 23 interleaving programs gave 0 false refusals.
 Four attacks in one day (10, 11, 12, 13) each found a forgetting break at a new place. Per the rule set before w1, no
 fifth patch round is started; the question goes to Tom.
+
+## 2026-11-24: y1 (the run time as the guarantee; adversarial compile checks removed) (builder, 16:40–21:30, logs `lite/soundscript/.scratch/y1/`)
+
+Tom's direction after attack 13: "remove some of the nittier versions from the compile checks so we are able to deal
+with the normal cases at compile time and the more adversarial ones at runtime". The run time is now what stops a
+capability (a response, a promise, a generator or iterator, an Action, a State/Events handle, a Mut) reaching a place
+its type does not name. The checker keeps the direct cases, with their messages. Plain data of the wrong type keeps its
+compile rules, because no run-time check can tell a wrong number from a right one.
+
+**Class table** (`classes.txt`, written before any edit from `freeze-attack10..13/RESULTS.md`). (a) a capability where
+its type does not say one goes, which a hand-over or a call can see; (b) plain data of the wrong type, which only a
+compile rule can stop; (n) not a value break.
+
+```
+(a) 10 A-1, 11 A-1 A-2 A-3 R-1, 12 V O G, 13 VA U T      run time
+(b) 10 B-1 E-1 F-1..3, 11 A-4 B-2 F-4 S-1, 12 C, 13 L    compile rule
+(a)/(b) 12 H (fromEntries then/toString/toJSON)          compile rule (@plain): an adopted then gives plain data
+(n) 11 C-1 C-2                                           checker crash, check time
+out of scope: 13 min-e-extra-arg (a callback's extra argument), (b)
+```
+
+### Part A: what the run time now refuses
+
+- A1. A call of an Action gives back `undefined` (`prelude.runtime.ts` `action`; `store.ss.ts` `exitCall`, the
+  "return" effect removed). This closes 13 VA: `c.set(a() ?? 7)` puts 7, not the function's result.
+- A2. The freeze walk (`lite/freeze.ts` `deepFreeze`) refuses at hand-over, with the path to the value: a response
+  (new kind `K_RESP`) and an async iterator (`K_ITER`) anywhere in a published value, an action argument or a state
+  write; a promise anywhere in a cell's value when the cell's own type names no promise. "Names no promise" is a fact
+  the checker now emits per cell (`strict`, the negation of `md-value`'s `promises`, which is true when the value type
+  holds `Promise` or is an error type), carried through `tc-build` and `lite/browser/run.ts` `modeOf` as a mode argument to `publishOut`. A
+  cell whose type names a promise is unchanged (`PROMISED` keeps the ones it returns). `SS_MEASURE_HANDOVER=0` turns
+  A2 off for measurement. The message: "a promise cannot leave its cell where the cell's type does not name one: the
+  cells that read it would get what it settles to, not that type".
+- A3. The guard rows of attacks 11–13 were kept as rows of the `y1` set; all refused under both runners.
+- A4. The `y1` standing set (`lite/infer/attack/y1-attacks.ts`, 448 programs): 248 rows from attack 13, 38 legal
+  `y1-ok-*` rows (kept functions, Actions, handles, Map/Set, typed arrays, URL/Error, async and generator cells, a
+  declared promise, memo, JSX, `fetch(...).json()`, action arguments, state writes, yields), 150 `y1-rm-*` rows (the
+  loud rows of the removed checks, from `rm-loud-ids.txt`), 2 L rows, 10 controls that `live.test.ts` runs with the
+  checker skipped and with `SS_MEASURE_HANDOVER=0`.
+
+### A5: which checks the run time makes removable
+
+Every program a candidate rule rejects (standing sets plus the attack 4–13 candidates), run with the checker skipped
+under both runners, after Part A (`a5-after-a.txt`; `a5-before.txt` is the same harness before y1; tally
+`a5-tally-after-a.txt`). A rule is removable when none of the rows it alone rejects is silent.
+
+```
+sub-rule                                   sole rows: silent / loud / quiet     verdict
+x1 unknown/object non-plain [forgets]      0 / 75 / 127   (21 silent before y1) REMOVED, the direct promise/iterator case kept
+w1 record width non-plain [forgets]        0 / 82 / 275   (40 silent before y1) REMOVED
+w1 non-record given a record [forgets]     0 / 0 / 14, 9 with no detector       KEPT (11 B-2, plain data)
+x1 call-signature member [forgets]         76 / 17 / 15                         KEPT (12 C)
+x1 Object.fromEntries @plain [type]        14 / 82 / 20                         KEPT (12 H)
+x1 void result [type]                      4 / 33 / 37                          KEPT
+w1 JSON.stringify argument [type]          10 / 1 / 0                           KEPT (11 A-4)
+t1/w1 banned member names                  22 / 14 / 29                         KEPT, every name
+```
+
+Width had 14 silent rows among those only candidate rules reject; each is also rejected by the banned `then` or
+`toString` names, which stay. By row id, before y1 → after A with the checker skipped: silent→loud 139, silent→quiet 2,
+quiet→loud 9, newly silent 0.
+
+### Part B: what was removed and what was kept
+
+Removed (lines deleted / added):
+
+```
+lite/subtype.ss.ts            -27 +13   PlainR.opaque; the width test in takesRecord; the width message in forgotWith
+lite/infer/ix-hides.ss.ts     -10 +10   ixNotPlainIn -> ixPendingIn; the inspects exemption
+lite/infer/ix-apply.ss.ts      -7 +5    IxApp.inspects
+lite/infer/ix-types.ss.ts      -2
+lite/infer/ix-entry.ss.ts      -1 +1
+lite/infer/rg-registry.ts      -9 +2    the plain memo
+lite/infer/frozen/infer.ts    -11 +23   mirrors (pendingIn), marked DELIBERATE CHANGE (2026-11-24, y1)
+lite/infer/frozen/ts/registry.ts -10 +3
+lite/intrinsics.ts             -2 +2    Array.from({ length }) -> unknown[]
+lite/infer/attack/message-fixes.ts -5 +3
+checker cells (infer/*.ss.ts + subtype.ss.ts) 6367 -> 6355; run time (freeze.ts, store.ss.ts, prelude.runtime.ts) 751 -> 808
+```
+
+Kept as compile rules, why:
+- The direct capability cases, so a normal mistake is reported where it is written (`probe-b2.ts`): a response
+  returned or in a record `[iterator-cell]`; a response, handle or Action given `unknown` `[handle-pass]`/`[action-pass]`;
+  an Action called in a cell `[action-call]`; a promise, generator or iterator given `object` or `unknown`
+  `[forgets]`, now from the narrowed `ixPendingIn` ("…which hides its Promise; a promise, generator or iterator goes
+  only where a type names it (the run time refuses one it finds anywhere else)"). A function or a Mut given `unknown`
+  is accepted. A response laundered through width is the run time's.
+- The first B build removed the x1 pass entirely. `bun-verify` then showed the direct promise/iterator cases (S4.12
+  rows, holes8 k2) accepted, which is why `ixPendingIn` exists; `Iterable` was added to it for `values()`.
+- Plain-data rules: non-record given a record, the call-signature member, void results, the `JSON.stringify`
+  argument, every banned member name.
+- `@plain` on `Object.fromEntries` now counts `unknown` and `object` as not plain. Before, the x1 non-plain rule had
+  checked any part typed `unknown` when it was given that type, so @plain could trust it; with that rule gone, it
+  cannot. This closes 13 U's toJSON-Action rows.
+- `Array.from` over `{ length }` is typed `unknown[]` (was `undefined[]`); that is L.
+
+Spec: S2.7 row now `[type]`; three rows removed (S2.9 width k, S2.9 fn-unknown k, S6.6 action-width); S4.12's
+`promRules` expects `[]`; S2.9 and S6.6 prose say which part is checked and which is the run time's; S4.6 and S6.13
+state A2 and A1. Tutorial: the forgetting sentence rewritten; a reference paragraph on hand-over refusals.
+
+### Attack 13 breaks after y1, both runners (`after/`, 20:54)
+
+```
+             before y1 (acc/silent)   after (acc/silent)   state
+min            8 / 8                    7 / 2              min-l-arraylike, min-e-extra-arg left
+unk          101 / 50                  75 / 2              U, T fixed; x-equals-promises/-resps left
+unk2           4 / 2                    4 / 0              fixed
+void          40 / 22                  42 / 1              VA fixed; v-act-launder-action-state left
+keys          84 / 6                   84 / 6              L: typed unknown[]; the 6 detectors still expect undefined[]
+extra         29 / 21                  29 / 21             out of scope (callback extra argument)
+callsig, guard, guard2, outside        unchanged, silent 0
+```
+
+drive-rt and drive-run list the same 32 silent rows. Of these:
+- U toJSON-Action (`min-u-action`, 11 `u-*-action-tojson`): silent after A, since no hand-over happens between the
+  `JSON.stringify` call and the store. After B they are rejected `[type]` by @plain.
+- L (6 `keys.ts l-*` + `min-l-arraylike`): the checker now types `Array.from({ length: 1, 0: "s" })` as `unknown[]`
+  (`probe6.ts`: given `number[]` or `undefined[]` it is `[inject-type]`). The rows' detectors are fixed predicates
+  (`every(x => x === undefined)`, or numbers), so `["s"]` still counts as outside. Not a break under the new type.
+- `v-act-launder-action-state`: the call is refused ("the value written to s reaches a function or a promise that no
+  finished cell has published"): `a()` now gives `undefined`, so `?? (() => 1)` writes a closure made in the action,
+  which S4.12 refuses. Loud; the row's predicate expects the old 1. In `y1` it is restated with `v === 0`.
+- `x-equals-*`: two promises (or responses) compared with `===` in the cell that made them; no value leaves. Not a
+  value break.
+- `extra.ts` 21 + `min-e-extra-arg`: out of scope, as attack 13 states.
+
+Controls that no longer fire with the checker skipped (fa10 a 2→0, fa12 forget 1→0, forget2 2→0, fa13 unk 4→1,
+min 3→1, void 2→1, fa11 a 2→1): each drive shows the run time's refusal ("a response cannot leave its cell", "an
+iterator or generator object cannot leave its cell", "a promise cannot leave its cell where…"). The ones left
+firing are plain-data controls (`min-ctl-state-string`, `u-ctl-action-tojson`). Attack 10–12 files: silent 0 before
+and after; accepted rose in fa11 a (0→45) and fa12 sweep (57→479), the programs the removed rules used to reject.
+
+### Measures
+
+- Census (`census-gone.ts`, `census-rejects.ts`; 49566 → 49556 cells): by source, rejected→ok 3 cells (5 entries with
+  ss/ssx): `ports/glpk-canonicalization:multiplyOut`, `selfhost/rt/cells.ss.ts` `listen` and `release`; ok→rejected 0;
+  S2.7 `[forgets]`→`[type]`. Messages gone: x1 non-plain 18 in 14 entries, width 6 in 6 entries (all 6 still
+  rejected by other rules, e.g. `08-reject-jsx` `bad_unknown_attr` keeps `[excess-property]`).
+- Drafts: ergonomics1 18 accepted / 17 run pass, learner1 36 / 36, before, after A and after B. Neither set has a
+  `[forgets]`, so the removal changes no draft.
+- False refusals: 38 `y1-ok` rows run clean under both runners (`live.test.ts` asserts none rejected, pending or "not
+  a function"); census ok→rejected 0; drafts unchanged; attack 13 `guard` accepted 48 of 51 with silent 0 and `guard2` 10 of 10, as before y1.
+- Cost, measured with `verify.ts` full and `m1/time-sections.ts`, `verify.ts` reading AC each time.
+
+  ```
+                          before y1 (16:40)  after A (gates-a)  after B (gates, 19:27-20:48)
+  Mandelbrot pool of 8        42.5 ms           45.7               33.4
+  Mandelbrot main thread      70.1              66.8               70.2
+  lint of width (median)       7.6               7.3                7.5
+  completion of count.         9.2               8.9               45.7
+  load to title              471               464                476
+  Breakout, own pane          60 /s             60.1               60.1
+  checker ix+ow (x3)   5488/5134/5644   5401/6062/5479     5280/5680/6014 ms
+  ```
+
+  The pool figure also moved (42.5 → 45.7 → 33.4 ms) and is not explained either; y1 changes nothing the pool runs, so it is
+  taken as run-to-run spread, which is inferred. The completion figure is the larger outlier and is not explained. Each run of it does the same work (30 module checks,
+  1380 cells inferred, in all four logs), and ix+ow, the checker's own cost, did not move. Two reruns after 21:00
+  (`gates-2`, `gates-3`) ran on a machine about 4x slower on every figure, the ones y1 does not touch included
+  (Mandelbrot main 206 ms, ix+ow 20512–26246 ms; load average 5.2 on 18 cores, `pmset` lowpowermode 2), so they are
+  not comparable with the rest. Within `gates-3` completion is 35.2 ms against lint 31.3 ms, a ratio of 1.1, as before
+  y1 (9.2 / 7.6); in `gates` it is 6. That points to a disturbance in that one run, but it is inferred, not measured.
+- Gates, `gates/` (on the tree after B): every line exit 0 except fa3 1 and `lite/boundary.test.ts` 1 fail;
+  tc-diff 56 DIFFERENT lines; diff DIFFERENT 0 (3993 SAME of 4007, 14 real crashes as before); `--module-only` 1289
+  SAME; run-sets 3223 programs, silent 0 under runCells and `--rt`; `SS_MEASURE_REG=0` silent 19 and `BODYFN=0` silent 2
+  (both turn off refusals the rows rely on); fa2 309/8/0; bun-verify 182 pass; fixtures 14/14; verify `--quick` 234
+  pass; full verify 678 pass 0 fail; 33 of 34 test files exit 0.
+  - fa3 1: an import cycle y1 made. `run-sets.ts` imported `y1-attacks.ts` at load, which imports attack 4, 6 and 7
+    candidates, which import the attack 3 harness, which imports `run-sets.ts` ("Cannot access 'C' before
+    initialization"). `y1-attacks.ts` is now loaded in `loadProgs`, as the other harness sets are.
+  - boundary.test: the "as object" row (`state(g)` with `g` a function, as `StateCell<object>`) expected x1's
+    `[forgets]`; it is now `[action-capture]`, the state-cell rule that refused it before x1.
+  `gates-2/` reran those lines: fa3 360/9/0, run-sets silent 0 both, live.test 1159 pass, boundary 130 pass,
+  message-fixes 93 pass, all exit 0. Its full verify gave 677 pass 1 fail (the original page's Breakout pulled 1 clock
+  after the tests) and printed "Execution context was destroyed … (try 1); retrying" once; it ran while my attack
+  10–13 reruns were running. Rerun once alone (`gates-3/`): 678 pass 0 fail.
+
+### What is left
+
+- L's attack rows need their predicates restated against `unknown[]` if they stay in a standing set.
+- `extra.ts` (a callback's optional parameter past the intrinsic's declared ones gets the run time's extra argument)
+  is open and out of y1's scope.
+- A thenable's `then` on an async cell's value is adopted before any hand-over, so the run time sees 11 A-2 only on a
+  synchronous cell; the banned `then` name stays for that reason.
+- Not run: an attack on y1. The hand-over refusal is the run time's own walk; a capability that the walk does not
+  recognise as one (a new host object) is not covered by it, and no row tests that.
+- The y1 runCells `live.test` variant failed once inside the Part A gate (1410 s under load) and passed alone in
+  2:38; it was not reproduced. Its link to `observe.ts`'s time-bounded `settle(800)` is inferred, not measured.
+
+## 2026-11-24 22:20–23:10: owner-session check of y1
+
+One gate run on the tree committed (`selfhost/y1-check/gates-summary.txt`; it wrote over the builder's `gates/` folder,
+because y1's script takes the folder as an argument): build 0; bun-verify 182 pass; fixtures 14/14; diff DIFFERENT 0;
+run-sets 3223 programs silent 0 under runCells and compiled; fa2 309/8/0, fa3 360/9/0; verify --quick 234 pass; full
+verify 678 pass 0 fail; 34 of 34 test files exit 0.
+
+Two things the builder's report did not say:
+- With registration switched off (`SS_MEASURE_REG=0`) run-sets has 19 silent programs (0 before y1): 18 in `y1`
+  (`y1-rm-*`, the programs a removed compile check used to reject) and `w1-1-a-r-extra-kept`. With `SS_MEASURE_BODYFN=0`,
+  2. So closure registration is now the only protection for those programs. That is what y1 set out to do; it is a
+  change in what the measurement switches mean, not a defect.
+- Timings in this run are not usable: `pmset` reports lowpowermode 2 and the load average was 3 to 5 with nothing of
+  mine running (`ps` is not permitted in this sandbox, so the cause is unknown). Lint measured 52.0 ms and Mandelbrot
+  322 ms against 7.5 and 70.2 in the builder's AC run after Part B. Not measured again on an idle machine.

@@ -11,7 +11,8 @@ import type { AstNode } from "./acorn/acorn-types.ss.ts";
 import type { FnNode } from "./acorn/acorn.ss.ts";
 
 // span: the cell's statement in the source that was parsed, [start, end)
-export type CellInfo = { name: string; span?: [number, number]; params: { name: string; refTyped: boolean; eventsTyped: boolean; boundary?: { shape: unknown; ref: boolean } }[]; returnsRef: boolean; generator: boolean; compiles: IslandSpec[]; casts?: unknown[] };
+// strict (y1, 2026-11-24, from a check): the cell's value type names no promise, so the run time refuses one in its value
+export type CellInfo = { name: string; span?: [number, number]; params: { name: string; refTyped: boolean; eventsTyped: boolean; boundary?: { shape: unknown; ref: boolean } }[]; returnsRef: boolean; generator: boolean; compiles: IslandSpec[]; casts?: unknown[]; strict?: boolean };
 // the cells this file calls, as one record (lite/infer/cp-diff.ts hands a copy with one cell replaced)
 export const FACTS = { cpCellsOf, cpGlobalRefs, mdFactsOf, mdPreludeCalls };
 export type FactCalls = typeof FACTS;

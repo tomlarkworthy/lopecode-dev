@@ -102,8 +102,8 @@ declare const Array: {
   isArray(v: unknown): boolean;
   /** @fresh */ from<T>(src: Iterable<T>): T[];
   /** @fresh */ from<T, U>(src: Iterable<T>, f: (v: T, i: number) => U): U[];
-  /** @fresh */ from(src: { readonly length: number }): undefined[];
-  /** @fresh */ from<U>(src: { readonly length: number }, f: (v: undefined, i: number) => U): U[];
+  /** @fresh */ from(src: { readonly length: number }): unknown[];
+  /** @fresh */ from<U>(src: { readonly length: number }, f: (v: unknown, i: number) => U): U[];
   /** @fresh */ of<T>(...xs: T[]): T[];
   /** @banned */ readonly prototype: unknown;
 };

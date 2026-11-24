@@ -2,7 +2,7 @@
 // records of functions the subtype cells take, peek and lax as try/finally, and the three declaration texts loaded.
 // The cells come in as a record, so ../core.ts (the shipped cells) and ../acorn/index.ts (the cells linked with a
 // parser that has not crossed the boundary yet, for parseTree's own shape) make one the same way.
-import { plainWith, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, unifyWith, memberOfWith, type Ty, type Rec, type RegOps, type DeclOps, type Fn, type Prop } from "../types.ts";
+import { isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, unifyWith, memberOfWith, type Ty, type Rec, type RegOps, type DeclOps, type Fn, type Prop } from "../types.ts";
 import { INTRINSIC_DECLS, PRELUDE_DECLS, JSX_DECLS, TYPED_ARRAYS, FN_OWN_MEMBERS } from "../intrinsics.ts";
 import type { Ast, AstNode, Parse } from "../acorn/acorn-types.ss.ts";
 import type { IxRegCore } from "./ix-types.ss.ts";
@@ -37,15 +37,8 @@ export function rgRegistryOf(L: RgCells, strictIndex: boolean, declTrees: [Ast, 
   const decls: DeclOps = { decl: (n) => Y.get(n), expand, ifaceRec, strictIndex: () => Q.strict, at };
   const isAlias = isAliasWith(decls), member = memberWith(decls);
   const isTypedArray = (t: Ty) => L.rgIsTypedArray(t, TYPED_ARRAYS);
-  // w1: a whole plain walk's answer, by the type's identity (an alias by its expansion, which the expand memo keeps)
-  const plainMemo = new WeakMap<Ty, boolean>(), plainOf = plainWith({ isAlias, expand, member });
-  const plain = (t0: Ty): boolean => {
-    const t = t0.k === "named" && isAlias(t0.n) ? expand(t0) : t0, v = plainMemo.get(t);
-    if (v !== undefined) return v;
-    const r = plainOf(t); plainMemo.set(t, r); return r;
-  };
   const fnOwn = (n: string) => FN_OWN_MEMBERS.has(n);
-  const ops: RegOps = { expand, isAlias, member, isTypedArray, same: (a, b) => a === b, at, fresh: () => L.rgFresh(Q), plain, fnOwn };
+  const ops: RegOps = { expand, isAlias, member, isTypedArray, same: (a, b) => a === b, at, fresh: () => L.rgFresh(Q), fnOwn };
   const callSigs = callSigsWith(ops), iterElem = iterElemWith(ops), subOps = subWith(ops, iterElem, callSigs);
   const unifyOps = unifyWith(ops, subOps, iterElem, callSigs), memberOf = memberOfWith(ops);
   const G: RgK = { convert: L.rgConvert, expand: L.rgExpand, ifaceRec: L.rgIfaceRec, sig: L.rgSig, literal: L.rgLiteral, quietGo: L.rgQuietGo, isAlias, memberOf, subOps, at };

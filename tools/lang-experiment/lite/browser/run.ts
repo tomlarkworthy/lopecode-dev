@@ -51,6 +51,7 @@ function compiledFunctions(source: string, tsx: boolean, facts: ReadonlyMap<stri
 }
 
 let programs = 0;
+const ASYNC_FN = (async () => {}).constructor, GEN_FN = function* () {}.constructor, ASYNC_GEN_FN = async function* () {}.constructor;
 
 export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilities; onChange?: (r: Rec) => void; checked?: Verdicts } = {}) {
   const programId = `p${++programs}`;
@@ -64,6 +65,10 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
   // registrations the compiler emits (lite/fnreg.ts, toolchain tc-reg); the erased text only for a rejected cell
   const facts = (opts.checked as { facts?: ReadonlyMap<string, CellInfo> } | undefined)?.facts ?? null;
   const compiledFns = compiledFunctions(source, !!opts.tsx, facts);
+  // y1 (2026-11-24): freeze.ts publishOut's mode, as tc-build.ss.ts gives a compiled cell: when the check says the value type
+  // names no promise, 1, +2 for an async function, +4 for a generator function; undefined when not known
+  const modeOf = (name: string, f: unknown): number | undefined => facts?.get(name)?.strict !== true ? undefined
+    : 1 + (f instanceof ASYNC_FN || f instanceof ASYNC_GEN_FN ? 2 : 0) + (f instanceof GEN_FN || f instanceof ASYNC_GEN_FN ? 4 : 0);
   for (const [n, text] of compiledFns) exports[n] = new Function(...PRELUDE, ...REG_NAMES, `"use strict";\nreturn (${text});`)(...PRELUDE.map((x) => PRELUDE_VALUES[x]), closure, methods, out);
   const byName = new Map(cells.map((c) => [c.name, c]));
   const caps = opts.caps ?? {};
@@ -137,7 +142,7 @@ export function runCells(source: string, opts: { tsx?: boolean; caps?: Capabilit
       rec.evals++;
       P.rt.evalDepth++;
       // the value is deep-frozen as it leaves the cell: a promise's resolved value, each value a generator yields
-      try { const r = out(raw(...a)); return generatorish(r) ? guard(r) : r; } finally { P.rt.evalDepth--; }
+      try { const r = out(raw(...a), c.name, modeOf(c.name, raw)); return generatorish(r) ? guard(r) : r; } finally { P.rt.evalDepth--; }
     };
     const inputs = c.params.map((p) => input(c, p));
     // A compile call's refs are hidden inputs: the cell recomputes, and returns a new function, when one changes.

@@ -38,7 +38,9 @@ const CAPS = Symbol("ss captures");
 // closure() and methods() register nothing; with SS_MEASURE_FREEZE=0 deepFreeze returns its argument. Off in a browser
 const MEASURE_ENV = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
 // x1 (2026-11-24): with SS_MEASURE_GUARD=0 the async guard (guardAsync) holds nothing, as before x1
-const REG_ON = MEASURE_ENV?.SS_MEASURE_REG !== "0", FREEZE_ON = MEASURE_ENV?.SS_MEASURE_FREEZE !== "0", GUARD_ON = MEASURE_ENV?.SS_MEASURE_GUARD !== "0";
+// y1 (2026-11-24): with SS_MEASURE_HANDOVER=0 a published value is not refused for a response, an async iterator or a
+// promise its cell's type does not name (handOver), as before y1
+const REG_ON = MEASURE_ENV?.SS_MEASURE_REG !== "0", FREEZE_ON = MEASURE_ENV?.SS_MEASURE_FREEZE !== "0", GUARD_ON = MEASURE_ENV?.SS_MEASURE_GUARD !== "0", HAND_ON = MEASURE_ENV?.SS_MEASURE_HANDOVER !== "0";
 type Caps = (i: number) => unknown;
 const capsOf = (f: object): Caps | undefined => (f as { [CAPS]?: Caps })[CAPS];
 // f1 (2026-11-23, cause R of freeze-attack7): a registration never replaces another. methods() tags whatever o.m is
@@ -76,9 +78,13 @@ export class SsURL extends NURL {
   }
 }
 // the kinds of object deepFreeze treats (lite/freeze-table.ts gives the one treatment of each kind of value)
-const K_FN = 7, K_ERROR = 8, K_REGEXP = 9, K_TYPED = 10, K_BUFFER = 11, K_SSURL = 12, K_URL = 13, K_PROMISE = 14, K_ITER = 15;
+const K_FN = 7, K_ERROR = 8, K_REGEXP = 9, K_TYPED = 10, K_BUFFER = 11, K_SSURL = 12, K_URL = 13, K_PROMISE = 14, K_ITER = 15, K_RESP = 16;
 const TYPED_PROTOS = new NSet<object>([Float32Array, Float64Array, Int8Array, Uint8Array, Uint8ClampedArray, Int16Array, Uint16Array, Int32Array, Uint32Array].map((c) => c.prototype));
 const ITER_PROTO = Object.getPrototypeOf(Object.getPrototypeOf([][Symbol.iterator]()));
+// y1: an async generator object's AsyncIterator.prototype, and a fetch response's prototype where the host has Response
+const AITER_PROTO = Object.getPrototypeOf(Object.getPrototypeOf(Object.getPrototypeOf((async function* () {})())));
+const RESP_PROTO: object | null = typeof Response === "function" ? Response.prototype : null;
+const iterLike = (p: object, top: object): boolean => p === top || Object.getPrototypeOf(p) === top || (Object.getPrototypeOf(p) !== null && Object.getPrototypeOf(Object.getPrototypeOf(p)) === top);
 // a copy deepFreeze made at a boundary: no SoundScript name can write it (S4), so it is not copied again
 const COPIES = new WeakSet<object>();
 const kindOf = (v: object): number => {
@@ -93,8 +99,9 @@ const kindOf = (v: object): number => {
   if (p === SsURL.prototype) return K_SSURL;
   if (p === NURL.prototype) return K_URL;
   if (p === Promise.prototype) return K_PROMISE;
-  // an iterator or generator object: next() changes it, so it cannot be published (banned)
-  return p !== null && (p === ITER_PROTO || Object.getPrototypeOf(p) === ITER_PROTO || (Object.getPrototypeOf(p) !== null && Object.getPrototypeOf(Object.getPrototypeOf(p)) === ITER_PROTO)) ? K_ITER : 0;
+  if (p !== null && p === RESP_PROTO && HAND_ON) return K_RESP;
+  // an iterator or generator object, sync or (y1) async: next() changes it, so it cannot be published (banned)
+  return p !== null && (iterLike(p, ITER_PROTO) || (HAND_ON && iterLike(p, AITER_PROTO))) ? K_ITER : 0;
 };
 // a leaf: replaced by a copy in whatever holds it (a promise: by p.then(deepFreeze)); every other kind is a node
 const leaf = (k: number): boolean => k === K_TYPED || k === K_BUFFER || k === K_URL || k === K_PROMISE;
@@ -117,7 +124,38 @@ const isObj = (x: unknown): x is object => (typeof x === "object" || typeof x ==
 const noThen = (x: object): void => {
   if (typeof (x as { then?: unknown }).then === "function" && !(x instanceof Promise)) throw new TypeError("a value with a callable then (a thenable that is not a Promise) cannot leave its cell: the runtime would publish what then passes on, unfrozen");
 };
-const iterErr = () => new TypeError("an iterator or generator object cannot leave its cell: next() changes it");
+const ITER_MSG = "an iterator or generator object cannot leave its cell: next() changes it";
+// y1 (2026-11-24): what a hand-over refuses at run time, whatever type the value was given (the checker's rules see the
+// direct cases; a value given unknown, object or a type parameter on the way is seen only here)
+const RESP_MSG = "a response cannot leave its cell: its body can be read once, so the second reader would find it used; read the body in the cell and give the data";
+const PROMISE_MSG = "a promise cannot leave its cell where the cell's type does not name one: the cells that read it would get what it settles to, not that type; await it in the cell, or give the cell a type that names the promise";
+// handOver's settings: whereNow names the value being published (a cell's value, an action's argument...) and strictNow
+// says that its type names no promise, so none may be in it
+let whereNow = "", strictNow = false;
+// the path from root to x, for a refusal's message: walked only when a value is refused
+const pathTo = (root: unknown, x: object): string => {
+  const seen = new NSet<object>(), todo: [unknown, string][] = [[root, ""]];
+  for (let i = 0; i < todo.length; i++) {
+    const [n, p] = todo[i]!;
+    if (n === x) return `value${p}`;
+    if (!isObj(n) || seen.has(n)) continue;
+    seen.add(n);
+    const k = kindOf(n), at = (q: string) => (y: unknown) => void todo.push([y, q]);
+    if (k === 1) (n as unknown[]).forEach((y, j) => at(`${p}[${j}]`)(y));
+    else if (k === 2 || k === K_ERROR) for (const key of Object.keys(n)) at(`${p}.${key}`)((n as Record<string, unknown>)[key]);
+    else if (k === 3 || k === 5) for (const [a, b] of NMap.prototype.entries.call(n)) { at(`${p} (a Map key)`)(a); at(`${p}.get(${typeof a === "string" ? JSON.stringify(a) : String(a)})`)(b); }
+    else if (k === 4 || k === 6 || k === K_FN) eachKid(n, k, at(k === K_FN ? `${p} (a function's capture)` : `${p} (a Set element)`));
+  }
+  return "value (inside it)";
+};
+const refuseAt = (root: unknown, x: object, msg: string): never => { throw new TypeError(`${msg} (${whereNow === "" ? "a published value" : whereNow}, at ${pathTo(root, x)})`); };
+const kindRefused = (root: unknown, x: object, k: number): void => {
+  if (k === K_ITER) refuseAt(root, x, ITER_MSG);
+  if (k === K_RESP) refuseAt(root, x, RESP_MSG);
+  if (k === K_PROMISE && strictNow) refuseAt(root, x, PROMISE_MSG);
+};
+// frozen containers that reach a promise copy: a strict hand-over that meets one refuses it (it is not walked again)
+const PROMISED = new WeakSet<object>();
 // a match array's non-element own properties (index, input, groups, indices); Object.keys on any array is 40-100x the walk
 const extraKeys = (a: object): string[] => (Object.hasOwn(a, "index") || Object.hasOwn(a, "groups") ? Object.keys(a).filter((x) => String(x >>> 0) !== x) : []);
 // each child of node n (of kind k); a capture still in its dead zone throws (fail-stop: nothing has been changed yet)
@@ -143,11 +181,12 @@ const eachKid = (n: object, k: number, f: (x: unknown) => void): void => {
 // holes8: a promise no slot can take a replacement for (a function's captures, an Error, a frozen value) throws at publish
 export function deepFreeze<T>(v: T): T {
   if (marking && typeof v === "function") PUBLISHED.add(v);
-  if (!FREEZE_ON || !isObj(v) || DONE.has(v)) return v;
+  if (!FREEZE_ON || !isObj(v)) return v;
+  if (DONE.has(v)) { if (strictNow && PROMISED.has(v)) refuseAt(v, v, PROMISE_MSG); return v; }
   noThen(v);
   const k0 = kindOf(v);
   if (k0 === 0) return v;
-  if (k0 === K_ITER) throw iterErr();
+  kindRefused(v, v, k0);
   if (leaf(k0)) return copyOf(v, k0) as T;
   const kinds = new NMap<object, number>([[v, k0]]), order: object[] = [v], leaves = new NMap<object, number>();
   let seeded = k0 === 5 || k0 === 6;
@@ -155,11 +194,12 @@ export function deepFreeze<T>(v: T): T {
     const n = order[i]!, k = kinds.get(n)!, fx = fixed(n, k);
     eachKid(n, k, (x) => {
       if (marking && typeof x === "function") PUBLISHED.add(x);
-      if (!isObj(x) || DONE.has(x) || kinds.has(x)) return;
+      if (!isObj(x) || kinds.has(x)) return;
+      if (DONE.has(x)) { if (strictNow && PROMISED.has(x)) refuseAt(v, x, PROMISE_MSG); return; }
       noThen(x);
       const kx = kindOf(x);
       if (kx === 0) return;
-      if (kx === K_ITER) throw iterErr();
+      kindRefused(v, x, kx);
       if (kx === K_PROMISE && fx) throw new TypeError("a promise where it cannot be replaced (among a function's captures, in an Error or in an already frozen value): it would settle after its cell publishes it");
       if (leaf(kx)) { leaves.set(x, kx); seeded = true; return; }
       if (kx === 5 || kx === 6) seeded = true;
@@ -167,9 +207,9 @@ export function deepFreeze<T>(v: T): T {
       order.push(x);
     });
   }
-  const copies = new NMap<object, object>(), rep = (x: unknown): unknown => (isObj(x) ? copies.get(x) ?? x : x), why = new NMap<object, string>();
+  const copies = new NMap<object, object>(), rep = (x: unknown): unknown => (isObj(x) ? copies.get(x) ?? x : x), why = new NMap<object, string>(), prom = new NSet<object>();
   if (seeded) {
-    const parents = new NMap<object, object[]>(), todo: object[] = [];
+    const parents = new NMap<object, object[]>(), todo: object[] = [], ptodo: object[] = [];
     const mark = (n: object, w: string) => { if (!why.has(n)) { why.set(n, w); todo.push(n); } };
     for (const n of order) {
       const k = kinds.get(n)!, fx = fixed(n, k);
@@ -177,11 +217,12 @@ export function deepFreeze<T>(v: T): T {
       eachKid(n, k, (x) => {
         if (!isObj(x)) return;
         const kx = leaves.get(x);
-        if (kx !== undefined) mark(n, KIND_NAME[kx]!);
+        if (kx !== undefined) { mark(n, KIND_NAME[kx]!); if (kx === K_PROMISE && !prom.has(n)) { prom.add(n); ptodo.push(n); } }
         else if (kinds.has(x)) { const ps = parents.get(x); if (ps) ps.push(n); else parents.set(x, [n]); }
       });
     }
     for (let n = todo.pop(); n !== undefined; n = todo.pop()) for (const p of parents.get(n) ?? []) mark(p, why.get(n)!);
+    for (let n = ptodo.pop(); n !== undefined; n = ptodo.pop()) for (const p of parents.get(n) ?? []) if (!prom.has(p)) { prom.add(p); ptodo.push(p); }
     for (const [n, w] of why) if (fixed(n, kinds.get(n)!)) throw new TypeError(`a ${w} where it cannot be replaced by a copy (among a function's captures, in an Error or in an already frozen value): a value cannot change after its cell publishes it`);
     for (const [x, kx] of leaves) copies.set(x, copyOf(x, kx));
     for (const n of why.keys()) { const k = kinds.get(n)!; copies.set(n, k === 1 ? new Array((n as unknown[]).length) : k === 2 ? Object.create(Object.getPrototypeOf(n)) : k === 3 || k === 5 ? new SsMap() : new SsSet()); }
@@ -199,6 +240,7 @@ export function deepFreeze<T>(v: T): T {
     if (k === 3 || k === 4 || k === 5 || k === 6 || k === K_SSURL) FROZEN.add(m);
     Object.freeze(m);
     DONE.add(m);
+    if (prom.has(n)) PROMISED.add(m);
   }
   return rep(v) as T;
 }
@@ -212,6 +254,15 @@ export function deepFreeze<T>(v: T): T {
 const PUBLISHED = new WeakSet<object>(), NOFN = new WeakSet<object>();
 let marking = false;
 export const published = <T,>(v: T): T => { const was = marking; marking = true; try { return deepFreeze(v); } finally { marking = was; } };
+// y1 (2026-11-24): a hand-over, named for a refusal's message; strict: the value's type names no promise
+const handOver = <T,>(v: T, where: string, strict: boolean, f: (v: T) => T = published): T => {
+  const w = whereNow, s = strictNow;
+  whereNow = where; strictNow = strict && HAND_ON;
+  try { return f(v); } finally { whereNow = w; strictNow = s; }
+};
+// deepFreeze and published at a named hand-over (an action's arguments, a state's written or initial value)
+export const freezeAt = <T,>(v: T, where: string): T => handOver(v, where, false, deepFreeze);
+export const publishedAt = <T,>(v: T, where: string): T => handOver(v, where, false);
 // a function or a promise v reaches through data (an array, a plain record's values and accessors, a Map's keys and
 // values, a Set, an Error's own properties) that no finished body published, or null; with any (measurement), any
 // function or promise. Other objects (a handle, a Date) are not entered. A container deepFreeze froze (DONE: all it
@@ -236,18 +287,27 @@ export const madeFnIn = (v: unknown, any = false): object | null => {
   return null;
 };
 // a value a generator yields: deep-frozen, unless the generator lends it with borrow(x) (S5) and keeps writing it
-export const yielded = <T,>(v: T): T => (typeof v === "object" && v !== null && LENT.has(v) ? v : published(v));
+export const yielded = <T,>(v: T, where = "a value a generator yields", strict = false): T => (typeof v === "object" && v !== null && LENT.has(v) ? v : handOver(v, where, strict));
 // freeze(x) in SoundScript code: the same deep freeze
 export const freeze = <T,>(v: T): T => deepFreeze(v);
 // borrow(x): x lent by a generator that keeps writing it between yields (S5); yielded() does not freeze it
 export const borrow = <T,>(v: T): T => { if (typeof v === "object" && v !== null) LENT.add(v); return v; };
 // a cell's value as the runtime publishes it, at every boundary: deep-frozen; a promise's resolved value; each value a
 // generator yields. (B7's unfrozen quick path was removed 2026-11-22: it failed the freeze attack.)
-function publishOut<T>(v: T): T {
-  if (v instanceof Promise) { const q = v.then(published, rethrow); PUBLISHED.add(q); return q as T; }
+// y1 (2026-11-24): name, the cell's, for a refusal's message; mode (tc-build.ss.ts, run.ts), absent when the cell's type may
+// hold a promise or nothing is known: else 1, +2 for an async cell, +4 for a generator cell. With a mode, a promise is
+// refused anywhere in the value, and as the whole value unless the cell is async; a generator object unless it is a
+// generator cell
+function publishOut<T>(v: T, name?: string, mode?: number): T {
+  const where = name === undefined ? "a cell's value" : `the value of ${name}`, strict = mode !== undefined && HAND_ON;
+  if (v instanceof Promise) {
+    if (strict && ((mode ?? 0) & 2) === 0) handOver(v, where, true, (x) => refuseAt(x, x as object, PROMISE_MSG));
+    const q = v.then((x) => handOver(x, where, strict), rethrow); PUBLISHED.add(q); return q as T;
+  }
   const g = v as any;
-  if (!g || typeof g.next !== "function" || typeof g.return !== "function") return published(v);
-  const fz = (r: any): any => (r instanceof Promise ? r.then(fz, rethrow) : r && typeof r === "object" ? { done: r.done, value: yielded(r.value) } : r);
+  if (!g || typeof g.next !== "function" || typeof g.return !== "function") return handOver(v, where, strict);
+  if (strict && ((mode ?? 0) & 4) === 0) handOver(v, where, true, (x) => refuseAt(x, x as object, ITER_MSG));
+  const fz = (r: any): any => (r instanceof Promise ? r.then(fz, rethrow) : r && typeof r === "object" ? { done: r.done, value: yielded(r.value, `a value ${name ?? "a cell"} yields`, strict) } : r);
   const w = { next: (...a: unknown[]) => fz(g.next(...a)), return: (...a: unknown[]) => fz(g.return(...a)), throw: (...a: unknown[]) => fz(g.throw(...a)) };
   return Object.assign(w, typeof g[Symbol.asyncIterator] === "function" ? { [Symbol.asyncIterator]() { return w; } } : { [Symbol.iterator]() { return w; } }) as T;
 }
@@ -278,4 +338,4 @@ const guardAsync = {
 };
 // out(v): v published. out.cell(f): a plain cell, f its body applied to its inputs, guarded then published. out.run(f): a
 // listener cell's body, guarded only
-export const out = Object.assign(publishOut, { cell: <T,>(f: () => T): T => publishOut(outRun(f)), run: outRun }, guardAsync);
+export const out = Object.assign(publishOut, { cell: <T,>(f: () => T, name?: string, mode?: number): T => publishOut(outRun(f), name, mode), run: outRun }, guardAsync);

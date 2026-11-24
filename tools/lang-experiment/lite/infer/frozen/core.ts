@@ -281,6 +281,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   // that may be or hold a function in a state cell or yield one, which an action could then call (S11.9).
   const fnFed = new Map<string, string>();
   const castsOf = new Map<string, Map<number, unknown>>();
+  // DELIBERATE CHANGE (2026-11-24, y1): whether each cell's value type names a promise (md-value.ss.ts promises)
+  const promisesOf = new Map<string, boolean>();
   for (const c of order) {
     if (value.has(c.name)) continue;
     const r = out.get(c.name)!;
@@ -444,6 +446,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
       refInner.set(c.name, ret.args[0]); ret = ret.args[0];
       stateful.set(c.name, "is a state cell");
     }
+    promisesOf.set(c.name, ret === undefined || ret.k === "err" || !!holds(ret, ["Promise"]));
     const it = iterIn(ret, reg);
     // DELIBERATE CHANGE (2026-11-24, d1): the message for a FetchResponse
     if (it === "FetchResponse") r.errors.push({ rule: "iterator-cell", line: P.line(c.fn.start), msg: `value ${show(ret)} holds a FetchResponse: a response's body can be read once, so the cells that take it would find it used up, depending on the order they run in; read the body in this cell and give the data (const data = async (fetch: Fetch) => (await fetch(url)).json())` });
@@ -485,7 +488,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     // DELIBERATE CHANGE (2026-11-23, e1): the shapes of the cell's cast calls in source order, before params as the cells' facts
     const { params, ...head } = factsOf(shown.get(c.name) ?? c.name, c.fn, c.stmt);
     const casts = [...(castsOf.get(c.name) ?? new Map())].sort((x, y) => x[0] - y[0]).map((x) => x[1]);
-    const f = { ...head, ...(casts.length ? { casts } : {}), params };
+    const p = promisesOf.get(c.name);
+    const f = { ...head, ...(casts.length ? { casts } : {}), ...(p === undefined ? {} : { strict: !p }), params };
     const b = boundaries.get(c.name);
     if (b) f.params = f.params.map((p) => (b.has(p.name) ? { ...p, boundary: b.get(p.name) } : p));
     return [f.name, f] as const;

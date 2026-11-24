@@ -14,7 +14,9 @@
 // decisions A to F; d1-ctl controls counted apart), t1 (t1-attacks.ts, 2026-11-24: freeze-attack10's breaks; t1-ctl
 // controls counted apart, run under both runners), w1 (w1-attacks.ts, 2026-11-24: freeze-attack10 and 11 by w1 step;
 // w1-controls counted apart; the w1-guard-* controls must not fire), x1 (x1-attacks.ts, 2026-11-24: freeze-attack12 by x1
-// step; x1-controls counted apart; the x1-guard-* controls must not fire). The folders they come from are read, not edited.
+// step; x1-controls counted apart; the x1-guard-* controls must not fire), y1 (y1-attacks.ts, 2026-11-24: the run time's
+// hand-over refusal and an Action call's undefined, attack 13, legal y1-ok-* rows; y1-controls counted apart, loud unless
+// SS_MEASURE_HANDOVER=0). The folders they come from are read, not edited.
 // --off drops the static capture rules' diagnostics in this runner only (the checker is unchanged).
 // --rt (t1, 2026-11-24): an accepted program is run compiled, in a real Observable Runtime (drive-rt.ts observeCompiled),
 // in place of runCells. --both: run by both; a DIFFER line where they differ (drive-rt.ts differences), counted per set.
@@ -46,7 +48,7 @@ const runProg = RT ? observeCompiled : observeProgram;
 // a compiled program's late rejections (rt10 kept them the same way); without a handler bun ends the run
 if (RT || BOTH) { process.on("unhandledRejection", () => {}); process.on("uncaughtException", () => {}); }
 const OFF = process.argv.includes("--off"), FORCE = process.argv.includes("--force"), ONLY = arg("--only");
-const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1,g1,b2,cast,a9,d1,t1,w1,x1").split(",");
+const SETS = (arg("--sets") ?? "freeze,attack2,attack1,oldspec,oldvariants,runtime,new,h6,freeze2,h7,freeze3,h8,h9,m1,k1,p1,f1,g1,b2,cast,a9,d1,t1,w1,x1,y1").split(",");
 export const OFF_RULES = new Set(["mut-capture", "let-capture", "mut-yield", "mut-await", "mut-cell", "member-write", "mutating-method", "regexp-state", "iterator-capture"]);
 type P = Prog & { set: string; name: string; foreign?: string | null; ctl?: boolean };
 export const progs: P[] = [];
@@ -88,6 +90,8 @@ if (SETS.includes("d1")) for (const a of D1.attacks) progs.push({ set: a.ctl ? "
 if (SETS.includes("t1")) for (const a of T1.attacks) progs.push({ set: a.ctl ? "t1-controls" : "t1", ...a });
 if (SETS.includes("w1")) for (const a of W1.attacks) progs.push({ set: a.ctl ? "w1-controls" : "w1", ...a });
 if (SETS.includes("x1")) for (const a of X1.attacks) progs.push({ set: a.ctl ? "x1-controls" : "x1", ...a });
+// y1 imports candidates of freeze-attack4, 6 and 7, which import the freeze-attack3 harness: loaded here, not on import
+if (SETS.includes("y1")) for (const a of (await import("./y1-attacks.ts")).attacks as any[]) progs.push({ set: a.ctl ? "y1-controls" : "y1", ...a });
 }
 if (import.meta.main) await loadProgs();
 

@@ -2,8 +2,7 @@
 // arguments that fix their parameters, then each argument checked against its solved parameter. The substitution
 // is a local table; a read of it is a copy, since subst takes a plain map.
 
-// x1 (2026-11-24): inspects, the callee is a built-in that keeps none of its arguments (no @retains)
-export type IxApp = { sig: Fn; tvs: string[]; tvSet: Set<string>; opaque: Set<string> | null; fixed: Set<string>; inspects: boolean };
+export type IxApp = { sig: Fn; tvs: string[]; tvSet: Set<string>; opaque: Set<string> | null; fixed: Set<string> };
 export const ixParamAt = () => (sig: Fn, i: number): Ty | undefined => sig.ps[i]?.t ?? sig.rest;
 // the substitution so far with what the expected return type gave for the variables it has not solved
 export const ixCtxSubst = (subst) => (t: Ty, m: Map<string, Ty>, fromRet: Map<string, Ty>): Ty => {
@@ -45,8 +44,6 @@ export const ixFirstArg = (ixSpreadArg, ixParamAt, ixCtxSubst, ixCtxOnly, ixAnnO
   if (lam && hasTv(pc, A.tvSet)) return "defer";
   // e1 (2026-11-23), B4: a callback with every parameter annotated gives the type variables of its parameters itself
   if (fnArg && hasTv(pc, A.tvSet) && K.reg.callSigs(pc).some((s) => s.ps.some((q) => hasTv(q.t, A.tvSet)))) { const t = K.infer(K, T, V, W, C, env, a); K.reg.unify(p, t, m, A.tvSet); return t; }
-  // x1 (2026-11-24): a built-in's unknown or object parameter that keeps nothing does not forget: the value does not outlive the call
-  if (A.inspects && (pc.k === "unknown" || pc.k === "object")) C.inspects = new Set([...C.inspects, a.nid]);
   if (!hasTv(pc, A.tvSet)) return K.check(K, T, V, W, C, env, a, A.sig.ps[i]?.opt && !fnArg ? union([pc, UNDEF]) : pc, false, false);
   const t = K.check(K, T, V, W, C, env, a, ixCtxOnly(ixCtxSubst(p, new Map(m), fromRet), A.tvSet), true, false);
   K.reg.unify(p, t, m, A.tvSet);
@@ -92,7 +89,7 @@ export const ixApply = (ixArity, ixExplicit, ixFirstArg, ixDeferredArg, ixWidenF
   C.fresh += sig0.tps.length;
   const tvSet = new Set(inst.tvs), m: Mut<Map<string, Ty>> = new Map(), fromRet: Mut<Map<string, Ty>> = new Map();
   ixExplicit(K, C, e, inst.tvs, explicit, m);
-  const A: IxApp = { sig: inst.f, tvs: inst.tvs, tvSet, opaque: sig0.flags?.intrinsic ? null : tvSet, fixed: new Set(m.keys()), inspects: !!sig0.flags?.intrinsic && !sig0.flags.retains };
+  const A: IxApp = { sig: inst.f, tvs: inst.tvs, tvSet, opaque: sig0.flags?.intrinsic ? null : tvSet, fixed: new Set(m.keys()) };
   ixArity(K, C, e, e.arguments, A.sig);
   const decl = sig0.decl ?? sig0, fl = sig0.flags;
   ixFact(C, { k: "sig", at: e.nid, sig: fl ? { ...inst.f, decl, flags: fl } : { ...inst.f, decl } });
@@ -110,10 +107,11 @@ export const ixApply = (ixArity, ixExplicit, ixFirstArg, ixDeferredArg, ixWidenF
   return ixPlainResult(K, C, e, sig0, ixSettled(K.reg, subst(A.sig.ret, new Map(m))));
 };
 // x1 (2026-11-24): a built-in flagged @plain builds a record whose keys come from run-time data (Object.fromEntries); a
-// key may be then, toJSON or toString, which the run time calls, so what it holds must be plain data
+// key may be then, toJSON or toString, which the run time calls, so what it holds must be plain data. y1: a part typed
+// unknown or object is not (attack 13 U: an Action joined with unknown, under toJSON)
 export const ixPlainResult = (plainWith, ixErr, show) => (K: IxK, C: IxCtls, e: AstNode, sig0: Fn, r: Ty): Ty => {
   const R = K.reg.quiet;
-  if (sig0.flags?.plain && !plainWith({ isAlias: R.isAlias, expand: R.expand, member: R.member, opaque: true })(r))
+  if (sig0.flags?.plain && !plainWith({ isAlias: R.isAlias, expand: R.expand, member: R.member })(r))
     ixErr(K, C, e, "type", `this call builds ${show(r)}, a record whose keys come from run-time data: a key may be then, toJSON or toString, which the run time calls, so the values must be plain data (no function, Action, handle, Mut, promise, iterator or response): to keep a function, write the record as an object literal`);
   return r;
 };

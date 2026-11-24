@@ -65,7 +65,7 @@ export const tcJsError = (text: string): string | null => {
 export const tcDeclaredName = (text: string): string | null => declaredName(text);
 export const tcLower = (text: string, keep: boolean): string => lowerJsx(text, { keep });
 export const tcCellsOf = (text: string) => cellsOf(text).map((c) => ({
-  name: c.name, returnsRef: c.returnsRef, generator: c.generator, compiles: c.compiles.map((s) => ({ refs: s.refs })), casts: [],
+  name: c.name, returnsRef: c.returnsRef, generator: c.generator, compiles: c.compiles.map((s) => ({ refs: s.refs })), casts: [], strict: null,
   params: c.params.map((p) => ({ name: p.name, refTyped: p.refTyped, eventsTyped: p.eventsTyped, boundary: p.boundary ?? null })),
 }));
 export const tcIsIdentifier = (s: string): boolean => s.length > 0 && acorn.isIdentifierStart(s.codePointAt(0)!, true) && [...s].slice(1).every((c) => acorn.isIdentifierChar(c.codePointAt(0)!, true));

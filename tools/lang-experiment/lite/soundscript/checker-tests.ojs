@@ -102,7 +102,7 @@ test_checker_spread_copies_own_properties = {
     ["const c = () => (): number => { const a: { readonly length: number } = [1, 2]; return ({ ...a }).length; };",["forgets"]],
     ["const c = () => (): number => { const f = (o: { readonly length: number }) => ({ ...o }).length; return f(\"ab\"); };",["forgets"]],
     ["const c = () => (): string => { const u: { readonly href: string } = new URL(\"http://a.b/\"); return ({ ...u }).href; };",["forgets"]],
-    ["const c = () => (): number => { const f = (o: { readonly floor: (x: number) => number }) => o.floor(1.5); return f(Math); };",["forgets"]],
+    ["const c = () => (): number => { const f = (o: { readonly floor: (x: number) => number }) => o.floor(1.5); return f(Math); };",["type"]],
     ["const c = () => (): number => { const o: { readonly length?: number } = [1, 2]; return ({ ...o }).length ?? -1; };",["forgets"]],
     ["const c = () => (): number => Array.from({ length: 3 }).length;",[]],
     ["const c = () => (): number => { const o = { a: 1, b: 2 }; const { a, ...r } = o; return a + ({ ...r }).b; };",[]]];

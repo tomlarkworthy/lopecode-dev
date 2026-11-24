@@ -5,9 +5,9 @@
 export type MessageFix = { id: string; site: string; rule: string; bad: string; fix: string; tsx?: boolean; was?: string; note?: string; outside?: string[] };
 const ACT = "const s = () => state(0);\n";
 export const FIXES: MessageFix[] = [
-  // x1 (2026-11-24): the forgetting rule at unknown, object and a call signature; a record built from run-time keys
-  { id: "forgets-unknown-fn", site: "ix-hides.ss.ts ixHides (ixNotPlainIn)", rule: "forgets", bad: "const a = () => { const f = () => 2; const u: unknown = f; return 1; };", fix: "const a = () => { const f = () => 2; const u: () => number = f; return 1; };" },
-  { id: "forgets-object-promise", site: "ix-hides.ss.ts ixHides (ixNotPlainIn)", rule: "forgets", bad: "const a = () => { const p: object = Promise.resolve(1); return 1; };", fix: "const a = () => { const p: Promise<number> = Promise.resolve(1); return 1; };" },
+  // x1 (2026-11-24): the forgetting rule at unknown, object and a call signature; a record built from run-time keys. y1:
+  // a function given unknown and a member a record type leaves out are accepted, so their rows are gone
+  { id: "forgets-object-promise", site: "ix-hides.ss.ts ixHides (ixPendingIn)", rule: "forgets", bad: "const a = () => { const p: object = Promise.resolve(1); return 1; };", fix: "const a = () => { const p: Promise<number> = Promise.resolve(1); return 1; };" },
   { id: "forgets-callsig-own-member", site: "subtype.ss.ts forgotWith (fnOwn)", rule: "forgets", bad: "interface F { (x: number): number; readonly name?: number }\nconst a = () => { const f: F = (x: number) => x; return f(1); };", fix: "interface F { (x: number): number }\nconst a = () => { const f: F = (x: number) => x; return f(1); };" },
   { id: "plain-from-entries", site: "ix-apply.ss.ts ixPlainResult", rule: "type", bad: "const a = () => { const o = Object.fromEntries([[\"f\", () => 1]]); return 1; };", fix: "const a = () => { const o = { f: () => 1 }; return 1; };" },
   { id: "memo-param-fn", site: "md-run.ss.ts mdMemoErrs (MEMO_PARAM_BAD fn)", rule: "memo-pure", bad: "const f = () => memo((g: () => number) => g() + 1);", fix: "const f = () => memo((g: number) => g + 1);" },
@@ -110,8 +110,6 @@ export const FIXES: MessageFix[] = [
   // the conversion-member names, S-1, A-4 and F-4
   { id: "forgets-fn-not-record", site: "subtype.ss.ts forgotWith (a function given a record type)", rule: "forgets", bad: "const a = () => { const e: {} = () => 1; return 1; };", fix: "const a = () => { const e: () => number = () => 1; return 1; };" },
   { id: "forgets-not-record", site: "subtype.ss.ts forgotWith (a value that is not a record)", rule: "forgets", bad: "const a = () => { const e: {} = new Error(\"x\"); return 1; };", fix: "const a = () => { const e: Error = new Error(\"x\"); return 1; };" },
-  { id: "forgets-member-declare", site: "subtype.ss.ts forgotWith (declare k in the type)", rule: "forgets", bad: "const a = () => { const o = { n: 1, f: () => 2 }; const c: { readonly n: number } = o; return c.n; };", fix: "const a = () => { const o = { n: 1, f: () => 2 }; const c: { readonly n: number; readonly f: () => number } = o; return c.n; };" },
-  { id: "forgets-member-without", site: "subtype.ss.ts forgotWith (build a record without it)", rule: "forgets", bad: "const a = () => { const o = { n: 1, f: () => 2 }; const c: { readonly n: number } = o; return c.n; };", fix: "const a = () => { const o = { n: 1, f: () => 2 }; const c: { readonly n: number } = { n: o.n }; return c.n; };" },
   { id: "proto-required", site: "md-cell.ss.ts PROTO_MEMBER_MSG (any member, w1)", rule: "banned-member", bad: "const a = () => { const v: { readonly toString: () => string } = { toString: () => \"x\" }; return 1; };", fix: "const a = () => { const v: { readonly label: () => string } = { label: () => \"x\" }; return 1; };" },
   { id: "proto-literal-key", site: "md-cell.ss.ts mdProtoMembers (an object literal key, w1)", rule: "banned-member", bad: "const a = () => { const o = { then: 1, n: 2 }; return o.n; };", fix: "const a = () => { const o = { next: 1, n: 2 }; return o.n; };" },
   { id: "later-binding", site: "ix-expr.ss.ts ixIdent (a block's later const, w1 S-1)", rule: "free-name", bad: "const a = () => { const y = h + 1; const h = 2; return y; };", fix: "const a = () => { const h = 2; const y = h + 1; return y; };" },

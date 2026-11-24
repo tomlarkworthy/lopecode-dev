@@ -15,8 +15,6 @@ export type RegOps = {
   readonly at: (ts: Ty[], i: number) => Ty;
   // a new number each call, for type variable names no other comparison uses: alias expansion memoises by name
   readonly fresh: () => number;
-  // w1: plainWith over these ops, memoised by the registry (a cell may not memoise over functions it is given)
-  readonly plain?: (t: Ty) => boolean;
   // x1 (2026-11-24, C): n is a member every function value has (intrinsics.ts FN_OWN_MEMBERS)
   readonly fnOwn?: (n: string) => boolean;
 };
@@ -193,15 +191,12 @@ export const NOT_PLAIN = () => new Set(["Action", "State", "StateCell", "Events"
 // object or a type parameter, which may hold one; a named type with a then or next member is a promise or an iterator.
 // An alias met again on the walk counts as plain (what it adds is walked where it was first met)
 // the reads plain takes, which a RegOps and the checker's registry core both give
-// x1 (2026-11-24): opaque, a part already typed unknown or object counts as plain: it was checked when it was given that
-// type (ix-hides.ss.ts ixNotPlainIn); a type parameter never does
-export type PlainR = { readonly isAlias: (n: string) => boolean; readonly expand: (t: Ty) => Ty; readonly member: (t: Ty, name: string) => Prop | undefined; readonly opaque?: boolean; readonly fnOwn?: (n: string) => boolean };
+export type PlainR = { readonly isAlias: (n: string) => boolean; readonly expand: (t: Ty) => Ty; readonly member: (t: Ty, name: string) => Prop | undefined; readonly fnOwn?: (n: string) => boolean };
 export const plainWith = (typeKey, NOT_PLAIN) => (R: PlainR) => (t0: Ty): boolean => {
   const seen: Mut<Set<string>> = new Set();
   function plain(t: Ty): boolean {
     switch (t.k) {
-      case "unknown": case "object": return R.opaque === true;
-      case "tv": case "fn": return false;
+      case "unknown": case "object": case "tv": case "fn": return false;
       case "arr": return plain(t.el);
       case "tup": return t.els.every((x) => plain(x));
       case "union": return t.ts.every((x) => plain(x));
@@ -219,26 +214,20 @@ export const plainWith = (typeKey, NOT_PLAIN) => (R: PlainR) => (t0: Ty): boolea
   return plain(t0);
 };
 // w1: a record type t with no call or construct signature takes only a record s with none (not a function, array,
-// tuple, primitive, unknown, object, type parameter or a value of a named type such as Error, Map or Promise), and
-// what t does not declare of s (a member, s's index signature, when t has none) must be plain data. x1 (2026-11-24, C):
+// tuple, primitive, unknown, object, type parameter or a value of a named type such as Error, Map or Promise). y1
+// (2026-11-24): w1's width test (what t does not declare of s must be plain data) is gone: a response, promise or
+// iterator left out is refused at run time where it is handed over, and a function or Action left out is not reached
+// by a conversion (banned member names, @plain). x1 (2026-11-24, C):
 // t with a call or construct signature: a record s with one too keeps that rule (a function s has only members of
 // its own, which recSubWith compares by name); any other s is left to recSubWith's signature check
-export const takesRecord = (plainWith) => (R: RegOps) => {
-  const plain: (t: Ty) => boolean = R.plain ?? plainWith({ isAlias: R.isAlias, expand: R.expand, member: R.member });
-  return (se: Ty, t: Rec): boolean => {
-    const callable = !!t.calls?.length || !!t.ctors?.length;
-    if (callable && (se.k !== "rec" || (!se.calls?.length && !se.ctors?.length))) return true;
-    if (se.k !== "rec" || (!callable && (se.calls?.length || se.ctors?.length))) return false;
-    if (t.index !== undefined) return true;
-    for (const [k, p] of se.props) if (!t.props.has(k) && !plain(p.t)) return false;
-    return se.index === undefined || plain(se.index);
-  };
+export const takesRecord = () => (se: Ty, t: Rec): boolean => {
+  const callable = !!t.calls?.length || !!t.ctors?.length;
+  if (callable && (se.k !== "rec" || (!se.calls?.length && !se.ctors?.length))) return true;
+  return se.k === "rec" && (callable || (!se.calls?.length && !se.ctors?.length));
 };
 // w1: why s is not assignable to t by the forgetting rule, as a message ending in a fix, or null: s or a part of s
-// (by t's members, array elements and an alias or Mut expanded) is a non-record given a record type, or a record whose
-// member that t leaves out is not plain data
-export const forgotWith = (show, plainWith) => (R: PlainR) => {
-  const plain = plainWith(R);
+// (by t's members, array elements and an alias or Mut expanded) is a non-record given a record type
+export const forgotWith = (show) => (R: PlainR) => {
   function why(s0: Ty, t0: Ty, d: number): string | null {
     const s = R.expand(s0.k === "named" && (s0.n === "Mut" || s0.n === "Borrowed") ? s0.args[0] ?? s0 : s0), t = R.expand(t0);
     if (d > 6) return null;
@@ -250,8 +239,6 @@ export const forgotWith = (show, plainWith) => (R: PlainR) => {
     if (t.k !== "rec" || ((t.calls?.length || t.ctors?.length) && !(s.k === "rec" && fnLike))) return null;
     if (fnLike && !t.calls?.length && !t.ctors?.length) return `a function is not a record, so a record type does not take it: give it a function type (${show(s)})`;
     if (s.k !== "rec") return ["null", "undef", "void", "never", "err", "union", "unknown", "object", "tv"].includes(s.k) ? null : `${show(s)} is not a record, so a record type does not take it: give it its own type (${show(s)})`;
-    if (t.index === undefined) for (const [k, p] of s.props) if (!t.props.has(k) && !plain(p.t))
-      return `the type leaves out ${k}, which holds ${show(p.t)}; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): declare ${k} in the type, or build a record without it`;
     for (const [k, p] of t.props) { const sp = s.props.get(k); const w = sp ? why(sp.t, p.t, d + 1) : null; if (w) return `${k}: ${w}`; }
     return null;
   }
@@ -273,11 +260,10 @@ export const jsonGapWith = (show) => (R: PlainR) => (t0: Ty): string | null => {
 };
 // a record type t: each of its properties, its index signature and its call signatures
 export const recSubWith = (propT, someFnSub, takesRecord, UNKNOWN) => (R: RegOps, sub: Sub, fnSub: FnSub, callSigs: (t: Ty) => Fn[]) => {
-  const takes = takesRecord(R);
   return (s: Ty, t: Rec, seen: Mut<Set<string>>): boolean => {
   if (["null", "undef", "void"].includes(s.k) || (s.k === "named" && ["State", "StateCell", "Action"].includes(s.n))) return false; // State...: nominal
   const se = R.expand(s), some = someFnSub(fnSub);
-  if (!takes(se, t)) return false;
+  if (!takesRecord(se, t)) return false;
   // a record type may stand for a value with more members (width); only a literal's type and the intrinsics are closed
   const closed = !["object", "unknown", "tv"].includes(se.k) && (se.k !== "rec" || se.exact === true || [...se.props.values()].some((p) => p.flags?.intrinsic));
   // a closed record type holds only closed values: what is assigned to it must be one, with no other member

@@ -69,7 +69,8 @@ export async function runCand(p: Cand): Promise<Result> {
   if (!v.ok) return { verdict: v.text, ok: false, silent: [], lines: [] };
   let checked: any;
   try { checked = checkSources({ cells: p.src, tsx: true, outside: [], foreign: null } as any); } catch (x) { noteThrow(p.name, x, p.src); }
-  if (p.ctl && checked) checked = { cells: checked.cells.map((c: any) => ({ ...c, status: "ok", errors: [] })) };
+  // y1 (2026-11-24): the facts stay, so a control runs with the run-time mode its cells' types give (run.ts modeOf)
+  if (p.ctl && checked) checked = { cells: checked.cells.map((c: any) => ({ ...c, status: "ok", errors: [] })), facts: checked.facts };
   const first = new Map<string, { obj: unknown; s: string; run: number }[]>();
   frames.length = 0;
   const fetchBody = p.fetchBody;

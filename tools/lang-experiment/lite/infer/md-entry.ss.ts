@@ -80,6 +80,6 @@ export const mdCheckSources = (mdDistinct, mdShellNames, lineAt, mdModuleLevel, 
   const cells = ml.defs.flatMap((d) => { const c = rn.out.get(d.name); return c === undefined ? [] : [c]; });
   const module = [...ml.module, ...rn.module];
   const bounds = M.boundaries;
-  const facts = ml.defs.map((d) => mdFactsOf(rn.shown.get(d.name) ?? d.name, d, bounds.get(d.name) ?? null, M.out.get(d.name)?.casts ?? []));
+  const facts = ml.defs.map((d) => mdFactsOf(rn.shown.get(d.name) ?? d.name, d, bounds.get(d.name) ?? null, M.out.get(d.name)?.casts ?? [], M.out.get(d.name)?.promises ?? null));
   return { port: S.name ?? "cells", file: S.tsx ? "cells.tsx" : "cells.ts", ok: module.length === 0 && cells.every((c) => c.status === "ok"), module, cells, facts, gap, probe: M.probe };
 };

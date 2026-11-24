@@ -739,7 +739,8 @@ await run("s5_a_listener_gets_every_value_once_in_order", async () => {
   ok("s5_each_value_once_in_order", JSON.stringify(got) === "[1,2,3,4,5]", JSON.stringify(got));
   C.release(l); C.release(h);
 });
-await run("s6_a_nested_action_returns_its_value_inside_the_call", async () => {
+// y1 (2026-11-24): a call gives back undefined, nested too (attack 13 VA: the call is typed void)
+await run("s6_a_nested_action_gives_back_undefined", async () => {
   const x = refOf(0, "x");
   const twice = P.action((k: unknown) => { x.update((v: number) => v + (k as number)); return (k as number) * 2; });
   let got: unknown;
@@ -747,7 +748,7 @@ await run("s6_a_nested_action_returns_its_value_inside_the_call", async () => {
   const top = twice(1);
   outer();
   await flushed();
-  ok("s6_nested_returns_top_level_does_not", got === 6 && top === undefined && val(x) === 40, `${got} ${top} x ${val(x)}`);
+  ok("s6_nested_and_top_level_give_back_undefined", got === undefined && top === undefined && val(x) === 40, `${got} ${top} x ${val(x)}`);
 });
 
 // null is a value of state (S6.18): held, written, read, given to update, returned by a nested action, held by a view
@@ -776,7 +777,7 @@ await run("n2_null_inside_a_call", async () => {
   const seen: unknown[] = [];
   named("n2", () => { seen.push(P.read(n)); n.update((x: unknown) => (seen.push(x), x)); seen.push(inner()); n.set(null); seen.push(P.read(n)); })();
   await flushed();
-  ok("n2_read_update_and_a_nested_return_give_null", JSON.stringify(seen) === "[null,null,null,null]" && seen.every((x) => x === null) && val(n) === null, JSON.stringify(seen.map((x) => (x === undefined ? "undefined" : x))));
+  ok("n2_read_and_update_give_null_a_nested_call_undefined", JSON.stringify(seen.map((x) => (x === undefined ? "undefined" : x))) === '[null,null,"undefined",null]' && val(n) === null, JSON.stringify(seen.map((x) => (x === undefined ? "undefined" : x))));
 });
 await run("n3_a_view_holding_null", async () => {
   const el = Object.assign(new EventTarget(), { value: null as unknown });

@@ -9,7 +9,7 @@ import {
   type Ty, type Fn, type Rec, type Prop, type Param, type Flags, type Subst,
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, SYMBOL, BOOL,
   union, show, subst, named, arr, WRAPPERS, isNamed, tpNames, typeKey,
-  type RegOps, type DeclOps, plainWith, builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, memberOfWith, unifyWith,
+  type RegOps, type DeclOps, builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, memberOfWith, unifyWith,
 } from "../../../types.ts";
 import { INTRINSIC_DECLS, PRELUDE_DECLS, TYPED_ARRAYS, JSX_DECLS, FN_OWN_MEMBERS } from "../../../intrinsics.ts";
 
@@ -287,17 +287,10 @@ export class Registry {
 
   // ---- subtyping, call signatures, iteration, unification (subtype.ss.ts) ----
   // what the SoundScript cells take from the Registry: its declarations, and object identity
-  ops: RegOps = { expand: (t) => this.expand(t), isAlias: (n) => this.isAlias(n), member: (t, n) => this.member(t, n), isTypedArray: (t) => this.isTypedArray(t), same: (a, b) => a === b, at: (ts, i) => ts[i], fresh: () => ++alphaNames, plain: (t) => this.plain(t), fnOwn: (n) => this.fnOwn(n) };
+  ops: RegOps = { expand: (t) => this.expand(t), isAlias: (n) => this.isAlias(n), member: (t, n) => this.member(t, n), isTypedArray: (t) => this.isTypedArray(t), same: (a, b) => a === b, at: (ts, i) => ts[i], fresh: () => ++alphaNames, fnOwn: (n) => this.fnOwn(n) };
   // DELIBERATE CHANGE (2026-11-24, x1, C): a member every function value has (live rg-registry.ts fnOwn)
   fnOwn(n: string): boolean { return FN_OWN_MEMBERS.has(n); }
-  // DELIBERATE CHANGE (2026-11-24, w1): the forgetting rule's plain walk, its whole answers kept by the type's identity
-  plainMemo = new WeakMap<Ty, boolean>();
-  plainOf = plainWith({ isAlias: (n) => this.isAlias(n), expand: (t) => this.expand(t), member: (t, n) => this.member(t, n) });
-  plain(t0: Ty): boolean {
-    const t = t0.k === "named" && this.isAlias(t0.n) ? this.expand(t0) : t0, v = this.plainMemo.get(t);
-    if (v !== undefined) return v;
-    const r = this.plainOf(t); this.plainMemo.set(t, r); return r;
-  }
+  // DELIBERATE CHANGE (2026-11-24, y1): w1's memoised plain walk is gone with the width test it served (subtype.ss.ts takesRecord)
   callSigs = callSigsWith(this.ops);
   // Element type of `for...of` / spread / Iterable<T>, or undefined if not iterable.
   iterElem = iterElemWith(this.ops);

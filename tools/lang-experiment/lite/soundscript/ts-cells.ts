@@ -79,7 +79,7 @@ const PARSER_CELLS = [
   `import { codemirror } from "@tomlarkworthy/codemirror-6-v2"`,
 ];
 // globals a generated cell may take as an input (the runtime resolves them: Generators is its builtin, the rest are on window)
-const GLOBALS = new Set(["globalThis", "structuredClone", "Event", "EventTarget", "Generators"]);
+const GLOBALS = new Set(["globalThis", "structuredClone", "Event", "EventTarget", "Generators", "Response"]);
 // each section's heading and, per module it gives cells to, one sentence on what those cells do in the notebook
 // (keyed by source file; a file that gives a module cells and has no sentence for it stops the build)
 const SECTIONS: Record<string, { title: string; checkerTitle?: string; runtime?: string; checker?: string; workers?: string }> = {

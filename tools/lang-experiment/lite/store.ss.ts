@@ -17,14 +17,13 @@ export type Writes = Map<number, Pending>;
 export type StoreState = { readonly depth: number; readonly call: Writes | null; readonly ready: Writes; readonly nextSid: number };
 export type StoreEvent =
   | { readonly t: "enter"; readonly evaluating: boolean }
-  | { readonly t: "exit"; readonly threw: boolean; readonly value: unknown }
+  | { readonly t: "exit"; readonly threw: boolean }
   | { readonly t: "write"; readonly handle: unknown; readonly name: string; readonly store: StoreRecord; readonly value: unknown }
   | { readonly t: "made"; readonly handle: unknown; readonly name: string; readonly value: unknown; readonly view: boolean; readonly run: StoreRun | null }
   | { readonly t: "commit"; readonly stores: Map<number, StoreRecord> }
   | { readonly t: "reset" };
 export type StoreEffect =
   | { readonly fx: "throw"; readonly msg: string }
-  | { readonly fx: "return"; readonly value: unknown }
   | { readonly fx: "schedule" }
   | { readonly fx: "keep"; readonly handle: unknown; readonly store: StoreRecord }
   | { readonly fx: "setView"; readonly handle: unknown; readonly value: unknown }
@@ -84,10 +83,10 @@ export const mergeWrites = () => (ready: Writes, call: Writes): { readonly ready
   for (const [sid, p] of call) next.set(sid, p);
   return { ready: next, schedule: ready.size === 0 };
 };
-// a nested call returns its function's value and leaves its writes in the call, also when it threw (its caller
-// caught it); a top-level call returns nothing, and its writes join ready unless it threw
-export const exitCall = (mergeWrites) => (st: StoreState, threw: boolean, value: unknown): StoreStep => {
-  if (st.depth > 1) return { state: { ...st, depth: st.depth - 1 }, effects: [{ fx: "return", value }] };
+// a nested call leaves its writes in the call, also when it threw (its caller caught it); a top-level call's writes join
+// ready unless it threw. y1 (2026-11-24): no call gives back what its function returned (an Action's call is typed void)
+export const exitCall = (mergeWrites) => (st: StoreState, threw: boolean): StoreStep => {
+  if (st.depth > 1) return { state: { ...st, depth: st.depth - 1 }, effects: [] };
   const ended: StoreState = { ...st, depth: 0, call: null };
   if (threw || st.call === null) return { state: ended, effects: [] };
   const m = mergeWrites(st.ready, st.call);
@@ -124,7 +123,7 @@ export const resetStore = (emptyStore) => (st: StoreState): StoreStep => ({ stat
 export const storeStep = (enterCall, exitCall, writeInCall, makeStore, commitReady, resetStore) => (st: StoreState, ev: StoreEvent): StoreStep => {
   switch (ev.t) {
     case "enter": return enterCall(st, ev.evaluating);
-    case "exit": return exitCall(st, ev.threw, ev.value);
+    case "exit": return exitCall(st, ev.threw);
     case "write": return writeInCall(st, ev.handle, ev.name, ev.store, ev.value);
     case "made": return makeStore(st, ev.handle, ev.name, ev.value, ev.view, ev.run);
     case "commit": return commitReady(st, ev.stores);

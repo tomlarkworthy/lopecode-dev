@@ -25,10 +25,10 @@ export const ixHeldIn = (show) => {
 export const ixActionIn = (ixHeldIn) => (R: IxRegCore, s: Ty): string | null => ixHeldIn(R, s, 0, (x) => x.k === "named" && x.n === "Action", true);
 // handleIn: the first State or Events handle, or (d1, 2026-11-24) a FetchResponse, whose body can be read once
 export const ixHandleIn = (ixHeldIn) => (R: IxRegCore, s: Ty): string | null => ixHeldIn(R, s, 0, (x) => x.k === "named" && (x.n === "State" || x.n === "Events" || x.n === "FetchResponse"), true);
-// x1 (2026-11-24, O): notPlainIn: s itself when its type says it holds a part that is not plain data (subtype.ss.ts
-// plainWith, a part already typed unknown or object counted as plain), for a target of type unknown or object
-export const ixNotPlainIn = (plainWith, show) => (R: IxRegCore, s: Ty): string | null =>
-  plainWith({ isAlias: R.isAlias, expand: R.expand, member: R.member, opaque: true })(s) ? null : show(s);
+// y1 (2026-11-24): pendingIn, the first Promise, generator or iterator (Iterable: what values() gives) held in s, not in
+// a function's result
+export const ixPendingIn = (ixHeldIn) => (R: IxRegCore, s: Ty): string | null =>
+  ixHeldIn(R, s, 0, (x) => x.k === "named" && ["Promise", "Generator", "AsyncGenerator", "Iterable", "Iterator", "IterableIterator", "AsyncIterator", "AsyncIterableIterator"].includes(x.n), false);
 // promiseIn: the first promise-like, a Promise, a type with a then member, or object
 export const ixPromiseIn = (show) => {
   function promiseIn(R: IxRegCore, s: Ty, depth: number): string | null {
@@ -120,16 +120,16 @@ export const ixHiddenFn = () => (H: IxHide, hidden: IxHiddenFn, s: Ty, t: Fn, de
   }
   return null;
 };
-// hides: an Action or a handle placed where its type becomes unknown, object or an opaque type parameter (S6.6)
-// x1 (2026-11-24, O): then any other part that is not plain data placed where its type becomes unknown or object
-// ([forgets]; a type parameter's caller gets back the type it gave, so there only Actions and handles are looked for)
-export const ixHides = (ixHidden, ixActionIn, ixHandleIn, ixNotPlainIn, ixErr, show) => (K: IxK, C: IxCtls, at: AstNode, t: Ty, expected: Ty, opaque: Set<string> | null): boolean => {
+// hides: an Action or a handle placed where its type becomes unknown, object or an opaque type parameter (S6.6). y1
+// (2026-11-24): x1's third pass is narrowed to its direct case, a promise, generator or iterator whose own type is given
+// unknown or object; a function, a Mut, and what a join or a type parameter launders go to the run time (freeze.ts)
+export const ixHides = (ixHidden, ixActionIn, ixHandleIn, ixPendingIn, ixErr, show) => (K: IxK, C: IxCtls, at: AstNode, t: Ty, expected: Ty, opaque: Set<string> | null): boolean => {
   const R = K.reg.quiet, same = K.reg.same(t, expected);
   const w = same ? null : ixHidden({ R, opaque, find: (x: Ty) => ixActionIn(R, x) }, t, expected, 0);
   if (w) ixErr(K, C, at, "action-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${w}; an Action goes only where an Action is expected`);
   const h = w || same ? null : ixHidden({ R, opaque, find: (x: Ty) => ixHandleIn(R, x) }, t, expected, 0);
   if (h) ixErr(K, C, at, "handle-pass", `${show(t)} is given the type ${show(expected)}, which hides its ${h}; a State or Events handle, or a FetchResponse, goes only where its own type is expected`);
-  const f = w || h || same || C.inspects.has(at.nid) ? null : ixHidden({ R, opaque: null, find: (x: Ty) => ixNotPlainIn(R, x) }, t, expected, 0);
-  if (f) ixErr(K, C, at, "forgets", `${show(t)} is given the type ${show(expected)}, which does not say what ${f} holds; what a type leaves out of a value must be plain data (no function, Action, handle, Mut, promise, iterator or response): give it a type that names it`);
+  const f = w || h || same ? null : ixHidden({ R, opaque: null, find: (x: Ty) => ixPendingIn(R, x) }, t, expected, 0);
+  if (f) ixErr(K, C, at, "forgets", `${show(t)} is given the type ${show(expected)}, which hides its ${f}; a promise, generator or iterator goes only where a type names it (the run time refuses one it finds anywhere else)`);
   return !w && !h && !f;
 };

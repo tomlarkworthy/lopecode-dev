@@ -23,6 +23,7 @@ import { attacks as D1_ATTACKS } from "./d1-attacks.ts";
 import { attacks as T1_ATTACKS } from "./t1-attacks.ts";
 import { attacks as W1_ATTACKS } from "./w1-attacks.ts";
 import { attacks as X1_ATTACKS } from "./x1-attacks.ts";
+import { attacks as Y1_ATTACKS } from "./y1-attacks.ts";
 import { checkSources as frozenCheck } from "../frozen/core.ts";
 
 // a verdict: ACCEPT, or REJECT with each cell that is not ok and its rules
@@ -94,8 +95,9 @@ test("freeze-attack, h6, freeze-attack2, h7, freeze-attack3, h8, h9, m1, k1, p1 
   expect(out).toMatch(/^-- k1-controls: 3, fired 0$/m);
   expect(out).toMatch(/^-- p1: 40 programs/m);
   expect(out).toMatch(/^-- p1-controls: 5, fired 0$/m);
-  // w1 (2026-11-24): f1-ok-mut-alias-plain-read hid its Mut member behind a type that leaves it out; the forgetting rule refuses it
-  expect(out).toMatch(/^-- f1: 16 programs, accepted 15, silent 0/m);
+  // w1 (2026-11-24): f1-ok-mut-alias-plain-read hid its Mut member behind a type that leaves it out; the forgetting rule
+  // refused it. y1: the width test is gone and it is accepted again, as its name says
+  expect(out).toMatch(/^-- f1: 16 programs, accepted 16, silent 0/m);
   expect(out).toMatch(/^-- f1-controls: 4, fired 1$/m);
   expect(out).toMatch(/^-- g1: 50 programs, accepted 15, silent 0/m);
   expect(out).toMatch(/^-- g1-controls: 4, fired 0$/m);
@@ -234,6 +236,9 @@ for (const ann of ["1e400", "-1e400", "{ readonly a: 1e400 }", "readonly (1 | 1e
     expect(live).toEqual({ ok: false, rules: ["boundary-type"] });
     expect(rulesOf(frozenCheck(src as Parameters<typeof frozenCheck>[0]))).toEqual(live);
   });
+// y1 (2026-11-24): controls (checker skipped) that the run time now refuses at hand-over (a response, or a generator object
+// a cell that is not a generator returns): loud, so they no longer fire
+const HANDED = new Set(["d1-ctl-resp-two-readers", "t1-a-ctl-empty", "w1-1-a-r-ctl-direct", "x1-1-gobj-ctl-generator-own-type"]);
 // d1 (2026-11-24): the owner's decisions A to F (d1-attacks.ts). No row is silent in shipped mode or with registration off,
 // each control fires; d1-ok-* rows are accepted and every other row is rejected, by both checkers alike
 const D1_ROWS = D1_ATTACKS.filter((a) => !a.ctl), D1_OK = D1_ROWS.filter((a) => a.name.startsWith("d1-ok-")).length;
@@ -243,8 +248,8 @@ for (const env of [{}, { SS_MEASURE_REG: "0" }])
     const out = r.stdout.toString();
     expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
     expect(out).toContain(`-- d1: ${D1_ROWS.length} programs, accepted ${D1_OK}, silent 0, with a cell in error 0`);
-    const ctl = D1_ATTACKS.length - D1_ROWS.length;
-    if (!("SS_MEASURE_REG" in env)) expect(out).toContain(`-- d1-controls: ${ctl}, fired ${ctl}`);
+    const ctl = D1_ATTACKS.length - D1_ROWS.length, fire = D1_ATTACKS.filter((a) => a.ctl && !HANDED.has(a.name)).length;
+    if (!("SS_MEASURE_REG" in env)) expect(out).toContain(`-- d1-controls: ${ctl}, fired ${fire}`);
   }, 300000);
 for (const a of D1_ROWS)
   test(`d1 ${a.name} is ${a.name.startsWith("d1-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
@@ -255,20 +260,28 @@ for (const a of D1_ROWS)
 // t1 (2026-11-24): the fixes of freeze-attack10 (t1-attacks.ts). No row is silent under runCells or the compiled runner
 // (--rt); each control fires under the compiled runner, and under runCells except the -rt- ones, which only the compiled
 // runner shows; t1-ok-* rows are accepted and every other row is rejected, by both checkers alike
+// y1 (2026-11-24): rows a removed check (w1's record-width non-plain test, x1's unknown/object non-plain test) rejected
+// and both checkers now accept. Y1_LOUD: a response a type left out, refused at hand-over (a cell in error); Y1_QUIET: a
+// function, an Action or a promise that stays in its cell, which no member and no conversion reaches. None is silent
+const Y1_LOUD = new Set(["w1-1-a-r-extra", "w1-1-a-r-extra-alias", "w1-1-a-r-extra-arr", "w1-1-a-r-extra-gen", "w1-1-a-r-extra-iface", "w1-1-a-r-extra-kept", "w1-1-a-r-extra-map", "w1-1-a-r-extra-name", "w1-1-a-r-extra-nested", "w1-1-a-r-extra-opt-union", "w1-1-a-r-extra-param", "w1-1-a-r-extra-promise", "w1-1-a-r-extra-rest", "w1-1-a-r-extra-set", "w1-1-a-r-extra-spread", "w1-1-a-r-extra-ternary", "w1-1-a-r-extra-union", "w1-1-a-r-extra-unknown", "w1-1-a-o-extra-direct", "w1-1-a-o-extra-spread", "w1-1-a-o-extra-unknown", "w1-1-a-g-unknown-arr-extra", "w1-1-a-r-two-ss", "w1-1-min-resp-race"]);
+const Y1_QUIET = new Set(["t1-a-undeclared-action", "w1-1-a-m-extra-action", "w1-1-a-m-extra-action-unknown", "w1-1-extra-fn", "w1-1-extra-fn-return", "w1-1-extra-promise", "x1-1-unknown-fn", "x1-1-object-map-of-fns", "x1-1-index-of-fns-unknown"]);
+const y1Ok = (n: string) => Y1_LOUD.has(n) || Y1_QUIET.has(n);
+const y1In = (rows: { name: string }[]) => rows.filter((a) => y1Ok(a.name)).length;
+const y1LoudIn = (rows: { name: string }[]) => rows.filter((a) => Y1_LOUD.has(a.name)).length;
 const T1_ROWS = T1_ATTACKS.filter((a) => !a.ctl), T1_OK = T1_ROWS.filter((a) => a.name.startsWith("t1-ok-")).length;
 for (const rt of [false, true])
   test(`t1: no row of the attack 10 fixes is silent${rt ? " (compiled runner)" : ""}`, () => {
     const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "t1", ...(rt ? ["--rt"] : [])], { stdout: "pipe", stderr: "pipe" });
     const out = r.stdout.toString();
     expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
-    expect(out).toContain(`-- t1: ${T1_ROWS.length} programs, accepted ${T1_OK}, silent 0, with a cell in error 0`);
-    const ctl = T1_ATTACKS.filter((a) => a.ctl && (rt || !a.name.includes("-rt-"))).length;
+    expect(out).toContain(`-- t1: ${T1_ROWS.length} programs, accepted ${T1_OK + y1In(T1_ROWS)}, silent 0, with a cell in error ${y1LoudIn(T1_ROWS)}`);
+    const ctl = T1_ATTACKS.filter((a) => a.ctl && !HANDED.has(a.name) && (rt || !a.name.includes("-rt-"))).length;
     expect(out).toContain(`-- t1-controls: ${T1_ATTACKS.length - T1_ROWS.length}, fired ${ctl}`);
   }, 300000);
 for (const a of T1_ROWS)
-  test(`t1 ${a.name} is ${a.name.startsWith("t1-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
+  test(`t1 ${a.name} is ${a.name.startsWith("t1-ok-") || y1Ok(a.name) ? "accepted" : "rejected"} by both checkers alike`, () => {
     const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
-    expect(live.ok).toBe(a.name.startsWith("t1-ok-"));
+    expect(live.ok).toBe(a.name.startsWith("t1-ok-") || y1Ok(a.name));
     expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
   });
 
@@ -281,15 +294,15 @@ for (const rt of [false, true])
     const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "w1", ...(rt ? ["--rt"] : [])], { stdout: "pipe", stderr: "pipe" });
     const out = r.stdout.toString();
     expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
-    expect(out).toContain(`-- w1: ${W1_ROWS.length} programs, accepted ${W1_OK}, silent 0, with a cell in error 0`);
-    const fire = W1_ATTACKS.filter((a) => a.ctl && !a.name.startsWith("w1-guard-")).length;
+    expect(out).toContain(`-- w1: ${W1_ROWS.length} programs, accepted ${W1_OK + y1In(W1_ROWS)}, silent 0, with a cell in error ${y1LoudIn(W1_ROWS)}`);
+    const fire = W1_ATTACKS.filter((a) => a.ctl && !HANDED.has(a.name) && !a.name.startsWith("w1-guard-")).length;
     expect(out).toContain(`-- w1-controls: ${W1_ATTACKS.length - W1_ROWS.length}, fired ${fire}`);
     expect(r.exitCode).toBe(0);
   }, 300000);
 for (const a of W1_ROWS)
-  test(`w1 ${a.name} is ${a.name.startsWith("w1-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
+  test(`w1 ${a.name} is ${a.name.startsWith("w1-ok-") || y1Ok(a.name) ? "accepted" : "rejected"} by both checkers alike`, () => {
     const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
-    expect(live.ok).toBe(a.name.startsWith("w1-ok-"));
+    expect(live.ok).toBe(a.name.startsWith("w1-ok-") || y1Ok(a.name));
     expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
   });
 
@@ -299,7 +312,7 @@ for (const a of W1_ROWS)
 // with SS_MEASURE_GUARD=0; every other control fires; x1-ok-* rows are accepted and every other row is rejected, by
 // both checkers alike
 const X1_ROWS = X1_ATTACKS.filter((a) => !a.ctl), X1_OK = X1_ROWS.filter((a) => a.name.startsWith("x1-ok-")).length;
-const X1_FIRE = X1_ATTACKS.filter((a) => a.ctl && !a.name.startsWith("x1-guard-")).length;
+const X1_FIRE = X1_ATTACKS.filter((a) => a.ctl && !HANDED.has(a.name) && !a.name.startsWith("x1-guard-")).length;
 // attack 12's guard controls that the guard of a cell's synchronous part already refused before x1
 const X1_A12_HELD = ["sync", "gen-between", "agen-between", "kept-sync-caller", "invalidation", "component", "memo", "memo-async", "map-callback", "set-callback", "set-callback-async"];
 for (const [rt, off] of [[false, false], [true, false], [false, true], [true, true]])
@@ -307,15 +320,45 @@ for (const [rt, off] of [[false, false], [true, false], [false, true], [true, tr
     const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "x1", ...(rt ? ["--rt"] : [])], { stdout: "pipe", stderr: "pipe", env: { ...process.env, ...(off ? { SS_MEASURE_GUARD: "0" } : {}) } });
     const out = r.stdout.toString();
     expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
-    expect(out).toContain(`-- x1: ${X1_ROWS.length} programs, accepted ${X1_OK}, silent 0, with a cell in error 0`);
+    expect(out).toContain(`-- x1: ${X1_ROWS.length} programs, accepted ${X1_OK + y1In(X1_ROWS)}, silent 0, with a cell in error ${y1LoudIn(X1_ROWS)}`);
     const guardOff = X1_ATTACKS.filter((a) => a.name.startsWith("x1-guard-") && !X1_A12_HELD.some((n) => a.name === `x1-guard-a12-${n}`)).length;
     expect(out).toContain(`-- x1-controls: ${X1_ATTACKS.length - X1_ROWS.length}, fired ${X1_FIRE + (off ? guardOff : 0)}`);
     expect(out).toContain("-- guard depth left above 0 by 0 programs");
     expect(r.exitCode).toBe(0);
   }, 300000);
 for (const a of X1_ROWS)
-  test(`x1 ${a.name} is ${a.name.startsWith("x1-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
+  test(`x1 ${a.name} is ${a.name.startsWith("x1-ok-") || y1Ok(a.name) ? "accepted" : "rejected"} by both checkers alike`, () => {
     const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
-    expect(live.ok).toBe(a.name.startsWith("x1-ok-"));
+    expect(live.ok).toBe(a.name.startsWith("x1-ok-") || y1Ok(a.name));
     expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
   });
+
+// y1 (2026-11-24): the run time as the guarantee for the capability class (y1-attacks.ts). No row is silent under runCells
+// or the compiled runner; each y1-ok-* row (a legal value that crosses a hand-over) is accepted and runs with no cell in
+// error; the y1-ctl-* controls (checker skipped) are refused at hand-over, so none fires, and every one fires with
+// SS_MEASURE_HANDOVER=0, which shows the refusal is what stops them
+const Y1_CTL = Y1_ATTACKS.filter((a) => a.ctl).length;
+const blocksOf = (out: string): Map<string, string[]> => {
+  const m = new Map<string, string[]>();
+  let cur: string[] | null = null;
+  for (const l of out.split("\n")) {
+    const h = /^== y1(?:-controls)? (\S+): (.*)$/.exec(l);
+    if (h) { cur = [h[2]!]; m.set(h[1]!, cur); } else if (cur && l.startsWith("   ")) cur.push(l.trim()); else cur = null;
+  }
+  return m;
+};
+for (const [rt, off] of [[false, false], [true, false], [false, true], [true, true]])
+  test(`y1: no row is silent, the legal rows run clean, the controls are refused${rt ? " (compiled runner)" : ""}${off ? " (SS_MEASURE_HANDOVER=0)" : ""}`, () => {
+    const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "y1", ...(rt ? ["--rt"] : [])], { stdout: "pipe", stderr: "pipe", env: { ...process.env, ...(off ? { SS_MEASURE_HANDOVER: "0" } : {}) } });
+    const out = r.stdout.toString();
+    expect(out).toContain(`-- y1-controls: ${Y1_CTL}, fired ${off ? Y1_CTL : 0}`);
+    if (off) return;
+    expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
+    const bad = [...blocksOf(out)].filter(([n, ls]) => n.startsWith("y1-ok-") && (!ls[0]!.startsWith("ACCEPT") || ls.some((l) => l.startsWith("error ") || l.includes("DIFF") || /^drive -> same: \S+ (rejected|pending|not a function)/.test(l))));
+    expect(bad).toEqual([]);
+    // a program a removed check rejected (y1-rm-*): rejected by another rule, or accepted and loud
+    const quietRm = [...blocksOf(out)].filter(([n, ls]) => n.startsWith("y1-rm-") && ls[0]!.startsWith("ACCEPT") && !ls.some((l) => l.startsWith("error ") || l.includes("call threw") || l.startsWith("drive threw") || /^late /.test(l)));
+    expect(quietRm.map(([n]) => n)).toEqual([]);
+    expect(blocksOf(out).size).toBe(Y1_ATTACKS.length);
+    expect(r.exitCode).toBe(0);
+  }, 600000);

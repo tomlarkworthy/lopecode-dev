@@ -40,7 +40,9 @@ export const mdSettled = (ixUm, union, isNamed) => (R: IxRegCore, t: Ty): Ty => 
   const go = (x: Ty, d: number): Ty => (d > 16 || !ixUm(R, x).some(isP) ? x : union(ixUm(R, x).map((m) => (isP(m) && m.k === "named" ? go(m.args[0] ?? m, d + 1) : m))));
   return go(t, 0);
 };
-export type MdValueOut = { readonly errors: MdErr[]; readonly value: Ty; readonly events: Ty | null; readonly ref: Ty | null; readonly listener: boolean; readonly gap: string | null };
+// promises (y1, 2026-11-24): the value type, before the run time awaits it, names a promise (where the run time lets one
+// stay), or is not known (an error)
+export type MdValueOut = { readonly errors: MdErr[]; readonly value: Ty; readonly events: Ty | null; readonly ref: Ty | null; readonly listener: boolean; readonly gap: string | null; readonly promises: boolean };
 // the rules in core.ts's order: events, state cell, iterator, listener; and what the cell gives the cells after it
 export const mdValueRules = (mdValueType, mdSettled, mdKept, mdStateRules, owIter, owStripMut, holdsWith, isNamed, show, mdThenable) => (R: IxReg, X: MdCtx, d: MdDef, fnT: Ty, fedBy: string | null): MdValueOut => {
   const v = mdValueType(d.fn, fnT);
@@ -51,7 +53,7 @@ export const mdValueRules = (mdValueType, mdSettled, mdKept, mdStateRules, owIte
   const errs = sync ? mdKept(R, d.name, fedBy, line, "an events cell yields", ret, "a listener's action would receive it") : [];
   const sc = ret.k === "named" && isNamed(ret, "StateCell");
   const inner = ret.k === "named" && sc ? ret.args[0] : undefined;
-  if (sc && inner === undefined) return { errors: errs, value: ret, events, ref: null, listener: false, gap: "StateCell with no type argument" };
+  if (sc && inner === undefined) return { errors: errs, value: ret, events, ref: null, listener: false, gap: "StateCell with no type argument", promises: true };
   const state = inner === undefined ? [] : mdStateRules(R, X, d.name, fedBy, line, inner);
   if (inner !== undefined) ret = inner;
   const it = owIter(R, ret);
@@ -61,5 +63,5 @@ export const mdValueRules = (mdValueType, mdSettled, mdKept, mdStateRules, owIte
   const listener = isL(ret) || (ret.k === "union" && ret.ts.every(isL));
   const held = listener ? null : holdsWith(X.R.ops)(ret, ["Listener"]);
   const place = held ? [{ rule: "listener-placement", line, msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` }] : [];
-  return { errors: [...errs, ...state, ...iter, ...then, ...place], value: mdSettled(R, ret), events, ref: inner ?? null, listener, gap: v.gap };
+  return { errors: [...errs, ...state, ...iter, ...then, ...place], value: mdSettled(R, ret), events, ref: inner ?? null, listener, gap: v.gap, promises: ret.k === "err" || holdsWith(X.R.ops)(ret, ["Promise"]) !== null };
 };

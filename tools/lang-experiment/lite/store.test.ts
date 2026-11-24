@@ -57,19 +57,19 @@ const h1 = { h: 1 }, h2 = { h: 2 };
   ok("enterCall: top-level during a cell evaluation is refused", eq(S.enterCall(st(), true), { state: st(), effects: [{ fx: "throw", msg: "action called during a cell evaluation" }] }));
   const top = S.enterCall(st(), false);
   ok("enterCall: top-level starts an empty call", top.state.depth === 1 && top.state.call?.size === 0);
-  const out = S.exitCall(st({ depth: 3, call }), false, null);
-  ok("exitCall: a nested call returns its function's value (null too) and keeps the call", out.state.depth === 2 && out.state.call === call && eq(out.effects, [{ fx: "return", value: null }]));
-  const top2 = S.exitCall(st({ depth: 1, call }), false, 7);
-  ok("exitCall: a top-level call returns nothing and ends the call", top2.state.depth === 0 && top2.state.call === null && !top2.effects.some((e) => e.fx === "return"));
-  ok("exitCall: after a reset during a call (depth 0) nothing changes", eq(S.exitCall(st(), false, 1), { state: st(), effects: [] }));
+  const out = S.exitCall(st({ depth: 3, call }), false);
+  ok("exitCall: a nested call gives nothing back (y1) and keeps the call", out.state.depth === 2 && out.state.call === call && eq(out.effects, []));
+  const top2 = S.exitCall(st({ depth: 1, call }), false);
+  ok("exitCall: a top-level call gives nothing back and ends the call", top2.state.depth === 0 && top2.state.call === null && top2.effects.every((e) => e.fx === "schedule"));
+  ok("exitCall: after a reset during a call (depth 0) nothing changes", eq(S.exitCall(st(), false), { state: st(), effects: [] }));
 }
 
 // discard on throw: a top-level call that threw keeps no write; a nested one that threw and was caught keeps its writes
 {
   const ready = writes([0, h1, 2]), call = writes([0, h1, 3], [1, h2, 4]);
-  const top = S.exitCall(st({ depth: 1, call, ready }), true, undefined);
+  const top = S.exitCall(st({ depth: 1, call, ready }), true);
   ok("exitCall: a top-level throw drops the call and leaves ready the same object", top.state.ready === ready && top.state.call === null && top.state.depth === 0 && top.effects.length === 0);
-  const nested = S.exitCall(st({ depth: 2, call, ready }), true, undefined);
+  const nested = S.exitCall(st({ depth: 2, call, ready }), true);
   ok("exitCall: a nested throw leaves its writes in the call", nested.state.call === call && nested.state.depth === 1 && nested.state.ready === ready);
 }
 
@@ -81,7 +81,7 @@ const h1 = { h: 1 }, h2 = { h: 2 };
   ok("mergeWrites: later calls do not ask again; a store keeps its first-write place and takes the last value",
     !b.schedule && eq([...b.ready].map(([k, p]) => [k, p.value]), [[1, "a"], [2, "c"], [3, "d"]]) && a.ready.size === 2);
   ok("mergeWrites: a call with no writes asks for no commit", !S.mergeWrites(writes(), writes()).schedule);
-  const done = S.exitCall(st({ depth: 1, call: writes([4, h1, 1]) }), false, undefined);
+  const done = S.exitCall(st({ depth: 1, call: writes([4, h1, 1]) }), false);
   ok("exitCall: a top-level call that returned joins ready and asks for one commit", eq([...done.state.ready.keys()], [4]) && eq(done.effects, [{ fx: "schedule" }]));
   const view = { v: 1 };
   const s = st({ ready: writes([0, h1, 5], [1, view, 6], [2, h2, 7]) });

@@ -46,6 +46,8 @@ export type MdCellRec = {
   readonly ch: IxDiag[]; readonly chUnsup: IxDiag[];
   // e1 (2026-11-23): the shapes of the cell's cast calls, in source order
   readonly casts: TypeShape[];
+  // y1 (2026-11-24): whether the cell's value type names a promise (md-value.ss.ts), once its value rules ran
+  readonly promises?: boolean;
   // where the cell's function starts (the harness pairs the records with core.ts's Checkers by it)
   readonly at: number;
 };
@@ -54,6 +56,8 @@ export type MdParamInfo = { readonly name: string; readonly refTyped: boolean; r
 export type MdInfo = {
   readonly name: string; readonly span: number[]; readonly params: MdParamInfo[]; readonly returnsRef: boolean;
   readonly generator: boolean; readonly compiles: IslandSpec[]; readonly casts: TypeShape[];
+  // y1 (2026-11-24): the cell's value type names no promise, so the run time refuses one in it (null: not known)
+  readonly strict: boolean | null;
 };
 // gap: what the port does not implement that this module met (its result is NOT COVERED)
 export type MdResult = { readonly port: string; readonly file: string; readonly ok: boolean; readonly module: MdErr[]; readonly cells: MdCellRec[]; readonly facts: MdInfo[]; readonly gap: string | null; readonly probe: IxProbe | null };
