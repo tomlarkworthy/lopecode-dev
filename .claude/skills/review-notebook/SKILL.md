@@ -449,3 +449,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   report put the memory of `test.ts brain-deployer` in a load that runs for every module, and a canary run then showed the
   load is not it, so the issue and the brief were corrected too; 10 h 38 min left unexplained; a cost placeholder; a stdin
   hazard of the bearer change unsaid; three counts and a path). 105.9k subagent tokens, 4m26s.
+- 2026-11-24 `plan/retros/2026-11-24.md`, authored by the spawning session: BLOCK, 9 findings (8 confirmed, 1 plausible), all
+  taken. 97k subagent tokens, 4m14s. What the author had not seen: the owner's act it gave (`deploy-deployer.ts --set
+  ownerDm=…`) is refused by the tool, which took four keys only, so no command could set the DM address (fixed in
+  cloud-brain-dev `8aa3e51`); and the fix's `issue.hold` is the calendar hold `AGENTS.md` 57 names, argued around unquoted.
