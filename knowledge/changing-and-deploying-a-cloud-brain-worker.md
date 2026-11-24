@@ -264,7 +264,7 @@ The deployer (`brain-deployer`, which carries `cloudflare-iac`) has two paths.
   `unattendedDeployer` on, no hold or sweep, a fresh pass of the same patch, the day's cap
   (`unattendedDeployerDaily`, 3), and no other change running. The answer is `sent` with `self: true`, and the deployer
   DMs the owner the version before and the way back once `config.ownerDm` is set (unset on 2026-11-23: each own-path
-  deploy logged `deploy.dm.none`). At its first tick the new deployer checks itself and puts the
+  deploy logged `deploy.dm.none`; `deploy-deployer.ts --set 'ownerDm="did:plc:…"'` sets it since cloud-brain-dev `8aa3e51`). At its first tick the new deployer checks itself and puts the
   version before back on a failed check. It then redistils every service; a change outside the `expect:` refs of the worker's hand,
   or of the kernel, core or database, holds the sweep and opens an issue labelled `needs-owner`. A hold stays until he
   clears it, and every unattended deployer or shared send is refused while it stands.
