@@ -59,7 +59,7 @@ md`\`jittered\` is the correct form of \`jitter\`. It takes \`random\` as a para
 // %%
 md`## 3. Local writes
 
-A cell often builds an array or a typed array one element at a time. This is fast, and rule 3 allows it. A value that a cell makes (a literal, \`new Map()\`, a copy) is writable inside that cell, under any number of names. The value that a cell returns is read-only to every cell that takes it. The checker rejects a write to such a value. The value is also frozen when it leaves the cell, so a write that the checker did not see throws.
+A cell often builds an array or a typed array one element at a time. This is fast, and rule 3 allows it. A value that a cell makes (a literal, \`new Map()\`, a copy) is writable inside that cell, under any number of names. The value that a cell returns is read-only to every cell that takes it. The checker rejects a write to such a value. Where the checker cannot prove that no later write occurs, the value is frozen when it leaves the cell, and a later write throws.
 
 \`grown\` writes an array that it made and returns the array. \`twoNames\` holds one array under two names, and a write through one name shows through the other. The checker accepts both cells.`
 // %%
@@ -129,7 +129,7 @@ md`**Try it.** Open the reducer module from the link under the table. In \`step\
 // %%
 md`## 6. Running only the cells a change reaches
 
-A cell runs again when one of its inputs was computed again, even if the new value is equal (S8.4). If no input was computed again, the cell keeps its value and does not run. The table counts how many times each cell body has run.`
+A cell runs again when one of its inputs was computed again, even if the new value is equal (S8.4). A cell that depends only on its inputs keeps its value and does not run when no input was computed again. The table counts how many times each cell body has run.`
 // %%
 model_view = framed(soundscript.mount(model_app, this))
 // %%
@@ -189,7 +189,7 @@ md`The cells are in [@tomlarkworthy/soundscript-mandelbrot](${linkTo("@tomlarkwo
 // %%
 md`## 8. Mistakes in a view
 
-The checker checks JSX as it checks the rest of a cell. It checks each attribute against the attributes that the tag declares. It checks each event handler against the action that the handler gets. There are eleven cells, each with one mistake. Ten are live cells that do not run. Each shows the message from the checker, and you can correct it in place. The eleventh is in a box after them.`
+The checker checks JSX as it checks the rest of a cell. It checks each attribute against the attributes that the tag declares. It checks each event handler against the action that the handler gets. There are eleven cells, each with one mistake. Ten are live cells that do not run. Each shows the message from the checker, and you can correct the cell in place. The eleventh is in a box after them.`
 // %%
 sourceListing(tutorial_module, invalidation, { from: "n", to: "ok_all" })
 // %%
@@ -307,7 +307,7 @@ const inPool = (compile: Compile, pool: Pool) =>
   });
 \`\`\`
 
-The *island* is every cell upstream of the outputs, as far as the inputs and refs. Here the island is \`rows\`. Island cells are ordinary cells. On the main thread \`rows\` computes one row, for the defaults \`y0 = 0\` and \`y1 = 1\`.
+The *island* is every cell upstream of the outputs. It stops at the inputs and refs, which are not part of it. Here the island is \`rows\`. Island cells are ordinary cells. On the main thread \`rows\` computes one row, for the defaults \`y0 = 0\` and \`y1 = 1\`.
 
 **The type.** The checker computes the type from the cell graph. \`inPool\` is \`(args: { y0: number; y1: number }) => Promise<{ rows: Uint8ClampedArray }>\` (see its type column in section 7). \`image\` uses it without an annotation. Let \`C\` be the map of the module from cell name to value type. Then the type is \`(args: Pick<C, Inputs>) => Promise<Pick<C, Outputs>>\`. TypeScript cannot check that without \`C\`. Thus the checker gives the call its type, and the reference checker built on TypeScript cannot compare it. The names must be literal strings. Any other form is \`unsupported\`.
 
@@ -401,7 +401,7 @@ Each parameter of a cell names the thing that the cell reads. The name and the a
 - A name that is another variable of the module, in any language, is read through the checked boundary (section 10).
 - Any other name is \`[inject-unknown]\`.
 - A destructuring pattern is \`[inject-pattern]\`.
-- A body cannot use the name of a cell unless the cell takes it as a parameter (\`[cell-by-name]\`).
+- A body cannot use the name of a cell that is not one of its parameters (\`[cell-by-name]\`).
 
 Types:
 
@@ -497,8 +497,8 @@ Allowed: a local \`let\` and an assignment to it, loops, \`switch\`, \`throw\`, 
 - A case body that can reach its end with another case after it is \`[switch-fallthrough]\`.
 - A declaration directly in a case is \`[switch-declaration]\`. Put it in a block.
 - A nested function can assign a \`let\` only if that function is a local helper that is called directly and never passed on (\`[let-capture]\`).
-- To read an iterator uses it up. Thus a function cannot capture a value whose type can hold an iterator (\`[iterator-capture]\`). These types are \`Iterable\`, the results of \`values()\`, \`keys()\` and \`entries()\`, \`Generator\`, and a type parameter. The value of a cell cannot hold an iterator (\`[iterator-cell]\`). Copy the iterator into an array with \`[...it]\`.
-- To read a property or an index of a value that can be \`undefined\` is \`[possibly-undefined]\`.
+- A read of an iterator uses it up. Thus a function cannot capture a value whose type can hold an iterator (\`[iterator-capture]\`). These types are \`Iterable\`, the results of \`values()\`, \`keys()\` and \`entries()\`, \`Generator\`, and a type parameter. The value of a cell cannot hold an iterator (\`[iterator-cell]\`). Copy the iterator into an array with \`[...it]\`.
+- A read of a property or an index of a value that can be \`undefined\` is \`[possibly-undefined]\`.
 
 On this page an index read \`a[i]\` has the type \`T | undefined\`. Thus \`xs[0] * 2\` is rejected. The message names these corrections:
 
@@ -592,7 +592,7 @@ md`### Workers: \`compile\` (*lite*)
 
 \`compile({ inputs: [...], refs: [...], outputs: [...], options: { runtime: pool } })\`. Each list is a literal array of cell names. The *island* is the cells that are necessary to compute \`outputs\` from \`inputs\`. The value is a function of type \`(args: Pick<C, inputs>) => Promise<Pick<C, outputs>>\`, where \`C\` maps cell names to value types. The function runs on the pool when you give \`runtime\`. If not, it runs on the page.
 
-When a ref changes, the cell that calls \`compile\` runs again, and the new function supersedes the old function. Calls of the old function that a worker already has finish and resolve with their own result. Calls of the old function that are still in the queue reject with a \`SupersededError\`. The runtime discards the value of an earlier run of a cell. Thus a cell such as \`image\` that awaits the function never shows a picture for an old input.
+When the cell that calls \`compile\` runs again (for example because a ref changed), the new function supersedes the old function. Calls of the old function that a worker already has finish and resolve with their own result. Calls of the old function that are still in the queue reject with a \`SupersededError\`. The runtime discards the value of an earlier run of a cell. Thus a cell such as \`image\` that awaits the function never shows a picture for an old input.
 
 | rule | |
 |---|---|
@@ -658,11 +658,11 @@ md`## Not built
 
 These items were discussed on 2026-11-14. None of them is in the checker or in this page.
 
-- **Effects as tagged libraries.** \`state\`, \`action\`, \`Events\` and \`on\` are special cases inside the checker. The proposal moves them into declaration files. Tags in those files (\`@write\`, \`@handle\`, \`@cell\`) tell the checker what each function can do. A new type of effect then needs a library and no change to the checker.
+- **Effects as tagged libraries.** \`state\`, \`action\`, \`Events\` and \`on\` are special cases inside the checker. The proposal moves them into declaration files. Tags in those files (\`@write\`, \`@handle\`, \`@cell\`) tell the checker what each function can do. A new type of effect would then need a library and no change to the checker.
 - **Actors.** A library on those tags: an inbox cell, a post action, and the messages of the inbox as \`Events<M>\`. A \`mailbox\` primitive in the checker was proposed and rejected.
-- **Label, do not reject.** The checker accepts \`Math.random\` and labels the cell *unsound*. It also labels every cell that takes a capability from that cell. A \`sound(...)\` marker changes the label back into an error.
-- **Typed reflection.** A typed \`Variable\` and \`Module<C>\`. The checker then checks a cell that defines other cells, and a new definition causes a check of the cells downstream. This needs \`keyof\`, bounds and indexed access, which the checker does not have.
-- **Results kept across a reload.** The saved file stores the result of a deterministic cell. The notebook uses the stored result when the inputs are the same.
+- **Label, do not reject.** The checker would accept \`Math.random\` and label the cell *unsound*, and would not reject it. It would also label every cell that takes a capability from that cell. A \`sound(...)\` marker would change the label back into an error.
+- **Typed reflection.** A typed \`Variable\` and \`Module<C>\`. The checker would then check a cell that defines or redefines other cells, and a new definition would cause a check of the cells downstream. This needs \`keyof\`, bounds and indexed access, which the checker does not have.
+- **Results kept across a reload.** The saved file would store the result of a deterministic cell. The notebook would use the stored result when the inputs are the same.
 - **Export to ObservableHQ.** The compiled cells are ordinary JavaScript. The marker comments and the editor hook are only in this notebook.
 - **\`now\` and \`random\` per cell.** Every cell that takes \`now\` gets the same \`ss_now\` of the core. Every cell that takes \`random\` gets the same \`ss_random\`. A recorded or seeded source for each cell is not built.`
 // %%

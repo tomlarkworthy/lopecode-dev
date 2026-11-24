@@ -1,15 +1,22 @@
 md`# SoundScript specification
 
-This page defines SoundScript: what a cell is, what the checker accepts and rejects, and what the notebook does with cells when they run and when they are edited. SoundScript is a checked subset of TypeScript for notebook cells: a cell is a function, and its parameters are the cells it reads. The [tutorial](${linkTo("@tomlarkworthy/soundscript-tutorial")}) is the place to start. Behaviour the code has that this page does not state is not promised; the known cases are listed in the last section.`
+This page defines SoundScript. It tells you what a cell is, what the checker accepts and rejects, and what the notebook does with cells when they run and when you edit them. SoundScript is a checked subset of TypeScript for notebook cells. A cell is a function, and its parameters are the cells that it reads. Start with the [tutorial](${linkTo("@tomlarkworthy/soundscript-tutorial")}). If the code has a behaviour that this page does not state, that behaviour is not promised. The last section lists the known cases.`
 // %%
-md`Each statement has a number, such as **S3.2**, which stays the same when statements are added. A section has its statements, then cells written in SoundScript that the statements describe, then a table of sources the checker must reject with the rule each must give, then tests. A test is a cell named after the statement it checks: \`test_spec_S3_2\` checks S3.2. The coverage table counts, for each section, its statements, how many have a test and how many tests pass. The tests run when the page loads. The table is drawn again as each test finishes and when a cell of this page is added, edited or deleted; a test that has not finished is counted as running.`
-// %%
-md`**Related work.** The static rules for local writes (section 4) borrow the shape of reference immutability with uniqueness: Gordon, Parkinson, Parsons, Bromfield and Duffy, *Uniqueness and Reference Immutability for Safe Parallelism*, OOPSLA 2012 ([extended version, MSR-TR-2012-79](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/msr-tr-2012-79.pdf)). They are not sound alone: the guarantee rests on the freeze at run time (S4.6).
+md`Each statement has a number, such as **S3.2**. The number stays the same when statements are added. A section has four parts, in this order:
 
-- That system has four permissions on a reference: writable, readable, immutable and isolated. In SoundScript \`Mut<T>\` is writable, at its first level only (S4.7); the paper's writable reaches every level. Inside its cell, a plain \`T\` that is another name for a \`Mut\` (S4.4) is readable in the paper's sense: it cannot write, and another name can. Once published, a plain \`T\` is immutable. There is no isolated permission.
-- Its recovery rule says: when everything a block reads is immutable or isolated, a writable value the block produces has no alias outside the block, so it may be treated as isolated and then as immutable, with no tracking of aliases inside the block. A cell reads only frozen values, which is the premise of that rule.
-- The rule needs a language with no mutable global state, and it says nothing about code that runs after the block has given its value. The paper's formal language has no closures, arrays or exceptions, and it models parallelism as two blocks that both end, with no task that is joined later. In SoundScript the code that runs later is a kept function, a generator after a \`yield\` and an async function after an \`await\`; S4.5, S4.6 and S4.8 cover them.
-- The paper describes no run-time check. SoundScript freezes each value when it is published (S4.6), and that freeze is what stops a write the static rules miss.`
+1. its statements;
+2. cells in SoundScript that the statements describe;
+3. a table of sources that the checker must reject, with the rule that each must give;
+4. tests.
+
+A test is a cell that has the name of the statement that it checks: \`test_spec_S3_2\` checks S3.2. For each section, the coverage table counts the statements, the statements that have a test, and the tests that pass. The tests run when the page loads. The page draws the table again when a test finishes and when a cell of this page is added, edited or deleted. A test that has not finished is counted as running.`
+// %%
+md`**Related work.** The static rules for local writes (section 4) use the structure of reference immutability with uniqueness: Gordon, Parkinson, Parsons, Bromfield and Duffy, *Uniqueness and Reference Immutability for Safe Parallelism*, OOPSLA 2012 ([extended version, MSR-TR-2012-79](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/msr-tr-2012-79.pdf)). The static rules alone are not sound. The guarantee depends on the freeze at run time (S4.6).
+
+- That system has four permissions on a reference: writable, readable, immutable and isolated. In SoundScript \`Mut<T>\` is writable at its first level only (S4.7). In the paper, writable applies at every level. Inside its cell, a plain \`T\` that is another name for a \`Mut\` (S4.4) is readable in the sense of the paper: it cannot write, and another name can. After a value is published, a plain \`T\` is immutable. There is no isolated permission.
+- The recovery rule of the paper applies when everything that a block reads is immutable or isolated. A writable value that the block produces then has no alias outside the block. Thus it can be isolated and then immutable, and aliases inside the block need no tracking. A cell reads only frozen values, which is the condition of that rule.
+- The rule needs a language with no mutable global state. It says nothing about code that runs after the block has given its value. The formal language of the paper has no closures, arrays or exceptions. Its model of parallelism is two blocks that both end, with no task that is joined later. In SoundScript, the code that runs later is a kept function, a generator after a \`yield\`, and an async function after an \`await\`. S4.5, S4.6 and S4.8 apply to them.
+- The paper describes no run-time check. SoundScript freezes each value when it is published (S4.6). That freeze stops a write that the static rules do not find.`
 // %%
 spec_coverage_view = {
   const rows = spec_coverage.rows.map((r) => r.statements === 0
@@ -21,33 +28,35 @@ spec_coverage_view = {
 // %%
 md`## 1. Cells and the top level
 
-A module is a list of cells. A cell is a named function at the top level. The rest of the top level is types.`
+A module is a list of cells. A cell is a named function at the top level. All other top-level declarations are types.`
 // %%
-md`**S1.1** A cell is a top-level \`function\`, \`function*\`, \`async function\` or \`async function*\` declaration, or one declarator of a top-level \`const\` or \`let\` whose initializer is an arrow or function expression. The declared name is the cell's name.`
+md`**S1.1** A cell is a top-level \`function\`, \`function*\`, \`async function\` or \`async function*\` declaration. A cell is also one declarator of a top-level \`const\` or \`let\` whose initializer is an arrow or a function expression. The declared name is the name of the cell.`
 // %%
 md`**S1.2** \`export\` before a cell or a type declaration is accepted and changes nothing.`
 // %%
-md`**S1.3** The top level may also hold \`type\` and \`interface\` declarations and \`import type\`. They are not cells.`
+md`**S1.3** The top level can also hold \`type\` and \`interface\` declarations and \`import type\`. They are not cells.`
 // %%
-md`**S1.4** Any other top-level statement is \`[module-level]\`, except \`var\`, \`class\`, \`enum\` and \`namespace\`, which are \`[no-var]\`, \`[no-class]\`, \`[no-enum]\` and \`[no-namespace]\` (section 3).`
+md`**S1.4** Any other top-level statement is \`[module-level]\`. The exceptions are \`var\`, \`class\`, \`enum\` and \`namespace\`, which are \`[no-var]\`, \`[no-class]\`, \`[no-enum]\` and \`[no-namespace]\` (section 3).`
 // %%
-md`**S1.5** A top-level \`const\` or \`let\` that is not a function is \`[cell-not-function]\`. That includes a declaration with no initializer and one that destructures.`
+md`**S1.5** A top-level \`const\` or \`let\` that is not a function is \`[cell-not-function]\`. This includes a declaration with no initializer and a declaration that destructures.`
 // %%
-md`**S1.6** A name declared by more than one cell belongs to the first. Each later cell with that name is \`[duplicate-cell]\` ("a is already defined at line 1") and is reported as \`a (2)\`, \`a (3)\` and so on. The first is checked as usual, and a cell that takes the name reads the first. In a notebook module, an edit that gives a cell the name of another cell is stored under \`a (2)\` and does not run. The compiled variable of \`a (2)\` is named \`$ss$2$a\`, and a type declaration \`type X\` is the variable \`$ss$type$X\`, so that each has a legal Observable JavaScript name.`
+md`**S1.6** A name that more than one cell declares belongs to the first cell. Each later cell with that name is \`[duplicate-cell]\` ("a is already defined at line 1"). The checker reports the later cells as \`a (2)\`, \`a (3)\` and so on. The checker checks the first cell as usual, and a cell that takes the name reads the first cell. In a notebook module, an edit that gives a cell the name of another cell is stored as \`a (2)\` and does not run. The compiled variable of \`a (2)\` has the name \`$ss$2$a\`. A type declaration \`type X\` is the variable \`$ss$type$X\`. Thus each has a legal Observable JavaScript name.`
 // %%
-md`**S1.7** A cell with the name of a shell cell is \`[duplicate-cell]\`. A shell cell is an unchecked cell the checker is given beside the checked ones (section 9); a notebook module gives it none.`
+md`**S1.7** A cell with the name of a shell cell is \`[duplicate-cell]\`. A shell cell is a cell that is not checked, which the checker gets together with the checked cells (section 9). A notebook module gives the checker no shell cells.`
 // %%
-md`**S1.8** One \`const\` or \`let\` statement may declare several cells: \`const a = () => 1, b = () => 2;\` is two cells.`
+md`**S1.8** One \`const\` or \`let\` statement can declare several cells: \`const a = () => 1, b = () => 2;\` is two cells.`
 // %%
-md`**S1.9** A cell that takes itself, or takes a cell that through its own inputs takes it back, is \`[cycle]\` ("dependency cycle a -> b -> a"). Every cell on the cycle is rejected.`
+md`**S1.9** A cell that takes itself is \`[cycle]\`. A cell that takes a cell that takes it back, directly or through other cells, is also \`[cycle]\` ("dependency cycle a -> b -> a"). The checker rejects every cell on the cycle.`
 // %%
-md`**S1.10** A top-level \`type\` or \`interface\` named as one of the checker's own types, \`Array ReadonlyArray Record Js ValueOf String Number Boolean RegExp RegExpMatchArray Map Set Error Promise ArrayBuffer URL URLSearchParams Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array Mut Borrowed State StateCell Action Events Listener Generator Iterable ArrayLike Clock Random Fetch FetchResponse Log Invalidation Compile Pool Cast Elem Child PointerData CommonProps ButtonProps InputProps CanvasProps IntrinsicElements\`, is \`[builtin-type-name]\`. It is not loaded: the cells of the module read the checker's type of that name. Since 2026-11-23 a type alias that is defined by itself with no object, array, tuple or function type between, through names, unions, intersections, parentheses and generic aliases that give back an argument (\`type Key = Key\`, \`type A = B | number; type B = A\`), is \`[type-cycle]\` and is not loaded either; a use of such an alias adds no error of its own, so the program has the one \`[type-cycle]\` per alias (since 2026-11-23, a9; before, each use was also \`[unknown-type]\`); \`type Tree = { readonly kids: readonly Tree[] }\` is accepted.`
+md`**S1.10** A top-level \`type\` or \`interface\` cannot have the name of a type of the checker. Such a declaration is \`[builtin-type-name]\`. The names are \`Array ReadonlyArray Record Js ValueOf String Number Boolean RegExp RegExpMatchArray Map Set Error Promise ArrayBuffer URL URLSearchParams Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array Mut Borrowed State StateCell Action Events Listener Generator Iterable ArrayLike Clock Random Fetch FetchResponse Log Invalidation Compile Pool Cast Elem Child PointerData CommonProps ButtonProps InputProps CanvasProps IntrinsicElements\`. The declaration is not loaded, and the cells of the module read the type of the checker with that name.
+
+Since 2026-11-23, a type alias that is defined by itself is \`[type-cycle]\`, and is not loaded. An alias is defined by itself when no object, array, tuple or function type is between the alias and its own name. Names, unions, intersections, parentheses and generic aliases that return an argument do not count as between: \`type Key = Key\`, \`type A = B | number; type B = A\`. A use of such an alias adds no error of its own, so the program has one \`[type-cycle]\` for each alias (since 2026-11-23, a9; before that, each use was also \`[unknown-type]\`). \`type Tree = { readonly kids: readonly Tree[] }\` is accepted.`
 // %%
-md`The cells of this section, written in SoundScript. \`s1_exported\` keeps its \`export\` (S1.2), and the editor marks it "export is not needed".`
+md`These are the cells of this section, in SoundScript. \`s1_exported\` keeps its \`export\` (S1.2), and the editor marks it "export is not needed".`
 // %%
 //ss: ./spec.ts
 // %%
-md`Rejected sources. Each is checked when the page loads; the fourth column is what the checker reports and the last whether that is the rule given.`
+md`Rejected sources. The page checks each source when it loads. The fourth column is the report of the checker. The last column tells you if that report is the given rule.`
 // %%
 spec_rejects_1 = [
   { statement: "S1.4", rule: "module-level", source: "for (;;) {}\nlet a = () => 1;" },
@@ -312,7 +321,7 @@ test_spec_S1_8 = {
 test_spec_S1_10 = {
   // the names are read from S1.10's own text; each, declared as a type, is rejected
   const statement = [...runtime._variables].filter((v) => v._module === spec_module).map((v) => String(v._definition)).find((d) => d.includes("**S1.10**"));
-  const names = /own types, \\`([^`\\]+)\\`/.exec(statement)[1].split(" ");
+  const names = /The names are \\`([^`\\]+)\\`/.exec(statement)[1].split(" ");
   spec_is([...names].sort(), soundscript.builtinTypeNames());
   const bad = names.filter((n) => JSON.stringify(spec_rulesOf({ source: `type ${n} = { readonly n: number };` })) !== '["builtin-type-name"]');
   if (bad.length) throw new Error(`not rejected: ${bad.join(", ")}`);
@@ -331,37 +340,109 @@ test_spec_S1_9 = {
 // %%
 md`## 2. Inputs and names
 
-A cell's parameters name the cells it reads. A body can use its parameters, its locals, a fixed set of prelude functions and intrinsics, and the capabilities it takes as parameters. No other name reaches it.`
+The parameters of a cell name the cells that it reads. A body can use its parameters, its locals, a fixed set of prelude functions and intrinsics, and the capabilities that it takes as parameters. A body can use no other name.`
 // %%
-md`**S2.1** A cell's parameters are its inputs, taken by name. A parameter that names no cell of the module, foreign declaration, shell cell or capability (or, section 11, a variable in another language) is \`[inject-unknown]\`. Only the cell's own parameter list is its input list, so a cell whose value is a function is two arrows: \`const double = () => (n: number) => n * 2\`.`
+md`**S2.1** The parameters of a cell are its inputs. The cell takes them by name. A parameter must name a cell of the module, a foreign declaration, a shell cell, a capability, or a variable in another language (section 11). If it does not, it is \`[inject-unknown]\`. Only the parameter list of the cell itself is its input list. Thus a cell whose value is a function is two arrows: \`const double = () => (n: number) => n * 2\`.`
 // %%
 md`**S2.2** An input is a plain identifier. A destructuring pattern, a default value or a rest parameter is \`[inject-pattern]\`.`
 // %%
-md`**S2.3** An input with no type annotation has the value type of the cell it names. An annotated input must accept that value type; otherwise it is \`[inject-type]\`.`
+md`**S2.3** An input with no type annotation has the value type of the cell that it names. An input with an annotation must accept that value type. If it does not, it is \`[inject-type]\`.`
 // %%
-md`**S2.4** The value type of a cell is its return type \`T\`, except that \`Promise<T>\` gives \`T\`, a generator or async generator yielding \`Y\` gives \`Y\`, and \`StateCell<T>\` gives \`T\`. Annotating the input with the wrapped type, such as \`Promise<number>\`, is \`[inject-type]\`. The runtime awaits a cell's value, so since 2026-11-23 (a9) every level of \`Promise\` is taken off, in each member of a union: \`Promise<Promise<number>>\` gives \`number\`, and so does a cell that is not async and returns \`Promise.resolve(5)\`, a generator that yields a promise, and a state cell that holds one (before, these readers were typed \`Promise<…>\` and received the number). A promise inside a record or array is not awaited and keeps its type. A \`State<T>\` or \`Events<T>\` input keeps the promise: \`read\` and a listener's action get the promise itself.`
+md`**S2.4** The value type of a cell is its return type \`T\`, with these exceptions:
+
+- \`Promise<T>\` gives \`T\`;
+- a generator or an async generator that yields \`Y\` gives \`Y\`;
+- \`StateCell<T>\` gives \`T\`.
+
+An input annotated with the wrapped type, such as \`Promise<number>\`, is \`[inject-type]\`.
+
+The runtime awaits the value of a cell. Thus, since 2026-11-23 (a9), the value type has no \`Promise\` at any level, in each member of a union. \`Promise<Promise<number>>\` gives \`number\`. The same applies to a cell that is not async and returns \`Promise.resolve(5)\`, to a generator that yields a promise, and to a state cell that holds a promise. A promise inside a record or an array is not awaited and keeps its type. A \`State<T>\` or \`Events<T>\` input keeps the promise: \`read\` and the action of a listener get the promise itself.`
 // %%
-md`**S2.5** The capabilities are the inputs \`now: Clock\`, \`random: Random\`, \`fetch: Fetch\`, \`log: Log\`, \`invalidation: Invalidation\`, \`compile: Compile\` and \`pool: Pool\`. \`Clock\` and \`Random\` are \`() => number\`. Any other annotation on a capability, such as \`now: number\`, is \`[inject-type]\`. The value of \`pool\` is not part of the core: a module with a cell that takes \`pool\` imports \`ss_pool\` from the add-on \`@tomlarkworthy/soundscript-workers\`.`
+md`**S2.5** The capabilities are the inputs \`now: Clock\`, \`random: Random\`, \`fetch: Fetch\`, \`log: Log\`, \`invalidation: Invalidation\`, \`compile: Compile\` and \`pool: Pool\`. \`Clock\` and \`Random\` are \`() => number\`. Any other annotation on a capability, such as \`now: number\`, is \`[inject-type]\`. The value of \`pool\` is not part of the core. A module with a cell that takes \`pool\` imports \`ss_pool\` from the add-on \`@tomlarkworthy/soundscript-workers\`.`
 // %%
-md`**S2.6** A body may name its parameters, its own locals, the prelude functions \`state action mut freeze borrow snapshot equals on read messageOf memo cast\`, and the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`. Any other free name is \`[free-name]\`: \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`. A call of \`structuredClone\` with an argument whose type is or may hold a function or a symbol, or is \`unknown\`, \`object\` or a type parameter, is \`[type]\`: the call would throw. A prelude function is only called: naming one as a value is \`[prelude-value]\`, except \`read\`, which is \`[read-outside-action]\` (S6.8), and \`on\`, which is \`[listener-placement]\` (S7.3). Declaring a local or a parameter of the same name is \`[prelude-shadow]\`. \`mut\`, \`freeze\` and \`borrow\` are names so that a call of one, or the name as a value, is \`[removed-call]\` (S4.2). Since 2026-11-24 (w1) a \`const\` or \`let\` of a block is in scope for the whole block, as in JavaScript: a read of its name before the declaration, in the block or in a function made there, names it and not a binding outside the block, and is \`[free-name]\` (before w1 such a read in a function resolved to the outer binding, so a local \`Math\` declared later changed what a read of \`Math.max\` was checked as). This is stricter than JavaScript: a function made in the block that reads a later \`const\` is \`[free-name]\` even when it is called only after the declaration, which JavaScript runs.`
+md`**S2.6** A body can name:
+
+- its parameters and its own locals;
+- the prelude functions \`state action mut freeze borrow snapshot equals on read messageOf memo cast\`;
+- the intrinsics \`Object Array Math JSON Number String Boolean BigInt Map Set Error TypeError RangeError RegExp Promise ArrayBuffer URL URLSearchParams Infinity NaN undefined isNaN isFinite parseInt parseFloat encodeURIComponent decodeURIComponent encodeURI decodeURI atob btoa structuredClone Float32Array Float64Array Int8Array Uint8Array Uint8ClampedArray Int16Array Uint16Array Int32Array Uint32Array\`.
+
+Any other free name is \`[free-name]\`, for example \`Date\`, \`console\`, \`window\`, \`globalThis\`, \`setTimeout\`, \`eval\`, \`Function\`.
+
+A call of \`structuredClone\` is \`[type]\` when the type of its argument is or can hold a function or a symbol, or is \`unknown\`, \`object\` or a type parameter. Such a call would throw.
+
+A body can only call a prelude function. The name of a prelude function used as a value is \`[prelude-value]\`. There are two exceptions: \`read\` is \`[read-outside-action]\` (S6.8), and \`on\` is \`[listener-placement]\` (S7.3). A local or a parameter with the name of a prelude function is \`[prelude-shadow]\`. \`mut\`, \`freeze\` and \`borrow\` are in the list so that a call of one, or its name as a value, is \`[removed-call]\` (S4.2).
+
+Since 2026-11-24 (w1), a \`const\` or \`let\` of a block is in scope for the full block, as in JavaScript. A read of its name before the declaration names that declaration and not a binding outside the block. This applies in the block and in a function made in the block. Such a read is \`[free-name]\`. For example, a later local \`Math\` makes an earlier \`Math.max\` in the block \`[free-name]\`. This rule is stricter than JavaScript. A function made in the block that reads a later \`const\` is \`[free-name]\`, even when the function is called only after the declaration.`
 // %%
-md`**S2.7** Reading \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`, also through a local bound to the intrinsic, through destructuring such as \`const { random } = Math\`, and through a computed key such as \`Math["random"]\`. A value with a banned member is not assignable to a type that names it, so passing \`Math\` where \`{ random: () => number }\` is expected is \`[type]\`. A \`__proto__\` key in an object literal, written as a name, a string or a computed literal, is \`[banned-member]\` too: the name and string forms set the prototype, and the computed and shorthand forms, which make an own property, are rejected so that no spelling of the key is accepted. \`prototype\` on any other value is rejected by another rule, usually \`[no-member]\`. Since 2026-11-24, on a value whose type has an index signature (\`{ [k: string]: T }\`, \`Record<string, T>\`), a computed member read or write, a \`delete\` or an \`in\` test whose key may be any string is \`[banned-member]\`: a key known only at run time can name an inherited member such as \`toString\` or \`__proto__\`. The key must be a string literal, a union of string literals (a \`const\` bound to a literal has its literal type) or a number. Entries with run-time keys go in a \`Map<string, T>\` (\`m.get(k)\`, \`m.set(k, v)\`, \`m.has(k)\`). \`Object.keys\`, \`Object.values\` and \`Object.entries\` read own properties only and are accepted; \`Object.fromEntries\` with a \`"__proto__"\` key makes an own property and leaves the prototype as it is. Since 2026-11-24 (w1) a member of a type literal, an alias or an interface, optional or required, and a key of an object literal, named after a member of \`Object.prototype\` (the names are read from \`Object.prototype\` when the checker loads: \`toString\`, \`valueOf\`, \`hasOwnProperty\`, \`isPrototypeOf\`, \`constructor\` and the rest) or \`toJSON\` or \`then\` is \`[banned-member]\`, and so is a member named \`__proto__\`: a template string, \`+\`, \`==\`, \`String()\`, \`join\`, \`sort\`, \`JSON.stringify\` and \`await\` call a value's own member of such a name, so a conversion would run code of the program's (from t1 until w1 only an optional member was refused). A type or an interface that declares such a member is \`[banned-member]\` once, for the module, and is not loaded, so a cell that uses it is \`[unknown-type]\`.`
+md`**S2.7** A read of \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`. This also applies through a local bound to the intrinsic, through destructuring such as \`const { random } = Math\`, and through a computed key such as \`Math["random"]\`. A value with a banned member is not assignable to a type that names the member. Thus \`Math\` given where \`{ random: () => number }\` is expected is \`[type]\`. \`prototype\` on any other value is rejected by a different rule, usually \`[no-member]\`.
+
+A \`__proto__\` key in an object literal is \`[banned-member]\`, as a name, a string or a computed literal. The name form and the string form set the prototype. The computed form and the shorthand form make an own property. The checker rejects all forms, so that no form of the key is accepted.
+
+Since 2026-11-24, on a value whose type has an index signature (\`{ [k: string]: T }\`, \`Record<string, T>\`), a key that can be any string is \`[banned-member]\`. This applies to a computed member read or write, a \`delete\` and an \`in\` test. A key that is known only at run time can name an inherited member such as \`toString\` or \`__proto__\`. The key must be a string literal, a union of string literals, or a number. A \`const\` bound to a literal has its literal type. Put entries with run-time keys in a \`Map<string, T>\` (\`m.get(k)\`, \`m.set(k, v)\`, \`m.has(k)\`). \`Object.keys\`, \`Object.values\` and \`Object.entries\` read only own properties and are accepted. \`Object.fromEntries\` with a \`"__proto__"\` key makes an own property and does not change the prototype.
+
+Since 2026-11-24 (w1), some member names are \`[banned-member]\` as a member of a type literal, an alias or an interface, optional or required, and as a key of an object literal. The names are the members of \`Object.prototype\` (\`toString\`, \`valueOf\`, \`hasOwnProperty\`, \`isPrototypeOf\`, \`constructor\` and the others, read from \`Object.prototype\` when the checker loads), \`toJSON\`, \`then\` and \`__proto__\`. A template string, \`+\`, \`==\`, \`String()\`, \`join\`, \`sort\`, \`JSON.stringify\` and \`await\` call the own member of a value that has such a name. A conversion would thus run code of the program. A type or an interface that declares such a member is \`[banned-member]\` one time for the module, and is not loaded. A cell that uses it is \`[unknown-type]\`.`
 // %%
-md`**S2.8** A body that uses a cell by its name instead of taking it as a parameter is \`[cell-by-name]\`. That includes a cell calling itself. A local with a cell's name is a local.`
+md`**S2.8** A body that uses a cell by its name, and does not take it as a parameter, is \`[cell-by-name]\`. This includes a cell that calls itself. A local with the name of a cell is a local.`
 // %%
-md`**S2.9** A body is type-checked with \`null\` and \`undefined\` kept apart from other types. A mismatch is \`[type]\`, except for five checks with rules of their own: a parameter of a local function with neither an annotation nor a type from where the function is passed is \`[untyped-parameter]\`; a call with too few or too many arguments is \`[arity]\`; a property that an object literal's declared type does not have is \`[excess-property]\`; a value that may be \`undefined\` or \`null\` used as a number, read from, indexed or called is \`[possibly-undefined]\`; an assignment to a \`const\` local is \`[const-assign]\`. From w1 until y1 (2026-11-24) a value given a type that did not declare a part of it was \`[forgets]\` unless that part was plain data; since y1 a record type may leave out any member: a response or iterator left out is refused at run time wherever the value is handed over, and a promise left out where it is in a cell's value whose type names no promise (S4.6), and a function left out is not reached by a conversion (S2.7). Since 2026-11-24 (w1) a value that is not a record (a function, an array, a primitive, an \`Error\`, a \`Map\`, a typed array and the like) is \`[forgets]\` when given a record type, \`{}\` and a record of optional members included. Since 2026-11-24 (w1) \`JSON.stringify(v)\` where \`v\` may be \`undefined\`, a function, \`unknown\`, \`object\` or a type parameter is \`[type]\`: \`JSON.stringify\` gives \`undefined\` for those, not a string; \`JSON.stringify(v ?? null)\` is accepted. A value whose own type holds a promise, a generator or an iterator (\`Iterable\`, what \`values()\` gives), given \`unknown\` or \`object\`, is \`[forgets]\`: the checker reports this direct case, and one that reaches \`unknown\` another way (a join with a value typed \`unknown\`, a type parameter) is refused at run time where it is handed over (S4.6). From x1 until y1 (2026-11-24) any value that was not plain data was \`[forgets]\` there, a function and a \`Mut\` included, with the arguments of built-ins that keep nothing exempt; since y1 a function or a \`Mut\` given \`unknown\` or \`object\` is accepted. An \`Action\` given \`unknown\` or \`object\` itself is \`[action-pass]\` (S6.6), not \`[forgets]\`. A function result typed \`void\` takes \`undefined\` only: a callback that returns a value where \`(x: T) => void\` is declared is \`[type]\` (a block body that returns nothing is accepted), and \`forEach\` declares its callback's result \`unknown\`. A function given a type with a call signature that declares a member every function has (\`name\`, \`length\`, \`bind\` and the others of \`Function.prototype\`, read when the checker runs) is \`[forgets]\` unless the function's own type declares it. \`Object.fromEntries\` gives a record whose keys come from run-time data, so one may be \`then\`, \`toJSON\` or \`toString\`, which the run time calls: a call whose values are not plain data is \`[type]\`, and since y1 values typed \`unknown\` or \`object\` count as not plain (one may be an \`Action\` a join made \`unknown\`). Check time and run time: the rules of this statement are the checker's; a value that a type wrongly describes as plain data reaches no run-time check.`
+md`**S2.9** The checker type-checks a body with \`null\` and \`undefined\` kept apart from other types. A type error is \`[type]\`. Five checks have rules of their own:
+
+- A parameter of a local function with no annotation and no type from the place where the function is passed is \`[untyped-parameter]\`.
+- A call with too few or too many arguments is \`[arity]\`.
+- A property that the declared type of an object literal does not have is \`[excess-property]\`.
+- A value that can be \`undefined\` or \`null\`, used as a number, read from, indexed or called, is \`[possibly-undefined]\`.
+- An assignment to a \`const\` local is \`[const-assign]\`.
+
+These rules are from 2026-11-24 (rounds w1, x1 and y1):
+
+- **Record types.** A record type can omit any member of a record that it gets. A value that is not a record (a function, an array, a primitive, an \`Error\`, a \`Map\`, a typed array and so on) is \`[forgets]\` when it gets a record type. This includes \`{}\` and a record of optional members.
+- **\`unknown\` and \`object\`.** A value whose own type holds a promise, a generator or an iterator (\`Iterable\`, the result of \`values()\`) is \`[forgets]\` when it gets \`unknown\` or \`object\`. The checker reports this direct case. A function or a \`Mut\` given \`unknown\` or \`object\` is accepted. An \`Action\` given \`unknown\` or \`object\` is \`[action-pass]\` (S6.6), not \`[forgets]\`.
+- **\`void\`.** A function result typed \`void\` takes only \`undefined\`. A callback that returns a value where \`(x: T) => void\` is declared is \`[type]\`. A block body that returns nothing is accepted. \`forEach\` declares the result of its callback as \`unknown\`.
+- **Call signatures.** Every function has the members of \`Function.prototype\` (\`name\`, \`length\`, \`bind\` and the others, read when the checker runs). A function given a type with a call signature that declares one of these members is \`[forgets]\`, unless the own type of the function declares it.
+- **\`JSON.stringify\`.** \`JSON.stringify(v)\` is \`[type]\` when \`v\` can be \`undefined\`, a function, \`unknown\`, \`object\` or a type parameter. \`JSON.stringify\` gives \`undefined\` for those, not a string. \`JSON.stringify(v ?? null)\` is accepted.
+- **\`Object.fromEntries\`.** The keys of its result come from run-time data. A key can be \`then\`, \`toJSON\` or \`toString\`, which the run time calls. A call whose values are not plain data is \`[type]\`. Values typed \`unknown\` or \`object\` count as not plain, because one can be an \`Action\` that a join made \`unknown\`.
+
+Check time and run time: the rules of this statement are rules of the checker. The run time stops these cases where a value is handed over (S4.6): a response or an iterator that a type omits, and a promise that a type omits in the value of a cell whose type names no promise. This includes a value that reaches \`unknown\` through a join with a value typed \`unknown\` or through a type parameter. A conversion does not reach a function that a type omits (S2.7). If a type incorrectly describes a value as plain data, no run-time check finds it.`
 // %%
-md`**S2.10** \`viewof\`, \`mutable\` and \`$\` followed by digits (\`$0\`, \`$12\`) are reserved. Using one as the name of a cell, a parameter or a local is \`[reserved-name]\`, and so is \`$0\` as a property key or a member name. \`viewof\` and \`mutable\` may still be a property key or a member name, and a type may use any of them. A compiled cell is Observable JavaScript, which reads \`viewof\` and \`mutable\` as keywords and names a cell's \`viewof\` inputs \`$0\`, \`$1\` and so on. Since 2026-11-23 a name that starts with \`ss_\` or \`$ss$\` is reserved in the same places: the compiler names the runtime cells a compiled cell takes \`ss_<name>\`, inserts calls of \`ss_closure\` and \`ss_methods\` with a list whose parameter is \`ss_i\`, and names a duplicate or a type \`$ss$…\`; a binding of such a name would replace what it inserted. A cell may not be named \`Generators\` or \`invalidation\`, which compiled cells take from the module; a parameter named \`invalidation\` is the capability (S2.5). Since 2026-11-24 a cell may not take the name of a prelude function or \`h\` (the list is the toolchain's, \`tcPrelude\`: \`state\`, \`action\`, \`snapshot\`, \`equals\`, \`on\`, \`read\`, \`messageOf\`, \`memo\`, \`cast\` and \`h\`): a compiled cell that uses one binds it from the runtime module, so a cell of that name clashes with that binding. The runtime module, which defines them, is exempt; the checker knows it by the identity of the module it is given, not by the names of its cells. A parameter or a local may still take such a name. A BigInt literal as a property key (\`{ 1n() {} }\`) is unsupported. Since 2026-11-23 (a9) a cell whose text contains \`/*ss\` or \`/*{lang:"ss"}*/\`, in a string, a comment or a type, is \`[reserved-name]\`: the compiler marks what it inserts with that text and refuses such a cell, which the checker accepted before. In a string, write it split: \`"/" + "*ss"\`. Since 2026-11-24 (t1) a cell may not take the name of a capability or of a global that a compiled cell takes by name from outside the module: each capability (\`now\`, \`random\`, \`fetch\`, \`log\`, \`invalidation\`, \`compile\`, \`pool\`, the compiler's \`tcCaps\`), each global the compiler passes as an input (\`structuredClone\`, \`URLSearchParams\`) and each global the checker declares (\`Map\`, \`Set\`, \`URL\`, \`JSON\`, \`Math\`, \`Object\`, \`parseInt\` and the rest of \`ALLOWED_GLOBALS\`); such a name is \`[reserved-name]\`. A compiled cell that reads such a name reads the capability or the global, not the cell, while the module run as one script reads the cell, so the two runners gave different values. A cell name that holds \`$\` is \`[reserved-name]\`: the runners name a state cell's handle \`x$ref\`. In a cell that holds JSX, a binding named \`h\` (a local, a parameter, a function name or a \`catch\` parameter, in any pattern) is \`[reserved-name]\`: each element is a call \`h(...)\`, which would call the binding. Since 2026-11-24 (w1) a binding (a cell, a local, a parameter, a function name or a \`catch\` parameter) whose name the parser reads, alone as an expression, as something other than a name is \`[reserved-name]\`: the TypeScript parser takes \`const this = …\`, which JavaScript does not parse. The check asks the parser, so it covers each keyword it knows; a contextual keyword that JavaScript takes as a name, such as \`async\` or \`of\`, is accepted.`
+md`**S2.10** Reserved names. Each use in this statement is \`[reserved-name]\`.
+
+- \`viewof\`, \`mutable\` and \`$\` followed by digits (\`$0\`, \`$12\`) cannot be the name of a cell, a parameter or a local. \`$0\` also cannot be a property key or a member name. \`viewof\` and \`mutable\` can be a property key or a member name, and a type can use any of them. A compiled cell is Observable JavaScript, which reads \`viewof\` and \`mutable\` as keywords and names the \`viewof\` inputs of a cell \`$0\`, \`$1\` and so on.
+- Since 2026-11-23, a name that starts with \`ss_\` or \`$ss$\` is reserved in the same places. The compiler gives the runtime cells that a compiled cell takes the names \`ss_<name>\`. It adds calls of \`ss_closure\` and \`ss_methods\` with a list whose parameter is \`ss_i\`. It names a duplicate or a type \`$ss$…\`. A binding with such a name would replace these.
+- A cell cannot have the name \`Generators\` or \`invalidation\`. Compiled cells take these from the module. A parameter with the name \`invalidation\` is the capability (S2.5).
+- Since 2026-11-24, a cell cannot take the name of a prelude function or \`h\`. The list is \`tcPrelude\` of the toolchain: \`state\`, \`action\`, \`snapshot\`, \`equals\`, \`on\`, \`read\`, \`messageOf\`, \`memo\`, \`cast\` and \`h\`. A compiled cell that uses one of them binds it from the runtime module, and a cell with that name conflicts with the binding. The runtime module defines these names and is exempt. The checker identifies the runtime module by the identity of the module that it gets, not by the names of its cells. A parameter or a local can take such a name.
+- Since 2026-11-24 (t1), a cell cannot take the name of a capability or of a global that a compiled cell takes by name from outside the module. These are each capability (\`now\`, \`random\`, \`fetch\`, \`log\`, \`invalidation\`, \`compile\`, \`pool\`, the list \`tcCaps\` of the compiler), each global that the compiler passes as an input (\`structuredClone\`, \`URLSearchParams\`), and each global that the checker declares (\`Map\`, \`Set\`, \`URL\`, \`JSON\`, \`Math\`, \`Object\`, \`parseInt\` and the others of \`ALLOWED_GLOBALS\`). A compiled cell that reads such a name reads the capability or the global, not the cell. The module run as one script reads the cell. The two runners thus gave different values.
+- A cell name that contains \`$\` is reserved. The runners give the handle of a state cell the name \`x$ref\`.
+- In a cell that has JSX, a binding with the name \`h\` is reserved: a local, a parameter, a function name or a \`catch\` parameter, in any pattern. Each element is a call \`h(...)\`, which would call the binding.
+- Since 2026-11-23 (a9), a cell whose text contains \`/*ss\` or \`/*{lang:"ss"}*/\` is reserved, in a string, a comment or a type. The compiler marks the text that it adds with these characters. In a string, write the text in two parts: \`"/" + "*ss"\`.
+- Since 2026-11-24 (w1), a binding (a cell, a local, a parameter, a function name or a \`catch\` parameter) is reserved when the parser does not read its name, alone as an expression, as a name. The TypeScript parser accepts \`const this = …\`, which JavaScript does not parse. The check asks the parser, so it applies to each keyword that the parser knows. A contextual keyword that JavaScript accepts as a name, such as \`async\` or \`of\`, is accepted.
+
+A BigInt literal as a property key (\`{ 1n() {} }\`) is unsupported.`
 // %%
-md`**S2.11** The return type of an async function is \`Promise<T>\`, and of a generator function, sync or async, \`Generator<Y>\`; any other annotation is \`[type]\`. Each \`yield\` of a generator annotated \`Generator<Y>\` gives a \`Y\`, and a value of another type is \`[type]\`. A promise that an async function returns is unwrapped at run time, so the checker types the return as what the promise resolves to, as \`await\` would (since 2026-11-23; it was \`[type]\`). The result of \`then\` and of \`Promise.resolve\` is typed the same way: a callback that returns a \`Promise<T>\` gives a \`Promise<T>\`.`
+md`**S2.11** The return type of an async function is \`Promise<T>\`. The return type of a generator function, sync or async, is \`Generator<Y>\`. Any other annotation is \`[type]\`. Each \`yield\` of a generator annotated \`Generator<Y>\` gives a \`Y\`, and a value of a different type is \`[type]\`. The run time unwraps a promise that an async function returns. Thus, since 2026-11-23, the checker types the return as the value that the promise resolves to, as \`await\` does. The same applies to the result of \`then\` and of \`Promise.resolve\`: a callback that returns a \`Promise<T>\` gives a \`Promise<T>\`.`
 // %%
-md`**S2.12** \`messageOf(e)\` is the text of a caught value \`e\`: the \`message\` of an \`Error\` when it is a string, otherwise \`String(e)\`. It does not throw: when reading the message or making the string throws, it is \`(a thrown value whose text cannot be read)\`. A call with other than one argument is \`[arity]\`.`
+md`**S2.12** \`messageOf(e)\` is the text of a caught value \`e\`. It is the \`message\` of an \`Error\` when the message is a string. If not, it is \`String(e)\`. \`messageOf\` does not throw. If the read of the message or the conversion to a string throws, the result is \`(a thrown value whose text cannot be read)\`. A call that does not have exactly one argument is \`[arity]\`.`
 // %%
-md`**S2.13** \`memo(f)\` is a function of the type of \`f\`. For an argument list it has seen, it gives the result it stored for that list. A key is the number of arguments and each argument in turn: a primitive by \`Object.is\`, so \`0\` and \`-0\` are two keys, and any other value by identity. A call that misses deep-freezes its arguments in place and calls \`f\` with them, as a call of an action does. A caller that writes such an argument after the call gets a \`TypeError\` (S4.6). The result is deep-frozen and stored. A call with an argument that freezing replaces by a copy, such as a typed array or a \`Map\` made by JavaScript, is not stored. Nor is a call whose arguments reach a function at any depth, such as a record with a function field passed to a parameter \`{ readonly n: number }\` by width; an object of a kind the walk does not know counts as reaching one. Such a call is not one that S4.12 checks: nothing is stored for it. Such a function may read a \`Mut\` through a read-only name (S4.10) that the caller writes later, and a later call with the same key would be given what the first call stored. A call of \`f\` that throws stores nothing. Calling an action, writing a state cell or calling \`read\` while \`f\` computes a result throws. \`f\` is a function literal; \`memo\` of any other value is unsupported. In \`const fib = memo((n: number): number => …)\`, \`fib\` is bound before the call is checked, so \`f\` may call \`fib\` when its parameters and its result are annotated. Without those annotations the cell is unsupported. A call with other than one argument is \`[arity]\`. A \`Mut\` local of a function, named in an argument of a call there of a memoised function that the cell binds with \`const f = memo(…)\`, is not written after that call: such a write is \`[mutating-method]\` or \`[member-write]\`. A write in a later turn of a loop around the call, and a call of a helper that writes the local, are after it. A name inside \`snapshot(…)\` in the argument is not given to the function, since \`snapshot\` makes a copy. The checker does not see a write through a second name for the local, nor a call of a memoised function that the cell takes as an input; such a write throws at run time.`
+md`**S2.13** \`memo(f)\` is a function of the type of \`f\`. For an argument list that it has seen, it gives the result that it stored for that list.
+
+- **Key.** A key is the number of arguments and each argument in order. A primitive is compared by \`Object.is\`, so \`0\` and \`-0\` are two keys. Any other value is compared by identity.
+- **A call with a new key.** The call deep-freezes its arguments in place and calls \`f\` with them, as a call of an action does. If the caller writes such an argument after the call, the write throws a \`TypeError\` (S4.6). The result is deep-frozen and stored.
+- **Calls that are not stored.** A call is not stored when the freeze replaces an argument by a copy, such as a typed array or a \`Map\` made by JavaScript. A call is not stored when its arguments reach a function at any depth, such as a record with a function field given to a parameter \`{ readonly n: number }\` by width. An object of a kind that the walk does not know counts as one that reaches a function. S4.12 does not check such a call, because nothing is stored for it. Such a function can read a \`Mut\` through a read-only name (S4.10) that the caller writes later. A stored result would then be wrong for a later call with the same key. A call of \`f\` that throws stores nothing.
+- **While \`f\` computes.** A call of an action, a write to a state cell or a call of \`read\` throws.
+- **Form.** \`f\` is a function literal. \`memo\` of any other value is unsupported. In \`const fib = memo((n: number): number => …)\`, \`fib\` is bound before the call is checked. Thus \`f\` can call \`fib\` when its parameters and its result have annotations. Without those annotations the cell is unsupported. A call that does not have exactly one argument is \`[arity]\`.
+- **Writes after a call.** Let a cell bind a memoised function with \`const f = memo(…)\`. A \`Mut\` local of a function that is named in an argument of a call of \`f\` is not written after that call. Such a write is \`[mutating-method]\` or \`[member-write]\`. A write in a later turn of a loop around the call is after the call. A call of a helper that writes the local is also after the call. A name inside \`snapshot(…)\` in the argument is not given to the function, because \`snapshot\` makes a copy. The checker does not see a write through a second name for the local. It also does not see a call of a memoised function that the cell takes as an input. Such a write throws at run time.`
 // %%
-md`**S2.14** \`f\` in \`memo(f)\` computes its result from its arguments only. It is \`[memo-pure]\` when \`f\` is async or a generator. It is \`[memo-pure]\` when a parameter type of \`f\` may be or hold a function, since a function may read a capability. It is \`[memo-pure]\` when a parameter type of \`f\` holds a \`Mut\`, \`State\`, \`StateCell\`, \`Action\`, \`Events\`, \`Listener\`, \`Promise\`, \`Generator\`, \`Elem\`, \`FetchResponse\`, \`URLSearchParams\` or \`DataView\`. It is \`[memo-pure]\` when the result type of \`f\` holds a \`Mut\`, a state type, a \`Promise\` or a \`Generator\`, or may hold an iterator by the test of S3.19, such as what \`[n].values()\` gives. A name that \`f\` uses from outside itself follows the rule for an action's body (S6.9): an input that depends on state, a capability, a parameter of an enclosing function, or a const computed from one of these is \`[memo-pure]\`. So is a const bound to a \`Mut\` local, such as \`c\` in \`const c: readonly number[] = xs\`, though S4.10 lets other functions capture it: the cell may write \`xs\` after a result is stored. A capability, \`log\` and \`invalidation\` included, and a value that holds a \`State\`, \`Action\`, \`Events\` or \`Listener\` are \`[memo-pure]\` as well. A \`let\` or a \`Mut\` that \`f\` captures is \`[let-capture]\` or \`[mut-capture]\` (S4.10). The memoised function may be kept, returned and placed in a record, as a function value may.`
+md`**S2.14** \`f\` in \`memo(f)\` computes its result from its arguments only. \`f\` is \`[memo-pure]\` in each of these cases:
+
+- \`f\` is async or a generator.
+- A parameter type of \`f\` can be or hold a function. A function can read a capability.
+- A parameter type of \`f\` holds a \`Mut\`, \`State\`, \`StateCell\`, \`Action\`, \`Events\`, \`Listener\`, \`Promise\`, \`Generator\`, \`Elem\`, \`FetchResponse\`, \`URLSearchParams\` or \`DataView\`.
+- The result type of \`f\` holds a \`Mut\`, a state type, a \`Promise\` or a \`Generator\`, or can hold an iterator by the test of S3.19, such as the result of \`[n].values()\`.
+- \`f\` uses a name from outside itself that the body of an action cannot use (S6.9): an input that depends on state, a capability, a parameter of an enclosing function, or a const computed from one of these.
+- \`f\` uses a const bound to a \`Mut\` local, such as \`c\` in \`const c: readonly number[] = xs\`. S4.10 lets other functions capture \`c\`, but the cell can write \`xs\` after a result is stored.
+- \`f\` uses a capability, which includes \`log\` and \`invalidation\`, or a value that holds a \`State\`, \`Action\`, \`Events\` or \`Listener\`.
+
+A \`let\` or a \`Mut\` that \`f\` captures is \`[let-capture]\` or \`[mut-capture]\` (S4.10). The memoised function can be kept, returned and put in a record, as any function value can.`
 // %%
-md`The cells of this section. \`s2_answer\` takes \`s2_base\` and the function \`s2_double\` with no annotations; \`s2_read\` takes an async cell, a generator and a state cell by their value types.`
+md`These are the cells of this section. \`s2_answer\` takes \`s2_base\` and the function \`s2_double\` with no annotations. \`s2_read\` takes an async cell, a generator and a state cell by their value types.`
 // %%
 //ss: ./spec-2.ts
 // %%
@@ -611,49 +692,71 @@ test_spec_S2_9 = {
 // %%
 md`## 3. Immutable by default
 
-A value cannot be changed once it exists. This section lists the writes the checker rejects, and the parts of TypeScript that are left out because they would hide a write or a type error.`
+A value cannot change after it exists. This section lists the writes that the checker rejects. It also lists the parts of TypeScript that are not in the language because they can hide a write or a type error.`
 // %%
-md`**S3.1** Writing a member of a value that is not \`Mut\` (section 4) is \`[member-write]\`: assignment, compound assignment, \`++\` and \`--\`, and a member as the target of a destructuring assignment. An object literal bound to a local \`const\` is \`Mut\` (S4.1).`
+md`**S3.1** A write to a member of a value that is not \`Mut\` (section 4) is \`[member-write]\`. A write is an assignment, a compound assignment, \`++\` or \`--\`, or a member as the target of a destructuring assignment. An object literal bound to a local \`const\` is \`Mut\` (S4.1).`
 // %%
-md`**S3.2** Calling a mutating method on a receiver that is not \`Mut\` is \`[mutating-method]\`: \`push pop shift unshift splice sort reverse fill copyWithin\` on an array, those of them a typed array has and \`set\`, \`set delete clear\` on a \`Map\`, \`add delete clear\` on a \`Set\`. The copying methods (\`toSorted\`, \`toReversed\`, \`slice\`, \`map\`, \`filter\`) and spreads are accepted.`
+md`**S3.2** A call of a mutating method on a receiver that is not \`Mut\` is \`[mutating-method]\`. The mutating methods are:
+
+- on an array: \`push pop shift unshift splice sort reverse fill copyWithin\`;
+- on a typed array: those of the array methods that it has, and \`set\`;
+- on a \`Map\`: \`set delete clear\`;
+- on a \`Set\`: \`add delete clear\`.
+
+The methods that copy (\`toSorted\`, \`toReversed\`, \`slice\`, \`map\`, \`filter\`) and spreads are accepted.`
 // %%
-md`**S3.3** \`Object.assign\` with an existing value as its first argument is \`[object-assign]\`. A spread, \`{ ...o, b: 2 }\`, builds the new value. A spread or a rest copies the properties a value has itself, so a spread or rest of an intrinsic such as \`Math\` is \`[type]\`. For the same reason only a record is assignable to a record type with a required member: an array or a string where \`{ length: number }\` is expected, a \`Map\` where \`{ size: number }\` is expected, or \`Math\` where \`{ PI: number }\` is expected is \`[type]\`.`
+md`**S3.3** \`Object.assign\` with an existing value as its first argument is \`[object-assign]\`. Use a spread, \`{ ...o, b: 2 }\`, to make the new value. A spread or a rest copies the own properties of a value. Thus a spread or a rest of an intrinsic such as \`Math\` is \`[type]\`. For the same reason, only a record is assignable to a record type with a required member. These are \`[type]\`: an array or a string where \`{ length: number }\` is expected, a \`Map\` where \`{ size: number }\` is expected, and \`Math\` where \`{ PI: number }\` is expected.`
 // %%
-md`**S3.4** \`delete\` on a value that is not \`Mut\` is \`[no-delete]\`. On a \`Mut\` it is accepted (S4.1) when it removes an optional member (\`a?: T\`) or an entry of an index signature, whose key is then a literal (S2.7), since 2026-11-24. A \`delete\` of a member the type requires, of an array element, or of a member of a value that is not a record is \`[no-delete]\`: a later read would find \`undefined\` where the type says there is a value. Make the member optional, or build a new record without it (\`const { a: _, ...rest } = o\`).`
+md`**S3.4** \`delete\` on a value that is not \`Mut\` is \`[no-delete]\`. Since 2026-11-24, \`delete\` on a \`Mut\` is accepted (S4.1) only when it removes an optional member (\`a?: T\`) or an entry of an index signature with a literal key (S2.7). A \`delete\` of a required member, of an array element, or of a member of a value that is not a record is \`[no-delete]\`. A later read would find \`undefined\` where the type gives a value. Make the member optional, or make a new record without it (\`const { a: _, ...rest } = o\`).`
 // %%
 md`**S3.5** \`var\`, \`class\` (a declaration or an expression), \`this\` and \`arguments\` are \`[no-var]\`, \`[no-class]\`, \`[no-this]\` and \`[no-arguments]\`.`
 // %%
-md`**S3.6** \`new\` on anything but an allowed intrinsic (S2.6) is \`[new-non-intrinsic]\`. That includes \`new Date()\` and \`new C()\` where \`C\` is a local bound to an intrinsic.`
+md`**S3.6** \`new\` on anything other than an allowed intrinsic (S2.6) is \`[new-non-intrinsic]\`. This includes \`new Date()\`, and \`new C()\` where \`C\` is a local bound to an intrinsic.`
 // %%
-md`**S3.7** The type \`any\` is \`[no-any]\`. An \`as\` cast other than \`as const\` is \`[no-cast]\`. A non-null assertion \`x!\` is \`[no-non-null]\`. A \`@ts-ignore\`, \`@ts-expect-error\` or \`@ts-nocheck\` comment is \`[no-ts-ignore]\`. A mapped type (\`{ readonly [K in "a"]?: number }\`) is unsupported where it is used; before 2026-11-24 (w1) its \`readonly\` or \`?\` made the checker and the toolchain's \`splitCells\` throw.`
+md`**S3.7** The type \`any\` is \`[no-any]\`. An \`as\` cast other than \`as const\` is \`[no-cast]\`. A non-null assertion \`x!\` is \`[no-non-null]\`. A \`@ts-ignore\`, \`@ts-expect-error\` or \`@ts-nocheck\` comment is \`[no-ts-ignore]\`. A mapped type (\`{ readonly [K in "a"]?: number }\`) is unsupported where it is used.`
 // %%
 md`**S3.8** \`import(...)\` is \`[no-dynamic-import]\`.`
 // %%
 md`**S3.9** \`enum\` and \`const enum\` are \`[no-enum]\`. \`namespace\`, \`module\` and \`declare module\` are \`[no-namespace]\`.`
 // %%
-md`**S3.10** \`throw\`, \`try\`/\`catch\`/\`finally\`, loops and assigning a local \`let\` are accepted.`
+md`**S3.10** \`throw\`, \`try\`/\`catch\`/\`finally\`, loops and an assignment to a local \`let\` are accepted.`
 // %%
-md`**S3.11** A local \`let\` may be assigned from a nested function only when every function from the assignment out to the \`let\` is a local helper: bound to a local \`const\` or declared with \`function\`, and every use of its name a direct call. Otherwise it is \`[let-capture]\`: the helper is returned, passed as an argument, put in a literal, bound to a second name, or called from a function that escapes. A callback of an intrinsic that calls it before returning (\`forEach\`, \`map\`) may assign it as a helper does; one the intrinsic keeps (\`then\`) is \`[let-capture]\`. A helper that is only called may read a captured \`let\`; a kept function does not capture one (S4.10). Since 2026-11-24 a \`let\` or a parameter that a function nested in the one declaring it assigns, at any depth (a helper, a \`function\` declaration before or after the use, an arrow in an initializer, a method of an object literal), is never narrowed: a check on it (\`if (r !== null)\`, \`if (r.ok)\`) and its initializer do not change its type, since a call between the check and the use may assign it. The use is rejected by the rule its declared type gives (\`[possibly-undefined]\`, \`[no-member]\`), and the message says why; the fix is to copy it to a \`const\` first (\`const y = r; if (y !== null) …\`). Since 2026-11-24 (t1) a \`let\` or a parameter that the declaring function assigns anywhere other than its declaration is never narrowed in a function nested in it: a check made there does not carry to a later use, since across an \`await\`, a \`yield\` or a call the declaring function may assign it. In the declaring function it is narrowed as before.`
+md`**S3.11** A nested function can assign a local \`let\` only when every function from the assignment out to the \`let\` is a local helper. A local helper is bound to a local \`const\` or declared with \`function\`, and every use of its name is a direct call. If not, the assignment is \`[let-capture]\`. This is the case when the helper is returned, passed as an argument, put in a literal, bound to a second name, or called from a function that escapes.
+
+- A callback that an intrinsic calls before it returns (\`forEach\`, \`map\`) can assign the \`let\`, as a helper can. A callback that the intrinsic keeps (\`then\`) is \`[let-capture]\`.
+- A helper that is only called can read a captured \`let\`. A kept function does not capture a \`let\` (S4.10).
+
+Narrowing, since 2026-11-24:
+
+- A \`let\` or a parameter is never narrowed if a function nested in its declaring function assigns it, at any depth. Such a function can be a helper, a \`function\` declaration before or after the use, an arrow in an initializer, or a method of an object literal. A check on it (\`if (r !== null)\`, \`if (r.ok)\`) and its initializer do not change its type, because a call between the check and the use can assign it. The checker rejects the use by the rule of its declared type (\`[possibly-undefined]\`, \`[no-member]\`), and the message gives the reason. To correct this, copy it to a \`const\` first (\`const y = r; if (y !== null) …\`).
+- (t1) A \`let\` or a parameter that the declaring function assigns anywhere other than its declaration is never narrowed in a nested function. A check in the nested function does not apply to a later use, because the declaring function can assign it across an \`await\`, a \`yield\` or a call. In the declaring function it is narrowed as usual.`
 // %%
-md`**S3.12** \`===\`, \`!==\`, \`==\` and \`!=\` with two operands that may both be non-primitive is \`[strict-eq-object]\`. \`equals(a, b)\` compares structurally. Comparing with a primitive, \`null\` included, is accepted.`
+md`**S3.12** \`===\`, \`!==\`, \`==\` and \`!=\` with two operands that can both be non-primitive is \`[strict-eq-object]\`. \`equals(a, b)\` compares structure. A comparison with a primitive, which includes \`null\`, is accepted.`
 // %%
-md`**S3.13** \`switch\` is accepted. Each case is checked as the condition \`d === e\`, where \`d\` is the discriminant and \`e\` the case's value: two operands that may both be non-primitive are \`[strict-eq-object]\`, and a value that has nothing in common with the values of \`d\` no earlier case took is \`[type]\`, a repeated case included.`
+md`**S3.13** \`switch\` is accepted. The checker checks each case as the condition \`d === e\`, where \`d\` is the discriminant and \`e\` is the value of the case. Two operands that can both be non-primitive are \`[strict-eq-object]\`. A case value is \`[type]\` when it has nothing in common with the values of \`d\` that no earlier case took. This includes a repeated case.`
 // %%
-md`**S3.14** A case's body is checked with the narrowings of its test being true and of every earlier test being false, as in an \`if\` chain of the same tests. Empty cases before a body (\`case "a": case "b":\`) give it either case's narrowings. \`default\`, wherever it is written, has every test false. In \`switch (t.k)\`, a case narrows \`t\` to the members whose \`k\` can equal its value.`
+md`**S3.14** The checker checks the body of a case with the narrowings of a true test for that case and a false test for every earlier case, as in an \`if\` chain of the same tests. Empty cases before a body (\`case "a": case "b":\`) give the body the narrowings of either case. \`default\`, at any position, has every test false. In \`switch (t.k)\`, a case narrows \`t\` to the members whose \`k\` can equal its value.`
 // %%
-md`**S3.15** A case body that is not empty, is followed by another case, and can reach its end is \`[switch-fallthrough]\`. A body ends with \`break\`, which ends the switch, or with \`return\`, \`throw\` or \`continue\`. The last body may reach its end.`
+md`**S3.15** A case body is \`[switch-fallthrough]\` when it is not empty, another case follows it, and it can reach its end. A body ends with \`break\`, which ends the switch, or with \`return\`, \`throw\` or \`continue\`. The last body can reach its end.`
 // %%
-md`**S3.16** \`const\`, \`let\`, \`function\` or \`class\` written directly in a case is \`[switch-declaration]\`, because it would be in scope in every case. In a block inside the case, \`case 1: { const x = 2; return x; }\`, it is accepted.`
+md`**S3.16** \`const\`, \`let\`, \`function\` or \`class\` directly in a case is \`[switch-declaration]\`, because it would be in scope in every case. In a block inside the case, \`case 1: { const x = 2; return x; }\`, it is accepted.`
 // %%
-md`**S3.17** A \`switch\` with no \`default\`, whose case values have literal, \`null\` or \`undefined\` types that together are every value of the discriminant's type, always takes a case. When every body then ends in \`return\` or \`throw\`, the code after the switch is unreachable and a function needs no \`return\` after it. When the type has a value no case lists, such as any \`string\`, the switch may take none.`
+md`**S3.17** A \`switch\` always takes a case when it has no \`default\` and its case values have literal, \`null\` or \`undefined\` types that together are every value of the type of the discriminant. If every body then ends in \`return\` or \`throw\`, the code after the switch is unreachable, and a function needs no \`return\` after it. If the type has a value that no case lists, such as any \`string\`, the switch can take no case.`
 // %%
-md`**S3.18** The rules of sections 3 to 7 apply in a case body as in the body of an \`if\`: a \`State\` written in a case outside an action is \`[state-write]\`. A writable local may be returned from a case, and written after a case bound it to a second name.`
+md`**S3.18** The rules of sections 3 to 7 apply in a case body as in the body of an \`if\`. A \`State\` written in a case outside an action is \`[state-write]\`. A case can return a writable local. A writable local can be written after a case bound it to a second name.`
 // %%
-md`**S3.19** A nested function that uses a binding of an enclosing function whose type may hold an iterator is \`[iterator-capture]\`, and a cell whose value, state cell content or events value may hold one is \`[iterator-cell]\`: reading an iterator uses it up. A type may hold one when it is or contains \`Iterable<T>\` (what \`values()\`, \`keys()\` and \`entries()\` return), \`Generator<T>\` or a type parameter; a function type, \`Action\`, \`State\` and \`Events\` hold none. An array, a string, a \`Map\` and a \`Set\` may be kept, under a type that is not \`Mut<…>\` (S4.10), and \`[...it]\` copies an iterator into an array. Since 2026-11-24 a \`FetchResponse\` is one-shot as well, since its body can be read once: \`fetch(url)\` gives a \`Promise<Mut<FetchResponse>>\`, and a type that is or contains \`FetchResponse\` follows the same two rules as an iterator. A response given a type that hides it (\`unknown\`, \`object\`) is \`[handle-pass]\` (S6.6), and a write to or \`delete\` of one of its members is \`[member-write]\` or \`[no-delete]\`. The function that awaited a response may read \`ok\`, \`status\` and the body (\`text()\`, \`json()\`, \`arrayBuffer()\`), and give it to a helper as an argument; S5.6 and S5.7 do not take a binding that holds one, since no other code can reach it. So \`const data = async (fetch: Fetch) => (await fetch(url)).json();\` is accepted.`
+md`**S3.19** A read of an iterator uses it up. Thus:
+
+- a nested function that uses a binding of an enclosing function whose type can hold an iterator is \`[iterator-capture]\`;
+- a cell whose value, state cell content or events value can hold an iterator is \`[iterator-cell]\`.
+
+A type can hold an iterator when it is or contains \`Iterable<T>\` (the result of \`values()\`, \`keys()\` and \`entries()\`), \`Generator<T>\` or a type parameter. A function type, \`Action\`, \`State\` and \`Events\` hold no iterator. An array, a string, a \`Map\` and a \`Set\` can be kept, with a type that is not \`Mut<…>\` (S4.10). \`[...it]\` copies an iterator into an array.
+
+Since 2026-11-24, the same two rules apply to a type that is or contains \`FetchResponse\`, because the body of a response can be read only one time. \`fetch(url)\` gives a \`Promise<Mut<FetchResponse>>\`. A response given a type that hides it (\`unknown\`, \`object\`) is \`[handle-pass]\` (S6.6). A write to one of its members is \`[member-write]\`, and a \`delete\` of one is \`[no-delete]\`. The function that awaited a response can read \`ok\`, \`status\` and the body (\`text()\`, \`json()\`, \`arrayBuffer()\`), and can give the response to a helper as an argument. S5.6 and S5.7 do not apply to a binding that holds a response, because no other code can reach it. Thus \`const data = async (fetch: Fetch) => (await fetch(url)).json();\` is accepted.`
 // %%
-md`**S3.20** \`Object.freeze(e)\`, where \`e\` is an object or array literal, is accepted and has the type of \`e\`. With any other argument it is \`[object-freeze]\`: freezing a value that another cell holds would change it. \`Object.freeze\` read other than in such a call is \`[no-member]\`.`
+md`**S3.20** \`Object.freeze(e)\`, where \`e\` is an object or array literal, is accepted and has the type of \`e\`. With any other argument it is \`[object-freeze]\`, because a freeze of a value that another cell holds would change that value. A read of \`Object.freeze\` other than in such a call is \`[no-member]\`.`
 // %%
-md`The cells of this section. \`s3_parse\` is a recursive-descent parser whose helpers share the cursor \`let i\` (S3.11); \`s3_moved\` builds a new point with a spread; \`s3_area\` is a switch over the tag of a union with a case for each member and no \`default\`, and \`s3_kind\` groups empty cases and has a \`default\` with a block.`
+md`These are the cells of this section. \`s3_parse\` is a recursive-descent parser whose helpers share the cursor \`let i\` (S3.11). \`s3_moved\` makes a new point with a spread. \`s3_area\` is a switch on the tag of a union, with a case for each member and no \`default\`. \`s3_kind\` groups empty cases and has a \`default\` with a block.`
 // %%
 //ss: ./spec-3.ts
 // %%
@@ -859,33 +962,137 @@ test_spec_S3_20 = {
 // %%
 md`## 4. Local writes
 
-A value is written in place only in the cell that made it. A local bound to a fresh value is writable, and everything a cell publishes is frozen as it leaves the cell (S4.6), so no cell sees a value it holds change. The static rules of this section report the common mistakes at the line that makes them; the freeze at run time is what the guarantee rests on, and a program that passes the rules and still writes a published value stops with a \`TypeError\` at the write.`
+Only the cell that made a value can write it in place. A local bound to a fresh value is writable. Everything that a cell publishes is frozen when it leaves the cell (S4.6). Thus no cell sees a value that it holds change. The static rules of this section report the common mistakes at the line of the mistake. The guarantee depends on the freeze at run time. If a program passes the rules and then writes a published value, the write throws a \`TypeError\`.`
 // %%
-md`**S4.1** An unannotated local, \`const\` or \`let\`, whose initializer is a fresh value (S4.3) of type \`T\` has the type \`Mut<T>\`. On a \`Mut\` receiver, member writes, mutating methods and \`delete\` are accepted (S3.1, S3.2, S3.4). A \`Mut<T>\` is assignable to \`T\`; a \`T\` is not assignable to \`Mut<T>\`. A local bound to a fresh value and annotated with an array type, a tuple type, a type literal with no \`readonly\` member (an index signature \`{ [k: string]: T }\` included, since 2026-11-23), or \`Array\`, \`Map\`, \`Set\`, \`WeakMap\`, \`WeakSet\`, \`Record\` or a typed array, has the type \`Mut<T>\` for its annotation \`T\`, since 2026-11-23. A fresh value assigned to such a \`let\` keeps it writable. Any other annotation leaves the local unwritable: \`readonly T[]\`, \`ReadonlyArray<T>\`, \`Readonly<…>\`, a type literal with a \`readonly\` member, a union, a type alias, \`typeof\`. A local bound to a value that is not fresh is not writable.`
+md`**S4.1** A local (\`const\` or \`let\`) with no annotation whose initializer is a fresh value (S4.3) of type \`T\` has the type \`Mut<T>\`. On a \`Mut\` receiver, member writes, mutating methods and \`delete\` are accepted (S3.1, S3.2, S3.4). A \`Mut<T>\` is assignable to \`T\`. A \`T\` is not assignable to \`Mut<T>\`.
+
+Since 2026-11-23, a local bound to a fresh value with one of these annotations \`T\` has the type \`Mut<T>\`:
+
+- an array type or a tuple type;
+- a type literal with no \`readonly\` member, which includes an index signature \`{ [k: string]: T }\`;
+- \`Array\`, \`Map\`, \`Set\`, \`WeakMap\`, \`WeakSet\`, \`Record\` or a typed array.
+
+A fresh value assigned to such a \`let\` keeps it writable. Any other annotation makes the local read-only: \`readonly T[]\`, \`ReadonlyArray<T>\`, \`Readonly<…>\`, a type literal with a \`readonly\` member, a union, a type alias, \`typeof\`. A local bound to a value that is not fresh is not writable.`
 // %%
-md`**S4.2** There is no marker call. \`mut(...)\`, \`freeze(...)\` and \`borrow(...)\` were removed from the language on 2026-11-22, and a call to one is \`[removed-call]\`.`
+md`**S4.2** There is no marker call. \`mut(...)\`, \`freeze(...)\` and \`borrow(...)\` were removed from the language on 2026-11-22. A call to one of them is \`[removed-call]\`.`
 // %%
-md`**S4.3** A fresh value is a literal, a spread copy, \`new\` on an intrinsic, the result of an intrinsic that returns a new value (\`Array.from\`, \`slice\`, \`map\`, \`structuredClone\`), or \`snapshot(v)\` (S5.5). A cell input, a parameter not typed \`Mut<…>\` and the result of a call whose return type is not \`Mut<…>\` are not fresh. A write through one of these, or through a local bound to one, is \`[member-write]\` or \`[mutating-method]\`, and passing one to a parameter typed \`Mut<…>\` is \`[type]\`. Since 2026-11-23 a member write or a mutating method whose receiver is a fresh value written in the same expression is accepted (\`[...xs].sort()\`, \`xs.slice().reverse()\`, \`[...xs][0] = 1\`): no other name holds that value. Only the fresh value itself is such a receiver; a member of it, a conditional or \`??\` with a fresh branch, the result of a function that returns its argument, and the result of a mutating method (\`[...xs].sort().reverse()\`) are not. \`toSorted\`, \`toReversed\`, \`toSpliced\` and \`with\` (arrays; typed arrays have \`toSorted\`, \`toReversed\` and \`with\`) return a new array, and the message of a write to a value that is not Mut names the one that fits.`
+md`**S4.3** A fresh value is a literal, a spread copy, \`new\` on an intrinsic, the result of an intrinsic that returns a new value (\`Array.from\`, \`slice\`, \`map\`, \`structuredClone\`), or \`snapshot(v)\` (S5.5). These are not fresh: a cell input, a parameter that is not typed \`Mut<…>\`, and the result of a call whose return type is not \`Mut<…>\`. A write through one of these, or through a local bound to one, is \`[member-write]\` or \`[mutating-method]\`. One of these given to a parameter typed \`Mut<…>\` is \`[type]\`.
+
+Since 2026-11-23, a member write or a mutating method is accepted when its receiver is a fresh value made in the same expression (\`[...xs].sort()\`, \`xs.slice().reverse()\`, \`[...xs][0] = 1\`). No other name holds that value. Only the fresh value itself is such a receiver. These are not: a member of it, a conditional or \`??\` with a fresh branch, the result of a function that returns its argument, and the result of a mutating method (\`[...xs].sort().reverse()\`).
+
+\`toSorted\`, \`toReversed\`, \`toSpliced\` and \`with\` return a new array. Typed arrays have \`toSorted\`, \`toReversed\` and \`with\`. The message of a write to a value that is not Mut names the applicable method.`
 // %%
-md`**S4.4** A \`Mut\` may be bound to a second name, placed in an array or object literal, passed to a parameter typed \`Mut<…>\`, which may write it, and passed to any parameter of its plain type. Every name is the same value, and a write through one is seen through the others. What a cell exposes is read with every \`Mut\` removed: a cell that takes it gets a read-only value, and a write there is \`[member-write]\` or \`[mutating-method]\`. The \`Mut\` is removed wherever S5.8 finds one, also, since 2026-11-23, in the result of a function the cell exposes. A cell that calls such a function gets a read-only result, even when the function made it fresh. A parameter of an exposed function keeps its \`Mut\`, so a cell that calls it passes a value of its own. \`Mut\` in the type of a cell input is \`[mut-cell]\`.`
+md`**S4.4** A \`Mut\` can be bound to a second name, put in an array or object literal, given to a parameter typed \`Mut<…>\` (which can write it), and given to any parameter of its plain type. Every name is the same value, and a write through one name is seen through the others.
+
+The value that a cell exposes is read with every \`Mut\` removed. A cell that takes it gets a read-only value, and a write there is \`[member-write]\` or \`[mutating-method]\`. The \`Mut\` is removed at each place where S5.8 finds one. Since 2026-11-23, this includes the result of a function that the cell exposes. A cell that calls such a function gets a read-only result, even when the function made the result fresh. A parameter of an exposed function keeps its \`Mut\`, so a cell that calls the function gives a value of its own. \`Mut\` in the type of a cell input is \`[mut-cell]\`.`
 // %%
-md`**S4.5** A function is kept when it is returned, yielded, stored, or passed to something that may call it later. A helper bound to a local \`const\` or declared with \`function\` and only called (S3.11) is not kept, nor is a callback of an intrinsic that calls it before returning. A kept function does not capture a \`Mut\` or a \`let\` of an enclosing function (S4.10). A capture of a \`Mut\` is \`[mut-capture]\` in every case; the message names the case when the kept function writes the \`Mut\`, returns it or yields it; when the \`Mut\` is written after the function is made, later in the text, in a loop that makes the function, or inside another function; when the \`Mut\` is a typed array or a \`URL\` that a name in the cell can still write; and, in a generator cell or in a nested async or generator function, when any \`Mut\` is written after the function is made.`
+md`**S4.5** A function is kept when it is returned, yielded, stored, or given to code that can call it later. These are not kept: a helper that is bound to a local \`const\` or declared with \`function\` and only called (S3.11), and a callback that an intrinsic calls before it returns. A kept function does not capture a \`Mut\` or a \`let\` of an enclosing function (S4.10). A capture of a \`Mut\` is always \`[mut-capture]\`. The message names the case when:
+
+- the kept function writes the \`Mut\`, returns it or yields it;
+- the \`Mut\` is written after the function is made: later in the text, in a loop that makes the function, or inside another function;
+- the \`Mut\` is a typed array or a \`URL\` that a name in the cell can still write;
+- in a generator cell or in a nested async or generator function, any \`Mut\` is written after the function is made.`
 // %%
-md`**S4.6** At run time every value a cell publishes is frozen, with everything it reaches, when it is published: the value a cell returns, each value a generator cell yields, the value a returned promise resolves to, a value written to a state cell, the arguments of an action, the arguments of a memoised function on a miss (S2.13), and the result of a worker. A write to a published value, from any code, throws a \`TypeError\`. A value written to a state cell and an action's arguments are first checked for a function or promise made in a body that still runs (S4.12). Arrays, records, \`Error\`s and JSX elements are frozen. A \`Map\`, \`Set\` or \`URL\` made in a cell is an instance of a subclass whose writing methods throw once it is frozen. The locals a published function uses are frozen with it. A typed array or \`ArrayBuffer\` is published as a copy, and a container that reaches one as a frozen copy; the cell keeps its original. The \`searchParams\` of a \`URL\` is a copy taken when it is read. Publishing throws, and the cell is in error, for: an iterator or a sync generator object (a cell whose value is one is \`[iterator-cell]\` first); a value with a callable \`then\` that is not a promise (as a cell's whole value also \`[type]\`); a function, \`Error\` or already frozen value that reaches a typed array; and a function that uses a binding not yet initialised. Since 2026-11-24 (y1) publishing, the arguments of an action call and a value written to a state cell also throw, anywhere in the value, for a response (\`fetch\`'s) and for an async iterator or async generator object; and when the cell's value type names no promise (the checker gives each compiled cell that fact), a cell's value throws for a promise anywhere in it, for a promise as its whole value when the cell is not async, and for a generator object as its whole value when the cell is not a generator. These refusals hold whatever type the value was given on the way, \`unknown\`, \`object\` or a type parameter included, which the checker does not follow (S2.9, S9.6). The message names the value and the place, such as \`a response cannot leave its cell: … (the value of g, at value[0].r)\`. A publish that throws changes no value.`
+md`**S4.6** At run time, every value that a cell publishes is frozen when it is published, with everything that it reaches. A published value is:
+
+- the value that a cell returns;
+- each value that a generator cell yields;
+- the value that a returned promise resolves to;
+- a value written to a state cell;
+- the arguments of an action;
+- the arguments of a memoised function on a call with a new key (S2.13);
+- the result of a worker.
+
+A write to a published value, from any code, throws a \`TypeError\`. Before the freeze, a value written to a state cell and the arguments of an action are checked for a function or a promise made in a body that still runs (S4.12).
+
+How values are frozen:
+
+- Arrays, records, \`Error\`s and JSX elements are frozen.
+- A \`Map\`, \`Set\` or \`URL\` made in a cell is an instance of a subclass. Its writing methods throw after it is frozen.
+- The locals that a published function uses are frozen with it.
+- A typed array or an \`ArrayBuffer\` is published as a copy. A container that reaches one is published as a frozen copy. The cell keeps its original.
+- The \`searchParams\` of a \`URL\` is a copy made when it is read.
+
+The publish throws, and the cell is in error, for:
+
+- an iterator or a sync generator object (a cell whose value is one is \`[iterator-cell]\` first);
+- a value with a callable \`then\` that is not a promise (as the full value of a cell, this is also \`[type]\`);
+- a function, an \`Error\` or an already frozen value that reaches a typed array;
+- a function that uses a binding that is not yet initialised.
+
+Since 2026-11-24 (y1), a publish, the arguments of an action call and a value written to a state cell also throw for a response (from \`fetch\`), an async iterator or an async generator object, anywhere in the value. The checker gives each compiled cell one fact: whether the value type of the cell names a promise. When it names no promise, the value of the cell throws for:
+
+- a promise anywhere in it;
+- a promise as its full value, when the cell is not async;
+- a generator object as its full value, when the cell is not a generator.
+
+The type that the value had on its way makes no difference. This includes \`unknown\`, \`object\` and a type parameter, which the checker does not follow (S2.9, S9.6). The message names the value and the place, for example \`a response cannot leave its cell: … (the value of g, at value[0].r)\`. A publish that throws changes no value.`
 // %%
-md`**S4.7** Only the first level of an inferred \`Mut\` is writable. A write to, or a mutating method of, a value held inside it (\`m.a.b = 2\`, \`m.xs.push(2)\`, \`m.get(k).push(2)\`) is \`[member-write]\` or \`[mutating-method]\`. A value held inside a \`Mut\` is written through a \`Mut\` local or parameter of its own, since a written type holds a \`Mut\` only as its whole type (S4.9).`
+md`**S4.7** Only the first level of an inferred \`Mut\` is writable. A write to a value held inside it, or a mutating method of such a value (\`m.a.b = 2\`, \`m.xs.push(2)\`, \`m.get(k).push(2)\`), is \`[member-write]\` or \`[mutating-method]\`. To write a value held inside a \`Mut\`, use a \`Mut\` local or parameter for that value. A written type holds a \`Mut\` only as its full type (S4.9).`
 // %%
-md`**S4.8** A view of a local buffer (\`subarray\`, \`buffer\`) may be bound and read; a write through it is \`[member-write]\`. Freezing does not stop a write to a typed array or a \`URL\`'s setters, so a generator cell that yields a typed array or a \`URL\` it can still write, also inside a literal, is \`[mut-yield]\`. A fresh copy (\`buf.slice()\` for a typed array, \`new URL(u.href)\` for a \`URL\`), a cell input, or a read-only \`const\` made from one is accepted.`
+md`**S4.8** A view of a local buffer (\`subarray\`, \`buffer\`) can be bound and read. A write through it is \`[member-write]\`. A freeze does not stop a write to a typed array or the setters of a \`URL\`. Thus a generator cell that yields a typed array or a \`URL\` that it can still write is \`[mut-yield]\`, also when the value is inside a literal. These are accepted: a fresh copy (\`buf.slice()\` for a typed array, \`new URL(u.href)\` for a \`URL\`), a cell input, or a read-only \`const\` made from one.`
 // %%
-md`**S4.9** \`Mut<T>\` may be written only as the whole type of a parameter, of a function or of a function type, as the whole type of a local, or as the whole body of a type alias. An alias whose body is \`Mut<…>\`, or another such alias, stands for a \`Mut\` and follows the same rule. \`Mut\` anywhere else is \`[mut-nested]\`: in a record field, an array or tuple element, a type argument, a union member, a function's result, a type parameter's bound, or the body of an alias that is not \`Mut<…>\` itself. A \`typeof\` type anywhere but those places is \`[mut-nested]\` too, since it may hold a \`Mut\`. In the type of a cell input a \`Mut\` is \`[mut-cell]\` (S4.4). A function may return a \`Mut<…>\` parameter, and its result type is then inferred. Since 2026-11-23.`
+md`**S4.9** Since 2026-11-23, \`Mut<T>\` can be written only as:
+
+- the full type of a parameter of a function or of a function type;
+- the full type of a local;
+- the full body of a type alias.
+
+An alias whose body is \`Mut<…>\`, or another such alias, is a \`Mut\` and follows the same rule. \`Mut\` in any other position is \`[mut-nested]\`: in a record field, an array or tuple element, a type argument, a union member, the result of a function, the bound of a type parameter, or the body of an alias that is not \`Mut<…>\` itself. A \`typeof\` type in any position other than the allowed ones is also \`[mut-nested]\`, because it can hold a \`Mut\`. In the type of a cell input a \`Mut\` is \`[mut-cell]\` (S4.4). A function can return a \`Mut<…>\` parameter, and the checker then infers its result type.`
 // %%
-md`**S4.10** A kept function (S4.5) does not capture a \`Mut\` local of an enclosing function, also only to read it. That is \`[mut-capture]\`. It does not capture a local or parameter of an enclosing function whose type holds a \`Mut\` (S5.8), also only to read it. That is \`[mut-capture]\` too. Such a type is inferred: \`[xs, 1] as const\`, \`{ k: xs } as const\`, \`xs.length > 0 ? xs : null\`, or the result of a generic helper called with \`xs\`, for a \`Mut\` local \`xs\`. A \`const\` of the same type with no \`Mut\` bound before the function may be captured: \`const c: [number[], 1] = t\`. It does not capture a \`let\` of an enclosing function, of any type. That is \`[let-capture]\`. A call of a helper that uses the local counts as a capture of it. A \`const\` that S4.1 does not make writable, or a \`const\` of a primitive type, bound before the function may be captured: \`const c: readonly number[] = out\`, \`const m: Map<string, number> = made\`, \`const c = n\` for a \`let n\`. A \`const m: Map<string, number> = new Map()\` is writable (S4.1), and capturing it is \`[mut-capture]\`. Such a \`const\` names the same value as the \`Mut\`, and a write to \`out\` is seen through \`c\`. The capture is safe only because every write to \`out\` comes before the function is published. When the cell returns, the cell's function has ended. While a function still runs, a function it made cannot be given to a state cell or an action: S4.12 makes that throw at run time. Even so, a kept function that captures a local holding a promise is \`[mut-capture]\`. Since 2026-11-22; a local whose type holds a \`Mut\` since 2026-11-23.`
+md`**S4.10** A kept function (S4.5) does not capture these, also when it only reads them:
+
+- A \`Mut\` local of an enclosing function. This is \`[mut-capture]\` (since 2026-11-22).
+- A local or a parameter of an enclosing function whose type holds a \`Mut\` (S5.8). This is \`[mut-capture]\` (since 2026-11-23). Such a type is inferred: \`[xs, 1] as const\`, \`{ k: xs } as const\`, \`xs.length > 0 ? xs : null\`, or the result of a generic helper called with \`xs\`, for a \`Mut\` local \`xs\`.
+- A \`let\` of an enclosing function, of any type. This is \`[let-capture]\` (since 2026-11-22).
+- A local that holds a promise. This is \`[mut-capture]\`.
+
+A call of a helper that uses the local counts as a capture of the local.
+
+A kept function can capture a \`const\` bound before the function, if S4.1 does not make the \`const\` writable, or the \`const\` has a primitive type: \`const c: [number[], 1] = t\`, \`const c: readonly number[] = out\`, \`const m: Map<string, number> = made\`, \`const c = n\` for a \`let n\`. \`const m: Map<string, number> = new Map()\` is writable (S4.1), and a capture of it is \`[mut-capture]\`.
+
+Such a \`const\` names the same value as the \`Mut\`, and a write to \`out\` is seen through \`c\`. The capture is safe only because every write to \`out\` comes before the function is published. When the cell returns, the function of the cell has ended. While a function still runs, a function that it made cannot be given to a state cell or an action: that throws at run time (S4.12).`
 // %%
-md`**S4.11** A function does not write a local whose type holds a \`Mut\` (S5.8), or a \`Mut\` it owns, after a point where it gives a value to a holder while it still runs. Such a point is a call of a state's \`set\` or \`update\`, or either read as a value (\`const st = s.set\`, \`[f].forEach(s.set)\`); and a call of an action with arguments, or an action passed to a call. A call of a helper bound to a local \`const\` or declared with \`function\` that has such a point, and a callback that a built-in calls at once, put the point at that call. A write is after the point as a use is after a \`yield\` in S5.6: later in the text, in an expression that holds the point, or in a loop around the point when the local is declared outside that loop's body. A write is a member write, an update, a \`delete\`, a mutating method, passing the local to a parameter typed \`Mut<…>\`, or a call of a helper that writes it. Such a write is \`[member-write]\`, or \`[mutating-method]\` when it is a call. The rule does not look at what is given. It finds points and writes by name, so it does not see a setter taken by destructuring (\`const { set } = s\`) or by a computed member (\`s['set']\`), nor a write through a name bound after the point (\`const ys = xs; ys.push(1)\`), through a helper's result (\`get().push(1)\`), or in a callback a built-in calls more than once. In those programs a holder's value does not change because a function given while the body runs throws (S4.12), and data given there is frozen (S4.6), so the write throws. Finish every write before the point. A memoised function's call is not such a point, since a call whose arguments reach a function stores nothing (S2.13). A new local declared after the point is no fix: it may be a second name for the same value.`
+md`**S4.11** A function does not write a local whose type holds a \`Mut\` (S5.8), or a \`Mut\` that it owns, after a point where it gives a value to a holder while it still runs.
+
+Such a point is:
+
+- a call of \`set\` or \`update\` of a state, or one of them read as a value (\`const st = s.set\`, \`[f].forEach(s.set)\`);
+- a call of an action with arguments, or an action given to a call.
+
+A call of a helper that has such a point puts the point at that call, when the helper is bound to a local \`const\` or declared with \`function\`. A callback that a built-in calls immediately does the same.
+
+A write is after the point in the same sense as a use is after a \`yield\` in S5.6: later in the text, in an expression that holds the point, or in a loop around the point when the local is declared outside the body of that loop.
+
+A write is a member write, an update, a \`delete\`, a mutating method, the local given to a parameter typed \`Mut<…>\`, or a call of a helper that writes the local. Such a write is \`[member-write]\`, or \`[mutating-method]\` when it is a call. Finish every write before the point. A new local declared after the point does not correct this, because it can be a second name for the same value.
+
+The rule does not look at the value that is given. It finds points and writes by name. It does not see:
+
+- a setter taken by destructuring (\`const { set } = s\`) or by a computed member (\`s['set']\`);
+- a write through a name bound after the point (\`const ys = xs; ys.push(1)\`);
+- a write through the result of a helper (\`get().push(1)\`);
+- a write in a callback that a built-in calls more than one time.
+
+In those programs the value of a holder still does not change. A function given while the body runs throws (S4.12), and data given there is frozen (S4.6), so the write throws.
+
+A call of a memoised function is not such a point, because a call whose arguments reach a function stores nothing (S2.13).`
 // %%
-md`**S4.12** A function made while a body runs does not leave that body before the body ends. At run time a value written to a state cell (by \`set\`, or what \`update\`'s function returns) and the arguments of an action call are checked before they are frozen. One that reaches, through arrays, records, \`Map\`s, \`Set\`s and \`Error\`s, a function or a promise that no finished cell has published throws a \`TypeError\`, and nothing is frozen or written. A finished cell has published a function or promise in its value, in a state cell's initial value, or in a value a generator cell yields. So a cell input may be stored: \`current.set(dec)\` for an input \`dec: Action<[]>\`. So may a function the cell made before it returned and that its action captures, since that function was published with the action (S4.6). A function's captures are not read by the check. A promise is not entered: what it settles to is frozen only when it settles, after the body may have written it. This guarantee is a run-time throw, not a check-time rejection: a holder can be given a function through a name the checker does not follow, such as \`const st = s.set\`, \`const { set } = s\`, \`s['set']\`, a record field or a spread. The checker reports the cases it sees as \`[fn-publish]\`: a state's \`set\`, an \`update\` whose arrow returns the value, or an action call, given at a parameter whose declared type holds a function, a function literal the calling function makes (inline, in an array, object or conditional expression, or a \`const\` of that function bound to one). A parameter type that hides a function by width, such as \`{ readonly n: number }\`, is not reported, and the throw still applies. A memoised call's arguments are not checked: a call whose arguments reach a function stores nothing (S2.13). A generator's yields are S5.6's and S5.7's, and a cell's return ends its body. Since 2026-11-23.`
+md`**S4.12** Since 2026-11-23, a function made while a body runs does not leave that body before the body ends.
+
+At run time, two kinds of value are checked before they are frozen: a value written to a state cell (by \`set\`, or the result of the function of \`update\`), and the arguments of an action call. The check looks through arrays, records, \`Map\`s, \`Set\`s and \`Error\`s. If the value reaches a function or a promise that no finished cell has published, the check throws a \`TypeError\`, and nothing is frozen or written.
+
+A finished cell has published a function or a promise when it is in the value of the cell, in the initial value of a state cell, or in a value that a generator cell yields. Thus these can be stored:
+
+- a cell input: \`current.set(dec)\` for an input \`dec: Action<[]>\`;
+- a function that the cell made before it returned and that its action captures, because that function was published with the action (S4.6).
+
+The check does not read the captures of a function. The check does not go into a promise: the value that a promise settles to is frozen only when it settles, and the body can write that value before then.
+
+This guarantee is a throw at run time, not a rejection at check time. A holder can get a function through a name that the checker does not follow, such as \`const st = s.set\`, \`const { set } = s\`, \`s['set']\`, a record field or a spread. The checker reports the cases that it sees as \`[fn-publish]\`. These are a \`set\` of a state, an \`update\` whose arrow returns the value, or an action call, that gets a function literal of the calling function at a parameter whose declared type holds a function. The literal can be inline, in an array, object or conditional expression, or a \`const\` of that function bound to a literal. The checker does not report a parameter type that hides a function by width, such as \`{ readonly n: number }\`. The throw still applies.
+
+The arguments of a memoised call are not checked: a call whose arguments reach a function stores nothing (S2.13). S5.6 and S5.7 apply to the yields of a generator. The return of a cell ends its body.`
 // %%
-md`The cells of this section. \`s4_blur\` writes a box blur into a local buffer; \`s4_counts\` writes a local map through a helper that is only called (S4.5); \`s4_record\` deletes an optional member from a local object.`
+md`These are the cells of this section. \`s4_blur\` writes a box blur into a local buffer. \`s4_counts\` writes a local map through a helper that is only called (S4.5). \`s4_record\` deletes an optional member from a local object.`
 // %%
 //ss: ./spec-4.ts
 // %%
@@ -1110,25 +1317,45 @@ test_spec_S4_12 = {
 // %%
 md`## 5. Generator cells and the values they give
 
-A generator cell does not keep a writable value across its yields (S5.6). What it yields is frozen or a copy, and a cell that reads it may keep it.`
+A generator cell does not keep a writable value across its yields (S5.6). Each value that it yields is frozen or a copy. A cell that reads the value can keep it.`
 // %%
-md`**S5.1** A generator cell, sync or async, may write a local and then yield it. Each value is frozen as it is yielded (S4.6). The local is not used after the yield (S5.6), so a generator that yields a new value each time makes it after the previous yield: in the body of the loop that holds the yield, or in a helper it calls. Yielding a typed array or \`URL\` it can still write is \`[mut-yield]\` (S4.8).`
+md`**S5.1** A generator cell, sync or async, can write a local and then yield it. Each value is frozen when it is yielded (S4.6). The local is not used after the yield (S5.6). Thus a generator that yields a new value each time makes the value after the previous yield: in the body of the loop that holds the yield, or in a helper that it calls. A yield of a typed array or a \`URL\` that the generator can still write is \`[mut-yield]\` (S4.8).`
 // %%
-md`**S5.2** A cell that takes a generator cell gets each yielded value, read-only. A write to it is \`[member-write]\`, and an annotation the yielded type is not assignable to is \`[inject-type]\`. \`Borrowed\` is still a name of the checker (S1.10), but no value has that type: on an input it is \`[inject-type]\`.`
+md`**S5.2** A cell that takes a generator cell gets each yielded value, read-only. A write to the value is \`[member-write]\`. An annotation that the yielded type is not assignable to is \`[inject-type]\`. \`Borrowed\` is still a name of the checker (S1.10), but no value has that type. On an input it is \`[inject-type]\`.`
 // %%
-md`**S5.3** The reader may keep the value: return it, bind it, place it in a literal, pass it to \`state\`, or use it in a nested function. The value does not change after the generator yields again.`
+md`**S5.3** The reader can keep the value: return it, bind it, put it in a literal, give it to \`state\`, or use it in a nested function. The value does not change after the generator yields again.`
 // %%
-md`**S5.4** The reader may use the value after an \`await\`.`
+md`**S5.4** The reader can use the value after an \`await\`.`
 // %%
-md`**S5.5** \`snapshot(v)\` is a fresh copy of \`v\`, of the same type, and a local bound to it is writable (S4.3). The copy is made by \`slice\` for a typed array and by \`structuredClone\` for anything else, so \`snapshot\` of a function or a \`URL\` is accepted by the checker and throws at run time.`
+md`**S5.5** \`snapshot(v)\` is a fresh copy of \`v\`, of the same type. A local bound to it is writable (S4.3). \`slice\` makes the copy of a typed array, and \`structuredClone\` makes the copy of any other value. Thus the checker accepts \`snapshot\` of a function or a \`URL\`, and the call throws at run time.`
 // %%
-md`**S5.6** In a generator, a local whose type holds a \`Mut\`, or a \`let\` whose type is not primitive, declared before a \`yield\` is not used after it, to read or to write. That is \`[mut-yield]\`. A use is after the \`yield\` when it is later in the text, when it writes the local in an expression that holds the \`yield\` (\`xs.push(yield 1)\`), or when it is in a loop that holds the \`yield\` and the local is declared outside that loop's body. A local declared in the loop body is a new binding in each iteration. A call of a function that uses the local is a use of it at the call. A \`let\` of a primitive type, such as a loop counter or the previous time, may be used across a \`yield\`. Since 2026-11-22.`
+md`**S5.6** Since 2026-11-22: in a generator, a local declared before a \`yield\` is not used after it, to read or to write, when its type holds a \`Mut\` or when it is a \`let\` whose type is not primitive. Such a use is \`[mut-yield]\`. A use is after the \`yield\` when:
+
+- it is later in the text;
+- it writes the local in an expression that holds the \`yield\` (\`xs.push(yield 1)\`);
+- it is in a loop that holds the \`yield\`, and the local is declared outside the body of that loop.
+
+A local declared in the loop body is a new binding in each iteration. A call of a function that uses the local is a use of the local at the call. A \`let\` of a primitive type, such as a loop counter or the previous time, can be used across a \`yield\`.`
 // %%
-md`**S5.7** S5.6 holds for an \`await\` in a function whose values may be seen before it ends, and the rule is \`[mut-await]\`. Such a function is a generator, or any function made inside the cell's function, awaited or not. Only the body of an async cell itself may use a \`Mut\` across an \`await\`. Since 2026-11-22.`
+md`**S5.7** Since 2026-11-22: S5.6 also applies to an \`await\` in a function whose values can be seen before it ends. The rule is then \`[mut-await]\`. Such a function is a generator, or any function made inside the function of the cell, awaited or not. Only the body of an async cell itself can use a \`Mut\` across an \`await\`.`
 // %%
-md`**S5.8** A type holds a \`Mut\` when it is \`Mut<…>\` or has one in a record field, an array or tuple element, a type argument (\`Map<string, Mut<number[]>>\`), a union member, a type alias's expansion, a function type's result, or the result of a record's call or construct signature. A \`Mut\` in a function type's parameter is not held: it is what a caller gives. A type nested more deeply than the checker looks is taken to hold a \`Mut\`: more than 12 expansions of a generic alias on one path, or more than 200 levels. S4.10, S5.6 and S5.7 take a local or parameter whose type holds a \`Mut\`; a cell input, a global and a function declaration are not taken. A \`const\` bound under the same written type is as deep, so the rebinding that S4.10 accepts does not clear such a type. S4.4 removes each \`Mut\` that this finds. Since 2026-11-22; S4.10 and the depth since 2026-11-23. Since 2026-11-23 a written type holds a \`Mut\` only as its whole type (S4.9), so a type holds one inside its outermost type only when it is inferred: \`[xs, 1] as const\` for a \`Mut\` local \`xs\`, \`{ t: xs }\`, \`k > 0 ? xs : null\`, or a function whose inferred result is a \`Mut\`.`
+md`**S5.8** A type holds a \`Mut\` when it is \`Mut<…>\`, or when it has a \`Mut\` in one of these positions:
+
+- a record field;
+- an array or tuple element;
+- a type argument (\`Map<string, Mut<number[]>>\`);
+- a union member;
+- the expansion of a type alias;
+- the result of a function type;
+- the result of a call signature or a construct signature of a record.
+
+A \`Mut\` in a parameter of a function type is not held: a caller gives that value. A type counts as a type that holds a \`Mut\` when it is deeper than the checker looks: more than 12 expansions of a generic alias on one path, or more than 200 levels.
+
+S4.10, S5.6 and S5.7 apply to a local or a parameter whose type holds a \`Mut\`. They do not apply to a cell input, a global or a function declaration. A \`const\` bound with the same written type has the same depth, so the binding that S4.10 accepts does not clear such a type. S4.4 removes each \`Mut\` that this statement finds. This statement is from 2026-11-22; its use by S4.10 and the depth limit are from 2026-11-23.
+
+Since 2026-11-23, a written type holds a \`Mut\` only as its full type (S4.9). Thus a type holds a \`Mut\` inside its outermost type only when the type is inferred: \`[xs, 1] as const\` for a \`Mut\` local \`xs\`, \`{ t: xs }\`, \`k > 0 ? xs : null\`, or a function whose inferred result is a \`Mut\`.`
 // %%
-md`The cells of this section. \`s5_frames\` makes a buffer for each \`k\` = 1, 2, 3, fills it with \`k * (1, 2, 3)\` and yields a copy; \`s5_total\` sums the frame it is given and \`s5_kept\` keeps a copy.`
+md`These are the cells of this section. \`s5_frames\` makes a buffer for each \`k\` = 1, 2, 3, fills it with \`k * (1, 2, 3)\` and yields a copy. \`s5_total\` adds the values of the frame that it gets. \`s5_kept\` keeps a copy.`
 // %%
 //ss: ./spec-5.ts
 // %%
@@ -1216,31 +1443,58 @@ test_spec_S5_8 = {
 // %%
 md`## 6. State cells and actions
 
-A state cell is a cell that holds state. Only an action writes to a state cell. An action is called by an event handler, a listener or another action, never while a cell is being evaluated.`
+A state cell is a cell that holds state. Only an action writes to a state cell. An event handler, a listener or another action calls an action. Nothing calls an action while a cell is evaluated.`
 // %%
-md`**S6.1** A state cell is a sync, non-generator cell whose one returned expression is \`state(v)\`; its value type is the type of \`v\` (S2.4). \`state(...)\` anywhere else, bound to a local, in a conditional, in one of two returns, or in an async or generator cell, is \`[state-placement]\`.`
+md`**S6.1** A state cell is a sync cell that is not a generator and whose one returned expression is \`state(v)\`. Its value type is the type of \`v\` (S2.4). \`state(...)\` in any other position is \`[state-placement]\`: bound to a local, in a conditional, in one of two returns, or in an async or generator cell.`
 // %%
-md`**S6.2** A state cell with inputs is made again, from its initial value, when an input changes. Until then it keeps what was written to it, also when it runs again with the same inputs. An input changes when it is not the same value (\`Object.is\`): a new object with equal content is a change, so a state cell whose input is an object built by another cell starts again each time that cell runs.`
+md`**S6.2** A state cell with inputs is made again, from its initial value, when an input changes. Until then it keeps the value that was written to it, also when it runs again with the same inputs. An input changes when it is not the same value (\`Object.is\`). A new object with equal content is a change. Thus a state cell whose input is an object that another cell makes starts again each time that cell runs.`
 // %%
-md`**S6.3** An input that names a state cell, \`c\` or \`c: T\`, gets its value and runs again after each commit that wrote it (S6.14). An input \`c: State<T>\` gets the state cell and does not run again when it is written. \`State<T>\` on a cell that is not a state cell holding \`T\`, or on a capability or foreign declaration, is \`[inject-state]\`.`
+md`**S6.3** An input that names a state cell, \`c\` or \`c: T\`, gets the value of the state cell. The cell runs again after each commit that wrote the state cell (S6.14). An input \`c: State<T>\` gets the state cell. The cell does not run again when the state cell is written. \`State<T>\` is \`[inject-state]\` on a cell that is not a state cell that holds \`T\`, on a capability, and on a foreign declaration.`
 // %%
-md`**S6.4** A \`State<T>\` has \`set(v: T)\` and \`update(f: (v: T) => T)\` and no other member. Reading another member is \`[no-member]\`; a value of the wrong type is \`[type]\`.`
+md`**S6.4** A \`State<T>\` has \`set(v: T)\` and \`update(f: (v: T) => T)\` and no other member. A read of another member is \`[no-member]\`. A value of the wrong type is \`[type]\`.`
 // %%
-md`**S6.5** \`set\` and \`update\` outside the body of an \`action(...)\` are \`[state-write]\`, including in a function the cell returns and in a generator. At run time a write made while no action's function is running throws.`
+md`**S6.5** \`set\` and \`update\` outside the body of an \`action(...)\` are \`[state-write]\`. This includes a function that the cell returns, and a generator. At run time, a write while no function of an action runs throws.`
 // %%
-md`**S6.6** \`action(f)\` has type \`Action<P>\`, where \`P\` is the parameter types of \`f\`. Calling an \`Action\` outside the body of an action is \`[action-call]\`. An \`Action\` may be returned, placed in a record or an array, or passed to a parameter typed \`Action\`. Giving it a type that does not say it is an \`Action\` is \`[action-pass]\`: \`unknown\`, \`object\`, a type parameter of a function of the module, or a record, array, tuple, union or function type that has one of these where the \`Action\` is. That holds for an argument, a spread element, an input, a default value, an annotated local, an assignment, a returned value and a thrown one. A type parameter of an intrinsic, such as the \`U\` of \`map\` or the \`T\` of \`Promise.resolve\`, takes the \`Action\`'s own type and is accepted. Since 2026-11-24 (t1) a record type with no required member and no index or call signature (\`{}\`, an empty interface, \`{ readonly a?: number }\`) hides as \`object\` does: it takes any object, so an \`Action\` given that type is \`[action-pass]\`. A record given that type keeps the members the type declares, and only the others are hidden. From w1 until y1 (2026-11-24) an \`Action\` held in a part of a value that the type it is given did not declare was \`[forgets]\` (S2.9); since y1 it is accepted: no member of the type reaches it, no conversion calls it (S2.7), and a call of it while a cell computes throws (the guard). Check time: \`[action-call]\` and \`[action-pass]\` for the direct cases; run time: the guard, and an \`Action\` call gives back \`undefined\` (S6.13). Since 2026-11-24 (w1) a compiled cell's body, and each step of a generator cell, runs under the run-time guard \`runCells\` puts around a cell: an action called while a cell computes, by a function the checker cannot see into, throws \`action called during a cell evaluation\` in both runners; before w1 the compiled cell ran it. Since 2026-11-24 (x1) the guard covers the whole evaluation: an async function written in a SoundScript cell and called under it is under it again after each \`await\`, an async generator's body after each \`await\` and \`yield\`, and a callback given to \`then\` or \`finally\` while a cell computes is under it whenever it runs, after the cell has finished too; an action called there throws the same error. An async function a cell keeps and an event handler or a listener calls is not under it, and nor is an async function from a module in another language after its first \`await\`.`
+md`**S6.6** \`action(f)\` has the type \`Action<P>\`, where \`P\` is the parameter types of \`f\`. A call of an \`Action\` outside the body of an action is \`[action-call]\`. An \`Action\` can be returned, put in a record or an array, or given to a parameter typed \`Action\`.
+
+An \`Action\` given a type that does not tell that it is an \`Action\` is \`[action-pass]\`. Such a type is \`unknown\`, \`object\`, a type parameter of a function of the module, or a record, array, tuple, union or function type that has one of these at the position of the \`Action\`. This applies to an argument, a spread element, an input, a default value, a local with an annotation, an assignment, a returned value and a thrown value. A type parameter of an intrinsic, such as the \`U\` of \`map\` or the \`T\` of \`Promise.resolve\`, takes the own type of the \`Action\` and is accepted.
+
+Since 2026-11-24 (t1), a record type with no required member and no index or call signature (\`{}\`, an empty interface, \`{ readonly a?: number }\`) hides a value as \`object\` does, because it takes any object. An \`Action\` given that type is \`[action-pass]\`. A record given that type keeps the members that the type declares. Only the other members are hidden.
+
+Since 2026-11-24 (y1), an \`Action\` in a part of a value that its type does not declare is accepted. From w1 until y1 this was \`[forgets]\` (S2.9). No member of the type reaches the \`Action\`, no conversion calls it (S2.7), and a call of it while a cell computes throws.
+
+Check time and run time. At check time, the direct cases are \`[action-call]\` and \`[action-pass]\`. At run time, a guard stops an action that is called while a cell computes, and a call of an \`Action\` returns \`undefined\` (S6.13).
+
+The guard, since 2026-11-24:
+
+- (w1) The body of a compiled cell, and each step of a generator cell, run with the guard that \`runCells\` puts around a cell. An action called while a cell computes, by a function that the checker cannot see into, throws \`action called during a cell evaluation\` in both runners.
+- (x1) The guard applies to the full evaluation. An async function written in a SoundScript cell and called with the guard on has the guard on again after each \`await\`. The body of an async generator has it on after each \`await\` and \`yield\`. A callback given to \`then\` or \`finally\` while a cell computes has the guard on each time it runs, also after the cell has finished.
+- The guard does not apply to an async function that a cell keeps and that an event handler or a listener calls. It does not apply to an async function from a module in another language after its first \`await\`.`
 // %%
-md`**S6.7** The content type of a state cell may not contain \`State\` or \`StateCell\`: not directly, and not in a record, an array, a union, a type argument or a function signature. That is \`[state-in-state]\`.`
+md`**S6.7** The content type of a state cell cannot contain \`State\` or \`StateCell\`, directly or in a record, an array, a union, a type argument or a function signature. That is \`[state-in-state]\`.`
 // %%
-md`**S6.8** Inside an action, \`read(r)\` with \`r: State<T>\` is a \`T\`: the stored value with every write made earlier in the call order, including by an action called before it in the same call. \`read\` outside the body of an action, or used other than by calling it, is \`[read-outside-action]\`, and at run time, while no action's function is running, it throws.`
+md`**S6.8** Inside an action, \`read(r)\` with \`r: State<T>\` is a \`T\`. It is the stored value with every write made earlier in the call order. This includes a write by an action called before it in the same call. \`read\` outside the body of an action, or used in any way other than a call, is \`[read-outside-action]\`. At run time, \`read\` throws while no function of an action runs.`
 // %%
-md`**S6.9** The body of an action may not use a value that depends on state: an input that takes a state cell or an events cell by value, a capability other than \`invalidation\` and \`log\`, an input that takes a cell which depends on one of these, or a local computed from any of them. That is \`[action-capture]\`. Handles (\`State\`, \`Events\`), \`Action\`s, cells with no state, and the action's own parameters and locals are accepted. A value from the clock or the random source reaches an action as an argument.`
+md`**S6.9** The body of an action cannot use a value that depends on state. Such a use is \`[action-capture]\`. A value that depends on state is:
+
+- an input that takes a state cell or an events cell by value;
+- a capability other than \`invalidation\` and \`log\`;
+- an input that takes a cell that depends on one of these;
+- a local computed from any of these.
+
+These are accepted: handles (\`State\`, \`Events\`), \`Action\`s, cells with no state, and the parameters and locals of the action itself. A value from the clock or the random source gets to an action as an argument.`
 // %%
-md`**S6.10** A write is applied to its call when it is made, so an \`update\` whose function throws throws out of the call that made it. A top-level call that throws keeps none of its writes, nor those of the actions it called; the writes of earlier calls are kept, and calls apply in the order they were made. An action called inside a call is a plain function call: when it throws and its caller catches the throw, the writes it made before throwing are kept.`
+md`**S6.10** A write is applied to its call when it is made. Thus an \`update\` whose function throws makes the call that made it throw. A top-level call that throws keeps none of its writes, and none of the writes of the actions that it called. The writes of earlier calls are kept. Calls apply in the order in which they were made. An action called inside a call is a plain function call. If it throws and its caller catches the throw, the writes that it made before the throw are kept.`
 // %%
-md`**S6.11** A state cell is two runtime variables: \`viewof c\` holds its handle and \`c\` holds its value. An input \`c: State<T>\` is an input on \`viewof c\` and gets the handle. The handle is the same object when the state cell is made again (S6.2), so a \`State<T>\` taken before writes to the new state cell. After the state cell was in error it may have a new handle (S8.5); a cell that takes its \`State<T>\` runs again with the handle it then has. While the state cell is in error, a cell that takes its \`State<T>\` does not run: it is blocked when the state cell does not check (S8.2), and has the error of the input that threw when the state cell or one of its inputs threw (S8.3). When the state cell's variables are deleted, the holder is rejected, \`[inject-unknown]\` (S2.1), once the module has seen the deletion; until then it raises the runtime's \`viewof c is not defined\`. A function made from the \`State<T>\` before an error and kept outside the dataflow may write to the old handle, which no cell reads.`
+md`**S6.11** A state cell is two runtime variables. \`viewof c\` holds its handle, and \`c\` holds its value. An input \`c: State<T>\` is an input on \`viewof c\` and gets the handle.
+
+- The handle is the same object when the state cell is made again (S6.2). Thus a \`State<T>\` taken before that writes to the new state cell.
+- After the state cell was in error, it can have a new handle (S8.5). A cell that takes its \`State<T>\` runs again with the new handle.
+- While the state cell is in error, a cell that takes its \`State<T>\` does not run. It is blocked when the state cell is rejected (S8.2). It has the error of the input that threw when the state cell or one of its inputs threw (S8.3).
+- When the variables of the state cell are deleted, the holder is rejected with \`[inject-unknown]\` (S2.1) after the module has seen the deletion. Until then it raises the runtime error \`viewof c is not defined\`.
+- A function made from the \`State<T>\` before an error and kept outside the dataflow can write to the old handle. No cell reads the old handle.`
 // %%
-md`**S6.12** The function given to \`action(...)\` is synchronous. An async function, a generator, a function whose return type is or contains a promise-like, and an \`await\` anywhere in its body are \`[action-async]\`. To wait for something, an async cell waits, and a listener gives the result to an action, as in this section's fetch-then-store example.`
+md`**S6.12** The function given to \`action(...)\` is synchronous. These are \`[action-async]\`: an async function, a generator, a function whose return type is or contains a promise-like, and an \`await\` anywhere in its body. To wait for a result, an async cell waits, and a listener gives the result to an action, as in the fetch-then-store example of this section.`
 // %%
 spec_s6_fetchThenStore = `const asked = (): StateCell<number> => state(0);
 const ask = (asked: State<number>) => action(() => asked.update((n) => n + 1));
@@ -1257,7 +1511,7 @@ const greeting = (): StateCell<string> => state("");
 const store = (greeting: State<string>) => action((text: string) => greeting.set(text));
 const onArrived = (arrived: Events<string>, store: Action<[string]>) => on(arrived, store);`
 // %%
-md`Fetch, then store. \`ask\` writes a request; \`loaded\` is an async cell that takes it, waits for the answer, and gives the text; \`arrived\` yields that text once; \`onArrived\` gives it to \`store\`, a synchronous action.
+md`Fetch, then store. \`ask\` writes a request. \`loaded\` is an async cell that takes the request, waits for the answer, and gives the text. \`arrived\` yields that text one time. \`onArrived\` gives the text to \`store\`, a synchronous action.
 
 \`\`\`ts
 ${spec_s6_fetchThenStore}
@@ -1282,7 +1536,7 @@ const store = (greeting: State<string>, asked: State<number>) =>
   });
 const onArrived = (arrived: Events<Answer>, store: Action<[Answer]>) => on(arrived, store);`
 // %%
-md`Latest wins. An answer to an earlier request still reaches \`store\`, which compares the request it answers with \`read(asked)\` and drops it.
+md`Latest wins. An answer to an earlier request still gets to \`store\`. \`store\` compares the request that the answer is for with \`read(asked)\` and discards the answer.
 
 \`\`\`ts
 ${spec_s6_latestWins}
@@ -1328,15 +1582,15 @@ const store = (greeting: State<string[]>, current: State<number | null>, queue: 
   });
 const onArrived = (arrived: Events<Answer>, store: Action<[Answer]>) => on(arrived, store);`
 // %%
-md`Every answer, in order. One request is in flight at a time; an ask made meanwhile waits in \`queue\`, and \`store\` starts the next one. A failed fetch is recorded as "(failed)" and the queue goes on.
+md`Every answer, in order. Only one request is in flight at a time. An ask made during that time waits in \`queue\`, and \`store\` starts the next request. A failed fetch is recorded as "(failed)", and the queue continues.
 
 \`\`\`ts
 ${spec_s6_everyAnswer}
 \`\`\``
 // %%
-md`**S6.13** An action call made while no action's function is running, by an event handler, a listener delivering a value or JavaScript, is a top-level call. It runs to completion before its caller goes on. An action called while an action's function is running is part of that call. A call of an \`Action\` is typed \`void\` and gives back \`undefined\`, whatever its function returns (since 2026-11-24, y1; before, a call inside an action gave back its function's value).`
+md`**S6.13** A top-level call is an action call made while no function of an action runs. An event handler, a listener that delivers a value, or JavaScript makes it. A top-level call runs to completion before its caller continues. An action called while a function of an action runs is part of that call. A call of an \`Action\` has the type \`void\` and returns \`undefined\`, whatever its function returns (since 2026-11-24, y1).`
 // %%
-md`**S6.14** The writes of a top-level call, including those of the actions it calls, commit together once, after the call returns. Calls that return before that commit share it, so a reader runs once for them and sees none of the values between. A call that throws keeps none of them (S6.10). Inside the call, \`read(r)\` is the committed value with the call's own earlier writes (S6.8).`
+md`**S6.14** The writes of a top-level call, with the writes of the actions that it calls, commit together one time, after the call returns. Calls that return before that commit share the commit. A reader thus runs one time for them and sees none of the values between. A call that throws keeps none of its writes (S6.10). Inside the call, \`read(r)\` is the committed value with the earlier writes of the call (S6.8).`
 // %%
 md`S6.15 Removed 2026-11-20: actions are synchronous (S6.12).`
 // %%
@@ -1344,13 +1598,21 @@ md`**S6.16** A throw from a top-level call goes to its caller.`
 // %%
 md`S6.17 Removed 2026-11-20: actions are synchronous (S6.12).`
 // %%
-md`**S6.18** The content type of a state cell may not admit \`undefined\`: it may not be \`undefined\`, \`void\` or \`unknown\`, or a union with one of them, directly or through a type alias. That is \`[state-undefined]\`. A property of the content may be optional. A state cell's value variable is Observable's \`Generators.input\` of its handle, which skips an \`undefined\` value, so the cell would have none; use \`null\`. \`State\`, \`StateCell\` and \`Events\` written without a type argument are \`[type]\`.`
+md`**S6.18** The content type of a state cell cannot admit \`undefined\`. It cannot be \`undefined\`, \`void\` or \`unknown\`, or a union with one of them, directly or through a type alias. That is \`[state-undefined]\`. A property of the content can be optional. The value variable of a state cell is the Observable \`Generators.input\` of its handle, which skips an \`undefined\` value. The cell would then have no value. Use \`null\`. \`State\`, \`StateCell\` and \`Events\` with no type argument are \`[type]\`.`
 // %%
-md`**S6.19** A function made in the body of an action writes, reads and calls \`Action\`s only where it runs before the action's function returns. It may be called in the body, directly or through a local function that is only called, or passed to an array method that calls it before returning, such as \`forEach\` or \`map\`, or to \`update\`. Returned, stored, placed in a record, an array or a state cell, given to \`.then\`, to a function of the module or to an intrinsic that keeps it, such as \`Map.set\`, or made async or a generator, it may run after the call, and its \`set\`, \`update\`, \`read\` and \`Action\` calls are \`[state-write]\`, \`[read-outside-action]\` and \`[action-call]\` as in S6.5, S6.8 and S6.6. A \`set\` or \`update\` taken as a value is a function that writes and is held to the same rule.`
+md`**S6.19** A function made in the body of an action can write, read and call \`Action\`s only where it runs before the function of the action returns. It can be:
+
+- called in the body, directly or through a local function that is only called;
+- given to an array method that calls it before the method returns, such as \`forEach\` or \`map\`;
+- given to \`update\`.
+
+The function can run after the call when it is returned, stored, put in a record, an array or a state cell, given to \`.then\`, to a function of the module or to an intrinsic that keeps it (such as \`Map.set\`), or when it is async or a generator. Its \`set\`, \`update\`, \`read\` and \`Action\` calls are then \`[state-write]\`, \`[read-outside-action]\` and \`[action-call]\`, as in S6.5, S6.8 and S6.6. A \`set\` or \`update\` taken as a value is a function that writes, and the same rule applies to it.`
 // %%
-md`**S6.20** A \`key\` attribute on a component's element is the renderer's, as on an intrinsic element: it is a \`string | number\` and is not checked against the component's props (since 2026-11-23; it was \`[excess-property]\`). The component is not given \`key\`: \`h\` leaves it out of the props, as React does (since 2026-11-23, a9; the component received it before, so a props type that declared \`key\` read a value it was never checked against). A component whose props type declares \`key\` is \`[type]\`; name the prop something else, such as \`id\`. An \`Elem\` is made only by JSX. A record with the fields of an element is not an \`Elem\`, and giving one where an \`Elem\` or a JSX child is expected, or returning one from a component, is \`[type]\`. The renderer draws only elements JSX made: any other value, a record of the same shape included, is drawn as text: a primitive as \`String\` gives it, an object as \`[object Object]\`, \`[object Array]\` or \`[object Function]\`. No function in it is called, its own \`toString\`, \`valueOf\` and event props included.`
+md`**S6.20** A \`key\` attribute on the element of a component is for the renderer, as on an intrinsic element. It is a \`string | number\`, and the checker does not check it against the props of the component (since 2026-11-23; before that, it was \`[excess-property]\`). The component does not get \`key\`: \`h\` omits it from the props, as React does (since 2026-11-23, a9). A component whose props type declares \`key\` is \`[type]\`. Give the prop a different name, such as \`id\`.
+
+Only JSX makes an \`Elem\`. A record with the fields of an element is not an \`Elem\`. Such a record is \`[type]\` where an \`Elem\` or a JSX child is expected, and as the return value of a component. The renderer draws only elements that JSX made. It draws any other value as text, also a record of the same structure. A primitive is drawn as \`String\` gives it, and an object as \`[object Object]\`, \`[object Array]\` or \`[object Function]\`. The renderer calls no function in such a value. This includes its own \`toString\`, \`valueOf\` and event props.`
 // %%
-md`The cells of this section. \`s6_copy\` reads \`s6_count\` when it is called; \`s6_bumpThenCopy\` writes \`s6_count\` and calls \`s6_copy\`, which sees that write (S6.8). \`s6_controls\` holds two actions in a record. \`s6_view\` has a button for each of \`s6_increment\` and \`s6_bumpThenCopy\` and shows both counts.`
+md`These are the cells of this section. \`s6_copy\` reads \`s6_count\` when it is called. \`s6_bumpThenCopy\` writes \`s6_count\` and calls \`s6_copy\`, which sees that write (S6.8). \`s6_controls\` holds two actions in a record. \`s6_view\` has a button for each of \`s6_increment\` and \`s6_bumpThenCopy\`, and shows both counts.`
 // %%
 //ss: ./spec-6.tsx
 // %%
@@ -1791,25 +2053,31 @@ const bad = (x: State<number>) => action(() => { x.set(-1); throw new Error("bad
 // %%
 md`## 7. Events and listeners
 
-An events cell is a generator whose values are delivered one at a time. A listener is a cell that ties an events cell to an action.`
+An events cell is a generator whose values are delivered one at a time. A listener is a cell that connects an events cell to an action.`
 // %%
-md`**S7.1** An input \`t: Events<T>\` gets a handle to the sync generator cell \`t\` yielding \`T\`, not its values, and is not a dependency on them. \`Events<T>\` on a cell that is not a sync generator yielding \`T\`, an async generator included, is \`[inject-events]\`. Since 2026-11-23 what the generator yields need only be assignable to \`T\`, since its values only reach the listener (a yielded object literal was \`[inject-events]\` under an annotation with the same members). Once a cell takes \`t\` as \`Events\`, an input that reads \`t\` without \`Events\` is \`[inject-events]\`.`
+md`**S7.1** An input \`t: Events<T>\` gets a handle to the sync generator cell \`t\` that yields \`T\`. It does not get the values, and it is not a dependency on them. \`Events<T>\` is \`[inject-events]\` on a cell that is not a sync generator that yields \`T\`. This includes an async generator. Since 2026-11-23, the value that the generator yields only has to be assignable to \`T\`, because its values go only to the listener. When a cell takes \`t\` as \`Events\`, an input that reads \`t\` without \`Events\` is \`[inject-events]\`.`
 // %%
-md`**S7.2** \`on(t, a)\` has type \`Listener\`. \`a\` must be an \`Action\` that accepts what \`t\` yields; otherwise it is \`[type]\`.`
+md`**S7.2** \`on(t, a)\` has the type \`Listener\`. \`a\` must be an \`Action\` that accepts the values that \`t\` yields. If not, it is \`[type]\`.`
 // %%
-md`**S7.3** A \`Listener\` is only the whole value of a sync, non-generator cell: what it returns, or a branch of a conditional it returns when every branch is one. In an array, a record or a state cell, as an argument, in a nested function, in a union with another type, in an async or generator cell, and as the input of another cell, it is \`[listener-placement]\`.`
+md`**S7.3** A \`Listener\` can only be the full value of a sync cell that is not a generator. It is the value that the cell returns, or a branch of a conditional that the cell returns when every branch is a \`Listener\`. In any other position it is \`[listener-placement]\`: in an array, a record or a state cell, as an argument, in a nested function, in a union with another type, in an async or generator cell, and as the input of another cell.`
 // %%
-md`**S7.4** While a listener is the value of its cell, its action runs once for each value the events cell yields, in order. The listener ends when its cell is deleted or rejected, when its module's variables are deleted, or when its cell runs again with other events or another action; a run with the same events and the same action keeps it. A listener cell that runs again, for any reason, leaves one listener, and no value is lost or delivered twice, whichever of that run, a commit and the value comes first.`
+md`**S7.4** While a listener is the value of its cell, its action runs one time for each value that the events cell yields, in order. The listener ends when:
+
+- its cell is deleted or rejected;
+- the variables of its module are deleted;
+- its cell runs again with other events or another action.
+
+A run with the same events and the same action keeps the listener. A listener cell that runs again, for any reason, has one listener after the run. No value is lost or delivered two times, whatever the order of that run, a commit and the value.`
 // %%
-md`**S7.5** Starting and stopping events is dataflow: the events cell takes inputs and yields nothing when it should not run. When an input changes (\`Object.is\`, as in S6.2), the events cell runs again from its start and keeps its handle; run again with the same inputs it keeps its generator. An events cell writes nothing (S6.5).`
+md`**S7.5** Dataflow starts and stops events. The events cell takes inputs and yields nothing when it must not run. When an input changes (\`Object.is\`, as in S6.2), the events cell runs again from its start and keeps its handle. When it runs again with the same inputs, it keeps its generator. An events cell writes nothing (S6.5).`
 // %%
-md`**S7.6** When a listener's action throws, that call keeps none of its writes (S6.10), the next value is still delivered, and the console reports the error naming the listener, the action and the events cell.`
+md`**S7.6** When the action of a listener throws, that call keeps none of its writes (S6.10). The next value is still delivered. The console reports the error with the names of the listener, the action and the events cell.`
 // %%
-md`**S7.7** Two listener cells on one events cell get each value in the order the cells appear in their module. An edit of the first does not change that.`
+md`**S7.7** Two listener cells on one events cell get each value in the order of the cells in their module. An edit of the first cell does not change that order.`
 // %%
-md`**S7.8** An \`Events<T>\` and a \`Listener\` have no members. Reading one, by a member, \`?.\`, an index or a destructuring pattern, is \`[type]\`. A \`Listener\` is only the whole value of a cell (S7.3), so a member read on one is also \`[listener-placement]\`.`
+md`**S7.8** An \`Events<T>\` and a \`Listener\` have no members. A read of one, by a member, \`?.\`, an index or a destructuring pattern, is \`[type]\`. A \`Listener\` can only be the full value of a cell (S7.3), so a member read on a \`Listener\` is also \`[listener-placement]\`.`
 // %%
-md`The cells of this section. \`s7_onBeat\` runs \`s7_add\` for each of the three values \`s7_beats\` yields, so \`s7_seen\` becomes \`[1, 2, 3]\`.`
+md`These are the cells of this section. \`s7_onBeat\` runs \`s7_add\` for each of the three values that \`s7_beats\` yields. Thus \`s7_seen\` becomes \`[1, 2, 3]\`.`
 // %%
 //ss: ./spec-7.ts
 // %%
@@ -1976,21 +2244,24 @@ test_spec_S7_7 = {
 // %%
 md`## 8. Editing a module with broken cells
 
-What the notebook does when an edit leaves cells that do not check. The edit is always stored, and a cell that does not check does not run.`
+This section tells you what the notebook does when an edit leaves cells that the checker rejects. The notebook always stores the edit. A rejected cell does not run.`
 // %%
-md`**S8.1** Every edit is stored, one that does not parse included, unless its text names no cell: no \`const <name>\`, \`let <name>\` or function declaration (S1.1) at its start, after comments and an optional \`export\`. An edit that takes the name of another cell is stored under another name (S1.6).`
+md`**S8.1** Every edit is stored, also an edit that does not parse. There is one exception: an edit whose text names no cell is not stored. Such a text has no \`const <name>\`, \`let <name>\` or function declaration (S1.1) at its start, after comments and an optional \`export\`. An edit that takes the name of another cell is stored with a different name (S1.6).`
 // %%
-md`**S8.2** After each edit every cell is ok, rejected or blocked. A rejected cell breaks a rule of its own, does not parse (\`[parse]\`), or uses a construct the checker has no rule for (\`[unsupported]\`, such as the array method \`flat\`); a cell whose check fails because the type of an input changed is rejected with its own message. A blocked cell breaks no rule of its own but takes a cell that is not ok, as a value or as \`State<T>\`.`
+md`**S8.2** After each edit, every cell is ok, rejected or blocked.
+
+- A rejected cell breaks a rule of its own, does not parse (\`[parse]\`), or uses a construct that the checker has no rule for (\`[unsupported]\`, such as the array method \`flat\`). A cell whose check fails because the type of an input changed is rejected with its own message.
+- A blocked cell breaks no rule of its own. It takes a cell that is not ok, as a value or as \`State<T>\`.`
 // %%
-md`**S8.3** Only ok cells run. An edit and every other cell whose compiled form it changes are defined in one step, so no cell runs in between on a mix of old and new definitions. A rejected cell raises \`<name> does not check: [rule] …\` and its body never runs, at load or after an edit; the body is kept only as source. A blocked cell fails with the error of the input that is not ok.`
+md`**S8.3** Only ok cells run. An edit and every other cell whose compiled form the edit changes are defined in one step. Thus no cell runs between them on a mix of old and new definitions. A rejected cell raises \`<name> does not check: [rule] …\`. Its body never runs, at load or after an edit. The body is kept only as source. A blocked cell fails with the error of the input that is not ok.`
 // %%
-md`**S8.4** A cell whose compiled text an edit did not change is not defined again, so the edit itself does not run cells outside the broken part, and a state cell that stays ok keeps its value. When a cell runs is otherwise the runtime's rule: a cell runs again whenever one of its inputs was computed again, equal value or not.`
+md`**S8.4** A cell whose compiled text an edit did not change is not defined again. Thus the edit itself does not run cells outside the broken part, and a state cell that stays ok keeps its value. In all other cases the rule of the runtime decides when a cell runs: a cell runs again when one of its inputs was computed again, also when the new value is equal.`
 // %%
-md`**S8.5** A state cell keeps its value only through its variable's last value (S6.2), and the runtime clears the last value of a variable in error. So a state cell that was in error (blocked by an input, an input that threw, or rejected and repaired) starts again from its initial value. The one exception is the runtime's own: when the failed run was replaced by a newer run before it settled, the last value is not cleared, and S6.2 applies as if there had been no error. Which of the two happens is not specified; a state cell that must survive an error should not have inputs that can fail.`
+md`**S8.5** A state cell keeps its value only through the last value of its variable (S6.2). The runtime clears the last value of a variable in error. Thus a state cell that was in error starts again from its initial value. A state cell was in error when an input blocked it, when an input threw, or when it was rejected and later repaired. The runtime has one exception: when a newer run replaced the failed run before the failed run settled, the last value is not cleared. S6.2 then applies as if there was no error. Which of the two occurs is not specified. A state cell that must survive an error should not have inputs that can fail.`
 // %%
-md`**S8.6** A listener in the broken part ends when the edit is applied, and nothing is delivered to it after. When the part is repaired the listener attaches again, once.`
+md`**S8.6** A listener in the broken part ends when the edit is applied. Nothing is delivered to it after that. When the part is repaired, the listener attaches again, one time.`
 // %%
-md`**S8.7** \`compile\` refuses an island that holds a cell that is not ok. An island of ok cells runs when another cell of the module does not parse.`
+md`**S8.7** \`compile\` does not run an island that holds a cell that is not ok. An island of ok cells runs when another cell of the module does not parse.`
 // %%
 spec_editFirst = [
   "const width = () => 640;",
@@ -2146,25 +2417,41 @@ test_spec_S8_7 = {
 // %%
 md`## 9. Foreign values and the shell
 
-Values from code the checker does not check, for a tool that runs the checker outside a notebook. A notebook module has no shell cells; its boundary to other code is section 11.`
+This section is about values from code that the checker does not check. It is for a tool that runs the checker outside a notebook. A notebook module has no shell cells. Section 11 gives its boundary to other code.`
 // %%
-md`**S9.1** A shell cell is an unchecked cell the checker is given beside the checked ones; a notebook module has none (S1.7). To a checked cell its value is \`unknown\`: an input with no annotation, or annotated \`unknown\` or its alias \`Js\`, gets \`unknown\`; \`any\` is \`[no-any]\`, and any other annotation is \`[inject-type]\`, except a function type: the function crosses as a function from another language does (S11.3 to S11.11).`
+md`**S9.1** A shell cell is a cell that is not checked, which the checker gets together with the checked cells. A notebook module has none (S1.7). To a checked cell, the value of a shell cell is \`unknown\`. An input with no annotation, or with the annotation \`unknown\` or its alias \`Js\`, gets \`unknown\`. \`any\` is \`[no-any]\`. Any other annotation is \`[inject-type]\`, except a function type: the function crosses as a function from another language does (S11.3 to S11.11).`
 // %%
-md`**S9.2** A checked function from \`unknown\` that narrows with \`typeof\`, \`Array.isArray\` and \`in\` and builds a new value is accepted. It turns a value from a shell cell, or from another language (section 11), into a typed one. On a union, \`"k" in v\` removes no member: a value of a member that does not declare \`k\` may still have it, so that member stays, with \`k\` of type \`unknown\`.`
+md`**S9.2** A checked function from \`unknown\` that narrows with \`typeof\`, \`Array.isArray\` and \`in\` and makes a new value is accepted. It changes a value from a shell cell, or from another language (section 11), into a typed value. On a union, \`"k" in v\` removes no member. A value of a member that does not declare \`k\` can still have \`k\`. That member stays, with \`k\` of type \`unknown\`.`
 // %%
-md`**S9.3** A foreign declaration (\`declare const\` or \`declare function\`, given to the checker beside the cells) is the trusted signature of an imported cell or library. Each is marked \`/** pure */\` or \`/** effect */\`; an unmarked one is \`[foreign-unmarked]\`, and a checked cell that takes an \`effect\` one is \`[foreign-effect]\`. A foreign declaration's name is used before a global of the same name. A notebook module has none.`
+md`**S9.3** A foreign declaration (\`declare const\` or \`declare function\`, given to the checker together with the cells) is the trusted signature of an imported cell or library. Each has the mark \`/** pure */\` or \`/** effect */\`. A declaration with no mark is \`[foreign-unmarked]\`. A checked cell that takes an \`effect\` declaration is \`[foreign-effect]\`. The name of a foreign declaration is used before a global of the same name. A notebook module has no foreign declarations.`
 // %%
-md`**S9.4** The narrowings of one value combine in any order: a test that excludes \`null\` or \`undefined\` (\`v !== null\`, \`v != null\`, \`!!v\`) and a later \`typeof v === "object"\` narrow \`v\` to \`object\`, as when \`typeof\` is tested first. An assignment to \`v\` ends the exclusion.`
+md`**S9.4** The narrowings of one value combine in any order. A test that excludes \`null\` or \`undefined\` (\`v !== null\`, \`v != null\`, \`!!v\`) and a later \`typeof v === "object"\` narrow \`v\` to \`object\`, as when \`typeof\` is tested first. An assignment to \`v\` ends the exclusion.`
 // %%
-md`**S9.5** The right operand of \`in\` must be an object. One of type \`unknown\`, or of a type parameter, is \`[type]\`, as is one that may be a primitive; one that may be \`null\` or \`undefined\` is \`[possibly-undefined]\`. \`"k" in v\` throws at run time when \`v\` is a primitive; test \`typeof v === "object" && v !== null\` first.`
+md`**S9.5** The right operand of \`in\` must be an object. An operand of type \`unknown\`, of a type parameter, or of a type that can be a primitive is \`[type]\`. An operand that can be \`null\` or \`undefined\` is \`[possibly-undefined]\`. \`"k" in v\` throws at run time when \`v\` is a primitive. Test \`typeof v === "object" && v !== null\` first.`
 // %%
-md`**S9.6** \`typeof v === "function"\` narrows a \`v\` of type \`unknown\`, or of a type parameter, to \`object\`: the test shows that \`v\` is not a primitive, not which arguments it takes. \`object\` has no members and no call signature, so calling it, or passing it where a function or an \`Action\` is expected, is \`[type]\`. An \`Action\` does not reach \`unknown\` (S6.6), and a \`State\` or \`Events\` handle given the type \`unknown\`, \`object\` or a type parameter of a function of the module is \`[handle-pass]\`. \`typeof v === "symbol"\` narrows it to \`symbol\`. A type with a call signature, a function type or an interface or alias with one, has the tag \`"function"\`. Since 2026-11-24 (w1) a function, a \`FetchResponse\` or any other value that is not a record, given a record type, is \`[forgets]\` (S2.9), also as a member of a union, an array element or a type argument (from t1 until w1 such a type hid a \`FetchResponse\` as \`[handle-pass]\`, and took a function).`
+md`**S9.6** \`typeof v === "function"\` narrows a \`v\` of type \`unknown\`, or of a type parameter, to \`object\`. The test shows that \`v\` is not a primitive. It does not show which arguments \`v\` takes. \`object\` has no members and no call signature. Thus a call of it, or its use where a function or an \`Action\` is expected, is \`[type]\`. \`typeof v === "symbol"\` narrows \`v\` to \`symbol\`. A type with a call signature (a function type, or an interface or alias with one) has the tag \`"function"\`.
+
+An \`Action\` does not get to \`unknown\` (S6.6). A \`State\` or \`Events\` handle given the type \`unknown\`, \`object\` or a type parameter of a function of the module is \`[handle-pass]\`. Since 2026-11-24 (w1), a function, a \`FetchResponse\` or any other value that is not a record is \`[forgets]\` when it gets a record type (S2.9). This also applies to a member of a union, an array element and a type argument.`
 // %%
-md`**S9.7** \`await v\`, where \`v\` may be an \`object\`, or a record or interface other than \`Promise\` that declares a \`then\` property, is \`unknown\`: \`await\` calls that \`then\` and gives what it passes on.`
+md`**S9.7** \`await v\` is \`unknown\` when \`v\` can be an \`object\`, or a record or interface other than \`Promise\` that declares a \`then\` property. \`await\` calls that \`then\` and gives the value that \`then\` passes on.`
 // %%
-md`**S9.8** \`cast<T>(v)\` checks a value of any type against \`T\` when it runs, with the check a value from another language gets (S11.4, S11.5), and gives a \`Cast<T>\`: \`{ ok: true, value }\`, where \`value\` is a deep-frozen copy of \`v\` that keeps only the properties \`T\` declares, or \`{ ok: false, path, error }\`, where \`path\` names the first part of \`v\` that is not a \`T\`, such as \`value.rows[1].price\`. Each property of \`v\` is read once, so a getter or a proxy cannot give one value to the check and another to the copy; a throw while \`v\` is read gives \`ok: false\`, and \`v\` itself is never handed out. \`T\` is the call's one type argument; a call without one is \`[cast-type]\`. \`T\` may be what S11.3 accepts as an annotation, except a function type: \`number\`, \`string\`, \`boolean\`, \`null\`, \`undefined\`, literal types, \`unknown\`, arrays, tuples, object types with no methods or index signature, unions, and aliases of these, recursive ones as S11.3 allows. Any other \`T\` is \`[cast-type]\`: a function or a method, \`Mut\`, \`Promise\`, \`Map\`, \`Set\` or another class, an index signature, a type parameter, \`object\`, \`never\`, \`bigint\`. Since 2026-11-23 (a9) so is a literal type that is not a finite number, such as \`1e400\` (\`Infinity\`), which the compiled cell's JSON wrote as \`null\`, and a \`T\` whose run-time form has more than 10000 parts: an alias that is not recursive is written out at each use, so \`type P<X> = { a: X; b: X }\` nested 20 deep has about 2^20 parts, and the checker spent seconds on it. \`cast\` is only called (\`[prelude-value]\`). The copy is not \`Mut\`, so a write to it is \`[member-write]\` (S4.3). The compiler adds the run-time form of \`T\` to each call, from the cell's check; a cell compiled without its check gives \`ok: false\` for every value.`
+md`**S9.8** \`cast<T>(v)\` checks a value of any type against \`T\` when it runs. The check is the check that a value from another language gets (S11.4, S11.5). The result is a \`Cast<T>\`:
+
+- \`{ ok: true, value }\`, where \`value\` is a deep-frozen copy of \`v\` that keeps only the properties that \`T\` declares; or
+- \`{ ok: false, path, error }\`, where \`path\` names the first part of \`v\` that is not a \`T\`, such as \`value.rows[1].price\`.
+
+\`cast\` reads each property of \`v\` one time. Thus a getter or a proxy cannot give one value to the check and a different value to the copy. A throw during the read of \`v\` gives \`ok: false\`. \`cast\` never gives out \`v\` itself.
+
+\`T\` is the one type argument of the call. A call without it is \`[cast-type]\`. \`T\` can be a type that S11.3 accepts as an annotation, except a function type: \`number\`, \`string\`, \`boolean\`, \`null\`, \`undefined\`, literal types, \`unknown\`, arrays, tuples, object types with no methods and no index signature, unions, and aliases of these (recursive aliases as S11.3 allows). Any other \`T\` is \`[cast-type]\`: a function or a method, \`Mut\`, \`Promise\`, \`Map\`, \`Set\` or another class, an index signature, a type parameter, \`object\`, \`never\`, \`bigint\`.
+
+Since 2026-11-23 (a9), these are also \`[cast-type]\`:
+
+- a literal type that is not a finite number, such as \`1e400\` (\`Infinity\`), because JSON writes it as \`null\` in the compiled cell;
+- a \`T\` whose run-time form has more than 10000 parts. An alias that is not recursive is written in full at each use. For example, \`type P<X> = { a: X; b: X }\` nested 20 deep has about 2^20 parts.
+
+A body can only call \`cast\` (\`[prelude-value]\`). The copy is not \`Mut\`, so a write to it is \`[member-write]\` (S4.3). The compiler adds the run-time form of \`T\` to each call, from the check of the cell. A cell compiled without its check gives \`ok: false\` for every value.`
 // %%
-md`The cells of this section. \`s9_raw\` is Observable JavaScript; \`s9_size\` takes it as \`unknown\` and \`s9_decodeSize\` builds a typed \`{ w, h }\` from it.`
+md`These are the cells of this section. \`s9_raw\` is Observable JavaScript. \`s9_size\` takes it as \`unknown\`, and \`s9_decodeSize\` makes a typed \`{ w, h }\` from it.`
 // %%
 s9_raw = ({ w: 3, h: 1.5, extra: true })
 // %%
@@ -2296,11 +2583,11 @@ md`## 10. Tests
 
 A test is a cell.`
 // %%
-md`**S10.1** A cell whose name starts with \`test_\` is a test. It is checked and compiled as any other cell.`
+md`**S10.1** A cell whose name starts with \`test_\` is a test. The checker and the compiler treat it as any other cell.`
 // %%
-md`**S10.2** A test passes when its value resolves and fails when it throws or rejects. A test that has not settled has not passed.`
+md`**S10.2** A test passes when its value resolves. It fails when it throws or rejects. A test that has not settled has not passed.`
 // %%
-md`The cells of this section. \`test_s10_double\` is a test of \`s10_double\`, which it takes as a parameter.`
+md`These are the cells of this section. \`test_s10_double\` is a test of \`s10_double\`, which it takes as a parameter.`
 // %%
 //ss: ./spec-10.ts
 // %%
@@ -2328,33 +2615,65 @@ test_spec_S10_2 = {
 // %%
 md`## 11. Observable JavaScript and raw cells
 
-A SoundScript cell reads a cell written in another language of the same module through a typed parameter. The value is checked and copied on the way in.`
+A SoundScript cell reads a cell in another language of the same module through a typed parameter. The notebook checks and copies the value when it arrives.`
 // %%
-md`**S11.1** A parameter that names no SoundScript cell, foreign declaration, shell cell or capability, but names another variable of the module (an Observable JavaScript cell, a raw cell or an import), takes that variable's value. A parameter that names none of these is \`[inject-unknown]\`.`
+md`**S11.1** A parameter can name another variable of the module: an Observable JavaScript cell, a raw cell or an import. If the parameter names no SoundScript cell, foreign declaration, shell cell or capability, it takes the value of that variable. A parameter that names none of these is \`[inject-unknown]\`.`
 // %%
-md`**S11.2** Such a parameter must have a type annotation; without one it is \`[boundary-unannotated]\`.`
+md`**S11.2** Such a parameter must have a type annotation. Without one it is \`[boundary-unannotated]\`.`
 // %%
-md`**S11.3** The annotation may use \`number\`, \`string\`, \`boolean\`, \`null\`, \`undefined\`, literal types, \`unknown\`, arrays, tuples, object types and interfaces with no methods or index signature, unions, and aliases of these. A function type, or an alias of one, may be the whole annotation when it has no type parameters and no rest parameter, and its parameters and its result, or the \`T\` of a \`Promise<T>\` result, are annotations this statement accepts, or \`void\`, read as \`undefined\`; a parameter of it may be optional. Any other annotation is \`[boundary-type]\`: a function type inside an object, array or union, under \`State\`, or as a parameter or result of a function; \`Promise\`, \`Map\`, \`Set\` or another class; \`Events<T>\`. An alias may refer to itself, directly or through other aliases, when an object type, array or tuple lies on every path from the alias back to itself, as in \`type Tree = { v: number; kids: Tree[] }\`; \`type A = A | number\` is \`[type-cycle]\` (S1.10, since 2026-11-23; it was \`[boundary-type]\`), and a generic alias whose type arguments differ at every level, such as \`type N<T> = { next: N<T[]> | null }\`, is \`[boundary-type]\`. Since 2026-11-23 (a9) a literal type that is not a finite number (\`1e400\`) and an annotation whose run-time form has more than 10000 parts are \`[boundary-type]\`, as in S9.8; before, \`1e400\` was checked as \`null\`.`
+md`**S11.3** The annotation can use \`number\`, \`string\`, \`boolean\`, \`null\`, \`undefined\`, literal types, \`unknown\`, arrays, tuples, object types and interfaces with no methods and no index signature, unions, and aliases of these.
+
+A function type, or an alias of one, can be the full annotation when:
+
+- it has no type parameters and no rest parameter;
+- its parameters, and its result or the \`T\` of a \`Promise<T>\` result, are annotations that this statement accepts, or \`void\`, which is read as \`undefined\`.
+
+A parameter of the function type can be optional.
+
+Any other annotation is \`[boundary-type]\`: a function type inside an object, array or union, in \`State\`, or as a parameter or result of a function; \`Promise\`, \`Map\`, \`Set\` or another class; \`Events<T>\`.
+
+An alias can refer to itself, directly or through other aliases, when an object type, an array or a tuple is on every path from the alias back to itself, as in \`type Tree = { v: number; kids: Tree[] }\`. \`type A = A | number\` is \`[type-cycle]\` (S1.10, since 2026-11-23). A generic alias whose type arguments are different at every level, such as \`type N<T> = { next: N<T[]> | null }\`, is \`[boundary-type]\`. Since 2026-11-23 (a9), a literal type that is not a finite number (\`1e400\`) and an annotation whose run-time form has more than 10000 parts are \`[boundary-type]\`, as in S9.8.`
 // %%
-md`**S11.4** Each value that arrives is checked against the annotation. A value that does not match makes the reading cell throw a \`TypeError\` that names the place, such as \`rows[1].price: expected number, found string "12"\`. A value that reaches itself again at a place the annotation checks does not match, such as \`tree.kids[0]: a cycle\`; a value is checked however deeply it is nested. Cells that do not depend on the reading cell are not affected, and the reading cell runs again on the next value. A function is checked at each call: a result that does not match, a throw from the function, or a throw while its result is read makes the call throw a new \`TypeError\` that names the function, such as \`measure(...).n: expected number, found string "3"\` or \`measure(...) threw: boom\`. With a \`Promise<T>\` result, a mismatch, a rejection or a throw while the result is read rejects the promise the cell receives with that \`TypeError\`; a throw from the call itself is thrown at the call.`
+md`**S11.4** The notebook checks each value that arrives against the annotation.
+
+- If the value does not agree with the annotation, the cell that reads it throws a \`TypeError\` that names the place, such as \`rows[1].price: expected number, found string "12"\`.
+- A value that reaches itself again at a place that the annotation checks does not agree, for example \`tree.kids[0]: a cycle\`. The check has no depth limit.
+- Cells that do not depend on the reading cell are not affected. The reading cell runs again on the next value.
+- A function is checked at each call. The call throws a new \`TypeError\` that names the function when the result does not agree, when the function throws, or when the read of its result throws: \`measure(...).n: expected number, found string "3"\` or \`measure(...) threw: boom\`.
+- With a \`Promise<T>\` result, the promise that the cell gets rejects with that \`TypeError\` when the result does not agree, when the promise rejects, or when the read of the result throws. A throw from the call itself is thrown at the call.`
 // %%
-md`**S11.5** The cell is given a deep-frozen copy. An object keeps only the properties its type declares. Under a recursive alias, an object that the value reaches by two paths and that both read as the same type is copied once, and the copy is reached by both paths. \`unknown\` accepts primitives, arrays and plain objects, and copies them whole; a function, a promise or an instance of a class is a mismatch (S11.4). A hole in an array is read as \`undefined\`: it is a mismatch where the element type has no \`undefined\`, and the copy has an \`undefined\` there otherwise. A function is given as a frozen function of the boundary's own. At each call it gives the other language's function a deep-frozen copy of each argument, so the other language never holds a value the cell holds, calls it with no \`this\`, and gives the cell a deep-frozen copy of the result.`
+md`**S11.5** The cell gets a deep-frozen copy.
+
+- An object keeps only the properties that its type declares.
+- With a recursive alias, an object that the value reaches by two paths, and that both paths read as the same type, is copied one time. Both paths reach the copy.
+- \`unknown\` accepts primitives, arrays and plain objects, and copies them in full. A function, a promise or an instance of a class does not agree (S11.4).
+- A hole in an array is read as \`undefined\`. It does not agree where the element type has no \`undefined\`. If the type has \`undefined\`, the copy has \`undefined\` at that position.
+- A function is given as a frozen function that the boundary makes. At each call, this function gives the function of the other language a deep-frozen copy of each argument. Thus the other language never holds a value that the cell holds. The boundary function calls the function of the other language with no \`this\`, and gives the cell a deep-frozen copy of the result.`
 // %%
-md`**S11.6** A copy is made for each value that arrives, so a value changed in place by the other language and delivered again is seen. The reading cell runs for each value that arrives, as the runtime runs any cell whose input was computed again; an equal copy does not stop it. The same function delivered again with the same annotation is the same function to the cell; a function delivered after another one is a new function to the cell, even if it was delivered before.`
+md`**S11.6** The notebook makes a copy for each value that arrives. Thus the cell sees a value that the other language changed in place and delivered again. The reading cell runs for each value that arrives, as the runtime runs any cell whose input was computed again. An equal copy does not stop the run. The same function delivered again with the same annotation is the same function to the cell. A function delivered after a different function is a new function to the cell, even if it was delivered before.`
 // %%
-md`**S11.7** \`x: State<T>\` takes the view of an Observable JavaScript \`viewof x\`, or the handle of a SoundScript state cell imported from another module with \`import {viewof x} from …\`. Each write is checked against \`T\`. On any other cell in another language, and when two parameters in one module take the same view or state cell as \`State\` of different types, it is \`[boundary-state]\`.`
+md`**S11.7** \`x: State<T>\` takes the view of an Observable JavaScript \`viewof x\`, or the handle of a SoundScript state cell imported from another module with \`import {viewof x} from …\`. Each write is checked against \`T\`. \`State\` is \`[boundary-state]\` on any other cell in another language. It is also \`[boundary-state]\` when two parameters in one module take the same view or state cell as \`State\` of different types.`
 // %%
-md`**S11.8** The view holds the value. A write through the \`State\` commits with its action: it sets the view's \`value\` and dispatches an \`input\` event. \`read\` inside an action gives what the control holds at that moment, which the control may have rounded or clamped, with the call's own earlier writes. A change the user makes on the control is not an action call.`
+md`**S11.8** The view holds the value. A write through the \`State\` commits with its action: it sets the \`value\` of the view and dispatches an \`input\` event. \`read\` inside an action gives the value that the control holds at that time, with the earlier writes of the call. The control can round or clamp the value. A change that the user makes on the control is not an action call.`
 // %%
-md`**S11.9** The value of a cell in another language is state: an action may not use it (\`[action-capture]\`, section 6). Take the view as \`State\` and \`read\` it inside the action; when the cell has no view, pass the value to the action as an argument. A function from another language is such a value: an action may not capture it, nor capture a cell that reads it. A cell that takes the function, or a cell that reads it, may not hold a value whose type may be or hold a function in a state cell, nor yield one from an events cell (\`[action-capture]\`). Since 2026-11-24 (w1) such a function given a record type (\`{}\`, a record of optional members, an empty interface) is \`[forgets]\` (S2.9) before the capture rule is reached.`
+md`**S11.9** The value of a cell in another language is state. An action cannot use it (\`[action-capture]\`, section 6). Take the view as \`State\` and \`read\` it inside the action. When the cell has no view, give the value to the action as an argument.
+
+A function from another language is such a value. An action cannot capture it, and cannot capture a cell that reads it. A cell that takes the function, or a cell that reads it, cannot hold a value whose type can be or hold a function in a state cell, and cannot yield one from an events cell (\`[action-capture]\`). Since 2026-11-24 (w1), such a function given a record type (\`{}\`, a record of optional members, an empty interface) is \`[forgets]\` (S2.9), before the capture rule applies.`
 // %%
-md`**S11.10** Adding, deleting or renaming a cell in another language checks the module's SoundScript cells again.`
+md`**S11.10** When a cell in another language is added, deleted or renamed, the checker checks the SoundScript cells of the module again.`
 // %%
-md`**S11.11** A function from another language is trusted, and not checked, to give equal results for equal arguments, to end, to write nothing (by calling an action or in any other way), and to give values that mean what the cell takes them to mean. What is checked is S11.4 to S11.9: each result has the declared type and is a frozen copy, the function receives copies, nothing it throws reaches the cell as its own object, and no action captures it. A checked cell that calls such a function is only as pure as the function: two calls with equal arguments may give different results, and an action the function calls may run the calling cell again.`
+md`**S11.11** A function from another language is trusted. The notebook does not check that the function:
+
+- gives equal results for equal arguments;
+- ends;
+- writes nothing, by a call of an action or in any other way;
+- gives values that mean what the cell uses them for.
+
+The notebook checks S11.4 to S11.9: each result has the declared type and is a frozen copy, the function gets copies, no thrown object gets to the cell as the same object, and no action captures the function. A checked cell that calls such a function is only as pure as the function. Two calls with equal arguments can give different results. An action that the function calls can run the calling cell again.`
 // %%
-md`The cells of this section: \`s11_rows\`, \`viewof s11_level\` and \`s11_measure\` are Observable JavaScript, \`s11_raw_area\` is raw, and the \`s11_\` cells after them are SoundScript. \`s11_measured\` calls the function \`s11_measure\`.`
+md`These are the cells of this section. \`s11_rows\`, \`viewof s11_level\` and \`s11_measure\` are Observable JavaScript. \`s11_raw_area\` is raw. The \`s11_\` cells after them are SoundScript. \`s11_measured\` calls the function \`s11_measure\`.`
 // %%
-md`\`s11_late_twice\` takes \`s11_late\`, which no cell of this module defines, so it shows an error: it is rejected until \`test_spec_S11_10\` defines \`s11_late\` for a while (S11.10).`
+md`\`s11_late_twice\` takes \`s11_late\`, which no cell of this module defines. Thus it shows an error. It is rejected until \`test_spec_S11_10\` defines \`s11_late\` for a short time (S11.10).`
 // %%
 s11_rows = [{ price: 1, name: "tea" }, { price: 2.5, name: "cake" }]
 // %%
@@ -2731,57 +3050,57 @@ test_spec_S11_11 = {
 // %%
 md`## Not specified
 
-Behaviour the code has today that this page does not promise. Each item is undecided or unfinished, and none should be relied on.`
+This section lists behaviour that the code has today and that this page does not promise. Each item is not decided or not finished. Do not rely on any of them.`
 // %%
-md`- A \`Mut\` in a parameter of a function's parameter is not removed (S4.4). A cell that takes \`(cb: (x: Mut<number[]>) => void) => void\` from another cell may write what that function passes to \`cb\`. Under S4.10 that value is fresh or one the calling cell gave, since a kept function cannot capture a shared \`Mut\`. Whether S4.4 should remove it is not decided. Found 2026-11-23.`
+md`- A \`Mut\` in a parameter of a parameter of a function is not removed (S4.4). A cell that takes \`(cb: (x: Mut<number[]>) => void) => void\` from another cell can write the value that the function gives to \`cb\`. By S4.10 that value is fresh or from the calling cell, because a kept function cannot capture a shared \`Mut\`. It is not decided whether S4.4 removes it. Found 2026-11-23.`
 // %%
-md`- A \`Mut\` in the result of a function from another language (section 11) is kept: \`lib.get().push(1)\` for a foreign \`get: () => Mut<number[]>\` is accepted, and so is a write to a \`Mut\` field of such a result. S4.4 removes a \`Mut\` only from what a SoundScript cell exposes. Out of scope by the owner's ruling (2026-11-23).`
+md`- A \`Mut\` in the result of a function from another language (section 11) is kept. \`lib.get().push(1)\` for a foreign \`get: () => Mut<number[]>\` is accepted, and so is a write to a \`Mut\` field of such a result. S4.4 removes a \`Mut\` only from the value that a SoundScript cell exposes. The owner ruled this out of scope (2026-11-23).`
 // %%
-md`- A function from another language is not a point of S4.11, and S4.12 does not check a call of one. A cell that passes a function over a read-only name, or the \`Mut\` itself, to such a function and writes the \`Mut\` later in the same body is accepted; whether the foreign function keeps what it was given is not known to the checker.`
+md`- A function from another language is not a point of S4.11, and S4.12 does not check a call of one. The checker accepts a cell that gives such a function a read-only name for a \`Mut\`, or the \`Mut\` itself, and writes the \`Mut\` later in the same body. The checker does not know if the foreign function keeps the value.`
 // %%
-md`- \`DataView\`, \`TextEncoder\`, \`TextDecoder\` and \`Symbol\` were on the first list of allowed intrinsics (the tutorial's rule list), but the checker has no signatures for them: reading one leaves the cell unsupported, and \`new\` on one is \`[new-non-intrinsic]\`.`
+md`- \`DataView\`, \`TextEncoder\`, \`TextDecoder\` and \`Symbol\` were on the first list of allowed intrinsics (the rule list of the tutorial). The checker has no signatures for them. A read of one makes the cell unsupported, and \`new\` on one is \`[new-non-intrinsic]\`.`
 // %%
-md`- \`BigInt64Array\` and \`BigUint64Array\` are \`[free-name]\`: the checker models the other nine typed arrays (S2.6) but not these two. Whether they should be allowed is not decided.`
+md`- \`BigInt64Array\` and \`BigUint64Array\` are \`[free-name]\`. The checker has a model of the other nine typed arrays (S2.6) and not of these two. It is not decided whether they are allowed.`
 // %%
-md`- \`prototype\` read through a value's \`constructor\`, such as \`[].constructor.prototype\`, leaves the cell unsupported: neither \`[banned-member]\` (S2.7) nor another rule rejects it, and in a notebook module the cell is rejected (S8.2).`
+md`- \`prototype\` read through the \`constructor\` of a value, such as \`[].constructor.prototype\`, makes the cell unsupported. \`[banned-member]\` (S2.7) does not reject it, and no other rule does. In a notebook module the cell is rejected (S8.2).`
 // %%
-md`- \`Object.assign\` onto a fresh literal (\`Object.assign({}, o)\`) and \`satisfies\` leave the cell unsupported: the checker neither accepts nor rejects it. In a notebook module such a cell is rejected (S8.2).`
+md`- \`Object.assign\` onto a fresh literal (\`Object.assign({}, o)\`) and \`satisfies\` make the cell unsupported: the checker does not accept it and does not reject it. In a notebook module such a cell is rejected (S8.2).`
 // %%
-md`- An angle-bracket cast \`<number>e\` is \`[no-cast]\` when the module is checked without JSX; a notebook module is checked with JSX, where it does not parse.`
+md`- An angle-bracket cast \`<number>e\` is \`[no-cast]\` when the module is checked without JSX. A notebook module is checked with JSX, where the cast does not parse.`
 // %%
-md`- How many times a listener cell runs again when its events cell stops and starts again (S7.5). By S8.4 it runs at least once for each run of the events cell; \`test_spec_S7_5\` reports the count and does not assert it. The counts recorded on 2026-11-16 (once in one load, none in another) were taken while cells were memoised, which ended on 2026-11-19.`
+md`- The number of times that a listener cell runs again when its events cell stops and starts again (S7.5). By S8.4 it runs one time or more for each run of the events cell. \`test_spec_S7_5\` reports the count and does not assert it.`
 // %%
-md`- A write to a state cell while it is computing again, after an input changed and before the cell has run (S6.2). Today it goes to the state cell as it was, and is kept only if the cell runs again with the same inputs.`
+md`- A write to a state cell while it computes again, after an input changed and before the cell has run (S6.2). Today the write goes to the state cell as it was. It is kept only if the cell runs again with the same inputs.`
 // %%
-md`- An \`Action\` held in a state cell (an undo stack, a current tool). The checker accepts it; what the state cell holds after the action's cell is edited or deleted is observed, not decided.`
+md`- An \`Action\` held in a state cell (an undo stack, a current tool). The checker accepts it. The content of the state cell after the cell of the action is edited or deleted is observed, not decided.`
 // %%
-md`- The order of listeners in different modules. The runtime orders them by module name and then by place; a module with no name, such as one made for a test, is given a random one.`
+md`- The order of listeners in different modules. The runtime puts them in order by module name and then by position. A module with no name, such as a module made for a test, gets a random name.`
 // %%
-md`- An async generator as an events cell. The checker takes only a sync generator as \`Events\` (S7.1); the runtime also delivers an async generator's values.`
+md`- An async generator as an events cell. The checker takes only a sync generator as \`Events\` (S7.1). The runtime also delivers the values of an async generator.`
 // %%
-md`- A type declared twice: the first is used, and the second is a module-level \`[duplicate-cell]\` with no line of the first.`
+md`- A type declared two times. The first is used. The second is a module-level \`[duplicate-cell]\` that does not give the line of the first.`
 // %%
-md`- A top-level \`declare const\` is \`[module-level]\` today (S1.4). Whether an ambient declaration belongs in a module of cells is not decided.`
+md`- A top-level \`declare const\` is \`[module-level]\` today (S1.4). It is not decided if an ambient declaration is correct in a module of cells.`
 // %%
-md`- A cell in another language read by an island of \`compile(...)\`. Today it is rejected: naming one, say \`k\`, as an island input is \`[compile-island]\` with the message "no cell k".`
+md`- A cell in another language read by an island of \`compile(...)\`. Today it is rejected: the name of such a cell, for example \`k\`, as an island input is \`[compile-island]\` with the message "no cell k".`
 // %%
-md`- \`compile(...)\` and \`pool\` beyond S2.5 and S8.7. The checker has three rules for them that no statement gives: \`[compile-island]\` (an island that is not a set of ok, synchronous cells), \`[compile-options]\` (options other than \`{ runtime?: Pool }\`) and \`[compile-boundary]\` (an island input that cannot be sent to a worker, such as a function).`
+md`- \`compile(...)\` and \`pool\` outside S2.5 and S8.7. The checker has three rules for them that no statement gives: \`[compile-island]\` (an island that is not a set of ok, synchronous cells), \`[compile-options]\` (options other than \`{ runtime?: Pool }\`) and \`[compile-boundary]\` (an island input that cannot be sent to a worker, such as a function).`
 // %%
-md`- A dependency cycle that passes through a cell in another language. The checker is given only the names of those cells, not their inputs, so it cannot see one.`
+md`- A dependency cycle that goes through a cell in another language. The checker gets only the names of those cells, not their inputs, so it cannot see such a cycle.`
 // %%
-md`- A DOM node from another language placed in JSX.`
+md`- A DOM node from another language put in JSX.`
 // %%
-md`- A listener while an input of its events cell throws. The events cell does not run again, and a listener that was waiting for that run keeps receiving what the old generator yields until the listener cell runs again or is deleted (measured 2026-11-20: 30 values over 30 rounds).`
+md`- A listener while an input of its events cell throws. The events cell does not run again. A listener that waited for that run continues to get the values of the old generator until the listener cell runs again or is deleted (measured 2026-11-20: 30 values in 30 rounds).`
 // %%
-md`- Which requests an async cell makes when its input changes while it is waiting. The Runtime runs only the latest input after the pending one, so a request can be skipped, and a request whose input is a state cell can be made twice. \`spec_s6_latestWins\` and \`spec_s6_everyAnswer\` are the two ways to write a program that does not depend on this.`
+md`- The requests that an async cell makes when its input changes while it waits. The Runtime runs only the latest input after the pending one. Thus a request can be skipped, and a request whose input is a state cell can be made two times. \`spec_s6_latestWins\` and \`spec_s6_everyAnswer\` are the two ways to write a program that does not depend on this.`
 // %%
-md`- A handler that makes several top-level calls, such as \`onClick={() => { begin(); load(); }}\`. An event attribute takes one action, so this is not provided.`
+md`- A handler that makes several top-level calls, such as \`onClick={() => { begin(); load(); }}\`. An event attribute takes one action, so this is not available.`
 // %%
-md`- A change the user makes on a view's control while an action call that wrote the view is waiting to commit. Today the commit replaces the user's change.`
+md`- A change that the user makes on the control of a view while an action call that wrote the view waits to commit. Today the commit replaces the change of the user.`
 // %%
-md`- Which value a state cell ends with when two async cells each feed a listener that writes it: each writes when its fetch answers, so the state cell keeps the value of the response that arrived last, and that order is not specified.`
+md`- The final value of a state cell when two async cells each feed a listener that writes it. Each listener writes when its fetch answers. Thus the state cell keeps the value of the response that arrived last, and that order is not specified.`
 // %%
-md`- An action taken before its state cell went into error, and called while the state cell is in error. Today it writes the state cell's last store, and the write is kept if the state cell is repaired with the same inputs.`
+md`- An action taken before its state cell went into error, and called while the state cell is in error. Today it writes the last store of the state cell. The write is kept if the state cell is repaired with the same inputs.`
 // %%
 spec_coverage = Generators.observe((notify) => {
   // drawn again when a test settles and when a cell of this module is added, edited or deleted; a test that
