@@ -88,6 +88,8 @@ LEFT=$(ps -eo pid=,rss=,etimes=,args= --sort=-rss | awk -v me=$$ '$1!=me && $4 ~
 if [ -f "plan/retros/$RUN.md" ] && ! git ls-files --error-unmatch "plan/retros/$RUN.md" >/dev/null 2>&1; then
   git add "plan/retros/$RUN.md" && git commit -q -m "retro $RUN: report (committed by run.sh; the agent did not)"
 fi
+# Each run's scratch holds a whole copy of the record (73 MB on 11-24); on 11-25 33 of them filled the 7.8 GB volume.
+find /data/retro-scratch -name events.json -mtime +2 -delete 2>/dev/null; say "volume: $(df -m --output=avail /data | tail -1 | tr -d ' ') MB free"
 # What the agent left uncommitted is named, and kept out of the way: on 2026-11-21 it made the pull refuse, and the report went to a branch.
 DIRTY=$(git status --porcelain --untracked-files=no | awk '{print $2}' | tr '\n' ' ')
 [ -n "$DIRTY" ] && say "left uncommitted by the agent, not pushed: $DIRTY"
