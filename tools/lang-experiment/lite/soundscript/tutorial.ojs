@@ -615,7 +615,7 @@ In a \`.tsx\` source, \`<tag prop={…}>children</tag>\` is a value of type \`El
 - \`key\` on the element of a component is for the renderer. It is not one of the props of the component.
 - Children are elements, strings, numbers, booleans, \`null\`/\`undefined\`, or arrays of elements.
 
-A handler made for each row, \`items.map((it) => <button onClick={action(() => remove(it.id))}>x</button>)\`, is \`[action-capture]\`. \`it\` comes from the value of a state cell, and an action body cannot use such a value (S6.9). Give the data of the row to the action as its argument: \`<input type="checkbox" value={String(it.id)} onInput={remove} />\` with \`remove: Action<[string]>\` gives \`remove\` the id of the row. A \`button\` has no value, so this form needs an \`input\`.
+A handler made for each row, \`items.map((it) => <button onClick={action(() => remove(it.id))}>x</button>)\`, is \`[action-capture]\`. \`it\` comes from the value of a state cell, and an action body cannot use such a value (S6.9). Give the data of the row to the action as its argument: \`<input type="checkbox" value={String(it.id)} onInput={remove} />\` with \`remove: Action<[string]>\` gives \`remove\` the id of the row. A \`button\` has no value, so this form needs an \`input\`. Over a list that does not depend on state, a handler made for each row can use the row: \`[1, 2, 3].map((n) => <button onClick={action(() => pick.set(n))}>{n}</button>)\` is accepted (since 2026-11-25).
 
 The full declarations are in the first appendix. Section 8 shows each rejection.`
 // %%

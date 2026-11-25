@@ -51,4 +51,47 @@ L("open-ok-optional-declared", `const f: (x: number, y?: number) => number = (x:
 // controls, checker skipped: map's third argument reaches a parameter the type leaves out
 L("open-ctl-map", `return [5].map(${F3});`, strs, true);
 L("open-ctl-annot", `const f: (x: number) => string = ${F3}; return [5].map(f);`, strs, true);
+// part 2 (2026-11-25, S6.9): an action made in a callback that a built-in calls before it returns may use the callback's
+// parameter when what the built-in passes it (the receiver, the other arguments, and for an accumulator the callback's
+// own results) does not depend on state. open-ok-act-*: accepted; the drive calls the last action made and reads c.
+// open-act-*: rejected [action-capture]. Sources from lite/soundscript/.scratch/open/p2.ts
+const S2 = "const c = (): StateCell<number> => state(0);\nconst k = (): StateCell<readonly number[]> => state([1, 2]);\n";
+const actDrive = (want: number) => async (p: any) => {
+  const v = p.value("mk"), acts = Array.isArray(v) ? v.flat() : [], last = acts[acts.length - 1];
+  if (typeof last !== "function") return `DIFF mk is not a list of actions: ${p.status("mk")} ${String(p.error("mk") ?? "").slice(0, 100)}`;
+  let thrown = "";
+  try { last(); } catch (e) { thrown = ` (call threw: ${(e as Error).message.slice(0, 100)})`; }
+  await p.settle();
+  const c = p.value("c");
+  return c === want && !thrown ? `same: c=${c}` : `DIFF c is ${c}, want ${want}${thrown}`;
+};
+const A = (name: string, head: string, body: string, want: number | null) => R.push({ name, src: `${S2}const mk = ${head} => ${body};`, show: ["mk", "c"], ...(want === null ? {} : { drive: actDrive(want) }) });
+const H = "(c: State<number>)", HK = "(c: State<number>, k: readonly number[])";
+A("open-ok-act-forof", H, `{ const out: Action<[]>[] = []; for (const n of [1, 2]) out.push(action(() => { c.set(n); })); return out; }`, 2);
+A("open-ok-act-map", H, `[1, 2].map((n) => action(() => { c.set(n); }))`, 2);
+A("open-ok-act-forEach", H, `{ const out: Action<[]>[] = []; [1, 2].forEach((n) => { out.push(action(() => { c.set(n); })); }); return out; }`, 2);
+A("open-ok-act-flatMap", H, `[1, 2].flatMap((n) => [action(() => { c.set(n); })])`, 2);
+A("open-ok-act-filter", H, `{ const out: Action<[]>[] = []; [1, 2].filter((n) => { out.push(action(() => { c.set(n); })); return true; }); return out; }`, 2);
+A("open-ok-act-reduce", H, `{ const init: readonly Action<[]>[] = []; return [1, 2].reduce((acc: readonly Action<[]>[], n) => [...acc, action(() => { c.set(n); })], init); }`, 2);
+A("open-ok-act-readonly-local", H, `{ const xs: readonly number[] = [1, 2].map((x) => x * 2); return xs.map((n) => action(() => { c.set(n); })); }`, 4);
+A("open-ok-act-array-from", H, `Array.from([1, 2], (n) => action(() => { c.set(n); }))`, 2);
+A("open-ok-act-nested", H, `[[1], [2]].map((xs) => xs.map((n) => action(() => { c.set(n); })))`, 2);
+A("open-ok-act-index", H, `["a", "b"].map((s, i) => action(() => { c.set(i); }))`, 1);
+A("open-act-map-state", HK, `k.map((n) => action(() => { c.set(n); }))`, null);
+A("open-act-forEach-state", HK, `{ const out: Action<[]>[] = []; k.forEach((n) => { out.push(action(() => { c.set(n); })); }); return out; }`, null);
+A("open-act-flatMap-state", HK, `k.flatMap((n) => [action(() => { c.set(n); })])`, null);
+A("open-act-filter-state", HK, `{ const out: Action<[]>[] = []; k.filter((n) => { out.push(action(() => { c.set(n); })); return true; }); return out; }`, null);
+A("open-act-reduce-state", HK, `{ const init: readonly Action<[]>[] = []; return k.reduce((acc: readonly Action<[]>[], n) => [...acc, action(() => { c.set(n); })], init); }`, null);
+A("open-act-forof-state", HK, `{ const out: Action<[]>[] = []; for (const n of k) out.push(action(() => { c.set(n); })); return out; }`, null);
+A("open-act-clock", "(c: State<number>, now: Clock)", `{ const ys: readonly number[] = [now()]; return ys.map((n) => action(() => { c.set(n); })); }`, null);
+A("open-act-mut-local", H, `{ const xs = [1, 2].map((x) => x * 2); return xs.map((n) => action(() => { c.set(n); })); }`, null);
+A("open-act-helper", H, `{ const one = (n: number) => action(() => { c.set(n); }); return [1, 2].map((n) => one(n)); }`, null);
+A("open-act-stored-callback", H, `{ const f = (n: number) => action(() => { c.set(n); }); return [1, 2].map(f); }`, null);
+A("open-act-then", H, `Promise.resolve(1).then((n) => action(() => { c.set(n); }))`, null);
+A("open-act-update", H, `action(() => { c.update((v) => { const a = action(() => { c.set(v); }); return v; }); })`, null);
+A("open-act-array-from-state", HK, `Array.from(k, (n) => action(() => { c.set(n); }))`, null);
+A("open-act-nested-state", HK, `[k].map((xs) => xs.map((n) => action(() => { c.set(n); })))`, null);
+A("open-act-reduce-init-state", HK, `{ const out: Action<[]>[] = []; [1, 2].reduce((acc: number, n) => { out.push(action(() => { c.set(acc); })); return acc + n; }, k[0] ?? 0); return out; }`, null);
+A("open-act-reduce-acc-result", HK, `{ const init: readonly number[] = []; return [1, 2].reduce((acc: readonly number[], n) => { const a = action(() => { c.set(acc[0] ?? 0); }); return k; }, init); }`, null);
+R.push({ name: "open-act-module-fn", src: `${S2}const each = () => (xs: readonly number[], g: (n: number) => Action<[]>) => xs.map(g);\nconst mk = (c: State<number>, each: (xs: readonly number[], g: (n: number) => Action<[]>) => Action<[]>[]) => each([1, 2], (n) => action(() => { c.set(n); }));`, show: ["mk"] });
 export const attacks = R;

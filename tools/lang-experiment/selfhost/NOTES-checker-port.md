@@ -4252,3 +4252,101 @@ sentences.
   `[forgets]` about `{ length: number }` before the `[arity]`. Not changed.
 - Not run: an attack on this rule by a fresh agent; the cross-language path (a function from another language given
   a function type, or a SoundScript function called by JavaScript code with more arguments).
+
+## 2026-11-25: open part 2, an action made in an array callback may use the callback's parameter
+
+The owner's item: `const mk = () => [1, 2].map((n) => action(() => { … n … }))` was `[action-capture]` ("n is a
+parameter of an enclosing function, so a caller may pass it a value that depends on state"), while the same loop with
+`for...of` was accepted.
+
+### Facts before the change (`.scratch/open/p2.ts`, output `p2-before.txt`)
+
+Each form makes `action(() => { c.set(n); })` from the element `n`. Receivers: (a) `[1, 2]`; (b) a local
+`const xs = [1, 2].map(…)`, which is a `Mut`; (b-ro) the same typed `readonly number[]`; (c) a state cell's value `k`;
+(c-clock) `const ys: readonly number[] = [now()]`.
+
+```
+              a       b (Mut)  b-ro    c (state)  c-clock
+for...of      ACCEPT  REJECT   ACCEPT  REJECT     REJECT
+map           REJECT  REJECT   REJECT  REJECT     REJECT
+forEach       REJECT  REJECT   REJECT  REJECT     REJECT
+flatMap       REJECT  REJECT   REJECT  REJECT     REJECT
+filter        REJECT  REJECT   REJECT  REJECT     REJECT
+reduce        REJECT  REJECT   REJECT  REJECT     REJECT
+local helper  REJECT  REJECT   REJECT  REJECT     REJECT
+```
+
+Every REJECT is `[action-capture]`. `for...of` over state was already rejected: `owSpanOf` takes a `for...of` const as
+computed from the loop's iterable (`[decl, loop.right]`), so S6.9 had no hole there. A `for...of` over a local fresh array
+is rejected because the array is a `Mut` ("n is computed from xs, which is a Mut"). The probe row `make-forof` of
+`p.ts` was rejected `[type]` because its action returned a number; `p2.ts` restates it.
+
+### The rule
+
+`lite/infer/ow-opaque.ss.ts`: a new cell `owCallbackSpan` (13 lines), and `owOpaqueWhy1` calls it for a parameter
+(+2 lines). A parameter of a function that is an argument of a call is treated as computed from the call's receiver
+and its other arguments when:
+
+- `owCallsAtOnce` (ow-action.ss.ts, the S6.19 test: an intrinsic that does not `@retains` it, at a parameter of
+  function type) says the callee calls it before it returns;
+- the callee is a member, and its object is not a `State` (the function of `update` gets the state).
+
+The existing walk (`owFree`, `owOpaqueWhy`) then decides that span as it does a `const`'s initialiser. A parameter of
+any other function keeps the old message. Frozen mirror: `frozen/capture.ts` `cbSpan`, marked DELIBERATE CHANGE
+(2026-11-25, open). The 56 probe rows give the same rules in both checkers (`.scratch/open/p2-frozen.ts`).
+
+**A hole the first version had, found by probe** (`reduce-acc-hole2`): `reduce`'s accumulator gets the callback's own
+results. `[1, 2].reduce((acc, n) => { const a = action(() => c.set(acc[0] ?? 0)); return k; }, init)` with `k` a state
+value was accepted with the receiver and `init` as the span: the second call's `acc` is `k`. The span now includes the
+callback itself when the parameter's declared type is the type variable of the callback's declared result (`acc: U`,
+`=> U` in `intrinsics.ts`); the row is `[action-capture]`. The cost: an accumulator form whose body uses a local `Mut`
+(`out.push(...)`) is now rejected too (`reduce-acc-lit`), since the body is in the span. The element parameter `n` of
+`reduce` is not affected.
+
+### After (`p2-after2.txt`)
+
+```
+              a       b (Mut)  b-ro    c (state)  c-clock
+for...of      ACCEPT  REJECT   ACCEPT  REJECT     REJECT
+map           ACCEPT  REJECT   ACCEPT  REJECT     REJECT
+forEach       ACCEPT  REJECT   ACCEPT  REJECT     REJECT
+flatMap       ACCEPT  REJECT   ACCEPT  REJECT     REJECT
+filter        ACCEPT  REJECT   ACCEPT  REJECT     REJECT
+reduce        ACCEPT  REJECT   ACCEPT  REJECT     REJECT
+local helper  REJECT  REJECT   REJECT  REJECT     REJECT
+```
+
+Also accepted: `Array.from([1, 2], (n) => action(…))`, nested `[[1], [2]].map((xs) => xs.map((n) => action(…)))`, the
+index parameter. Still `[action-capture]`: `Array.from(k, …)`, `[k].map((xs) => xs.map(…))`, `reduce` with a state
+initial value or a state result, `then`, a callback bound to a const first (`[1, 2].map(f)`), a callback given to a
+function of the module, the parameter of `update`'s function. The local helper stays rejected, as the brief says.
+
+### Standing set, spec, tutorial
+
+- `open-attacks.ts`: 27 rows (10 `open-ok-act-*`, accepted, whose drive calls the last action made and reads `c`; 17
+  `open-act-*`, which `live.test.ts` asserts are `[action-capture]` in both checkers). `--sets open`: 87 programs,
+  accepted 19, silent 0, under runCells and `--rt`; each of the 10 drives reads the expected `c`.
+- S6.9: a paragraph on a callback's parameter; two reject rows (the reduce result row, the local helper);
+  `test_spec_S6_9` checks a `map` with the index and a `for...of` over a literal. The tutorial's paragraph on a per-row
+  handler gets one sentence and an example, which the checker accepts (`.scratch/open/p2run/tut.ts`).
+
+### Measures (2026-11-25, `.scratch/open/p2run/summary.txt`)
+
+```
+build --force 0; fixtures 14/14; diff 4023 cells SAME 4009 DIFFERENT 0
+run-sets      3310 programs (3283 + 27), silent 0;   run-sets --rt  3310, silent 0
+every other set's line unchanged against open2/rs.log
+verify --quick 234 pass 0 fail; live.test 1248 pass 0 fail; message-fixes 96 pass
+drafts: ergonomics1 18 / 17 (unchanged); learner1 36 / 36 -> 37 / 37
+```
+
+The learner draft that is now accepted is `34-list-view.tsx`: `initialItems.map((it) => ({ id: it.id, remove:
+action(() => removeItem(it.id)) }))` over a cell with no state. It runs and passes ("items milk,flour"). The full gate
+run waits for part 3.
+
+### Not done
+
+- A `Mut` local array is rejected in both forms. Its elements here are numbers, which cannot change after they are
+  read; the rule does not look at the element type.
+- The accumulator test compares type variable names from the declaration; a built-in whose callback result is a
+  type variable that also types another parameter would get the same wider span. Only `reduce` has one today.

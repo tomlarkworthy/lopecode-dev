@@ -366,7 +366,8 @@ for (const [rt, off] of [[false, false], [true, false], [false, true], [true, tr
 
 // open (2026-11-25): a function with more parameters than its type (open-attacks.ts). No row is silent under either
 // runner; each open-ok-* row is accepted and runs with no cell in error and no DIFF; each control fires; every other
-// row is rejected, with [arity] (or [inject-type] for a cell's parameter), by both checkers alike
+// row is rejected, with [arity] (or [inject-type] for a cell's parameter; part 2's open-act-* rows [action-capture]), by
+// both checkers alike
 const OPEN_ROWS = OPEN_ATTACKS.filter((a) => !a.ctl), OPEN_OK = OPEN_ROWS.filter((a) => a.name.startsWith("open-ok-")).length;
 for (const rt of [false, true])
   test(`open: no row is silent, the legal rows run clean, the controls fire${rt ? " (compiled runner)" : ""}`, () => {
@@ -378,9 +379,9 @@ for (const rt of [false, true])
     expect(r.exitCode).toBe(0);
   }, 300000);
 for (const a of OPEN_ROWS)
-  test(`open ${a.name} is ${a.name.startsWith("open-ok-") ? "accepted" : "rejected [arity]"} by both checkers alike`, () => {
+  test(`open ${a.name} is ${a.name.startsWith("open-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
     const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
     expect(live.ok).toBe(a.name.startsWith("open-ok-"));
-    if (!live.ok) expect(live.rules.includes("arity") || live.rules.includes("inject-type")).toBe(true);
+    if (!live.ok) expect(a.name.startsWith("open-act-") ? live.rules.includes("action-capture") : live.rules.includes("arity") || live.rules.includes("inject-type")).toBe(true);
     expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
   });

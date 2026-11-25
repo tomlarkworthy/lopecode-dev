@@ -34,6 +34,21 @@ export const owSpanOf = () => (O: OwCtx, b: IxBinding): AstNode[] | null => {
   if (loop !== undefined && decl !== undefined && loop.type === "ForOfStatement" && loop.left.nid === decl.nid) return [decl, loop.right];
   return d !== undefined && d.type === "VariableDeclarator" && d.init !== null ? [d] : null;
 };
+// open (2026-11-25, S6.9): a parameter of a callback that a built-in calls before it returns (owCallsAtOnce, the
+// S6.19 test) gets values from the receiver and the call's other arguments, so it is computed from them, and from the
+// callback itself when the declared type of the parameter is the callback's result's (reduce's accumulator); null for
+// a parameter of any other function, and of State.update's function, which is given the state
+export const owCallbackSpan = (owEnclFn, owCallsAtOnce, owIsState, owArgIndex, ixFnParts, owWithin, ERR) => (O: OwCtx, b: IxBinding): AstNode[] | null => {
+  const node = O.T.byNid.get(b.nid), f = node === undefined ? null : owEnclFn(O, node);
+  const p = f === null ? undefined : O.T.parent.get(f.nid);
+  if (node === undefined || f === null || p === undefined || p.type !== "CallExpression" || owArgIndex(p.arguments, f) < 0 || !owCallsAtOnce(O, p, f)) return null;
+  const c = p.callee, sig = O.F.calls.get(p.nid)?.sig ?? null, d = sig === null ? null : sig.decl ?? sig;
+  if (c.type !== "MemberExpression" || owIsState(O, c.object)) return null;
+  const cs = d === null ? undefined : O.R.callSigs(d.ps[owArgIndex(p.arguments, f)]?.t ?? d.rest ?? ERR)[0];
+  const k = (ixFnParts(f)?.params ?? []).findIndex((q) => owWithin(node, q)), fed = cs?.ps[k]?.t;
+  const acc = cs !== undefined && fed !== undefined && fed.k === "tv" && cs.ret.k === "tv" && fed.n === cs.ret.n;
+  return [c.object, ...p.arguments.filter((a) => a.nid !== f.nid || acc)];
+};
 export type OwWhyB = { readonly why: (K: OwWhyB, O: OwCtx, Q: OwOpaque, B: OwB, b: IxBinding) => string | null };
 export const owOpaqueWhy = (owIsLocal, owOpaqueWhy1) => (K: OwWhyB, O: OwCtx, Q: OwOpaque, B: OwB, b: IxBinding): string | null => {
   if (!owIsLocal(b)) return null;
@@ -47,11 +62,12 @@ export const owOpaqueWhy = (owIsLocal, owOpaqueWhy1) => (K: OwWhyB, O: OwCtx, Q:
   if (w || !B.visiting.size) B.bad = new Map([...B.bad, [b.id, w]]);
   return w;
 };
-export const owOpaqueWhy1 = (owSpanOf, owFree, owWithin) => (K: OwWhyB, O: OwCtx, Q: OwOpaque, B: OwB, b: IxBinding): string | null => {
-  if (b.kind === "param") return "is a parameter of an enclosing function, so a caller may pass it a value that depends on state";
+export const owOpaqueWhy1 = (owSpanOf, owCallbackSpan, owFree, owWithin) => (K: OwWhyB, O: OwCtx, Q: OwOpaque, B: OwB, b: IxBinding): string | null => {
+  const cb = b.kind === "param" ? owCallbackSpan(O, b) : null;
+  if (b.kind === "param" && cb === null) return "is a parameter of an enclosing function, so a caller may pass it a value that depends on state";
   if (b.kind === "let") return "is a let or a catch binding, so its value is not fixed where it is declared";
   if (b.mutOwned) return "is a Mut, which the cell may change after the action is made";
-  const span = owSpanOf(O, b);
+  const span = cb ?? owSpanOf(O, b);
   if (span === null) return "is bound where the checker does not follow its value";
   if (Q.comps.some((j) => span.some((s) => owWithin(j, s)))) return "is computed from a JSX component, which the checker does not follow";
   for (const c of owFree(O, Q, span)) {

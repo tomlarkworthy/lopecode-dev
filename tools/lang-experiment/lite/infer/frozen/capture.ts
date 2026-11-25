@@ -8,6 +8,7 @@
 // and locals) are not the cell's, whatever they are called.
 import { kids, isFn, type Node } from "./ts/parse.ts";
 import type { Checker, Binding } from "./infer.ts";
+import { isNamed, unwrap } from "../../types.ts";
 
 export type Capture = { node: Node; name: string; why: string; opaque?: boolean };
 
@@ -131,11 +132,28 @@ export function opaqueCaptures(cellFn: Node, ch: Checker, tainted: Map<string, s
     if (w || !visiting.size) bad.set(b, w);
     return w;
   };
+  // DELIBERATE CHANGE (2026-11-25, open, S6.9): a parameter of a callback that a built-in calls before it returns (not
+  // @retains; State.update's function is given the state) is computed from the receiver and the call's other
+  // arguments, and from the callback when its declared type is the callback's result's (reduce's accumulator)
+  const cbSpan = (b: Binding): Node[] | null => {
+    let f = parent.get(b.node);
+    while (f && !isFn(f)) f = parent.get(f);
+    const p = f && parent.get(f);
+    if (!f || !p || p.type !== "CallExpression" || !p.arguments.includes(f) || p.callee.type !== "MemberExpression") return null;
+    const sig = F.calls.get(p)?.sig, fl = sig?.flags, d = sig && (sig.decl ?? sig), i = p.arguments.indexOf(f);
+    const dp = d && (i < d.ps.length ? d.ps[i].t : d.rest), cs = dp ? ch.reg.callSigs(dp)[0] : undefined;
+    const st = F.types.get(p.callee.object);
+    if (!fl?.intrinsic || fl.retains || !cs || (st && ch.um(st).some((m) => isNamed(unwrap(m), "State")))) return null;
+    const k = f.params.findIndex((q: Node) => within(b.node, q)), fed = cs.ps[k]?.t;
+    const acc = !!fed && fed.k === "tv" && cs.ret.k === "tv" && fed.n === cs.ret.n;
+    return [p.callee.object, ...p.arguments.filter((a: Node) => a !== f || acc)];
+  };
   const why1 = (b: Binding): string | null => {
-    if (b.kind === "param") return "is a parameter of an enclosing function, so a caller may pass it a value that depends on state";
+    const cb = b.kind === "param" ? cbSpan(b) : null;
+    if (b.kind === "param" && !cb) return "is a parameter of an enclosing function, so a caller may pass it a value that depends on state";
     if (b.kind === "let") return "is a let or a catch binding, so its value is not fixed where it is declared";
     if (b.mutOwned) return "is a Mut, which the cell may change after the action is made";
-    let span: Node[] | null = b.fnNode ? [b.fnNode] : null;
+    let span: Node[] | null = cb ?? (b.fnNode ? [b.fnNode] : null);
     if (!span) {
       let d = parent.get(b.node);
       while (d && d.type !== "VariableDeclarator") d = parent.get(d);

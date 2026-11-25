@@ -1487,7 +1487,9 @@ md`**S6.9** The body of an action cannot use a value that depends on state. Such
 - an input that takes a cell that depends on one of these;
 - a local computed from any of these.
 
-These are accepted: handles (\`State\`, \`Events\`), \`Action\`s, cells with no state, and the parameters and locals of the action itself. A value from the clock or the random source gets to an action as an argument.`
+These are accepted: handles (\`State\`, \`Events\`), \`Action\`s, cells with no state, and the parameters and locals of the action itself. A value from the clock or the random source gets to an action as an argument.
+
+A parameter of an enclosing function depends on state, because a caller can pass it any value. Since 2026-11-25 there is one exception: a parameter of a callback that a built-in calls before it returns. These are the callbacks of S6.19, such as those of \`map\`, \`forEach\`, \`filter\`, \`flatMap\`, \`reduce\` and \`Array.from\`. The built-in gives the parameter values from its receiver and its other arguments. So the parameter depends on state when the receiver or another argument depends on state. A parameter that gets the callback's own result, such as the accumulator of \`reduce\`, also depends on what the callback uses. Thus \`[1, 2].map((n) => action(() => c.set(n)))\` is accepted, as the same loop written with \`for...of\` is. \`xs.map(...)\` over a state cell's value \`xs\` is \`[action-capture]\`. The parameter of the function of \`update\` gets the state, and the parameter of a callback that is kept (\`then\`), stored, or given to a function of the module is still \`[action-capture]\`. So is the parameter of a local helper. A local array that the cell can change is a \`Mut\`, and an element read from it is \`[action-capture]\` in both forms; a \`readonly\` array is not.`
 // %%
 md`**S6.10** A write is applied to its call when it is made. Thus an \`update\` whose function throws makes the call that made it throw. A top-level call that throws keeps none of its writes, and none of the writes of the actions that it called. The writes of earlier calls are kept. Calls apply in the order in which they were made. An action called inside a call is a plain function call. If it throws and its caller catches the throw, the writes that it made before the throw are kept.`
 // %%
@@ -1675,6 +1677,8 @@ spec_rejects_6 = [
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst stamp = (other: State<number>, now: Clock) => {\n  const box = [() => 1];\n  box[0] = now;\n  const f = box[0] ?? (() => 0);\n  return action(() => other.set(f()));\n};" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst make = (other: State<number>) => (h: () => number) => action(() => other.set(h()));\nconst stamp = (now: Clock, make: (h: () => number) => Action<[]>) => make(now);" },
   { statement: "S6.9", rule: "action-capture", source: "const xs = (): StateCell<readonly number[]> => state([1, 2]);\nconst other = (): StateCell<number> => state(0);\nconst pick = (xs: readonly number[], other: State<number>) => xs.map((x) => action(() => other.set(x)));" },
+  { statement: "S6.9", rule: "action-capture", source: "const xs = (): StateCell<readonly number[]> => state([1, 2]);\nconst other = (): StateCell<number> => state(0);\nconst pick = (xs: readonly number[], other: State<number>) => {\n  const init: readonly number[] = [];\n  return [1, 2].reduce((acc: readonly number[], n) => {\n    const a = action(() => other.set(acc[0] ?? 0));\n    return xs;\n  }, init);\n};" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst pick = (other: State<number>) => {\n  const one = (n: number) => action(() => other.set(n));\n  return [1, 2].map((n) => one(n));\n};" },
   { statement: "S6.18", rule: "state-undefined", source: "const c = () => state(undefined);" },
   { statement: "S6.18", rule: "state-undefined", source: "const c = (): StateCell<number | undefined> => state<number | undefined>(1);" },
   { statement: "S6.18", rule: "state-undefined", source: "const c = (): StateCell<unknown> => state(1);" },
@@ -1829,7 +1833,9 @@ test_spec_S6_8 = {
 test_spec_S6_9 = {
   spec_is(spec_okCells("const k = () => 3;\nconst other = (): StateCell<number> => state(0);\nconst t = (other: State<number>, k: number) => {\n  const j = k + 1;\n  const g = (x: number) => x + j;\n  return action(() => other.set(g(1)));\n};"), "k:ok,other:ok,t:ok");
   spec_is(spec_okCells("const k = () => 5;\nconst o = (): StateCell<number> => state(0);\nconst t = (o: State<number>, k: number, log: Log, invalidation: Invalidation) => action((n: number) => {\n  log(\"set\");\n  o.set(k + n);\n});"), "k:ok,o:ok,t:ok");
-  return `${spec_rejectsFor("S6.9")}; a cell with no state, log, invalidation, the action's argument, and a const or function computed from a cell with no state, are accepted`;
+  // open (2026-11-25): a callback's parameter over a receiver with no state, as with for...of
+  spec_is(spec_okCells("const other = (): StateCell<number> => state(0);\nconst row = (other: State<number>) => [1, 2].map((n, i) => action(() => other.set(n + i)));\nconst loop = (other: State<number>) => {\n  const out: Action<[]>[] = [];\n  for (const n of [1, 2]) out.push(action(() => other.set(n)));\n  return out;\n};"), "other:ok,row:ok,loop:ok");
+  return `${spec_rejectsFor("S6.9")}; a cell with no state, log, invalidation, the action's argument, a const or function computed from a cell with no state, and the parameter of a map callback over a literal array, are accepted`;
 }
 // %%
 test_spec_S6_10 = {
