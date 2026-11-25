@@ -292,7 +292,8 @@ page. Each switch is his to set: he turned `unattendedDeployer` on 2026-11-22 20
 deployed `fix-tests-brain-deployer-7c5b8d67` on 2026-11-23 05:55; the own path's next five sends, to `5fabc49aa39e` on
 2026-11-24 03:16, each logged `deploy.self.confirmed`. Each of those had no browser verdict for its own suite: the
 deployer's dry runs of itself, 17 in the 7 days to 2026-11-25, all logged `deploy.dry.none` "browser.run answered 504
-wait was not true in 40000 ms" (the run is `config.runSeconds` less 20 s, `runSeconds` 60). The suite that stood for
+wait was not true in 40000 ms" (16; one of 2026-11-21 read 100000 ms). The run is `config.runSeconds` less 20 s,
+`runSeconds` 60. The suite that stood for
 each was the worker's and the reviewer's local `bun test.ts @tomlarkworthy/brain-deployer`.
 
 `bun tools/cloud-brain/waiting-deploys.ts` reads only (with `--file <token>` it also closes an open `deploy-waits-<worker>`
