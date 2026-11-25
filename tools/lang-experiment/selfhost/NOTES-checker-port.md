@@ -4508,3 +4508,109 @@ Live cells: new `ixFwdUses` 12 lines, `ixFwdSafe` 20, `ixFwdWhy` 5, `ixFwdRead` 
   converted at the declaration, and converting it again at the read would report its errors twice.
 - Generators used as iterables locally are `[type]` in every form (`spread of non-iterable Generator<number>`), so
   there is no generator row.
+
+## 2026-11-25: open part 4, a full verify that stops early, and the two S4.12 routes
+
+### Job A: "functional 631 pass 0 fail", exit 1
+
+`.scratch/y1/ste-gates/verify-full.log` ends `631 pass, 1 fail` then `functional 631 pass 0 fail`, exit 1. There are
+two causes.
+
+1. The outer `catch` of `verify.ts` printed `FAIL stopped by an error` and did `fails++`. It did not go through
+   `report()`, so `counts.functional.fail` stayed 0. The phases after the throw (no-raw, core-not-main: the 47
+   `pass core-not-main` lines) were never entered, and nothing said so.
+2. The throw is at the `addCell` of `tripled` in core-only, just after the Kit-shadow check. Seven logs stop at that
+   call (verify.ts:2319, 2323 and 2332 in their versions). The log has no `CTX destroyed`, `all cleared`,
+   `frameNavigated` or `navigation requested` line between opening core-only.html and the FAIL. The `CTX page
+   closed` line comes after the FAIL, from `browser.close()`.
+
+Playwright 1.57 (`playwright-core/lib/server/chromium/crExecutionContext.js:110`, `rewriteError`) reports every CDP
+error of `Runtime.callFunctionOn` that is not the page's own exception or a closed session as "Execution context was
+destroyed, most likely because of a navigation". `.scratch/open/p4-gc.ts` shows this for "Promise was collected": an
+evaluate of `new Promise(() => {})` plus `HeapProfiler.collectGarbage` gives that message, and the page stays open.
+So in the failing runs the context was not destroyed. A promise that the page awaited in `addCell`
+(`compile_and_update` or `module.value("tripled")`) could never settle, and V8 collected it.
+
+I did not find which promise. These attempts gave no failure:
+- `--shadow-repro`: open core-only.html, add guard_probe, run the Kit-shadow apply, then add tripled, with the heap
+  collected in a loop until each step settles. 0 of 10 runs failed, and 0 of 10 with `commandGuard` added. This
+  mode is removed.
+- `VERIFY_GC=1 --variant-only`, with the same collection around the real phase's `addCell`: 3 runs, 94 pass 0 fail
+  each.
+
+The race is therefore not removed. Part (2) of the job is not done.
+
+### What changed in verify.ts
+
+- `PLAN`: the phases that the flags select, decided before any phase runs. `enter(name)` marks each phase as it
+  starts. After the `try`, each planned phase that was not entered is a FAIL: `phase "no-raw" did not run: the run
+  stopped in phase "core-only"`.
+- The stop is now `report(false, …)`, so it is counted in the functional total. It names the phase, the last check,
+  and `stopReason()`. `stopReason()` counts context-destroyed and main-frame navigation events on the last opened
+  page. It reports a closed or crashed page. If the page still answers, it reads `__acMarks` (the await that
+  `addCell` was in), `_computing`, `_dirty`, `_updates` and `visibilityState`.
+- Hooks for testing these reports, all off by default:
+  - `VERIFY_FORCE_CLOSE=<file>` closes that page as it opens.
+  - `VERIFY_GC=1` collects the heap until core-only's `tripled` `addCell` settles.
+  - `VERIFY_ORPHAN=1` replaces that evaluate with one that can never settle.
+- The Kit-shadow evaluate is now the function `shadowApply`. Its behaviour is the same.
+
+Forced runs (logs in `.scratch/open/`):
+- `p4-force-core-only.log`: exit 1, 14 pass 3 fail. The FAILs are the stop in core-only and "did not run" for
+  no-raw and core-not-main.
+- `p4-force-cnm.log`, run with `--guard-only`: exit 1, 19 pass 1 fail, with `page core-not-main.html closed`.
+- `p4-orphan.log`: exit 1, 47 pass 3 fail. This is the same error, phase and last check as ste-gates, plus `0 context
+  destroyed and 0 main-frame navigation events …; the context answers, so a promise the page awaited could not settle
+  …; marks ["compile_and_update","value tripled (defined)","returned"]`. In that run the marks are those of the real
+  `addCell`, which settled before the orphan evaluate ran.
+
+`--guard-only` gave 30 pass 0 fail, and `--quick` gave 234 pass 0 fail. Neither gave a false "did not run" FAIL. The
+retry wrappers (`readOnly`, `valueOf`) are unchanged. No retry was added to `addCell`, because it changes the page.
+
+### Job B: the two S4.12 routes from part 3
+
+These are the programs, in f1's harness (`.scratch/open/jobb-set.ts`):
+- `put.go` publishes a function to the state `s`.
+- `snap` copies `read(s)()` into `t`.
+- `v = s()` and `w = t`.
+- The drive calls `go` and says DIFF if `v !== w`.
+
+```
+const xs = [0]; const c: readonly number[] = xs; const mk = () => () => c.length; s.set(mk()); snap();
+const xs = [0]; const c: readonly number[] = xs; const k = () => c.length; const run = () => s.set(k); run(); snap();
+```
+
+The guarantee at risk is S4.12: a function made while a body runs does not leave that body before the body ends.
+The checker accepts both programs. It does not give `[fn-publish]` as it does for `s.set(() => c.length)` and
+`s.set(k)`. Under `drive-run.ts` and `drive-rt.ts`, the call of `go` throws the run-time S4.12 `TypeError` ("the
+value written to s reaches a function or a promise that no finished cell has published …"). No value is written.
+With `SS_MEASURE_BODYFN=0`, both runners give `same v = s() = 1, w = 1`. If `xs.push(1)` follows the publish, the
+checker rejects both programs with `[mutating-method]`. Neither route gives a silent row, so neither is a soundness
+break. Each is a check-time miss that the run time catches. Runs are in `.scratch/open/jobb-runs.log`.
+
+I did not fix them. S2.6's list of rules that see through a local helper names S4.12, so the `run` form is a gap
+against the spec text. A fix would make `owFnPubs` follow a call of a local helper that writes state, and the
+function that a local call returns (`mk()`). I estimate this at more than 20 lines across the cell and the frozen
+mirror, plus the rows.
+
+### Gates (`.scratch/y1/p4/`, 12:37:16 to 13:26:16)
+
+| gate | result |
+|---|---|
+| build | 0 |
+| bun-verify | 182 pass |
+| fixtures | 14/14 |
+| `diff.ts` | DIFFERENT 0 |
+| `diff.ts --module-only` | DIFFERENT 0 |
+| tc-diff | 56 DIFFERENT lines (as in open3) |
+| run-sets, both runners | 3381, silent 0 |
+| fa2 | silent 0 |
+| fa3 | silent 0 |
+| run-sets REG=0 | silent 19 (as in open3) |
+| run-sets BODYFN=0 | silent 2 (as in open3) |
+| verify --quick | 234/0 |
+| verify full, run 1 | 678 pass 0 fail, exit 0 |
+| tests | 34 files, all exit 0 (live.test 1319/0, message-fixes 98/0) |
+
+The second full verify (`verify-full-2.log`, run alone, on battery power) gave 678 pass 0 fail, exit 0. Two passing full runs do not show that the race is gone: the race
+never appeared in a forced run either.

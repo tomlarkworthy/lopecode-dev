@@ -124,6 +124,39 @@ const FOCUS_TRACE = process.argv.includes("--focus-trace");
 let ftN = 0;
 const CPU = process.argv.includes("--cpu") ? Number(process.argv[process.argv.indexOf("--cpu") + 1]) : 1;
 const browser = await chromium.launch();
+// part 4: the phase plan and the phases entered, outside the try so its catch can name them
+let PLAN: [string, boolean][] = [], PHASE = "static checks";
+const entered: string[] = [];
+const enter = (name: string) => { PHASE = name; entered.push(name); };
+const pageEvents = new WeakMap<Page, { destroyed: number; navigated: number; closed: boolean; crashed: boolean; name?: string }>();
+let LASTPAGE: Page | null = null;
+// part 4: what the last opened page shows after a stop. Playwright reports any CDP error of an evaluate that is not
+// the page's own exception as "Execution context was destroyed", including "Promise was collected" (a promise the
+// page awaited could never settle, .scratch/open/p4-gc.ts); so the reason is taken from the page's own events
+async function stopReason(e: unknown) {
+  const page = LASTPAGE, seen = page && pageEvents.get(page);
+  if (!page || !seen) return "no page open";
+  if (seen.closed || seen.crashed) return `page ${seen.name} ${seen.crashed ? "crashed" : "closed"}`;
+  const diag = await page.evaluate(() => {
+    const rt = (window as any).__ojs_runtime;
+    return { marks: (window as any).__acMarks ?? null, computing: !!rt?._computing, dirty: rt?._dirty?.size, updates: rt?._updates?.size, visibility: document.visibilityState };
+  }).catch((x: Error) => `page does not answer: ${String(x.message).split("\n")[0]}`);
+  const ctxGone = /Execution context was destroyed/.test(String((e as Error)?.message));
+  return `page ${seen.name} open; ${seen.destroyed} context destroyed and ${seen.navigated} main-frame navigation events since it opened` +
+    (ctxGone && typeof diag !== "string" ? "; the context answers, so a promise the page awaited could not settle (CDP error rewritten by Playwright)" : "") +
+    `; page state ${JSON.stringify(diag)}`;
+}
+// part 4: VERIFY_GC=1 collects the page's heap until p settles, so a promise the page can never settle fails at once
+// VERIFY_ORPHAN=1 also replaces p by an evaluate of a promise nothing can settle, to show stopReason's report of it
+async function underGc<T>(page: Page, p: Promise<T>): Promise<T> {
+  if (process.env.VERIFY_ORPHAN) { await p; p = page.evaluate(() => new Promise<T>(() => {})); }
+  if (!process.env.VERIFY_GC && !process.env.VERIFY_ORPHAN) return p;
+  const gc = await page.context().newCDPSession(page);
+  let done = false;
+  const out = p.finally(() => (done = true));
+  while (!done) await gc.send("HeapProfiler.collectGarbage").catch(() => (done = true));
+  return out;
+}
 try {
 // every Worker the page constructs is counted in __workersMade (the core-only build must construct none)
 const countWorkers = (page: Page) => page.addInitScript(() => {
@@ -187,9 +220,20 @@ async function open(path: string, saveTo?: string, specWait = true, count = fals
   cdp.on("Page.frameNavigated", (e: any) => console.log(`  CTX frameNavigated ${short} ${e.frame.parentId ? "child" : "main"} ${String(e.frame.url).slice(0, 120)} after "${LAST}"`));
   cdp.on("Page.frameRequestedNavigation", (e: any) => console.log(`  CTX navigation requested ${short} ${e.reason} ${e.disposition} ${String(e.url).slice(0, 120)} after "${LAST}"`));
   page.on("close", () => console.log(`  CTX page closed ${short} after "${LAST}"`));
+  // part 4: counted for stopReason: what ended or replaced this page's context
+  const seen = { destroyed: 0, navigated: 0, closed: false, crashed: false, name: short };
+  pageEvents.set(page, seen);
+  LASTPAGE = page;
+  cdp.on("Runtime.executionContextDestroyed", () => seen.destroyed++);
+  cdp.on("Runtime.executionContextsCleared", () => seen.destroyed++);
+  cdp.on("Page.frameNavigated", (e: any) => { if (!e.frame.parentId) seen.navigated++; });
+  page.on("close", () => (seen.closed = true));
+  page.on("crash", () => (seen.crashed = true));
   await cdp.send("Runtime.enable").catch(() => {});
   await cdp.send("Page.enable").catch(() => {});
   void mainId;
+  // part 4: VERIFY_FORCE_CLOSE=<file name> closes that page as it opens, to force a torn-down page (no timer)
+  if (process.env.VERIFY_FORCE_CLOSE === short) await page.close();
   return { page, blocked, errors };
 }
 function requests(label: string, o: { blocked: string[]; errors: string[] }) {
@@ -614,16 +658,37 @@ const addCell = (page: Page, module: string, anchor: string, source: string, kee
   const cau = find("compile_and_update")._value;
   const a = find(anchor, mod);
   const vars: any[] = [];
+  // part 4: which await an evaluate was in when its promise could not settle (read by stopReason)
+  const marks: string[] = (window as any).__acMarks = [];
+  marks.push("compile_and_update");
   const back = await cau(source, vars, { module: { module: mod }, variables: [a] });
   const name = /const (\w+)/.exec(source)![1];
   const v = find(name, mod);
+  marks.push(`value ${name} (${v ? "defined" : "not defined"})`);
   const value = v ? await mod.value(name) : undefined;
+  marks.push("returned");
   const order = [...rt._variables];
   const out = { back, value, afterAnchor: !!v && order.indexOf(v) === order.indexOf(a) + 1, held: vars.length === 1 && vars[0] === v };
   if (!keep) v?.delete();
   return out;
 }, [module, anchor, source, keep] as const);
 
+// core-only's Kit-shadow cell made SoundScript through apply (see its report in phase 5)
+const shadowApply = (page: Page) => page.evaluate(async () => {
+  const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
+  const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
+  const head = core.variable(undefined, { shadow: {} });
+  const display = new head.constructor(2, core);
+  display.define(["kitcell"], () => (x: number) => x);
+  head._shadow.set("display", display);
+  head.define("kitcell", [], () => 1);
+  const out = await get("ss_language")._value.apply("const kitcell = () => 2;", [head], { module: { module: core }, variables: [head] });
+  const alive = [...rt._variables].includes(display) || head._shadow.size > 0;
+  const v = get("kitcell");
+  const value = v ? await core.value("kitcell") : null;
+  v?.delete();
+  return { applied: typeof out === "string", shadowAlive: alive, value };
+});
 const exportPage = (page: Page) => page.evaluate(async () => {
   const rt = (window as any).__ojs_runtime;
   let v = [...rt._variables].find((v: any) => v._name === "exportToHTML" && typeof v._value === "function");
@@ -2150,7 +2215,24 @@ const speedOnly = process.argv.includes("--speed-only");
 // --guard-only: only the core-not-main pass (the editor commands with no language registered)
 const guardOnly = process.argv.includes("--guard-only");
 const variantOnly = process.argv.includes("--variant-only") || speedOnly || guardOnly;
+// part 4 (2026-11-25): the phases these flags select, planned before any runs. A phase not entered by the end is a FAIL
+// that names it and what stopped the run, and the stop itself is a FAIL counted in the functional total, so a run cut
+// short can never print "N pass 0 fail" (it did: .scratch/y1/ste-gates/verify-full.log, 631 pass 0 fail, exit 1)
+const ARG = (a: string) => process.argv.includes(a);
+const variantOn = !uiOnly && !speedOnly && !ARG("--no-variant"), laterOn = !QUICK;
+PLAN = [
+  ["cards, themes, phone, touch, try-it", !QUICK && !variantOnly && !ARG("--no-try") && !ARG("--broken-only")],
+  ["speed", (!uiOnly && !variantOnly || speedOnly) && !ARG("--no-speed") && !QUICK],
+  ["original page", !uiOnly && !variantOnly],
+  ["reopened export", !uiOnly && !variantOnly && laterOn],
+  ["ui", !variantOnly && !tryOnly && laterOn],
+  ["broken state", (!uiOnly && !variantOnly || ARG("--broken-only")) && !ARG("--no-broken") && laterOn],
+  ["core-only", variantOn && !guardOnly && laterOn],
+  ["no-raw", variantOn && laterOn],
+  ["core-not-main", variantOn && laterOn],
+];
 if (!QUICK && !variantOnly && !process.argv.includes("--no-try") && !process.argv.includes("--broken-only")) {
+  enter("cards, themes, phone, touch, try-it");
   await cardsAndThemes();
   await phone();
   await touch();
@@ -2166,7 +2248,8 @@ if (!QUICK && !variantOnly && !process.argv.includes("--no-try") && !process.arg
   requests("try-it page", G);
   await G.page.close();
 }
-if ((!uiOnly && !variantOnly || speedOnly) && !process.argv.includes("--no-speed") && !QUICK) await speed();
+if ((!uiOnly && !variantOnly || speedOnly) && !process.argv.includes("--no-speed") && !QUICK) { enter("speed"); await speed(); }
+if (!uiOnly && !variantOnly) enter("original page");
 const A = uiOnly || variantOnly ? null as any : await open(file, undefined, true, true);
 if (!uiOnly && !variantOnly) {
 // the counter tests press their buttons on copies: the page's counters keep what the reader set
@@ -2231,6 +2314,7 @@ await deleteStops(A.page);
 requests("original page", A);
 await A.page.close();
 if (QUICK) throw new QuickDone();
+enter("reopened export");
 
 
 const B = await open(exp1Path, undefined, true, true);
@@ -2257,6 +2341,7 @@ await B.page.close();
 const savedPath = join(SCRATCH, "saved.html");
 if (!variantOnly && !tryOnly) {
 rmSync(savedPath, { force: true });
+enter("ui");
 const E = await open(file, savedPath, true, true);
 await testsOn(E.page, "ui");
 await testsPass(E.page, "ui", CORE, CORE_TESTS);
@@ -2282,10 +2367,11 @@ if (existsSync(savedPath)) {
 }
 }
 // --- the broken state: rejected cells never run, an unparsable cell is stored, Breakout's step broken mid-game
-if ((!uiOnly && !variantOnly || process.argv.includes("--broken-only")) && !process.argv.includes("--no-broken")) await brokenState(join(SCRATCH, "saved-broken.html"));
+if ((!uiOnly && !variantOnly || process.argv.includes("--broken-only")) && !process.argv.includes("--no-broken")) { enter("broken state"); await brokenState(join(SCRATCH, "saved-broken.html")); }
 // --- 5: the core without the tutorial
 if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   if (!guardOnly) {
+  enter("core-only");
   const variant = join(SCRATCH, "core-only.html");
   const built = Bun.spawnSync(["bun", join(HERE, "build.ts"), "--no-tutorial", "--force", "--out", variant], { stdout: "pipe", stderr: "pipe" });
   report(built.exitCode === 0, `core-only: built ${variant}${built.exitCode ? ": " + built.stderr.toString().slice(-400) : ""}`);
@@ -2312,24 +2398,10 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   // a cell with a Notebook Kit shadow variable, made SoundScript through apply: the shadow goes with the
   // head. The head and its display shadow are made as @tomlarkworthy/js-toolchain's defineCell makes
   // them (variable(undefined, { shadow: {} }), a display variable in _shadow), not by typing a Kit cell.
-  const shadow = await C.page.evaluate(async () => {
-    const rt = (window as any).__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript");
-    const get = (n: string) => [...rt._variables].find((v: any) => v._module === core && v._name === n);
-    const head = core.variable(undefined, { shadow: {} });
-    const display = new head.constructor(2, core);
-    display.define(["kitcell"], () => (x: number) => x);
-    head._shadow.set("display", display);
-    head.define("kitcell", [], () => 1);
-    const out = await get("ss_language")._value.apply("const kitcell = () => 2;", [head], { module: { module: core }, variables: [head] });
-    const alive = [...rt._variables].includes(display) || head._shadow.size > 0;
-    const v = get("kitcell");
-    const value = v ? await core.value("kitcell") : null;
-    v?.delete();
-    return { applied: typeof out === "string", shadowAlive: alive, value };
-  });
+  const shadow = await shadowApply(C.page);
   report(shadow.applied && !shadow.shadowAlive && shadow.value === 2, `core-only: a cell with a Kit shadow variable made SoundScript through apply leaves no shadow behind: ${JSON.stringify(shadow)}`);
   const NEW = "const tripled = (doubled: number) => doubled * 3;";
-  const added = await addCell(C.page, CORE, "doubled", NEW, true);
+  const added = await underGc(C.page, addCell(C.page, CORE, "doubled", NEW, true));
   report(added.back === NEW && added.value === 0 && added.afterAnchor && added.held, `core-only: a new cell added through the editor: ${JSON.stringify(added)}`);
   // a state cell made plain and a state cell again through apply: the handle variable comes and goes
   const flips = await C.page.evaluate(async () => {
@@ -2443,6 +2515,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
   // registers, the same open editor shows the typed source.
   // --- 7: raw-cells not booted (build.ts --no-raw): the polyglot module's raw cells have no language
   {
+    enter("no-raw");
     const noRaw = join(SCRATCH, "no-raw.html");
     const built7 = Bun.spawnSync(["bun", join(HERE, "build.ts"), "--no-raw", "--force", "--out", noRaw], { stdout: "pipe", stderr: "pipe" });
     report(built7.exitCode === 0, `no-raw: built ${noRaw}${built7.exitCode ? ": " + built7.stderr.toString().slice(-400) : ""}`);
@@ -2451,6 +2524,7 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
     await rawUnloaded(R.page, rawHelpers(), "no-raw");
     await R.page.close();
   }
+  enter("core-not-main");
   const unreg = join(SCRATCH, "core-not-main.html");
   const built6 = Bun.spawnSync(["bun", join(HERE, "build.ts"), "--core-not-main", "--force", "--out", unreg], { stdout: "pipe", stderr: "pipe" });
   report(built6.exitCode === 0, `core-not-main: built ${unreg}${built6.exitCode ? ": " + built6.stderr.toString().slice(-400) : ""}`);
@@ -2540,8 +2614,10 @@ if (!uiOnly && !speedOnly && !process.argv.includes("--no-variant")) {
 }
 } catch (e) {
   // a thrown error ends the run early; it counts as a failure, so a partial run cannot read as a pass
-  if (!(e instanceof QuickDone)) { console.log(`FAIL stopped by an error: ${(e as Error)?.stack ?? e}`); fails++; }
+  if (!(e instanceof QuickDone)) report(false, `stopped by an error in phase "${PHASE}" after "${LAST}": ${(e as Error)?.stack ?? e}\n  ${await stopReason(e)}`);
 }
+// part 4: every planned phase was entered, or a FAIL names it
+for (const [name, on] of PLAN) if (on && !entered.includes(name)) report(false, `phase "${name}" did not run: the run stopped in phase "${PHASE}"`);
 await browser.close().catch(() => {});
 console.log(`${passes} pass, ${fails} fail`);
 console.log(`measurements (printed, not judged):${measurements.map((m) => "\n  " + m).join("")}`);
