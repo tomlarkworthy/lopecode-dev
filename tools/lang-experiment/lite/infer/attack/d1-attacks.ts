@@ -48,7 +48,7 @@ R.push(f("body")(tyRow("d1-ok-resp-members", `const g = async (fetch: Fetch) => 
 R.push(f("abcd")(tyRow("d1-ok-resp-arraybuffer", `const g = async (fetch: Fetch) => { const res = await fetch(${U}); return (await res.arrayBuffer()).byteLength; };`, is(4))));
 R.push(f("[3]")(tyRow("d1-ok-resp-then", `const g = (fetch: Fetch) => fetch(${U}).then((r) => r.json());`, is([3]))));
 R.push(f("body")(tyRow("d1-ok-resp-read-then-capture", `const k = async (fetch: Fetch) => { const res = await fetch(${U}); const ok = res.ok; return () => ok; };\nconst g = (k: () => boolean) => k();`, is(true))));
-R.push(f("body")(tyRow("d1-ok-resp-helper-param", `const g = async (fetch: Fetch) => { const read = (r: FetchResponse) => r.text(); const res = await fetch(${U}); return await read(res); };`, is("body"))));
+R.push(f("body")(tyRow("d1-ok-resp-helper-param", `const g = async (fetch: Fetch) => { const body = (r: FetchResponse) => r.text(); const res = await fetch(${U}); return await body(res); };`, is("body"))));
 // a response held across an await or a yield: no other code reaches it, so R-A and R-Y do not take it (S5.6, S5.7)
 R.push(f("[1]")(tyRow("d1-ok-resp-generator", `const g = async function* (fetch: Fetch) { const res = await fetch(${U}); yield await res.json(); };`, is([1]))));
 R.push(f("[1]")(tyRow("d1-ok-resp-nested-async", `const g = async (fetch: Fetch) => { const load = async () => { const res = await fetch(${U}); return await res.json(); }; return await load(); };`, is([1]))));
@@ -117,7 +117,7 @@ R.push(tyRow("d1-nar-typeof", `const g = (): number => { let r: number | string 
 R.push(tyRow("d1-nar-update", `const g = () => { let r: number | null = 1; const bad = () => { r = null; }; const inc = () => { if (r !== null) r++; }; if (r !== null) { bad(); inc(); return r; } return 0; };`, num));
 R.push(tyRow("d1-nar-cast", `const g = (): number | string => { let r = cast<number>(1); const bad = () => { r = cast<number>("x"); }; if (r.ok) { bad(); return r.value; } return "R"; };`, (v) => v === "R" || typeof v === "number"));
 R.push(tyRow("d1-ok-nar-const-copy", `const g = () => { ${NUL} const bad = () => { r = null; }; const y = r; if (y !== null) { bad(); return y.n; } return 0; };`, is(1)));
-R.push(tyRow("d1-ok-nar-no-nested-write", `const g = () => { ${NUL} const read = () => r; if (r !== null) { read(); return r.n; } return 0; };`, is(1)));
+R.push(tyRow("d1-ok-nar-no-nested-write", `const g = () => { ${NUL} const get = () => r; if (r !== null) { get(); return r.n; } return 0; };`, is(1)));
 R.push(tyRow("d1-ok-nar-inner-own-let", `const g = () => { const f = () => { let r: number | null = 1; if (r !== null) r = r + 1; return r ?? 0; }; return f(); };`, is(2)));
 R.push(tyRow("d1-ok-nar-reassign-direct", `const g = () => { let r: number | null = 1; r = 2; return r === null ? 0 : r + 1; };`, is(3)));
 R.push({ ...tyRow("d1-ctl-nar-helper", `const g = () => { ${NUL} const bad = () => { r = null; }; if (r !== null) { bad(); return typeof r; } return "R"; };`, (v) => v === "object" || v === "R"), ctl: true, src: `const g = () => { let r: { readonly n: number } | null = { n: 1 }; const bad = () => { r = null; }; if (r !== null) { bad(); return r === null ? "null" : "object"; } return "R"; };` });
@@ -133,8 +133,9 @@ R.push(tyRow("d1-name-on", `const on = () => 1;\nconst g = (on: number) => on + 
 R.push(tyRow("d1-name-action", `const action = () => 1;\nconst g = (action: number) => action + 1;`, num));
 R.push(tyRow("d1-name-equals", `const equals = () => 1;\nconst g = () => 1;`, num));
 R.push(tyRow("d1-name-messageOf", `const messageOf = () => "m";\nconst g = () => 1;`, num));
-R.push(tyRow("d1-ok-name-param", `const g = () => { const f = (state: number, h: number) => state + h; return f(1, 2); };`, is(3)));
-R.push(tyRow("d1-ok-name-local", `const g = () => { const read = 2; const memo = 3; return read + memo; };`, is(5)));
+// open part 6: a local or parameter with a prelude name is [prelude-shadow] (S2.6 rows); h outside JSX is accepted
+R.push(tyRow("d1-ok-name-param", `const g = () => { const f = (n: number, h: number) => n + h; return f(1, 2); };`, is(3)));
+R.push(tyRow("d1-ok-name-local", `const g = () => { const h = 2; const m = 3; return h + m; };`, is(5)));
 R.push(tyRow("d1-ok-name-near", `const states = () => 1;\nconst g = (states: number) => states + 1;`, is(2)));
 
 export const attacks: A[] = R;

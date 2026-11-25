@@ -368,23 +368,40 @@ for (const [rt, off] of [[false, false], [true, false], [false, true], [true, tr
 // runner; each open-ok-* row is accepted and runs with no cell in error and no DIFF; each control fires; every other
 // row is rejected, with [arity] (or [inject-type] for a cell's parameter; part 2's open-act-* rows [action-capture]), by
 // both checkers alike
-const OPEN_ROWS = OPEN_ATTACKS.filter((a) => !a.ctl), OPEN_OK = OPEN_ROWS.filter((a) => a.name.startsWith("open-ok-")).length;
+// part 6: open-ho-* rows are accepted and their cell g is in error with the hole RangeError (S3.21); with the check
+// off (SS_MEASURE_HOLES=0) each one is silent
+const OPEN_ROWS = OPEN_ATTACKS.filter((a) => !a.ctl), OPEN_HO = OPEN_ROWS.filter((a) => a.name.startsWith("open-ho-")).length;
+const accepts = (n: string) => n.startsWith("open-ok-") || n.startsWith("open-ho-"), OPEN_OK = OPEN_ROWS.filter((a) => accepts(a.name)).length;
 for (const rt of [false, true])
   test(`open: no row is silent, the legal rows run clean, the controls fire${rt ? " (compiled runner)" : ""}`, () => {
     const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "open", ...(rt ? ["--rt"] : [])], { stdout: "pipe", stderr: "pipe" });
     const out = r.stdout.toString();
     expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
-    expect(out).toContain(`-- open: ${OPEN_ROWS.length} programs, accepted ${OPEN_OK}, silent 0, with a cell in error 0`);
+    expect(out).toContain(`-- open: ${OPEN_ROWS.length} programs, accepted ${OPEN_OK}, silent 0, with a cell in error ${OPEN_HO}`);
     expect(out).toContain(`-- open-controls: ${OPEN_ATTACKS.length - OPEN_ROWS.length}, fired ${OPEN_ATTACKS.length - OPEN_ROWS.length}`);
     expect(r.exitCode).toBe(0);
   }, 300000);
 for (const a of OPEN_ROWS)
-  test(`open ${a.name} is ${a.name.startsWith("open-ok-") ? "accepted" : "rejected"} by both checkers alike`, () => {
+  test(`open ${a.name} is ${accepts(a.name) ? "accepted" : "rejected"} by both checkers alike`, () => {
     const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
-    expect(live.ok).toBe(a.name.startsWith("open-ok-"));
+    expect(live.ok).toBe(accepts(a.name));
     // part 3: open-fwd-* is [free-name]; open-fwdr-* is the rule FWD_RULES names and never [free-name]
     const want = a.name.startsWith("open-act-") ? ["action-capture"] : a.name.startsWith("open-fwd-") || a.name.startsWith("open-fwdo-") ? ["free-name"] : a.name.startsWith("open-fwdr-") ? [FWD_RULES.get(a.name) ?? "?"] : a.name.startsWith("open-a14-") ? A14_RULES.get(a.name) ?? ["?"] : ["arity", "inject-type"];
     if (!live.ok) expect(want.some((w) => live.rules.includes(w))).toBe(true);
     if (a.name.startsWith("open-fwdr-")) expect(live.rules.includes("free-name")).toBe(false);
     expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
   });
+for (const rt of [false, true])
+  test(`open: with SS_MEASURE_HOLES=0 each open-ho row is silent${rt ? " (compiled runner)" : ""}`, () => {
+    const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "open", "--only", "open-ho-", ...(rt ? ["--rt"] : [])], { stdout: "pipe", stderr: "pipe", env: { ...process.env, SS_MEASURE_HOLES: "0" } });
+    expect(r.stdout.toString()).toContain(`-- open: ${OPEN_HO} programs, accepted ${OPEN_HO}, silent ${OPEN_HO}, with a cell in error 0`);
+  }, 300000);
+// open part 6: the out-of-scope rows of attack 14 (out-of-scope.ts) are the only silent rows of their files under drive-rt
+import { OUT_OF_SCOPE } from "./out-of-scope.ts";
+for (const [file, names] of Object.entries(OUT_OF_SCOPE))
+  test(`out of scope: ${file} is silent only on its ${names.length} recorded rows`, () => {
+    const root = new URL("../../../", import.meta.url).pathname;
+    const r = Bun.spawnSync(["bun", new URL("./drive-rt.ts", import.meta.url).pathname, file], { cwd: root, stdout: "pipe", stderr: "pipe" });
+    const silent = r.stdout.toString().split("\n").filter((l) => l.startsWith("SILENT ")).map((l) => l.slice(l.lastIndexOf(":") + 1)).sort();
+    expect(silent).toEqual([...names].sort());
+  }, 300000);

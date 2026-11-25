@@ -212,6 +212,8 @@ export function runCheck(entry: Entry, src: Sources, opts: CheckOpts = {}): Chec
     name: f.name, span: [f.span[0] ?? 0, f.span[1] ?? 0], returnsRef: f.returnsRef, generator: f.generator, compiles: f.compiles.map((c) => ({ ...c })),
     // DELIBERATE CHANGE (2026-11-23, a9): the shapes of the cell's cast<T> calls, as lite/core.ts gives them since e1
     ...(f.casts.length ? { casts: [...f.casts] } : {}),
+    // DELIBERATE CHANGE (2026-11-25, open part 6, HO): which index and length writes the run time checks
+    ...(f.holes.length ? { holes: [...f.holes] } : {}),
     // DELIBERATE CHANGE (2026-11-24, y1): whether the cell's value type names no promise, as lite/core.ts gives it
     ...(f.strict === null ? {} : { strict: f.strict }),
     params: f.params.map((p) => ({ name: p.name, refTyped: p.refTyped, eventsTyped: p.eventsTyped, ...(p.boundary ? { boundary: p.boundary } : {}) })),

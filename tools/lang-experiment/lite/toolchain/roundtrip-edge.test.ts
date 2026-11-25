@@ -219,7 +219,8 @@ for (const src of [
 }
 
 // A cell is a listener only when it calls the prelude's on, and a state cell only when it returns the
-// prelude's state(...): a property key, a type member or a local binding of either name is neither
+// prelude's state(...): a property key, a type member or a local binding of either name is neither. Since open part 6 the
+// checker rejects a local with a prelude name ([prelude-shadow], S2.6), so sum, inc and box compile with no check context
 {
   const src = [
     "const cfg = () => ({ on: true, n: 1 });",
@@ -230,8 +231,9 @@ for (const src of [
   ].join("\n\n");
   const r = checkSources({ cells: src, tsx: false });
   const ctx = contextFromCheck(r, src, false);
-  const vs = new Map(toolchain.splitCells(src, false).flatMap((t) => compileCell(t, false, ctx)).map((v) => [v.name, v]));
-  expect(r.cells.every((c) => c.status === "ok"), `L1 the cells check ok: ${JSON.stringify(r.cells.map((c) => [c.name, c.status]))}`);
+  const local = new Set(["sum", "inc", "box"]);
+  const vs = new Map(toolchain.splitCells(src, false).flatMap((t) => (local.has(toolchain.declaredName(t) ?? "") ? compileCell(t, false) : compileCell(t, false, ctx))).map((v) => [v.name, v]));
+  expect(r.cells.every((c) => (local.has(c.name) ? c.errors.some((e) => e.rule === "prelude-shadow") : c.status === "ok")), `L1 cfg and use check ok, sum, inc and box are [prelude-shadow]: ${JSON.stringify(r.cells.map((c) => [c.name, c.status]))}`);
   for (const name of ["cfg", "use", "sum", "inc", "box"]) expect(toolchain.compiledKind(vs.get(name)?.definition ?? "")?.callee === "plain", `L1 ${name} compiles as a plain cell, not a listener or state cell`);
   // a plain cell takes no ss but ss_out
   const value = (name: string, ...args: unknown[]) => attempt(() => run(vs.get(name)!.definition, ...args));

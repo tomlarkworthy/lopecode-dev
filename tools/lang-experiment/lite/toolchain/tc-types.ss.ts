@@ -13,7 +13,7 @@ export type TcToken = { readonly label: string; readonly start: number; readonly
 // facts.ts CellInfo, the fields the compiler reads
 export type TcBoundary = { readonly shape: unknown; readonly ref: boolean };
 export type TcParam = { readonly name: string; readonly refTyped: boolean; readonly eventsTyped: boolean; readonly boundary: TcBoundary | null };
-export type TcInfo = { readonly name: string; readonly params: TcParam[]; readonly returnsRef: boolean; readonly generator: boolean; readonly compiles: { readonly refs: string[] }[]; readonly casts: readonly unknown[]; readonly strict: boolean | null };
+export type TcInfo = { readonly name: string; readonly params: TcParam[]; readonly returnsRef: boolean; readonly generator: boolean; readonly compiles: { readonly refs: string[] }[]; readonly casts: readonly unknown[]; readonly holes: readonly boolean[]; readonly strict: boolean | null };
 // ss-toolchain.ts Context with its optional fields as null
 export type TcCtx = {
   readonly generators: Set<string>; readonly events: Set<string>; readonly accepted: Set<string> | null;
@@ -42,5 +42,7 @@ export type TcRegNode = { readonly n: AstNode; readonly parent: AstNode | null; 
 export type TcFreeItem = { readonly n: AstNode | null; readonly b: Set<string>; readonly pat: boolean };
 export type TcRegEdit = { readonly at: number; readonly depth: number; readonly end: boolean; readonly text: string; readonly use: string | null };
 export type TcRegHit = { readonly edits: TcRegEdit[] };
+// open part 6 (HO): an index or length write (tc-reg.ss.ts tcHoleSites): the assignment or update, its target, its depth
+export type TcHoleSite = { readonly n: AstNode; readonly t: AstNode; readonly depth: number };
 export type TcRegNames = { readonly closure: string; readonly methods: string; readonly out?: string };
 export type TcRegs = { readonly edits: TcEdit[]; readonly uses: string[] };

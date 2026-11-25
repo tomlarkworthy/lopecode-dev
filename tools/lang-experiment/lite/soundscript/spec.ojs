@@ -374,19 +374,19 @@ A body can only call a prelude function. The name of a prelude function used as 
 
 Since 2026-11-24 (w1), a \`const\` or \`let\` of a block is in scope for the full block, as in JavaScript. A read of its name before the declaration names that declaration and not a binding outside the block. This applies in the block and in a function made in the block. Such a read is \`[free-name]\`. For example, a later local \`Math\` makes an earlier \`Math.max\` in the block \`[free-name]\`. This rule is stricter than JavaScript.
 
-Since 2026-11-25, one read before the declaration is accepted. All of these are necessary:
+Since 2026-11-25, one form of read before the declaration is accepted. All of these are necessary:
 
 - The later declaration is a \`const\` with no type on its name, and its value is an arrow or a \`function\` expression.
 - The read is in the body of a function bound to a \`const\` that is declared earlier in the same block.
 - Nothing uses the earlier function before the later declaration. A use is a call, an argument, a place in an array or object literal, a member read, a JSX tag, or a mention in a \`function\` declaration of the block. A mention in the body of another function is not a use when that function also obeys this condition.
 
-If the earlier function is used too early, the read is \`[free-name]\`. The message names the function. It tells the author to not use the function before the later declaration, or to move that declaration up. Two \`const\` functions can call each other in this way.
+If code uses the earlier function before the later declaration, the read is \`[free-name]\`. The message names the function. It tells the author to not use the function before the later declaration, or to move that declaration up. Two \`const\` functions can call each other in this way.
 
-At the read, the later function has the type that a \`function\` declaration has there. That type comes from its annotations. If it has none, the checker checks its body at that read. A function that calls itself, or two functions that call each other, with no return type is unsupported. One return type is sufficient.
+At the read, the later function has the type that a \`function\` declaration has there. That type comes from its annotations. If it has none, the checker checks its body at that read. A function that calls itself, or two functions that call each other, with no return type is unsupported. A return type on one of the two functions is sufficient.
 
 A read of a later \`let\`, of a \`const\` that is not a function, of a \`const\` with a type on its name, or of a \`memo(...)\` is \`[free-name]\`.
 
-A rule that applies through a call of a local helper (S3.11, S3.19, S4.10 to S4.12, S5.6, S5.7, S6.5, S6.9, S6.19) also applies through a helper that is read before its declaration. S4.12 does not find a function that a helper gives to \`set\`, or that a local call returns into \`set\`. The run time refuses that write.`
+A rule that applies through a call of a local helper (S3.11, S3.19, S4.10 to S4.12, S5.6, S5.7, S6.5, S6.9, S6.19) also applies through a helper that is read before its declaration.`
 // %%
 md`**S2.7** A read of \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`. This also applies through a local bound to the intrinsic, through destructuring such as \`const { random } = Math\`, and through a computed key such as \`Math["random"]\`. A value with a banned member is not assignable to a type that names the member. Thus \`Math\` given where \`{ random: () => number }\` is expected is \`[type]\`. \`prototype\` on any other value is rejected by a different rule, usually \`[no-member]\`.
 
@@ -401,7 +401,7 @@ md`**S2.8** A body that uses a cell by its name, and does not take it as a param
 md`**S2.9** The checker type-checks a body with \`null\` and \`undefined\` kept apart from other types. A type error is \`[type]\`. Five checks have rules of their own:
 
 - A parameter of a local function with no annotation and no type from the place where the function is passed is \`[untyped-parameter]\`.
-- A call with too few or too many arguments is \`[arity]\`. A function with more parameters than its function type declares is also \`[arity]\`; the last paragraph of this statement gives that rule.
+- A call with too few or too many arguments is \`[arity]\`. A function with more parameters than its function type declares is also \`[arity]\` (see **More parameters than the type declares**, in this statement).
 - A property that the declared type of an object literal does not have is \`[excess-property]\`.
 - A value that can be \`undefined\` or \`null\`, used as a number, read from, indexed or called, is \`[possibly-undefined]\`.
 - An assignment to a \`const\` local is \`[const-assign]\`.
@@ -418,10 +418,10 @@ These rules are from 2026-11-24 (rounds w1, x1 and y1):
 **More parameters than the type declares.** Since 2026-11-25, a function is not assignable to a function type that declares fewer parameters than the function has. This is \`[arity]\`.
 
 - Optional parameters and parameters with a default value are in the count.
-- A function with a rest parameter is \`[arity]\` when its type has no rest parameter, whatever the count. A type with a rest parameter takes a function with more parameters than the type lists when each parameter past the list is optional or has a default value.
+- A function with a rest parameter is \`[arity]\` when its type has no rest parameter, whatever the count. A function with more parameters than its type declares is assignable to a type with a rest parameter when each extra parameter is optional or has a default value.
 - A function with fewer parameters than its type declares, and no rest parameter, is accepted.
 
-The reason: a function type gives the number of arguments that a caller passes, but JavaScript passes more to some callbacks. \`map\`, \`filter\`, \`forEach\` and the other array methods pass the element, the index and the array. The signatures of the checker omit the array. A parameter that the type does not declare gets that argument, and the argument does not have the type of the parameter.
+A function type gives the number of arguments that a caller passes. JavaScript passes more to some callbacks. \`map\`, \`filter\`, \`forEach\` and the other array methods pass the element, the index and the array. The signatures of the checker omit the array. A parameter that the type does not declare gets that argument. The argument need not have the type of the parameter.
 
 The rule applies at each place where the checker compares two function types: an annotation, a record member, an array element, a type argument, a union member, a call signature and the parameter of a built-in. In the parameter of a cell it is \`[inject-type]\`. The message tells the author to remove the parameters that the type does not declare, or to declare them in the type.
 
@@ -429,7 +429,7 @@ The rule applies at each place where the checker compares two function types: an
 
 **Numbers stored by an operator, and two array methods.** Each of these is \`[type]\`:
 
-- \`++\` or \`--\` on a variable whose type has no \`number\`, such as \`let n: 1 | 2\`. The operator stores a number. A compound assignment (\`+=\` and the others) gets the same check.
+- \`++\` or \`--\` on a variable or a member whose type has no \`number\`, such as \`let n: 1 | 2\`. The operator stores a number. A compound assignment (\`+=\` and the others) gets the same check.
 - \`flatMap\` with a callback result typed by a type parameter, such as \`xs.flatMap((x: T) => x)\`. JavaScript flattens a result that is an array, and a type parameter may be an array. Return \`[x]\` for one element.
 
 \`split\` with a \`RegExp\` separator gives \`(string | undefined)[]\`. A capture group that takes no part in a match puts \`undefined\` in the result. A regular expression literal with no capture group, such as \`/\\s+/\`, gives \`string[]\`.
@@ -441,7 +441,7 @@ md`**S2.10** Reserved names. Each use in this statement is \`[reserved-name]\`.
 - \`viewof\`, \`mutable\` and \`$\` followed by digits (\`$0\`, \`$12\`) cannot be the name of a cell, a parameter or a local. \`$0\` also cannot be a property key or a member name. \`viewof\` and \`mutable\` can be a property key or a member name, and a type can use any of them. A compiled cell is Observable JavaScript, which reads \`viewof\` and \`mutable\` as keywords and names the \`viewof\` inputs of a cell \`$0\`, \`$1\` and so on.
 - Since 2026-11-23, a name that starts with \`ss_\` or \`$ss$\` is reserved in the same places. The compiler gives the runtime cells that a compiled cell takes the names \`ss_<name>\`. It adds calls of \`ss_closure\` and \`ss_methods\` with a list whose parameter is \`ss_i\`. It names a duplicate or a type \`$ss$…\`. A binding with such a name would replace these.
 - A cell cannot have the name \`Generators\` or \`invalidation\`. Compiled cells take these from the module. A parameter with the name \`invalidation\` is the capability (S2.5).
-- Since 2026-11-24, a cell cannot take the name of a prelude function or \`h\`. The list is \`tcPrelude\` of the toolchain: \`state\`, \`action\`, \`snapshot\`, \`equals\`, \`on\`, \`read\`, \`messageOf\`, \`memo\`, \`cast\` and \`h\`. A compiled cell that uses one of them binds it from the runtime module, and a cell with that name conflicts with the binding. The runtime module defines these names and is exempt. The checker identifies the runtime module by the identity of the module that it gets, not by the names of its cells. A parameter or a local can take such a name.
+- Since 2026-11-24, a cell cannot take the name of a prelude function or \`h\`. The list is \`tcPrelude\` of the toolchain: \`state\`, \`action\`, \`snapshot\`, \`equals\`, \`on\`, \`read\`, \`messageOf\`, \`memo\`, \`cast\` and \`h\`. A compiled cell that uses one of them binds it from the runtime module, and a cell with that name conflicts with the binding. The runtime module defines these names and is exempt. The checker identifies the runtime module by the identity of the module that it gets, not by the names of its cells. A parameter or a local with the name of a prelude function is \`[prelude-shadow]\` (S2.6). A parameter or a local named \`h\` is accepted in a cell with no JSX.
 - Since 2026-11-24 (t1), a cell cannot take the name of a capability or of a global that a compiled cell takes by name from outside the module. These are each capability (\`now\`, \`random\`, \`fetch\`, \`log\`, \`invalidation\`, \`compile\`, \`pool\`, the list \`tcCaps\` of the compiler), each global that the compiler passes as an input (\`structuredClone\`, \`URLSearchParams\`), and each global that the checker declares (\`Map\`, \`Set\`, \`URL\`, \`JSON\`, \`Math\`, \`Object\`, \`parseInt\` and the others of \`ALLOWED_GLOBALS\`). A compiled cell that reads such a name reads the capability or the global, not the cell. The module run as one script reads the cell. The two runners thus gave different values.
 - A cell name that contains \`$\` is reserved. The runners give the handle of a state cell the name \`x$ref\`.
 - In a cell that has JSX, a binding with the name \`h\` is reserved: a local, a parameter, a function name or a \`catch\` parameter, in any pattern. Each element is a call \`h(...)\`, which would call the binding.
@@ -511,6 +511,9 @@ spec_rejects_2 = [
   { statement: "S2.6", rule: "free-name", source: "const a = () => {\n  const f = () => g();\n  const fs = [f];\n  const g = () => 1;\n  return fs.length;\n};" },
   { statement: "S2.6", rule: "prelude-shadow", source: "const a = () => {\n  const snapshot = (m: Mut<number[]>): number => m.length;\n  const m = [1];\n  return m;\n};" },
   { statement: "S2.6", rule: "prelude-shadow", source: "const x = () => [1, 2];\nconst y = (x: number[]) => {\n  const g = (snapshot: (v: number[]) => number[]) => x.length;\n  return 1;\n};" },
+  { statement: "S2.6", rule: "prelude-shadow", source: "const a = () => {\n  const state = 1;\n  return state;\n};" },
+  { statement: "S2.6", rule: "prelude-shadow", source: "const a = () => [1].map((memo) => memo + 1);" },
+  { statement: "S2.6", rule: "prelude-shadow", source: "const a = () => {\n  const f = (action: number) => action + 1;\n  return f(1);\n};" },
   { statement: "S2.7", rule: "banned-member", source: "const a = () => Math.random();" },
   { statement: "S2.7", rule: "banned-member", source: "const b = () => {\n  const M = Math;\n  return M.random();\n};" },
   { statement: "S2.7", rule: "banned-member", source: "const b = () => Math[\"random\"]();" },
@@ -562,7 +565,7 @@ spec_rejects_2 = [
   { statement: "S2.10", rule: "reserved-name", source: "const ss_out = () => 1;" },
   { statement: "S2.10", rule: "reserved-name", source: "const invalidation = () => 1;" },
   { statement: "S2.10", rule: "reserved-name", source: "const Generators = () => 1;" },
-  { statement: "S2.10", rule: "reserved-name", source: "const state = () => 1;\nconst a = (state: number) => state + 1;" },
+  { statement: "S2.10", rule: "reserved-name", source: "const state = () => 1;" },
   { statement: "S2.10", rule: "reserved-name", source: "const h = () => 5;" },
   { statement: "S2.10", rule: "reserved-name", source: "const a = () => \"/*ss-*/\";" },
   { statement: "S2.10", rule: "reserved-name", source: "const now = () => 1;\nconst g = (now: number) => now + 1;" },
@@ -587,6 +590,8 @@ spec_rejects_2 = [
   { statement: "S2.9", rule: "type", source: "const k = () => {\n  let n: 1 | 2 = 1;\n  n++;\n  return n;\n};" },
   { statement: "S2.9", rule: "type", source: "const k = (): readonly string[] => \"ab\".split(/(x)?/);" },
   { statement: "S2.9", rule: "type", source: "const k = () => {\n  const fm = <T,>(xs: readonly T[]): readonly T[] => xs.flatMap((x) => x);\n  return fm([[1]]).length;\n};" },
+  { statement: "S2.9", rule: "arity", source: "const k = () => {\n  const g: () => number = (...xs: number[]) => xs.length;\n  return g();\n};" },
+  { statement: "S2.9", rule: "type", source: "const k = () => {\n  let n: 1 | 2 = 1;\n  n += 1;\n  return n;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = async (): number => 5;\n  return 1;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): number {\n    yield 1;\n  };\n  return 1;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): Generator<number> {\n    yield \"x\";\n  };\n  return g;\n};" },
@@ -759,7 +764,9 @@ The methods that copy (\`toSorted\`, \`toReversed\`, \`slice\`, \`map\`, \`filte
 
 A tuple type gives each index its own type. On a \`Mut\` tuple, \`push\`, \`pop\`, \`shift\`, \`unshift\` and \`splice\` change the length and are \`[mutating-method]\`. \`sort\`, \`reverse\`, \`fill\` and \`copyWithin\` are \`[mutating-method]\` when the element types differ. Copy the tuple first (\`toSorted\`, \`toReversed\`, \`[...t]\`), or give it an array type.`
 // %%
-md`**S3.3** \`Object.assign\` with an existing value as its first argument is \`[object-assign]\`. Use a spread, \`{ ...o, b: 2 }\`, to make the new value. A spread or a rest copies the own properties of a value. Thus a spread or a rest of an intrinsic such as \`Math\` is \`[type]\`. For the same reason, only a record is assignable to a record type with a required member. These are \`[type]\`: an array or a string where \`{ length: number }\` is expected, a \`Map\` where \`{ size: number }\` is expected, and \`Math\` where \`{ PI: number }\` is expected.`
+md`**S3.3** \`Object.assign\` with an existing value as its first argument is \`[object-assign]\`. Use a spread, \`{ ...o, b: 2 }\`, to make the new value. A spread or a rest copies the own properties of a value. Thus a spread or a rest of an intrinsic such as \`Math\` is \`[type]\`. For the same reason, only a record is assignable to a record type with a required member. These are \`[type]\`: an array or a string where \`{ length: number }\` is expected, a \`Map\` where \`{ size: number }\` is expected, and \`Math\` where \`{ PI: number }\` is expected.
+
+A record type can omit members that its value has (S2.9). A spread copies those members too. Thus a spread is \`[forgets]\` when an earlier member or spread of the literal gives a member that the type of the spread does not declare, and the type is not exact. A member that the type omits replaces the earlier one. A type is exact when the checker made it from an object literal with no spread, written in place or bound to a local with no annotation. \`{ ...r, b: 5 }\` is accepted. Put the spread first, or declare the member in the type of the spread. An optional member that the spread declares keeps the earlier value when the value of the spread does not have it. The member gets the type of both. \`{ ...defaults, ...options }\` is \`[forgets]\` when the type of \`options\` does not declare each member of \`defaults\`. with each member declared optional it is accepted. A spread attribute in JSX (\`<C {...p} />\`) is unsupported.`
 // %%
 md`**S3.4** \`delete\` on a value that is not \`Mut\` is \`[no-delete]\`. Since 2026-11-24, \`delete\` on a \`Mut\` is accepted (S4.1) only when it removes an optional member (\`a?: T\`) or an entry of an index signature with a literal key (S2.7). A \`delete\` of a required member, of an array element, or of a member of a value that is not a record is \`[no-delete]\`. A later read would find \`undefined\` where the type gives a value. Make the member optional, or make a new record without it (\`const { a: _, ...rest } = o\`).`
 // %%
@@ -810,6 +817,12 @@ Since 2026-11-24, the same two rules apply to a type that is or contains \`Fetch
 // %%
 md`**S3.20** \`Object.freeze(e)\`, where \`e\` is an object or array literal, is accepted and has the type of \`e\`. With any other argument it is \`[object-freeze]\`, because a freeze of a value that another cell holds would change that value. A read of \`Object.freeze\` other than in such a call is \`[no-member]\`.`
 // %%
+md`**S3.21** An index write on an array replaces an element or appends one at the end. The writes are \`a[i] = v\`, \`a[i] op= v\`, \`a[i]++\` and \`a[i]--\` (S3.1). The index must be an integer from 0 to \`a.length\`. Any other index throws a \`RangeError\` at run time, and the message gives the index and the length. In JavaScript, an index past the end leaves a hole. A negative, fractional or non-number index adds a property that is not an element. A write to \`a.length\` throws a \`RangeError\` when the new length is more than \`a.length\`. A shorter length is accepted. The check runs just before the write, after the right side.
+
+The compiler adds the check only where the type of the receiver includes a plain array. This covers a union, a type parameter and a tuple. A write to a typed array (\`Float64Array\` and the others of S2.6) is a JavaScript write, which ignores an index out of range.
+
+These forms make no hole: \`Array.from({ length: n })\` gives \`undefined\` elements, \`splice\` and \`copyWithin\` do not grow the array, and \`fill\` writes only at indexes less than the length. An array from another language arrives with each hole read as \`undefined\` (S11.5). \`Array(n)\` is \`[type]\`, and \`new Array(n)\` is unsupported.`
+// %%
 md`These are the cells of this section. \`s3_parse\` is a recursive-descent parser whose helpers share the cursor \`let i\` (S3.11). \`s3_moved\` makes a new point with a spread. \`s3_area\` is a switch on the tag of a union, with a case for each member and no \`default\`. \`s3_kind\` groups empty cases and has a \`default\` with a block.`
 // %%
 //ss: ./spec-3.ts
@@ -843,6 +856,9 @@ spec_rejects_3 = [
   { statement: "S3.2", rule: "mutating-method", source: "const k = () => {\n  const t: Mut<[number, string]> = [1, \"a\"];\n  t.reverse();\n  return t[0];\n};" },
   { statement: "S3.2", rule: "mutating-method", source: "const k = () => {\n  const t: Mut<[number, number]> = [1, 2];\n  t.push(3);\n  return t.length;\n};" },
   { statement: "S3.3", rule: "object-assign", source: "const o = () => ({ a: 1 });\nconst w = (o) => Object.assign(o, { b: 2 });" },
+  { statement: "S3.3", rule: "forgets", source: "const f = () => {\n  const full = { a: 1, b: \"s\" };\n  const r: { readonly a: number } = full;\n  return { b: 5, ...r }.b;\n};" },
+  { statement: "S3.3", rule: "forgets", source: "const f = () => {\n  const options: { readonly b?: number } = {};\n  const defaults = { a: 1, b: 2 };\n  return { ...defaults, ...options }.a;\n};" },
+  { statement: "S3.3", rule: "forgets", source: "const f = () => {\n  const r: { readonly a: number } = { a: 1 };\n  const { a, ...rest } = r;\n  return { b: a, ...rest };\n};" },
   { statement: "S3.4", rule: "no-delete", source: "const o = (): { a?: number } => ({});\nconst d = (o) => {\n  delete o.a;\n  return o;\n};" },
   { statement: "S3.4", rule: "no-delete", source: "const d = () => {\n  const o = { a: 1, b: 2 };\n  delete o.a;\n  return o;\n};" },
   { statement: "S3.4", rule: "no-delete", source: "const d = () => {\n  const m: { [k: string]: number; n: number } = { n: 1 };\n  delete m.n;\n  return m;\n};" },
@@ -908,7 +924,8 @@ spec_rejects_3 = [
   { statement: "S3.19", rule: "member-write", source: "const f = async (fetch: Fetch) => {\n  const res = await fetch(\"https://example.invalid/\");\n  res.ok = false;\n  return 1;\n};" },
   { statement: "S3.20", rule: "object-freeze", source: "const o = () => ({ a: 1 });\nconst f = (o) => Object.freeze(o);" },
   { statement: "S3.20", rule: "object-freeze", source: "const f = () => Object.freeze(new Uint8Array(2));" },
-  { statement: "S3.20", rule: "no-member", source: "const f = () => {\n  const g = Object.freeze;\n  return g({ a: 1 });\n};" }
+  { statement: "S3.20", rule: "no-member", source: "const f = () => {\n  const g = Object.freeze;\n  return g({ a: 1 });\n};" },
+  { statement: "S3.21", rule: "type", source: "const a = () => Array(3);" }
 ]
 // %%
 spec_rejects_3_view = spec_rejectsTable(spec_rejects_3)
@@ -928,7 +945,9 @@ test_spec_S3_2 = {
 test_spec_S3_3 = {
   spec_is(await spec_module.value("s3_moved"), { x: 2, y: 2 });
   spec_is(await spec_module.value("s3_point"), { x: 1, y: 2 });
-  return `${spec_rejectsFor("S3.3")}; s3_moved is a new point, s3_point is unchanged`;
+  // a spread first, an exact spread, a spread whose type declares the earlier members, and declared options are accepted
+  spec_is(spec_okCells("const f = () => {\n  const r: { readonly a: number } = { a: 1 };\n  const local = { a: 1 };\n  const both: { readonly a: number; readonly b: number } = { a: 1, b: 2 };\n  const options: { readonly a?: number; readonly b?: number } = { b: 3 };\n  return [{ ...r, b: 5 }.b, { b: 5, ...local }.b, { b: 5, ...both }.b, { ...{ a: 1, b: 2 }, ...options }.b];\n};"), "f:ok");
+  return `${spec_rejectsFor("S3.3")}; s3_moved is a new point, s3_point is unchanged; a spread first, an exact spread and declared members are accepted`;
 }
 // %%
 test_spec_S3_4 = spec_rejectsFor("S3.4")
@@ -953,7 +972,7 @@ test_spec_S3_10 = {
 }
 // %%
 test_spec_S3_11 = {
-  spec_is(spec_okCells("const a = () => {\n  let n = 0;\n  const inc = () => {\n    n++;\n  };\n  function add(k: number) {\n    n += k;\n  }\n  inc();\n  add(2);\n  const read = () => n;\n  return read();\n};"), "a:ok");
+  spec_is(spec_okCells("const a = () => {\n  let n = 0;\n  const inc = () => {\n    n++;\n  };\n  function add(k: number) {\n    n += k;\n  }\n  inc();\n  add(2);\n  const get = () => n;\n  return get();\n};"), "a:ok");
   spec_is(await spec_module.value("s3_tree"), [1, [2, 30], []]);
   return `${spec_rejectsFor("S3.11")}; ${spec_acceptsFor("S3.11")}; helpers only called may assign; s3_tree is ${JSON.stringify(await spec_module.value("s3_tree"))}`;
 }
@@ -1018,6 +1037,16 @@ test_spec_S3_20 = {
   return `${spec_rejectsFor("S3.20")}; Object.freeze of an object literal and of an array literal is accepted`;
 }
 // %%
+test_spec_S3_21 = {
+  // an index or length write that leaves a hole throws; a write at the length appends
+  const V = await spec_load("const past = () => { const xs = [0]; xs[3] = 5; return xs.length; };\nconst neg = () => { const xs = [0]; xs[-1] = 5; return xs.length; };\nconst inc = () => { const xs = [0]; xs[2]++; return xs.length; };\nconst len = () => { const xs = [0]; xs.length = 4; return xs.length; };\nconst ok = () => { const xs = [0]; xs[1] = 5; xs[0] += 1; xs.length = 1; xs[1] = 2; return xs; };\nconst typed = () => { const t = new Float64Array(2); t[5] = 1; return t.length; };", {});
+  try {
+    const why = (n) => V.value(n).then((v) => `fulfilled with ${JSON.stringify(v)}`, (e) => (e instanceof RangeError ? e.message.slice(0, e.message.indexOf(":")) : String(e)));
+    spec_is(await Promise.all(["past", "neg", "inc", "len", "ok", "typed"].map(why)), ["index 3 on an array of length 1", "index -1 on an array of length 1", "index 2 on an array of length 1", "length 4 on an array of length 1", "fulfilled with [1,2]", "fulfilled with 2"]);
+  } finally { V.dispose(); }
+  return `${spec_rejectsFor("S3.21")}; a write past the end, at a negative index, and to a longer length throws a RangeError with the index and the length; a write at the length appends; a typed array write is a JavaScript write`;
+}
+// %%
 md`## 4. Local writes
 
 Only the cell that made a value can write it in place. A local bound to a fresh value is writable. Everything that a cell publishes is frozen when it leaves the cell (S4.6). Thus no cell sees a value that it holds change. The static rules of this section report the common mistakes at the line of the mistake. The guarantee depends on the freeze at run time. If a program passes the rules and then writes a published value, the write throws a \`TypeError\`.`
@@ -1061,7 +1090,7 @@ md`**S4.6** At run time, every value that a cell publishes is frozen when it is 
 - the arguments of a memoised function on a call with a new key (S2.13);
 - the result of a worker.
 
-A write to a published value, from any code, throws a \`TypeError\`. Before the freeze, a value written to a state cell and the arguments of an action are checked for a function or a promise made in a body that still runs (S4.12).
+A write to a published value from a SoundScript cell throws a \`TypeError\`. So does a write from strict-mode JavaScript to a frozen array, record, \`Error\` or JSX element. JavaScript that is not in strict mode ignores the write. A freeze does not stop JavaScript in the same page that writes a typed array, an \`ArrayBuffer\`, or a \`Map\`, \`Set\` or \`URL\` through the methods of the base class (S4.8, Not specified). Before the freeze, a value written to a state cell and the arguments of an action are checked for a function or a promise made in a body that has not returned (S4.12).
 
 How values are frozen:
 
@@ -1146,7 +1175,7 @@ A finished cell has published a function or a promise when it is in the value of
 
 The check does not read the captures of a function. The check does not go into a promise: the value that a promise settles to is frozen only when it settles, and the body can write that value before then.
 
-This guarantee is a throw at run time, not a rejection at check time. A holder can get a function through a name that the checker does not follow, such as \`const st = s.set\`, \`const { set } = s\`, \`s['set']\`, a record field or a spread. The checker reports the cases that it sees as \`[fn-publish]\`. These are a \`set\` of a state, an \`update\` whose arrow returns the value, or an action call, that gets a function literal of the calling function at a parameter whose declared type holds a function. The literal can be inline, in an array, object or conditional expression, or a \`const\` of that function bound to a literal. The checker does not report a parameter type that hides a function by width, such as \`{ readonly n: number }\`. The throw still applies.
+This guarantee is a throw at run time, not a rejection at check time. A holder can get a function through a name that the checker does not follow, such as \`const st = s.set\`, \`const { set } = s\`, \`s['set']\`, a record field or a spread. The checker reports the cases that it sees as \`[fn-publish]\`. The checker does not report a function that gets to \`set\` through a parameter of a local helper, or as the result of a local call. The run time throws a \`TypeError\` for it. These are a \`set\` of a state, an \`update\` whose arrow returns the value, or an action call, that gets a function literal of the calling function at a parameter whose declared type holds a function. The literal can be inline, in an array, object or conditional expression, or a \`const\` of that function bound to a literal. The checker does not report a parameter type that hides a function by width, such as \`{ readonly n: number }\`. The throw still applies.
 
 The arguments of a memoised call are not checked: a call whose arguments reach a function stores nothing (S2.13). S5.6 and S5.7 apply to the yields of a generator. The return of a cell ends its body.`
 // %%
@@ -1538,7 +1567,7 @@ md`**S6.9** The body of an action cannot use a value that depends on state. Such
 - an input that takes a state cell or an events cell by value;
 - a capability other than \`invalidation\` and \`log\`;
 - an input that takes a cell that depends on one of these;
-- a parameter of an enclosing function, because a caller passes it any value (one exception follows);
+- a parameter of an enclosing function, because a caller passes it any value (this statement gives one exception, for the callbacks of built-ins);
 - an element of a local array that is not \`readonly\` (a \`Mut\`), because the cell can write to the array after the action is made;
 - a local computed from any of these.
 
@@ -1549,7 +1578,7 @@ Since 2026-11-25, one parameter of an enclosing function is accepted: a paramete
 - The built-in makes the values of the parameter from its receiver and its other arguments. Thus the parameter depends on state only when the receiver or another argument depends on state.
 - A parameter that gets the result of the callback, such as the accumulator of \`reduce\`, also depends on each value that the callback uses.
 
-Thus \`[1, 2].map((n) => action(() => c.set(n)))\` is accepted, as the same loop with \`for...of\` is. \`xs.map(...)\` is \`[action-capture]\` when \`xs\` is the value of a state cell. With \`map\` and with \`for...of\`, the array must be a literal or a \`readonly\` array.
+Thus \`[1, 2].map((n) => action(() => c.set(n)))\` is accepted, as the same loop with \`for...of\` is. \`xs.map(...)\` is \`[action-capture]\` when \`xs\` is the value of a state cell. With \`map\` and with \`for...of\`, the array must be an array literal in the call, or a \`readonly\` array. An array literal bound to a \`const\` local is a \`Mut\` (S4.1), and the parameter is then \`[action-capture]\`.
 
 These parameters are \`[action-capture]\`: the parameter of the function of \`update\`, which gets the state; the parameter of a callback that is kept (\`then\`), stored, or given to a function of the module; and the parameter of a local helper.`
 // %%
@@ -1741,6 +1770,7 @@ spec_rejects_6 = [
   { statement: "S6.9", rule: "action-capture", source: "const xs = (): StateCell<readonly number[]> => state([1, 2]);\nconst other = (): StateCell<number> => state(0);\nconst pick = (xs: readonly number[], other: State<number>) => xs.map((x) => action(() => other.set(x)));" },
   { statement: "S6.9", rule: "action-capture", source: "const xs = (): StateCell<readonly number[]> => state([1, 2]);\nconst other = (): StateCell<number> => state(0);\nconst pick = (xs: readonly number[], other: State<number>) => {\n  const init: readonly number[] = [];\n  return [1, 2].reduce((acc: readonly number[], n) => {\n    const a = action(() => other.set(acc[0] ?? 0));\n    return xs;\n  }, init);\n};" },
   { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst pick = (other: State<number>) => {\n  const one = (n: number) => action(() => other.set(n));\n  return [1, 2].map((n) => one(n));\n};" },
+  { statement: "S6.9", rule: "action-capture", source: "const other = (): StateCell<number> => state(0);\nconst g = (other: State<number>) => {\n  const xs = [1, 2];\n  return xs.map((n) => action(() => other.set(n)));\n};" },
   { statement: "S6.18", rule: "state-undefined", source: "const c = () => state(undefined);" },
   { statement: "S6.18", rule: "state-undefined", source: "const c = (): StateCell<number | undefined> => state<number | undefined>(1);" },
   { statement: "S6.18", rule: "state-undefined", source: "const c = (): StateCell<unknown> => state(1);" },
@@ -2500,7 +2530,7 @@ md`**S9.3** A foreign declaration (\`declare const\` or \`declare function\`, gi
 // %%
 md`**S9.4** The narrowings of one value combine in any order. A test that excludes \`null\` or \`undefined\` (\`v !== null\`, \`v != null\`, \`!!v\`) and a later \`typeof v === "object"\` narrow \`v\` to \`object\`, as when \`typeof\` is tested first. An assignment to \`v\` ends the exclusion.
 
-\`==\` and \`!=\` narrow only against \`null\` and \`undefined\`. \`v == "1"\` does not narrow \`v\` of type \`"1" | 1\`, because \`1 == "1"\` is true. \`===\` and \`!==\` narrow against any literal. A loose comparison of operands with no value in common, such as a \`number\` and a \`string\`, is \`[type]\`.`
+\`==\` and \`!=\` narrow only against \`null\` and \`undefined\`. \`v == "1"\` does not narrow \`v\` of type \`"1" | 1\`, because \`1 == "1"\` is true. \`===\` and \`!==\` narrow against any literal. A loose comparison of operands whose types share no value, such as a \`number\` and a \`string\`, is \`[type]\`, as it is for \`===\`.`
 // %%
 md`**S9.5** The right operand of \`in\` must be an object. An operand of type \`unknown\`, of a type parameter, or of a type that can be a primitive is \`[type]\`. An operand that can be \`null\` or \`undefined\` is \`[possibly-undefined]\`. \`"k" in v\` throws at run time when \`v\` is a primitive. Test \`typeof v === "object" && v !== null\` first.`
 // %%
@@ -2546,6 +2576,7 @@ spec_rejects_9 = [
   { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (w: unknown): boolean => {\n  let v = w;\n  if (v === null) return false;\n  v = w;\n  return typeof v === \"object\" && \"then\" in v;\n};" },
   { statement: "S9.4", rule: "forgets", source: "const f = () => (): null => {\n  const x: {} = 0;\n  const y: {} | null = x;\n  if (y) return null;\n  const z: null = y;\n  return z;\n};" },
   { statement: "S9.4", rule: "type", source: "const k = () => {\n  const v: \"1\" | 1 = 1;\n  if (v == \"1\") {\n    const s: \"1\" = v;\n    return s;\n  }\n  return \"x\";\n};" },
+  { statement: "S9.4", rule: "type", source: "const k = () => (n: number, s: string) => n == s;" },
   { statement: "S9.5", rule: "type", source: "const f = () => (v: unknown): boolean => \"then\" in v;" },
   { statement: "S9.5", rule: "type", source: "const f = () => <T,>(v: T): boolean => \"then\" in v;" },
   { statement: "S9.5", rule: "type", source: "const f = () => (v: unknown): boolean => typeof v !== \"number\" && \"then\" in v;" },
@@ -3176,6 +3207,10 @@ md`- A handler that makes several top-level calls, such as \`onClick={() => { be
 md`- A change that the user makes on the control of a view while an action call that wrote the view waits to commit. Today the commit replaces the change of the user.`
 // %%
 md`- The final value of a state cell when two async cells each feed a listener that writes it. Each listener writes when its fetch answers. Thus the state cell keeps the value of the response that arrived last, and that order is not specified.`
+// %%
+md`- JavaScript in the same page writes a value that a cell publishes when a freeze does not stop the write (S4.6, S4.8). Such a write is a write to a typed array or an \`ArrayBuffer\`, a call of a method of \`Map.prototype\` or \`Set.prototype\` that writes (\`set\`, \`add\`, \`delete\`, \`clear\`) on a published \`Map\` or \`Set\`, or a setter of \`URL.prototype\` on a published \`URL\`. The write gives no error, and a cell that reads the value sees it. The checker stops such writes in SoundScript cells only. Attack 14 (2026-11-25) records 9 such rows.`
+// %%
+md`- JavaScript that calls an action gives it arguments that are not checked against the types that the action declares. The run time freezes the arguments (S4.6) and checks them for a function or a promise made in a body that has not returned (S4.12). It does not check their types. The checker checks each call from a SoundScript cell. Attack 14 (2026-11-25) records 3 such rows.`
 // %%
 md`- An action taken before its state cell went into error, and called while the state cell is in error. Today it writes the last store of the state cell. The write is kept if the state cell is repaired with the same inputs.`
 // %%

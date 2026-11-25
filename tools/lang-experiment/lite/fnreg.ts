@@ -156,6 +156,42 @@ function guardEdits(cellFn: N, o: string): RegEdit[] {
   walk(cellFn, cellFn, 0);
   return ed;
 }
+// open part 6 (HO, S3.21): the TypeScript twin of tc-reg.ss.ts tcHoleSites and tcHoleEdit. Each index or length write
+// whose mark from the check is not false (each one when the marks do not match the writes) becomes a call of freeze.ts
+// holeWrites, the tokens it replaces kept in ss: comments. text is the parsed text, (typed); lex its tokenizer, comments its comments
+export type Tok = { label: string; start: number; end: number };
+export function holeEdits(cellFn: N, text: string, holes: readonly boolean[], o: string, lex: (s: string) => Tok[], comments: { start: number; end: number }[]): RegEdit[] {
+  const sites: { n: N; t: N; depth: number }[] = [];
+  const walk = (n: N, depth: number) => {
+    const t = n.type === "AssignmentExpression" ? n.left : n.type === "UpdateExpression" ? n.argument : null;
+    if (t && t.type === "MemberExpression" && (t.computed || (t.property.type === "Identifier" && t.property.name === "length"))) sites.push({ n, t, depth });
+    for (const k of kids(n)) walk(k, depth + 1);
+  };
+  walk(cellFn, 0);
+  sites.sort((a, b) => a.t.start - b.t.start);
+  const toksIn = (a: number, b: number) => lex(text.slice(a, b)).map((k) => ({ label: k.label, start: k.start + a, end: k.end + a }));
+  return sites.flatMap((s, i) => (sites.length === holes.length && holes[i] === false ? [] : holeEdit(text, comments, toksIn, s, o)));
+}
+function holeEdit(text: string, comments: { start: number; end: number }[], toksIn: (a: number, b: number) => Tok[], s: { n: N; t: N; depth: number }, o: string): RegEdit[] {
+  const { n, t, depth: d } = s, add = (x: string) => (x === "" ? "" : wrapOpen + x + wrapClose), hide = "/*ss:";
+  const len = !t.computed || (t.property.type === "Literal" && t.property.value === "length"), pre = n.type === "UpdateExpression" && n.prefix;
+  const toks = toksIn(t.object.end, n.type === "AssignmentExpression" ? n.right.start : n.end), rb = toks.find((k) => k.label === "]" && k.start >= t.property.end);
+  const lb = toks.find((k) => k.label === "[" || (len && k.label === ".")) ?? { start: -1, end: -1 };
+  const opTok = toks.find((k) => k.start >= t.end && k.label !== ")");
+  const opEnd = pre ? n.end : opTok && ["=", "_=", "++/--"].includes(opTok.label) ? opTok.end : -1, cut = len ? lb.start : rb?.start ?? -1;
+  const ok = (a: number, b: number, n0: number) => a >= 0 && toksIn(a, b).length === n0 && !comments.some((c) => c.end > a && c.start < b);
+  // open part 7: a parenthesized target, (xs[0]) = 2, has its parentheses kept in the ss: comments
+  const lead = toksIn(n.start, t.start), opens = lead.filter((k) => k.label === "(").length;
+  if (cut < 0 || opEnd < 0 || !ok(cut, opEnd, (len && t.computed ? 3 : len ? 2 : 1) + (pre ? 0 : 1) + opens) || lead.length !== opens + (pre ? 1 : 0))
+    throw new Error("tc-gap: an index or length write with a comment among its tokens");
+  const op = n.type === "AssignmentExpression" ? n.operator : "", up = n.type === "UpdateExpression" ? `, ${n.operator === "++" ? 1 : -1}, ${pre})` : "";
+  const fn = op === "=" ? (len ? "putLen(" : "put(") : op !== "" ? `putOp(${o}.${len ? "lenAt" : "at"}(` : len ? "putLenUp(" : "putUp(";
+  const mid = op === "=" ? ", " : op !== "" ? `), ${JSON.stringify(op.slice(0, -1))}, ` : "";
+  const e = (at: number, end: boolean, txt: string, use: RegEdit["use"] = null): RegEdit => ({ at, depth: d, end, text: txt, use });
+  const head = lead.length > 0 ? [e(n.start, false, hide), e(t.start, false, "*/" + add(`${o}.${fn}`), "out")] : [e(n.start, false, add(`${o}.${fn}`), "out")];
+  const index = len ? [] : [e(lb.start, true, hide), e(lb.end, true, "*/" + add(", "))];
+  return [...head, ...index, e(cut, true, add(mid) + hide), e(opEnd, true, "*/" + add(up)), ...(op === "" ? [] : [e(n.end, true, add(")"))])];
+}
 // text with the edits applied; positions are text's. At one position: ends (deepest first), then starts (outermost first)
 export function applyRegEdits(text: string, edits: RegEdit[], offset = 0): string {
   const es = edits.toSorted((a, b) => a.at - b.at || (a.end === b.end ? (a.end ? b.depth - a.depth : a.depth - b.depth) : a.end ? -1 : 1));

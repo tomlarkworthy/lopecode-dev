@@ -380,7 +380,8 @@ export function ownership(cellFn: Node, ch: Checker): Rule[] {
         || ((p.type === "Property" || p.type === "ObjectProperty") && p.key === n && !p.computed && !p.shorthand) || /^TS/.test(p.type);
       if (!name) err(n, "prelude-value", `${n.name} is only called, as ${n.name}(...); as a value its calls would skip the rules of ${n.name}`);
     }
-    if (nb && nb.kind !== "prelude" && nb.kind !== "global" && nb.node === n && ["snapshot"].includes(n.name)) err(n, "prelude-shadow", `${n.name} names a prelude function; a binding of that name would hide it from the rules of ${n.name}(...)`);
+    // DELIBERATE CHANGE (2026-11-25, open part 6): [prelude-shadow] for every prelude name of S2.6 (live owPlacement)
+    if (nb && nb.kind !== "prelude" && nb.kind !== "global" && nb.node === n && ["state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "read", "messageOf", "memo", "cast"].includes(n.name)) err(n, "prelude-shadow", `${n.name} names a prelude function; a binding of that name would hide it from the rules of ${n.name}(...)`);
     // DELIBERATE CHANGE (2026-11-22, S4): [mut-source] is gone
     // DELIBERATE CHANGE (2026-11-22, S4): a generator cell's yielded Mut typed array must be a fresh copy (owTypedOut)
     if (n.type === "YieldExpression" && cellFn.generator && n.argument && encl(n) === cellFn) {

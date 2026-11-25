@@ -40,6 +40,8 @@ const MEASURE_ENV = (globalThis as { process?: { env?: Record<string, string | u
 // x1 (2026-11-24): with SS_MEASURE_GUARD=0 the async guard (guardAsync) holds nothing, as before x1
 // y1 (2026-11-24): with SS_MEASURE_HANDOVER=0 a published value is not refused for a response, an async iterator or a
 // promise its cell's type does not name (handOver), as before y1
+// open part 6 (2026-11-25): with SS_MEASURE_HOLES=0 an index write on a plain array is not checked (holeWrites)
+const HOLES_ON = MEASURE_ENV?.SS_MEASURE_HOLES !== "0";
 const REG_ON = MEASURE_ENV?.SS_MEASURE_REG !== "0", FREEZE_ON = MEASURE_ENV?.SS_MEASURE_FREEZE !== "0", GUARD_ON = MEASURE_ENV?.SS_MEASURE_GUARD !== "0", HAND_ON = MEASURE_ENV?.SS_MEASURE_HANDOVER !== "0";
 type Caps = (i: number) => unknown;
 const capsOf = (f: object): Caps | undefined => (f as { [CAPS]?: Caps })[CAPS];
@@ -336,6 +338,36 @@ const guardAsync = {
   resumed: <T,>(g: Gd, v: T): T => { resume(g); return v; },
   bind: (f: unknown) => (typeof f === "function" && GUARD_ON && evaluating.depth > 0 ? (...a: unknown[]) => underEval(() => f(...a)) : f),
 };
+// open part 6 (HO, S3.21): an index write on a plain array replaces an element or appends at the length; any other
+// index (past the length, negative, fractional, not a number) would leave a hole or add a property, so it throws. The
+// compiler emits these only where the receiver's type may be a plain array; a typed array or a record is not an Array
+const badIndex = (a: unknown[], i: unknown): RangeError =>
+  new RangeError(`index ${typeof i === "number" ? String(i) : `of type ${typeof i}`} on an array of length ${a.length}: an index write ${a.length > 0 ? `replaces an element (index 0 to ${a.length - 1}) or ` : ""}appends one (index ${a.length}); any other index would leave a hole or add a property that is not an element`);
+const putAt = (a: unknown, i: unknown): void => {
+  // a frozen array refuses the write itself, with the TypeError it gave before
+  if (HOLES_ON && Array.isArray(a) && !(typeof i === "number" && Number.isInteger(i) && i >= 0 && i <= a.length) && !Object.isFrozen(a)) throw badIndex(a, i);
+};
+const badLength = (a: unknown[], n: unknown): RangeError =>
+  new RangeError(`length ${String(n)} on an array of length ${a.length}: a longer length would leave holes; push the elements instead`);
+const putLen = (a: unknown, n: unknown): void => { if (HOLES_ON && Array.isArray(a) && typeof n === "number" && n > a.length && !Object.isFrozen(a)) throw badLength(a, n); };
+// a compound write's receiver, key and old value, read before the right side runs, as JavaScript reads them
+type Cell = { a: any; k: any; old: any; len: boolean };
+const opOf = (op: string, x: any, y: any): any => {
+  switch (op) {
+    case "+": return x + y; case "-": return x - y; case "*": return x * y; case "/": return x / y; case "%": return x % y; case "**": return x ** y;
+    case "<<": return x << y; case ">>": return x >> y; case ">>>": return x >>> y; case "&": return x & y; case "|": return x | y; case "^": return x ^ y;
+  }
+  throw new Error(`no compound operator ${op}=`);
+};
+const holeWrites = {
+  put: <T,>(a: any, i: any, v: T): T => { putAt(a, i); a[i] = v; return v; },
+  at: (a: any, i: any): Cell => ({ a, k: i, old: a[i], len: false }),
+  lenAt: (a: any): Cell => ({ a, k: "length", old: a.length, len: true }),
+  putOp: (c: Cell, op: string, y: any): any => { const v = opOf(op, c.old, y); if (c.len) putLen(c.a, v); else putAt(c.a, c.k); c.a[c.k] = v; return v; },
+  putUp: (a: any, i: any, d: number, pre: boolean): any => { const x = a[i], n = typeof x === "bigint" ? x : +x, v = typeof n === "bigint" ? n + BigInt(d) : n + d; putAt(a, i); a[i] = v; return pre ? v : n; },
+  putLen: <T,>(a: any, n: T): T => { putLen(a, n); a.length = n; return n; },
+  putLenUp: (a: any, d: number, pre: boolean): any => { const x = +a.length, n = x + d; putLen(a, n); a.length = n; return pre ? n : x; },
+};
 // out(v): v published. out.cell(f): a plain cell, f its body applied to its inputs, guarded then published. out.run(f): a
 // listener cell's body, guarded only
-export const out = Object.assign(publishOut, { cell: <T,>(f: () => T, name?: string, mode?: number): T => publishOut(outRun(f), name, mode), run: outRun }, guardAsync);
+export const out = Object.assign(publishOut, { cell: <T,>(f: () => T, name?: string, mode?: number): T => publishOut(outRun(f), name, mode), run: outRun }, guardAsync, holeWrites);

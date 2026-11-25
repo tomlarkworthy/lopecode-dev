@@ -148,6 +148,6 @@ export const mdCell = (ixKnot, ixFreshCtl, ixDrain, mdSyntax, mdInject, mdTainte
   // what the registry reports from here on reaches the Checker but not the record (core.ts copies the lists above)
   ixDrain(K2, C);
   if (M.probe === null) M.probe = C.probe;
-  M.out = new Map([...M.out, [d.name, { ...mdKeep(X, M, d, r1, v), ch: ixOut(C.diags), chUnsup: ixOut(C.unsup), casts: C.casts.toSorted((a, b) => a[0] - b[0]).map((x) => x[1]) }]]);
+  M.out = new Map([...M.out, [d.name, { ...mdKeep(X, M, d, r1, v), ch: ixOut(C.diags), chUnsup: ixOut(C.unsup), casts: C.casts.toSorted((a, b) => a[0] - b[0]).map((x) => x[1]), holes: C.holes.toSorted((a, b) => a[0] - b[0]).map((x) => x[1]) }]]);
   return run.gap ?? v.gap;
 };

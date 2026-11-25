@@ -16,8 +16,8 @@ export const mdDiag = () => (X: MdCtx, L: MdL, at: AstNode, rule: string, msg: s
 };
 // a handle parameter (State<T>, Events<T>) naming a cell: the cell's inner type must be T both ways
 export const mdInjectHandle = (mdDiag, isNamed, show, ixGap) => (K: IxK, C: IxCtls, X: MdCtx, M: MdMod, L: MdL, p: Identifier, ann: AstNode, wrapper: string): Ty => {
-  const state = wrapper === "State", name = p.name;
-  const inner = (state ? M.refInner : M.eventsInner).get(name);
+  const st = wrapper === "State", name = p.name;
+  const inner = (st ? M.refInner : M.eventsInner).get(name);
   const want = K.reg.convert(ann, [], null);
   const wrapped = want.k === "named" && isNamed(want, wrapper);
   const a0 = want.k === "named" && wrapped ? want.args[0] : undefined;
@@ -25,8 +25,8 @@ export const mdInjectHandle = (mdDiag, isNamed, show, ixGap) => (K: IxK, C: IxCt
   if (wrapped && a0 === undefined) return ixGap(C, "State or Events with no type argument");
   // e1 (2026-11-23), B4: a state cell is written and read, so its type is T both ways; an events cell's values only
   // reach the listener, so what it yields must be a T (a yielded object literal is exact and not the other way)
-  const ok = inner !== undefined && a0 !== undefined && K.reg.sub(inner, a0) && (!state || K.reg.sub(a0, inner));
-  if (!ok) mdDiag(X, L, p, state ? "inject-state" : "inject-events", `${name} is not a ${state ? "state cell" : "sync generator cell"} ${state ? `of ${show(want)}` : `yielding ${show(a0 ?? want)}`}`);
+  const ok = inner !== undefined && a0 !== undefined && K.reg.sub(inner, a0) && (!st || K.reg.sub(a0, inner));
+  if (!ok) mdDiag(X, L, p, st ? "inject-state" : "inject-events", `${name} is not a ${st ? "state cell" : "sync generator cell"} ${st ? `of ${show(want)}` : `yielding ${show(a0 ?? want)}`}`);
   return want;
 };
 // a parameter that names a cell of the module: its value type (null when it takes it as it is), or ERR
@@ -48,10 +48,10 @@ export const mdInjectForeign = (mdDiag, owIter, show) => (K: IxK, X: MdCtx, L: M
 // a shell cell typed as a function crosses as a function from another language does (core.ts shellFn)
 export const mdShellFn = () => (X: MdCtx, ann: AstNode | null, wrapper: string | null): boolean => ann !== null && wrapper === null && X.R.peekType(ann).k === "fn";
 // the boundary's rules on a parameter's annotation (the last two of the cell in another language's branch)
-export const mdBoundaryRules = (mdDiag, boundaryShapeAt, show) => (K: IxK, X: MdCtx, M: MdMod, L: MdL, cell: string, p: Identifier, inner: Ty, state: boolean): MdBoundary | null => {
-  const shape = boundaryShapeAt(inner, { expand: K.reg.expand, isAlias: K.reg.isAlias }, !state);
+export const mdBoundaryRules = (mdDiag, boundaryShapeAt, show) => (K: IxK, X: MdCtx, M: MdMod, L: MdL, cell: string, p: Identifier, inner: Ty, st: boolean): MdBoundary | null => {
+  const shape = boundaryShapeAt(inner, { expand: K.reg.expand, isAlias: K.reg.isAlias }, !st);
   if (shape.k === "error") { mdDiag(X, L, p, "boundary-type", `${p.name}: ${show(inner)} cannot cross from another language: it is or holds ${shape.error}`); return null; }
-  if (!state) return { shape, ref: false };
+  if (!st) return { shape, ref: false };
   const first = M.viewTypes.get(p.name);
   if (first !== undefined && !(K.reg.sub(first.ty, inner) && K.reg.sub(inner, first.ty))) {
     mdDiag(X, L, p, "boundary-state", `viewof ${p.name} is taken as State<${show(first.ty)}> by ${first.cell}; every State to one view has the same type`);
@@ -68,13 +68,13 @@ export const mdInjectBoundary = (mdDiag, mdBoundaryRules, hasErrWith, isNamed, i
   const view = X.outside.get(name)?.view ?? false;
   if (wrapper === "State" && !view) { mdDiag(X, L, p, "boundary-state", `${name} has no viewof; only an Observable JavaScript view, or a SoundScript state cell imported with its viewof, can be taken as State`); return ERR; }
   const want = K.reg.convert(ann, [], null);
-  const state = wrapper === "State";
+  const st = wrapper === "State";
   const isState = want.k === "named" && isNamed(want, "State");
   const a0 = want.k === "named" && isState ? want.args[0] : undefined;
-  if (state && isState && a0 === undefined) return ixGap(C, "State with no type argument");
-  const inner = state && a0 !== undefined ? a0 : want;
+  if (st && isState && a0 === undefined) return ixGap(C, "State with no type argument");
+  const inner = st && a0 !== undefined ? a0 : want;
   if (hasErrWith(X.R.ops)(inner)) return ERR;
-  const b = mdBoundaryRules(K, X, M, L, cell, p, inner, state);
+  const b = mdBoundaryRules(K, X, M, L, cell, p, inner, st);
   if (b === null) return ERR;
   const mine: Map<string, MdBoundary> = M.boundaries.get(cell) ?? new Map();
   M.boundaries = new Map([...M.boundaries, [cell, new Map([...mine, [name, b]])]]);

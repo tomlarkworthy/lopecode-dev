@@ -198,6 +198,8 @@ A14_RULES.set("open-a14-e-neq-str-method", ["unsupported"]);
 const P5 = (name: string, body: string, ok: (v: unknown) => boolean, rules: string[]) => { A14_RULES.set(`open-a14-p5-${name}`, rules); R.push(tyRow(`open-a14-p5-${name}`, `const g = () => { ${body} };`, ok)); };
 P5("split-record", `const r = { split: (re: RegExp): number[] => [1] }; const s: readonly string[] = r.split(/a/); return s;`, strs, ["type"]);
 P5("opt-before-req", `const f: (x: number, y?: string) => string = (a = 1, b: string) => b; return f(1);`, isStr, ["arity"]);
+const P6 = (name: string, body: string, ok: (v: unknown) => boolean, rules: string[]) => { A14_RULES.set(`open-a14-p6-${name}`, rules); R.push(tyRow(`open-a14-p6-${name}`, `const g = () => { ${body} };`, ok)); };
+const K6 = (name: string, body: string, ok: (v: unknown) => boolean) => R.push(tyRow(`open-ok-p6-${name}`, `const g = () => { ${body} };`, ok));
 const K5 = (name: string, body: string, ok: (v: unknown) => boolean) => R.push(tyRow(`open-ok-p5-${name}`, `const g = () => { ${body} };`, ok));
 K5("opt-param", `const f: (x?: number) => number = (x?: number) => x ?? 0; return f();`, isNum);
 K5("default-param", `const f: (x?: number) => number = (x = 1) => x; return f();`, isNum);
@@ -222,4 +224,76 @@ K5("flatmap-wrap", `const fm = <T,>(xs: readonly T[]): readonly T[] => xs.flatMa
 K5("flatmap-arr", `return [[1], [2]].flatMap((x) => x);`, nums);
 K5("flatmap-el", `return [1, 2].flatMap((x) => (x > 1 ? x : []));`, nums);
 K5("memo-map", `const ms = [1, 2].map((n) => memo((k: number): number => k + n)); const a = ms[0], b = ms[1]; return a === undefined || b === undefined ? [] : [a(10), b(10)];`, (v) => Array.isArray(v) && v[0] === 11 && v[1] === 12);
+// part 6 (2026-11-25, SW): a spread of a value whose type is not exact, after a member its type does not declare, is
+// [forgets] (ix-lit.ss.ts ixObjSpread). Attack 14's ret.ts w-spread-* rows; open-ok-p6-* legal spreads, run
+for (const c of RET) if (!c.ctl && c.name.startsWith("w-")) {
+  A14_RULES.set(`open-a14-${c.name}`, c.name === "w-spread-union" || c.name === "w-spread-generic" ? ["unsupported"] : ["forgets"]);
+  R.push({ ...c, name: `open-a14-${c.name}` });
+}
+const HID = `const full = { a: 1, b: "s" }; const r: { readonly a: number } = full;`;
+const isNumOrStr = (v: unknown) => typeof v === "number" || typeof v === "string";
+P6("sw-prop-before", `${HID} return { b: 5, ...r }.b;`, isNum, ["forgets"]);
+P6("sw-spread-spread", `${HID} return { ...{ b: 5 }, ...r }.b;`, isNum, ["forgets"]);
+P6("sw-rest", `${HID} const { a, ...rest } = r; return { b: 5, ...rest }.b + a;`, isNum, ["forgets"]);
+P6("sw-defaults-options", `const full = { b: 2, a: "s" }; const options: { readonly b?: number } = full; const defaults = { a: 1, b: 2 }; return { ...defaults, ...options }.a;`, isNum, ["forgets"]);
+K6("spread-after", `${HID} return { ...r, b: 5 }.b;`, isNum);
+K6("exact-local", `const r = { a: 1 }; return { b: 5, ...r }.b;`, isNum);
+K6("declared", `const r: { readonly a: number; readonly b: number } = { a: 1, b: 2 }; return { b: 5, ...r }.b;`, isNum);
+K6("literal", `return { b: 5, ...{ a: 1 } }.b;`, isNum);
+K6("defaults-declared", `const options: { readonly a?: number; readonly b?: number } = { b: 3 }; const defaults = { a: 1, b: 2 }; const o = { ...defaults, ...options }; return o.a + o.b;`, (v) => v === 4);
+K6("optional-keeps-earlier", `const r: { readonly a?: number } = {}; const o = { a: "s", ...r }; return o.a;`, isNumOrStr);
+K6("array-of-records", `return [{ b: 5 }, ...[{ a: 1 }]].length;`, isNum);
+K6("call-record", `${HID} const f = (x: { readonly a: number }) => x.a; return f(r);`, isNum);
+// part 6 (2026-11-25, HO, S3.21): an index or length write on a plain array that would leave a hole or add a property
+// throws a RangeError at run time (freeze.ts holeWrites, tc-reg.ss.ts tcHoleEdit). open-ho-* are accepted, and g is in
+// error with that RangeError (hoDrive; any other result is DIFF). Attack 14's tup.ts h-* rows and new ones. Under
+// SS_MEASURE_HOLES=0 each one is silent (live.test.ts). open-ok-p6-ho-* are legal writes, accepted and run
+const hoDrive = (p: any) => {
+  const m = p.status("g") === "rejected" ? String(p.error?.("g")?.message ?? p.error?.("g") ?? "") : "";
+  return /^(index|length) \S+ on an array of length \d+: /.test(m) ? `same: g threw ${m.slice(0, 100)}` : `DIFF g is ${p.status("g")}, not in error with the hole RangeError: ${(m || JSON.stringify(p.value?.("g")) || "").slice(0, 100)}`;
+};
+for (const c of TUP) if (!c.ctl && c.name.startsWith("h-")) R.push({ ...c, name: `open-ho-a14-${c.name}`, drive: hoDrive });
+const HO = (name: string, src: string) => R.push({ name: `open-ho-${name}`, src, show: ["g"], drive: hoDrive });
+const HB = (name: string, body: string) => HO(name, `const g = () => { ${body} };`);
+HB("past", "const xs = [0]; xs[3] = 5; return xs.length;");
+HB("neg", "const xs = [0]; xs[-1] = 5; return xs.length;");
+HB("frac", "const xs = [0]; xs[0.5] = 5; return xs.length;");
+HB("nan", "const xs = [0]; xs[0 / 0] = 5; return xs.length;");
+HB("compound", "const xs = [0]; xs[3] += 5; return xs.length;");
+HB("inc", "const xs = [0]; xs[2]++; return xs.length;");
+HB("dec-prefix", "const xs = [0]; --xs[2]; return xs.length;");
+HB("len", "const xs = [0]; xs.length = 4; return xs.length;");
+HB("len-compound", "const xs = [0]; xs.length += 3; return xs.length;");
+HB("len-inc", "const xs = [0]; xs.length++; return xs.length;");
+HB("len-lit", "const xs = [0]; xs['length'] = 3; return xs.length;");
+HB("off-by-one", "const xs: number[] = []; for (let i = 1; i < 5; i++) xs[i] = i; return xs.length;");
+HB("shrink-rhs", "const xs = [0, 1, 2]; const f = (a: Mut<number[]>) => { a.length = 0; return 7; }; xs[2] = f(xs); return xs.length;");
+HB("shrink-rhs-op", "const xs = [0, 1, 2]; const f = (a: Mut<number[]>) => { a.length = 0; return 7; }; xs[2] += f(xs); return xs.length;");
+HB("mut-param", "const f = (a: Mut<number[]>) => { a[3] = 1; }; const xs = [0]; f(xs); return xs.length;");
+HB("generic", "const f = <T,>(a: Mut<T[]>, v: T) => { a[3] = v; }; const xs = [0]; f(xs, 1); return xs.length;");
+HB("paren-recv", "const xs = [0]; (xs)[3] = 2; return xs.length;");
+// part 7: a parenthesized target compiles to the checked write
+HB("paren-target", "const xs = [0]; (xs[3]) = 2; return xs.length;");
+HB("paren-target-op", "const xs = [0]; ((xs[3])) += 2; return xs.length;");
+HB("paren-target-len", "const xs = [0]; (xs.length)++; return xs.length;");
+HB("value", "const xs = [0]; const v = (xs[3] = 7); return v;");
+HB("nested", "const xs = [0]; const ys = [0]; xs[1] = ys[3] = 3; return xs.length;");
+HO("async", "const g = async () => { const xs = [1]; xs[await Promise.resolve(3)] += 2; return xs.length; };");
+const K6H = (name: string, body: string, want: unknown) => K6(`ho-${name}`, body, (v) => JSON.stringify(v) === JSON.stringify(want));
+K6H("append", "const xs = [0]; xs[1] = 5; return xs;", [0, 5]);
+K6H("replace", "const xs = [0, 1]; xs[0] = 5; return xs;", [5, 1]);
+K6H("loop", "const xs: number[] = []; for (let i = 0; i < 5; i++) xs[i] = i * i; return xs;", [0, 1, 4, 9, 16]);
+K6H("compound", "const xs = [1, 2]; xs[1] += 5; xs[0] **= 3; xs[1] -= 1; return xs;", [1, 6]);
+K6H("compound-str", "const xs = ['a']; xs[0] += 'b'; return xs;", ["ab"]);
+K6H("inc", "const xs = [1]; const a = xs[0]++; const b = ++xs[0]; const c = xs[0]--; return [a, b, c, xs[0] ?? -1];", [1, 3, 3, 2]);
+K6H("len-shrink", "const xs = [0, 1, 2]; xs.length = 1; xs.length += 0; return xs;", [0]);
+K6H("len-dec", "const xs = [0, 1]; const a = xs.length--; return [a, xs.length];", [2, 1]);
+K6H("len-same", "const xs = [0, 1]; xs['length'] = 2; xs.length = xs.length; return xs;", [0, 1]);
+K6H("old-before-rhs", "const xs = [1]; const f = (a: Mut<number[]>) => { a[0] = 10; return 1; }; xs[0] += f(xs); return xs;", [2]);
+K6H("typed-past", "const xs = new Float64Array(2); xs[5] = 1; xs[-1] = 1; return [...xs];", [0, 0]);
+K6H("typed", "const xs = new Float64Array(2); xs[1] = 3; xs[1] += 1; xs[0]++; return [...xs];", [1, 4]);
+K6H("value", "const xs = [0]; const v = (xs[1] = 7); return [v, xs.length];", [7, 2]);
+K6H("nested", "const xs = [0]; const ys = [0]; xs[1] = ys[1] = 3; return [xs, ys];", [[0, 3], [0, 3]]);
+K6H("paren-target", "const xs = [0]; (xs[1]) = 2; ((xs[0])) += 3; ++(xs[0]); (xs.length) = 2; return xs;", [4, 2]);
+K6H("record", "const r: Mut<Record<string, number>> = {}; r['a'] = 1; r['b'] = 2; return Object.keys(r).length;", 2);
 export const attacks = R;

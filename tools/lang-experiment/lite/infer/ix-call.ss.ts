@@ -109,10 +109,10 @@ export const ixCallSigs = (ixSpecialCall, ixWriteRule, ixTupleMutates, ixBail, i
   if (isShort) C.short = new Set([...C.short, e.nid]);
   const ms = ixUm(K.reg, isShort ? ixNonNullish(K.reg, calleeT) : calleeT);
   const view = m.type === "MemberExpression" && !!fl?.view && isNamed(T.get(m.object.nid) ?? { k: "err" }, "Borrowed");
-  const action = ms.find((x) => isNamed(x, "Action"));
-  if (action !== undefined && action.k === "named") {
+  const act = ms.find((x) => isNamed(x, "Action"));
+  if (act !== undefined && act.k === "named") {
     ixInActionOnly(K, C, env, e, "action-call", "an Action called outside action(...)");
-    return { k: "sigs", sigs: [ixActionFn(action.args[0] ?? { k: "tup", els: [] })], view };
+    return { k: "sigs", sigs: [ixActionFn(act.args[0] ?? { k: "tup", els: [] })], view };
   }
   const m0 = ms[0];
   if (ms.length !== 1 || m0 === undefined) { ixErr(K, C, e, "type", `call of ${show(calleeT)}`); return { k: "done", t: ixBail(K, T, V, W, C, env, e.arguments, false) }; }

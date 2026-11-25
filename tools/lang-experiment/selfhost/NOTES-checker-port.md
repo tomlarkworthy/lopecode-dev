@@ -4729,3 +4729,257 @@ S2.9: the rest-parameter sentence corrected; a paragraph on a required parameter
 | verify --quick | 234/0 |
 | verify full | 678 pass 0 fail, exit 0 |
 | tests | 34 files, all exit 0 (live.test 1468/0, message-fixes 104/0, boundary 133/0) |
+
+## 2026-11-25: open part 6, the four held items
+
+The owner decided the four items part 5 held: HO throws at run time, SW is rejected, JW and JavaScript callers of an
+action are out of scope, and `[prelude-shadow]` covers every S2.6 prelude name. PA is recorded, not fixed. Steps are
+in `lite/soundscript/.scratch/open/progress.txt`; probes and logs in `.scratch/open5/` (items 2 to 4) and
+`.scratch/open6/` (item 1).
+
+### HO: an index or length write that would leave a hole throws
+
+| form | before part 6 | now |
+|---|---|---|
+| `xs[i] = v`, `xs[i] op= v`, `xs[i]++`, `--xs[i]`, `xs.length = n`, `op=`, `++` on `length`, `xs["length"] = n` | accepted, a hole or a property | checked at run time |
+| negative, fractional, `NaN` index | accepted, adds a property | checked: `RangeError` |
+| a write through a `Mut` parameter, a type parameter `Mut<T[]>`, a parenthesized receiver, a write used as a value, a nested write | accepted | checked |
+| a write to a tuple past its type | `[type]` | unchanged |
+| destructuring assignment, `for (x[i] of ...)`, `||=`, `??=` | unsupported | unchanged |
+| `delete xs[i]` | `[no-delete]` | unchanged |
+| `Array(n)` / `new Array(n)` | `[type]` / unsupported | unchanged |
+| `Array.from({ length: n })`, `splice` past the end, `copyWithin`, `fill` | no hole (run probe `.scratch/open6/ho-safe.ts`) | unchanged |
+| `concat` of a holey array from another language | no run probe; S11.5 says the copy reads a hole as `undefined` | unchanged |
+| a write to a typed array | a JavaScript write | unchanged (native) |
+
+How it is built:
+
+- The checker records each index or length write target with a mark: false only when every member of the receiver's
+  type, through unions, aliases, `Mut` and `Borrowed`, is a typed array (`ix-ops.ss.ts ixHoleSite`, called from
+  `ixLvalueMember`; frozen `infer.ts lvalue`, `this.holes`). The first draft marked a site only when the type was an
+  array, tuple or type parameter; that was reversed so an unlisted type kind is checked, not written natively. A site
+  met twice keeps true if either visit gave true. The marks reach `TcInfo.holes` as the cast shapes do (`md-cell`,
+  `md-facts`, `md-entry`, `lite/core.ts`, `facts.ts CellInfo.holes`; frozen `core.ts`, `ts/core.ts`).
+- The compiler (`tc-reg.ss.ts tcHoleSites`, `tcTokensIn`, `tcHoleEdit`, called in `tcFnRegs`; mirror `lite/fnreg.ts
+  holeEdits`, called in the frozen `ss-toolchain.ts`) rewrites each site whose mark is not false. When the count of marks
+  differs from the count of sites, every site is checked. The edits are insertions in the closure-registration order
+  (`ss+`/`ss-`), and each replaced token is kept in an `ss:` comment, so decompile gives back the source:
+
+  ```
+  xs[i] = 2        ss_out.put(xs/*ss:[*/, i, /*ss:] =*/ 2)
+  xs[i] += v       ss_out.putOp(ss_out.at(xs/*ss:[*/, i), "+", /*ss:] +=*/ v)
+  xs.length++      ss_out.putLenUp(xs/*ss:.length++*/, 1, false)
+  ```
+
+  A compound write reads the old value before the right side (`at` returns receiver, key and old value), so the order is
+  JavaScript's and `await` in the right side needs no closure. Row `open-ok-p6-ho-old-before-rhs` gives 2, as
+  JavaScript does. A comment, or a parenthesis around the target, among the replaced tokens is a `tc-gap` error: the
+  cell does not compile. `(xs[0]) = 2` is the one form found that does this (`.scratch/open6/compile.ts`).
+- The run time (`lite/freeze.ts holeWrites` on `out`) checks just before the write, after the right side ran. Rows
+  `open-ho-shrink-rhs` and `shrink-rhs-op` shrink the array in the right side and throw. A frozen array is left to
+  refuse the write with its `TypeError`. `SS_MEASURE_HOLES=0` keeps the call and drops the check. Message:
+
+  ```
+  index 3 on an array of length 1: an index write replaces an element (index 0 to 0) or appends one (index 1); any other index would leave a hole or add a property that is not an element
+  length 4 on an array of length 1: a longer length would leave holes; push the elements instead
+  ```
+
+Not covered: the runtime module's own cells (`link.ts` compiles them with `fnRegEdits` and no check facts), so their
+index writes are native.
+
+Rows (`open-attacks.ts`): 37 `open-ho-*` (attack 14's 17 `tup.ts` `h-*` rows and 20 new), each accepted and its cell
+in error with this `RangeError` (`hoDrive`; anything else is DIFF); 15 `open-ok-p6-ho-*` legal writes. Under both
+runners: 37 in error, 0 silent. With `SS_MEASURE_HOLES=0`: `-- open: 37 programs, accepted 37, silent 37` under both
+runners, the control `live.test.ts` asserts.
+
+Cost, measured 2026-11-25 on battery, in one harness (`runCells`) with the two arms in alternate processes
+(`.scratch/open6/bench-ab.ts`; native = the marks set false, the compiled form before part 6), medians of 7 per run:
+
+```
+4e6 index writes, plain array    native 10.3 10.1 10.4 ms   checked 6.9 7.3 6.5 ms   call, no check 4.6 4.6 4.9 ms
+4e6 index writes, Float64Array   native 2.0 2.1 2.0 ms      checked 2.1 2.0 2.0 ms (native writes in both)
+4e6 xs[i % 1000] += 1            native 2.6 2.6 2.4 ms      checked 4.1 3.0 3.7 ms
+```
+
+The checked plain loop is faster than the native one in this harness. Not explained; a plain JavaScript loop
+(`.scratch/open6/bench0.ts`, AC power) gives native 7.1 ms and a checked call 8.0 ms for the same 4e6 writes. The
+compound form allocates one object per write and costs 15% to 60% here. In `verify.ts` (battery, 2026-11-25 against
+part 5's AC run): Mandelbrot main thread 70.6 ms (66.8), pool of 8 36.9 ms (41.4); Breakout after a click 38.8 world
+changes/s (43.2), with its pane in edit mode 60 (60.1). Breakout after a click ranges 38.8 to 44.8 over the earlier
+gate runs in `.scratch/y1/*/verify-full.log`, so this is within its spread. The page compiles the sections at boot; the
+saved notebook holds 5 `ss_out.put(` sites. How many checked sites the two sections compile to was not counted.
+
+Spec: **S3.21** (statement and `test_spec_S3_21`, a run in the notebook's runtime).
+
+### SW: a spread that may replace an earlier member is `[forgets]`
+
+`ix-lit.ss.ts ixObjSpread` (frozen `infer.ts` objLit): a spread is rejected when a member written before it is not
+declared by the spread's type and the spread value is not exact; a spread after a spread is the same rule, as the
+earlier spread's members are written before it. The message gives both fixes:
+
+```
+the spread of { a: number } comes after b, and its type does not declare b: a value of that type may have a member b of another type, which would replace the earlier b; put the spread first, or declare b in the type of the spread
+```
+
+An optional member of the spread's type keeps the earlier member's type in a union (`sw-opt-typed` gives
+`string | number`). Other forms, probed (`.scratch/open5/sw.ts`): a JSX spread attribute and `Object.assign` are
+unsupported; a rest object spread before a member is `[forgets]`; an array-of-records spread and a call with a record
+argument are accepted (no member is replaced).
+
+Cost to ordinary code: six project cells were rejected (`ixJsx`, `ixJsxGiven`, `ixJsxProp`, `ixJsxProps`,
+`ixJsxText` with 9 sites in `ix-jsx.ss.ts`, and `ixFoldFacts`); each now has the spread first. Counted on the
+TypeScript AST: the corpus has 318 object literals with a spread, 0 with a spread after another member and 0 with two
+spreads; the drafts have 11 spreads, 0 after another member. So `{ ...defaults, ...options }` occurs 0 times. In probes
+it is accepted when the type of `options` declares each member of `defaults` as optional (`open-ok-p6-defaults-declared`).
+Rows: 4 `open-a14-p6-sw-*`, attack 14's `ret.ts` `w-*` rows as `open-a14-w-*`, 8 `open-ok-p6-*`; S3.3 paragraph and 3
+reject rows; message-fix rows `spread-hidden-first`, `spread-hidden-declare`.
+
+### JW and JavaScript callers of an action: out of scope
+
+No code change. S4.6 now says a write from a SoundScript cell throws, and a freeze does not stop JavaScript that writes a
+typed array, an `ArrayBuffer` or a `Map`, `Set` or `URL` through the base class. Two items in "Not specified".
+`lite/infer/attack/out-of-scope.ts` records the 13 rows (`jsw.ts` 9, `jsc.ts` 3, `min-rt.ts` `min-jw`); `live.test.ts`
+asserts that each file is silent on exactly those rows under `drive-rt.ts`.
+
+### `[prelude-shadow]` for every prelude name
+
+`ow-place.ss.ts owPlacement` and frozen `own.ts`: the 12 names of S2.6 (`state action mut freeze borrow snapshot equals
+on read messageOf memo cast`). `h` is left as it was: `[reserved-name]` in a cell with JSX, accepted elsewhere (S2.10).
+The project's locals were renamed with the AST renamer (`.scratch/open5/rename.ts`): `events.ss.ts step`
+`state`->`next`, `pool.ss.ts` `state`->`next`/`posted`, `md-value.ss.ts` `state`->`stateErrs`, `rg-ctl.ss.ts`
+`memo`->`memoFn`, `md-shape.ss.ts` `mut`->`mutRule`, `md-inject.ss.ts` `state`->`st` (3), `ix-call.ss.ts ixCallSigs`
+`action`->`act`. diff.ts stayed at DIFFERENT 0 and tc-diff at 56 lines. One spec accept row was missed then: the
+S3.11 row's local `read` failed `test_spec_S3_11` in `verify --quick` (item 1's run); renamed `get`. No draft, tutorial
+or example cell changed verdict.
+
+### Cost to ordinary code (2026-11-25)
+
+- Habit drafts: 18 accepted, 17 pass, of 40 (`19-form-validation` fails by design, as in part 5). Learner drafts: 37
+  accepted, 37 pass, of 40. Unchanged.
+- Census (`.scratch/open6/census-p6.json` against `.scratch/open5/census-p5final.json`, 50255 cells): per statement,
+  S2.6 gains 3 `[prelude-shadow]` rows, S3.3 gains 3 `[forgets]` rows, the S2.10 row lost its second cell; no other cell
+  changed status or rules (`.scratch/open6/census-stmt.ts`). The new cells (`ixHoleSite`, `tcHoleSites`,
+  `tcTokensIn`, `tcHoleEdit`) are ok.
+
+### Not fixed
+
+- PA (`Promise.resolve`, `then`, `await` of a `T`), as part 5 recorded it.
+- The runtime module's own index writes (above).
+
+### Gates (`.scratch/y1/open6/`, 21:19:41 to 22:10:18, battery)
+
+| gate | result |
+|---|---|
+| build | 0 |
+| bun-verify | 183 pass |
+| fixtures | 14/14 |
+| `diff.ts` | DIFFERENT 0 (4041 SAME), facts, ownership and captures SAME |
+| `diff.ts --module-only` | DIFFERENT 0 |
+| tc-diff | 56 DIFFERENT lines (all calls DIFFERENT 1, as in part 5) |
+| run-sets, both runners | 3607, silent 0; open 384 programs, accepted 118, in error 37 (the `open-ho-*` rows), controls 7/7 |
+| fa2 / fa3 | silent 0 / silent 0 |
+| run-sets REG=0 | silent 19 (as in part 5) |
+| run-sets BODYFN=0 | silent 2 (as in part 5) |
+| verify --quick | 235/0 |
+| verify full | 680 pass 0 fail |
+| tests | 34 files; 30 exit 0, 4 failed, all from items 1 and 4, fixed and rerun alone (below) |
+
+The four failures and their fixes, each file then rerun alone with exit 0:
+
+- `live.test.ts` 6 fail: four `d1-attacks.ts` legal rows had locals `read`, `memo` or a parameter `state` (item 4).
+  `d1-ok-resp-helper-param` and `d1-ok-nar-no-nested-write` renamed the local; `d1-ok-name-param` and
+  `d1-ok-name-local`, which tested that such names are accepted, now test `h` outside JSX. Rerun: 1550 pass, 0 fail;
+  d1 96 programs, accepted 26, controls 3 of 4 (as in part 5).
+- `roundtrip-edge.test.ts` L1: its locals `on` and `state` are now `[prelude-shadow]`; the test asserts that, and
+  compiles those three cells with no check context to keep its listener/state-kind check. 114 of 114.
+- `ss-toolchain.test.ts`: it compares compiling with and without the check's facts; the holes marks are dropped for
+  the comparison, as the strict bit is. 37 files pass.
+- `tc.test.ts`: the count of hand-read equalities in the tc cells goes from 34 to 36 (`tcFnRegs` and `tcHoleEdit`,
+  both number comparisons). 11 pass.
+
+## 2026-11-25: open part 7, review gaps
+
+The coordinator rewrote the prose of the affected statements; no sentence of it was changed here.
+
+### Reject rows
+
+Five rows added to their sections' tables. Each gives exactly the rule named, under the live and the frozen checker
+(`.scratch/open7/rows.ts`):
+
+| statement | source (cell body) | rules |
+|---|---|---|
+| S6.9 | `const xs = [1, 2]; return xs.map((n) => action(() => other.set(n)));` | `[action-capture]` |
+| S9.4 | `(n: number, s: string) => n == s` | `[type]` |
+| S3.21 | `Array(3)` | `[type]` (`test_spec_S3_21` now counts its rows) |
+| S2.9 | `const g: () => number = (...xs: number[]) => xs.length;` | `[arity]` |
+| S2.9 | `let n: 1 \| 2 = 1; n += 1;` | `[type]` |
+
+The S2.9 rest row: under a type with a parameter, `const g: (a: number) => number = (...xs: number[]) => xs.length`
+gives `[type][arity]`:
+
+```
+[type] parameter number[] does not accept number | [arity] (...r: number[]) => number is not assignable to (a: number) => number: the function has a rest parameter and i…
+```
+
+The `[type]` is a follow-on error. `ix-fn.ss.ts ixParamType` (line 221) compares the context's parameter at index i
+with the annotation of the parameter at index i, and for a rest element that annotation is the array type. The row
+uses a type with no parameters, which gives `[arity]` alone. The follow-on error is not fixed.
+
+### A parenthesized index-write target
+
+`(xs[0]) = 2` gave a `tc-gap` error. It now compiles to the checked write, the cheaper of the two choices: three lines
+in `tc-reg.ss.ts tcHoleEdit` and its mirror `fnreg.ts holeEdit`. The parentheses around the target go into the `ss:`
+comments with the replaced tokens:
+
+```
+(xs[0]) = 2      /*ss:(*/ss_out.put(xs/*ss:[*/, 0, /*ss:]) =*/ 2)
+++(xs[0])        /*ss:++(*/ss_out.putUp(xs/*ss:[*/, 0/*ss:])*/, 1, true)
+```
+
+Decompile gives the source back (`.scratch/open6/compile.ts`). A comment among the replaced tokens remains a `tc-gap`
+error. Rows: `open-ho-paren-target`, `-op`, `-len` (in error with the hole `RangeError` under both runners) and
+`open-ok-p6-ho-paren-target` (gives `[4, 2]`).
+
+### Index writes in the runtime module's own cells (report, not built)
+
+Part 6 said these cells have no check facts. That is true only of the bun path. In the notebook, `ts-cells.ts
+ssStatements` compiles each runtime-module section (`runtime`, `events`, `store`, `render`, `cross`, `pool`) with
+`contextFromCheck` of its own check, so its index writes get the marks and are checked. The cells call the runtime
+module's own `out` cell, which is freeze.ts `out`, so `holeWrites` is there. Under bun, `lite/link.ts` links these
+cells from their transpiled text with `fnRegEdits` alone: no `out`, no guard edits, no hole edits.
+
+Today the six sections have no index or length write at all (their check's marks are empty,
+`.scratch/open7/rt-holes.ts`), so neither path emits a check, and the saved notebook has no bare `out.put(`.
+
+What checking them under bun would take: in `link.ts`, call `holeEdits(node, "(" + text + ")", [], "ss_out", lex,
+comments)` and add `ss_out` (freeze.ts `out`) to the evaluation scope. Marks `[]` check every site, so no check run is
+needed. That is about 6 lines, plus acorn comments and a tokenizer, which link.ts has.
+
+One hazard on both paths: in the runtime module the compiled call names the input `out`. A section cell with a local
+named `out` that also has an index write would call the local. The async guard edits have the same hazard. No section
+has such a local today; not checked by a rule.
+
+### Gates (`.scratch/open7/gates/`, 23:22:00 to 23:53:37, AC power)
+
+| gate | result |
+|---|---|
+| build `--force` | 0 |
+| fixtures | 14/14 |
+| `diff.ts` | 1251 sources, DIFFERENT 0 (4053 SAME); facts and ownership SAME |
+| tc-diff | 56 lines, all calls DIFFERENT 1 (as in part 6) |
+| run-sets | 3611, silent 0; open 388, accepted 122, in error 40, controls 7/7 |
+| run-sets `--rt` | the same |
+| verify `--quick` | 234 pass, 1 fail |
+| live.test | 1554 pass, 0 fail |
+| message-fixes | 106 pass, 0 fail |
+| verify full | 679 pass, 1 fail; Mandelbrot main 71.3 ms, pool of 8 45.3 ms; Breakout after a click 39.3/s, in edit mode 60/s |
+
+The one failure, in both verify runs, is the prose check of the spec module:
+
+```
+FAIL prose: @tomlarkworthy/soundscript-spec: 178 md cells, no repository path and no "below"/"above"; found \btools\/: …the checker stops such writes in SoundScript cells only. `tools/lang-experiment/selfhost …
+```
+
+The two "Not specified" items on JW and on JavaScript callers name `tools/lang-experiment/selfhost/freeze-attack14/jsw.ts`
+and `jsc.ts`. That is the coordinator's text, so it was left as written. Part 6's verify runs passed this check (235/0
+and 680/0).

@@ -223,9 +223,48 @@ export const tcGuardEdits = (kidsOf, tcREG_OPEN, tcREG_CLOSE) => (cellFn: AstNod
   }
   return ed;
 };
+// open part 6 (HO, S3.21): the index and length writes of a typed cell function (the checker's ixHoleSite targets), in
+// the order of their targets, each with its depth in the tree as tcGuardEdits counts it
+export const tcHoleSites = (kidsOf) => (cellFn: AstNode): TcHoleSite[] => {
+  const out: Mut<TcHoleSite[]> = [];
+  const todo: Mut<{ readonly n: AstNode; readonly depth: number }[]> = [{ n: cellFn, depth: 0 }];
+  for (let e = todo.pop(); e !== undefined; e = todo.pop()) {
+    const n = e.n, t = n.type === "AssignmentExpression" ? n.left : n.type === "UpdateExpression" ? n.argument : null;
+    if (t !== null && t.type === "MemberExpression" && (t.computed || (t.property.type === "Identifier" && t.property.name === "length"))) out.push({ n, t, depth: e.depth });
+    for (const k of kidsOf(n)) todo.push({ n: k, depth: e.depth + 1 });
+  }
+  return out.toSorted((a, b) => a.t.start - b.t.start);
+};
+// the tokens of src between from and to, at their positions in src
+export const tcTokensIn = (tcLexed) => (src: string, from: number, to: number): TcToken[] =>
+  tcLexed(src.slice(from, to), 1e9).map((k) => ({ label: k.label, start: k.start + from, end: k.end + from }));
+// one write as a call of freeze.ts holeWrites: R[I] = V is o.put(R, I, V), R[I] op= V o.putOp(o.at(R, I), "op", V), R[I]++
+// o.putUp(R, I, 1, false), and R.length the same with putLen, lenAt and putLenUp. Each token the call replaces is kept
+// in an ss: comment, so the source reads back; a comment or a parenthesis among them is not compiled
+export const tcHoleEdit = (tcTokensIn, tcREG_OPEN, tcREG_CLOSE) => (src: string, comments: AstComment[], s: TcHoleSite, o: string): TcRegEdit[] => {
+  const n = s.n, t = s.t, d = s.depth, add = (x: string) => (x === "" ? "" : tcREG_OPEN + x + tcREG_CLOSE);
+  if (t.type !== "MemberExpression" || (n.type !== "AssignmentExpression" && n.type !== "UpdateExpression")) return [];
+  const len = !t.computed || (t.property.type === "Literal" && t.property.value === "length"), pre = n.type === "UpdateExpression" && n.prefix;
+  const toks = tcTokensIn(src, t.object.end, n.type === "AssignmentExpression" ? n.right.start : n.end), rb = toks.find((k) => k.label === "]" && k.start >= t.property.end);
+  const lb = toks.find((k) => k.label === "[" || (len && k.label === ".")) ?? { start: -1, end: -1 }, hide = "/*" + "ss:";
+  const opTok = toks.find((k) => k.start >= t.end && k.label !== ")");
+  const opEnd = pre ? n.end : opTok !== undefined && ["=", "_=", "++/--"].includes(opTok.label) ? opTok.end : -1, cut = len ? lb.start : rb?.start ?? -1;
+  const ok = (a: number, b: number, n0: number) => a >= 0 && tcTokensIn(src, a, b).length === n0 && !comments.some((c) => c.end > a && c.start < b);
+  // open part 7: a parenthesized target, (xs[0]) = 2, has its parentheses kept in the ss: comments
+  const lead = tcTokensIn(src, n.start, t.start), opens = lead.filter((k) => k.label === "(").length;
+  if (cut < 0 || opEnd < 0 || !ok(cut, opEnd, (len && t.computed ? 3 : len ? 2 : 1) + (pre ? 0 : 1) + opens) || lead.length !== opens + (pre ? 1 : 0))
+    throw new Error("tc-gap: an index or length write with a comment among its tokens");
+  const op = n.type === "AssignmentExpression" ? n.operator : "", up = n.type === "UpdateExpression" ? `, ${n.operator === "++" ? 1 : -1}, ${pre})` : "";
+  const fn = op === "=" ? (len ? "putLen(" : "put(") : op !== "" ? `putOp(${o}.${len ? "lenAt" : "at"}(` : len ? "putLenUp(" : "putUp(";
+  const mid = op === "=" ? ", " : op !== "" ? `), ${JSON.stringify(op.slice(0, -1))}, ` : "";
+  const e = (at: number, end: boolean, text: string, use: string | null = null): TcRegEdit => ({ at, depth: d, end, text, use });
+  const head = lead.length > 0 ? [e(n.start, false, hide), e(t.start, false, "*/" + add(`${o}.${fn}`), "out")] : [e(n.start, false, add(`${o}.${fn}`), "out")];
+  const index = len ? [] : [e(lb.start, true, hide), e(lb.end, true, "*/" + add(", "))];
+  return [...head, ...index, e(cut, true, add(mid) + hide), e(opEnd, true, "*/" + add(up)), ...(op === "" ? [] : [e(n.end, true, add(")"))])];
+};
 // the registrations of a typed cell function, as edits to its text in their final order (at one position: ends deepest
 // first, then starts outermost first), and the runtime cells they call, in the order closure, methods
-export const tcFnRegs = (parseTree, tcRegWalk, tcRegAt, tcGuardEdits) => (typed: string, names: TcRegNames): TcRegs => {
+export const tcFnRegs = (parseTree, tcRegWalk, tcRegAt, tcGuardEdits, tcHoleSites, tcHoleEdit) => (typed: string, names: TcRegNames, holes: readonly boolean[]): TcRegs => {
   const p = parseTree(`(${typed})`, false);
   if (!p.ok) throw new Error(`tc-gap: a typed cell function that does not parse: ${p.message}`);
   const prog = p.ast.program;
@@ -234,7 +273,10 @@ export const tcFnRegs = (parseTree, tcRegWalk, tcRegAt, tcGuardEdits) => (typed:
   const w = tcRegWalk(st.expression);
   const hits = w.all.map((e) => tcRegAt(e, w.locals, names));
   const guard = names.out === undefined ? [] : tcGuardEdits(st.expression, names.out);
-  const es = [...hits.flatMap((h) => h.edits), ...guard]
+  // open part 6 (HO): each index or length write the check marks (every one when the marks do not match the writes)
+  const sites = names.out === undefined ? [] : tcHoleSites(st.expression), o = names.out ?? "";
+  const ho = sites.flatMap((h, i) => (sites.length === holes.length && holes[i] === false ? [] : tcHoleEdit(p.ast.src, p.ast.comments, h, o)));
+  const es = [...hits.flatMap((h) => h.edits), ...guard, ...ho]
     .toSorted((a, b) => a.at - b.at || (a.end === b.end ? (a.end ? b.depth - a.depth : a.depth - b.depth) : a.end ? -1 : 1));
   const uses = ["closure", "methods", "out"].filter((u) => es.some((e) => e.use === u));
   return { edits: es.map((e) => ({ from: e.at - 1, to: e.at - 1, text: e.text })), uses };

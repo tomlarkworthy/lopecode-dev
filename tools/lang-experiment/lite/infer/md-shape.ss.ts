@@ -68,7 +68,7 @@ export const mdByCell = () => (defs: MdDef[], es: { at: number; e: MdErr }[], ce
 };
 // a cell's record before its check: the line of its statement and the errors made before the cell loop
 export const mdFreshRec = () => (d: MdDef, line: number, errors: MdErr[]): MdCellRec => ({
-  name: d.name, status: "ok", line, errors, unsupported: [], blockedBy: [], value: null, ch: [], chUnsup: [], casts: [], at: d.fn.start,
+  name: d.name, status: "ok", line, errors, unsupported: [], blockedBy: [], value: null, ch: [], chUnsup: [], casts: [], holes: [], at: d.fn.start,
 });
 export type MdModuleLevel = { readonly defs: MdDef[]; readonly module: MdErr[]; readonly ignores: Map<string, MdErr[]> };
 // the cells and the module's errors, in core.ts's order: foreign.d.ts, built-in type names, the user's declarations,
@@ -93,6 +93,6 @@ export const mdModuleLevel = (moduleShape, mutPlaces, mdForeignErrs, mdLoadErr, 
   const clashes = bad.map(modErr);
   const user = R.loadUser(ast, jsx, bad.map((c) => c.at.start)).map(mdLoadErr);
   const defs: MdDef[] = shape.cells.map((c) => ({ name: c.name, fn: c.fn, stmt: c.stmt }));
-  const ig = mdIgnores(ast, defs, line), mut = mdByCell(defs, mutPlaces(ast.program).map((e) => ({ at: e.at.start, e: modErr(e) })), ig.cell);
-  return { defs, module: [...(F === null ? [] : mdForeignErrs(F)), ...clashes, ...user, ...shape.errors.map(modErr), ...ig.module, ...mut.module], ignores: mut.cell };
+  const ig = mdIgnores(ast, defs, line), mutRule = mdByCell(defs, mutPlaces(ast.program).map((e) => ({ at: e.at.start, e: modErr(e) })), ig.cell);
+  return { defs, module: [...(F === null ? [] : mdForeignErrs(F)), ...clashes, ...user, ...shape.errors.map(modErr), ...ig.module, ...mutRule.module], ignores: mutRule.cell };
 };

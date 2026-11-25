@@ -122,7 +122,8 @@ export const owTypedOut = (owEncl, owTypedSafe, owTypedIn, owErr, ixFnParts) => 
   if (w !== null && !owTypedSafe(O, a)) owErr(W, a, "mut-yield", `a ${u.n} the cell may still write, yielded: a typed array or URL cannot be frozen; yield a copy (${u.n === "ArrayBuffer" || u.n === "DataView" ? "snapshot(x)" : "x.slice()"})`);
 };
 export const owPlacement = (owOnRead, owPreludeName, owRegexpPlace, owProtoRead, owIdentityOp, owCellPlace, owTypedOut, owPrelude) => (O: OwCtx, W: OwW): void => {
-  const preNames = new Set(["snapshot"]);
+  // open part 6: every prelude name of S2.6
+  const preNames = new Set(["state", "action", "mut", "freeze", "borrow", "snapshot", "equals", "on", "read", "messageOf", "memo", "cast"]);
   const allPre = new Set([...O.F.bindings.values()].filter((b) => b.kind === "prelude").map((b) => b.name));
   for (const n of O.T.all) {
     owOnRead(O, W, n);

@@ -195,6 +195,7 @@ export function runCheck(entry: Entry, src: Sources, opts: CheckOpts = {}, L: Rg
   const facts = new Map<string, CellInfo>(r.facts.map((f) => [f.name, {
     name: f.name, span: [f.span[0] ?? 0, f.span[1] ?? 0], returnsRef: f.returnsRef, generator: f.generator, compiles: f.compiles.map((c) => ({ ...c })),
     ...(f.casts.length ? { casts: [...f.casts] } : {}),
+    ...(f.holes.length ? { holes: [...f.holes] } : {}),
     ...(f.strict === null ? {} : { strict: f.strict }),
     params: f.params.map((p) => ({ name: p.name, refTyped: p.refTyped, eventsTyped: p.eventsTyped, ...(p.boundary ? { boundary: p.boundary } : {}) })),
   }]));

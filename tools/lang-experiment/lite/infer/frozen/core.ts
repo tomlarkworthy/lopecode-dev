@@ -281,6 +281,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
   // that may be or hold a function in a state cell or yield one, which an action could then call (S11.9).
   const fnFed = new Map<string, string>();
   const castsOf = new Map<string, Map<number, unknown>>();
+  const holesOf = new Map<string, Map<number, boolean>>();
   // DELIBERATE CHANGE (2026-11-24, y1): whether each cell's value type names a promise (md-value.ss.ts promises)
   const promisesOf = new Map<string, boolean>();
   for (const c of order) {
@@ -290,6 +291,7 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     ch.compileHook = (e, env) => compileType(e, env, ch);
     opts.onCell?.(c.name, ch, c.fn);
     castsOf.set(c.name, ch.casts);
+    holesOf.set(c.name, ch.holes);
     const diag = (n: Node, rule: string, msg: string) => r.errors.push({ rule, line: P.line(n.start), msg });
     for (const d of c.bans) if (d.unsup) ch.unsupported(nodeAt(c.fn, d.at.start, d.at.end, d.at.type)!, d.msg); else r.errors.push({ rule: d.rule, line: P.line(d.at.start), msg: d.msg });
     // DELIBERATE CHANGE (2026-11-23, e1): a cell may not be named Generators or invalidation (inputs compiled cells take
@@ -490,7 +492,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     const { params, ...head } = factsOf(shown.get(c.name) ?? c.name, c.fn, c.stmt);
     const casts = [...(castsOf.get(c.name) ?? new Map())].sort((x, y) => x[0] - y[0]).map((x) => x[1]);
     const p = promisesOf.get(c.name);
-    const f = { ...head, ...(casts.length ? { casts } : {}), ...(p === undefined ? {} : { strict: !p }), params };
+    // DELIBERATE CHANGE (2026-11-25, open part 6, HO): which index and length writes the run time checks (live ixHoleSite)
+    const holes = [...(holesOf.get(c.name) ?? new Map())].sort((x, y) => x[0] - y[0]).map((x) => x[1]);
+    const f = { ...head, ...(casts.length ? { casts } : {}), ...(holes.length ? { holes } : {}), ...(p === undefined ? {} : { strict: !p }), params };
     const b = boundaries.get(c.name);
     if (b) f.params = f.params.map((p) => (b.has(p.name) ? { ...p, boundary: b.get(p.name) } : p));
     return [f.name, f] as const;

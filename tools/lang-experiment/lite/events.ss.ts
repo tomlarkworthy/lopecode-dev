@@ -315,8 +315,8 @@ export const step = (dispatch) => (st: Delivery, ev: DeliveryEvent): StepResult 
   const counters: Counters = { placer: st.placer, generation: st.generation };
   const fx: Effects = [];
   dispatch(handles, handleAt, listeners, listenerAt, fx, counters, ev);
-  const state = { handles: handles, handleAt: handleAt, listeners: listeners, listenerAt: listenerAt, placer: counters.placer, generation: counters.generation };
-  return { state, effects: fx };
+  const next = { handles: handles, handleAt: handleAt, listeners: listeners, listenerAt: listenerAt, placer: counters.placer, generation: counters.generation };
+  return { state: next, effects: fx };
 };
 
 export const handleAtKey = () => (st: Delivery, key: string): number | null => st.handleAt.get(key) ?? null;

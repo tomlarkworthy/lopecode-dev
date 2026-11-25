@@ -215,9 +215,21 @@ export const ixLvalue = (ixLookup, ixIdent, ixErr, ixUnsup, ixLvalueMember, ixFa
   }
   return lvalue;
 };
-export const ixLvalueMember = (ixWriteRule, ixIndex, ixPropOf, ixGap, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, t: MemberExpression, at: AstNode): Ty => {
+// open part 6 (HO): an index or length write, and whether the run time checks it: each one but a write to a receiver
+// whose type is a typed array in every member. One entry per target, by position, as the compiler finds them (tcHoleSites)
+export const ixHoleSite = (ixUm) => (K: IxK, C: IxCtls, t: MemberExpression, ot: Ty): void => {
+  const p = t.property;
+  if (!t.computed && !(p.type === "Identifier" && p.name === "length")) return;
+  const typed = new Set(["Float32Array", "Float64Array", "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array", "Int32Array", "Uint32Array"]);
+  const un = (x: Ty): Ty[] => ixUm(K.reg, x).flatMap((m) => (m.k === "named" && (m.n === "Mut" || m.n === "Borrowed") && m.args[0] !== undefined ? un(m.args[0]) : [K.reg.expand(m)]));
+  const check = !un(ot).every((m) => m.k === "named" && typed.has(m.n));
+  const was = C.holes.find((x) => x[0] === t.start);
+  C.holes = [...C.holes.filter((x) => x[0] !== t.start), [t.start, check || (was !== undefined && was[1])]];
+};
+export const ixLvalueMember = (ixWriteRule, ixIndex, ixPropOf, ixGap, ixHoleSite, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, t: MemberExpression, at: AstNode): Ty => {
   ixWriteRule(K, T, V, W, C, env, t.object, at, "member-write");
   const ot = T.get(t.object.nid) ?? ERR, p = t.property;
+  ixHoleSite(K, C, t, ot);
   let r: Ty;
   if (t.computed && !(p.type === "Literal" && typeof p.value === "string")) r = ixIndex(K, C, ot, K.infer(K, T, V, W, C, env, p), t, false);
   else if (p.type === "Literal") r = ixPropOf(K, C, ot, String(p.value), p);

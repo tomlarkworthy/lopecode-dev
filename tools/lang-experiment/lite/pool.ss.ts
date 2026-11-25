@@ -46,8 +46,8 @@ export const pumpPool = (withSlot, takeLive, withoutJobs) => (st: PoolState, dea
   if (t.qid === null || job === undefined) return { state: { ...st, queue: [], jobs }, effects: rejects };
   const id = st.next, slot = st.slots[free];
   const withCode = slot === undefined || !slot.has.includes(job.key);
-  const state = { ...st, queue: t.rest, jobs, waiting: new Map([...st.waiting, [id, t.qid]]), next: id + 1, slots: withSlot(st.slots, free, (s) => ({ ...s, busy: true, current: id })) };
-  return { state, effects: [...rejects, { fx: "post", slot: free, id, qid: t.qid, withCode, resend: false }] };
+  const next = { ...st, queue: t.rest, jobs, waiting: new Map([...st.waiting, [id, t.qid]]), next: id + 1, slots: withSlot(st.slots, free, (s) => ({ ...s, busy: true, current: id })) };
+  return { state: next, effects: [...rejects, { fx: "post", slot: free, id, qid: t.qid, withCode, resend: false }] };
 };
 // a slot answered or failed: it is free and the job is settled with the effect given
 export const settleSlot = (withSlot) => (st: PoolState, slot: number, id: number, qid: number, done: PoolEffect, answered: boolean): PoolState => {
@@ -103,7 +103,7 @@ export const poolWorkerError = (withSlot, settleSlot) => (st: PoolState, slot: n
 export const poolStep = (pumpPool, andPump, poolRun, poolPosted, poolPostFailed, poolMessage, poolWorkerError) => (st: PoolState, ev: PoolEvent): PoolResult => {
   switch (ev.t) {
     case "run": return pumpPool(poolRun(st, ev), ev.dead);
-    case "posted": { const state = poolPosted(st, ev.slot, ev.id); return ev.resend ? { state, effects: [] } : pumpPool(state, ev.dead); }
+    case "posted": { const posted = poolPosted(st, ev.slot, ev.id); return ev.resend ? { state: posted, effects: [] } : pumpPool(posted, ev.dead); }
     case "postFailed": return andPump(poolPostFailed(st, ev.slot, ev.id), ev.dead);
     case "message": { const m = poolMessage(st, ev.slot, ev.id, ev.error, ev.missing); return m.pumps ? andPump(m.r, ev.dead) : m.r; }
     case "workerError": return andPump(poolWorkerError(st, ev.slot, ev.message), ev.dead);

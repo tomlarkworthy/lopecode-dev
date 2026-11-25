@@ -11,7 +11,7 @@ import { lowerJsx } from "../jsx/lower.ts";
 import { cellsOf, preludeCalls, globalRefs, type CellInfo } from "../facts.ts";
 import { commentTypes, langOf, LANG, esc, unesc } from "./comment-types.ts";
 import { CAPABILITIES, PRELUDE_FNS, OJS_INPUT_GLOBALS } from "../../../../intrinsics.ts";
-import { fnRegEdits, applyRegEdits, regUses } from "../../../../fnreg.ts";
+import { fnRegEdits, applyRegEdits, regUses, holeEdits } from "../../../../fnreg.ts";
 
 export type Variable = { name: string; inputs: string[]; definition: string };
 export { langOf, LANG };
@@ -288,7 +288,11 @@ function compileChecked(text: string, tsx: boolean, ctx: Context): Built & { key
   const IN = ctx.inputs ?? INPUTS;
   // DELIBERATE CHANGE (2026-11-22, cause A): each function the cell makes registers the locals it captures (fnreg.ts)
   // DELIBERATE CHANGE (2026-11-24, x1, G): and each async function, await, async generator yield and then callback is guarded (fnreg.ts guardEdits)
-  const regEdits = fnRegEdits(acorn.parseExpressionAt(`(${typed})`, 0, { ecmaVersion: "latest" }), { closure: IN.closure, methods: IN.methods, out: IN.out });
+  const cms: { start: number; end: number }[] = [];
+  const regFn = acorn.parseExpressionAt(`(${typed})`, 0, { ecmaVersion: "latest", onComment: (_b: boolean, _t: string, start: number, end: number) => void cms.push({ start, end }) });
+  const lex = (s: string) => [...acorn.tokenizer(s, { ecmaVersion: "latest" })].map((k) => ({ label: k.type.label, start: k.start, end: k.end }));
+  // DELIBERATE CHANGE (2026-11-25, open part 6, HO): each index or length write the check marks is checked at run time (fnreg.ts holeEdits)
+  const regEdits = [...fnRegEdits(regFn, { closure: IN.closure, methods: IN.methods, out: IN.out }), ...holeEdits(regFn, `(${typed})`, (info as { holes?: boolean[] }).holes ?? [], IN.out, lex, cms)];
   // DELIBERATE CHANGE (2026-11-22, holes7): no ;ss_tdz(); edit after a declaration
   const regTyped = applyRegEdits(typed, regEdits, 1), regIns = regUses(regEdits).map((u) => IN[u]);
   // the built-ins the body calls or reads: free references only, not a property, a key or a local of that name.

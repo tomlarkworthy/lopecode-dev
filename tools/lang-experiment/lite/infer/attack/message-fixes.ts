@@ -5,6 +5,9 @@
 export type MessageFix = { id: string; site: string; rule: string; bad: string; fix: string; tsx?: boolean; was?: string; note?: string; outside?: string[] };
 const ACT = "const s = () => state(0);\n";
 export const FIXES: MessageFix[] = [
+  // open part 6 (2026-11-25): a spread after a member its type does not declare
+  { id: "spread-hidden-first", site: "ix-lit.ss.ts ixObjSpread (put the spread first, open p6 SW)", rule: "forgets", bad: "const a = () => { const r: { readonly a: number } = { a: 1 }; return { b: 5, ...r }.b; };", fix: "const a = () => { const r: { readonly a: number } = { a: 1 }; return { ...r, b: 5 }.b; };" },
+  { id: "spread-hidden-declare", site: "ix-lit.ss.ts ixObjSpread (declare the member, open p6 SW)", rule: "forgets", bad: "const a = () => { const r: { readonly a: number } = { a: 1 }; return { b: 5, ...r }.b; };", fix: "const a = () => { const r: { readonly a: number; readonly b?: number } = { a: 1 }; return { b: 5, ...r }.b; };" },
   // open part 5 (2026-11-25): attack 14's compile rules
   { id: "required-param-optional", site: "subtype.ss.ts extraParamsWith (omit, open p5 OP)", rule: "arity", bad: "const a = () => { const f: (x?: number) => number = (x: number) => x + 1; return f(); };", fix: "const a = () => { const f: (x?: number) => number = (x?: number) => (x ?? 0) + 1; return f(); };" },
   { id: "required-param-default", site: "subtype.ss.ts extraParamsWith (omit, a default value, open p5 RP)", rule: "arity", bad: "const a = () => { const f: (...xs: number[]) => number = (x: number) => x + 1; return f(); };", fix: "const a = () => { const f: (...xs: number[]) => number = (x = 0) => x + 1; return f(); };" },

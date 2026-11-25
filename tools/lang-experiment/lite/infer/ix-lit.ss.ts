@@ -13,7 +13,9 @@ export const ixObjCtx = (ixUm, isNamed) => (R: IxRegCore, expected: Ty | null): 
   const exact = recs.length > 0 && recs.length === ixUm(R, expected).filter((m) => m.k !== "null" && m.k !== "undef").length && recs.every((x) => !x.index);
   return { recs, exact };
 };
-export const ixObjSpread = (ixUm, ixUnsup, ixNotOwn, unwrap, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: SpreadElement, props: Mut<Map<string, Prop>>): void => {
+// open part 6 (SW): a record type may omit members its value has, so a spread of a value whose type is not exact may
+// replace a member an earlier part of the literal gave; an optional member the spread may lack keeps the earlier one
+export const ixObjSpread = (ixUm, ixUnsup, ixNotOwn, ixErr, union, unwrap, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, p: SpreadElement, props: Mut<Map<string, Prop>>): void => {
   const st = K.infer(K, T, V, W, C, env, p.argument);
   const ms = ixUm(K.reg, unwrap(st)).filter((m) => m.k !== "undef" && m.k !== "null");
   const m0 = ms[0];
@@ -21,7 +23,9 @@ export const ixObjSpread = (ixUm, ixUnsup, ixNotOwn, unwrap, show) => (K: IxK, T
   const x = K.reg.expand(m0);
   if (x.k !== "rec" || x.index) { if (x.k !== "err") ixUnsup(K, C, p, `object spread of ${show(x)}`); return; }
   ixNotOwn(K, C, x, p);
-  for (const [k, v] of x.props) props.set(k, v);
+  const hid = x.exact === true ? undefined : [...props.keys()].find((k) => !x.props.has(k));
+  if (hid !== undefined) ixErr(K, C, p, "forgets", `the spread of ${show(x)} comes after ${hid}, and its type does not declare ${hid}: a value of that type may have a member ${hid} of another type, which would replace the earlier ${hid}; put the spread first, or declare ${hid} in the type of the spread`);
+  for (const [k, v] of x.props) { const was = props.get(k); props.set(k, was !== undefined && v.opt ? { ...v, t: union([was.t, v.t]), opt: was.opt } : v); }
 };
 export const ixObjLit = (ixObjCtx, ixObjSpread, ixProtoKey, ixErr, ixUnsup, ixGap, union, widen, show) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: ObjectExpression, expected: Ty | null): Ty => {
   const props: Mut<Map<string, Prop>> = new Map();

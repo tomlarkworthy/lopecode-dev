@@ -5,7 +5,7 @@ export const ixKnot = (ixInfer, ixCheck, ixCond, ixStmt, ixFnExpr, ixCall, ixBin
   ({ reg, src, cellNames, allowed, probe, infer: ixInfer, check: ixCheck, cond: ixCond, stmt: ixStmt, fnExpr: ixFnExpr, call: ixCall, bind: ixBind });
 export const ixFreshCtl = () => (count: number): IxCtl => ({
   cur: 0, nextFlow: 0, diags: null, unsup: null, rets: [], yields: [], quiet: 0, nextId: 0, nextScope: 0, nextNid: count,
-  fresh: 1000000, short: new Set(), clones: new Set(), breaks: null, flagsAt: -1, flags: undefined, freshAt: -1, tries: 0, gap: null, facts: null, probe: null, casts: [], fnw: new Map(),
+  fresh: 1000000, short: new Set(), clones: new Set(), breaks: null, flagsAt: -1, flags: undefined, freshAt: -1, tries: 0, gap: null, facts: null, probe: null, casts: [], holes: [], fnw: new Map(),
 });
 export const ixCheckFn = (ixKnot, ixFreshCtl, ixDrain, ixOut, ixFoldFacts) => (reg: IxReg, input: IxInput): IxOutput => {
   const K: IxK = ixKnot(reg, input.src, input.cellNames, input.allowed, null);

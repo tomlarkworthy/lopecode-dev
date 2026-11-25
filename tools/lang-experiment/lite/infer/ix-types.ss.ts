@@ -45,6 +45,9 @@ export type IxCtl = {
   gap: string | null; facts: IxFactLog | null; probe: IxProbe | null;
   // e1 (2026-11-23): each cast<T>(v) the cell's checker accepted, by its callee's position, and T's shape
   casts: [number, TypeShape][];
+  // open part 6 (HO): each index write (x[i] =, x[i] op=, x[i]++) and length write the checker met, by the target's
+  // position, and whether the run time checks it (all but a typed-array receiver)
+  holes: [number, boolean][];
   // d1 (2026-11-24): where a binding a nested function assigns was read at its declared type, by position, its name
   fnw: Map<number, string>;
 };

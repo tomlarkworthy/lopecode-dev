@@ -48,5 +48,5 @@ export const ixFoldActions = () => (fs: IxFact[]): IxActionFacts => {
 export const ixFoldFacts = (ixFactList, ixFoldBindings, ixFoldCalls, ixFoldFlags, ixFoldActions) => (T: IxTypes, V: IxVars, log: IxFactLog | null): IxFacts => {
   const fs = ixFactList(log);
   const b = ixFoldBindings(V, fs), a = ixFoldActions(fs);
-  return { types: new Map(T), bindingOf: b.bindingOf, bindings: b.bindings, calls: ixFoldCalls(fs), memberFlags: ixFoldFlags(fs), ...a };
+  return { ...a, types: new Map(T), bindingOf: b.bindingOf, bindings: b.bindings, calls: ixFoldCalls(fs), memberFlags: ixFoldFlags(fs) };
 };

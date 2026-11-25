@@ -1140,6 +1140,11 @@ export class Checker {
     if (t.type === "MemberExpression") {
       this.writeRule(t.object, env, at, "member-write");
       const ot = this.facts.types.get(t.object)!;
+      if (t.computed || (t.property.type === "Identifier" && t.property.name === "length")) {
+        const typed = new Set(["Float32Array", "Float64Array", "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array", "Int32Array", "Uint32Array"]);
+        const un = (x: Ty): Ty[] => this.um(x).flatMap((m) => (m.k === "named" && (m.n === "Mut" || m.n === "Borrowed") && m.args[0] !== undefined ? un(m.args[0]) : [this.reg.expand(m)]));
+        this.holes.set(t.start, !un(ot).every((m) => m.k === "named" && typed.has(m.n)) || this.holes.get(t.start) === true);
+      }
       if (t.computed && !(t.property.type === "Literal" && typeof t.property.value === "string")) {
         const it = this.infer(t.property, env);
         const save = this.reg.strictIndex;
@@ -1225,7 +1230,10 @@ export class Checker {
         const x = this.reg.expand(ms[0]);
         if (x.k !== "rec" || x.index) { if (x.k !== "err") this.unsupported(p, `object spread of ${show(x)}`); continue; }
         this.notOwn(x, p);
-        for (const [k, v] of x.props) r.props.set(k, v);
+        // DELIBERATE CHANGE (2026-11-25, open part 6, SW): a spread after a member its type does not declare (live ixObjSpread)
+        const hid = x.exact === true ? undefined : [...r.props.keys()].find((k) => !x.props.has(k));
+        if (hid !== undefined) this.err(p, "forgets", `the spread of ${show(x)} comes after ${hid}, and its type does not declare ${hid}: a value of that type may have a member ${hid} of another type, which would replace the earlier ${hid}; put the spread first, or declare ${hid} in the type of the spread`);
+        for (const [k, v] of x.props) { const was = r.props.get(k); r.props.set(k, was !== undefined && v.opt ? { ...v, t: union([was.t, v.t]), opt: was.opt } : v); }
         continue;
       }
       if (p.kind !== "init") { this.unsupported(p, `${p.kind} accessor`); continue; }
@@ -1585,6 +1593,9 @@ export class Checker {
   tries = 0;
   // DELIBERATE CHANGE (2026-11-23, e1): each cast call's T shape, by the callee's position (the cells' C.casts)
   casts = new Map<number, unknown>();
+  // DELIBERATE CHANGE (2026-11-25, open part 6, HO): each index or length write target, by position, and whether
+  // the run time checks it: all but a typed-array receiver (live ixHoleSite)
+  holes = new Map<number, boolean>();
   // what structuredClone cannot copy in a value of type t (walks.ss.ts)
   cloneProblem(t: Ty, depth = 0): string | null {
     return cloneProblemWith(this.reg.ops)(t, depth);
