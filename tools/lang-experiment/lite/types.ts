@@ -19,7 +19,7 @@ export const {
   lit, arr, named, rec, WRAPPERS, unwrap, propT, union, members, show, subst, hasTv, instantiate, widen, isPrimitive, typeKey, inexact,
 } = L;
 export const { builtinNamesOf, isAliasWith, memberWith, callSigsWith, iterElemWith, subWith, memberOfWith, unifyWith, hasAnyTv, forgotWith, plainWith } = L;
-export const { jsonGapWith } = L;
+export const { jsonGapWith, extraParamsWith } = L;
 export const { uncloneableWith, cloneProblemWith, admitsUndefinedWith, holdsWith, hasErrWith } = L;
 export const { islandWith } = L;
 export const { viewofInputName, reservedName, RESERVED_MSG, reservedCellName, RESERVED_CELL_MSG, reservedText, RESERVED_TEXT_MSG, captureMessage, banMessage, UNDEF_FIX } = L;

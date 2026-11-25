@@ -4095,3 +4095,160 @@ Two things the builder's report did not say:
 - Timings in this run are not usable: `pmset` reports lowpowermode 2 and the load average was 3 to 5 with nothing of
   mine running (`ps` is not permitted in this sandbox, so the cause is unknown). Lint measured 52.0 ms and Mandelbrot
   322 ms against 7.5 and 70.2 in the builder's AC run after Part B. Not measured again on an idle machine.
+
+## 2026-11-25: open part 1, a function cannot have parameters its type does not declare
+
+Problem, measured before the change (`bun selfhost/freeze-attack4/probe.ts lite/soundscript/.scratch/open/p.ts`, saved
+as `.scratch/open/p-before.txt`): `[5].map((x: number, i?: number, s?: number) => (s ?? 0) + 1)` was accepted and gives
+`["51"]`. The same function given `(x: number) => number` first, put in a record member of that type, or passed through
+`<T>(t: T) => T` was also accepted. Attack 13's `extra.ts` had 29 rows, all ACCEPT (`extra-before.txt`). Tom chose to
+reject the extra parameters, not to wrap callbacks at run time.
+
+### The rule
+
+`lite/subtype.ss.ts` `fnSubWith`, one line after the count of required parameters:
+
+```
+if (!tRest && (sRest || s.ps.length > t.ps.length)) return false;
+```
+
+Optional, default-valued and rest parameters all count. A target with a rest parameter takes any number. Every
+comparison of two function types goes through `fnSub` (`subWith` case `fn`, `recSubWith`'s call signatures, both
+through `someFnSub`), and the frozen checker uses the same subtype cells, so one line covers both checkers.
+
+Rule id: `[arity]`, as the brief preferred. A new cell `extraParamsWith` (subtype.ss.ts, 21 lines) explains a failed
+comparison: it walks array and tuple elements, type arguments of a named type, record members and union members to
+the function with too many parameters, and returns `…the function has 3 parameters and its type declares 1: a caller
+can pass more arguments than the type declares (map passes the index and the array), so a parameter past them can get
+a value of another type; remove the parameters after the first 1, or declare them in the type`. `ixExpect`
+(ix-expr.ss.ts) reports `[arity]` with it, before the forgetting rule's `[forgets]`. `mdInjectAnn` (a cell's
+parameter) keeps `[inject-type]` and adds the same text, as it does for `[forgets]`. The old callback message in
+`ixParamType` (ix-fn.ss.ts) now ends `: remove the parameters after the first N`. Mirrors: `frozen/infer.ts` `expect`
+and the callback message, `frozen/core.ts` the inject path, each marked DELIBERATE CHANGE (2026-11-25, open).
+
+### Paths checked for forgetting (`.scratch/open/paths.ts`, output `paths-after2.txt`)
+
+Most rows give a function `(x: number, i?: number, s?: number) => …` to a type with fewer parameters, then to `map`. The
+rule ids are each row's first `[arity]`; `ann-rest` also has a `[type]` (the annotated rest compared with map's index),
+`map-value` a `[type]` on the `Map` constructor's argument, and `unann-default`, `ann-default` and `from-map` the extras
+under "Dead ends":
+
+```
+direct, annot, record, generic-id, generic-id-explicit, generic-wrap, generic-apply,
+return-type, array, tuple, map-value, promise, union, callsig, callsig-rec,
+reduce, reduce-annot, unann-rest, ann-rest, unann-default, ann-default,
+memo, update, then, set-forEach, map-forEach, u8-map, from-map, sort        REJECT [arity]
+inject (a cell's parameter)                                                 REJECT [inject-type], same text
+mut-wrap (mut(...) is removed)                                              REJECT [removed-call][arity]
+cast<(x: number) => number>(f)                                              REJECT [cast-type] (cast refuses functions)
+function reading arguments (expression and declaration)                     REJECT [no-arguments]
+action((n?: number) => …) given Action<[]>                                  REJECT [type] (tuples compared by length)
+ok-fewer, ok-index, ok-none, ok-annot-fewer, ok-rest-both, ok-rest-target,
+ok-optional-declared                                                        ACCEPT
+```
+
+Second round (`paths2.ts`, `paths3.ts`, outputs `paths2-out.txt`, `paths3-out.txt`): a generic function value
+`<T>(x: T, i?: number, s?: string) => …` given to `map`, a `let` reassigned to the function, and `F3 as (x: number) =>
+string` are `[arity]` (`as` also `[no-cast]`). A function narrowed from `unknown` by `typeof u === "function"` is
+`object` (S9.6), `[type]` at `map`. An `action((...r: string[]) => …)` is typed `Action<[]>` and is accepted where
+`Action<[]>` is wanted; `Action` compares its argument tuples by length (subtype.ss.ts `namedSubWith`), so it reaches
+only callers that pass no argument: SoundScript calls, checked by `[arity]`, and `onClick`, which the JSX run time
+calls with `[]` (runtime.ss.ts `DOM_EVENTS`). Given to `on` with `Events<number>` or to `onInput` it is `[type]`. An
+action with a default parameter is `[arity]` from `ixParamType` plus a `[type]` on the `Action` tuple.
+
+`ixFirstArg`'s path for a fully annotated callback whose parameters hold a type variable (`reduce`) unifies and
+returns without a comparison of its own; the `reduce` rows show a comparison follows. No case was found that the
+subtyping rule cannot cover: `arguments` is already banned, and `cast` refuses a function type.
+
+Attack 13 `extra.ts` after the change (`extra-after.txt`): 27 of 29 REJECT `[arity]`. The two accepted are legal:
+`v-extra-memo-held` (memo calls its function with the caller's arguments only, and its type is the function's own) and
+`v-extra-mut-alias-sort` (no extra parameter).
+
+### Intrinsics
+
+Enumerated from the AST of the declaration text (`.scratch/open/callbacks.ts`, which matches only a parameter written as
+a function type literal on a method, call or construct signature): 100 parameters of a function type, in
+`Array` (map, filter, flatMap, toSorted, reduce, find, findIndex, findLast, some, every, forEach, sort), `Array.from`
+(two overloads), `Map.forEach`, `Set.forEach`, `Promise.then` (two overloads), the same methods on the nine typed
+arrays, and `State.update` in the prelude. Each declares no more arguments than JavaScript passes, with the declared
+types: arrays pass (value, index, array) and the array is left out; `reduce` (acc, value, index, array), array left
+out; `sort`/`toSorted` pass two; `Map.forEach` (value, key, map), map left out; `Set.forEach` (value, value, set), only
+the first declared; `then` passes one; `Array.from`'s map function gets (value, index); `update` calls its function with
+one argument (prelude.runtime.ts 110). No declaration was changed. Not declared at all (unsupported, as before):
+`reduceRight`, `findLastIndex`, `catch`, `finally`, `replace`/`replaceAll` with a function. JSX handler props are
+`Action<[…]>` (intrinsics.ts JSX_DECLS); what the JSX run time passes to them was read from the comment there, not run.
+
+### Standing set
+
+`lite/infer/attack/open-attacks.ts`, registered as `open` in `run-sets.ts` (default sets, loaded in `loadProgs` as y1
+is). 57 rows and 4 controls: attack 13's `extra.ts` (`open-a13-*`, its two legal rows as `open-ok-a13-*`, its two
+controls), 16 handing-on forms (`open-l-*`), 5 rest and default rows (`open-p-*`), 7 legal rows (`open-ok-*`), 2
+controls that run the direct and annotated forms with the checker skipped and must fire. `live.test.ts` asserts:
+silent 0 and accepted 9 under both runners, every control fires, every other row rejected `[arity]` (or
+`[inject-type]`) by both checkers alike. `run-sets --sets open`: 57 programs, accepted 9, silent 0; open-controls 4,
+fired 4.
+
+### Spec and tutorial
+
+No other statement of the spec defines when one function type is assignable to another (searched for
+"contravarian", "covarian", "function type", "assignable to a function"); S2.9 is where the type rules are, so the rule
+went there. S11.3 lets a function from another language be given a function type with optional parameters; that
+boundary is not changed and not probed.
+
+S2.9: the `[arity]` bullet names the new case; a new bullet "Parameters past the declared ones" in the 2026-11-25 rules;
+two reject rows (direct `map` and the annotated form); `test_spec_S2_9` checks that fewer parameters, and an optional
+parameter the type declares, are accepted. The first wording said "(see below)", which the prose test refuses
+(`verify --quick` 233/1 in the gates); reworded. Tutorial: the `[arity]` line in the rule list says the same in two
+sentences.
+
+### Measures (2026-11-25)
+
+- Drafts: ergonomics1 18 accepted / 17 run pass before and after; learner1 36 / 36 before and after. The full
+  `run.ts` outputs are identical (`erg-before.txt`/`erg-after.txt`, `learn-*`), so no draft changed even in its
+  messages. No newly rejected draft.
+- Census (`.scratch/open/census3.ts --against ../y1/census-after-b.json`, 49624 cells): one existing cell changed,
+  `port:fixtures/lite-mut/reject-mut-escape:bad_callback_array` rejected `[arity][type]` → rejected `[arity]` (the
+  `[type]` is now reported as `[arity]`); ok→rejected 0. The other 68 differences are the new `extraParamsWith` cell
+  in each section.
+- Gates, `sh lite/soundscript/.scratch/y1/gates.sh open1` (07:00–08:25, on battery for the verify lines): build 0;
+  bun-verify 182 pass; fixtures 14/14; diff 4013 cells SAME 3999 DIFFERENT 0 (14 real crashes as before);
+  `--module-only` 1293 SAME; tc-diff 56 DIFFERENT lines (unchanged); run-sets 3280 programs (3223 + the 57 of
+  `open`), silent 0 under runCells and `--rt`, every other set's accepted count unchanged; fa2 309/8/0; fa3 360/9/0;
+  REG=0 silent 19 and BODYFN=0 silent 2, the same programs as y1's gates; verify --quick 233 pass 1 fail and verify
+  full 677 pass 1 fail, both the prose "below" failure above; 32 of 34 test files exit 0.
+  - `live.test.ts` 1216 pass 2 fail: the two y1 cases with `SS_MEASURE_HANDOVER=0` ran 612 s and 988 s against a
+    600 s limit. `never-throws.test.ts`: timed out at 780 s against 600 s. The machine was on battery.
+- Rerun alone after the rebuild with the prose fix (08:25–08:37, on AC power, `.scratch/open/rerun/summary.txt`): build
+  0; verify --quick 234 pass 0 fail; verify full 678 pass 0 fail; `never-throws.test.ts` 1 pass in 7.7 s (780 s in the
+  gate); the four y1 cases of `live.test.ts` 4 pass. The gate's three failures are taken as the slow machine; why
+  never-throws took 100 times longer inside the gate is not explained.
+- `message-fixes.ts`: three rows (`extra-params`, `extra-params-rest`, `callback-extra-params`), each message's fix
+  applied as worded is accepted; 96 pass. `open-attacks.ts` gained the generic value, `let` and `as` rows (60 programs).
+- After the fresh review (2026-11-25, 4 findings, all taken: the spec's "fewer parameters is accepted" now excludes a
+  rest parameter, the rest-only advice, this section's paths table, the test's return string): rebuilt; bun-verify 182
+  pass, diff DIFFERENT 0, fixtures 14/14, `--sets open` silent 0, message-fixes 93 pass, live.test `open` 70 pass,
+  verify --quick 234 pass 0 fail.
+- Gates on the final tree, `.scratch/y1/open2/` (08:48–09:37, AC power): every line exit 0. build 0; bun-verify 182;
+  fixtures 14/14; diff 4013 cells SAME 3999 DIFFERENT 0; `--module-only` 1293 SAME; tc-diff 56 DIFFERENT lines
+  (unchanged: the change is in the checker, not the toolchain); run-sets 3283 programs (3223 + 60 of `open`), silent 0
+  under runCells and `--rt`; fa2 309/8/0; fa3 360/9/0; REG=0 silent 19 (the same programs as y1's) and BODYFN=0 silent
+  2; verify --quick 234 pass 0 fail; verify full 678 pass 0 fail; 34 of 34 test files exit 0, so `open1`'s three test
+  failures were the slow machine on battery. Checker ix+ow 5253 / 5417 / 5462 ms.
+- Checker cost: ix+ow 5226 / 5092 / 5283 ms (y1 after B: 5280 / 5680 / 6014 ms).
+
+### Dead ends and what is not done
+
+- A rule at the intrinsic call site only (the `[arity]` check in `ixParamType`) was what existed; it covered the
+  unannotated callback alone, which is why every annotated and handed-on form was accepted.
+- An unannotated callback with a default value past the context (`(x, i, s = 0) => …`) still gets three
+  diagnostics: `ixParamType`'s `[arity]`, a cascade `[type] 0 is not assignable to never` from the parameter typed
+  `undefined`, and `ixExpect`'s `[arity]`. Not cleaned up.
+- A function with only a rest parameter given a type with none (`(...r: number[]) => …` as `(x: number, y: number) =>
+  number`) is rejected `[arity]`, with a cascade `[type] parameter number[] does not accept number` from `ixParamType`
+  comparing the rest's array type with one parameter. The message's advice was "remove the parameters after the first
+  2"; after the fresh review it says "remove the rest parameter, or give the type a rest parameter". The cascade is not
+  cleaned up.
+- `Array.from([5], f3)`: overload resolution reports the last overload's failures, so the message starts with a
+  `[forgets]` about `{ length: number }` before the `[arity]`. Not changed.
+- Not run: an attack on this rule by a fresh agent; the cross-language path (a function from another language given
+  a function type, or a SoundScript function called by JavaScript code with more arguments).

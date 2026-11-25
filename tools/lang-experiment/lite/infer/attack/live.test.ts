@@ -24,6 +24,7 @@ import { attacks as T1_ATTACKS } from "./t1-attacks.ts";
 import { attacks as W1_ATTACKS } from "./w1-attacks.ts";
 import { attacks as X1_ATTACKS } from "./x1-attacks.ts";
 import { attacks as Y1_ATTACKS } from "./y1-attacks.ts";
+import { attacks as OPEN_ATTACKS } from "./open-attacks.ts";
 import { checkSources as frozenCheck } from "../frozen/core.ts";
 
 // a verdict: ACCEPT, or REJECT with each cell that is not ok and its rules
@@ -362,3 +363,24 @@ for (const [rt, off] of [[false, false], [true, false], [false, true], [true, tr
     expect(blocksOf(out).size).toBe(Y1_ATTACKS.length);
     expect(r.exitCode).toBe(0);
   }, 600000);
+
+// open (2026-11-25): a function with more parameters than its type (open-attacks.ts). No row is silent under either
+// runner; each open-ok-* row is accepted and runs with no cell in error and no DIFF; each control fires; every other
+// row is rejected, with [arity] (or [inject-type] for a cell's parameter), by both checkers alike
+const OPEN_ROWS = OPEN_ATTACKS.filter((a) => !a.ctl), OPEN_OK = OPEN_ROWS.filter((a) => a.name.startsWith("open-ok-")).length;
+for (const rt of [false, true])
+  test(`open: no row is silent, the legal rows run clean, the controls fire${rt ? " (compiled runner)" : ""}`, () => {
+    const r = Bun.spawnSync(["bun", new URL("./run-sets.ts", import.meta.url).pathname, "--sets", "open", ...(rt ? ["--rt"] : [])], { stdout: "pipe", stderr: "pipe" });
+    const out = r.stdout.toString();
+    expect(out.split("\n").filter((l) => l.startsWith("SILENT "))).toEqual([]);
+    expect(out).toContain(`-- open: ${OPEN_ROWS.length} programs, accepted ${OPEN_OK}, silent 0, with a cell in error 0`);
+    expect(out).toContain(`-- open-controls: ${OPEN_ATTACKS.length - OPEN_ROWS.length}, fired ${OPEN_ATTACKS.length - OPEN_ROWS.length}`);
+    expect(r.exitCode).toBe(0);
+  }, 300000);
+for (const a of OPEN_ROWS)
+  test(`open ${a.name} is ${a.name.startsWith("open-ok-") ? "accepted" : "rejected [arity]"} by both checkers alike`, () => {
+    const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
+    expect(live.ok).toBe(a.name.startsWith("open-ok-"));
+    if (!live.ok) expect(live.rules.includes("arity") || live.rules.includes("inject-type")).toBe(true);
+    expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);
+  });

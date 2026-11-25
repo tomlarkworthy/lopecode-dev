@@ -387,7 +387,7 @@ md`**S2.8** A body that uses a cell by its name, and does not take it as a param
 md`**S2.9** The checker type-checks a body with \`null\` and \`undefined\` kept apart from other types. A type error is \`[type]\`. Five checks have rules of their own:
 
 - A parameter of a local function with no annotation and no type from the place where the function is passed is \`[untyped-parameter]\`.
-- A call with too few or too many arguments is \`[arity]\`.
+- A call with too few or too many arguments is \`[arity]\`. Since 2026-11-25, a function given a function type that declares fewer parameters than the function has is also \`[arity]\` (the rule on parameters past the declared ones, in this statement).
 - A property that the declared type of an object literal does not have is \`[excess-property]\`.
 - A value that can be \`undefined\` or \`null\`, used as a number, read from, indexed or called, is \`[possibly-undefined]\`.
 - An assignment to a \`const\` local is \`[const-assign]\`.
@@ -399,6 +399,7 @@ These rules are from 2026-11-24 (rounds w1, x1 and y1):
 - **\`void\`.** A function result typed \`void\` takes only \`undefined\`. A callback that returns a value where \`(x: T) => void\` is declared is \`[type]\`. A block body that returns nothing is accepted. \`forEach\` declares the result of its callback as \`unknown\`.
 - **Call signatures.** Every function has the members of \`Function.prototype\` (\`name\`, \`length\`, \`bind\` and the others, read when the checker runs). A function given a type with a call signature that declares one of these members is \`[forgets]\`, unless the own type of the function declares it.
 - **\`JSON.stringify\`.** \`JSON.stringify(v)\` is \`[type]\` when \`v\` can be \`undefined\`, a function, \`unknown\`, \`object\` or a type parameter. \`JSON.stringify\` gives \`undefined\` for those, not a string. \`JSON.stringify(v ?? null)\` is accepted.
+- **Parameters past the declared ones** (2026-11-25). A function type says how many arguments a caller passes. JavaScript can pass more. \`map\`, \`filter\`, \`forEach\` and the other array methods pass the element, the index and the array. The checker's signatures leave out the array. A parameter past the declared ones would get that argument, which can have a type other than its annotation. So a function is not assignable to a function type that declares fewer parameters than the function has. This counts optional parameters, parameters with a default value and a rest parameter, unless the type has a rest parameter. The rule applies wherever one function type is compared with another: an annotation, a record member, an array element, a type argument, a union member, a call signature, a cell's parameter and the parameter of a built-in. It is \`[arity]\`, and the message says to remove the parameters after the declared ones, or to declare them in the type. In a cell's parameter it is \`[inject-type]\`. A function with no rest parameter and with fewer parameters than its type declares is accepted.
 - **\`Object.fromEntries\`.** The keys of its result come from run-time data. A key can be \`then\`, \`toJSON\` or \`toString\`, which the run time calls. A call whose values are not plain data is \`[type]\`. Values typed \`unknown\` or \`object\` count as not plain, because one can be an \`Action\` that a join made \`unknown\`.
 
 Check time and run time: the rules of this statement are rules of the checker. The run time stops these cases where a value is handed over (S4.6): a response or an iterator that a type omits, and a promise that a type omits in the value of a cell whose type names no promise. This includes a value that reaches \`unknown\` through a join with a value typed \`unknown\` or through a type parameter. A conversion does not reach a function that a type omits (S2.7). If a type incorrectly describes a value as plain data, no run-time check finds it.`
@@ -545,6 +546,8 @@ spec_rejects_2 = [
   { statement: "S2.9", rule: "type", source: "const k = () => {\n  const o = Object.fromEntries([[\"then\", () => 1]]);\n  return 1;\n};" },
   { statement: "S2.9", rule: "type", source: "const k = () => {\n  const xs = [1];\n  return JSON.stringify(xs[3]);\n};" },
   { statement: "S2.9", rule: "type", source: "const k = () => (x: number | string) => {\n  const r: number = x || 1;\n  return r;\n};" },
+  { statement: "S2.9", rule: "arity", source: "const k = () => [5].map((x: number, i?: number, s?: string) => s ?? \"none\");" },
+  { statement: "S2.9", rule: "arity", source: "const k = () => {\n  const f: (x: number) => string = (x: number, i?: number, s?: string) => s ?? \"none\";\n  return [5].map(f);\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = async (): number => 5;\n  return 1;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): number {\n    yield 1;\n  };\n  return 1;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): Generator<number> {\n    yield \"x\";\n  };\n  return g;\n};" },
@@ -687,7 +690,9 @@ test_spec_S2_9 = {
   spec_is(spec_okCells("const k = () => {\n  const out: number[] = [];\n  [1, 2].forEach((x) => out.push(x));\n  const o = { f: () => 1 };\n  const u: unknown = { n: [1] };\n  return out.length + Object.keys(o).length + Object.keys(Object.fromEntries([[\"then\", 1]])).length;\n};"), "k:ok");
   // x1: a block body that returns nothing is given where (x: T) => void is declared
   spec_is(spec_okCells("const k = () => {\n  const each = (xs: readonly number[], w: (x: number) => void) => {\n    for (const x of xs) w(x);\n  };\n  each([1], (x) => {\n    const y = x + 1;\n  });\n  return 1;\n};"), "k:ok");
-  return `${spec_rejectsFor("S2.9")}; a callback parameter typed by map, a value narrowed by a check for undefined, and an optional parameter passed on to an optional parameter are accepted; an object literal and a rest leave out an optional member; a forEach callback's result, a value given a built-in that keeps none of its arguments, plain data given unknown and a block body returning nothing under a void result are accepted`;
+  // open (2026-11-25): a function with fewer parameters than its type declares, or as many, is accepted
+  spec_is(spec_okCells("const k = () => {\n  const f: (x: number, i: number) => string = (x: number) => String(x);\n  const g: (x: number, y?: number) => number = (x: number, y?: number) => x + (y ?? 0);\n  return [5].map(f).length + g(1) + [5].map(() => 1).length;\n};"), "k:ok");
+  return `${spec_rejectsFor("S2.9")}; a function with fewer parameters than its type declares, or as many, is accepted; a callback parameter typed by map, a value narrowed by a check for undefined, and an optional parameter passed on to an optional parameter are accepted; an object literal and a rest leave out an optional member; a forEach callback's result, a value given a built-in that keeps none of its arguments, plain data given unknown and a block body returning nothing under a void result are accepted`;
 }
 // %%
 md`## 3. Immutable by default

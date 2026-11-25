@@ -164,7 +164,7 @@ export const ixParamType = (ixAnnOf, ixConvert, ixErr, show, arr, UNKNOWN, UNDEF
   if (ann !== null) t = ixConvert(K, V, env, ann);
   else if (injected !== null) t = injected[i] ?? ERR;
   else if (ctxSig) {
-    if (i >= ctxSig.ps.length && !ctxSig.rest && p.type !== "RestElement") ixErr(K, C, p, "arity", "callback takes more parameters than its context provides");
+    if (i >= ctxSig.ps.length && !ctxSig.rest && p.type !== "RestElement") ixErr(K, C, p, "arity", `callback takes more parameters than its context provides: remove the parameters after the first ${ctxSig.ps.length}`);
     t = p.type === "RestElement" ? arr(ctxSig.rest ?? UNKNOWN) : (ctxSig.ps[i]?.t ?? ctxSig.rest ?? UNDEF);
   } else { ixErr(K, C, p, "untyped-parameter", "parameter has no type and no contextual type"); t = ERR; }
   const ct = ctxSig && ann !== null && injected === null ? ctxSig.ps[i]?.t : undefined;

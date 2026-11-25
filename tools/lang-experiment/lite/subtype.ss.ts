@@ -149,7 +149,7 @@ export const seqSubWith = () => (R: RegOps, sub: Sub) => (s: Ty, t: { k: "arr"; 
   return true;
 };
 
-// a function type: parameters contravariant, the result covariant. Generic on both sides with as many type
+// a function type: parameters contravariant, the result covariant; s has no parameter that t does not declare. Generic on both sides with as many type
 // parameters: compared with both renamed to the same fresh names. x1 (2026-11-24, V): a void result is compared as
 // any other (void takes undefined only), so a call typed void holds undefined; a callback whose result is dropped is
 // typed unknown (intrinsics.ts forEach), where the forgetting rule's plain test applies
@@ -165,6 +165,8 @@ export const fnSubWith = (subst) => (R: RegOps, sub: Sub) => {
     for (const p of s.ps) if (!p.opt) required++;
     const tRest = t.rest, sRest = s.rest;
     if (required > t.ps.length + (tRest ? Infinity : 0)) return false;
+    // open (2026-11-25): a parameter t does not declare may get a caller's extra argument (map's index and array)
+    if (!tRest && (sRest || s.ps.length > t.ps.length)) return false;
     for (let i = 0; i < s.ps.length; i++) {
       const tp = t.ps[i]?.t ?? tRest, sp = s.ps[i];
       if (!tp || !sp) break;
@@ -240,6 +242,30 @@ export const forgotWith = (show) => (R: PlainR) => {
     if (fnLike && !t.calls?.length && !t.ctors?.length) return `a function is not a record, so a record type does not take it: give it a function type (${show(s)})`;
     if (s.k !== "rec") return ["null", "undef", "void", "never", "err", "union", "unknown", "object", "tv"].includes(s.k) ? null : `${show(s)} is not a record, so a record type does not take it: give it its own type (${show(s)})`;
     for (const [k, p] of t.props) { const sp = s.props.get(k); const w = sp ? why(sp.t, p.t, d + 1) : null; if (w) return `${k}: ${w}`; }
+    return null;
+  }
+  return (s: Ty, t: Ty): string | null => why(s, t, 0);
+};
+// open (2026-11-25): why s is not assignable to t by fnSubWith's parameter count, as a message ending in a fix, or null:
+// s or a part of s (by t's members, elements, type arguments and union members) is a function with a parameter
+// that the function type it is given does not declare
+export const extraParamsWith = (show) => (R: PlainR) => {
+  const sigs = (t: Ty): Fn[] => (t.k === "fn" ? [t] : t.k === "rec" ? t.calls ?? [] : []);
+  const over = (f: Fn, c: Fn): boolean => !c.rest && (!!f.rest || f.ps.length > c.ps.length);
+  function why(s0: Ty, t0: Ty, d: number): string | null {
+    const s = R.expand(s0.k === "named" && (s0.n === "Mut" || s0.n === "Borrowed") ? s0.args[0] ?? s0 : s0), t = R.expand(t0);
+    if (d > 6) return null;
+    const pairs: Mut<[Ty, Ty][]> = s.k === "arr" && t.k === "arr" ? [[s.el, t.el]] : s.k === "tup" && t.k === "arr" ? s.els.map((x): [Ty, Ty] => [x, t.el])
+      : s.k === "tup" && t.k === "tup" ? s.els.map((x, i): [Ty, Ty] => [x, t.els[i] ?? x]) : s.k === "named" && t.k === "named" && s.n === t.n ? s.args.map((x, i): [Ty, Ty] => [x, t.args[i] ?? x])
+      : s.k === "union" ? s.ts.map((x): [Ty, Ty] => [x, t]) : t.k === "union" ? t.ts.map((x): [Ty, Ty] => [s, x]) : [];
+    if (s.k === "rec" && t.k === "rec") for (const [k, p] of t.props) { const sp = s.props.get(k); if (sp) pairs.push([sp.t, p.t]); }
+    for (const [a, b] of pairs) { const w = why(a, b, d + 1); if (w !== null) return w; }
+    const fs = sigs(s);
+    const f = fs[0];
+    for (const c of sigs(t)) if (f !== undefined && fs.every((g) => over(g, c))) {
+      const n = f.rest ? "a rest parameter" : `${f.ps.length} parameters`;
+      return `${d > 0 ? show(f) : "the function"} has ${n} and its type declares ${c.ps.length}: a caller can pass more arguments than the type declares (map passes the index and the array), so a parameter past them can get a value of another type; ${f.rest ? "remove the rest parameter, or give the type a rest parameter" : `remove the parameters after the first ${c.ps.length}, or declare them in the type`}`;
+    }
     return null;
   }
   return (s: Ty, t: Ty): string | null => why(s, t, 0);

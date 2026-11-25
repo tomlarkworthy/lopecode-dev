@@ -81,12 +81,14 @@ export const mdInjectBoundary = (mdDiag, mdBoundaryRules, hasErrWith, isNamed, i
   return want;
 };
 // the annotation of a parameter given a value type: the value must be assignable to it, and not hide an Action
-export const mdInjectAnn = (mdDiag, ixHides, isNamed, show, forgotWith) => (K: IxK, C: IxCtls, X: MdCtx, L: MdL, p: Identifier, ann: AstNode | null, vt: Ty): Ty => {
+export const mdInjectAnn = (mdDiag, ixHides, isNamed, show, forgotWith, extraParamsWith) => (K: IxK, C: IxCtls, X: MdCtx, L: MdL, p: Identifier, ann: AstNode | null, vt: Ty): Ty => {
   if (ann === null) return vt;
   const want = K.reg.convert(ann, [], null);
   const widenBorrow = vt.k === "named" && isNamed(vt, "Borrowed") && !(want.k === "named" && isNamed(want, "Borrowed"));
-  // w1 (2026-11-24): a failure by the forgetting rule says what was left out (subtype.ss.ts forgotWith)
-  const why = widenBorrow || K.reg.sub(vt, want) ? null : forgotWith({ isAlias: K.reg.quiet.isAlias, expand: K.reg.quiet.expand, member: K.reg.quiet.member, fnOwn: (n: string) => K.reg.quiet.fnOwn?.(n) === true })(vt, want);
+  // w1 (2026-11-24): a failure by the forgetting rule says what was left out (subtype.ss.ts forgotWith); open
+  // (2026-11-25): one by the parameter count says which parameters to remove (extraParamsWith)
+  const PR = { isAlias: K.reg.quiet.isAlias, expand: K.reg.quiet.expand, member: K.reg.quiet.member, fnOwn: (n: string) => K.reg.quiet.fnOwn?.(n) === true };
+  const why = widenBorrow || K.reg.sub(vt, want) ? null : extraParamsWith(PR)(vt, want) ?? forgotWith(PR)(vt, want);
   if (widenBorrow || why !== null || !K.reg.sub(vt, want)) mdDiag(X, L, p, "inject-type", `${p.name}: ${show(vt)} is not assignable to ${show(want)}${why !== null ? `: ${why}` : ""}`);
   else ixHides(K, C, p, vt, want, null);
   return want;

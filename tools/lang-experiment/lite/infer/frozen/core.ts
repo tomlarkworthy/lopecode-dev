@@ -15,7 +15,7 @@ import { parse, type Node, type Parsed } from "./ts/parse.ts";
 import { Registry } from "./ts/registry.ts";
 import { Checker } from "./infer.ts";
 import { ownership, actionEscapes, iterIn, mutIn, stripMut } from "./own.ts";
-import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, union, reservedName, RESERVED_MSG, reservedCellName, RESERVED_CELL_MSG, reservedText, RESERVED_TEXT_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith, forgotWith } from "../../types.ts";
+import { type Ty, ERR, UNKNOWN, isNamed, named, show, rec, union, reservedName, RESERVED_MSG, reservedCellName, RESERVED_CELL_MSG, reservedText, RESERVED_TEXT_MSG, captureMessage, uncloneableWith, admitsUndefinedWith, holdsWith, hasErrWith, forgotWith, extraParamsWith } from "../../types.ts";
 // DELIBERATE CHANGE (2026-11-24, d1): the prelude names a compiled cell binds, from the toolchain's own cell (F)
 import { PRELUDE_HOME } from "../../intrinsics.ts";
 import { tcPrelude } from "../../toolchain/tc-index.ts";
@@ -372,7 +372,8 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
         const want = reg.convert(ann, { tps: new Set() }, P);
         const widenBorrow = isNamed(vt, "Borrowed") && !isNamed(want, "Borrowed");
         // DELIBERATE CHANGE (2026-11-24, w1): a failure by the forgetting rule says what was left out (forgotWith)
-        const why = widenBorrow || reg.sub(vt, want) ? null : reg.peek(() => forgotWith(reg)(vt, want));
+        // DELIBERATE CHANGE (2026-11-25, open): one by the parameter count says which parameters to remove (extraParamsWith)
+        const why = widenBorrow || reg.sub(vt, want) ? null : reg.peek(() => extraParamsWith(reg)(vt, want) ?? forgotWith(reg)(vt, want));
         if (widenBorrow || why !== null || !reg.sub(vt, want)) diag(p, "inject-type", `${name}: ${show(vt)} is not assignable to ${show(want)}${why !== null ? `: ${why}` : ""}`);
         else ch.hides(p, vt, want);
         injected.push(want);

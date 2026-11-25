@@ -279,14 +279,17 @@ export const ixIndex = (ixUm, ixErr, unwrap, isNamed, show, NUM, STR, UNDEF, ERR
   }
   return union(out);
 };
-export const ixExpect = (ixHides, ixErr, ixNonUndef, members, isNamed, show, UNDEF_FIX, forgotWith) => (K: IxK, C: IxCtls, at: AstNode, t: Ty, expected: Ty, ctx: boolean): boolean => {
+export const ixExpect = (ixHides, ixErr, ixNonUndef, members, isNamed, show, UNDEF_FIX, forgotWith, extraParamsWith) => (K: IxK, C: IxCtls, at: AstNode, t: Ty, expected: Ty, ctx: boolean): boolean => {
   if (K.reg.sub(t, expected)) return ctx || ixHides(K, C, at, t, expected, null);
   let rule = "type";
   if (K.reg.sub(ixNonUndef(K.reg, t), expected)) rule = "possibly-undefined";
   else if (members(t).some((m) => isNamed(m, "Action")) && !members(expected).some((m) => isNamed(m, "Action"))) rule = "action-pass";
   // w1 (2026-11-24): a failure by the forgetting rule (subtype.ss.ts takesRecord) says what was left out and the fix
-  const why = rule === "type" ? forgotWith({ isAlias: K.reg.quiet.isAlias, expand: K.reg.quiet.expand, member: K.reg.quiet.member, fnOwn: (n: string) => K.reg.quiet.fnOwn?.(n) === true })(t, expected) : null;
-  if (why !== null) rule = "forgets";
+  const PR = { isAlias: K.reg.quiet.isAlias, expand: K.reg.quiet.expand, member: K.reg.quiet.member, fnOwn: (n: string) => K.reg.quiet.fnOwn?.(n) === true };
+  // open (2026-11-25): a function with a parameter its type does not declare (subtype.ss.ts fnSubWith) is [arity]
+  const extra = rule === "type" ? extraParamsWith(PR)(t, expected) : null;
+  const why = extra ?? (rule === "type" ? forgotWith(PR)(t, expected) : null);
+  if (why !== null) rule = extra !== null ? "arity" : "forgets";
   ixErr(K, C, at, rule, `${show(t)} is not assignable to ${show(expected)}${rule === "possibly-undefined" ? UNDEF_FIX : why !== null ? `: ${why}` : ""}`);
   return false;
 };

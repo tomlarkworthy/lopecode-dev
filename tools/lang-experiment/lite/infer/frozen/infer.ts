@@ -23,7 +23,7 @@ import { shapeOf } from "../../boundary.ts";
 import {
   type Ty, type Fn, type Rec, type Param, type Subst, type Flags,
   NUM, STR, BIGINT, NULL, UNDEF, VOID, NEVER, UNKNOWN, OBJECT, ERR, BOOL, SYMBOL,
-  union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames, cloneProblemWith, inexact, UNDEF_FIX, forgotWith, jsonGapWith, plainWith,
+  union, members, show, subst, instantiate, widen, hasTv, named, arr, isNamed, isPrimitive, lit, unwrap, propT, tpNames, cloneProblemWith, inexact, UNDEF_FIX, forgotWith, extraParamsWith, jsonGapWith, plainWith,
 } from "../../types.ts";
 import { ALLOWED_GLOBALS, PRELUDE_FNS } from "../../intrinsics.ts";
 import { mutIn, stripMut } from "./own.ts";
@@ -524,8 +524,10 @@ export class Checker {
     if (this.reg.sub(this.nonUndef(t), expected)) rule = "possibly-undefined";
     else if (members(t).some((m) => isNamed(m, "Action")) && !members(expected).some((m) => isNamed(m, "Action"))) rule = "action-pass";
     // DELIBERATE CHANGE (2026-11-24, w1): a failure by the forgetting rule says what was left out and the fix (forgotWith)
-    const why = rule === "type" ? this.reg.peek(() => forgotWith(this.reg)(t, expected)) : null;
-    if (why !== null) rule = "forgets";
+    // DELIBERATE CHANGE (2026-11-25, open): a function with a parameter its type does not declare is [arity] (extraParamsWith)
+    const extra = rule === "type" ? this.reg.peek(() => extraParamsWith(this.reg)(t, expected)) : null;
+    const why = extra ?? (rule === "type" ? this.reg.peek(() => forgotWith(this.reg)(t, expected)) : null);
+    if (why !== null) rule = extra !== null ? "arity" : "forgets";
     // DELIBERATE CHANGE (2026-11-23, e1): the possibly-undefined messages name the usual fixes (UNDEF_FIX)
     this.err(at, rule, `${show(t)} is not assignable to ${show(expected)}${rule === "possibly-undefined" ? UNDEF_FIX : why !== null ? `: ${why}` : ""}`);
     return false;
@@ -1233,7 +1235,7 @@ export class Checker {
       if (ann) t = this.reg.convert(ann, this.typeCtx(inner), this.parsed);
       else if (cell) t = cell.injected[i] ?? ERR;
       else if (ctxSig) {
-        if (i >= ctxSig.ps.length && !ctxSig.rest && p.type !== "RestElement") this.err(p, "arity", "callback takes more parameters than its context provides");
+        if (i >= ctxSig.ps.length && !ctxSig.rest && p.type !== "RestElement") this.err(p, "arity", `callback takes more parameters than its context provides: remove the parameters after the first ${ctxSig.ps.length}`); // DELIBERATE CHANGE (2026-11-25, open): the message names the fix
         t = p.type === "RestElement" ? arr(ctxSig.rest ?? UNKNOWN) : (ctxSig.ps[i]?.t ?? ctxSig.rest ?? UNDEF);
       }
       else { this.err(p, "untyped-parameter", "parameter has no type and no contextual type"); t = ERR; }

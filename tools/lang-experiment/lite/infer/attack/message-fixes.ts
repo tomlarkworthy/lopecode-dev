@@ -5,6 +5,11 @@
 export type MessageFix = { id: string; site: string; rule: string; bad: string; fix: string; tsx?: boolean; was?: string; note?: string; outside?: string[] };
 const ACT = "const s = () => state(0);\n";
 export const FIXES: MessageFix[] = [
+  // open (2026-11-25): a function with more parameters than its type (subtype.ss.ts extraParamsWith), and an
+  // unannotated callback with more parameters than its context (ix-fn.ss.ts ixParamType)
+  { id: "extra-params", site: "subtype.ss.ts extraParamsWith", rule: "arity", bad: "const a = () => { const f: (x: number) => string = (x: number, i?: number, s?: string) => s ?? \"n\"; return [5].map(f); };", fix: "const a = () => { const f: (x: number) => string = (x: number) => \"n\"; return [5].map(f); };" },
+  { id: "extra-params-rest", site: "subtype.ss.ts extraParamsWith (rest)", rule: "arity", bad: "const a = () => { const f: (x: number) => number = (x: number, ...r: number[]) => r.length; return f(1); };", fix: "const a = () => { const f: (x: number, ...r: number[]) => number = (x: number, ...r: number[]) => r.length; return f(1); };" },
+  { id: "callback-extra-params", site: "ix-fn.ss.ts ixParamType", rule: "arity", bad: "const a = () => [5].map((x, i, s) => x);", fix: "const a = () => [5].map((x, i) => x);" },
   // x1 (2026-11-24): the forgetting rule at unknown, object and a call signature; a record built from run-time keys. y1:
   // a function given unknown and a member a record type leaves out are accepted, so their rows are gone
   { id: "forgets-object-promise", site: "ix-hides.ss.ts ixHides (ixPendingIn)", rule: "forgets", bad: "const a = () => { const p: object = Promise.resolve(1); return 1; };", fix: "const a = () => { const p: Promise<number> = Promise.resolve(1); return 1; };" },
