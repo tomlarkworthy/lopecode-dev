@@ -453,3 +453,8 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   taken. 97k subagent tokens, 4m14s. What the author had not seen: the owner's act it gave (`deploy-deployer.ts --set
   ownerDm=…`) is refused by the tool, which took four keys only, so no command could set the DM address (fixed in
   cloud-brain-dev `8aa3e51`); and the fix's `issue.hold` is the calendar hold `AGENTS.md` 57 names, argued around unquoted.
+- 2026-11-25 `plan/retros/2026-11-25.md`, authored by the spawning session: FIX, 7 findings (all confirmed), all taken.
+  118.6k subagent tokens, 4m31s. What the author had not seen: the policy (seq 28403) takes a project from `building` to
+  `spec` in three moves (`close`, `reopen`, `spec`), so "no move" was false in the report, in two tracker comments and in
+  the two briefs already pushed (corrected in cloud-brain-dev `704d4af`); and the review it blamed had named the return as
+  the owner's in a note.
