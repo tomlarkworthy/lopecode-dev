@@ -288,8 +288,12 @@ A send of a shared module that the page embeds goes by the page's gates: `unatte
 (`unattendedSharedDaily`, 3), and no block the kernel, core or database reads. Otherwise it waits for his click on the
 page. Each switch is his to set: he turned `unattendedDeployer` on 2026-11-22 20:23 UTC (`ud-owner-switch-on`);
 `unattendedShared` was not set (#54206). The own path's first four sends were each refused at the check before go-live
-(`deploy.self.refused`): `7c5b8d67b064` at 22:04 and 22:07, `477ced2ce312` at 23:16 and 23:17 on 2026-11-22. Expect
-that refusal until `fix-tests-brain-deployer-7c5b8d67` is deployed by the owner's path.
+(`deploy.self.refused`): `7c5b8d67b064` at 22:04 and 22:07, `477ced2ce312` at 23:16 and 23:17 on 2026-11-22. The owner
+deployed `fix-tests-brain-deployer-7c5b8d67` on 2026-11-23 05:55; the own path's next five sends, to `5fabc49aa39e` on
+2026-11-24 03:16, each logged `deploy.self.confirmed`. Each of those had no browser verdict for its own suite: the
+deployer's dry runs of itself, 17 in the 7 days to 2026-11-25, all logged `deploy.dry.none` "browser.run answered 504
+wait was not true in 40000 ms" (the run is `config.runSeconds` less 20 s, `runSeconds` 60). The suite that stood for
+each was the worker's and the reviewer's local `bun test.ts @tomlarkworthy/brain-deployer`.
 
 `bun tools/cloud-brain/waiting-deploys.ts` reads only (with `--file <token>` it also closes an open `deploy-waits-<worker>`
 issue of a Worker that is `same`): whether `cloud-brain-dev/deploy/` has the module cb4 runs for the kernel, the core, the
