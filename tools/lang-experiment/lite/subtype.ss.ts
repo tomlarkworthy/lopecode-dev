@@ -161,10 +161,9 @@ export const fnSubWith = (subst) => (R: RegOps, sub: Sub) => {
       const open = (f: Fn): Fn => { const g = subst({ ...f, tps: [] }, new Map(f.tps.map((x, i): [string, Ty] => [x, R.at(fresh, i)]))); return g.k === "fn" ? g : f; };
       return fnSub(open(s), open(t), seen);
     }
-    let required = 0;
-    for (const p of s.ps) if (!p.opt) required++;
     const tRest = t.rest, sRest = s.rest;
-    if (required > t.ps.length + (tRest ? Infinity : 0)) return false;
+    // open part 5 (OP, RP): a parameter s requires is required in t at its place, so a call through t passes it
+    if (s.ps.some((p, i) => !p.opt && (t.ps[i]?.opt ?? true))) return false;
     // open (2026-11-25): a parameter t does not declare may get a caller's extra argument (map's index and array)
     if (!tRest && (sRest || s.ps.length > t.ps.length)) return false;
     for (let i = 0; i < s.ps.length; i++) {
@@ -252,6 +251,8 @@ export const forgotWith = (show) => (R: PlainR) => {
 export const extraParamsWith = (show) => (R: PlainR) => {
   const sigs = (t: Ty): Fn[] => (t.k === "fn" ? [t] : t.k === "rec" ? t.calls ?? [] : []);
   const over = (f: Fn, c: Fn): boolean => !c.rest && (!!f.rest || f.ps.length > c.ps.length);
+  // open part 5 (OP, RP): the first parameter f requires that c lets a caller leave out, or -1
+  const omit = (f: Fn, c: Fn): number => f.ps.findIndex((p, i) => !p.opt && (c.ps[i]?.opt ?? true));
   function why(s0: Ty, t0: Ty, d: number): string | null {
     const s = R.expand(s0.k === "named" && (s0.n === "Mut" || s0.n === "Borrowed") ? s0.args[0] ?? s0 : s0), t = R.expand(t0);
     if (d > 6) return null;
@@ -260,11 +261,14 @@ export const extraParamsWith = (show) => (R: PlainR) => {
       : s.k === "union" ? s.ts.map((x): [Ty, Ty] => [x, t]) : t.k === "union" ? t.ts.map((x): [Ty, Ty] => [s, x]) : [];
     if (s.k === "rec" && t.k === "rec") for (const [k, p] of t.props) { const sp = s.props.get(k); if (sp) pairs.push([sp.t, p.t]); }
     for (const [a, b] of pairs) { const w = why(a, b, d + 1); if (w !== null) return w; }
-    const fs = sigs(s);
-    const f = fs[0];
+    const fs = sigs(s), f = fs[0];
     for (const c of sigs(t)) if (f !== undefined && fs.every((g) => over(g, c))) {
       const n = f.rest ? "a rest parameter" : `${f.ps.length} parameters`;
-      return `${d > 0 ? show(f) : "the function"} has ${n} and its type declares ${c.ps.length}: a caller can pass more arguments than the type declares (map passes the index and the array), so a parameter past them can get a value of another type; ${f.rest ? "remove the rest parameter, or give the type a rest parameter" : `remove the parameters after the first ${c.ps.length}, or declare them in the type`}`;
+      return `${d > 0 ? show(f) : "the function"} has ${n} and its type declares ${c.ps.length}: a caller can pass more arguments than the type declares, so a parameter past them can get a value of another type; ${f.rest ? "remove the rest parameter, or give the type a rest parameter" : `remove the parameters after the first ${c.ps.length}, or declare them in the type`}`;
+    }
+    for (const c of sigs(t)) {
+      const i = f !== undefined && fs.every((g) => omit(g, c) >= 0) ? omit(f, c) : -1, p = f?.ps[i];
+      if (p !== undefined) return `${d > 0 && f !== undefined ? show(f) : "the function"} requires ${p.n}, and its type lets a caller leave that argument out (${c.ps[i] ? "an optional parameter" : "a rest parameter"}), so ${p.n} gets undefined; make ${p.n} optional or give it a default value, or make the parameter required in the type`;
     }
     return null;
   }

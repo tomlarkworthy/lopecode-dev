@@ -1,0 +1,70 @@
+== selfhost/freeze-attack14/bnd.ts:b-tuple-shorter: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/bnd.ts:b-tuple-shorter-str: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/bnd.ts:b-tuple-longer: ACCEPT
+   drive -> same: g rejected ext[1]: expected an array of 1, found number 2
+   show g = ERROR ext[1]: expected an array of 1, found number 2
+   error g: ext[1]: expected an array of 1, found number 2
+== selfhost/freeze-attack14/bnd.ts:b-tuple-in-rec: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/bnd.ts:b-tuple-in-arr: ACCEPT
+   drive -> DIFF g is outside its type: number -1
+   CHANGED drive -> DIFF g is outside its type: number -1
+   show g = -1
+   SILENT
+== selfhost/freeze-attack14/bnd.ts:b-tuple-union: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/bnd.ts:b-tuple-forof: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   CHANGED drive -> DIFF g is outside its type: number 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack14/bnd.ts:b-fn-result-tuple: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/bnd.ts:b-fn-result-async-tuple: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/bnd.ts:b-cast-tuple: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack14/bnd.ts:b-getter-elem: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack14/bnd.ts:b-arr-len-proxy: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack14/bnd.ts:b-ctl-str [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 12 candidates, accepted 12, silent 8
+SILENT selfhost/freeze-attack14/bnd.ts:b-tuple-shorter
+SILENT selfhost/freeze-attack14/bnd.ts:b-tuple-shorter-str
+SILENT selfhost/freeze-attack14/bnd.ts:b-tuple-in-rec
+SILENT selfhost/freeze-attack14/bnd.ts:b-tuple-in-arr
+SILENT selfhost/freeze-attack14/bnd.ts:b-tuple-union
+SILENT selfhost/freeze-attack14/bnd.ts:b-tuple-forof
+SILENT selfhost/freeze-attack14/bnd.ts:b-fn-result-tuple
+SILENT selfhost/freeze-attack14/bnd.ts:b-fn-result-async-tuple
+-- checker throws 0 (parse errors 0)

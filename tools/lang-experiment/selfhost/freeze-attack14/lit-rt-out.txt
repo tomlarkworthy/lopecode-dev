@@ -1,0 +1,147 @@
+== selfhost/freeze-attack14/lit.ts:l-inc: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-preinc: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-dec: ACCEPT
+   drive -> DIFF g is outside its type: number 0
+   CHANGED drive -> DIFF g is outside its type: number 0
+   show g = 0
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-predec-expr: ACCEPT
+   drive -> same: 0
+   show g = 0
+== selfhost/freeze-attack14/lit.ts:l-union-inc: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-member-inc: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-arr-inc: ACCEPT
+   drive -> DIFF g is outside its type: object [2]
+   CHANGED drive -> DIFF g is outside its type: object [2]
+   show g = [2]
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-tuple-inc: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-switch-dead: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-discriminant: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-record-key: REJECT g:rejected[type]
+== selfhost/freeze-attack14/lit.ts:l-bool-lit: ACCEPT
+   drive -> same: true
+   show g = true
+== selfhost/freeze-attack14/lit.ts:l-lit-in-loop: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-lit-cell-reader: ACCEPT
+   drive -> DIFF g is outside its type: string "never"
+   CHANGED drive -> DIFF g is outside its type: string "never"
+   show g = "never"
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-lit-helper: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-lit-mutparam: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-state: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   SILENT
+== selfhost/freeze-attack14/lit.ts:s-split-group: ACCEPT
+   drive -> DIFF g is outside its type: object ["a",null,"b"]
+   CHANGED drive -> DIFF g is outside its type: object ["a",null,"b"]
+   show g = ["a",undefined,"b"]
+   SILENT
+== selfhost/freeze-attack14/lit.ts:s-split-group-upper: ACCEPT
+   drive -> DIFF g is outside its type: object ["a!","undefined!","b!"]
+   CHANGED drive -> DIFF g is outside its type: object ["a!","undefined!","b!"]
+   show g = ["a!","undefined!","b!"]
+   SILENT
+== selfhost/freeze-attack14/lit.ts:s-split-forof: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   CHANGED drive -> DIFF g is outside its type: number 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack14/lit.ts:s-split-join: ACCEPT
+   drive -> DIFF g is outside its type: object ["a","-",null,"b"]
+   CHANGED drive -> DIFF g is outside its type: object ["a","-",null,"b"]
+   show g = ["a","-",undefined,"b"]
+   SILENT
+== selfhost/freeze-attack14/lit.ts:s-split-regexp-ctor: ACCEPT
+   drive -> DIFF g is outside its type: object ["a",null,"b"]
+   CHANGED drive -> DIFF g is outside its type: object ["a",null,"b"]
+   show g = ["a",undefined,"b"]
+   SILENT
+== selfhost/freeze-attack14/lit.ts:s-split-limit: ACCEPT
+   drive -> DIFF g is outside its type: object ["a",null,"b"]
+   CHANGED drive -> DIFF g is outside its type: object ["a",null,"b"]
+   show g = ["a",undefined,"b"]
+   SILENT
+== selfhost/freeze-attack14/lit.ts:s-split-cell-reader: ACCEPT
+   drive -> DIFF g is outside its type: object [1,-1,1]
+   CHANGED drive -> DIFF g is outside its type: object [1,-1,1]
+   show g = [1,-1,1]
+   SILENT
+== selfhost/freeze-attack14/lit.ts:l-ctl-lit [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   CONTROL FIRED
+== selfhost/freeze-attack14/lit.ts:s-ctl-undef [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object ["a",null]
+   CHANGED drive -> DIFF g is outside its type: object ["a",null]
+   show g = ["a",undefined]
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 24 candidates, accepted 23, silent 21
+SILENT selfhost/freeze-attack14/lit.ts:l-inc
+SILENT selfhost/freeze-attack14/lit.ts:l-preinc
+SILENT selfhost/freeze-attack14/lit.ts:l-dec
+SILENT selfhost/freeze-attack14/lit.ts:l-union-inc
+SILENT selfhost/freeze-attack14/lit.ts:l-member-inc
+SILENT selfhost/freeze-attack14/lit.ts:l-arr-inc
+SILENT selfhost/freeze-attack14/lit.ts:l-tuple-inc
+SILENT selfhost/freeze-attack14/lit.ts:l-switch-dead
+SILENT selfhost/freeze-attack14/lit.ts:l-discriminant
+SILENT selfhost/freeze-attack14/lit.ts:l-lit-in-loop
+SILENT selfhost/freeze-attack14/lit.ts:l-lit-cell-reader
+SILENT selfhost/freeze-attack14/lit.ts:l-lit-helper
+SILENT selfhost/freeze-attack14/lit.ts:l-lit-mutparam
+SILENT selfhost/freeze-attack14/lit.ts:l-state
+SILENT selfhost/freeze-attack14/lit.ts:s-split-group
+SILENT selfhost/freeze-attack14/lit.ts:s-split-group-upper
+SILENT selfhost/freeze-attack14/lit.ts:s-split-forof
+SILENT selfhost/freeze-attack14/lit.ts:s-split-join
+SILENT selfhost/freeze-attack14/lit.ts:s-split-regexp-ctor
+SILENT selfhost/freeze-attack14/lit.ts:s-split-limit
+SILENT selfhost/freeze-attack14/lit.ts:s-split-cell-reader
+-- checker throws 0 (parse errors 0)

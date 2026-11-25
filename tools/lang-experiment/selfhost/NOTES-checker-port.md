@@ -4614,3 +4614,118 @@ mirror, plus the rows.
 
 The second full verify (`verify-full-2.log`, run alone, on battery power) gave 678 pass 0 fail, exit 0. Two passing full runs do not show that the race is gone: the race
 never appeared in a forced run either.
+
+## 2026-11-25: open part 5, attack 14's silent breaks
+
+Attack 14 (`selfhost/freeze-attack14/RESULTS.md`) gave 13 silent breaks. Before any change, `min.ts` was 13 of 13 silent
+on `drive-run.ts` and `drive-rt.ts`, and `min-rt.ts` 2 of 2 silent on `drive-rt.ts` (`.scratch/open5/min-*.txt`). On the
+final tree (`.scratch/open5/min-final-*.txt`, `min-rt-final.txt`) the silent rows are `min-ho-spread`, `min-sw`, `min-pa`
+and `min-jw`. These four were not to be fixed in this part (PA: see below). `min-bt` gives `same: 2`.
+
+### Per break
+
+| break | fix | where | standing rows |
+|---|---|---|---|
+| TP | `[mutating-method]` on a `Mut` tuple: `push pop shift unshift splice` always; `sort reverse fill copyWithin` when the element types are not all mutually assignable | `ix-call.ss.ts ixTupleMutates` (new cell, 12 lines), called from `ixCallSigs`; frozen `tupleMutates` | 27 `open-a14-t-*`; `open-ok-p5-tuple-*` (4), `open-ok-p5-array-push` |
+| OP, RP | `[arity]` when the source requires a parameter at a place where the target has an optional parameter, a rest parameter or nothing | `subtype.ss.ts fnSubWith` (position-indexed `some`), message in `extraParamsWith` (`omit`) | 27 `open-a14-o-*`, 11 `open-a14-r-*`, `open-a14-p5-opt-before-req`, `open-p-rest-target-required`; `open-ok-p5-opt-param`, `default-param`, `rest-rest`, `rest-lead`, `fewer`, `open-ok-rest-target` |
+| LI | `++`/`--` is `[type]` when `number` is not assignable to the operand's type | `ix-ops.ss.ts ixUpdateExpr`; frozen `UpdateExpression` | 16 `open-a14-l-*`; `open-ok-p5-inc` |
+| SG | typing: `split(sep: RegExp)` gives `(string \| undefined)[]`; a regexp literal with no capture group on a string receiver gives `string[]` | `lite/intrinsics.ts` (shared); `ix-call.ss.ts ixSplitLiteral` (new, 10 lines); frozen in `call()` | 5 `open-a14-s-*`, `open-a14-p5-split-record`; `open-ok-p5-split-*` (4) |
+| AR | an async function annotated `Promise<T>` with a reachable end is `[type]` when `T` has no `undefined` | `ix-fn.ss.ts ixFnRet`; frozen | 18 `open-a14-a-*`; `open-ok-p5-async-return`, `async-void` |
+| LE | `==`/`!=` with a literal operand other than `null`/`undefined` does not narrow | `ix-cond.ss.ts ixNarrowCompare`; frozen | 10 `open-a14-e-*` `[type]`, `e-neq-str-method` unsupported; `open-ok-p5-loose-null`, `strict-lit`, `open-ok-a14-e-switch-after` |
+| FM | `[type]` on a `flatMap` callback whose result type has a type-parameter member (array receiver only) | `ix-call.ss.ts ixFlatMapArg` (new, 9 lines); frozen in `call()` | 6 `open-a14-f-flatmap-*`; `open-ok-p5-flatmap-*` (3) |
+| BT | the copy reads `length` once and allocates that many | `lite/boundary.ts copyEnter`/`copyOpen` | `lite/boundary.test.ts` BT rows (tuple, array, `cast`) |
+
+Every row above runs in the `open` set on both runners: 307 programs, 58 accepted, silent 0, with a cell in error 0,
+controls 7 of 7 (`.scratch/open5/rs-open*.log`). `live.test.ts` asserts each `open-a14-*` row gives the rule
+`A14_RULES` names and the same rules under the frozen checker.
+
+The BT test fails on the part 4 boundary (`.scratch/open5/bt-old.ts` against the extracted 33bf92cd tree):
+
+```
+part4 reads 2 got [1]
+now   reads 1 got [1,2]
+```
+
+Other reads twice across the boundary: a union reads its tag key in `copyUnion` and again in the member's copy. A second
+read that differs fails the member's literal check, so it throws. Records read `hasOwn` and one get per property; arrays
+one get per element. Not tested with a proxy beyond `length`.
+
+Rows not promoted: `s-split-group-upper` and `s-split-forof`. Their split result is now `(string | undefined)[]` and
+their detectors test the old type, so they report DIFF on values that are within the new type. `l-bool-lit` and
+`e-switch-after` hold no break; they run as `open-ok-a14-*`.
+
+### Choices and their costs
+
+- **SG, typing over a rule.** The alternative was to reject a `split` by a regexp literal with a capture group. The
+  typing was chosen. Its first form typed every RegExp split `(string | undefined)[]`, which rejected the project's own
+  cell `hasAnyTv` (`subtype.ss.ts`, `show(t).split(/[^\w']+/)`), so a literal with no capture group gives `string[]`.
+  Groups are counted by running `RegExp(p + "|").exec("")`. A review then found the rewrite ignored the receiver: a
+  record with its own `split` method got `string[]`. It is now gated on a string receiver.
+- **FM, a rule over a typing.** Typing `flatMap<U>(f) => readonly U[]` rejected two project cells
+  (`owCaptureErrs`, `owOpaqueCaptures`, whose callbacks return non-arrays). Reverted; the rule rejects only a callback
+  result with a type-parameter member. `concat`, `Array.of` and `Array.from` of a type parameter were probed and do not
+  flatten (`.scratch/open5/fm.ts`).
+- **OP/RP index.** The first loop advanced its index only on required parameters, so `(a = 1, b: string)` against
+  `(x: number, y?: string)` was accepted. A review found it; the loop now indexes by position.
+- **Intrinsics probed for SG** (`.scratch/open5/sg.ts`): `match` and `exec` groups are `string | undefined` already;
+  `matchAll` is `[regexp-state]`; `flat` and `new Array(n)` are unsupported; `Array(n)` is `[type]`;
+  `Array.from({ length: 2 })` gives `unknown[]`.
+- **AR, generators.** `Generator.next` is unsupported and a spread of a generator is `[type]`, so the return value of a
+  generator is not readable. No rule.
+- **LE.** `number == string` is `[type]` ("no value in common") before this part.
+- **LI.** Compound operators were `[type]` already; `??=` and destructuring assignment are unsupported (`.scratch/open5/li.ts`).
+
+### Not fixed
+
+- **`[prelude-shadow]` for all S2.6 names.** Built and measured: the census rejected 12 distinct project cells (locals
+  named `state`, `action`, `mut`, `memo` in `events.ss.ts`, `pool.ss.ts`, `store.ss.ts`, `ix-call.ss.ts`, the `md-*`
+  cells, `rgUndoPush`), and the build failed on `events.ss.ts`. Reverted. A local with a prelude name is typed by the
+  local (`.scratch/open5/pre2.ts`), so no silent break was found. `h` is `[reserved-name]` in a cell with JSX already,
+  and is not in the S2.6 list.
+- **PA.** `Promise.resolve`, `then` and `await` of a `T`: not fixed. Estimated at 25 to 30 lines across the three sites
+  in both checkers; not built.
+- **HO, SW, JW and JavaScript callers of an action**: not touched, as asked.
+- **The `[arity]` note "(map passes the index and the array)".** Removed from `extraParamsWith`, which has no call
+  context. The inline-callback message (`ix-fn.ss.ts` `ixParamType`) does not know whether its context comes from a
+  built-in or from a user's function type, so the note was not added there either.
+
+### memo
+
+`memo` keeps one cache per `memo()` call (`prelude.runtime.ts` 250-267), keyed by argument count and `Object.is` of each
+argument. Two memos made in one `map` gave `[11, 12]` on both runners (`.scratch/open5/memo-set.ts`); a memo made again
+in a re-run cell starts empty. No run gave a result cached for a different `n`. Rows: `open-ok-p5-memo-map` and a run in
+`test_spec_S2_14`.
+
+### Cost to ordinary code (2026-11-25)
+
+- Habit drafts: 18 accepted, 17 pass, of 40 (unchanged). Learner drafts: 37 accepted, 37 pass, of 40 (unchanged from the
+  start of this part).
+- Census, 50156 cells against the 33bf92cd tree: the spec's reject rows grew by the 9 new rows and nothing else changed
+  per statement. One corpus cell changed: `ports/suminagashi createContours`, rejected before, gains a true `[arity]`:
+  `resample: (k: number) => Contours` given the type `(k?: number) => Contours`. The tutorial module has no cells in the
+  base census, so it was not compared; its 13 rejected cells are its intended examples.
+
+### Spec
+
+S2.9: the rest-parameter sentence corrected; a paragraph on a required parameter the type lets a caller leave out;
+`++`/`--`, `flatMap` and `split`. S2.11: the async ending return; a generator's return value. S3.2: tuples. S9.4: loose
+`==`. S11.5: `length` read one time. Nine reject rows; accepted checks in `test_spec_S2_9`, `test_spec_S3_2`,
+`test_spec_S2_14` (a run). Tutorial: one sentence on the required parameter. Six message-fix rows.
+
+### Gates (`.scratch/y1/open5/`, 14:44:28 to 15:38:32)
+
+| gate | result |
+|---|---|
+| build | 0 |
+| bun-verify | 182 pass |
+| fixtures | 14/14 |
+| `diff.ts` | DIFFERENT 0 (4031 SAME) |
+| `diff.ts --module-only` | DIFFERENT 0 |
+| tc-diff | 56 DIFFERENT lines (as in part 4) |
+| run-sets, both runners | 3530, silent 0 |
+| fa2 / fa3 | silent 0 / silent 0 |
+| run-sets REG=0 | silent 19 (as in part 4) |
+| run-sets BODYFN=0 | silent 2 (as in part 4) |
+| verify --quick | 234/0 |
+| verify full | 678 pass 0 fail, exit 0 |
+| tests | 34 files, all exit 0 (live.test 1468/0, message-fixes 104/0, boundary 133/0) |

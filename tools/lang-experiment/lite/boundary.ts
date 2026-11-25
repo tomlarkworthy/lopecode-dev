@@ -93,8 +93,10 @@ function copyEnter(v: unknown, s: Shape, path: string, run: Run, stack: Frame[])
     case "union": return copyUnion(v, s, path, run, stack, 0, null, null);
     case "arr": case "tup": {
       if (!Array.isArray(v)) throw mismatch(v, s, path);
-      if (s.k === "tup" && v.length !== s.els.length) throw mismatch(v, s, path);
-      return copyOpen(v, s, path, run, stack, null);
+      // open part 5 (BT): length is read once; the check and the copy use the same number
+      const n = v.length;
+      if (s.k === "tup" && n !== s.els.length) throw mismatch(v, s, path);
+      return copyOpen(v, s, path, run, stack, null, n);
     }
     case "rec":
       if (!v || typeof v !== "object" || Array.isArray(v) || !plain(v)) throw mismatch(v, s, path);
@@ -111,12 +113,12 @@ function copyEnter(v: unknown, s: Shape, path: string, run: Run, stack: Frame[])
     }
   }
 }
-function copyOpen(v: object, s: Shape, path: string, run: Run, stack: Frame[], keys: string[] | null): unknown {
+function copyOpen(v: object, s: Shape, path: string, run: Run, stack: Frame[], keys: string[] | null, n?: number): unknown {
   if (run.seen.has(v)) throw new Cycle(path, null, "a cycle");
   const hit = run.done?.get(v)?.get(shapeKey(s));
   if (hit !== undefined) return hit;
   run.seen.add(v);
-  stack.push(copyFrame(v, s, path, Array.isArray(v) ? new Array(v.length) : {}, keys));
+  stack.push(copyFrame(v, s, path, Array.isArray(v) ? new Array(n ?? (v as unknown[]).length) : {}, keys));
   if (stack.length > run.deep) run.deep = stack.length;
   return WAIT;
 }

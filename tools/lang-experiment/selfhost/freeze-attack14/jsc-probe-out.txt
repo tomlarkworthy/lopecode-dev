@@ -1,0 +1,7 @@
+jc-action-str: ACCEPT
+jc-action-missing: ACCEPT
+jc-action-obj: ACCEPT
+jc-action-rec: ACCEPT
+jc-action-arr-mutated: ACCEPT
+jc-fn-str: ACCEPT
+jc-ctl: ACCEPT

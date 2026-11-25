@@ -1,0 +1,11 @@
+== selfhost/freeze-attack14/min-rt.ts:min-bt: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/min-rt.ts:min-jw: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/min-rt.ts:min-rt-ctl [ctl]: CONTROL (checker skipped)
+   drive -> same: g rejected ext is not defined
+   show g = ERROR ext is not defined
+   error g: ext is not defined
+   CONTROL DID NOT FIRE
+-- controls 1, ran 1, fired 0
+-- harness crashes 0
+-- 2 candidates, accepted 0, silent 0 (by the tap alone 0)
+-- checker throws 0 (parse errors 0)

@@ -101,6 +101,8 @@ export const ixUpdateExpr = (ixLvalue, ixLookup, ixDropRoot, ixErr, show, NUM) =
   const a = e.argument;
   if (a.type === "Identifier") { const b = ixLookup(V, env, a.name); if (b) ixDropRoot(W, C.cur, b); }
   if (t.k !== "err" && !K.reg.sub(t, NUM)) ixErr(K, C, e, "type", `${e.operator} on ${show(t)}`);
+  // open part 5 (LI): x++ is x = x + 1, so the number it stores is checked against x's type
+  else if (t.k !== "err" && !K.reg.sub(NUM, t)) ixErr(K, C, e, "type", `${e.operator} stores a number, and number is not assignable to ${show(t)}`);
   return NUM;
 };
 // TypeScript's "no overlap" comparison error, for operands that are unions of primitives only

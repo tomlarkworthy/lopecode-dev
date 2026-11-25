@@ -1,0 +1,22 @@
+== selfhost/freeze-attack14/min-rt.ts:min-bt: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/min-rt.ts:min-jw: ACCEPT
+   drive -> DIFF g is outside its type: number 9
+   CHANGED k (value #1 of 1): Float32Array[0,0] -> Float32Array[9,0]
+   CHANGED drive -> DIFF g is outside its type: number 9
+   show g = 9
+   SILENT
+== selfhost/freeze-attack14/min-rt.ts:min-rt-ctl [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 2 candidates, accepted 2, silent 2
+SILENT selfhost/freeze-attack14/min-rt.ts:min-bt
+SILENT selfhost/freeze-attack14/min-rt.ts:min-jw
+-- checker throws 0 (parse errors 0)

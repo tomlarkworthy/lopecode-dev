@@ -1,0 +1,80 @@
+== selfhost/freeze-attack14/jsw.ts:j-typed-index: ACCEPT
+   drive -> DIFF g is outside its type: number 9
+   CHANGED k (value #1 of 1): Float32Array[0,0] -> Float32Array[9,0]
+   CHANGED drive -> DIFF g is outside its type: number 9
+   show g = 9
+   SILENT
+== selfhost/freeze-attack14/jsw.ts:j-typed-in-rec: ACCEPT
+   drive -> DIFF g is outside its type: number 9
+   CHANGED k (value #1 of 1): {t:Float32Array[0,0]} -> {t:Float32Array[9,0]}
+   CHANGED drive -> DIFF g is outside its type: number 9
+   show g = 9
+   SILENT
+== selfhost/freeze-attack14/jsw.ts:j-typed-in-arr: ACCEPT
+   drive -> DIFF g is outside its type: number 9
+   CHANGED k (value #1 of 1): [Uint8Array[0,0]] -> [Uint8Array[9,0]]
+   CHANGED drive -> DIFF g is outside its type: number 9
+   show g = 9
+   SILENT
+== selfhost/freeze-attack14/jsw.ts:j-typed-fill: ACCEPT
+   drive -> DIFF g is outside its type: number 9
+   CHANGED k (value #1 of 1): Int32Array[0,0] -> Int32Array[9,9]
+   CHANGED drive -> DIFF g is outside its type: number 9
+   show g = 9
+   SILENT
+== selfhost/freeze-attack14/jsw.ts:j-buffer: ACCEPT
+   drive -> DIFF g is outside its type: number 9
+   CHANGED k (value #1 of 1): AB[0,0,0,0] -> AB[9,0,0,0]
+   CHANGED drive -> DIFF g is outside its type: number 9
+   show g = 9
+   SILENT
+== selfhost/freeze-attack14/jsw.ts:j-map-proto-set: ACCEPT
+   drive -> DIFF g is outside its type: number 9
+   CHANGED k (value #1 of 1): Map{} -> Map{"a"=>9}
+   CHANGED drive -> DIFF g is outside its type: number 9
+   show g = 9
+   SILENT
+== selfhost/freeze-attack14/jsw.ts:j-set-proto-add: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   CHANGED k (value #1 of 1): Set{} -> Set{9}
+   CHANGED drive -> DIFF g is outside its type: number 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack14/jsw.ts:j-url-setter: ACCEPT
+   drive -> DIFF g is outside its type: string "b.test"
+   CHANGED k (value #1 of 1): URL(https://a.test/) -> URL(https://b.test/)
+   CHANGED drive -> DIFF g is outside its type: string "b.test"
+   show g = "b.test"
+   SILENT
+== selfhost/freeze-attack14/jsw.ts:j-state-typed: ACCEPT
+   drive -> DIFF g is outside its type: number 9
+   CHANGED k (value #1 of 1): Float32Array[0,0] -> Float32Array[9,0]
+   CHANGED drive -> DIFF g is outside its type: number 9
+   show g = 9
+   SILENT
+== selfhost/freeze-attack14/jsw.ts:j-arr-held: ACCEPT
+   drive -> same: g rejected Attempted to assign to readonly property.
+   show g = ERROR Attempted to assign to readonly property.
+   error g: Attempted to assign to readonly property.
+== selfhost/freeze-attack14/jsw.ts:j-map-held: ACCEPT
+   drive -> same: g rejected set on a frozen Map: a value cannot change after its cell returns
+   show g = ERROR set on a frozen Map: a value cannot change after its cell returns
+   error g: set on a frozen Map: a value cannot change after its cell returns
+== selfhost/freeze-attack14/jsw.ts:j-ctl [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: number 9
+   CHANGED drive -> DIFF g is outside its type: number 9
+   show g = 9
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 11 candidates, accepted 11, silent 9
+SILENT selfhost/freeze-attack14/jsw.ts:j-typed-index
+SILENT selfhost/freeze-attack14/jsw.ts:j-typed-in-rec
+SILENT selfhost/freeze-attack14/jsw.ts:j-typed-in-arr
+SILENT selfhost/freeze-attack14/jsw.ts:j-typed-fill
+SILENT selfhost/freeze-attack14/jsw.ts:j-buffer
+SILENT selfhost/freeze-attack14/jsw.ts:j-map-proto-set
+SILENT selfhost/freeze-attack14/jsw.ts:j-set-proto-add
+SILENT selfhost/freeze-attack14/jsw.ts:j-url-setter
+SILENT selfhost/freeze-attack14/jsw.ts:j-state-typed
+-- checker throws 0 (parse errors 0)

@@ -4,7 +4,7 @@
 // shapeOf gives through the checker, and what cross() does with trees, cycles, shared objects and deep values. Then a
 // function from another language: the checker's verdicts and the wrapper the cell is given.
 // Run: bun lite/boundary.test.ts
-import { cross, checkShape } from "./boundary.ts";
+import { cross, checkShape, cast } from "./boundary.ts";
 import { checkSources } from "./core.ts";
 import type { Shape } from "./runtime-ss.ts";
 
@@ -422,5 +422,18 @@ for (const [types, ann, want] of refusedAt) { const r = shapeOf(types, ann); ok(
   ok("fn: accepted: an optional parameter, an async result, no parameters", verdictsOf("const c = (k: (s: string, n?: number) => number, a: (s: string) => Promise<{ n: number }>, z: () => void) => 1;", ["k", "a", "z"].map((name) => ({ name }))).join() === "c: ok");
 }
 
+// open part 5 (BT, attack 14's min-bt): the copy reads length one time; a proxy that gives 2 then 1 is checked and copied as 2
+{
+  const N: Shape = { k: "num" };
+  const flip = (xs: number[]) => { let n = 0; return new Proxy(xs, { get: (t, p, r) => (p === "length" ? (n++ === 0 ? xs.length : xs.length - 1) : Reflect.get(t, p, r)) }); };
+  const T2: Shape = { k: "tup", els: [N, N] };
+  for (const [name, f] of [["tuple", (v: unknown) => cross(v, T2, "bt.p")], ["array", (v: unknown) => cross(v, { k: "arr", el: N }, "bt.p")], ["cast", (v: unknown) => (cast(v, T2) as { value: unknown }).value]] as [string, (v: unknown) => unknown][]) {
+    let reads = 0;
+    const v = new Proxy(flip([1, 2]), { get: (t, p, r) => { if (p === "length") reads++; return Reflect.get(t, p, r); } });
+    let got: unknown;
+    try { got = f(v); } catch (e) { got = (e as Error).message; }
+    ok(`BT: ${name} reads length one time and copies [1,2]`, reads === 1 && JSON.stringify(got) === "[1,2]", { reads, got });
+  }
+}
 console.log(`${pass} pass, ${fail} fail`);
 process.exit(fail ? 1 : 0);

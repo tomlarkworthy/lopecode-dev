@@ -66,7 +66,8 @@ export const ixNarrowCompare = (ixNarrow, ixDiscriminant, ixNarrowTypeof, ixNarr
   const sides: [AstNode, AstNode][] = [[e.left, e.right], [e.right, e.left]];
   for (const [a, b] of sides) {
     const bt = T.get(b.nid);
-    if (!bt || (bt.k !== "lit" && bt.k !== "null" && bt.k !== "undef")) continue;
+    // open part 5 (LE): == and != narrow by null and undefined only; a loose test of a literal converts the other side
+    if (!bt || (bt.k !== "lit" && bt.k !== "null" && bt.k !== "undef") || (loose && bt.k === "lit")) continue;
     ixNarrow(K, T, V, env, TT, FF, a, T.get(a.nid), (at, br) => ixNarrowEq(K.reg, at, bt, br === pos, loose));
     ixDiscriminant(K, T, V, env, TT, FF, a, (pt, br) => ixNarrowEq(K.reg, pt, bt, br === pos, loose).k !== "never");
     return;

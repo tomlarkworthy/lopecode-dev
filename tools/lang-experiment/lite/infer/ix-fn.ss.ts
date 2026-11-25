@@ -264,8 +264,10 @@ export const ixFnRet = (ixErr, union, widen, named, show, UNDEF, VOID, NEVER) =>
   }
   const r0 = union(reachable && rets.length ? [...rets, UNDEF] : rets.length ? rets : [reachable ? VOID : NEVER]);
   const r = rc.declared === null ? widen(r0) : r0;
-  if (retAnn && !fi.isAsync && retAnn.k !== "void" && reachable && f.body.type === "BlockStatement" && retAnn.k !== "err" && !K.reg.sub(UNDEF, retAnn) && retAnn.k !== "never")
-    ixErr(K, C, e, "type", `function lacks an ending return statement and its return type ${show(retAnn)} does not include undefined`);
+  // open part 5 (AR): an async function's ending return is checked against the T of its Promise<T>
+  const want = fi.isAsync ? (retAnn ? fi.retCtx : null) : retAnn;
+  if (want && want.k !== "void" && reachable && f.body.type === "BlockStatement" && want.k !== "err" && !K.reg.sub(UNDEF, want) && want.k !== "never")
+    ixErr(K, C, e, "type", `function lacks an ending return statement and its return type ${show(retAnn ?? want)} does not include undefined`);
   return fi.isAsync ? (retAnn ?? named("Promise", r)) : (retAnn ?? (rc.ctxRet && rc.ctxRet.k === "void" ? VOID : r));
 };
 // await: a member that may be a thenable other than a Promise gives unknown; declared: an async function's return

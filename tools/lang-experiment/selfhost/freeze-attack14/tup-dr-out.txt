@@ -1,0 +1,218 @@
+== selfhost/freeze-attack14/tup.ts:t-reverse: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-sort: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-sort-cmp: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-fill: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-fill-range: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-unshift: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-copyWithin: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-shift: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-pop: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-splice: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-splice-insert: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-push-len: ACCEPT
+   drive -> DIFF g is outside its type: number 3
+   show g = 3 | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-pop-len: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-shift-destructure: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-pop-tostr: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-reverse-str-method: ACCEPT
+   drive -> same: g rejected t[1].toUpperCase is not a function. (In 't[1].toUpperCase()', 't[1].toUpperCase' is undefined)
+   show g = ERROR t[1].toUpperCase is not a function. (In 't[1].toUpperCase()', 't[1].toUpperCase' is undefined)
+   error g: t[1].toUpperCase is not a function. (In 't[1].toUpperCase()', 't[1].toUpperCase' is undefined)
+== selfhost/freeze-attack14/tup.ts:t-reverse-num-method: ACCEPT
+   drive -> same: g rejected t[0].toFixed is not a function. (In 't[0].toFixed(1)', 't[0].toFixed' is undefined)
+   show g = ERROR t[0].toFixed is not a function. (In 't[0].toFixed(1)', 't[0].toFixed' is undefined)
+   error g: t[0].toFixed is not a function. (In 't[0].toFixed(1)', 't[0].toFixed' is undefined)
+== selfhost/freeze-attack14/tup.ts:t-mutparam-reverse: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-mutparam-pop: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-in-record: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-published: ACCEPT
+   drive -> DIFF g is outside its type: object ["1",9]
+   show g = ["1",9] | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-let-tuple: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-cell-reader: ACCEPT
+   drive -> DIFF g is outside its type: string "11"
+   show g = "11" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-switch-len: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-literal-tuple: ACCEPT
+   drive -> DIFF g is outside its type: string "b"
+   show g = "b" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-union-tuple: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack14/tup.ts:t-generic-reverse: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-ret: ACCEPT
+   drive -> DIFF g is outside its type: object [1,null,null,5]
+   show g = [1,,,5] | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-spread: ACCEPT
+   drive -> DIFF g is outside its type: object [1,null,null,5]
+   show g = [1,undefined,undefined,5] | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-forof: ACCEPT
+   drive -> DIFF g is outside its type: object [1,null,null,5]
+   show g = [1,undefined,undefined,5] | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-destructure: ACCEPT
+   drive -> same: 7
+   show g = 7 | E[]
+== selfhost/freeze-attack14/tup.ts:h-from: ACCEPT
+   drive -> DIFF g is outside its type: object [1,null,null,5]
+   show g = [1,undefined,undefined,5] | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-toSorted: ACCEPT
+   drive -> DIFF g is outside its type: object [1,5,null,null]
+   show g = [1,5,undefined,undefined] | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-find: ACCEPT
+   drive -> same: "none"
+   show g = "none" | E[]
+== selfhost/freeze-attack14/tup.ts:h-find-plus: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/tup.ts:h-map-forof: ACCEPT
+   drive -> DIFF g is outside its type: object ["number","undefined","number"]
+   show g = ["number","undefined","number"] | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-at: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/tup.ts:h-reduce: ACCEPT
+   drive -> DIFF g is outside its type: string "numberundefinednumber"
+   show g = "numberundefinednumber" | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-index-len: ACCEPT
+   drive -> DIFF g is outside its type: object [4,null,1]
+   show g = [4,undefined,1] | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-with: ACCEPT
+   drive -> DIFF g is outside its type: object [1,null,1]
+   show g = [1,undefined,1] | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-toSpliced: ACCEPT
+   drive -> DIFF g is outside its type: object [1,null,5]
+   show g = [1,undefined,5] | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-concat: ACCEPT
+   drive -> DIFF g is outside its type: object [0,1,null,5]
+   show g = [0,1,,5] | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-typed-loop: ACCEPT
+   drive -> DIFF g is outside its type: number 100
+   show g = 100 | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:h-let-index: ACCEPT
+   drive -> DIFF g is outside its type: object [1,null,null,null,2]
+   show g = [1,undefined,undefined,undefined,2] | E[]
+   SILENT
+== selfhost/freeze-attack14/tup.ts:t-ctl-num-is-str [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack14/tup.ts:t-ctl-arr-undef [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object [1,null]
+   show g = [1,undefined] | E[]
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 44 candidates, accepted 43, silent 37 (by the tap alone 0)
+SILENT selfhost/freeze-attack14/tup.ts:t-reverse
+SILENT selfhost/freeze-attack14/tup.ts:t-sort
+SILENT selfhost/freeze-attack14/tup.ts:t-sort-cmp
+SILENT selfhost/freeze-attack14/tup.ts:t-fill
+SILENT selfhost/freeze-attack14/tup.ts:t-fill-range
+SILENT selfhost/freeze-attack14/tup.ts:t-unshift
+SILENT selfhost/freeze-attack14/tup.ts:t-copyWithin
+SILENT selfhost/freeze-attack14/tup.ts:t-shift
+SILENT selfhost/freeze-attack14/tup.ts:t-pop
+SILENT selfhost/freeze-attack14/tup.ts:t-splice
+SILENT selfhost/freeze-attack14/tup.ts:t-splice-insert
+SILENT selfhost/freeze-attack14/tup.ts:t-push-len
+SILENT selfhost/freeze-attack14/tup.ts:t-pop-len
+SILENT selfhost/freeze-attack14/tup.ts:t-shift-destructure
+SILENT selfhost/freeze-attack14/tup.ts:t-pop-tostr
+SILENT selfhost/freeze-attack14/tup.ts:t-mutparam-reverse
+SILENT selfhost/freeze-attack14/tup.ts:t-mutparam-pop
+SILENT selfhost/freeze-attack14/tup.ts:t-in-record
+SILENT selfhost/freeze-attack14/tup.ts:t-published
+SILENT selfhost/freeze-attack14/tup.ts:t-let-tuple
+SILENT selfhost/freeze-attack14/tup.ts:t-cell-reader
+SILENT selfhost/freeze-attack14/tup.ts:t-switch-len
+SILENT selfhost/freeze-attack14/tup.ts:t-literal-tuple
+SILENT selfhost/freeze-attack14/tup.ts:t-generic-reverse
+SILENT selfhost/freeze-attack14/tup.ts:h-ret
+SILENT selfhost/freeze-attack14/tup.ts:h-spread
+SILENT selfhost/freeze-attack14/tup.ts:h-forof
+SILENT selfhost/freeze-attack14/tup.ts:h-from
+SILENT selfhost/freeze-attack14/tup.ts:h-toSorted
+SILENT selfhost/freeze-attack14/tup.ts:h-map-forof
+SILENT selfhost/freeze-attack14/tup.ts:h-reduce
+SILENT selfhost/freeze-attack14/tup.ts:h-index-len
+SILENT selfhost/freeze-attack14/tup.ts:h-with
+SILENT selfhost/freeze-attack14/tup.ts:h-toSpliced
+SILENT selfhost/freeze-attack14/tup.ts:h-concat
+SILENT selfhost/freeze-attack14/tup.ts:h-typed-loop
+SILENT selfhost/freeze-attack14/tup.ts:h-let-index
+-- checker throws 0 (parse errors 0)

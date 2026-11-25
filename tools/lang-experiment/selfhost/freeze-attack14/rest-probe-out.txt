@@ -1,0 +1,13 @@
+r-annot: ACCEPT
+r-two: ACCEPT
+r-str: ACCEPT
+r-arg: ACCEPT
+r-spread-empty: ACCEPT
+r-lead-rest: ACCEPT
+r-rec: ACCEPT
+r-cell-input: ACCEPT
+r-memo: ACCEPT
+r-arr-of: ACCEPT
+r-action-state: ACCEPT
+r-ctl: REJECT g:rejected[arity]
+    g[arity] expected at least 1 arguments, got 0

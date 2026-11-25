@@ -1,0 +1,21 @@
+== selfhost/freeze-attack14/bnd.ts:b-tuple-shorter: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/bnd.ts:b-tuple-shorter-str: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/bnd.ts:b-tuple-longer: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/bnd.ts:b-tuple-in-rec: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/bnd.ts:b-tuple-in-arr: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/bnd.ts:b-tuple-union: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/bnd.ts:b-tuple-forof: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/bnd.ts:b-fn-result-tuple: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/bnd.ts:b-fn-result-async-tuple: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/bnd.ts:b-cast-tuple: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/bnd.ts:b-getter-elem: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/bnd.ts:b-arr-len-proxy: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/bnd.ts:b-ctl-str [ctl]: CONTROL (checker skipped)
+   drive -> same: g rejected ext is not defined
+   show g = ERROR ext is not defined
+   error g: ext is not defined
+   CONTROL DID NOT FIRE
+-- controls 1, ran 1, fired 0
+-- harness crashes 0
+-- 12 candidates, accepted 0, silent 0 (by the tap alone 0)
+-- checker throws 0 (parse errors 0)

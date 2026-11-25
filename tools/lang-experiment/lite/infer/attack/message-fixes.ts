@@ -5,6 +5,13 @@
 export type MessageFix = { id: string; site: string; rule: string; bad: string; fix: string; tsx?: boolean; was?: string; note?: string; outside?: string[] };
 const ACT = "const s = () => state(0);\n";
 export const FIXES: MessageFix[] = [
+  // open part 5 (2026-11-25): attack 14's compile rules
+  { id: "required-param-optional", site: "subtype.ss.ts extraParamsWith (omit, open p5 OP)", rule: "arity", bad: "const a = () => { const f: (x?: number) => number = (x: number) => x + 1; return f(); };", fix: "const a = () => { const f: (x?: number) => number = (x?: number) => (x ?? 0) + 1; return f(); };" },
+  { id: "required-param-default", site: "subtype.ss.ts extraParamsWith (omit, a default value, open p5 RP)", rule: "arity", bad: "const a = () => { const f: (...xs: number[]) => number = (x: number) => x + 1; return f(); };", fix: "const a = () => { const f: (...xs: number[]) => number = (x = 0) => x + 1; return f(); };" },
+  { id: "update-stores-number", site: "ix-ops.ss.ts ixUpdateExpr (open p5 LI)", rule: "type", bad: "const a = () => { let n: 1 | 2 = 1; n++; return n; };", fix: "const a = () => { let n: number = 1; n++; return n; };" },
+  { id: "tuple-mutates-copy", site: "ix-call.ss.ts ixTupleMutates (copy it first, open p5 TP)", rule: "mutating-method", bad: "const a = () => { const t: Mut<[number, string]> = [1, \"a\"]; t.reverse(); return t[0]; };", fix: "const a = () => { const t: Mut<[number, string]> = [1, \"a\"]; const r = t.toReversed(); return r[0]; };" },
+  { id: "tuple-mutates-array", site: "ix-call.ss.ts ixTupleMutates (an array type, open p5 TP)", rule: "mutating-method", bad: "const a = () => { const t: Mut<[number, number]> = [1, 2]; t.push(3); return t.length; };", fix: "const a = () => { const t: Mut<number[]> = [1, 2]; t.push(3); return t.length; };" },
+  { id: "flatmap-tv", site: "ix-call.ss.ts ixFlatMapArg (open p5 FM)", rule: "type", bad: "const a = () => { const fm = <T,>(xs: readonly T[]): readonly T[] => xs.flatMap((x) => x); return fm([1]).length; };", fix: "const a = () => { const fm = <T,>(xs: readonly T[]): readonly T[] => xs.flatMap((x) => [x]); return fm([1]).length; };" },
   // open (2026-11-25): a function with more parameters than its type (subtype.ss.ts extraParamsWith), and an
   // unannotated callback with more parameters than its context (ix-fn.ss.ts ixParamType)
   { id: "extra-params", site: "subtype.ss.ts extraParamsWith", rule: "arity", bad: "const a = () => { const f: (x: number) => string = (x: number, i?: number, s?: string) => s ?? \"n\"; return [5].map(f); };", fix: "const a = () => { const f: (x: number) => string = (x: number) => \"n\"; return [5].map(f); };" },

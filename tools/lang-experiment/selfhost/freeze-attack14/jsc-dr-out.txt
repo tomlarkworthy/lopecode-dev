@@ -1,0 +1,32 @@
+== selfhost/freeze-attack14/jsc.ts:jc-action-str: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/jsc.ts:jc-action-missing: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/jsc.ts:jc-action-obj: ACCEPT
+   drive -> same: 0 (call threw: an argument of the action b reaches a function or a promise that no finished cell has published: one)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/jsc.ts:jc-action-rec: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/jsc.ts:jc-action-arr-mutated: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/jsc.ts:jc-fn-str: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/jsc.ts:jc-ctl [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: number 5
+   show g = 5 | E[]
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 6 candidates, accepted 6, silent 3 (by the tap alone 0)
+SILENT selfhost/freeze-attack14/jsc.ts:jc-action-str
+SILENT selfhost/freeze-attack14/jsc.ts:jc-action-missing
+SILENT selfhost/freeze-attack14/jsc.ts:jc-action-rec
+-- checker throws 0 (parse errors 0)

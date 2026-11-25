@@ -1,0 +1,33 @@
+// freeze-attack14 class 1: == and != narrow as === does; flatMap in a generic body flattens a T that is an array; a
+// promise given for a type parameter is adopted by Promise.resolve and await
+import { tyRow, isNum, isLit, allIdx, type Cand } from "./lib14.ts";
+const R: Cand[] = [];
+const E = (name: string, src: string, ok: (v: unknown) => boolean) => R.push(tyRow(`e-${name}`, src, ok));
+E("str", `const g = (): "1" => { const v: number | "1" = 1; if (v == "1") { return v; } return "1"; };`, isLit("1"));
+E("num", `const g = (): 1 => { const v: "1" | 1 = "1"; if (v == 1) { return v; } return 1; };`, isLit(1));
+E("bool", `const g = (): true => { const v: true | 1 = 1; if (v == true) { return v; } return true; };`, isLit(true));
+E("zero-str", `const g = (): "" => { const v: "" | 0 = 0; if (v == "") { return v; } return ""; };`, isLit(""));
+E("neq", `const g = (): number => { const v: number | "1" = "1"; if (v != 1) { return 0; } return v; };`, isNum);
+E("neq-str-method", `const g = (): string => { const v: number | "1" = "1"; if (v != 1) { return "no"; } return v.toFixed(0); };`, (v) => typeof v === "string");
+E("cell-input", `const k = (): number | "1" => 1;\nconst g = (k: number | "1"): "1" => (k == "1" ? k : "1");`, isLit("1"));
+E("ternary", `const g = (): number => { const v: "2" | 2 = "2"; return v == 2 ? v : 0; };`, isNum);
+E("switch-after", `const g = (): string => { const v: "1" | 1 = 1; if (v == "1") { switch (v) { case "1": return "one"; } } return "other"; };`, (v) => typeof v === "string");
+E("null-zero", `const g = (): 0 => { const v: 0 | "0" = "0"; if (v == 0) { return v; } return 0; };`, isLit(0));
+E("array-str", `const g = (): "1" => { const xs = [1]; const v: readonly number[] | "1" = xs; if (v == "1") { return v; } return "1"; };`, isLit("1"));
+E("in-action", `const c = (): StateCell<"1"> => state("1");\nconst g = (c: "1") => c;\nconst b = (c: State<"1">) => action(() => { const v: number | "1" = 1; if (v == "1") c.set(v); });`, () => true);
+const F = (name: string, src: string, ok: (v: unknown) => boolean) => R.push(tyRow(`f-${name}`, src, ok));
+const arrOfArr = (v: unknown) => Array.isArray(v) && v.every((x) => Array.isArray(x));
+F("flatmap-id", `const g = (): readonly (readonly number[])[] => { const fm = <T,>(xs: readonly T[]): readonly T[] => xs.flatMap((x) => x); return fm([[1], [2]]); };`, arrOfArr);
+F("flatmap-fn", `const g = (): readonly (readonly number[])[] => { const fm = <T,>(xs: readonly T[], f: (x: T) => T): T[] => xs.flatMap(f); return fm([[1], [2]], (x) => x); };`, arrOfArr);
+F("flatmap-len", `const g = (): number => { const fm = <T,>(xs: readonly T[]): readonly T[] => xs.flatMap((x) => x); const ys = fm([[1, 2], [3]]); return ys.length; };`, isLit(2));
+F("flatmap-str", `const g = (): readonly string[] => { const fm = <T,>(xs: readonly T[]): readonly T[] => xs.flatMap((x) => x); return fm([["a", "b"]]); };`, (v) => Array.isArray(v) && v.length === 1);
+F("flatmap-cell", `const k = () => [[1], [2]];\nconst fm = () => <T,>(xs: readonly T[]): readonly T[] => xs.flatMap((x) => x);\nconst g = (k: readonly (readonly number[])[], fm: <T>(xs: readonly T[]) => readonly T[]): readonly (readonly number[])[] => fm(k);`, arrOfArr);
+F("flatmap-el-method", `const g = (): number => { const fm = <T,>(xs: readonly T[]): readonly T[] => xs.flatMap((x) => x); const ys = fm([[1], [2]]); const y = ys[0]; return y === undefined ? -1 : y.length; };`, (v) => typeof v === "number" && !Number.isNaN(v) && v !== undefined);
+F("promise-then", `const g = async (): Promise<readonly Promise<number>[]> => { const w = <T,>(x: T): Promise<readonly T[]> => Promise.resolve(x).then((v) => [v]); return w(Promise.resolve(1)); };`, (v) => Array.isArray(v) && v.every((x) => x instanceof Promise));
+F("promise-await", `const g = async (): Promise<readonly Promise<number>[]> => { const w = async <T,>(x: T): Promise<readonly T[]> => [await Promise.resolve(x)]; return w(Promise.resolve(1)); };`, (v) => Array.isArray(v) && v.every((x) => x instanceof Promise));
+F("promise-await2", `const g = async (): Promise<readonly Promise<number>[]> => { const w = async <T,>(x: T): Promise<readonly T[]> => { const v = await x; return [v]; }; return w(Promise.resolve(1)); };`, (v) => Array.isArray(v) && v.every((x) => x instanceof Promise));
+F("promise-rec", `const g = async (): Promise<{ readonly p: Promise<number> }> => { const w = async <T,>(x: T): Promise<{ readonly p: T }> => ({ p: await x }); return w(Promise.resolve(1)); };`, (v: any) => v?.p instanceof Promise);
+R.push(tyRow("e-ctl", `const g = (): "1" => 1;`, isLit("1"), true));
+R.push(tyRow("f-ctl", `const g = (): readonly (readonly number[])[] => [1, 2];`, arrOfArr, true));
+export const cands = R;
+export const srcs: [string, string][] = R.map((c) => [c.name, c.src]);

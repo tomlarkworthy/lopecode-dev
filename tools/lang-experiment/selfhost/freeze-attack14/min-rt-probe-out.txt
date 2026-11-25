@@ -1,0 +1,6 @@
+min-bt: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+min-jw: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability
+min-rt-ctl: REJECT g:rejected[inject-unknown][type]
+    g[inject-unknown] parameter ext names no cell, foreign or capability || g[type] "s" is not assignable to number

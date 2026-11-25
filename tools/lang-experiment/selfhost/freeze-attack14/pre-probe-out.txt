@@ -1,0 +1,94 @@
+p-local-state: ACCEPT
+p-param-state: ACCEPT
+p-destr-state: ACCEPT
+p-catch-state: ACCEPT
+p-fdecl-state: ACCEPT
+p-let-state: ACCEPT
+p-local-action: ACCEPT
+p-param-action: ACCEPT
+p-destr-action: ACCEPT
+p-catch-action: ACCEPT
+p-fdecl-action: ACCEPT
+p-let-action: ACCEPT
+p-local-mut: ACCEPT
+p-param-mut: ACCEPT
+p-destr-mut: ACCEPT
+p-catch-mut: ACCEPT
+p-fdecl-mut: ACCEPT
+p-let-mut: ACCEPT
+p-local-freeze: ACCEPT
+p-param-freeze: ACCEPT
+p-destr-freeze: ACCEPT
+p-catch-freeze: ACCEPT
+p-fdecl-freeze: ACCEPT
+p-let-freeze: ACCEPT
+p-local-borrow: ACCEPT
+p-param-borrow: ACCEPT
+p-destr-borrow: ACCEPT
+p-catch-borrow: ACCEPT
+p-fdecl-borrow: ACCEPT
+p-let-borrow: ACCEPT
+p-local-snapshot: REJECT g:rejected[prelude-shadow]
+    g[prelude-shadow] snapshot names a prelude function; a binding of that name would hide it from the rules of snapshot(...)
+p-param-snapshot: REJECT g:rejected[prelude-shadow]
+    g[prelude-shadow] snapshot names a prelude function; a binding of that name would hide it from the rules of snapshot(...)
+p-destr-snapshot: REJECT g:rejected[prelude-shadow]
+    g[prelude-shadow] snapshot names a prelude function; a binding of that name would hide it from the rules of snapshot(...)
+p-catch-snapshot: REJECT g:rejected[prelude-shadow]
+    g[prelude-shadow] snapshot names a prelude function; a binding of that name would hide it from the rules of snapshot(...)
+p-fdecl-snapshot: REJECT g:rejected[prelude-shadow]
+    g[prelude-shadow] snapshot names a prelude function; a binding of that name would hide it from the rules of snapshot(...)
+p-let-snapshot: REJECT g:rejected[prelude-shadow]
+    g[prelude-shadow] snapshot names a prelude function; a binding of that name would hide it from the rules of snapshot(...)
+p-local-equals: ACCEPT
+p-param-equals: ACCEPT
+p-destr-equals: ACCEPT
+p-catch-equals: ACCEPT
+p-fdecl-equals: ACCEPT
+p-let-equals: ACCEPT
+p-local-on: ACCEPT
+p-param-on: ACCEPT
+p-destr-on: REJECT g:rejected[listener-placement]
+    g[listener-placement] on is only called, as the whole value of a cell; it is not a value
+p-catch-on: ACCEPT
+p-fdecl-on: ACCEPT
+p-let-on: ACCEPT
+p-local-read: ACCEPT
+p-param-read: ACCEPT
+p-destr-read: REJECT g:rejected[read-outside-action]
+    g[read-outside-action] read is only called, in an action body; it is not a value
+p-catch-read: ACCEPT
+p-fdecl-read: ACCEPT
+p-let-read: ACCEPT
+p-local-messageOf: ACCEPT
+p-param-messageOf: ACCEPT
+p-destr-messageOf: ACCEPT
+p-catch-messageOf: ACCEPT
+p-fdecl-messageOf: ACCEPT
+p-let-messageOf: ACCEPT
+p-local-memo: ACCEPT
+p-param-memo: ACCEPT
+p-destr-memo: ACCEPT
+p-catch-memo: ACCEPT
+p-fdecl-memo: ACCEPT
+p-let-memo: ACCEPT
+p-local-cast: ACCEPT
+p-param-cast: ACCEPT
+p-destr-cast: ACCEPT
+p-catch-cast: ACCEPT
+p-fdecl-cast: ACCEPT
+p-let-cast: ACCEPT
+p-local-h: ACCEPT
+p-param-h: ACCEPT
+p-destr-h: ACCEPT
+p-catch-h: ACCEPT
+p-fdecl-h: ACCEPT
+p-let-h: ACCEPT
+p-cast-lie: REJECT g:rejected[type][type]
+    g[type] expected 0 type arguments, got 1 || g[type] string is not assignable to number
+p-memo-lie: REJECT g:rejected[type]
+    g[type] string is not callable
+p-cell-param: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter read names no cell, foreign or capability
+p-ctl: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number

@@ -1,0 +1,17 @@
+c-throw-after-set: ACCEPT
+c-throw-after-nested: ACCEPT
+c-update-throws: ACCEPT
+c-caught-nested-keeps: ACCEPT
+c-caught-then-throw: ACCEPT
+c-read-sees-write: ACCEPT
+c-update-sees-write: ACCEPT
+c-nested-read: ACCEPT
+c-throw-in-map: ACCEPT
+c-throw-in-update-after-nested: ACCEPT
+c-caught-update: ACCEPT
+c-caught-update-partial: ACCEPT
+c-ctl-write-kept: ACCEPT
+c-two-calls-one-commit: ACCEPT
+c-two-actions-one-commit: ACCEPT
+c-two-states-one-commit: ACCEPT
+c-ctl-between: ACCEPT

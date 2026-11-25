@@ -1,0 +1,49 @@
+a-empty: ACCEPT
+a-if: ACCEPT
+a-while-break: ACCEPT
+a-await-only: ACCEPT
+a-fn-decl: ACCEPT
+a-nested: ACCEPT
+a-nested-length: ACCEPT
+a-method: ACCEPT
+a-cell-reader: ACCEPT
+a-record: ACCEPT
+a-arr: ACCEPT
+a-then: ACCEPT
+a-promise-all: ACCEPT
+a-switch: ACCEPT
+a-try: ACCEPT
+a-expr-arrow-cb: ACCEPT
+a-state: ACCEPT
+a-noannot-generic: REJECT g:rejected[strict-eq-object]
+    g[strict-eq-object] === on two non-primitive operands; use equals(a, b)
+w-spread-override: ACCEPT
+w-spread-override-inline: ACCEPT
+w-spread-cell-input: ACCEPT
+w-spread-length: ACCEPT
+w-spread-fn-member: ACCEPT
+w-spread-published: ACCEPT
+w-spread-param: REJECT g:rejected[excess-property]
+    g[excess-property] property b is not in { a: number }
+w-spread-param2: ACCEPT
+w-spread-union: REJECT g:unsupported
+    g{unsupported object spread of { a: number } | { a: string }}
+w-spread-generic: REJECT g:unsupported
+    g{unsupported object spread of T}
+w-spread-nested: ACCEPT
+w-spread-state: ACCEPT
+w-spread-arr-el: ACCEPT
+k-num-str: REJECT g:rejected[type][type]
+    g[type] "a" is not assignable to number || g[type] cannot index R with 1
+k-num-str2: REJECT g:rejected[type][type]
+    g[type] "a" is not assignable to number || g[type] { 1: "a" } is not assignable to R
+k-hex: REJECT g:rejected[type][type]
+    g[type] "a" is not assignable to number || g[type] cannot index R with 1
+k-exp: REJECT g:rejected[type][type]
+    g[type] "a" is not assignable to number || g[type] cannot index R with 1
+k-str-id: REJECT g:rejected[type][type]
+    g[type] "a" is not assignable to number || g[type] number is not assignable to string
+a-ctl-undef: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+w-ctl-str: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number

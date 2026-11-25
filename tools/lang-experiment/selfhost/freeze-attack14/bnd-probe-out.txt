@@ -1,0 +1,26 @@
+b-tuple-shorter: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+b-tuple-shorter-str: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+b-tuple-longer: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+b-tuple-in-rec: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+b-tuple-in-arr: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+b-tuple-union: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+b-tuple-forof: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+b-fn-result-tuple: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+b-fn-result-async-tuple: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+b-cast-tuple: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+b-getter-elem: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+b-arr-len-proxy: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter ext names no cell, foreign or capability
+b-ctl-str: REJECT g:rejected[inject-unknown][type]
+    g[inject-unknown] parameter ext names no cell, foreign or capability || g[type] "s" is not assignable to number

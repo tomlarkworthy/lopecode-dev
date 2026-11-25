@@ -1,0 +1,106 @@
+s69-direct: REJECT b:rejected[action-capture]
+    b[action-capture] c depends on state (the value of the state cell c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-map-recv: REJECT b:rejected[action-capture]
+    b[action-capture] n is computed from c, which depends on state (the value of the state cell c); an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-from-len: REJECT b:rejected[action-capture]
+    b[action-capture] i is computed from c, which depends on state (the value of the state cell c); an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-filter-cb: REJECT b:rejected[action-capture][mut-capture]
+    b[action-capture] ys depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called || b[mut-capture] Mut ys captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: number[] = ys) and capture that, or make it inside the function
+s69-filter-then-map: REJECT b:rejected[action-capture]
+    b[action-capture] n is computed from c, which depends on state (the value of the state cell c); an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-find-cb: REJECT b:rejected[action-capture]
+    b[action-capture] f depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-toSorted-cb: REJECT b:rejected[action-capture][mut-capture]
+    b[action-capture] ys depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called || b[mut-capture] Mut ys captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: number[] = ys) and capture that, or make it inside the function
+s69-reduce-cb: REJECT b:rejected[action-capture]
+    b[action-capture] n depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-reduce-acc: REJECT b:rejected[action-capture]
+    b[action-capture] c depends on state (the value of the state cell c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-readonly-alias-push: REJECT b:rejected[action-capture]
+    b[action-capture] ys is computed from xs, which is a Mut, which the cell may change after the action is made; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-implicit-push: REJECT b:rejected[action-capture]
+    b[action-capture] ys is computed from xs, which is a Mut, which the cell may change after the action is made; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-implicit-const-arr: REJECT b:rejected[action-capture]
+    b[action-capture] n is computed from xs, which is a Mut, which the cell may change after the action is made; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-loop-counter: REJECT b:rejected[action-capture]
+    b[action-capture] m is computed from n, which is a let or a catch binding, so its value is not fixed where it is declared; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-catch-throw: REJECT b:rejected[action-capture]
+    b[action-capture] m is computed from e, which is a let or a catch binding, so its value is not fixed where it is declared; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-map-into: REJECT b:rejected[action-capture]
+    b[action-capture] r is computed from m, which is a Mut, which the cell may change after the action is made; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-nested-param-log: REJECT b:rejected[action-capture]
+    b[action-capture] log is a parameter of an enclosing function, so a caller may pass it a value that depends on state; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-nested-param-invalidation: REJECT b:rejected[action-capture]
+    b[action-capture] invalidation is a parameter of an enclosing function, so a caller may pass it a value that depends on state; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-local-log: REJECT b:rejected[action-capture]
+    b[action-capture] log depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-local-invalidation: REJECT b:rejected[action-capture]
+    b[action-capture] invalidation depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-fn-decl-helper: REJECT b:rejected[action-capture]
+    b[action-capture] h depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-helper-const: REJECT b:rejected[action-capture]
+    b[action-capture] h depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-helper-fwd: REJECT b:rejected[action-capture]
+    b[action-capture] h depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-helper-fwd-mutual: REJECT b:rejected[action-capture]
+    b[action-capture] h depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-fwd-value: REJECT b:rejected[action-capture]
+    b[action-capture] v depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-obj-method: REJECT b:rejected[action-capture][mut-capture]
+    b[action-capture] o depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called || b[mut-capture] Mut o captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: { get: () => number } = o) and capture that, or make it inside the function
+s69-obj-method-syntax: REJECT b:rejected[action-capture][mut-capture]
+    b[action-capture] o depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called || b[mut-capture] Mut o captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: { get: () => number } = o) and capture that, or make it inside the function
+s69-switch-implicit: REJECT b:rejected[action-capture]
+    b[action-capture] ys is computed from xs, which is a Mut, which the cell may change after the action is made; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-while-implicit: REJECT b:rejected[action-capture]
+    b[action-capture] n is computed from xs, which is a Mut, which the cell may change after the action is made; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-forof-cell-arr: REJECT b:rejected[action-capture]
+    b[action-capture] x is computed from c, which depends on state (the value of the state cell c); an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-forof-const: REJECT b:rejected[action-capture]
+    b[action-capture] x is computed from c, which depends on state (the value of the state cell c); an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-forof-index-from: REJECT b:rejected[action-capture]
+    b[action-capture] x is computed from c, which depends on state (the value of the state cell c); an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-equals: REJECT b:rejected[action-capture]
+    b[action-capture] e depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-json: REJECT b:rejected[action-capture]
+    b[action-capture] s depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-template: REJECT b:rejected[action-capture]
+    b[action-capture] s depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-memo-arg: REJECT b:rejected[action-capture]
+    b[action-capture] v depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-cast: REJECT b:rejected[action-capture][action-capture]
+    b[action-capture] r depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called || b[action-capture] r is computed from c, which depends on state (the value of the state cell c); an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-update-param: REJECT b:rejected[action-capture]
+    b[action-capture] c depends on state (the value of the state cell c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-nested-action-param: REJECT b:rejected[action-capture]
+    b[action-capture] c depends on state (the value of the state cell c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-listener-arg: REJECT b:rejected[action-capture]
+    b[action-capture] c depends on state (the value of the state cell c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-map-cb-own: REJECT b:rejected[action-capture]
+    b[action-capture] y depends on state (computed from c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-flatMap-recv: REJECT b:rejected[action-capture]
+    b[action-capture] n is computed from c, which depends on state (the value of the state cell c); an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-generator-cell: REJECT a:rejected[inject-unknown] b:rejected[action-capture]
+    a[inject-unknown] parameter c names no cell, foreign or capability || b[action-capture] t depends on state (the latest value of the events cell t), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-async-cell: REJECT a:rejected[inject-unknown]
+    a[inject-unknown] parameter c names no cell, foreign or capability
+s69-ternary-sel: ACCEPT
+s69-idx-param-only: REJECT b:rejected[action-capture]
+    b[action-capture] i is computed from c, which depends on state (the value of the state cell c); an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-sort-mut-then-map: REJECT b:rejected[action-capture]
+    b[action-capture] n is computed from ys, which is computed from xs, which is a Mut, which the cell may change after the action is made; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-fresh-from-mut-copy: REJECT b:rejected[mut-capture][action-capture]
+    b[mut-capture] Mut ys captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: number[] = ys) and capture that, or make it inside the function || b[action-capture] ys is a Mut, which the cell may change after the action is made; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-fresh-spread: REJECT b:rejected[action-capture]
+    b[action-capture] n is computed from xs, which is a Mut, which the cell may change after the action is made; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-mut-forEach-taint: ACCEPT
+s69-slice-of-ro: REJECT b:rejected[action-capture]
+    b[action-capture] n is computed from ys, which is computed from xs, which is a Mut, which the cell may change after the action is made; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-map-recv-ro-mut: REJECT b:rejected[action-capture]
+    b[action-capture] n is computed from xs, which is a Mut, which the cell may change after the action is made; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-map-recv-mut-implicit: REJECT b:rejected[action-capture]
+    b[action-capture] n is computed from xs, which is a Mut, which the cell may change after the action is made; an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called
+s69-ctl-direct: REJECT b:rejected[action-capture]
+    b[action-capture] c depends on state (the value of the state cell c), so an action using it would act on the value from the cell's last run; read the state cell inside the action with read(...), or pass the value to the action when it is called
+s69-ctl-map-recv: REJECT b:rejected[action-capture]
+    b[action-capture] n is computed from c, which depends on state (the value of the state cell c); an action may use from its cell only inputs that hold no state and the consts and functions made from them, so pass the value to the action when it is called

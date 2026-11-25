@@ -1,0 +1,37 @@
+m-st-alias: ACCEPT
+m-destructure-set: ACCEPT
+m-computed-set: ACCEPT
+m-name-after: ACCEPT
+m-helper-result: ACCEPT
+m-callback-many: REJECT b:rejected[mutating-method]
+    b[mutating-method] xs is written after a value is published at s.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before s.set
+m-update-alias: REJECT b:rejected[mut-capture]
+    b[mut-capture] Mut xs returned or yielded by a function the cell keeps: whoever calls it could write xs; bind it under its plain type before the function (const c: number[] = xs) and return a copy of that ([...c])
+m-record-field: REJECT b:rejected[mutating-method]
+    b[mutating-method] o is written after a value is published at s.set in the same run of this function; a function published there may read o through a read-only name (S4.10) and would see the write (S4.11); finish every write to o before s.set
+m-spread-holder: REJECT b:rejected[mutating-method]
+    b[mutating-method] xs is written after a value is published at s.set in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before s.set || b{unsupported object spread of State<number[]>}
+m-array-holder: REJECT b:rejected[mutating-method]
+    b[mutating-method] xs is written after a value is published at ….set(…) in the same run of this function; a function published there may read xs through a read-only name (S4.10) and would see the write (S4.11); finish every write to xs before ….set(…)
+m-action-arg: ACCEPT
+m-action-arg-helper: ACCEPT
+m-gen-alias-after: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut ys is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+m-gen-helper-after: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut xs is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+m-gen-record-after: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut o is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: { xs: number[] } = ...) and read c
+m-gen-name-after: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut xs is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+m-gen-in-record: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut o is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: { xs: number[] } = ...) and read c
+m-async-nested-after: REJECT g:rejected[type][mut-await][mut-await]
+    g[type] Mut<number[]> is not assignable to Mut<number[]> | Promise<Mut<number[]>> || g[mut-await] Mut xs is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const c: number[] = ...) and read c || g[mut-await] p, whose type holds Mut<number[]>, is declared before an await in a function whose values may be seen before 
+m-async-nested-alias: REJECT g:rejected[mut-await][mut-await]
+    g[mut-await] Mut xs is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the await, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the await (const c: number[] = ...) and read c || g[mut-await] Mut ys is declared before an await in a function whose values may be seen before it ends and used after it, and the code after it runs once a value has been given; declare it in the loop body th
+m-async-cell-memo: ACCEPT
+m-memo-name-after: ACCEPT
+m-async-gen-alias: REJECT g:rejected[mut-yield]
+    g[mut-yield] Mut ys is declared before a yield and used after it, and the code after it runs once a value has been given; declare it in the loop body that holds the yield, or build the value in a helper call (const v = make(k)); to only read it there, bind it under its plain type before the yield (const c: number[] = ...) and read c
+m-returned-fn-alias: ACCEPT
+m-ctl-direct: ACCEPT

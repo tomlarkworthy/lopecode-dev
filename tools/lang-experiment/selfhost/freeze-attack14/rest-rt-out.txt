@@ -1,0 +1,75 @@
+== selfhost/freeze-attack14/rest.ts:r-annot: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/rest.ts:r-two: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/rest.ts:r-str: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/rest.ts:r-arg: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/rest.ts:r-spread-empty: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/rest.ts:r-lead-rest: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/rest.ts:r-rec: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/rest.ts:r-cell-input: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/rest.ts:r-memo: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/rest.ts:r-arr-of: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/rest.ts:r-action-state: ACCEPT
+   drive -> DIFF g is outside its type: object [null]
+   CHANGED drive -> DIFF g is outside its type: object [null]
+   show g = [undefined]
+   SILENT
+== selfhost/freeze-attack14/rest.ts:r-ctl [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 11 candidates, accepted 11, silent 11
+SILENT selfhost/freeze-attack14/rest.ts:r-annot
+SILENT selfhost/freeze-attack14/rest.ts:r-two
+SILENT selfhost/freeze-attack14/rest.ts:r-str
+SILENT selfhost/freeze-attack14/rest.ts:r-arg
+SILENT selfhost/freeze-attack14/rest.ts:r-spread-empty
+SILENT selfhost/freeze-attack14/rest.ts:r-lead-rest
+SILENT selfhost/freeze-attack14/rest.ts:r-rec
+SILENT selfhost/freeze-attack14/rest.ts:r-cell-input
+SILENT selfhost/freeze-attack14/rest.ts:r-memo
+SILENT selfhost/freeze-attack14/rest.ts:r-arr-of
+SILENT selfhost/freeze-attack14/rest.ts:r-action-state
+-- checker throws 0 (parse errors 0)

@@ -1,0 +1,39 @@
+== selfhost/freeze-attack14/pre2.ts:p2-action-not-fn: ACCEPT
+   drive -> same: 5
+   show g = 5 | E[]
+== selfhost/freeze-attack14/pre2.ts:p2-action-type: ACCEPT
+   drive -> same: 5
+   show g = 5 | E[]
+== selfhost/freeze-attack14/pre2.ts:p2-memo-num: ACCEPT
+   drive -> same: 5
+   show g = 5 | E[]
+== selfhost/freeze-attack14/pre2.ts:p2-memo-impure: REJECT g:rejected[mut-capture]
+== selfhost/freeze-attack14/pre2.ts:p2-equals: ACCEPT
+   drive -> same: false
+   show g = false | E[]
+== selfhost/freeze-attack14/pre2.ts:p2-messageOf: ACCEPT
+   drive -> same: "m"
+   show g = "m" | E[]
+== selfhost/freeze-attack14/pre2.ts:p2-cast: ACCEPT
+   drive -> same: "s"
+   show g = "s" | E[]
+== selfhost/freeze-attack14/pre2.ts:p2-freeze-mut: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack14/pre2.ts:p2-state-local: ACCEPT
+   drive -> same: 3
+   show g = 3 | E[]
+== selfhost/freeze-attack14/pre2.ts:p2-read-in-action: REJECT b:rejected[handle-pass]
+== selfhost/freeze-attack14/pre2.ts:p2-read-param: ACCEPT
+   drive -> same: 7
+   show g = 7 | E[]
+== selfhost/freeze-attack14/pre2.ts:p2-on-local: ACCEPT
+   drive -> same: g rejected g must return on(events, action)
+   show g = ERROR g must return on(events, action)
+   error g: g must return on(events, action)
+== selfhost/freeze-attack14/pre2.ts:p2-ctl [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 12 candidates, accepted 9, silent 0 (by the tap alone 0)
+-- checker throws 0 (parse errors 0)

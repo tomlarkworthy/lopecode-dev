@@ -1,0 +1,27 @@
+e-str: ACCEPT
+e-num: ACCEPT
+e-bool: ACCEPT
+e-zero-str: ACCEPT
+e-neq: ACCEPT
+e-neq-str-method: ACCEPT
+e-cell-input: ACCEPT
+e-ternary: ACCEPT
+e-switch-after: ACCEPT
+e-null-zero: ACCEPT
+e-array-str: ACCEPT
+e-in-action: ACCEPT
+f-flatmap-id: ACCEPT
+f-flatmap-fn: ACCEPT
+f-flatmap-len: ACCEPT
+f-flatmap-str: REJECT g:rejected[type][type]
+    g[type] string[] is not assignable to string || g[type] string[][] is not assignable to string[]
+f-flatmap-cell: ACCEPT
+f-flatmap-el-method: ACCEPT
+f-promise-then: ACCEPT
+f-promise-await: ACCEPT
+f-promise-await2: ACCEPT
+f-promise-rec: ACCEPT
+e-ctl: REJECT g:rejected[type]
+    g[type] 1 is not assignable to "1"
+f-ctl: REJECT g:rejected[type][type][type]
+    g[type] 1 is not assignable to number[] || g[type] 2 is not assignable to number[] || g[type] (1 | 2)[] is not assignable to number[][]

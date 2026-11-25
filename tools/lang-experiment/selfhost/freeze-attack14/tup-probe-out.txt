@@ -1,0 +1,49 @@
+t-reverse: ACCEPT
+t-sort: ACCEPT
+t-sort-cmp: ACCEPT
+t-fill: ACCEPT
+t-fill-range: ACCEPT
+t-unshift: ACCEPT
+t-copyWithin: ACCEPT
+t-shift: ACCEPT
+t-pop: ACCEPT
+t-splice: ACCEPT
+t-splice-insert: ACCEPT
+t-push-len: ACCEPT
+t-pop-len: ACCEPT
+t-shift-destructure: ACCEPT
+t-pop-tostr: ACCEPT
+t-reverse-str-method: ACCEPT
+t-reverse-num-method: ACCEPT
+t-mutparam-reverse: ACCEPT
+t-mutparam-pop: ACCEPT
+t-in-record: ACCEPT
+t-published: ACCEPT
+t-let-tuple: ACCEPT
+t-cell-reader: ACCEPT
+t-switch-len: ACCEPT
+t-literal-tuple: ACCEPT
+t-union-tuple: REJECT g:rejected[mutating-method]
+    g[mutating-method] write to a P, which is not Mut; reverse writes its receiver: toReversed returns a new array instead (t.toReversed(...)), or a copy made in the same expression ([...t]) or bound to a local (const y = [...t]) is writable
+t-generic-reverse: ACCEPT
+h-ret: ACCEPT
+h-spread: ACCEPT
+h-forof: ACCEPT
+h-destructure: ACCEPT
+h-from: ACCEPT
+h-toSorted: ACCEPT
+h-find: ACCEPT
+h-find-plus: ACCEPT
+h-map-forof: ACCEPT
+h-at: ACCEPT
+h-reduce: ACCEPT
+h-index-len: ACCEPT
+h-with: ACCEPT
+h-toSpliced: ACCEPT
+h-concat: ACCEPT
+h-typed-loop: ACCEPT
+h-let-index: ACCEPT
+t-ctl-num-is-str: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+t-ctl-arr-undef: REJECT g:rejected[possibly-undefined][type]
+    g[possibly-undefined] undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that || g[type] (1 | undefined)[] is not assignable to number[]

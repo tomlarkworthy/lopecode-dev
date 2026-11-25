@@ -24,7 +24,7 @@ import { attacks as T1_ATTACKS } from "./t1-attacks.ts";
 import { attacks as W1_ATTACKS } from "./w1-attacks.ts";
 import { attacks as X1_ATTACKS } from "./x1-attacks.ts";
 import { attacks as Y1_ATTACKS } from "./y1-attacks.ts";
-import { attacks as OPEN_ATTACKS, FWD_RULES } from "./open-attacks.ts";
+import { attacks as OPEN_ATTACKS, FWD_RULES, A14_RULES } from "./open-attacks.ts";
 import { checkSources as frozenCheck } from "../frozen/core.ts";
 
 // a verdict: ACCEPT, or REJECT with each cell that is not ok and its rules
@@ -383,7 +383,7 @@ for (const a of OPEN_ROWS)
     const live = rulesOf(checkSources({ cells: a.src, tsx: true, outside: [], foreign: null }));
     expect(live.ok).toBe(a.name.startsWith("open-ok-"));
     // part 3: open-fwd-* is [free-name]; open-fwdr-* is the rule FWD_RULES names and never [free-name]
-    const want = a.name.startsWith("open-act-") ? ["action-capture"] : a.name.startsWith("open-fwd-") || a.name.startsWith("open-fwdo-") ? ["free-name"] : a.name.startsWith("open-fwdr-") ? [FWD_RULES.get(a.name) ?? "?"] : ["arity", "inject-type"];
+    const want = a.name.startsWith("open-act-") ? ["action-capture"] : a.name.startsWith("open-fwd-") || a.name.startsWith("open-fwdo-") ? ["free-name"] : a.name.startsWith("open-fwdr-") ? [FWD_RULES.get(a.name) ?? "?"] : a.name.startsWith("open-a14-") ? A14_RULES.get(a.name) ?? ["?"] : ["arity", "inject-type"];
     if (!live.ok) expect(want.some((w) => live.rules.includes(w))).toBe(true);
     if (a.name.startsWith("open-fwdr-")) expect(live.rules.includes("free-name")).toBe(false);
     expect(rulesOf(frozenCheck({ cells: a.src, tsx: true, outside: [], foreign: null } as Parameters<typeof frozenCheck>[0]))).toEqual(live);

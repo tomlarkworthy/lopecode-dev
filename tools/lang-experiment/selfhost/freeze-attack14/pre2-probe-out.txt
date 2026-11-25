@@ -1,0 +1,17 @@
+p2-action-not-fn: ACCEPT
+p2-action-type: ACCEPT
+p2-memo-num: ACCEPT
+p2-memo-impure: REJECT g:rejected[mut-capture]
+    g[mut-capture] Mut xs written by a function the cell keeps (not a local helper that is only called): it is frozen where the function is made, so the write would throw; make xs inside the function, or keep it in a state cell that an action writes
+p2-equals: ACCEPT
+p2-messageOf: ACCEPT
+p2-cast: ACCEPT
+p2-freeze-mut: REJECT g:rejected[mutating-method]
+    g[mutating-method] write to a number[], which is not Mut; a copy made in the same expression ([...ys]) or bound to a local (const y = [...ys]) is writable
+p2-state-local: ACCEPT
+p2-read-in-action: REJECT b:rejected[handle-pass]
+    b[handle-pass] State<number> is given the type unknown, which hides its State<number>; a State or Events handle, or a FetchResponse, goes only where its own type is expected
+p2-read-param: ACCEPT
+p2-on-local: ACCEPT
+p2-ctl: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number

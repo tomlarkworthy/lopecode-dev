@@ -1,0 +1,152 @@
+== selfhost/freeze-attack14/ret.ts:a-empty: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-if: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-while-break: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-await-only: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-fn-decl: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-nested: ACCEPT
+   drive -> DIFF g is outside its type: number 99
+   show g = 99 | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-nested-length: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined!"
+   show g = "undefined!" | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-method: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined" | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-cell-reader: ACCEPT
+   drive -> DIFF g is outside its type: string "undefined"
+   show g = "undefined" | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-record: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-arr: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-then: ACCEPT
+   drive -> DIFF g is outside its type: number null
+   show g = null | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-promise-all: ACCEPT
+   drive -> DIFF g is outside its type: object [null,null]
+   show g = [undefined,undefined] | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-switch: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-try: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:a-expr-arrow-cb: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/ret.ts:a-state: ACCEPT
+   drive -> same: 5
+   show g = 5 | E[]
+== selfhost/freeze-attack14/ret.ts:a-noannot-generic: REJECT g:rejected[strict-eq-object]
+== selfhost/freeze-attack14/ret.ts:w-spread-override: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:w-spread-override-inline: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:w-spread-cell-input: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:w-spread-length: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:w-spread-fn-member: ACCEPT
+   drive -> DIFF g is outside its type: number 99
+   show g = 99 | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:w-spread-published: ACCEPT
+   drive -> DIFF g is outside its type: object {"b":"s","a":1}
+   show g = {b:"s",a:1} | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:w-spread-param: REJECT g:rejected[excess-property]
+== selfhost/freeze-attack14/ret.ts:w-spread-param2: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:w-spread-union: REJECT g:unsupported
+== selfhost/freeze-attack14/ret.ts:w-spread-generic: REJECT g:unsupported
+== selfhost/freeze-attack14/ret.ts:w-spread-nested: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:w-spread-state: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:w-spread-arr-el: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/ret.ts:k-num-str: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/ret.ts:k-num-str2: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/ret.ts:k-hex: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/ret.ts:k-exp: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/ret.ts:k-str-id: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/ret.ts:a-ctl-undef [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack14/ret.ts:w-ctl-str [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 36 candidates, accepted 27, silent 25 (by the tap alone 0)
+SILENT selfhost/freeze-attack14/ret.ts:a-empty
+SILENT selfhost/freeze-attack14/ret.ts:a-if
+SILENT selfhost/freeze-attack14/ret.ts:a-while-break
+SILENT selfhost/freeze-attack14/ret.ts:a-await-only
+SILENT selfhost/freeze-attack14/ret.ts:a-fn-decl
+SILENT selfhost/freeze-attack14/ret.ts:a-nested
+SILENT selfhost/freeze-attack14/ret.ts:a-nested-length
+SILENT selfhost/freeze-attack14/ret.ts:a-method
+SILENT selfhost/freeze-attack14/ret.ts:a-cell-reader
+SILENT selfhost/freeze-attack14/ret.ts:a-record
+SILENT selfhost/freeze-attack14/ret.ts:a-arr
+SILENT selfhost/freeze-attack14/ret.ts:a-then
+SILENT selfhost/freeze-attack14/ret.ts:a-promise-all
+SILENT selfhost/freeze-attack14/ret.ts:a-switch
+SILENT selfhost/freeze-attack14/ret.ts:a-try
+SILENT selfhost/freeze-attack14/ret.ts:w-spread-override
+SILENT selfhost/freeze-attack14/ret.ts:w-spread-override-inline
+SILENT selfhost/freeze-attack14/ret.ts:w-spread-cell-input
+SILENT selfhost/freeze-attack14/ret.ts:w-spread-length
+SILENT selfhost/freeze-attack14/ret.ts:w-spread-fn-member
+SILENT selfhost/freeze-attack14/ret.ts:w-spread-published
+SILENT selfhost/freeze-attack14/ret.ts:w-spread-param2
+SILENT selfhost/freeze-attack14/ret.ts:w-spread-nested
+SILENT selfhost/freeze-attack14/ret.ts:w-spread-state
+SILENT selfhost/freeze-attack14/ret.ts:w-spread-arr-el
+-- checker throws 0 (parse errors 0)

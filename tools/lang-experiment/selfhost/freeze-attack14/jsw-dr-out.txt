@@ -1,0 +1,20 @@
+== selfhost/freeze-attack14/jsw.ts:j-typed-index: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/jsw.ts:j-typed-in-rec: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/jsw.ts:j-typed-in-arr: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/jsw.ts:j-typed-fill: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/jsw.ts:j-buffer: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/jsw.ts:j-map-proto-set: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/jsw.ts:j-set-proto-add: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/jsw.ts:j-url-setter: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/jsw.ts:j-state-typed: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/jsw.ts:j-arr-held: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/jsw.ts:j-map-held: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/jsw.ts:j-ctl [ctl]: CONTROL (checker skipped)
+   drive -> same: g rejected w is not defined
+   show g = ERROR w is not defined
+   error g: w is not defined
+   CONTROL DID NOT FIRE
+-- controls 1, ran 1, fired 0
+-- harness crashes 0
+-- 11 candidates, accepted 0, silent 0 (by the tap alone 0)
+-- checker throws 0 (parse errors 0)

@@ -116,7 +116,9 @@ interface String {
   lastIndexOf(s: string, pos?: number): number;
   slice(start?: number, end?: number): string;
   substring(start: number, end?: number): string;
-  split(sep: string | RegExp, limit?: number): string[];
+  split(sep: string, limit?: number): string[];
+  // open part 5 (SG): a group of the separator that takes no part puts undefined in the result
+  split(sep: RegExp, limit?: number): (string | undefined)[];
   trim(): string;
   trimStart(): string;
   trimEnd(): string;

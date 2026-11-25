@@ -1,0 +1,168 @@
+== selfhost/freeze-attack14/optp.ts:o-annot: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-annot-str: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-annot-arr: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-annot-rec: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-second: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-rec-member: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-arr-el: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-arg: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-generic: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-memo: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-cond: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-cell-input: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-cell-input-ret: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-method-length: ACCEPT
+   drive -> same: g rejected undefined is not an object (evaluating 's.length')
+   show g = ERROR undefined is not an object (evaluating 's.length')
+   error g: undefined is not an object (evaluating 's.length')
+== selfhost/freeze-attack14/optp.ts:o-str-concat: ACCEPT
+   drive -> DIFF g is outside its type: string "aundefined"
+   CHANGED drive -> DIFF g is outside its type: string "aundefined"
+   show g = "aundefined"
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-narrow-gone: ACCEPT
+   drive -> same: 2
+   show g = 2
+== selfhost/freeze-attack14/optp.ts:o-map-cb: ACCEPT
+   drive -> DIFF g is outside its type: object [null,1]
+   CHANGED drive -> DIFF g is outside its type: object [null,1]
+   show g = [undefined,1]
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-union-member: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-tuple-el: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-return-fn: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-map-value: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-default-param: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-state-held: ACCEPT
+   drive -> same: null
+   show g = null
+== selfhost/freeze-attack14/optp.ts:o-type-alias: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-interface-call: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-published-fn: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-action-state: ACCEPT
+   drive -> DIFF g is outside its type: object [null]
+   CHANGED drive -> DIFF g is outside its type: object [null]
+   show g = [undefined]
+   SILENT
+== selfhost/freeze-attack14/optp.ts:o-ctl-undef [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   CONTROL FIRED
+== selfhost/freeze-attack14/optp.ts:o-ctl-action-state [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object [null]
+   CHANGED drive -> DIFF g is outside its type: object [null]
+   show g = [undefined]
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 27 candidates, accepted 27, silent 24
+SILENT selfhost/freeze-attack14/optp.ts:o-annot
+SILENT selfhost/freeze-attack14/optp.ts:o-annot-str
+SILENT selfhost/freeze-attack14/optp.ts:o-annot-arr
+SILENT selfhost/freeze-attack14/optp.ts:o-annot-rec
+SILENT selfhost/freeze-attack14/optp.ts:o-second
+SILENT selfhost/freeze-attack14/optp.ts:o-rec-member
+SILENT selfhost/freeze-attack14/optp.ts:o-arr-el
+SILENT selfhost/freeze-attack14/optp.ts:o-arg
+SILENT selfhost/freeze-attack14/optp.ts:o-generic
+SILENT selfhost/freeze-attack14/optp.ts:o-memo
+SILENT selfhost/freeze-attack14/optp.ts:o-cond
+SILENT selfhost/freeze-attack14/optp.ts:o-cell-input
+SILENT selfhost/freeze-attack14/optp.ts:o-cell-input-ret
+SILENT selfhost/freeze-attack14/optp.ts:o-str-concat
+SILENT selfhost/freeze-attack14/optp.ts:o-map-cb
+SILENT selfhost/freeze-attack14/optp.ts:o-union-member
+SILENT selfhost/freeze-attack14/optp.ts:o-tuple-el
+SILENT selfhost/freeze-attack14/optp.ts:o-return-fn
+SILENT selfhost/freeze-attack14/optp.ts:o-map-value
+SILENT selfhost/freeze-attack14/optp.ts:o-default-param
+SILENT selfhost/freeze-attack14/optp.ts:o-type-alias
+SILENT selfhost/freeze-attack14/optp.ts:o-interface-call
+SILENT selfhost/freeze-attack14/optp.ts:o-published-fn
+SILENT selfhost/freeze-attack14/optp.ts:o-action-state
+-- checker throws 0 (parse errors 0)

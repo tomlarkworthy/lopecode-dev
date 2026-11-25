@@ -1,0 +1,31 @@
+o-annot: ACCEPT
+o-annot-str: ACCEPT
+o-annot-arr: ACCEPT
+o-annot-rec: ACCEPT
+o-second: ACCEPT
+o-rec-member: ACCEPT
+o-arr-el: ACCEPT
+o-arg: ACCEPT
+o-generic: ACCEPT
+o-memo: ACCEPT
+o-cond: ACCEPT
+o-cell-input: ACCEPT
+o-cell-input-ret: ACCEPT
+o-method-length: ACCEPT
+o-str-concat: ACCEPT
+o-narrow-gone: ACCEPT
+o-map-cb: ACCEPT
+o-union-member: ACCEPT
+o-tuple-el: ACCEPT
+o-return-fn: ACCEPT
+o-map-value: ACCEPT
+o-default-param: ACCEPT
+o-state-held: ACCEPT
+o-type-alias: ACCEPT
+o-interface-call: ACCEPT
+o-published-fn: ACCEPT
+o-action-state: ACCEPT
+o-ctl-undef: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+o-ctl-action-state: REJECT b:rejected[possibly-undefined][type]
+    b[possibly-undefined] undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that || b[type] undefined[] is not assignable to number[]

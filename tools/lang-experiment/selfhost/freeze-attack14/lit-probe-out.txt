@@ -1,0 +1,29 @@
+l-inc: ACCEPT
+l-preinc: ACCEPT
+l-dec: ACCEPT
+l-predec-expr: ACCEPT
+l-union-inc: ACCEPT
+l-member-inc: ACCEPT
+l-arr-inc: ACCEPT
+l-tuple-inc: ACCEPT
+l-switch-dead: ACCEPT
+l-discriminant: ACCEPT
+l-record-key: REJECT g:rejected[type]
+    g[type] cannot index { a: number; b: number } with "a"
+l-bool-lit: ACCEPT
+l-lit-in-loop: ACCEPT
+l-lit-cell-reader: ACCEPT
+l-lit-helper: ACCEPT
+l-lit-mutparam: ACCEPT
+l-state: ACCEPT
+s-split-group: ACCEPT
+s-split-group-upper: ACCEPT
+s-split-forof: ACCEPT
+s-split-join: ACCEPT
+s-split-regexp-ctor: ACCEPT
+s-split-limit: ACCEPT
+s-split-cell-reader: ACCEPT
+l-ctl-lit: REJECT g:rejected[type]
+    g[type] 2 is not assignable to 1
+s-ctl-undef: REJECT g:rejected[possibly-undefined][type]
+    g[possibly-undefined] undefined is not assignable to string; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that || g[type] ("a" | undefined)[] is not assignable to string[]

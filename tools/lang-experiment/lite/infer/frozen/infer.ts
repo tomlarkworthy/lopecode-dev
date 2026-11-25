@@ -194,6 +194,18 @@ export class Checker {
   rec(n: Node, t: Ty): Ty { this.facts.types.set(n, t); return t; }
 
   // ---- union helpers and narrowing primitives ----
+  // DELIBERATE CHANGE (2026-11-25, open part 5, TP): live ixTupleMutates
+  tupleMutates(at: Node, recv: Ty, name: string): void {
+    for (const t of this.um(recv.k === "named" && (recv.n === "Mut" || recv.n === "Borrowed") ? recv.args[0] ?? recv : recv)) {
+      if (t.k !== "tup") continue;
+      const same = t.els.every((x) => t.els.every((y) => this.reg.sub(x, y)));
+      const length = ["push", "pop", "shift", "unshift", "splice"].includes(name);
+      if (length || !same) {
+        this.err(at, "mutating-method", `${name} on the tuple ${show(t)} ${length ? "changes its length" : "moves or writes elements of different types"}, and the tuple type gives each index its own type: copy it first (toSorted, toReversed, [...t]), or give it an array type`);
+        return;
+      }
+    }
+  }
   um(t: Ty): Ty[] {
     if (t.k === "union") return t.ts.flatMap((x) => this.um(x));
     if (t.k === "named" && this.reg.isAlias(t.n)) {
@@ -392,7 +404,8 @@ export class Checker {
       if (tag) narrow(tag[0].argument, type(tag[0].argument), (pt, br) => this.narrowTypeof(pt, tag[1].value, br === pos));
       else for (const [a, b] of sides) {
         const bt = type(b);
-        if (!bt || (bt.k !== "lit" && bt.k !== "null" && bt.k !== "undef")) continue;
+        // DELIBERATE CHANGE (2026-11-25, open part 5, LE): == and != narrow by null and undefined only
+        if (!bt || (bt.k !== "lit" && bt.k !== "null" && bt.k !== "undef") || (loose && bt.k === "lit")) continue;
         narrow(a, type(a), (at, br) => this.narrowEq(at, bt, br === pos, loose));
         discriminant(a, (pt, br) => this.narrowEq(pt, bt, br === pos, loose).k !== "never");
         break;
@@ -784,6 +797,8 @@ export class Checker {
         const t = this.lvalue(e.argument, env, e);
         if (e.argument.type === "Identifier") { const b = env.scope.get(e.argument.name); if (b) this.dropRoot(env.flow, b); }
         if (t.k !== "err" && !this.reg.sub(t, NUM)) this.err(e, "type", `${e.operator} on ${show(t)}`);
+        // DELIBERATE CHANGE (2026-11-25, open part 5, LI): the number x++ stores is checked against x's type
+        else if (t.k !== "err" && !this.reg.sub(NUM, t)) this.err(e, "type", `${e.operator} stores a number, and number is not assignable to ${show(t)}`);
         return NUM;
       }
       case "BinaryExpression": return this.binary(e, env);
@@ -1329,8 +1344,10 @@ export class Checker {
       let r = union(reachable && fi.rets.length ? [...fi.rets, UNDEF] : fi.rets.length ? fi.rets : [reachable ? VOID : NEVER]);
       if (!declared) r = widen(r);
       ret = fi.isAsync ? (retAnn ?? named("Promise", r)) : (retAnn ?? (ctxRet && ctxRet.k === "void" ? VOID : r));
-      if (retAnn && !fi.isAsync && retAnn.k !== "void" && reachable && e.body.type === "BlockStatement" && retAnn.k !== "err" && !this.reg.sub(UNDEF, retAnn) && !(retAnn.k === "never"))
-        this.err(e, "type", `function lacks an ending return statement and its return type ${show(retAnn)} does not include undefined`);
+      // DELIBERATE CHANGE (2026-11-25, open part 5, AR): an async function's ending return is checked against the T of its Promise<T>
+      const want = fi.isAsync ? (retAnn ? fi.retCtx : null) : retAnn;
+      if (want && want.k !== "void" && reachable && e.body.type === "BlockStatement" && want.k !== "err" && !this.reg.sub(UNDEF, want) && !(want.k === "never"))
+        this.err(e, "type", `function lacks an ending return statement and its return type ${show(retAnn ?? want)} does not include undefined`);
     }
     const tps = tpNames(e.typeParameters);
     for (const x of e.typeParameters?.params ?? []) if (x.constraint || x.default) this.unsupported(x, "type parameter constraint/default");
@@ -1466,6 +1483,20 @@ export class Checker {
       const at = a && this.facts.types.get(a), w = at ? this.reg.peek(() => jsonGapWith(this.reg)(at)) : null;
       if (a && at && w !== null) this.err(a, "type", `JSON.stringify gives undefined, not a string, for undefined or a function, and its argument ${show(at)} may be ${w}: give it a value that is neither (JSON.stringify(x ?? null) when x may be undefined)`);
     }
+    // DELIBERATE CHANGE (2026-11-25, open part 5, FM): a flatMap callback result typed by a type parameter (live ixFlatMapArg)
+    const ft = a && this.facts.types.get(a), recv = c.type === "MemberExpression" ? this.facts.types.get(c.object) : undefined;
+    const un = (x: Ty): Ty[] => this.um(x.k === "named" && (x.n === "Mut" || x.n === "Borrowed") ? x.args[0] ?? x : x);
+    if (e.type === "CallExpression" && c.type === "MemberExpression" && !c.computed && c.property.type === "Identifier" && c.property.name === "flatMap" && ft && ft.k === "fn" && recv && un(recv).some((m) => m.k === "arr" || m.k === "tup")) {
+      const tv = un(ft.ret).find((m) => m.k === "tv");
+      if (tv) this.err(a, "type", `flatMap flattens a callback result that is an array, and ${show(tv)} is a type parameter, which may be an array: return [x] for one element`);
+    }
+    // DELIBERATE CHANGE (2026-11-25, open part 5, SG): split by a regexp literal with no capture group gives strings only (live ixSplitLiteral)
+    const sRecv = c.type === "MemberExpression" ? this.facts.types.get(c.object) : undefined;
+    if (e.type === "CallExpression" && t.k === "arr" && c.type === "MemberExpression" && !c.computed && c.property.type === "Identifier" && c.property.name === "split" && a?.type === "Literal" && a.regex && sRecv && this.reg.sub(sRecv, STR)) {
+      let groups = 1;
+      try { groups = (new RegExp(`${a.regex.pattern}|`, a.regex.flags.replace(/[gy]/g, "")).exec("")?.length ?? 2) - 1; } catch { groups = 1; }
+      if (groups === 0) return { ...t, el: STR };
+    }
     return t;
   }
   call0(e: Node, env: Env, expected: Ty | undefined): Ty {
@@ -1505,6 +1536,8 @@ export class Checker {
         const m = callee.type === "ChainExpression" ? callee.expression : callee;
         const fl = this.facts.memberFlags.get(m);
         if (fl?.mutates) this.writeRule(m.object, env, e, "mutating-method");
+        // DELIBERATE CHANGE (2026-11-25, open part 5, TP): a mutating method on a tuple (live ixTupleMutates)
+        if (fl?.mutates && !m.computed && m.property.type === "Identifier") this.tupleMutates(e, this.facts.types.get(m.object) ?? { k: "err" }, m.property.name);
       }
       if (calleeT.k === "err") return bail(true);
       const isShort = e.optional || this.short.has(callee);

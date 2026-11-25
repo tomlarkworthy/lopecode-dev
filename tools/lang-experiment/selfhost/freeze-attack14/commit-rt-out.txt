@@ -1,0 +1,59 @@
+== selfhost/freeze-attack14/commit.ts:c-throw-after-set: ACCEPT
+   drive -> same: 0 (call threw: x)
+   show g = 0
+== selfhost/freeze-attack14/commit.ts:c-throw-after-nested: ACCEPT
+   drive -> same: 0 (call threw: x)
+   show g = 0
+== selfhost/freeze-attack14/commit.ts:c-update-throws: ACCEPT
+   drive -> same: 0 (call threw: x)
+   show g = 0
+== selfhost/freeze-attack14/commit.ts:c-caught-nested-keeps: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack14/commit.ts:c-caught-then-throw: ACCEPT
+   drive -> same: 0 (call threw: y)
+   show g = 0
+== selfhost/freeze-attack14/commit.ts:c-read-sees-write: ACCEPT
+   drive -> same: 6
+   show g = 6
+== selfhost/freeze-attack14/commit.ts:c-update-sees-write: ACCEPT
+   drive -> same: 6
+   show g = 6
+== selfhost/freeze-attack14/commit.ts:c-nested-read: ACCEPT
+   drive -> same: 11
+   show g = 11
+== selfhost/freeze-attack14/commit.ts:c-throw-in-map: ACCEPT
+   drive -> same: 0 (call threw: x)
+   show g = 0
+== selfhost/freeze-attack14/commit.ts:c-throw-in-update-after-nested: ACCEPT
+   drive -> same: 0 (call threw: x)
+   show g = 0
+== selfhost/freeze-attack14/commit.ts:c-caught-update: ACCEPT
+   drive -> same: 1
+   show g = 1
+== selfhost/freeze-attack14/commit.ts:c-caught-update-partial: ACCEPT
+   drive -> same: 9
+   show g = 9
+== selfhost/freeze-attack14/commit.ts:c-ctl-write-kept [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: number 1
+   CHANGED drive -> DIFF g is outside its type: number 1
+   show g = 1
+   CONTROL FIRED
+== selfhost/freeze-attack14/commit.ts:c-two-calls-one-commit: ACCEPT
+   drive -> same: g saw [0,2]
+   show g = 2
+== selfhost/freeze-attack14/commit.ts:c-two-actions-one-commit: ACCEPT
+   drive -> same: g saw [0,11]
+   show g = 11
+== selfhost/freeze-attack14/commit.ts:c-two-states-one-commit: ACCEPT
+   drive -> same: g saw [0,1]
+   show g = 1
+== selfhost/freeze-attack14/commit.ts:c-ctl-between [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g saw [0,1,2]
+   CHANGED drive -> DIFF g saw [0,1,2]
+   show g = 2
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 15 candidates, accepted 15, silent 0
+-- checker throws 0 (parse errors 0)

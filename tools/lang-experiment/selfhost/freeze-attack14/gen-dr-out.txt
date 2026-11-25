@@ -1,0 +1,113 @@
+== selfhost/freeze-attack14/gen.ts:e-str: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:e-num: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:e-bool: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:e-zero-str: ACCEPT
+   drive -> DIFF g is outside its type: number 0
+   show g = 0 | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:e-neq: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:e-neq-str-method: ACCEPT
+   drive -> same: g rejected v.toFixed is not a function. (In 'v.toFixed(0)', 'v.toFixed' is undefined)
+   show g = ERROR v.toFixed is not a function. (In 'v.toFixed(0)', 'v.toFixed' is undefined)
+   error g: v.toFixed is not a function. (In 'v.toFixed(0)', 'v.toFixed' is undefined)
+== selfhost/freeze-attack14/gen.ts:e-cell-input: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:e-ternary: ACCEPT
+   drive -> DIFF g is outside its type: string "2"
+   show g = "2" | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:e-switch-after: ACCEPT
+   drive -> same: "other"
+   show g = "other" | E[]
+== selfhost/freeze-attack14/gen.ts:e-null-zero: ACCEPT
+   drive -> DIFF g is outside its type: string "0"
+   show g = "0" | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:e-array-str: ACCEPT
+   drive -> DIFF g is outside its type: object [1]
+   show g = [1] | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:e-in-action: ACCEPT
+   drive -> same: "1"
+   show g = "1" | E[]
+== selfhost/freeze-attack14/gen.ts:f-flatmap-id: ACCEPT
+   drive -> DIFF g is outside its type: object [1,2]
+   show g = [1,2] | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:f-flatmap-fn: ACCEPT
+   drive -> DIFF g is outside its type: object [1,2]
+   show g = [1,2] | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:f-flatmap-len: ACCEPT
+   drive -> DIFF g is outside its type: number 3
+   show g = 3 | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:f-flatmap-str: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/gen.ts:f-flatmap-cell: ACCEPT
+   drive -> DIFF g is outside its type: object [1,2]
+   show g = [1,2] | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:f-flatmap-el-method: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:f-promise-then: ACCEPT
+   drive -> DIFF g is outside its type: object [1]
+   show g = [1] | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:f-promise-await: ACCEPT
+   drive -> DIFF g is outside its type: object [1]
+   show g = [1] | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:f-promise-await2: ACCEPT
+   drive -> DIFF g is outside its type: object [1]
+   show g = [1] | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:f-promise-rec: ACCEPT
+   drive -> DIFF g is outside its type: object {"p":1}
+   show g = {p:1} | E[]
+   SILENT
+== selfhost/freeze-attack14/gen.ts:e-ctl [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack14/gen.ts:f-ctl [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object [1,2]
+   show g = [1,2] | E[]
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 22 candidates, accepted 21, silent 18 (by the tap alone 0)
+SILENT selfhost/freeze-attack14/gen.ts:e-str
+SILENT selfhost/freeze-attack14/gen.ts:e-num
+SILENT selfhost/freeze-attack14/gen.ts:e-bool
+SILENT selfhost/freeze-attack14/gen.ts:e-zero-str
+SILENT selfhost/freeze-attack14/gen.ts:e-neq
+SILENT selfhost/freeze-attack14/gen.ts:e-cell-input
+SILENT selfhost/freeze-attack14/gen.ts:e-ternary
+SILENT selfhost/freeze-attack14/gen.ts:e-null-zero
+SILENT selfhost/freeze-attack14/gen.ts:e-array-str
+SILENT selfhost/freeze-attack14/gen.ts:f-flatmap-id
+SILENT selfhost/freeze-attack14/gen.ts:f-flatmap-fn
+SILENT selfhost/freeze-attack14/gen.ts:f-flatmap-len
+SILENT selfhost/freeze-attack14/gen.ts:f-flatmap-cell
+SILENT selfhost/freeze-attack14/gen.ts:f-flatmap-el-method
+SILENT selfhost/freeze-attack14/gen.ts:f-promise-then
+SILENT selfhost/freeze-attack14/gen.ts:f-promise-await
+SILENT selfhost/freeze-attack14/gen.ts:f-promise-await2
+SILENT selfhost/freeze-attack14/gen.ts:f-promise-rec
+-- checker throws 0 (parse errors 0)

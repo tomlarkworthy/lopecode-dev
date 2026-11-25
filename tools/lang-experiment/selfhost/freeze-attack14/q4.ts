@@ -1,0 +1,18 @@
+export const srcs: [string, string][] = [
+["fwd-scope-inner", `const g = (): number => { const x = "s"; const f = () => { const x = 1; return h(); }; const h = () => x; return f(); };`],
+["fwd-scope-inner-param", `const g = (): number => { const f = (p: number) => h(); const h = () => p; return f(1); };`],
+["fwd-scope-narrow", `const g = (): number => { const v: number | string = "s"; const f = (): number => { const v = 1; return h(); }; const h = () => v; return f(); };`],
+["fwd-scope-shadow-type", `const g = (): number => { const f = () => { const s = 1; return h(); }; const s = "x"; const h = () => s; return f(); };`],
+["fwd-narrow-cond", `const g = (k: number | string): number => { const f = (): number => (typeof k === "number" ? h() : 0); const h = () => k; return f(); };\nconst k = (): number | string => 1;`],
+["fwd-narrow-cond2", `const g = (k: number | string): number => { const f = (): number => (typeof k === "number" ? h() : 0); const h = () => k; return f() + (typeof h() === "string" ? 0 : 0); };\nconst k = (): number | string => "s";`],
+["fwd-narrow-then-call", `const k = (): number | string => "s";\nconst g = (k: number | string): number => { const f = (): number => (typeof k === "number" ? h() : 0); const h = () => k; const q: number = h(); return q; };`],
+["fwd-local-type", `const g = (): number => { const f = () => { type T = number; return h(); }; const h = (): number => 1; return f(); };`],
+["fd-scope", `const g = (): number => { const x = "s"; const f = () => { const x = 1; return h(); }; function h() { return x; } return f(); };`],
+["fd-narrow", `const k = (): number | string => "s";\nconst g = (k: number | string): number => { const f = (): number => (typeof k === "number" ? h() : 0); function h() { return k; } const q: number = h(); return q; };`],
+["fd-narrow-ret", `const k = (): number | string => "s";\nconst g = (k: number | string): number => { if (typeof k === "number") { return h(); } return h(); function h() { return k; } };`],
+["fd-narrow-ret2", `const k = (): number | string => "s";\nconst g = (k: number | string): number => { if (typeof k === "string") return 0; return h(); function h() { return k; } };`],
+["fd-call-before", `const g = (): number => { const r = h(); function h() { return 1; } return r; };`],
+["fd-tdz", `const g = (): number => { const r = h(); const z = 1; function h() { return 1; } return r + z; };`],
+["fd-mut-capture", `const g = (): (() => number) => { const xs = [1]; function h() { return xs.length; } xs.push(2); return h; };`],
+["fd-mut-capture2", `const g = (): number => { const xs = [1]; const r = h(); function h() { return xs.length; } return r; };`],
+];

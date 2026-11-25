@@ -1,0 +1,736 @@
+q1-tup-reverse: ACCEPT
+q1-tup-sort: ACCEPT
+q1-tup-fill: ACCEPT
+q1-tup-shift: ACCEPT
+q1-tup-pop: ACCEPT
+q1-tup-splice: ACCEPT
+q1-tup-unshift: ACCEPT
+q1-tup-copyWithin: ACCEPT
+q1-tup-push-len: ACCEPT
+q1-tup-inferred-reverse: ACCEPT
+q1-tup-mutparam: ACCEPT
+q1-arr-index-oob: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q1-arr-hole: ACCEPT
+q1-arr-hole-spread: ACCEPT
+q1-arr-hole-forof: ACCEPT
+q1-mut-variance-arr: REJECT g:rejected[type]
+    g[type] Mut<number[]> is not assignable to Mut<(number | string)[]>
+q1-mut-variance-map: REJECT g:rejected[type]
+    g[type] Mut<Map<string, number>> is not assignable to Mut<Map<string, number | string>>
+q1-mut-variance-rec: REJECT g:rejected[type]
+    g[type] Mut<{ a: number }> is not assignable to Mut<{ a: number | string }>
+q1-mut-alias-wide: REJECT g:rejected[mutating-method]
+    g[mutating-method] write to a (number | string)[], which is not Mut; a copy made in the same expression ([...ys]) or bound to a local (const y = [...ys]) is writable
+q1-obj-values-width: REJECT g:rejected[type]
+    g[type] { a: number } is not assignable to { [k: string]: number }
+q1-obj-entries-width: REJECT g:rejected[type]
+    g[type] { a: number } is not assignable to { [k: string]: number }
+q1-obj-idx-width: REJECT g:rejected[type]
+    g[type] { a: number } is not assignable to { [k: string]: number }
+q1-opt-undef-values: REJECT g:rejected[possibly-undefined][type][type]
+    g[possibly-undefined] undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that || g[type] { a?: number } is not assignable to { [k: string]: number | undefined } || g[type] (number | undefined)[] is not assignable to number[]
+q1-width-optional-readd: REJECT g:rejected[type]
+    g[type] { b?: number } is not assignable to { a?: number; b?: number }
+q1-width-optional-readd2: REJECT g:rejected[type]
+    g[type] { b: number } is not assignable to { a?: number; b: number }
+q1-regex-group: ACCEPT
+q1-regex-group2: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] string | undefined is not assignable to string; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q1-regex-idx: ACCEPT
+q1-map-array-of: REJECT g:rejected[arity][type]
+    g[arity] <T>(...r: T[]) => T[] is not assignable to (v: number, i: number) => T[]: the function has a rest parameter and its type declares 2: a caller can pass more arguments than the type declares (map passes the index and the array), so a parameter past them can get a value of another type; remove the rest parameter, or give the type a rest parameter || g[type] T[][] is not assignable to number[][]
+q1-map-math-max: REJECT g:rejected[arity]
+    g[arity] (...r: number[]) => number is not assignable to (v: number, i: number) => number: the function has a rest parameter and its type declares 2: a caller can pass more arguments than the type declares (map passes the index and the array), so a parameter past them can get a value of another type; remove the rest parameter, or give the type a rest parameter
+q1-map-string: ACCEPT
+q1-fm-generic: ACCEPT
+q1-fm-generic2: ACCEPT
+q1-fm-annot: REJECT g:rejected[type]
+    g[type] number[] is not assignable to number[][]
+q1-fn-param-contra: REJECT g:rejected[type][type]
+    g[type] parameter number does not accept number | string || g[type] (x: number) => number is not assignable to (x: number | string) => number
+q1-fn-optional: ACCEPT
+q1-fn-rest: REJECT g:rejected[type]
+    g[type] (a: number, b?: string | undefined) => number is not assignable to (...r: number[]) => number
+q1-method-bivariant: REJECT g:rejected[type][type][type]
+    g[type] parameter number does not accept number | string || g[type] (x: number) => number is not assignable to (x: number | string) => number || g[type] { m: (x: number) => number } is not assignable to O
+q1-method-syntax: REJECT g:rejected[type][type][type]
+    g[type] parameter number does not accept number | string || g[type] (x: number) => number is not assignable to (x: number | string) => number || g[type] { m: (x: number) => number } is not assignable to O
+q1-generic-fn-assign: ACCEPT
+q1-undefined-local: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q1-undefined-param: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q1-nan-local: ACCEPT
+q1-array-local: ACCEPT
+q1-array-local-narrow: REJECT g:rejected[no-member]
+    g[no-member] property length on Js/unknown; narrow it first
+q1-object-local: ACCEPT
+q1-typeof-shadow: REJECT g:rejected[type]
+    g[type] unknown is not assignable to number
+q2-fn-opt-annot: ACCEPT
+q2-fn-opt-param-cell: ACCEPT
+q2-fn-opt-rec: ACCEPT
+q2-fn-opt-arr: ACCEPT
+q2-fn-opt-arg: ACCEPT
+q2-fn-opt-generic: ACCEPT
+q2-fn-opt-union: REJECT g:rejected[type][type]
+    g[type] parameter number does not accept number | undefined || g[type] (x: number) => number is not assignable to (x: number | undefined) => number
+q2-fn-undef-param: REJECT g:rejected[type][type]
+    g[type] parameter number does not accept undefined || g[type] (x: number) => number is not assignable to (x: undefined) => number
+q2-fn-void-param: REJECT g:rejected[type][type]
+    g[type] parameter number does not accept void || g[type] (x: number) => number is not assignable to (x: void) => number
+q2-fn-never-ret: ACCEPT
+q2-fn-void-ret-call: ACCEPT
+q2-fn-memo-opt: ACCEPT
+q2-fn-cond: ACCEPT
+q2-fn-action-opt: REJECT b:unsupported
+    b{unsupported TSOptionalType}
+q2-fn-action-variance: REJECT b:rejected[inject-type]
+    b[inject-type] a: Action<[number]> is not assignable to Action<[]>
+q2-fn-action-lit: REJECT b:rejected[inject-type]
+    b[inject-type] a: Action<["a"]> is not assignable to Action<[string]>
+q2-fn-action-union: REJECT b:rejected[inject-type]
+    b[inject-type] a: Action<[number]> is not assignable to Action<[number | string]>
+q2-state-variance: REJECT b:rejected[inject-state]
+    b[inject-state] c is not a state cell of State<number | string>
+q2-state-variance-rec: REJECT b:rejected[type][type]
+    b[type] State<number> is not assignable to State<number | string> || b[type] { s: State<number> } is not assignable to { s: State<number | string> }
+q2-state-variance-generic: REJECT b:rejected[type]
+    b[type] State<number> is not assignable to State<number | string>
+q2-state-variance-generic2: REJECT b:rejected[type]
+    b[type] "s" is not assignable to number
+q2-state-update-widen: REJECT b:rejected[type]
+    b[type] (f: (v: number) => number) => void is not assignable to (f: (v: number | string) => number | string) => void
+q2-jsx-onclick-arity: REJECT v:rejected[type][type]
+    v[type] Action<[number]> is not assignable to Action<[]> || v[type] { onClick: Action<[number]>; children: "x"[] } is not assignable to ButtonProps
+q2-jsx-oninput-lit: REJECT v:rejected[type][type]
+    v[type] Action<["a"]> is not assignable to Action<[string]> || v[type] { onInput: Action<["a"]> } is not assignable to InputProps
+q2-jsx-oninput-num: REJECT v:rejected[type][type]
+    v[type] Action<[number]> is not assignable to Action<[string]> || v[type] { onInput: Action<[number]> } is not assignable to InputProps
+q2-on-opt: REJECT l:rejected[type]
+    l[type] Action<[number, number]> is not assignable to Action<[number]>
+q2-on-lit: REJECT l:rejected[type]
+    l[type] Action<["a"]> is not assignable to Action<[string]>
+q2-events-width: REJECT l:rejected[type]
+    l[type] Action<[number]> is not assignable to Action<[number | string]>
+q2-fn-generic-erase: REJECT g:rejected[type]
+    g[type] <T>(x: T) => T is not assignable to (x: number) => string
+q2-fn-generic-erase2: REJECT g:rejected[type]
+    g[type] <T>(x: T) => T is not assignable to (x: number) => string
+q2-fn-generic-to-unknown: REJECT g:rejected[type]
+    g[type] <T>(x: T) => number is not assignable to (x: unknown) => number
+q2-fn-generic-ret: ACCEPT
+q2-fn-generic-bad: REJECT g:rejected[type]
+    g[type] unknown is not assignable to T
+q2-fn-generic-default-like: ACCEPT
+q2-fn-generic-explicit: ACCEPT
+q2-fn-generic-twotps: ACCEPT
+q2-fn-tps-swap: REJECT g:rejected[type]
+    g[type] <A, B>(a: A, b: B) => A is not assignable to <A, B>(a: A, b: B) => B
+q2-fn-tps-swap2: REJECT g:rejected[type]
+    g[type] <A, B>(a: A, b: B) => A is not assignable to <B, A>(a: A, b: B) => B
+q3-fd-after-return: ACCEPT
+q3-fd-after-return-bad: REJECT g:rejected[type]
+    g[type] string is not assignable to number
+q3-fd-unannot-early: REJECT g:rejected[type]
+    g[type] string is not assignable to number
+q3-fd-shadow-math: REJECT g:rejected[no-member]
+    g[no-member] no property max on () => number
+q3-fd-reads-const-late: REJECT g:rejected[free-name]
+    g[free-name] k is read before its declaration in the same block: a const or let is in scope for its whole block, so this reads that declaration, not a binding outside it; move the declaration above this read, or give one of the two another name
+q3-fd-reads-let-late: REJECT g:rejected[free-name]
+    g[free-name] k is read before its declaration in the same block: a const or let is in scope for its whole block, so this reads that declaration, not a binding outside it; move the declaration above this read, or give one of the two another name
+q3-fwd-const-shadow-global: REJECT g:rejected[type]
+    g[type] string is not assignable to number
+q3-fwd-const-shadow-global2: ACCEPT
+q3-fwd-iife: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q3-fwd-default: REJECT g:rejected[untyped-parameter]
+    g[untyped-parameter] parameter has no type and no contextual type
+q3-fwd-shorthand: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q3-fwd-mutual: ACCEPT
+q3-fwd-body-narrow: ACCEPT
+q3-fwd-later-type: ACCEPT
+q3-fwd-in-loop: ACCEPT
+q3-fwd-jsx: REJECT v:rejected[arity]
+    v[arity] expected at most 0 arguments, got 1
+q3-fwd-shadow-cell-input: ACCEPT
+q3-fwd-shadow-prelude: REJECT g:rejected[type][arity]
+    g[type] expected 0 type arguments, got 1 || g[arity] expected at most 0 arguments, got 1
+q3-fwd-label: ACCEPT
+q3-block-shadow-math: ACCEPT
+q3-switch-shadow: ACCEPT
+q3-catch-undefined: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q3-param-undefined: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q3-destructure-undefined: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q3-infinity-local: ACCEPT
+q3-local-json: ACCEPT
+q3-local-structuredClone: ACCEPT
+q3-local-String: REJECT g:rejected[type]
+    g[type] number is not assignable to string
+q3-local-Number-narrow: ACCEPT
+q3-local-Promise: ACCEPT
+q3-local-Object-freeze: ACCEPT
+q3-local-Object-fromEntries: ACCEPT
+q3-user-map-keeps: REJECT g:rejected[let-capture]
+    g[let-capture] let n assigned from a function that escapes
+q3-user-forEach-keeps: REJECT g:rejected[let-capture]
+    g[let-capture] let n assigned from a function that escapes
+q3-user-then: REJECT g:rejected[banned-member]
+    g[banned-member] then may not be a member's name: it is a member of Object.prototype or one a conversion calls (a template string, +, ==, String(), JSON.stringify, join, sort and await call toString, valueOf, toJSON and then), so a conversion would run a value's own then or read the inherited one; give the member another name
+q3-shadow-read: ACCEPT
+q3-param-named-log: ACCEPT
+q4-fwd-scope-inner: REJECT g:rejected[type]
+    g[type] string is not assignable to number
+q4-fwd-scope-inner-param: REJECT g:rejected[free-name]
+    g[free-name] free name p
+q4-fwd-scope-narrow: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q4-fwd-scope-shadow-type: REJECT g:rejected[free-name]
+    g[free-name] s is read before its declaration in the same block: a const or let is in scope for its whole block, so this reads that declaration, not a binding outside it; move the declaration above this read, or give one of the two another name
+q4-fwd-narrow-cond: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q4-fwd-narrow-cond2: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q4-fwd-narrow-then-call: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q4-fwd-local-type: REJECT g:unsupported
+    g{unsupported local type declaration}
+q4-fd-scope: REJECT g:rejected[type]
+    g[type] string is not assignable to number
+q4-fd-narrow: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q4-fd-narrow-ret: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q4-fd-narrow-ret2: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q4-fd-call-before: ACCEPT
+q4-fd-tdz: ACCEPT
+q4-fd-mut-capture: REJECT g:rejected[mut-capture][mut-capture]
+    g[mut-capture] xs may be written after a function the cell keeps captured it (later in the text, in a loop that makes the function, or in a function): a function the cell keeps sees its captures unchanged || g[mut-capture] Mut xs captured by a function the cell keeps, which can run after the cell has given its value; bind it under its plain type before the function (const c: number[] = xs) and capture that, or make it inside the function
+q4-fd-mut-capture2: ACCEPT
+q5-split-group: ACCEPT
+q5-lit-inc: ACCEPT
+q5-lit-plus-eq: REJECT g:rejected[type]
+    g[type] number is not assignable to 1
+q5-lit-member-inc: ACCEPT
+q5-lit-union-inc: ACCEPT
+q5-lit-dec: ACCEPT
+q5-lit-arr-inc: ACCEPT
+q5-str-inc: ACCEPT
+q5-not-narrow-str: REJECT g:rejected[type]
+    g[type] string | undefined is not assignable to undefined
+q5-not-narrow-num: REJECT g:rejected[type]
+    g[type] number | undefined is not assignable to undefined
+q5-not-narrow-bool: REJECT g:rejected[type]
+    g[type] false | undefined is not assignable to undefined
+q5-typeof-obj-null: REJECT g:rejected[type]
+    g[type] { a: number } | null is not assignable to { a: number }
+q5-member-narrow-alias: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q5-member-narrow-helper: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q5-member-narrow-foreach: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q5-member-narrow-direct: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q5-member-narrow-mutparam: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q5-elem-narrow-alias: REJECT g:rejected[type]
+    g[type] number | string | undefined is not assignable to number
+q5-elem-narrow-direct: REJECT g:rejected[type]
+    g[type] number | string | undefined is not assignable to number
+q5-elem-narrow-pop: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q5-elem-narrow-shift: REJECT g:rejected[type]
+    g[type] number | string | undefined is not assignable to number
+q5-elem-narrow-reverse: REJECT g:rejected[type]
+    g[type] number | string | undefined is not assignable to number
+q5-elem-narrow-idx-let: ACCEPT
+q5-map-narrow: ACCEPT
+q5-nested-narrow-alias: ACCEPT
+q5-member-narrow-loop: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q5-let-narrow-loop: ACCEPT
+q5-let-narrow-tryfinally: ACCEPT
+q5-let-assign-narrow-try: ACCEPT
+q5-let-assign-narrow-try2: REJECT g:rejected[type]
+    g[type] number | string is not assignable to string
+q5-let-assign-narrow-try3: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q5-let-assign-finally: ACCEPT
+q5-let-and-assign: ACCEPT
+q5-let-assign-in-cond: REJECT g:rejected[type]
+    g[type] !== between "s" and "x", which have no value in common
+q5-let-cond-assign: ACCEPT
+q5-let-nullish-assign: ACCEPT
+q5-let-switch-assign: ACCEPT
+q5-let-labeled: REJECT g:unsupported
+    g{unsupported label}
+q5-let-while-break: ACCEPT
+q5-let-continue: ACCEPT
+q5-let-dowhile: ACCEPT
+q6-and-assign: REJECT g:rejected[type]
+    g[type] 1 | "s" is not assignable to number
+q6-or-assign: REJECT g:rejected[type]
+    g[type] 1 | "s" is not assignable to number
+q6-cond-assign: REJECT g:rejected[type]
+    g[type] "s" | 1 is not assignable to number
+q6-nullish-assign: REJECT g:rejected[type]
+    g[type] 1 | "s" is not assignable to number
+q6-optcall-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-switch-assign: REJECT g:rejected[type]
+    g[type] "s" | 2 is not assignable to number
+q6-while-break: REJECT g:rejected[type]
+    g[type] number | string is not assignable to string
+q6-for-break: REJECT g:rejected[type]
+    g[type] number | string is not assignable to string
+q6-loop-continue: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q6-loop-head: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q6-while-head: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q6-dowhile: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q6-for-cstyle: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q6-for-update-assign: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number || g{unsupported comma expression}
+q6-for-update-assign2: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q6-try-catch: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q6-try-catch-in: REJECT g:rejected[type]
+    g[type] number | string is not assignable to string
+q6-try-finally: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-try-finally-throw: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q6-try-return-finally: ACCEPT
+q6-catch-assign-after: REJECT g:rejected[type]
+    g[type] 1 | "s" is not assignable to number
+q6-throw-in-loop: REJECT g:rejected[type]
+    g[type] number | string is not assignable to number
+q6-logical-assign-op: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number || g{unsupported logical assignment ??=}
+q6-compound-in-index: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-template-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-arg-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-arr-lit-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-obj-lit-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-spread-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-destr-assign: REJECT g:unsupported
+    g{unsupported destructuring assignment}
+q6-destr-obj-assign: REJECT g:unsupported
+    g{unsupported destructuring assignment}
+q6-destr-default-assign: REJECT g:unsupported
+    g{unsupported destructuring assignment}
+q6-typeof-update: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-delete-assign: REJECT g:rejected[type][type]
+    g[type] cannot index { a?: number } with "a" || g[type] "s" is not assignable to number
+q6-inc-narrow: ACCEPT
+q6-comma-assign: REJECT g:unsupported
+    g{unsupported comma expression}
+q6-await-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number | Promise<number>
+q6-yield-assign: REJECT g:unsupported
+    g{unsupported comma expression}
+q6-call-callee-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-new-arg-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-jsx-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-cond-test-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-if-test-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-while-test-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-switch-disc-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-case-test-assign: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+q6-optchain-member: REJECT g:rejected[type][type]
+    g[type] cannot index { a: number } with "a" || g[type] "s" is not assignable to number
+q6-instanceof-free: ACCEPT
+q8-ret-while-break: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-for-break: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-try-catch: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-switch-noncover: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-if-else-if: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-while-true-cond: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-do-while: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-finally: ACCEPT
+q8-ret-throw-finally: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-for-ever: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-while-true-continue: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-switch-bool: ACCEPT
+q8-ret-switch-default-break: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-switch-case-break: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-nested-switch: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-switch-in-loop: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-ret-async: ACCEPT
+q8-ret-arrow-block: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q8-gen-yield-val: REJECT g:rejected[type]
+    g[type] unknown is not assignable to number
+q8-gen-yield-val2: REJECT g:rejected[type]
+    g[type] unknown is not assignable to number
+q8-gen-return-val: ACCEPT
+q8-objvalues-empty: REJECT g:rejected[type]
+    g[type] {  } is not assignable to { [k: string]: number }
+q8-objvalues-rest: REJECT g:rejected[type]
+    g[type] {  } is not assignable to { [k: string]: number }
+q8-objentries-rest: REJECT g:rejected[type]
+    g[type] {  } is not assignable to { [k: string]: unknown }
+q8-obj-rest-readd: REJECT g:rejected[type]
+    g[type] {  } is not assignable to { b?: number }
+q8-obj-spread-readd: REJECT g:rejected[type]
+    g[type] Mut<{ a: number }> is not assignable to { a: number; b?: number }
+q8-obj-spread-override: ACCEPT
+q8-obj-spread-override2: ACCEPT
+q8-arr-spread-rec: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q8-idx-sig-read: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q8-idx-sig-dot: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q8-idx-sig-num: REJECT g:rejected[type]
+    g[type] cannot index { [k: string]: number } with 0
+q8-str-index: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] string | undefined is not assignable to string; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q8-typed-index: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q8-tuple-var-index: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] number | undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q8-tuple-lit-oob: REJECT g:rejected[type]
+    g[type] tuple [number, number] has no element 2
+q8-arr-destr-oob: REJECT g:rejected[type]
+    g[type] tuple [number] has no element 1
+q8-arr-rest-destr: ACCEPT
+q8-optional-tuple: REJECT g:rejected[type]
+    g[type] cannot index err with 1 || g{unsupported TSOptionalType}
+q8-readonly-tuple-len: ACCEPT
+q8-record-num-key: REJECT g:rejected[type]
+    g[type] cannot index { 1: string } with 1
+q8-record-num-key2: REJECT g:rejected[type]
+    g[type] cannot index { 1: string } with 1
+q8-record-num-key3: ACCEPT
+q8-record-key-coerce: ACCEPT
+q8-dup-keys: REJECT g:rejected[type]
+    g[type] string is not assignable to number
+q8-dup-keys2: REJECT g:unsupported
+    g{unsupported computed property}
+q8-computed-key-lit: REJECT g:unsupported
+    g{unsupported computed property}
+q8-num-key-1e21: REJECT g:rejected[type]
+    g[type] cannot index { 1e+21: string } with 1e+21
+q8-getter-like: REJECT g:rejected[banned-member]
+    g[banned-member] __proto__ as an object literal key is banned: it sets the prototype (Object.setPrototypeOf), and the prototype's members are not own properties
+q8-neg-zero-key: REJECT g:rejected[type]
+    g[type] cannot index { 0: string } with 0
+q9-async-empty: ACCEPT
+q9-async-if: ACCEPT
+q9-async-nested: ACCEPT
+q9-async-fn-decl: ACCEPT
+q9-async-await-only: ACCEPT
+q9-async-noannot-arrow: ACCEPT
+q9-async-method: ACCEPT
+q9-sync-method-noret: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q9-fn-expr-noret: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q9-fn-decl-noret: REJECT g:rejected[type]
+    g[type] function lacks an ending return statement and its return type number does not include undefined
+q9-dupkey-num-str: REJECT g:rejected[type]
+    g[type] number is not assignable to string
+q9-dupkey-num-str2: ACCEPT
+q9-dupkey-hex: REJECT g:rejected[type]
+    g[type] cannot index { 1: number } with 1
+q9-dupkey-exp: REJECT g:rejected[type]
+    g[type] cannot index { 1: number } with 1
+q9-dupkey-str-id: REJECT g:rejected[type]
+    g[type] number is not assignable to string
+q9-dupkey-float: REJECT g:rejected[type]
+    g[type] cannot index { 1.5: number } with 1.5
+q9-dupkey-bigstr: REJECT g:rejected[type]
+    g[type] cannot index { 1e+23: number } with 1e+23
+q9-dupkey-method: REJECT g:rejected[type]
+    g[type] () => number is not assignable to string
+q9-dupkey-num-str3: REJECT g:rejected[type]
+    g[type] string is not assignable to number
+q9-dupkey-num-str4: ACCEPT
+q9-key-type-str-vs-num: ACCEPT
+q9-spread-override-width: ACCEPT
+q9-spread-override-param: ACCEPT
+q9-spread-override-opt: ACCEPT
+q9-spread-arr-override: ACCEPT
+q10-view-ctor-buffer: REJECT g:rejected[member-write]
+    g[member-write] write to a Float32Array, which is not Mut; a copy made in the same expression (snapshot(v)) or bound to a local (const y = snapshot(v)) is writable
+q10-view-ctor-u8: REJECT g:rejected[member-write]
+    g[member-write] write to a Uint8Array, which is not Mut; a copy made in the same expression (snapshot(v)) or bound to a local (const y = snapshot(v)) is writable
+q10-view-ctor-ab: REJECT g:rejected[member-write]
+    g[member-write] write to a Uint8Array, which is not Mut; a copy made in the same expression (snapshot(v)) or bound to a local (const y = snapshot(v)) is writable
+q10-view-ctor-offset: REJECT g:rejected[member-write]
+    g[member-write] write to a Float32Array, which is not Mut; a copy made in the same expression (snapshot(v)) or bound to a local (const y = snapshot(v)) is writable
+q10-view-subarray: REJECT g:rejected[member-write]
+    g[member-write] write to a Float32Array, which is not Mut; a copy made in the same expression (snapshot(v)) or bound to a local (const y = snapshot(v)) is writable
+q10-view-fill: REJECT g:rejected[mutating-method]
+    g[mutating-method] write to a Float32Array, which is not Mut; a copy made in the same expression (snapshot(x)) or bound to a local (const y = snapshot(x)) is writable
+q10-view-set: REJECT g:rejected[mutating-method]
+    g[mutating-method] write to a Float32Array, which is not Mut; a copy made in the same expression (snapshot(x)) or bound to a local (const y = snapshot(x)) is writable
+q10-view-sort: REJECT g:rejected[mutating-method]
+    g[mutating-method] write to a Float32Array, which is not Mut; sort writes its receiver: toSorted returns a new array instead (x.toSorted(...)), or a copy made in the same expression (snapshot(x)) or bound to a local (const y = snapshot(x)) is writable
+q10-view-local-buffer: REJECT g:rejected[member-write]
+    g[member-write] write to a Float32Array, which is not Mut; a copy made in the same expression (snapshot(v)) or bound to a local (const y = snapshot(v)) is writable
+q10-view-in-action: REJECT b:rejected[member-write]
+    b[member-write] write to a Float32Array, which is not Mut; a copy made in the same expression (snapshot(x)) or bound to a local (const y = snapshot(x)) is writable
+q10-view-action-arg: REJECT b:rejected[member-write]
+    b[member-write] write to a Float32Array, which is not Mut; a copy made in the same expression (snapshot(x)) or bound to a local (const y = snapshot(x)) is writable
+q10-view-memo: REJECT g:rejected[member-write]
+    g[member-write] write to a Float32Array, which is not Mut; a copy made in the same expression (snapshot(x)) or bound to a local (const y = snapshot(x)) is writable
+q10-view-rec-input: REJECT g:rejected[member-write]
+    g[member-write] write to a Float32Array, which is not Mut; a copy made in the same expression (snapshot(x)) or bound to a local (const y = snapshot(x)) is writable
+q10-view-gen-input: REJECT g:rejected[member-write]
+    g[member-write] write to a Float32Array, which is not Mut; a copy made in the same expression (snapshot(x)) or bound to a local (const y = snapshot(x)) is writable
+q10-view-fn-input: REJECT k:rejected[member-write]
+    k[member-write] write to a Float32Array, which is not Mut; a copy made in the same expression (snapshot(x)) or bound to a local (const y = snapshot(x)) is writable
+q10-ab-slice: REJECT g:rejected[member-write]
+    g[member-write] write to a Uint8Array, which is not Mut; a copy made in the same expression (snapshot(v)) or bound to a local (const y = snapshot(v)) is writable
+q11-block-fd-outside: REJECT g:rejected[free-name]
+    g[free-name] free name h
+q11-block-fd-if: REJECT g:rejected[free-name]
+    g[free-name] free name h
+q11-default-tdz: REJECT g:rejected[free-name]
+    g[free-name] free name b
+q11-default-self: REJECT g:rejected[free-name]
+    g[free-name] free name a
+q11-fwd-chain3: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of e leads to this read, and e is used before h is declared, so that use could run this read before h exists; do not use e before the declaration of h, or move the declaration of h above this read
+q11-fwd-via-fd: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-in-sort: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-in-method: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-in-arrow-arg: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-jsx: REJECT g:rejected[free-name]
+    g[free-name] G is read before its declaration in the same block, a call of F leads to this read, and F is used before G is declared, so that use could run this read before G exists; do not use F before the declaration of G, or move the declaration of G above this read
+q11-fwd-jsx2: REJECT g:rejected[free-name][arity]
+    g[free-name] G is read before its declaration in the same block, a call of F leads to this read, and F is used before G is declared, so that use could run this read before G exists; do not use F before the declaration of G, or move the declaration of G above this read || g[arity] expected at most 0 arguments, got 1
+q11-fwd-template: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-cond: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-typeof: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-equality: REJECT g:rejected[free-name][strict-eq-object]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read || g[strict-eq-object] === on two non-primitive operands; use equals(a, b)
+q11-fwd-nested-def: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-return-early: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-throw-catch: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-loop-later: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-switch-block: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-generator: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-async: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-async2: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-return-fn: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-state-init: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-listener: ACCEPT
+q11-fwd-param-default: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of z leads to this read, and z is used before h is declared, so that use could run this read before h exists; do not use z before the declaration of h, or move the declaration of h above this read
+q11-fwd-spread: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-optional-call: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-assign-let: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-paren: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-nonnull: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-satisfies-like: REJECT g:unsupported
+    g{unsupported comma expression}
+q11-fwd-label-member: REJECT g:rejected[free-name][no-member]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read || g[no-member] no property length on () => number
+q11-fwd-in-recursion: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q11-fwd-self-ref-call-before: ACCEPT
+q11-fwd-cell-shadow: REJECT h:rejected[reserved-name]
+    h[reserved-name] h is reserved as a cell name: it is a prelude name, which a compiled cell that uses it binds from the runtime module, so a cell named h clashes with that binding; give the cell another name
+q11-fwd-inner-block-shadow: REJECT g:rejected[free-name]
+    g[free-name] h is read before its declaration in the same block, a call of f leads to this read, and f is used before h is declared, so that use could run this read before h exists; do not use f before the declaration of h, or move the declaration of h above this read
+q12-loose-eq-str: ACCEPT
+q12-loose-eq-num: ACCEPT
+q12-loose-eq-null-undef: REJECT g:rejected[possibly-undefined]
+    g[possibly-undefined] undefined | null is not assignable to null; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that
+q12-loose-neq: ACCEPT
+q12-loose-eq-bool: ACCEPT
+q12-loose-eq-zero-str: ACCEPT
+q12-loose-switch-like: ACCEPT
+q12-isarray-generic: REJECT g:rejected[type]
+    g[type] unknown[] | T[] is not assignable to T[]
+q12-isarray-generic2: REJECT g:rejected[type][type]
+    g[type] unknown[] | T[] is not assignable to T[] || g[type] number[] is not assignable to number[][]
+q12-isarray-generic3: REJECT g:rejected[type][type]
+    g[type] unknown[] | T[] is not assignable to T[] || g[type] number[] is not assignable to number[][]
+q12-isarray-unknown: ACCEPT
+q12-typeof-generic-str: ACCEPT
+q12-typeof-generic-str2: ACCEPT
+q12-typeof-generic-num: ACCEPT
+q12-typeof-generic-num2: ACCEPT
+q12-null-generic: ACCEPT
+q12-undef-generic: ACCEPT
+q12-undef-generic2: REJECT g:rejected[type]
+    g[type] (number | undefined)[] is not assignable to number[]
+q12-generic-eq-narrow: ACCEPT
+q12-promise-generic: ACCEPT
+q12-promise-generic2: ACCEPT
+q12-promise-generic-await: ACCEPT
+q12-promise-all-generic: ACCEPT
+q12-flatmap-generic: ACCEPT
+q12-flatmap-generic-cb: ACCEPT
+q12-flatmap-generic-wrap: REJECT g:rejected[type]
+    g[type] number[] is not assignable to number[][]
+q12-flatmap-union: ACCEPT
+q12-concat-generic: REJECT g:rejected[type][type][type]
+    g[type] 2 is not assignable to 1 || g[type] 2[] is not assignable to 1[] || g[type] 2[][] is not assignable to 1[][]
+q12-fromentries-generic: ACCEPT
+q12-map-generic-key: ACCEPT
+q12-includes-narrow: REJECT g:rejected[type]
+    g[type] string is not assignable to "a" | "b"
+q12-set-has-narrow: REJECT g:rejected[type]
+    g[type] string is not assignable to "a"
+q12-switch-string-lit: ACCEPT
+q12-in-narrow-arr: REJECT g:unsupported
+    g{unsupported intrinsic member Array.a}
+q12-in-narrow-length: REJECT g:rejected[type]
+    g[type] unknown is not assignable to number
+q12-in-narrow-length2: ACCEPT
+q13-and-num: REJECT g:rejected[type]
+    g[type] number | "s" is not assignable to string
+q13-and-str: REJECT g:rejected[type]
+    g[type] string | 5 is not assignable to number
+q13-and-bool: REJECT g:rejected[type]
+    g[type] false | "s" is not assignable to string
+q13-and-null: REJECT g:rejected[type]
+    g[type] string | null is not assignable to string
+q13-and-nan: ACCEPT
+q13-and-bigint: REJECT g:rejected[type]
+    g[type] bigint | "s" is not assignable to string
+q13-or-num: ACCEPT
+q13-or-zero-lit: ACCEPT
+q13-not-not: ACCEPT
+q13-destr-default-null: REJECT g:rejected[type]
+    g[type] number | null is not assignable to number
+q13-destr-default-arr-null: REJECT g:rejected[type]
+    g[type] number | null is not assignable to number
+q13-param-default-null: ACCEPT
+q13-destr-default-undef-member: ACCEPT
+q13-nested-destr: ACCEPT
+q13-plus-str-num: REJECT g:rejected[type]
+    g[type] string is not assignable to number
+q13-unary-plus-str: ACCEPT
+q13-unary-plus-arr: ACCEPT
+q13-neg-str: REJECT g:rejected[type]
+    g[type] "3" used as a number
+q13-inc-str: REJECT g:rejected[type]
+    g[type] ++ on string
+q13-compare-mixed: REJECT g:rejected[type]
+    g[type] "a" used as a number
+q13-typeof-narrow-undef: ACCEPT
+q13-void-expr: ACCEPT
+q13-nullish-num: ACCEPT
+q13-exp-str: ACCEPT
+q13-mod-neg: ACCEPT
+q14-idx-from-spread: REJECT g:rejected[type]
+    g[type] { a: number } is not assignable to { [k: string]: number }
+q14-idx-from-spread2: REJECT g:rejected[type]
+    g[type] { c: 2; a: number } is not assignable to { [k: string]: number }
+q14-idx-arg-spread: REJECT g:rejected[type]
+    g[type] { a: number } is not assignable to { [k: string]: number }
+q14-idx-entries-spread: REJECT g:rejected[type]
+    g[type] { a: number } is not assignable to { [k: string]: number }
+q14-idx-record-alias: REJECT g:rejected[type]
+    g[type] { a: number } is not assignable to { [k: string]: number }
+q14-idx-literal-direct: ACCEPT
+q14-idx-param-spread: REJECT g:rejected[type]
+    g[type] { a: number } is not assignable to { [k: string]: number }
+q14-idx-fromentries: REJECT g:rejected[type]
+    g[type] { a: number } is not assignable to { [k: string]: number }
+q14-idx-read-literal-key: REJECT g:rejected[type]
+    g[type] { a: number } is not assignable to { [k: string]: number }
+q14-urlsp-spread: ACCEPT
+q14-map-from-entries-spread: REJECT g:rejected[type]
+    g[type] { a: number } is not assignable to { [k: string]: number }
+q14-json-roundtrip: ACCEPT
+q14-keys-index: ACCEPT
+q14-spread-into-arr-tuple: ACCEPT
+q14-tuple-from-spread: REJECT g:rejected[type]
+    g[type] number[] is not assignable to [number]
+q14-tuple-from-spread2: REJECT g:rejected[type]
+    g[type] number[] is not assignable to [number]
+q14-tuple-from-spread3: REJECT g:rejected[type]
+    g[type] number[] is not assignable to [number]
+q14-tuple-from-spread-mixed: REJECT g:rejected[type]
+    g[type] number[] is not assignable to [number, number]
+q14-tuple-from-map: REJECT g:rejected[type]
+    g[type] number[] is not assignable to [number, number]
+q14-tuple-from-filter: REJECT g:rejected[type]
+    g[type] number[] is not assignable to [number, number]
+q14-tuple-from-slice: REJECT g:rejected[type]
+    g[type] number[] is not assignable to [number, number]
+q14-tuple-concat: REJECT g:rejected[type]
+    g[type] number[] is not assignable to [number, number]
+q14-tuple-from-array-from: REJECT g:rejected[type]
+    g[type] number[] is not assignable to [number, number]
+q14-tuple-of: REJECT g:rejected[type]
+    g[type] number[] is not assignable to [number, number]
+q14-tuple-toSorted: REJECT g:rejected[type]
+    g[type] (number | string)[] is not assignable to [number, string]
+q14-tuple-toReversed: REJECT g:rejected[type]
+    g[type] (number | string)[] is not assignable to [number, string]
+q14-tuple-with: REJECT g:rejected[type]
+    g[type] (number | string)[] is not assignable to [number, string]
+nm-ctl-num: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number

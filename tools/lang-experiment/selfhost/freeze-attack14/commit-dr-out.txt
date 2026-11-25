@@ -1,0 +1,57 @@
+== selfhost/freeze-attack14/commit.ts:c-throw-after-set: ACCEPT
+   drive -> same: 0 (call threw: x)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/commit.ts:c-throw-after-nested: ACCEPT
+   drive -> same: 0 (call threw: x)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/commit.ts:c-update-throws: ACCEPT
+   drive -> same: 0 (call threw: x)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/commit.ts:c-caught-nested-keeps: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/commit.ts:c-caught-then-throw: ACCEPT
+   drive -> same: 0 (call threw: y)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/commit.ts:c-read-sees-write: ACCEPT
+   drive -> same: 6
+   show g = 6 | E[]
+== selfhost/freeze-attack14/commit.ts:c-update-sees-write: ACCEPT
+   drive -> same: 6
+   show g = 6 | E[]
+== selfhost/freeze-attack14/commit.ts:c-nested-read: ACCEPT
+   drive -> same: 11
+   show g = 11 | E[]
+== selfhost/freeze-attack14/commit.ts:c-throw-in-map: ACCEPT
+   drive -> same: 0 (call threw: x)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/commit.ts:c-throw-in-update-after-nested: ACCEPT
+   drive -> same: 0 (call threw: x)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/commit.ts:c-caught-update: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/commit.ts:c-caught-update-partial: ACCEPT
+   drive -> same: 9
+   show g = 9 | E[]
+== selfhost/freeze-attack14/commit.ts:c-ctl-write-kept [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: number 1
+   show g = 1 | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack14/commit.ts:c-two-calls-one-commit: ACCEPT
+   drive threw: p.values is not a function. (In 'p.values("g")', 'p.values' is undefined)
+   show g = 2 | E[]
+== selfhost/freeze-attack14/commit.ts:c-two-actions-one-commit: ACCEPT
+   drive threw: p.values is not a function. (In 'p.values("g")', 'p.values' is undefined)
+   show g = 11 | E[]
+== selfhost/freeze-attack14/commit.ts:c-two-states-one-commit: ACCEPT
+   drive threw: p.values is not a function. (In 'p.values("g")', 'p.values' is undefined)
+   show g = 1 | E[]
+== selfhost/freeze-attack14/commit.ts:c-ctl-between [ctl]: CONTROL (checker skipped)
+   drive threw: p.values is not a function. (In 'p.values("g")', 'p.values' is undefined)
+   show g = 2 | E[]
+   CONTROL DID NOT FIRE
+-- controls 2, ran 2, fired 1
+-- harness crashes 0
+-- 15 candidates, accepted 15, silent 0 (by the tap alone 0)
+-- checker throws 0 (parse errors 0)

@@ -1,0 +1,19 @@
+min-tp-reverse: ACCEPT
+min-tp-pop: ACCEPT
+min-ho-spread: ACCEPT
+min-op: ACCEPT
+min-rp: ACCEPT
+min-li: ACCEPT
+min-li-switch: ACCEPT
+min-sg: ACCEPT
+min-ar: ACCEPT
+min-sw: ACCEPT
+min-le: ACCEPT
+min-fm: ACCEPT
+min-pa: ACCEPT
+min-ctl-num: REJECT g:rejected[type]
+    g[type] "s" is not assignable to number
+min-ctl-arr: REJECT g:rejected[possibly-undefined][type]
+    g[possibly-undefined] undefined is not assignable to number; an index read (xs[i]), a find or a get may give undefined: give a fallback (xs[i] ?? 0), check it first (if (x === undefined) return …), loop with for…of in place of an index, or read the last element with xs.at(-1) and check that || g[type] (1 | undefined)[] is not assignable to number[]
+min-ctl-lit: REJECT g:rejected[type]
+    g[type] 2 is not assignable to 1

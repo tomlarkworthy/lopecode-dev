@@ -1,0 +1,828 @@
+== selfhost/freeze-attack14/nm.ts:q1-tup-reverse: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q1-tup-sort: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q1-tup-fill: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q1-tup-shift: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q1-tup-pop: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q1-tup-splice: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q1-tup-unshift: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q1-tup-copyWithin: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q1-tup-push-len: ACCEPT
+   drive -> DIFF g is outside its type: number 3
+   show g = 3 | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q1-tup-inferred-reverse: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q1-tup-mutparam: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q1-arr-index-oob: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q1-arr-hole: ACCEPT
+   drive -> DIFF g is outside its type: object [1,null,null,5]
+   show g = [1,,,5] | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q1-arr-hole-spread: ACCEPT
+   drive -> DIFF g is outside its type: object [1,null,null,5]
+   show g = [1,undefined,undefined,5] | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q1-arr-hole-forof: ACCEPT
+   drive -> same: null
+   show g = null | E[]
+== selfhost/freeze-attack14/nm.ts:q1-mut-variance-arr: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q1-mut-variance-map: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q1-mut-variance-rec: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q1-mut-alias-wide: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack14/nm.ts:q1-obj-values-width: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q1-obj-entries-width: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q1-obj-idx-width: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q1-opt-undef-values: REJECT g:rejected[possibly-undefined][type][type]
+== selfhost/freeze-attack14/nm.ts:q1-width-optional-readd: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q1-width-optional-readd2: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q1-regex-group: ACCEPT
+   drive -> same: "none"
+   show g = "none" | E[]
+== selfhost/freeze-attack14/nm.ts:q1-regex-group2: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q1-regex-idx: ACCEPT
+   drive -> same: "none"
+   show g = "none" | E[]
+== selfhost/freeze-attack14/nm.ts:q1-map-array-of: REJECT g:rejected[arity][type]
+== selfhost/freeze-attack14/nm.ts:q1-map-math-max: REJECT g:rejected[arity]
+== selfhost/freeze-attack14/nm.ts:q1-map-string: ACCEPT
+   drive -> same: ["1","2"]
+   show g = ["1","2"] | E[]
+== selfhost/freeze-attack14/nm.ts:q1-fm-generic: ACCEPT
+   drive -> same: [1,2]
+   show g = [1,2] | E[]
+== selfhost/freeze-attack14/nm.ts:q1-fm-generic2: ACCEPT
+   drive -> same: [1,2]
+   show g = [1,2] | E[]
+== selfhost/freeze-attack14/nm.ts:q1-fm-annot: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q1-fn-param-contra: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/nm.ts:q1-fn-optional: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q1-fn-rest: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q1-method-bivariant: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack14/nm.ts:q1-method-syntax: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack14/nm.ts:q1-generic-fn-assign: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q1-undefined-local: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q1-undefined-param: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q1-nan-local: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q1-array-local: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q1-array-local-narrow: REJECT g:rejected[no-member]
+== selfhost/freeze-attack14/nm.ts:q1-object-local: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q1-typeof-shadow: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q2-fn-opt-annot: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q2-fn-opt-param-cell: ACCEPT
+   drive -> same: undefined
+   show g = undefined | E[]
+== selfhost/freeze-attack14/nm.ts:q2-fn-opt-rec: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q2-fn-opt-arr: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q2-fn-opt-arg: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q2-fn-opt-generic: ACCEPT
+   drive -> same: 3
+   show g = 3 | E[]
+== selfhost/freeze-attack14/nm.ts:q2-fn-opt-union: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/nm.ts:q2-fn-undef-param: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/nm.ts:q2-fn-void-param: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/nm.ts:q2-fn-never-ret: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q2-fn-void-ret-call: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q2-fn-memo-opt: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q2-fn-cond: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q2-fn-action-opt: REJECT b:unsupported
+== selfhost/freeze-attack14/nm.ts:q2-fn-action-variance: REJECT b:rejected[inject-type]
+== selfhost/freeze-attack14/nm.ts:q2-fn-action-lit: REJECT b:rejected[inject-type]
+== selfhost/freeze-attack14/nm.ts:q2-fn-action-union: REJECT b:rejected[inject-type]
+== selfhost/freeze-attack14/nm.ts:q2-state-variance: REJECT b:rejected[inject-state]
+== selfhost/freeze-attack14/nm.ts:q2-state-variance-rec: REJECT b:rejected[type][type]
+== selfhost/freeze-attack14/nm.ts:q2-state-variance-generic: REJECT b:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q2-state-variance-generic2: REJECT b:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q2-state-update-widen: REJECT b:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q2-jsx-onclick-arity: REJECT v:rejected[type][type]
+== selfhost/freeze-attack14/nm.ts:q2-jsx-oninput-lit: REJECT v:rejected[type][type]
+== selfhost/freeze-attack14/nm.ts:q2-jsx-oninput-num: REJECT v:rejected[type][type]
+== selfhost/freeze-attack14/nm.ts:q2-on-opt: REJECT l:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q2-on-lit: REJECT l:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q2-events-width: REJECT l:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q2-fn-generic-erase: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q2-fn-generic-erase2: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q2-fn-generic-to-unknown: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q2-fn-generic-ret: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q2-fn-generic-bad: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q2-fn-generic-default-like: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q2-fn-generic-explicit: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q2-fn-generic-twotps: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/nm.ts:q2-fn-tps-swap: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q2-fn-tps-swap2: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q3-fd-after-return: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-fd-after-return-bad: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q3-fd-unannot-early: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q3-fd-shadow-math: REJECT g:rejected[no-member]
+== selfhost/freeze-attack14/nm.ts:q3-fd-reads-const-late: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q3-fd-reads-let-late: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-const-shadow-global: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-const-shadow-global2: ACCEPT
+   drive -> same: "s"
+   show g = "s" | E[]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-iife: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-default: REJECT g:rejected[untyped-parameter]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-shorthand: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-mutual: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-body-narrow: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-later-type: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-in-loop: ACCEPT
+   drive -> same: 3
+   show g = 3 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-jsx: REJECT v:rejected[arity]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-shadow-cell-input: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-shadow-prelude: REJECT g:rejected[type][arity]
+== selfhost/freeze-attack14/nm.ts:q3-fwd-label: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-block-shadow-math: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-switch-shadow: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-catch-undefined: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q3-param-undefined: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q3-destructure-undefined: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q3-infinity-local: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-local-json: ACCEPT
+   drive -> same: "x"
+   show g = "x" | E[]
+== selfhost/freeze-attack14/nm.ts:q3-local-structuredClone: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-local-String: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q3-local-Number-narrow: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-local-Promise: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-local-Object-freeze: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-local-Object-fromEntries: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-user-map-keeps: REJECT g:rejected[let-capture]
+== selfhost/freeze-attack14/nm.ts:q3-user-forEach-keeps: REJECT g:rejected[let-capture]
+== selfhost/freeze-attack14/nm.ts:q3-user-then: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack14/nm.ts:q3-shadow-read: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q3-param-named-log: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q4-fwd-scope-inner: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q4-fwd-scope-inner-param: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q4-fwd-scope-narrow: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q4-fwd-scope-shadow-type: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q4-fwd-narrow-cond: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q4-fwd-narrow-cond2: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q4-fwd-narrow-then-call: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q4-fwd-local-type: REJECT g:unsupported
+== selfhost/freeze-attack14/nm.ts:q4-fd-scope: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q4-fd-narrow: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q4-fd-narrow-ret: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q4-fd-narrow-ret2: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q4-fd-call-before: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q4-fd-tdz: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/nm.ts:q4-fd-mut-capture: REJECT g:rejected[mut-capture][mut-capture]
+== selfhost/freeze-attack14/nm.ts:q4-fd-mut-capture2: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-split-group: ACCEPT
+   drive -> same: ["a",null,"b"]
+   show g = ["a",undefined,"b"] | E[]
+== selfhost/freeze-attack14/nm.ts:q5-lit-inc: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   show g = 2 | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q5-lit-plus-eq: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-lit-member-inc: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   show g = 2 | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q5-lit-union-inc: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-lit-dec: ACCEPT
+   drive -> DIFF g is outside its type: number 0
+   show g = 0 | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q5-lit-arr-inc: ACCEPT
+   drive -> same: [2]
+   show g = [2] | E[]
+== selfhost/freeze-attack14/nm.ts:q5-str-inc: ACCEPT
+   drive -> same: "a"
+   show g = "a" | E[]
+== selfhost/freeze-attack14/nm.ts:q5-not-narrow-str: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-not-narrow-num: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-not-narrow-bool: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-typeof-obj-null: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-member-narrow-alias: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-member-narrow-helper: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-member-narrow-foreach: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-member-narrow-direct: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-member-narrow-mutparam: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-elem-narrow-alias: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-elem-narrow-direct: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-elem-narrow-pop: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q5-elem-narrow-shift: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-elem-narrow-reverse: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-elem-narrow-idx-let: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-map-narrow: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-nested-narrow-alias: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-member-narrow-loop: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-let-narrow-loop: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-let-narrow-tryfinally: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-let-assign-narrow-try: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-let-assign-narrow-try2: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-let-assign-narrow-try3: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-let-assign-finally: ACCEPT
+   drive -> same: g rejected JSON Parse error: Expected '}'
+   show g = ERROR JSON Parse error: Expected '}'
+   error g: JSON Parse error: Expected '}'
+== selfhost/freeze-attack14/nm.ts:q5-let-and-assign: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-let-assign-in-cond: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q5-let-cond-assign: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-let-nullish-assign: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-let-switch-assign: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-let-labeled: REJECT g:unsupported
+== selfhost/freeze-attack14/nm.ts:q5-let-while-break: ACCEPT
+   drive -> same: "n"
+   show g = "n" | E[]
+== selfhost/freeze-attack14/nm.ts:q5-let-continue: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q5-let-dowhile: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q6-and-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-or-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-cond-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-nullish-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-optcall-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-switch-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-while-break: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-for-break: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-loop-continue: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-loop-head: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-while-head: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-dowhile: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-for-cstyle: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-for-update-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-for-update-assign2: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-try-catch: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-try-catch-in: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-try-finally: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-try-finally-throw: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-try-return-finally: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q6-catch-assign-after: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-throw-in-loop: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-logical-assign-op: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-compound-in-index: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-template-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-arg-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-arr-lit-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-obj-lit-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-spread-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-destr-assign: REJECT g:unsupported
+== selfhost/freeze-attack14/nm.ts:q6-destr-obj-assign: REJECT g:unsupported
+== selfhost/freeze-attack14/nm.ts:q6-destr-default-assign: REJECT g:unsupported
+== selfhost/freeze-attack14/nm.ts:q6-typeof-update: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-delete-assign: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/nm.ts:q6-inc-narrow: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/nm.ts:q6-comma-assign: REJECT g:unsupported
+== selfhost/freeze-attack14/nm.ts:q6-await-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-yield-assign: REJECT g:unsupported
+== selfhost/freeze-attack14/nm.ts:q6-call-callee-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-new-arg-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-jsx-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-cond-test-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-if-test-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-while-test-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-switch-disc-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-case-test-assign: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q6-optchain-member: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/nm.ts:q6-instanceof-free: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q8-ret-while-break: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-for-break: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-try-catch: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-switch-noncover: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-if-else-if: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-while-true-cond: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-do-while: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-finally: ACCEPT
+   drive -> same: g rejected JSON Parse error: Expected '}'
+   show g = ERROR JSON Parse error: Expected '}'
+   error g: JSON Parse error: Expected '}'
+== selfhost/freeze-attack14/nm.ts:q8-ret-throw-finally: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-for-ever: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-while-true-continue: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-switch-bool: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q8-ret-switch-default-break: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-switch-case-break: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-nested-switch: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-switch-in-loop: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-ret-async: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q8-ret-arrow-block: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-gen-yield-val: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-gen-yield-val2: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-gen-return-val: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q8-objvalues-empty: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-objvalues-rest: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-objentries-rest: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-obj-rest-readd: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-obj-spread-readd: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-obj-spread-override: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q8-obj-spread-override2: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q8-arr-spread-rec: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q8-idx-sig-read: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q8-idx-sig-dot: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q8-idx-sig-num: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-str-index: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q8-typed-index: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q8-tuple-var-index: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q8-tuple-lit-oob: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-arr-destr-oob: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-arr-rest-destr: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q8-optional-tuple: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-readonly-tuple-len: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q8-record-num-key: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-record-num-key2: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-record-num-key3: ACCEPT
+   drive -> same: "b"
+   show g = "b" | E[]
+== selfhost/freeze-attack14/nm.ts:q8-record-key-coerce: ACCEPT
+   drive -> same: "b"
+   show g = "b" | E[]
+== selfhost/freeze-attack14/nm.ts:q8-dup-keys: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-dup-keys2: REJECT g:unsupported
+== selfhost/freeze-attack14/nm.ts:q8-computed-key-lit: REJECT g:unsupported
+== selfhost/freeze-attack14/nm.ts:q8-num-key-1e21: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q8-getter-like: REJECT g:rejected[banned-member]
+== selfhost/freeze-attack14/nm.ts:q8-neg-zero-key: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q9-async-empty: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q9-async-if: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q9-async-nested: ACCEPT
+   drive -> same: g rejected undefined is not an object (evaluating 's.length')
+   show g = ERROR undefined is not an object (evaluating 's.length')
+   error g: undefined is not an object (evaluating 's.length')
+== selfhost/freeze-attack14/nm.ts:q9-async-fn-decl: ACCEPT
+   drive -> same: undefined
+   show g = undefined | E[]
+== selfhost/freeze-attack14/nm.ts:q9-async-await-only: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q9-async-noannot-arrow: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q9-async-method: ACCEPT
+   drive -> same: g rejected undefined is not an object (evaluating '(/*ss+*/ss_out.back(ss_g, /*ss-*/await /*ss+*/ss_out.away(ss_g, /*ss-*/o.m()/*ss+*/)/*ss-*//*ss+*/)/
+   show g = ERROR undefined is not an object (evaluating '(/*ss+*/ss_out.back(ss_g, /*ss-*/await /*ss+*/ss_out.away(ss_g, /*ss-*/o.m()/*ss+*/)/*ss-*//*ss+*/)/*ss-*/).length')
+   error g: undefined is not an object (evaluating '(/*ss+*/ss_out.back(ss_g, /*ss-*/await /*ss+*/ss_out.away(ss_g, /*ss-*/o.m()/*ss+*/)/*ss-*//*ss+*/)/*ss-*/).length')
+== selfhost/freeze-attack14/nm.ts:q9-sync-method-noret: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q9-fn-expr-noret: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q9-fn-decl-noret: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q9-dupkey-num-str: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q9-dupkey-num-str2: ACCEPT
+   drive -> same: "a"
+   show g = "a" | E[]
+== selfhost/freeze-attack14/nm.ts:q9-dupkey-hex: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q9-dupkey-exp: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q9-dupkey-str-id: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q9-dupkey-float: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q9-dupkey-bigstr: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q9-dupkey-method: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q9-dupkey-num-str3: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q9-dupkey-num-str4: ACCEPT
+   drive -> same: "a"
+   show g = "a" | E[]
+== selfhost/freeze-attack14/nm.ts:q9-key-type-str-vs-num: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q9-spread-override-width: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q9-spread-override-param: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q9-spread-override-opt: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q9-spread-arr-override: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q10-view-ctor-buffer: REJECT g:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q10-view-ctor-u8: REJECT g:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q10-view-ctor-ab: REJECT g:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q10-view-ctor-offset: REJECT g:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q10-view-subarray: REJECT g:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q10-view-fill: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack14/nm.ts:q10-view-set: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack14/nm.ts:q10-view-sort: REJECT g:rejected[mutating-method]
+== selfhost/freeze-attack14/nm.ts:q10-view-local-buffer: REJECT g:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q10-view-in-action: REJECT b:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q10-view-action-arg: REJECT b:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q10-view-memo: REJECT g:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q10-view-rec-input: REJECT g:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q10-view-gen-input: REJECT g:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q10-view-fn-input: REJECT k:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q10-ab-slice: REJECT g:rejected[member-write]
+== selfhost/freeze-attack14/nm.ts:q11-block-fd-outside: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-block-fd-if: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-default-tdz: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-default-self: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-chain3: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-via-fd: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-in-sort: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-in-method: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-in-arrow-arg: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-jsx: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-jsx2: REJECT g:rejected[free-name][arity]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-template: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-cond: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-typeof: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-equality: REJECT g:rejected[free-name][strict-eq-object]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-nested-def: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-return-early: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-throw-catch: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-loop-later: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-switch-block: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-generator: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-async: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-async2: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-return-fn: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-state-init: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-listener: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-param-default: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-spread: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-optional-call: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-assign-let: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-paren: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-nonnull: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-satisfies-like: REJECT g:unsupported
+== selfhost/freeze-attack14/nm.ts:q11-fwd-label-member: REJECT g:rejected[free-name][no-member]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-in-recursion: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-self-ref-call-before: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-cell-shadow: REJECT h:rejected[reserved-name]
+== selfhost/freeze-attack14/nm.ts:q11-fwd-inner-block-shadow: REJECT g:rejected[free-name]
+== selfhost/freeze-attack14/nm.ts:q12-loose-eq-str: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-loose-eq-num: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q12-loose-eq-null-undef: REJECT g:rejected[possibly-undefined]
+== selfhost/freeze-attack14/nm.ts:q12-loose-neq: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   show g = "1" | E[]
+   SILENT
+== selfhost/freeze-attack14/nm.ts:q12-loose-eq-bool: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-loose-eq-zero-str: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-loose-switch-like: ACCEPT
+   drive -> same: "a"
+   show g = "a" | E[]
+== selfhost/freeze-attack14/nm.ts:q12-isarray-generic: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q12-isarray-generic2: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/nm.ts:q12-isarray-generic3: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/nm.ts:q12-isarray-unknown: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-typeof-generic-str: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-typeof-generic-str2: ACCEPT
+   drive -> same: "d"
+   show g = "d" | E[]
+== selfhost/freeze-attack14/nm.ts:q12-typeof-generic-num: ACCEPT
+   drive -> same: []
+   show g = [] | E[]
+== selfhost/freeze-attack14/nm.ts:q12-typeof-generic-num2: ACCEPT
+   drive -> same: 5
+   show g = 5 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-null-generic: ACCEPT
+   drive -> same: 5
+   show g = 5 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-undef-generic: ACCEPT
+   drive -> same: "none"
+   show g = "none" | E[]
+== selfhost/freeze-attack14/nm.ts:q12-undef-generic2: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q12-generic-eq-narrow: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-promise-generic: ACCEPT
+   drive -> same: [1]
+   show g = [1] | E[]
+== selfhost/freeze-attack14/nm.ts:q12-promise-generic2: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-promise-generic-await: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-promise-all-generic: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-flatmap-generic: ACCEPT
+   drive -> same: [1,2]
+   show g = [1,2] | E[]
+== selfhost/freeze-attack14/nm.ts:q12-flatmap-generic-cb: ACCEPT
+   drive -> same: [[1],[2]]
+   show g = [[1],[2]] | E[]
+== selfhost/freeze-attack14/nm.ts:q12-flatmap-generic-wrap: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q12-flatmap-union: ACCEPT
+   drive -> same: [1,2]
+   show g = [1,2] | E[]
+== selfhost/freeze-attack14/nm.ts:q12-concat-generic: REJECT g:rejected[type][type][type]
+== selfhost/freeze-attack14/nm.ts:q12-fromentries-generic: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-map-generic-key: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-includes-narrow: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q12-set-has-narrow: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q12-switch-string-lit: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q12-in-narrow-arr: REJECT g:unsupported
+== selfhost/freeze-attack14/nm.ts:q12-in-narrow-length: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q12-in-narrow-length2: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q13-and-num: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q13-and-str: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q13-and-bool: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q13-and-null: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q13-and-nan: ACCEPT
+   drive -> same: "num"
+   show g = "num" | E[]
+== selfhost/freeze-attack14/nm.ts:q13-and-bigint: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q13-or-num: ACCEPT
+   drive -> same: "s"
+   show g = "s" | E[]
+== selfhost/freeze-attack14/nm.ts:q13-or-zero-lit: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q13-not-not: ACCEPT
+   drive -> same: true
+   show g = true | E[]
+== selfhost/freeze-attack14/nm.ts:q13-destr-default-null: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q13-destr-default-arr-null: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q13-param-default-null: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q13-destr-default-undef-member: ACCEPT
+   drive -> same: 5
+   show g = 5 | E[]
+== selfhost/freeze-attack14/nm.ts:q13-nested-destr: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q13-plus-str-num: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q13-unary-plus-str: ACCEPT
+   drive -> same: null
+   show g = null | E[]
+== selfhost/freeze-attack14/nm.ts:q13-unary-plus-arr: ACCEPT
+   drive -> same: 5
+   show g = 5 | E[]
+== selfhost/freeze-attack14/nm.ts:q13-neg-str: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q13-inc-str: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q13-compare-mixed: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q13-typeof-narrow-undef: ACCEPT
+   drive -> same: undefined
+   show g = undefined | E[]
+== selfhost/freeze-attack14/nm.ts:q13-void-expr: ACCEPT
+   drive -> same: undefined
+   show g = undefined | E[]
+== selfhost/freeze-attack14/nm.ts:q13-nullish-num: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q13-exp-str: ACCEPT
+   drive -> same: 8
+   show g = 8 | E[]
+== selfhost/freeze-attack14/nm.ts:q13-mod-neg: ACCEPT
+   drive -> same: 0
+   show g = 0 | E[]
+== selfhost/freeze-attack14/nm.ts:q14-idx-from-spread: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-idx-from-spread2: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-idx-arg-spread: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-idx-entries-spread: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-idx-record-alias: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-idx-literal-direct: ACCEPT
+   drive -> same: [1]
+   show g = [1] | E[]
+== selfhost/freeze-attack14/nm.ts:q14-idx-param-spread: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-idx-fromentries: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-idx-read-literal-key: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-urlsp-spread: ACCEPT
+   drive -> same: "x"
+   show g = "x" | E[]
+== selfhost/freeze-attack14/nm.ts:q14-map-from-entries-spread: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-json-roundtrip: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/nm.ts:q14-keys-index: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/nm.ts:q14-spread-into-arr-tuple: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-from-spread: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-from-spread2: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-from-spread3: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-from-spread-mixed: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-from-map: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-from-filter: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-from-slice: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-concat: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-from-array-from: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-of: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-toSorted: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-toReversed: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:q14-tuple-with: REJECT g:rejected[type]
+== selfhost/freeze-attack14/nm.ts:nm-ctl-num [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 444 candidates, accepted 154, silent 32 (by the tap alone 0)
+SILENT selfhost/freeze-attack14/nm.ts:q1-tup-reverse
+SILENT selfhost/freeze-attack14/nm.ts:q1-tup-fill
+SILENT selfhost/freeze-attack14/nm.ts:q1-tup-shift
+SILENT selfhost/freeze-attack14/nm.ts:q1-tup-pop
+SILENT selfhost/freeze-attack14/nm.ts:q1-tup-splice
+SILENT selfhost/freeze-attack14/nm.ts:q1-tup-unshift
+SILENT selfhost/freeze-attack14/nm.ts:q1-tup-copyWithin
+SILENT selfhost/freeze-attack14/nm.ts:q1-tup-push-len
+SILENT selfhost/freeze-attack14/nm.ts:q1-tup-mutparam
+SILENT selfhost/freeze-attack14/nm.ts:q1-arr-hole
+SILENT selfhost/freeze-attack14/nm.ts:q1-arr-hole-spread
+SILENT selfhost/freeze-attack14/nm.ts:q1-fn-optional
+SILENT selfhost/freeze-attack14/nm.ts:q2-fn-opt-annot
+SILENT selfhost/freeze-attack14/nm.ts:q2-fn-opt-rec
+SILENT selfhost/freeze-attack14/nm.ts:q2-fn-opt-arr
+SILENT selfhost/freeze-attack14/nm.ts:q2-fn-opt-arg
+SILENT selfhost/freeze-attack14/nm.ts:q2-fn-memo-opt
+SILENT selfhost/freeze-attack14/nm.ts:q2-fn-cond
+SILENT selfhost/freeze-attack14/nm.ts:q5-lit-inc
+SILENT selfhost/freeze-attack14/nm.ts:q5-lit-member-inc
+SILENT selfhost/freeze-attack14/nm.ts:q5-lit-dec
+SILENT selfhost/freeze-attack14/nm.ts:q8-ret-async
+SILENT selfhost/freeze-attack14/nm.ts:q8-obj-spread-override
+SILENT selfhost/freeze-attack14/nm.ts:q8-obj-spread-override2
+SILENT selfhost/freeze-attack14/nm.ts:q9-async-empty
+SILENT selfhost/freeze-attack14/nm.ts:q9-async-if
+SILENT selfhost/freeze-attack14/nm.ts:q9-async-await-only
+SILENT selfhost/freeze-attack14/nm.ts:q9-spread-override-width
+SILENT selfhost/freeze-attack14/nm.ts:q9-spread-override-param
+SILENT selfhost/freeze-attack14/nm.ts:q9-spread-arr-override
+SILENT selfhost/freeze-attack14/nm.ts:q12-loose-eq-num
+SILENT selfhost/freeze-attack14/nm.ts:q12-loose-neq
+-- checker throws 0 (parse errors 0)

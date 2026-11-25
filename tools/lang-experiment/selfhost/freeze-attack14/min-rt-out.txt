@@ -1,0 +1,97 @@
+== selfhost/freeze-attack14/min.ts:min-tp-reverse: ACCEPT
+   drive -> DIFF g is outside its type: string "1"
+   CHANGED drive -> DIFF g is outside its type: string "1"
+   show g = "1"
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-tp-pop: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-ho-spread: ACCEPT
+   drive -> DIFF g is outside its type: object [1,null,null,5]
+   CHANGED drive -> DIFF g is outside its type: object [1,null,null,5]
+   show g = [1,undefined,undefined,5]
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-op: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-rp: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-li: ACCEPT
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-li-switch: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-sg: ACCEPT
+   drive -> DIFF g is outside its type: object ["a",null,"b"]
+   CHANGED drive -> DIFF g is outside its type: object ["a",null,"b"]
+   show g = ["a",undefined,"b"]
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-ar: ACCEPT
+   drive -> DIFF g is outside its type: undefined undefined
+   CHANGED drive -> DIFF g is outside its type: undefined undefined
+   show g = undefined
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-sw: ACCEPT
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-le: ACCEPT
+   drive -> DIFF g is outside its type: number 1
+   CHANGED drive -> DIFF g is outside its type: number 1
+   show g = 1
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-fm: ACCEPT
+   drive -> DIFF g is outside its type: object [1,2]
+   CHANGED drive -> DIFF g is outside its type: object [1,2]
+   show g = [1,2]
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-pa: ACCEPT
+   drive -> DIFF g is outside its type: object [1]
+   CHANGED drive -> DIFF g is outside its type: object [1]
+   show g = [1]
+   SILENT
+== selfhost/freeze-attack14/min.ts:min-ctl-num [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   CHANGED drive -> DIFF g is outside its type: string "s"
+   show g = "s"
+   CONTROL FIRED
+== selfhost/freeze-attack14/min.ts:min-ctl-arr [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: object [1,null]
+   CHANGED drive -> DIFF g is outside its type: object [1,null]
+   show g = [1,undefined]
+   CONTROL FIRED
+== selfhost/freeze-attack14/min.ts:min-ctl-lit [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: number 2
+   CHANGED drive -> DIFF g is outside its type: number 2
+   show g = 2
+   CONTROL FIRED
+-- controls 3, ran 3, fired 3
+-- harness crashes 0
+-- 13 candidates, accepted 13, silent 13
+SILENT selfhost/freeze-attack14/min.ts:min-tp-reverse
+SILENT selfhost/freeze-attack14/min.ts:min-tp-pop
+SILENT selfhost/freeze-attack14/min.ts:min-ho-spread
+SILENT selfhost/freeze-attack14/min.ts:min-op
+SILENT selfhost/freeze-attack14/min.ts:min-rp
+SILENT selfhost/freeze-attack14/min.ts:min-li
+SILENT selfhost/freeze-attack14/min.ts:min-li-switch
+SILENT selfhost/freeze-attack14/min.ts:min-sg
+SILENT selfhost/freeze-attack14/min.ts:min-ar
+SILENT selfhost/freeze-attack14/min.ts:min-sw
+SILENT selfhost/freeze-attack14/min.ts:min-le
+SILENT selfhost/freeze-attack14/min.ts:min-fm
+SILENT selfhost/freeze-attack14/min.ts:min-pa
+-- checker throws 0 (parse errors 0)

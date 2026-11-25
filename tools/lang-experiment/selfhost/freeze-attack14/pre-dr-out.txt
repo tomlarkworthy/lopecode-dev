@@ -1,0 +1,232 @@
+== selfhost/freeze-attack14/pre.ts:p-local-state: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-param-state: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-destr-state: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-catch-state: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-state: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-let-state: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/pre.ts:p-local-action: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-param-action: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-destr-action: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-catch-action: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-action: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-let-action: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/pre.ts:p-local-mut: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-param-mut: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-destr-mut: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-catch-mut: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-mut: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-let-mut: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/pre.ts:p-local-freeze: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-param-freeze: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-destr-freeze: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-catch-freeze: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-freeze: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-let-freeze: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/pre.ts:p-local-borrow: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-param-borrow: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-destr-borrow: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-catch-borrow: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-borrow: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-let-borrow: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/pre.ts:p-local-snapshot: REJECT g:rejected[prelude-shadow]
+== selfhost/freeze-attack14/pre.ts:p-param-snapshot: REJECT g:rejected[prelude-shadow]
+== selfhost/freeze-attack14/pre.ts:p-destr-snapshot: REJECT g:rejected[prelude-shadow]
+== selfhost/freeze-attack14/pre.ts:p-catch-snapshot: REJECT g:rejected[prelude-shadow]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-snapshot: REJECT g:rejected[prelude-shadow]
+== selfhost/freeze-attack14/pre.ts:p-let-snapshot: REJECT g:rejected[prelude-shadow]
+== selfhost/freeze-attack14/pre.ts:p-local-equals: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-param-equals: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-destr-equals: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-catch-equals: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-equals: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-let-equals: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/pre.ts:p-local-on: ACCEPT
+   drive -> same: g rejected g must return on(events, action)
+   show g = ERROR g must return on(events, action)
+   error g: g must return on(events, action)
+== selfhost/freeze-attack14/pre.ts:p-param-on: ACCEPT
+   drive -> same: g rejected g must return on(events, action)
+   show g = ERROR g must return on(events, action)
+   error g: g must return on(events, action)
+== selfhost/freeze-attack14/pre.ts:p-destr-on: REJECT g:rejected[listener-placement]
+== selfhost/freeze-attack14/pre.ts:p-catch-on: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-on: ACCEPT
+   drive -> same: g rejected g must return on(events, action)
+   show g = ERROR g must return on(events, action)
+   error g: g must return on(events, action)
+== selfhost/freeze-attack14/pre.ts:p-let-on: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/pre.ts:p-local-read: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-param-read: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-destr-read: REJECT g:rejected[read-outside-action]
+== selfhost/freeze-attack14/pre.ts:p-catch-read: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-read: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-let-read: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/pre.ts:p-local-messageOf: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-param-messageOf: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-destr-messageOf: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-catch-messageOf: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-messageOf: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-let-messageOf: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/pre.ts:p-local-memo: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-param-memo: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-destr-memo: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-catch-memo: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-memo: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-let-memo: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/pre.ts:p-local-cast: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-param-cast: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-destr-cast: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-catch-cast: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-cast: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-let-cast: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/pre.ts:p-local-h: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-param-h: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-destr-h: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-catch-h: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-fdecl-h: ACCEPT
+   drive -> same: 2
+   show g = 2 | E[]
+== selfhost/freeze-attack14/pre.ts:p-let-h: ACCEPT
+   drive -> same: 1
+   show g = 1 | E[]
+== selfhost/freeze-attack14/pre.ts:p-cast-lie: REJECT g:rejected[type][type]
+== selfhost/freeze-attack14/pre.ts:p-memo-lie: REJECT g:rejected[type]
+== selfhost/freeze-attack14/pre.ts:p-cell-param: REJECT g:rejected[inject-unknown]
+== selfhost/freeze-attack14/pre.ts:p-ctl [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: string "s"
+   show g = "s" | E[]
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 81 candidates, accepted 70, silent 0 (by the tap alone 0)
+-- checker throws 0 (parse errors 0)

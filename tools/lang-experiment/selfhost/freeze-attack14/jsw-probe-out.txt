@@ -1,0 +1,24 @@
+j-typed-index: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability
+j-typed-in-rec: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability
+j-typed-in-arr: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability
+j-typed-fill: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability
+j-buffer: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability
+j-map-proto-set: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability
+j-set-proto-add: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability
+j-url-setter: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability
+j-state-typed: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability
+j-arr-held: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability
+j-map-held: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability
+j-ctl: REJECT g:rejected[inject-unknown]
+    g[inject-unknown] parameter w names no cell, foreign or capability

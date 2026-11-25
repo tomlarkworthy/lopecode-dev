@@ -1,0 +1,53 @@
+== selfhost/freeze-attack14/mut.ts:m-st-alias: ACCEPT
+   drive -> same: 0 (call threw: Attempted to assign to readonly property.)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/mut.ts:m-destructure-set: ACCEPT
+   drive -> same: 0 (call threw: Attempted to assign to readonly property.)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/mut.ts:m-computed-set: ACCEPT
+   drive -> same: 0 (call threw: Attempted to assign to readonly property.)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/mut.ts:m-name-after: ACCEPT
+   drive -> same: 0 (call threw: Attempted to assign to readonly property.)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/mut.ts:m-helper-result: ACCEPT
+   drive -> same: 0 (call threw: Attempted to assign to readonly property.)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/mut.ts:m-callback-many: REJECT b:rejected[mutating-method]
+== selfhost/freeze-attack14/mut.ts:m-update-alias: REJECT b:rejected[mut-capture]
+== selfhost/freeze-attack14/mut.ts:m-record-field: REJECT b:rejected[mutating-method]
+== selfhost/freeze-attack14/mut.ts:m-spread-holder: REJECT b:rejected[mutating-method]
+== selfhost/freeze-attack14/mut.ts:m-array-holder: REJECT b:rejected[mutating-method]
+== selfhost/freeze-attack14/mut.ts:m-action-arg: ACCEPT
+   drive -> same: 0 (call threw: Attempted to assign to readonly property.)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/mut.ts:m-action-arg-helper: ACCEPT
+   drive -> same: 0 (call threw: Attempted to assign to readonly property.)
+   show g = 0 | E[]
+== selfhost/freeze-attack14/mut.ts:m-gen-alias-after: REJECT g:rejected[mut-yield]
+== selfhost/freeze-attack14/mut.ts:m-gen-helper-after: REJECT g:rejected[mut-yield]
+== selfhost/freeze-attack14/mut.ts:m-gen-record-after: REJECT g:rejected[mut-yield]
+== selfhost/freeze-attack14/mut.ts:m-gen-name-after: REJECT g:rejected[mut-yield]
+== selfhost/freeze-attack14/mut.ts:m-gen-in-record: REJECT g:rejected[mut-yield]
+== selfhost/freeze-attack14/mut.ts:m-async-nested-after: REJECT g:rejected[type][mut-await][mut-await]
+== selfhost/freeze-attack14/mut.ts:m-async-nested-alias: REJECT g:rejected[mut-await][mut-await]
+== selfhost/freeze-attack14/mut.ts:m-async-cell-memo: ACCEPT
+   drive -> same: g rejected Attempted to assign to readonly property.
+   show g = ERROR Attempted to assign to readonly property.
+   error g: Attempted to assign to readonly property.
+== selfhost/freeze-attack14/mut.ts:m-memo-name-after: ACCEPT
+   drive -> same: g rejected Attempted to assign to readonly property.
+   show g = ERROR Attempted to assign to readonly property.
+   error g: Attempted to assign to readonly property.
+== selfhost/freeze-attack14/mut.ts:m-async-gen-alias: REJECT g:rejected[mut-yield]
+== selfhost/freeze-attack14/mut.ts:m-returned-fn-alias: ACCEPT
+   drive -> same: () => c.length
+   show g = fn(1) | E[]
+== selfhost/freeze-attack14/mut.ts:m-ctl-direct [ctl]: CONTROL (checker skipped)
+   drive -> DIFF g is outside its type: number 2
+   show g = 2 | E[]
+   CONTROL FIRED
+-- controls 1, ran 1, fired 1
+-- harness crashes 0
+-- 23 candidates, accepted 10, silent 0 (by the tap alone 0)
+-- checker throws 0 (parse errors 0)

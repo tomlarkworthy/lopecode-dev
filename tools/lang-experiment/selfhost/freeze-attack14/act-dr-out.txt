@@ -1,0 +1,74 @@
+== selfhost/freeze-attack14/act.ts:s69-direct: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-map-recv: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-from-len: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-filter-cb: REJECT b:rejected[action-capture][mut-capture]
+== selfhost/freeze-attack14/act.ts:s69-filter-then-map: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-find-cb: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-toSorted-cb: REJECT b:rejected[action-capture][mut-capture]
+== selfhost/freeze-attack14/act.ts:s69-reduce-cb: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-reduce-acc: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-readonly-alias-push: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-implicit-push: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-implicit-const-arr: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-loop-counter: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-catch-throw: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-map-into: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-nested-param-log: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-nested-param-invalidation: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-local-log: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-local-invalidation: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-fn-decl-helper: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-helper-const: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-helper-fwd: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-helper-fwd-mutual: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-fwd-value: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-obj-method: REJECT b:rejected[action-capture][mut-capture]
+== selfhost/freeze-attack14/act.ts:s69-obj-method-syntax: REJECT b:rejected[action-capture][mut-capture]
+== selfhost/freeze-attack14/act.ts:s69-switch-implicit: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-while-implicit: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-forof-cell-arr: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-forof-const: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-forof-index-from: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-equals: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-json: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-template: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-memo-arg: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-cast: REJECT b:rejected[action-capture][action-capture]
+== selfhost/freeze-attack14/act.ts:s69-update-param: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-nested-action-param: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-listener-arg: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-map-cb-own: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-flatMap-recv: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-generator-cell: REJECT a:rejected[inject-unknown] b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-async-cell: REJECT a:rejected[inject-unknown]
+== selfhost/freeze-attack14/act.ts:s69-ternary-sel: ACCEPT
+   drive -> DIFF b wrote k = 0 with c = 0 and k = 1 with c = 1
+   show c = 1 | E[]
+   show k = 1 | E[]
+   SILENT
+== selfhost/freeze-attack14/act.ts:s69-idx-param-only: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-sort-mut-then-map: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-fresh-from-mut-copy: REJECT b:rejected[mut-capture][action-capture]
+== selfhost/freeze-attack14/act.ts:s69-fresh-spread: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-mut-forEach-taint: ACCEPT
+   drive -> same: k = 0 both times
+   show c = 1 | E[]
+   show k = 0 | E[]
+== selfhost/freeze-attack14/act.ts:s69-slice-of-ro: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-map-recv-ro-mut: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-map-recv-mut-implicit: REJECT b:rejected[action-capture]
+== selfhost/freeze-attack14/act.ts:s69-ctl-direct [ctl]: CONTROL (checker skipped)
+   drive -> DIFF b wrote k = 0 with c = 0 and k = 1 with c = 1
+   show c = 1 | E[]
+   show k = 1 | E[]
+   CONTROL FIRED
+== selfhost/freeze-attack14/act.ts:s69-ctl-map-recv [ctl]: CONTROL (checker skipped)
+   drive -> DIFF b wrote k = 0 with c = 0 and k = 1 with c = 1
+   show c = 1 | E[]
+   show k = 1 | E[]
+   CONTROL FIRED
+-- controls 2, ran 2, fired 2
+-- harness crashes 0
+-- 52 candidates, accepted 2, silent 1 (by the tap alone 0)
+SILENT selfhost/freeze-attack14/act.ts:s69-ternary-sel
+-- checker throws 0 (parse errors 0)

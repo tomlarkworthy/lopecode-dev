@@ -374,7 +374,19 @@ A body can only call a prelude function. The name of a prelude function used as 
 
 Since 2026-11-24 (w1), a \`const\` or \`let\` of a block is in scope for the full block, as in JavaScript. A read of its name before the declaration names that declaration and not a binding outside the block. This applies in the block and in a function made in the block. Such a read is \`[free-name]\`. For example, a later local \`Math\` makes an earlier \`Math.max\` in the block \`[free-name]\`. This rule is stricter than JavaScript.
 
-Since 2026-11-25 (open part 3), one form of a read before the declaration is accepted. The later declaration is a \`const\` whose name has no type and whose value is an arrow or a \`function\` expression. The read is inside the body of a function bound to a \`const\` declared before it in the same block. No code can call that earlier function before the later declaration runs. That holds when, before the later declaration, the earlier function's name is used only inside its own body or inside the body of another such function that holds the same condition, and no \`function\` declaration of the block uses it. Any other use, such as a call, a pass as an argument, a place in an array or object literal, or a read of a member, is \`[free-name]\`. The message names the function and says to not use it before the later declaration, or to move that declaration up. Two \`const\` functions can call each other this way. The type of the later function at the read is the type a \`function\` declaration has there: its annotations, or else its body is checked at that read. A function that calls itself, or two that call each other, with no return type is unsupported, as for a \`function\` declaration. A read of a later \`let\`, of a \`const\` that is not a function, of a \`const\` with a type on its name, or of a \`memo(...)\` stays \`[free-name]\`. A rule that sees through a call of a local helper (S3.11, S3.19, S4.10 to S4.12, S5.6, S5.7, S6.5, S6.9, S6.19) sees through a helper read this way too.`
+Since 2026-11-25, one read before the declaration is accepted. All of these are necessary:
+
+- The later declaration is a \`const\` with no type on its name, and its value is an arrow or a \`function\` expression.
+- The read is in the body of a function bound to a \`const\` that is declared earlier in the same block.
+- Nothing uses the earlier function before the later declaration. A use is a call, an argument, a place in an array or object literal, a member read, a JSX tag, or a mention in a \`function\` declaration of the block. A mention in the body of another function is not a use when that function also obeys this condition.
+
+If the earlier function is used too early, the read is \`[free-name]\`. The message names the function. It tells the author to not use the function before the later declaration, or to move that declaration up. Two \`const\` functions can call each other in this way.
+
+At the read, the later function has the type that a \`function\` declaration has there. That type comes from its annotations. If it has none, the checker checks its body at that read. A function that calls itself, or two functions that call each other, with no return type is unsupported. One return type is sufficient.
+
+A read of a later \`let\`, of a \`const\` that is not a function, of a \`const\` with a type on its name, or of a \`memo(...)\` is \`[free-name]\`.
+
+A rule that applies through a call of a local helper (S3.11, S3.19, S4.10 to S4.12, S5.6, S5.7, S6.5, S6.9, S6.19) also applies through a helper that is read before its declaration. S4.12 does not find a function that a helper gives to \`set\`, or that a local call returns into \`set\`. The run time refuses that write.`
 // %%
 md`**S2.7** A read of \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`. This also applies through a local bound to the intrinsic, through destructuring such as \`const { random } = Math\`, and through a computed key such as \`Math["random"]\`. A value with a banned member is not assignable to a type that names the member. Thus \`Math\` given where \`{ random: () => number }\` is expected is \`[type]\`. \`prototype\` on any other value is rejected by a different rule, usually \`[no-member]\`.
 
@@ -389,7 +401,7 @@ md`**S2.8** A body that uses a cell by its name, and does not take it as a param
 md`**S2.9** The checker type-checks a body with \`null\` and \`undefined\` kept apart from other types. A type error is \`[type]\`. Five checks have rules of their own:
 
 - A parameter of a local function with no annotation and no type from the place where the function is passed is \`[untyped-parameter]\`.
-- A call with too few or too many arguments is \`[arity]\`. Since 2026-11-25, a function given a function type that declares fewer parameters than the function has is also \`[arity]\` (the rule on parameters past the declared ones, in this statement).
+- A call with too few or too many arguments is \`[arity]\`. A function with more parameters than its function type declares is also \`[arity]\`; the last paragraph of this statement gives that rule.
 - A property that the declared type of an object literal does not have is \`[excess-property]\`.
 - A value that can be \`undefined\` or \`null\`, used as a number, read from, indexed or called, is \`[possibly-undefined]\`.
 - An assignment to a \`const\` local is \`[const-assign]\`.
@@ -401,8 +413,26 @@ These rules are from 2026-11-24 (rounds w1, x1 and y1):
 - **\`void\`.** A function result typed \`void\` takes only \`undefined\`. A callback that returns a value where \`(x: T) => void\` is declared is \`[type]\`. A block body that returns nothing is accepted. \`forEach\` declares the result of its callback as \`unknown\`.
 - **Call signatures.** Every function has the members of \`Function.prototype\` (\`name\`, \`length\`, \`bind\` and the others, read when the checker runs). A function given a type with a call signature that declares one of these members is \`[forgets]\`, unless the own type of the function declares it.
 - **\`JSON.stringify\`.** \`JSON.stringify(v)\` is \`[type]\` when \`v\` can be \`undefined\`, a function, \`unknown\`, \`object\` or a type parameter. \`JSON.stringify\` gives \`undefined\` for those, not a string. \`JSON.stringify(v ?? null)\` is accepted.
-- **Parameters past the declared ones** (2026-11-25). A function type says how many arguments a caller passes. JavaScript can pass more. \`map\`, \`filter\`, \`forEach\` and the other array methods pass the element, the index and the array. The checker's signatures leave out the array. A parameter past the declared ones would get that argument, which can have a type other than its annotation. So a function is not assignable to a function type that declares fewer parameters than the function has. This counts optional parameters, parameters with a default value and a rest parameter, unless the type has a rest parameter. The rule applies wherever one function type is compared with another: an annotation, a record member, an array element, a type argument, a union member, a call signature, a cell's parameter and the parameter of a built-in. It is \`[arity]\`, and the message says to remove the parameters after the declared ones, or to declare them in the type. In a cell's parameter it is \`[inject-type]\`. A function with no rest parameter and with fewer parameters than its type declares is accepted.
 - **\`Object.fromEntries\`.** The keys of its result come from run-time data. A key can be \`then\`, \`toJSON\` or \`toString\`, which the run time calls. A call whose values are not plain data is \`[type]\`. Values typed \`unknown\` or \`object\` count as not plain, because one can be an \`Action\` that a join made \`unknown\`.
+
+**More parameters than the type declares.** Since 2026-11-25, a function is not assignable to a function type that declares fewer parameters than the function has. This is \`[arity]\`.
+
+- Optional parameters and parameters with a default value are in the count.
+- A function with a rest parameter is \`[arity]\` when its type has no rest parameter, whatever the count. A type with a rest parameter takes a function with more parameters than the type lists when each parameter past the list is optional or has a default value.
+- A function with fewer parameters than its type declares, and no rest parameter, is accepted.
+
+The reason: a function type gives the number of arguments that a caller passes, but JavaScript passes more to some callbacks. \`map\`, \`filter\`, \`forEach\` and the other array methods pass the element, the index and the array. The signatures of the checker omit the array. A parameter that the type does not declare gets that argument, and the argument does not have the type of the parameter.
+
+The rule applies at each place where the checker compares two function types: an annotation, a record member, an array element, a type argument, a union member, a call signature and the parameter of a built-in. In the parameter of a cell it is \`[inject-type]\`. The message tells the author to remove the parameters that the type does not declare, or to declare them in the type.
+
+**A required parameter that the type lets a caller leave out.** A function that requires a parameter is \`[arity]\` when its type has an optional parameter or a rest parameter at that place. A call through the type passes no argument there, and the parameter gets \`undefined\`. Make the parameter optional, give it a default value, or make the parameter of the type required.
+
+**Numbers stored by an operator, and two array methods.** Each of these is \`[type]\`:
+
+- \`++\` or \`--\` on a variable whose type has no \`number\`, such as \`let n: 1 | 2\`. The operator stores a number. A compound assignment (\`+=\` and the others) gets the same check.
+- \`flatMap\` with a callback result typed by a type parameter, such as \`xs.flatMap((x: T) => x)\`. JavaScript flattens a result that is an array, and a type parameter may be an array. Return \`[x]\` for one element.
+
+\`split\` with a \`RegExp\` separator gives \`(string | undefined)[]\`. A capture group that takes no part in a match puts \`undefined\` in the result. A regular expression literal with no capture group, such as \`/\\s+/\`, gives \`string[]\`.
 
 Check time and run time: the rules of this statement are rules of the checker. The run time stops these cases where a value is handed over (S4.6): a response or an iterator that a type omits, and a promise that a type omits in the value of a cell whose type names no promise. This includes a value that reaches \`unknown\` through a join with a value typed \`unknown\` or through a type parameter. A conversion does not reach a function that a type omits (S2.7). If a type incorrectly describes a value as plain data, no run-time check finds it.`
 // %%
@@ -420,7 +450,7 @@ md`**S2.10** Reserved names. Each use in this statement is \`[reserved-name]\`.
 
 A BigInt literal as a property key (\`{ 1n() {} }\`) is unsupported.`
 // %%
-md`**S2.11** The return type of an async function is \`Promise<T>\`. The return type of a generator function, sync or async, is \`Generator<Y>\`. Any other annotation is \`[type]\`. Each \`yield\` of a generator annotated \`Generator<Y>\` gives a \`Y\`, and a value of a different type is \`[type]\`. The run time unwraps a promise that an async function returns. Thus, since 2026-11-23, the checker types the return as the value that the promise resolves to, as \`await\` does. The same applies to the result of \`then\` and of \`Promise.resolve\`: a callback that returns a \`Promise<T>\` gives a \`Promise<T>\`.`
+md`**S2.11** The return type of an async function is \`Promise<T>\`. The return type of a generator function, sync or async, is \`Generator<Y>\`. Any other annotation is \`[type]\`. Each \`yield\` of a generator annotated \`Generator<Y>\` gives a \`Y\`, and a value of a different type is \`[type]\`. The run time unwraps a promise that an async function returns. Thus, since 2026-11-23, the checker types the return as the value that the promise resolves to, as \`await\` does. The same applies to the result of \`then\` and of \`Promise.resolve\`: a callback that returns a \`Promise<T>\` gives a \`Promise<T>\`. An async function annotated \`Promise<T>\` whose end is reachable is \`[type]\` when \`T\` has no \`undefined\`: the promise resolves to \`undefined\` there. The checker does not type the value that a generator returns, because \`next\` is unsupported.`
 // %%
 md`**S2.12** \`messageOf(e)\` is the text of a caught value \`e\`. It is the \`message\` of an \`Error\` when the message is a string. If not, it is \`String(e)\`. \`messageOf\` does not throw. If the read of the message or the conversion to a string throws, the result is \`(a thrown value whose text cannot be read)\`. A call that does not have exactly one argument is \`[arity]\`.`
 // %%
@@ -439,7 +469,7 @@ md`**S2.14** \`f\` in \`memo(f)\` computes its result from its arguments only. \
 - A parameter type of \`f\` can be or hold a function. A function can read a capability.
 - A parameter type of \`f\` holds a \`Mut\`, \`State\`, \`StateCell\`, \`Action\`, \`Events\`, \`Listener\`, \`Promise\`, \`Generator\`, \`Elem\`, \`FetchResponse\`, \`URLSearchParams\` or \`DataView\`.
 - The result type of \`f\` holds a \`Mut\`, a state type, a \`Promise\` or a \`Generator\`, or can hold an iterator by the test of S3.19, such as the result of \`[n].values()\`.
-- \`f\` uses a name from outside itself that the body of an action cannot use (S6.9): an input that depends on state, a capability, a parameter of an enclosing function, or a const computed from one of these.
+- \`f\` uses a name from outside itself that the body of an action cannot use (S6.9): an input that depends on state, a capability, a parameter of an enclosing function (but not a callback parameter that S6.9 accepts), or a const computed from one of these.
 - \`f\` uses a const bound to a \`Mut\` local, such as \`c\` in \`const c: readonly number[] = xs\`. S4.10 lets other functions capture \`c\`, but the cell can write \`xs\` after a result is stored.
 - \`f\` uses a capability, which includes \`log\` and \`invalidation\`, or a value that holds a \`State\`, \`Action\`, \`Events\` or \`Listener\`.
 
@@ -552,10 +582,16 @@ spec_rejects_2 = [
   { statement: "S2.9", rule: "type", source: "const k = () => (x: number | string) => {\n  const r: number = x || 1;\n  return r;\n};" },
   { statement: "S2.9", rule: "arity", source: "const k = () => [5].map((x: number, i?: number, s?: string) => s ?? \"none\");" },
   { statement: "S2.9", rule: "arity", source: "const k = () => {\n  const f: (x: number) => string = (x: number, i?: number, s?: string) => s ?? \"none\";\n  return [5].map(f);\n};" },
+  { statement: "S2.9", rule: "arity", source: "const k = () => {\n  const f: (x?: number) => number = (x: number) => x + 1;\n  return f();\n};" },
+  { statement: "S2.9", rule: "arity", source: "const k = () => {\n  const f: (...xs: number[]) => number = (a: number) => a + 1;\n  return f();\n};" },
+  { statement: "S2.9", rule: "type", source: "const k = () => {\n  let n: 1 | 2 = 1;\n  n++;\n  return n;\n};" },
+  { statement: "S2.9", rule: "type", source: "const k = (): readonly string[] => \"ab\".split(/(x)?/);" },
+  { statement: "S2.9", rule: "type", source: "const k = () => {\n  const fm = <T,>(xs: readonly T[]): readonly T[] => xs.flatMap((x) => x);\n  return fm([[1]]).length;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = async (): number => 5;\n  return 1;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): number {\n    yield 1;\n  };\n  return 1;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = function* (): Generator<number> {\n    yield \"x\";\n  };\n  return g;\n};" },
   { statement: "S2.11", rule: "type", source: "const f = () => {\n  const g = async function* (): number {\n    yield 1;\n  };\n  return 1;\n};" },
+  { statement: "S2.11", rule: "type", source: "const k = () => {\n  const g = async (): Promise<number> => {\n    if (Math.abs(1) > 0) return 1;\n  };\n  return 1;\n};" },
   { statement: "S2.12", rule: "arity", source: "const f = () => messageOf();" },
   { statement: "S2.12", rule: "arity", source: "const f = () => messageOf(1, 2);" },
   { statement: "S2.12", rule: "type", source: "const f = (): number => messageOf(1);" },
@@ -681,7 +717,10 @@ test_spec_S2_13 = {
 // %%
 test_spec_S2_14 = {
   spec_is(spec_okCells("const sq = () => (n: number) => n * n;\nconst f = (sq: (n: number) => number) => memo((xs: readonly number[], m: Map<string, number>) => sq(xs.length) + m.size);\nconst g = () => memo((n: number) => (k: number) => n + k);"), "sq:ok,f:ok,g:ok");
-  return `${spec_rejectsFor("S2.14")}; data parameters, a pure function input and a function result are accepted`;
+  // the cache belongs to one memo call: two memos made in one map keep apart, and each gives its own n
+  const L = await spec_load("const k = () => {\n  const ms = [1, 2].map((n) => memo((m: number): number => m + n));\n  const a = ms[0], b = ms[1];\n  return a === undefined || b === undefined ? [] : [a(10), b(10)];\n};", {});
+  try { spec_is(await L.value("k"), [11, 12]); } finally { L.dispose(); }
+  return `${spec_rejectsFor("S2.14")}; data parameters, a pure function input and a function result are accepted; a memo per callback gives [11,12]`;
 }
 // %%
 test_spec_S2_9 = {
@@ -698,6 +737,8 @@ test_spec_S2_9 = {
   spec_is(spec_okCells("const k = () => {\n  const each = (xs: readonly number[], w: (x: number) => void) => {\n    for (const x of xs) w(x);\n  };\n  each([1], (x) => {\n    const y = x + 1;\n  });\n  return 1;\n};"), "k:ok");
   // open (2026-11-25): a function with fewer parameters than its type declares, or as many, is accepted
   spec_is(spec_okCells("const k = () => {\n  const f: (x: number, i: number) => string = (x: number) => String(x);\n  const g: (x: number, y?: number) => number = (x: number, y?: number) => x + (y ?? 0);\n  return [5].map(f).length + g(1) + [5].map(() => 1).length;\n};"), "k:ok");
+  // an optional parameter under a rest type, ++ on a number, split by a literal with no group, and a group read with ?? are accepted
+  spec_is(spec_okCells("const k = () => {\n  const f: (...xs: number[]) => number = (a?: number) => a ?? 0;\n  let n = f();\n  n++;\n  return n;\n};\nconst j = (): readonly string[] => [...\"a b\".split(/\\s+/), ...\"ab\".split(/(x)?/).map((x) => x ?? \"\")];"), "k:ok,j:ok");
   return `${spec_rejectsFor("S2.9")}; a function with fewer parameters than its type declares, or as many, is accepted; a callback parameter typed by map, a value narrowed by a check for undefined, and an optional parameter passed on to an optional parameter are accepted; an object literal and a rest leave out an optional member; a forEach callback's result, a value given a built-in that keeps none of its arguments, plain data given unknown and a block body returning nothing under a void result are accepted`;
 }
 // %%
@@ -714,7 +755,9 @@ md`**S3.2** A call of a mutating method on a receiver that is not \`Mut\` is \`[
 - on a \`Map\`: \`set delete clear\`;
 - on a \`Set\`: \`add delete clear\`.
 
-The methods that copy (\`toSorted\`, \`toReversed\`, \`slice\`, \`map\`, \`filter\`) and spreads are accepted.`
+The methods that copy (\`toSorted\`, \`toReversed\`, \`slice\`, \`map\`, \`filter\`) and spreads are accepted.
+
+A tuple type gives each index its own type. On a \`Mut\` tuple, \`push\`, \`pop\`, \`shift\`, \`unshift\` and \`splice\` change the length and are \`[mutating-method]\`. \`sort\`, \`reverse\`, \`fill\` and \`copyWithin\` are \`[mutating-method]\` when the element types differ. Copy the tuple first (\`toSorted\`, \`toReversed\`, \`[...t]\`), or give it an array type.`
 // %%
 md`**S3.3** \`Object.assign\` with an existing value as its first argument is \`[object-assign]\`. Use a spread, \`{ ...o, b: 2 }\`, to make the new value. A spread or a rest copies the own properties of a value. Thus a spread or a rest of an intrinsic such as \`Math\` is \`[type]\`. For the same reason, only a record is assignable to a record type with a required member. These are \`[type]\`: an array or a string where \`{ length: number }\` is expected, a \`Map\` where \`{ size: number }\` is expected, and \`Math\` where \`{ PI: number }\` is expected.`
 // %%
@@ -797,6 +840,8 @@ spec_rejects_3 = [
   { statement: "S3.2", rule: "regexp-state", source: "const x = () => /a/g;\nconst y = (x: RegExp) => [x.test(\"aa\"), x.test(\"aa\")];" },
   { statement: "S3.2", rule: "regexp-state", source: "const a = () => {\n  const re = /a/y;\n  return [re.test(\"aa\"), re.test(\"aa\")];\n};" },
   { statement: "S3.2", rule: "regexp-state", source: "const a = (s: string) => {\n  const re = new RegExp(\"a\", s);\n  return re.exec(\"aa\");\n};\nconst s = () => \"g\";" },
+  { statement: "S3.2", rule: "mutating-method", source: "const k = () => {\n  const t: Mut<[number, string]> = [1, \"a\"];\n  t.reverse();\n  return t[0];\n};" },
+  { statement: "S3.2", rule: "mutating-method", source: "const k = () => {\n  const t: Mut<[number, number]> = [1, 2];\n  t.push(3);\n  return t.length;\n};" },
   { statement: "S3.3", rule: "object-assign", source: "const o = () => ({ a: 1 });\nconst w = (o) => Object.assign(o, { b: 2 });" },
   { statement: "S3.4", rule: "no-delete", source: "const o = (): { a?: number } => ({});\nconst d = (o) => {\n  delete o.a;\n  return o;\n};" },
   { statement: "S3.4", rule: "no-delete", source: "const d = () => {\n  const o = { a: 1, b: 2 };\n  delete o.a;\n  return o;\n};" },
@@ -875,6 +920,8 @@ test_spec_S3_2 = {
   spec_is(await spec_module.value("s3_sorted"), [1, 2, 3]);
   // a g or y regexp where it is made, and a held regexp without them, are accepted
   spec_is(spec_okCells("const r = () => {\n  const re = /^a/;\n  const f = (s: string) => [/a/g.test(s), s.replace(/a/g, \"b\"), s.split(/,/g).length, re.test(s), re.exec(s) === null];\n  return f(\"a,b\");\n};"), "r:ok");
+  // a mutating method that keeps one element type on a Mut tuple is accepted
+  spec_is(spec_okCells("const k = () => {\n  const t: Mut<[number, number]> = [2, 1];\n  t.reverse();\n  return t[0];\n};"), "k:ok");
   return `${spec_rejectsFor("S3.2")}; the copying methods are accepted; s3_sorted is [1,2,3]; a g regexp is accepted where it is made`;
 }
 // %%
@@ -1491,11 +1538,20 @@ md`**S6.9** The body of an action cannot use a value that depends on state. Such
 - an input that takes a state cell or an events cell by value;
 - a capability other than \`invalidation\` and \`log\`;
 - an input that takes a cell that depends on one of these;
+- a parameter of an enclosing function, because a caller passes it any value (one exception follows);
+- an element of a local array that is not \`readonly\` (a \`Mut\`), because the cell can write to the array after the action is made;
 - a local computed from any of these.
 
 These are accepted: handles (\`State\`, \`Events\`), \`Action\`s, cells with no state, and the parameters and locals of the action itself. A value from the clock or the random source gets to an action as an argument.
 
-A parameter of an enclosing function depends on state, because a caller can pass it any value. Since 2026-11-25 there is one exception: a parameter of a callback that a built-in calls before it returns. These are the callbacks of S6.19, such as those of \`map\`, \`forEach\`, \`filter\`, \`flatMap\`, \`reduce\` and \`Array.from\`. The built-in gives the parameter values from its receiver and its other arguments. So the parameter depends on state when the receiver or another argument depends on state. A parameter that gets the callback's own result, such as the accumulator of \`reduce\`, also depends on what the callback uses. Thus \`[1, 2].map((n) => action(() => c.set(n)))\` is accepted, as the same loop written with \`for...of\` is. \`xs.map(...)\` over a state cell's value \`xs\` is \`[action-capture]\`. The parameter of the function of \`update\` gets the state, and the parameter of a callback that is kept (\`then\`), stored, or given to a function of the module is still \`[action-capture]\`. So is the parameter of a local helper. A local array that the cell can change is a \`Mut\`, and an element read from it is \`[action-capture]\` in both forms; a \`readonly\` array is not.`
+Since 2026-11-25, one parameter of an enclosing function is accepted: a parameter of a callback that a built-in calls before the built-in returns. These are the callbacks of S6.19, such as the callbacks of \`map\`, \`forEach\`, \`filter\`, \`flatMap\`, \`reduce\` and \`Array.from\`.
+
+- The built-in makes the values of the parameter from its receiver and its other arguments. Thus the parameter depends on state only when the receiver or another argument depends on state.
+- A parameter that gets the result of the callback, such as the accumulator of \`reduce\`, also depends on each value that the callback uses.
+
+Thus \`[1, 2].map((n) => action(() => c.set(n)))\` is accepted, as the same loop with \`for...of\` is. \`xs.map(...)\` is \`[action-capture]\` when \`xs\` is the value of a state cell. With \`map\` and with \`for...of\`, the array must be a literal or a \`readonly\` array.
+
+These parameters are \`[action-capture]\`: the parameter of the function of \`update\`, which gets the state; the parameter of a callback that is kept (\`then\`), stored, or given to a function of the module; and the parameter of a local helper.`
 // %%
 md`**S6.10** A write is applied to its call when it is made. Thus an \`update\` whose function throws makes the call that made it throw. A top-level call that throws keeps none of its writes, and none of the writes of the actions that it called. The writes of earlier calls are kept. Calls apply in the order in which they were made. An action called inside a call is a plain function call. If it throws and its caller catches the throw, the writes that it made before the throw are kept.`
 // %%
@@ -2442,7 +2498,9 @@ md`**S9.2** A checked function from \`unknown\` that narrows with \`typeof\`, \`
 // %%
 md`**S9.3** A foreign declaration (\`declare const\` or \`declare function\`, given to the checker together with the cells) is the trusted signature of an imported cell or library. Each has the mark \`/** pure */\` or \`/** effect */\`. A declaration with no mark is \`[foreign-unmarked]\`. A checked cell that takes an \`effect\` declaration is \`[foreign-effect]\`. The name of a foreign declaration is used before a global of the same name. A notebook module has no foreign declarations.`
 // %%
-md`**S9.4** The narrowings of one value combine in any order. A test that excludes \`null\` or \`undefined\` (\`v !== null\`, \`v != null\`, \`!!v\`) and a later \`typeof v === "object"\` narrow \`v\` to \`object\`, as when \`typeof\` is tested first. An assignment to \`v\` ends the exclusion.`
+md`**S9.4** The narrowings of one value combine in any order. A test that excludes \`null\` or \`undefined\` (\`v !== null\`, \`v != null\`, \`!!v\`) and a later \`typeof v === "object"\` narrow \`v\` to \`object\`, as when \`typeof\` is tested first. An assignment to \`v\` ends the exclusion.
+
+\`==\` and \`!=\` narrow only against \`null\` and \`undefined\`. \`v == "1"\` does not narrow \`v\` of type \`"1" | 1\`, because \`1 == "1"\` is true. \`===\` and \`!==\` narrow against any literal. A loose comparison of operands with no value in common, such as a \`number\` and a \`string\`, is \`[type]\`.`
 // %%
 md`**S9.5** The right operand of \`in\` must be an object. An operand of type \`unknown\`, of a type parameter, or of a type that can be a primitive is \`[type]\`. An operand that can be \`null\` or \`undefined\` is \`[possibly-undefined]\`. \`"k" in v\` throws at run time when \`v\` is a primitive. Test \`typeof v === "object" && v !== null\` first.`
 // %%
@@ -2487,6 +2545,7 @@ spec_rejects_9 = [
   { statement: "S9.4", rule: "possibly-undefined", source: "type V = { readonly a: { readonly x: number } | null | undefined; readonly \"a!null\": number | undefined };\nconst f = () => (v: V): number => v[\"a!null\"] !== undefined && v.a !== undefined ? v.a.x : 0;" },
   { statement: "S9.4", rule: "possibly-undefined", source: "const f = () => (w: unknown): boolean => {\n  let v = w;\n  if (v === null) return false;\n  v = w;\n  return typeof v === \"object\" && \"then\" in v;\n};" },
   { statement: "S9.4", rule: "forgets", source: "const f = () => (): null => {\n  const x: {} = 0;\n  const y: {} | null = x;\n  if (y) return null;\n  const z: null = y;\n  return z;\n};" },
+  { statement: "S9.4", rule: "type", source: "const k = () => {\n  const v: \"1\" | 1 = 1;\n  if (v == \"1\") {\n    const s: \"1\" = v;\n    return s;\n  }\n  return \"x\";\n};" },
   { statement: "S9.5", rule: "type", source: "const f = () => (v: unknown): boolean => \"then\" in v;" },
   { statement: "S9.5", rule: "type", source: "const f = () => <T,>(v: T): boolean => \"then\" in v;" },
   { statement: "S9.5", rule: "type", source: "const f = () => (v: unknown): boolean => typeof v !== \"number\" && \"then\" in v;" },
@@ -2664,6 +2723,7 @@ md`**S11.5** The cell gets a deep-frozen copy.
 - An object keeps only the properties that its type declares.
 - With a recursive alias, an object that the value reaches by two paths, and that both paths read as the same type, is copied one time. Both paths reach the copy.
 - \`unknown\` accepts primitives, arrays and plain objects, and copies them in full. A function, a promise or an instance of a class does not agree (S11.4).
+- The copy reads the \`length\` of an array one time and copies that many elements.
 - A hole in an array is read as \`undefined\`. It does not agree where the element type has no \`undefined\`. If the type has \`undefined\`, the copy has \`undefined\` at that position.
 - A function is given as a frozen function that the boundary makes. At each call, this function gives the function of the other language a deep-frozen copy of each argument. Thus the other language never holds a value that the cell holds. The boundary function calls the function of the other language with no \`this\`, and gives the cell a deep-frozen copy of the result.`
 // %%

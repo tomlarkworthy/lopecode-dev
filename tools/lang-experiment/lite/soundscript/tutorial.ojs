@@ -408,7 +408,7 @@ Types:
 - A parameter needs a type from an annotation or from its context (\`[untyped-parameter]\`).
 - A type name that is not declared is \`[unknown-type]\`.
 - Most other type errors, such as a \`string\` where a \`number\` is necessary, are \`[type]\`.
-- A call with the wrong number of arguments is \`[arity]\`. Since 2026-11-25, a function with more parameters than the function type it is given is also \`[arity]\`, optional, default and rest parameters included. \`map\` passes the index and the array, so \`[5].map((x: number, i?: number, s?: string) => …)\` would give \`s\` an array. Remove the extra parameters, or declare them in the type.
+- A call with the wrong number of arguments is \`[arity]\`. Since 2026-11-25, a function with more parameters than its function type declares is also \`[arity]\`. Optional parameters and parameters with a default value are in the count. A rest parameter is \`[arity]\` when the type has no rest parameter. \`map\` passes the index and the array, so \`[5].map((x: number, i?: number, s?: string) => …)\` gives \`s\` an array. Remove the parameters that the type does not declare, or declare them in the type. A parameter that the function requires is also \`[arity]\` where the type has an optional or a rest parameter: a call through the type leaves it \`undefined\`.
 - A callback declared \`(x: T) => void\` must return nothing. Thus \`(x) => x + 1\` is \`[type]\` there. A block body that returns nothing, such as \`(x) => { const y = x + 1; }\`, is accepted.
 - \`forEach\` declares the result of its callback as \`unknown\`. Thus \`xs.forEach((x) => out.push(x))\` is accepted. A result that is a function or a promise is \`[forgets]\`.`
 // %%
@@ -615,7 +615,7 @@ In a \`.tsx\` source, \`<tag prop={…}>children</tag>\` is a value of type \`El
 - \`key\` on the element of a component is for the renderer. It is not one of the props of the component.
 - Children are elements, strings, numbers, booleans, \`null\`/\`undefined\`, or arrays of elements.
 
-A handler made for each row, \`items.map((it) => <button onClick={action(() => remove(it.id))}>x</button>)\`, is \`[action-capture]\`. \`it\` comes from the value of a state cell, and an action body cannot use such a value (S6.9). Give the data of the row to the action as its argument: \`<input type="checkbox" value={String(it.id)} onInput={remove} />\` with \`remove: Action<[string]>\` gives \`remove\` the id of the row. A \`button\` has no value, so this form needs an \`input\`. Over a list that does not depend on state, a handler made for each row can use the row: \`[1, 2, 3].map((n) => <button onClick={action(() => pick.set(n))}>{n}</button>)\` is accepted (since 2026-11-25).
+A handler made for each row, \`items.map((it) => <button onClick={action(() => remove(it.id))}>x</button>)\`, is \`[action-capture]\`. \`it\` comes from the value of a state cell, and an action body cannot use such a value (S6.9). Give the data of the row to the action as its argument: \`<input type="checkbox" value={String(it.id)} onInput={remove} />\` with \`remove: Action<[string]>\` gives \`remove\` the id of the row. A \`button\` has no value, so this form needs an \`input\`. Over an array literal or a \`readonly\` array that does not depend on state, a handler made for each row can use the row: \`[1, 2, 3].map((n) => <button onClick={action(() => pick.set(n))}>{n}</button>)\` is accepted (since 2026-11-25).
 
 The full declarations are in the first appendix. Section 8 shows each rejection.`
 // %%

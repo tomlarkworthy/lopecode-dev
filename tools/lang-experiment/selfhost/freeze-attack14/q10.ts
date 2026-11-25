@@ -1,0 +1,18 @@
+export const srcs: [string, string][] = [
+["view-ctor-buffer", `const k = () => new Float32Array(2);\nconst g = (k: Float32Array): number => { const v = new Float32Array(k.buffer); v[0] = 9; return v[0] ?? 0; };`],
+["view-ctor-u8", `const k = () => new Float32Array(2);\nconst g = (k: Float32Array): number => { const v = new Uint8Array(k.buffer); v[3] = 64; return 1; };`],
+["view-ctor-ab", `const k = () => new ArrayBuffer(4);\nconst g = (k: ArrayBuffer): number => { const v = new Uint8Array(k); v[0] = 9; return 1; };`],
+["view-ctor-offset", `const k = () => new Float32Array(2);\nconst g = (k: Float32Array): number => { const v = new Float32Array(k.buffer, 0, 1); v[0] = 9; return 1; };`],
+["view-subarray", `const k = () => new Float32Array(2);\nconst g = (k: Float32Array): number => { const v = k.subarray(0); v[0] = 9; return 1; };`],
+["view-fill", `const k = () => new Float32Array(2);\nconst g = (k: Float32Array): number => { new Float32Array(k.buffer).fill(9); return 1; };`],
+["view-set", `const k = () => new Float32Array(2);\nconst g = (k: Float32Array): number => { new Float32Array(k.buffer).set([9]); return 1; };`],
+["view-sort", `const k = () => Float32Array.of(2, 1);\nconst g = (k: Float32Array): number => { new Float32Array(k.buffer).sort(); return 1; };`],
+["view-local-buffer", `const g = (): number => { const t = new Float32Array(2); const v = new Float32Array(t.buffer); v[0] = 9; return t[0] ?? 0; };`],
+["view-in-action", `const s = (): StateCell<Float32Array> => state(new Float32Array(2));\nconst b = (s: State<Float32Array>) => action(() => { new Float32Array(read(s).buffer)[0] = 9; });`],
+["view-action-arg", `const b = () => action((t: Float32Array) => { new Float32Array(t.buffer)[0] = 9; });`],
+["view-memo", `const g = (): number => { const f = memo((t: Float32Array) => { new Float32Array(t.buffer)[0] = 9; return 1; }); return 1; };`],
+["view-rec-input", `const k = () => ({ t: new Float32Array(2) });\nconst g = (k: { readonly t: Float32Array }): number => { new Float32Array(k.t.buffer)[0] = 9; return 1; };`],
+["view-gen-input", `const k = function* () { yield new Float32Array(2); };\nconst g = (k: Float32Array): number => { new Float32Array(k.buffer)[0] = 9; return 1; };`],
+["view-fn-input", `const k = () => (t: Float32Array) => { new Float32Array(t.buffer)[0] = 9; return 1; };`],
+["ab-slice", `const k = () => new ArrayBuffer(4);\nconst g = (k: ArrayBuffer): number => { const v = new Uint8Array(k.slice(0)); v[0] = 9; return 1; };`],
+];

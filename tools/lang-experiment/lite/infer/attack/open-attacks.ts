@@ -6,8 +6,14 @@
 // and run clean; every other row that is not a control must be rejected [arity]. Controls (checker skipped, counted
 // as open-controls) show the extra argument reaches the callback at run time. live.test.ts asserts this;
 // run-sets.ts --sets open [--rt].
-import { tyRow, strs, nums, isStr, type Cand } from "../../../selfhost/freeze-attack13/lib13.ts";
+import { tyRow, strs, nums, isStr, isNum, type Cand } from "../../../selfhost/freeze-attack13/lib13.ts";
 import { cands as EXTRA } from "../../../selfhost/freeze-attack13/extra.ts";
+import { cands as TUP } from "../../../selfhost/freeze-attack14/tup.ts";
+import { cands as OPTP } from "../../../selfhost/freeze-attack14/optp.ts";
+import { cands as REST } from "../../../selfhost/freeze-attack14/rest.ts";
+import { cands as LIT } from "../../../selfhost/freeze-attack14/lit.ts";
+import { cands as RET } from "../../../selfhost/freeze-attack14/ret.ts";
+import { cands as GEN } from "../../../selfhost/freeze-attack14/gen.ts";
 const R: Cand[] = [];
 // attack 13's rows that are legal: memo calls its function with the caller's arguments only, toSorted passes two
 const A13_OK = new Set(["v-extra-memo-held", "v-extra-mut-alias-sort"]);
@@ -46,7 +52,9 @@ L("open-ok-index", `return [5].map((x: number, i: number) => String(x + i));`);
 L("open-ok-none", `return [5].map(() => "a");`);
 L("open-ok-annot-fewer", `const f: (x: number, i: number) => string = (x: number) => String(x); return [5].map(f);`);
 L("open-ok-rest-both", `const f: (...xs: number[]) => number = (...ys: number[]) => ys.length; return f(1, 2);`, (v) => v === 2);
-L("open-ok-rest-target", `const f: (...xs: number[]) => number = (a: number, b?: number) => a + (b ?? 0); return f(1, 2);`, (v) => v === 3);
+// part 5 (RP): a rejects the call f() that the rest type allows, so this row moved from open-ok-* to [arity]
+L("open-p-rest-target-required", `const f: (...xs: number[]) => number = (a: number, b?: number) => a + (b ?? 0); return f(1, 2);`, (v) => v === 3);
+L("open-ok-rest-target", `const f: (...xs: number[]) => number = (a?: number, b?: number) => (a ?? 0) + (b ?? 0); return f(1, 2);`, (v) => v === 3);
 L("open-ok-optional-declared", `const f: (x: number, y?: number) => number = (x: number, y?: number) => x + (y ?? 0); return f(1);`, (v) => v === 1);
 // controls, checker skipped: map's third argument reaches a parameter the type leaves out
 L("open-ctl-map", `return [5].map(${F3});`, strs, true);
@@ -166,4 +174,52 @@ for (const [n, rule, h, hc, hf, run, t] of PAIRS) for (const [form, src] of [["b
   FWD_RULES.set(`open-fwdr-${n}-${form}`, rule);
   R.push({ name: `open-fwdr-${n}-${form}`, src, show: [] });
 }
+// part 5 (2026-11-25): attack 14's breaks with a compile rule (selfhost/freeze-attack14/RESULTS.md). open-a14-* are
+// its rows, each rejected by the rule A14_RULES names for its family: TP a mutating method on a tuple, OP/RP a required
+// parameter its type lets a caller leave out, LI ++/--, SG split by a RegExp, AR an async function's ending return, LE
+// a loose ==, FM flatMap of a type parameter. Left out: HO, SW and PA (not fixed), the controls, and s-split-group-upper
+// and s-split-forof, whose split result is now (string | undefined)[] and whose detectors read the old type.
+// open-ok-p5-* are legal neighbours, accepted and run (lite/soundscript/.scratch/open5/*.ts)
+export const A14_RULES = new Map<string, string[]>();
+const A14: [Cand[], RegExp, string[]][] = [
+  [TUP, /^t-/, ["mutating-method"]], [OPTP, /^o-/, ["arity", "inject-type"]], [REST, /^r-/, ["arity", "inject-type"]],
+  [LIT, /^(l-|s-split-(group|join|regexp-ctor|limit|cell-reader)$)/, ["type"]], [RET, /^a-/, ["type"]], [GEN, /^(e-|f-flatmap)/, ["type", "no-member"]],
+];
+// two of its rows hold no break (a literal never written, a branch == does not narrow): legal, accepted and run
+const A14_OK = new Set(["l-bool-lit", "e-switch-after"]);
+for (const [cs, re, rules] of A14) for (const c of cs) if (!c.ctl && re.test(c.name)) {
+  if (A14_OK.has(c.name)) { R.push({ ...c, name: `open-ok-a14-${c.name}` }); continue; }
+  A14_RULES.set(`open-a14-${c.name}`, rules);
+  R.push({ ...c, name: `open-a14-${c.name}` });
+}
+// e-neq-str-method: v is not narrowed by != 1, so v.toFixed on "1" | 1 is an unsupported member
+A14_RULES.set("open-a14-e-neq-str-method", ["unsupported"]);
+// two holes a review found in the part 5 rules: split on a record's own split method, an optional parameter before a required one
+const P5 = (name: string, body: string, ok: (v: unknown) => boolean, rules: string[]) => { A14_RULES.set(`open-a14-p5-${name}`, rules); R.push(tyRow(`open-a14-p5-${name}`, `const g = () => { ${body} };`, ok)); };
+P5("split-record", `const r = { split: (re: RegExp): number[] => [1] }; const s: readonly string[] = r.split(/a/); return s;`, strs, ["type"]);
+P5("opt-before-req", `const f: (x: number, y?: string) => string = (a = 1, b: string) => b; return f(1);`, isStr, ["arity"]);
+const K5 = (name: string, body: string, ok: (v: unknown) => boolean) => R.push(tyRow(`open-ok-p5-${name}`, `const g = () => { ${body} };`, ok));
+K5("opt-param", `const f: (x?: number) => number = (x?: number) => x ?? 0; return f();`, isNum);
+K5("default-param", `const f: (x?: number) => number = (x = 1) => x; return f();`, isNum);
+K5("rest-rest", `const f: (...xs: number[]) => number = (...ys: number[]) => ys.length; return f();`, isNum);
+K5("rest-lead", `const f: (a: number, ...xs: number[]) => number = (a: number) => a; return f(1);`, isNum);
+K5("fewer", `const f: (x: number, y: number) => number = (x: number) => x; return f(1, 2);`, isNum);
+K5("inc", `let n = 0; n++; ++n; n--; n += 2; return n;`, isNum);
+K5("async-return", `const f = async (): Promise<number> => { if (Math.abs(1) > 2) return 2; return 1; }; return 1;`, isNum);
+K5("async-void", `const f = async (): Promise<void> => { }; return 1;`, isNum);
+K5("loose-null", `const v: number | null = 1; if (v == null) return 0; return v + 1;`, isNum);
+K5("strict-lit", `const v: number | "1" = "1"; return v === "1" ? v : "x";`, isStr);
+K5("split-str", `return "a,b".split(",");`, strs);
+K5("split-nogroup", `return "a b".split(/\s+/);`, strs);
+K5("split-noncap", `return "a b".split(/(?:\s)+/);`, strs);
+K5("split-group-fallback", `return "ab".split(/(x)?/).map((x) => x ?? "");`, strs);
+K5("tuple-same-reverse", `const t: [number, number] = [1, 2]; t.reverse(); return t[0];`, isNum);
+K5("tuple-same-sort", `const t: [number, number] = [2, 1]; t.sort((a, b) => a - b); return t[0];`, isNum);
+K5("tuple-index", `const t: [number, string] = [9, "1"]; t[0] = 3; return t[0];`, isNum);
+K5("tuple-toReversed", `const t: [number, string] = [9, "1"]; return t.toReversed().length;`, isNum);
+K5("array-push", `const xs = [1]; xs.push(2); xs.reverse(); return xs.length;`, isNum);
+K5("flatmap-wrap", `const fm = <T,>(xs: readonly T[]): readonly T[] => xs.flatMap((x) => [x]); return fm([[1], [2]]).length;`, isNum);
+K5("flatmap-arr", `return [[1], [2]].flatMap((x) => x);`, nums);
+K5("flatmap-el", `return [1, 2].flatMap((x) => (x > 1 ? x : []));`, nums);
+K5("memo-map", `const ms = [1, 2].map((n) => memo((k: number): number => k + n)); const a = ms[0], b = ms[1]; return a === undefined || b === undefined ? [] : [a(10), b(10)];`, (v) => Array.isArray(v) && v[0] === 11 && v[1] === 12);
 export const attacks = R;

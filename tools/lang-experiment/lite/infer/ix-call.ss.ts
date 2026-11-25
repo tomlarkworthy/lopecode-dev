@@ -11,7 +11,7 @@ export const ixTypeArgs = (ixConvert) => (K: IxK, V: IxVars, env: IxEnv, n: AstN
   for (const t of n.params) out.push(ixConvert(K, V, env, t));
   return out;
 };
-export const ixCall = (ixLookup, ixPreludeCall, ixCompileCall, ixNewSigs, ixCallSigs, ixApplyAll, ixFact, ixGap, ixJsonArg) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null): Ty => {
+export const ixCall = (ixFlatMapArg, ixSplitLiteral, ixLookup, ixPreludeCall, ixCompileCall, ixNewSigs, ixCallSigs, ixApplyAll, ixFact, ixGap, ixJsonArg) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: AstNode, expected: Ty | null): Ty => {
   if (e.type !== "CallExpression" && e.type !== "NewExpression") return ixGap(C, `call node ${e.type}`);
   const callee = e.callee;
   if (e.type === "CallExpression" && callee.type === "Identifier") {
@@ -24,7 +24,31 @@ export const ixCall = (ixLookup, ixPreludeCall, ixCompileCall, ixNewSigs, ixCall
   if (found.k === "done") return found.t;
   const t = ixApplyAll(K, T, V, W, C, env, e, found.sigs, expected, found.view);
   ixJsonArg(K, T, V, C, env, e);
-  return t;
+  ixFlatMapArg(K, T, C, e);
+  return ixSplitLiteral(K, T, e, t);
+};
+// open part 5 (SG): split by a regexp literal with no capture group gives strings only (intrinsics.ts types a RegExp
+// separator's result (string | undefined)[]); the groups are counted by the regexp itself: a match of "" by p|
+export const ixSplitLiteral = (STR) => (K: IxK, T: IxTypes, e: AstNode, t: Ty): Ty => {
+  if (e.type !== "CallExpression" || t.k !== "arr") return t;
+  const c = e.callee, a = e.arguments[0];
+  if (c.type !== "MemberExpression" || c.computed || c.property.type !== "Identifier" || c.property.name !== "split" || a === undefined || a.type !== "Literal" || a.regex === null) return t;
+  const recv = T.get(c.object.nid);
+  if (recv === undefined || !K.reg.sub(recv, STR)) return t;
+  let groups = 1;
+  try { groups = (new RegExp(`${a.regex.pattern}|`, a.regex.flags.replace(/[gy]/g, "")).exec("")?.length ?? 2) - 1; } catch { groups = 1; }
+  return groups === 0 ? { ...t, el: STR } : t;
+};
+// open part 5 (FM): flatMap flattens a callback result that is an array; a result typed by a type parameter may be one
+// at run time, where U | readonly U[] took it as one element
+export const ixFlatMapArg = (ixUm, ixErr, show) => (K: IxK, T: IxTypes, C: IxCtls, e: AstNode): void => {
+  if (e.type !== "CallExpression") return;
+  const c = e.callee, a = e.arguments[0], ft = a === undefined ? undefined : T.get(a.nid);
+  if (c.type !== "MemberExpression" || c.computed || c.property.type !== "Identifier" || c.property.name !== "flatMap" || ft === undefined || ft.k !== "fn") return;
+  const recv = T.get(c.object.nid), un = (t: Ty): Ty[] => ixUm(K.reg, t.k === "named" && (t.n === "Mut" || t.n === "Borrowed") ? t.args[0] ?? t : t);
+  if (recv === undefined || !un(recv).some((m) => m.k === "arr" || m.k === "tup")) return;
+  const tv = un(ft.ret).find((m) => m.k === "tv");
+  if (a !== undefined && tv !== undefined) ixErr(K, C, a, "type", `flatMap flattens a callback result that is an array, and ${show(tv)} is a type parameter, which may be an array: return [x] for one element`);
 };
 // w1 (2026-11-24, A-4): JSON.stringify of undefined or a function gives undefined, not the string it is typed as; an
 // argument that may be one is refused
@@ -58,13 +82,28 @@ export const ixSpecialCall = (ixLookup, ixObjectAssign, ixObjectFreeze, ixCloneC
   if (callee.type === "Identifier" && callee.name === "structuredClone" && ixLookup(V, env, callee.name)?.kind === "global") return ixCloneCall(K, T, V, W, C, env, e, callee, expected);
   return null;
 };
-export const ixCallSigs = (ixSpecialCall, ixWriteRule, ixBail, ixUm, ixNonNullish, ixInActionOnly, ixActionFn, ixNotCallable, ixErr, show, isNamed) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, expected: Ty | null): IxSigs => {
+// open part 5 (TP): a mutating method on a tuple: one that changes the length, or one that moves or writes elements
+// when the tuple's element types differ, leaves a type at an index that does not hold there
+export const ixTupleMutates = (ixUm, ixErr, show) => (K: IxK, C: IxCtls, at: AstNode, recv: Ty, name: string): void => {
+  const un = (t: Ty): Ty[] => ixUm(K.reg, t.k === "named" && (t.n === "Mut" || t.n === "Borrowed") ? t.args[0] ?? t : t);
+  for (const t of un(recv)) {
+    if (t.k !== "tup") continue;
+    const same = t.els.every((x) => t.els.every((y) => K.reg.sub(x, y)));
+    const length = ["push", "pop", "shift", "unshift", "splice"].includes(name);
+    if (length || !same) {
+      ixErr(K, C, at, "mutating-method", `${name} on the tuple ${show(t)} ${length ? "changes its length" : "moves or writes elements of different types"}, and the tuple type gives each index its own type: copy it first (toSorted, toReversed, [...t]), or give it an array type`);
+      return;
+    }
+  }
+};
+export const ixCallSigs = (ixSpecialCall, ixWriteRule, ixTupleMutates, ixBail, ixUm, ixNonNullish, ixInActionOnly, ixActionFn, ixNotCallable, ixErr, show, isNamed) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, expected: Ty | null): IxSigs => {
   const special = ixSpecialCall(K, T, V, W, C, env, e, expected);
   if (special !== null) return { k: "done", t: special };
   const callee = e.callee, calleeT = K.infer(K, T, V, W, C, env, callee);
   const m = callee.type === "ChainExpression" ? callee.expression : callee;
   const fl = m.type === "MemberExpression" && C.flagsAt === m.nid ? C.flags : undefined;
   if (m.type === "MemberExpression" && fl?.mutates) ixWriteRule(K, T, V, W, C, env, m.object, e, "mutating-method");
+  if (m.type === "MemberExpression" && fl?.mutates && !m.computed && m.property.type === "Identifier") ixTupleMutates(K, C, e, T.get(m.object.nid) ?? { k: "err" }, m.property.name);
   if (calleeT.k === "err") return { k: "done", t: ixBail(K, T, V, W, C, env, e.arguments, true) };
   const isShort = e.optional === true || C.short.has(callee.nid);
   if (isShort) C.short = new Set([...C.short, e.nid]);
