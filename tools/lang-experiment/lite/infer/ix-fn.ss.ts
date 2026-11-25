@@ -83,13 +83,63 @@ export const ixLaterNames = () => (s: AstNode): Identifier[] => {
   if (s.type === "VariableDeclaration" && s.kind !== "var") for (const d of s.declarations) if (d.type === "VariableDeclarator") pat(d.id);
   return out;
 };
-export const ixHoist = (ixAnnotatedSig, ixDeclare, ixNoExtra, ixLaterNames, ERR) => (K: IxK, V: IxVars, C: IxCtls, env: IxEnv, body: AstNode[]): void => {
-  for (const s of body) for (const id of ixLaterNames(s)) ixDeclare(V, C, env, id.name, ERR, "const", id, ixNoExtra, { k: "later", at: id }, false, -1);
+export const ixHoist = (ixAnnotatedSig, ixDeclare, ixNoExtra, ixLaterNames, ixAnnOf, ERR) => (K: IxK, V: IxVars, C: IxCtls, env: IxEnv, body: AstNode[]): void => {
+  for (const s of body) for (const id of ixLaterNames(s)) {
+    // p3 (2026-11-25): a const bound to an arrow or function expression, with no type on its name, can be read before
+    // its declaration where ixFwdSafe allows; that read and the declaration are this one binding
+    const d = s.type === "VariableDeclaration" && s.kind === "const" ? s.declarations.find((x) => x.type === "VariableDeclarator" && x.id.nid === id.nid) : undefined;
+    const fn = d !== undefined && d.type === "VariableDeclarator" && ixAnnOf(id) === null && d.init !== null && (d.init.type === "ArrowFunctionExpression" || d.init.type === "FunctionExpression") ? d.init : null;
+    ixDeclare(V, C, env, id.name, ERR, "const", id, ixNoExtra, { k: "later", at: id, fn, env, body, busy: false }, false, fn === null ? -1 : fn.nid);
+  }
   for (const s of body) {
     if (s.type !== "FunctionDeclaration" || s.id.type !== "Identifier") continue;
     const sig = ixAnnotatedSig(K, V, C, env, s);
     ixDeclare(V, C, env, s.id.name, sig ?? ERR, "fn", s.id, ixNoExtra, sig ? { k: "none" } : { k: "hoist", fn: s, env, busy: false }, false, s.nid);
   }
+};
+// p3 (2026-11-25): the reads of name in the statements of a block: each identifier named name (a JSX tag name too),
+// except a member's or a key's name and the identifier at nid skip (the name's declaration)
+export const ixFwdUses = (kidsOf) => (body: readonly AstNode[], name: string, skip: number): AstNode[] => {
+  const out: Mut<AstNode[]> = [];
+  const walk = (n: AstNode): void => {
+    for (const k of kidsOf(n)) {
+      const key = n.type === "MemberExpression" ? !n.computed && n.property.nid === k.nid : (n.type === "Property" || n.type === "MethodDefinition") && !n.computed && n.key.nid === k.nid && n.value.nid !== k.nid;
+      if ((k.type === "Identifier" || k.type === "JSXIdentifier") && k.name === name && k.nid !== skip && !key) out.push(k);
+      walk(k);
+    }
+  };
+  for (const s of body) walk(s);
+  return out;
+};
+// p3 (2026-11-25, S2.6): a read e of g, a const function declared later in the block, is safe inside the body of a
+// function f bound to a const before g when nothing can call f before g is declared: f is used before g's declarator
+// only inside its own body or the body of another such function that is safe the same way, and in no function
+// declaration of the block. null: safe; "": e is not inside such a body; else the function whose use is not safe
+export const ixFwdSafe = (ixFwdUses) => (body: readonly AstNode[], g: AstNode, e: AstNode): string | null => {
+  const fns: Mut<Map<string, { readonly id: number; readonly init: AstNode }>> = new Map(), decls = body.filter((s) => s.type === "FunctionDeclaration");
+  const ins = (x: AstNode, n: AstNode): boolean => x.start <= n.start && n.end <= x.end;
+  const gd = body.flatMap((s) => (s.type === "VariableDeclaration" ? s.declarations : [])).find((d) => d.type === "VariableDeclarator" && d.id.nid === g.nid);
+  if (gd === undefined || gd.type !== "VariableDeclarator" || gd.init === null || ins(gd.init, e)) return gd === undefined ? "" : null;
+  for (const s of body) if (s.type === "VariableDeclaration" && s.kind === "const") for (const d of s.declarations) {
+    if (d.type === "VariableDeclarator" && d.id.type === "Identifier" && d.start < gd.start && d.init !== null && (d.init.type === "ArrowFunctionExpression" || d.init.type === "FunctionExpression")) fns.set(d.id.name, { id: d.id.nid, init: d.init });
+  }
+  const host = [...fns.entries()].find(([, d]) => ins(d.init, e));
+  const bad = (name: string, seen: readonly string[]): string | null => {
+    if (seen.includes(name)) return null;
+    for (const r of ixFwdUses(body, name, fns.get(name)?.id ?? -1)) {
+      const h = [...fns.entries()].find(([, d]) => ins(d.init, r));
+      const w = h !== undefined ? bad(h[0], [...seen, name]) : decls.some((s) => ins(s, r)) || r.start < gd.start ? name : null;
+      if (w !== null) return w;
+    }
+    return null;
+  };
+  return host === undefined ? "" : bad(host[0], []);
+};
+// p3 (2026-11-25): why a read before a declaration is refused (ixFwdSafe's why; fn: the later binding is a function)
+export const ixFwdWhy = () => (name: string, why: string, fn: boolean): string => {
+  const base = `${name} is read before its declaration in the same block: a const or let is in scope for its whole block, so this reads that declaration, not a binding outside it; move the declaration above this read, or give one of the two another name`;
+  if (why !== "") return `${name} is read before its declaration in the same block, a call of ${why} leads to this read, and ${why} is used before ${name} is declared, so that use could run this read before ${name} exists; do not use ${why} before the declaration of ${name}, or move the declaration of ${name} above this read`;
+  return fn ? `${base}; a function bound to a const can be read before its declaration only inside the body of a function bound to a const before it that nothing uses before the declaration` : base;
 };
 // a named function expression is bound in its own scope, so its body can call it (with annotations)
 export const ixSelfName = (ixAnnotatedSig, ixDeclare, ixNoExtra, ERR) => (K: IxK, V: IxVars, C: IxCtls, inner: IxEnv, e: AstNode, f: IxFnParts): void => {

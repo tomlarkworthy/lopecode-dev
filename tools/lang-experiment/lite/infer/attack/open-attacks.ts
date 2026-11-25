@@ -94,4 +94,76 @@ A("open-act-nested-state", HK, `[k].map((xs) => xs.map((n) => action(() => { c.s
 A("open-act-reduce-init-state", HK, `{ const out: Action<[]>[] = []; [1, 2].reduce((acc: number, n) => { out.push(action(() => { c.set(acc); })); return acc + n; }, k[0] ?? 0); return out; }`, null);
 A("open-act-reduce-acc-result", HK, `{ const init: readonly number[] = []; return [1, 2].reduce((acc: readonly number[], n) => { const a = action(() => { c.set(acc[0] ?? 0); }); return k; }, init); }`, null);
 R.push({ name: "open-act-module-fn", src: `${S2}const each = () => (xs: readonly number[], g: (n: number) => Action<[]>) => xs.map(g);\nconst mk = (c: State<number>, each: (xs: readonly number[], g: (n: number) => Action<[]>) => Action<[]>[]) => each([1, 2], (n) => action(() => { c.set(n); }));`, show: ["mk"] });
+// part 3 (2026-11-25, S2.6): a const function read before its declaration, inside the body of a function bound to a
+// const before it that nothing uses before the declaration (ixFwdSafe). open-ok-fwd-*: accepted, and cell g's value is
+// checked at run time (a wrong accept is a ReferenceError there). open-fwd-*: rejected [free-name]. open-fwdr-*: each
+// helper-use rule with the helper before its caller, after it as a function declaration and after it as a const read
+// forward, all rejected by the rule FWD_RULES names. open-ctl-fwd-*: controls, checker skipped, that throw the
+// "before initialization" ReferenceError the rule prevents. Sources from lite/soundscript/.scratch/open/p3.ts and p3d.ts
+const FW = (name: string, body: string, want: unknown, ctl = false) => R.push(tyRow(name, `const g = () => { ${body} };`, (v) => JSON.stringify(v) === JSON.stringify(want), ctl));
+FW("open-ok-fwd-const", `const p = () => q(); const q = () => 1; return p();`, 1);
+FW("open-ok-fwd-function-expr", `const p = function () { return q(); }; const q = function () { return 5; }; return p();`, 5);
+FW("open-ok-fwd-chain", `const p = () => q(); const q = () => r() + 1; const r = () => 3; return p();`, 4);
+FW("open-ok-fwd-mutual", `const ev = (n: number): boolean => (n === 0 ? true : od(n - 1)); const od = (n: number): boolean => (n === 0 ? false : ev(n - 1)); return [ev(4), od(3), ev(3)];`, [true, true, false]);
+FW("open-ok-fwd-mutual-one-type", `const ev = (n: number) => (n === 0 ? true : od(n - 1)); const od = (n: number): boolean => (n === 0 ? false : ev(n - 1)); return ev(4);`, true);
+FW("open-ok-fwd-recursive", `const p = () => q(3); const q = (n: number): number => (n <= 0 ? 0 : n + q(n - 1)); return p();`, 6);
+FW("open-ok-fwd-callback", `const p = () => [1, 2].map((x) => q(x)); const q = (x: number) => x * 2; return p();`, [2, 4]);
+FW("open-ok-fwd-value", `const p = () => [1, 2].map(q); const q = (x: number) => x + 1; return p();`, [2, 3]);
+FW("open-ok-fwd-default-param", `const p = (n: number = q()) => n + 1; const q = () => 4; return p();`, 5);
+FW("open-ok-fwd-used-after", `const p = () => q() + 1; const q = () => 1; const x = p(); const r = [p]; return [x, r.length, [0].map(() => p())[0]];`, [2, 1, 2]);
+FW("open-ok-fwd-nested-block", `const p = () => q(); const q = () => 7; { const x = p(); return x; }`, 7);
+FW("open-ok-fwd-inner-block", `if (1 > 0) { const p = () => q(); const q = () => 2; return p(); } return 0;`, 2);
+FW("open-fwd-early", `const p = () => q(); const x = p(); const q = () => 1; return x;`, 1);
+FW("open-fwd-same-statement", `const p = () => q(), x = p(), q = () => 1; return x;`, 1);
+FW("open-fwd-earlier-caller", `const e = () => p(); const p = () => q(); const x = e(); const q = () => 1; return x;`, 1);
+FW("open-fwd-hoisted-caller", `const p = () => q(); const x = h(); const q = () => 1; function h() { return p(); } return x;`, 1);
+FW("open-fwd-callback-use", `const p = () => q(); const xs = [1].map(() => p()); const q = () => 1; return xs[0] ?? 0;`, 1);
+FW("open-fwd-in-literal", `const p = () => q(); const r = [p]; const q = () => 1; return r.length;`, 1);
+FW("open-fwd-in-object", `const p = () => q(); const o = { p }; const q = () => 1; return o.p();`, 1);
+FW("open-fwd-passed", `const p = () => q(); const id = <T,>(t: T): T => t; const r = id(p); const q = () => 1; return r();`, 1);
+FW("open-fwd-member", `const p = () => q(); const n = p.length; const q = () => 1; return n + p();`, 1);
+FW("open-fwd-direct", `const x = q(); const q = () => 1; return x;`, 1);
+FW("open-fwd-value-early", `const x = q; const q = () => 1; return x();`, 1);
+FW("open-fwd-in-declaration", `function h() { return q(); } const q = () => 1; return h();`, 1);
+FW("open-fwd-let", `let p = () => q(); const q = () => 1; return p();`, 1);
+FW("open-fwd-name-typed", `const p = () => q(); const q: () => number = () => 1; return p();`, 1);
+FW("open-fwd-memo", `const p = () => q(1); const q = memo((n: number): number => n); return p();`, 1);
+FW("open-fwd-not-function", `const p = () => k; const k = 1; return p();`, 1);
+// review (2026-11-25): a body checked at a read inside an overloaded call (Array.from, then) was kept as checked while
+// the failed try's diagnostics were dropped, so its errors were lost; open-fwdo-*: rejected [free-name] for the body's
+// own free name, in the const and the function declaration form (IxCtl.tries)
+const OB = "(v: number) => { const d = Date.now(); return v + d; }", OF = "function q(v: number) { const d = Date.now(); return v + d; }";
+FW("open-ok-fwd-overload", `const p = () => Array.from({ length: 2 }, (_, i) => q(i)); const q = (v: number) => v * 2; return p();`, [0, 2]);
+FW("open-fwdo-from-const", `const p = () => Array.from({ length: 2 }, (_, i) => q(i)); const q = ${OB}; return p().length;`, 2);
+FW("open-fwdo-from-function", `const p = () => Array.from({ length: 2 }, (_, i) => q(i)); ${OF} return p().length;`, 2);
+FW("open-fwdo-then-const", `const p = () => Promise.resolve(1).then((v) => q(v)); const q = ${OB}; p(); return 1;`, 1);
+FW("open-fwdo-then-function", `const p = () => Promise.resolve(1).then((v) => q(v)); ${OF} p(); return 1;`, 1);
+// review (2026-11-25): a JSX tag naming f is a use of f (ixFwdUses)
+R.push(tyRow("open-ok-fwd-jsx", `const g = () => { const P = (p: {}) => <Q />; const Q = (p: {}) => <div>x</div>; return <P />; };`, () => true));
+FW("open-fwd-jsx-early", `const P = (p: {}) => <Q />; const el = <P />; const Q = (p: {}) => <div>x</div>; return 1;`, 1);
+const TDZ = (p: any) => (p.status("g") === "rejected" && String(p.error("g")).includes("before initialization") ? `DIFF g threw ReferenceError: ${String(p.error("g")).slice(0, 100)}` : `same: g ${p.status("g")}`);
+R.push({ name: "open-ctl-fwd-early", src: "const g = () => { const p = () => q(); const x = p(); const q = () => 1; return x; };", show: ["g"], ctl: true, drive: TDZ });
+R.push({ name: "open-ctl-fwd-jsx-early", src: "const g = () => { const P = (p: {}) => <Q />; const el = <P />; const Q = (p: {}) => <div>x</div>; return 1; };", show: ["g"], ctl: true, drive: TDZ });
+R.push({ name: "open-ctl-fwd-hoisted-caller", src: "const g = () => { const p = () => q(); const x = h(); const q = () => 1; function h() { return p(); } return x; };", show: ["g"], ctl: true, drive: TDZ });
+const S3 = "const s = (): StateCell<number> => state(0);\n", F3S = "const fs = (): StateCell<() => number> => state<() => number>(() => 0);\n";
+// [case, rule, head, helper as a const, helper as a function declaration, its caller, tail]
+const PAIRS: readonly (readonly [string, string, string, string, string, string, string])[] = [
+  ["s311-let", "let-capture", "const a = () => { let n = 0; ", "const inc = () => { n++; }; ", "function inc() { n++; } ", "const run = () => inc(); ", "return run; };"],
+  ["s311-narrow", "possibly-undefined", "const a = () => { let r: number | null = 1; ", "const clear = () => { r = null; }; ", "function clear() { r = null; } ", "const run = () => clear(); ", "if (r !== null) { run(); return r + 1; } return 0; };"],
+  ["s410-mut", "mut-capture", "const a = () => { const out = [0]; ", "const get = () => out.length; ", "function get() { return out.length; } ", "const run = () => get(); ", "return run; };"],
+  ["s410-let", "let-capture", "const a = () => { let n = 1; ", "const get = () => n; ", "function get() { return n; } ", "const run = () => get(); ", "return run; };"],
+  ["s411", "mutating-method", S3 + "const put = (s: State<number>) => action(() => { const xs = [0]; ", "const pub = () => s.set(xs.length); ", "function pub() { s.set(xs.length); } ", "const run = () => pub(); ", "run(); xs.push(1); });"],
+  ["s412", "fn-publish", F3S + "const put = (fs: State<() => number>) => action(() => { const xs = [0]; const c: readonly number[] = xs; ", "const pub = () => fs.set(() => c.length); ", "function pub() { fs.set(() => c.length); } ", "const run = () => pub(); ", "run(); });"],
+  ["s56", "mut-yield", "const g = function* () { const xs = [1]; ", "const add = () => xs.push(2); ", "function add() { xs.push(2); } ", "const run = () => add(); ", "yield 1; run(); };"],
+  ["s57", "mut-await", "const a = () => { const xs = [0]; ", "const h = async () => { await 0; xs.push(1); }; ", "async function h() { await 0; xs.push(1); } ", "const run = () => h(); ", "run(); return 1; };"],
+  ["s65", "state-write", S3 + "const w = (s: State<number>) => { ", "const wr = () => s.set(1); ", "function wr() { s.set(1); } ", "const run = () => wr(); ", "run(); return 1; };"],
+  ["s619", "state-write", S3 + "const a = (s: State<number>) => action(() => { ", "const later = () => s.set(2); ", "function later() { s.set(2); } ", "const run = () => later(); ", "return run; });"],
+  ["s69", "action-capture", S3 + "const t = (s: State<number>, now: Clock) => { ", "const g = () => now(); ", "function g() { return now(); } ", "const run = () => g(); ", "return action(() => s.set(run())); };"],
+  ["s319", "iterator-capture", "const a = () => { const it = [1, 2, 3].values(); ", "const sum = () => { let t = 0; for (const x of it) t += x; return t; }; ", "function sum() { let t = 0; for (const x of it) t += x; return t; } ", "const run = () => sum(); ", "return run; };"],
+];
+export const FWD_RULES = new Map<string, string>();
+for (const [n, rule, h, hc, hf, run, t] of PAIRS) for (const [form, src] of [["before", h + hc + run + t], ["fn-after", h + run + hf + t], ["const-after", h + run + hc + t]] as const) {
+  FWD_RULES.set(`open-fwdr-${n}-${form}`, rule);
+  R.push({ name: `open-fwdr-${n}-${form}`, src, show: [] });
+}
 export const attacks = R;

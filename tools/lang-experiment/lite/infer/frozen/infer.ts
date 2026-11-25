@@ -43,12 +43,53 @@ function thaw(t: Ty, reg: Registry): Ty | null {
   return grp && mutIn(u, reg) ? null : u;
 }
 
+// DELIBERATE CHANGE (2026-11-25, open p3): a later const function read before its declaration where it is safe (live
+// ixFwdUses, ixFwdSafe, ixFwdWhy)
+const isFnExpr = (n: Node | null | undefined): boolean => !!n && (n.type === "ArrowFunctionExpression" || n.type === "FunctionExpression");
+function fwdUses(body: Node[], name: string, skip: Node | undefined): Node[] {
+  const out: Node[] = [];
+  const walk = (n: Node): void => {
+    for (const k of kids(n)) {
+      const key = n.type === "MemberExpression" ? !n.computed && n.property === k : (n.type === "Property" || n.type === "MethodDefinition") && !n.computed && n.key === k && n.value !== k;
+      if ((k.type === "Identifier" || k.type === "JSXIdentifier") && k.name === name && k !== skip && !key) out.push(k);
+      walk(k);
+    }
+  };
+  for (const s of body) walk(s);
+  return out;
+}
+function fwdSafe(body: Node[], g: Node, e: Node): string | null {
+  const ins = (x: Node, n: Node) => x.start <= n.start && n.end <= x.end;
+  const gd = body.flatMap((s) => (s.type === "VariableDeclaration" ? s.declarations : [])).find((d: Node) => d.id === g);
+  if (!gd || !gd.init || ins(gd.init, e)) return gd ? null : "";
+  const fns = new Map<string, Node>(), decls = body.filter((s) => s.type === "FunctionDeclaration");
+  for (const s of body) if (s.type === "VariableDeclaration" && s.kind === "const") for (const d of s.declarations) if (d.id.type === "Identifier" && d.start < gd.start && isFnExpr(d.init)) fns.set(d.id.name, d);
+  const host = [...fns.entries()].find(([, d]) => ins(d.init, e));
+  const bad = (name: string, seen: string[]): string | null => {
+    if (seen.includes(name)) return null;
+    for (const r of fwdUses(body, name, fns.get(name)?.id)) {
+      const h = [...fns.entries()].find(([, d]) => ins(d.init, r));
+      const w = h ? bad(h[0], [...seen, name]) : decls.some((s) => ins(s, r)) || r.start < gd.start ? name : null;
+      if (w !== null) return w;
+    }
+    return null;
+  };
+  return host ? bad(host[0], []) : "";
+}
+function fwdWhy(name: string, why: string, fn: boolean): string {
+  const base = `${name} is read before its declaration in the same block: a const or let is in scope for its whole block, so this reads that declaration, not a binding outside it; move the declaration above this read, or give one of the two another name`;
+  if (why !== "") return `${name} is read before its declaration in the same block, a call of ${why} leads to this read, and ${why} is used before ${name} is declared, so that use could run this read before ${name} exists; do not use ${why} before the declaration of ${name}, or move the declaration of ${name} above this read`;
+  return fn ? `${base}; a function bound to a const can be read before its declaration only inside the body of a function bound to a const before it that nothing uses before the declaration` : base;
+}
+
 export type BKind = "const" | "let" | "param" | "fn" | "global" | "prelude";
 export type Binding = {
   id: number; name: string; t: Ty; kind: BKind; node: Node; fi: FnInfo | null;
   mutOwned?: boolean; fnNode?: Node; lazy?: () => Ty; assigned?: boolean; checked?: boolean; cellParam?: boolean;
   // DELIBERATE CHANGE (2026-11-24, w1, S-1): a const or let of the block not yet declared (live IxLazy later)
   later?: boolean;
+  // DELIBERATE CHANGE (2026-11-25, open p3): a later const function: its function, block, env (live IxLazy later fn)
+  fwd?: { fn: Node; body: Node[]; env: Env; busy: boolean };
 };
 export type FnInfo = {
   node: Node; parent: FnInfo | null; isAsync: boolean; isGen: boolean; isCell: boolean; inAction: boolean;
@@ -877,7 +918,10 @@ export class Checker {
       return ERR;
     }
     // DELIBERATE CHANGE (2026-11-24, w1, S-1): a const or let of an enclosing block read before its declaration runs
-    if (b.later) { this.err(e, "free-name", `${e.name} is read before its declaration in the same block: a const or let is in scope for its whole block, so this reads that declaration, not a binding outside it; move the declaration above this read, or give one of the two another name`); return ERR; }
+    // DELIBERATE CHANGE (2026-11-25, open p3): unless fwdSafe allows it (live ixIdent, ixFwdRead)
+    const why = !b.later ? null : b.fwd ? fwdSafe(b.fwd.body, b.node, e) : "";
+    if (why !== null) { this.err(e, "free-name", fwdWhy(e.name, why, !!b.fwd)); return ERR; }
+    if (b.later) { this.facts.bindingOf.set(e, b); return this.fwdRead(b); }
     this.facts.bindingOf.set(e, b);
     if (b.kind === "prelude") return b.t;
     // its argument is checked where it is called, so the value takes no argument (S2.6 lets a body name it)
@@ -1364,6 +1408,19 @@ export class Checker {
     else if (p.type === "RestElement") this.patternNames(p.argument, out);
   }
 
+  // DELIBERATE CHANGE (2026-11-25, open p3): a later const function read early is typed as a hoisted declaration is
+  fwdRead(b: Binding): Ty {
+    const z = b.fwd;
+    if (!z || b.checked || b.t.k !== "err") return b.t;
+    if (z.busy) { this.unsupported(z.fn, "recursive function without a return type"); return ERR; }
+    const sig = this.annotatedSig(z.fn, z.env);
+    if (sig) { b.t = sig; return sig; }
+    z.busy = true;
+    const f = this.check(z.fn, { ...z.env, flow: new Map() }, undefined);
+    z.busy = false;
+    if (this.tries === 0) { b.t = f; b.checked = true; }
+    return f;
+  }
   // Function declarations are hoisted: bind them first, check their bodies in order.
   hoist(body: Node[], env: Env) {
     // DELIBERATE CHANGE (2026-11-24, w1, S-1): each name a const or let of the block declares is bound first, as later
@@ -1376,6 +1433,11 @@ export class Checker {
       else if (p.type === "RestElement") pat(p.argument);
     };
     for (const s of body) if (s.type === "VariableDeclaration" && s.kind !== "var") for (const d of s.declarations) pat(d.id);
+    // DELIBERATE CHANGE (2026-11-25, open p3): a const function with no type on its name can be read early (live ixHoist)
+    for (const s of body) if (s.type === "VariableDeclaration" && s.kind === "const") for (const d of s.declarations) {
+      const b = d.id.type === "Identifier" && !d.id.typeAnnotation && isFnExpr(d.init) ? env.scope.vars.get(d.id.name) : undefined;
+      if (b && b.node === d.id) { b.fwd = { fn: d.init, body, env, busy: false }; b.fnNode = d.init; }
+    }
     for (const s of body) {
       if (s.type !== "FunctionDeclaration") continue;
       const sig = this.annotatedSig(s, env);
@@ -1386,7 +1448,9 @@ export class Checker {
           if (busy) { this.unsupported(s, "recursive function without a return type"); return ERR; }
           busy = true;
           const f = this.fnExpr(s, { ...env, flow: new Map() }, undefined);
-          b.t = f; b.checked = true; b.lazy = undefined;
+          busy = false;
+          // DELIBERATE CHANGE (2026-11-25, open p3): not kept while overloads are tried (live ixLazyRead)
+          if (this.tries === 0) { b.t = f; b.checked = true; b.lazy = undefined; }
           return f;
         };
       }
@@ -1468,6 +1532,7 @@ export class Checker {
     if (sigs.length === 1) { t = this.apply(e, sigs[0], env, expected, explicit); freshOf(sigs[0]); }
     else {
       let done = false;
+      this.tries++;
       for (let i = 0; i < sigs.length && !done; i++) {
         const d = this.diags.length, u = this.unsup.length, flow = new Map(env.flow);
         t = this.apply(e, sigs[i], env, expected, explicit);
@@ -1475,6 +1540,7 @@ export class Checker {
         if (this.diags.length === d && this.unsup.length === u) done = true;
         else if (i < sigs.length - 1) { this.diags.length = d; this.unsup.length = u; env.flow = flow; }
       }
+      this.tries--;
     }
     const cm = callee.type === "ChainExpression" ? callee.expression : callee;
     if (cm.type === "MemberExpression" && this.facts.memberFlags.get(cm)?.view && isNamed(this.facts.types.get(cm.object) ?? ERR, "Borrowed")) t = named("Borrowed", t);
@@ -1482,6 +1548,8 @@ export class Checker {
   }
   cloneCallees = new Set<Node>();
   freshAt: Node | null = null;
+  // DELIBERATE CHANGE (2026-11-25, open p3): >0 while overloads are tried (live IxCtl.tries)
+  tries = 0;
   // DELIBERATE CHANGE (2026-11-23, e1): each cast call's T shape, by the callee's position (the cells' C.casts)
   casts = new Map<number, unknown>();
   // what structuredClone cannot copy in a value of type t (walks.ss.ts)
@@ -1812,8 +1880,13 @@ export class Checker {
     if (d.id.type === "Identifier" && (fnInit || memoFn) && k === "const") {
       // pre-bind so the function can call itself (needs annotations)
       const sigNode = fnInit ? init : m;
-      const pre = declared ?? this.annotatedSig(sigNode, env);
-      const b = this.declare(env, d.id.name, pre ?? ERR, k, d.id, fnInit ? { fnNode: init } : {});
+      // DELIBERATE CHANGE (2026-11-25, open p3): the hoisted binding of a const function is kept (live ixVarFn)
+      const o = env.scope.vars.get(d.id.name), re = fnInit && o?.later && o.fwd && o.node === d.id ? o : undefined;
+      if (re) re.later = false;
+      if (re?.checked) return;
+      const pre = declared ?? (re && re.t.k !== "err" ? re.t : this.annotatedSig(sigNode, env));
+      const b = re ?? this.declare(env, d.id.name, pre ?? ERR, k, d.id, fnInit ? { fnNode: init } : {});
+      b.t = pre ?? ERR;
       if (!pre) b.lazy = () => { this.unsupported(sigNode, "recursive function without a return type"); return ERR; };
       const t = this.check(init, env, declared);
       b.t = declared ?? t;

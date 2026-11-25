@@ -115,9 +115,15 @@ export const ixVarDecl = (ixAnnOf, ixWritableAnn, ixConvert, ixVarFn, ixDeclare,
 };
 // const f = (…) => …: bound before its body is checked, so it can call itself (with annotations); sig: the function
 // whose annotations give the type (init, or the function memo(...) is given); fnNode: the function f names, or -1
-export const ixVarFn = (ixAnnotatedSig, ixDeclare, ixNoExtra, ixUpdate, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, id: Identifier, init: AstNode, declared: Ty | null, sig: AstNode, fnNode: number): void => {
-  const pre = declared ?? ixAnnotatedSig(K, V, C, env, sig);
-  const b = ixDeclare(V, C, env, id.name, pre ?? ERR, "const", id, ixNoExtra, pre ? { k: "none" } : { k: "unsup", at: sig }, false, fnNode);
+export const ixVarFn = (ixAnnotatedSig, ixDeclare, ixNoExtra, ixUpdate, ixLookup, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, id: Identifier, init: AstNode, declared: Ty | null, sig: AstNode, fnNode: number): void => {
+  // p3 (2026-11-25): the binding ixHoist made for a const function, kept, so a read before this and the declaration are
+  // one binding; its body is not checked again when a read before this checked it
+  const o = ixLookup(V, env, id.name), re = o !== undefined && o.nid === id.nid && o.lazy.k === "later" && o.lazy.fn !== null ? o : null;
+  if (re !== null && re.checked) { ixUpdate(V, C, { ...re, lazy: { k: "none" } }); return; }
+  const pre = declared ?? (re !== null && re.t.k !== "err" ? re.t : ixAnnotatedSig(K, V, C, env, sig));
+  const lz: IxLazy = pre ? { k: "none" } : { k: "unsup", at: sig };
+  const b: IxBinding = re !== null ? { ...re, t: pre ?? ERR, lazy: lz } : ixDeclare(V, C, env, id.name, pre ?? ERR, "const", id, ixNoExtra, lz, false, fnNode);
+  if (re !== null) ixUpdate(V, C, b);
   const t = K.check(K, T, V, W, C, env, init, declared, false, false);
   ixUpdate(V, C, { ...b, t: declared ?? t, lazy: { k: "none" } });
 };

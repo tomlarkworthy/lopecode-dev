@@ -90,6 +90,7 @@ export const ixNotCallable = (ixErr, show) => (K: IxK, C: IxCtls, e: AstNode, m:
 export const ixApplyAll = (ixTypeArgs, ixApply, ixMark, ixCopyFlow, named, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression | NewExpression, sigs: Fn[], expected: Ty | null, view: boolean): Ty => {
   const explicit = ixTypeArgs(K, V, env, e.typeArguments);
   let t: Ty = ERR;
+  if (sigs.length > 1) C.tries += 1;
   for (const [i, sig] of sigs.entries()) {
     const mark = ixMark(K, C), flow = ixCopyFlow(W, C, C.cur);
     t = ixApply(K, T, V, W, C, env, e, sig, expected, explicit);
@@ -100,6 +101,7 @@ export const ixApplyAll = (ixTypeArgs, ixApply, ixMark, ixCopyFlow, named, ERR) 
     if ((now.d?.n ?? 0) === (mark.d?.n ?? 0) && (now.u?.n ?? 0) === (mark.u?.n ?? 0)) break;
     if (i < sigs.length - 1) { C.diags = mark.d; C.unsup = mark.u; C.cur = flow; }
   }
+  if (sigs.length > 1) C.tries -= 1;
   return view ? named("Borrowed", t) : t;
 };
 export const ixCloneCall = (ixApply, ixErr, show, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: CallExpression, callee: Identifier, expected: Ty | null): Ty => {

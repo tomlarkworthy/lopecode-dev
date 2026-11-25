@@ -84,6 +84,22 @@ export const ixLiteral = (named, lit, BIGINT, NULL) => (e: Literal): Ty => {
   if (e.bigint !== null) return BIGINT;
   return e.value === null ? NULL : lit(e.value);
 };
+// p3 (2026-11-25): a later const function read where ixFwdSafe allows has the type a hoisted function declaration has:
+// its annotations, else its body checked at the first such read (a read inside that check is a recursion without a type)
+export const ixFwdRead = (ixAnnotatedSig, ixUnsup, ixUpdate, ixNewFlow, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, b: IxBinding): Ty => {
+  const z = b.lazy;
+  if (z.k !== "later" || z.fn === null || b.checked || b.t.k !== "err") return b.t;
+  if (z.busy) { ixUnsup(K, C, z.fn, "recursive function without a return type"); return ERR; }
+  const sig = ixAnnotatedSig(K, V, C, z.env, z.fn);
+  if (sig !== null) { ixUpdate(V, C, { ...b, t: sig }); return sig; }
+  ixUpdate(V, C, { ...b, lazy: { ...z, busy: true } });
+  const own = C.cur;
+  C.cur = ixNewFlow(W, C, new Map());
+  const f = K.check(K, T, V, W, C, z.env, z.fn, null, false, false);
+  C.cur = own;
+  ixUpdate(V, C, C.tries > 0 ? { ...b, lazy: { ...z, busy: false } } : { ...b, t: f, checked: true, lazy: { ...z, busy: false } });
+  return f;
+};
 // what reading a binding with no type yet gives (Binding.lazy)
 export const ixLazyRead = (ixUnsup, ixUpdate, ixNewFlow, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, b: IxBinding): Ty => {
   const z = b.lazy;
@@ -96,10 +112,11 @@ export const ixLazyRead = (ixUnsup, ixUpdate, ixNewFlow, ERR) => (K: IxK, T: IxT
   C.cur = ixNewFlow(W, C, new Map());
   const f = K.fnExpr(K, T, V, W, C, z.env, z.fn, null, null);
   C.cur = own;
-  ixUpdate(V, C, { ...b, t: f, checked: true, lazy: { k: "none" } });
+  // p3 (2026-11-25): not kept while overloads are tried (IxCtl.tries)
+  ixUpdate(V, C, C.tries > 0 ? { ...b, lazy: { ...z, busy: false } } : { ...b, t: f, checked: true, lazy: { k: "none" } });
   return f;
 };
-export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixFnWritten, ixErr, ixUnsup, ixFact, ixScopeNames, NEVER, UNKNOWN, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: Identifier): Ty => {
+export const ixIdent = (ixLookup, ixLazyRead, ixFwdSafe, ixFwdWhy, ixFwdRead, ixFlowOf, ixFnWritten, ixErr, ixUnsup, ixFact, ixScopeNames, NEVER, UNKNOWN, ERR) => (K: IxK, T: IxTypes, V: IxVars, W: IxFlows, C: IxCtls, env: IxEnv, e: Identifier): Ty => {
   if (K.probe !== null && !K.probe.member && C.probe === null && e.name === K.probe.name) C.probe = { k: "name", names: ixScopeNames(V, W, C, env), inAction: env.fi.inAction };
   const b = ixLookup(V, env, e.name);
   if (!b) {
@@ -110,9 +127,11 @@ export const ixIdent = (ixLookup, ixLazyRead, ixFlowOf, ixFnWritten, ixErr, ixUn
     else ixErr(K, C, e, "free-name", `free name ${e.name}`);
     return ERR;
   }
-  // w1 (S-1): a const or let of an enclosing block read before its declaration runs
-  if (b.lazy.k === "later") { ixErr(K, C, e, "free-name", `${e.name} is read before its declaration in the same block: a const or let is in scope for its whole block, so this reads that declaration, not a binding outside it; move the declaration above this read, or give one of the two another name`); return ERR; }
+  // w1 (S-1), p3: a const or let of an enclosing block read before its declaration runs, unless ixFwdSafe allows it
+  const z = b.lazy, why = z.k !== "later" ? null : z.fn === null ? "" : ixFwdSafe(z.body, z.at, e);
+  if (why !== null) { ixErr(K, C, e, "free-name", ixFwdWhy(e.name, why, z.k === "later" && z.fn !== null)); return ERR; }
   ixFact(C, { k: "bind", at: e.nid, id: b.id });
+  if (z.k === "later") return ixFwdRead(K, T, V, W, C, b);
   if (b.kind === "prelude") return b.t;
   // its argument is checked where it is called, so the value takes no argument (S2.6 lets a body name it)
   if (b.kind === "global" && e.name === "structuredClone" && !C.clones.has(e.nid)) return { k: "fn", tps: [], ps: [{ n: "v", t: NEVER, opt: false }], ret: UNKNOWN };

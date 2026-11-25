@@ -4350,3 +4350,161 @@ run waits for part 3.
   read; the rule does not look at the element type.
 - The accumulator test compares type variable names from the declaration; a built-in whose callback result is a
   type variable that also types another parameter would get the same wider span. Only `reduce` has one today.
+
+## 2026-11-25: open part 3, a const function read before its declaration
+
+The owner's item, measured on `.scratch/open/p.ts`: inside a block, `const f = () => g(); const g = () => 1; return
+f();` was `[free-name]` ("g is read before its declaration in the same block"); the same with `function g() {…}` was
+accepted; two `const` arrows that call each other were rejected. The owner chose: accept when safe.
+
+### The rule (S2.6)
+
+A read of `g`, where `g` is a later `const` bound to an arrow or `function` expression with no type on its name, is
+accepted when it is inside the body of a function `f` bound to a `const` declared before `g` in the same block, and
+nothing can call `f` before `g`'s declaration runs. `ixFwdSafe` decides that as a fixpoint: every use of `f`'s name in
+the block before `g`'s declarator must be inside `f`'s own body or inside the body of another `const` function before
+`g` that is safe the same way, and no `function` declaration of the block, at any position, may use it (a hoisted
+declaration can be called before `g`). A call, a pass, a place in a literal, a member read and a shorthand key are all
+uses. Shadowing counts as a use (a false reject, not a wrong accept). The coordinator's wording only looked between
+`f` and `g`; the advisor's counterexample `const e = () => f(); const f = () => g(); e(); const g = …` shows that a use
+of `f` before `f` (inside `e`) also has to be followed, so the walk covers the block from its start.
+
+The message for an unsafe use names the function: "g is read before its declaration in the same block, a call of e
+leads to this read, and e is used before g is declared, …; do not use e before the declaration of g, or move the
+declaration of g above this read". A read outside any earlier `const` function keeps the w1 message, with one clause
+added when `g` is a function.
+
+### Type at the read, and the binding
+
+Done as for a hoisted `function` declaration (`ixHoist`, `ixLazyRead` `hoist`): the annotated signature if `g` has
+one; else `g`'s body is checked at the first such read (`ixFwdRead`), and a read of `g` during that check is
+"recursive function without a return type" (unsupported). Two mutually recursive functions with no return type are
+unsupported in both forms (`.scratch/open/p3d.ts`: `mutual-untyped` and `mutual-untyped-fn`). One return type is
+enough (`open-ok-fwd-mutual-one-type`).
+
+The binding `ixHoist` makes for such a `const` now carries `fnNode` and is the binding the declaration keeps
+(`ixVarFn` updates it, does not redeclare). Before, the declaration made a new id, so a forward read would have bound
+to an id with `fnNode` -1, no `helper` fact and no entry in `O.T.refs` of the real binding: every ownership rule would
+have missed it.
+
+### Helper-use rules see through it (`.scratch/open/p3.ts`, rows `open-fwdr-*`)
+
+Each case: the rule's reject form with the helper before its caller, after it as a `function` declaration, and after
+it as a `const` read forward from the caller's body.
+
+```
+case          rule                 before  fn-after  const-after (before the change -> after)
+S3.11 let     let-capture          REJECT  REJECT    [free-name] -> let-capture
+S3.11 narrow  possibly-undefined   REJECT  REJECT    [free-name][possibly-undefined] -> possibly-undefined
+S4.10 Mut     mut-capture          REJECT  REJECT    [free-name] -> mut-capture
+S4.10 let     let-capture          REJECT  REJECT    [free-name] -> let-capture
+S4.11         mutating-method      REJECT  REJECT    [free-name] -> mutating-method
+S4.12         fn-publish           REJECT  REJECT    -> fn-publish
+S5.6          mut-yield            REJECT  REJECT    [free-name] -> mut-yield
+S5.7          mut-await            REJECT  REJECT    [free-name][mut-await] -> mut-await
+S6.5          state-write          REJECT  REJECT    [free-name][state-write] -> state-write
+S6.19         state-write          REJECT  REJECT    [free-name] -> state-write
+S6.9          action-capture       REJECT  REJECT    [action-capture][free-name] -> action-capture
+S3.19         iterator-capture     REJECT  REJECT    [free-name][iterator-capture] -> iterator-capture
+```
+
+`live.test.ts` asserts each `open-fwdr-*` row has its rule, never `[free-name]`, in both checkers. The hoisted
+`function` form fails none of these.
+
+Two S4.12 holes, found while building the S4.12 pair, in every form including helper-before, so not part of this
+item and not fixed (`.scratch/open/p3b.ts`, `p3.ts` row `s412-val`):
+
+- `const mk = () => () => c.length; fs.set(mk());` is accepted (`c` a read-only alias of a fresh `xs`), while
+  `fs.set(() => c.length)` and `const k = () => c.length; fs.set(k)` are `[fn-publish]`.
+- `const k = () => c.length; const run = () => fs.set(k); run();` is accepted.
+
+A pre-existing false reject of the hoisted form, kept: `const f = () => g(); const k = 1; function g() { return k; }
+return f();` is `[free-name]` for `k`, because `g`'s body is checked during `f`'s, when `k` is still later. The `const`
+form does the same (`.scratch/open/p3c.ts` `k-fn`, `k-const`).
+
+### A hole the fresh review found: a body checked inside an overload try
+
+A forward read inside an argument of an overloaded call (`Array.from`, `then`) checks the later function's body during
+the first try. `ixApplyAll` drops that try's diagnostics when it fails, but the binding stayed `checked`, so the next
+try and the declaration skipped the body and its errors were lost. The reviewer's probe
+(`.scratch/open/review/r2.ts`, before the fix):
+
+```
+from-const-after   const f = () => Array.from({ length: 2 }, (_, i) => g(i)); const g = (v) => { Date.now() … }   ACCEPT
+from-fn-after      the same with function g                                                                     ACCEPT
+from-before        g declared first                                                                             REJECT [free-name]
+```
+
+The `function` declaration form had the hole before part 3 (`ixLazyRead`); part 3 extended it to `const`. Fix:
+`IxCtl.tries` counts overload tries in progress; `ixFwdRead` and `ixLazyRead` do not keep a body checked while it is
+above 0 (frozen: `tries`, same places). After the fix all seven probe rows are rejected `[free-name]` in both checkers.
+Cost: in such a call the body can be checked again at its declaration, so an error in it can be reported twice. Rows
+`open-fwdo-*` (both forms, `from` and `then`) and `open-ok-fwd-overload`.
+
+### A wrong accept found after the review: a JSX tag
+
+`ixFwdUses` looked only at `Identifier` nodes, and a JSX tag name is a `JSXIdentifier`. So
+`const P = (p: {}) => <Q />; const el = <P />; const Q = …` was accepted (`.scratch/open/p3h.ts` `jsx-early`), and the
+control `open-ctl-fwd-jsx-early` (checker skipped) shows the element calls `P` at once: "Cannot access 'Q' before
+initialization" under both runners. A JSX tag name now counts as a use; rows `open-fwd-jsx-early` (rejected) and
+`open-ok-fwd-jsx` (accepted, runs).
+
+### Deeper helper shapes (`.scratch/open/p3g.ts`, 2026-11-25, not standing rows)
+
+A two-deep chain (`run -> mid -> get`) for mut-capture, let-capture, S6.19 state-write and S6.9 action-capture, and a
+two-function cycle with one member capturing a `Mut` or a `let`: the before, `function`-after and `const`-after forms
+each give the same rule, live and frozen alike (28 rows, differ 0). A read of a later function inside `map`,
+`reduce`, `new Promise`, a ternary and a `switch` discriminant keeps the later body's `[free-name]` in all forms.
+
+### Run time
+
+The compiled cell keeps the source order (`.scratch/open/p3-compile.ts`): `const ev = ss_closure(…, (ss_i) => … od)`
+reads `od` only inside the capture thunk, which `freeze.ts` calls when a value is published, after the body has run.
+`open-ok-fwd-*` (14 rows) run clean under runCells and `--rt`, each with its value checked. The three controls
+`open-ctl-fwd-early`, `open-ctl-fwd-hoisted-caller` and `open-ctl-fwd-jsx-early` (checker skipped) throw "Cannot access 'q' before
+initialization" under both runners.
+
+### Rows that changed
+
+- w1: attack 11's `s-Number`, `s-String`, `s-parseInt`, `s-structuredClone` (`const f = () => Number("3"); const
+  Number = (s: string) => s; return f();`) are now accepted and typed by the local (`.scratch/open/p3f.ts`:
+  `(): number` is `[type]`, `(): string` is accepted). Their attack 11 oracles expect the global's type, so run-sets
+  counted them silent (4). They are restated as `w1-ok-3-s1-local-*` with the local's value; w1 silent 0 under both
+  runners.
+- freeze2 `b8:rg-mutual`: one `[free-name]` gone, still rejected (`mut-nested`, `mut-capture`).
+- No other verdict changed: the `== ` lines of the gate run `.scratch/y1/open3/rs.log` against
+  `.scratch/open/p2run/rs.log` differ only in these five rows (open rows left out).
+
+### Cost
+
+Live cells: new `ixFwdUses` 12 lines, `ixFwdSafe` 20, `ixFwdWhy` 5, `ixFwdRead` 14; `ixHoist` 8 -> 14, `ixVarFn`
+6 -> 12, `ixIdent` 24 -> 26 (the limit), `ixApplyAll` +2, `ixLazyRead` +1, `IxLazy` one variant widened, `IxCtl.tries`. About
+70 lines with comments. The build's self-check refused `ixVarFn` until `b` carried the type `IxBinding`. Frozen mirror in
+`frozen/infer.ts` (`fwdUses`, `fwdSafe`, `fwdWhy`, `fwdRead`, `hoist`, `ident`, `varDecl`), marked DELIBERATE CHANGE.
+
+### Standing set, spec, drafts
+
+- `open-attacks.ts`: 14 `open-ok-fwd-*`, 17 `open-fwd-*` (`[free-name]`), 4 `open-fwdo-*`, 36 `open-fwdr-*`, 3 controls.
+  `--sets open`: 158 programs, accepted 33, silent 0, cell in error 0, controls 7 fired 7, under both runners.
+- S2.6: the paragraph on a read before its declaration states the accepted form and drops "even when the function
+  is called only after the declaration"; two reject rows (an early call, a place in an array); `test_spec_S2_6`
+  checks mutual recursion and a call after the declaration. The tutorial does not state the w1 rule; unchanged.
+- message-fixes: `forward-used-early`, `forward-outside-const-fn` (98 pass).
+- Drafts: ergonomics1 18 accepted / 17 run pass, learner1 37 / 37, both unchanged; no draft output contains "before
+  its declaration", before or after, so no draft is newly accepted.
+
+### Not done
+
+- A later function read inside another later function's body, where that body reads a third function declared
+  between them, is a false reject when the middle function has no return type: `const f = () => g(); const h = () =>
+  1; const g = () => h(); return f();` is `[free-name]` on `h` ("move the declaration above this read", though it is
+  above), because `g`'s body is checked during `f`'s, when `h` is still later. With `const g = (): number => h()` it
+  is accepted. The hoisted `function` form does the same (`k-fn` above).
+- The message for a use inside a `function` declaration placed after `g` says `f` "is used before g is declared".
+- Under an overloaded call a body error can be reported twice (both forms).
+- Attack 11's own `s.ts` oracles for the four restated rows were not changed.
+
+- A forward read of a `const` with a type on its name, or of `memo(...)`, stays `[free-name]`: the name's type is
+  converted at the declaration, and converting it again at the read would report its errors twice.
+- Generators used as iterables locally are `[type]` in every form (`spread of non-iterable Generator<number>`), so
+  there is no generator row.

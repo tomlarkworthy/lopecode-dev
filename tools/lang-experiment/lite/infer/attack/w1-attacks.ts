@@ -107,7 +107,7 @@ R.push(ctl(tyRow("w1-2-ctl-toString-runs", G(`let n = 0; const o = { toString: (
 
 // Step 3: S-1 (a block's later const or let is the binding a read before it names), A-4 (JSON.stringify of a value that
 // may be undefined or a function), C-1 (mapped types are unsupported; never a throw), F-4 (a keyword bound as a name)
-from11("3", ["s-Math", "s-JSON", "s-Number", "s-String", "s-parseInt", "s-structuredClone", "s-outer-local", "s-outer-local-str", "s-outer-let", "s-nested-fn",
+from11("3", ["s-Math", "s-JSON", "s-outer-local", "s-outer-local-str", "s-outer-let", "s-nested-fn",
   "s-param-block", "s-param-block-min", "s-cell-param-block", "s-for-body", "s-catch", "min-scope", "min-scope-action", "min-json-undefined", "a-h-json-undefined",
   "a-h-json-fn", "a-h-tojson-direct-undef"]);
 R.push(tyRow("w1-3-s1-shadow-math", G(`const f = () => Math.max(1, 2); const Math = { max: (a: number, b: number) => "s" }; return f();`), num));
@@ -123,6 +123,13 @@ R.push(tyRow("w1-3-c1-mapped-optional", G(`const w: { [K in "a"]?: number } = {}
 R.push(tyRow("w1-3-f4-cell-this", `const this = () => 1;\nconst g = () => 1;`, num));
 R.push(tyRow("w1-3-f4-local-this", G(`const this = 1; return 1;`), num));
 R.push(tyRow("w1-3-f4-pattern-this", G(`const { a: this } = { a: 1 }; return 1;`), num));
+// open part 3 (2026-11-25): attack 11's s-Number, s-String, s-parseInt and s-structuredClone read a later local const
+// function from inside an earlier const function used only after it; that read is now accepted and names the local,
+// as JavaScript does. Their attack 11 oracles expect the global's type, so they are restated with the local's
+R.push(tyRow("w1-ok-3-s1-local-Number", G(`const f = () => Number("3"); const Number = (s: string) => s; return f();`), (v) => v === "3"));
+R.push(tyRow("w1-ok-3-s1-local-String", G(`const f = () => String(3); const String = (n: number) => n; return f();`), (v) => v === 3));
+R.push(tyRow("w1-ok-3-s1-local-parseInt", G(`const f = () => parseInt("3"); const parseInt = (s: string) => s; return f();`), (v) => v === "3"));
+R.push(tyRow("w1-ok-3-s1-local-structuredClone", G(`const f = () => structuredClone([1]); const structuredClone = (v: readonly number[]) => "s"; return f();`), (v) => v === "s"));
 R.push(tyRow("w1-ok-3-s1-declared-first", G(`const h = 2; const f = () => h + 1; return f();`), (v) => v === 3));
 R.push(tyRow("w1-ok-3-s1-outer-unshadowed", G(`const f = () => Math.max(1, 2); return f();`), (v) => v === 2));
 R.push(tyRow("w1-ok-3-a4-record", G(`return JSON.stringify({ a: [1, null] });`), (v) => v === '{"a":[1,null]}'));

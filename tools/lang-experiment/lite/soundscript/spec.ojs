@@ -372,7 +372,9 @@ A call of \`structuredClone\` is \`[type]\` when the type of its argument is or 
 
 A body can only call a prelude function. The name of a prelude function used as a value is \`[prelude-value]\`. There are two exceptions: \`read\` is \`[read-outside-action]\` (S6.8), and \`on\` is \`[listener-placement]\` (S7.3). A local or a parameter with the name of a prelude function is \`[prelude-shadow]\`. \`mut\`, \`freeze\` and \`borrow\` are in the list so that a call of one, or its name as a value, is \`[removed-call]\` (S4.2).
 
-Since 2026-11-24 (w1), a \`const\` or \`let\` of a block is in scope for the full block, as in JavaScript. A read of its name before the declaration names that declaration and not a binding outside the block. This applies in the block and in a function made in the block. Such a read is \`[free-name]\`. For example, a later local \`Math\` makes an earlier \`Math.max\` in the block \`[free-name]\`. This rule is stricter than JavaScript. A function made in the block that reads a later \`const\` is \`[free-name]\`, even when the function is called only after the declaration.`
+Since 2026-11-24 (w1), a \`const\` or \`let\` of a block is in scope for the full block, as in JavaScript. A read of its name before the declaration names that declaration and not a binding outside the block. This applies in the block and in a function made in the block. Such a read is \`[free-name]\`. For example, a later local \`Math\` makes an earlier \`Math.max\` in the block \`[free-name]\`. This rule is stricter than JavaScript.
+
+Since 2026-11-25 (open part 3), one form of a read before the declaration is accepted. The later declaration is a \`const\` whose name has no type and whose value is an arrow or a \`function\` expression. The read is inside the body of a function bound to a \`const\` declared before it in the same block. No code can call that earlier function before the later declaration runs. That holds when, before the later declaration, the earlier function's name is used only inside its own body or inside the body of another such function that holds the same condition, and no \`function\` declaration of the block uses it. Any other use, such as a call, a pass as an argument, a place in an array or object literal, or a read of a member, is \`[free-name]\`. The message names the function and says to not use it before the later declaration, or to move that declaration up. Two \`const\` functions can call each other this way. The type of the later function at the read is the type a \`function\` declaration has there: its annotations, or else its body is checked at that read. A function that calls itself, or two that call each other, with no return type is unsupported, as for a \`function\` declaration. A read of a later \`let\`, of a \`const\` that is not a function, of a \`const\` with a type on its name, or of a \`memo(...)\` stays \`[free-name]\`. A rule that sees through a call of a local helper (S3.11, S3.19, S4.10 to S4.12, S5.6, S5.7, S6.5, S6.9, S6.19) sees through a helper read this way too.`
 // %%
 md`**S2.7** A read of \`Math.random\`, \`Object.defineProperty\`, \`Object.defineProperties\`, \`Object.setPrototypeOf\`, or \`prototype\` on \`Object\` or \`Array\` is \`[banned-member]\`. This also applies through a local bound to the intrinsic, through destructuring such as \`const { random } = Math\`, and through a computed key such as \`Math["random"]\`. A value with a banned member is not assignable to a type that names the member. Thus \`Math\` given where \`{ random: () => number }\` is expected is \`[type]\`. \`prototype\` on any other value is rejected by a different rule, usually \`[no-member]\`.
 
@@ -475,6 +477,8 @@ spec_rejects_2 = [
   { statement: "S2.6", rule: "type", source: "const f = () => structuredClone({ g: (n: number) => n });" },
   { statement: "S2.6", rule: "prelude-value", source: "const s = () => {\n  const st = state;\n  return st(0);\n};" },
   { statement: "S2.6", rule: "free-name", source: "const g = () => {\n  const f = () => Math.max(1, 2);\n  const Math = { max: (a: number, b: number) => \"s\" };\n  return f();\n};" },
+  { statement: "S2.6", rule: "free-name", source: "const a = () => {\n  const f = () => g();\n  const x = f();\n  const g = () => 1;\n  return x;\n};" },
+  { statement: "S2.6", rule: "free-name", source: "const a = () => {\n  const f = () => g();\n  const fs = [f];\n  const g = () => 1;\n  return fs.length;\n};" },
   { statement: "S2.6", rule: "prelude-shadow", source: "const a = () => {\n  const snapshot = (m: Mut<number[]>): number => m.length;\n  const m = [1];\n  return m;\n};" },
   { statement: "S2.6", rule: "prelude-shadow", source: "const x = () => [1, 2];\nconst y = (x: number[]) => {\n  const g = (snapshot: (v: number[]) => number[]) => x.length;\n  return 1;\n};" },
   { statement: "S2.7", rule: "banned-member", source: "const a = () => Math.random();" },
@@ -616,7 +620,9 @@ test_spec_S2_6 = {
   const asValue = (n) => soundscript.check(`const a = () => { const v = ${n}; return 1; };`, true).cells[0].errors.map((e) => e.rule);
   const notPrelude = prelude.filter((n) => !asValue(n).some((r) => ["prelude-value", "removed-call", "read-outside-action", "listener-placement"].includes(r)));
   if (notPrelude.length) throw new Error(`listed in S2.6 but not a prelude function: ${notPrelude.join(", ")}`);
-  return `${spec_rejectsFor("S2.6")}; ${names.length} intrinsics accepted as values; ${prelude.length} prelude functions, each refused as a value`;
+  // a const function read before its declaration, inside an earlier const function used only after it, is accepted
+  spec_is(spec_okCells("const a = () => {\n  const ev = (n: number): boolean => (n === 0 ? true : od(n - 1));\n  const od = (n: number): boolean => (n === 0 ? false : ev(n - 1));\n  const f = () => g() + 1;\n  const g = () => 1;\n  return [ev(4), f()];\n};"), "a:ok");
+  return `${spec_rejectsFor("S2.6")}; ${names.length} intrinsics accepted as values; ${prelude.length} prelude functions, each refused as a value; const functions read before their declaration from earlier const functions accepted`;
 }
 // %%
 test_spec_S2_7 = {

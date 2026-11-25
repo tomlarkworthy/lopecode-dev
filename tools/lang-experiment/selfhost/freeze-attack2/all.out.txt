@@ -242,7 +242,7 @@
 == b8.ts:rg-catch-cap: REJECT a:rejected[mut-nested][no-cast] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
 == b8.ts:rg-forof-cap: REJECT a:rejected[mut-nested][mut-capture][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
 == b8.ts:rg-recursive: REJECT a:rejected[mut-nested][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
-== b8.ts:rg-mutual: REJECT a:rejected[mut-nested][free-name][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
+== b8.ts:rg-mutual: REJECT a:rejected[mut-nested][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
 == b8.ts:rg-fn-decl-hoist: REJECT a:rejected[mut-nested][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
 == b8.ts:rg-async-fn: REJECT a:rejected[mut-nested][type][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]
 == b8.ts:rg-gen-fn: REJECT a:rejected[mut-nested][mut-capture] c:rejected[mut-nested][inject-type] b:rejected[mut-nested][inject-type]

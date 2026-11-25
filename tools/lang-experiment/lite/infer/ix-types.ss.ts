@@ -10,8 +10,8 @@ export type IxChain = { readonly id: number; readonly up: IxChain | null };
 export type IxKind = "const" | "let" | "param" | "fn" | "global" | "prelude";
 // what a read of a binding with no type yet does (Binding.lazy): report, or check its hoisted declaration
 // w1 (2026-11-24, S-1): later, a const or let of the block not yet declared: a read of it is refused, as JavaScript would
-// read this binding and not one outside
-export type IxLazy = { k: "none" } | { k: "unsup"; at: AstNode } | { k: "hoist"; fn: AstNode; env: IxEnv; busy: boolean } | { k: "later"; at: AstNode };
+// read this binding and not one outside; p3 (2026-11-25): fn, the function a const binds, read early where ixFwdSafe allows
+export type IxLazy = { k: "none" } | { k: "unsup"; at: AstNode } | { k: "hoist"; fn: AstNode; env: IxEnv; busy: boolean } | { k: "later"; at: AstNode; fn: AstNode | null; env: IxEnv; body: readonly AstNode[]; busy: boolean };
 // fi: the nid of the function declaring it (Binding.fi.node); fnNode: the nid of the function it names; -1 for none
 export type IxBinding = {
   id: number; scope: number; name: string; t: Ty; kind: IxKind; nid: number; fi: number; fnNode: number;
@@ -39,6 +39,9 @@ export type IxCtl = {
   short: Set<number>; clones: Set<number>; breaks: IxBreaks | null; flagsAt: number; flags: Flags | undefined;
   // freshAt: the last call or new whose value is fresh (an intrinsic marked @fresh, structuredClone, snapshot)
   freshAt: number;
+  // p3 (2026-11-25): >0 while overloads are tried, whose diagnostics a failed try drops: a body checked on a read then
+  // is not kept as checked (ixFwdRead, ixLazyRead), so its errors are reported where they stay
+  tries: number;
   gap: string | null; facts: IxFactLog | null; probe: IxProbe | null;
   // e1 (2026-11-23): each cast<T>(v) the cell's checker accepted, by its callee's position, and T's shape
   casts: [number, TypeShape][];
