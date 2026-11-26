@@ -292,9 +292,12 @@ page. Each switch is his to set: he turned `unattendedDeployer` on 2026-11-22 20
 deployed `fix-tests-brain-deployer-7c5b8d67` on 2026-11-23 05:55; the own path's next five sends, to `5fabc49aa39e` on
 2026-11-24 03:16, each logged `deploy.self.confirmed`. Each of those had no browser verdict for its own suite: the
 deployer's dry runs of itself, 17 in the 7 days to 2026-11-25, all logged `deploy.dry.none`: "browser.run answered 504
-wait was not true in 40000 ms" in 16, and 100000 ms in one of 2026-11-21. The run is `config.runSeconds` less 20 s,
-`runSeconds` 60. The suite that stood for
-each was the worker's and the reviewer's local `bun test.ts @tomlarkworthy/brain-deployer`.
+wait was not true in 40000 ms" in 16, and 100000 ms in one of 2026-11-21 (the run is `config.runSeconds` 60 less
+20 s). Since `deployer-self-dry-run-verdict` (live as `93ad8e545d55`, 2026-11-25 05:29 UTC) the dry run of itself
+runs its suite in 12 parts, one `browser.run` each, logged `deploy.dry.part` and summed in one `deploy.dry.tests`. In
+`logs.deploys` read 2026-11-26: `edd780687df4` (05:47) logged 4 failed tests and was not sent; `724810f5cb6d` logged
+`{"parts": 12, "tests": 148, "ms": 135845}` at 06:01 and again at 07:05, went `deploy.self.live` at 07:05 and
+`deploy.self.confirmed` at 07:06.
 
 `bun tools/cloud-brain/waiting-deploys.ts` reads only (with `--file <token>` it also closes an open `deploy-waits-<worker>`
 issue of a Worker that is `same`): whether `cloud-brain-dev/deploy/` has the module cb4 runs for the kernel, the core, the
