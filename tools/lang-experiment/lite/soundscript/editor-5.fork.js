@@ -604,13 +604,16 @@ const _e6pick = function _languagePicker(cellLanguagesRef,cellLanguage,languageC
   const builtin = (id) => id === "ojs" || id === "js";
   const registered = (id) => cellLanguagesRef.current.find((l) => l.id === id) ?? null;
   // The text in language from, rewritten in language to: {text}, {reason}, or {} to keep the text as it is
-  // (the {} a new cell is made with, ojs <-> js, or a language without toBuiltin/fromBuiltin).
+  // (the {} a new cell is made with, ojs <-> js, or text of a language not loaded, which the editor shows as the
+  // built-in decompilation). A loaded language without toBuiltin/fromBuiltin gives a reason.
   // Registered languages translate through Observable JavaScript.
   const translate = (text, from, to) => {
     if (from === to || text.trim() === "{}" || (builtin(from) && builtin(to))) return {};
     const src = registered(from), dst = registered(to);
-    if (!builtin(from) && !src?.toBuiltin) return {};
-    if (!builtin(to) && !dst?.fromBuiltin) return {};
+    const label = (id) => select.querySelector(`option[value="${id}"]`)?.textContent ?? id;
+    if (!builtin(from) && !src) return {};
+    if (!builtin(from) && !src.toBuiltin) return { reason: `${label(from)} text has no translation to another language` };
+    if (!builtin(to) && !dst?.fromBuiltin) return { reason: `no other language translates to ${label(to)}` };
     const ask = (f) => { try { return f() ?? { reason: "no answer" }; } catch (e) { console.error(e); return { reason: String(e?.message ?? e) }; } };
     let mid = { text }, lang = from;
     if (!builtin(from)) {

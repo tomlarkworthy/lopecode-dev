@@ -4983,3 +4983,162 @@ FAIL prose: @tomlarkworthy/soundscript-spec: 178 md cells, no repository path an
 The two "Not specified" items on JW and on JavaScript callers name `tools/lang-experiment/selfhost/freeze-attack14/jsw.ts`
 and `jsc.ts`. That is the coordinator's text, so it was left as written. Part 6's verify runs passed this check (235/0
 and 680/0).
+
+
+## 2026-11-26: ideas removed from the tutorial ("Not built")
+
+The tutorial had this section until 2026-11-26. The owner asked for it to go: a list of things not built does not help a reader of a tutorial. The text is kept here unchanged.
+
+
+These items were discussed on 2026-11-14. None of them is in the checker or in this page.
+
+- **Effects as tagged libraries.** `state`, `action`, `Events` and `on` are special cases inside the checker. The proposal moves them into declaration files. Tags in those files (`@write`, `@handle`, `@cell`) tell the checker what each function can do. A new type of effect would then need a library and no change to the checker.
+- **Actors.** A library on those tags: an inbox cell, a post action, and the messages of the inbox as `Events<M>`. A `mailbox` primitive in the checker was proposed and rejected.
+- **Label, do not reject.** The checker would accept `Math.random` and label the cell *unsound*, and would not reject it. It would also label every cell that takes a capability from that cell. A `sound(...)` marker would change the label back into an error.
+- **Typed reflection.** A typed `Variable` and `Module<C>`. The checker would then check a cell that defines or redefines other cells, and a new definition would cause a check of the cells downstream. This needs `keyof`, bounds and indexed access, which the checker does not have.
+- **Results kept across a reload.** The saved file would store the result of a deterministic cell. The notebook would use the stored result when the inputs are the same.
+- **Export to ObservableHQ.** The compiled cells are ordinary JavaScript. The marker comments and the editor hook are only in this notebook.
+- **`now` and `random` per cell.** Every cell that takes `now` gets the same `ss_now` of the core. Every cell that takes `random` gets the same `ss_random`. A recorded or seeded source for each cell is not built.
+
+
+## 2026-11-26: open part 8, the language picker and Mandelbrot zoom
+
+### Job A: "switching language in the editor still does not update the code view"
+
+Reproduced on the built notebook (`lopebooks/notebooks/soundscript.html` as part 7 left it), with
+`lite/soundscript/.scratch/open8/picker-matrix.ts`. It picks each language with Playwright's `selectOption` and
+waits on the editor's document text, the reason element, or the select value. Output: `.scratch/open8/matrix-before.txt`.
+
+```
+half (ss, checks)         ss -> ojs  REWRITTEN    ss -> raw  PICKER MOVED, TEXT KEPT
+bad_attr_type (rejected)  ss -> ojs  REWRITTEN    ss -> raw  PICKER MOVED, TEXT KEPT
+count (state)             ss -> ojs  REWRITTEN    ss -> raw  PICKER MOVED, TEXT KEPT
+doubledWidth (polyglot)   ss -> ojs  REWRITTEN    ss -> raw  PICKER MOVED, TEXT KEPT
+area (polyglot, raw)      raw -> ss / ojs / js    PICKER MOVED, TEXT KEPT
+summary (polyglot, ojs)   ojs -> raw, ojs -> js   PICKER MOVED, TEXT KEPT
+half with unsaved edits   ss -> ojs  REWRITTEN    ss -> raw  PICKER MOVED, TEXT KEPT
+half after a Shift-Enter  ss -> ojs  REWRITTEN
+```
+
+SoundScript <-> Observable JavaScript rewrote the code view in every case, before and after the fix. The
+failure was every pick to or from raw. The picker moved, the text stayed, and nothing said why.
+
+Cause: `translate` in the picker (`lite/soundscript/editor-5.fork.js`, `_languagePicker`) returned `{}` ("keep the
+text") for a registered language with no `toBuiltin`/`fromBuiltin`. `raw_language` (`lite/soundscript/raw-cells.ojs`)
+had neither. Both files are this build's own sources. The fork replaces `@tomlarkworthy/editor-5` in the notebook
+(`build.ts` 291-298), so no shared module was edited.
+
+The fix:
+- `editor-5.fork.js`: a loaded language with no translator gives a reason. The picker goes back and the reason shows.
+  A language that is not loaded still gives `{}`, because the editor already shows its cell as the Observable
+  JavaScript decompilation.
+- `raw-cells.ojs`: `toBuiltin` = `raw_to_ojs` and `fromBuiltin` = `raw_from_ojs`, with `raw_body_uses`. These
+  use the AST (acorn) and import `compile` from `@tomlarkworthy/observablejs-toolchain`. `test_raw_translate` covers them.
+  - `raw_to_ojs` writes `name = body`, and a one-return block as its value. It refuses when the parameters are not
+    the inputs, when an async or generator function has no await or yield of its own, when an arrow reads `this`,
+    or when the compiled Observable JavaScript reads other inputs. Comments outside the function are not carried.
+  - `raw_from_ojs` writes the one compiled variable as `define(name, inputs, definition)`. It refuses more than one
+    variable (`viewof`, `mutable`, a state cell).
+
+After the fix (`.scratch/open8/matrix-after2.txt`), the only pick that moves the picker and keeps the text is
+ojs -> js. That pair is built into the editor and was left as it was.
+
+- **Unsaved edits** go into the translation and come back. `half` + ` // edited` -> ojs -> ss gives the edited
+  text. Nothing is stored.
+- **A cell the target cannot express** (a state cell to raw, a SoundScript cell to Notebook Kit JavaScript, text
+  that does not parse) keeps its text and its select. The reason shows next to the select.
+- **SoundScript -> raw** shows the compiled variable as `define(...)`. Shift-Enter on that text stores nothing. The
+  editor's marker guard says "not saved: this text carries a /*{lang:"ss"}*/ marker" (`.scratch/open8/store-raw.ts`).
+- **Observable JavaScript -> SoundScript** of `summary` and raw `area` gives a SoundScript text the checker rejects.
+  Back to Observable JavaScript then gives the `ss_rejected(...)` form, not the original text. This was the same
+  before the fix.
+
+The guard: `languagePick` in `verify.ts`, in the quick set. Before this part, the only picker check (`languageSwitch`)
+ran after `QuickDone`, in the full run only. `languagePick` has five checks:
+- half: ss -> ojs -> ss, compared with `decompileOjs` of its variables.
+- half: ss -> raw -> ss, compared with the compiled variable written out.
+- half with an unsaved edit.
+- count -> raw: refused.
+- area: raw -> ojs -> raw -> ojs. The Observable JavaScript compiler's variable is run on (3, 4) and (5, 7) against
+  the raw definition.
+
+Control: the first version of the check, run on the part 7 build (`.scratch/open8/before.html`), gave 223 pass,
+3 fail. The raw refusal and the raw translation failed, and `test_raw_translate` was missing.
+
+### Job B: Mandelbrot zoom
+
+Every change is in `lite/notebook/examples/07-workers.tsx`, copied to `fixtures/lite-compile/accept-compile/cells.tsx`:
+- `type View`, `home`, and the state cell `view`.
+- `rows` reads `view`, and `view` is in `refs` of `inPool` and `onMain`.
+- The actions `zoomIn` (`Action<[PointerData]>`), `zoomOut` and `reset`.
+- `clicks`, a transparent JSX `<canvas>` with `onPointerDown`.
+- `app`, which gains the two buttons and a readout.
+
+The checker accepts all 19 cells. The home view gives the same bytes as before (`benchmark.same` true). No checker
+or run-time file changed: diff.ts gives DIFFERENT 0, and run-sets gives 3611 silent 0 on both runners.
+
+Findings: where SoundScript makes zoom awkward:
+- **The picture and the clicks are on two canvases.** JSX has no way to put pixels on a canvas, so the page
+  (Observable JavaScript, `workers_picture` / `picture`) draws the image and puts the mounted `clicks` canvas over
+  it. Breakout lays its overlay canvas on its board in the same way.
+- **PointerData x and y are CSS pixels of the shown canvas.** The action cannot read the canvas's shown size. The
+  picture scales down (`max-width: 100%`) on a pane narrower than 640 px, and there the zoom centre is off by that
+  scale. The first version stopped the scaling. The phone check of the full verify then failed ("elements past the
+  edge"), so the scaling is back and this is a known limit. The coordinates can also be fractional: a click at
+  (160, 105) gave cy -0.5742220878601074 against -0.57421875 for y = 105.
+- **Only canvas has pointer events**, and they are `pointerdown/move/up/cancel`. There is no wheel event, so zoom
+  is a click plus two buttons. A drag-to-pan was not tried.
+- **The iteration limit does not rise with depth.** The slider (50 to 3000) sets it.
+
+`benchmark` in the tutorial reads `workers_inPool`, so it runs again after every zoom click, as it does after the
+slider. A second click straight after the first takes longer: 124.2 ms and 203.4 ms in the full verify,
+127.0 ms and 176.4 ms in a quick run.
+
+Timing, 2026-11-26, on battery: the tutorial's `benchmark` cell, before (part 7 build) and after, 5 loads each,
+alternating (`.scratch/open8/mandel-ab-final.txt`):
+
+```
+before  main 67.0 67.1 67.2 67.4 67.4  median 67.2   pool 25.2 33.3 49.5 51.0 54.1  median 49.5
+after   main 66.9 67.0 67.0 67.1 67.1  median 67.0   pool 31.5 33.7 37.1 53.2 57.3  median 37.1
+```
+
+The main thread is unchanged. The pool spreads 25-57 ms in both builds, so this run shows no difference in the
+pool. Full verify: main thread 66.4 ms, pool of 8 53.6 ms.
+
+The new checks are `mandelZoom` in `verify.ts`, quick set:
+- A click at (160, 105) sets `view` to within one plane pixel of the expected centre, at half the span. The image
+  value changes and the canvas pixels change.
+- A second click on the centre halves the span again.
+- **zoom out** doubles the span.
+- **reset** gives the home view and the first image again, byte for byte.
+
+Each wait is on the canvas's pixel checksum. Also changed: `test_examples_check_as_expected` (workers 13 -> 19
+cells), `test_compile_refuses_unchecked` (refs), and the `inPool` inputs expected in `ss-toolchain.test.ts`.
+
+### Gates, 2026-11-26 (`.scratch/open8/gates/summary.txt`)
+
+The gate set ran twice. The first full verify (`gates-run1`) had 687 pass and 3 fail:
+- The phone overflow (the unscaled picture).
+- Two raw-picker checks in `verify-raw.ts`. They pick raw on a SoundScript cell and type raw text, and they pick
+  Observable JavaScript on a cell whose language is not loaded. The first fix refused both picks.
+
+Then `raw_from_ojs` was changed to write out a compiled SoundScript cell, the editor was changed to keep a language
+that is not loaded, and the picture was made to scale again.
+
+| gate | second run |
+|---|---|
+| build --force | 0 |
+| fixtures | 14/14 |
+| diff.ts | 1251 sources, 4079 cells, DIFFERENT 0, REAL CRASH 14, threw 1 (part 7: 4067 cells, the same 14 and 1) |
+| run-sets / --rt | 3611 programs, silent 0; open 388, accepted 122, 40 in error, both |
+| verify --quick | 245 pass, 0 fail |
+| browser/delivery, erase, run, workers | exit 0; 6/0, 2/0, 8/0 |
+| ss-toolchain.test | 37 files pass, 0 fail |
+| comment-types.test | 37 pass, 0 fail |
+| tc-diff | 56 DIFFERENT lines, all calls DIFFERENT 1 (part 7 baseline) |
+| verify full | 692 pass, 0 fail |
+
+Not done:
+- The `lite/notebook` build (`lite-cells-tutorial.html`) was not rebuilt, and `lite/notebook/verify.ts` was not run.
+  Its example-equals-fixture check holds by `cmp`.
+- No `/review-notebook` pass was run.

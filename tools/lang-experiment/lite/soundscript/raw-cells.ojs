@@ -142,7 +142,63 @@ raw_language = {
     return { from: open + 1, to: pos, mode: "string", options: [...[...names].map((label) => ({ label, type: "variable" })), ...builtins.filter((n) => !names.has(n)).map((label) => ({ label, type: "constant" }))] };
   };
   const claimsSource = (source) => /^\s*define\s*\(/.test(source);
-  return { id: "raw", label: "raw", claimsSource, decompile, apply, lint, complete, highlight: (text) => raw_highlight(text), extension: (codemirror) => codemirror.javascript() };
+  // the editor's language picker: a raw cell as Observable JavaScript, and Observable JavaScript as a raw cell
+  const toBuiltin = (source, variables = [], cell, target = "ojs") => target === "ojs" ? raw_to_ojs(source) : { reason: "a raw cell translates to Observable JavaScript, not Notebook Kit JavaScript" };
+  const fromBuiltin = (source, variables = [], cell, { lang, compiled } = {}) => lang === "ojs" && compiled ? raw_from_ojs(compiled) : { reason: "only Observable JavaScript translates to a raw cell" };
+  return { id: "raw", label: "raw", claimsSource, decompile, apply, lint, complete, toBuiltin, fromBuiltin, highlight: (text) => raw_highlight(text), extension: (codemirror) => codemirror.javascript() };
+}
+// %%
+raw_body_uses = (fn) => {
+  // what a function's body does at its own level: await and yield outside nested functions, and this
+  // outside nested non-arrow functions (an arrow sees the this of the function around it)
+  const seen = { await: false, yield: false, this: false };
+  const walk = (n, inArrow) => {
+    if (!n || typeof n.type !== "string") return;
+    if (!inArrow && (n.type === "AwaitExpression" || (n.type === "ForOfStatement" && n.await))) seen.await = true;
+    if (!inArrow && n.type === "YieldExpression") seen.yield = true;
+    if (n.type === "ThisExpression") seen.this = true;
+    if (n.type === "FunctionExpression" || n.type === "FunctionDeclaration") return;
+    const arrow = inArrow || n.type === "ArrowFunctionExpression";
+    for (const c of Object.values(n)) for (const k of Array.isArray(c) ? c : [c]) if (k && typeof k === "object") walk(k, arrow);
+  };
+  walk(fn.body, false);
+  return seen;
+}
+// %%
+raw_to_ojs = (source) => {
+  // a raw cell as Observable JavaScript, name = body: {text}, or {reason} when the cell would not be the same
+  // cell (other inputs, async or a generator by other rules, another this)
+  const p = raw_parse(source);
+  if (p.error) return { reason: `the text is not a raw cell: ${p.error}` };
+  const comments = [];
+  const fn = acorn.parseExpressionAt(p.fn, 0, { ecmaVersion: "latest", onComment: comments });
+  const params = fn.params.map((x) => (x.type === "Identifier" ? x.name : "…"));
+  if (params.join(",") !== p.inputs.join(",")) return { reason: `the parameters (${params.join(", ")}) are not the inputs (${p.inputs.join(", ")}); an Observable JavaScript cell reads each input by its name` };
+  const uses = raw_body_uses(fn);
+  if (fn.async && !uses.await) return { reason: "the function is async and has no await of its own; an Observable JavaScript cell is async when its body awaits" };
+  if (fn.generator && !uses.yield) return { reason: "the function is a generator and has no yield of its own; an Observable JavaScript cell is a generator when its body yields" };
+  if (fn.type === "ArrowFunctionExpression" && uses.this) return { reason: "the arrow function reads this; in an Observable JavaScript cell this is the cell's previous value" };
+  // a block of one return, with no comment outside the returned value, is written as the value
+  const one = fn.body.type === "BlockStatement" && fn.body.body.length === 1 && fn.body.body[0].type === "ReturnStatement" ? fn.body.body[0].argument : null;
+  const bare = one && !comments.some((c) => c.start < one.start || c.end > one.end) ? one : fn.expression ? fn.body : null;
+  const body = bare ? p.fn.slice(bare.start, bare.end) : p.fn.slice(fn.body.start, fn.body.end);
+  const text = (p.name === null ? "" : `${p.name} = `) + (bare && ["ObjectExpression", "SequenceExpression"].includes(bare.type) ? `(${body})` : body);
+  let vars;
+  try { vars = compile(text); } catch (e) { return { reason: `as Observable JavaScript the text does not compile: ${e?.message ?? e}` }; }
+  const reads = vars.length === 1 ? [...vars[0]._inputs].sort().join(", ") : null;
+  if (vars.length !== 1 || (vars[0]._name ?? null) !== p.name) return { reason: `${p.name === null ? "an anonymous cell" : JSON.stringify(p.name)} is not a name an Observable JavaScript cell takes` };
+  if (reads !== [...p.inputs].sort().join(", ")) return { reason: `as Observable JavaScript the cell would read ${reads || "nothing"}, not its inputs ${p.inputs.join(", ") || "(none)"}` };
+  return { text };
+}
+// %%
+raw_from_ojs = (compiled) => {
+  // Observable JavaScript as a raw cell: its one compiled variable written out. {text} or {reason}. A compiled cell
+  // of another language (a SoundScript cell) is written out too; its language's tag comment stays in the function
+  if (compiled.length !== 1) return { reason: `this text makes ${compiled.length} variables (${compiled.map((v) => v.name ?? "anonymous").join(", ")}); a raw cell is one variable` };
+  const [v] = compiled;
+  const text = `define(${v.name == null ? "null" : JSON.stringify(v.name)}, [${v.inputs.map((i) => JSON.stringify(i)).join(", ")}], ${v.definition})`;
+  const p = raw_parse(text);
+  return p.error ? { reason: `written out, the text is not a raw cell: ${p.error}` } : { text };
 }
 // %%
 raw_registration = {
@@ -240,6 +296,26 @@ test_raw_complete = {
   return `${r.options.length} names offered inside the inputs array`;
 }
 // %%
+test_raw_translate = {
+  // the language picker's translations, both ways, and the cells each refuses
+  const ojsOf = (text) => compile(text).map((v) => ({ name: v._name ?? null, inputs: v._inputs ?? [], definition: String(v._definition) }));
+  const to = [
+    ['define("area", ["width", "height"], function (width, height) { return width * height; })', "area = width * height"],
+    ['define("a", ["w"], function (w) {\n  // kept\n  return w;\n})', "a = {\n  // kept\n  return w;\n}"],
+    ['define(null, [], () => ({ a: 1 }))', "({ a: 1 })"],
+    ['define("g", [], async function* () { yield await 1; })', "g = { yield await 1; }"]
+  ];
+  for (const [raw, ojs] of to) if (raw_to_ojs(raw).text !== ojs) throw new Error(`${raw} gave ${JSON.stringify(raw_to_ojs(raw))}`);
+  const refused = ['define("k", ["a"], (b) => b)', 'define("x", [], async () => 1)', 'define("t", [], () => this)', 'define("u", ["a"], (a) => 1)', 'define("viewof v", [], () => 1)', 'define("k", ["a"], (a) => '];
+  for (const raw of refused) if (!raw_to_ojs(raw).reason) throw new Error(`${raw} was not refused: ${JSON.stringify(raw_to_ojs(raw))}`);
+  const back = raw_from_ojs(ojsOf("x = a + 1"));
+  if (!back.text || raw_to_ojs(back.text).text !== "x = a + 1") throw new Error(`x = a + 1 gave ${JSON.stringify(back)}`);
+  if (!raw_from_ojs(ojsOf("viewof v = 1")).reason) throw new Error("a viewof cell was not refused");
+  const tagged = raw_from_ojs([{ name: "h", inputs: [], definition: 'function _h(){return(/*{lang:"ss"}*/1)}' }]).text;
+  if (tagged !== 'define("h", [], function _h(){return(/*{lang:"ss"}*/1)})') throw new Error(`a tagged definition gave ${tagged}`);
+  return `${to.length} raw cells as Observable JavaScript, ${refused.length} refused; x = a + 1 there and back`;
+}
+// %%
 import { plugins } from "@tomlarkworthy/plugin-registry"
 // %%
 import { runtime, realize, thisModule, repositionSetElement } from "@tomlarkworthy/runtime-sdk"
@@ -247,6 +323,8 @@ import { runtime, realize, thisModule, repositionSetElement } from "@tomlarkwort
 import { langTag } from "@tomlarkworthy/cell-map"
 // %%
 import { acorn } from "@tomlarkworthy/acorn-8-11-3"
+// %%
+import { compile } from "@tomlarkworthy/observablejs-toolchain"
 // %%
 import { codemirror } from "@tomlarkworthy/codemirror-6-v2"
 // %%

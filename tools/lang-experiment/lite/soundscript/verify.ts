@@ -1065,6 +1065,135 @@ async function editorFeatures(page: Page) {
   await page.keyboard.press("Escape");
   report((await editorText(half)) === o && (await editorText(app)) === original && (await valueOf(page, TUTORIAL, "half")) !== undefined, `editor features: app and half have their original text again, nothing stored`);
 }
+// Part 8, in the quick set: a click on the tutorial's Mandelbrot picture zooms in around the point clicked.
+// The click changes the view state cell; the workers compute a new image, and the canvas shows it. zoom out
+// and reset change the view again; reset gives the first image back. Each wait is on the canvas's pixels.
+async function mandelZoom(page: Page) {
+  const M = "@tomlarkworthy/soundscript-mandelbrot";
+  const look = () => page.evaluate(async ([m, t]) => {
+    const rt = (window as any).__ojs_runtime, mod = rt.mains.get(m);
+    const img = mod._scope.get("image")._value, v = mod._scope.get("view")._value;
+    const pic = rt.mains.get(t)._scope.get("workers_picture")._value?.querySelector("canvas");
+    const px = pic?.getContext("2d").getImageData(0, 0, pic.width, pic.height).data;
+    let sum = 0, psum = 0;
+    if (img instanceof Uint8ClampedArray) for (let i = 0; i < img.length; i += 7) sum = (sum * 31 + img[i]) % 1000000007;
+    if (px) for (let i = 0; i < px.length; i += 7) psum = (psum * 31 + px[i]) % 1000000007;
+    return { view: v && { cx: v.cx, cy: v.cy, span: v.span }, sum, psum, t: performance.now() };
+  }, [M, TUTORIAL] as const);
+  // the next picture: the canvas's pixels differ from what they were before the action
+  const nextPicture = async (act: () => Promise<void>) => {
+    const b = await look();
+    await act();
+    const ok = await page.waitForFunction(([t, before]) => {
+      const pic = (window as any).__ojs_runtime.mains.get(t)._scope.get("workers_picture")._value?.querySelector("canvas");
+      const px = pic?.getContext("2d").getImageData(0, 0, pic.width, pic.height).data;
+      let psum = 0;
+      if (px) for (let i = 0; i < px.length; i += 7) psum = (psum * 31 + px[i]) % 1000000007;
+      return psum !== before;
+    }, [TUTORIAL, b.psum] as const, { timeout: 20000 }).then(() => true, () => false);
+    const a = await look();
+    return { ok, ms: a.t - b.t, ...a };
+  };
+  const pic = page.locator(".lite-mandel-box canvas").nth(1);
+  await pic.scrollIntoViewIfNeeded();
+  await page.evaluate((t) => { const rt = (window as any).__ojs_runtime; rt.mains.get(t)._scope.get("workers_view")._value?.setAttribute("data-verify", "mz-app"); }, TUTORIAL);
+  const app = page.locator('[data-verify="mz-app"]');
+  const a = await look();
+  const home = a.view;
+  // the canvas shows 640 pixels across at this viewport, so CSS pixels are canvas pixels
+  const shown = await pic.boundingBox();
+  const want = home && { cx: home.cx + (160 - 320) * (home.span / 640), cy: home.cy + (105 - 210) * (home.span / 640), span: home.span / 2 };
+  const z1 = await nextPicture(() => pic.click({ position: { x: 160, y: 105 } }));
+  // offsetX and offsetY are CSS pixels and may be fractional (the canvas need not sit on a whole pixel), so the
+  // centre is compared to within one pixel of the plane
+  const near = (x?: number, y?: number, span = home?.span ?? 0) => x !== undefined && y !== undefined && Math.abs(x - y) <= span / 640;
+  report(!!home && !!want && shown?.width === 640 && home.span === 3.5 && z1.ok && z1.view?.span === want.span && near(z1.view?.cx, want.cx) && near(z1.view?.cy, want.cy) && z1.sum !== a.sum,
+    `Mandelbrot zoom: a click at (160, 105) on the picture (shown ${shown?.width} px wide) sets view from ${JSON.stringify(home)} to ${JSON.stringify(z1.view)} (want ${JSON.stringify(want)}, to within one pixel); the workers compute a new image (${a.sum} -> ${z1.sum}) and the canvas shows it (${a.psum} -> ${z1.psum})`);
+  // a second click at once, on the centre: the span halves again and the centre stays
+  const z1b = await nextPicture(() => pic.click({ position: { x: 320, y: 210 } }));
+  report(z1b.ok && z1b.view?.span === 0.875 && near(z1b.view?.cx, z1.view?.cx, 1.75) && near(z1b.view?.cy, z1.view?.cy, 1.75) && z1b.sum !== z1.sum, `Mandelbrot zoom: a second click, on the centre, halves the span again (${JSON.stringify(z1b.view)})`);
+  if (z1.ok && z1b.ok) measure(`Mandelbrot zoom: click to new picture ${z1.ms.toFixed(1)} ms, a second click at once ${z1b.ms.toFixed(1)} ms`);
+  const z2 = await nextPicture(() => app.getByRole("button", { name: "zoom out" }).click());
+  report(z2.ok && z2.view?.span === 1.75 && z2.view?.cx === z1b.view?.cx && z2.view?.cy === z1b.view?.cy && z2.sum !== z1b.sum, `Mandelbrot zoom: zoom out doubles the span (${JSON.stringify(z2.view)}) and the workers compute a new image`);
+  const z3 = await nextPicture(() => app.getByRole("button", { name: "reset" }).click());
+  report(z3.ok && JSON.stringify(z3.view) === JSON.stringify(home) && z3.sum === a.sum && z3.psum === a.psum, `Mandelbrot zoom: reset gives the first view (${JSON.stringify(z3.view)}) and the first image again (${z3.sum === a.sum}, canvas ${z3.psum === a.psum})`);
+}
+// Part 8, in the quick set: a pick in the language picker rewrites the code view at once, both ways, on a
+// SoundScript cell, a raw cell and a cell with unsaved edits; a pick that does not translate keeps the text
+// and the select and shows the reason. Each wait is on the editor's document text or the reason element.
+// The texts expected are computed apart from the picker: Observable's decompiler for the compiled cell, the
+// Observable JavaScript compiler for the raw cell's text, and the raw cell's own definition run on two inputs.
+async function languagePick(page: Page) {
+  const sel = (host: any) => host.locator("select.e5-cell-language").first();
+  const pickerValue = (host: any) => sel(host).evaluate((s: HTMLSelectElement) => s.value);
+  const reasonOf = async (host: any) => (await host.locator(".e5-cell-language-reason").first().textContent()) ?? "";
+  // the pick, then a wait for the document to differ from before (or a reason to show)
+  const pick = async (host: any, to: string) => {
+    const tag = await host.getAttribute("data-verify"), before = await editorText(host);
+    await sel(host).selectOption(to);
+    await page.waitForFunction(([t, b]) => {
+      const h = document.querySelector(`[data-verify="${t}"]`)!;
+      const EV = [...(window as any).__ojs_runtime._variables].find((v: any) => v._name === "EditorView")._value;
+      return EV.findFromDOM(h.querySelector(".cm-editor")).state.doc.toString() !== b || !!h.querySelector(".e5-cell-language-reason")?.textContent;
+    }, [tag, before] as const, { timeout: 10000 }).catch(() => {});
+    return { text: await editorText(host), picker: await pickerValue(host), reason: await reasonOf(host) };
+  };
+  const close = async (host: any) => { await page.keyboard.press("Escape"); await host.locator(".hotbar").first().click(); await host.locator(".cm-editor").first().waitFor({ state: "hidden", timeout: 10000 }).catch(() => {}); };
+  // Observable's decompilation of a cell's variables, and a text compiled by the Observable JavaScript compiler
+  const decompiled = (module: string, cell: string) => page.evaluate(async ([module, cell]) => {
+    const rt = (window as any).__ojs_runtime, mod = rt.mains.get(module);
+    const vs = [...rt._variables].filter((v: any) => v._module === mod && (v._name === cell || v._name === `viewof ${cell}`));
+    return await [...rt._variables].find((v: any) => v._name === "decompileOjs" && typeof v._value === "function")._value(vs);
+  }, [module, cell]);
+  const compiledOf = (text: string) => page.evaluate((text) => {
+    const rt = (window as any).__ojs_runtime;
+    const compile = [...rt._variables].find((v: any) => v._name === "compile" && typeof v._value === "function" && v._module === rt.mains.get("@tomlarkworthy/raw-cells"))._value;
+    return compile(text).map((v: any) => ({ name: v._name ?? null, inputs: [...(v._inputs ?? [])], definition: String(v._definition) }));
+  }, text);
+  const define = (v: { name: string | null; inputs: string[]; definition: string }) => `define(${JSON.stringify(v.name)}, [${v.inputs.map((i) => JSON.stringify(i)).join(", ")}], ${v.definition})`;
+  // a SoundScript cell: ss -> ojs gives Observable's decompilation of the compiled cell, ojs -> ss the source
+  // again; ss -> raw gives the compiled variable written out as a raw cell, and raw -> ss the source again
+  const half = await openEditor(page, TUTORIAL, "half");
+  if (!half) { report(false, "language pick: no editor for half"); return; }
+  const def0 = await defOf(page, TUTORIAL, "half"), o = await editorText(half), want = await decompiled(TUTORIAL, "half");
+  const a1 = await pick(half, "ojs"), a2 = await pick(half, "ss");
+  report(a1.picker === "ojs" && a1.text === want && a2.picker === "ss" && a2.text === o,
+    `language pick: on half (SoundScript), Observable JavaScript rewrites the code view to Observable's decompilation of the compiled cell (${a1.text === want}), and SoundScript gives the source again (${a2.text === o})`);
+  const [hv] = await compiledOf(want);
+  const a3 = await pick(half, "raw"), a4 = await pick(half, "ss");
+  report(a3.picker === "raw" && a3.text === define(hv) && a4.picker === "ss" && a4.text === o && (await defOf(page, TUTORIAL, "half")) === def0,
+    `language pick: on half, raw rewrites the code view to the compiled variable as define(...) (${a3.text === define(hv)}), SoundScript gives the source again (${a4.text === o}); nothing is stored`);
+  // unsaved edits travel through the switch and come back; nothing is stored
+  await typeInto(page, half, o + " // unsaved", false);
+  const u1 = await pick(half, "ojs"), u2 = await pick(half, "ss");
+  report(u1.picker === "ojs" && u1.text !== a1.text && u2.text === o + " // unsaved" && (await defOf(page, TUTORIAL, "half")) === def0, `language pick: an unsaved edit of half goes to Observable JavaScript and comes back in the SoundScript text, and nothing is stored: ${JSON.stringify(u2.text)}`);
+  await typeInto(page, half, o, false);
+  await close(half);
+  // a state cell is two variables: raw is refused, the text and the select are kept, the reason shows
+  const count = await openEditor(page, TUTORIAL, "count");
+  if (!count) { report(false, "language pick: no editor for count"); return; }
+  const c0 = await editorText(count), c1 = await pick(count, "raw");
+  report(c1.picker === "ss" && c1.text === c0 && c1.reason.length > 0, `language pick: raw on count (a state cell, two variables) is refused: the text and the select (${c1.picker}) are kept and the reason shows: ${JSON.stringify(c1.reason)}`);
+  await close(count);
+  // a raw cell: raw -> ojs gives name = body, which compiles to the same cell; ojs -> raw writes that compiled variable out
+  await page.locator(`[title="${POLY}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
+  const area = await openEditor(page, POLY, "area");
+  if (!area) { report(false, "language pick: no editor for area"); return; }
+  const ad0 = await defOf(page, POLY, "area"), r0 = await editorText(area);
+  const r1 = await pick(area, "ojs"), r2 = await pick(area, "raw"), r3 = await pick(area, "ojs");
+  const [av] = await compiledOf(r1.text);
+  const same = await page.evaluate(([p, def]) => {
+    const raw = [...(window as any).__ojs_runtime._variables].find((v: any) => v._module === (window as any).__ojs_runtime.mains.get(p) && v._name === "area")._definition;
+    const ojs = new Function(`return (${def})`)();
+    return [[3, 4], [5, 7]].every(([w, h]) => raw(w, h) === ojs(w, h));
+  }, [POLY, av?.definition ?? "null"] as const);
+  report(r1.picker === "ojs" && av?.name === "area" && JSON.stringify([...av.inputs].sort()) === JSON.stringify(["height", "width"]) && same && r2.picker === "raw" && r2.text === define(av) && r3.text === r1.text && (await defOf(page, POLY, "area")) === ad0,
+    `language pick: on area (raw), Observable JavaScript rewrites the code view to a cell that compiles to area(width, height) and gives what the raw cell gives (${same}); raw writes that compiled variable out (${r2.text === define(av)}); Observable JavaScript again gives the same text; nothing is stored`);
+  await pick(area, "raw");
+  await typeInto(page, area, r0, false);
+  await close(area);
+  await page.locator(`[title="${TUTORIAL}  (drag to a pane edge to dock, or out to save as .js)"]`).first().click();
+}
 // The language picker rewrites the text: SoundScript -> Observable JavaScript gives the text Observable's own
 // decompiler gives the compiled cell, and back gives the source; a text that does not parse or translate is
 // left as it was, with the select, and the reason shown. Nothing is stored.
@@ -2295,6 +2424,8 @@ await counterClick(A.page, "after the unchanged save");
 await testsPass(A.page, "after the unchanged save", TUTORIAL, TUTORIAL_TESTS);
 const fresh = await addCell(A.page, TUTORIAL, "half", "const tripled = (width: number) => width * 3;", false);
 report(fresh.back === "const tripled = (width: number) => width * 3;" && fresh.value === 1920 && fresh.afterAnchor && fresh.held, `editor: a new cell is applied as SoundScript after its anchor: ${JSON.stringify(fresh)}`);
+await languagePick(A.page);
+await mandelZoom(A.page);
 
 // --- 4: export, reopen, export again
 const sourceA = await ssSource(A.page, TUTORIAL);

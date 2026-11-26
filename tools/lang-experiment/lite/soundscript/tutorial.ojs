@@ -145,29 +145,33 @@ md`## 7. Running cells on other threads
 
 A cell that uses only its inputs can run on any thread. \`compile\` takes a group of cells and returns an ordinary async function. With a worker pool, the function runs the cells off the main thread. The checker works out the type of the function from the cells that it names.
 
-A pool of workers computes this Mandelbrot set in bands. Move the slider to change the iteration count.`
+A pool of workers computes this Mandelbrot set in bands. Move the slider to change the iteration count. A click on the picture zooms in two times. The point clicked becomes the centre. **zoom out** halves the zoom. **reset** shows the whole set again. The workers compute each new picture.`
 // %%
 workers_view = framed(soundscript.mount(workers_app, this))
 // %%
 workers_picture = {
-  const canvas = this ?? htl.html`<canvas class="lite-mandel">`;
+  // the picture drawn from workers_image, with workers_clicks (a transparent canvas) on it to take the clicks
+  const box = this ?? htl.html`<div class="lite-mandel-box"><canvas class="lite-mandel"></canvas></div>`;
+  const canvas = box.firstChild;
   canvas.width = workers_width;
   canvas.height = workers_height;
   const data = new ImageData(workers_width, workers_height);
   data.data.set(workers_image);
   canvas.getContext("2d").putImageData(data, 0, 0);
-  return canvas;
+  const layer = soundscript.mount(workers_clicks, box.children[1] ?? null);
+  if (box.children[1] !== layer) box.replaceChildren(canvas, layer);
+  return box;
 }
 // %%
 workers_redraw = {
-  // workers_maxIterAt runs when maxIter changes, before image is computed, so this is slider to picture.
+  // workers_changedAt runs when maxIter or view changes, before image is computed, so this is change to picture.
   // At boot the time includes loading the page, so none is shown.
   workers_picture;
-  const ms = (performance.now() - workers_maxIterAt.at).toFixed(0);
-  return htl.html`<div class="lite-readout">${workers_maxIter} iterations, ${workers_width}×${workers_height}: ${workers_maxIterAt.boot ? "move the slider to time a redraw" : `redrawn ${ms} ms after the slider moved (${workers_bands.length} bands in ${workers_poolSize} workers, then drawn on the canvas)`}</div>`;
+  const ms = (performance.now() - workers_changedAt.at).toFixed(0);
+  return htl.html`<div class="lite-readout">${workers_maxIter} iterations, ${workers_width}×${workers_height}: ${workers_changedAt.boot ? "move the slider or click the picture to time a redraw" : `redrawn ${ms} ms after the change (${workers_bands.length} bands in ${workers_poolSize} workers, then drawn on the canvas)`}</div>`;
 }
 // %%
-workers_maxIterAt = (workers_maxIter, { at: performance.now(), boot: this === undefined })   // hidden by the style cell
+workers_changedAt = (workers_maxIter, workers_zoom, { at: performance.now(), boot: this === undefined })   // hidden by the style cell
 // %%
 md`**Try it.** Press **measure again**. The table times the same cells on the main thread and in the pool. It also checks that both give the same bytes.`
 // %%
@@ -301,7 +305,7 @@ ss_highlightCode(md`### \`compile\` and its island
 const inPool = (compile: Compile, pool: Pool) =>
   compile({
     inputs: ["y0", "y1"],                  // the function's argument: { y0, y1 }
-    refs: ["width", "height", "maxIter"],  // read from the graph each time this cell runs
+    refs: ["width", "height", "maxIter", "view"],  // read from the graph each time this cell runs
     outputs: ["rows"],                     // the result: Promise<{ rows }>
     options: { runtime: pool },            // a worker pool; leave it out to run on the main thread
   });
@@ -311,7 +315,7 @@ The *island* is every cell upstream of the outputs. It stops at the inputs and r
 
 **The type.** The checker computes the type from the cell graph. \`inPool\` is \`(args: { y0: number; y1: number }) => Promise<{ rows: Uint8ClampedArray }>\` (see its type column in section 7). \`image\` uses it without an annotation. Let \`C\` be the map of the module from cell name to value type. Then the type is \`(args: Pick<C, Inputs>) => Promise<Pick<C, Outputs>>\`. TypeScript cannot check that without \`C\`. Thus the checker gives the call its type, and the reference checker built on TypeScript cannot compare it. The names must be literal strings. Any other form is \`unsupported\`.
 
-**The reactive link.** Each name in \`refs\` is a hidden input of the cell that calls \`compile\`, after its parameters. \`areaFn\` in section 6 takes \`scale\` this way. When you move the slider in section 7, \`maxIter\` changes. \`inPool\` runs again and returns a new function that contains the new value. \`image\` computes again because its input changed. The pool drops work that is still in the queue for the old function.
+**The reactive link.** Each name in \`refs\` is a hidden input of the cell that calls \`compile\`, after its parameters. \`areaFn\` in section 6 takes \`scale\` this way. When you move the slider in section 7, \`maxIter\` changes. \`inPool\` runs again and returns a new function that contains the new value. \`image\` computes again because its input changed. The pool drops work that is still in the queue for the old function. A click on the picture changes \`view\`. \`view\` is in \`refs\` too, so a click has the same effect.
 
 **The rules.** The fixtures of the checker test each of these rejections. A name must be a cell. An island cell must be accepted and synchronous, and must take no capability and no state cell (put the state cell in \`refs\`). Inputs, refs and outputs must survive \`structuredClone\` (no functions, state handles or actions). \`options.runtime\` must be a \`Pool\`. A call must agree with the computed argument type. \`compile\` does not run unless the checker accepts the calling cell and every island cell (\`test_compile_refuses_unchecked\`). There is no other guard. The code of the island runs in the worker with no sandbox, and only the checker keeps it to its inputs.
 
@@ -654,18 +658,6 @@ md`These limits apply to all of this page:
 - A SoundScript cell can take a function from a cell in another language. The notebook checks each result of that function against its type. It does not check that the function gives equal results for equal arguments, that it ends, or that it writes nothing. The function is trusted for these.
 - The reference checker does not read JSX. Thus only this checker checks a \`.tsx\` source, the JSX rules and the \`compile\` rules.`
 // %%
-md`## Not built
-
-These items were discussed on 2026-11-14. None of them is in the checker or in this page.
-
-- **Effects as tagged libraries.** \`state\`, \`action\`, \`Events\` and \`on\` are special cases inside the checker. The proposal moves them into declaration files. Tags in those files (\`@write\`, \`@handle\`, \`@cell\`) tell the checker what each function can do. A new type of effect would then need a library and no change to the checker.
-- **Actors.** A library on those tags: an inbox cell, a post action, and the messages of the inbox as \`Events<M>\`. A \`mailbox\` primitive in the checker was proposed and rejected.
-- **Label, do not reject.** The checker would accept \`Math.random\` and label the cell *unsound*, and would not reject it. It would also label every cell that takes a capability from that cell. A \`sound(...)\` marker would change the label back into an error.
-- **Typed reflection.** A typed \`Variable\` and \`Module<C>\`. The checker would then check a cell that defines or redefines other cells, and a new definition would cause a check of the cells downstream. This needs \`keyof\`, bounds and indexed access, which the checker does not have.
-- **Results kept across a reload.** The saved file would store the result of a deterministic cell. The notebook would use the stored result when the inputs are the same.
-- **Export to ObservableHQ.** The compiled cells are ordinary JavaScript. The marker comments and the editor hook are only in this notebook.
-- **\`now\` and \`random\` per cell.** Every cell that takes \`now\` gets the same \`ss_now\` of the core. Every cell that takes \`random\` gets the same \`ss_random\`. A recorded or seeded source for each cell is not built.`
-// %%
 md`## Tests
 
 The tests do not run until **run the tests** is on. Each test of this module takes \`tests_on\`, which stays pending until then. There are two exceptions, \`test_half\` and \`test_shop_total\`. They are part of the examples of sections 1 and 10, and they run when the page loads. The Breakout tests play a copy of the cells of section 9 (\`ss_instance\`), not the game on this page. \`test_ss_counter\` presses **add one** and **clear** on a copy of the counter of section 4. Thus the counter on the page keeps its count. The tests of the section modules (\`test_undo\`, \`test_replay\`) are fast and always run. The tests of the core are in the core tab, with their own switch.`
@@ -682,7 +674,7 @@ testsView = testTable([["tutorial", tutorial_module], ["reducer", reducer_module
 // %%
 test_examples_check_as_expected = {
   tests_on;
-  const want = { cells: [7, 0], errors: [8, 4], mut: [4, 0], counter: [6, 0], reducer: [10, 0], model: [10, 0], workers: [13, 0], rejectJsx: [17, 11], game: [21, 0] };
+  const want = { cells: [7, 0], errors: [8, 4], mut: [4, 0], counter: [6, 0], reducer: [10, 0], model: [10, 0], workers: [19, 0], rejectJsx: [17, 11], game: [21, 0] };
   const got = {};
   for (const [k, [n, rejected]] of Object.entries(want)) {
     const r = soundscript.checkSources({ cells: examples[k], tsx: k !== "cells" && k !== "errors" && k !== "mut" });
@@ -708,7 +700,7 @@ test_compile_refuses_unchecked = {
   if (source === examples.workers) throw new Error("rows no longer writes out[at + 3] = 255; update this test");
   const c = soundscript.compiler(() => source);
   try {
-    c.for("inPool", { width: 8, height: 8, maxIter: 10 })({ inputs: ["y0", "y1"], refs: ["width", "height", "maxIter"], outputs: ["rows"] });
+    c.for("inPool", { width: 8, height: 8, maxIter: 10, view: { cx: -0.75, cy: 0, span: 3.5 } })({ inputs: ["y0", "y1"], refs: ["width", "height", "maxIter", "view"], outputs: ["rows"] });
   } catch (e) {
     if (!/^compile refused: (\w+, )*rows not ok/.test(e.message)) throw e;
     return e.message;
@@ -1196,8 +1188,9 @@ ${ss_hl_css}
 .lite-summary, .lite-readout { font-size: 13px; margin: 6px 0; color: var(--lite-muted-text); }
 .lite-readout { font-family: var(--monospace, monospace); color: var(--theme-foreground); }
 .lite-game canvas { touch-action: none; }
-.observablehq[cell="workers_maxIterAt"], .observablehq[cell="workers_maxIterAt"] + div { display: none; }
-.lite-mandel { display: block; max-width: 100%; height: auto; margin: 6px 0; border-radius: 4px; }
+.observablehq[cell="workers_changedAt"], .observablehq[cell="workers_changedAt"] + div { display: none; }
+.lite-mandel-box { position: relative; width: fit-content; max-width: 100%; margin: 6px 0; }
+.lite-mandel { display: block; max-width: 100%; height: auto; border-radius: 4px; }
 .lite-vars { margin-top: 10px; }
 .lite-app { padding: 8px 10px; margin: 6px 0; border: 1px solid var(--theme-foreground-faint); border-radius: 6px; background: var(--theme-background-alt); }
 .lite-app output { font-variant-numeric: tabular-nums; }
@@ -1287,7 +1280,7 @@ import { app as reducer_app, reducer_module } from "@tomlarkworthy/soundscript-r
 // %%
 import { app as model_app, model_module } from "@tomlarkworthy/soundscript-model"
 // %%
-import { app as workers_app, image as workers_image, width as workers_width, height as workers_height, maxIter as workers_maxIter, bands as workers_bands, inPool as workers_inPool, onMain as workers_onMain, poolSize as workers_poolSize, workers_module } from "@tomlarkworthy/soundscript-mandelbrot"
+import { app as workers_app, clicks as workers_clicks, view as workers_zoom, image as workers_image, width as workers_width, height as workers_height, maxIter as workers_maxIter, bands as workers_bands, inPool as workers_inPool, onMain as workers_onMain, poolSize as workers_poolSize, workers_module } from "@tomlarkworthy/soundscript-mandelbrot"
 // %%
 import { app as breakout_app, playing as breakout_playing, over as breakout_over, status as breakout_status, breakout_module } from "@tomlarkworthy/soundscript-breakout"
 // %%

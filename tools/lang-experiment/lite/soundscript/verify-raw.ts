@@ -17,7 +17,7 @@ import { INPUTS, langOf } from "../toolchain/ss-toolchain.ts";
 
 export const RAW_CELLS = "@tomlarkworthy/raw-cells";
 export const POLY = "@tomlarkworthy/soundscript-polyglot";
-export const RAW_TESTS = ["test_raw_roundtrip", "test_raw_broken_keeps_text", "test_raw_lint", "test_raw_complete", "raw_registration"];
+export const RAW_TESTS = ["test_raw_roundtrip", "test_raw_broken_keeps_text", "test_raw_lint", "test_raw_complete", "test_raw_translate", "raw_registration"];
 export const AREA = 'define("area", ["width", "height"], function (width, height) {\n  // a raw cell: the function as written, its inputs as listed\n  return width * height;\n})';
 const KEPT = 'define("area", ["width", "height"], function (width, height) {\n  // a raw cell: the function as written, its inputs as listed\n  // edited by keys, kept by the save\n  return width * height;\n})';
 const PERIMETER = 'define("perimeter", ["width", "height"], (w, h) => 2 * (w + h))';

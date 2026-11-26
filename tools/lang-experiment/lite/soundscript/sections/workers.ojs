@@ -5,14 +5,17 @@ The cells of section 7 of \`@tomlarkworthy/soundscript-tutorial\`, as live Sound
 //ss: 07-workers.tsx
 // %%
 picture = {
-  const canvas = this ?? document.createElement("canvas");
+  // the picture drawn from image, with clicks (a transparent canvas) on it to take the clicks
+  const box = this ?? htl.html`<div style="position: relative; width: fit-content; max-width: 100%"><canvas style="display: block; max-width: 100%; height: auto"></canvas></div>`;
+  const canvas = box.firstChild;
   canvas.width = width;
   canvas.height = height;
-  canvas.style.maxWidth = "100%";
   const data = new ImageData(width, height);
   data.data.set(image);
   canvas.getContext("2d").putImageData(data, 0, 0);
-  return canvas;
+  const layer = soundscript.mount(clicks, box.children[1] ?? null);
+  if (box.children[1] !== layer) box.replaceChildren(canvas, layer);
+  return box;
 }
 // %%
 ss_compile = soundscript.compiler(() => ss_source(workers_module))
