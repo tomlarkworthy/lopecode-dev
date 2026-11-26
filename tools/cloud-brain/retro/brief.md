@@ -76,6 +76,8 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
    - **Outside expertise** (line 7): a problem that has resisted more than one fix this week, and whether anyone read
      how others solved it.
    Give each area one line: what you measured, the number, and a verdict (ok, watch, bad).
+   The owner acts mostly from his laptop's session under an `out-*` token, not his tab: `measure.py`'s "outside
+   sessions" counts those acts and the `needs-owner` waits.
 3. **Go deep on the one or two worst**, chosen by how much they threaten the seven lines, not by which is easiest or
    which yesterday's report covered. Diagnose at the level of method, with evidence:
    - What happened, and since when?
@@ -115,7 +117,10 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
 - Do not lock the owner out: do not rotate or delete the recovery key, revoke his sessions, or remove his own
   tokens. Do not delete stored data (D1 rows, R2 objects, the tracker's record). Everything else is yours to change.
 - Do not edit `cloud-brain-dev/philosophy.md`: it is the owner's words.
-- The owner reads the report. Write what you did and what you saw, with evidence; do not argue or reassure.
+- The owner reads the report. Write what you did and what you saw, with evidence; do not argue or reassure. He
+  answers asks on issues, not in the report: put each ask on an issue at `needs-owner` with its choices (asks in the
+  reports alone had no answer from 11-10 to 11-25, `retro-asks-2026-11-26`), and carry from an earlier report's list
+  only what you measured again today.
 - Give every long command a time limit, and do not wait on one with none: `timeout 900 bun test.ts …`,
   `timeout 900 bun test tests/`. On 2026-11-21 the run waited about 10 h on a `bun` that grew to 3.5 GB until the
   OOM killer ended it, and wrote no cost and no close of its own. That `bun` was `test.ts brain-deployer` (issue

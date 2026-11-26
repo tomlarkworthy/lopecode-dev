@@ -124,8 +124,35 @@ for w,lo in(("24h",D1),("7d",D7)):
     for e in appr: i=ISSUE.get(e.get("id"),{"title":"","about":""}); P("    ",iso(e["at"]),e["move"],e.get("id"),"|",i["about"],"|",i["title"][:80])
     cm=[e for e in acts if e["type"]=="commented"]; 
     for e in cm: P("    comment",iso(e["at"]),e.get("id"),"|",(e.get("body") or "")[:120].replace("\n"," "))
-    op=[e for e in acts if e["type"]=="opened"]; 
+    op=[e for e in acts if e["type"]=="opened"];
     for e in op: P("    opened",iso(e["at"]),e.get("id"),"|",e.get("kind"),"|",(e.get("title") or "")[:90])
+# The owner mostly acts from his laptop's Claude session under an `out-*` token, not his tab (retro 2026-11-26: three
+# reports said "0 events in his tab" while he answered on 11-22 to 11-25). An out-* holder is the retro's (or run.sh's)
+# when one of its events is on a retro-YYYY-MM-DD issue; the rest are outside sessions.
+OUT=collections.defaultdict(list)
+for e in E:
+    h=(e["by"].get("holder") or "")
+    if h.startswith("secret:out-"): OUT[h].append(e)
+RETRO_OUT={h for h,L in OUT.items() if any(re.match(r"retro-\d{4}-\d\d-\d\d$",e.get("id") or "") for e in L)}
+P("\n## the owner's outside sessions (out-* holders that are not the retro's)")
+for w,lo in(("24h",D1),("7d",D7)):
+    ev=[e for h,L in OUT.items() if h not in RETRO_OUT for e in L if e["at"]>=lo]
+    word=[e for e in ev if e["type"] in("commented","opened") and re.match(r"\**(The owner|Owner)",e.get("body") or "")]
+    P(w,"events:",len(ev),"sessions:",len({e["by"]["holder"] for e in ev}),"| comments giving his word:",len(word))
+    for e in word: P("    ",iso(e["at"]),e.get("id"),"|",(e.get("body") or "")[:110].replace("\n"," "))
+# needs-owner spans that ended in 7 d: how long an ask waited for him, and who took the label off
+spans=[]
+for id,ev in BYID.items():
+    on=None
+    for e in ev:
+        if e["type"]!="labelled": continue
+        if "needs-owner" in (e.get("add") or []) and on is None: on=e["at"]
+        elif "needs-owner" in (e.get("remove") or []) and on is not None:
+            if e["at"]>=D7: spans.append(((e["at"]-on)/H,id,who(e)))
+            on=None
+spans=sorted(s for s in spans if s[0]>=0.1)  # a label put on and taken off in one act is no wait
+P("needs-owner spans of 0.1 h or more ended, 7d: n",len(spans),"median h",round(statistics.median([s[0] for s in spans]),1) if spans else None,"| by who ended:",dict(collections.Counter(s[2] for s in spans)))
+P("   ",[(round(s[0],1),s[1],s[2]) for s in spans])
 # ---- 4 dollars
 # A resumed run's usd was its session's total until drain2.ts keyed a run's own cost /run-cost (accept.ts runUsd, retro
 # 2026-10-24): each cost event's usd is replaced by what that run cost, the same reading of the record.
