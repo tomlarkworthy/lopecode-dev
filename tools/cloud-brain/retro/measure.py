@@ -126,8 +126,8 @@ for w,lo in(("24h",D1),("7d",D7)):
     for e in cm: P("    comment",iso(e["at"]),e.get("id"),"|",(e.get("body") or "")[:120].replace("\n"," "))
     op=[e for e in acts if e["type"]=="opened"];
     for e in op: P("    opened",iso(e["at"]),e.get("id"),"|",e.get("kind"),"|",(e.get("title") or "")[:90])
-# The owner mostly acts from his laptop's Claude session under an `out-*` token, not his tab (retro 2026-11-26: three
-# reports said "0 events in his tab" while he answered on 11-22 to 11-25). An out-* holder is the retro's (or run.sh's)
+# The owner mostly acts from his laptop's Claude session under an `out-*` token, not his tab (retro 2026-11-26: the
+# 11-25 report said "0 events in his tab", verdict ok, while he answered on 11-24 and 11-25). An out-* holder is the retro's (or run.sh's)
 # when one of its events is on a retro-YYYY-MM-DD issue; the rest are outside sessions.
 OUT=collections.defaultdict(list)
 for e in E:
@@ -148,7 +148,7 @@ for id,ev in BYID.items():
         if e["type"]!="labelled": continue
         if "needs-owner" in (e.get("add") or []) and on is None: on=e["at"]
         elif "needs-owner" in (e.get("remove") or []) and on is not None:
-            if e["at"]>=D7: spans.append(((e["at"]-on)/H,id,who(e)))
+            if e["at"]>=D7: spans.append(((e["at"]-on)/H,id,"retro" if e["by"].get("holder") in RETRO_OUT else who(e)))
             on=None
 spans=sorted(s for s in spans if s[0]>=0.1)  # a label put on and taken off in one act is no wait
 P("needs-owner spans of 0.1 h or more ended, 7d: n",len(spans),"median h",round(statistics.median([s[0] for s in spans]),1) if spans else None,"| by who ended:",dict(collections.Counter(s[2] for s in spans)))

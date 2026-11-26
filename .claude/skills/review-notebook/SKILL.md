@@ -458,3 +458,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   `spec` in three moves (`close`, `reopen`, `spec`), so "no move" was false in the report, in two tracker comments and in
   the two briefs already pushed (corrected in cloud-brain-dev `704d4af`); and the review it blamed had named the return as
   the owner's in a note.
+- 2026-11-26 `plan/retros/2026-11-26.md`, authored by the spawning session: BLOCK, 5 findings (4 confirmed, 1 plausible), all
+  taken. 101k subagent tokens, 4m00s. What the author had not seen: the new `needs-owner` span tally in `measure.py` counted
+  5 of the retro's own label removals as the owner's (fixed: 30 his, 5 the retro's), and the report said three earlier
+  reports gave a bare "0 events in his tab" where two had named his laptop sessions.

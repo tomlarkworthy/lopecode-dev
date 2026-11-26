@@ -296,7 +296,7 @@ wait was not true in 40000 ms" in 16, and 100000 ms in one of 2026-11-21 (the ru
 20 s). Since `deployer-self-dry-run-verdict` (live as `93ad8e545d55`, 2026-11-25 05:29 UTC) the dry run of itself
 runs its suite in 12 parts, one `browser.run` each, logged `deploy.dry.part` and summed in one `deploy.dry.tests`. In
 `logs.deploys` read 2026-11-26: `edd780687df4` (05:47) logged 4 failed tests and was not sent; `724810f5cb6d` logged
-`{"parts": 12, "tests": 148, "ms": 135845}` at 06:01 and again at 07:05, went `deploy.self.live` at 07:05 and
+`{"parts": 12, "tests": 148, "ms": 135845}` at 06:01 and 148 tests again at 07:05 (139570 ms), went `deploy.self.live` at 07:05 and
 `deploy.self.confirmed` at 07:06.
 
 `bun tools/cloud-brain/waiting-deploys.ts` reads only (with `--file <token>` it also closes an open `deploy-waits-<worker>`
