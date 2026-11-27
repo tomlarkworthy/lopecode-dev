@@ -462,3 +462,7 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   taken. 101k subagent tokens, 4m00s. What the author had not seen: the new `needs-owner` span tally in `measure.py` counted
   5 of the retro's own label removals as the owner's (fixed: 30 his, 5 the retro's), and the report said three earlier
   reports gave a bare "0 events in his tab" where two had named his laptop sessions.
+- 2026-11-27 `plan/retros/2026-11-27.md`, authored by the spawning session: BLOCK, 7 findings, all confirmed and taken.
+  79.8k subagent tokens, 5m10s. What the author had not seen: the `DRAIN_RESUMES_MAX` bound had fired 8 times on 11-07,
+  not once, in the author's own query output, which was the stated reason for leaving `ownersAct` unchanged; two
+  placeholders were in the committed draft; one wait was 4.4 d, not 5.0.
