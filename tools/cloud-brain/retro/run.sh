@@ -94,6 +94,9 @@ find /data/retro-scratch -name events.json -mtime +2 -delete 2>/dev/null; say "v
 # on 11-28). Here, outside the agent's session, claude has its login. Each doc's row is in .emitted/docs/journal.jsonl.
 SUMS=$(BRAIN_BASE=cb4 DOCS_TOKEN=retro-docs timeout 1200 bun tools/cloud-brain/knowledge-docs.ts summarize --due --first-paragraph --usd-max 1 2>&1 | tail -1)
 say "knowledge docs: summarize --due: ${SUMS:0:600}"
+# its agents' spend as one cost event of the role summarizer on the run's issue, as the laptop's orchestrator wrote it
+SUSD=$(echo "$SUMS" | jq -r '.usd // 0' 2>/dev/null)
+[ -n "$RT" ] && [ "${SUSD:-0}" != 0 ] && { $IA "$RT" cost "$(jq -n -c --arg id "$ISSUE" --arg tok "$RT" --argjson usd "$SUSD" '{key: ("cost/" + $id + "/summarizer/1"), id: $id, role: "summarizer", round: 1, how: "light", outcome: "ended", seconds: 0, context: 0, token: $tok, usage: {input: 0, cacheWrite: 0, cacheRead: 0, output: 0, requests: 0, advisor: {calls: 0, input: 0, output: 0}}, usd: $usd}')" >/dev/null 2>&1 || say "the summarizer's cost event was not written"; }
 # What the agent left uncommitted is named, and kept out of the way: on 2026-11-21 it made the pull refuse, and the report went to a branch.
 DIRTY=$(git status --porcelain --untracked-files=no | awk '{print $2}' | tr '\n' ' ')
 [ -n "$DIRTY" ] && say "left uncommitted by the agent, not pushed: $DIRTY"

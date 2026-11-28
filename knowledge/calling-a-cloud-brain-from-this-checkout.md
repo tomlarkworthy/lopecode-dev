@@ -279,9 +279,10 @@ summaries due (cb4): <names>. A writer or a spec writer runs, …: BRAIN_BASE=cb
   (`.claude/skills/brain-maintenance/SKILL.md`, step 5). With no landing nothing prints the line:
   `status --check-summaries` fails a doc due for over 24 hours. After the loop moved to Fly no landing printed it:
   on 2026-11-28 every one of the 55 summaries was of 2026-10-13, 26 of them of an older version of their file, and 9
-  docs were due 5 to 45 days (the README's 45.2 d, 1263 of 1560 lines changed), while `status --check` said 103 of
+  docs were due 5 to 45 days (the README's 45.2 d: 1263 lines added and deleted, against a tenth of its 1560), while `status --check` said 103 of
   103 fresh. Since then the retro's `run.sh` runs `summarize --due --first-paragraph --usd-max 1` after its agent
-  ends, where claude has its login (the agent's Bash has none). A claude that answers with no model call ("Not
+  ends, where claude has its login (the agent's Bash has none), and writes the run's usd as one `summarizer` cost event
+  on the retro's issue. Its first run is 2026-11-29: not verified when this was written. A claude that answers with no model call ("Not
   logged in", no context, no usd) stops the run at the canary; until lopecode-dev `ea43ed51` it passed the canary
   and each doc was journaled refused on that answer.
 

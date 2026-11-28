@@ -466,3 +466,8 @@ Append one line per run: date, target, verdict, findings confirmed / declined.
   79.8k subagent tokens, 5m10s. What the author had not seen: the `DRAIN_RESUMES_MAX` bound had fired 8 times on 11-07,
   not once, in the author's own query output, which was the stated reason for leaving `ownersAct` unchanged; two
   placeholders were in the committed draft; one wait was 4.4 d, not 5.0.
+- 2026-11-28 `plan/retros/2026-11-28.md`, with the retro's paragraph in `knowledge/calling-a-cloud-brain-from-this-checkout.md`
+  and `brief.md`, authored by the spawning session: FIX, 5 findings, all confirmed and taken. 117.5k subagent tokens, 5m14s.
+  What the author had not seen: the new `run.sh` summarize step's spend reached no cost event (one is now written, role
+  `summarizer`), a revoke justified by a 7 d count the tool itself marked sampled, and 18 dry-run answer files left beside
+  the journal the brief points the next run at.
