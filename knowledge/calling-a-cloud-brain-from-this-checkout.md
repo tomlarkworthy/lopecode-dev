@@ -277,7 +277,13 @@ summaries due (cb4): <names>. A writer or a spec writer runs, …: BRAIN_BASE=cb
   names in its report the `at` of its first line in `.emitted/docs/journal.jsonl` of the main checkout; the
   orchestrating session writes the cost of those agents as one event of the role `summarizer`
   (`.claude/skills/brain-maintenance/SKILL.md`, step 5). With no landing nothing prints the line:
-  `status --check-summaries` fails a doc due for over 24 hours, and no agent is told to run it.
+  `status --check-summaries` fails a doc due for over 24 hours. After the loop moved to Fly no landing printed it:
+  on 2026-11-28 every one of the 55 summaries was of 2026-10-13, 26 of them of an older version of their file, and 9
+  docs were due 5 to 45 days (the README's 45.2 d, 1263 of 1560 lines changed), while `status --check` said 103 of
+  103 fresh. Since then the retro's `run.sh` runs `summarize --due --first-paragraph --usd-max 1` after its agent
+  ends, where claude has its login (the agent's Bash has none). A claude that answers with no model call ("Not
+  logged in", no context, no usd) stops the run at the canary; until lopecode-dev `ea43ed51` it passed the canary
+  and each doc was journaled refused on that answer.
 
 - The name in brackets is the Brain: `BRAIN_BASE`, and `cb4` when the caller's shell has none.
 - The call is made with the token `loop-docs`, which the owner makes once:

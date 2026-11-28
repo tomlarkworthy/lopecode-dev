@@ -78,6 +78,9 @@ work looks like). Read the last three files in `plan/retros/`; with none there, 
    Give each area one line: what you measured, the number, and a verdict (ok, watch, bad).
    The owner acts mostly from his laptop's session under an `out-*` token, not his tab: `measure.py`'s "outside
    sessions" counts those acts and the `needs-owner` waits.
+   For the docs, `knowledge-docs.ts status --check` reads the texts and `status --check-summaries` the summary a long
+   doc's entry starts with: on 2026-11-28 the first said 103 of 103 fresh and the second 9 due, 5 to 45 days. `run.sh`
+   runs `summarize --due` after you end; `tools/cloud-brain/.emitted/docs/journal.jsonl` keeps what each run put.
 3. **Go deep on the one or two worst**, chosen by how much they threaten the seven lines, not by which is easiest or
    which yesterday's report covered. Diagnose at the level of method, with evidence:
    - What happened, and since when?

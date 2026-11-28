@@ -90,6 +90,10 @@ if [ -f "plan/retros/$RUN.md" ] && ! git ls-files --error-unmatch "plan/retros/$
 fi
 # Each run's scratch holds a whole copy of the record (73 MB on 11-24); on 11-25 32 of them filled the 7.8 GB volume.
 find /data/retro-scratch -name events.json -mtime +2 -delete 2>/dev/null; say "volume: $(df -m --output=avail /data | tail -1 | tr -d ' ') MB free"
+# The summary a long doc's entry starts with: made only after a laptop landing, so none since 2026-10-13 (9 due 5 to 45 d
+# on 11-28). Here, outside the agent's session, claude has its login. Each doc's row is in .emitted/docs/journal.jsonl.
+SUMS=$(BRAIN_BASE=cb4 DOCS_TOKEN=retro-docs timeout 1200 bun tools/cloud-brain/knowledge-docs.ts summarize --due --first-paragraph --usd-max 1 2>&1 | tail -1)
+say "knowledge docs: summarize --due: ${SUMS:0:600}"
 # What the agent left uncommitted is named, and kept out of the way: on 2026-11-21 it made the pull refuse, and the report went to a branch.
 DIRTY=$(git status --porcelain --untracked-files=no | awk '{print $2}' | tr '\n' ' ')
 [ -n "$DIRTY" ] && say "left uncommitted by the agent, not pushed: $DIRTY"
