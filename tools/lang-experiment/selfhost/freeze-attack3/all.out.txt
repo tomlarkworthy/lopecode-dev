@@ -380,15 +380,15 @@
 -- controls 4, fired 4
 -- accepted with a cell still pending at the end: 0
 -- 360 candidates, accepted 9, silent 0
-120 |         // cell facts and text come from the check's parse
-121 |         const byName = new Map([...result.facts!.values()].map((info) => [info.name, { info, text: source.slice(info.span![0], info.span![1]) }] as const));
-122 |         const isl = island([...byName.values()].map(({ info }) => ({ name: info.name, params: info.params.map((p) => p.name), refCell: info.returnsRef })), spec);
-123 |         if (isl.problems.length) throw new Error(isl.problems.map((p) => p.msg).join("; "));
-124 |         const notOk = refusedCells(result.cells.map((c) => ({ name: c.name, ok: c.status === "ok" && !c.errors.length })), caller, isl.order);
-125 |         if (notOk.length) throw new Error(`compile refused: ${notOk.join(", ")} not ok by the checker`);
+128 |         // cell facts and text come from the check's parse
+129 |         const byName = new Map([...result.facts!.values()].map((info) => [info.name, { info, text: source.slice(info.span![0], info.span![1]) }] as const));
+130 |         const isl = island([...byName.values()].map(({ info }) => ({ name: info.name, params: info.params.map((p) => p.name), refCell: info.returnsRef })), spec);
+131 |         if (isl.problems.length) throw new Error(isl.problems.map((p) => p.msg).join("; "));
+132 |         const notOk = refusedCells(result.cells.map((c) => ({ name: c.name, ok: c.status === "ok" && !c.errors.length })), caller, isl.order);
+133 |         if (notOk.length) throw new Error(`compile refused: ${notOk.join(", ")} not ok by the checker`);
                                           ^
 error: compile refused: go not ok by the checker
-      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/stdlib/runtime.ts:125:37)
+      at <anonymous> (/Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/lite/stdlib/runtime.ts:133:37)
       at /Users/tom.larkworthy/dev/lopecode-dev/tools/lang-experiment/selfhost/freeze-attack3/nb-island.ts:4:13
 
 Bun v1.4.0 (macOS arm64)

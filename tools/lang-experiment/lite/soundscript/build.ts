@@ -61,9 +61,12 @@ const BASE = join(ROOT, "lopecode/notebooks/quick_start.html");
 const EXAMPLES = join(HERE, "../notebook/examples");
 const DEFAULT_OUT = join(ROOT, "lopebooks/notebooks/soundscript.html");
 const HASH_FILE = join(HERE, "built.sha256");
-// incr2: the stored memo (memo-store.ts writes it from a build's page), attached to the core module as
-// memo-store.json.gz unless --no-memo; the page drops it when its stamp is not the page's checker and runtime
-const MEMO_FILE = join(HERE, "memo-store.json");
+// incr2: the stored memo, attached to the core module as memo-store.json.gz unless --no-memo. memo-store.json holds
+// the digest of the checker and runtime blocks it was made for (blocks); when that is not this build's, the build
+// makes it again from the page it has just written (memo-store.ts) and builds once more. --memo <file>: that file,
+// attached as it is.
+const MEMO_GIVEN = process.argv.includes("--memo") ? resolve(process.argv[process.argv.indexOf("--memo") + 1]) : null;
+const MEMO_FILE = MEMO_GIVEN ?? join(HERE, "memo-store.json");
 const MEMO_NAME = "memo-store.json.gz";
 const arg = (k: string) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : null);
 const OUT = resolve(arg("--out") ?? DEFAULT_OUT);
@@ -253,6 +256,7 @@ function buildModule(name: string, ojs: string, files: File[], given?: string[])
   return { html, consts: consts.length, ssNames };
 }
 
+let memoBlocks = "", memoStale = false;
 let core, tutorial, rawCells, spec, sections: ReturnType<typeof buildModule>[] = [], runtimeMod, checkerMod, workersMod, generated;
 // the keys of ss: what entry.ts exports
 const ssKeys = Object.keys(await import(ENTRY)).filter((k) => k !== "default").sort();
@@ -268,9 +272,14 @@ try {
   generated = generate(compile, ssKeys);
   runtimeMod = buildModule(RUNTIME, "(generated runtime)", [], generated.runtime);
   checkerMod = buildModule(CHECKER, "(generated checker)", [{ name: PARSER_FILE, mime: "application/gzip", base64: true, data: Buffer.from(gz).toString("base64") }], generated.checker);
-  const memo = !process.argv.includes("--no-memo") && existsSync(MEMO_FILE) ? readFileSync(MEMO_FILE) : null;
-  core = buildModule(CORE, "core.ojs", memo ? [{ name: MEMO_NAME, mime: "application/gzip", base64: true, data: Buffer.from(Bun.gzipSync(memo, { level: 9 })).toString("base64") }] : []);
-  console.log(memo ? `stored memo: ${MEMO_FILE} (${memo.length} bytes) attached as ${MEMO_NAME}` : "stored memo: none");
+  memoBlocks = sha(`${blockContent(checkerMod.html, CHECKER)}\u0000${blockContent(runtimeMod.html, RUNTIME)}`);
+  const noMemo = process.argv.includes("--no-memo");
+  const memo = !noMemo && existsSync(MEMO_FILE) ? readFileSync(MEMO_FILE) : null;
+  const madeFor = memo && !MEMO_GIVEN ? (JSON.parse(memo.toString("utf8")).blocks ?? null) : null;
+  const fits = memo !== null && (MEMO_GIVEN !== null || madeFor === memoBlocks);
+  memoStale = !noMemo && !fits && !MEMO_GIVEN;
+  core = buildModule(CORE, "core.ojs", fits ? [{ name: MEMO_NAME, mime: "application/gzip", base64: true, data: Buffer.from(Bun.gzipSync(memo, { level: 9 })).toString("base64") }] : []);
+  console.log(noMemo ? "stored memo: none (--no-memo)" : fits ? `stored memo: ${MEMO_FILE} (${memo.length} bytes${MEMO_GIVEN ? ", as given" : ", made for this checker"}) attached as ${MEMO_NAME}` : `stored memo: ${memo ? "made for another checker" : "none"}; it is made from this build's page after the build`);
   if (withTutorial) {
     const files: File[] = readdirSync(EXAMPLES).sort().map((f) => {
       const data = readFileSync(join(EXAMPLES, f), "utf8");
@@ -368,4 +377,13 @@ console.log(JSON.stringify({
   rawCellsVariables: rawCells.consts, coreVariables: core.consts, tutorialVariables: tutorial?.consts ?? 0, coreSoundScript: core.ssNames, tutorialSoundScript: tutorial?.ssNames ?? [], sectionVariables: sections.map((x) => x.consts), specVariables: spec?.consts ?? 0, mains: conf.mains, hash: conf.hash,
   forks: forks.map(({ fork, ...f }) => f),
 }, null, 2));
+if (memoStale) {
+  const { pageStore } = await import("./memo-store.ts");
+  const st = await pageStore(OUT);
+  const text = JSON.stringify({ stamp: st.stamp, blocks: memoBlocks, modules: st.modules });
+  writeFileSync(MEMO_FILE, text);
+  console.log(`stored memo: made ${MEMO_FILE} from ${OUT} (stamp ${st.stamp}, ${text.length} bytes; ${st.counts.join(", ")}); building again with it`);
+  const p = Bun.spawnSync(["bun", ...process.argv.slice(1).filter((a) => a !== "--force"), "--force"], { stdout: "inherit", stderr: "inherit" });
+  process.exit(p.exitCode ?? 1);
+}
 process.exit(0);
