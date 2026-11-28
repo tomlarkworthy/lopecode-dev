@@ -38,7 +38,7 @@ for d in dl:
     scope = [(s if isinstance(s, str) else s.get("method", "")).replace("com.lopecode.brain.", "") for s in d["scope"]]
     n = sum(v for k, v in calls.items() if d["id"] in k)
     kids = [x["name"] for x in dl if x.get("parent") == d["id"]]
-    g = subprocess.run(["git", "grep", "-lw", "--recurse-submodules", d["name"], "--", "*.ts", "*.sh", "*.js", "*.py", "*.json"], capture_output=True, text=True, cwd=ROOT)
+    g = subprocess.run(["git", "grep", "-lw", "--recurse-submodules", d["name"], "--", "*.ts", "*.sh", "*.js", "*.py", "*.json", "*.yaml", "*.yml", "*.toml"], capture_output=True, text=True, cwd=ROOT)
     files = [f for f in g.stdout.split() if "/records/" not in f and "post-mortems" not in f]
     rows.append({"name": d["name"], "id": d["id"], "made": time.strftime("%Y-%m-%d", time.gmtime(d["created"] / 1000)), "calls7d": n,
                  "children": kids, "kernel": any(s.startswith(KERNEL) for s in scope), "files": files[:5], "scope": scope})
