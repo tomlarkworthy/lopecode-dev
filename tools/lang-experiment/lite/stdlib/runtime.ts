@@ -16,7 +16,8 @@ import { runHere, type Pool } from "../browser/workers.ts";
 export { isDuplicateKey, compileCell, compileCellText, compileModule, contextOf, contextFromCheck, acceptedOf, cellStates, declaredName, decompileVariable, decompileModule, langOf, cellOfVariable, splitCells, handleName, variableName, keyOfVariable, STATE_VALUE } from "../toolchain/ss-toolchain.ts";
 import { declaredName } from "../toolchain/ss-toolchain.ts";
 import { parse } from "../parse.ts";
-import { checkSources, type Outside } from "../core.ts";
+import { checkSources, checkRun, type Outside } from "../core.ts";
+import type { MdEntry } from "../infer/md-types.ss.ts";
 import { checkKey, lruTouch, standIns, refusedCells, islandKey } from "../checks-ss.ts";
 export { cross, crossings } from "../boundary.ts";
 // e1 (2026-11-23): the prelude's cast (S9.8); the compiler adds the shape as a second argument
@@ -24,19 +25,25 @@ export { cast } from "../boundary.ts";
 import { checkShape, type Shape } from "../boundary.ts";
 export { checkSources };
 export { completionWork } from "../complete.ts";
-// checkSources for SoundScript cells, remembered for the last 16 sources. The editor asks about the
+// checkSources for SoundScript cells, remembered for the last 2 sources. The editor asks about the
 // same module source several times per keystroke (lint, the cells an edit would break, the compile
 // context); a result is never written to, so one is shared. The key and the recency rule are checks.ss.ts's.
 let checks = new Map<string, ReturnType<typeof checkSources>>();
 // how many module checks have run (a remembered result, or a source that does not parse, is not one)
 let checked = 0;
 export const checksRun = () => checked;
-// outside: the module's cells in other languages (core.ts Outside), part of the key
-export function check(source: string, tsx = true, outside: readonly Outside[] | null = null): ReturnType<typeof checkSources> {
+// incr2 (D2, D4): the notebook's check path hands a memo: find gives a cell's entry from an earlier check by name,
+// keep takes the entries of this check (core.ojs ss_memo keeps them on the cells' definitions). The build and the
+// gates give none and check whole. SS_MEASURE_INCR = 0 on the page turns the memo off, for A/B measurement.
+export type IncrMemo = { find: (name: string) => MdEntry | null; keep: (entries: Map<string, MdEntry>) => void };
+export const incrOn = (): boolean => (globalThis as { SS_MEASURE_INCR?: unknown }).SS_MEASURE_INCR !== 0;
+// outside: the module's cells in other languages (core.ts Outside), part of the key; parts: the cells joined to source
+export function check(source: string, tsx = true, outside: readonly Outside[] | null = null, memo: IncrMemo | null = null, parts: string[] | null = null): ReturnType<typeof checkSources> {
   const key = checkKey(source, tsx, outside);
   let r = checks.get(key);
+  if (!r && memo !== null && incrOn()) { const run = checkRun({ cells: source, tsx, outside }, { memo: memo.find, parts }); memo.keep(run.entries); r = run.result; checked++; }
   if (!r) { r = checkSources({ cells: source, tsx, outside }); checked++; }
-  checks = lruTouch(checks, key, r, 16);
+  checks = lruTouch(checks, key, r, 2);
   return r;
 }
 
@@ -45,9 +52,9 @@ export function check(source: string, tsx = true, outside: readonly Outside[] | 
 // and the stand-in text does not depend on what was typed, so a keystroke there reuses the check.
 // result.unparsed maps each such cell's name to the parser's message; source is the text checked.
 // The stand-ins and their names are standIns's (checks.ss.ts).
-export function checkCells(texts: string[], tsx = true, outside: readonly Outside[] | null = null): { result: ReturnType<typeof checkSources> & { unparsed?: Map<string, string> }; source: string } {
+export function checkCells(texts: string[], tsx = true, outside: readonly Outside[] | null = null, memo: IncrMemo | null = null): { result: ReturnType<typeof checkSources> & { unparsed?: Map<string, string> }; source: string } {
   const source = texts.join("\n\n");
-  try { return { result: check(source, tsx, outside), source }; } catch (whole) {
+  try { return { result: check(source, tsx, outside, memo, texts), source }; } catch (whole) {
     const rows = texts.map((t) => {
       let parseError: string | null = null;
       try { parse(t, { jsx: tsx }); } catch (e) { parseError = String((e as Error).message); }
@@ -57,9 +64,10 @@ export function checkCells(texts: string[], tsx = true, outside: readonly Outsid
     if (!stood.unparsed.length) throw whole;
     const unparsed = new Map(stood.unparsed);
     // an empty cell text is dropped as the stand-ins' dropped cells are
-    const checked = stood.texts.map((x) => (typeof x === "number" ? texts[x]! : x)).filter((t) => t !== "").join("\n\n");
+    const kept = stood.texts.map((x) => (typeof x === "number" ? texts[x]! : x)).filter((t) => t !== "");
+    const checked = kept.join("\n\n");
     // the remembered result is shared, so the parse messages go on a copy
-    const base = check(checked, tsx, outside);
+    const base = check(checked, tsx, outside, memo, kept);
     const result = { ...base, ok: false };
     Object.defineProperty(result, "facts", { value: base.facts, enumerable: false });
     Object.defineProperty(result, "unparsed", { value: unparsed, enumerable: false });

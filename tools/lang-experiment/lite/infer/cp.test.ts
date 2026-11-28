@@ -72,7 +72,8 @@ test("cp-diff.ts: no difference on a seventh of the positions and on the facts; 
   const line = (has: string) => out.split("\n").find((l) => l.includes(has)) ?? "";
   const n = (l: string, k: string) => parseInt(l.split(`${k} `)[1] ?? "", 10);
   // S4 (2026-11-22): the codemod dropped mut/freeze/borrow calls from the corpus, 6385 -> 6099 positions
-  expect(out).toContain("complete-diff.ts positions 6099");
+  // 5013d689 (2026-11-26): the Mandelbrot zoom, in 07-workers.tsx and its copy accept-compile/cells.tsx, 344 -> 532 each, 6099 -> 6475
+  expect(out).toContain("complete-diff.ts positions 6475");
   const c = line("completion: ");
   expect(n(c, "DIFFERENT")).toBe(0);
   expect(n(c, "SAME")).toBeGreaterThan(2000);

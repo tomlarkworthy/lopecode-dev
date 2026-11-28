@@ -77,7 +77,7 @@ readme_api = ss_highlightCode(md`## API
 
 \`\`\`
 soundscript.checkSources({ cells, tsx, outside })  // the checker: per cell {name, status, errors, unsupported, value (its type)}
-soundscript.check(source, tsx = true, outside)  // checkSources, remembered for the last 16 sources; .facts per cell (not enumerable)
+soundscript.check(source, tsx = true, outside, memo?, parts?)  // checkSources, remembered for the last 2 sources; .facts per cell (not enumerable); memo: ss_memo's
 soundscript.compileCell(source, tsx, context, name?)  // one cell's source -> [{name, inputs, definition}]; context: ss_context(module texts); name: the variable's own name, which wins over the declared one
 soundscript.decompileVariable(definition)       // a compiled definition -> the cell's source, or null
 soundscript.compiler(() => source)              // the value of ss_compile: compile(...) for the cells of that source
@@ -86,7 +86,8 @@ soundscript.pulling(handles?)                   // events cells whose generator 
 soundscript.isEvents(value)                     // whether a value is an events cell's handle
 soundscript.release(value)                      // a deleted variable's listener ends, or its events stop
 soundscript.compiledKind(definition)             // the kind of a compiled definition (plain, apply, ref, events, listen or rejected), or null
-ss_moduleCells(module)                 // a module's SoundScript cells: [{key, text, variable}]
+ss_moduleCells(module)                 // a module's SoundScript cells: [{key, text, variable, definition}]
+ss_memo(module, texts, overlay?)       // the per-cell entries a check of texts reuses and keeps (incr2)
 ss_source(module)                      // those cells' source, joined in runtime order
 ss_outside(module)                     // the module's cells in other languages: [{name, view?}]
 ss_check(module)                       // checkSources over ss_source(module), with ss_outside(module)
@@ -152,12 +153,42 @@ ss_moduleCells = (module) => {
     }
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ key, text, variable: v });
+    out.push({ key, text, variable: v, definition: v._definition });
   }
   // a name declared again (stored as "<name> (2)", ...) comes after every other cell, so the checker
   // sees it as the later declaration, and the cell with the plain name keeps it
   const dup = out.filter((c) => soundscript.isDuplicateKey(c.key)).sort((a, b) => (a.key < b.key ? -1 : 1));
   return dup.length ? [...out.filter((c) => !soundscript.isDuplicateKey(c.key)), ...dup] : out;
+}
+// %%
+ss_memo = (module, texts, overlay = null) => {
+  // incr2 (D2): the memo a check of texts hands soundscript.checkCells. A committed cell's entry is a property of
+  // its compiled definition function (ss_moduleCells's definition, the one read of _definition); the entry of a
+  // cell whose text in texts is a draft goes in overlay (its editor's, cleared on each check, dropped on commit),
+  // or nowhere. A definition shared by two cells (bump_copy) keeps the entry of the cell kept last.
+  // Off (null) when module is null or SS_MEASURE_INCR is 0.
+  if (!module || !soundscript.incrOn()) return null;
+  const ENTRY = Symbol.for("soundscript.incr.entry");
+  const cells = new Map(ss_moduleCells(module).map((c) => [c.key, c]));
+  const committed = new Set([...cells.values()].map((c) => c.text));
+  const drafts = new Set(texts.filter((t) => !committed.has(t)).map((t) => soundscript.declaredName(t)));
+  const own = (name) => { const e = cells.get(name)?.definition?.[ENTRY]; return e?.name === name ? e.entry : null; };
+  return {
+    find: (name) => (drafts.has(name) ? overlay?.get(name) ?? null : own(name)),
+    keep: (entries) => {
+      overlay?.clear();
+      for (const [name, entry] of entries) {
+        if (drafts.has(name)) { overlay?.set(name, entry); continue; }
+        const def = cells.get(name)?.definition;
+        if (typeof def === "function") ss_keepEntry(def, name, entry);
+      }
+    }
+  };
+}
+// %%
+ss_keepEntry = (def, name, entry) => {
+  // a cell's entry on its compiled definition function (ss_memo); a frozen function keeps none
+  try { Object.defineProperty(def, Symbol.for("soundscript.incr.entry"), { value: { name, entry }, configurable: true, writable: true }); } catch {}
 }
 // %%
 ss_outside = (module) => {
@@ -180,7 +211,8 @@ ss_outside = (module) => {
 ss_check = (module) => {
   // one check of the module; a cell that does not parse is checked as a stand-in (soundscript.checkCells)
   const cells = ss_moduleCells(module);
-  const { result } = soundscript.checkCells(cells.map((c) => c.text), true, ss_outside(module));
+  const texts = cells.map((c) => c.text);
+  const { result } = soundscript.checkCells(texts, true, ss_outside(module), ss_memo(module, texts));
   return { cells, source: cells.map((c) => c.text).join("\n\n"), result, states: soundscript.cellStates(result) };
 }
 // %%
@@ -188,7 +220,7 @@ ss_context = (texts, module) => {
   // the compile context of a module's cells, from one (remembered) check of the whole module: which
   // cells are generators, which are taken as Events, which the checker accepts (only those run; any
   // other cell compiles to a definition that raises the checker's messages); the runtime module takes its own cells
-  return { ...soundscript.contextFromCheck(soundscript.checkCells(texts, true, module ? ss_outside(module) : null).result), inputs: soundscript.inputsIn(!!module && module === ss_runtimeModule), module: ss_moduleName(module) };
+  return { ...soundscript.contextFromCheck(soundscript.checkCells(texts, true, module ? ss_outside(module) : null, ss_memo(module, texts)).result), inputs: soundscript.inputsIn(!!module && module === ss_runtimeModule), module: ss_moduleName(module) };
 }
 // %%
 ss_source = (module) => soundscript.joinCells(ss_moduleCells(module).map((c) => c.text))
@@ -320,6 +352,13 @@ ss_language = {
   };
   // the last stored edit's effect, per module and cell, shown on that cell while its text is unchanged
   const lastEffect = new WeakMap();
+  // incr2 (D2): an editor's overlay of draft entries (ss_memo), on its variables array, so it goes with the editor
+  const OVERLAY = Symbol.for("soundscript.incr.overlay");
+  const overlayOf = (variables) => {
+    if (!Object.isExtensible(variables)) return null;
+    if (!variables[OVERLAY]) Object.defineProperty(variables, OVERLAY, { value: new Map(), configurable: true });
+    return variables[OVERLAY];
+  };
 
   // {ok (the edited cell checks), store (Shift-Enter stores it), problems: [{line, rule, msg}] with lines
   // relative to source, effect, defs, texts, state}. Every edit is stored except one that names no cell;
@@ -341,7 +380,7 @@ ss_language = {
     // one check of the module as edited gives the verdicts, the compile context and the cell facts
     let after = null, checkError = null;
     const outside = module ? ss_outside(module).filter((o) => !(takesOther && o.name === named)) : null;
-    try { after = soundscript.checkCells(texts, true, outside).result; } catch (e) { checkError = e; }
+    try { after = soundscript.checkCells(texts, true, outside, ss_memo(module, texts, overlayOf(variables))).result; } catch (e) { checkError = e; }
     if (!after) return { ok: false, store: false, problems: [{ line: 1, rule: "check", msg: `${checkError.message}; a cell that does not parse is stored only when it starts with const, let or function <name>` }] };
     let defs, ctx = { ...soundscript.contextFromCheck(after), inputs: soundscript.inputsIn(!!module && module === ss_runtimeModule), module: ss_moduleName(module) }, hint = oldKey;
     if (takesCell && soundscript.isDuplicateKey(after.cells.at(-1)?.name)) hint = after.cells.at(-1).name;
@@ -375,7 +414,8 @@ ss_language = {
     }
     const statesAfter = soundscript.cellStates(after);
     let statesBefore = new Map();
-    try { statesBefore = soundscript.cellStates(soundscript.checkCells(cells.map((c) => c.text), true, outside).result); } catch {}
+    const before = cells.map((c) => c.text);
+    try { statesBefore = soundscript.cellStates(soundscript.checkCells(before, true, outside, ss_memo(module, before)).result); } catch {}
     const state = statesAfter.get(key) ?? { state: "rejected", why: [], blockedBy: [] };
     if (state.state === "blocked") problems.push({ line: 1, rule: "blocked", msg: `blocked by ${state.blockedBy.join(", ")}: it does not run until ${state.blockedBy.length > 1 ? "they are" : "that is"} ok` });
     const effect = sayEffect(effectOf(statesBefore, statesAfter), false);
@@ -455,13 +495,14 @@ ss_language = {
     const all = await realize(batches.flatMap((b) => b.defs.map((d) => d.definition)), runtime);
     let k = 0;
     return batches.map((b, i) => {
-      const out = defineNow(module, b.defs, b.old, b.anchor, tx, all.slice(k, (k += b.defs.length)));
+      const out = defineNow(module, b.defs, b.old, b.anchor, tx, all.slice(k, (k += b.defs.length)), b.entry ?? null);
       if (i === 0) afterFirst?.();
       return out;
     });
   };
   const define = async (module, defs, old, anchor, tx = null) => (await defineAll(module, [{ defs, old, anchor }], tx))[0];
-  const defineNow = (module, defs, old, anchor, tx, fns) => {
+  // entry: {name, entry} of a draft (ss_memo), kept on the new definitions of that cell
+  const defineNow = (module, defs, old, anchor, tx, fns, entry = null) => {
     const fresh = [];
     const next = defs.map((d, i) => {
       let v = module._scope.get(d.name);
@@ -471,6 +512,7 @@ ss_language = {
         fresh.push(v);
         tx?.made.push(v);
       }
+      if (entry && keyOf(d.name) === entry.name) ss_keepEntry(fns[i], entry.name, entry.entry);
       v.define(d.name, d.inputs, fns[i]);
       return v;
     });
@@ -521,7 +563,8 @@ ss_language = {
     lastEffect.get(module).set(r.key, { text: source, msg });
     let next;
     try {
-      [next] = await defineAll(module, [{ defs: r.defs, old, anchor }, ...plan.map((p) => ({ defs: p.defs, old: new Set(p.fam), anchor: p.fam.at(-1) }))], tx, () => {
+      const draft = variables[OVERLAY]?.get(r.key);
+      [next] = await defineAll(module, [{ defs: r.defs, old, anchor, entry: draft ? { name: r.key, entry: draft } : null }, ...plan.map((p) => ({ defs: p.defs, old: new Set(p.fam), anchor: p.fam.at(-1) }))], tx, () => {
         if (faults.afterEditDefine === module) throw new Error("injected fault after the edited cell was defined");
       });
     } catch (e) {
@@ -531,6 +574,7 @@ ss_language = {
       throw e;
     }
     for (const v of new Set(tx.doomed)) { ss_deleted(v); v.delete(); }
+    variables[OVERLAY]?.clear();
     // a reused Kit head no longer has shadows; theirs were deleted with the rest of old
     for (const v of next) v._shadow?.clear?.();
     variables.splice(0, variables.length, ...next);

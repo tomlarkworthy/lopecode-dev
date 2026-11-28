@@ -1,6 +1,6 @@
 // bun lite/infer/cp-diff.ts: the shipped lite/complete.ts and lite/facts.ts (the cp cells, linked here so a control can
 // replace one) against the frozen copies of complete.ts and facts.ts (lite/infer/frozen/ts/, 2026-11-22).
-// Completion: at complete-diff.ts's 6385 positions, and at positions it does not reach (type annotations, JSX, parameter
+// Completion: at complete-diff.ts's 6475 positions, and at positions it does not reach (type annotations, JSX, parameter
 // lists, the cell cut at the cursor, offset 0, the end, cp-probes.ts, with cells in another language, tsx off), the
 // result as JSON and the module checks and cells counted. Facts: cellsOf on each source of diff.ts's corpus (its job
 // list, copied: diff.ts runs on import), and preludeCalls / globalRefs on each cell for each name it holds.
@@ -92,7 +92,7 @@ function positions(): Pos[] {
       add({ file: `probe:${p.kind}`, cells: [...p.base, c.split("‸").join("")], at: p.base.length, off, tsx: p.tsx, tags: ["probe", `probe:${p.kind}`] });
     }
   }
-  if (corpus !== 6385) console.log(`note: complete-diff.ts's positions are ${corpus} here, not 6385`);
+  if (corpus !== 6475) console.log(`note: complete-diff.ts's positions are ${corpus} here, not 6475`);
   console.log(`complete-diff.ts positions ${corpus}`);
   return out;
 }

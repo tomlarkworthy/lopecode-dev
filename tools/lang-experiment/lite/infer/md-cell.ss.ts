@@ -108,10 +108,12 @@ export const mdRecord = (mdDedupe) => (X: MdCtx, L: MdL, rec: MdCellRec, ch: IxD
   blockedBy: L.blockedBy, ch, chUnsup,
 });
 // what the cell gives the cells after it: its value type when usable, its inner types, and whether it is a listener
-export const mdKeep = (hasErrWith, show) => (X: MdCtx, M: MdMod, d: MdDef, rec: MdCellRec, v: MdValueOut): MdCellRec => {
+// incr2 (D1): ds, the problems of the declarations the cell names, count as the cell's own here
+export const mdKeep = (hasErrWith, show) => (X: MdCtx, M: MdMod, d: MdDef, rec: MdCellRec, v: MdValueOut, ds: IxDiag[]): MdCellRec => {
   // [mut-cell] on a value is a backstop: a Mut reaches a value only past a rule that already reported in the cell
-  const errors = [...rec.errors, ...v.errors.filter((e) => e.rule !== "mut-cell" || rec.errors.length === 0)];
-  const usable = !hasErrWith(X.R.ops)(v.value) && (rec.unsupported.length === 0 || d.fn.returnType !== null);
+  const quiet = rec.errors.length === 0 && ds.every((x) => x.rule === "unsupported");
+  const errors = [...rec.errors, ...v.errors.filter((e) => e.rule !== "mut-cell" || quiet)];
+  const usable = !hasErrWith(X.R.ops)(v.value) && ((rec.unsupported.length === 0 && ds.every((x) => x.rule !== "unsupported")) || d.fn.returnType !== null);
   M.value = new Map([...M.value, [d.name, usable ? v.value : null]]);
   const ev = v.events;
   if (ev !== null) M.eventsInner = new Map([...M.eventsInner, [d.name, ev]]);
@@ -124,8 +126,9 @@ export const mdKeep = (hasErrWith, show) => (X: MdCtx, M: MdMod, d: MdDef, rec: 
   const status: MdStatus = errors.length ? "rejected" : rec.unsupported.length ? "unsupported" : rec.blockedBy.length ? "blocked" : "ok";
   return { ...rec, errors, value: show(v.value), status, promises: v.promises };
 };
-// one cell's check; the first thing the port does not implement, or null
-export const mdCell = (ixKnot, ixFreshCtl, ixDrain, mdSyntax, mdInject, mdTainted, mdFedBy, mdMarkStateful, owTaintCaptures, captureMessage, mdDiag, mdHookOf, mdRunChecks, ixOut, mdRecord, mdValueRules, mdKeep) => (X: MdCtx, M: MdMod, d: MdDef): string | null => {
+// one cell's check, given the problems of the declarations it names (ds): its record before they are added (own), and
+// the first thing the port does not implement, or null; null when the cell is checked already
+export const mdCell = (ixKnot, ixFreshCtl, ixDrain, mdSyntax, mdInject, mdTainted, mdFedBy, mdMarkStateful, owTaintCaptures, captureMessage, mdDiag, mdHookOf, mdRunChecks, ixOut, mdRecord, mdValueRules, mdKeep) => (X: MdCtx, M: MdMod, d: MdDef, ds: IxDiag[]): MdCellRun | null => {
   const rec = M.out.get(d.name);
   if (M.value.has(d.name) || rec === undefined) return null;
   const R = X.R.cell(d.fn.start);
@@ -148,6 +151,6 @@ export const mdCell = (ixKnot, ixFreshCtl, ixDrain, mdSyntax, mdInject, mdTainte
   // what the registry reports from here on reaches the Checker but not the record (core.ts copies the lists above)
   ixDrain(K2, C);
   if (M.probe === null) M.probe = C.probe;
-  M.out = new Map([...M.out, [d.name, { ...mdKeep(X, M, d, r1, v), ch: ixOut(C.diags), chUnsup: ixOut(C.unsup), casts: C.casts.toSorted((a, b) => a[0] - b[0]).map((x) => x[1]), holes: C.holes.toSorted((a, b) => a[0] - b[0]).map((x) => x[1]) }]]);
-  return run.gap ?? v.gap;
+  const own = { ...mdKeep(X, M, d, r1, v, ds), ch: ixOut(C.diags), chUnsup: ixOut(C.unsup), casts: C.casts.toSorted((a, b) => a[0] - b[0]).map((x) => x[1]), holes: C.holes.toSorted((a, b) => a[0] - b[0]).map((x) => x[1]) };
+  return { gap: run.gap ?? v.gap, own };
 };

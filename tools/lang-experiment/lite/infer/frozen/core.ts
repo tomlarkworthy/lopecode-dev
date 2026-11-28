@@ -178,6 +178,46 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     if (m) { clash.add(d); moduleErrs.push({ rule: "banned-member", line: P.line(d.start), msg: protoMsgT1(m.name, m.opt) }); }
   }
   reg.load(P, "user", true, clash);
+  // DELIBERATE CHANGE (2026-11-28, incr2 D1): every user type declaration converted once; a cell that names one, or one
+  // a named declaration names, gets its problems, and a cell's Checker drops them (live md-decl.ss.ts, core.ts declDiags)
+  const declStmts = (P.program.body as Node[]).filter((st) => { const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st; return d.type === "TSTypeAliasDeclaration" || d.type === "TSInterfaceDeclaration"; });
+  const early: { node: Node; rule: string; msg: string }[] = [];
+  {
+    const was = [reg.onErr, reg.onUnsup] as const;
+    reg.onErr = (n, rule, msg) => early.push({ node: n, rule, msg });
+    reg.onUnsup = (n, what) => early.push({ node: n, rule: "unsupported", msg: what });
+    for (const [n, d] of reg.types) {
+      if (d.origin !== "user") continue;
+      if (d.kind === "iface") reg.ifaceRec(n);
+      else if (d.nodes[0]?.type === "TSTypeAliasDeclaration") reg.convert(d.nodes[0].typeAnnotation, { tps: new Set(d.tps) }, d.parsed, d.origin);
+    }
+    [reg.onErr, reg.onUnsup] = was;
+  }
+  const earlyIn = early.filter((x) => declStmts.some((st) => st.start <= x.node.start && x.node.start < st.end));
+  const ekey = (start: number, end: number, rule: string, msg: string) => `${start}:${end}:${rule}:${msg}`;
+  const earlyKeys = new Set(earlyIn.map((x) => ekey(x.node.start, x.node.end, x.rule, x.msg)));
+  (reg as Registry & { declDrop?: (k: string) => boolean }).declDrop = (k) => earlyKeys.has(k);
+  const namesD1 = (n: any, out: Set<string> = new Set()): Set<string> => {
+    if (Array.isArray(n)) { for (const x of n) namesD1(x, out); return out; }
+    if (!n || typeof n !== "object" || typeof n.type !== "string") return out;
+    if (n.type === "Identifier" || n.type === "JSXIdentifier") out.add(n.name);
+    for (const k of Object.keys(n)) if (k !== "loc" && k !== "extra" && k !== "range") namesD1(n[k], out);
+    return out;
+  };
+  const declsD1 = new Map<string, { start: number; refs: Set<string>; diags: typeof earlyIn }>();
+  for (const st of declStmts) {
+    const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st;
+    if (d.id?.type !== "Identifier") continue;
+    const was = declsD1.get(d.id.name);
+    declsD1.set(d.id.name, { start: was?.start ?? st.start, refs: new Set([...(was?.refs ?? []), ...namesD1(d)]), diags: [...(was?.diags ?? []), ...earlyIn.filter((x) => st.start <= x.node.start && x.node.start < st.end)] });
+  }
+  const declDiagsD1 = (stmt: Node) => {
+    const seen = new Set<string>(), todo = [...namesD1(stmt)].filter((n) => declsD1.has(n));
+    while (todo.length) { const n = todo.pop()!; if (seen.has(n)) continue; seen.add(n); for (const r of declsD1.get(n)!.refs) if (declsD1.has(r) && !seen.has(r)) todo.push(r); }
+    const keys = new Set<string>();
+    return [...declsD1.entries()].filter(([n]) => seen.has(n)).sort((a, b) => a[1].start - b[1].start).flatMap(([, d]) => d.diags)
+      .filter((x) => { const k = ekey(x.node.start, x.node.end, x.rule, x.msg); if (keys.has(k)) return false; keys.add(k); return true; });
+  };
   for (const e of S.shape.errors) moduleErrs.push({ rule: e.rule, line: P.line(e.at.start), msg: e.msg });
   const cells: CellDef[] = S.shape.cells.map((c, i) => {
     const stmt = stmtAt.get(c.stmt.start)!;
@@ -288,6 +328,9 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     if (value.has(c.name)) continue;
     const r = out.get(c.name)!;
     const ch = new Checker(reg, cellNames, P);
+    { const onE = reg.onErr, onU = reg.onUnsup;
+      reg.onErr = (n, rule, msg) => { if (!earlyKeys.has(ekey(n.start, n.end, rule, msg))) onE(n, rule, msg); };
+      reg.onUnsup = (n, what) => { if (!earlyKeys.has(ekey(n.start, n.end, "unsupported", what))) onU(n, what); }; }
     ch.compileHook = (e, env) => compileType(e, env, ch);
     opts.onCell?.(c.name, ch, c.fn);
     castsOf.set(c.name, ch.casts);
@@ -460,9 +503,15 @@ export function checkSources(src: Sources, opts: { strictIndex?: boolean; onCell
     // a Listener is a whole cell value: not in a list, record, state cell, union with another type, or function
     if (isNamed(ret, "Listener") || (ret.k === "union" && ret.ts.every((t) => isNamed(t, "Listener")))) listenerCells.add(c.name);
     else if (holds(ret, ["Listener"])) r.errors.push({ rule: "listener-placement", line: P.line(c.fn.start), msg: `value ${show(ret)} holds a Listener; a listener is only the whole value of a cell` });
-    const usable = !hasErr(ret) && (r.unsupported.length === 0 || !!c.fn.returnType);
+    const dd = declDiagsD1(c.stmt);
+    const usable = !hasErr(ret) && ((r.unsupported.length === 0 && dd.every((x) => x.rule !== "unsupported")) || !!c.fn.returnType);
     value.set(c.name, usable ? settle(ret, 0) : null);
     r.value = show(settle(ret, 0));
+    if (dd.length) {
+      r.errors = dedupe([...r.errors, ...dd.filter((x) => x.rule !== "unsupported").map((x) => ({ rule: x.rule, line: P.line(x.node.start), msg: x.msg }))]);
+      r.unsupported = dedupe([...r.unsupported, ...dd.filter((x) => x.rule === "unsupported").map((x) => ({ rule: "unsupported", line: P.line(x.node.start), msg: x.msg }))]);
+      for (const x of dd) (x.rule === "unsupported" ? ch.unsup : ch.diags).push(x);
+    }
     r.status = r.errors.length ? "rejected" : r.unsupported.length ? "unsupported" : r.blockedBy.length ? "blocked" : "ok";
   }
   // a later declaration of a name: reported as "<name> (2)", "<name> (3)", ... and rejected

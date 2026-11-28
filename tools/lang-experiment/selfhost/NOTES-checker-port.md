@@ -5195,3 +5195,31 @@ Left, not built:
 
 Step 1's profiles ran on battery. All before/after numbers ran on AC. Other processes loaded the machine (load 4-26),
 which `ab.txt` interleaves against. No `/review-notebook` pass was run.
+
+## incr 2 (2026-11-28)
+
+The task was to check again only the cells an edit can change (key K5 from incr 1), under the coordinator's
+decisions D1-D6. The record is `lite/soundscript/.scratch/incr2/RESULTS.md`, with its scripts and logs.
+
+```
+page lint per keystroke, checker module, n 30, memo on / off (median ms)
+  checkKey body edit             329 / 7102
+  NUM type edit                  406 / 7262
+  type IxK field                1819 / 6997
+  type Param (in a cycle)       3904 / 6992
+runtime isElem body edit          18 / 55
+tutorial width                   2.9 / 6.9
+first lint after load           7006 (whole: no entries after a load)
+```
+
+- **D1** is the coordinator's decision: a type declaration's problem belongs to every cell that reaches the
+  declaration by name (S1.11), not to the cell that expands it first. It changed 9 corpus cells (18 in the ss
+  and ssx runs) from ok to rejected, 3 (6) from ok to unsupported, and none the other way. Mirrored in the frozen checker; `diff.ts` 0 DIFFERENT.
+- **The memo** (`md-incr.ss.ts`) keeps one entry per cell. The page keeps it on the compiled definition, and a
+  draft's in the editor's overlay (D2). The build and the gates check whole (D4).
+- **D3**, the parse by cell text, is `acornParseParts` in the shell, crossed by `parseParts`. It cut the all-hit
+  floor in bun from ~405 ms to ~310 ms on the checker module.
+- `lite/infer/attack/incr.test.ts` replays edit sequences and requires the memo's result to equal a whole check
+  after every step: 580 steps, 0 differ. Each of its three controls (a key part removed) shows differences (3, 10, 2).
+
+Not done: the key time in the page alone; a frozen mirror of the memo (its results are equal, the gate checks it).

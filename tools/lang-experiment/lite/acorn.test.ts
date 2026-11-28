@@ -26,6 +26,8 @@ const HERE = import.meta.dir;
   const r = checkSources({ cells: ["acorn-types.ss.ts", "acorn-kids.ss.ts", "acorn.ss.ts"].map(read).join("\n\n"), tsx: true, shell: read("acorn-shell.ts") });
   const b = r.facts!.get("parseTree")!.params.find((p) => p.name === "acornParse")?.boundary;
   ok(!!b && !b.ref && JSON.stringify(b.shape) === JSON.stringify(A.parseTreeShape()), "the shape index.ts gives acornParse is the checker's shape of parseTree's parameter");
+  const bp = r.facts!.get("parseParts")!.params.find((p) => p.name === "acornParseParts")?.boundary;
+  ok(!!bp && !bp.ref && JSON.stringify(bp.shape) === JSON.stringify(A.parsePartsShape()), "the shape index.ts gives acornParseParts is the checker's shape of parseParts's parameter");
   ok(r.cells.every((c) => c.status === "ok"), `the checker accepts the ${r.cells.length} cells of acorn-kids.ss.ts and acorn.ss.ts`, r.cells.filter((c) => c.status !== "ok").map((c) => c.name));
 }
 

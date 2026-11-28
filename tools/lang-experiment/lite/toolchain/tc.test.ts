@@ -59,7 +59,8 @@ test("no name declared in a tc file is declared in another .ss.ts file, and each
 // here after reading it (all compare strings, numbers or booleans: names, nids, positions, lengths), so a new one fails
 // e1 (2026-11-23): +2 in tcCastEdits, both lengths (calls against references, calls against shapes)
 // open part 6: +2, tc-reg.ss.ts tcFnRegs sites.length === holes.length and tcHoleEdit's token count, both numbers
-const EQ_READ = 36;
+// open part 7: +1, tcHoleEdit lead.length !== opens + (pre ? 1 : 0), token counts (in 781c6d5c, which left the pin at 36)
+const EQ_READ = 37;
 test("tc cells: no non-null assertion or cast, nothing at the top but const cells and types, the equalities read", () => {
   const kids = (n: any): any[] => Object.entries(n).flatMap(([, v]) => (Array.isArray(v) ? v : [v])).filter((v: any) => v && typeof v === "object" && typeof v.type === "string");
   const lit = (n: any) => n.type === "Literal" || n.type === "TemplateLiteral" || n.type === "UnaryExpression" || (n.type === "Identifier" && n.name === "undefined");

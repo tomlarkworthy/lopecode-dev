@@ -124,6 +124,14 @@ const FOCUS_TRACE = process.argv.includes("--focus-trace");
 let ftN = 0;
 const CPU = process.argv.includes("--cpu") ? Number(process.argv[process.argv.indexOf("--cpu") + 1]) : 1;
 const browser = await chromium.launch();
+// incr2: SS_MEASURE_INCR=0 runs every page with the per-cell check memo off, for an A/B against the memo
+if (process.env.SS_MEASURE_INCR === "0") {
+  console.log("SS_MEASURE_INCR=0: the check memo is off in every page");
+  const off = () => { (window as any).SS_MEASURE_INCR = 0; };
+  const np = browser.newPage.bind(browser), nc = browser.newContext.bind(browser);
+  browser.newPage = async (o?: any) => { const p = await np(o); await p.addInitScript(off); return p; };
+  browser.newContext = async (o?: any) => { const c = await nc(o); await c.addInitScript(off); return c; };
+}
 // part 4: the phase plan and the phases entered, outside the try so its catch can name them
 let PLAN: [string, boolean][] = [], PHASE = "static checks";
 const entered: string[] = [];

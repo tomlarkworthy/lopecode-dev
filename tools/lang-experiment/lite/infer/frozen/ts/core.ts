@@ -115,8 +115,10 @@ export function makeReg(reg: Registry, P: Parsed): RegView {
   const toP = (n: AstNode): Node => index.get(spanKey(n)) ?? missing(n);
   const buf: IxDiag[] = [];
   const was = [reg.onErr, reg.onUnsup] as const;
-  reg.onErr = (n, rule, msg) => void buf.push({ start: n.start, end: n.end, rule, msg });
-  reg.onUnsup = (n, what) => void buf.push({ start: n.start, end: n.end, rule: "unsupported", msg: what });
+  // DELIBERATE CHANGE (2026-11-28, incr2 D1): what the declaration pass reported is dropped here too (../core.ts declDrop)
+  const drop = (reg as Registry & { declDrop?: (k: string) => boolean }).declDrop ?? (() => false);
+  reg.onErr = (n, rule, msg) => void (drop(`${n.start}:${n.end}:${rule}:${msg}`) || buf.push({ start: n.start, end: n.end, rule, msg }));
+  reg.onUnsup = (n, what) => void (drop(`${n.start}:${n.end}:unsupported:${what}`) || buf.push({ start: n.start, end: n.end, rule: "unsupported", msg: what }));
   const core = regCore(reg);
   const lax = <X>(f: () => X): X => { const s = reg.strictIndex; reg.strictIndex = false; try { return f(); } finally { reg.strictIndex = s; } };
   const ctx = (tps: string[], look: Map<string, Ty> | null) => ({ tps: new Set(tps), typeofLookup: (name: string) => look?.get(name) });
@@ -190,12 +192,34 @@ export function mdRegistry(strictIndex = true, onCell: (() => void) | null = nul
     proto: new Set(PROTO_MEMBERS), inputs: new Set(RESERVED_INPUTS),
     loadForeign: (text) => loadForeign(reg, got, text),
     loadUser: (ast, jsx, clash) => { const u = loadUser(reg, got, ast.src, jsx, clash); P = u.P; return u.reports; },
+    // DELIBERATE CHANGE (2026-11-28, incr2 D1): the declaration pass of ../core.ts declDiags, over this Registry
+    declDiags: () => declPass(reg, parsed()),
     cell,
     peekType: (n) => reg.peek(() => { const t = reg.convert(indexOf(parsed()).get(spanKey(n)) ?? missing(n), { tps: new Set() }, parsed()); return t.k === "named" && reg.isAlias(t.n) ? reg.expand(t) : t; }),
     finish: () => { cur?.restore(); cur = null; },
   };
 }
 const missingUser = (): never => { throw new Error("the user's declarations are not loaded"); };
+// each user alias body converted and each interface's record made once; the reports inside the declaration statements,
+// which every later cell view drops (declDrop)
+function declPass(reg: Registry, P: Parsed): IxDiag[] {
+  const stmts = (P.program.body as Node[]).filter((st) => { const d = st.type === "ExportNamedDeclaration" && st.declaration ? st.declaration : st; return d.type === "TSTypeAliasDeclaration" || d.type === "TSInterfaceDeclaration"; });
+  const early: IxDiag[] = [];
+  const was = [reg.onErr, reg.onUnsup] as const;
+  reg.onErr = (n, rule, msg) => void early.push({ start: n.start, end: n.end, rule, msg });
+  reg.onUnsup = (n, what) => void early.push({ start: n.start, end: n.end, rule: "unsupported", msg: what });
+  try {
+    for (const [n, d] of reg.types) {
+      if (d.origin !== "user") continue;
+      if (d.kind === "iface") reg.ifaceRec(n);
+      else if (d.nodes[0]?.type === "TSTypeAliasDeclaration") reg.convert(d.nodes[0].typeAnnotation, { tps: new Set(d.tps) }, d.parsed, d.origin);
+    }
+  } finally { [reg.onErr, reg.onUnsup] = was; }
+  const mine = early.filter((x) => stmts.some((st) => st.start <= x.start && x.start < st.end));
+  const keys = new Set(mine.map((x) => `${x.start}:${x.end}:${x.rule}:${x.msg}`));
+  (reg as Registry & { declDrop?: (k: string) => boolean }).declDrop = (k) => keys.has(k);
+  return mine;
+}
 
 // checkSources by entry (mdCheckSources, or a copy with cells replaced: lite/infer/diff.ts's controls). gap: what the
 // entry met that it does not implement; spans: each cell's Checker lists with positions, for the differential
@@ -204,7 +228,7 @@ export function runCheck(entry: Entry, src: Sources, opts: CheckOpts = {}): Chec
   const R = mdRegistry(opts.strictIndex ?? true, opts.onCell ?? null);
   let r: MdResult;
   try {
-    r = entry(R, { cells: src.cells, tsx: !!src.tsx, foreign: src.foreign ?? null, shell: src.shell ?? null, name: src.name ?? null, outside: (src.outside ?? []).map((o) => ({ name: o.name, view: !!o.view })), probe: opts.probe ?? null, bound: src.home === PRELUDE_HOME ? [] : tcPrelude });
+    r = entry(R, { cells: src.cells, tsx: !!src.tsx, foreign: src.foreign ?? null, shell: src.shell ?? null, name: src.name ?? null, outside: (src.outside ?? []).map((o) => ({ name: o.name, view: !!o.view })), probe: opts.probe ?? null, bound: src.home === PRELUDE_HOME ? [] : tcPrelude, prior: null, parts: null });
   } finally { R.finish(); }
   const cells: LiteCell[] = r.cells.map((c) => ({ name: c.name, status: c.status, line: c.line, errors: c.errors.map((e) => ({ ...e })), unsupported: c.unsupported.map((e) => ({ ...e })), blockedBy: [...c.blockedBy], ...(c.value === null ? {} : { value: c.value }) }));
   const result: LiteResult = { port: r.port, file: r.file, ok: r.ok, module: r.module.map((e) => ({ ...e })), cells, ms: performance.now() - t0 };

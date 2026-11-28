@@ -37,7 +37,9 @@ import * as mdTaint from "./infer/md-taint.ss.ts";
 import * as mdCompile from "./infer/md-compile.ss.ts";
 import * as mdValue from "./infer/md-value.ss.ts";
 import * as mdRun from "./infer/md-run.ss.ts";
+import * as mdDecl from "./infer/md-decl.ss.ts";
 import * as mdCell from "./infer/md-cell.ss.ts";
+import * as mdIncr from "./infer/md-incr.ss.ts";
 import * as mdFacts from "./infer/md-facts.ss.ts";
 import * as mdEntry from "./infer/md-entry.ss.ts";
 import "./infer/rg-types.ss.ts";
@@ -66,14 +68,14 @@ export type * from "./infer/cp-types.ss.ts";
 // file names in lite/infer
 export const IX_FILES = ["types", "core", "hides", "expr", "ops", "cond", "fn", "stmt", "flow", "lit", "call", "apply", "prelude", "jsx", "entry", "facts"].map((x) => `ix-${x}.ss.ts`);
 export const OW_FILES = ["types", "tree", "capture", "place", "flow", "stmt", "loop", "action", "taint", "opaque", "late", "entry"].map((x) => `ow-${x}.ss.ts`);
-export const MD_FILES = ["types", "shape", "graph", "inject", "taint", "compile", "value", "run", "cell", "facts", "entry"].map((x) => `md-${x}.ss.ts`);
+export const MD_FILES = ["types", "shape", "graph", "inject", "taint", "compile", "value", "run", "decl", "cell", "incr", "facts", "entry"].map((x) => `md-${x}.ss.ts`);
 export const CP_FILES = ["types", "text", "members", "modes", "param", "facts"].map((x) => `cp-${x}.ss.ts`);
 export const RG_FILES = ["types", "ctl", "convert", "sig", "expand", "load", "view"].map((x) => `rg-${x}.ss.ts`);
 export const OW_CELLS = { ...owTree, ...owCapture, ...owPlace, ...owFlow, ...owStmt, ...owLoop, ...owAction, ...owTaint, ...owOpaque, ...owLate, ...owEntry };
 export const IX_CELLS = { ...core, ...hides, ...expr, ...ops, ...cond, ...fn, ...stmt, ...flow, ...lit, ...call, ...apply, ...preludeCells, ...jsx, ...entry, ...facts, ...OW_CELLS };
 export const CP_CELLS = { ...cpText, ...cpMembers, ...cpModes, ...cpParam, ...cpFacts };
 export const RG_CELLS = { ...rgCtl, ...rgConvertCells, ...rgSigCells, ...rgExpandCells, ...rgLoadCells, ...rgView };
-export const MD_CELLS = { ...mdShape, ...mdGraph, ...mdInject, ...mdTaint, ...mdCompile, ...mdValue, ...mdRun, ...mdCell, ...mdFacts, ...mdEntry };
+export const MD_CELLS = { ...mdShape, ...mdGraph, ...mdInject, ...mdTaint, ...mdCompile, ...mdValue, ...mdRun, ...mdDecl, ...mdCell, ...mdIncr, ...mdFacts, ...mdEntry };
 const A = linkAcorn();
 const GIVEN = {
   NUM: T.NUM, STR: T.STR, BIGINT: T.BIGINT, NULL: T.NULL, UNDEF: T.UNDEF, VOID: T.VOID, NEVER: T.NEVER, UNKNOWN: T.UNKNOWN,
@@ -84,7 +86,7 @@ const GIVEN = {
 };
 // the cells of other sections the md cells take
 export const MD_GIVEN = {
-  ...GIVEN, parseTree: A.parseTree, nameAt: A.nameAt, standIn: A.standIn, moduleShape: A.moduleShape, syntaxBans: A.syntaxBans, mutPlaces: A.mutPlaces, lineAt: A.lineAt,
+  ...GIVEN, parseTree: A.parseTree, parseParts: A.parseParts, nameAt: A.nameAt, standIn: A.standIn, moduleShape: A.moduleShape, syntaxBans: A.syntaxBans, mutPlaces: A.mutPlaces, lineAt: A.lineAt,
   hasErrWith: T.hasErrWith, uncloneableWith: T.uncloneableWith, admitsUndefinedWith: T.admitsUndefinedWith, holdsWith: T.holdsWith, islandWith: T.islandWith,
   reservedName: T.reservedName, RESERVED_MSG: T.RESERVED_MSG, reservedCellName: T.reservedCellName, RESERVED_CELL_MSG: T.RESERVED_CELL_MSG, reservedText: T.reservedText, RESERVED_TEXT_MSG: T.RESERVED_TEXT_MSG, captureMessage: T.captureMessage, boundaryShapeAt: linkShape().boundaryShapeAt,
 };

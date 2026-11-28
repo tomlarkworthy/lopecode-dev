@@ -19,7 +19,7 @@ import type { CellInfo } from "./facts.ts";
 import type { Shape } from "./boundary.ts";
 import type { Ast, AstNode, Parse } from "./acorn/acorn-types.ss.ts";
 import type { IxReg, IxRegCore, IxDiag, IxProbe, IxProbeAsk } from "./infer/ix-types.ss.ts";
-import type { MdReg, MdResult, MdReport, MdCompiled, MdForeign, MdSources } from "./infer/md-types.ss.ts";
+import type { MdReg, MdResult, MdReport, MdCompiled, MdForeign, MdSources, MdMemo, MdEntry } from "./infer/md-types.ss.ts";
 import type { RgCtx, RgReport, RgOrigin } from "./infer/rg-types.ss.ts";
 import { rgRegistryOf, declTreesOf, type RgCells, type RgRegistry } from "./infer/rg-registry.ts";
 
@@ -54,10 +54,15 @@ export type Sources = { cells: string; tsx?: boolean; foreign?: string | null; s
 export type Boundary = { shape: Shape; ref: boolean };
 // strictIndex: an index read may be undefined. onCell: called once per cell checked. probe: completion's question, a
 // name whose first read (or, member, whose first read as a member) records what complete.ts offers there
-export type CheckOpts = { strictIndex?: boolean; onCell?: () => void; probe?: IxProbeAsk | null };
+// memo (incr2): each cell's entry from an earlier check by name; with one, a cell whose key is its entry's is not
+// checked again. A run that meets a gap is run again with no memo. With strictIndex false no memo is used.
+// parts (incr2, D3): the cells' texts, joined by a blank line to src.cells; with a memo, each is parsed alone and its
+// parse kept by its text (acorn/acorn-shell.ts acornParseParts)
+export type CheckOpts = { strictIndex?: boolean; onCell?: () => void; probe?: IxProbeAsk | null; memo?: MdMemo | null; parts?: string[] | null };
 type Entry = (R: MdReg, S: MdSources) => MdResult;
 // gap: what the md cells met that they do not implement; rgGap: the first form the registry cells do not read
-export type CheckRun = { result: LiteResult; gap: string | null; rgGap: string | null; spans: { at: number; ch: string[]; chUnsup: string[] }[] };
+// entries (incr2): every checked cell's entry, by name; empty when no memo was given
+export type CheckRun = { result: LiteResult; gap: string | null; rgGap: string | null; spans: { at: number; ch: string[]; chUnsup: string[] }[]; entries: Map<string, MdEntry> };
 
 // the registry cells and the parser of declaration texts, as one record (lite/infer/rg-diff.ts hands a copy with one
 // cell replaced, rg.test.ts one whose parser holds an Other node)
@@ -70,6 +75,10 @@ export type { RgCells, RgRegistry };
 // Browser-safe: no file system. check.ts checkPort reads a port directory and calls this.
 export function checkSources(src: Sources, opts: CheckOpts = {}): LiteResult {
   return runCheck(mdCheckSources, src, opts).result;
+}
+// incr2: checkSources with the entries of the cells checked (stdlib/runtime.ts checkCells with a memo)
+export function checkRun(src: Sources, opts: CheckOpts = {}): CheckRun {
+  return runCheck(mdCheckSources, src, opts);
 }
 
 const mustParse = (p: Parse): Ast => { if (!p.ok) throw new Error(p.message); return p.ast; };
@@ -105,7 +114,11 @@ export function mdRegistry(strictIndex = true, onCell: (() => void) | null = nul
   let user: Ast | null = null, sink: Sink = null, cur: number | null = null;
   // the registry keeps its first gap only; each is taken here, so the next one is seen too
   const noteGap = () => { const g = R.Q.gap; if (g !== null) { gaps.push({ at: cur, what: g }); R.Q.gap = null; } };
-  const flush = () => { noteGap(); const rs = R.take(); if (sink !== null) { if ("load" in sink) sink.load.push(...rs); else sink.diag.push(...rs.map(toDiag)); } };
+  // incr2 (D1): what the declaration pass reported inside a user declaration; a cell's view drops it (the cell gets it
+  // from the pass, mdDeclAdd), so it does not go to whichever cell expands the declaration first
+  let early = new Set<string>();
+  const rkey = (r: RgReport) => `${r.start}:${r.end}:${r.rule}:${r.msg}`;
+  const flush = () => { noteGap(); const rs = R.take(); if (sink !== null) { if ("load" in sink) sink.load.push(...rs); else sink.diag.push(...rs.filter((r) => !early.has(rkey(r))).map(toDiag)); } };
   const swap = (s: Sink) => { flush(); sink = s; };
   const userAst = (): Ast => user ?? missingUser();
   const ctx = (tps: string[], look: Map<string, Ty> | null): RgCtx => ({ tps: new Set(tps), look, ast: userAst(), origin: "user" });
@@ -149,10 +162,28 @@ export function mdRegistry(strictIndex = true, onCell: (() => void) | null = nul
       return { ix, withHook: (hook: (e: AstNode, options: Ty | null) => MdCompiled) => ({ ...ix, compile: (e: AstNode, options: Ty | null) => { const r = hook(e, options); ix.requeue(r.out); return r.res; } }) };
     },
     peekType: (n) => R.peek(() => L.rgPeekType(R.G, R.types, R.expandMemo, R.ifaceMemo, R.Q, n, userAst())),
+    declDiags: () => {
+      const spans = userDeclSpans(userAst());
+      const got = loadInto(() => {
+        for (const [n, d] of R.types) {
+          if (d.origin !== "user") continue;
+          const at = d.nodes[0];
+          if (d.kind === "iface") R.ifaceRec(n);
+          else if (at !== undefined && at.type === "TSTypeAliasDeclaration") R.convert(at.typeAnnotation, { tps: new Set(d.tps), look: null, ast: d.ast, origin: d.origin });
+        }
+      }).filter((r) => spans.some(([a, b]) => a <= r.start && r.start < b));
+      early = new Set(got.map(rkey));
+      return got.map(toDiag);
+    },
     finish: () => swap(null),
   };
 }
 const missingUser = (): never => { throw new Error("the user's declarations are not loaded"); };
+// the spans of the top-level type and interface statements of a tree
+const userDeclSpans = (ast: Ast): [number, number][] => (ast.program.type === "Program" ? ast.program.body : []).flatMap((st): [number, number][] => {
+  const d = st.type === "ExportNamedDeclaration" && st.declaration !== null ? st.declaration : st;
+  return d.type === "TSTypeAliasDeclaration" || d.type === "TSInterfaceDeclaration" ? [[st.start, st.end]] : [];
+});
 
 export const GAP_RULE = "registry-gap";
 // A gap is a form the registry cells do not read; its type is the error type, which hides later reports, and a memo
@@ -186,8 +217,10 @@ export function runCheck(entry: Entry, src: Sources, opts: CheckOpts = {}, L: Rg
   let r: MdResult;
   const S: MdSources = { cells: src.cells, tsx: !!src.tsx, foreign: src.foreign ?? null, shell: src.shell ?? null, name: src.name ?? null, outside: (src.outside ?? []).map((o) => ({ name: o.name, view: !!o.view })), probe: opts.probe ?? null,
     // d1: the toolchain's prelude names, which the module that defines the prelude keeps as its own cells
-    bound: src.home === PRELUDE_HOME ? [] : tcPrelude };
+    bound: src.home === PRELUDE_HOME ? [] : tcPrelude, prior: (opts.strictIndex ?? true) ? opts.memo ?? null : null,
+    parts: opts.memo ? opts.parts ?? null : null };
   try { r = entry(R, S); } finally { R.finish(); }
+  if (S.prior !== null && (r.gap !== null || R.gaps.length > 0)) return runCheck(entry, src, { ...opts, memo: null, parts: null }, L);
   const cells: LiteCell[] = r.cells.map((c) => ({ name: c.name, status: c.status, line: c.line, errors: c.errors.map((e) => ({ ...e })), unsupported: c.unsupported.map((e) => ({ ...e })), blockedBy: [...c.blockedBy], ...(c.value === null ? {} : { value: c.value }) }));
   const module = r.module.map((e) => ({ ...e }));
   rejectAfterGaps(cells, r.cells.map((c) => c.at), R.order, R.gaps, module);
@@ -202,5 +235,5 @@ export function runCheck(entry: Entry, src: Sources, opts: CheckOpts = {}, L: Rg
   Object.defineProperty(result, "facts", { value: facts, enumerable: false });
   if (opts.probe) Object.defineProperty(result, "probe", { value: { found: r.probe, reg: R.R }, enumerable: false });
   const fmt = (d: IxDiag) => `${d.rule} @${d.start}-${d.end} ${d.msg}`;
-  return { result, gap: r.gap, rgGap: R.gaps[0]?.what ?? null, spans: r.cells.map((c) => ({ at: c.at, ch: c.ch.map(fmt), chUnsup: c.chUnsup.map(fmt) })) };
+  return { result, gap: r.gap, rgGap: R.gaps[0]?.what ?? null, spans: r.cells.map((c) => ({ at: c.at, ch: c.ch.map(fmt), chUnsup: c.chUnsup.map(fmt) })), entries: r.entries };
 }

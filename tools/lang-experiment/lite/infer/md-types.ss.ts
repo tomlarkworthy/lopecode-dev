@@ -21,6 +21,8 @@ export type MdReg = {
   readonly cell: (at: number) => MdCellReg;
   // an annotation converted with nothing reported or kept, an alias expanded once (core.ts shellFn)
   readonly peekType: (n: AstNode) => Ty;
+  // incr2 (D1): every user type declaration converted once, after loadUser; what that reports, at the declarations
+  readonly declDiags: () => IxDiag[];
   readonly ops: RegOps;
   readonly globals: { name: string; t: Ty; kind: IxKind }[];
   readonly allowed: Set<string>;
@@ -37,6 +39,10 @@ export type MdSources = {
   readonly name: string | null; readonly outside: MdOutside[]; readonly probe: IxProbeAsk | null;
   // d1 (2026-11-24): the prelude names a compiled cell of this module binds from the runtime module (none in it)
   readonly bound: string[];
+  // incr2: each cell's entry from an earlier check, by name (lite/core.ts runCheck; null: every cell is checked)
+  readonly prior: MdMemo | null;
+  // incr2 (D3): the cells' texts, which joined by a blank line are cells (each parsed alone, its parse kept by its text)
+  readonly parts: string[] | null;
 };
 export type MdBoundary = { readonly shape: TypeShape; readonly ref: boolean };
 export type MdCellRec = {
@@ -62,7 +68,7 @@ export type MdInfo = {
   readonly strict: boolean | null;
 };
 // gap: what the port does not implement that this module met (its result is NOT COVERED)
-export type MdResult = { readonly port: string; readonly file: string; readonly ok: boolean; readonly module: MdErr[]; readonly cells: MdCellRec[]; readonly facts: MdInfo[]; readonly gap: string | null; readonly probe: IxProbe | null };
+export type MdResult = { readonly port: string; readonly file: string; readonly ok: boolean; readonly module: MdErr[]; readonly cells: MdCellRec[]; readonly facts: MdInfo[]; readonly gap: string | null; readonly probe: IxProbe | null; readonly entries: Map<string, MdEntry> };
 
 // a cell of the module: its name (a stand-in for a name declared again), function and statement
 export type MdDef = { readonly name: string; readonly fn: FnNode; readonly stmt: AstNode };
@@ -74,7 +80,25 @@ export type MdCtx = {
   readonly defs: MdDef[]; readonly byName: Map<string, MdDef>; readonly cellNames: Set<string>; readonly shellNames: Set<string>;
   readonly foreign: Map<string, MdForeignValue>; readonly outside: Map<string, MdOutside>; readonly takenAsEvents: Set<string>; readonly probe: IxProbeAsk | null;
   readonly bound: string[];
+  // incr2 (D1): the module's type declarations by name, each with what converting it reports
+  readonly decls: Map<string, MdDecl>;
+  // incr2: the entries of an earlier check (null: none, or a completion probe, which checks every cell)
+  readonly prior: MdMemo | null;
 };
+// incr2 (D1): a type declaration: its statement's span, the names it holds, and what converting it reported
+export type MdDecl = { readonly name: string; readonly start: number; readonly end: number; readonly text: string; readonly refs: Set<string>; readonly diags: IxDiag[] };
+// incr2: one cell's check: its record before the declarations' problems are added, and what it met that the port lacks
+export type MdCellRun = { readonly gap: string | null; readonly own: MdCellRec };
+// incr2: what a cell's check writes to the tables, other than its record
+export type MdWrites = {
+  readonly value: Ty | null; readonly refInner: Ty | null; readonly eventsInner: Ty | null; readonly stateful: string | null; readonly fnFed: string | null;
+  readonly listener: boolean; readonly boundaries: Map<string, MdBoundary> | null; readonly views: [string, { readonly ty: Ty; readonly cell: string }][];
+};
+// incr2: a cell's entry: its key, its record with each position and line relative to the cell's statement, its writes
+export type MdEntry = { readonly key: string; readonly own: MdCellRec; readonly w: MdWrites };
+export type MdMemo = (name: string) => MdEntry | null;
+// incr2: what every cell's key reads of the module that is made once per check
+export type MdKeyCtx = { readonly settings: string; readonly dups: Set<string> };
 // the tables core.ts's cell loop writes and later cells read
 export type MdTables = {
   value: Map<string, Ty | null>; refInner: Map<string, Ty>; eventsInner: Map<string, Ty>; listeners: Set<string>;

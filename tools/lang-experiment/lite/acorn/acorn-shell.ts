@@ -49,3 +49,62 @@ export const acornParse = (() => {
     return { ok: true, ast: { program: visit(program), comments, src: text, count: nid } };
   };
 })();
+
+// incr2 (D3): acornParse of parts joined by a blank line, each part parsed alone and kept by its text for the next two
+// calls, its tree moved to where the part sits (start, end and line moved, nid moved past the parts before). The whole
+// text is parsed instead when a part does not parse alone, a top-level name is bound in two parts, or a part after the
+// first starts with a statement that does not start with a keyword (it might go on from the part before). Trusted
+// for: the tree being acornParse's of the joined text; lite/infer/attack/incr.test.ts compares the two on its modules.
+export const acornParseParts = (() => {
+  let kept: Map<string, any>[] = [new Map(), new Map()];
+  const LED = new Set(["VariableDeclaration", "FunctionDeclaration", "ClassDeclaration", "TSTypeAliasDeclaration", "TSInterfaceDeclaration", "TSEnumDeclaration", "TSModuleDeclaration", "TSDeclareFunction", "ImportDeclaration", "ExportNamedDeclaration", "ExportDefaultDeclaration", "ExportAllDeclaration"]);
+  const ids = (n: any, out: string[]): string[] => {
+    if (Array.isArray(n)) { for (const x of n) ids(x, out); return out; }
+    if (n === null || typeof n !== "object" || typeof n.type !== "string") return out;
+    if (n.type === "Identifier") out.push(n.name);
+    for (const k of ["id", "properties", "elements", "value", "left", "argument", "local", "specifiers", "declarations", "declaration"]) if (k in n) ids(n[k], out);
+    return out;
+  };
+  const breaks = (s: string) => { let k = 0; for (let i = 0; i < s.length; i++) if (s.charCodeAt(i) === 10) k++; return k; };
+  return (parts: string[], jsx: boolean): unknown => {
+    const text = parts.join("\n\n");
+    const now = new Map<string, any>(), trees: any[] = [], bound = new Set<string>();
+    for (const [i, t] of parts.entries()) {
+      const key = `${jsx ? 1 : 0}${t}`;
+      const p = now.get(key) ?? kept[0]!.get(key) ?? kept[1]!.get(key) ?? acornParse(t, jsx);
+      now.set(key, p);
+      if (!p.ok) return acornParse(text, jsx);
+      trees.push(p.ast);
+      for (const [j, st] of p.ast.program.body.entries()) {
+        if (i > 0 && j === 0 && !LED.has(st.type)) return acornParse(text, jsx);
+        for (const n of st.type === "ImportDeclaration" || LED.has(st.type) ? ids(st.type === "ExportNamedDeclaration" ? st.declaration ?? st.specifiers : st.type === "VariableDeclaration" ? st.declarations.map((d: any) => d.id) : st.type === "ImportDeclaration" ? st.specifiers : st.id ?? null, []) : []) {
+          if (bound.has(n)) return acornParse(text, jsx);
+          bound.add(n);
+        }
+      }
+    }
+    kept = [now, kept[0]!];
+    const body: any[] = [], comments: any[] = [];
+    let off = 0, lines = 0, nids = 1;
+    trees.forEach((a, i) => {
+      const dp = off, dl = lines, dn = nids - 1;
+      const move = (x: any): any => {
+        if (Array.isArray(x)) return x.map(move);
+        if (x === null || typeof x !== "object" || typeof x.type !== "string") return x;
+        const out: any = { ...x, nid: x.nid + dn, start: x.start + dp, end: x.end + dp, line: x.line + dl };
+        for (const k of Object.keys(x)) {
+          const v = x[k];
+          if (k === "fields") out.fields = v.map((f: any) => ({ ...f, nodes: f.nodes.map(move) }));
+          else if (v !== null && typeof v === "object" && k !== "props") out[k] = move(v);
+        }
+        return out;
+      };
+      for (const st of a.program.body) body.push(move(st));
+      for (const c of a.comments) comments.push({ ...c, start: c.start + dp, end: c.end + dp });
+      nids += a.count - 1;
+      off += parts[i]!.length + 2;
+      lines += breaks(parts[i]!) + 2;
+    });
+    return { ok: true, ast: { program: { type: "Program", nid: 0, start: 0, end: text.length, line: 1, body, sourceType: "module" }, comments, src: text, count: nids } };
+  };
+})();

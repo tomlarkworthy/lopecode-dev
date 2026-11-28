@@ -50,36 +50,32 @@ export const mdRenamed = (mdShownNames, mdUnPh, mdDupErrs) => (X: MdCtx, dups: M
   return { module: errs.module, out: renamed, shown };
 };
 // the module's context for its cells' checks
-export const mdContext = (mdAnn, mdRefName) => (R: MdReg, src: string, count: number, line: (pos: number) => number, defs: MdDef[], shellNames: Set<string>, F: MdForeign | null, outside: MdOutside[], probe: IxProbeAsk | null, bound: string[]): MdCtx => ({
-  R, src, count, line, defs, shellNames, probe, bound,
+export const mdContext = (mdAnn, mdRefName) => (R: MdReg, src: string, count: number, line: (pos: number) => number, defs: MdDef[], shellNames: Set<string>, F: MdForeign | null, outside: MdOutside[], probe: IxProbeAsk | null, bound: string[], decls: Map<string, MdDecl>, prior: MdMemo | null): MdCtx => ({
+  R, src, count, line, defs, shellNames, probe, bound, decls, prior,
   byName: new Map(defs.map((d): [string, MdDef] => [d.name, d])), cellNames: new Set(defs.map((d) => d.name)),
   foreign: new Map((F?.values ?? []).map((v): [string, MdForeignValue] => [v.name, v])),
   outside: new Map(outside.map((o): [string, MdOutside] => [o.name, o])),
   takenAsEvents: new Set(defs.flatMap((d) => d.fn.params.flatMap((p) => (p.type === "Identifier" && mdRefName(mdAnn(p)) === "Events" ? [p.name] : [])))),
 });
 // checkSources: the module level, the order, every cell in it, the renaming and the facts
-export const mdCheckSources = (mdDistinct, mdShellNames, lineAt, mdModuleLevel, mdContext, mdFreshRec, mdOrder, mdCell, mdRenamed, mdFactsOf) => (R: MdReg, S: MdSources): MdResult => {
-  const dist = mdDistinct(S.cells, S.tsx);
+export const mdCheckSources = (mdParseOf, mdShellNames, lineAt, mdModuleLevel, mdContext, mdFreshRec, mdOrder, mdLoop, mdRenamed, mdFactsOf, mdDecls) => (R: MdReg, S: MdSources): MdResult => {
+  const dist = mdParseOf(S);
   const p = dist.parse;
   if (!p.ok) throw new Error(p.message);
   const F = S.foreign !== null && S.foreign !== "" ? R.loadForeign(S.foreign) : null;
   const shellNames = S.shell !== null && S.shell !== "" ? mdShellNames(S.shell) : new Set<string>();
   const line = lineAt(dist.text);
   const ml = mdModuleLevel(R, p.ast, dist.text, S.tsx, F, shellNames, line);
-  const X = mdContext(R, dist.text, p.ast.count, line, ml.defs, shellNames, F, S.outside, S.probe, S.bound);
+  const X = mdContext(R, dist.text, p.ast.count, line, ml.defs, shellNames, F, S.outside, S.probe, S.bound, mdDecls(p.ast.program, R.declDiags(), dist.text), S.probe === null ? S.prior : null);
   const lines = new Map(ml.defs.map((d): [string, number] => [d.name, line(d.stmt.start)]));
   const { order, cycles } = mdOrder(ml.defs, X.byName, X.cellNames, lines);
   const fresh = ml.defs.map((d): [string, MdCellRec] => [d.name, mdFreshRec(d, lines.get(d.name) ?? 0, [...(ml.ignores.get(d.name) ?? []), ...(cycles.get(d.name) ?? [])])]);
   const M: MdMod = { value: new Map(), refInner: new Map(), eventsInner: new Map(), listeners: new Set(), stateful: new Map(), fnFed: new Map(), boundaries: new Map(), viewTypes: new Map(), out: new Map(fresh), probe: null };
-  let gap: string | null = null;
-  for (const d of order) {
-    const g = mdCell(X, M, d);
-    if (gap === null) gap = g;
-  }
+  const { gap, entries } = mdLoop(X, M, order, S, dist.dups);
   const rn = mdRenamed(X, dist.dups, M.out);
   const cells = ml.defs.flatMap((d) => { const c = rn.out.get(d.name); return c === undefined ? [] : [c]; });
   const module = [...ml.module, ...rn.module];
   const bounds = M.boundaries;
   const facts = ml.defs.map((d) => mdFactsOf(rn.shown.get(d.name) ?? d.name, d, bounds.get(d.name) ?? null, M.out.get(d.name)?.casts ?? [], M.out.get(d.name)?.holes ?? [], M.out.get(d.name)?.promises ?? null));
-  return { port: S.name ?? "cells", file: S.tsx ? "cells.tsx" : "cells.ts", ok: module.length === 0 && cells.every((c) => c.status === "ok"), module, cells, facts, gap, probe: M.probe };
+  return { port: S.name ?? "cells", file: S.tsx ? "cells.tsx" : "cells.ts", ok: module.length === 0 && cells.every((c) => c.status === "ok"), module, cells, facts, gap, probe: M.probe, entries };
 };

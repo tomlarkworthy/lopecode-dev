@@ -52,6 +52,8 @@ md`**S1.10** A top-level \`type\` or \`interface\` cannot have the name of a typ
 
 Since 2026-11-23, a type alias that is defined by itself is \`[type-cycle]\`, and is not loaded. An alias is defined by itself when no object, array, tuple or function type is between the alias and its own name. Names, unions, intersections, parentheses and generic aliases that return an argument do not count as between: \`type Key = Key\`, \`type A = B | number; type B = A\`. A use of such an alias adds no error of its own, so the program has one \`[type-cycle]\` for each alias (since 2026-11-23, a9; before that, each use was also \`[unknown-type]\`). \`type Tree = { readonly kids: readonly Tree[] }\` is accepted.`
 // %%
+md`**S1.11** A problem inside a \`type\` or \`interface\` declaration, such as an unknown type, belongs to each cell that names the declaration. A cell also names a declaration through another declaration that names it. Each such cell has the problem as its own and is rejected, or unsupported for \`[unsupported]\`. The order of the cells does not change which cells have it. A declaration that no cell names reports nothing.`
+// %%
 md`These are the cells of this section, in SoundScript. \`s1_exported\` keeps its \`export\` (S1.2), and the editor marks it "export is not needed".`
 // %%
 //ss: ./spec.ts
@@ -330,6 +332,18 @@ test_spec_S1_10 = {
   spec_is(spec_rulesOf({ source: "type Pool = { readonly m: number };\nconst a = (pool: Pool) => pool.m;" }), ["builtin-type-name", "no-member"]);
   spec_is(spec_okCells("type ListenerOf = { readonly n: number };\nconst one = () => (l: ListenerOf): number => l.n;"), "one:ok");
   return `${spec_rejectsFor("S1.10")}; the list is the checker's, all ${names.length} names rejected; the cells read the built-in; another name is accepted`;
+}
+// %%
+test_spec_S1_11 = {
+  const of = (source) => Object.fromEntries(soundscript.check(source).cells.map((c) => [c.name, `${c.status}:${c.errors.map((e) => e.rule).join(",")}`]));
+  spec_is(of("type A = Undeclared;\nconst a = () => 1;"), { a: "ok:" });
+  spec_is(soundscript.check("type A = Undeclared;\nconst a = () => 1;").module, []);
+  spec_is(of("interface I { n: Undeclared }\nconst c = (): I => ({ n: 1 });\nconst d = () => 2;"), { c: "rejected:unknown-type", d: "ok:" });
+  spec_is(of("type K = keyof { a: number };\nconst c = (): K => \"a\";\nconst d = () => 2;"), { c: "unsupported:", d: "ok:" });
+  const one = of("type A = Undeclared;\ntype B = { a: A };\nconst b = (): B => ({ a: 1 });\nconst c = (): A => 1;\nconst d = () => 2;");
+  spec_is(one, { b: "rejected:unknown-type", c: "rejected:unknown-type", d: "ok:" });
+  spec_is(of("type B = { a: A };\ntype A = Undeclared;\nconst c = (): A => 1;\nconst b = (): B => ({ a: 1 });\nconst d = () => 2;"), { c: "rejected:unknown-type", b: "rejected:unknown-type", d: "ok:" });
+  return "b (through B) and c (directly) are rejected with unknown-type in either order, and through an interface; a keyof alias makes its reader unsupported; d is ok; a declaration no cell names reports nothing";
 }
 // %%
 test_spec_S1_9 = {
@@ -2366,6 +2380,8 @@ md`**S8.6** A listener in the broken part ends when the edit is applied. Nothing
 // %%
 md`**S8.7** \`compile\` does not run an island that holds a cell that is not ok. An island of ok cells runs when another cell of the module does not parse.`
 // %%
+md`**S8.8** An edit checks a cell again only when the key of the cell changed. Each cell has a key: its text, the settings of the check, and what it reads of each name that it holds. Examples are the type of a cell that it takes, the text of each type declaration that it reaches, and whether a name is a cell in another language (S11.10). A cell whose key is the key of its last check keeps the result of that check. The notebook keeps the result on the compiled definition of the cell; the editor keeps the result of an edit that it has not stored, and drops that result when it stores the edit. The result is the same as a check of the whole module. \`test_spec_S8_8\` compares the two after each step. The whole module is checked again on the first check after the notebook loads, for a completion, and when a cell holds a form that the check of one cell does not cover, such as \`Promise\` with no type argument. A cell whose compiled definition is frozen, or is shared with another cell, is checked again on each check.`
+// %%
 spec_editFirst = [
   "const width = () => 640;",
   "const height = () => 400;",
@@ -2504,6 +2520,50 @@ test_spec_S8_6 = {
     // once each: as many calls as values since the repair, each adding by = 2
     if (s.count - broken.count > s.last - broken.last) throw new Error(`more calls than values since the repair: ${JSON.stringify([broken, s])}`);
     return `nothing delivered while add was rejected (count held at ${broken.count}); after the repair one listener, ${s.count - broken.count} calls for ${s.last - broken.last} values; ${during}`;
+  } finally { E.dispose(); }
+}
+// %%
+test_spec_S8_8 = {
+  const ENTRY = Symbol.for("soundscript.incr.entry"), OVERLAY = Symbol.for("soundscript.incr.overlay");
+  const E = await spec_editor([...spec_editFirst, "const loose = () => { const extra = 1; return extra; };"]);
+  const whole = () => { const c = ss_check(E.module); return [c.result.cells, soundscript.checkSources({ cells: c.source, tsx: true, outside: ss_outside(E.module) }).cells].map((x) => JSON.stringify(x)); };
+  const same = (what) => { const [a, b] = whole(); if (a !== b) throw new Error(`${what}: the kept results differ from a whole check`); };
+  const entryOf = (key) => ss_check(E.module).cells.find((c) => c.key === key)?.definition?.[ENTRY];
+  try {
+    same("after load");
+    if (!ss_check(E.module).cells.every((c) => c.definition[ENTRY]?.name === c.key)) throw new Error("a cell has no entry on its definition");
+    // a draft goes in the editor's overlay; storing it drops the overlay and keeps the entry on the new definition
+    const tallWas = entryOf("tall").entry;
+    const vars = [E.variable("width")], draft = 'const width = () => "800";';
+    const r = ss_language.check(draft, vars, E.at);
+    if (!vars[OVERLAY]?.has("width")) throw new Error("the draft's entry is not in the editor's overlay");
+    spec_is([...r.statesAfter].map(([n, x]) => [n, x.state]), [...soundscript.cellStates(soundscript.checkSources({ cells: r.texts.join("\n\n"), tsx: true, outside: ss_outside(E.module) }))].map(([n, x]) => [n, x.state]));
+    await ss_language.apply(draft, vars, E.at);
+    if (vars[OVERLAY]?.size !== 0) throw new Error("storing the edit did not drop the overlay");
+    if (entryOf("width")?.name !== "width") throw new Error("the stored edit's definition has no entry");
+    same("after the edit");
+    if (entryOf("tall").entry !== tallWas) throw new Error("tall, which the edit does not reach, was checked again");
+    // a cell in another language named extra: loose's key changes, its definition does not
+    const def = ss_check(E.module).cells.find((c) => c.key === "loose").definition, was = entryOf("loose").entry;
+    const tallBefore = entryOf("tall").entry;
+    const extra = E.module.variable({}).define("extra", [], () => 2);
+    same("with extra");
+    if (entryOf("tall").entry !== tallBefore) throw new Error("tall, which does not hold the name extra, was checked again");
+    if (ss_check(E.module).cells.find((c) => c.key === "loose").definition !== def || entryOf("loose").entry === was) throw new Error("loose was defined again, or kept its old entry");
+    extra.delete();
+    // a failed apply puts the old definitions back, each with its own entry
+    const before = ss_check(E.module).cells.map((c) => [c.definition, c.definition[ENTRY]]);
+    ss_language.faults.afterEditDefine = E.module;
+    let threw = null;
+    try { await ss_language.apply("const height = () => 500;", [E.variable("height")], E.at); } catch (e) { threw = e; } finally { ss_language.faults.afterEditDefine = null; }
+    if (!threw) throw new Error("the injected fault did not reach apply");
+    const after = ss_check(E.module).cells.map((c) => [c.definition, c.definition[ENTRY]]);
+    if (after.length !== before.length || after.some(([d], i) => d !== before[i][0])) throw new Error("the rollback did not put the old definitions back");
+    same("after the rollback");
+    // one definition shared by two cells keeps one entry; both still check as a whole check does
+    E.module.variable({}).define("half_copy", ["area"], ss_check(E.module).cells.find((c) => c.key === "half").definition);
+    same("with half_copy");
+    return "each cell keeps its entry on its definition; a draft's entry sits in the editor's overlay and goes on the stored definition; tall keeps its entry through both; a new cell in another language gives loose a new entry with no define; a rollback restores the definitions and their entries; a shared definition; each step equal to a whole check";
   } finally { E.dispose(); }
 }
 // %%
@@ -2768,7 +2828,7 @@ md`**S11.9** The value of a cell in another language is state. An action cannot 
 
 A function from another language is such a value. An action cannot capture it, and cannot capture a cell that reads it. A cell that takes the function, or a cell that reads it, cannot hold a value whose type can be or hold a function in a state cell, and cannot yield one from an events cell (\`[action-capture]\`). Since 2026-11-24 (w1), such a function given a record type (\`{}\`, a record of optional members, an empty interface) is \`[forgets]\` (S2.9), before the capture rule applies.`
 // %%
-md`**S11.10** When a cell in another language is added, deleted or renamed, the checker checks the SoundScript cells of the module again.`
+md`**S11.10** When a cell in another language is added, deleted or renamed, the checker checks the SoundScript cells of the module again. Each cell that holds the name of that cell is checked again, and each other cell keeps its result (S8.8).`
 // %%
 md`**S11.11** A function from another language is trusted. The notebook does not check that the function:
 

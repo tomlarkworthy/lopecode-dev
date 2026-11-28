@@ -11,7 +11,7 @@ import * as kidsCells from "./acorn-kids.ss.ts";
 import * as treeCells from "./acorn.ss.ts";
 import * as syntaxCells from "./syntax.ss.ts";
 import * as messageCells from "../messages.ss.ts";
-import { acornParse } from "./acorn-shell.ts";
+import { acornParse, acornParseParts } from "./acorn-shell.ts";
 import { cross, boundaryShape, type Shape } from "../boundary.ts";
 import * as rgCtl from "../infer/rg-ctl.ss.ts";
 import * as rgConvert from "../infer/rg-convert.ss.ts";
@@ -43,7 +43,7 @@ function firstParamType(body: AstNode[], cell: string): AstNode {
 // the boundary shape of the first parameter of the cell named cell, declared in text: over the registry cells, with
 // the acorn cells linked to acornParse as it is (lite/toolchain/tc-index.ts takes it for the tc shell)
 export function firstParamShape(text: string, cell: string): Shape {
-  const A0 = link({ ...kidsCells, ...treeCells, ...messageCells, ...syntaxCells }, prelude, { acornParse });
+  const A0 = link({ ...kidsCells, ...treeCells, ...messageCells, ...syntaxCells }, prelude, { acornParse, acornParseParts });
   const R0 = link({ ...rgCtl, ...rgConvert, ...rgSig, ...rgExpand, ...rgLoad, ...rgView }, prelude,
     { ...T, kidsOf: A0.kidsOf, nodeKind: A0.nodeKind, isFnNode: A0.isFnNode, childrenOf: A0.childrenOf, TYPE_FIELDS: A0.TYPE_FIELDS, leadingComments: A0.leadingComments });
   const reg = rgRegistryOf({ ...R0, parseTree: A0.parseTree }, true, declTreesOf(A0.parseTree));
@@ -59,9 +59,11 @@ export function firstParamShape(text: string, cell: string): Shape {
 }
 // the shape of parseTree's parameter, from acorn-types.ss.ts and its annotation in acorn.ss.ts
 export const parseTreeShape = (): Shape => firstParamShape(["acorn-types.ss.ts", "acorn.ss.ts"].map((f) => readFileSync(join(import.meta.dir, f), "utf8")).join("\n"), "parseTree");
-const given = { acornParse: cross(acornParse, parseTreeShape(), "parseTree.acornParse") };
+// incr2 (D3): the same for parseParts's parameter
+export const parsePartsShape = (): Shape => firstParamShape(["acorn-types.ss.ts", "acorn.ss.ts"].map((f) => readFileSync(join(import.meta.dir, f), "utf8")).join("\n"), "parseParts");
+const given = { acornParse: cross(acornParse, parseTreeShape(), "parseTree.acornParse"), acornParseParts: cross(acornParseParts, parsePartsShape(), "parseParts.acornParseParts") };
 // over: cells to put in place of the file's (syntax.test.ts's controls)
 export const linkAcorn = (over: Record<string, (...inputs: never[]) => unknown> = {}) => link({ ...kidsCells, ...treeCells, ...messageCells, ...syntaxCells, ...over }, prelude, given);
 const L = linkAcorn();
-export const { parseTree, lineStarts, lineIn, lineAt, leadingComments, nodeKind, isFnNode, TYPE_FIELDS, kidsOf, byNid, parentNids, preorder, childrenOf } = L;
+export const { parseTree, parseParts, lineStarts, lineIn, lineAt, leadingComments, nodeKind, isFnNode, TYPE_FIELDS, kidsOf, byNid, parentNids, preorder, childrenOf } = L;
 export const { syntaxCheck, distinctParse, moduleShape, syntaxBans, mutPlaces } = L;

@@ -5,6 +5,8 @@
 
 // a parse of text (TSX when jsx): the tree, or acorn's error as a value
 export const parseTree = (acornParse: (text: string, jsx: boolean) => Parse) => (text: string, jsx: boolean): Parse => acornParse(text, jsx);
+// incr2 (D3): parseTree of parts joined by a blank line, each part's parse kept by its text (acornParseParts)
+export const parseParts = (acornParseParts: (parts: string[], jsx: boolean) => Parse) => (parts: string[], jsx: boolean): Parse => acornParseParts(parts, jsx);
 
 // the position each line starts at
 export const lineStarts = () => (src: string): number[] => {
