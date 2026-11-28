@@ -5142,3 +5142,56 @@ Not done:
 - The `lite/notebook` build (`lite-cells-tutorial.html`) was not rebuilt, and `lite/notebook/verify.ts` was not run.
   Its example-equals-fixture check holds by `cmp`.
 - No `/review-notebook` pass was run.
+
+## perf 2 (2026-11-27)
+
+The question was why some checker cells take long to check. The record is
+`lite/soundscript/.scratch/perf2/RESULTS.md`, with its scripts and logs.
+
+Two causes were found and fixed. Neither fix changes an answer.
+
+- **F1.** `owPromiseIn` and `owTypedIn` (ow-capture.ss.ts) walked a captured binding's type to depth 12 with no memo.
+  ixNarrowCompare captures `tag: { arg: AstNode; tag: string } | null`, and one walk of it made 3249536 alias
+  expansions. Each walk now keeps a local `Mut<Map>` of the least depth at which an alias with no type arguments was
+  found to hold nothing, as `owIterIn` and `holdsWith` do. ixNarrowCompare: 1081-1163 ms -> 11 ms.
+- **F2.** `memberOfWith` (subtype.ss.ts) did not find `s` in a union member that is a union alias. A test such as
+  `narrowed AstNode members <: AstNode | null` then ran the full union-vs-union test: 58 tests, 1373 ms. `sure` now
+  looks one level into such a member.
+
+Each fix was first run side by side with the old code over the checker module and the corpus (`proto.ts --check`):
+- F1: 4342 and 9776 walk calls, 0 differ.
+- F2: the shortcut fired 115 and 114 times where the old code did not, and the old full test was true each time.
+
+The frozen mirror was not changed. Its `ts/registry.ts` imports `memberOfWith` from `types.ts`, so diff.ts cannot
+detect a wrong F2. The proto check and the census cover that.
+
+```
+whole checker-module check, bun, AC, interleaved (ab.txt)   9836-10274 ms -> 7326-7813 ms
+page lint per keystroke, checker module (3 edits, n 5)       10290 / 9122 / 9531 ms -> 6982 / 7307 / 7076 ms
+cells over 50 ms                                             45-46 -> 25-27
+```
+
+Ruled out, with evidence:
+- The expansion memo: 473 misses in 15.4M alias lookups.
+- Exponential `?:`/`&&` chains: about linear over 1-16 tests.
+- Per-cell rebuilds of module-wide data.
+- Inference repeated by the ownership pass.
+
+Gates:
+- fixtures 14/14.
+- diff DIFFERENT 0 over 4079 cells, the 14 real crashes and 1 throw as part 8.
+- tc-diff 56 lines, all calls DIFFERENT 1.
+- run-sets: both runners give the same counts as before, silent 0.
+- live 1554/0, verify --quick 245/0, verify 692/0.
+- Census of 50279 cells, every message kept: 14 differ, all of them copies of the edited `subtype.ss.ts` (line
+  numbers). By statement: 0.
+
+Left, not built:
+- A cache of subtype results. 98% of 1.67M tests repeat a pair. It needs a key with `Q.strict` and no store inside a
+  peek. Up to 1.7 s.
+- The remaining wide tests, e.g. `AstNode[] | null`: 1592 ms.
+- `typeKey` on each of 17M expansion memo hits: up to about 1.2 s.
+- Closure registration: 1.0 s (`SS_MEASURE_REG=0`). This is the run-time freeze, not repeated work.
+
+Step 1's profiles ran on battery. All before/after numbers ran on AC. Other processes loaded the machine (load 4-26),
+which `ab.txt` interleaves against. No `/review-notebook` pass was run.

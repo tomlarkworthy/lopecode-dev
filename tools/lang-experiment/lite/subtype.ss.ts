@@ -356,19 +356,26 @@ export const unwrapsWith = () => (R: RegOps) => (s: Ty): boolean => {
 };
 
 // s <: t found without the scan sub makes of a union: s is t, s is a member of t (t's alias expanded) by object or by
-// alias without type arguments, or arrays or a union of s made of such; a member that unwraps is left to sub, and so
-// is a type sub takes without expanding. Only for a whole comparison (Registry.sub): within one, a pair the scan
-// tried stays in seen and is taken as true when it is met again
+// alias without type arguments, or of such a member of t that is a union alias without type arguments, or arrays or a
+// union of s made of such; a member that unwraps is left to sub, and so is a type sub takes without expanding. Only
+// for a whole comparison (Registry.sub): within one, a pair the scan tried stays in seen and is taken as true when it is
+// met again
 export const memberOfWith = (unwrapsWith) => (R: RegOps) => (s: Ty, t: Ty): boolean => {
   const unwraps = unwrapsWith(R);
   const sameAlias = (a: Ty, b: Ty): boolean => a.k === "named" && b.k === "named" && a.n === b.n && !a.args.length && !b.args.length && R.isAlias(a.n);
+  // perf2 (2026-11-27): x is a member of m, a union alias without type arguments (AstNode in AstNode | null)
+  const inPlain = (x: Ty, m: Ty): boolean => {
+    if (m.k !== "named" || m.args.length || !R.isAlias(m.n)) return false;
+    const me = R.expand(m);
+    return me.k === "union" && me.ts.some((n) => R.same(x, n) || sameAlias(x, n));
+  };
   function sure(x: Ty, y: Ty): boolean {
     if (R.same(x, y)) return true;
     if (y.k === "unknown" || x.k === "err" || y.k === "err" || x.k === "never") return false;
     if (x.k === "arr" && y.k === "arr") return sure(x.el, y.el);
     if (x.k === "union") { for (const m of x.ts) if (!sure(m, y)) return false; return true; }
     const ye = y.k === "named" && R.isAlias(y.n) ? R.expand(y) : y;
-    return ye.k === "union" && ye.ts.some((m) => R.same(x, m) || sameAlias(x, m)) && !unwraps(x);
+    return ye.k === "union" && ye.ts.some((m) => R.same(x, m) || sameAlias(x, m) || inPlain(x, m)) && !unwraps(x);
   }
   return sure(s, t);
 };

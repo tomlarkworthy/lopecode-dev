@@ -236,25 +236,47 @@ export const owLateWrite = (isFnNode) => (O: OwCtx, r: AstNode, f: AstNode): boo
 // where t holds a typed array (which cannot be frozen): through what owTyKids looks into, Mut, type arguments, aliases
 // whether a value of type t holds a promise (not through a function type): a function the cell keeps cannot capture one,
 // as the promise settles after the function is published (freeze.ts throws at publish; holes8, 2026-11-22)
+// perf2 (2026-11-27): per walk, the least depth an alias without type arguments was found to hold nothing from, as
+// owIterIn keeps; from as deep the walk finds nothing again. The answers are the same; a captured AstNode walked 3249536
+// aliases before
 export const owPromiseIn = (owTyKids) => {
-  function promiseIn(R: IxRegCore, t: Ty, depth: number): boolean {
+  function promiseIn(R: IxRegCore, t: Ty, depth: number, none: Mut<Map<string, number>>): boolean {
     if (depth > 12) return false;
     if (t.k === "named" && t.n === "Promise") return true;
-    const ks = t.k === "named" ? (R.isAlias(t.n) ? [R.expand(t)] : t.args) : owTyKids(t);
-    return ks.some((x) => promiseIn(R, x, depth + 1));
+    if (t.k === "named" && R.isAlias(t.n)) {
+      const plain = !t.args.length, at = none.get(t.n);
+      if (plain && at !== undefined && at <= depth) return false;
+      const w = promiseIn(R, R.expand(t), depth + 1, none);
+      if (!w && plain) none.set(t.n, depth);
+      return w;
+    }
+    for (const x of t.k === "named" ? t.args : owTyKids(t)) if (promiseIn(R, x, depth + 1, none)) return true;
+    return false;
   }
-  return (R: IxRegCore, t: Ty): boolean => promiseIn(R, t, 0);
+  return (R: IxRegCore, t: Ty): boolean => {
+    const none: Mut<Map<string, number>> = new Map();
+    return promiseIn(R, t, 0, none);
+  };
 };
 export const owTypedIn = (owTyKids, OW_UNFREEZABLE) => {
-  function typedIn(R: IxRegCore, t: Ty, depth: number): string | null {
+  function typedIn(R: IxRegCore, t: Ty, depth: number, none: Mut<Map<string, number>>): string | null {
     if (depth > 12) return null;
     const U: Set<string> = OW_UNFREEZABLE;
     if (t.k === "named" && U.has(t.n)) return t.n;
-    const ks = t.k === "named" ? (R.isAlias(t.n) ? [R.expand(t)] : t.args) : owTyKids(t);
-    for (const x of ks) { const w = typedIn(R, x, depth + 1); if (w !== null) return w; }
+    if (t.k === "named" && R.isAlias(t.n)) {
+      const plain = !t.args.length, at = none.get(t.n);
+      if (plain && at !== undefined && at <= depth) return null;
+      const w = typedIn(R, R.expand(t), depth + 1, none);
+      if (w === null && plain) none.set(t.n, depth);
+      return w;
+    }
+    for (const x of t.k === "named" ? t.args : owTyKids(t)) { const w = typedIn(R, x, depth + 1, none); if (w !== null) return w; }
     return null;
   }
-  return (R: IxRegCore, t: Ty): string | null => typedIn(R, t, 0);
+  return (R: IxRegCore, t: Ty): string | null => {
+    const none: Mut<Map<string, number>> = new Map();
+    return typedIn(R, t, 0, none);
+  };
 };
 // a binding no one else can write: a cell input, or a const typed read-only whose initializer is a fresh copy
 export const owTypedSafeB = (owFresh, isNamed) => (O: OwCtx, b: IxBinding): boolean => {
