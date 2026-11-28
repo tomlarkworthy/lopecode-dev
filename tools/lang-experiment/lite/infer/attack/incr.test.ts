@@ -7,7 +7,7 @@
 // checker module and corpus modules. Every fifth step uses the entries of two steps back (a stale store). After every
 // step parseParts of the cells must equal parseTree of their joined text (D3). Controls: the declaration digest, the
 // interface of a named cell, or the Events part left out of the key; each must hide a change.
-// INCR_ONLY=named|programs|random|controls runs one part; INCR_CHECKER=0 leaves out the checker module (7 s a check).
+// INCR_ONLY=named|programs|random|controls|stored runs one part; INCR_CHECKER=0 leaves out the checker module (7 s a check).
 import { test, expect } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -27,6 +27,7 @@ const ONLY = process.env.INCR_ONLY ?? null, CHECKER = process.env.INCR_CHECKER !
 // INCR_ROUNDTRIP=1: each step's entries go through JSON (Maps and Sets tagged) before the next step reads them, as a
 // store saved into the built notebook would (incr2 persistence study)
 const ROUNDTRIP = process.env.INCR_ROUNDTRIP === "1";
+if (ROUNDTRIP) console.log("INCR_ROUNDTRIP=1: every store goes through JSON before the next step reads it");
 const enc = (_k: string, v: unknown) => (v instanceof Map ? { $map: [...v] } : v instanceof Set ? { $set: [...v] } : v);
 const dec = (_k: string, v: any) => (v && typeof v === "object" && !Array.isArray(v) ? ("$map" in v ? new Map(v.$map) : "$set" in v ? new Set(v.$set) : v) : v);
 const FIX = JSON.parse(readFileSync(join(import.meta.dir, "incr-modules.json"), "utf8"));
@@ -247,6 +248,32 @@ test.if(!ONLY || ONLY === "named")("the named edits on the checker and runtime m
   }
   console.log(`named (${ed.length} edits): ${report(T)}`); show(T);
   expect(T.differ).toEqual([]);
+}, 1800000);
+
+// a stored store (incr2): the base's entries through JSON, as the built notebook stores them, then read by a check of
+// each named edit. The store is older than the source, so the edited cell's entry has another key: a miss, never a
+// wrong answer. Each step must equal a whole check, and the edited cell must be checked, not taken from the store.
+test.if(!ONLY || ONLY === "stored")("a stored store from the base, read by each named edit: misses, not wrong answers", () => {
+  const ck = modOf("checker"), rt = modOf("runtime");
+  const ed = namedEdits(ck, rt);
+  const T: Tally = tally();
+  let editedReused = 0;
+  for (const base of [rt, ...(CHECKER ? [ck] : [])]) {
+    const b = attempt(mdCheckSources, base, new Map()).run!;
+    const stored = new Map<string, MdEntry>(JSON.parse(JSON.stringify([...b.entries], enc), dec));
+    for (const [l, m] of [["base", base] as [string, Mod], ...ed.filter(([, x]) => (base === ck) === (x.cells.length > 500))]) {
+      const fresh = attempt(mdCheckSources, m, null), mine = attempt(mdCheckSources, m, stored);
+      T.steps++;
+      const x = fresh.run ? shape(fresh.run, m) : `threw ${fresh.err}`, y = mine.run ? shape(mine.run, m) : `threw ${mine.err}`;
+      if (x !== y) T.differ.push(`stored ${l}:\n   ${firstDiff(x, y)}`);
+      const changed = m.cells.filter((t) => !base.cells.includes(t)).map((t) => declOf(t, m.set.tsx));
+      for (const [n, e] of mine.run?.entries ?? new Map()) { if (stored.get(n) === e) { T.reused++; if (changed.includes(n)) editedReused++; } else T.checked++; }
+    }
+  }
+  console.log(`stored (each base store through JSON, read by the base and its named edits): ${report(T)}; edited cells taken from the store ${editedReused}`); show(T);
+  expect(T.differ).toEqual([]);
+  expect(editedReused).toBe(0);
+  expect(T.reused).toBeGreaterThan(0);
 }, 1800000);
 
 // random sequences: each edit made to the module as the last step left it

@@ -88,6 +88,7 @@ soundscript.release(value)                      // a deleted variable's listener
 soundscript.compiledKind(definition)             // the kind of a compiled definition (plain, apply, ref, events, listen or rejected), or null
 ss_moduleCells(module)                 // a module's SoundScript cells: [{key, text, variable, definition}]
 ss_memo(module, texts, overlay?)       // the per-cell entries a check of texts reuses and keeps (incr2)
+ss_memoStore(name)                     // the stored entries of a module from the build (memo-store.json.gz), or null
 ss_source(module)                      // those cells' source, joined in runtime order
 ss_outside(module)                     // the module's cells in other languages: [{name, view?}]
 ss_check(module)                       // checkSources over ss_source(module), with ss_outside(module)
@@ -111,6 +112,8 @@ ss_fetch = globalThis.fetch.bind(globalThis)
 viewof ss_module = thisModule()
 // %%
 ss_runtimeModule = ss_module.value("module @tomlarkworthy/soundscript-runtime")
+// %%
+ss_checkerModule = ss_module.value("module @tomlarkworthy/soundscript-checker")
 // %%
 ss_keyOf = (name) => soundscript.keyOfVariable(name)
 // %%
@@ -173,8 +176,11 @@ ss_memo = (module, texts, overlay = null) => {
   const committed = new Set([...cells.values()].map((c) => c.text));
   const drafts = new Set(texts.filter((t) => !committed.has(t)).map((t) => soundscript.declaredName(t)));
   const own = (name) => { const e = cells.get(name)?.definition?.[ENTRY]; return e?.name === name ? e.entry : null; };
+  // a committed cell with no entry of its own reads the build's stored entry; a stale one has another key, a miss
+  let stored;
+  const kept = (name) => (stored === undefined ? (stored = ss_memoStore(ss_moduleName(module))) : stored)?.get(name) ?? null;
   return {
-    find: (name) => (drafts.has(name) ? overlay?.get(name) ?? null : own(name)),
+    find: (name) => (drafts.has(name) ? overlay?.get(name) ?? null : own(name) ?? kept(name)),
     keep: (entries) => {
       overlay?.clear();
       for (const [name, entry] of entries) {
@@ -184,6 +190,37 @@ ss_memo = (module, texts, overlay = null) => {
       }
     }
   };
+}
+// %%
+ss_memoStore = {
+  // incr2: the entries the build stored for each module (memo-store.json.gz: {stamp, modules: {name: JSON}}), so the
+  // first check after a load reads them. A module's JSON is parsed on its first check. A stamp other than
+  // ss_memoStamp's (another checker or runtime) drops the whole store.
+  let top = null;
+  try {
+    const stream = (await FileAttachment("memo-store.json.gz").stream()).pipeThrough(new DecompressionStream("gzip"));
+    top = JSON.parse(await new Response(stream).text());
+  } catch { top = null; }
+  const dec = (_k, v) => (v && typeof v === "object" && !Array.isArray(v) ? ("$map" in v ? new Map(v.$map) : "$set" in v ? new Set(v.$set) : v) : v);
+  const parsed = new Map();
+  let same = null;
+  return (name) => {
+    if (top === null) return null;
+    if (same === null) same = top.stamp === ss_memoStamp();
+    if (!same || typeof top.modules?.[name] !== "string") return null;
+    if (!parsed.has(name)) parsed.set(name, new Map(JSON.parse(top.modules[name], dec)));
+    return parsed.get(name);
+  };
+}
+// %%
+ss_memoStamp = () => {
+  // FNV-1a (32 bits) over the name and definition of every variable of the checker and runtime modules
+  let h = 0x811c9dc5;
+  for (const m of [ss_checkerModule, ss_runtimeModule]) {
+    const parts = [...runtime._variables].filter((v) => v._module === m && typeof v._definition === "function").map((v) => `${v._name}\u0000${v._definition}`).sort();
+    for (const p of parts) for (let i = 0; i < p.length; i++) { h ^= p.charCodeAt(i); h = Math.imul(h, 16777619); }
+  }
+  return (h >>> 0).toString(36);
 }
 // %%
 ss_keepEntry = (def, name, entry) => {

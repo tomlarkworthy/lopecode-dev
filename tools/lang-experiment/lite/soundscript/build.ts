@@ -61,6 +61,10 @@ const BASE = join(ROOT, "lopecode/notebooks/quick_start.html");
 const EXAMPLES = join(HERE, "../notebook/examples");
 const DEFAULT_OUT = join(ROOT, "lopebooks/notebooks/soundscript.html");
 const HASH_FILE = join(HERE, "built.sha256");
+// incr2: the stored memo (memo-store.ts writes it from a build's page), attached to the core module as
+// memo-store.json.gz unless --no-memo; the page drops it when its stamp is not the page's checker and runtime
+const MEMO_FILE = join(HERE, "memo-store.json");
+const MEMO_NAME = "memo-store.json.gz";
 const arg = (k: string) => (process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : null);
 const OUT = resolve(arg("--out") ?? DEFAULT_OUT);
 const withTutorial = !process.argv.includes("--no-tutorial");
@@ -264,7 +268,9 @@ try {
   generated = generate(compile, ssKeys);
   runtimeMod = buildModule(RUNTIME, "(generated runtime)", [], generated.runtime);
   checkerMod = buildModule(CHECKER, "(generated checker)", [{ name: PARSER_FILE, mime: "application/gzip", base64: true, data: Buffer.from(gz).toString("base64") }], generated.checker);
-  core = buildModule(CORE, "core.ojs", []);
+  const memo = !process.argv.includes("--no-memo") && existsSync(MEMO_FILE) ? readFileSync(MEMO_FILE) : null;
+  core = buildModule(CORE, "core.ojs", memo ? [{ name: MEMO_NAME, mime: "application/gzip", base64: true, data: Buffer.from(Bun.gzipSync(memo, { level: 9 })).toString("base64") }] : []);
+  console.log(memo ? `stored memo: ${MEMO_FILE} (${memo.length} bytes) attached as ${MEMO_NAME}` : "stored memo: none");
   if (withTutorial) {
     const files: File[] = readdirSync(EXAMPLES).sort().map((f) => {
       const data = readFileSync(join(EXAMPLES, f), "utf8");

@@ -5215,10 +5215,12 @@ first lint after load           7006 (whole: no entries after a load)
 - **D1** is the coordinator's decision: a type declaration's problem belongs to every cell that reaches the
   declaration by name (S1.11), not to the cell that expands it first. It changed 9 corpus cells (18 in the ss
   and ssx runs) from ok to rejected, 3 (6) from ok to unsupported, and none the other way. Mirrored in the frozen checker; `diff.ts` 0 DIFFERENT.
+  The glue of the frozen Registry under the live md cells (`frozen/ts/core.ts`, which rg-diff runs) also gained
+  the pass (`declPass`) and the memo's two fields; without them rg-diff gave end to end 1353 DIFFERENT, with them 1353 SAME.
 - **The memo** (`md-incr.ss.ts`) keeps one entry per cell. The page keeps it on the compiled definition, and a
   draft's in the editor's overlay (D2). The build and the gates check whole (D4).
 - **D3**, the parse by cell text, is `acornParseParts` in the shell, crossed by `parseParts`. It cut the all-hit
-  floor in bun from ~405 ms to ~310 ms on the checker module.
+  floor in bun from 396-423 ms to 296-312 ms on the checker module (probes.txt, 3 runs each).
 - `lite/infer/attack/incr.test.ts` replays edit sequences and requires the memo's result to equal a whole check
   after every step: 580 steps, 0 differ. Each of its three controls (a key part removed) shows differences (3, 10, 2).
 
