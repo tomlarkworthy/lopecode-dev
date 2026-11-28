@@ -238,7 +238,7 @@ export const assemble = (x: { lead: string; sections: string; model: string; day
 // ---- One agent a text (design piece 3 of plan/cloud-brain-docs-summarised-for-search.md): the papers' `run` and
 // `knowledge-docs.ts summarize` both call these. The agent is cloud-brain-dev/agent.sh with READS; SUMMARIZER_AGENT
 // names another script, for the tests.
-export type Agent = (dir: string, model: string, args: string[], more?: Record<string, string>) => { o: any; raw: string; err: string; reads: boolean };
+export type Agent = (dir: string, model: string, args: string[], more?: Record<string, string>) => { o: any; raw: string; err: string; reads: boolean; none?: boolean };
 export const agentRunner = (env: Record<string, string | undefined> = process.env): Agent => {
   const AGENT = env.SUMMARIZER_AGENT || join(root, "cloud-brain-dev/agent.sh");
   const { DRY: _d, TAB: _t, READS: _r, MODEL: _m, ...clean } = env;
@@ -247,7 +247,8 @@ export const agentRunner = (env: Record<string, string | undefined> = process.en
     const line = (r.stdout || "").trim().split("\n").filter(Boolean).at(-1) || "";
     let o: any = null;
     try { o = JSON.parse(line); } catch {}
-    return { o, raw: r.stdout || "", err: (r.stderr || "").slice(0, 300), reads: !!o && JSON.stringify(o.toolset) === '["Read"]' && o.mode === "default" };
+    // none: a line of no context and no usd is a claude that made no model call ("Not logged in"), whose result is no answer.
+    return { o, raw: r.stdout || "", err: (r.stderr || "").slice(0, 300), reads: !!o && JSON.stringify(o.toolset) === '["Read"]' && o.mode === "default", none: !!o && !o.context && !o.usd };
   };
 };
 export const outside = (prefix: string) => realpathSync(mkdtempSync(join(tmpdir(), prefix)));
@@ -265,6 +266,7 @@ export const canary = (agent: Agent, state: string): { stopped?: string; row?: R
   writeFileSync(file, line + "\n");
   const c = agent(empty, "haiku", [ROLE, `read ${file} and answer with its content`]);
   rmSync(empty, { recursive: true, force: true });
+  if (c.none) return { row: { canary: "none", result: String(c.o.result).slice(0, 120) }, stopped: `the canary's agent made no model call (${String(c.o.result).slice(0, 120)})` };
   const verdict = c.raw.includes(line) ? "read" : c.o && typeof c.o.result === "string" && c.reads ? "refused" : "unknown";
   const row = { canary: verdict, toolset: c.o?.toolset ?? null, mode: c.o?.mode ?? null, session: c.o?.session ?? null, usd: c.o?.usd ?? null };
   return verdict === "refused" ? { row } : { row, stopped: `the canary: ${verdict} (toolset ${JSON.stringify(c.o?.toolset ?? null)}, mode ${c.o?.mode ?? null})` };
@@ -284,7 +286,7 @@ export const summarize = (x: { kind: Kind; file: string; lines: number; title: s
   let r = x.agent(D, x.model, [ROLE, task]), j: ReturnType<typeof judge> | null = null;
   for (let round = 0; ; round++) {
     rounds.push(r.o);
-    if (!r.o || typeof r.o.result !== "string" || !r.reads) break;
+    if (!r.o || typeof r.o.result !== "string" || !r.reads || r.none) break;
     j = judge(r.o.result, x.title, text, x.kind);
     refused.push(j.refused);
     if (!j.refused.length || round === 1) break;
@@ -295,7 +297,8 @@ export const summarize = (x: { kind: Kind; file: string; lines: number; title: s
   const base = { model: x.model, session: rounds[0]?.session ?? null, ...(rounds[1] && rounds[1].session !== rounds[0]?.session ? { resumed: rounds[1].session } : {}), rounds: rounds.length,
     usd: Math.round(sum("usd") * 1e6) / 1e6, ms: sum("ms"), context: rounds.at(-1)?.context ?? null, turns: sum("turns"), refused, leadMax: max };
   const answers = rounds.map((o) => (o && typeof o.result === "string" ? (o.result as string) : ""));
-  if (!r.o || typeof r.o.result !== "string" || !r.reads) {
+  if (!r.o || typeof r.o.result !== "string" || !r.reads || r.none) {
+    if (r.none) return { ...base, outcome: "failed" as const, why: `the agent made no model call (${String(r.o.result).slice(0, 120)})`, stop: true, result: null as string | null, answers, lead: "", sections: "", numbers: [] as string[] };
     const why = !r.o ? `the agent gave no line: ${r.err}` : !r.reads ? `the agent's toolset is ${JSON.stringify(r.o.toolset ?? null)} and its mode ${r.o.mode ?? null}` : "the agent gave no result";
     return { ...base, outcome: "failed" as const, why, stop: !!r.o && !r.reads, result: null as string | null, answers, lead: "", sections: "", numbers: [] as string[] };
   }

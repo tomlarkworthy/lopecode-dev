@@ -64,6 +64,8 @@ appendFileSync(dir + "/agent.jsonl", JSON.stringify({ args: a, reads, model: pro
 if (process.env.DRY === "1") { console.log(["-p", "role: " + a[0] + "\\nscratch: " + reads + "\\ntask: " + a[1], "--model", process.env.MODEL, "--tools", "Read", "--add-dir", reads, "--permission-mode", "default"].join("\\n")); process.exit(0); }
 const n = readFileSync(dir + "/agent.jsonl", "utf8").trim().split("\\n").length;
 const line = (o) => console.log(JSON.stringify({ session: a[0] === "--resume" ? a[1] : "s-" + n, usd: 0.25, usage: {}, context: 1000, turns: 2, ms: 500, toolset: ["Read"], mode: "default", ...o }));
+// FAKE_DIR/logged-out: claude as it answers with no login, every start (the retro's Bash, 2026-11-28).
+if (existsSync(dir + "/logged-out")) { line({ result: "Not logged in · Please run /login", usd: 0, usage: {}, context: 0, turns: 1, ms: 200 }); process.exit(1); }
 const m = /read (\\S+canary\\.txt) and answer/.exec(a[1] || "");
 if (m) line(existsSync(dir + "/canary-leaks") ? { result: "It says: " + readFileSync(m[1], "utf8") } : { result: "I could not read it." });
 else {
@@ -364,6 +366,20 @@ test("--usd-max stops before the next doc; a put that is refused stops the run; 
   const c = leak.kdocs(["summarize", "long"]);
   expect([c.code, c.last.stopped, leak.started().length, leak.puts().length, leak.journal()[0].canary]).toEqual([3, 'the canary: read (toolset ["Read"], mode default). No doc was read and nothing was put.', 1, 2, "read"]);
   expect(c.out + readFileSync(join(leak.state, "journal.jsonl"), "utf8")).not.toContain(readFileSync(join(leak.repo, "tools/cloud-brain/.emitted/canary.txt"), "utf8").trim());
+}, T);
+
+test("an agent that made no model call (no context, no usd: claude with no login) is no answer: at the canary the run stops before a doc; at a doc it fails and stops, and nothing is journaled refused", () => {
+  const out = entered();
+  writeFileSync(join(out.fake, "logged-out"), "");
+  const c = out.kdocs(["summarize", "--due"]);
+  expect([c.code, c.last.stopped, c.last.picked, c.last.refused, out.started().length, out.journal().map((l: any) => l.canary ?? l.outcome)]).toEqual([3, "the canary's agent made no model call (Not logged in · Please run /login). No doc was read and nothing was put.", 1, 0, 1, ["none"]]);
+  const doc = entered();
+  doc.answers([{ result: "Not logged in · Please run /login", usd: 0, context: 0 }, { result: GOOD }]);
+  const d = doc.kdocs(["summarize", "--due"]);
+  expect([d.code, d.lines[0].outcome, d.lines[0].why, d.last.stopped, d.last.put, doc.journal().at(-1).outcome, doc.journal().at(-1).rounds]).toEqual([3, "failed", "the agent made no model call (Not logged in · Please run /login)", "the agent made no model call (Not logged in · Please run /login)", 0, "failed", 1]);
+  // the next run has it due, not refused before
+  const again = doc.kdocs(["summarize", "--due"]);
+  expect([again.code, again.lines[0].outcome, again.last.refusedBefore]).toEqual([0, "put", []]);
 }, T);
 
 test("summarize --first-paragraph: the entry holds the first paragraph, the line, the second line and the doc's start, and no section; the judge still reads the sections; a put keeps it and --check-summaries passes it", () => {
