@@ -117,7 +117,8 @@ function referenceChecks() {
   }
 }
 
-// --quick: only the original page (boot counts, every test_* cell, the unchanged save); not a full pass
+// --quick: only the original page (boot counts, every test_* cell, the unchanged save) and the stored memo through
+// a checker edit and an export; not a full pass
 const QUICK = process.argv.includes("--quick");
 class QuickDone extends Error {}
 const FOCUS_TRACE = process.argv.includes("--focus-trace");
@@ -708,6 +709,68 @@ const exportPage = (page: Page) => page.evaluate(async () => {
   const r = await v._value({ mains: rt.mains });
   return r.source ?? r;
 });
+// incr2 stored memo: the page's helpers, as source run in the page (window.__MH)
+const MEMO_HELPERS = `(async () => {
+  const rt = window.__ojs_runtime, core = rt.mains.get("@tomlarkworthy/soundscript"), get = (n) => core.value(n);
+  const H = { cellsOf: await get("ss_moduleCells"), nameOf: await get("ss_moduleName"), outsideOf: await get("ss_outside"), runtimeM: await get("ss_runtimeModule") };
+  H.checker = [...rt._variables].find((x) => x._name === "parser_lib")._module;
+  H.fresh = async () => { H.ss = await get("soundscript"); H.lang = await get("ss_language"); H.check = await get("ss_check"); H.store = await get("ss_memoStore"); H.stamp = await get("ss_memoStamp"); H.save = await get("ss_memoSave"); };
+  H.varOf = (mod, key) => [...rt._variables].find((v) => v._module === mod && H.ss.langOf(String(v._definition)) === "ss" && H.ss.keyOfVariable(v._name) === key);
+  H.whole = (mod) => H.ss.checkSources({ cells: H.cellsOf(mod).map((c) => c.text).join("\\n\\n"), tsx: true, outside: H.outsideOf(mod) });
+  H.same = (a, b) => JSON.stringify({ c: a.cells, m: a.module }) === JSON.stringify({ c: b.cells, m: b.module });
+  H.hits = (mod) => { const s = H.store(H.nameOf(mod)); let h = 0, n = 0; for (const c of H.cellsOf(mod)) { if (!s?.has(c.key)) continue; n++; if (c.definition?.[Symbol.for("soundscript.incr.entry")]?.entry === s.get(c.key)) h++; } return { h, n }; };
+  await H.fresh();
+  window.__MH = H;
+})()`;
+// the first check of the checker module reads the stored memo: every stored entry hits, the result is a whole check's
+async function memoStored(page: Page, label: string) {
+  const r = await page.evaluate(async (src) => {
+    await (0, eval)(src);
+    const H = (window as any).__MH;
+    if (!H.store(H.nameOf(H.checker))) return { none: true };
+    const a = performance.now(); const first = H.check(H.checker).result; const ms = performance.now() - a;
+    return { ms, ...H.hits(H.checker), equal: H.same(first, H.whole(H.checker)) };
+  }, MEMO_HELPERS);
+  report(!r.none && r.n > 0 && r.h === r.n && r.equal, `${label}: stored memo: the first check of the checker module took ${r.h} of ${r.n} stored entries (${r.ms?.toFixed(0)} ms) and equals a whole check: ${r.equal}`);
+}
+// a checker edit drops the stored memo (another stamp); the memo made after it is saved by an exporter-3 export, and
+// the reopened export's first check of the checker takes every entry from it
+async function memoSaved() {
+  const A = await open(file);
+  const r = await A.page.evaluate(async (src) => {
+    await (0, eval)(src);
+    const H = (window as any).__MH;
+    const stamp0 = H.stamp(), before = !!H.store(H.nameOf(H.checker));
+    const v = H.varOf(H.checker, "checkKey");
+    const text = await H.lang.decompile([v]);
+    if (!text.includes('(tsx ? "x" : "s")')) return { err: "checkKey has no key prefix to edit" };
+    await H.lang.apply(text.replace('(tsx ? "x" : "s")', '(tsx ? "x0" : "s")'), [v]);
+    await H.fresh();
+    const stamp1 = H.stamp(), dropped = H.store(H.nameOf(H.checker)) === null && H.store(H.nameOf(H.runtimeM)) === null;
+    const equal = H.same(H.check(H.checker).result, H.whole(H.checker));
+    const saved = await H.save();
+    return { stamp0, stamp1, before, dropped, equal, saved };
+  }, MEMO_HELPERS);
+  report(!r.err && r.before && r.stamp0 !== r.stamp1 && r.dropped && r.equal, `stored memo: a checker edit changes the stamp (${r.stamp0} -> ${r.stamp1}) and drops the stored memo of the checker and runtime modules: ${r.dropped}; the next check equals a whole check: ${r.equal}${r.err ? "; " + r.err : ""}`);
+  report(r.saved?.stamp === r.stamp1 && r.saved?.modules > 0, `stored memo: the live memo written for the export: ${JSON.stringify(r.saved)}`);
+  const html = await exportPage(A.page);
+  await A.page.close();
+  const path = join(SCRATCH, "export-memo.html");
+  writeFileSync(path, html);
+  report(html.includes(`id="${CORE}/memo-store.json.gz"`), `stored memo: the export (${Buffer.byteLength(html)} bytes) carries ${CORE}/memo-store.json.gz`);
+  const B = await open(path);
+  const q = await B.page.evaluate(async (src) => {
+    await (0, eval)(src);
+    const H = (window as any).__MH;
+    const v = H.varOf(H.checker, "checkKey");
+    const text = await H.lang.decompile([v]);
+    const a = performance.now(); const first = H.check(H.checker).result; const ms = performance.now() - a;
+    const hits = H.hits(H.checker);
+    return { edited: text.includes('(tsx ? "x0" : "s")'), stamp: H.stamp(), ms, ...hits, equal: H.same(first, H.whole(H.checker)) };
+  }, MEMO_HELPERS);
+  report(q.edited && q.stamp === r.stamp1 && q.n > 0 && q.h === q.n && q.equal, `stored memo: the reopened export (the edit in it: ${q.edited}, stamp ${q.stamp}): the first check of the checker took ${q.h} of ${q.n} stored entries (${q.ms.toFixed(0)} ms) and equals a whole check: ${q.equal}`);
+  await B.page.close();
+}
 const ssSource = (page: Page, name: string) => page.evaluate((name) => {
   const rt = (window as any).__ojs_runtime;
   const mod = rt.mains.get(name);
@@ -2434,6 +2497,7 @@ const fresh = await addCell(A.page, TUTORIAL, "half", "const tripled = (width: n
 report(fresh.back === "const tripled = (width: number) => width * 3;" && fresh.value === 1920 && fresh.afterAnchor && fresh.held, `editor: a new cell is applied as SoundScript after its anchor: ${JSON.stringify(fresh)}`);
 await languagePick(A.page);
 await mandelZoom(A.page);
+await memoStored(A.page, "original");
 
 // --- 4: export, reopen, export again
 const sourceA = await ssSource(A.page, TUTORIAL);
@@ -2452,6 +2516,8 @@ await instanceStops(A.page);
 await deleteStops(A.page);
 requests("original page", A);
 await A.page.close();
+enter("stored memo");
+await memoSaved();
 if (QUICK) throw new QuickDone();
 enter("reopened export");
 
